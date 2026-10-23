@@ -47,8 +47,11 @@
                     >{session.getPlayerName(prompt.sellerPlayerId)} sold {prompt.shares}
                     {shares(prompt.shares)} for {money(prompt.proceeds)}. Buy {prompt.shares === 1
                         ? 'it'
-                        : 'them'} to keep the price at {money(prompt.price)}?{#if prompt.declinedPrice !== prompt.price}{' '}Declining
-                        drops it to {money(prompt.declinedPrice)}.{/if}</span
+                        : 'them'} to keep the price at {money(
+                        prompt.price
+                    )}?{#if prompt.declinedPrice !== prompt.price}{' '}Declining drops it to {money(
+                            prompt.declinedPrice
+                        )}.{/if}</span
                 >
             </DecisionResponse>
         {:else}

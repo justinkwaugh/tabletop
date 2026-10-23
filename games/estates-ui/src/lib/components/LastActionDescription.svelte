@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { GameSessionMode } from '@tabletop/frontend-components'
     import { Button } from 'flowbite-svelte'
     import ActionDescription from '$lib/components/ActionDescription.svelte'

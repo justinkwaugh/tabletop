@@ -79,49 +79,22 @@ describe('StockModule', () => {
             expectedPrice: 10
         })
     })
-    it('opens a sole non-pass menu automatically without consuming Undo or committing an action', async () => {
+    it('leaves a sole menu closed until the player chooses it', async () => {
         const { session, applied } = trading(['FinishStockTurn'])
         const module = new StockModule(
             session,
             () => {},
             () => true
         )
-        expect(module.openMenu).toBe('exchange')
-        expect(module.hasManual()).toBe(false)
-        expect(module.undo()).toBe(false)
-        expect(applied).toEqual([])
-        module.clear()
-        expect(module.openMenu).toBe('exchange')
-        await module.finishTurn()
-        expect(applied.map((action) => action.type)).toEqual(['FinishStockTurn'])
-    })
-
-    it('counts title-specific options and respects manual choices', () => {
-        const { session } = trading()
-        const module = new StockModule(
-            session,
-            () => {},
-            () => true,
-            () => 1
-        )
+        expect(module.availableMenus.map((choice) => choice.menu)).toEqual(['exchange'])
         expect(module.openMenu).toBeUndefined()
         module.chooseMenu('exchange')
         expect(module.openMenu).toBe('exchange')
         expect(module.hasManual()).toBe(true)
         expect(module.undo()).toBe(true)
         expect(module.openMenu).toBeUndefined()
-    })
-
-    it('does not auto-open a menu when interaction or selections are unavailable', () => {
-        for (const availability of [{ interactive: false }, { selectionsVisible: false }]) {
-            const { session } = trading([], availability)
-            const module = new StockModule(
-                session,
-                () => {},
-                () => true
-            )
-            expect(module.openMenu).toBeUndefined()
-        }
+        await module.finishTurn()
+        expect(applied.map((action) => action.type)).toEqual(['FinishStockTurn'])
     })
 
     it('Undo steps back from the sale company to the menu, then closes the menu', () => {

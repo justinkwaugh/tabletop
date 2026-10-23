@@ -47,9 +47,14 @@ const TABLE_BANKS: Record<Suit, number> = {
 }
 
 const carrying = (...cardIds: string[]) => ({
-    pendingSearchModifiers: cardIds.map((cardId) => ({ cardId, powerIndex: powerIndexOf(cardId, PowerTiming.Modifier) }))
+    pendingSearchModifiers: cardIds.map((cardId) => ({
+        cardId,
+        powerIndex: powerIndexOf(cardId, PowerTiming.Modifier)
+    }))
 })
-const sites = (c1: string) => ({ siteCards: { c1, c2: 'site.plains', p1: 'site.mountain', h1: 'site.wastes' } })
+const sites = (c1: string) => ({
+    siteCards: { c1, c2: 'site.plains', p1: 'site.mountain', h1: 'site.wastes' }
+})
 
 type Table = {
     banks?: Partial<Record<Suit, number>>
@@ -61,8 +66,22 @@ type Table = {
 function table({ banks = {}, rhys = {}, over = {} }: Table = {}) {
     const state = testState(
         [
-            testPlayer({ playerId: 'rhys', color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 2, secrets: 3, handIds: [SALAD, WOLVES, TUTOR], ...rhys }),
-            testPlayer({ playerId: 'dana', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c2' })
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                favor: 2,
+                secrets: 3,
+                handIds: [SALAD, WOLVES, TUTOR],
+                ...rhys
+            }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c2'
+            })
         ],
         {
             machineState: MachineState.Searching,
@@ -79,7 +98,11 @@ function table({ banks = {}, rhys = {}, over = {} }: Table = {}) {
 }
 
 /** The kept card's "To your site" line in the Search panel; the site play is offered beside it. */
-async function searchLine(state: HydratedOathGameState, cardId: string, before: (draft: Awaited<ReturnType<typeof openSessionOn>>['search']) => void = () => {}) {
+async function searchLine(
+    state: HydratedOathGameState,
+    cardId: string,
+    before: (draft: Awaited<ReturnType<typeof openSessionOn>>['search']) => void = () => {}
+) {
     const session = await openSessionOn(tableOf(state))
     vi.spyOn(session, 'resolveSearch').mockResolvedValue()
     const draft = session.search
@@ -92,7 +115,11 @@ async function searchLine(state: HydratedOathGameState, cardId: string, before: 
 /** A facedown adviser's "To your site" line (R-6.1). */
 function adviserLine(state: HydratedOathGameState, cardId: string): SitePlayGain | undefined {
     const placements = adviserPlacements(state, 'rhys', cardId)
-    expect(placements.filter((option) => option.play !== SearchPlay.Site).every((option) => option.gain === undefined)).toBe(true)
+    expect(
+        placements
+            .filter((option) => option.play !== SearchPlay.Site)
+            .every((option) => option.gain === undefined)
+    ).toBe(true)
     return placements.find((option) => option.play === SearchPlay.Site)?.gain
 }
 
@@ -108,23 +135,38 @@ describe('"To your site" shows the favor the Search\'s site play gains (R-5.1.4.
     })
 
     it('Fertile Valley (the Hearth Homeland) with Hearth 3: the site and the Homeland, +2', async () => {
-        expect(await searchLine(table({ over: sites('site.fertile-valley') }), SALAD)).toEqual(favor(2))
+        expect(await searchLine(table({ over: sites('site.fertile-valley') }), SALAD)).toEqual(
+            favor(2)
+        )
     })
 
     it('Fertile Valley with Hearth 1: the site takes the last, +1', async () => {
-        expect(await searchLine(table({ banks: { [Suit.Hearth]: 1 }, over: sites('site.fertile-valley') }), SALAD)).toEqual(favor(1))
+        expect(
+            await searchLine(
+                table({ banks: { [Suit.Hearth]: 1 }, over: sites('site.fertile-valley') }),
+                SALAD
+            )
+        ).toEqual(favor(1))
     })
 
     it('Fertile Valley with a Hearth card discarded there this turn: the ledger bars the Homeland, +1', async () => {
-        const state = table({ rhys: { homelandUsedThisTurn: ['c1:hearth'] }, over: sites('site.fertile-valley') })
+        const state = table({
+            rhys: { homelandUsedThisTurn: ['c1:hearth'] },
+            over: sites('site.fertile-valley')
+        })
         expect(await searchLine(state, SALAD)).toEqual(favor(1))
     })
 
     it("Welcoming Party carried: its Hearth favor after the play counts, even when the card's own bank is empty", async () => {
-        const party = { rhys: { advisers: [{ cardId: WELCOMING_PARTY, faceUp: true }] }, over: carrying(WELCOMING_PARTY) }
+        const party = {
+            rhys: { advisers: [{ cardId: WELCOMING_PARTY, faceUp: true }] },
+            over: carrying(WELCOMING_PARTY)
+        }
         expect(await searchLine(table(party), WOLVES)).toEqual(favor(1))
         expect(await searchLine(table(party), SALAD)).toEqual(favor(2))
-        expect(await searchLine(table({ ...party, banks: { [Suit.Hearth]: 1 } }), SALAD)).toEqual(favor(1))
+        expect(await searchLine(table({ ...party, banks: { [Suit.Hearth]: 1 } }), SALAD)).toEqual(
+            favor(1)
+        )
     })
 
     it('Book of Records carried: a secret instead of the favor', async () => {
@@ -132,17 +174,25 @@ describe('"To your site" shows the favor the Search\'s site play gains (R-5.1.4.
         expect(await searchLine(state, SALAD)).toEqual({ favor: 0, secrets: 1 })
     })
 
-    it('Vow of Kinship: a Nomad card takes the Nomad bank\'s favor, kept in that bank', async () => {
-        const state = table({ banks: { [Suit.Nomad]: 1 }, rhys: { handIds: [TENTS, WOLVES, TUTOR], advisers: [{ cardId: VOW, faceUp: true }] } })
+    it("Vow of Kinship: a Nomad card takes the Nomad bank's favor, kept in that bank", async () => {
+        const state = table({
+            banks: { [Suit.Nomad]: 1 },
+            rhys: { handIds: [TENTS, WOLVES, TUTOR], advisers: [{ cardId: VOW, faceUp: true }] }
+        })
         expect(await searchLine(state, TENTS)).toEqual(favor(1))
     })
 
     it("a card discarded first gives its favor back before the site takes one (the People's Favor)", async () => {
-        const state = table({ banks: { [Suit.Hearth]: 0 }, over: { banners: testBanners({ [Banner.PeoplesFavor]: 'rhys' }) } })
+        const state = table({
+            banks: { [Suit.Hearth]: 0 },
+            over: { banners: testBanners({ [Banner.PeoplesFavor]: 'rhys' }) }
+        })
         state.denizensBySite['c1'] = [BIRDSONG, STORYTELLER]
         state.addTokensOn(STORYTELLER, { favor: 1 })
         expect(await searchLine(state, SALAD)).toEqual(favor(0))
-        expect(await searchLine(state, SALAD, (draft) => draft.setDiscardFirst(STORYTELLER))).toEqual(favor(1))
+        expect(
+            await searchLine(state, SALAD, (draft) => draft.setDiscardFirst(STORYTELLER))
+        ).toEqual(favor(1))
     })
 
     it('"To which site": another site (the People\'s Favor): no line', async () => {
@@ -158,11 +208,16 @@ describe('"To your site" shows the favor the Search\'s site play gains (R-5.1.4.
 
     it("Land Warden's second card to the site leaves the kept card's line its own", async () => {
         // The River holds nothing here, so it has room for both cards.
-        const state = table({ rhys: { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] }, over: carrying(LAND_WARDEN) })
+        const state = table({
+            rhys: { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] },
+            over: carrying(LAND_WARDEN)
+        })
         state.denizensBySite['c1'] = []
         let second: string | undefined
         const gain = await searchLine(state, SALAD, (draft) => {
-            const toSite = draft.secondPlays.find((option) => option.cardId === WOLVES && option.play === SearchPlay.Site)
+            const toSite = draft.secondPlays.find(
+                (option) => option.cardId === WOLVES && option.play === SearchPlay.Site
+            )
             draft.setSecondPlay(toSite?.key)
             second = draft.second?.cardId
         })
@@ -176,11 +231,21 @@ describe('a facedown adviser\'s "To your site" shows the same line (R-6.1)', () 
     const acting = { machineState: MachineState.ActPhase }
 
     it('Wolves to the River with Beast 0: +0', () => {
-        expect(adviserLine(table({ rhys: facedown(WOLVES), over: acting }), WOLVES)).toEqual(favor(0))
+        expect(adviserLine(table({ rhys: facedown(WOLVES), over: acting }), WOLVES)).toEqual(
+            favor(0)
+        )
     })
 
     it('Salad Days to Fertile Valley with Hearth 3: +2', () => {
-        expect(adviserLine(table({ rhys: facedown(SALAD), over: { ...acting, ...sites('site.fertile-valley') } }), SALAD)).toEqual(favor(2))
+        expect(
+            adviserLine(
+                table({
+                    rhys: facedown(SALAD),
+                    over: { ...acting, ...sites('site.fertile-valley') }
+                }),
+                SALAD
+            )
+        ).toEqual(favor(2))
     })
 
     it('with Book of Records held (its mandatory modifier acts on the play): +1 secret', () => {
@@ -193,7 +258,9 @@ describe('the line in words', () => {
     it('gold for a gain, "+0" in grey for none, and a secret beside any favor', () => {
         expect(siteGainParts(favor(2))).toEqual([{ text: '+2 favor', gains: true }])
         expect(siteGainParts(favor(0))).toEqual([{ text: '+0 favor', gains: false }])
-        expect(siteGainParts({ favor: 0, secrets: 1 })).toEqual([{ text: '+1 secret', gains: true }])
+        expect(siteGainParts({ favor: 0, secrets: 1 })).toEqual([
+            { text: '+1 secret', gains: true }
+        ])
         expect(siteGainParts({ favor: 1, secrets: 1 })).toEqual([
             { text: '+1 secret', gains: true },
             { text: '+1 favor', gains: true }
@@ -202,7 +269,9 @@ describe('the line in words', () => {
 
     it("the button's name says it", () => {
         expect(withSiteGain('To your site', favor(0))).toBe('To your site, +0 favor')
-        expect(withSiteGain('To your site: Wolves', { favor: 0, secrets: 1 })).toBe('To your site: Wolves, +1 secret')
+        expect(withSiteGain('To your site: Wolves', { favor: 0, secrets: 1 })).toBe(
+            'To your site: Wolves, +1 secret'
+        )
         expect(withSiteGain('Discard', undefined)).toBe('Discard')
     })
 })

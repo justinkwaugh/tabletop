@@ -31,8 +31,9 @@
         {/if}
     {:else}
         {#if entry.move}
-            moved architect {entry.move.architectNumber} to {@render square(entry.move.position)}{#if entry.build || entry.passed},
-                then{/if}
+            moved architect {entry.move.architectNumber} to {@render square(
+                entry.move.position
+            )}{#if entry.build || entry.passed}, then{/if}
         {/if}
         {#if entry.build}
             built a {entry.build.buildingType} on {@render square(entry.build.position)}

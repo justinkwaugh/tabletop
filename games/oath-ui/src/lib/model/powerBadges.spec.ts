@@ -104,7 +104,9 @@ describe('the Use badge on a card', () => {
     })
 
     it('outside the seat’s Act Phase there is none', async () => {
-        const session = await openSessionOn(tableOf(table({ machineState: MachineState.RestPhase })))
+        const session = await openSessionOn(
+            tableOf(table({ machineState: MachineState.RestPhase }))
+        )
         expect(listedActionPowers(session.gameState, RHYS)).not.toEqual([])
         expect(session.powerBadgeCards).toEqual([])
     })

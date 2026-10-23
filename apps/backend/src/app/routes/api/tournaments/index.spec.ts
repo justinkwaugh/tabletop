@@ -97,16 +97,12 @@ describe('tournament administrator authorization', () => {
         }
     )
 
-    it.each([true, false])(
-        'lists tournament titles only for administrators: %s',
-        async (admin) => {
-            const { server, cookies } = await setup(admin ? [Role.User, Role.Admin] : [Role.User])
-            const response = await server.inject({ url: '/tournaments/titles', cookies })
-            expect(response.statusCode).toBe(admin ? 200 : 403)
-            if (admin)
-                expect(response.json()).toEqual({ status: 'ok', payload: { titleIds: ['sol'] } })
-        }
-    )
+    it.each([true, false])('lists tournament titles only for administrators: %s', async (admin) => {
+        const { server, cookies } = await setup(admin ? [Role.User, Role.Admin] : [Role.User])
+        const response = await server.inject({ url: '/tournaments/titles', cookies })
+        expect(response.statusCode).toBe(admin ? 200 : 403)
+        if (admin) expect(response.json()).toEqual({ status: 'ok', payload: { titleIds: ['sol'] } })
+    })
 
     it('accepts the completed tournament filter', async () => {
         const { server, user, cookies, change } = await setup([Role.User])

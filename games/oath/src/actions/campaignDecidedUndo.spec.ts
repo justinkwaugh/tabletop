@@ -22,7 +22,15 @@ import { PlayerStatus } from '../model/oathEnums.js'
 import type { OathPlayerState } from '../model/playerState.js'
 import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
-import { CRADLE, HINTERLAND, PROVINCES, openTurn, testPlayer, testState, withChancellor } from '../testing/fixture.js'
+import {
+    CRADLE,
+    HINTERLAND,
+    PROVINCES,
+    openTurn,
+    testPlayer,
+    testState,
+    withChancellor
+} from '../testing/fixture.js'
 import { buildAction } from '../testing/actions.js'
 import { battlePlanUse, siteTarget } from '../testing/choices.js'
 import { engine } from '../testing/engine.js'
@@ -63,7 +71,8 @@ const BEA = 'bea'
 const PAWN: CampaignTarget = { kind: CampaignTargetKind.PawnAndFavor }
 
 /** Every random stream the state carries, so a step that rolled shows as a change. */
-const streams = (s: HydratedOathGameState | OathProjectedState) => JSON.stringify([s.prng, s.protectedPrng])
+const streams = (s: HydratedOathGameState | OathProjectedState) =>
+    JSON.stringify([s.prng, s.protectedPrng])
 
 const player = (playerId: string) => ({ kind: 'player', playerId }) as const
 
@@ -107,7 +116,13 @@ class Table {
     }
 
     run(fields: Fields) {
-        const action: GameAction = { id: `d-${(this.seq += 1)}`, gameId: 'game-1', source: ActionSource.User, index: this.state.actionCount, ...fields }
+        const action: GameAction = {
+            id: `d-${(this.seq += 1)}`,
+            gameId: 'game-1',
+            source: ActionSource.User,
+            index: this.state.actionCount,
+            ...fields
+        }
         const result = engine.run(action, this.state, this.game)
         this.state = result.updatedState
         this.processed = result.processedActions
@@ -117,7 +132,10 @@ class Table {
 
     /** What the last step did on the host. */
     get outcome(): Outcome {
-        return { campaign: this.state.campaign, reveals: this.processed.map((action) => action.revealsInfo) }
+        return {
+            campaign: this.state.campaign,
+            reveals: this.processed.map((action) => action.revealsInfo)
+        }
     }
 
     /**
@@ -127,18 +145,51 @@ class Table {
      */
     onSeatsView(seat: string, fields: Fields): Outcome {
         const perspective = player(seat)
-        const action: GameAction = { id: `view-${seat}`, gameId: 'game-1', source: ActionSource.User, index: this.state.actionCount, ...fields }
+        const action: GameAction = {
+            id: `view-${seat}`,
+            gameId: 'game-1',
+            source: ActionSource.User,
+            index: this.state.actionCount,
+            ...fields
+        }
         const game = { ...this.game, hotseat: false, protectedInformation: true as const }
-        const result = engine.executeAction({ action, state: served(this.state, perspective), game, perspective })
-        return { campaign: result.updatedState.campaign, reveals: result.processedActions.map((processed) => processed.revealsInfo) }
+        const result = engine.executeAction({
+            action,
+            state: served(this.state, perspective),
+            game,
+            perspective
+        })
+        return {
+            campaign: result.updatedState.campaign,
+            reveals: result.processedActions.map((processed) => processed.revealsInfo)
+        }
     }
 
-    campaign(playerId: string, defender: string | undefined, targets: CampaignTarget[], attackDice: number, plans: string[] = [], flipSecret?: boolean) {
-        return this.run({ type: ActionType.Campaign, playerId, defender: defender ? { kind: 'player', playerId: defender } : { kind: 'bandits' }, targets, attackDice, plans: plans.map(battlePlanUse), flipSecret })
+    campaign(
+        playerId: string,
+        defender: string | undefined,
+        targets: CampaignTarget[],
+        attackDice: number,
+        plans: string[] = [],
+        flipSecret?: boolean
+    ) {
+        return this.run({
+            type: ActionType.Campaign,
+            playerId,
+            defender: defender ? { kind: 'player', playerId: defender } : { kind: 'bandits' },
+            targets,
+            attackDice,
+            plans: plans.map(battlePlanUse),
+            flipSecret
+        })
     }
 
     defend(playerId: string, plans: string[] = []) {
-        return this.run({ type: ActionType.CampaignDefend, playerId, plans: plans.map(battlePlanUse) })
+        return this.run({
+            type: ActionType.CampaignDefend,
+            playerId,
+            plans: plans.map(battlePlanUse)
+        })
     }
 
     defendIfAsked(playerId: string) {
@@ -147,12 +198,20 @@ class Table {
     }
 
     sacrifice(playerId: string) {
-        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(new HydratedOathGameState(this.state), 0)
+        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(
+            new HydratedOathGameState(this.state),
+            0
+        )
         return this.run({ type: ActionType.CampaignSacrifice, playerId, sacrifice: 0, defeatKills })
     }
 
     victory(playerId: string) {
-        return this.run({ type: ActionType.CampaignResolveVictory, playerId, placements: [], burnFavor: false })
+        return this.run({
+            type: ActionType.CampaignResolveVictory,
+            playerId,
+            placements: [],
+            burnFavor: false
+        })
     }
 
     answer(playerId: string, answer: QuestionAnswer) {
@@ -186,9 +245,38 @@ class Table {
 function heartsBoard(revision: number, rhys: Partial<OathPlayerState> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: RHYS, color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { [RHYS]: 4 }, warbandsInPersonalBank: { [RHYS]: 6 }, advisers: [{ cardId: TENTS, faceUp: false }], ...rhys }),
-            testPlayer({ playerId: DANA, color: Color.Blue, siteId: 'c1', favor: 5, secrets: 2, supply: 4, warbandsOnBoard: { [DANA]: 2 }, warbandsInPersonalBank: { [DANA]: 5 }, advisers: [{ cardId: TUTOR, faceUp: false }] }),
-            testPlayer({ playerId: ANN, color: Color.Yellow, siteId: 'h1', favor: 3, secrets: 1, supply: 4, advisers: [{ cardId: STORM_CALLER, faceUp: false }] })
+            testPlayer({
+                playerId: RHYS,
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 3,
+                supply: 6,
+                warbandsOnBoard: { [RHYS]: 4 },
+                warbandsInPersonalBank: { [RHYS]: 6 },
+                advisers: [{ cardId: TENTS, faceUp: false }],
+                ...rhys
+            }),
+            testPlayer({
+                playerId: DANA,
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 5,
+                secrets: 2,
+                supply: 4,
+                warbandsOnBoard: { [DANA]: 2 },
+                warbandsInPersonalBank: { [DANA]: 5 },
+                advisers: [{ cardId: TUTOR, faceUp: false }]
+            }),
+            testPlayer({
+                playerId: ANN,
+                color: Color.Yellow,
+                siteId: 'h1',
+                favor: 3,
+                secrets: 1,
+                supply: 4,
+                advisers: [{ cardId: STORM_CALLER, faceUp: false }]
+            })
         ],
         {
             oathRevision: revision,
@@ -203,12 +291,22 @@ function heartsBoard(revision: number, rhys: Partial<OathPlayerState> = {}) {
 }
 
 function rhysAttacksDana(s: HydratedOathGameState): HydratedCampaign {
-    const declared = new HydratedCampaign(buildAction(Campaign, { playerId: RHYS, defender: { kind: 'player', playerId: DANA }, targets: [siteTarget('c1')], attackDice: 3 }))
+    const declared = new HydratedCampaign(
+        buildAction(Campaign, {
+            playerId: RHYS,
+            defender: { kind: 'player', playerId: DANA },
+            targets: [siteTarget('c1')],
+            attackDice: 3
+        })
+    )
     declared.apply(s)
     return declared
 }
 
-const danaDefends = (plans: string[]) => () => new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: DANA, plans: plans.map(battlePlanUse) }))
+const danaDefends = (plans: string[]) => () =>
+    new HydratedCampaignDefend(
+        buildAction(CampaignDefend, { playerId: DANA, plans: plans.map(battlePlanUse) })
+    )
 
 describe('R-5.5.5.b-H1 — Hearts and Minds decides the Campaign with no roll, so its defence stays undoable', () => {
     it('the defence rolls nothing and reveals nothing; the declaration, waiting on it, still reveals', () => {
@@ -219,7 +317,11 @@ describe('R-5.5.5.b-H1 — Hearts and Minds decides the Campaign with no roll, s
         const before = streams(s)
         const defence = danaDefends([HEARTS])()
         defence.apply(s)
-        expect(s.campaign).toMatchObject({ decidedVictor: 'defender', attackRoll: [], defenseRoll: [] })
+        expect(s.campaign).toMatchObject({
+            decidedVictor: 'defender',
+            attackRoll: [],
+            defenseRoll: []
+        })
         expect(streams(s)).toBe(before)
         expect(defence.revealsInfo).toBe(false)
     })
@@ -258,7 +360,10 @@ describe('R-5.5.5.b-H1 — Hearts and Minds decides the Campaign with no roll, s
         rhysAttacksDana(rolled)
         const plain = danaDefends([])()
         plain.apply(rolled)
-        expect(rolled.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.RerollDice, askedPlayerId: RHYS })
+        expect(rolled.pendingQuestions?.queue[0]).toMatchObject({
+            kind: PowerQuestionKind.RerollDice,
+            askedPlayerId: RHYS
+        })
         expect(plain.revealsInfo).toBe(true)
     })
 
@@ -267,12 +372,19 @@ describe('R-5.5.5.b-H1 — Hearts and Minds decides the Campaign with no roll, s
         t.campaign(RHYS, DANA, [siteTarget('c1')], 3)
         expect(JSON.stringify(served(t.state, player(DANA)))).not.toContain(TENTS)
         expect(JSON.stringify(served(t.state, player(ANN)))).not.toContain(TUTOR)
-        const defence = { type: ActionType.CampaignDefend, playerId: DANA, plans: [battlePlanUse(HEARTS)] }
+        const defence = {
+            type: ActionType.CampaignDefend,
+            playerId: DANA,
+            plans: [battlePlanUse(HEARTS)]
+        }
         const views = [DANA, ANN].map((seat) => outcomeOrError(() => t.onSeatsView(seat, defence)))
         t.run(defence)
         expect(t.outcome.reveals).toEqual([false])
         // Ann's run reads Dana's facedown adviser: the projected-unavailable error, so it never differs.
-        expect(views).toEqual([t.outcome, expect.stringMatching(/^UnavailableProjectedValueError: .*\/players\/1\/adviserIds$/)])
+        expect(views).toEqual([
+            t.outcome,
+            expect.stringMatching(/^UnavailableProjectedValueError: .*\/players\/1\/adviserIds$/)
+        ])
     })
 
     it('through the engine: Undo is offered after the defence, and rewinds to the plans being asked', () => {
@@ -298,10 +410,29 @@ describe('R-5.5.5.b-H1 — Hearts and Minds decides the Campaign with no roll, s
         const asked = t.state
         t.defend(DANA, [HEARTS])
         expect(t.processed.some((action) => action.revealsInfo)).toBe(false)
-        const late = buildAction(LetPeek, { id: 'late-peek', playerId: ANN, toPlayerId: RHYS, subject: { kind: LetPeekSubjectKind.Adviser, cardId: STORM_CALLER }, index })
+        const late = buildAction(LetPeek, {
+            id: 'late-peek',
+            playerId: ANN,
+            toPlayerId: RHYS,
+            subject: { kind: LetPeekSubjectKind.Adviser, cardId: STORM_CALLER },
+            index
+        })
         // Ann may show Rhys an adviser while Dana is asked for a defence, and that shows a card.
-        expect(engine.executeCanonicalAction({ action: late, state: asked, game }).processedActions.map((action) => action.revealsInfo)).toEqual([true])
-        expect(proveCommutation({ engine, apiActions: OathRuntime.apiActions, game, state: t.state, raced: t.processed, late })).toEqual({ kind: 'invalid', reason: 'an involved Action reveals information' })
+        expect(
+            engine
+                .executeCanonicalAction({ action: late, state: asked, game })
+                .processedActions.map((action) => action.revealsInfo)
+        ).toEqual([true])
+        expect(
+            proveCommutation({
+                engine,
+                apiActions: OathRuntime.apiActions,
+                game,
+                state: t.state,
+                raced: t.processed,
+                late
+            })
+        ).toEqual({ kind: 'invalid', reason: 'an involved Action reveals information' })
     })
 })
 
@@ -320,16 +451,65 @@ interface EnvoyScene {
 function envoyTable(scene: EnvoyScene): HydratedOathGameState {
     const s = testState(
         [
-            testPlayer({ playerId: DANA, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 8, secrets: 3, warbandsOnBoard: { [DANA]: 6 }, warbandsInPersonalBank: { [DANA]: 4 }, advisers: [adviser(PEACE_ENVOY)], ...scene.dana }),
-            testPlayer({ playerId: BEA, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', supply: 6, favor: 8, secrets: 3, warbandsOnBoard: { [BEA]: 2 }, warbandsInPersonalBank: { [BEA]: 4 }, ...scene.bea }),
-            testPlayer({ playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', supply: 6, favor: 4, secrets: 3, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 }, ...scene.ann }),
-            testPlayer({ playerId: RHYS, color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'p2', supply: 6, favor: 4, secrets: 3, warbandsOnBoard: {}, warbandsInPersonalBank: {}, ...scene.rhys })
+            testPlayer({
+                playerId: DANA,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 6,
+                favor: 8,
+                secrets: 3,
+                warbandsOnBoard: { [DANA]: 6 },
+                warbandsInPersonalBank: { [DANA]: 4 },
+                advisers: [adviser(PEACE_ENVOY)],
+                ...scene.dana
+            }),
+            testPlayer({
+                playerId: BEA,
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: 'c1',
+                supply: 6,
+                favor: 8,
+                secrets: 3,
+                warbandsOnBoard: { [BEA]: 2 },
+                warbandsInPersonalBank: { [BEA]: 4 },
+                ...scene.bea
+            }),
+            testPlayer({
+                playerId: ANN,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'h1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 },
+                ...scene.ann
+            }),
+            testPlayer({
+                playerId: RHYS,
+                color: Color.Yellow,
+                status: PlayerStatus.Citizen,
+                siteId: 'p2',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: {},
+                warbandsInPersonalBank: {},
+                ...scene.rhys
+            })
         ],
         {
             oathRevision: scene.revision,
             chancellorPlayerId: ANN,
             denizensBySite: { c1: [], c2: scene.hearts ? [HEARTS] : [], p1: [], h1: [] },
-            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 2 }, c2: { [BEA]: 2 }, p1: { [IMPERIAL_WARBANDS]: 1 } },
+            warbandsBySite: {
+                c1: { [IMPERIAL_WARBANDS]: 2 },
+                c2: { [BEA]: 2 },
+                p1: { [IMPERIAL_WARBANDS]: 1 }
+            },
             prng: { seed: 1, invocations: 0 }
         }
     )
@@ -338,14 +518,30 @@ function envoyTable(scene: EnvoyScene): HydratedOathGameState {
 }
 
 const danaAttacks = (plans: string[]) => () =>
-    new HydratedCampaign(buildAction(Campaign, { playerId: DANA, defender: { kind: 'player', playerId: BEA }, targets: [siteTarget('c1')], attackDice: 3, plans: plans.map(battlePlanUse) }))
+    new HydratedCampaign(
+        buildAction(Campaign, {
+            playerId: DANA,
+            defender: { kind: 'player', playerId: BEA },
+            targets: [siteTarget('c1')],
+            attackDice: 3,
+            plans: plans.map(battlePlanUse)
+        })
+    )
 
-const defends = (playerId: string, plans: string[] = []) => () =>
-    new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId, plans: plans.map(battlePlanUse) }))
+const defends =
+    (playerId: string, plans: string[] = []) =>
+    () =>
+        new HydratedCampaignDefend(
+            buildAction(CampaignDefend, { playerId, plans: plans.map(battlePlanUse) })
+        )
 
 const noPlans = { advisers: [] }
 /** Every other seat holds a facedown adviser that is no battle plan, so each view hides some. */
-const hiddenAdvisers = { bea: { advisers: [{ cardId: TENTS, faceUp: false }] }, ann: { advisers: [{ cardId: TUTOR, faceUp: false }] }, rhys: { advisers: [{ cardId: INN, faceUp: false }] } }
+const hiddenAdvisers = {
+    bea: { advisers: [{ cardId: TENTS, faceUp: false }] },
+    ann: { advisers: [{ cardId: TUTOR, faceUp: false }] },
+    rhys: { advisers: [{ cardId: INN, faceUp: false }] }
+}
 
 describe('R-5.5.5.b-H1 — Peace Envoy decides the Campaign at its declaration', () => {
     it('with no defending plan to wait on, the declaration rolls nothing and reveals nothing', () => {
@@ -353,7 +549,11 @@ describe('R-5.5.5.b-H1 — Peace Envoy decides the Campaign at its declaration',
         const before = streams(s)
         const declared = danaAttacks([PEACE_ENVOY])()
         declared.apply(s)
-        expect(ongoingCampaign(s)).toMatchObject({ decidedVictor: 'attacker', attackRoll: [], defenseRoll: [] })
+        expect(ongoingCampaign(s)).toMatchObject({
+            decidedVictor: 'attacker',
+            attackRoll: [],
+            defenseRoll: []
+        })
         expect(ongoingCampaign(s).pendingDefenderPlans).toBeUndefined()
         expect(streams(s)).toBe(before)
         expect(declared.revealsInfo).toBe(false)
@@ -388,11 +588,19 @@ describe('R-5.5.5.b-H1 — Peace Envoy decides the Campaign at its declaration',
         const before = streams(s)
         const defence = defends(ANN, [MOUNTED_PATROL])()
         defence.apply(s)
-        expect(ongoingCampaign(s)).toMatchObject({ decidedVictor: 'attacker', attackPool: pool, attackRoll: [] })
+        expect(ongoingCampaign(s)).toMatchObject({
+            decidedVictor: 'attacker',
+            attackPool: pool,
+            attackRoll: []
+        })
         expect(streams(s)).toBe(before)
         expect(defence.revealsInfo).toBe(false)
 
-        const rolled = envoyTable({ revision: NOW, dana: noPlans, ann: { advisers: [adviser(MOUNTED_PATROL)] } })
+        const rolled = envoyTable({
+            revision: NOW,
+            dana: noPlans,
+            ann: { advisers: [adviser(MOUNTED_PATROL)] }
+        })
         danaAttacks([])().apply(rolled)
         const full = ongoingCampaign(rolled).attackPool
         const patrol = defends(ANN, [MOUNTED_PATROL])()
@@ -412,7 +620,10 @@ describe('R-5.5.5.b-H1 — Peace Envoy decides the Campaign at its declaration',
             const declaration = danaAttacks([PEACE_ENVOY])()
             declaration.apply(declared)
             return {
-                states: [defended, declared].map((state) => ({ ...state.dehydrate(), oathRevision: 0 })),
+                states: [defended, declared].map((state) => ({
+                    ...state.dehydrate(),
+                    oathRevision: 0
+                })),
                 reveals: [defence.revealsInfo, declaration.revealsInfo]
             }
         }
@@ -424,7 +635,12 @@ describe('R-5.5.5.b-H1 — Peace Envoy decides the Campaign at its declaration',
     })
 
     it('a second defender queued after Hearts and Minds: that defence reveals, the last one does not', () => {
-        const s = envoyTable({ revision: NOW, hearts: true, dana: noPlans, ann: { advisers: [adviser(FIELD_PROMOTION)] } })
+        const s = envoyTable({
+            revision: NOW,
+            hearts: true,
+            dana: noPlans,
+            ann: { advisers: [adviser(FIELD_PROMOTION)] }
+        })
         danaAttacks([])().apply(s)
         expect(ongoingCampaign(s).pendingDefenderPlans?.queue).toEqual([BEA, ANN])
         const first = defends(BEA, [HEARTS])()
@@ -439,9 +655,23 @@ describe('R-5.5.5.b-H1 — Peace Envoy decides the Campaign at its declaration',
     })
 
     it("on Dana's own view, and on a third seat's, the declaration reaches the host's Campaign and flag", () => {
-        const t = new Table(envoyTable({ revision: NOW, ...hiddenAdvisers }), DANA, [DANA, BEA, ANN, RHYS])
-        const declaration = { type: ActionType.Campaign, playerId: DANA, defender: { kind: 'player', playerId: BEA }, targets: [siteTarget('c1')], attackDice: 3, plans: [battlePlanUse(PEACE_ENVOY)] }
-        const views = [DANA, RHYS].map((seat) => outcomeOrError(() => t.onSeatsView(seat, declaration)))
+        const t = new Table(envoyTable({ revision: NOW, ...hiddenAdvisers }), DANA, [
+            DANA,
+            BEA,
+            ANN,
+            RHYS
+        ])
+        const declaration = {
+            type: ActionType.Campaign,
+            playerId: DANA,
+            defender: { kind: 'player', playerId: BEA },
+            targets: [siteTarget('c1')],
+            attackDice: 3,
+            plans: [battlePlanUse(PEACE_ENVOY)]
+        }
+        const views = [DANA, RHYS].map((seat) =>
+            outcomeOrError(() => t.onSeatsView(seat, declaration))
+        )
         t.run(declaration)
         expect(t.outcome.reveals).toEqual([false])
         expect(views).toEqual([t.outcome, t.outcome])
@@ -450,20 +680,51 @@ describe('R-5.5.5.b-H1 — Peace Envoy decides the Campaign at its declaration',
     it('the bandits defending, with their compelled plans: decided, nothing rolled, nothing revealed', () => {
         const s = testState(
             [
-                testPlayer({ playerId: DANA, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 3, warbandsOnBoard: { [DANA]: 6 }, warbandsInPersonalBank: { [DANA]: 4 }, advisers: [adviser(PEACE_ENVOY)] }),
-                testPlayer({ playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h3', supply: 6, favor: 4, secrets: 3, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 } })
+                testPlayer({
+                    playerId: DANA,
+                    color: Color.Red,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c1',
+                    supply: 6,
+                    favor: 4,
+                    secrets: 3,
+                    warbandsOnBoard: { [DANA]: 6 },
+                    warbandsInPersonalBank: { [DANA]: 4 },
+                    advisers: [adviser(PEACE_ENVOY)]
+                }),
+                testPlayer({
+                    playerId: ANN,
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'h3',
+                    supply: 6,
+                    favor: 4,
+                    secrets: 3,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
+                    warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 }
+                })
             ],
             {
                 oathRevision: NOW,
                 denizensBySite: { c1: [BEAR_TRAPS, STORM_CALLER], c2: [], p1: [], p2: [], h1: [] },
                 warbandsBySite: { c2: { [IMPERIAL_WARBANDS]: 1 } },
-                siteCards: Object.fromEntries([...CRADLE, ...PROVINCES, ...HINTERLAND].map((slotId) => [slotId, slotId])),
+                siteCards: Object.fromEntries(
+                    [...CRADLE, ...PROVINCES, ...HINTERLAND].map((slotId) => [slotId, slotId])
+                ),
                 prng: { seed: 1, invocations: 0 }
             }
         )
         openTurn(s, DANA)
         const before = streams(s)
-        const declared = new HydratedCampaign(buildAction(Campaign, { playerId: DANA, defender: { kind: 'bandits' }, targets: [siteTarget('c1')], attackDice: 4, plans: [battlePlanUse(PEACE_ENVOY)] }))
+        const declared = new HydratedCampaign(
+            buildAction(Campaign, {
+                playerId: DANA,
+                defender: { kind: 'bandits' },
+                targets: [siteTarget('c1')],
+                attackDice: 4,
+                plans: [battlePlanUse(PEACE_ENVOY)]
+            })
+        )
         declared.apply(s)
         expect(ongoingCampaign(s).plansUsedBy.bandits).toEqual([BEAR_TRAPS, STORM_CALLER])
         expect(ongoingCampaign(s).decidedVictor).toBe('attacker')
@@ -472,7 +733,12 @@ describe('R-5.5.5.b-H1 — Peace Envoy decides the Campaign at its declaration',
     })
 
     it('through the engine: Undo is offered after the declaration, and gives back the Supply it spent', () => {
-        const t = new Table(envoyTable({ revision: NOW, ann: noPlans }), DANA, [DANA, BEA, ANN, RHYS])
+        const t = new Table(envoyTable({ revision: NOW, ann: noPlans }), DANA, [
+            DANA,
+            BEA,
+            ANN,
+            RHYS
+        ])
         const start = structuredClone(t.state)
         t.campaign(DANA, BEA, [siteTarget('c1')], 3, [PEACE_ENVOY])
         expect(t.player(DANA).supply).toBeLessThan(6)
@@ -485,12 +751,19 @@ describe('R-5.5.5.b-H1 — Peace Envoy decides the Campaign at its declaration',
 
 // ---- The Citizens asked first: Rhys, a Citizen at c1, is asked to join Bea's defence ----
 
-const answers = (playerId: string, granted: boolean) => () => new HydratedAnswerConsent(buildAction(AnswerConsent, { playerId, granted }))
-const attackPlans = (plans: string[]) => () => new HydratedCampaignAttackPlans(buildAction(CampaignAttackPlans, { playerId: DANA, plans: plans.map(battlePlanUse) }))
+const answers = (playerId: string, granted: boolean) => () =>
+    new HydratedAnswerConsent(buildAction(AnswerConsent, { playerId, granted }))
+const attackPlans = (plans: string[]) => () =>
+    new HydratedCampaignAttackPlans(
+        buildAction(CampaignAttackPlans, { playerId: DANA, plans: plans.map(battlePlanUse) })
+    )
 
 describe('R-5.5.5.b-H1 — Peace Envoy declared once the Citizens have answered', () => {
     it("the attacker's plans, Peace Envoy, decide the Campaign: they reveal nothing; before revision 17 they do", () => {
-        for (const [revision, reveals] of [[NOW, false], [BEFORE, true]] as const) {
+        for (const [revision, reveals] of [
+            [NOW, false],
+            [BEFORE, true]
+        ] as const) {
             const s = envoyTable({ revision, ann: noPlans, rhys: { siteId: 'c1' } })
             const declared = danaAttacks([])()
             declared.apply(s)
@@ -510,11 +783,23 @@ describe('R-5.5.5.b-H1 — Peace Envoy declared once the Citizens have answered'
     })
 
     it("on Dana's own view, and on Rhys's, the plans reach the host's Campaign and flag", () => {
-        const t = new Table(envoyTable({ revision: NOW, ...hiddenAdvisers, rhys: { siteId: 'c1', advisers: [{ cardId: STORM_CALLER, faceUp: false }] } }), DANA, [DANA, BEA, ANN, RHYS])
+        const t = new Table(
+            envoyTable({
+                revision: NOW,
+                ...hiddenAdvisers,
+                rhys: { siteId: 'c1', advisers: [{ cardId: STORM_CALLER, faceUp: false }] }
+            }),
+            DANA,
+            [DANA, BEA, ANN, RHYS]
+        )
         t.campaign(DANA, BEA, [siteTarget('c1')], 3)
         t.run({ type: ActionType.AnswerConsent, playerId: RHYS, granted: false })
         expect(t.state.pendingCampaign?.awaitingAttackerPlans).toBe(true)
-        const plans = { type: ActionType.CampaignAttackPlans, playerId: DANA, plans: [battlePlanUse(PEACE_ENVOY)] }
+        const plans = {
+            type: ActionType.CampaignAttackPlans,
+            playerId: DANA,
+            plans: [battlePlanUse(PEACE_ENVOY)]
+        }
         const views = [DANA, RHYS].map((seat) => outcomeOrError(() => t.onSeatsView(seat, plans)))
         t.run(plans)
         expect(t.outcome.reveals).toEqual([false])
@@ -533,7 +818,13 @@ describe('R-5.5.5.b-H1 — Peace Envoy declared once the Citizens have answered'
     })
 
     it("the Citizen joins, the admission musters and waits on Bea's plans, so it reveals; Bea's Hearts and Minds then does not", () => {
-        const s = envoyTable({ revision: NOW, hearts: true, dana: noPlans, ann: noPlans, rhys: { siteId: 'c1' } })
+        const s = envoyTable({
+            revision: NOW,
+            hearts: true,
+            dana: noPlans,
+            ann: noPlans,
+            rhys: { siteId: 'c1' }
+        })
         danaAttacks([])().apply(s)
         answers(RHYS, true)().apply(s)
         const admitted = answers(BEA, true)()
@@ -554,12 +845,43 @@ const X = 'x'
 const Y = 'y'
 const H = 'h'
 
-function heldBoard(revision: number, seed: number, y: Partial<OathPlayerState> = {}, state: Record<string, unknown> = {}) {
+function heldBoard(
+    revision: number,
+    seed: number,
+    y: Partial<OathPlayerState> = {},
+    state: Record<string, unknown> = {}
+) {
     const s = testState(
         withChancellor([
-            testPlayer({ playerId: X, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [X]: 6 } }),
-            testPlayer({ playerId: Y, color: Color.Blue, siteId: 'c1', favor: 6, secrets: 2, supply: 0, warbandsOnBoard: { [Y]: 4 }, advisers: [adviser(SNEAK_ATTACK), adviser(PEACE_ENVOY)], ...y }),
-            testPlayer({ playerId: H, color: Color.Yellow, siteId: 'p1', favor: 0, supply: 6, warbandsOnBoard: { [H]: 2 }, warbandsInPersonalBank: { [H]: 12 } })
+            testPlayer({
+                playerId: X,
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 2,
+                supply: 6,
+                warbandsOnBoard: { [X]: 6 }
+            }),
+            testPlayer({
+                playerId: Y,
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 6,
+                secrets: 2,
+                supply: 0,
+                warbandsOnBoard: { [Y]: 4 },
+                advisers: [adviser(SNEAK_ATTACK), adviser(PEACE_ENVOY)],
+                ...y
+            }),
+            testPlayer({
+                playerId: H,
+                color: Color.Yellow,
+                siteId: 'p1',
+                favor: 0,
+                supply: 6,
+                warbandsOnBoard: { [H]: 2 },
+                warbandsInPersonalBank: { [H]: 12 }
+            })
         ]),
         { warbandsBySite: {}, prng: { seed, invocations: 0 }, ...state }
     )
@@ -569,15 +891,28 @@ function heldBoard(revision: number, seed: number, y: Partial<OathPlayerState> =
 
 describe('R-5.5.5.b-H1 — a decided Campaign that holds the turn player’s turn', () => {
     it('Sneak Attack with Peace Envoy, flipping a secret at The Hidden Place: Undo is offered, and gives back the question, the turn and the secret', () => {
-        const hidden = { siteCards: { ...Object.fromEntries(['c2', 'p1', 'p2', 'p3', 'h1', 'h2', 'h3'].map((id) => [id, id])), c1: HIDDEN_PLACE } }
+        const hidden = {
+            siteCards: {
+                ...Object.fromEntries(
+                    ['c2', 'p1', 'p2', 'p3', 'h1', 'h2', 'h3'].map((id) => [id, id])
+                ),
+                c1: HIDDEN_PLACE
+            }
+        }
         for (const revision of [NOW, BEFORE]) {
             const t = new Table(heldBoard(revision, 1, {}, hidden), X, [X, Y, H])
             t.campaign(X, Y, [PAWN], 0, [], true).defendIfAsked(Y).sacrifice(X)
-            expect(t.state.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.SneakAttack, askedPlayerId: Y })
+            expect(t.state.pendingQuestions?.queue[0]).toMatchObject({
+                kind: PowerQuestionKind.SneakAttack,
+                askedPlayerId: Y
+            })
             const asked = structuredClone(t.state)
             t.campaign(Y, X, [PAWN], 2, [PEACE_ENVOY], true)
             expect(t.state.heldTurn).toMatchObject({ askingPlayerId: X })
-            expect(t.state.campaign).toMatchObject({ attackerPlayerId: Y, decidedVictor: 'attacker' })
+            expect(t.state.campaign).toMatchObject({
+                attackerPlayerId: Y,
+                decidedVictor: 'attacker'
+            })
             expect(t.player(Y)).toMatchObject({ secrets: 1, secretsFacedown: 1 })
             if (revision === BEFORE) {
                 expect(t.undoTarget(Y)).toBeUndefined()
@@ -587,25 +922,47 @@ describe('R-5.5.5.b-H1 — a decided Campaign that holds the turn player’s tur
             const undone = t.undone(Y)
             expect(undone).toEqual(asked)
             expect(undone.heldTurn).toBeUndefined()
-            expect(undone.players.find((p) => p.playerId === Y)).toMatchObject({ secrets: 2, secretsFacedown: 0 })
+            expect(undone.players.find((p) => p.playerId === Y)).toMatchObject({
+                secrets: 2,
+                secretsFacedown: 0
+            })
         }
     })
 
     it('Second Wind, its free Campaign with Peace Envoy: Undo is offered, and gives back the "Campaign now?" question', () => {
         const skip: QuestionAnswer = { kind: PowerQuestionKind.FreeActionOutOfTurn, take: false }
         for (let seed = 1; seed < 500; seed++) {
-            const t = new Table(heldBoard(NOW, seed, { supply: 0, advisers: [adviser(SNEAK_ATTACK), adviser(SECOND_WIND), adviser(PEACE_ENVOY)] }), X, [X, Y, H])
+            const t = new Table(
+                heldBoard(NOW, seed, {
+                    supply: 0,
+                    advisers: [adviser(SNEAK_ATTACK), adviser(SECOND_WIND), adviser(PEACE_ENVOY)]
+                }),
+                X,
+                [X, Y, H]
+            )
             t.campaign(X, Y, [PAWN], 0).defendIfAsked(Y).sacrifice(X)
             t.campaign(Y, X, [PAWN], 4, [SECOND_WIND]).defendIfAsked(X)
             const rolled = t.state.campaign
-            if (!rolled || rolled.swords <= rolled.defense || t.state.machineState !== MachineState.CampaignSacrifice) continue
+            if (
+                !rolled ||
+                rolled.swords <= rolled.defense ||
+                t.state.machineState !== MachineState.CampaignSacrifice
+            )
+                continue
             t.sacrifice(Y)
             if (t.state.campaign?.attackerVictorious !== true) continue
             t.victory(Y).answer(Y, skip)
-            expect(t.state.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.FreeActionOutOfTurn, askedPlayerId: Y, action: ActionType.Campaign })
+            expect(t.state.pendingQuestions?.queue[0]).toMatchObject({
+                kind: PowerQuestionKind.FreeActionOutOfTurn,
+                askedPlayerId: Y,
+                action: ActionType.Campaign
+            })
             const asked = structuredClone(t.state)
             t.campaign(Y, X, [PAWN], 2, [PEACE_ENVOY])
-            expect(t.state.campaign).toMatchObject({ attackerPlayerId: Y, decidedVictor: 'attacker' })
+            expect(t.state.campaign).toMatchObject({
+                attackerPlayerId: Y,
+                decidedVictor: 'attacker'
+            })
             expect(t.state.heldTurn).toMatchObject({ askingPlayerId: X })
             expect(t.undoTarget(Y)?.type).toBe(ActionType.Campaign)
             expect(t.undone(Y)).toEqual(asked)

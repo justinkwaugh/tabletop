@@ -34,14 +34,39 @@ function board(
 ) {
     const s = testState(
         [
-            testPlayer({ playerId: 'dana', color: Color.Red, siteId: 'c1', favor: 3, secrets: 2, supply: 5, warbandsOnBoard: { dana: 3 }, ...over }),
-            testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'p1', favor: 2, secrets: 2, supply: 4, warbandsOnBoard: { rhys: 2 } })
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                supply: 5,
+                warbandsOnBoard: { dana: 3 },
+                ...over
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                siteId: 'p1',
+                favor: 2,
+                secrets: 2,
+                supply: 4,
+                warbandsOnBoard: { rhys: 2 }
+            })
         ],
         {
             oathRevision,
             denizensBySite: { c1: [], c2: [], p1: [], p2: [], h1: [], h2: [] },
             warbandsBySite: { p1: { rhys: 2 } },
-            siteCards: { c1: BURIED_GIANT, c2: 'site.river', p1: 'site.marshes', p2: 'site.mine', h1: 'site.mountain', h2: HIDDEN_PLACE, ...siteCards },
+            siteCards: {
+                c1: BURIED_GIANT,
+                c2: 'site.river',
+                p1: 'site.marshes',
+                p2: 'site.mine',
+                h1: 'site.mountain',
+                h2: HIDDEN_PLACE,
+                ...siteCards
+            },
             ...state
         }
     )
@@ -50,7 +75,14 @@ function board(
 }
 /** The Travel's verdict and price for Dana. */
 const plan = (s: HydratedOathGameState, siteId: string, flipSecret: boolean | 2) => {
-    const { reason, cost } = HydratedTravel.plan(s, 'dana', siteId, undefined, undefined, flipSecret)
+    const { reason, cost } = HydratedTravel.plan(
+        s,
+        'dana',
+        siteId,
+        undefined,
+        undefined,
+        flipSecret
+    )
     return { reason, cost }
 }
 const travel = (s: HydratedOathGameState, siteId: string, extra: Record<string, unknown> = {}) => {
@@ -60,13 +92,20 @@ const travel = (s: HydratedOathGameState, siteId: string, extra: Record<string, 
 }
 const secretsOf = (s: HydratedOathGameState) => {
     const p = s.getPlayerState('dana')
-    return { siteId: p.siteId, supply: p.supply, secrets: p.secrets, secretsFacedown: p.secretsFacedown }
+    return {
+        siteId: p.siteId,
+        supply: p.supply,
+        secrets: p.secrets,
+        secretsFacedown: p.secretsFacedown
+    }
 }
 
 describe('R-11.13-H2 — from the Buried Giant to The Hidden Place, each site power takes its own flip', () => {
     it('no flip is refused; one satisfies The Hidden Place at the usual Supply; two also make it free', () => {
         const s = board()
-        expect(plan(s, 'h2', false).reason).toBe('The Hidden Place: you cannot travel here unless you flip a secret facedown')
+        expect(plan(s, 'h2', false).reason).toBe(
+            'The Hidden Place: you cannot travel here unless you flip a secret facedown'
+        )
         expect(plan(s, 'h2', true)).toEqual({ reason: undefined, cost: 4 })
         expect(plan(s, 'h2', 2)).toEqual({ reason: undefined, cost: 0 })
 
@@ -79,22 +118,30 @@ describe('R-11.13-H2 — from the Buried Giant to The Hidden Place, each site po
         const two = travel(t, 'h2', { flipSecret: 2 })
         expect(secretsOf(t)).toEqual({ siteId: 'h2', supply: 5, secrets: 0, secretsFacedown: 2 })
         expect(two.metadata).toMatchObject({ supplySpent: 0, secretFlipped: 2 })
-        expect(two.metadata?.siteNotes?.[0]).toMatch(/^Buried Giant: a secret flipped facedown, no Supply spent/)
+        expect(two.metadata?.siteNotes?.[0]).toMatch(
+            /^Buried Giant: a secret flipped facedown, no Supply spent/
+        )
     })
 
     it('one flip leaves the Narrow Pass binding; the second ignores it', () => {
         const s = board({}, { h1: NARROW_PASS })
-        expect(plan(s, 'h2', true).reason).toBe('Narrow Pass: travelling into the hinterland, you must travel to h1')
+        expect(plan(s, 'h2', true).reason).toBe(
+            'Narrow Pass: travelling into the hinterland, you must travel to h1'
+        )
         expect(plan(s, 'h2', 2).reason).toBeUndefined()
         expect(HydratedTravel.legalTerms(s, 'dana', 'h2')).toEqual([{ tolls: [], flipSecret: 2 }])
     })
 
     it('two flips take two faceup secrets: a facedown secret cannot be flipped (R-7.1.2)', () => {
         const s = board({ secrets: 1, secretsFacedown: 1 })
-        expect(plan(s, 'h2', 2).reason).toBe('flipping 2 secrets takes 2 faceup secrets: you have 1')
+        expect(plan(s, 'h2', 2).reason).toBe(
+            'flipping 2 secrets takes 2 faceup secrets: you have 1'
+        )
         expect(() => travel(s, 'h2', { flipSecret: 2 })).toThrow(/takes 2 faceup secrets/)
         expect(plan(s, 'h2', true).reason).toBeUndefined()
-        expect(plan(board({ secrets: 0, secretsFacedown: 2 }), 'h2', true).reason).toBe('you have no faceup secret to flip')
+        expect(plan(board({ secrets: 0, secretsFacedown: 2 }), 'h2', true).reason).toBe(
+            'you have no faceup secret to flip'
+        )
     })
 
     it('each legal count is a way: both with the Supply, only the free one without, none with one secret and no Supply', () => {
@@ -103,13 +150,17 @@ describe('R-11.13-H2 — from the Buried Giant to The Hidden Place, each site po
             { tolls: [], flipSecret: 2 }
         ])
         const short = board({ supply: 3 })
-        expect(HydratedTravel.legalTerms(short, 'dana', 'h2')).toEqual([{ tolls: [], flipSecret: 2 }])
+        expect(HydratedTravel.legalTerms(short, 'dana', 'h2')).toEqual([
+            { tolls: [], flipSecret: 2 }
+        ])
         expect(HydratedTravel.legalDestinations(short, 'dana')).toContain('h2')
         const poor = board({ supply: 3, secrets: 1 })
         expect(HydratedTravel.legalTerms(poor, 'dana', 'h2')).toEqual([])
         expect(HydratedTravel.legalDestinations(poor, 'dana')).not.toContain('h2')
         // The rest of the map keeps its ways from the Buried Giant: the Supply, or one flip for none.
-        expect(HydratedTravel.legalTerms(poor, 'dana', 'h1')).toEqual([{ tolls: [], flipSecret: true }])
+        expect(HydratedTravel.legalTerms(poor, 'dana', 'h1')).toEqual([
+            { tolls: [], flipSecret: true }
+        ])
     })
 
     it('from the Buried Giant elsewhere one flip makes the Travel free, as before, and a second is refused', () => {
@@ -127,7 +178,9 @@ describe('R-11.13-H2 — from the Buried Giant to The Hidden Place, each site po
         const s = board({}, { c1: 'site.plains' })
         expect(plan(s, 'h2', true)).toEqual({ reason: undefined, cost: 4 })
         expect(plan(s, 'h2', 2).reason).toBe('one secret at most is flipped here')
-        expect(HydratedTravel.legalTerms(s, 'dana', 'h2')).toEqual([{ tolls: [], flipSecret: true }])
+        expect(HydratedTravel.legalTerms(s, 'dana', 'h2')).toEqual([
+            { tolls: [], flipSecret: true }
+        ])
     })
 
     it('R-11.7 — leaving a Shrouded Wood ignores The Hidden Place, so no flip is needed and two are refused', () => {
@@ -145,10 +198,14 @@ describe('R-11.13-H2 — from the Buried Giant to The Hidden Place, each site po
     })
 
     it("Toll Roads' toll rides along with either count", () => {
-        const s = board({}, {}, {
-            denizensBySite: { c1: [], c2: [], p1: [], p2: [], h1: [], h2: [TOLL_ROADS] },
-            warbandsBySite: { p1: { rhys: 2 }, h2: { rhys: 1 } }
-        })
+        const s = board(
+            {},
+            {},
+            {
+                denizensBySite: { c1: [], c2: [], p1: [], p2: [], h1: [], h2: [TOLL_ROADS] },
+                warbandsBySite: { p1: { rhys: 2 }, h2: { rhys: 1 } }
+            }
+        )
         expect(HydratedTravel.legalTerms(s, 'dana', 'h2')).toEqual([
             { tolls: [TOLL_ROADS], flipSecret: true },
             { tolls: [TOLL_ROADS], flipSecret: 2 }
@@ -172,12 +229,24 @@ describe('R-11.13-H2 — from the Buried Giant to The Hidden Place, each site po
         expect(s.getPlayerState('dana')).toMatchObject({ secrets: 2, secretsFacedown: 0 })
     })
 
-    it("a Campaign at The Hidden Place after Travelling there takes a flip of its own (its Q&A)", () => {
-        const s = board({ secrets: 3 }, {}, { warbandsBySite: { p1: { rhys: 2 }, h2: { rhys: 1 } } })
+    it('a Campaign at The Hidden Place after Travelling there takes a flip of its own (its Q&A)', () => {
+        const s = board(
+            { secrets: 3 },
+            {},
+            { warbandsBySite: { p1: { rhys: 2 }, h2: { rhys: 1 } } }
+        )
         travel(s, 'h2', { flipSecret: 2 })
-        const choice = { defender: { kind: 'player' as const, playerId: 'rhys' }, targets: [{ kind: CampaignTargetKind.Site as const, siteId: 'h2' }], attackDice: 2 }
-        expect(HydratedCampaign.reasonCannotCampaign(s, 'dana', choice)).toMatch(/cannot declare targets here unless you flip/)
-        expect(HydratedCampaign.reasonCannotCampaign(s, 'dana', { ...choice, flipSecret: true })).toBeUndefined()
+        const choice = {
+            defender: { kind: 'player' as const, playerId: 'rhys' },
+            targets: [{ kind: CampaignTargetKind.Site as const, siteId: 'h2' }],
+            attackDice: 2
+        }
+        expect(HydratedCampaign.reasonCannotCampaign(s, 'dana', choice)).toMatch(
+            /cannot declare targets here unless you flip/
+        )
+        expect(
+            HydratedCampaign.reasonCannotCampaign(s, 'dana', { ...choice, flipSecret: true })
+        ).toBeUndefined()
     })
 })
 
@@ -187,7 +256,9 @@ describe('R-X.4 — before revision 20 one flip serves both sites, as recorded',
         expect(plan(s, 'h2', false).reason).toMatch(/cannot travel here unless you flip/)
         expect(plan(s, 'h2', true)).toEqual({ reason: undefined, cost: 0 })
         expect(plan(s, 'h2', 2).reason).toBe('one secret at most is flipped here')
-        expect(HydratedTravel.legalTerms(s, 'dana', 'h2')).toEqual([{ tolls: [], flipSecret: true }])
+        expect(HydratedTravel.legalTerms(s, 'dana', 'h2')).toEqual([
+            { tolls: [], flipSecret: true }
+        ])
         const one = travel(s, 'h2', { flipSecret: true })
         expect(secretsOf(s)).toEqual({ siteId: 'h2', supply: 5, secrets: 1, secretsFacedown: 1 })
         expect(one.metadata).toMatchObject({ supplySpent: 0, secretFlipped: true })
@@ -203,12 +274,18 @@ describe("R-11.13-H2 on the traveller's own view", () => {
         for (const over of [{}, { supply: 3 }, { supply: 3, secrets: 1 }]) {
             // Rhys holds a facedown adviser and facedown secrets, so Dana's view does not hold everything.
             const s = board(over, { h1: NARROW_PASS })
-            Object.assign(s.getPlayerState('rhys'), { advisers: [{ cardId: STORYTELLER, faceUp: false }], secrets: 0, secretsFacedown: 2 })
+            Object.assign(s.getPlayerState('rhys'), {
+                advisers: [{ cardId: STORYTELLER, faceUp: false }],
+                secrets: 0,
+                secretsFacedown: 2
+            })
             const server = JSON.stringify(s.dehydrate())
             const seen = JSON.stringify(served(s, dana))
             const terms = HydratedTravel.legalTerms(s, 'dana', 'h2')
             expect(HydratedTravel.legalTerms(ownView(s), 'dana', 'h2')).toEqual(terms)
-            expect(HydratedTravel.legalDestinations(ownView(s), 'dana')).toEqual(HydratedTravel.legalDestinations(s, 'dana'))
+            expect(HydratedTravel.legalDestinations(ownView(s), 'dana')).toEqual(
+                HydratedTravel.legalDestinations(s, 'dana')
+            )
             expect(JSON.stringify(s.dehydrate())).toBe(server)
             expect(JSON.stringify(served(s, dana))).toBe(seen)
         }

@@ -99,10 +99,9 @@ describe('vault-writing actions set revealsInfo', () => {
     const HEARTH = 'denizen.hearth.ballot-box'
 
     function appliedSearchResolve() {
-        const state = testState(
-            [testPlayer({ siteId: 'c1', handIds: [ORDER, BEAST, HEARTH] })],
-            { denizensBySite: { c1: [] } }
-        )
+        const state = testState([testPlayer({ siteId: 'c1', handIds: [ORDER, BEAST, HEARTH] })], {
+            denizensBySite: { c1: [] }
+        })
         const action = new HydratedSearchResolve(
             buildAction(SearchResolve, {
                 playerId: 'p1',
@@ -182,10 +181,7 @@ describe('R-X.3(c) — a card shown to everyone cannot be unseen', () => {
 
 describe('a reveal of a card already public trusts no client input', () => {
     it('Travel drops a forged reveal on an already-faceup destination', () => {
-        const state = testState(
-            [testPlayer({ playerId: 'p1', siteId: 'c1', supply: 7 })],
-            {}
-        )
+        const state = testState([testPlayer({ playerId: 'p1', siteId: 'c1', supply: 7 })], {})
         openTurn(state, 'p1')
         const before = JSON.stringify(state.dehydrate().siteCards)
 

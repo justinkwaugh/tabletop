@@ -9,7 +9,13 @@ import { CampaignDefeatKills } from './campaignDefeatKills.js'
 import { MachineState } from '../definition/states.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { relicDefenseDice } from '../data/cardRegistry.js'
-import { CampaignTargetKind, type CampaignTarget, type RolledAttackFace, type RolledDefenseFace, type WarbandGroup } from '../model/campaign.js'
+import {
+    CampaignTargetKind,
+    type CampaignTarget,
+    type RolledAttackFace,
+    type RolledDefenseFace,
+    type WarbandGroup
+} from '../model/campaign.js'
 import { testPlayer, testState, withChancellor } from '../testing/fixture.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { expectOneWarbandOwnerPerSite, warbandCensus } from '../testing/census.js'
@@ -144,13 +150,9 @@ const PLAINS = 'site.plains'
 const LONGBOWS = 'denizen.order.longbows'
 const BANDITS: CampaignDefender = { kind: 'bandits' }
 
-
 beforeAll(() => {
     // R-2.4.2
-    expect(
-        relicDefenseDice(IVORY_EYE),
-        'the Ivory Eye prints 2 defense dice'
-    ).toBe(2)
+    expect(relicDefenseDice(IVORY_EYE), 'the Ivory Eye prints 2 defense dice').toBe(2)
 })
 
 interface Board {
@@ -243,12 +245,14 @@ function runCampaign(
     const game = testGame([A, D])
     const before = buildState(board, seed)
     const result = engine.run(
-        act(buildAction(Campaign, {
-            playerId: A,
-            defender: campaign.defender ?? { kind: 'player', playerId: D },
-            targets: campaign.targets,
-            attackDice: campaign.attackDice,
-        })),
+        act(
+            buildAction(Campaign, {
+                playerId: A,
+                defender: campaign.defender ?? { kind: 'player', playerId: D },
+                targets: campaign.targets,
+                attackDice: campaign.attackDice
+            })
+        ),
         before,
         game
     )
@@ -325,11 +329,13 @@ describe('Campaign golden vectors', () => {
         expect(boardOf(state, D)).toBe(1)
 
         state = engine.run(
-            act(buildAction(CampaignResolveVictory, {
-                playerId: A,
-                placements: [{ siteId: ATTACKER_SITE, owner: A, count: 2 }],
-                burnFavor: false
-            })),
+            act(
+                buildAction(CampaignResolveVictory, {
+                    playerId: A,
+                    placements: [{ siteId: ATTACKER_SITE, owner: A, count: 2 }],
+                    burnFavor: false
+                })
+            ),
             state,
             game
         ).updatedState
@@ -352,11 +358,13 @@ describe('Campaign golden vectors', () => {
 
         // R-5.5.5.b
         const state = engine.run(
-            act(buildAction(CampaignSacrifice, {
-                playerId: A,
-                sacrifice: 0,
-                defeatKills: [{ at: { kind: 'board', playerId: A }, owner: A, count: 1 }]
-            })),
+            act(
+                buildAction(CampaignSacrifice, {
+                    playerId: A,
+                    sacrifice: 0,
+                    defeatKills: [{ at: { kind: 'board', playerId: A }, owner: A, count: 1 }]
+                })
+            ),
             rolled,
             game
         ).updatedState
@@ -407,11 +415,14 @@ describe('Campaign golden vectors', () => {
         const before = JSON.stringify(rolled)
         expect(() =>
             engine.run(
-                act(buildAction(CampaignSacrifice, {
-                    playerId: A,
-                    sacrifice: 3,
-                    defeatKills: []
-                }), 'illegal'),
+                act(
+                    buildAction(CampaignSacrifice, {
+                        playerId: A,
+                        sacrifice: 3,
+                        defeatKills: []
+                    }),
+                    'illegal'
+                ),
                 rolled,
                 game
             )
@@ -419,11 +430,14 @@ describe('Campaign golden vectors', () => {
         expect(JSON.stringify(rolled)).toBe(before)
 
         const state = engine.run(
-            act(buildAction(CampaignSacrifice, {
-                playerId: A,
-                sacrifice: 0,
-                defeatKills: [{ at: { kind: 'board', playerId: A }, owner: A, count: 1 }]
-            }), 'decline'),
+            act(
+                buildAction(CampaignSacrifice, {
+                    playerId: A,
+                    sacrifice: 0,
+                    defeatKills: [{ at: { kind: 'board', playerId: A }, owner: A, count: 1 }]
+                }),
+                'decline'
+            ),
             rolled,
             game
         ).updatedState
@@ -463,22 +477,27 @@ describe('Campaign golden vectors', () => {
         // R-5.5.5.c, R-9.5 — 7 + 5 cannot reach 16, so declining is the only legal move.
         expect(() =>
             engine.run(
-                act(buildAction(CampaignSacrifice, {
-                    playerId: A,
-                    sacrifice: 5,
-                    defeatKills: []
-                }), 'hopeless'),
+                act(
+                    buildAction(CampaignSacrifice, {
+                        playerId: A,
+                        sacrifice: 5,
+                        defeatKills: []
+                    }),
+                    'hopeless'
+                ),
                 rolled,
                 game
             )
         ).toThrow(/must sacrifice exactly 9/)
 
         const state = engine.run(
-            act(buildAction(CampaignSacrifice, {
-                playerId: A,
-                sacrifice: 0,
-                defeatKills: [{ at: { kind: 'board', playerId: A }, owner: A, count: 2 }]
-            })),
+            act(
+                buildAction(CampaignSacrifice, {
+                    playerId: A,
+                    sacrifice: 0,
+                    defeatKills: [{ at: { kind: 'board', playerId: A }, owner: A, count: 2 }]
+                })
+            ),
             rolled,
             game
         ).updatedState
@@ -584,14 +603,16 @@ describe('Campaign golden vectors', () => {
         expect(siteOf(state, S2)).toBe(0)
 
         state = engine.run(
-            act(buildAction(CampaignResolveVictory, {
-                playerId: A,
-                placements: [
-                    { siteId: ATTACKER_SITE, owner: A, count: 1 },
-                    { siteId: S2, owner: A, count: 2 }
-                ],
-                burnFavor: false
-            })),
+            act(
+                buildAction(CampaignResolveVictory, {
+                    playerId: A,
+                    placements: [
+                        { siteId: ATTACKER_SITE, owner: A, count: 1 },
+                        { siteId: S2, owner: A, count: 2 }
+                    ],
+                    burnFavor: false
+                })
+            ),
             state,
             game
         ).updatedState
@@ -661,12 +682,14 @@ describe('Campaign golden vectors', () => {
         expect(boardOf(state, D)).toBe(2)
 
         state = engine.run(
-            act(buildAction(CampaignResolveVictory, {
-                playerId: A,
-                placements: [],
-                banishToSiteId: 'h3',
-                burnFavor: true
-            })),
+            act(
+                buildAction(CampaignResolveVictory, {
+                    playerId: A,
+                    placements: [],
+                    banishToSiteId: 'h3',
+                    burnFavor: true
+                })
+            ),
             state,
             game
         ).updatedState
@@ -700,11 +723,13 @@ describe('Campaign golden vectors', () => {
         expect(rolled.campaign?.swords).toBe(0)
 
         let state = engine.run(
-            act(buildAction(CampaignSacrifice, {
-                playerId: A,
-                sacrifice: 2,
-                defeatKills: []
-            })),
+            act(
+                buildAction(CampaignSacrifice, {
+                    playerId: A,
+                    sacrifice: 2,
+                    defeatKills: []
+                })
+            ),
             rolled,
             game
         ).updatedState
@@ -713,11 +738,13 @@ describe('Campaign golden vectors', () => {
         expect(boardOf(state, A)).toBe(0)
 
         state = engine.run(
-            act(buildAction(CampaignResolveVictory, {
-                playerId: A,
-                placements: [],
-                burnFavor: false
-            })),
+            act(
+                buildAction(CampaignResolveVictory, {
+                    playerId: A,
+                    placements: [],
+                    burnFavor: false
+                })
+            ),
             state,
             game
         ).updatedState

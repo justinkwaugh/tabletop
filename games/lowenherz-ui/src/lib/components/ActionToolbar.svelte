@@ -21,7 +21,9 @@
             return
         }
         const rect = document.getElementById('lowenherz-board-frame')?.getBoundingClientRect()
-        boardCenter = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined
+        boardCenter = rect
+            ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+            : undefined
         showRegionAid = true
     }
 

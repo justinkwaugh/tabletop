@@ -90,7 +90,10 @@ const GAINED = /^(\S+) gained (.+)$/
  * The steps of the Campaign a closing step ends: from its declaration to that step; and, when a
  * banish waited on an answer (R-5.5.7.III), the answer that ended it, for what Hospital placed then.
  */
-export function campaignStepsTo(actions: readonly GameAction[], closingIndex: number): GameAction[] {
+export function campaignStepsTo(
+    actions: readonly GameAction[],
+    closingIndex: number
+): GameAction[] {
     let declared = closingIndex
     while (declared > 0 && !isCampaign(actions[declared])) declared -= 1
     const steps = actions.slice(declared, closingIndex + 1)
@@ -198,7 +201,13 @@ export function campaignLedger(
     const defenseLoss = won ? defeatLosses(steps, names, saves) : []
     const attackLoss = won
         ? []
-        : savedLosses(saves, attacking, sacrifice?.defeatKills ?? [], closing.defeatKilled ?? 0, names)
+        : savedLosses(
+              saves,
+              attacking,
+              sacrifice?.defeatKills ?? [],
+              closing.defeatKilled ?? 0,
+              names
+          )
 
     const attacker: CampaignLedgerSide = {
         seatId: attackerId,
@@ -314,7 +323,8 @@ function battleOf(step: GameAction) {
 /** R-5.5.2, R-5.5.3 — the dice a step records: as mustered, then as the plans left them. */
 function poolsOf(step: GameAction): Pools | undefined {
     const battle = battleOf(step)
-    if (battle) return { attack: battle.heldAttackDice ?? battle.attackPool, defense: battle.defensePool }
+    if (battle)
+        return { attack: battle.heldAttackDice ?? battle.attackPool, defense: battle.defensePool }
     if (isCampaignDefend(step) && step.metadata) {
         const meta = step.metadata
         return { attack: meta.heldAttackDice ?? meta.attackPool, defense: meta.defensePool }
@@ -502,9 +512,14 @@ function savedLosses(
 }
 
 /** Losses at the places the record names when they account for every one killed ("killed at Plains"); else the count. */
-function placedLosses(groups: readonly WarbandGroup[], killed: number, names: HistoryNames): Loss[] {
+function placedLosses(
+    groups: readonly WarbandGroup[],
+    killed: number,
+    names: HistoryNames
+): Loss[] {
     const placed = warbandPlaces(groups, undefined, names)
-    if (placed.length === 0 || forceTotal(groups) !== killed) return [{ count: killed, reason: 'killed' }]
+    if (placed.length === 0 || forceTotal(groups) !== killed)
+        return [{ count: killed, reason: 'killed' }]
     return placed.map((group) => ({ count: group.count, reason: `killed ${group.place}` }))
 }
 

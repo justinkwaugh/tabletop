@@ -19,9 +19,10 @@ import {
     isSelectSeizedContainer
 } from '../actions/selectSeizedContainer.js'
 
-export class ContainerHydrator
-    implements GameHydrator<ContainerGameState, HydratedContainerGameState>
-{
+export class ContainerHydrator implements GameHydrator<
+    ContainerGameState,
+    HydratedContainerGameState
+> {
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
             case isBuyMachine(data):

@@ -100,6 +100,14 @@ export class CompanyDecisionsModule {
     companyPurchasesAvailable = $derived.by(() =>
         this.availablePurchaseOptions.some((option) => option.request.asset.kind !== 'train')
     )
+    ownCompanyPurchasesAvailable = $derived.by(() =>
+        this.availablePurchaseOptions.some(
+            ({ request }) =>
+                request.asset.kind !== 'train' &&
+                request.seller.kind === 'player' &&
+                request.seller.playerId === this.session.playerId
+        )
+    )
     players = $derived.by(() => {
         if (!this.canResolve) return []
         const { state, rules } = this.session

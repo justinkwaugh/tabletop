@@ -9,11 +9,14 @@ export const CONTAINER_COLORS: ContainerColor[] = [
     ContainerColor.Green
 ]
 
-export const SUPPLY_BY_PLAYER_COUNT: Record<3 | 4 | 5, {
-    containersPerColor: number
-    machinesPerColor: number
-    warehouses: number
-}> = {
+export const SUPPLY_BY_PLAYER_COUNT: Record<
+    3 | 4 | 5,
+    {
+        containersPerColor: number
+        machinesPerColor: number
+        warehouses: number
+    }
+> = {
     3: { containersPerColor: 10, machinesPerColor: 2, warehouses: 12 },
     4: { containersPerColor: 13, machinesPerColor: 3, warehouses: 16 },
     5: { containersPerColor: 16, machinesPerColor: 4, warehouses: 20 }

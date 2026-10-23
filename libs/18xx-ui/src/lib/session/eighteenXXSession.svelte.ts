@@ -36,6 +36,7 @@ import {
     type TokenTiles
 } from '../maps/stationPresentation.js'
 import { createTileDrawing } from '../tiles/tileDrawing.js'
+import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import { terrainIconAppearance } from '../maps/terrainIcons.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
@@ -44,6 +45,7 @@ import { operatingHistory } from '../table/operatingHistory.js'
 import { wealthHistory } from '../table/wealthHistory.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
 import { tileDrawingStyle, type TileAppearance } from '../tiles/tileAppearance.js'
+import type { PhaseChangePalette } from '../table/historyPhaseChange.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
 import { CashCrisisModule } from './cashCrisisModule.svelte.js'
 import { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
@@ -146,7 +148,7 @@ export class EighteenXXSession<
                         definition.face,
                         orientation,
                         rotation,
-                        this.mapView.layouts?.[definitionId],
+                        placedTileLayout(this.mapView.layouts, definitionId),
                         tileDrawingStyle(this.tileAppearance)
                     )
                 }
@@ -328,8 +330,7 @@ export class EighteenXXSession<
             this.companyAuction.clearOpening()
             this.onStockSelectionCancelled()
         },
-        () => this.privates.exchangeOffers.length > 0,
-        () => this.additionalStockMenuCount
+        () => this.privates.exchangeOffers.length > 0
     )
     #titleStockPanels?: TitleStockPanels<string>
     /** The title's panels beside Buy and Sell, registered for Undo and the stock menu. */
@@ -341,9 +342,6 @@ export class EighteenXXSession<
         this.localSelections.register(model, 'first')
         this.#titleStockPanels = model
         return model
-    }
-    get additionalStockMenuCount() {
-        return this.#titleStockPanels?.count ?? 0
     }
     readonly instructions = new StockInstructionModule(this.moduleSession)
     readonly earnings = new EarningsModule(this.moduleSession)
@@ -407,6 +405,14 @@ export class EighteenXXSession<
             : undefined
         return published ?? MapStyleAppearances[this.map.style]
     })
+    readonly phaseChangePalette: PhaseChangePalette = $derived.by(() => ({
+        phaseColors: this.presentation.phaseColors,
+        phaseTileColors: Object.fromEntries(
+            this.phases.phases.map((phase) => [phase.id, phase.tileColors])
+        ),
+        tileColors: this.tileAppearance.colors,
+        tileColorNames: this.tileAppearance.colorNames ?? {}
+    }))
     /** The map view for the current presentation: published token art replaces the generic set when selected. */
     readonly mapView: MapViewDefinition = $derived.by(() => {
         const base = this.mapViewDefinition
@@ -463,7 +469,8 @@ export class EighteenXXSession<
             (companyId) => this.companyName(companyId),
             (state) =>
                 this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules))),
-            (state) => this.stations.openReservations(state)
+            (state) => this.stations.openReservations(state),
+            (action) => this.presentationDefinition.historyMapPlacement?.(action)
         )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
@@ -645,6 +652,9 @@ export class EighteenXXSession<
             ? this.historicalMapPreview.map
             : undefined
     )
+    previewsHistoryMap(action: GameAction) {
+        return this.historicalMaps.previews(action)
+    }
     previewHistoryMap(action: GameAction) {
         if (this.busy || this.updatingVisibleState) return
         if (this.historicalMap?.actionId === action.id) {

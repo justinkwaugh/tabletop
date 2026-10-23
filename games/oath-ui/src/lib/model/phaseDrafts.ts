@@ -182,7 +182,8 @@ export class WakeDraft implements PanelDraft {
     get stepCount(): number {
         const playerId = this.playerId
         const state = this.session.gameState
-        if (playerId === undefined || bannerHolder(state, Banner.PeoplesFavor) !== playerId) return 0
+        if (playerId === undefined || bannerHolder(state, Banner.PeoplesFavor) !== playerId)
+            return 0
         return usableFavor(state, playerId) > 0
             ? peoplesFavorStepCount(state)
             : requiredFavorSteps(state, playerId)
@@ -472,7 +473,10 @@ type PicksByPower = Record<string, PowerChoicePicks>
  * can pick. That is one whose picks can never be made, or one offering no pick whose use with
  * none the engine refuses (Ivory Eye with nothing facedown): no use of it can be sent.
  */
-export function listedActionPowers(state: HydratedOathGameState, playerId: string): LegalPowerUse[] {
+export function listedActionPowers(
+    state: HydratedOathGameState,
+    playerId: string
+): LegalPowerUse[] {
     return HydratedUseActionPower.legalActionPowers(state, playerId).flatMap((use) => {
         const printed = cardPower(use.cardId, use.powerIndex)
         assertExists(printed, `${use.cardId} prints no power ${use.powerIndex}`)

@@ -1,11 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import {
-    Visibility,
-    GameAction,
-    HydratableAction,
-    MachineContext
-} from '@tabletop/common'
+import { Visibility, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { PoliticsCard, PoliticsCardType, hasPoliticsCards } from '../definition/politicsCards.js'

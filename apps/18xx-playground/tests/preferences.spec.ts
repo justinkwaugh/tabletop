@@ -116,3 +116,28 @@ test('company card switches keep separate values in the paned and tabbed layouts
     await expect(wrap).toHaveAttribute('aria-checked', 'false')
     await expect(wide).toHaveAttribute('aria-checked', 'true')
 })
+
+test('operating order chips start shown in the tabbed layout and save that choice', async ({
+    page
+}) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/table')
+    const chips = page.getByRole('button', { name: 'Operating order chips', exact: true })
+    const companyOrder = page.getByRole('region', { name: 'Company order', exact: true })
+    await expect(chips).toHaveAttribute('aria-expanded', 'true')
+    await expect(companyOrder).toBeVisible()
+    await chips.click()
+    await expect(chips).toHaveAttribute('aria-expanded', 'false')
+    await expect(companyOrder).toHaveCount(0)
+    await expect.poll(() => storedFamilyPreference(page, 'operatingOrderChipsTabbed')).toBe(false)
+    await page.reload()
+    await expect(chips).toHaveAttribute('aria-expanded', 'false')
+    await chips.click()
+    await expect.poll(() => storedFamilyPreference(page, 'operatingOrderChipsTabbed')).toBe(true)
+    await page.setViewportSize({ width: 1280, height: 960 })
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
+        .click()
+    await page.getByRole('button', { name: 'Operating Order', exact: true }).click()
+    await expect(chips).toHaveAttribute('aria-expanded', 'false')
+})

@@ -6,7 +6,10 @@ import { HydratedChooseRecipient, isChooseRecipient } from '../actions/chooseRec
 
 // Transition from AuctionEnded(ChooseRecipient) -> PlacingPiece
 
-export class AuctionEndedStateHandler implements MachineStateHandler<HydratedChooseRecipient, HydratedEstatesGameState> {
+export class AuctionEndedStateHandler implements MachineStateHandler<
+    HydratedChooseRecipient,
+    HydratedEstatesGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedEstatesGameState>
@@ -15,7 +18,10 @@ export class AuctionEndedStateHandler implements MachineStateHandler<HydratedCho
         return isChooseRecipient(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedEstatesGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedEstatesGameState>
+    ): ActionType[] {
         const validActions: ActionType[] = []
         const gameState = context.gameState
 
@@ -35,7 +41,10 @@ export class AuctionEndedStateHandler implements MachineStateHandler<HydratedCho
         gameState.activePlayerIds = [auctioneer]
     }
 
-    onAction(action: HydratedChooseRecipient, _context: MachineContext<HydratedEstatesGameState>): MachineState {
+    onAction(
+        action: HydratedChooseRecipient,
+        _context: MachineContext<HydratedEstatesGameState>
+    ): MachineState {
         switch (true) {
             case isChooseRecipient(action): {
                 return MachineState.PlacingPiece

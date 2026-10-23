@@ -8,7 +8,6 @@
     import SproutIcon from './SproutIcon.svelte'
     import PlayerNameChip from './PlayerNameChip.svelte'
 
-
     const session = getGameSession()
 
     // Same filtering as History.svelte, so this always mirrors that list's top entry.
@@ -35,35 +34,37 @@
      movement. -->
 <div class="shrink-0 min-h-[44px] mt-2" aria-hidden={repeatsTheBar}>
     {#if !repeatsTheBar}
-    <div class="centered-line max-w-[90%] px-3 flex items-center gap-2">
-        <SproutIcon class="w-5 h-5 shrink-0" />
-        {#key lastAction?.id}
-            <div class="flex flex-col items-center"
-                 in:fade={{ duration: 200, easing: quartIn }}>
-                {#if lastAction}
-                    {#each descriptionSegments as segment, i (i)}
-                        <p class="text-[16px] text-amber-200 truncate">
-                            {#if i === 0 && lastAction.playerId}
-                                <PlayerNameChip playerId={lastAction.playerId} />
-                            {/if}
-                            {#each segment as part, j (j)}
-                                {#if typeof part === 'string'}
-                                    {part}
-                                {:else}
-                                    <PlayerNameChip playerId={part.playerId} />
+        <div class="centered-line max-w-[90%] px-3 flex items-center gap-2">
+            <SproutIcon class="w-5 h-5 shrink-0" />
+            {#key lastAction?.id}
+                <div
+                    class="flex flex-col items-center"
+                    in:fade={{ duration: 200, easing: quartIn }}
+                >
+                    {#if lastAction}
+                        {#each descriptionSegments as segment, i (i)}
+                            <p class="text-[16px] text-amber-200 truncate">
+                                {#if i === 0 && lastAction.playerId}
+                                    <PlayerNameChip playerId={lastAction.playerId} />
                                 {/if}
-                            {/each}
+                                {#each segment as part, j (j)}
+                                    {#if typeof part === 'string'}
+                                        {part}
+                                    {:else}
+                                        <PlayerNameChip playerId={part.playerId} />
+                                    {/if}
+                                {/each}
+                            </p>
+                        {/each}
+                    {:else}
+                        <p class="text-[16px] text-amber-200 truncate">
+                            <span class="text-amber-400">Welcome to Santiago!</span>
                         </p>
-                    {/each}
-                {:else}
-                    <p class="text-[16px] text-amber-200 truncate">
-                        <span class="text-amber-400">Welcome to Santiago!</span>
-                    </p>
-                {/if}
-            </div>
-        {/key}
-        <SproutIcon class="w-5 h-5 shrink-0 -scale-x-100" />
-    </div>
+                    {/if}
+                </div>
+            {/key}
+            <SproutIcon class="w-5 h-5 shrink-0 -scale-x-100" />
+        </div>
     {/if}
 </div>
 

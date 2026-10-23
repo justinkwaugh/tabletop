@@ -13,7 +13,12 @@ import {
 } from '@tabletop/oath'
 import { required } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
-import { PLAINS, WRESTLERS, wrestlersDefends, type WrestlersScene } from '$lib/testing/wrestlersTable.js'
+import {
+    PLAINS,
+    WRESTLERS,
+    wrestlersDefends,
+    type WrestlersScene
+} from '$lib/testing/wrestlersTable.js'
 import { describeAction } from './actionDescription.js'
 import { pickerWords } from './powerPickerWords.js'
 import { emptyPicks, withOptionPick } from './powerChoices.js'
@@ -28,7 +33,10 @@ const POWER = required(
     'Wrestlers’ battle plan'
 )
 const PLAN = { cardId: WRESTLERS, powerIndex: POWER.powerIndex }
-const place = (at: WarbandLocation): PowerChoice => ({ kind: PowerChoiceKind.Warbands, group: { at, owner: IMPERIAL_WARBANDS, count: 1 } })
+const place = (at: WarbandLocation): PowerChoice => ({
+    kind: PowerChoiceKind.Warbands,
+    group: { at, owner: IMPERIAL_WARBANDS, count: 1 }
+})
 const SITE: WarbandLocation = { kind: 'site', siteId: PLAINS }
 const ANN_BOARD: WarbandLocation = { kind: 'board', playerId: 'Ann' }
 const RHYS_BOARD: WarbandLocation = { kind: 'board', playerId: 'Rhys' }
@@ -43,7 +51,7 @@ async function defending(scene: WrestlersScene = {}) {
 }
 
 describe('R-10.22 — Wrestlers asks the warband its user sacrifices, from revision 22', () => {
-    it('turning it on asks for one place of the force, none picked: the Plains, Ann\'s board and Rhys\'s', async () => {
+    it("turning it on asks for one place of the force, none picked: the Plains, Ann's board and Rhys's", async () => {
         const { defence } = await defending()
         expect(defence.planChoicesOf(POWER)).toEqual([])
         defence.setPlan(POWER, true)
@@ -79,7 +87,12 @@ describe('R-10.22 — Wrestlers asks the warband its user sacrifices, from revis
     })
 
     it('with no warband in the force there is nothing to ask: the plan is used with no pick', async () => {
-        const { defence, sent } = await defending({ pawnTarget: true, atPlains: 0, annBoard: 0, rhysBoard: 0 })
+        const { defence, sent } = await defending({
+            pawnTarget: true,
+            atPlains: 0,
+            annBoard: 0,
+            rhysBoard: 0
+        })
         defence.setPlan(POWER, true)
         expect(defence.planChoicesOf(POWER)).toEqual([])
         expect(defence.plansComplete).toBe(true)
@@ -113,16 +126,27 @@ describe('R-10.22 — Wrestlers asks the warband its user sacrifices, from revis
 })
 
 describe('the History of a Wrestlers sacrifice', () => {
-    const names = { player: (playerId: string) => playerId, site: (slotId: string) => (slotId === PLAINS ? 'Plains' : slotId), seats: ['Dana', 'Ann', 'Rhys'] }
+    const names = {
+        player: (playerId: string) => playerId,
+        site: (slotId: string) => (slotId === PLAINS ? 'Plains' : slotId),
+        seats: ['Dana', 'Ann', 'Rhys']
+    }
     const row = (note: string): GameAction => {
         const fields: Record<string, unknown> = {
             plans: [],
             metadata: { plansUsed: ['Wrestlers'], swords: 2, defense: 3, planNotes: [note] }
         }
-        return { id: 'a1', gameId: 'g1', source: ActionSource.User, type: ActionType.CampaignDefend, playerId: 'Ann', ...fields }
+        return {
+            id: 'a1',
+            gameId: 'g1',
+            source: ActionSource.User,
+            type: ActionType.CampaignDefend,
+            playerId: 'Ann',
+            ...fields
+        }
     }
 
-    it('names the place: at the site, on the Ally\'s board, on the user\'s own board', () => {
+    it("names the place: at the site, on the Ally's board, on the user's own board", () => {
         expect(describeAction(row(`Wrestlers: sacrificed a warband at ${PLAINS}`), names)).toBe(
             'used Wrestlers; 2 swords against 3 defense; sacrificed a warband at Plains (Wrestlers)'
         )

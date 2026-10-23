@@ -178,7 +178,8 @@
     style={`filter:${darkened ? `brightness(${darkenedBrightness})` : 'none'}`}
 >
     {#if wirePath}
-        <path d={wirePath} fill="none" stroke="#a99f93" stroke-width="1.25" stroke-linecap="round"></path>
+        <path d={wirePath} fill="none" stroke="#a99f93" stroke-width="1.25" stroke-linecap="round"
+        ></path>
     {/if}
 
     <defs>
@@ -295,15 +296,40 @@
     {:else}
         {#each laidOutEntries.entries as entry (entry.good)}
             {#if entry.good === Good.Rice}
-                <RiceMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
+                <RiceMarker
+                    x={entry.iconX}
+                    y={laidOutEntries.rowCenterY}
+                    height={18.5}
+                    outline={false}
+                />
             {:else if entry.good === Good.Spice}
-                <SpiceMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
+                <SpiceMarker
+                    x={entry.iconX}
+                    y={laidOutEntries.rowCenterY}
+                    height={18.5}
+                    outline={false}
+                />
             {:else if entry.good === Good.Rubber}
-                <RubberMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
+                <RubberMarker
+                    x={entry.iconX}
+                    y={laidOutEntries.rowCenterY}
+                    height={18.5}
+                    outline={false}
+                />
             {:else if entry.good === Good.Oil}
-                <OilMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={18.5} outline={false} />
+                <OilMarker
+                    x={entry.iconX}
+                    y={laidOutEntries.rowCenterY}
+                    height={18.5}
+                    outline={false}
+                />
             {:else}
-                <SiapSajiMarker x={entry.iconX} y={laidOutEntries.rowCenterY} height={17} outline={false} />
+                <SiapSajiMarker
+                    x={entry.iconX}
+                    y={laidOutEntries.rowCenterY}
+                    height={17}
+                    outline={false}
+                />
             {/if}
 
             <text

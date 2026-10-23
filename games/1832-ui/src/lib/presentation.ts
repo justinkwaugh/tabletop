@@ -10,6 +10,7 @@ import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyTwoCompanyNames } from './companyPresentation.js'
 import { EighteenThirtyTwoPhaseChart, eighteenThirtyTwoPhaseChart } from './phaseChart.js'
 import { EighteenThirtyTwoTrainColors } from './trainPresentation.js'
+import { eighteenThirtyTwoMapPlacement } from './history.js'
 import CottonToken from './images/tokens/cotton.svg'
 import PortToken from './images/tokens/port.svg'
 import UnknownToken from './images/tokens/unknown.svg'
@@ -25,6 +26,7 @@ export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoS
     ipoPoolId: 'initial-offering',
     companyNames: EighteenThirtyTwoCompanyNames,
     privatePurchaseHeading: 'Available privates',
+    historyMapPlacement: eighteenThirtyTwoMapPlacement,
     privateTokens: {
         P2: { imageUrl: CottonToken },
         P3: { imageUrl: PortToken },

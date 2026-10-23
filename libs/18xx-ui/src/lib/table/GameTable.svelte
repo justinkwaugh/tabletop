@@ -4,7 +4,6 @@
         DefaultCompanyPricePresentation,
         type CompanyPricePresentation
     } from './companyPresentation.js'
-    import { tableHeaderState } from './tableHeaderState.js'
     import {
         defaultTableView,
         initialTableLayout,
@@ -132,9 +131,6 @@
     )
     const operatingRules = $derived(session.operatingRules)
     const valuationRules = $derived(session.valuationRules)
-    const phaseTileColors = $derived(
-        Object.fromEntries(session.phases.phases.map((phase) => [phase.id, phase.tileColors]))
-    )
     const readOnlyPosition = $derived(
         session.isViewingHistory || !session.myPlayer || !session.isMyTurn
     )
@@ -307,7 +303,17 @@
     // Below the pane layout, drags may bring the map's edge 30% into the view; focusing a hex
     // still brings it to the centre.
     const MapGestureOverpanReach = 0.3
-    let orderChipsShown = $state(false)
+    // The tabbed layout saves whether the chips are shown; the paned layout starts without them.
+    let orderChipsShownPaned = $state(false)
+    const orderChipsShown = $derived(
+        paneLayout.current
+            ? orderChipsShownPaned
+            : session.preferences.values.operatingOrderChipsTabbed
+    )
+    function toggleOrderChips() {
+        if (paneLayout.current) orderChipsShownPaned = !orderChipsShownPaned
+        else session.preferences.set({ operatingOrderChipsTabbed: !orderChipsShown }, 'family')
+    }
     let orderOverflowing = $state(false)
     let orderFirstVisible = $state(-1)
     let orderLastVisible = $state(-1)
@@ -625,7 +631,6 @@
     }
 
     const gameState = $derived(session.gameState)
-    const headerState = $derived(tableHeaderState(session))
     const wealthPlayers = $derived(
         seatOrderFrom(
             session.gameState.players.map((player) => player.playerId),
@@ -637,7 +642,7 @@
         }))
     )
     const headerPlayerId = $derived(
-        headerState.activePlayerIds.length === 1 ? headerState.activePlayerIds[0] : undefined
+        gameState.activePlayerIds.length === 1 ? gameState.activePlayerIds[0] : undefined
     )
     const operating = $derived(gameState.stockRound.completed && !!gameState.operatingSet)
     const operatedCompanyIds = $derived(
@@ -808,10 +813,6 @@
         onPreviewMap={previewHistoryMap}
         {session}
         {trainColors}
-        {phaseColors}
-        {phaseTileColors}
-        tileColors={tileAppearance.colors}
-        tileColorNames={tileAppearance.colorNames}
         describeAction={historyDescription}
     />{/snippet}
 
@@ -1079,7 +1080,7 @@
                                     class="order-overview-toggle"
                                     aria-label="Operating order chips"
                                     aria-expanded={orderChipsShown}
-                                    onclick={() => (orderChipsShown = !orderChipsShown)}
+                                    onclick={toggleOrderChips}
                                 >
                                     <CompanyOrderOverview
                                         companies={companyOrder}
@@ -1173,7 +1174,7 @@
                                 {money}
                                 {depotState}
                                 chart={phaseChart}
-                                currentPhaseId={headerState.phaseId}
+                                currentPhaseId={gameState.phaseId}
                                 {trainColors}
                                 {phaseColors}
                                 tileColors={tileAppearance.colors}

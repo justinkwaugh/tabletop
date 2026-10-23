@@ -2,10 +2,7 @@ import { ActionSource, type GameAction } from '@tabletop/common'
 import { ActionType, type AddPassengers, type PlaceBuilding } from '@tabletop/bus'
 
 export type AggregatedBusActionType =
-    | ActionType.PlaceBusLine
-    | ActionType.PlaceBuilding
-    | ActionType.AddPassengers
-    | ActionType.Vroom
+    ActionType.PlaceBusLine | ActionType.PlaceBuilding | ActionType.AddPassengers | ActionType.Vroom
 
 export type AggregatedBusAction = GameAction & {
     type: 'AggregatedBusAction'
@@ -59,7 +56,9 @@ export function aggregateBusActions(actions: GameAction[]): AggregatedBusAction 
             0
         )
     } else if (aggregatedType === ActionType.PlaceBuilding) {
-        const buildingTypes = new Set(actions.map((action) => (action as PlaceBuilding).buildingType))
+        const buildingTypes = new Set(
+            actions.map((action) => (action as PlaceBuilding).buildingType)
+        )
         if (buildingTypes.size === 1) {
             aggregated.buildingType = Array.from(buildingTypes)[0]
         } else {

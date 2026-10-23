@@ -73,7 +73,10 @@ export function withPromise(picks: ExchangePicks, side: ExchangeSide, text: stri
  * R-7.6.3-H1 — the one side whose promise `after` changes from `before`, when that promise (as typed
  * and as the terms carry it) is all that differs.
  */
-export function promiseEdited(before: ExchangePicks, after: ExchangePicks): ExchangeSide | undefined {
+export function promiseEdited(
+    before: ExchangePicks,
+    after: ExchangePicks
+): ExchangeSide | undefined {
     const sides: ExchangeSide[] = ['fromProposer', 'fromCounterparty']
     return sides.find(
         (side) =>
@@ -389,8 +392,18 @@ export function withOfferedPicks(
     picks: ExchangePicks
 ): ExchangePicks {
     const sides = [
-        { side: 'fromProposer', giver: proposerId, receiver: counterpartyId, back: 'fromCounterparty' },
-        { side: 'fromCounterparty', giver: counterpartyId, receiver: proposerId, back: 'fromProposer' }
+        {
+            side: 'fromProposer',
+            giver: proposerId,
+            receiver: counterpartyId,
+            back: 'fromCounterparty'
+        },
+        {
+            side: 'fromCounterparty',
+            giver: counterpartyId,
+            receiver: proposerId,
+            back: 'fromProposer'
+        }
     ] as const
     // Each pass drops a pick or clears a count and never adds one, so it ends.
     let kept = picks
@@ -435,7 +448,10 @@ export function withOfferedPicks(
             if (unchanged) continue
             dropped = true
             kept = {
-                terms: Object.keys(patch).length === 0 ? kept.terms : withTransfer(kept.terms, side, patch),
+                terms:
+                    Object.keys(patch).length === 0
+                        ? kept.terms
+                        : withTransfer(kept.terms, side, patch),
                 uncountedSiteIds
             }
         }

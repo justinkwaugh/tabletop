@@ -33,7 +33,8 @@ async function boxOf(locator: Locator) {
 const HIDDEN = 'slot.hinterland.1'
 const panel = (page: Page) => page.locator('.panel')
 const travelPrompt = (page: Page) => panel(page).getByText('Tap a lit site.', { exact: true })
-const tile = (page: Page, label: string) => panel(page).locator('.majors button').filter({ hasText: label })
+const tile = (page: Page, label: string) =>
+    panel(page).locator('.majors button').filter({ hasText: label })
 const siteAt = (page: Page, slotId: string) => page.locator(`.site[data-slot="${slotId}"]`)
 const siteCard = (page: Page, slotId: string) => siteAt(page, slotId).locator('.board-card')
 const chip = (page: Page, slotId: string) => siteAt(page, slotId).locator('.travel-cost')
@@ -44,9 +45,15 @@ const litSlots = (page: Page) =>
         .filter({ has: page.locator('.board-card.offered') })
         .evaluateAll((sites) => sites.map((site) => site.getAttribute('data-slot') ?? '').sort())
 const oneFlip = (page: Page) =>
-    panel(page).getByRole('button', { name: 'Travel to The Hidden Place: spend 4 Supply, flip a secret facedown', exact: true })
+    panel(page).getByRole('button', {
+        name: 'Travel to The Hidden Place: spend 4 Supply, flip a secret facedown',
+        exact: true
+    })
 const twoFlips = (page: Page) =>
-    panel(page).getByRole('button', { name: 'Travel to The Hidden Place: spend no Supply, flip 2 secrets facedown', exact: true })
+    panel(page).getByRole('button', {
+        name: 'Travel to The Hidden Place: spend no Supply, flip 2 secrets facedown',
+        exact: true
+    })
 const undo = (page: Page) => page.getByRole('button', { name: 'Undo', exact: true })
 const history = (page: Page) => page.locator('.history')
 
@@ -64,7 +71,9 @@ async function chooseTravel(page: Page, table: TableFixture.TableName) {
 /** The map scrolled so the site shows, then the shot of the page as the player sees it. */
 async function shot(page: Page, name: string, phone: boolean) {
     await page.mouse.move(2, 2)
-    await page.screenshot({ path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`) })
+    await page.screenshot({
+        path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`)
+    })
 }
 
 for (const { name, viewport, phone } of SIZES) {
@@ -75,7 +84,9 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`From the Buried Giant to The Hidden Place, on a ${name}`, () => {
         test.use({ viewport, hasTouch: phone })
 
-        test('3 Supply: the free way alone, "0+[secret][secret]"; a tap travels and flips both', async ({ page }) => {
+        test('3 Supply: the free way alone, "0+[secret][secret]"; a tap travels and flips both', async ({
+            page
+        }) => {
             await chooseTravel(page, 'buriedGiantHiddenPlace')
             await expect(chip(page, HIDDEN)).toHaveText('0+')
             await expect(secretsIn(chip(page, HIDDEN))).toHaveCount(2)
@@ -104,7 +115,9 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(chip(page, HIDDEN)).toHaveCount(0)
         })
 
-        test('4 or more Supply: "4+[secret] or 0+[secret][secret]"; the two ways open, label-sized, one width; Undo closes them', async ({ page }) => {
+        test('4 or more Supply: "4+[secret] or 0+[secret][secret]"; the two ways open, label-sized, one width; Undo closes them', async ({
+            page
+        }) => {
             await chooseTravel(page, 'buriedGiantHiddenPlaceRich')
             await expect(chip(page, HIDDEN)).toHaveText('4+ or 0+')
             await expect(secretsIn(chip(page, HIDDEN))).toHaveCount(3)
@@ -123,7 +136,9 @@ for (const { name, viewport, phone } of SIZES) {
                 expect(one.height).toBeGreaterThanOrEqual(43.5)
                 expect(two.height).toBeGreaterThanOrEqual(43.5)
             }
-            expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width)
+            expect(
+                await page.evaluate(() => document.documentElement.scrollWidth)
+            ).toBeLessThanOrEqual(viewport.width)
             await shot(page, 'buried-giant-hidden-place-rich', phone)
 
             await undo(page).click()

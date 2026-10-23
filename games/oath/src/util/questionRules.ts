@@ -59,11 +59,7 @@ import {
     reasonCagePlacementInvalid,
     returnCagedWarbands
 } from './obsidianCage.js'
-import {
-    powerTravelFlipsNeeded,
-    reasonCannotTravelByPower,
-    travelByPower
-} from './powerTravel.js'
+import { powerTravelFlipsNeeded, reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
 import {
     gainOnArrival,
     reasonWoodPickRefused,

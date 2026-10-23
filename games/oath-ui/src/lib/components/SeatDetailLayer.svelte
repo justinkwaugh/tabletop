@@ -186,7 +186,9 @@
                             {@const promise = promiseBy(deal, party)}
                             {#if promise}
                                 <p class="quote">
-                                    <span data-promise-by><PlayerName playerId={party} /> promised:</span>
+                                    <span data-promise-by
+                                        ><PlayerName playerId={party} /> promised:</span
+                                    >
                                     <span class="promise" data-promise>{promise}</span>
                                 </p>
                             {/if}

@@ -19,7 +19,9 @@
         [BuildingType.Tower]: 'Tower'
     }
 
-    const myPlayerState = $derived(gameState.players.find((p) => p.playerId === session.myPlayer?.id))
+    const myPlayerState = $derived(
+        gameState.players.find((p) => p.playerId === session.myPlayer?.id)
+    )
     const myColor = $derived(session.colors.getPlayerUiColor(session.myPlayer?.id))
 
     const entries = $derived(historyEntries(session.actions))
@@ -55,7 +57,8 @@
         if (session.selectedBuildingType) {
             return `Build the ${buildingName[session.selectedBuildingType].toLowerCase()} where both architects can see`
         }
-        if (session.canPass) return 'Neither architect can see a square you may build on — you must pass'
+        if (session.canPass)
+            return 'Neither architect can see a square you may build on — you must pass'
         if (session.canPlaceBuilding && session.canRepositionArchitect) {
             return 'Choose a building, or first move an architect'
         }
@@ -65,7 +68,9 @@
     })
 </script>
 
-<div class="urbino-plank action-area flex min-h-[64px] flex-col justify-center gap-2 border-b-2 border-(--maple-edge) px-4 py-2.5 max-sm:px-3">
+<div
+    class="urbino-plank action-area flex min-h-[64px] flex-col justify-center gap-2 border-b-2 border-(--maple-edge) px-4 py-2.5 max-sm:px-3"
+>
     {#if session.isViewingHistory}
         <div class="text-[19px] leading-snug font-medium max-sm:text-[17px]">
             {#if historyEntry}
@@ -92,25 +97,35 @@
             </div>
             {#if latestEntry}
                 <div class="text-[17px] font-medium">
-                    <span class="urbino-display mr-1 text-[11px] tracking-[0.14em] text-(--ink-quiet)">LAST</span>
+                    <span
+                        class="urbino-display mr-1 text-[11px] tracking-[0.14em] text-(--ink-quiet)"
+                        >LAST</span
+                    >
                     <HistoryEntryLine entry={latestEntry} viewerId={session.myPlayer?.id} />
                 </div>
             {/if}
         </div>
     {:else}
-        <div class="text-[19px] leading-snug font-semibold text-(--ink) max-sm:text-[17px]">{prompt}</div>
+        <div class="text-[19px] leading-snug font-semibold text-(--ink) max-sm:text-[17px]">
+            {prompt}
+        </div>
 
         {#if session.canChooseFirstPlayer}
             <div class="flex flex-wrap gap-2">
                 {#each gameState.players as player (player.playerId)}
-                    <button class="choice" onclick={() => session.chooseFirstPlayer(player.playerId)}>
+                    <button
+                        class="choice"
+                        onclick={() => session.chooseFirstPlayer(player.playerId)}
+                    >
                         <PieceIcon
                             buildingType={BuildingType.Tower}
                             color={session.colors.getPlayerUiColor(player.playerId)}
                             buildingStyle={BuildingStyle.TowerRoofs}
                             size={20}
                         />
-                        {player.playerId === session.myPlayer?.id ? 'I build' : `${session.getPlayerName(player.playerId)} builds`}
+                        {player.playerId === session.myPlayer?.id
+                            ? 'I build'
+                            : `${session.getPlayerName(player.playerId)} builds`}
                         first
                     </button>
                 {/each}
@@ -131,9 +146,16 @@
                             aria-pressed={session.selectedBuildingType === type}
                             onclick={() => session.selectBuildingType(type)}
                         >
-                            <PieceIcon buildingType={type} color={myColor} buildingStyle={session.buildingStyle} size={26} />
+                            <PieceIcon
+                                buildingType={type}
+                                color={myColor}
+                                buildingStyle={session.buildingStyle}
+                                size={26}
+                            />
                             <span class="flex flex-col items-start leading-none">
-                                <span class="urbino-display text-[13px] tracking-[0.08em]">{buildingName[type]}</span>
+                                <span class="urbino-display text-[13px] tracking-[0.08em]"
+                                    >{buildingName[type]}</span
+                                >
                                 <span class="text-[13px] text-(--ink-quiet) max-sm:hidden">
                                     {#if placeable}
                                         {BUILDING_POINTS[type]} pt · {count} left
@@ -157,7 +179,8 @@
                             >
                                 <PawnIcon size={22} />
                                 <span class="urbino-display text-[13px] tracking-[0.08em]"
-                                    ><span class="max-sm:hidden">Move architect&nbsp;</span>{idx + 1}</span
+                                    ><span class="max-sm:hidden">Move architect&nbsp;</span>{idx +
+                                        1}</span
                                 >
                             </button>
                         {/if}
@@ -174,10 +197,16 @@
                     <div class="ml-auto flex items-center gap-2">
                         {#if concedeConfirming}
                             <span class="font-medium text-(--ink)">Concede the game?</span>
-                            <button class="quiet danger" onclick={() => session.concede()}>Yes, concede</button>
-                            <button class="quiet" onclick={() => (concedeConfirming = false)}>Cancel</button>
+                            <button class="quiet danger" onclick={() => session.concede()}
+                                >Yes, concede</button
+                            >
+                            <button class="quiet" onclick={() => (concedeConfirming = false)}
+                                >Cancel</button
+                            >
                         {:else}
-                            <button class="quiet" onclick={() => (concedeConfirming = true)}>Concede</button>
+                            <button class="quiet" onclick={() => (concedeConfirming = true)}
+                                >Concede</button
+                            >
                         {/if}
                     </div>
                 {/if}
@@ -200,7 +229,9 @@
         border: 1.5px solid color-mix(in oklab, var(--maple-edge) 80%, transparent);
         background: color-mix(in oklab, var(--maple-light) 70%, white);
         color: var(--ink);
-        box-shadow: 0 1px 0 rgb(255 255 255 / 0.6) inset, 0 1px 2px rgb(60 30 0 / 0.2);
+        box-shadow:
+            0 1px 0 rgb(255 255 255 / 0.6) inset,
+            0 1px 2px rgb(60 30 0 / 0.2);
         transition:
             background-color 120ms,
             box-shadow 120ms,

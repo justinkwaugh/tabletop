@@ -471,7 +471,13 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
 function sneakAttackOffered(): PlayedTable {
     const state = testState(
         withChancellor([
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', supply: 6, warbandsOnBoard: { [ME]: 6 } }),
+            testPlayer({
+                playerId: ME,
+                color: Color.Red,
+                siteId: 'c1',
+                supply: 6,
+                warbandsOnBoard: { [ME]: 6 }
+            }),
             testPlayer({
                 playerId: FOE,
                 color: Color.Blue,
@@ -495,10 +501,17 @@ function sneakAttackOffered(): PlayedTable {
     ])
     const defended =
         campaign.state.machineState === MachineState.CampaignPlans
-            ? played(campaign, [createAction(CampaignDefend, { ...envelope, playerId: FOE, plans: [] })])
+            ? played(campaign, [
+                  createAction(CampaignDefend, { ...envelope, playerId: FOE, plans: [] })
+              ])
             : campaign
-    const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(new HydratedOathGameState(defended.state), 0)
-    return played(defended, [createAction(CampaignSacrifice, { ...envelope, playerId: ME, sacrifice: 0, defeatKills })])
+    const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(
+        new HydratedOathGameState(defended.state),
+        0
+    )
+    return played(defended, [
+        createAction(CampaignSacrifice, { ...envelope, playerId: ME, sacrifice: 0, defeatKills })
+    ])
 }
 
 describe('the Campaign draft in a Sneak Attack', () => {
@@ -576,7 +589,7 @@ describe('the skull-loss order', () => {
 })
 
 describe('a battle plan whose text asks a choice (R-5.5.3)', () => {
-    it("Mountain Giant is declared at ±1 unless its user picks ±3", async () => {
+    it('Mountain Giant is declared at ±1 unless its user picks ±3', async () => {
         const GIANT = 'denizen.nomad.mountain-giant'
         const state = board()
         state.players[0].advisers = [{ cardId: GIANT, faceUp: true }]
@@ -590,7 +603,10 @@ describe('a battle plan whose text asks a choice (R-5.5.3)', () => {
         next(draft)
         draft.setAttackDice(2)
         next(draft)
-        const giant = required(draft.planOptions.find((p) => p.cardId === GIANT), 'Mountain Giant’s plan')
+        const giant = required(
+            draft.planOptions.find((p) => p.cardId === GIANT),
+            'Mountain Giant’s plan'
+        )
         draft.declarePlan(giant, true)
         expect(draft.planChoicesOf(giant)).toHaveLength(1)
         expect(draft.plans[0].choices).toEqual([])

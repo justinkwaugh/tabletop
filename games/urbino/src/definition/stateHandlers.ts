@@ -13,5 +13,5 @@ export const UrbinoStateHandlers: Record<
     [MachineState.PlacingArchitects]: new PlacingArchitectsStateHandler(),
     [MachineState.ChoosingFirstPlayer]: new ChoosingFirstPlayerStateHandler(),
     [MachineState.TakingTurn]: new TakingTurnStateHandler(),
-    [MachineState.EndOfGame]: new EndOfGameStateHandler(),
+    [MachineState.EndOfGame]: new EndOfGameStateHandler()
 }

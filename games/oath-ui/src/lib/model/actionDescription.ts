@@ -290,7 +290,9 @@ export function describeAction(
     return historyText(
         describeActionCited(action, names, viewerId, named, campaign) +
             secondWhenPlayedClause(action) +
-            notes.map((clause) => `; ${namedNote(clause.text, actorId, names, viewerId)}`).join('') +
+            notes
+                .map((clause) => `; ${namedNote(clause.text, actorId, names, viewerId)}`)
+                .join('') +
             placed.map((words) => `; ${namedNote(words, actorId, names, viewerId)}`).join('') +
             outcomeClauses(action, viewerId),
         names
@@ -301,7 +303,11 @@ const HOSPITAL = 'denizen.hearth.hospital'
 
 /** Hospital — the warbands it placed on its site, recorded by the step that ended the Campaign. */
 export function recordedHospitalPlaced(action: GameAction): readonly HeldForHospital[] {
-    if (isCampaignSacrifice(action) || isCampaignResolveVictory(action) || isAnswerQuestion(action)) {
+    if (
+        isCampaignSacrifice(action) ||
+        isCampaignResolveVictory(action) ||
+        isAnswerQuestion(action)
+    ) {
         return action.metadata?.hospitalPlaced ?? []
     }
     return []
@@ -1010,7 +1016,8 @@ function describeActionCited(
         }
         if (meta?.tollMove) return tollMoveText(meta.tollMove, names, viewerId)
         if (!meta) return 'answered a question'
-        if (meta.kind === PowerQuestionKind.DragonskinDrum) return drumText(meta.cardId, meta.warbandGain)
+        if (meta.kind === PowerQuestionKind.DragonskinDrum)
+            return drumText(meta.cardId, meta.warbandGain)
         // R-11.7-H2 — Hospitality's bank after the Wood ruler's pick, as any Travel's gain reads.
         if (meta.kind === PowerQuestionKind.HospitalityBank) {
             const gain = noteClause(meta.summary, action.playerId)?.text ?? meta.summary

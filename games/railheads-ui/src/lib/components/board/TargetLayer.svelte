@@ -34,8 +34,10 @@
         onclick={() => gameSession.clickHex(target.coords)}
         onkeydown={(event) => onKey(event, () => gameSession.clickHex(target.coords))}
     >
-        <polygon class="wash" points={layout.hexPoints(target.center, layout.hexRadius - 4)} />
-        <polygon class="ring" points={layout.hexPoints(target.center, layout.hexRadius - 5)} />
+        <polygon class="wash" points={layout.hexPoints(target.center, layout.hexRadius - 4)}
+        ></polygon>
+        <polygon class="ring" points={layout.hexPoints(target.center, layout.hexRadius - 5)}
+        ></polygon>
         <g transform="translate({target.center.x} {target.center.y + layout.hexRadius * 0.36})">
             <rect
                 x={-target.label.length * 3.6 - 4}
@@ -44,7 +46,7 @@
                 height="15"
                 rx="4"
                 class="tag"
-            />
+            ></rect>
             <text y="3.5" class="price">{target.label}</text>
         </g>
     </g>

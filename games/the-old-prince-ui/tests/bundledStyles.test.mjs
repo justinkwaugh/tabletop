@@ -6,7 +6,9 @@ const bundle = new URL('../bundle/', import.meta.url)
 
 function stringLiteralValue(literal) {
     const body = literal.slice(1, -1)
-    return JSON.parse(`"${literal[0] === '"' ? body : body.replace(/\\'/g, "'").replace(/"/g, '\\"')}"`)
+    return JSON.parse(
+        `"${literal[0] === '"' ? body : body.replace(/\\'/g, "'").replace(/"/g, '\\"')}"`
+    )
 }
 
 test('production runtime carries scoped tab, history, and chat styles', async () => {
@@ -29,6 +31,9 @@ test('production runtime carries scoped tab, history, and chat styles', async ()
         '.text-\\[var\\(--rail-muted\\,\\#887969\\)\\]',
         '.hover\\:bg-\\[var\\(--rail-surface-raised\\,\\#e7ded3\\)\\]:hover'
     ]) {
-        assert.ok(css.includes(`[data-game-ui="the-old-prince"] ${selector}`), `Missing scoped style: ${selector}`)
+        assert.ok(
+            css.includes(`[data-game-ui="the-old-prince"] ${selector}`),
+            `Missing scoped style: ${selector}`
+        )
     }
 })

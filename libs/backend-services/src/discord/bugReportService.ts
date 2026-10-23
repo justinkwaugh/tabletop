@@ -1,5 +1,6 @@
 import {
     ExternalAuthService,
+    Role,
     scenarioFromGame,
     type BugReportRequest,
     type BugReportScreenshot,
@@ -46,7 +47,9 @@ export class BugReportService {
             throw new GameNotFoundError({ id: report.gameId })
         }
         const { game, actions } = data
-        this.gameService.findValidPlayerForUser({ user, game })
+        if (!user.roles.includes(Role.Admin)) {
+            this.gameService.findValidPlayerForUser({ user, game })
+        }
 
         const openTagId = await this.findOpenTagId()
         const scenarioFile = this.scenarioFile(game, actions)

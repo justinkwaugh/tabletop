@@ -67,7 +67,9 @@ rotation to keep each value associated with its city. Labels yield to revenues.
 Ordinary edge-to-edge tracks are circular arcs, or straight lines for opposite
 edges. Towns split the same geometry at their stop without changing its curvature.
 Through-town positions can move along that curve, as on #56. Central junction
-towns use larger round dots; Classic through-towns use bars. Independent two-town
+towns use larger round dots; Classic through-towns use bars. A town on a hex whose
+marker art rings its towns (1832's medium cities) stays a round dot inside the ring on
+every tile laid there, as the printed map shows it. Independent two-town
 tiles preserve distinct node/path identities.
 All track borders render beneath all track strokes, so borders cannot cut through
 the black track at junctions or crossings. Where two tracks cross without sharing an
@@ -128,17 +130,17 @@ falls back to the company id as small text. Track into an offboard ends in a sho
 filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
 own. A marker whose art is a local line shows its label beside two linked circles while
 the hex has no tile, drawn above track with a halo in the hex's colour. It sits near
-the foot of the hex, or, when its art is ``above``, just over the hex's stops: above a
+the foot of the hex, or, when its art is `above`, just over the hex's stops: above a
 name curved over a city, below a straight name printed across the top, or above the
 terrain cost of a hex without stops. 1830 marks its private-blocked hexes this way,
 all above; 1889's Takamatsu marker is above.
 
-A map view may name each city of a hex (``cityNames``, 1830's OO and New York hexes):
+A map view may name each city of a hex (`cityNames`, 1830's OO and New York hexes):
 each name curves over its own city's drawn centre, turned off the hex's other cities
 and the names already placed, and replaces the hex's single name. A lone city's curved
 name follows the city's drawn centre, so an off-centre city (1830's Altoona) is wrapped
 by its name. A map view may instead curve a lone city's name under the city, reading
-along its foot (``namesBelow``), where track leaves over its top: TOP's Souris and
+along its foot (`namesBelow`), where track leaves over its top: TOP's Souris and
 Wellington, 1846's Huntington, 1832's New Orleans. Styles that print names straight
 across the top keep them there.
 
@@ -395,9 +397,11 @@ existed. This is a
 presentation rule; Game State itself remains public.
 
 An exploration starts with no standing instructions, including after Undo
-reaches back before its starting point: no player's live instruction acts
-inside it, and the bar starts undeclared. Instructions declared inside the
-exploration act normally there. The live game keeps its instructions unchanged.
+reaches back before its starting point or before a live declaration: no
+player's live instruction acts inside it, and the bar starts undeclared.
+Instructions declared inside the exploration act normally there, and Undo
+redoes them like any other declaration. The live game keeps its instructions
+unchanged.
 
 ### Live maps in finance examples
 
@@ -810,9 +814,16 @@ A private power that marks a location (a title's `markerTerms`, such as 1817's
 bridges) appears under Use privates as one immediately committed button per location,
 "Place [marker] on [location] ([private])". Placed markers join the map's printed
 markers, by the names the title's map view gives them, in the live and historical maps.
-Printed `revenueSymbol` markers (1832's and 1846's port anchors) take clear space beside the
-revenue, or the title's `symbolPositions` (1832's New Orleans and Norfolk at the bottom,
+Printed `revenueSymbol` markers (1832's and 1846's port anchors) take the clear corner
+farthest from the hex's drawn revenues, keeping room for a token that may cover them, or
+the title's `symbolPositions` (1832's New Orleans and Norfolk at the bottom,
 Miami at its right side), and are left out where the tile prints the symbol itself.
+A token a private places (a title's `token` marker art: 1832's Cotton, Port and Key West)
+is drawn alone, without its company, at radius 10.5, never shrunk. `'corner'` takes the
+clear corner farthest from the hex's drawn revenues (Cotton), `'centre'` the hex's middle
+(Key West in Miami), and `{ covers }` lies over the symbol the hex shows (Port over the
+port anchor), or in a corner where it shows none. In a crowded hex it covers track before
+a station, revenue or label. Its tooltip, inspection and history name it with its company.
 A title's reusable private lays (1817's coal mines and ranches) stay offered until its
 terms end them. A lay can also clear markers (1817's city tiles clear the ranches beside
 them), which leave the live and historical maps with it. History notes what a lay paid
@@ -1372,7 +1383,10 @@ when the preview disappears. Empty route sets do not move the camera. Returning
 to RunningTrains through Undo recalculates and focuses the new preview.
 
 The turn header pairs the current operating company's name with its title-owned
-token. The header does not show the phase; the game-information strip of phase,
+token. The header, its player tint and the game-information strip read the session's
+published game state, as PositionPanel does, so for every viewer they change with the
+rest of the table once state-change animations complete, and never name a different
+turn from the action area. The header does not show the phase; the game-information strip of phase,
 train limit and depot is a single button opening a native modal phase chart with a
 full-screen backdrop, and hovering anywhere on it highlights the whole strip. The
 chart's independent phase and train tables use canonical title data and
@@ -1397,9 +1411,9 @@ its history controls and turn header share a 44px border-box height and aligned
 bottom borders. The action panel no longer adds a second top border. Other
 DefaultTableLayout consumers retain the default 8px top inset.
 
-History train-run entries show train badges and total revenue without listing route stops.
+History train-run entries show train badges and total revenue without listing route stops. In a company's cash ledger, an amount that is a price or revenue rather than a cash change reads "for $N" after the action (“Ran 7 for $250”, “Station at V12 for free”); payouts keep their per-share amount without "for".
 
-History action rows and group headers do not move the history cursor. Track-lay and train-run labels can open a separate historical map preview. Navigation remains in the history controls.
+History action rows and group headers do not move the history cursor. Rows for actions that changed the map — track lays, train runs, station and token placements, and a title's own placements such as 1832's Port token — open a separate historical map preview. Navigation remains in the history controls.
 
 Round interstitials are prominent, full-width headings in normal document flow. Each sticks at the chronological beginning edge while its round is visible, and never combines into a stack.
 
@@ -1408,14 +1422,19 @@ System-action history groups omit an actor heading; their events appear directly
 Each OR starts with one “Operating order” entry showing the entire ordered token list, even when unchanged, with 6px between its label and tokens. The set-start bookkeeping action is hidden. This order entry has no bottom divider or movement arrows; later order changes retain their movement diagrams.
 
 Historical map inspection is an explicit, session-owned manual preview, independent of
-the history cursor. Only track-lay and train-run labels are buttons; other history
-text stays read-only. Clicking one shows the map immediately after that action,
-including its tiles, stations and reservations, with recorded routes for train runs.
+the history cursor. Only rows for map actions open it: track lays, train runs,
+stations (including private and home stations), private markers, and the placements
+a title declares through `historyMapPlacement`. The whole row, including its amount
+and detail line, is the click target and highlights on hover; other history text
+stays read-only. Clicking one shows the map immediately after that action,
+including its tiles, stations and reservations, with recorded routes for train runs
+and every hex the action placed on outlined.
 A separate native dialog owns its map renderer and ScalingWrapper. It occupies
 90% of viewport width and height, centered with subtly rounded corners and a
 translucent dark backdrop. At widths up to 760px or heights up to 560px it fills
 the viewport with square corners.
-Its header identifies Historical run (or track lay), company, OR and recorded run
+Its header identifies the kind of action (Historical run, track lay, station, or the
+title's name for a placement such as Port token), company, OR and recorded run
 revenue. History runs and the expanded company card's Last run share this viewer.
 Close, F and Escape dismiss it; zoom/pan controls remain but no expansion control
 is shown. The dialog blocks live-map interactions. Opening and closing do not
@@ -1633,9 +1652,13 @@ the existing Players/History/Chat tab controls, preserving their normal behavior
 Modified shortcuts, repeated keys, and typing within inputs, editors, or dialogs
 are ignored.
 
-Private purchases open from Buy privates into a staged source choice. Your privates
-is the default when eligible; Other players is available only with eligible offers.
-Cards show private income and the legal purchase range. Selecting one opens price
+Private purchases open from Buy privates into a staged source choice. When only
+other players' privates are eligible, the Buy privates entry is muted (text only, in
+the later-step colour) but stays enabled; it turns solid while open. They always
+open on Mine, because buying from another player is rare; the Mine / Other players’
+toggle appears whenever another player has an eligible private. With none of the
+player's own privates eligible, Mine stays selected over a dashed empty box (title
+text through `privatePurchaseEmpty`, default "You have no privates to sell"). Cards show private income and the legal purchase range. Selecting one opens price
 entry and Buy (same controller) or Offer (seller approval). Sidebar/header Undo
 clears the asset selection first, then the source stage; canonical purchases retain
 ordinary undo. During the picker, unrelated operating prompts and private powers
@@ -2293,20 +2316,17 @@ a 140px dark strip on the right, with a left border spanning the action content�
 height beneath the persistent action strip. The controls center in the remaining
 space. Narrower panes and non-paned layouts retain the summary below the controls.
 
-When exactly one legal stock action menu is available apart from Pass/End turn,
-it opens automatically. The count includes private exchanges and title-specific
-menus such as TOP Split. This is an auto-sourced transient choice: it commits
-nothing, preserves Pass, and Undo proceeds to committed history unless a manual
-selection remains. Manual menus take precedence; hidden selections and unavailable
-interaction suppress automatic menus. Clearing selections recomputes the sole
-choice from current legality without an effect.
+Stock action menus open only when the player chooses one, even when a single legal
+menu is available apart from Pass/End turn: a lone option is rarely what the player
+wants. After a buy or sale, the same menu reopens as an auto-sourced continuation
+while it still has legal choices; Undo skips it.
 
 This uses the variation catalog's stock-trading distinctions: title-owned buyer,
 start, exchange, and split legality remain authoritative. It imposes no stock
 sequence on titles without ordinary stock rounds. TOP and 1889 adopt this through
 UI-only publication; Logic and the host bridge are unchanged, so mixed host/UI
-versions remain compatible. Automated module coverage checks sole-option opening,
-title-option counting, manual precedence, disabled interaction, Pass, and Undo.
+versions remain compatible. Automated module coverage checks that a sole menu stays
+closed, manual choice, Pass, and Undo.
 
 Private exchange lists group equivalent certificates into one option per target
 company, retaining a legal certificate identity for the submitted action. Different

@@ -1,17 +1,32 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, Color, assertExists, latestPlayerUndoTarget, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    Color,
+    assertExists,
+    latestPlayerUndoTarget,
+    type GameAction
+} from '@tabletop/common'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { Banner, PlayerStatus, SearchPlay, Suit } from '../model/oathEnums.js'
 import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { HydratedResolveWake, ResolveWake, requiredFavorSteps, type WakeFavorStep } from '../actions/resolveWake.js'
+import {
+    HydratedResolveWake,
+    ResolveWake,
+    requiredFavorSteps,
+    type WakeFavorStep
+} from '../actions/resolveWake.js'
 import { HydratedAnswerQuestion, AnswerQuestion } from '../actions/answerQuestion.js'
 import { UseActionPower } from '../actions/useActionPower.js'
 import { HydratedSearch, Search, SearchSource } from '../actions/search.js'
 import { HydratedSearchResolve, SearchResolve } from '../actions/searchResolve.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { availablePeoplesFavorOptions, forcedPeoplesFavorOptions, peoplesFavorStepIsOptional } from '../util/wake.js'
+import {
+    availablePeoplesFavorOptions,
+    forcedPeoplesFavorOptions,
+    peoplesFavorStepIsOptional
+} from '../util/wake.js'
 import { currentQuestion } from '../util/questions.js'
 import { sitesRuledBy } from '../util/rule.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
@@ -48,20 +63,35 @@ const BEA = 'bea'
 
 describe("the People's Favor Wake with the Vow of Kinship's bank (R-4.1.1.I)", () => {
     /** Dana holds the People's Favor and the Vow, with nothing on their board and three in the Nomad bank. */
-    function wake(revision: OathRevision, value: number, { mob = false, nomad = 3, favor = 0 } = {}) {
+    function wake(
+        revision: OathRevision,
+        value: number,
+        { mob = false, nomad = 3, favor = 0 } = {}
+    ) {
         const s = testState(
             [
                 testPlayer({ playerId: DANA, siteId: 'c1', favor, advisers: [adviser(VOW)] }),
-                testPlayer({ playerId: BEA, color: Color.Blue, siteId: 'c2', status: PlayerStatus.Chancellor, advisers: [adviser(TENTS, false)] })
+                testPlayer({
+                    playerId: BEA,
+                    color: Color.Blue,
+                    siteId: 'c2',
+                    status: PlayerStatus.Chancellor,
+                    advisers: [adviser(TENTS, false)]
+                })
             ],
-            { oathRevision: revision, machineState: MachineState.WakePhase, banners: testBanners({ [Banner.PeoplesFavor]: DANA }, value) }
+            {
+                oathRevision: revision,
+                machineState: MachineState.WakePhase,
+                banners: testBanners({ [Banner.PeoplesFavor]: DANA }, value)
+            }
         )
         s.favorBank[Suit.Nomad] = nomad
         s.banners[Banner.PeoplesFavor].mobSide = mob
         openTurn(s, DANA)
         return s
     }
-    const reason = (s: HydratedOathGameState, steps: WakeFavorStep[]) => HydratedResolveWake.reasonCannotResolveWake(s, DANA, steps)
+    const reason = (s: HydratedOathGameState, steps: WakeFavorStep[]) =>
+        HydratedResolveWake.reasonCannotResolveWake(s, DANA, steps)
     const ret: WakeFavorStep = { kind: 'return', toSuit: Suit.Hearth }
     const place: WakeFavorStep = { kind: 'place' }
     // A place from the Nomad bank leaves it the one bank with the least favor.
@@ -78,14 +108,18 @@ describe("the People's Favor Wake with the Vow of Kinship's bank (R-4.1.1.I)", (
         // An optional place is still the holder's to decide: the Wake is not skipped.
         expect(HydratedResolveWake.nothingToDecide(s, DANA)).toBe(false)
 
-        new HydratedResolveWake(buildAction(ResolveWake, { playerId: DANA, favorSteps: [place] })).apply(s)
+        new HydratedResolveWake(
+            buildAction(ResolveWake, { playerId: DANA, favorSteps: [place] })
+        ).apply(s)
         expect(s.favorBank[Suit.Nomad]).toBe(2)
         expect(s.banners[Banner.PeoplesFavor].value).toBe(2)
     })
 
     it('placing none leaves the bank and the banner as they were', () => {
         const s = wake(NOW, 1)
-        new HydratedResolveWake(buildAction(ResolveWake, { playerId: DANA, favorSteps: [] })).apply(s)
+        new HydratedResolveWake(buildAction(ResolveWake, { playerId: DANA, favorSteps: [] })).apply(
+            s
+        )
         expect(s.favorBank[Suit.Nomad]).toBe(3)
         expect(s.banners[Banner.PeoplesFavor].value).toBe(1)
     })
@@ -149,25 +183,46 @@ describe("the People's Favor Wake with the Vow of Kinship's bank (R-4.1.1.I)", (
         [2, false],
         [2, true],
         [1, true]
-    ])("at %i (Mob %s), Dana's own view judges every submission as the server does", (value, mob) => {
-        const s = wake(NOW, value, { mob })
-        const dana = { kind: 'player', playerId: DANA } as const
-        const own = new HydratedOathGameState(served(s, dana))
-        expect(forcedPeoplesFavorOptions(own, DANA)).toEqual(forcedPeoplesFavorOptions(s, DANA))
-        expect(availablePeoplesFavorOptions(own, DANA)).toEqual(availablePeoplesFavorOptions(s, DANA))
-        expect(peoplesFavorStepIsOptional(own, DANA)).toEqual(peoplesFavorStepIsOptional(s, DANA))
-        expect(requiredFavorSteps(own, DANA)).toEqual(requiredFavorSteps(s, DANA))
-        expect(HydratedResolveWake.nothingToDecide(own, DANA)).toEqual(HydratedResolveWake.nothingToDecide(s, DANA))
-        const steps: WakeFavorStep[] = [place, ret]
-        const submissions: WakeFavorStep[][] = [[], ...steps.map((a) => [a]), ...steps.flatMap((a) => steps.map((b) => [a, b]))]
-        for (const favorSteps of submissions) {
-            expect(reason(own, favorSteps), JSON.stringify(favorSteps)).toEqual(reason(s, favorSteps))
+    ])(
+        "at %i (Mob %s), Dana's own view judges every submission as the server does",
+        (value, mob) => {
+            const s = wake(NOW, value, { mob })
+            const dana = { kind: 'player', playerId: DANA } as const
+            const own = new HydratedOathGameState(served(s, dana))
+            expect(forcedPeoplesFavorOptions(own, DANA)).toEqual(forcedPeoplesFavorOptions(s, DANA))
+            expect(availablePeoplesFavorOptions(own, DANA)).toEqual(
+                availablePeoplesFavorOptions(s, DANA)
+            )
+            expect(peoplesFavorStepIsOptional(own, DANA)).toEqual(
+                peoplesFavorStepIsOptional(s, DANA)
+            )
+            expect(requiredFavorSteps(own, DANA)).toEqual(requiredFavorSteps(s, DANA))
+            expect(HydratedResolveWake.nothingToDecide(own, DANA)).toEqual(
+                HydratedResolveWake.nothingToDecide(s, DANA)
+            )
+            const steps: WakeFavorStep[] = [place, ret]
+            const submissions: WakeFavorStep[][] = [
+                [],
+                ...steps.map((a) => [a]),
+                ...steps.flatMap((a) => steps.map((b) => [a, b]))
+            ]
+            for (const favorSteps of submissions) {
+                expect(reason(own, favorSteps), JSON.stringify(favorSteps)).toEqual(
+                    reason(s, favorSteps)
+                )
+            }
+            const game = {
+                ...testGame([DANA, BEA]),
+                hotseat: false,
+                protectedInformation: true as const
+            }
+            expect(
+                engine.getValidActionTypesForPlayer(game, served(s, dana), DANA, {
+                    perspective: dana
+                })
+            ).toEqual(engine.getValidActionTypesForPlayer(game, s.dehydrate(), DANA))
         }
-        const game = { ...testGame([DANA, BEA]), hotseat: false, protectedInformation: true as const }
-        expect(engine.getValidActionTypesForPlayer(game, served(s, dana), DANA, { perspective: dana })).toEqual(
-            engine.getValidActionTypesForPlayer(game, s.dehydrate(), DANA)
-        )
-    })
+    )
 })
 
 /**
@@ -182,16 +237,31 @@ function plagueTable(
         otherAdvisers = [VOW, TENTS],
         ruler = {},
         otherWarbands = { p1: 3, h1: 1 }
-    }: { otherFavor?: number; nomad?: number; otherAdvisers?: string[]; ruler?: Record<string, unknown>; otherWarbands?: { p1: number; h1: number } } = {}
+    }: {
+        otherFavor?: number
+        nomad?: number
+        otherAdvisers?: string[]
+        ruler?: Record<string, unknown>
+        otherWarbands?: { p1: number; h1: number }
+    } = {}
 ) {
     const s = rulerTable(
         [PLAGUE],
         [],
-        { ruler, other: { favor: otherFavor, advisers: otherAdvisers.map((id) => adviser(id)) }, away: { status: PlayerStatus.Chancellor } },
+        {
+            ruler,
+            other: { favor: otherFavor, advisers: otherAdvisers.map((id) => adviser(id)) },
+            away: { status: PlayerStatus.Chancellor }
+        },
         {
             oathRevision: revision,
             denizensBySite: { c1: [PLAGUE], c2: [], p1: [WOLVES], h1: [] },
-            warbandsBySite: { c1: { ruler: 1 }, c2: { ruler: 2 }, p1: { other: otherWarbands.p1 }, h1: { other: otherWarbands.h1 } }
+            warbandsBySite: {
+                c1: { ruler: 1 },
+                c2: { ruler: 2 },
+                p1: { other: otherWarbands.p1 },
+                h1: { other: otherWarbands.h1 }
+            }
         }
     )
     s.favorBank[Suit.Nomad] = nomad
@@ -209,7 +279,13 @@ describe('Plague Engines with the Vow of Kinship (revision 18)', () => {
         expect(s.favorBank[Suit.Arcane]).toBe(arcane + 2)
         expect(use.metadata?.summary).toBe('Plague Engines: 2 favor placed into the arcane bank')
         expect(s.pendingQuestions?.queue).toEqual([
-            { kind: PowerQuestionKind.PayFromHomeBank, cardId: PLAGUE, askedPlayerId: 'other', owed: 2, toBank: Suit.Arcane }
+            {
+                kind: PowerQuestionKind.PayFromHomeBank,
+                cardId: PLAGUE,
+                askedPlayerId: 'other',
+                owed: 2,
+                toBank: Suit.Arcane
+            }
         ])
         expect(s.pendingQuestions?.askingPlayerId).toBe('ruler')
     })
@@ -218,18 +294,21 @@ describe('Plague Engines with the Vow of Kinship (revision 18)', () => {
         [0, 3, 'paid no favor'],
         [1, 2, 'paid 1 favor from the nomad bank into the arcane bank'],
         [2, 1, 'paid 2 favor from the nomad bank into the arcane bank']
-    ])('an answer of %i pays that many from the Nomad bank into the arcane bank', (favor, nomadAfter, summary) => {
-        const s = plagueTable(NOW)
-        actionPowerUse('ruler', PLAGUE).apply(s)
-        const arcane = s.favorBank[Suit.Arcane]
-        expectFavorConserved(s, () => {
-            const answered = answerQuestion(s, 'other', pay(favor))
-            expect(answered.metadata?.summary).toBe(summary)
-        })
-        expect(s.favorBank[Suit.Nomad]).toBe(nomadAfter)
-        expect(s.favorBank[Suit.Arcane]).toBe(arcane + favor)
-        expect(s.pendingQuestions?.queue).toEqual([])
-    })
+    ])(
+        'an answer of %i pays that many from the Nomad bank into the arcane bank',
+        (favor, nomadAfter, summary) => {
+            const s = plagueTable(NOW)
+            actionPowerUse('ruler', PLAGUE).apply(s)
+            const arcane = s.favorBank[Suit.Arcane]
+            expectFavorConserved(s, () => {
+                const answered = answerQuestion(s, 'other', pay(favor))
+                expect(answered.metadata?.summary).toBe(summary)
+            })
+            expect(s.favorBank[Suit.Nomad]).toBe(nomadAfter)
+            expect(s.favorBank[Suit.Arcane]).toBe(arcane + favor)
+            expect(s.pendingQuestions?.queue).toEqual([])
+        }
+    )
 
     it('refuses more than is owed, more than the bank holds, or a part favor', () => {
         const s = plagueTable(NOW, { nomad: 1 })
@@ -240,7 +319,9 @@ describe('Plague Engines with the Vow of Kinship (revision 18)', () => {
         const t = plagueTable(NOW)
         actionPowerUse('ruler', PLAGUE).apply(t)
         expect(HydratedAnswerQuestion.reasonCannotAnswer(t, 'other', pay(3))).toMatch(/owe 2/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(t, 'other', pay(0.5))).toMatch(/whole number/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(t, 'other', pay(0.5))).toMatch(
+            /whole number/
+        )
         expect(HydratedAnswerQuestion.reasonCannotAnswer(t, 'ruler', pay(0))).toBeDefined()
     })
 
@@ -274,10 +355,20 @@ describe('Plague Engines with the Vow of Kinship (revision 18)', () => {
     })
 
     it('"even you": its user holding the Vow is asked too', () => {
-        const s = plagueTable(NOW, { otherAdvisers: [TENTS], otherFavor: 2, ruler: { favor: 0, advisers: [adviser(VOW)] } })
+        const s = plagueTable(NOW, {
+            otherAdvisers: [TENTS],
+            otherFavor: 2,
+            ruler: { favor: 0, advisers: [adviser(VOW)] }
+        })
         actionPowerUse('ruler', PLAGUE).apply(s)
         expect(s.pendingQuestions?.queue).toEqual([
-            { kind: PowerQuestionKind.PayFromHomeBank, cardId: PLAGUE, askedPlayerId: 'ruler', owed: 2, toBank: Suit.Arcane }
+            {
+                kind: PowerQuestionKind.PayFromHomeBank,
+                cardId: PLAGUE,
+                askedPlayerId: 'ruler',
+                owed: 2,
+                toBank: Suit.Arcane
+            }
         ])
     })
 
@@ -308,12 +399,26 @@ describe('Plague Engines with the Vow of Kinship (revision 18)', () => {
         const testEngine = new OathTestEngine(OathRuntime)
         let state = plagueTable(NOW).dehydrate()
         state.machineState = MachineState.ActPhase
-        state.turnManager = { series: [{ type: 'turn', playerId: 'ruler', start: 0 }], turnOrder: ['ruler', 'other', 'away'], turnCounts: { ruler: 1, other: 0, away: 0 } }
+        state.turnManager = {
+            series: [{ type: 'turn', playerId: 'ruler', start: 0 }],
+            turnOrder: ['ruler', 'other', 'away'],
+            turnCounts: { ruler: 1, other: 0, away: 0 }
+        }
         state.activePlayerIds = ['ruler']
-        state = testEngine.runNext(buildAction(UseActionPower, { playerId: 'ruler', cardId: PLAGUE, powerIndex: powerIndexOf(PLAGUE, PowerTiming.Action) }), state, game).updatedState
+        state = testEngine.runNext(
+            buildAction(UseActionPower, {
+                playerId: 'ruler',
+                cardId: PLAGUE,
+                powerIndex: powerIndexOf(PLAGUE, PowerTiming.Action)
+            }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.PowerQuestion)
         expect(state.activePlayerIds).toEqual(['other'])
-        expect(testEngine.getValidActionTypesForPlayer(game, state, 'other')).toEqual([ActionType.AnswerQuestion])
+        expect(testEngine.getValidActionTypesForPlayer(game, state, 'other')).toEqual([
+            ActionType.AnswerQuestion
+        ])
         expect(testEngine.getValidActionTypesForPlayer(game, state, 'ruler')).toEqual([])
 
         // Safe on a player's view: the question's domain on the holder's own served state matches.
@@ -326,11 +431,17 @@ describe('Plague Engines with the Vow of Kinship (revision 18)', () => {
             )
         }
         const protectedGame = { ...game, hotseat: false, protectedInformation: true as const }
-        expect(testEngine.getValidActionTypesForPlayer(protectedGame, served(state, other), 'other', { perspective: other })).toEqual([
-            ActionType.AnswerQuestion
-        ])
+        expect(
+            testEngine.getValidActionTypesForPlayer(protectedGame, served(state, other), 'other', {
+                perspective: other
+            })
+        ).toEqual([ActionType.AnswerQuestion])
 
-        state = testEngine.runNext(buildAction(AnswerQuestion, { playerId: 'other', answer: pay(1) }), state, game).updatedState
+        state = testEngine.runNext(
+            buildAction(AnswerQuestion, { playerId: 'other', answer: pay(1) }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.activePlayerIds).toEqual(['ruler'])
         expect(state.favorBank[Suit.Nomad]).toBe(2)
@@ -339,7 +450,10 @@ describe('Plague Engines with the Vow of Kinship (revision 18)', () => {
 
 describe('Dissent with the Vow of Kinship (revision 18)', () => {
     /** 'other' holds the Vow and Tents (nomad) and rules p1 with Wolves (beast): owes two suits. */
-    function dissentTable(revision: OathRevision, { nomad = 3, holder }: { nomad?: number; holder?: string } = {}) {
+    function dissentTable(
+        revision: OathRevision,
+        { nomad = 3, holder }: { nomad?: number; holder?: string } = {}
+    ) {
         const s = plagueTable(revision, { nomad, otherWarbands: { p1: 3, h1: 0 } })
         s.denizensBySite['c1'] = []
         if (holder) s.banners[Banner.PeoplesFavor].holderPlayerId = holder
@@ -350,7 +464,12 @@ describe('Dissent with the Vow of Kinship (revision 18)', () => {
         const s = dissentTable(NOW)
         playDrawnCard(s, DISSENT, SearchPlay.Adviser)
         expect(s.favorBank[Suit.Nomad]).toBe(3)
-        expect(currentQuestion(s)).toEqual({ kind: PowerQuestionKind.PayFromHomeBank, cardId: DISSENT, askedPlayerId: 'other', owed: 2 })
+        expect(currentQuestion(s)).toEqual({
+            kind: PowerQuestionKind.PayFromHomeBank,
+            cardId: DISSENT,
+            askedPlayerId: 'other',
+            owed: 2
+        })
         const onCard = s.tokensOn(DISSENT).favor
         const answered = answerQuestion(s, 'other', pay(1))
         expect(answered.metadata?.summary).toBe('paid 1 favor from the nomad bank onto it')
@@ -385,16 +504,30 @@ describe('Dissent with the Vow of Kinship (revision 18)', () => {
         hydrated.getPlayerState('ruler').handIds = [DISSENT, FILLER]
         let state = hydrated.dehydrate()
         state.machineState = MachineState.Searching
-        state.turnManager = { series: [{ type: 'turn', playerId: 'ruler', start: 0 }], turnOrder: ['ruler', 'other', 'away'], turnCounts: { ruler: 1, other: 0, away: 0 } }
+        state.turnManager = {
+            series: [{ type: 'turn', playerId: 'ruler', start: 0 }],
+            turnOrder: ['ruler', 'other', 'away'],
+            turnCounts: { ruler: 1, other: 0, away: 0 }
+        }
         state.activePlayerIds = ['ruler']
         state = testEngine.runNext(
-            buildAction(SearchResolve, { playerId: 'ruler', keptCardId: DISSENT, discardOrder: [FILLER], play: SearchPlay.Adviser, faceUp: true }),
+            buildAction(SearchResolve, {
+                playerId: 'ruler',
+                keptCardId: DISSENT,
+                discardOrder: [FILLER],
+                play: SearchPlay.Adviser,
+                faceUp: true
+            }),
             state,
             game
         ).updatedState
         expect(state.machineState).toBe(MachineState.PowerQuestion)
         expect(state.activePlayerIds).toEqual(['other'])
-        state = testEngine.runNext(buildAction(AnswerQuestion, { playerId: 'other', answer: pay(0) }), state, game).updatedState
+        state = testEngine.runNext(
+            buildAction(AnswerQuestion, { playerId: 'other', answer: pay(0) }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).not.toBe(MachineState.PowerQuestion)
         expect(state.activePlayerIds).toEqual(['ruler'])
         expect(state.favorBank[Suit.Nomad]).toBe(3)
@@ -408,18 +541,47 @@ describe('Dissent discarded by the second card of Land Warden before the Vow of 
     const RHYS = 'rhys'
 
     /** Dana holds Land Warden and Searches; Rhys holds the Vow and Wolves (owes two suits) with `board` favor; Bea is Chancellor with the People's Favor. */
-    function landWardenTable(revision: OathRevision, { board = 0, second = SALT }: { board?: number; second?: string } = {}) {
+    function landWardenTable(
+        revision: OathRevision,
+        { board = 0, second = SALT }: { board?: number; second?: string } = {}
+    ) {
         const s = testState(
             [
-                testPlayer({ playerId: DANA, color: Color.Red, siteId: 'c1', favor: 3, secrets: 2, supply: 6, advisers: [adviser(LAND_WARDEN)] }),
-                testPlayer({ playerId: RHYS, color: Color.Blue, siteId: 'c2', favor: board, secrets: 1, advisers: [adviser(VOW), adviser(WOLVES)] }),
-                testPlayer({ playerId: BEA, color: Color.Purple, siteId: 'h3', status: PlayerStatus.Chancellor, warbandsInPersonalBank: {} })
+                testPlayer({
+                    playerId: DANA,
+                    color: Color.Red,
+                    siteId: 'c1',
+                    favor: 3,
+                    secrets: 2,
+                    supply: 6,
+                    advisers: [adviser(LAND_WARDEN)]
+                }),
+                testPlayer({
+                    playerId: RHYS,
+                    color: Color.Blue,
+                    siteId: 'c2',
+                    favor: board,
+                    secrets: 1,
+                    advisers: [adviser(VOW), adviser(WOLVES)]
+                }),
+                testPlayer({
+                    playerId: BEA,
+                    color: Color.Purple,
+                    siteId: 'h3',
+                    status: PlayerStatus.Chancellor,
+                    warbandsInPersonalBank: {}
+                })
             ],
             {
                 oathRevision: revision,
                 banners: testBanners({ [Banner.PeoplesFavor]: BEA }),
                 denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
-                siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+                siteCards: {
+                    c1: 'site.plains',
+                    c2: 'site.river',
+                    p1: 'site.marshes',
+                    h1: 'site.mountain'
+                }
             }
         )
         s.favorBank[Suit.Nomad] = 3
@@ -434,13 +596,22 @@ describe('Dissent discarded by the second card of Land Warden before the Vow of 
     }
     /** R-1.4 — the table holds 40 favor before and after every step. */
     const expectTableFavor = (s: HydratedOathGameState) => expect(favorCensus(s)).toBe(40)
-    const search = () => buildAction(Search, { playerId: DANA, drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(LAND_WARDEN)] })
+    const search = () =>
+        buildAction(Search, {
+            playerId: DANA,
+            drawFrom: SearchSource.WorldDeck,
+            revealsInfo: true,
+            modifiers: [modifierUse(LAND_WARDEN)]
+        })
     const resolveBody = (second = SALT) => ({
         playerId: DANA,
         keptCardId: DISSENT,
         discardOrder: [FILLER],
         play: SearchPlay.Site,
-        secondPlay: second === RIOTS ? { cardId: RIOTS, play: SearchPlay.Adviser, faceUp: true } : { cardId: SALT, play: SearchPlay.Site }
+        secondPlay:
+            second === RIOTS
+                ? { cardId: RIOTS, play: SearchPlay.Adviser, faceUp: true }
+                : { cardId: SALT, play: SearchPlay.Site }
     })
     /** Both plays resolve in one Search: the second has discarded Dissent and the question is still open. */
     function bothPlayed(revision: OathRevision, options: { board?: number; second?: string } = {}) {
@@ -457,12 +628,19 @@ describe('Dissent discarded by the second card of Land Warden before the Vow of 
         "Salt the Earth second (revision %i): the holder's favor goes to the Discord bank, none on the discarded card (R-10.5)",
         (revision) => {
             const s = bothPlayed(revision)
-            expect(currentQuestion(s)).toEqual({ kind: PowerQuestionKind.PayFromHomeBank, cardId: DISSENT, askedPlayerId: RHYS, owed: 2 })
+            expect(currentQuestion(s)).toEqual({
+                kind: PowerQuestionKind.PayFromHomeBank,
+                cardId: DISSENT,
+                askedPlayerId: RHYS,
+                owed: 2
+            })
             expect(s.denizensBySite['c1']).toEqual([SALT])
             expect(s.tokensOn(DISSENT).favor).toBe(0)
             const discord = s.favorBank[Suit.Discord]
             const answered = answerQuestion(s, RHYS, pay(2))
-            expect(answered.metadata?.summary).toBe('paid 2 favor from the nomad bank into the discord bank')
+            expect(answered.metadata?.summary).toBe(
+                'paid 2 favor from the nomad bank into the discord bank'
+            )
             expect(s.favorBank[Suit.Nomad]).toBe(1)
             expect(s.favorBank[Suit.Discord]).toBe(discord + 2)
             // Drawn and played again before the Rest, it arrives with no favor on it.
@@ -478,10 +656,17 @@ describe('Dissent discarded by the second card of Land Warden before the Vow of 
     it('Riots second (Mob side): the same favor goes to the Discord bank, none on the discarded card', () => {
         const s = bothPlayed(NOW, { second: RIOTS })
         expect(s.denizensBySite['c1']).toEqual([])
-        expect(currentQuestion(s)).toMatchObject({ kind: PowerQuestionKind.PayFromHomeBank, cardId: DISSENT, askedPlayerId: RHYS, owed: 2 })
+        expect(currentQuestion(s)).toMatchObject({
+            kind: PowerQuestionKind.PayFromHomeBank,
+            cardId: DISSENT,
+            askedPlayerId: RHYS,
+            owed: 2
+        })
         const discord = s.favorBank[Suit.Discord]
         const answered = answerQuestion(s, RHYS, pay(2))
-        expect(answered.metadata?.summary).toBe('paid 2 favor from the nomad bank into the discord bank')
+        expect(answered.metadata?.summary).toBe(
+            'paid 2 favor from the nomad bank into the discord bank'
+        )
         expect(s.tokensOn(DISSENT).favor).toBe(0)
         expect(s.favorBank[Suit.Discord]).toBe(discord + 2)
         expectTableFavor(s)
@@ -517,14 +702,22 @@ describe('Dissent discarded by the second card of Land Warden before the Vow of 
         new HydratedSearch(search()).apply(h)
         const state = h.dehydrate()
         state.machineState = MachineState.Searching
-        state.turnManager = { series: [{ type: 'turn', playerId: DANA, start: 0 }], turnOrder: [DANA, RHYS, BEA], turnCounts: { dana: 1, rhys: 0, bea: 0 } }
+        state.turnManager = {
+            series: [{ type: 'turn', playerId: DANA, start: 0 }],
+            turnOrder: [DANA, RHYS, BEA],
+            turnCounts: { dana: 1, rhys: 0, bea: 0 }
+        }
         state.activePlayerIds = [DANA]
         return state
     }
 
     it('through the engine: the question waits on the holder after both plays; the answer pays the Discord bank and gives the turn back', () => {
         const testEngine = new OathTestEngine(OathRuntime)
-        let state = testEngine.runNext(buildAction(SearchResolve, resolveBody()), searching(), game).updatedState
+        let state = testEngine.runNext(
+            buildAction(SearchResolve, resolveBody()),
+            searching(),
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.PowerQuestion)
         expect(state.activePlayerIds).toEqual([RHYS])
         expect(state.denizensBySite['c1']).toEqual([SALT])
@@ -534,10 +727,16 @@ describe('Dissent discarded by the second card of Land Warden before the Vow of 
         const own = new HydratedOathGameState(served(state, { kind: 'player', playerId: RHYS }))
         const host = new HydratedOathGameState(state)
         for (const favor of [0, 1, 2, 3]) {
-            expect(HydratedAnswerQuestion.reasonCannotAnswer(own, RHYS, pay(favor))).toEqual(HydratedAnswerQuestion.reasonCannotAnswer(host, RHYS, pay(favor)))
+            expect(HydratedAnswerQuestion.reasonCannotAnswer(own, RHYS, pay(favor))).toEqual(
+                HydratedAnswerQuestion.reasonCannotAnswer(host, RHYS, pay(favor))
+            )
         }
 
-        state = testEngine.runNext(buildAction(AnswerQuestion, { playerId: RHYS, answer: pay(2) }), state, game).updatedState
+        state = testEngine.runNext(
+            buildAction(AnswerQuestion, { playerId: RHYS, answer: pay(2) }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.activePlayerIds).toEqual([DANA])
         expect(state.favorBank[Suit.Discord]).toBe(discord + 2)
@@ -547,21 +746,41 @@ describe('Dissent discarded by the second card of Land Warden before the Vow of 
 
     it('Undo of the answer after the discard takes the favor back out of the Discord bank and reopens the question', () => {
         let seq = 0
-        const run = (state: OathProjectedState, fields: { type: ActionType; playerId: string } & Record<string, unknown>) =>
-            engine.run({ id: `k-${(seq += 1)}`, gameId: 'game-1', source: ActionSource.User, index: state.actionCount, ...fields } as GameAction, state, game)
+        const run = (
+            state: OathProjectedState,
+            fields: { type: ActionType; playerId: string } & Record<string, unknown>
+        ) =>
+            engine.run(
+                {
+                    id: `k-${(seq += 1)}`,
+                    gameId: 'game-1',
+                    source: ActionSource.User,
+                    index: state.actionCount,
+                    ...fields
+                } as GameAction,
+                state,
+                game
+            )
         const history: GameAction[] = []
         const resolved = run(searching(), { type: ActionType.SearchResolve, ...resolveBody() })
         history.push(...resolved.processedActions)
         const asked = resolved.updatedState
-        const answered = run(asked, { type: ActionType.AnswerQuestion, playerId: RHYS, answer: pay(2) })
+        const answered = run(asked, {
+            type: ActionType.AnswerQuestion,
+            playerId: RHYS,
+            answer: pay(2)
+        })
         history.push(...answered.processedActions)
-        expect(answered.updatedState.favorBank[Suit.Discord]).toBe(asked.favorBank[Suit.Discord] + 2)
+        expect(answered.updatedState.favorBank[Suit.Discord]).toBe(
+            asked.favorBank[Suit.Discord] + 2
+        )
 
         const target = latestPlayerUndoTarget(history, RHYS)
         assertExists(target, 'Undo is offered to Rhys')
         expect(target.type).toBe(ActionType.AnswerQuestion)
         let back = answered.updatedState
-        for (const action of history.slice(history.indexOf(target)).toReversed()) back = engine.undoProcessedAction({ state: back, action })
+        for (const action of history.slice(history.indexOf(target)).toReversed())
+            back = engine.undoProcessedAction({ state: back, action })
         expect(back).toEqual(asked)
     })
 

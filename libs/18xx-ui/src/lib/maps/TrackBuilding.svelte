@@ -3,6 +3,7 @@
     import { getCompany, cashOwnedBy } from '@tabletop/18xx'
     import { trackConsentDecline } from '../session/trackConsentNotice.js'
     import Tile from '../tiles/Tile.svelte'
+    import { placedTileLayout } from '../tiles/standardTileLayouts.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
@@ -100,6 +101,7 @@
                                 face={tile.face}
                                 printedNumber={tile.printedNumber}
                                 appearance={session.tileAppearance}
+                                layout={placedTileLayout(session.mapView.layouts, tile.id)}
                                 size={80}
                                 orientation={session.mapView.map.definition.orientation}
                             />

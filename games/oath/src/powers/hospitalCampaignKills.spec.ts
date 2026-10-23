@@ -13,11 +13,26 @@ import {
 } from '../actions/campaignResolveVictory.js'
 import { CampaignSacrifice, HydratedCampaignSacrifice } from '../actions/campaignSacrifice.js'
 import { HydratedTravel, Travel } from '../actions/travel.js'
-import { CRADLE, HINTERLAND, PROVINCES, testPlayer, testState, openTurn, withChancellor } from '../testing/fixture.js'
+import {
+    CRADLE,
+    HINTERLAND,
+    PROVINCES,
+    testPlayer,
+    testState,
+    openTurn,
+    withChancellor
+} from '../testing/fixture.js'
 import { buildAction, defendingSideChooses } from '../testing/actions.js'
 import { battlePlanUse, siteTarget } from '../testing/choices.js'
 import { ongoingCampaign } from '../testing/required.js'
-import { ATTACKER, DEFENDER, answerQuestion, campaign, defend, finishCampaign } from '../testing/steps.js'
+import {
+    ATTACKER,
+    DEFENDER,
+    answerQuestion,
+    campaign,
+    defend,
+    finishCampaign
+} from '../testing/steps.js'
 import { enemyWarbandsKilledFor } from '../util/campaignRoll.js'
 import { OathRevision } from '../util/revision.js'
 import { describeWarbands } from '../util/warbands.js'
@@ -58,19 +73,43 @@ function table(scene: Scene): HydratedOathGameState {
     const s = testState(
         withChancellor([
             testPlayer({
-                playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 3,
-                warbandsOnBoard: { [ATTACKER]: 6 }, warbandsInPersonalBank: { [ATTACKER]: ATTACKER_BANK }, ...scene.attacker
+                playerId: ATTACKER,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [ATTACKER]: 6 },
+                warbandsInPersonalBank: { [ATTACKER]: ATTACKER_BANK },
+                ...scene.attacker
             }),
             testPlayer({
-                playerId: DEFENDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 3,
-                warbandsOnBoard: { [DEFENDER]: 2 }, warbandsInPersonalBank: { [DEFENDER]: DEFENDER_BANK }, ...scene.defender
+                playerId: DEFENDER,
+                color: Color.Yellow,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [DEFENDER]: 2 },
+                warbandsInPersonalBank: { [DEFENDER]: DEFENDER_BANK },
+                ...scene.defender
             })
         ]),
         {
             oathRevision: scene.revision,
             denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...scene.denizens },
-            warbandsBySite: { c1: { [DEFENDER]: 2 }, c2: { [ATTACKER]: 1 }, p1: { [DEFENDER]: 3 }, ...scene.warbands },
-            siteCards: { ...Object.fromEntries(FIXTURE_SITES.map((slotId) => [slotId, slotId])), ...scene.siteCards },
+            warbandsBySite: {
+                c1: { [DEFENDER]: 2 },
+                c2: { [ATTACKER]: 1 },
+                p1: { [DEFENDER]: 3 },
+                ...scene.warbands
+            },
+            siteCards: {
+                ...Object.fromEntries(FIXTURE_SITES.map((slotId) => [slotId, slotId])),
+                ...scene.siteCards
+            },
             prng: { seed: 1, invocations: 0 }
         }
     )
@@ -107,7 +146,9 @@ describe("Bear Traps against the attacker's Hospital", () => {
         expect(boardOf(s, ATTACKER)).toBe(5)
         expect(heldFor(s, ATTACKER)).toBe(1)
         expect(bankOf(s, ATTACKER)).toBe(ATTACKER_BANK)
-        expect(defended.metadata?.planNotes).toEqual([`Bear Traps: a warband on ${ATTACKER}'s board goes to Hospital's site`])
+        expect(defended.metadata?.planNotes).toEqual([
+            `Bear Traps: a warband on ${ATTACKER}'s board goes to Hospital's site`
+        ])
         // Cursed Cauldron's Q&A: Hospital prevents warbands from being killed.
         expect(enemyWarbandsKilledFor(s, ongoingCampaign(s), BattlePlanSide.Defender)).toBe(0)
         const defeatKilled = finishCampaign(s).metadata?.defeatKilled ?? 0
@@ -117,22 +158,42 @@ describe("Bear Traps against the attacker's Hospital", () => {
     })
 
     it("the bandits' compelled Bear Traps is held for Hospital's site too", () => {
-        const s = table({ revision: atRevision, denizens: { c1: [BEAR_TRAPS], c2: [HOSPITAL] }, warbands: { c1: {} }, defender: { siteId: 'p1' } })
-        const declared = campaign({ defender: { kind: 'bandits' }, attackDice: 0, plans: [battlePlanUse(HOSPITAL)] })
+        const s = table({
+            revision: atRevision,
+            denizens: { c1: [BEAR_TRAPS], c2: [HOSPITAL] },
+            warbands: { c1: {} },
+            defender: { siteId: 'p1' }
+        })
+        const declared = campaign({
+            defender: { kind: 'bandits' },
+            attackDice: 0,
+            plans: [battlePlanUse(HOSPITAL)]
+        })
         declared.apply(s)
         expect(declared.metadata?.battle?.plansUsed).toContain(BEAR_TRAPS)
         expect(ongoingCampaign(s).killRedirects).toEqual([{ playerId: ATTACKER, siteId: 'c2' }])
         expect(heldFor(s, ATTACKER)).toBe(1)
         expect(bankOf(s, ATTACKER)).toBe(ATTACKER_BANK)
-        expect(declared.metadata?.battle?.planNotes).toContain(`Bear Traps: a warband on ${ATTACKER}'s board goes to Hospital's site`)
+        expect(declared.metadata?.battle?.planNotes).toContain(
+            `Bear Traps: a warband on ${ATTACKER}'s board goes to Hospital's site`
+        )
         const defeatKilled = finishCampaign(s).metadata?.defeatKilled ?? 0
         expect(bankOf(s, ATTACKER)).toBe(ATTACKER_BANK)
         expect(atSite(s, 'c2', ATTACKER)).toBe(1 + 1 + defeatKilled)
     })
 
-    it('Specialist locks the bandits\' plans: no Bear Traps, nothing held', () => {
-        const s = table({ revision: atRevision, denizens: { c1: [BEAR_TRAPS], c2: [HOSPITAL, SPECIALIST] }, warbands: { c1: {} }, defender: { siteId: 'p1' } })
-        const declared = campaign({ defender: { kind: 'bandits' }, attackDice: 0, plans: [battlePlanUse(HOSPITAL), battlePlanUse(SPECIALIST)] })
+    it("Specialist locks the bandits' plans: no Bear Traps, nothing held", () => {
+        const s = table({
+            revision: atRevision,
+            denizens: { c1: [BEAR_TRAPS], c2: [HOSPITAL, SPECIALIST] },
+            warbands: { c1: {} },
+            defender: { siteId: 'p1' }
+        })
+        const declared = campaign({
+            defender: { kind: 'bandits' },
+            attackDice: 0,
+            plans: [battlePlanUse(HOSPITAL), battlePlanUse(SPECIALIST)]
+        })
         declared.apply(s)
         expect(declared.metadata?.battle?.plansUsed).not.toContain(BEAR_TRAPS)
         expect(ongoingCampaign(s).heldForHospital).toBeUndefined()
@@ -144,20 +205,33 @@ describe("Bear Traps against the attacker's Hospital", () => {
         campaign({ attackDice: 0 }).apply(s)
         const defended = defend([battlePlanUse(BEAR_TRAPS)])
         defended.apply(s)
-        expect(defended.metadata?.planNotes).toEqual([`Bear Traps: killed a warband on ${ATTACKER}'s board`])
+        expect(defended.metadata?.planNotes).toEqual([
+            `Bear Traps: killed a warband on ${ATTACKER}'s board`
+        ])
         expect(bankOf(s, ATTACKER)).toBe(ATTACKER_BANK + 1)
         expect(enemyWarbandsKilledFor(s, ongoingCampaign(s), BattlePlanSide.Defender)).toBe(1)
     })
 
     it('R-X.4 — before revision 13 the kill skips Hospital, as it was recorded', () => {
         const { s, defended } = trapped(before)
-        expect(defended.metadata?.planNotes).toEqual([`Bear Traps: killed a warband on ${ATTACKER}'s board`])
+        expect(defended.metadata?.planNotes).toEqual([
+            `Bear Traps: killed a warband on ${ATTACKER}'s board`
+        ])
         expect(bankOf(s, ATTACKER)).toBe(ATTACKER_BANK + 1)
         expect(ongoingCampaign(s).heldForHospital).toBeUndefined()
         expect(enemyWarbandsKilledFor(s, ongoingCampaign(s), BattlePlanSide.Defender)).toBe(1)
 
-        const bandits = table({ revision: before, denizens: { c1: [BEAR_TRAPS], c2: [HOSPITAL] }, warbands: { c1: {} }, defender: { siteId: 'p1' } })
-        campaign({ defender: { kind: 'bandits' }, attackDice: 0, plans: [battlePlanUse(HOSPITAL)] }).apply(bandits)
+        const bandits = table({
+            revision: before,
+            denizens: { c1: [BEAR_TRAPS], c2: [HOSPITAL] },
+            warbands: { c1: {} },
+            defender: { siteId: 'p1' }
+        })
+        campaign({
+            defender: { kind: 'bandits' },
+            attackDice: 0,
+            plans: [battlePlanUse(HOSPITAL)]
+        }).apply(bandits)
         expect(bankOf(bandits, ATTACKER)).toBe(ATTACKER_BANK + 1)
         expect(ongoingCampaign(bandits).heldForHospital).toBeUndefined()
     })
@@ -165,10 +239,18 @@ describe("Bear Traps against the attacker's Hospital", () => {
 
 describe("Wrestlers' sacrifice and the defender's Hospital (Law 5.5.3: a side's plans have no order)", () => {
     /** The defender uses `plans`; Wrestlers at c1, Hospital at `hospitalAt`. The attacker holds the Cauldron. No attack dice. */
-    function wrestled(revision: number, plans: string[], hospitalAt: 'c1' | 'p1' = 'p1', defender: Partial<OathPlayerState> = {}) {
+    function wrestled(
+        revision: number,
+        plans: string[],
+        hospitalAt: 'c1' | 'p1' = 'p1',
+        defender: Partial<OathPlayerState> = {}
+    ) {
         const s = table({
             revision,
-            denizens: hospitalAt === 'c1' ? { c1: [WRESTLERS, HOSPITAL] } : { c1: [WRESTLERS], p1: [HOSPITAL] },
+            denizens:
+                hospitalAt === 'c1'
+                    ? { c1: [WRESTLERS, HOSPITAL] }
+                    : { c1: [WRESTLERS], p1: [HOSPITAL] },
             attacker: { relicIds: [CAULDRON] },
             defender
         })
@@ -177,7 +259,10 @@ describe("Wrestlers' sacrifice and the defender's Hospital (Law 5.5.3: a side's 
         return s
     }
 
-    for (const plans of [[HOSPITAL, WRESTLERS], [WRESTLERS, HOSPITAL]]) {
+    for (const plans of [
+        [HOSPITAL, WRESTLERS],
+        [WRESTLERS, HOSPITAL]
+    ]) {
         it(`declared ${plans.join(' then ')}: the sacrifice is held, and is not an enemy warband killed`, () => {
             const s = wrestled(atRevision, plans)
             expect(ongoingCampaign(s).defensePool).toBeGreaterThan(0)
@@ -195,26 +280,41 @@ describe("Wrestlers' sacrifice and the defender's Hospital (Law 5.5.3: a side's 
     })
 
     it("a sacrifice held for a Hospital whose site is lost is killed at the end, and counts for the attacker's Cauldron", () => {
-        const s = wrestled(atRevision, [HOSPITAL, WRESTLERS], 'c1', { warbandsOnBoard: { [DEFENDER]: 3 } })
+        const s = wrestled(atRevision, [HOSPITAL, WRESTLERS], 'c1', {
+            warbandsOnBoard: { [DEFENDER]: 3 }
+        })
         expect(ongoingCampaign(s).killRedirects).toEqual([{ playerId: DEFENDER, siteId: 'c1' }])
         expect(heldFor(s, DEFENDER)).toBe(1)
         ongoingCampaign(s).swords = 9
         ongoingCampaign(s).defense = 0
         new HydratedCampaignSacrifice(
-            buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) })
+            buildAction(CampaignSacrifice, {
+                playerId: ATTACKER,
+                sacrifice: 0,
+                defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0)
+            })
         ).apply(s)
         defendingSideChooses(s)
         // The sacrifice, then R-5.5.6's half of the four left: c1's two, so c1 is lost.
         expect(heldFor(s, DEFENDER)).toBe(3)
         expect(atSite(s, 'c1', DEFENDER)).toBe(0)
-        const victory = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false }))
+        const victory = new HydratedCampaignResolveVictory(
+            buildAction(CampaignResolveVictory, {
+                playerId: ATTACKER,
+                placements: [],
+                burnFavor: false
+            })
+        )
         victory.apply(s)
         expect(victory.metadata?.triggered).toContain(cauldronNote(3))
         expect(bankOf(s, DEFENDER)).toBe(DEFENDER_BANK + 3)
     })
 
     it('R-X.4 — before revision 13 the sacrifice skips Hospital and is counted once, as it was recorded', () => {
-        for (const plans of [[HOSPITAL, WRESTLERS], [WRESTLERS, HOSPITAL]]) {
+        for (const plans of [
+            [HOSPITAL, WRESTLERS],
+            [WRESTLERS, HOSPITAL]
+        ]) {
             const s = wrestled(before, plans)
             expect(bankOf(s, DEFENDER)).toBe(DEFENDER_BANK + 1)
             expect(ongoingCampaign(s).heldForHospital).toBeUndefined()
@@ -247,7 +347,11 @@ describe('kills a card makes during the banish (R-5.5.7.III) go through the Camp
         },
         {
             name: 'out of a Grasping Vines site',
-            scene: { denizens: { c2: [GRASPING_VINES] }, attacker: { siteId: 'c2' }, defender: { siteId: 'c2' } },
+            scene: {
+                denizens: { c2: [GRASPING_VINES] },
+                attacker: { siteId: 'c2' },
+                defender: { siteId: 'c2' }
+            },
             targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
             banishToSiteId: 'h1',
             card: 'Grasping Vines',
@@ -264,12 +368,20 @@ describe('kills a card makes during the banish (R-5.5.7.III) go through the Camp
             denizens: { ...banish.scene.denizens, p1: hospital ? [HOSPITAL] : [] },
             attacker: { ...banish.scene.attacker, relicIds: cauldron ? [CAULDRON] : [] }
         })
-        campaign({ attackDice: 0, targets: banish.targets, plans: cauldron ? [battlePlanUse(CAULDRON)] : [] }).apply(s)
+        campaign({
+            attackDice: 0,
+            targets: banish.targets,
+            plans: cauldron ? [battlePlanUse(CAULDRON)] : []
+        }).apply(s)
         if (hospital) defend([battlePlanUse(HOSPITAL)]).apply(s)
         ongoingCampaign(s).swords = 9
         ongoingCampaign(s).defense = 0
         new HydratedCampaignSacrifice(
-            buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) })
+            buildAction(CampaignSacrifice, {
+                playerId: ATTACKER,
+                sacrifice: 0,
+                defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0)
+            })
         ).apply(s)
         defendingSideChooses(s)
         return s
@@ -277,7 +389,12 @@ describe('kills a card makes during the banish (R-5.5.7.III) go through the Camp
 
     function banished(s: HydratedOathGameState, banish: Banish) {
         const victory = new HydratedCampaignResolveVictory(
-            buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false, banishToSiteId: banish.banishToSiteId })
+            buildAction(CampaignResolveVictory, {
+                playerId: ATTACKER,
+                placements: [],
+                burnFavor: false,
+                banishToSiteId: banish.banishToSiteId
+            })
         )
         victory.apply(s)
         return victory
@@ -293,7 +410,9 @@ describe('kills a card makes during the banish (R-5.5.7.III) go through the Camp
             expect(atSite(s, 'p1', DEFENDER)).toBe(3 + banish.defeatKilled + banish.cardKilled)
             const words = banish.cardKilled === 1 ? 'a warband' : `${banish.cardKilled} warbands`
             const verb = banish.cardKilled === 1 ? 'goes' : 'go'
-            expect(victory.metadata?.triggered).toContain(`${banish.card}: ${words} on ${DEFENDER}'s board ${verb} to Hospital's site`)
+            expect(victory.metadata?.triggered).toContain(
+                `${banish.card}: ${words} on ${DEFENDER}'s board ${verb} to Hospital's site`
+            )
         })
 
         it(`a banish ${banish.name}: with no Hospital the kill counts for the attacker's Cauldron`, () => {
@@ -317,10 +436,17 @@ describe('kills a card makes during the banish (R-5.5.7.III) go through the Camp
     }
 
     it('a banish through Toll Roads: the Boiling Lake kill made when the toll is paid is held, the Campaign being open', () => {
-        const banish: Banish = { ...banishes[0], scene: { denizens: { c2: [TOLL_ROADS, BOILING_LAKE] } }, banishToSiteId: 'c2' }
+        const banish: Banish = {
+            ...banishes[0],
+            scene: { denizens: { c2: [TOLL_ROADS, BOILING_LAKE] } },
+            banishToSiteId: 'c2'
+        }
         const s = defeated(atRevision, banish, true, false)
         banished(s, banish)
-        expect(s.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.PayTravelToll, askedPlayerId: DEFENDER })
+        expect(s.pendingQuestions?.queue[0]).toMatchObject({
+            kind: PowerQuestionKind.PayTravelToll,
+            askedPlayerId: DEFENDER
+        })
         expect(s.campaign).toBeDefined()
         answerQuestion(s, DEFENDER, { kind: PowerQuestionKind.PayTravelToll, pay: true })
         expect(s.getPlayerState(DEFENDER).siteId).toBe('c2')
@@ -332,13 +458,35 @@ describe('kills a card makes during the banish (R-5.5.7.III) go through the Camp
     it("a banish from a Shrouded Wood: the Boiling Lake kill made at its ruler's pick is held, the Campaign being open", () => {
         const s = defeated(
             atRevision,
-            { ...banishes[1], scene: { denizens: { h1: [BOILING_LAKE] }, siteCards: { c2: 'site.shrouded-wood' }, attacker: { siteId: 'c2' }, defender: { siteId: 'c2' } } },
+            {
+                ...banishes[1],
+                scene: {
+                    denizens: { h1: [BOILING_LAKE] },
+                    siteCards: { c2: 'site.shrouded-wood' },
+                    attacker: { siteId: 'c2' },
+                    defender: { siteId: 'c2' }
+                }
+            },
             true,
             false
         )
-        new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false, banish: true })).apply(s)
-        expect(s.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.ShroudedWoodDestination, askedPlayerId: ATTACKER, travelerPlayerId: DEFENDER })
-        answerQuestion(s, ATTACKER, { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'h1' })
+        new HydratedCampaignResolveVictory(
+            buildAction(CampaignResolveVictory, {
+                playerId: ATTACKER,
+                placements: [],
+                burnFavor: false,
+                banish: true
+            })
+        ).apply(s)
+        expect(s.pendingQuestions?.queue[0]).toMatchObject({
+            kind: PowerQuestionKind.ShroudedWoodDestination,
+            askedPlayerId: ATTACKER,
+            travelerPlayerId: DEFENDER
+        })
+        answerQuestion(s, ATTACKER, {
+            kind: PowerQuestionKind.ShroudedWoodDestination,
+            siteId: 'h1'
+        })
         expect(s.campaign).toBeUndefined()
         expect(bankOf(s, DEFENDER)).toBe(DEFENDER_BANK)
         // R-5.5.6 took one of the board's two; Boiling Lake's two find one left.
@@ -357,7 +505,11 @@ describe('kills a card makes during the banish (R-5.5.7.III) go through the Camp
 
 describe('Hospital beside the other plans', () => {
     it("Peace Envoy ignores killing warbands: the attacker's Hospital has nothing to hold", () => {
-        const s = table({ revision: atRevision, denizens: { c1: [PEACE_ENVOY], c2: [HOSPITAL] }, defender: { favor: 9 } })
+        const s = table({
+            revision: atRevision,
+            denizens: { c1: [PEACE_ENVOY], c2: [HOSPITAL] },
+            defender: { favor: 9 }
+        })
         campaign({ attackDice: 0, plans: [battlePlanUse(HOSPITAL)] }).apply(s)
         defend([battlePlanUse(PEACE_ENVOY)]).apply(s)
         expect(ongoingCampaign(s).decidedVictor).toBe('defender')
@@ -371,30 +523,54 @@ describe('Hospital beside the other plans', () => {
 
     it('Code of Honor leaves no room for Hospital beside it, as before', () => {
         const s = table({ revision: atRevision, denizens: { c2: [HOSPITAL, CODE_OF_HONOR] } })
-        expect(() => campaign({ attackDice: 0, plans: [battlePlanUse(CODE_OF_HONOR), battlePlanUse(HOSPITAL)] }).apply(s)).toThrow(/cannot use other battle plans/)
+        expect(() =>
+            campaign({
+                attackDice: 0,
+                plans: [battlePlanUse(CODE_OF_HONOR), battlePlanUse(HOSPITAL)]
+            }).apply(s)
+        ).toThrow(/cannot use other battle plans/)
     })
 })
 
 describe("Hospital's placements are recorded on the step that ends the Campaign", () => {
-    const placed = (playerId: string, siteId: string, count: number) => [{ playerId, siteId, owner: playerId, count }]
+    const placed = (playerId: string, siteId: string, count: number) => [
+        { playerId, siteId, owner: playerId, count }
+    ]
 
     /** The defender uses Hospital at `hospitalAt` and loses; R-5.5.6 kills half their force, c1's two first. */
     function defenderLoses(revision: number, hospitalAt: 'c1' | 'p1' | undefined, toll = false) {
         const s = table({
             revision,
-            denizens: { ...(hospitalAt ? { [hospitalAt]: [HOSPITAL] } : {}), ...(toll ? { c2: [TOLL_ROADS] } : {}) }
+            denizens: {
+                ...(hospitalAt ? { [hospitalAt]: [HOSPITAL] } : {}),
+                ...(toll ? { c2: [TOLL_ROADS] } : {})
+            }
         })
-        campaign({ attackDice: 0, ...(toll ? { targets: [siteTarget('c1'), { kind: CampaignTargetKind.PawnAndFavor }] } : {}) }).apply(s)
+        campaign({
+            attackDice: 0,
+            ...(toll
+                ? { targets: [siteTarget('c1'), { kind: CampaignTargetKind.PawnAndFavor }] }
+                : {})
+        }).apply(s)
         if (hospitalAt) defend([battlePlanUse(HOSPITAL)]).apply(s)
         ongoingCampaign(s).swords = 9
         ongoingCampaign(s).defense = 0
         const sacrifice = new HydratedCampaignSacrifice(
-            buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) })
+            buildAction(CampaignSacrifice, {
+                playerId: ATTACKER,
+                sacrifice: 0,
+                defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0)
+            })
         )
         sacrifice.apply(s)
         defendingSideChooses(s)
         const victory = new HydratedCampaignResolveVictory(
-            buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false, ...(toll ? { banishToSiteId: 'c2' } : {}) })
+            buildAction(CampaignResolveVictory, {
+                playerId: ATTACKER,
+                placements: [],
+                burnFavor: false,
+                ...(toll ? { banishToSiteId: 'c2' } : {})
+            })
         )
         victory.apply(s)
         return { s, sacrifice, victory, killed: sacrifice.metadata?.defeatKilled ?? 0 }
@@ -438,7 +614,10 @@ describe("Hospital's placements are recorded on the step that ends the Campaign"
         const { s, victory } = defenderLoses(atRevision, 'p1', true)
         expect(s.campaign).toBeDefined()
         expect(victory.metadata?.hospitalPlaced).toBeUndefined()
-        const answer = answerQuestion(s, DEFENDER, { kind: PowerQuestionKind.PayTravelToll, pay: true })
+        const answer = answerQuestion(s, DEFENDER, {
+            kind: PowerQuestionKind.PayTravelToll,
+            pay: true
+        })
         expect(s.campaign).toBeUndefined()
         expect(answer.metadata?.hospitalPlaced).toEqual(placed(DEFENDER, 'p1', 2))
     })

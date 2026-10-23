@@ -44,9 +44,21 @@ const SITES: CampaignTarget[] = [
 function wonState(targets: CampaignTarget[], plans: string[] = [HUNTER]) {
     const state = testState(
         [
-            testPlayer({ playerId: 'Dana', color: Color.Red, siteId: 'c1', warbandsOnBoard: {}, advisers: [{ cardId: HUNTER, faceUp: true }], peekedRelics: { [SLOT]: CUP } }),
+            testPlayer({
+                playerId: 'Dana',
+                color: Color.Red,
+                siteId: 'c1',
+                warbandsOnBoard: {},
+                advisers: [{ cardId: HUNTER, faceUp: true }],
+                peekedRelics: { [SLOT]: CUP }
+            }),
             testPlayer({ playerId: 'Bea', color: Color.Blue, siteId: 'c1', relicIds: [DRUM] }),
-            testPlayer({ playerId: 'Ann', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1' })
+            testPlayer({
+                playerId: 'Ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'h1'
+            })
         ],
         {
             oathRevision: CURRENT_OATH_REVISION,
@@ -78,7 +90,8 @@ function wonState(targets: CampaignTarget[], plans: string[] = [HUNTER]) {
     state.activePlayerIds = ['Dana']
     return state
 }
-const won = async (targets: CampaignTarget[], plans?: string[]) => await openSessionOn(tableOf(wonState(targets, plans)))
+const won = async (targets: CampaignTarget[], plans?: string[]) =>
+    await openSessionOn(tableOf(wonState(targets, plans)))
 
 describe('the spoils draft: Relic Hunter gives every relic taken the same row', () => {
     it("the defender's relic gets a row after the site's, by its card; a tap on each, then both are sent", async () => {
@@ -99,7 +112,13 @@ describe('the spoils draft: Relic Hunter gives every relic taken the same row', 
         expect(spoils.sendShown).toBe(true)
         expect(spoils.blockedBecause).toBeUndefined()
         await spoils.takeSpoils(false)
-        expect(sent).toHaveBeenCalledWith([], false, { bottomRelicSlotIds: [], bottomRelicIds: [DRUM] }, undefined, false)
+        expect(sent).toHaveBeenCalledWith(
+            [],
+            false,
+            { bottomRelicSlotIds: [], bottomRelicIds: [DRUM] },
+            undefined,
+            false
+        )
     })
 
     it('a relic taken from the defender alone opens the step, which was skipped without a facedown relic', async () => {
@@ -119,7 +138,13 @@ describe('the spoils draft: Relic Hunter gives every relic taken the same row', 
         spoils.setRelic(DRUM, false)
         spoils.leavePawn()
         await spoils.takeSpoils(false)
-        expect(sent).toHaveBeenCalledWith([], false, { bottomRelicSlotIds: [], bottomRelicIds: [] }, undefined, false)
+        expect(sent).toHaveBeenCalledWith(
+            [],
+            false,
+            { bottomRelicSlotIds: [], bottomRelicIds: [] },
+            undefined,
+            false
+        )
     })
 
     it('without Relic Hunter as the plan, nothing changes: the relic is simply taken, with no step', async () => {
@@ -151,13 +176,39 @@ const THE_CAGE: CampaignTarget = { kind: CampaignTargetKind.Relic, cardId: CAGE 
  * Bea's Obsidian Cage, which holds what `caged` says. Ann is the Chancellor; the Citizens given
  * (Rhys, then Cass) are the other Imperial boards.
  */
-function cageState({ caged = { [IMPERIAL_WARBANDS]: 2 }, citizens = ['Rhys'], revision = CURRENT_OATH_REVISION, pawn = false }: { caged?: WarbandCounts; citizens?: string[]; revision?: OathRevision; pawn?: boolean } = {}) {
+function cageState({
+    caged = { [IMPERIAL_WARBANDS]: 2 },
+    citizens = ['Rhys'],
+    revision = CURRENT_OATH_REVISION,
+    pawn = false
+}: { caged?: WarbandCounts; citizens?: string[]; revision?: OathRevision; pawn?: boolean } = {}) {
     const state = testState(
         [
-            testPlayer({ playerId: 'Dana', color: Color.Red, siteId: 'c1', warbandsOnBoard: {}, advisers: [{ cardId: HUNTER, faceUp: true }], peekedRelics: { [SLOT]: CUP } }),
+            testPlayer({
+                playerId: 'Dana',
+                color: Color.Red,
+                siteId: 'c1',
+                warbandsOnBoard: {},
+                advisers: [{ cardId: HUNTER, faceUp: true }],
+                peekedRelics: { [SLOT]: CUP }
+            }),
             testPlayer({ playerId: 'Bea', color: Color.Yellow, siteId: 'c1', relicIds: [CAGE] }),
-            testPlayer({ playerId: 'Ann', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } }),
-            ...citizens.map((playerId, index) => testPlayer({ playerId, color: [Color.Blue, Color.Brown][index] ?? Color.Blue, status: PlayerStatus.Citizen, siteId: 'h1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 1 } }))
+            testPlayer({
+                playerId: 'Ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'h1',
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+            }),
+            ...citizens.map((playerId, index) =>
+                testPlayer({
+                    playerId,
+                    color: [Color.Blue, Color.Brown][index] ?? Color.Blue,
+                    status: PlayerStatus.Citizen,
+                    siteId: 'h1',
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 1 }
+                })
+            )
         ],
         {
             oathRevision: revision,
@@ -171,7 +222,13 @@ function cageState({ caged = { [IMPERIAL_WARBANDS]: 2 }, citizens = ['Rhys'], re
                 defenderPlayerId: 'Bea',
                 nonImperialPlayerIds: [],
                 allyPlayerIds: [],
-                targets: [SITES[0], SITES[1], SITE_RELIC, THE_CAGE, ...(pawn ? [{ kind: CampaignTargetKind.PawnAndFavor } as const] : [])],
+                targets: [
+                    SITES[0],
+                    SITES[1],
+                    SITE_RELIC,
+                    THE_CAGE,
+                    ...(pawn ? [{ kind: CampaignTargetKind.PawnAndFavor } as const] : [])
+                ],
                 attackPool: 3,
                 defensePool: 4,
                 attackRoll: [],
@@ -190,7 +247,8 @@ function cageState({ caged = { [IMPERIAL_WARBANDS]: 2 }, citizens = ['Rhys'], re
     state.activePlayerIds = ['Dana']
     return state
 }
-const wonCage = async (options?: Parameters<typeof cageState>[0]) => await openSessionOn(tableOf(cageState(options)))
+const wonCage = async (options?: Parameters<typeof cageState>[0]) =>
+    await openSessionOn(tableOf(cageState(options)))
 
 describe("Relic Hunter sends Bea's Obsidian Cage down: its purple warbands get a step of their own (R-10.13-H1)", () => {
     it('the step follows "Relics taken" only once the Cage is sent down; "Next" in place of "Take spoils" until it is done', async () => {
@@ -230,7 +288,13 @@ describe("Relic Hunter sends Bea's Obsidian Cage down: its purple warbands get a
             expect(spoils.sendShown).toBe(true)
             expect(spoils.blockedBecause, JSON.stringify(options)).toBeUndefined()
             await spoils.takeSpoils(false)
-            expect(sent).toHaveBeenCalledWith([], false, { bottomRelicSlotIds: [], bottomRelicIds: [CAGE] }, undefined, false)
+            expect(sent).toHaveBeenCalledWith(
+                [],
+                false,
+                { bottomRelicSlotIds: [], bottomRelicIds: [CAGE] },
+                undefined,
+                false
+            )
             disposeSessions()
         }
     })
@@ -256,7 +320,20 @@ describe("Relic Hunter sends Bea's Obsidian Cage down: its purple warbands get a
         spoils.setCageCount(0, 1)
         expect(spoils.blockedBecause).toBeUndefined()
         await spoils.takeSpoils(false)
-        expect(sent).toHaveBeenCalledWith([], false, { bottomRelicSlotIds: [], bottomRelicIds: [CAGE], cagePlacement: [{ playerId: 'Ann', count: 1 }, { playerId: 'Rhys', count: 1 }] }, undefined, false)
+        expect(sent).toHaveBeenCalledWith(
+            [],
+            false,
+            {
+                bottomRelicSlotIds: [],
+                bottomRelicIds: [CAGE],
+                cagePlacement: [
+                    { playerId: 'Ann', count: 1 },
+                    { playerId: 'Rhys', count: 1 }
+                ]
+            },
+            undefined,
+            false
+        )
     })
 
     it('with three Imperial boards no row fills another: a row takes what the others leave, and "Take spoils" waits for all', async () => {
@@ -272,7 +349,14 @@ describe("Relic Hunter sends Bea's Obsidian Cage down: its purple warbands get a
         spoils.setCageCount(2, 2)
         expect(spoils.cageCounts).toEqual([1, 0, 1])
         expect(spoils.sendShown).toBe(true)
-        expect(spoils.bottoms).toEqual({ bottomRelicSlotIds: [SLOT], bottomRelicIds: [CAGE], cagePlacement: [{ playerId: 'Ann', count: 1 }, { playerId: 'Cass', count: 1 }] })
+        expect(spoils.bottoms).toEqual({
+            bottomRelicSlotIds: [SLOT],
+            bottomRelicIds: [CAGE],
+            cagePlacement: [
+                { playerId: 'Ann', count: 1 },
+                { playerId: 'Cass', count: 1 }
+            ]
+        })
     })
 
     it('before the pawn: the step adds one to the count, and its "Next" waits for the warbands', async () => {
@@ -331,46 +415,96 @@ describe("Relic Hunter sends Bea's Obsidian Cage down: its purple warbands get a
     })
 })
 
-describe("the History says where a relic sent down came from and where it went", () => {
+describe('the History says where a relic sent down came from and where it went', () => {
     const names: HistoryNames = {
         player: (playerId) => playerId,
         site: (slotId) => slotId,
         seats: ['Dana', 'Bea', 'Ann', 'Rhys']
     }
-    function victory(fields: Record<string, unknown>, metadata: Record<string, unknown>): GameAction {
+    function victory(
+        fields: Record<string, unknown>,
+        metadata: Record<string, unknown>
+    ): GameAction {
         const record: Record<string, unknown> = {
             placements: [],
             burnFavor: false,
             ...fields,
-            metadata: { warbandsPlaced: 0, relicsTaken: [], bannersSeized: [], seizeBurned: 0, favorBurned: 0, defenderPlayerId: 'Bea', ...metadata }
+            metadata: {
+                warbandsPlaced: 0,
+                relicsTaken: [],
+                bannersSeized: [],
+                seizeBurned: 0,
+                favorBurned: 0,
+                defenderPlayerId: 'Bea',
+                ...metadata
+            }
         }
-        return { id: 'a1', gameId: 'g1', source: ActionSource.User, type: ActionType.CampaignResolveVictory, playerId: 'Dana', ...record }
+        return {
+            id: 'a1',
+            gameId: 'g1',
+            source: ActionSource.User,
+            type: ActionType.CampaignResolveVictory,
+            playerId: 'Dana',
+            ...record
+        }
     }
 
     it("the defender's relic by name and whose it was, to every seat", () => {
         const record = victory({ bottomRelicIds: [DRUM] }, { relicsToDeckBottom: [DRUM] })
         for (const viewer of ['Dana', 'Bea', undefined]) {
-            expect(describeAction(record, names, viewer)).toBe('took the spoils: put Dragonskin Drum from Bea on the bottom of the relic deck (Relic Hunter)')
+            expect(describeAction(record, names, viewer)).toBe(
+                'took the spoils: put Dragonskin Drum from Bea on the bottom of the relic deck (Relic Hunter)'
+            )
         }
     })
 
-    it("a facedown relic by name to the attacker, as a facedown relic to the rest; a kept one as ever", () => {
-        const mine = victory({ bottomRelicIds: [DRUM], bottomRelicSlotIds: [SLOT] }, { relicsToDeckBottom: [DRUM, CUP] })
-        expect(describeAction(mine, names, 'Dana')).toBe('took the spoils: put Dragonskin Drum from Bea on the bottom of the relic deck (Relic Hunter); put Cup of Plenty on the bottom of the relic deck (Relic Hunter)')
+    it('a facedown relic by name to the attacker, as a facedown relic to the rest; a kept one as ever', () => {
+        const mine = victory(
+            { bottomRelicIds: [DRUM], bottomRelicSlotIds: [SLOT] },
+            { relicsToDeckBottom: [DRUM, CUP] }
+        )
+        expect(describeAction(mine, names, 'Dana')).toBe(
+            'took the spoils: put Dragonskin Drum from Bea on the bottom of the relic deck (Relic Hunter); put Cup of Plenty on the bottom of the relic deck (Relic Hunter)'
+        )
         // Another seat's record carries no protected metadata.
         const theirs = victory({ bottomRelicIds: [DRUM], bottomRelicSlotIds: [SLOT] }, {})
-        expect(describeAction(theirs, names, 'Bea')).toBe('took the spoils: put Dragonskin Drum from Bea on the bottom of the relic deck (Relic Hunter); put a facedown relic on the bottom of the relic deck (Relic Hunter)')
+        expect(describeAction(theirs, names, 'Bea')).toBe(
+            'took the spoils: put Dragonskin Drum from Bea on the bottom of the relic deck (Relic Hunter); put a facedown relic on the bottom of the relic deck (Relic Hunter)'
+        )
         const kept = victory({ bottomRelicSlotIds: [SLOT] }, { relicsTaken: [DRUM] })
-        expect(describeAction(kept, names, 'Bea')).toBe('took the spoils: took Dragonskin Drum; put a facedown relic on the bottom of the relic deck (Relic Hunter)')
+        expect(describeAction(kept, names, 'Bea')).toBe(
+            'took the spoils: took Dragonskin Drum; put a facedown relic on the bottom of the relic deck (Relic Hunter)'
+        )
     })
 
-    it("the Obsidian Cage sent down: (Relic Hunter), then the boards its warbands went back to, right after it", () => {
+    it('the Obsidian Cage sent down: (Relic Hunter), then the boards its warbands went back to, right after it', () => {
         const wentBack = "its warbands went back: 1 to Ann's board, 1 to Rhys's board"
-        const record = victory({ bottomRelicIds: [CAGE], cagePlacement: [{ playerId: 'Ann', count: 1 }, { playerId: 'Rhys', count: 1 }] }, { relicsToDeckBottom: [CAGE], cageWentBack: wentBack })
-        expect(describeAction(record, names, 'Bea')).toBe("took the spoils: put Obsidian Cage from Bea on the bottom of the relic deck (Relic Hunter); its warbands went back: 1 to Ann's board, 1 to Rhys's board")
-        expect(describeAction(record, names, 'Ann')).toBe("took the spoils: put Obsidian Cage from Bea on the bottom of the relic deck (Relic Hunter); its warbands went back: 1 to your board, 1 to Rhys's board")
+        const record = victory(
+            {
+                bottomRelicIds: [CAGE],
+                cagePlacement: [
+                    { playerId: 'Ann', count: 1 },
+                    { playerId: 'Rhys', count: 1 }
+                ]
+            },
+            { relicsToDeckBottom: [CAGE], cageWentBack: wentBack }
+        )
+        expect(describeAction(record, names, 'Bea')).toBe(
+            "took the spoils: put Obsidian Cage from Bea on the bottom of the relic deck (Relic Hunter); its warbands went back: 1 to Ann's board, 1 to Rhys's board"
+        )
+        expect(describeAction(record, names, 'Ann')).toBe(
+            "took the spoils: put Obsidian Cage from Bea on the bottom of the relic deck (Relic Hunter); its warbands went back: 1 to your board, 1 to Rhys's board"
+        )
         // With another relic sent down from Bea, the Cage has a clause of its own, so "its" is the Cage's.
-        const both = victory({ bottomRelicIds: [DRUM, CAGE], bottomRelicSlotIds: [SLOT] }, { relicsToDeckBottom: [DRUM, CAGE, CUP], cageWentBack: "its warbands went back: 2 to Ann's board" })
-        expect(describeAction(both, names, 'Dana')).toBe("took the spoils: put Dragonskin Drum from Bea on the bottom of the relic deck (Relic Hunter); put Obsidian Cage from Bea on the bottom of the relic deck (Relic Hunter); its warbands went back: 2 to Ann's board; put Cup of Plenty on the bottom of the relic deck (Relic Hunter)")
+        const both = victory(
+            { bottomRelicIds: [DRUM, CAGE], bottomRelicSlotIds: [SLOT] },
+            {
+                relicsToDeckBottom: [DRUM, CAGE, CUP],
+                cageWentBack: "its warbands went back: 2 to Ann's board"
+            }
+        )
+        expect(describeAction(both, names, 'Dana')).toBe(
+            "took the spoils: put Dragonskin Drum from Bea on the bottom of the relic deck (Relic Hunter); put Obsidian Cage from Bea on the bottom of the relic deck (Relic Hunter); its warbands went back: 2 to Ann's board; put Cup of Plenty on the bottom of the relic deck (Relic Hunter)"
+        )
     })
 })

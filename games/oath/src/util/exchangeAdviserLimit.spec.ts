@@ -74,7 +74,10 @@ function view(s: HydratedOathGameState, playerId: string): HydratedOathGameState
 const queue = (s: HydratedOathGameState) =>
     s.pendingQuestions?.queue.map((question) => [question.kind, question.askedPlayerId])
 
-const oneForOne: ExchangeTerms = { fromProposer: { adviserRows: [0] }, fromCounterparty: { adviserRows: [0] } }
+const oneForOne: ExchangeTerms = {
+    fromProposer: { adviserRows: [0] },
+    fromCounterparty: { adviserRows: [0] }
+}
 
 // Law 10.8: "You may Give to the prompted player and vice versa": both gives are one exchange,
 // judged on its result.
@@ -82,9 +85,16 @@ describe('an adviser exchange is judged on the advisers each player holds after 
     it('The Gathering: a one-for-one exchange between two players at the limit is accepted, and each keeps three', () => {
         for (const revision of [OathRevision.EngineFixes7, OathRevision.EngineFixes6]) {
             const s = table([WOLVES, WRESTLERS, SCOUTS], [RANGERS, LONGBOWS, HERALD], revision)
-            expect(reasonExchangeInvalid(s, 'ruler', 'other', oneForOne), `revision ${revision}`).toBeUndefined()
+            expect(
+                reasonExchangeInvalid(s, 'ruler', 'other', oneForOne),
+                `revision ${revision}`
+            ).toBeUndefined()
             exchangeAtGathering(s, oneForOne)
-            expect(s.getPlayerState('ruler').knownAdviserIds()).toEqual([WRESTLERS, SCOUTS, RANGERS])
+            expect(s.getPlayerState('ruler').knownAdviserIds()).toEqual([
+                WRESTLERS,
+                SCOUTS,
+                RANGERS
+            ])
             expect(s.getPlayerState('other').knownAdviserIds()).toEqual([LONGBOWS, HERALD, WOLVES])
             expect(currentQuestion(s)?.kind).toBe(PowerQuestionKind.GatheringFloor)
         }
@@ -93,7 +103,10 @@ describe('an adviser exchange is judged on the advisers each player holds after 
     it('giving away Family Wagon for a non-Nomad is accepted: the giver ends with two advisers under a limit of three', () => {
         for (const revision of [OathRevision.EngineFixes7, OathRevision.EngineFixes6]) {
             const s = table([WAGON, WOLVES], [SCOUTS], revision)
-            expect(reasonExchangeInvalid(s, 'ruler', 'other', oneForOne), `revision ${revision}`).toBeUndefined()
+            expect(
+                reasonExchangeInvalid(s, 'ruler', 'other', oneForOne),
+                `revision ${revision}`
+            ).toBeUndefined()
             exchangeAtGathering(s, oneForOne)
             expect(s.getPlayerState('ruler').knownAdviserIds()).toEqual([WOLVES, SCOUTS])
             expect(withinLimit(s, 'ruler')).toBe(true)
@@ -110,9 +123,14 @@ describe('an adviser exchange is judged on the advisers each player holds after 
     })
 
     it('relics and favor in the same exchange move as before, beside the advisers', () => {
-        const s = table([WOLVES, WRESTLERS, SCOUTS], [RANGERS, LONGBOWS, HERALD], OathRevision.EngineFixes7, {
-            ruler: { relicIds: [CUP] }
-        })
+        const s = table(
+            [WOLVES, WRESTLERS, SCOUTS],
+            [RANGERS, LONGBOWS, HERALD],
+            OathRevision.EngineFixes7,
+            {
+                ruler: { relicIds: [CUP] }
+            }
+        )
         const terms: ExchangeTerms = {
             fromProposer: { adviserRows: [0], relicCardIds: [CUP], favor: 1 },
             fromCounterparty: { adviserRows: [2], secrets: 1 }
@@ -147,15 +165,23 @@ describe('from revision 11 an exchange that ends over the adviser limit asks a d
             receivedCardIds: [WOLVES, WRESTLERS]
         })
         expect(adviserLimitDiscards(s, 'other')).toEqual([LONGBOWS, HERALD])
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(WOLVES))).toMatch(/just received/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(WOLVES))).toMatch(
+            /just received/
+        )
         answerQuestion(s, 'other', discards(HERALD))
         expect(s.getPlayerState('other').knownAdviserIds()).toEqual([LONGBOWS, WOLVES, WRESTLERS])
         expect(currentQuestion(s)?.kind).toBe(PowerQuestionKind.GatheringFloor)
     })
 
     it('before revision 11 the same exchange is refused, as it was recorded', () => {
-        const s = table([WOLVES, WRESTLERS, SCOUTS], [RANGERS, LONGBOWS, HERALD], OathRevision.EngineFixes6)
-        expect(reasonExchangeInvalid(s, 'ruler', 'other', getTwoGiveOne)).toBe('other cannot hold 2 more advisers')
+        const s = table(
+            [WOLVES, WRESTLERS, SCOUTS],
+            [RANGERS, LONGBOWS, HERALD],
+            OathRevision.EngineFixes6
+        )
+        expect(reasonExchangeInvalid(s, 'ruler', 'other', getTwoGiveOne)).toBe(
+            'other cannot hold 2 more advisers'
+        )
     })
 
     it('receiving Family Wagon while holding two non-Nomads asks a discard down to one, never the Wagon', () => {
@@ -163,7 +189,11 @@ describe('from revision 11 an exchange that ends over the adviser limit asks a d
         const terms: ExchangeTerms = { fromProposer: { adviserRows: [0] } }
         expect(reasonExchangeInvalid(s, 'ruler', 'other', terms)).toBeUndefined()
         exchangeAtGathering(s, terms)
-        expect(currentQuestion(s)).toMatchObject({ askedPlayerId: 'other', count: 1, receivedCardIds: [WAGON] })
+        expect(currentQuestion(s)).toMatchObject({
+            askedPlayerId: 'other',
+            count: 1,
+            receivedCardIds: [WAGON]
+        })
         expect(adviserLimitDiscards(s, 'other')).toEqual([SCOUTS, WOLVES])
         answerQuestion(s, 'other', discards(WOLVES))
         expect(s.getPlayerState('other').knownAdviserIds()).toEqual([SCOUTS, WAGON])
@@ -181,10 +211,17 @@ describe('from revision 11 an exchange that ends over the adviser limit asks a d
 
     it('giving Family Wagon away makes the giver’s Nomads count, so the giver discards down', () => {
         const s = table([WAGON, WOLVES, ELDERS, STEED, TENTS], [])
-        const terms: ExchangeTerms = { fromProposer: { adviserRows: [0] }, fromCounterparty: { favor: 1 } }
+        const terms: ExchangeTerms = {
+            fromProposer: { adviserRows: [0] },
+            fromCounterparty: { favor: 1 }
+        }
         expect(reasonExchangeInvalid(s, 'ruler', 'other', terms)).toBeUndefined()
         exchangeAtGathering(s, terms)
-        expect(currentQuestion(s)).toMatchObject({ askedPlayerId: 'ruler', count: 1, receivedCardIds: [] })
+        expect(currentQuestion(s)).toMatchObject({
+            askedPlayerId: 'ruler',
+            count: 1,
+            receivedCardIds: []
+        })
         answerQuestion(s, 'ruler', discards(ELDERS))
         expect(withinLimit(s, 'ruler')).toBe(true)
         expect(currentQuestion(s)?.kind).toBe(PowerQuestionKind.GatheringFloor)
@@ -222,7 +259,11 @@ describe('Pied Piper in an exchange', () => {
     it('given with another adviser to a player at three, the other one prompts a discard, and neither received card goes', () => {
         const s = table([PIPER, WOLVES], [RANGERS, LONGBOWS, HERALD])
         exchangeAtGathering(s, { fromProposer: { adviserRows: [0, 1] } })
-        expect(currentQuestion(s)).toMatchObject({ askedPlayerId: 'other', count: 1, receivedCardIds: [PIPER, WOLVES] })
+        expect(currentQuestion(s)).toMatchObject({
+            askedPlayerId: 'other',
+            count: 1,
+            receivedCardIds: [PIPER, WOLVES]
+        })
         expect(adviserLimitDiscards(s, 'other')).toEqual([RANGERS, LONGBOWS, HERALD])
     })
 
@@ -231,7 +272,11 @@ describe('Pied Piper in an exchange', () => {
         const terms: ExchangeTerms = { fromProposer: { adviserRows: [0] } }
         expect(reasonExchangeInvalid(s, 'ruler', 'other', terms)).toBeUndefined()
         exchangeAtGathering(s, terms)
-        expect(currentQuestion(s)).toMatchObject({ askedPlayerId: 'other', count: 1, receivedCardIds: [SCOUTS] })
+        expect(currentQuestion(s)).toMatchObject({
+            askedPlayerId: 'other',
+            count: 1,
+            receivedCardIds: [SCOUTS]
+        })
         expect(adviserLimitDiscards(s, 'other')).toEqual([PIPER, WOLVES, WRESTLERS])
         answerQuestion(s, 'other', discards(PIPER))
         expect(s.getPlayerState('other').knownAdviserIds()).toEqual([WOLVES, WRESTLERS, SCOUTS])
@@ -252,13 +297,19 @@ describe('a facedown adviser received in an exchange', () => {
         const question = currentQuestion(s)
         expect(question).toMatchObject({ askedPlayerId: 'other', count: 1, receivedCardIds: [] })
         expect(adviserLimitDiscards(s, 'other')).toEqual([RANGERS, LONGBOWS, HERALD])
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(WOLVES))).toMatch(/just received/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(WOLVES))).toMatch(
+            /just received/
+        )
         // R-9.4 — the asked player's view keeps it out the same way; the table never sees it named.
         const own = view(s, 'other')
         expect(adviserLimitDiscards(own, 'other')).toEqual([RANGERS, LONGBOWS, HERALD])
         expect(adviserLimitDiscardCount(own, 'other')).toBe(1)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(own, 'other', discards(WOLVES))).toMatch(/just received/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(own, 'other', discards(HERALD))).toBeUndefined()
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(own, 'other', discards(WOLVES))).toMatch(
+            /just received/
+        )
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(own, 'other', discards(HERALD))
+        ).toBeUndefined()
         expect(servedJson(s)).not.toContain(WOLVES)
         expect(servedJson(s, { kind: 'player', playerId: 'away' })).not.toContain(WOLVES)
         answerQuestion(s, 'other', discards(HERALD))
@@ -270,7 +321,11 @@ describe("safe on a player's view: the exchange check reads only what is public"
     it('every view judges the terms as the server does', () => {
         const scenes = [
             table([WOLVES, WRESTLERS, SCOUTS], [RANGERS, LONGBOWS, HERALD]),
-            table([WOLVES, WRESTLERS, SCOUTS], [RANGERS, LONGBOWS, HERALD], OathRevision.EngineFixes6),
+            table(
+                [WOLVES, WRESTLERS, SCOUTS],
+                [RANGERS, LONGBOWS, HERALD],
+                OathRevision.EngineFixes6
+            ),
             table([WAGON], [SCOUTS, WOLVES], OathRevision.EngineFixes6),
             table([], [RANGERS, LONGBOWS, HERALD], OathRevision.EngineFixes6, {
                 ruler: { advisers: [adviser(WOLVES, false), adviser(SCOUTS, false)] }
@@ -286,7 +341,9 @@ describe("safe on a player's view: the exchange check reads only what is public"
             for (const terms of termsList) {
                 const expected = reasonExchangeInvalid(s, 'ruler', 'other', terms)
                 for (const playerId of ['ruler', 'other', 'away']) {
-                    expect(reasonExchangeInvalid(view(s, playerId), 'ruler', 'other', terms)).toBe(expected)
+                    expect(reasonExchangeInvalid(view(s, playerId), 'ruler', 'other', terms)).toBe(
+                        expected
+                    )
                 }
             }
         }

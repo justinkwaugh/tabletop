@@ -8,8 +8,12 @@
         color,
         buildingStyle,
         size = 22
-    }: { buildingType: BuildingType; color: string; buildingStyle: BuildingStyle; size?: number } = $props()
-
+    }: {
+        buildingType: BuildingType
+        color: string
+        buildingStyle: BuildingStyle
+        size?: number
+    } = $props()
 
     const footprint = $derived(size * 0.78)
     const shadowLength = $derived(size * 0.16 * BUILDING_HEIGHT[buildingType])

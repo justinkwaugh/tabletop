@@ -55,16 +55,18 @@ function walkSetup(createdBeforeRevisions = false) {
     for (const playerId of current.turnManager.turnOrder) {
         const hydrated = new HydratedOathGameState(current)
         const hand = hydrated.getPlayerState(playerId).knownHand()
-        record(buildAction(SetupChoice, {
-            playerId,
-            // R-1.23.1 — the Chancellor must take the top Cradle site; others any faceup one.
-            siteId:
-                playerId === current.chancellorPlayerId
-                    ? TOP_CRADLE_SLOT
-                    : hydrated.faceupSiteIds()[1],
-            adviserCardId: hand[0],
-            discardOrder: hand.slice(1)
-        }))
+        record(
+            buildAction(SetupChoice, {
+                playerId,
+                // R-1.23.1 — the Chancellor must take the top Cradle site; others any faceup one.
+                siteId:
+                    playerId === current.chancellorPlayerId
+                        ? TOP_CRADLE_SLOT
+                        : hydrated.faceupSiteIds()[1],
+                adviserCardId: hand[0],
+                discardOrder: hand.slice(1)
+            })
+        )
     }
     return { game, vault, steps, record, state: () => current }
 }
@@ -83,20 +85,24 @@ function walkTwoTurns(createdBeforeRevisions = false) {
     expect(walk.state().machineState).toBe(MachineState.ActPhase)
 
     // R-5.1 — the server records the vault draw in the Search's metadata; a replay cannot recover it.
-    const search = record(buildAction(Search, {
-        playerId: chancellor,
-        drawFrom: SearchSource.WorldDeck,
-        revealsInfo: true
-    }))
+    const search = record(
+        buildAction(Search, {
+            playerId: chancellor,
+            drawFrom: SearchSource.WorldDeck,
+            revealsInfo: true
+        })
+    )
     assert(isSearch(search), 'the Search is the first action processed')
     assertExists(search.metadata, 'the server resolved the draw into the Search record')
     const drawn = search.metadata.draw.drawnCardIds
-    record(buildAction(SearchResolve, {
-        playerId: chancellor,
-        keptCardId: drawn[0],
-        discardOrder: drawn.slice(1),
-        play: SearchPlay.Discard
-    }))
+    record(
+        buildAction(SearchResolve, {
+            playerId: chancellor,
+            keptCardId: drawn[0],
+            discardOrder: drawn.slice(1),
+            play: SearchPlay.Discard
+        })
+    )
 
     // R-5.6.2 — travelling onto a facedown site reveals it and its relics from the vault.
     const destination = 'slot.provinces.1'
@@ -106,43 +112,62 @@ function walkTwoTurns(createdBeforeRevisions = false) {
     expect(recovered, 'the walk needs two relics at the destination').toBeDefined()
 
     // R-6.3 — the site Peek; the Reliquary is already the Scepter holder's to know (R-6.4-H1).
-    record(buildAction(Peek, {
-        playerId: chancellor,
-        target: { kind: PeekTargetKind.SiteRelic, slotId: required(peeked, 'a relic to peek at').slotId }
-    }))
+    record(
+        buildAction(Peek, {
+            playerId: chancellor,
+            target: {
+                kind: PeekTargetKind.SiteRelic,
+                slotId: required(peeked, 'a relic to peek at').slotId
+            }
+        })
+    )
 
     // Fixture, not rule: Drowned City's Recover burns two favor, which a player may not have.
-    required(walk.state().players.find((p) => p.playerId === chancellor), 'the Chancellor').favor = 2
-    record(buildAction(Recover, {
-        playerId: chancellor,
-        target: { kind: RecoverTargetKind.Relic, slotId: required(recovered, 'a relic to recover').slotId }
-    }))
+    required(
+        walk.state().players.find((p) => p.playerId === chancellor),
+        'the Chancellor'
+    ).favor = 2
+    record(
+        buildAction(Recover, {
+            playerId: chancellor,
+            target: {
+                kind: RecoverTargetKind.Relic,
+                slotId: required(recovered, 'a relic to recover').slotId
+            }
+        })
+    )
 
     // R-5.5.1 — nobody rules the destination, so the bandits defend; no second pawn is needed.
     const board = new HydratedOathGameState(walk.state()).getPlayerState(chancellor).warbandsOnBoard
-    record(buildAction(Campaign, {
-        playerId: chancellor,
-        defender: { kind: 'bandits' },
-        targets: [{ kind: CampaignTargetKind.Site, siteId: destination }],
-        attackDice: Object.values(board).reduce((n, c) => n + c, 0),
-    }))
+    record(
+        buildAction(Campaign, {
+            playerId: chancellor,
+            defender: { kind: 'bandits' },
+            targets: [{ kind: CampaignTargetKind.Site, siteId: destination }],
+            attackDice: Object.values(board).reduce((n, c) => n + c, 0)
+        })
+    )
 
     // R-5.5.5.c — exactly enough to win, derived from the roll rather than hard-coded.
     const rolled = ongoingCampaign(walk.state())
-    record(buildAction(CampaignSacrifice, {
-        playerId: chancellor,
-        sacrifice: Math.max(0, rolled.defense - rolled.swords + 1),
-        // R-5.5.6 — the bandits have no warbands, so there is no half to kill.
-        defeatKills: []
-    }))
+    record(
+        buildAction(CampaignSacrifice, {
+            playerId: chancellor,
+            sacrifice: Math.max(0, rolled.defense - rolled.swords + 1),
+            // R-5.5.6 — the bandits have no warbands, so there is no half to kill.
+            defeatKills: []
+        })
+    )
     expect(walk.state().campaign?.attackerVictorious).toBe(true)
 
-    record(buildAction(CampaignResolveVictory, {
-        playerId: chancellor,
-        // R-5.5.7.I — the one surviving warband is placed, which takes rule of the site.
-        placements: [{ siteId: destination, owner: IMPERIAL_WARBANDS, count: 1 }],
-        burnFavor: false
-    }))
+    record(
+        buildAction(CampaignResolveVictory, {
+            playerId: chancellor,
+            // R-5.5.7.I — the one surviving warband is placed, which takes rule of the site.
+            placements: [{ siteId: destination, owner: IMPERIAL_WARBANDS, count: 1 }],
+            burnFavor: false
+        })
+    )
 
     endTurn(chancellor)
 
@@ -191,7 +216,11 @@ describe('every action replays from its recorded form', () => {
                 [ActionType.CompleteRest, ActionSource.System]
             ])
         }
-        expect(recorded(steps).filter((a) => a.type === ActionType.CompleteRest && a.source === ActionSource.User)).toHaveLength(0)
+        expect(
+            recorded(steps).filter(
+                (a) => a.type === ActionType.CompleteRest && a.source === ActionSource.User
+            )
+        ).toHaveLength(0)
     })
 
     it('R-X.4 — a game created before the revision rests by the player’s hand, and replays unchanged', () => {
@@ -233,7 +262,10 @@ describe('every action replays from its recorded form', () => {
 
     it('R-5.5.5 — a Campaign’s roll is reproduced, not recorded', () => {
         const { game, steps } = walkTwoTurns()
-        const campaign = required(steps.find((s) => s.actions[0].type === ActionType.Campaign), 'the Campaign step')
+        const campaign = required(
+            steps.find((s) => s.actions[0].type === ActionType.Campaign),
+            'the Campaign step'
+        )
 
         expect(campaign.actions).toHaveLength(1)
         expect(campaign.actions[0]).not.toHaveProperty('attackRoll')
@@ -259,7 +291,10 @@ describe('every action replays from its recorded form', () => {
 
     it('R-5.6.2 — the site reveal survives the round trip', () => {
         const { steps } = walkTwoTurns()
-        const travel = required(steps.find((s) => s.actions[0].type === ActionType.Travel), 'the Travel step')
+        const travel = required(
+            steps.find((s) => s.actions[0].type === ActionType.Travel),
+            'the Travel step'
+        )
         const reveal = travel.actions.find(isTravel)?.metadata
 
         expect(reveal?.revealedSiteCardId).toBe('site.drowned-city')

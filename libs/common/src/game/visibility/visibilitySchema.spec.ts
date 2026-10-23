@@ -80,6 +80,49 @@ describe('visibility schemas', () => {
         }>()
     })
 
+    it('leaves the canonical schema unchanged when deriving a projection', () => {
+        const Canonical = Type.Object({
+            nested: Type.Object({
+                label: Type.String(),
+                bid: Visibility.protect(Type.Number(), { policy: 'example.sealed-bid' })
+            }),
+            hands: Type.Record(
+                Type.String(),
+                Visibility.protect(Type.Array(Type.String()), { policy: 'example.hand' })
+            ),
+            tree: Type.Cyclic(
+                {
+                    Node: Type.Object({
+                        secret: Visibility.protect(Type.String(), { policy: 'example.node' }),
+                        children: Type.Array(Type.Ref('Node'))
+                    })
+                },
+                'Node'
+            )
+        })
+        const canonicalValue = {
+            nested: { label: 'A', bid: 3 },
+            hands: { 'player-1': ['card'] },
+            tree: { secret: 'root', children: [] }
+        }
+        const projectedValue = {
+            nested: { label: 'A' },
+            hands: {},
+            tree: { children: [] }
+        }
+        const canonicalJson = JSON.stringify(Canonical)
+
+        Visibility.createProjectionSchema(Canonical)
+
+        expect(JSON.stringify(Canonical)).toBe(canonicalJson)
+        expect(Canonical.properties.nested.required).toEqual(['label', 'bid'])
+        expect(Compile(Canonical).Check(canonicalValue)).toBe(true)
+        expect(Compile(Canonical).Check(projectedValue)).toBe(false)
+        expect(
+            Compile(Canonical).Check({ ...canonicalValue, hands: { 'player-1': undefined } })
+        ).toBe(false)
+    })
+
     it('recurses through arrays and TypeBox composition', () => {
         const Participant = Type.Object({
             playerId: Type.String(),

@@ -34,11 +34,11 @@ const SETTINGS = {
     extraPlayerNames: ['Alice', 'Bob'],
 
     // ── Game config options ──────────────────────────────────────────────────
-    palmTrees:   true,   // Place three palm trees randomly on the board
-    publicMoney: true,   // Everyone can see all escudo totals
-    publicScore: true,   // Everyone can see field scores during the game
-    springCol:   2,      // Spring column position (0–4)
-    springRow:   1,      // Spring row position (0–3)
+    palmTrees: true, // Place three palm trees randomly on the board
+    publicMoney: true, // Everyone can see all escudo totals
+    publicScore: true, // Everyone can see field scores during the game
+    springCol: 2, // Spring column position (0–4)
+    springRow: 1 // Spring row position (0–3)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ async function main() {
     }
 
     // Boolean toggles
-    await setToggle(page, 'palmTrees',   SETTINGS.palmTrees)
+    await setToggle(page, 'palmTrees', SETTINGS.palmTrees)
     await setToggle(page, 'publicMoney', SETTINGS.publicMoney)
     await setToggle(page, 'publicScore', SETTINGS.publicScore)
 
@@ -101,14 +101,16 @@ async function main() {
     await page.getByRole('button', { name: 'Create Game' }).click()
 
     // Wait for the modal to close and the game board to appear
-    await page.waitForSelector('input[placeholder="choose a name for your game"]', { state: 'hidden' })
+    await page.waitForSelector('input[placeholder="choose a name for your game"]', {
+        state: 'hidden'
+    })
     await page.waitForTimeout(1500)
 
     console.log('Game created and loaded — browser will stay open.')
     // Browser intentionally left open for the user to play
 }
 
-main().catch(err => {
+main().catch((err) => {
     console.error('Script failed:', err.message)
     process.exit(1)
 })

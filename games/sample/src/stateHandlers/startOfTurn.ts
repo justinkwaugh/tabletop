@@ -11,9 +11,15 @@ type StartOfTurnAction = HydratedAddAmount | HydratedPass
 // State handler for the StartOfTurn state.  The main purposes of a state handler are to
 // define what actions are valid in this state, handle entering the state, and provide
 // a new state after an action has happened.
-export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedSampleGameState> {
+export class StartOfTurnStateHandler implements MachineStateHandler<
+    StartOfTurnAction,
+    HydratedSampleGameState
+> {
     // Type guard to ensure action is one of the valid types for this state
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSampleGameState>): action is StartOfTurnAction {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedSampleGameState>
+    ): action is StartOfTurnAction {
         // Types are not the only thing that has to be checked here
         if (!action.playerId) return false
 
@@ -22,7 +28,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
 
     // This returns the valid action type names for the given player in this state.
     // it is used by the UI to show valid options, and by the engine to validate actions.
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSampleGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedSampleGameState>
+    ): ActionType[] {
         const gameState = context.gameState
 
         // Always can pass
@@ -51,7 +60,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         playerState.addAmount(5) // Give some amount at start of turn
     }
 
-    onAction(action: StartOfTurnAction, context: MachineContext<HydratedSampleGameState>): MachineState {
+    onAction(
+        action: StartOfTurnAction,
+        context: MachineContext<HydratedSampleGameState>
+    ): MachineState {
         switch (true) {
             case isAddAmount(action): {
                 const state = context.gameState

@@ -36,7 +36,7 @@
             fill="rgba(255, 250, 241, 0.38)"
             opacity={shadowOpacity}
             transform={`translate(${shadowTranslate})`}
-        />
-        <path d={CROSS_PATH} fill="currentColor" opacity={opacity} />
+        ></path>
+        <path d={CROSS_PATH} fill="currentColor" {opacity}></path>
     </g>
 </g>

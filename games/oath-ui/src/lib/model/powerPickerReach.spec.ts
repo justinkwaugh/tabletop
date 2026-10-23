@@ -17,9 +17,12 @@ import { pickerWords } from './powerPickerWords.js'
 function declaredChoices(): { power: CardPower; specs: ChoiceSpec[] }[] {
     const seen: { power: CardPower; specs: ChoiceSpec[] }[] = []
     for (let revision = 0; revision <= CURRENT_OATH_REVISION; revision += 1) {
-        const state = testState([testPlayer({ playerId: 'rhys', color: Color.Red, siteId: 'c1' })], {
-            oathRevision: revision
-        })
+        const state = testState(
+            [testPlayer({ playerId: 'rhys', color: Color.Red, siteId: 'c1' })],
+            {
+                oathRevision: revision
+            }
+        )
         for (const power of allPowers()) {
             seen.push({ power, specs: choiceSpecsAt(state, power) })
         }
@@ -27,7 +30,8 @@ function declaredChoices(): { power: CardPower; specs: ChoiceSpec[] }[] {
     return seen
 }
 
-const name = (power: CardPower, spec: number) => `${power.cardId}#${power.powerIndex} choice ${spec}`
+const name = (power: CardPower, spec: number) =>
+    `${power.cardId}#${power.powerIndex} choice ${spec}`
 
 /**
  * R-7.1.3 — a power's picker draws each kind of choice its own way: warbands as rows of pieces or
@@ -58,7 +62,9 @@ describe('R-7.1.3 — every choice a power declares has a picker of its own', ()
     it('a yes: a "may" the card offers, or one branch of an "or", never a yes it needs alone', () => {
         const needed = declared.flatMap(({ power, specs }) =>
             specs.flatMap((spec, i) =>
-                spec.kind === PowerChoiceKind.Yes && spec.min > 0 && !spec.or ? [name(power, i)] : []
+                spec.kind === PowerChoiceKind.Yes && spec.min > 0 && !spec.or
+                    ? [name(power, i)]
+                    : []
             )
         )
         expect([...new Set(needed)]).toEqual([])

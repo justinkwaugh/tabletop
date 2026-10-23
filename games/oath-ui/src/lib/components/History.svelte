@@ -119,7 +119,10 @@
                                 </MajorEventRow>
                             {:else}
                                 <MajorEventRow event={row.event} {actorId}>
-                                    <ActionDescription action={row.action} campaign={row.campaign} />
+                                    <ActionDescription
+                                        action={row.action}
+                                        campaign={row.campaign}
+                                    />
                                 </MajorEventRow>
                             {/if}
                         </TimelineItem>

@@ -47,12 +47,12 @@
 </script>
 
 <g transform="translate({panel.x} {panel.y})">
-    <rect width={panel.width} height={panel.height} rx="8" class="sheet" />
+    <rect width={panel.width} height={panel.height} rx="8" class="sheet"></rect>
     <text x={panel.width / 2} y="19" class="title">Track Cost</text>
     <text x={discX} y={HEADER_Y} class="head">Disc</text>
     <text x={cubeX} y={HEADER_Y} class="head">Cube</text>
     <text x={maxX} y={HEADER_Y} class="head">Max</text>
-    <line x1="10" x2={panel.width - 10} y1={HEADER_Y + 5} y2={HEADER_Y + 5} class="rule" />
+    <line x1="10" x2={panel.width - 10} y1={HEADER_Y + 5} y2={HEADER_Y + 5} class="rule"></line>
     {#each rows as row, index (row.kind)}
         <g transform="translate(0 {FIRST_ROW_Y + index * ROW})">
             <polygon
@@ -60,7 +60,7 @@
                 fill={fill[row.kind]}
                 stroke="#1d1d1b"
                 stroke-width="1.5"
-            />
+            ></polygon>
             <text x="42" y="17" class="label">{row.name}</text>
             <text x={discX} y="17" class="cost">{row.disc}</text>
             <text x={cubeX} y="17" class="cost"
@@ -76,7 +76,7 @@
             height={SITE_ROWS * ROW - 4}
             rx="6"
             class="site-max"
-        />
+        ></rect>
         <text x={maxX} y={FIRST_ROW_Y + (SITE_ROWS * ROW) / 2 + 5} class="site-max-value"
             >{siteMax}</text
         >
@@ -88,7 +88,7 @@
         y1={FIRST_ROW_Y + rows.length * ROW + 2}
         y2={FIRST_ROW_Y + rows.length * ROW + 2}
         class="rule"
-    />
+    ></line>
     {#each footnotes as footnote, index (footnote)}
         <text x={panel.width / 2} y={panel.height - 20 + index * 13} class="foot">{footnote}</text>
     {/each}

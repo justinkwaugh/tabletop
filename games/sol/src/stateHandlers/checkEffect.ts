@@ -20,14 +20,23 @@ import { Ring } from '../utils/solGraph.js'
 
 type CheckEffectAction = HydratedPass | HydratedActivateEffect
 
-export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectAction, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is CheckEffectAction {
+export class CheckEffectStateHandler implements MachineStateHandler<
+    CheckEffectAction,
+    HydratedSolGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedSolGameState>
+    ): action is CheckEffectAction {
         if (!action.playerId) return false
 
         return isPass(action) || isActivateEffect(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedSolGameState>
+    ): ActionType[] {
         const gameState = context.gameState
 
         const validActions = [ActionType.Pass]
@@ -41,7 +50,10 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
 
     enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: CheckEffectAction, context: MachineContext<HydratedSolGameState>): MachineState {
+    onAction(
+        action: CheckEffectAction,
+        context: MachineContext<HydratedSolGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         switch (true) {

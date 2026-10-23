@@ -9,7 +9,7 @@
 </script>
 
 <div class="example">
-    <TabWorkspace {tabs} label="Example" onLayoutChange={value => saved = value}>
+    <TabWorkspace {tabs} label="Example" onLayoutChange={(value) => (saved = value)}>
         {#snippet children(id)}
             <label>{id} <input aria-label={`${id} draft`} /></label>
         {/snippet}
@@ -18,5 +18,10 @@
 <output aria-label="Saved layout">{JSON.stringify(saved)}</output>
 
 <style>
-    .example { height: 500px; font-family: sans-serif; --rail-text: red; --rail-surface: red; }
+    .example {
+        height: 500px;
+        font-family: sans-serif;
+        --rail-text: red;
+        --rail-surface: red;
+    }
 </style>

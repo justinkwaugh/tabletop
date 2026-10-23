@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import type { Point } from '@tabletop/common'
     import InstabilityMarker from '$lib/images/instability.svelte'
     import { InstabilityAnimator } from '$lib/animators/instabilityAnimator.js'

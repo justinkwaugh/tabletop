@@ -68,19 +68,19 @@ Use helpers from `Visibility` in `@tabletop/common` with the canonical TypeBox s
 - `scope(schema, name)` gives protected descendants named canonical context through `context.requireScope(schema)`.
 - `createProjectionSchema(schema)` derives the shared representation; `createProjector(schema)` builds the state projector. Register all possible User and System Action schemas with `createActionProjector`.
 
-| Policy or component | Supported behavior |
-| --- | --- |
-| `Policy.Public` | Every ordinary Perspective receives the value |
-| `Policy.configEquals(key, value, { defaultValue? })` | Matches persisted public Game configuration; explicit defaults handle older Games missing an option |
-| `Policy.stateEquals(field, value)` | Matches an unconditionally public top-level field of the projected root, such as `machineState` |
-| `Policy.anyOf(...policies)` | Grants access when any child policy grants access; supports nested expressions |
-| `Policy.HostOnly` | No ordinary Perspective receives the value |
-| `Policy.Actor` | Matches the root value's `playerId`, normally on an Action |
-| `Policy.Owner` | Matches the immediate containing object's public, stable `playerId`, such as `players[].hand`; does not search ancestors |
-| `DrawBag` | Protects exact `items` with an empty-array replacement while leaving `remaining` public |
-| `ProtectedPrngState` | Replaces a present protected cursor with `{ seed: 0, invocations: 0 }` |
-| `SimultaneousAuction` | Owner-known bid before resolution, public bids after a winner is recorded, and public submission status |
-| Named custom policy | Pure snapshot projection using canonical context; not trusted for local guarded execution |
+| Policy or component                                  | Supported behavior                                                                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `Policy.Public`                                      | Every ordinary Perspective receives the value                                                                            |
+| `Policy.configEquals(key, value, { defaultValue? })` | Matches persisted public Game configuration; explicit defaults handle older Games missing an option                      |
+| `Policy.stateEquals(field, value)`                   | Matches an unconditionally public top-level field of the projected root, such as `machineState`                          |
+| `Policy.anyOf(...policies)`                          | Grants access when any child policy grants access; supports nested expressions                                           |
+| `Policy.HostOnly`                                    | No ordinary Perspective receives the value                                                                               |
+| `Policy.Actor`                                       | Matches the root value's `playerId`, normally on an Action                                                               |
+| `Policy.Owner`                                       | Matches the immediate containing object's public, stable `playerId`, such as `players[].hand`; does not search ancestors |
+| `DrawBag`                                            | Protects exact `items` with an empty-array replacement while leaving `remaining` public                                  |
+| `ProtectedPrngState`                                 | Replaces a present protected cursor with `{ seed: 0, invocations: 0 }`                                                   |
+| `SimultaneousAuction`                                | Owner-known bid before resolution, public bids after a winner is recorded, and public submission status                  |
+| Named custom policy                                  | Pure snapshot projection using canonical context; not trusted for local guarded execution                                |
 
 Conditional policies are serialized declarations, evaluated by the same engine during projection and guarded execution. For example:
 
@@ -106,12 +106,12 @@ Custom replacement adapters, arbitrary TypeBox composition with precise static i
 
 ## Randomness and identity
 
-| API or field | Contract |
-| --- | --- |
-| `Game.seed`, deprecated `GameState.seed`, `prng` | Public setup seed and persisted public stream |
-| `getPublicPrng()` | Predictable public rules randomness and durable System Action identity generation |
-| `getProtectedPrng()` | Private deterministic stream in v3; historical public stream in v1/v2 |
-| `masterSeed` | Optional private reproduction seed, omitted from ordinary projections |
+| API or field                                     | Contract                                                                          |
+| ------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `Game.seed`, deprecated `GameState.seed`, `prng` | Public setup seed and persisted public stream                                     |
+| `getPublicPrng()`                                | Predictable public rules randomness and durable System Action identity generation |
+| `getProtectedPrng()`                             | Private deterministic stream in v3; historical public stream in v1/v2             |
+| `masterSeed`                                     | Optional private reproduction seed, omitted from ordinary projections             |
 
 New instances of runtimes declaring `randomnessVersion: 1` derive both streams from a private 128-bit master seed. HKDF-SHA256 uses salt `tabletop/game-seeds/v1` and separate UTF-8 labels `public-v1` (four output bytes, little-endian unsigned integer) and `protected-v1` (32 output bytes). The public SplitMix32 seed remains a simple number. The protected cursor is `{ algorithm: 'chacha20-v1', seed: <64 hex digits>, invocations }`; it uses ChaCha20 with a zero 96-bit nonce, starting at block zero, and consumes little-endian 32-bit words divided by 2^32. A cached block supplies 16 invocations. Both generators resume directly at their persisted position; SplitMix32 skip-ahead preserves the original sequence.
 

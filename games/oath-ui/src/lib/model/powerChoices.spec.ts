@@ -44,7 +44,10 @@ function gridOf(choices: readonly LegalChoice[]): WarbandGrid {
 
 function tapped(choices: readonly LegalChoice[], ...counts: [number, number][]): PowerChoicePicks {
     const grid = gridOf(choices)
-    return counts.reduce((picks, [row, count]) => withGridCount(picks, grid, row, count), emptyPicks())
+    return counts.reduce(
+        (picks, [row, count]) => withGridCount(picks, grid, row, count),
+        emptyPicks()
+    )
 }
 
 /** "Kill any two warbands in your region (at sites or on boards, even yours)": two picks, one domain. */
@@ -63,7 +66,9 @@ describe('a power’s warbands as rows of pieces — Terror Spells’ two kills'
     it('its two picks are one grid over the places, every count starting empty', () => {
         const grid = gridOf(terror())
         expect(grid.specs).toEqual([0, 1])
-        expect(grid.groups).toEqual(regionGroups.map((option) => option.kind === PowerChoiceKind.Warbands && option.group))
+        expect(grid.groups).toEqual(
+            regionGroups.map((option) => option.kind === PowerChoiceKind.Warbands && option.group)
+        )
         expect(grid.total).toBe(2)
         expect(grid.exact).toBe(true)
         // One colour per place (R-6.6.2): the pieces say whose they are, so no row names an owner.
@@ -106,9 +111,13 @@ describe('a power’s warbands as rows of pieces — Terror Spells’ two kills'
         const grid = gridOf(terror())
         const picks = tapped(terror(), [2, 1])
         expect(picksComplete(terror(), picks)).toBe(false)
-        expect([0, 1, 2, 3].map((row) => gridCeilingAt(grid, gridCounts(grid, picks), row))).toEqual([1, 1, 2, 1])
+        expect(
+            [0, 1, 2, 3].map((row) => gridCeilingAt(grid, gridCounts(grid, picks), row))
+        ).toEqual([1, 1, 2, 1])
         const lowered = withGridCount(tapped(terror(), [2, 2]), grid, 2, 0)
-        expect([0, 1, 2, 3].map((row) => gridCeilingAt(grid, gridCounts(grid, lowered), row))).toEqual([2, 2, 2, 2])
+        expect(
+            [0, 1, 2, 3].map((row) => gridCeilingAt(grid, gridCounts(grid, lowered), row))
+        ).toEqual([2, 2, 2, 2])
     })
 
     it('a count is never more than the rows allow, whatever is asked', () => {
@@ -130,7 +139,10 @@ describe('a power’s warbands as rows of pieces — Terror Spells’ two kills'
 
 describe('a power’s warbands as rows of pieces — Blood Pact’s pairs', () => {
     const pact: LegalChoice[] = [
-        { spec: { kind: PowerChoiceKind.Warbands, min: 1, max: 1, step: 2 }, options: [onBoard('me', 'me', 5)] }
+        {
+            spec: { kind: PowerChoiceKind.Warbands, min: 1, max: 1, step: 2 },
+            options: [onBoard('me', 'me', 5)]
+        }
     ]
 
     it('the board is its one row, nothing picked; the ceiling stops at the last whole pair', () => {
@@ -244,8 +256,7 @@ describe('optionIndexOf — no default where the player has a choice', () => {
     })
 })
 
-
-describe('openCountCeiling — how far an open count runs (Witch\'s Bargain)', () => {
+describe("openCountCeiling — how far an open count runs (Witch's Bargain)", () => {
     const holding = (advisers: string[]) => {
         const state = testState([
             testPlayer({
@@ -286,10 +297,17 @@ describe('an exchange choice — the player, then terms that name something, eve
     it('"Use" waits for terms that name something', () => {
         expect(picksComplete([deal], emptyPicks())).toBe(false)
         expect(picksComplete([deal], withRhys)).toBe(false)
-        const named = { ...withRhys, terms: { 0: { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] } } }
+        const named = {
+            ...withRhys,
+            terms: { 0: { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] } }
+        }
         expect(picksComplete([deal], named)).toBe(true)
         expect(powerChoicesFrom([deal], named)).toEqual([
-            { kind: PowerChoiceKind.Exchange, withPlayerId: 'rhys', terms: { fromProposer: { favor: 1 } } }
+            {
+                kind: PowerChoiceKind.Exchange,
+                withPlayerId: 'rhys',
+                terms: { fromProposer: { favor: 1 } }
+            }
         ])
     })
 
@@ -307,12 +325,19 @@ describe('an exchange choice — the player, then terms that name something, eve
         expect(picksComplete([deal], picks)).toBe(true)
         expect(hasPicks(picks)).toBe(true)
         expect(powerChoicesFrom([deal], picks)).toEqual([
-            { kind: PowerChoiceKind.Exchange, withPlayerId: 'rhys', terms: { promises: { fromCounterparty: 'Rhys stays home.' } } }
+            {
+                kind: PowerChoiceKind.Exchange,
+                withPlayerId: 'rhys',
+                terms: { promises: { fromCounterparty: 'Rhys stays home.' } }
+            }
         ])
     })
 
     it('another player picked drops the terms written for the last one', () => {
-        const named = { ...withRhys, terms: { 0: { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] } } }
+        const named = {
+            ...withRhys,
+            terms: { 0: { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] } }
+        }
         expect(withOptionPick(named, deal, 0, 1).terms).toEqual({})
         expect(withOptionPick(named, deal, 0, 0).terms).toEqual(named.terms)
     })

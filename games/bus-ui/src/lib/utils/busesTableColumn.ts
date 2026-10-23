@@ -3,7 +3,9 @@ import { BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR } from '$lib/definitions/busBoardG
 
 export type BusesTableColumnKey = keyof typeof BUS_BUSES_TABLE_SLOT_POINTS_BY_COLOR
 
-export function busesTableColumnKeyForColor(color: Color | undefined): BusesTableColumnKey | undefined {
+export function busesTableColumnKeyForColor(
+    color: Color | undefined
+): BusesTableColumnKey | undefined {
     switch (color) {
         case Color.Purple:
             return 'purple'

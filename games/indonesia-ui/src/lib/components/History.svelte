@@ -48,7 +48,9 @@
         return item.type === 'phase-marker'
     }
 
-    let showEndOfGameMarker = $derived(gameSession.gameState.machineState === MachineState.EndOfGame)
+    let showEndOfGameMarker = $derived(
+        gameSession.gameState.machineState === MachineState.EndOfGame
+    )
 
     let historyItems = $derived.by(() => {
         const aggregatedActions = Array.from(aggregateActions(gameSession.actions))
@@ -180,71 +182,79 @@
                         out:fade={{ duration: 50 }}
                         class="relative left-[calc(-0.5rem-1px)] mb-4 flex w-[calc(100%+0.5rem+1px)] items-center justify-center border-y-2 border-[#7a5d3f] bg-[#ede2dc] py-2"
                     >
-                        <div class="w-full text-center text-sm font-medium uppercase tracking-[0.08em] text-[#7a5d3f]">
-                            {#if item.showArrows}↑ {/if}{item.phaseName}{#if item.showArrows} ↑{/if}
+                        <div
+                            class="w-full text-center text-sm font-medium uppercase tracking-[0.08em] text-[#7a5d3f]"
+                        >
+                            {#if item.showArrows}↑
+                            {/if}{item.phaseName}{#if item.showArrows}
+                                ↑{/if}
                         </div>
                     </div>
                 {:else}
-                <div
-                    role="button"
-                    tabindex={-1}
-                    onfocus={() => {}}
-                    onkeypress={() => {}}
-                    in:fade={{ duration: 200, easing: quartIn }}
-                    out:fade={{ duration: 50 }}
-                    class="px-2"
-                >
                     <div
-                        class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
-                    ></div>
-                    <TimelineItem
-                        timeClass="text-[#7a5d3f]"
-                        title=""
-                        class="timeline-item text-left mb-5"
-                        date=""
+                        role="button"
+                        tabindex={-1}
+                        onfocus={() => {}}
+                        onkeypress={() => {}}
+                        in:fade={{ duration: 200, easing: quartIn }}
+                        out:fade={{ duration: 50 }}
+                        class="px-2"
                     >
-                        <span class="group mb-1 inline-flex items-center gap-1 text-xs text-[#7a5d3f]">
-                            <span>{actionTimeLabel(item)}</span>
-                            {#if canJumpToHistoryAction(item)}
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-0 rounded px-0 py-0 text-[#7a5d3f] opacity-100 transition-colors hover:bg-[#ad9c80]/12 hover:text-[#5e3f27] focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad9c80]/70"
-                                    aria-label="Jump to this action in history"
-                                    title="Jump to this action in history"
-                                    onclick={async () => await jumpToHistoryAction(item)}
-                                >
-                                    <svg
-                                        class="w-[8px] h-[8px] self-center"
-                                        aria-hidden="true"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
+                        <div
+                            class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
+                        ></div>
+                        <TimelineItem
+                            timeClass="text-[#7a5d3f]"
+                            title=""
+                            class="timeline-item text-left mb-5"
+                            date=""
+                        >
+                            <span
+                                class="group mb-1 inline-flex items-center gap-1 text-xs text-[#7a5d3f]"
+                            >
+                                <span>{actionTimeLabel(item)}</span>
+                                {#if canJumpToHistoryAction(item)}
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center gap-0 rounded px-0 py-0 text-[#7a5d3f] opacity-100 transition-colors hover:bg-[#ad9c80]/12 hover:text-[#5e3f27] focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad9c80]/70"
+                                        aria-label="Jump to this action in history"
+                                        title="Jump to this action in history"
+                                        onclick={async () => await jumpToHistoryAction(item)}
                                     >
-                                        <path
-                                            stroke="currentColor"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="m9 5 7 7-7 7"
-                                        ></path>
-                                    </svg>
-                                    <ClockSolid class="w-[12px] h-[12px] -ml-[2px] text-current" />
-                                </button>
-                            {/if}
-                        </span>
-                        <p class="mt-1 text-left text-sm text-base font-normal text-[#442c19]">
-                            <ActionDescription
-                                action={item}
-                                justify="start"
-                                fullWidth={false}
-                                showActor={true}
-                                cityRegionName={cityRegionNameForAction(item)}
-                            />
-                        </p>
-                    </TimelineItem>
-                </div>
+                                        <svg
+                                            class="w-[8px] h-[8px] self-center"
+                                            aria-hidden="true"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="24"
+                                            height="24"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke="currentColor"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="m9 5 7 7-7 7"
+                                            ></path>
+                                        </svg>
+                                        <ClockSolid
+                                            class="w-[12px] h-[12px] -ml-[2px] text-current"
+                                        />
+                                    </button>
+                                {/if}
+                            </span>
+                            <p class="mt-1 text-left text-sm text-base font-normal text-[#442c19]">
+                                <ActionDescription
+                                    action={item}
+                                    justify="start"
+                                    fullWidth={false}
+                                    showActor={true}
+                                    cityRegionName={cityRegionNameForAction(item)}
+                                />
+                            </p>
+                        </TimelineItem>
+                    </div>
                 {/if}
             {/each}
         </Timeline>

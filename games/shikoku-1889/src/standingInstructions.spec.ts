@@ -353,6 +353,36 @@ it('refuses to replace a declaration the machine has already acted on', () => {
     expect(unconsumed.kind).toBe('replace')
 })
 
+it('withdraws a standing instruction in place when the player clears it', () => {
+    const { game, engine, state } = exampleGame(Shikoku1889Scenarios, 'trading')
+    const declared = engine.executeCanonicalAction({
+        game,
+        state,
+        action: setInstruction(game.id, 'blair', { kind: 'pass' })
+    })
+    const clear = {
+        ...setInstruction(game.id, 'blair'),
+        supersedesActionId: declared.processedActions[0].id
+    }
+    const withdrawn = replaceSupersededAction({
+        engine,
+        apiActions: Shikoku.runtime.apiActions,
+        game,
+        state: declared.updatedState,
+        window: declared.processedActions,
+        replacement: clear
+    })
+    expect(withdrawn.kind).toBe('replace')
+    if (withdrawn.kind !== 'replace') return
+    expect(standingStockInstructionFor(withdrawn.state, 'blair')).toBeUndefined()
+
+    const recorded = engine.executeCanonicalAction({ game, state: withdrawn.state, action: clear })
+    expect(standingStockInstructionFor(recorded.updatedState, 'blair')).toBeUndefined()
+    expect(() =>
+        engine.executeCanonicalAction({ game, state, action: setInstruction(game.id, 'blair') })
+    ).toThrow()
+})
+
 it('lets a player change an instruction that has already acted by declaring afresh', () => {
     const { game, engine, state } = exampleGame(Shikoku1889Scenarios, 'trading')
     const blair = { kind: 'player', playerId: 'blair' } as const

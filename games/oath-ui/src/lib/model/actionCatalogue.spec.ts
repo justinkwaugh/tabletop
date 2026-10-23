@@ -37,13 +37,13 @@ describe('action catalogue (R-5, R-6)', () => {
         expect(MINOR_TARGETED_ACTIONS.has(ActionType.LeaveDealUnconfirmed)).toBe(true)
         expect(ALL_ACTIONS.map((a) => a.type)).not.toContain(ActionType.ClaimDealKept)
         // The Act menu's power entry keeps its name; the Tribunal is inside it.
-        expect(MINOR_ACTIONS.find((a) => a.type === ActionType.UseActionPower)?.label).toBe('Use a power')
+        expect(MINOR_ACTIONS.find((a) => a.type === ActionType.UseActionPower)?.label).toBe(
+            'Use a power'
+        )
     })
 
     it('R-6.6.2’s answer is not an Act Phase action', () => {
-        expect(ALL_ACTIONS.map((a) => a.type)).not.toContain(
-            ActionType.ResolveCitizenshipOffer
-        )
+        expect(ALL_ACTIONS.map((a) => a.type)).not.toContain(ActionType.ResolveCitizenshipOffer)
         // R-6.6.1 — the offer still is one, because asking happens on a normal turn.
         expect(MINOR_ACTIONS.map((a) => a.type)).toContain(ActionType.OfferCitizenship)
     })

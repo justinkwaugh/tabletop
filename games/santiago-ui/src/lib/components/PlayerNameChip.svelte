@@ -10,8 +10,10 @@
     const session = getGameSession()
 </script>
 
-<span class="rounded px-2 font-medium {uppercase ? 'uppercase' : 'capitalize'}"
+<span
+    class="rounded px-2 font-medium {uppercase ? 'uppercase' : 'capitalize'}"
     style:background-color={session.colors.getPlayerBgColorValue(playerId)}
-    style:color={session.colors.getPlayerTextColorValue(playerId)}>
+    style:color={session.colors.getPlayerTextColorValue(playerId)}
+>
     {session.getPlayerName(playerId)}{possessive ? "'s" : ''}
 </span>

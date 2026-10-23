@@ -59,8 +59,13 @@ function configureExploration<T extends GameState>(
 ): GameExploration<T> | undefined {
     if (exploration === undefined) return undefined
     const populate = exploration.createFromProjectedState
+    const keepsSourceDeclaration = exploration.keepsSourceDeclaration
     return {
         createFromCanonicalState: (state) => exploration.createFromCanonicalState(state),
+        keepsSourceDeclaration:
+            keepsSourceDeclaration === undefined
+                ? undefined
+                : (action) => keepsSourceDeclaration.call(exploration, action),
         createFromProjectedState:
             populate === undefined
                 ? undefined

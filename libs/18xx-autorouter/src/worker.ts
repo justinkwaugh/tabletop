@@ -3,8 +3,7 @@ import { Autorouter, type AutoroutingResult } from './autorouter.js'
 
 export type AutoroutingRequest = { state: TrainRunningState; companyId: string }
 export type AutoroutingResponse =
-    | { result: AutoroutingResult; error?: never }
-    | { error: string; result?: never }
+    { result: AutoroutingResult; error?: never } | { error: string; result?: never }
 
 export function serveAutorouter(rules: RouteRules, wasmUrl: string): void {
     let router: Promise<Autorouter> | undefined

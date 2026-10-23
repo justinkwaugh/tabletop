@@ -35,15 +35,22 @@ describe('the moved mark of a block', () => {
         expect(blockMarkOf(fresh, GROUP, commanding(viewerId)).moved).toBe(false)
     })
 
-    it('is not shown to the other player, during an attack or in History View', () => {
+    it('is not shown to the other player or in History View', () => {
         const { viewerId, moved } = ownUnits()
         expect(blockMarkOf(moved, GROUP, commanding('someone else')).moved).toBe(false)
-        expect(blockMarkOf(moved, GROUP, commanding(viewerId, { fighting: true })).moved).toBe(
-            false
-        )
         expect(
             blockMarkOf(moved, GROUP, commanding(viewerId, { viewingHistory: true })).moved
         ).toBe(false)
+    })
+
+    it('stays through an attack, giving way to the letter of the unit’s part in it', () => {
+        const { viewerId, moved } = ownUnits()
+        expect(blockMarkOf(moved, GROUP, commanding(viewerId, { fighting: true })).moved).toBe(true)
+        const leading = commanding(viewerId, {
+            fighting: true,
+            roles: { [moved.id]: BattleRole.Leads }
+        })
+        expect(blockMarkOf(moved, GROUP, leading).moved).toBe(false)
     })
 
     it('stays on cavalry that is riding on', () => {

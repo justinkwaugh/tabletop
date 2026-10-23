@@ -33,7 +33,9 @@ async function boxOf(locator: Locator) {
 /** Its size as laid out, before the panel is scaled to fit the screen. */
 const layoutSizeOf = async (locator: Locator) => {
     const size = await locator.evaluate((element) =>
-        element instanceof HTMLElement ? { width: element.offsetWidth, height: element.offsetHeight } : undefined
+        element instanceof HTMLElement
+            ? { width: element.offsetWidth, height: element.offsetHeight }
+            : undefined
     )
     if (!size) throw Error('The element is not laid out')
     return size
@@ -42,15 +44,23 @@ const layoutSizeOf = async (locator: Locator) => {
 const panel = (page: Page) => page.locator('.panel')
 const stepCount = (page: Page) => panel(page).getByText(/^\d of \d$/)
 const relicRow = (page: Page, name: string) =>
-    panel(page).getByRole('list', { name: 'Relics taken' }).getByRole('listitem').filter({ hasText: name })
+    panel(page)
+        .getByRole('list', { name: 'Relics taken' })
+        .getByRole('listitem')
+        .filter({ hasText: name })
 const option = (page: Page, relic: string, name: string) =>
     relicRow(page, relic).getByRole('button', { name, exact: true })
-const question = (page: Page) => panel(page).getByText(/^Obsidian Cage: where do its 2 purple warbands go\?$/)
+const question = (page: Page) =>
+    panel(page).getByText(/^Obsidian Cage: where do its 2 purple warbands go\?$/)
 const piece = (page: Page, count: number, seat: string) =>
-    panel(page).getByRole('button', { name: `${count} of the warbands to ${seat}'s board`, exact: true })
+    panel(page).getByRole('button', {
+        name: `${count} of the warbands to ${seat}'s board`,
+        exact: true
+    })
 const pieces = (page: Page) => panel(page).getByRole('button', { name: /of the warbands to/ })
 const next = (page: Page) => panel(page).getByRole('button', { name: 'Next', exact: true })
-const takeSpoils = (page: Page) => panel(page).getByRole('button', { name: 'Take spoils', exact: true })
+const takeSpoils = (page: Page) =>
+    panel(page).getByRole('button', { name: 'Take spoils', exact: true })
 const undo = (page: Page) => page.getByRole('button', { name: 'Undo', exact: true })
 const history = (page: Page) => page.locator('.history')
 
@@ -61,7 +71,9 @@ const SIZES = [
 
 async function shot(page: Page, name: string, phone: boolean) {
     await page.mouse.move(2, 2)
-    await panel(page).screenshot({ path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`) })
+    await panel(page).screenshot({
+        path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`)
+    })
 }
 
 /** The Steppe's warband as it comes, then the Cup kept and the Cage sent down. */
@@ -83,7 +95,9 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`Relic Hunter sends the Obsidian Cage down, on a ${name}`, () => {
         test.use({ viewport, hasTouch: phone })
 
-        test('"Bottom of the relic deck" adds a step: "Next", then the question alone, a row per Imperial board, none placed', async ({ page }) => {
+        test('"Bottom of the relic deck" adds a step: "Next", then the question alone, a row per Imperial board, none placed', async ({
+            page
+        }) => {
             await toRelics(page)
             await expect(stepCount(page)).toHaveText('2 of 3')
             await expect(takeSpoils(page)).toHaveCount(0)
@@ -95,7 +109,8 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(panel(page)).toContainText(/to\s*rhys's\s*board/i)
             await expect(pieces(page)).toHaveCount(4)
             for (const seat of ['ann', 'rhys']) {
-                for (const count of [1, 2]) await expect(piece(page, count, seat)).toHaveAttribute('aria-pressed', 'false')
+                for (const count of [1, 2])
+                    await expect(piece(page, count, seat)).toHaveAttribute('aria-pressed', 'false')
             }
             await expect(takeSpoils(page)).toHaveCount(0)
             if (phone) {
@@ -103,11 +118,15 @@ for (const { name, viewport, phone } of SIZES) {
                     expect(box.height).toBeGreaterThanOrEqual(43.5)
                 }
             }
-            expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width)
+            expect(
+                await page.evaluate(() => document.documentElement.scrollWidth)
+            ).toBeLessThanOrEqual(viewport.width)
             await shot(page, 'relic-hunter-cage-empty', phone)
         })
 
-        test('1 on Ann’s row fills Rhys’s; "Take spoils" then shows, label-sized, and sends them to both boards', async ({ page }) => {
+        test('1 on Ann’s row fills Rhys’s; "Take spoils" then shows, label-sized, and sends them to both boards', async ({
+            page
+        }) => {
             await toRelics(page)
             await next(page).click()
             await piece(page, 1, 'ann').click()
@@ -121,7 +140,9 @@ for (const { name, viewport, phone } of SIZES) {
             if (phone) expect((await boxOf(takeSpoils(page))).height).toBeGreaterThanOrEqual(43.5)
             await shot(page, 'relic-hunter-cage-placed', phone)
             await takeSpoils(page).click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).campaignUnderway).toBe(false)
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).campaignUnderway)
+                .toBe(false)
             const facts = await call(page, 'tableFacts')
             expect(facts.boardOf.ann).toEqual({ imperial: 4 })
             expect(facts.boardOf.rhys).toEqual({ imperial: 2 })
@@ -135,7 +156,9 @@ for (const { name, viewport, phone } of SIZES) {
             }
         })
 
-        test('Undo walks back through the step to "Relics taken"; "Keep it" there drops the step', async ({ page }) => {
+        test('Undo walks back through the step to "Relics taken"; "Keep it" there drops the step', async ({
+            page
+        }) => {
             await toRelics(page)
             await next(page).click()
             await piece(page, 2, 'rhys').click()
@@ -146,12 +169,17 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(takeSpoils(page)).toHaveCount(0)
             await undo(page).click()
             await expect(stepCount(page)).toHaveText('2 of 3')
-            await expect(option(page, 'Obsidian Cage', 'Bottom of the relic deck')).toHaveAttribute('aria-pressed', 'true')
+            await expect(option(page, 'Obsidian Cage', 'Bottom of the relic deck')).toHaveAttribute(
+                'aria-pressed',
+                'true'
+            )
             await option(page, 'Obsidian Cage', 'Keep it').click()
             await expect(stepCount(page)).toHaveText('2 of 2')
             await expect(next(page)).toHaveCount(0)
             await takeSpoils(page).click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).campaignUnderway).toBe(false)
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).campaignUnderway)
+                .toBe(false)
             const facts = await call(page, 'tableFacts')
             expect(facts.relicsOf.dana).toEqual(['relic.cup-of-plenty', 'relic.obsidian-cage'])
             expect(facts.boardOf.rhys).toEqual({ imperial: 1 })

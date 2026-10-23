@@ -49,16 +49,40 @@ type Seat = Parameters<typeof testPlayer>[0]
  * Dana at c1 (Toll Roads, Oracle, Map Library; the Inn at c2 in the region) with Birdsong and
  * Small Friends; Wolves at p1 and The Old Oak at h1, the Beast sites.
  */
-function friends(over: Partial<Seat> = {}, denizens: Record<string, string[]> = {}, oathRevision: number = CURRENT_OATH_REVISION) {
+function friends(
+    over: Partial<Seat> = {},
+    denizens: Record<string, string[]> = {},
+    oathRevision: number = CURRENT_OATH_REVISION
+) {
     const state = testState(
         [
-            testPlayer({ playerId: 'Dana', color: Color.Red, siteId: 'c1', supply: 3, favor: 3, secrets: 2, advisers: [adviser(BIRDSONG), adviser(SMALL_FRIENDS)], ...over }),
-            testPlayer({ playerId: 'Ann', color: Color.Purple, siteId: 'h2', advisers: [adviser(TENTS, false)] })
+            testPlayer({
+                playerId: 'Dana',
+                color: Color.Red,
+                siteId: 'c1',
+                supply: 3,
+                favor: 3,
+                secrets: 2,
+                advisers: [adviser(BIRDSONG), adviser(SMALL_FRIENDS)],
+                ...over
+            }),
+            testPlayer({
+                playerId: 'Ann',
+                color: Color.Purple,
+                siteId: 'h2',
+                advisers: [adviser(TENTS, false)]
+            })
         ],
         {
             oathRevision,
             machineState: MachineState.ActPhase,
-            denizensBySite: { c1: [TOLL_ROADS, ORACLE, MAP_LIBRARY], c2: [INN], p1: [WOLVES], h1: [OAK], ...denizens }
+            denizensBySite: {
+                c1: [TOLL_ROADS, ORACLE, MAP_LIBRARY],
+                c2: [INN],
+                p1: [WOLVES],
+                h1: [OAK],
+                ...denizens
+            }
         }
     )
     openTurn(state, 'Dana')
@@ -72,8 +96,23 @@ function friends(over: Partial<Seat> = {}, denizens: Record<string, string[]> = 
 function disguise() {
     const state = testState(
         [
-            testPlayer({ playerId: 'Dana', color: Color.Red, siteId: 'c1', supply: 3, favor: 3, secrets: 2, warbandsOnBoard: { Dana: 3 }, advisers: [adviser(BIRDSONG), adviser(RETURN), adviser(MASTER)] }),
-            testPlayer({ playerId: 'Ann', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h2', advisers: [adviser(SIGNAL), adviser(MARRIAGE), adviser(TENTS, false)] })
+            testPlayer({
+                playerId: 'Dana',
+                color: Color.Red,
+                siteId: 'c1',
+                supply: 3,
+                favor: 3,
+                secrets: 2,
+                warbandsOnBoard: { Dana: 3 },
+                advisers: [adviser(BIRDSONG), adviser(RETURN), adviser(MASTER)]
+            }),
+            testPlayer({
+                playerId: 'Ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'h2',
+                advisers: [adviser(SIGNAL), adviser(MARRIAGE), adviser(TENTS, false)]
+            })
         ],
         {
             oathRevision: CURRENT_OATH_REVISION,
@@ -95,7 +134,9 @@ async function sessionAt(state: HydratedOathGameState) {
 const listed = (session: OathGameSession) => session.modifiers.listed.map((power) => power.cardId)
 const rows = (session: OathGameSession) => session.tradeRows.map((row) => row.cardId)
 const favorFor = (session: OathGameSession, cardId: string) =>
-    session.tradeRows.find((row) => row.cardId === cardId)?.choices.find((c) => c.option === TradeOption.ForFavor)?.gain
+    session.tradeRows
+        .find((row) => row.cardId === cardId)
+        ?.choices.find((c) => c.option === TradeOption.ForFavor)?.gain
 
 function listedCard(session: OathGameSession, cardId: string) {
     const power = session.modifiers.listed.find((p) => p.cardId === cardId)
@@ -134,11 +175,16 @@ describe('Small Friends in the Trade menu: one picked Beast site', () => {
         const { session } = await sessionAt(friends())
         session.chooseAction(ActionType.Trade)
         expect(rows(session)).toEqual([TOLL_ROADS, ORACLE, MAP_LIBRARY])
-        expect(listed(session)).toEqual(expect.arrayContaining([BIRDSONG, SMALL_FRIENDS, MAP_LIBRARY]))
+        expect(listed(session)).toEqual(
+            expect.arrayContaining([BIRDSONG, SMALL_FRIENDS, MAP_LIBRARY])
+        )
         session.modifiers.declare(use(SMALL_FRIENDS), true)
         const [legal] = session.modifiers.choicesOf(smallFriends(session))
         expect(legal?.spec.what).toBe('the site you act as if you are at')
-        expect(legal?.options).toEqual([{ kind: PowerChoiceKind.Site, siteId: 'p1' }, { kind: PowerChoiceKind.Site, siteId: 'h1' }])
+        expect(legal?.options).toEqual([
+            { kind: PowerChoiceKind.Site, siteId: 'p1' },
+            { kind: PowerChoiceKind.Site, siteId: 'h1' }
+        ])
         expect(session.modifiers.picksPending).toBe(true)
         expect(rows(session)).toEqual([])
         expect(listed(session)).toEqual(expect.arrayContaining([BIRDSONG, SMALL_FRIENDS]))
@@ -159,7 +205,10 @@ describe('Small Friends in the Trade menu: one picked Beast site', () => {
         const action = sent.mock.calls[0][0]
         assert(isTrade(action), 'a Trade is sent')
         expect(action.modifiers).toEqual(
-            expect.arrayContaining([use(BIRDSONG), { ...use(SMALL_FRIENDS), choices: [{ kind: PowerChoiceKind.Site, siteId: 'p1' }] }])
+            expect.arrayContaining([
+                use(BIRDSONG),
+                { ...use(SMALL_FRIENDS), choices: [{ kind: PowerChoiceKind.Site, siteId: 'p1' }] }
+            ])
         )
     })
 
@@ -171,12 +220,19 @@ describe('Small Friends in the Trade menu: one picked Beast site', () => {
         expect(rows(session)).toEqual([OAK])
         expect(listed(session)).toContain(OAK)
         session.modifiers.declare(use(OAK), true)
-        const secrets = session.tradeRows[0]?.choices.find((c) => c.option === TradeOption.ForSecrets)
+        const secrets = session.tradeRows[0]?.choices.find(
+            (c) => c.option === TradeOption.ForSecrets
+        )
         expect(secrets?.gain).toBe(3)
         await session.chooseTrade(OAK, TradeOption.ForSecrets)
         const action = sent.mock.calls[0][0]
         assert(isTrade(action), 'a Trade is sent')
-        expect(action.modifiers).toEqual(expect.arrayContaining([use(OAK), { ...use(SMALL_FRIENDS), choices: [{ kind: PowerChoiceKind.Site, siteId: 'h1' }] }]))
+        expect(action.modifiers).toEqual(
+            expect.arrayContaining([
+                use(OAK),
+                { ...use(SMALL_FRIENDS), choices: [{ kind: PowerChoiceKind.Site, siteId: 'h1' }] }
+            ])
+        )
     })
 
     it('with one Beast site it is picked already, and the rows follow at once', async () => {
@@ -212,20 +268,34 @@ describe('Small Friends in the Trade menu: one picked Beast site', () => {
     })
 
     it('Birdsong and Small Friends together make a Trade possible at 0 Supply: the powers list opens it on the Wolves', async () => {
-        const { session } = await sessionAt(friends({ supply: 0 }, { c1: [TOLL_ROADS], c2: [], h1: [] }))
+        const { session } = await sessionAt(
+            friends({ supply: 0 }, { c1: [TOLL_ROADS], c2: [], h1: [] })
+        )
         expect(session.actionCards).toEqual([
-            expect.objectContaining({ cardId: BIRDSONG, action: ActionType.Trade, kind: 'makesPossible', with: use(SMALL_FRIENDS) })
+            expect.objectContaining({
+                cardId: BIRDSONG,
+                action: ActionType.Trade,
+                kind: 'makesPossible',
+                with: use(SMALL_FRIENDS)
+            })
         ])
         session.openActionWithCard(session.actionCards[0])
         expect(rows(session)).toEqual([WOLVES])
     })
 
     it("a Small Friends at the pawn's site picks the Mountain: it stays in use and the rows follow there", async () => {
-        const { session, sent } = await sessionAt(friends({ advisers: [adviser(BIRDSONG)] }, { c1: [TOLL_ROADS, MAP_LIBRARY, SMALL_FRIENDS] }))
+        const { session, sent } = await sessionAt(
+            friends(
+                { advisers: [adviser(BIRDSONG)] },
+                { c1: [TOLL_ROADS, MAP_LIBRARY, SMALL_FRIENDS] }
+            )
+        )
         session.chooseAction(ActionType.Trade)
         session.modifiers.declare(use(SMALL_FRIENDS), true)
         const [legal] = session.modifiers.choicesOf(smallFriends(session))
-        const mountain = legal?.options.findIndex((o) => o.kind === PowerChoiceKind.Site && o.siteId === 'h1') ?? -1
+        const mountain =
+            legal?.options.findIndex((o) => o.kind === PowerChoiceKind.Site && o.siteId === 'h1') ??
+            -1
         expect(mountain).toBeGreaterThanOrEqual(0)
         pickSite(session, mountain)
         expect(session.modifiers.isDeclared(use(SMALL_FRIENDS))).toBe(true)
@@ -237,7 +307,11 @@ describe('Small Friends in the Trade menu: one picked Beast site', () => {
         await session.chooseTrade(OAK, TradeOption.ForFavor)
         const action = sent.mock.calls[0][0]
         assert(isTrade(action), 'a Trade is sent')
-        expect(action.modifiers).toEqual(expect.arrayContaining([{ ...use(SMALL_FRIENDS), choices: [{ kind: PowerChoiceKind.Site, siteId: 'h1' }] }]))
+        expect(action.modifiers).toEqual(
+            expect.arrayContaining([
+                { ...use(SMALL_FRIENDS), choices: [{ kind: PowerChoiceKind.Site, siteId: 'h1' }] }
+            ])
+        )
     })
 
     it('in a game created before revision 19 it asks for no site and reaches every Beast site, as recorded', async () => {
@@ -260,7 +334,11 @@ describe('Master of Disguise in the Trade menu: the borrowed advisers listed', (
         const master = listedCard(session, MASTER)
         expect(session.modifiers.lenderOf(signal)).toBe('Ann')
         expect(session.modifiers.lenderOf(master)).toBeUndefined()
-        expect([favorFor(session, TOLL_ROADS), favorFor(session, ROWDY_PUB), favorFor(session, ORACLE)]).toEqual([1, 3, 1])
+        expect([
+            favorFor(session, TOLL_ROADS),
+            favorFor(session, ROWDY_PUB),
+            favorFor(session, ORACLE)
+        ]).toEqual([1, 3, 1])
     })
 
     it('Secret Signal turned on: the one-favor trades gain two, and the Trade sends it beside Master of Disguise', async () => {
@@ -268,7 +346,11 @@ describe('Master of Disguise in the Trade menu: the borrowed advisers listed', (
         session.chooseAction(ActionType.Trade)
         session.modifiers.declare(use(MASTER), true)
         session.modifiers.declare(use(SIGNAL), true)
-        expect([favorFor(session, TOLL_ROADS), favorFor(session, ROWDY_PUB), favorFor(session, ORACLE)]).toEqual([2, 3, 2])
+        expect([
+            favorFor(session, TOLL_ROADS),
+            favorFor(session, ROWDY_PUB),
+            favorFor(session, ORACLE)
+        ]).toEqual([2, 3, 2])
         await session.chooseTrade(TOLL_ROADS, TradeOption.ForFavor)
         const action = sent.mock.calls[0][0]
         assert(isTrade(action), 'a Trade is sent')
@@ -295,11 +377,16 @@ describe("the Trade rows on the player's own view", () => {
         const me: Visibility.Perspective = { kind: 'player', playerId: 'Dana' }
         const own = (state: HydratedOathGameState) =>
             OathVisibility.state.guardForExecution(new HydratedOathGameState(served(state, me)), me)
-        const atOak: ModifierUse[] = [{ ...use(SMALL_FRIENDS), choices: [{ kind: PowerChoiceKind.Site, siteId: 'h1' }] }]
+        const atOak: ModifierUse[] = [
+            { ...use(SMALL_FRIENDS), choices: [{ kind: PowerChoiceKind.Site, siteId: 'h1' }] }
+        ]
         const sf = friends()
         expect(tradeRows(own(sf), 'Dana', atOak)).toEqual(tradeRows(sf, 'Dana', atOak))
         expect(tradeRows(own(sf), 'Dana', atOak).map((row) => row.cardId)).toEqual([OAK])
-        const borrowed: ModifierUse[] = [{ ...use(MASTER), choices: [{ kind: PowerChoiceKind.Player, playerId: 'Ann' }] }, use(SIGNAL)]
+        const borrowed: ModifierUse[] = [
+            { ...use(MASTER), choices: [{ kind: PowerChoiceKind.Player, playerId: 'Ann' }] },
+            use(SIGNAL)
+        ]
         const md = disguise()
         expect(tradeRows(own(md), 'Dana', borrowed)).toEqual(tradeRows(md, 'Dana', borrowed))
     })

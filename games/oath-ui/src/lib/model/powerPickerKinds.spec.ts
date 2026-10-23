@@ -67,17 +67,28 @@ const BANKS: Record<Suit, number> = {
 }
 
 /** Rhys, an Exile, at the first Cradle site, ruling it; Dana the Chancellor; three Beast cards on the map. */
-function table(rhys: Partial<Parameters<typeof testPlayer>[0]> = {}, over: Partial<OathProjectedState> = {}) {
+function table(
+    rhys: Partial<Parameters<typeof testPlayer>[0]> = {},
+    over: Partial<OathProjectedState> = {}
+) {
     return testState(
         [
             testPlayer({ playerId: 'rhys', color: Color.Red, siteId: 'c1', secrets: 3, ...rhys }),
-            testPlayer({ playerId: 'dana', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c2' })
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c2'
+            })
         ],
         {
             chancellorPlayerId: 'dana',
             favorBank: BANKS,
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.mountain' },
-            denizensBySite: { c1: ['denizen.beast.wolves', 'denizen.beast.rangers'], c2: ['denizen.beast.birdsong'] },
+            denizensBySite: {
+                c1: ['denizen.beast.wolves', 'denizen.beast.rangers'],
+                c2: ['denizen.beast.birdsong']
+            },
             warbandsBySite: { c1: { rhys: 2 } },
             reliquary: [{ slotId: 'reliquary.0' }, { slotId: 'reliquary.1' }],
             ...over
@@ -96,14 +107,21 @@ function onlyRun(runs: BankRun[]): BankRun {
 describe('R-7.1.3 — a run of favor picks: a favor row per bank, held to the card’s total', () => {
     it('Alchemist: four picks counted together, four in all', () => {
         const choices = offered(ALCHEMIST)
-        expect(onlyRun(bankRuns(choices))).toEqual({ specs: [0, 1, 2, 3], distinct: false, total: 4 })
+        expect(onlyRun(bankRuns(choices))).toEqual({
+            specs: [0, 1, 2, 3],
+            distinct: false,
+            total: 4
+        })
     })
 
     it('Memory of Nature: X (the Beast cards on the map), and no Beast bank to take from', () => {
         const choices = offered(MEMORY)
         const run = onlyRun(bankRuns(choices))
         expect(run.total).toBe(3)
-        expect(choices[0]?.options).not.toContainEqual({ kind: PowerChoiceKind.FavorBank, suit: Suit.Beast })
+        expect(choices[0]?.options).not.toContainEqual({
+            kind: PowerChoiceKind.FavorBank,
+            suit: Suit.Beast
+        })
     })
 
     it('a bank’s row is held to what it holds and what the total leaves; Use waits for the total', () => {
@@ -112,9 +130,16 @@ describe('R-7.1.3 — a run of favor picks: a favor row per bank, held to the ca
         let picks = withRunCount(run, choices, emptyPicks(), Suit.Order, 3, BANKS[Suit.Order])
         expect(runSuits(run, choices, picks)).toEqual([Suit.Order, Suit.Order, Suit.Order])
         expect(picksComplete(choices, picks)).toBe(false)
-        expect(runCeilingAt(run, runSuits(run, choices, picks), Suit.Hearth, BANKS[Suit.Hearth])).toBe(1)
+        expect(
+            runCeilingAt(run, runSuits(run, choices, picks), Suit.Hearth, BANKS[Suit.Hearth])
+        ).toBe(1)
         picks = withRunCount(run, choices, picks, Suit.Hearth, 3, BANKS[Suit.Hearth])
-        expect(runSuits(run, choices, picks)).toEqual([Suit.Order, Suit.Order, Suit.Order, Suit.Hearth])
+        expect(runSuits(run, choices, picks)).toEqual([
+            Suit.Order,
+            Suit.Order,
+            Suit.Order,
+            Suit.Hearth
+        ])
         expect(picksComplete(choices, picks)).toBe(true)
     })
 
@@ -125,7 +150,10 @@ describe('R-7.1.3 — a run of favor picks: a favor row per bank, held to the ca
         picks = withRunCount(run, choices, picks, Suit.Discord, 2, BANKS[Suit.Discord])
         picks = withRunCount(run, choices, picks, Suit.Arcane, 1, BANKS[Suit.Arcane])
         expect(powerChoicesFrom(choices, picks)).toEqual(
-            [Suit.Discord, Suit.Discord, Suit.Arcane, Suit.Hearth].map((suit) => ({ kind: PowerChoiceKind.FavorBank, suit }))
+            [Suit.Discord, Suit.Discord, Suit.Arcane, Suit.Hearth].map((suit) => ({
+                kind: PowerChoiceKind.FavorBank,
+                suit
+            }))
         )
     })
 
@@ -144,7 +172,10 @@ describe('Salad Days — one row of the banks, three different, an empty one shu
         const choices = offered(SALAD)
         const run = onlyRun(bankRuns(choices))
         expect(run).toEqual({ specs: [0, 1, 2], distinct: true, total: 3 })
-        let picks = [Suit.Hearth, Suit.Discord, Suit.Order].reduce((p, suit) => withRunToggled(run, choices, p, suit), emptyPicks())
+        let picks = [Suit.Hearth, Suit.Discord, Suit.Order].reduce(
+            (p, suit) => withRunToggled(run, choices, p, suit),
+            emptyPicks()
+        )
         expect(runSuits(run, choices, picks)).toEqual([Suit.Discord, Suit.Order, Suit.Hearth])
         expect(picksComplete(choices, picks)).toBe(true)
         expect(withRunToggled(run, choices, picks, Suit.Arcane)).toBe(picks)
@@ -157,7 +188,13 @@ describe('Salad Days — one row of the banks, three different, an empty one shu
         const choices = offered(SALAD)
         const run = onlyRun(bankRuns(choices))
         const all = [Suit.Discord, Suit.Arcane, Suit.Order, Suit.Hearth, Suit.Beast, Suit.Nomad]
-        expect(openRunBanks(run, all, [], BANKS)).toEqual([Suit.Discord, Suit.Arcane, Suit.Order, Suit.Hearth, Suit.Beast])
+        expect(openRunBanks(run, all, [], BANKS)).toEqual([
+            Suit.Discord,
+            Suit.Arcane,
+            Suit.Order,
+            Suit.Hearth,
+            Suit.Beast
+        ])
         const two = { ...BANKS, [Suit.Discord]: 0, [Suit.Arcane]: 0, [Suit.Beast]: 0 }
         expect(openRunBanks(run, all, [], two)).toEqual(all)
     })
@@ -169,9 +206,19 @@ describe('Salad Days — one row of the banks, three different, an empty one shu
         const run = onlyRun(bankRuns(choices))
         const all = [Suit.Discord, Suit.Arcane, Suit.Order, Suit.Hearth, Suit.Beast, Suit.Nomad]
         const oneEmpty = withRunToggled(run, choices, emptyPicks(), Suit.Discord)
-        expect(openRunBanks(run, all, runSuits(run, choices, oneEmpty), two)).toEqual([Suit.Order, Suit.Hearth])
+        expect(openRunBanks(run, all, runSuits(run, choices, oneEmpty), two)).toEqual([
+            Suit.Order,
+            Suit.Hearth
+        ])
         // Tapping the empty banks first, each only while it is open, still names both banks that hold favor.
-        const tapped = [Suit.Discord, Suit.Arcane, Suit.Beast, Suit.Nomad, Suit.Order, Suit.Hearth].reduce(
+        const tapped = [
+            Suit.Discord,
+            Suit.Arcane,
+            Suit.Beast,
+            Suit.Nomad,
+            Suit.Order,
+            Suit.Hearth
+        ].reduce(
             (picks, suit) =>
                 openRunBanks(run, all, runSuits(run, choices, picks), two).includes(suit)
                     ? withRunToggled(run, choices, picks, suit)
@@ -183,12 +230,27 @@ describe('Salad Days — one row of the banks, three different, an empty one shu
     })
 
     it('with no bank holding favor, any three are named', () => {
-        const none = { ...BANKS, [Suit.Order]: 0, [Suit.Hearth]: 0, [Suit.Discord]: 0, [Suit.Arcane]: 0, [Suit.Beast]: 0 }
+        const none = {
+            ...BANKS,
+            [Suit.Order]: 0,
+            [Suit.Hearth]: 0,
+            [Suit.Discord]: 0,
+            [Suit.Arcane]: 0,
+            [Suit.Beast]: 0
+        }
         const choices = offered(SALAD, table({}, { favorBank: none }))
         const run = onlyRun(bankRuns(choices))
         const all = [Suit.Discord, Suit.Arcane, Suit.Order, Suit.Hearth, Suit.Beast, Suit.Nomad]
-        const twoEmpty = [Suit.Discord, Suit.Arcane].reduce((p, suit) => withRunToggled(run, choices, p, suit), emptyPicks())
-        expect(openRunBanks(run, all, runSuits(run, choices, twoEmpty), none)).toEqual([Suit.Order, Suit.Hearth, Suit.Beast, Suit.Nomad])
+        const twoEmpty = [Suit.Discord, Suit.Arcane].reduce(
+            (p, suit) => withRunToggled(run, choices, p, suit),
+            emptyPicks()
+        )
+        expect(openRunBanks(run, all, runSuits(run, choices, twoEmpty), none)).toEqual([
+            Suit.Order,
+            Suit.Hearth,
+            Suit.Beast,
+            Suit.Nomad
+        ])
     })
 })
 
@@ -201,7 +263,9 @@ describe('a card’s "or": two answers, neither picked; the one legal starts pic
         const one = withBranch(emptyPicks(), 0, false)
         expect(picksComplete(choices, one)).toBe(true)
         expect(powerChoicesFrom(choices, one)).toEqual([])
-        expect(powerChoicesFrom(choices, withBranch(one, 0, true))).toEqual([{ kind: PowerChoiceKind.Yes }])
+        expect(powerChoicesFrom(choices, withBranch(one, 0, true))).toEqual([
+            { kind: PowerChoiceKind.Yes }
+        ])
     })
 
     it('Forgotten Vault at the Darkest Secret’s last secret: Burn is not offered, so Place starts picked', () => {
@@ -246,22 +310,46 @@ describe('a card’s "may": a toggle, off; what only its yes asks for waits whil
 
     it('when the card does not offer its yes, the When Played step asks nothing', () => {
         const citizen = table({ status: PlayerStatus.Citizen })
-        expect(whenPlayedChoices(citizen, 'rhys', AMBITIONS.cardId, SearchPlay.Adviser, true)).toEqual([])
-        const fewer = table({}, { warbandsBySite: {} })
-        expect(whenPlayedChoices(fewer, 'rhys', AMBITIONS.cardId, SearchPlay.Adviser, true)).toEqual([])
-        expect(whenPlayedChoices(table(), 'rhys', AMBITIONS.cardId, SearchPlay.Adviser, true)).toHaveLength(2)
         expect(
-            whenPlayedChoices(citizen, 'rhys', 'denizen.beast.long-lost-heir', SearchPlay.Adviser, true)
+            whenPlayedChoices(citizen, 'rhys', AMBITIONS.cardId, SearchPlay.Adviser, true)
+        ).toEqual([])
+        const fewer = table({}, { warbandsBySite: {} })
+        expect(
+            whenPlayedChoices(fewer, 'rhys', AMBITIONS.cardId, SearchPlay.Adviser, true)
+        ).toEqual([])
+        expect(
+            whenPlayedChoices(table(), 'rhys', AMBITIONS.cardId, SearchPlay.Adviser, true)
+        ).toHaveLength(2)
+        expect(
+            whenPlayedChoices(
+                citizen,
+                'rhys',
+                'denizen.beast.long-lost-heir',
+                SearchPlay.Adviser,
+                true
+            )
         ).toEqual([])
     })
 })
 
 /** Revision 8's rules, read through these pickers: what a pick offers, the engine accepts. */
 describe('revision 8: what the pickers offer, the engine accepts', () => {
-    const at8 = (rhys: Partial<Parameters<typeof testPlayer>[0]>, over: Partial<OathProjectedState> = {}) =>
-        table({ favor: 4, ...rhys }, { oathRevision: OathRevision.EngineFixes4, ...over })
-    const judged = (state: ReturnType<typeof table>, power: CardPower, choices: Parameters<typeof HydratedUseActionPower.reasonCannotUse>[4]) =>
-        HydratedUseActionPower.reasonCannotUse(state, 'rhys', power.cardId, power.powerIndex, choices)
+    const at8 = (
+        rhys: Partial<Parameters<typeof testPlayer>[0]>,
+        over: Partial<OathProjectedState> = {}
+    ) => table({ favor: 4, ...rhys }, { oathRevision: OathRevision.EngineFixes4, ...over })
+    const judged = (
+        state: ReturnType<typeof table>,
+        power: CardPower,
+        choices: Parameters<typeof HydratedUseActionPower.reasonCannotUse>[4]
+    ) =>
+        HydratedUseActionPower.reasonCannotUse(
+            state,
+            'rhys',
+            power.cardId,
+            power.powerIndex,
+            choices
+        )
 
     it('Forgotten Vault at the last secret: no Burn, Place picked and accepted; the engine refuses the Burn', () => {
         const state = at8(
@@ -276,15 +364,27 @@ describe('revision 8: what the pickers offer, the engine accepts', () => {
     })
 
     it('Alchemist with 3 favor in the banks: Use waits for all 3, and the engine takes them', () => {
-        const three = { ...BANKS, [Suit.Discord]: 0, [Suit.Arcane]: 0, [Suit.Order]: 1, [Suit.Hearth]: 1, [Suit.Beast]: 1 }
-        const state = at8({ advisers: [{ cardId: ALCHEMIST.cardId, faceUp: true }] }, { favorBank: three })
+        const three = {
+            ...BANKS,
+            [Suit.Discord]: 0,
+            [Suit.Arcane]: 0,
+            [Suit.Order]: 1,
+            [Suit.Hearth]: 1,
+            [Suit.Beast]: 1
+        }
+        const state = at8(
+            { advisers: [{ cardId: ALCHEMIST.cardId, faceUp: true }] },
+            { favorBank: three }
+        )
         const choices = offered(ALCHEMIST, state)
         const run = onlyRun(bankRuns(choices))
         expect(run.total).toBe(3)
         let picks = withRunCount(run, choices, emptyPicks(), Suit.Order, 1, three[Suit.Order])
         picks = withRunCount(run, choices, picks, Suit.Hearth, 1, three[Suit.Hearth])
         expect(picksComplete(choices, picks)).toBe(false)
-        expect(judged(state, ALCHEMIST, powerChoicesFrom(choices, picks))).toMatch(/yield 2, and 3 can be had/)
+        expect(judged(state, ALCHEMIST, powerChoicesFrom(choices, picks))).toMatch(
+            /yield 2, and 3 can be had/
+        )
         picks = withRunCount(run, choices, picks, Suit.Beast, 1, three[Suit.Beast])
         expect(picksComplete(choices, picks)).toBe(true)
         expect(judged(state, ALCHEMIST, powerChoicesFrom(choices, picks))).toBeUndefined()
@@ -310,11 +410,14 @@ describe('a choice with nothing to pick', () => {
     const CAPTAINS = powerOf('denizen.order.captains', PowerTiming.Action)
     // The fixture's own sites: every one faceup, no relic at any.
     const everySiteFaceup = () => table({}, { siteCards: undefined })
-    const drawn = (choices: LegalChoice[]) => choices.map((_, index) => !offersNothing(choices, index))
+    const drawn = (choices: LegalChoice[]) =>
+        choices.map((_, index) => !offersNothing(choices, index))
 
     it('Ivory Eye with only a facedown adviser to peek at draws the adviser row alone', () => {
         const state = everySiteFaceup()
-        state.getPlayerState('dana').advisers.push({ cardId: 'denizen.arcane.tutor', faceUp: false })
+        state
+            .getPlayerState('dana')
+            .advisers.push({ cardId: 'denizen.arcane.tutor', faceUp: false })
         const choices = offered(IVORY_EYE, state)
         expect(choices.map((legal) => legal.options.length > 0)).toEqual([true, false, false])
         expect(drawn(choices)).toEqual([true, false, false])

@@ -44,7 +44,10 @@ const VOW_OF_POVERTY = 'denizen.beast.vow-of-poverty'
 const VOW_OF_KINSHIP = 'denizen.nomad.vow-of-kinship'
 const DRUM = 'relic.dragonskin-drum'
 
-const hospitality = { cardId: HOSPITALITY, powerIndex: powerIndexOf(HOSPITALITY, PowerTiming.Modifier) }
+const hospitality = {
+    cardId: HOSPITALITY,
+    powerIndex: powerIndexOf(HOSPITALITY, PowerTiming.Modifier)
+}
 const drum = { cardId: DRUM, powerIndex: powerIndexOf(DRUM, PowerTiming.Modifier) }
 const withBank = (suit: Suit): ModifierUse => ({
     ...hospitality,
@@ -70,10 +73,19 @@ function scene(dana: Partial<Seat> = {}, denizens: Record<string, string[]> = {}
                 siteId: 'c1',
                 supply: 7,
                 favor: 3,
-                advisers: [HOSPITALITY, WAR_TORTOISE, CROP_ROTATION].map((cardId) => ({ cardId, faceUp: true })),
+                advisers: [HOSPITALITY, WAR_TORTOISE, CROP_ROTATION].map((cardId) => ({
+                    cardId,
+                    faceUp: true
+                })),
                 ...dana
             }),
-            testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'h3', favor: 3, warbandsOnBoard: { rhys: 3 } })
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                siteId: 'h3',
+                favor: 3,
+                warbandsOnBoard: { rhys: 3 }
+            })
         ],
         {
             denizensBySite: {
@@ -182,7 +194,9 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
     })
 
     it('Hospitality is a nomad adviser itself, so a nomad card at the destination matches it alone', async () => {
-        const { session } = await travelling(scene({ advisers: [{ cardId: HOSPITALITY, faceUp: true }] }))
+        const { session } = await travelling(
+            scene({ advisers: [{ cardId: HOSPITALITY, faceUp: true }] })
+        )
         expect(banksOf(rowAt(session, 'p1').ways)).toEqual([Suit.Nomad])
         expect(banksOf(rowAt(session, 'c2').ways)).toEqual([undefined])
     })
@@ -192,7 +206,11 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
         session.modifiers.declare(hospitality, false)
         expect(session.modifiers.isDeclared(hospitality)).toBe(false)
         expect(session.modifiers.listed.map((power) => power.cardId)).toContain(HOSPITALITY)
-        expect(session.travelRows.flatMap((row) => banksOf(row.ways)).every((bank) => bank === undefined)).toBe(true)
+        expect(
+            session.travelRows
+                .flatMap((row) => banksOf(row.ways))
+                .every((bank) => bank === undefined)
+        ).toBe(true)
         expect(rowAt(session, 'p1').ways).toHaveLength(1)
         session.modifiers.declare(hospitality, true)
         expect(banksOf(rowAt(session, 'p1').ways)).toEqual([Suit.Beast, Suit.Nomad])
@@ -204,7 +222,9 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
     it('Toll Roads at the destination: the toll and the gain stand on one way, and the send carries both', async () => {
         const { session, sent } = await travelling(scene({}, { c2: [WOLVES, TOLL_ROADS] }))
         const ways = rowAt(session, 'c2').ways
-        expect(ways.map((way) => [way.tolls, way.favorTo, way.hospitality])).toEqual([[[TOLL_ROADS], ['rhys'], Suit.Beast]])
+        expect(ways.map((way) => [way.tolls, way.favorTo, way.hospitality])).toEqual([
+            [[TOLL_ROADS], ['rhys'], Suit.Beast]
+        ])
         // A toll opens the way in the panel before anything is paid.
         await session.pickTravelSite('c2')
         expect(sent).not.toHaveBeenCalled()
@@ -243,7 +263,9 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
 
     it('Vow of Poverty stops only a Trade’s favor: the gain shows, and the engine gives it', async () => {
         const vowed = () =>
-            scene({ advisers: [HOSPITALITY, VOW_OF_POVERTY].map((cardId) => ({ cardId, faceUp: true })) })
+            scene({
+                advisers: [HOSPITALITY, VOW_OF_POVERTY].map((cardId) => ({ cardId, faceUp: true }))
+            })
         const { session, sent } = await travelling(vowed())
         expect(banksOf(rowAt(session, 'c2').ways)).toEqual([Suit.Beast])
         await session.pickTravelSite('c2')
@@ -261,7 +283,13 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
  */
 function kinship(nomad: number, denizens: Record<string, string[]> = {}) {
     const state = scene(
-        { favor: 0, advisers: [HOSPITALITY, VOW_OF_KINSHIP, WAR_TORTOISE].map((cardId) => ({ cardId, faceUp: true })) },
+        {
+            favor: 0,
+            advisers: [HOSPITALITY, VOW_OF_KINSHIP, WAR_TORTOISE].map((cardId) => ({
+                cardId,
+                faceUp: true
+            }))
+        },
         denizens
     )
     state.favorBank[Suit.Nomad] = nomad
@@ -286,7 +314,9 @@ describe('Hospitality’s bank as the way’s tolls leave it (R-7.1.4, R-7.4, R-
         travel.apply(state)
         expect(state.favorBank[Suit.Nomad]).toBe(0)
         expect(state.getPlayerState('rhys').favor).toBe(4)
-        expect(travel.metadata?.modifierNotes).toContain(`Hospitality: gained 0 favor from the ${Suit.Nomad} bank`)
+        expect(travel.metadata?.modifierNotes).toContain(
+            `Hospitality: gained 0 favor from the ${Suit.Nomad} bank`
+        )
     })
 
     it('Vow of Kinship pays the toll from the nomad bank: emptied, it offers no gain, and the Travel is sent without Hospitality', async () => {
@@ -368,7 +398,10 @@ const FAST_STEED = 'denizen.nomad.a-fast-steed'
 const TENTS = 'denizen.nomad.tents'
 const VOW_OF_RENEWAL = 'denizen.discord.vow-of-renewal'
 const SECOND_WIND = 'denizen.discord.second-wind'
-const useOf = (cardId: string) => ({ cardId, powerIndex: powerIndexOf(cardId, PowerTiming.Modifier) })
+const useOf = (cardId: string) => ({
+    cardId,
+    powerIndex: powerIndexOf(cardId, PowerTiming.Modifier)
+})
 
 /**
  * Dana keeps their favor in the nomad bank (Vow of Kinship), none on their board, and holds `card`, a
@@ -379,7 +412,10 @@ function costly(card: string, nomad: number, dana: Partial<Seat> = {}) {
     const state = scene(
         {
             favor: 0,
-            advisers: [HOSPITALITY, VOW_OF_KINSHIP, card].map((cardId) => ({ cardId, faceUp: true })),
+            advisers: [HOSPITALITY, VOW_OF_KINSHIP, card].map((cardId) => ({
+                cardId,
+                faceUp: true
+            })),
             ...dana
         },
         { c2: [ORACLE] }
@@ -398,12 +434,18 @@ describe('Hospitality’s bank as the way’s card costs leave it (R-7.1.2, R-7.
     it('the engine pays a Travel card’s cost before the gain: a nomad bank the cost empties gives nothing', () => {
         const state = costly(FAST_STEED, 1)
         const travel = new HydratedTravel(
-            buildAction(Travel, { playerId: 'dana', siteId: 'c2', modifiers: [useOf(FAST_STEED), withBank(Suit.Nomad)] })
+            buildAction(Travel, {
+                playerId: 'dana',
+                siteId: 'c2',
+                modifiers: [useOf(FAST_STEED), withBank(Suit.Nomad)]
+            })
         )
         travel.apply(state)
         expect(state.tokensOn(FAST_STEED).favor).toBe(1)
         expect(state.favorBank[Suit.Nomad]).toBe(0)
-        expect(travel.metadata?.modifierNotes).toContain(`Hospitality: gained 0 favor from the ${Suit.Nomad} bank`)
+        expect(travel.metadata?.modifierNotes).toContain(
+            `Hospitality: gained 0 favor from the ${Suit.Nomad} bank`
+        )
     })
 
     for (const card of [FAST_STEED, TENTS]) {
@@ -448,11 +490,22 @@ describe('Hospitality’s bank as the way’s card costs leave it (R-7.1.2, R-7.
             state.oathRevision = CURRENT_OATH_REVISION
             state.machineState = MachineState.PowerQuestion
             state.pendingQuestions = {
-                queue: [{ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, askedPlayerId: 'dana', action: ActionType.Travel }],
+                queue: [
+                    {
+                        kind: PowerQuestionKind.FreeActionOutOfTurn,
+                        cardId: SECOND_WIND,
+                        askedPlayerId: 'dana',
+                        action: ActionType.Travel
+                    }
+                ],
                 askingPlayerId: 'rhys',
                 resumeMachineState: MachineState.ActPhase
             }
-            state.heldTurn = { queue: [], askingPlayerId: 'rhys', resumeMachineState: MachineState.ActPhase }
+            state.heldTurn = {
+                queue: [],
+                askingPlayerId: 'rhys',
+                resumeMachineState: MachineState.ActPhase
+            }
             openTurn(state, 'rhys')
             state.activePlayerIds = ['dana']
             const dana = state.getPlayerState('dana')
@@ -460,14 +513,26 @@ describe('Hospitality’s bank as the way’s card costs leave it (R-7.1.2, R-7.
             dana.freeTravelAtAction = state.actionCount
             return state
         }
-        expect(banksOf(travelRows(outOfTurn(), 'dana', [useOf(FAST_STEED), hospitality]).find((row) => row.slotId === 'c2')?.ways ?? [])).toEqual([Suit.Nomad])
+        expect(
+            banksOf(
+                travelRows(outOfTurn(), 'dana', [useOf(FAST_STEED), hospitality]).find(
+                    (row) => row.slotId === 'c2'
+                )?.ways ?? []
+            )
+        ).toEqual([Suit.Nomad])
         const state = outOfTurn()
         const travel = new HydratedTravel(
-            buildAction(Travel, { playerId: 'dana', siteId: 'c2', modifiers: [useOf(FAST_STEED), withBank(Suit.Nomad)] })
+            buildAction(Travel, {
+                playerId: 'dana',
+                siteId: 'c2',
+                modifiers: [useOf(FAST_STEED), withBank(Suit.Nomad)]
+            })
         )
         travel.apply(state)
         expect(state.tokensOn(FAST_STEED).favor).toBe(0)
-        expect(travel.metadata?.modifierNotes).toContain(`Hospitality: gained 1 favor from the ${Suit.Nomad} bank`)
+        expect(travel.metadata?.modifierNotes).toContain(
+            `Hospitality: gained 1 favor from the ${Suit.Nomad} bank`
+        )
     })
 
     it('judges each way’s bank after its card costs on the seat’s projected state as on the server’s', () => {
@@ -475,7 +540,10 @@ describe('Hospitality’s bank as the way’s card costs leave it (R-7.1.2, R-7.
         state.getPlayerState('rhys').advisers = [{ cardId: 'denizen.nomad.tents', faceUp: false }]
         const view = new HydratedOathGameState(served(state, { kind: 'player', playerId: 'dana' }))
         const read = (s: HydratedOathGameState) =>
-            travelRows(s, 'dana', [useOf(FAST_STEED), hospitality]).map((row) => [row.slotId, banksOf(row.ways)])
+            travelRows(s, 'dana', [useOf(FAST_STEED), hospitality]).map((row) => [
+                row.slotId,
+                banksOf(row.ways)
+            ])
         const own = read(view)
         expect(own).toEqual(read(state))
         expect(own).toContainEqual(['c2', [undefined]])
@@ -498,7 +566,12 @@ describe('Hospitality’s bank after a toll burned for the bandits (R-10.4, R-9.
 
     it('Vow of Renewal takes the burned favor back into its holder’s nomad bank: the gain shows, and the engine gives it', async () => {
         const renewed = () =>
-            banditToll({ advisers: [HOSPITALITY, VOW_OF_KINSHIP, VOW_OF_RENEWAL].map((cardId) => ({ cardId, faceUp: true })) })
+            banditToll({
+                advisers: [HOSPITALITY, VOW_OF_KINSHIP, VOW_OF_RENEWAL].map((cardId) => ({
+                    cardId,
+                    faceUp: true
+                }))
+            })
         const { session, sent } = await travelling(renewed())
         const ways = rowAt(session, 'c2').ways
         expect(tollsAndBanks(ways)).toEqual([[[TOLL_ROADS], Suit.Nomad]])
@@ -510,7 +583,9 @@ describe('Hospitality’s bank after a toll burned for the bandits (R-10.4, R-9.
         const state = renewed()
         const travel = new HydratedTravel(action)
         travel.apply(state)
-        expect(travel.metadata?.modifierNotes).toContain(`Hospitality: gained 1 favor from the ${Suit.Nomad} bank`)
+        expect(travel.metadata?.modifierNotes).toContain(
+            `Hospitality: gained 1 favor from the ${Suit.Nomad} bank`
+        )
         expect(state.favorBank[Suit.Nomad]).toBe(1)
     })
 })
@@ -574,7 +649,9 @@ describe('Hospitality’s banks on a player’s own view', () => {
 })
 
 /** A row as the History reads it from the record. */
-function recorded(fields: { type: ActionType; playerId?: string } & Record<string, unknown>): GameAction {
+function recorded(
+    fields: { type: ActionType; playerId?: string } & Record<string, unknown>
+): GameAction {
     return { id: 'a1', gameId: 'g1', source: ActionSource.User, ...fields }
 }
 
@@ -590,21 +667,29 @@ describe('Hospitality’s gain in words', () => {
     })
 
     it('the map chip reads the gold cost, then the gain with each bank’s suit', () => {
-        expect(travelChip([way(Suit.Beast)])).toEqual({ ways: [{ cost: 2, favor: 0, secrets: 0 }], banks: [Suit.Beast] })
+        expect(travelChip([way(Suit.Beast)])).toEqual({
+            ways: [{ cost: 2, favor: 0, secrets: 0 }],
+            banks: [Suit.Beast]
+        })
         expect(travelChip([way(Suit.Beast), way(Suit.Nomad)])).toEqual({
             ways: [{ cost: 2, favor: 0, secrets: 0 }],
             banks: [Suit.Beast, Suit.Nomad]
         })
         expect(travelChip([way()])).toEqual({ words: '2 Supply' })
-        expect(chipWords({ ways: [{ cost: 2, favor: 0, secrets: 0 }], banks: [Suit.Beast, Suit.Nomad] })).toBe(
-            '2 Supply, gain 1 favor from the Beast or Nomad bank'
-        )
+        expect(
+            chipWords({
+                ways: [{ cost: 2, favor: 0, secrets: 0 }],
+                banks: [Suit.Beast, Suit.Nomad]
+            })
+        ).toBe('2 Supply, gain 1 favor from the Beast or Nomad bank')
     })
 
     it('a way’s accessible name adds the gain and its bank', () => {
         const row = { slotId: 'c2', region: Region.Cradle, cardId: 'c2', ways: [], modifiers: [] }
         const nameOf = (id: string) => id
-        expect(travelSpoken(row, way(Suit.Beast), nameOf)).toMatch(/: spend 2 Supply, gain 1 favor from the Beast bank$/)
+        expect(travelSpoken(row, way(Suit.Beast), nameOf)).toMatch(
+            /: spend 2 Supply, gain 1 favor from the Beast bank$/
+        )
         expect(travelSpoken(row, way(), nameOf)).toMatch(/: spend 2 Supply$/)
     })
 
@@ -613,9 +698,15 @@ describe('Hospitality’s gain in words', () => {
             type: ActionType.Travel,
             playerId: 'dana',
             siteId: 'c2',
-            metadata: { supplySpent: 2, modifiers: [HOSPITALITY], modifierNotes: ['Hospitality: gained 1 favor from the beast bank'] }
+            metadata: {
+                supplySpent: 2,
+                modifiers: [HOSPITALITY],
+                modifierNotes: ['Hospitality: gained 1 favor from the beast bank']
+            }
         })
         const names = { player: (id: string) => id, site: () => 'Plains', seats: ['dana', 'rhys'] }
-        expect(describeAction(travel, names)).toBe('traveled to Plains, spending 2 Supply; gained 1 favor from the Beast bank (Hospitality)')
+        expect(describeAction(travel, names)).toBe(
+            'traveled to Plains, spending 2 Supply; gained 1 favor from the Beast bank (Hospitality)'
+        )
     })
 })

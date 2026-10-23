@@ -3,7 +3,6 @@
     import RealBoard from './RealBoard.svelte'
     import DeckPiles from './DeckPiles.svelte'
     import ActionCardArea from './ActionCardArea.svelte'
-
 </script>
 
 <!-- pt-3/pr-4/pb-5 are not decoration: ScalingWrapper fits the board by measuring this
@@ -28,7 +27,9 @@
      the wrapper's overflow-hidden the same way the shadow would be. -->
 <div
     class="flex items-start"
-    style="gap: {scaled(24)}px; padding: {scaled(12)}px {scaled(16)}px {scaled(20)}px {scaled(16)}px;"
+    style="gap: {scaled(24)}px; padding: {scaled(12)}px {scaled(16)}px {scaled(20)}px {scaled(
+        16
+    )}px;"
 >
     <!-- Was w-56 (224px), sized for a 2x2 grid of card slots. The action deck now stacks
          into a single 106px column and the politics piles have left the table entirely,

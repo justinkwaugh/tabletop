@@ -39,15 +39,21 @@ const MAP_LIBRARY = 'denizen.arcane.map-library'
 const OAK = 'denizen.beast.the-old-oak'
 
 const panel = (page: Page) => page.locator('.panel')
-const tile = (page: Page, label: string) => panel(page).locator('.majors button').filter({ hasText: label })
+const tile = (page: Page, label: string) =>
+    panel(page).locator('.majors button').filter({ hasText: label })
 const cardRow = (page: Page, cardId: string) => panel(page).locator(`[data-card-row="${cardId}"]`)
-const cardToggle = (page: Page, cardId: string) => cardRow(page, cardId).locator('button[aria-pressed]')
-const picks = (page: Page, cardId: string) => panel(page).locator(`[data-modifier-picks="${cardId}"]`)
+const cardToggle = (page: Page, cardId: string) =>
+    cardRow(page, cardId).locator('button[aria-pressed]')
+const picks = (page: Page, cardId: string) =>
+    panel(page).locator(`[data-modifier-picks="${cardId}"]`)
 const siteButtons = (page: Page) =>
-    picks(page, SMALL_FRIENDS).getByRole('group', { name: 'the site you act as if you are at:' }).getByRole('button')
+    picks(page, SMALL_FRIENDS)
+        .getByRole('group', { name: 'the site you act as if you are at:' })
+        .getByRole('button')
 const siteButton = (page: Page, name: string) =>
     picks(page, SMALL_FRIENDS).getByRole('button', { name, exact: true })
-const trades = (page: Page) => panel(page).getByRole('list', { name: 'Trades at your site' }).getByRole('listitem')
+const trades = (page: Page) =>
+    panel(page).getByRole('list', { name: 'Trades at your site' }).getByRole('listitem')
 const tradeButton = (page: Page, name: RegExp) => panel(page).getByRole('button', { name })
 
 const SIZES = [
@@ -69,7 +75,9 @@ async function expectLabelSized(page: Page, buttons: Locator, phone: boolean) {
 
 async function shot(page: Page, name: string, phone: boolean) {
     await page.mouse.move(2, 2)
-    await panel(page).screenshot({ path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`) })
+    await panel(page).screenshot({
+        path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`)
+    })
 }
 
 for (const { name, viewport, phone } of SIZES) {
@@ -80,7 +88,9 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`Small Friends' site in the Trade menu, on a ${name}`, () => {
         test.use({ viewport })
 
-        test('turned on: its picker asks for the site, Map Library goes and the rows wait', async ({ page }) => {
+        test('turned on: its picker asks for the site, Map Library goes and the rows wait', async ({
+            page
+        }) => {
             await openTable(page, 'smallFriendsSites')
             await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('dana')
             await tile(page, 'Trade').click()
@@ -105,13 +115,17 @@ for (const { name, viewport, phone } of SIZES) {
             await siteButton(page, 'Plains').click()
             await expect(siteButton(page, 'Plains')).toHaveAttribute('aria-pressed', 'true')
             await expect(trades(page)).toHaveCount(1)
-            await expect(tradeButton(page, /^Trade with Wolves: pay 1 secret, get 3 favor/)).toBeVisible()
+            await expect(
+                tradeButton(page, /^Trade with Wolves: pay 1 secret, get 3 favor/)
+            ).toBeVisible()
             await expect(cardRow(page, OAK)).toHaveCount(0)
             await expect(cardToggle(page, BIRDSONG)).toHaveAttribute('aria-pressed', 'true')
             await shot(page, 'small-friends-plains', phone)
         })
 
-        test("the Mountain picked: The Old Oak's row, and its modifier joins the Cards; one Undo puts Small Friends down with its pick", async ({ page }) => {
+        test("the Mountain picked: The Old Oak's row, and its modifier joins the Cards; one Undo puts Small Friends down with its pick", async ({
+            page
+        }) => {
             await openTable(page, 'smallFriendsSites')
             await tile(page, 'Trade').click()
             await cardToggle(page, SMALL_FRIENDS).click()
@@ -136,7 +150,9 @@ for (const { name, viewport, phone } of SIZES) {
             await siteButton(page, 'Plains').click()
             const favor = (await call(page, 'tableFacts')).favorBank.beast
             await tradeButton(page, /^Trade with Wolves: pay 1 secret, get 3 favor/).click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).favorBank.beast).toBe(favor - 3)
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).favorBank.beast)
+                .toBe(favor - 3)
         })
     })
 
@@ -147,7 +163,9 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`Master of Disguise's borrowed advisers in the Trade menu, on a ${name}`, () => {
         test.use({ viewport })
 
-        test("Ann's Secret Signal is listed with their chip, Dana's other advisers go", async ({ page }) => {
+        test("Ann's Secret Signal is listed with their chip, Dana's other advisers go", async ({
+            page
+        }) => {
             await openTable(page, 'disguiseBorrowed')
             await tile(page, 'Trade').click()
             await expect(cardRow(page, SIGNAL)).toHaveCount(0)
@@ -157,8 +175,12 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(cardRow(page, MASTER).locator('[data-lender]')).toHaveCount(0)
             await expect(cardRow(page, BIRDSONG)).toHaveCount(0)
             await expect(cardRow(page, RETURN)).toHaveCount(0)
-            await expect(tradeButton(page, /^Trade with Toll Roads: pay 1 secret, get 1 favor/)).toBeVisible()
-            await expect(tradeButton(page, /^Trade with Rowdy Pub: pay 1 secret, get 3 favor/)).toBeVisible()
+            await expect(
+                tradeButton(page, /^Trade with Toll Roads: pay 1 secret, get 1 favor/)
+            ).toBeVisible()
+            await expect(
+                tradeButton(page, /^Trade with Rowdy Pub: pay 1 secret, get 3 favor/)
+            ).toBeVisible()
             await shot(page, 'disguise-borrowed', phone)
         })
 
@@ -168,9 +190,15 @@ for (const { name, viewport, phone } of SIZES) {
             await cardToggle(page, MASTER).click()
             await cardToggle(page, SIGNAL).click()
             await expect(cardToggle(page, SIGNAL)).toHaveAttribute('aria-pressed', 'true')
-            await expect(tradeButton(page, /^Trade with Toll Roads: pay 1 secret, get 2 favor/)).toBeVisible()
-            await expect(tradeButton(page, /^Trade with Rowdy Pub: pay 1 secret, get 3 favor/)).toBeVisible()
-            await expect(tradeButton(page, /^Trade with Oracle: pay 1 secret, get 2 favor/)).toBeVisible()
+            await expect(
+                tradeButton(page, /^Trade with Toll Roads: pay 1 secret, get 2 favor/)
+            ).toBeVisible()
+            await expect(
+                tradeButton(page, /^Trade with Rowdy Pub: pay 1 secret, get 3 favor/)
+            ).toBeVisible()
+            await expect(
+                tradeButton(page, /^Trade with Oracle: pay 1 secret, get 2 favor/)
+            ).toBeVisible()
             await shot(page, 'disguise-signal', phone)
         })
     })

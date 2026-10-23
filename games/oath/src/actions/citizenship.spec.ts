@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { buildAction } from '../testing/actions.js'
 import { HydratedOfferCitizenship, OfferCitizenship } from './offerCitizenship.js'
-import { HydratedResolveCitizenshipOffer, ResolveCitizenshipOffer } from './resolveCitizenshipOffer.js'
+import {
+    HydratedResolveCitizenshipOffer,
+    ResolveCitizenshipOffer
+} from './resolveCitizenshipOffer.js'
 import { ConsentRequestKind } from '../model/consent.js'
 import { MachineState } from '../definition/states.js'
 import { Banner, PlayerStatus, Region } from '../model/oathEnums.js'
@@ -10,7 +13,12 @@ import { Color } from '@tabletop/common'
 import type { OathVault } from '../model/vault.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
-import { expectReplacementExchange, expectWarbandsConserved, expectWarbandTotalConserved, warbandCensus } from '../testing/census.js'
+import {
+    expectReplacementExchange,
+    expectWarbandsConserved,
+    expectWarbandTotalConserved,
+    warbandCensus
+} from '../testing/census.js'
 import { MAX_SUPPLY } from '../util/rest.js'
 import '../powers/index.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
@@ -209,9 +217,9 @@ describe('The binding exchange (R-6.6.1, R-7.6.3-H1, R-9.6)', () => {
 
     it('refuses a promise of something the giver does not have', () => {
         const { state, vault } = table()
-        expect(() =>
-            serverOffer(state, vault, { terms: { fromExile: { favor: 99 } } })
-        ).toThrow('ex promised 99 favor, with only 3 usable')
+        expect(() => serverOffer(state, vault, { terms: { fromExile: { favor: 99 } } })).toThrow(
+            'ex promised 99 favor, with only 3 usable'
+        )
         expect(() =>
             serverOffer(state, vault, {
                 terms: { fromScepterHolder: { relicCardIds: [OTHER_RELIC] } }
@@ -219,7 +227,7 @@ describe('The binding exchange (R-6.6.1, R-7.6.3-H1, R-9.6)', () => {
         ).toThrow('chan promised relic.unnamed-2 without holding it')
     })
 
-    it('gives a promised banner without the seize penalty (the banners\' Q&A)', () => {
+    it("gives a promised banner without the seize penalty (the banners' Q&A)", () => {
         // The banners' Q&A — a banner given changes hands and nothing else happens.
         const { state, vault } = table()
         state.banners[Banner.PeoplesFavor] = {
@@ -400,7 +408,7 @@ describe('the replacement conserves components (R-6.6.2, R-9.3)', () => {
         })
     })
 
-    it('exchanges exactly as many Imperial warbands as it displaced of the Exile\'s', () => {
+    it("exchanges exactly as many Imperial warbands as it displaced of the Exile's", () => {
         const { state, vault } = table()
         const before = warbandCensus(state)
         const action = serverOffer(state, vault, {})
@@ -431,32 +439,47 @@ describe('when the Empire runs short of Imperial warbands (R-6.6.2 clar., R-9.3,
     it('requires the choice to use every Imperial warband available (R-9.3)', () => {
         const { state, vault } = short()
         expect(() =>
-            serverOffer(state, vault, {}, {
-                replacementChoice: [
-                    { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 1 }
-                ]
-            })
+            serverOffer(
+                state,
+                vault,
+                {},
+                {
+                    replacementChoice: [
+                        { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 1 }
+                    ]
+                }
+            )
         ).toThrow(/must choose exactly 2 warbands to replace, not 1/)
     })
 
     it('refuses a choice naming warbands the Exile does not have', () => {
         const { state, vault } = short()
         expect(() =>
-            serverOffer(state, vault, {}, {
-                replacementChoice: [
-                    { at: { kind: 'site', siteId: 'h3' }, owner: 'ex', count: 2 }
-                ]
-            })
+            serverOffer(
+                state,
+                vault,
+                {},
+                {
+                    replacementChoice: [
+                        { at: { kind: 'site', siteId: 'h3' }, owner: 'ex', count: 2 }
+                    ]
+                }
+            )
         ).toThrow(/is not in the force/)
     })
 
     it('removes the unchosen warbands: "the Exile chooses which warbands to remove and which to replace" (R-6.6.2)', () => {
         const { state, vault } = short()
-        const action = serverOffer(state, vault, {}, {
-            replacementChoice: [
-                { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 2 }
-            ]
-        })
+        const action = serverOffer(
+            state,
+            vault,
+            {},
+            {
+                replacementChoice: [
+                    { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 2 }
+                ]
+            }
+        )
 
         const ex = state.getPlayerState('ex')
         expect(ex.warbandsOnBoard['ex'] ?? 0).toBe(0)
@@ -470,11 +493,16 @@ describe('when the Empire runs short of Imperial warbands (R-6.6.2 clar., R-9.3,
         const { state, vault } = short()
         expectWarbandTotalConserved(state, () => {
             expectWarbandsConserved(state, () => {
-                serverOffer(state, vault, {}, {
-                    replacementChoice: [
-                        { at: { kind: 'site', siteId: 'c1' }, owner: 'ex', count: 2 }
-                    ]
-                })
+                serverOffer(
+                    state,
+                    vault,
+                    {},
+                    {
+                        replacementChoice: [
+                            { at: { kind: 'site', siteId: 'c1' }, owner: 'ex', count: 2 }
+                        ]
+                    }
+                )
             })
         })
     })
@@ -514,23 +542,35 @@ describe('when the Empire runs short of Imperial warbands (R-6.6.2 clar., R-9.3,
         const { state, vault } = table()
         state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS] = 0
         expect(() =>
-            serverOffer(state, vault, {}, {
-                replacementChoice: [
-                    { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 1 }
-                ]
-            })
+            serverOffer(
+                state,
+                vault,
+                {},
+                {
+                    replacementChoice: [
+                        { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 1 }
+                    ]
+                }
+            )
         ).toThrow(/must choose exactly 0 warbands to replace, not 1/)
     })
 
     it('refuses a choice when the Empire has Imperial warbands enough', () => {
         const { state, vault } = table()
         expect(() =>
-            serverOffer(state, vault, {}, {
-                replacementChoice: [
-                    { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 1 }
-                ]
-            })
-        ).toThrow(/Imperial warbands enough to replace every warband, so there is nothing to choose/)
+            serverOffer(
+                state,
+                vault,
+                {},
+                {
+                    replacementChoice: [
+                        { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 1 }
+                    ]
+                }
+            )
+        ).toThrow(
+            /Imperial warbands enough to replace every warband, so there is nothing to choose/
+        )
     })
 })
 

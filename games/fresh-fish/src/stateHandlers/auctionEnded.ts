@@ -6,18 +6,30 @@ import { ActionType } from '../definition/actions.js'
 
 // Transition from AuctionEnded(PlaceStall) -> StartOfTurn (if more tiles in bag, could be same or new player)
 //                 AuctionEnded(PlaceStall) -> TileBagEmptied (if bag empty)
-export class AuctionEndedStateHandler implements MachineStateHandler<HydratedPlaceStall, HydratedFreshFishGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedFreshFishGameState>): action is HydratedPlaceStall {
+export class AuctionEndedStateHandler implements MachineStateHandler<
+    HydratedPlaceStall,
+    HydratedFreshFishGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedFreshFishGameState>
+    ): action is HydratedPlaceStall {
         return action.type === ActionType.PlaceStall
     }
 
-    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedFreshFishGameState>): string[] {
+    validActionsForPlayer(
+        _playerId: string,
+        _context: MachineContext<HydratedFreshFishGameState>
+    ): string[] {
         return [ActionType.PlaceStall]
     }
 
     enter(_context: MachineContext<HydratedFreshFishGameState>) {}
 
-    onAction(action: HydratedPlaceStall, context: MachineContext<HydratedFreshFishGameState>): MachineState {
+    onAction(
+        action: HydratedPlaceStall,
+        context: MachineContext<HydratedFreshFishGameState>
+    ): MachineState {
         const gameState = context.gameState
         const currentAuction = gameState.currentAuction
         if (!currentAuction || !currentAuction.auctioneerId) {

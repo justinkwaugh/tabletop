@@ -33,7 +33,9 @@ async function boxOf(locator: Locator) {
 /** Its size as laid out, before the panel is scaled to fit the screen. */
 const layoutSizeOf = async (locator: Locator) => {
     const size = await locator.evaluate((element) =>
-        element instanceof HTMLElement ? { width: element.offsetWidth, height: element.offsetHeight } : undefined
+        element instanceof HTMLElement
+            ? { width: element.offsetWidth, height: element.offsetHeight }
+            : undefined
     )
     if (!size) throw Error('The element is not laid out')
     return size
@@ -41,11 +43,13 @@ const layoutSizeOf = async (locator: Locator) => {
 
 const panel = (page: Page) => page.locator('.panel')
 const stepCount = (page: Page) => panel(page).getByText(/^\d of \d$/)
-const rows = (page: Page) => panel(page).getByRole('list', { name: 'Relics taken' }).getByRole('listitem')
+const rows = (page: Page) =>
+    panel(page).getByRole('list', { name: 'Relics taken' }).getByRole('listitem')
 const row = (page: Page, name: string) => rows(page).filter({ hasText: name })
 const option = (page: Page, relic: string, name: string) =>
     row(page, relic).getByRole('button', { name, exact: true })
-const takeSpoils = (page: Page) => panel(page).getByRole('button', { name: 'Take spoils', exact: true })
+const takeSpoils = (page: Page) =>
+    panel(page).getByRole('button', { name: 'Take spoils', exact: true })
 
 const SIZES = [
     { name: 'desktop', viewport: { width: 1280, height: 900 }, phone: false },
@@ -54,7 +58,9 @@ const SIZES = [
 
 async function shot(page: Page, name: string, phone: boolean) {
     await page.mouse.move(2, 2)
-    await panel(page).screenshot({ path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`) })
+    await panel(page).screenshot({
+        path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`)
+    })
 }
 
 /** The warbands step as it comes, then the relics. */
@@ -73,15 +79,23 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`Relic Hunter's relics taken, on a ${name}`, () => {
         test.use({ viewport, hasTouch: phone })
 
-        test("the defender's Drum gets the Cup's row: picture, name, Keep it and Bottom of the relic deck, label-sized", async ({ page }) => {
+        test("the defender's Drum gets the Cup's row: picture, name, Keep it and Bottom of the relic deck, label-sized", async ({
+            page
+        }) => {
             await toRelics(page)
             await expect(rows(page)).toHaveCount(2)
             await expect(rows(page).nth(0)).toContainText('Cup of Plenty')
             await expect(rows(page).nth(1)).toContainText('Dragonskin Drum')
-            await expect(row(page, 'Dragonskin Drum').getByRole('img', { name: 'Dragonskin Drum' })).toBeVisible()
+            await expect(
+                row(page, 'Dragonskin Drum').getByRole('img', { name: 'Dragonskin Drum' })
+            ).toBeVisible()
             // No "from" line: the row is the picture, the name and the two options.
-            await expect(row(page, 'Dragonskin Drum')).toHaveText(/^\s*Dragonskin Drum\s*Keep it\s*Bottom of the relic deck\s*$/)
-            const buttons = panel(page).getByRole('list', { name: 'Relics taken' }).getByRole('button', { name: /^(Keep it|Bottom of the relic deck)$/ })
+            await expect(row(page, 'Dragonskin Drum')).toHaveText(
+                /^\s*Dragonskin Drum\s*Keep it\s*Bottom of the relic deck\s*$/
+            )
+            const buttons = panel(page)
+                .getByRole('list', { name: 'Relics taken' })
+                .getByRole('button', { name: /^(Keep it|Bottom of the relic deck)$/ })
             await expect(buttons).toHaveCount(4)
             const width = (await layoutSizeOf(panel(page))).width
             const boxes = await Promise.all((await buttons.all()).map(layoutSizeOf))
@@ -90,7 +104,9 @@ for (const { name, viewport, phone } of SIZES) {
                 expect(box.width).toBeLessThan(width)
                 expect(Math.abs(box.width - (boxes[0]?.width ?? 0))).toBeLessThanOrEqual(1)
             }
-            const named = await boxOf(row(page, 'Dragonskin Drum').getByText('Dragonskin Drum', { exact: true }))
+            const named = await boxOf(
+                row(page, 'Dragonskin Drum').getByText('Dragonskin Drum', { exact: true })
+            )
             const keep = await boxOf(option(page, 'Dragonskin Drum', 'Keep it'))
             // On a phone the buttons stack under the name; on a desktop they sit beside it.
             if (phone) expect(keep.y).toBeGreaterThanOrEqual(named.y + named.height)
@@ -99,24 +115,38 @@ for (const { name, viewport, phone } of SIZES) {
             await shot(page, 'relic-hunter-rows', phone)
         })
 
-        test('the Cup kept and the Drum sent down: each pressed, then sent; the defender no longer holds the Drum, nor the attacker', async ({ page }) => {
+        test('the Cup kept and the Drum sent down: each pressed, then sent; the defender no longer holds the Drum, nor the attacker', async ({
+            page
+        }) => {
             await toRelics(page)
             await option(page, 'Cup of Plenty', 'Keep it').click()
             await expect(takeSpoils(page)).toHaveCount(0)
             await option(page, 'Dragonskin Drum', 'Bottom of the relic deck').click()
-            await expect(option(page, 'Cup of Plenty', 'Keep it')).toHaveAttribute('aria-pressed', 'true')
-            await expect(option(page, 'Dragonskin Drum', 'Bottom of the relic deck')).toHaveAttribute('aria-pressed', 'true')
-            await expect(option(page, 'Dragonskin Drum', 'Keep it')).toHaveAttribute('aria-pressed', 'false')
+            await expect(option(page, 'Cup of Plenty', 'Keep it')).toHaveAttribute(
+                'aria-pressed',
+                'true'
+            )
+            await expect(
+                option(page, 'Dragonskin Drum', 'Bottom of the relic deck')
+            ).toHaveAttribute('aria-pressed', 'true')
+            await expect(option(page, 'Dragonskin Drum', 'Keep it')).toHaveAttribute(
+                'aria-pressed',
+                'false'
+            )
             await expect(takeSpoils(page)).toBeVisible()
             await shot(page, 'relic-hunter-picked', phone)
             await takeSpoils(page).click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).campaignUnderway).toBe(false)
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).campaignUnderway)
+                .toBe(false)
             const facts = await call(page, 'tableFacts')
             expect(facts.relicsOf.def).toEqual([])
             expect(facts.relicsOf.att).toEqual(['relic.cup-of-plenty'])
         })
 
-        test("Undo takes back the step's picks at once, both rows' as the warbands' counts, then the step before", async ({ page }) => {
+        test("Undo takes back the step's picks at once, both rows' as the warbands' counts, then the step before", async ({
+            page
+        }) => {
             await toRelics(page)
             await option(page, 'Cup of Plenty', 'Bottom of the relic deck').click()
             await option(page, 'Dragonskin Drum', 'Keep it').click()
@@ -124,8 +154,14 @@ for (const { name, viewport, phone } of SIZES) {
             const undo = page.getByRole('button', { name: 'Undo', exact: true })
             await undo.click()
             await expect(stepCount(page)).toHaveText('2 of 2')
-            await expect(option(page, 'Dragonskin Drum', 'Keep it')).toHaveAttribute('aria-pressed', 'false')
-            await expect(option(page, 'Cup of Plenty', 'Bottom of the relic deck')).toHaveAttribute('aria-pressed', 'false')
+            await expect(option(page, 'Dragonskin Drum', 'Keep it')).toHaveAttribute(
+                'aria-pressed',
+                'false'
+            )
+            await expect(option(page, 'Cup of Plenty', 'Bottom of the relic deck')).toHaveAttribute(
+                'aria-pressed',
+                'false'
+            )
             await expect(takeSpoils(page)).toHaveCount(0)
             await undo.click()
             await expect(stepCount(page)).toHaveText('1 of 2')

@@ -1,11 +1,22 @@
 import { servedJson } from '../testing/projection.js'
 import { describe, expect, it } from 'vitest'
 import { buildAction } from '../testing/actions.js'
-import { HydratedSearchResolve, SearchPlay, SearchResolve, reasonCannotPairSecondPlay, reasonCannotPlaySecondCard } from './searchResolve.js'
+import {
+    HydratedSearchResolve,
+    SearchPlay,
+    SearchResolve,
+    reasonCannotPairSecondPlay,
+    reasonCannotPlaySecondCard
+} from './searchResolve.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import '../powers/index.js'
 import { Banner, CardKind, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
-import { FIXTURE_SITE_CAPACITY, testPlayer, testState, testVaultWithRelics } from '../testing/fixture.js'
+import {
+    FIXTURE_SITE_CAPACITY,
+    testPlayer,
+    testState,
+    testVaultWithRelics
+} from '../testing/fixture.js'
 import { siteHasRoom } from '../powers/vocabulary.js'
 import { registerCards } from '../data/cardRegistry.js'
 import type { OathVault } from '../model/vault.js'
@@ -172,7 +183,9 @@ describe('Step 3 — discard all but one (R-5.1.3, R-10.5)', () => {
             play: SearchPlay.Adviser
         }).apply(state)
 
-        expect(state.getPlayerState('p1').knownAdvisers()).toEqual([{ cardId: ORDER, faceUp: false }])
+        expect(state.getPlayerState('p1').knownAdvisers()).toEqual([
+            { cardId: ORDER, faceUp: false }
+        ])
         expect(state.discardPileCounts[Region.Provinces]).toBe(0)
     })
 })
@@ -280,7 +293,10 @@ describe('Step 4 — play to your site (R-5.1.4.I, R-10.19)', () => {
 })
 
 describe("R-5.1.4.I — the People's Favor's holder plays to any site in their region", () => {
-    const full = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
+    const full = Array.from(
+        { length: FIXTURE_SITE_CAPACITY },
+        (_, i) => `denizen.order.filler-${i}`
+    )
     const holding = (holder: string) => ({
         denizensBySite: { c1: [], c2: [HEARTH_AT_C2, ...full.slice(1)], p1: [] },
         banners: {
@@ -288,16 +304,33 @@ describe("R-5.1.4.I — the People's Favor's holder plays to any site in their r
             [Banner.DarkestSecret]: { value: 1 }
         }
     })
-    const play = (fields: Partial<SearchResolve>) =>
-        ({ keptCardId: ORDER, discardOrder: [BEAST, HEARTH], play: SearchPlay.Site, ...fields })
+    const play = (fields: Partial<SearchResolve>) => ({
+        keptCardId: ORDER,
+        discardOrder: [BEAST, HEARTH],
+        play: SearchPlay.Site,
+        ...fields
+    })
 
     it('to a full site in the region after first discarding a card there; nowhere else, and not without the banner', () => {
         const state = midSearch({}, holding('p1'))
-        expect(HydratedSearchResolve.reasonCannotResolve(state, 'p1', play({ toSiteId: 'c2' }))).toMatch(/at its capacity/)
-        expect(HydratedSearchResolve.reasonCannotResolve(state, 'p1', play({ toSiteId: 'p1' }))).toMatch(/only be played to your own site/)
-        expect(HydratedSearchResolve.reasonCannotResolve(midSearch({}, holding('p2')), 'p1', play({ toSiteId: 'c2', discardFirstCardId: HEARTH_AT_C2 }))).toMatch(/only be played to your own site/)
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(state, 'p1', play({ toSiteId: 'c2' }))
+        ).toMatch(/at its capacity/)
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(state, 'p1', play({ toSiteId: 'p1' }))
+        ).toMatch(/only be played to your own site/)
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(
+                midSearch({}, holding('p2')),
+                'p1',
+                play({ toSiteId: 'c2', discardFirstCardId: HEARTH_AT_C2 })
+            )
+        ).toMatch(/only be played to your own site/)
 
-        applyOnServer(resolve('p1', play({ toSiteId: 'c2', discardFirstCardId: HEARTH_AT_C2 })), state)
+        applyOnServer(
+            resolve('p1', play({ toSiteId: 'c2', discardFirstCardId: HEARTH_AT_C2 })),
+            state
+        )
         expect(state.denizensBySite['c2']).toContain(ORDER)
         expect(state.denizensBySite['c2']).not.toContain(HEARTH_AT_C2)
     })
@@ -325,7 +358,9 @@ describe('Step 4 — play to your advisers (R-5.1.4.II, R-2.2.2)', () => {
             faceUp: false
         }).apply(state)
 
-        expect(state.getPlayerState('p1').knownAdvisers()).toEqual([{ cardId: ORDER, faceUp: false }])
+        expect(state.getPlayerState('p1').knownAdvisers()).toEqual([
+            { cardId: ORDER, faceUp: false }
+        ])
         expect(state.getPlayerState('p1').advisers).toEqual([{ faceUp: false }])
         expect(state.getPlayerState('p1').favor).toBe(0)
     })
@@ -608,32 +643,65 @@ describe('Land Warden — the second card is played without a hidden draw', () =
     const LAND_WARDEN = 'denizen.hearth.land-warden'
     const HEIRLOOM = 'denizen.hearth.family-heirloom'
     const PILGRIMAGE = 'denizen.nomad.pilgrimage'
-    const warden = { pendingSearchModifiers: [{ cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }] }
+    const warden = {
+        pendingSearchModifiers: [
+            { cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }
+        ]
+    }
 
     it('reports a When Played draw it did not make, rather than an empty relic deck', () => {
         const state = midSearch({ handIds: [ORDER, HEIRLOOM, BEAST] }, warden)
-        const action = resolve('p1', { keptCardId: ORDER, play: SearchPlay.Site, discardOrder: [BEAST], secondPlay: { cardId: HEIRLOOM, play: SearchPlay.Adviser, faceUp: true } })
+        const action = resolve('p1', {
+            keptCardId: ORDER,
+            play: SearchPlay.Site,
+            discardOrder: [BEAST],
+            secondPlay: { cardId: HEIRLOOM, play: SearchPlay.Adviser, faceUp: true }
+        })
         applyOnServer(action, state)
-        expect(action.metadata?.secondWhenPlayed).toBe('Family Heirloom: its When Played power was not resolved, because no hidden card was drawn for it')
+        expect(action.metadata?.secondWhenPlayed).toBe(
+            'Family Heirloom: its When Played power was not resolved, because no hidden card was drawn for it'
+        )
         expect(state.pendingQuestions).toBeUndefined()
-        expect(state.getPlayerState('p1').knownAdvisers()).toEqual([{ cardId: HEIRLOOM, faceUp: true }])
+        expect(state.getPlayerState('p1').knownAdvisers()).toEqual([
+            { cardId: HEIRLOOM, faceUp: true }
+        ])
     })
 
     it('resolves the Search when the second card is a Pilgrimage, moving no denizen', () => {
         const state = midSearch({ handIds: [ORDER, PILGRIMAGE, BEAST] }, warden)
-        const action = resolve('p1', { keptCardId: ORDER, play: SearchPlay.Site, discardOrder: [BEAST], secondPlay: { cardId: PILGRIMAGE, play: SearchPlay.Adviser, faceUp: true } })
+        const action = resolve('p1', {
+            keptCardId: ORDER,
+            play: SearchPlay.Site,
+            discardOrder: [BEAST],
+            secondPlay: { cardId: PILGRIMAGE, play: SearchPlay.Adviser, faceUp: true }
+        })
         applyOnServer(action, state)
-        expect(action.metadata?.secondWhenPlayed).toMatch(/^Pilgrimage: its When Played power was not resolved/)
+        expect(action.metadata?.secondWhenPlayed).toMatch(
+            /^Pilgrimage: its When Played power was not resolved/
+        )
         expect(state.denizensAt('c1')).toEqual([ORDER])
     })
 
     it('refuses a second card the ways the engine refuses it, apart from the kept card', () => {
         const state = midSearch({ handIds: [ORDER, VISION, BEAST] }, warden)
-        const second = (play: SearchPlay, faceUp?: boolean) => reasonCannotPlaySecondCard(state, 'p1', ORDER, { cardId: VISION, play, faceUp })
+        const second = (play: SearchPlay, faceUp?: boolean) =>
+            reasonCannotPlaySecondCard(state, 'p1', ORDER, { cardId: VISION, play, faceUp })
         expect(second(SearchPlay.Site)).toMatch(/^second card: /)
         expect(second(SearchPlay.Adviser, true)).toMatch(/^second card: /)
         expect(second(SearchPlay.Adviser, false)).toBeUndefined()
-        expect(reasonCannotPairSecondPlay(state, 'p1', SearchPlay.Discard, { cardId: VISION, play: SearchPlay.Adviser, faceUp: false })).toMatch(/at least one of the two cards/)
-        expect(reasonCannotPairSecondPlay(state, 'p1', SearchPlay.Site, { cardId: VISION, play: SearchPlay.Adviser, faceUp: false })).toBeUndefined()
+        expect(
+            reasonCannotPairSecondPlay(state, 'p1', SearchPlay.Discard, {
+                cardId: VISION,
+                play: SearchPlay.Adviser,
+                faceUp: false
+            })
+        ).toMatch(/at least one of the two cards/)
+        expect(
+            reasonCannotPairSecondPlay(state, 'p1', SearchPlay.Site, {
+                cardId: VISION,
+                play: SearchPlay.Adviser,
+                faceUp: false
+            })
+        ).toBeUndefined()
     })
 })

@@ -29,7 +29,7 @@
                     <PlayersPanel />
                 {/snippet}
                 {#snippet history()}
-                   <History />
+                    <History />
                 {/snippet}
             </DefaultSideContent>
         {/snippet}

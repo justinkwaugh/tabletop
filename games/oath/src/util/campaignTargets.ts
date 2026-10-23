@@ -26,27 +26,27 @@ export function campaignTargetOptions(
     chosen: readonly CampaignTarget[]
 ): CampaignTarget[] {
     const siteIds = sitesDefendedBy(state, defender)
-    const sites = siteIds.map(
-        (siteId): CampaignTarget => ({ kind: CampaignTargetKind.Site, siteId })
-    )
+    const sites = siteIds.map((siteId): CampaignTarget => ({
+        kind: CampaignTargetKind.Site,
+        siteId
+    }))
     const siteRelics = plansTargetSiteRelics(plans)
         ? chosen.flatMap((target) =>
               target.kind === CampaignTargetKind.Site && siteIds.includes(target.siteId)
-                  ? state.relicSlotsAt(target.siteId).map(
-                        (slot): CampaignTarget => ({
-                            kind: CampaignTargetKind.SiteRelic,
-                            slotId: slot.slotId
-                        })
-                    )
+                  ? state.relicSlotsAt(target.siteId).map((slot): CampaignTarget => ({
+                        kind: CampaignTargetKind.SiteRelic,
+                        slotId: slot.slotId
+                    }))
                   : []
           )
         : []
     if (defender.kind === 'bandits') return [...sites, ...siteRelics]
 
     const them = state.getPlayerState(defender.playerId)
-    const relics = them.relicIds.map(
-        (cardId): CampaignTarget => ({ kind: CampaignTargetKind.Relic, cardId })
-    )
+    const relics = them.relicIds.map((cardId): CampaignTarget => ({
+        kind: CampaignTargetKind.Relic,
+        cardId
+    }))
     const banners = Object.values(Banner)
         .filter((banner) => bannerHolder(state, banner) === them.playerId)
         .map((banner): CampaignTarget => ({ kind: CampaignTargetKind.Banner, banner }))

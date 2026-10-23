@@ -67,7 +67,7 @@
                     fill={company.fill}
                     stroke="#1d140b"
                     stroke-width="1"
-                />
+                ></rect>
                 <rect
                     x="2"
                     y="2"
@@ -77,10 +77,11 @@
                     stroke="#ffffff"
                     stroke-opacity="0.65"
                     stroke-width="0.9"
-                />
+                ></rect>
             </g>
         {/each}
-        <path d="M17 29h14M19 33h10" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M17 29h14M19 33h10" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"
+        ></path>
     {:else if space === ActionSpaceId.IndustryInvestment}
         {#each INDUSTRIES as industry, index (industry)}
             <g transform="translate({13 + (index % 2) * 22} {13 + Math.floor(index / 2) * 22})">
@@ -93,7 +94,7 @@
                     fill="#ece6b8"
                     stroke={INDUSTRY_STYLE[industry].ring}
                     stroke-width="2.2"
-                />
+                ></rect>
                 <IndustryMark {industry} scale={0.55} />
             </g>
         {/each}
@@ -103,27 +104,22 @@
             fill={style.hexFill[HexKind.Countryside]}
             stroke="#1d1d1b"
             stroke-width="1.5"
-        />
+        ></polygon>
         {#each pieces as piece (`${piece.x},${piece.y}`)}
             {@const company = COMPANY_STYLE[piece.companyId]}
             {#if piece.cube}
                 {@const faces = cubeFaces({ x: piece.x, y: piece.y - 1 }, CUBE)}
                 <g stroke={company.edge} stroke-width="1" stroke-linejoin="round">
-                    <path d={faces.left} fill={company.edge} />
-                    <path d={faces.right} fill={company.edge} />
-                    <path d={faces.right} fill="rgba(0,0,0,0.25)" stroke="none" />
-                    <path d={faces.top} fill={company.fill} />
+                    <path d={faces.left} fill={company.edge}></path>
+                    <path d={faces.right} fill={company.edge}></path>
+                    <path d={faces.right} fill="rgba(0,0,0,0.25)" stroke="none"></path>
+                    <path d={faces.top} fill={company.fill}></path>
                 </g>
             {:else}
                 <g stroke={company.edge} stroke-width="1">
-                    <path d={discBody(piece.x, piece.y)} fill={company.edge} />
-                    <ellipse
-                        cx={piece.x}
-                        cy={piece.y}
-                        rx={DISC_RX}
-                        ry={DISC_RY}
-                        fill={company.fill}
-                    />
+                    <path d={discBody(piece.x, piece.y)} fill={company.edge}></path>
+                    <ellipse cx={piece.x} cy={piece.y} rx={DISC_RX} ry={DISC_RY} fill={company.fill}
+                    ></ellipse>
                 </g>
             {/if}
         {/each}

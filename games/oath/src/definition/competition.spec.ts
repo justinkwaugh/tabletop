@@ -95,7 +95,10 @@ describe.each(CONFIGS)('Oath tournaments, $oathType', (config) => {
                 expect(initial.turnManager.turnOrder).toEqual(order)
                 expect(initial.players.map((player) => player.playerId)).toEqual(order)
                 expect(initial.chancellorPlayerId).toBe(order[0])
-                expect(initial.players[0]).toMatchObject({ status: PlayerStatus.Chancellor, color: OathImperialColor })
+                expect(initial.players[0]).toMatchObject({
+                    status: PlayerStatus.Chancellor,
+                    color: OathImperialColor
+                })
                 expect(initial.oathkeeperPlayerId).toBe(order[0])
                 if (banner) expect(initial.banners[banner].holderPlayerId).toBe(order[0])
                 expect(initial.machineState).toBe(MachineState.Setup)
@@ -115,12 +118,17 @@ describe.each(CONFIGS)('Oath tournaments, $oathType', (config) => {
             const uninitialized = engine.generateUninitializedState(game)
             const initialize = (order?: string[]) =>
                 new OathGameInitializer()
-                    .initializeGameState(game, structuredClone(uninitialized), order ? { playerIds: order } : undefined)
+                    .initializeGameState(
+                        game,
+                        structuredClone(uninitialized),
+                        order ? { playerIds: order } : undefined
+                    )
                     .dehydrate()
             const normal = initialize()
             expect(initialize(normal.turnManager.turnOrder)).toEqual(normal)
 
-            const seatColors = (state: OathProjectedState) => state.players.map((player) => player.color)
+            const seatColors = (state: OathProjectedState) =>
+                state.players.map((player) => player.color)
             for (const order of rotations([...normal.turnManager.turnOrder].reverse())) {
                 const assigned = initialize(order)
                 expect(initialize(order)).toEqual(assigned)
@@ -157,10 +165,14 @@ function playTurn(game: Game, state: OathProjectedState): OathProjectedState {
     }
     let next = state
     if (next.machineState === MachineState.WakePhase) {
-        next = engine.runNext(buildAction(ResolveWake, {
-            playerId,
-            favorSteps: peoplesFavorSteps(next, playerId)
-        }), next, game).updatedState
+        next = engine.runNext(
+            buildAction(ResolveWake, {
+                playerId,
+                favorSteps: peoplesFavorSteps(next, playerId)
+            }),
+            next,
+            game
+        ).updatedState
     }
     if (next.machineState === MachineState.EndOfGame) return next
     next = engine.runNext(buildAction(EndActPhase, { playerId }), next, game).updatedState
@@ -195,7 +207,9 @@ function expectOneScoredWinner(game: Game, finished: OathProjectedState, winnerI
     const scoring = required(OathRuntime.scoring, 'Oath declares its final scores')
     const finalScores = scoring.finalScores(finished)
     expect(finalScores).toEqual(
-        Object.fromEntries(game.players.map((player) => [player.id, player.id === winnerId ? 1 : 0]))
+        Object.fromEntries(
+            game.players.map((player) => [player.id, player.id === winnerId ? 1 : 0])
+        )
     )
     const spectatorView = OathVisibility.state.project(
         finished,

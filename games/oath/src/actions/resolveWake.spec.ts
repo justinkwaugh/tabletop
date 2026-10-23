@@ -64,8 +64,7 @@ describe('R-4.1.1.II — a Mob-side banner at value 1 whose holder has no favor'
     it('some legal Wake exists', () => {
         const state = seizedBannerBoard()
         const someLegal = allSubmissions().some(
-            (steps) =>
-                HydratedResolveWake.reasonCannotResolveWake(state, 'p1', steps) === undefined
+            (steps) => HydratedResolveWake.reasonCannotResolveWake(state, 'p1', steps) === undefined
         )
         expect(someLegal).toBe(true)
     })
@@ -75,37 +74,64 @@ describe('R-4.1.1.II — a Mob-side banner at value 1 whose holder has no favor'
 // host-only values and none of another player's hidden ones. Its favor steps are rehearsed there as on the server.
 describe("R-4.1.1 — the People's Favor steps are judged on the holder's own view as on the server", () => {
     const DANA = 'dana'
-    const game = { ...testGame([DANA, 'rhys']), hotseat: false, protectedInformation: true as const }
+    const game = {
+        ...testGame([DANA, 'rhys']),
+        hotseat: false,
+        protectedInformation: true as const
+    }
 
     function mobWake(favor: number) {
         const state = testState(
             [
                 testPlayer({ playerId: DANA, favor }),
-                testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'c2', advisers: [{ cardId: 'denizen.nomad.tents', faceUp: false }] })
+                testPlayer({
+                    playerId: 'rhys',
+                    color: Color.Blue,
+                    siteId: 'c2',
+                    advisers: [{ cardId: 'denizen.nomad.tents', faceUp: false }]
+                })
             ],
-            { machineState: MachineState.WakePhase, banners: testBanners({ [Banner.PeoplesFavor]: DANA }, 2) }
+            {
+                machineState: MachineState.WakePhase,
+                banners: testBanners({ [Banner.PeoplesFavor]: DANA }, 2)
+            }
         )
         state.banners[Banner.PeoplesFavor].mobSide = true
         openTurn(state, DANA)
         return state
     }
 
-    it.each([0, 1, 3])('with %i favor, each submission is refused or accepted alike, and the offer is the same', (favor) => {
-        const state = mobWake(favor)
-        const dana = { kind: 'player', playerId: DANA } as const
-        const own = new HydratedOathGameState(served(state, dana))
-        const steps: WakeFavorStep[] = [{ kind: 'place' }, { kind: 'return', toSuit: Suit.Hearth }]
-        const submissions: WakeFavorStep[][] = [[], ...steps.map((a) => [a]), ...steps.flatMap((a) => steps.map((b) => [a, b]))]
-        let accepted = 0
-        for (const favorSteps of submissions) {
-            const reason = HydratedResolveWake.reasonCannotResolveWake(state, DANA, favorSteps)
-            expect(HydratedResolveWake.reasonCannotResolveWake(own, DANA, favorSteps), JSON.stringify(favorSteps)).toEqual(reason)
-            if (reason === undefined) accepted += 1
+    it.each([0, 1, 3])(
+        'with %i favor, each submission is refused or accepted alike, and the offer is the same',
+        (favor) => {
+            const state = mobWake(favor)
+            const dana = { kind: 'player', playerId: DANA } as const
+            const own = new HydratedOathGameState(served(state, dana))
+            const steps: WakeFavorStep[] = [
+                { kind: 'place' },
+                { kind: 'return', toSuit: Suit.Hearth }
+            ]
+            const submissions: WakeFavorStep[][] = [
+                [],
+                ...steps.map((a) => [a]),
+                ...steps.flatMap((a) => steps.map((b) => [a, b]))
+            ]
+            let accepted = 0
+            for (const favorSteps of submissions) {
+                const reason = HydratedResolveWake.reasonCannotResolveWake(state, DANA, favorSteps)
+                expect(
+                    HydratedResolveWake.reasonCannotResolveWake(own, DANA, favorSteps),
+                    JSON.stringify(favorSteps)
+                ).toEqual(reason)
+                if (reason === undefined) accepted += 1
+            }
+            expect(accepted).toBeGreaterThan(0)
+            expect(accepted).toBeLessThan(submissions.length)
+            expect(
+                engine.getValidActionTypesForPlayer(game, served(state, dana), DANA, {
+                    perspective: dana
+                })
+            ).toEqual(engine.getValidActionTypesForPlayer(game, state.dehydrate(), DANA))
         }
-        expect(accepted).toBeGreaterThan(0)
-        expect(accepted).toBeLessThan(submissions.length)
-        expect(engine.getValidActionTypesForPlayer(game, served(state, dana), DANA, { perspective: dana })).toEqual(
-            engine.getValidActionTypesForPlayer(game, state.dehydrate(), DANA)
-        )
-    })
+    )
 })

@@ -24,7 +24,9 @@ const names: HistoryNames = {
     seats: [ALICE, BOB, CASS]
 }
 
-function action(fields: { type: ActionType; playerId: string } & Record<string, unknown>): GameAction {
+function action(
+    fields: { type: ActionType; playerId: string } & Record<string, unknown>
+): GameAction {
     return { id: 'a1', gameId: 'g1', source: ActionSource.User, ...fields }
 }
 
@@ -44,9 +46,19 @@ const READERS = [ALICE, BOB, CASS, undefined]
 
 describe('a History row names every seat inside it by its chip', () => {
     it('the other party to a Tribunal deal claimed kept or left unconfirmed, for every reader', () => {
-        const claimed = { type: ActionType.ClaimDealKept, playerId: ALICE, dealId: 'd1', metadata: { askedPlayerId: BOB } }
+        const claimed = {
+            type: ActionType.ClaimDealKept,
+            playerId: ALICE,
+            dealId: 'd1',
+            metadata: { askedPlayerId: BOB }
+        }
         const deal = { id: 'd1', proposerPlayerId: BOB, counterpartyPlayerId: ALICE, round: 2 }
-        const left = { type: ActionType.LeaveDealUnconfirmed, playerId: ALICE, dealId: 'd1', metadata: { deal } }
+        const left = {
+            type: ActionType.LeaveDealUnconfirmed,
+            playerId: ALICE,
+            dealId: 'd1',
+            metadata: { deal }
+        }
         for (const reader of READERS) {
             expect(row(claimed, reader)).toEqual([
                 text('asked '),
@@ -113,7 +125,12 @@ describe('a History row names every seat inside it by its chip', () => {
                 text('asked '),
                 chip(BOB, true),
                 text(' permission to move '),
-                { kind: 'warband', count: 2, whose: { kind: 'imperial' }, words: 'Imperial warbands' },
+                {
+                    kind: 'warband',
+                    count: 2,
+                    whose: { kind: 'imperial' },
+                    words: 'Imperial warbands'
+                },
                 text(' to '),
                 chip(BOB)
             ])
@@ -151,7 +168,12 @@ describe('a History row names every seat inside it by its chip', () => {
         for (const reader of READERS) {
             expect(row(moved, reader)).toEqual([
                 text('moved '),
-                { kind: 'warband', count: 2, whose: { kind: 'seat', name: 'Bob' }, words: "of Bob's warbands" },
+                {
+                    kind: 'warband',
+                    count: 2,
+                    whose: { kind: 'seat', name: 'Bob' },
+                    words: "of Bob's warbands"
+                },
                 text(' from board to site')
             ])
         }
@@ -208,7 +230,10 @@ describe("the reader's own seat is their chip, which reads “you”", () => {
 
 describe('a card name is never a chip', () => {
     it('even where a seat is called by it', () => {
-        const named: HistoryNames = { ...names, player: (playerId) => (playerId === BOB ? 'Deed Writer' : names.player(playerId)) }
+        const named: HistoryNames = {
+            ...names,
+            player: (playerId) => (playerId === BOB ? 'Deed Writer' : names.player(playerId))
+        }
         const proposed = {
             type: ActionType.UseActionPower,
             playerId: ALICE,

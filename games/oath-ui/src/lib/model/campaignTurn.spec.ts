@@ -4,7 +4,12 @@ import { campaignDraftOpens } from './campaignTurn.js'
 
 describe('campaignDraftOpens', () => {
     it('opens for a chosen Campaign the engine offers, in any phase', () => {
-        expect(campaignDraftOpens(ActionType.Campaign, [ActionType.AnswerQuestion, ActionType.Campaign])).toBe(true)
+        expect(
+            campaignDraftOpens(ActionType.Campaign, [
+                ActionType.AnswerQuestion,
+                ActionType.Campaign
+            ])
+        ).toBe(true)
     })
 
     it('stays shut for another action, or a Campaign no longer offered', () => {

@@ -5,6 +5,7 @@
         "check": "turbo run check",
         "clean": "turbo run clean",
         "clean:node": "rimraf node_modules /**/node_modules",
+        "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath .githooks || true",
         "watch": "turbo watch dev --filter=@tabletop/frontend --filter=@tabletop/backend",
         "dev": "turbo dev --filter=@tabletop/frontend --filter=@tabletop/backend",
         "email": "turbo watch dev --filter=@tabletop/email",
@@ -29,7 +30,7 @@
         "vitest": "^4.0.17"
     },
     "engines": {
-        "node": ">=20.19"
+        "node": ">=24"
     },
     "name": "tabletop",
     "packageManager": "pnpm@10.28.2",

@@ -65,7 +65,12 @@ function scene({ dana, ann, revision = AT }: Scene = {}) {
                 advisers: [adviser(BINDERS), adviser(TENTS, false)],
                 ...ann
             }),
-            testPlayer({ playerId: 'bea', color: Color.Yellow, siteId: 'h2', warbandsOnBoard: { bea: 2 } })
+            testPlayer({
+                playerId: 'bea',
+                color: Color.Yellow,
+                siteId: 'h2',
+                warbandsOnBoard: { bea: 2 }
+            })
         ],
         {
             oathRevision: revision,
@@ -78,15 +83,28 @@ function scene({ dana, ann, revision = AT }: Scene = {}) {
 }
 type Board = ReturnType<typeof scene>
 
-const disguisedAs = (playerId: string, ...more: ModifierUse[]) => [modifierUse(MASTER, [player(playerId)]), ...more]
+const disguisedAs = (playerId: string, ...more: ModifierUse[]) => [
+    modifierUse(MASTER, [player(playerId)]),
+    ...more
+]
 const withCup = (playerId = 'ann') => disguisedAs(playerId, modifierUse(CUP))
-const ownBorrower: Scene = { dana: { advisers: [adviser(BINDERS), adviser(MASTER)] }, ann: { advisers: [adviser(SIGNAL)] } }
+const ownBorrower: Scene = {
+    dana: { advisers: [adviser(BINDERS), adviser(MASTER)] },
+    ann: { advisers: [adviser(SIGNAL)] }
+}
 
 const reason = (s: Board, modifiers: ModifierUse[] = withCup()) =>
     HydratedTrade.reasonCannotTrade(s, 'dana', INN, TradeOption.ForFavor, modifiers)
 
 function trade(s: Board, modifiers: ModifierUse[] = withCup()) {
-    const action = new HydratedTrade(buildAction(Trade, { playerId: 'dana', cardId: INN, option: TradeOption.ForFavor, modifiers }))
+    const action = new HydratedTrade(
+        buildAction(Trade, {
+            playerId: 'dana',
+            cardId: INN,
+            option: TradeOption.ForFavor,
+            modifiers
+        })
+    )
     action.apply(s)
     return action
 }
@@ -136,13 +154,23 @@ describe('R-X.4 — before revision 23 Cup of Plenty reads the borrower’s own 
         for (const [revision, over] of cases) {
             const before = scene({ ...over, revision }).dehydrate()
             const game = testGame(['dana', 'ann', 'bea'])
-            const action = buildAction(Trade, { playerId: 'dana', cardId: INN, option: TradeOption.ForFavor, modifiers: withCup() })
+            const action = buildAction(Trade, {
+                playerId: 'dana',
+                cardId: INN,
+                option: TradeOption.ForFavor,
+                modifiers: withCup()
+            })
             const recorded = engine.runNext(action, structuredClone(before), game)
             expect(recorded.updatedState.players.find((p) => p.playerId === 'dana')?.supply).toBe(4)
 
             let replayed = structuredClone(before)
             for (const processed of recorded.processedActions)
-                replayed = engine.run(structuredClone(processed), replayed, game, RunMode.Single).updatedState
+                replayed = engine.run(
+                    structuredClone(processed),
+                    replayed,
+                    game,
+                    RunMode.Single
+                ).updatedState
             expect(replayed).toEqual(recorded.updatedState)
         }
     })
@@ -153,11 +181,17 @@ describe('Cup of Plenty and Master of Disguise on the borrower’s own view', ()
         const view: Visibility.Perspective = { kind: 'player', playerId: 'dana' }
         const scenes = [
             scene(),
-            scene({ dana: ownBorrower.dana, ann: { advisers: [adviser(SIGNAL), adviser(TENTS, false)] } }),
+            scene({
+                dana: ownBorrower.dana,
+                ann: { advisers: [adviser(SIGNAL), adviser(TENTS, false)] }
+            }),
             scene({ ann: { advisers: [adviser(BINDERS, false)] } })
         ]
         for (const s of scenes) {
-            const own = OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, view)), view)
+            const own = OathVisibility.state.guardForExecution(
+                new HydratedOathGameState(served(s, view)),
+                view
+            )
             for (const modifiers of [withCup(), withCup('bea'), [modifierUse(CUP)]]) {
                 const whole = HydratedTrade.plan(s, 'dana', INN, TradeOption.ForFavor, modifiers)
                 const seen = HydratedTrade.plan(own, 'dana', INN, TradeOption.ForFavor, modifiers)

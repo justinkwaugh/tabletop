@@ -53,20 +53,50 @@ function table(scene: Scene): HydratedOathGameState {
     const s = testState(
         [
             testPlayer({
-                playerId: DANA, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 3,
-                warbandsOnBoard: { [DANA]: 6 }, warbandsInPersonalBank: { [DANA]: 4 }, ...scene.dana
+                playerId: DANA,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [DANA]: 6 },
+                warbandsInPersonalBank: { [DANA]: 4 },
+                ...scene.dana
             }),
             testPlayer({
-                playerId: BEA, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', supply: 6, favor: 4, secrets: 3,
-                warbandsInPersonalBank: { [BEA]: 8 }, ...scene.bea
+                playerId: BEA,
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsInPersonalBank: { [BEA]: 8 },
+                ...scene.bea
             }),
             testPlayer({
-                playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', supply: 6, favor: 4, secrets: 3,
-                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 }, ...scene.ann
+                playerId: ANN,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'h1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 },
+                ...scene.ann
             }),
             testPlayer({
-                playerId: RHYS, color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'p2', supply: 6, favor: 4, secrets: 3,
-                warbandsInPersonalBank: { [RHYS]: 8 }, ...scene.rhys
+                playerId: RHYS,
+                color: Color.Yellow,
+                status: PlayerStatus.Citizen,
+                siteId: 'p2',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsInPersonalBank: { [RHYS]: 8 },
+                ...scene.rhys
             })
         ],
         {
@@ -113,11 +143,22 @@ function shortOfVictory(s: HydratedOathGameState) {
     campaign.defense = 3
 }
 
-function sacrificeRefusal(s: HydratedOathGameState, sacrifice = 3, attacker = DANA): string | undefined {
-    return HydratedCampaignSacrifice.reasonCannotResolve(s, attacker, { sacrifice, defeatKills: [] })
+function sacrificeRefusal(
+    s: HydratedOathGameState,
+    sacrifice = 3,
+    attacker = DANA
+): string | undefined {
+    return HydratedCampaignSacrifice.reasonCannotResolve(s, attacker, {
+        sacrifice,
+        defeatKills: []
+    })
 }
 
-function sacrifice(s: HydratedOathGameState, count = 3, attacker = DANA): HydratedCampaignSacrifice {
+function sacrifice(
+    s: HydratedOathGameState,
+    count = 3,
+    attacker = DANA
+): HydratedCampaignSacrifice {
     const action = new HydratedCampaignSacrifice(
         buildAction(CampaignSacrifice, {
             playerId: attacker,
@@ -132,7 +173,7 @@ function sacrifice(s: HydratedOathGameState, count = 3, attacker = DANA): Hydrat
 const VOW_REFUSAL = 'Vow of Peace: attackers cannot sacrifice against its holder'
 
 describe("an Ally's Vow of Peace forbids the attacker's sacrifice (R-5.5.2-H1)", () => {
-    it('Ann, joining Bea\'s defence as the Chancellor, holds it: the sacrifice is refused, and applying it throws', () => {
+    it("Ann, joining Bea's defence as the Chancellor, holds it: the sacrifice is refused, and applying it throws", () => {
         const s = table({ revision: atRevision, ann: { advisers: [adviser(VOW_OF_PEACE)] } })
         attack(s)
         expect(ongoingCampaign(s).allyPlayerIds).toEqual([ANN])
@@ -158,7 +199,10 @@ describe("an Ally's Vow of Peace forbids the attacker's sacrifice (R-5.5.2-H1)",
     })
 
     it('Zealots makes each sacrificed warband worth three: still refused, where without the Vow one wins', () => {
-        for (const [annAdvisers, expected] of [[[adviser(VOW_OF_PEACE)], VOW_REFUSAL], [[], undefined]] as const) {
+        for (const [annAdvisers, expected] of [
+            [[adviser(VOW_OF_PEACE)], VOW_REFUSAL],
+            [[], undefined]
+        ] as const) {
             // No attack dice, so no skull takes Dana's two warbands; Ann's four at c1 outnumber them.
             const s = table({
                 revision: atRevision,
@@ -185,9 +229,15 @@ describe('who is on the defending side, and what is not refused', () => {
         }
     })
 
-    it('Rhys at the targeted site holds it but is not admitted, by their choice or by Bea\'s: the sacrifice is accepted', () => {
-        for (const [joins, admitted] of [[false, false], [true, false]] as const) {
-            const s = table({ revision: atRevision, rhys: { siteId: 'c1', advisers: [adviser(VOW_OF_PEACE)] } })
+    it("Rhys at the targeted site holds it but is not admitted, by their choice or by Bea's: the sacrifice is accepted", () => {
+        for (const [joins, admitted] of [
+            [false, false],
+            [true, false]
+        ] as const) {
+            const s = table({
+                revision: atRevision,
+                rhys: { siteId: 'c1', advisers: [adviser(VOW_OF_PEACE)] }
+            })
             attack(s)
             expect(s.pendingCampaign?.toAsk).toEqual([RHYS])
             answerConsent(s, RHYS, joins)
@@ -253,7 +303,11 @@ describe('the Campaign around the refusal', () => {
             ann: { advisers: [adviser(VOW_OF_PEACE)] },
             state: {
                 denizensBySite: { c1: [], c2: [HOSPITAL], p1: [], h1: [] },
-                warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 2 }, c2: { [DANA]: 1 }, p1: { [IMPERIAL_WARBANDS]: 1 } }
+                warbandsBySite: {
+                    c1: { [IMPERIAL_WARBANDS]: 2 },
+                    c2: { [DANA]: 1 },
+                    p1: { [IMPERIAL_WARBANDS]: 1 }
+                }
             }
         })
         attack(s, { attackDice: 0, plans: [battlePlanUse(HOSPITAL)] })
@@ -275,10 +329,17 @@ describe('the Campaign around the refusal', () => {
         openTurn(s, BEA)
         attack(s, { attacker: BEA, defender: DANA, targets: [PAWN_AND_FAVOR], attackDice: 0 })
         sacrifice(s, 0, BEA)
-        expect(s.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.SneakAttack, askedPlayerId: DANA })
+        expect(s.pendingQuestions?.queue[0]).toMatchObject({
+            kind: PowerQuestionKind.SneakAttack,
+            askedPlayerId: DANA
+        })
         // Bea shares the Empire's c1, so Dana must target it (R-5.5.2).
         attack(s)
-        expect(ongoingCampaign(s)).toMatchObject({ attackerPlayerId: DANA, defenderPlayerId: BEA, allyPlayerIds: [ANN] })
+        expect(ongoingCampaign(s)).toMatchObject({
+            attackerPlayerId: DANA,
+            defenderPlayerId: BEA,
+            allyPlayerIds: [ANN]
+        })
         shortOfVictory(s)
         expect(sacrificeRefusal(s)).toBe(VOW_REFUSAL)
     })
@@ -323,4 +384,3 @@ describe("the sacrifice check on the attacker's own view, where hidden values ca
         }
     })
 })
-

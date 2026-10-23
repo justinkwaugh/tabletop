@@ -20,7 +20,7 @@ import { isFieldSquare } from '../model/board.js'
 import { buildTileBag } from '../util/tileBag.js'
 import { validCanalPlacements } from '../util/placement.js'
 import { isPlaceBid } from '../actions/placeBid.js'
-import legacy from './tests/v2-continuation.json'
+import legacy from './tests/fixtures/v2-continuation.json'
 import { nextAction } from '../testing/autoplay.js'
 
 const game: Game = {

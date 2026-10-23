@@ -30,8 +30,7 @@ const usePower = (page: Page) =>
 const undoButton = (page: Page) => page.getByRole('button', { name: 'Undo', exact: true })
 const boardCard = (page: Page, cardId: string) =>
     page.locator('.board-card').filter({ has: badge(page, cardId) })
-const seat = (page: Page) =>
-    page.locator('.seat').filter({ has: page.locator('.row--held') })
+const seat = (page: Page) => page.locator('.seat').filter({ has: page.locator('.row--held') })
 
 /**
  * On a phone the map opens on the Provinces: the Cradle, where the seat stands, is framed as a
@@ -127,7 +126,9 @@ for (const viewport of [
             await badge(page, ORACLE).click()
             await expect(powerRows(page)).toHaveCount(1)
             await expect(panel(page).locator(`[data-action-power="${ORACLE}"]`)).toBeVisible()
-            await expect(panel(page).getByRole('button', { name: 'Use, paying 2 secret' })).toBeVisible()
+            await expect(
+                panel(page).getByRole('button', { name: 'Use, paying 2 secret' })
+            ).toBeVisible()
             await expect(badge(page, ORACLE)).toBeVisible()
 
             // One Undo, back to the grid with the badges as before.
@@ -152,7 +153,9 @@ for (const viewport of [
         test('with another action staged there is none', async ({ page }) => {
             await openBadgeTable(page, 'useBadge', phone)
             await expect(badges(page)).toHaveCount(3)
-            await panel(page).getByRole('button', { name: /^Travel/ }).click()
+            await panel(page)
+                .getByRole('button', { name: /^Travel/ })
+                .click()
             await expect(badges(page)).toHaveCount(0)
         })
 
@@ -185,7 +188,9 @@ for (const viewport of [
                 a.y + a.height <= b.y ||
                 b.y + b.height <= a.y
             expect(apart).toBe(true)
-            await panel(page).getByRole('button', { name: /^Travel/ }).click()
+            await panel(page)
+                .getByRole('button', { name: /^Travel/ })
+                .click()
             await expect(badges(page)).toHaveCount(0)
         })
 
@@ -203,8 +208,16 @@ for (const viewport of [
                 const image = figure.querySelector('img')?.getBoundingClientRect()
                 const face = figure.querySelector('.use-badge__face')?.getBoundingClientRect()
                 return {
-                    image: { left: image?.left ?? 0, right: image?.right ?? 0, width: image?.width },
-                    face: { left: face?.left ?? 0, right: face?.right ?? 0, width: face?.width ?? 0 }
+                    image: {
+                        left: image?.left ?? 0,
+                        right: image?.right ?? 0,
+                        width: image?.width
+                    },
+                    face: {
+                        left: face?.left ?? 0,
+                        right: face?.right ?? 0,
+                        width: face?.width ?? 0
+                    }
                 }
             })
             expect(relic.image.width).toBe(52)

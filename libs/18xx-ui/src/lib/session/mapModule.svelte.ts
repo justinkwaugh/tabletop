@@ -90,7 +90,10 @@ export class MapModule {
         private readonly displayState: () => MapState = () => session.state
     ) {}
 
-    scene = $derived.by(() => this.draw(this.displayState().tileInventory))
+    // Held apart so a display state that only moves tokens doesn't redraw the board.
+    private tileInventory = $derived.by(() => this.displayState().tileInventory)
+    private locationMarkers = $derived.by(() => this.displayState().locationMarkers)
+    scene = $derived.by(() => this.draw(this.tileInventory))
     tokens = $derived.by(() => stationMapTokens(this.displayState(), this.view().stations))
     tileCounts = $derived.by(() => this.view().tileSet.counts(this.session.state.tileInventory))
     displayedScene = $derived.by(() => {
@@ -288,7 +291,7 @@ export class MapModule {
         const view = this.view()
         return createMapDrawing(
             view.map,
-            { tileSet: view.tileSet, inventory, markers: this.displayState().locationMarkers },
+            { tileSet: view.tileSet, inventory, markers: this.locationMarkers },
             view
         )
     }

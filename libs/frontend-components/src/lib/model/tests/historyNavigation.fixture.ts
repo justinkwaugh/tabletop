@@ -10,7 +10,13 @@ export async function previousPlayerTurnFromLive(stepFirst: boolean, deferred: b
     context.applyAction(firstPlay)
     context.applyAction(createAction(PlaySchema, { gameId: game.id, playerId: 'p2', cardId: 'r2' }))
     const source = deferred
-        ? new GameContext({ runtime: uiRuntime, game, state: context.state, actions: [], historyComplete: false })
+        ? new GameContext({
+              runtime: uiRuntime,
+              game,
+              state: context.state,
+              actions: [],
+              historyComplete: false
+          })
         : context
     const history = new GameHistory(source)
     if (deferred) {
@@ -28,7 +34,11 @@ export async function previousPlayerTurnFromLive(stepFirst: boolean, deferred: b
     }
     await history.goToPlayersPreviousTurn('p1')
     history.visibleContext.verifyFullChecksum()
-    return { inHistory: history.inHistory, actionIndex: history.actionIndex, count: history.visibleContext.state.actionCount }
+    return {
+        inHistory: history.inHistory,
+        actionIndex: history.actionIndex,
+        count: history.visibleContext.state.actionCount
+    }
 }
 
 export async function navigatePlayerTurn(skipping: 'first' | 'all' | 'none') {

@@ -69,7 +69,9 @@ describe('R-11.7-H2 — the traveller’s cards on a Travel out of an enemy’s 
         const { session, sent } = await travellerSession()
         session.modifiers.declare(travelCard(TENTS), true)
         session.modifiers.declare(travelCard(FOREST_PATHS), true)
-        const shown = session.woodRegions?.flatMap((r) => r.siteIds.map((siteId) => [siteId, r.cost]))
+        const shown = session.woodRegions?.flatMap((r) =>
+            r.siteIds.map((siteId) => [siteId, r.cost])
+        )
         await session.travelFromShroudedWood()
         const action = sent.mock.calls[0]?.[0]
         assert(action && isTravel(action), 'the Travel is sent')
@@ -77,10 +79,19 @@ describe('R-11.7-H2 — the traveller’s cards on a Travel out of an enemy’s 
         expect(action.siteId).toBeUndefined()
 
         const state = woodCardsState()
-        const table = played(tableOf(state), [createAction(Travel, { gameId: state.gameId, source: ActionSource.User, playerId: 'Dana', modifiers: action.modifiers })])
+        const table = played(tableOf(state), [
+            createAction(Travel, {
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: 'Dana',
+                modifiers: action.modifiers
+            })
+        ])
         const ruler = await openSessionOn(table)
         expect(ruler.myPlayer?.id).toBe('Bea')
-        const offered = ruler.question.woodRegions.flatMap((r) => r.siteIds.map((siteId) => [siteId, r.cost]))
+        const offered = ruler.question.woodRegions.flatMap((r) =>
+            r.siteIds.map((siteId) => [siteId, r.cost])
+        )
         expect(offered.sort()).toEqual((shown ?? []).sort())
     })
 
@@ -91,7 +102,9 @@ describe('R-11.7-H2 — the traveller’s cards on a Travel out of an enemy’s 
             { siteId: river, cost: 0, base: 2, foldedBy: [FOREST_PATHS] },
             { siteId: wood, cost: 0, base: 2, foldedBy: [TENTS] }
         ]
-        expect(woodRegions(state, picks).map((r) => [r.region, r.cost, r.foldedBy, r.siteIds])).toEqual([
+        expect(
+            woodRegions(state, picks).map((r) => [r.region, r.cost, r.foldedBy, r.siteIds])
+        ).toEqual([
             [Region.Provinces, 0, [TENTS], [greatSlum, wood]],
             [Region.Provinces, 0, [FOREST_PATHS], [river]]
         ])
@@ -106,9 +119,15 @@ describe('R-11.7-H2 — the traveller’s cards on a Travel out of an enemy’s 
     })
 
     it('the panel’s picks are the engine’s, with the cards’ costs counted as placed', async () => {
-        const { session } = await travellerSession({ supply: 1, favor: 1, advisers: [FOREST_PATHS] })
+        const { session } = await travellerSession({
+            supply: 1,
+            favor: 1,
+            advisers: [FOREST_PATHS]
+        })
         session.modifiers.declare(travelCard(FOREST_PATHS), true)
-        const engine = woodPicksBeforeTravel(session.gameState, 'Dana', [travelCard(FOREST_PATHS)]).map(({ pick }) => pick.siteId)
+        const engine = woodPicksBeforeTravel(session.gameState, 'Dana', [
+            travelCard(FOREST_PATHS)
+        ]).map(({ pick }) => pick.siteId)
         expect(engine).toEqual([plains, hiddenPlace])
         expect(session.woodRegions?.flatMap((r) => r.siteIds)).toEqual(engine)
         expect(session.woodTravelRefusal).toBeUndefined()
@@ -120,7 +139,9 @@ describe('R-11.7-H2 — the Travel tile, as the engine opens it', () => {
 
     it('opens with 1 Supply when Forest Paths makes a Beast site free', async () => {
         const state = lowState([FOREST_PATHS])
-        expect(HydratedTravel.reasonCannotLeaveShroudedWood(state, 'Dana', {})).toBe('Bea would pick where you go, and you can pay for no site: the cheapest is 2 Supply, you have 1')
+        expect(HydratedTravel.reasonCannotLeaveShroudedWood(state, 'Dana', {})).toBe(
+            'Bea would pick where you go, and you can pay for no site: the cheapest is 2 Supply, you have 1'
+        )
         expect(HydratedTravel.canDoTravel(state, 'Dana')).toBe(true)
         const session = await openSessionOn(tableOf(state))
         expect(session.validActionTypes).toContain(ActionType.Travel)
@@ -131,7 +152,11 @@ describe('R-11.7-H2 — the Travel tile, as the engine opens it', () => {
         const state = lowState([])
         expect(HydratedTravel.canDoTravel(state, 'Dana')).toBe(false)
         const session = await openSessionOn(tableOf(state))
-        expect(gridRefusal(session.gameState, 'Dana', ActionType.Travel)).toEqual({ cause: 'supply', needs: 2, has: 1 })
+        expect(gridRefusal(session.gameState, 'Dana', ActionType.Travel)).toEqual({
+            cause: 'supply',
+            needs: 2,
+            has: 1
+        })
     })
 
     it('opened, with no card in use yet: the button is refused with the grid’s words; Forest Paths in use lifts it', async () => {
@@ -197,12 +222,18 @@ describe('R-11.7-H2 — the Wood’s Travel cards with the other Travel cards an
         // Way Station (Nomad) at the Great Slum matches Hospitality (Nomad): a pick there gains.
         expect(listedCards(session)).toEqual([HOSPITALITY, PORTAL, TENTS].sort())
         session.modifiers.declare(travelCard(TENTS), true)
-        expect(session.woodRegions?.find((r) => r.region === Region.Provinces)).toMatchObject({ cost: 0, foldedBy: [TENTS] })
+        expect(session.woodRegions?.find((r) => r.region === Region.Provinces)).toMatchObject({
+            cost: 0,
+            foldedBy: [TENTS]
+        })
         expect(session.woodTravelReason).toBeUndefined()
         await session.travelFromShroudedWood()
         const action = sent.mock.calls[0]?.[0]
         assert(action && isTravel(action), 'the Travel is sent')
-        expect(action.modifiers).toEqual([{ ...travelCard(HOSPITALITY), choices: [] }, travelCard(TENTS)])
+        expect(action.modifiers).toEqual([
+            { ...travelCard(HOSPITALITY), choices: [] },
+            travelCard(TENTS)
+        ])
     })
 
     it('before revision 15 the Dragonskin Drum, in use from the start, is not declared: the Travel goes as before', async () => {
@@ -227,8 +258,18 @@ describe('R-11.7-H2 — the Wood’s Travel cards with the other Travel cards an
         const session = await openSessionOn(tableOf(state))
         session.chooseAction(ActionType.Travel)
         session.modifiers.declare(travelCard(TENTS), true)
-        expect(session.woodRegions?.find((r) => r.siteIds.includes(river))).toMatchObject({ cost: 0, foldedBy: [TENTS] })
-        const table = played(tableOf(state), [createAction(Travel, { gameId: state.gameId, source: ActionSource.User, playerId: 'Dana', modifiers: [travelCard(TENTS)] })])
+        expect(session.woodRegions?.find((r) => r.siteIds.includes(river))).toMatchObject({
+            cost: 0,
+            foldedBy: [TENTS]
+        })
+        const table = played(tableOf(state), [
+            createAction(Travel, {
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: 'Dana',
+                modifiers: [travelCard(TENTS)]
+            })
+        ])
         const ruler = await openSessionOn(table)
         expect(ruler.question.woodDestinations).toContain(river)
         expect(ruler.question.woodTollAt(river)).toBe(true)
@@ -243,7 +284,9 @@ describe('R-11.7-H4 — Portal in use at its own Wood: the ordinary Travel', () 
         expect(session.woodRegions).toBeUndefined()
         const sites = [drownedCity, plains, greatSlum, river, mountain, hiddenPlace, wastes]
         expect([...session.selectableSites].sort()).toEqual([...sites].sort())
-        expect(session.travelRows.every((row) => row.ways.every((way) => way.cost === 0))).toBe(true)
+        expect(session.travelRows.every((row) => row.ways.every((way) => way.cost === 0))).toBe(
+            true
+        )
         session.modifiers.declare(travelCard(PORTAL), false)
         expect(session.shroudedWoodChooser).toBe('Bea')
     })
@@ -252,21 +295,34 @@ describe('R-11.7-H4 — Portal in use at its own Wood: the ordinary Travel', () 
 describe('R-11.7-H2 — the ruler’s answer "<traveller> stays"', () => {
     async function rulerSession(scene: WoodCardsScene, cards: string[]) {
         const state = woodCardsState(scene)
-        const table = played(tableOf(state), [createAction(Travel, { gameId: state.gameId, source: ActionSource.User, playerId: 'Dana', modifiers: cards.map(travelCard) })])
+        const table = played(tableOf(state), [
+            createAction(Travel, {
+                gameId: state.gameId,
+                source: ActionSource.User,
+                playerId: 'Dana',
+                modifiers: cards.map(travelCard)
+            })
+        ])
         const session = await openSessionOn(table)
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         return { session, sent }
     }
 
     it('offered when Dana can pay for nothing without Forest Paths, and sent as the stay', async () => {
-        const { session, sent } = await rulerSession({ supply: 1, favor: 1, advisers: [FOREST_PATHS] }, [FOREST_PATHS])
+        const { session, sent } = await rulerSession(
+            { supply: 1, favor: 1, advisers: [FOREST_PATHS] },
+            [FOREST_PATHS]
+        )
         expect(session.myPlayer?.id).toBe('Bea')
         expect(session.question.woodDestinations).toEqual([plains, hiddenPlace])
         expect(session.question.woodStayOffered).toBe(true)
         await session.question.keepTravelerInPlace()
         const answer = sent.mock.calls[0]?.[0]
         assert(answer && isAnswerQuestion(answer), 'the stay is sent')
-        expect(answer.answer).toEqual({ kind: PowerQuestionKind.ShroudedWoodDestination, stay: true })
+        expect(answer.answer).toEqual({
+            kind: PowerQuestionKind.ShroudedWoodDestination,
+            stay: true
+        })
     })
 
     it('not offered while Dana could pay for a site without the cards', async () => {
@@ -278,35 +334,114 @@ describe('R-11.7-H2 — the ruler’s answer "<traveller> stays"', () => {
 })
 
 describe('R-11.7-H2 — the History of a Travel out of the Wood with cards', () => {
-    const SITES: Record<string, string> = { [wood]: 'Shrouded Wood', [river]: 'River', [mountain]: 'Mountain' }
-    const names = { player: (playerId: string) => playerId, site: (slotId: string) => SITES[slotId] ?? slotId, seats: ['Dana', 'Bea', 'Ann'] }
-    const row = (fields: { type: ActionType; playerId?: string } & Record<string, unknown>): GameAction => ({ id: 'a1', gameId: 'g1', source: ActionSource.User, ...fields })
+    const SITES: Record<string, string> = {
+        [wood]: 'Shrouded Wood',
+        [river]: 'River',
+        [mountain]: 'Mountain'
+    }
+    const names = {
+        player: (playerId: string) => playerId,
+        site: (slotId: string) => SITES[slotId] ?? slotId,
+        seats: ['Dana', 'Bea', 'Ann']
+    }
+    const row = (
+        fields: { type: ActionType; playerId?: string } & Record<string, unknown>
+    ): GameAction => ({ id: 'a1', gameId: 'g1', source: ActionSource.User, ...fields })
 
-    function answered(metadata: Record<string, unknown>, answer: Record<string, unknown>): GameAction {
+    function answered(
+        metadata: Record<string, unknown>,
+        answer: Record<string, unknown>
+    ): GameAction {
         return row({
             type: ActionType.AnswerQuestion,
             playerId: 'Bea',
             answer: { kind: PowerQuestionKind.ShroudedWoodDestination, ...answer },
-            metadata: { cardId: 'site.shrouded-wood', kind: PowerQuestionKind.ShroudedWoodDestination, resumeMachineState: MachineState.ActPhase, last: true, ...metadata }
+            metadata: {
+                cardId: 'site.shrouded-wood',
+                kind: PowerQuestionKind.ShroudedWoodDestination,
+                resumeMachineState: MachineState.ActPhase,
+                last: true,
+                ...metadata
+            }
         })
     }
 
     it('the set-out row names the declared cards in brackets, as a plain Travel does', () => {
-        const out = row({ type: ActionType.Travel, playerId: 'Dana', modifiers: [travelCard(TENTS), travelCard(FOREST_PATHS)], metadata: { fromSiteId: wood, destinationChooser: 'Bea', paysAtPick: true, supplySpent: 0, supplyRemaining: 3, modifiers: [TENTS, FOREST_PATHS] } })
-        expect(describeAction(out, names, 'Dana')).toBe('set out from Shrouded Wood (Tents, Forest Paths); Bea picks where')
-        const plain = row({ type: ActionType.Travel, playerId: 'Dana', modifiers: [], metadata: { fromSiteId: wood, destinationChooser: 'Bea', paysAtPick: true, supplySpent: 0, supplyRemaining: 3 } })
-        expect(describeAction(plain, names, 'Dana')).toBe('set out from Shrouded Wood; Bea picks where')
+        const out = row({
+            type: ActionType.Travel,
+            playerId: 'Dana',
+            modifiers: [travelCard(TENTS), travelCard(FOREST_PATHS)],
+            metadata: {
+                fromSiteId: wood,
+                destinationChooser: 'Bea',
+                paysAtPick: true,
+                supplySpent: 0,
+                supplyRemaining: 3,
+                modifiers: [TENTS, FOREST_PATHS]
+            }
+        })
+        expect(describeAction(out, names, 'Dana')).toBe(
+            'set out from Shrouded Wood (Tents, Forest Paths); Bea picks where'
+        )
+        const plain = row({
+            type: ActionType.Travel,
+            playerId: 'Dana',
+            modifiers: [],
+            metadata: {
+                fromSiteId: wood,
+                destinationChooser: 'Bea',
+                paysAtPick: true,
+                supplySpent: 0,
+                supplyRemaining: 3
+            }
+        })
+        expect(describeAction(plain, names, 'Dana')).toBe(
+            'set out from Shrouded Wood; Bea picks where'
+        )
     })
 
     it('the pick names a card only where it set the price', () => {
-        const free = answered({ summary: 'sent Dana', woodPick: { travelerPlayerId: 'Dana', siteId: river, supplySpent: 0, supplyRemaining: 3, pricedBy: [TENTS] } }, { siteId: river })
-        expect(describeAction(free, names, 'Ann')).toBe("traveled from Shrouded Wood to River (Bea's pick), spending 0 Supply (Tents)")
-        const paid = answered({ summary: 'sent Dana', woodPick: { travelerPlayerId: 'Dana', siteId: mountain, supplySpent: 2, supplyRemaining: 1 } }, { siteId: mountain })
-        expect(describeAction(paid, names, 'Ann')).toBe("traveled from Shrouded Wood to Mountain (Bea's pick), spending 2 Supply")
+        const free = answered(
+            {
+                summary: 'sent Dana',
+                woodPick: {
+                    travelerPlayerId: 'Dana',
+                    siteId: river,
+                    supplySpent: 0,
+                    supplyRemaining: 3,
+                    pricedBy: [TENTS]
+                }
+            },
+            { siteId: river }
+        )
+        expect(describeAction(free, names, 'Ann')).toBe(
+            "traveled from Shrouded Wood to River (Bea's pick), spending 0 Supply (Tents)"
+        )
+        const paid = answered(
+            {
+                summary: 'sent Dana',
+                woodPick: {
+                    travelerPlayerId: 'Dana',
+                    siteId: mountain,
+                    supplySpent: 2,
+                    supplyRemaining: 1
+                }
+            },
+            { siteId: mountain }
+        )
+        expect(describeAction(paid, names, 'Ann')).toBe(
+            "traveled from Shrouded Wood to Mountain (Bea's pick), spending 2 Supply"
+        )
     })
 
     it('"Dana stays" is the traveller’s row: stayed at Shrouded Wood (Bea’s pick)', () => {
-        const stay = answered({ summary: `kept Dana at ${wood}`, woodStay: { travelerPlayerId: 'Dana', siteId: wood } }, { stay: true })
+        const stay = answered(
+            {
+                summary: `kept Dana at ${wood}`,
+                woodStay: { travelerPlayerId: 'Dana', siteId: wood }
+            },
+            { stay: true }
+        )
         expect(rowActorOf(stay)).toBe('Dana')
         expect(describeAction(stay, names, 'Ann')).toBe("stayed at Shrouded Wood (Bea's pick)")
         expect(describeAction(stay, names, 'Bea')).toBe('stayed at Shrouded Wood (your pick)')

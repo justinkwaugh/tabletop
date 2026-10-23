@@ -112,7 +112,9 @@ describe('Travel action (R-5.6)', () => {
 
     it('treats a pawn off the map as a broken invariant, since Travel follows setup (R-1.23.1)', () => {
         const state = stateWith([player('p1', undefined, 7)])
-        expect(() => HydratedTravel.costFor(state, 'p1', 'c1')).toThrow("p1's pawn must be at a site")
+        expect(() => HydratedTravel.costFor(state, 'p1', 'c1')).toThrow(
+            "p1's pawn must be at a site"
+        )
         expect(() => HydratedTravel.canDoTravel(state, 'p1')).toThrow("p1's pawn must be at a site")
     })
 })

@@ -33,7 +33,8 @@ async function boxOf(locator: ReturnType<Page['locator']>) {
 const panel = (page: Page) => page.locator('.panel')
 const line = (page: Page) => panel(page).locator('.question-line')
 const choices = (page: Page) => panel(page).getByRole('group', { name: 'Wake choices' })
-const choice = (page: Page, name: string) => choices(page).getByRole('button', { name, exact: true })
+const choice = (page: Page, name: string) =>
+    choices(page).getByRole('button', { name, exact: true })
 const answer = (page: Page, name: string) => panel(page).getByRole('button', { name, exact: true })
 const pieces = (page: Page) => panel(page).getByRole('button', { name: /^pay \d favor$/ })
 const piece = (page: Page, count: number) =>
@@ -63,7 +64,9 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`the Wake with Vow of Kinship's Nomad favor, on a ${name}`, () => {
         test.use({ viewport })
 
-        test('"Place [favor]" and "Place none" share a width; Place sends the place from the Nomad bank', async ({ page }) => {
+        test('"Place [favor]" and "Place none" share a width; Place sends the place from the Nomad bank', async ({
+            page
+        }) => {
             await openTable(page, 'kinshipWake')
             await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('dana')
             await expect(panel(page)).toContainText('People’s Favor')
@@ -72,25 +75,36 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(choice(page, 'Place a favor').locator('img[alt="favor"]')).toHaveCount(1)
             await expect(choice(page, 'Place no favor')).toHaveText('Place none')
             await expect(panel(page).getByRole('button', { name: 'End Wake Phase' })).toHaveCount(0)
-            const [place, none] = [await boxOf(choice(page, 'Place a favor')), await boxOf(choice(page, 'Place no favor'))]
+            const [place, none] = [
+                await boxOf(choice(page, 'Place a favor')),
+                await boxOf(choice(page, 'Place no favor'))
+            ]
             expect(Math.round(place.width)).toBe(Math.round(none.width))
             await expectLabelSized(page, choices(page).getByRole('button'), phone)
 
             const nomad = (await call(page, 'tableFacts')).favorBank.nomad
             await choice(page, 'Place a favor').click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).machineState)
+                .toBe('ActPhase')
             expect((await call(page, 'tableFacts')).favorBank.nomad).toBe(nomad - 1)
             if (!phone) {
                 await page.getByRole('tab', { name: 'History' }).click()
-                await expect(history(page)).toContainText('began the turn; placed 1 on the People’s Favor')
+                await expect(history(page)).toContainText(
+                    'began the turn; placed 1 on the People’s Favor'
+                )
             }
         })
 
-        test('"Place none" sends the Wake with no step: the bank keeps its favor', async ({ page }) => {
+        test('"Place none" sends the Wake with no step: the bank keeps its favor', async ({
+            page
+        }) => {
             await openTable(page, 'kinshipWake')
             const nomad = (await call(page, 'tableFacts')).favorBank.nomad
             await choice(page, 'Place no favor').click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).machineState)
+                .toBe('ActPhase')
             expect((await call(page, 'tableFacts')).favorBank.nomad).toBe(nomad)
             if (!phone) {
                 await page.getByRole('tab', { name: 'History' }).click()
@@ -107,7 +121,9 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`Plague Engines asks the Vow of Kinship holder, on a ${name}`, () => {
         test.use({ viewport })
 
-        test('the payable pieces, none picked: "None" alone until a piece is tapped, then "Pay"; picked pieces ringed gold', async ({ page }) => {
+        test('the payable pieces, none picked: "None" alone until a piece is tapped, then "Pay"; picked pieces ringed gold', async ({
+            page
+        }) => {
             await openTable(page, 'kinshipPlague')
             await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('dana')
             await expect(panel(page).getByRole('heading', { name: 'Plague Engines' })).toBeVisible()
@@ -123,20 +139,28 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(panel(page).locator('[aria-pressed="true"]')).toHaveCount(2)
             await expect(piece(page, 2)).toHaveClass(/ring-oath-accent/)
             await expect(answer(page, 'Pay')).toBeVisible()
-            await expectLabelSized(page, panel(page).getByRole('button', { name: /^(Pay|None)$/ }), phone)
+            await expectLabelSized(
+                page,
+                panel(page).getByRole('button', { name: /^(Pay|None)$/ }),
+                phone
+            )
             await piece(page, 2).click()
             await expect(answer(page, 'Pay')).toHaveCount(0)
             await piece(page, 2).click()
 
             const before = (await call(page, 'tableFacts')).favorBank
             await answer(page, 'Pay').click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).machineState)
+                .toBe('ActPhase')
             const after = (await call(page, 'tableFacts')).favorBank
             expect(after.nomad).toBe(before.nomad - 2)
             expect(after.arcane).toBe(before.arcane + 2)
             if (!phone) {
                 await page.getByRole('tab', { name: 'History' }).click()
-                await expect(history(page)).toContainText('used Plague Engines, placing 1 on it and burning 1: 3 placed into')
+                await expect(history(page)).toContainText(
+                    'used Plague Engines, placing 1 on it and burning 1: 3 placed into'
+                )
                 await expect(history(page)).toContainText('Plague Engines: paid 2 from into')
             }
         })
@@ -145,7 +169,9 @@ for (const { name, viewport, phone } of SIZES) {
             await openTable(page, 'kinshipPlague')
             const before = (await call(page, 'tableFacts')).favorBank.nomad
             await answer(page, 'None').click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).machineState)
+                .toBe('ActPhase')
             expect((await call(page, 'tableFacts')).favorBank.nomad).toBe(before)
             if (!phone) {
                 await page.getByRole('tab', { name: 'History' }).click()
@@ -167,7 +193,9 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`Dissent asks the Vow of Kinship holder, on a ${name}`, () => {
         test.use({ viewport })
 
-        test('the same question under Dissent; "Pay" puts the picked favor on the card', async ({ page }) => {
+        test('the same question under Dissent; "Pay" puts the picked favor on the card', async ({
+            page
+        }) => {
             await openTable(page, 'kinshipDissent')
             await expect(panel(page).getByRole('heading', { name: 'Dissent' })).toBeVisible()
             await expect(line(page)).toHaveText(/^Pay how many\s+from\s*\?$/)
@@ -175,7 +203,9 @@ for (const { name, viewport, phone } of SIZES) {
             await piece(page, 1).click()
             await expect(panel(page).locator('[aria-pressed="true"]')).toHaveCount(1)
             await answer(page, 'Pay').click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('ActPhase')
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).machineState)
+                .toBe('ActPhase')
             expect((await call(page, 'tableFacts')).favorBank.nomad).toBe(2)
             if (!phone) {
                 await page.getByRole('tab', { name: 'History' }).click()

@@ -5,11 +5,14 @@
     import PlayerCompanyCompactCard from '$lib/components/PlayerCompanyCompactCard.svelte'
     import type { CompanyMergerAnimator } from '$lib/animators/companyMergerAnimator.js'
     import { animateMergedCompanyCard } from '$lib/animators/companyMergerAnimator.js'
-    import { playerCompanyCardsForState, type PlayerCompanyCardData } from '$lib/utils/playerCompanyCards.js'
+    import {
+        playerCompanyCardsForState,
+        type PlayerCompanyCardData
+    } from '$lib/utils/playerCompanyCards.js'
     import {
         CompanyType,
         type HydratedIndonesiaPlayerState,
-        MachineState,
+        MachineState
     } from '@tabletop/indonesia'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -40,7 +43,9 @@
             state === MachineState.Operations ||
             state === MachineState.ShippingOperations ||
             state === MachineState.ProductionOperations
-        return inOperationsPhase ? new Set(gameSession.gameState.operatedCompanyIds) : new Set<string>()
+        return inOperationsPhase
+            ? new Set(gameSession.gameState.operatedCompanyIds)
+            : new Set<string>()
     })
 
     let companyCards: PlayerCompanyCardData[] = $derived.by(() =>
@@ -52,11 +57,11 @@
 
     const maxCompanySlots = $derived(1 + playerState.research.slots)
     const openCompanySlots = $derived(Math.max(0, maxCompanySlots - visibleCompanyCards.length))
-    const openCompanySlotIndexes = $derived(Array.from({ length: openCompanySlots }, (_, index) => index))
+    const openCompanySlotIndexes = $derived(
+        Array.from({ length: openCompanySlots }, (_, index) => index)
+    )
     const companySectionMeta = $derived(
-        playerState.research.mergers > 0
-            ? `MERGERS ${playerState.research.mergers + 1}`
-            : null
+        playerState.research.mergers > 0 ? `MERGERS ${playerState.research.mergers + 1}` : null
     )
     // Temporary preview toggle for the empty companies treatment.
     const showNoCompaniesPreview = false
@@ -71,13 +76,24 @@
                 aria-hidden="true"
                 focusable="false"
             >
-                <path class="player-name-ornament-fill" d="M5.45,11.53C29.48,1.16,43.64,25.5,57.36,21c12.37-3.92,2.9-27.7-7.37-18.13,3.06-6.04,12.09-1.54,13.69,3.99,5.68,14.45-11.48,21.58-21.99,12.55-9.33-6.97-23.69-9.35-33.56-2.81-9.48,6.43-11.05.11-2.68-5.07Z"></path>
-                <path class="player-name-ornament-fill" d="M48.78,13.23c-5.03-6.36,6.16-11.99,9.7-5.28,3.05,4.29.05,10.92-5.24,11.2-4,.32-7.46-2.76-10.44-4.41-10.48-6.13-21.47-9.45-32.85-7.56C32.18.27,49.54,23.21,56.49,16.35c4.71-3.38-1.35-12.5-5.23-7.34-.46.85.32,1.96,1.02,2.19.95.22,1.79-.89,2.51-1.25,3.51,2.4-3.23,7.18-6.01,3.28Z"></path>
-                <path class="player-name-ornament-fill" d="M50.62,10.15c-1.29,3.2,3.76,5.14,4.96,1.91,1.29-3.2-3.76-5.14-4.96-1.91Z"></path>
+                <path
+                    class="player-name-ornament-fill"
+                    d="M5.45,11.53C29.48,1.16,43.64,25.5,57.36,21c12.37-3.92,2.9-27.7-7.37-18.13,3.06-6.04,12.09-1.54,13.69,3.99,5.68,14.45-11.48,21.58-21.99,12.55-9.33-6.97-23.69-9.35-33.56-2.81-9.48,6.43-11.05.11-2.68-5.07Z"
+                ></path>
+                <path
+                    class="player-name-ornament-fill"
+                    d="M48.78,13.23c-5.03-6.36,6.16-11.99,9.7-5.28,3.05,4.29.05,10.92-5.24,11.2-4,.32-7.46-2.76-10.44-4.41-10.48-6.13-21.47-9.45-32.85-7.56C32.18.27,49.54,23.21,56.49,16.35c4.71-3.38-1.35-12.5-5.23-7.34-.46.85.32,1.96,1.02,2.19.95.22,1.79-.89,2.51-1.25,3.51,2.4-3.23,7.18-6.01,3.28Z"
+                ></path>
+                <path
+                    class="player-name-ornament-fill"
+                    d="M50.62,10.15c-1.29,3.2,3.76,5.14,4.96,1.91,1.29-3.2-3.76-5.14-4.96-1.91Z"
+                ></path>
             </svg>
             <div class="player-name-wrap">
-                <span class="player-name-wash player-name-wash-left {bgColor}" aria-hidden="true"></span>
-                <span class="player-name-wash player-name-wash-right {bgColor}" aria-hidden="true"></span>
+                <span class="player-name-wash player-name-wash-left {bgColor}" aria-hidden="true"
+                ></span>
+                <span class="player-name-wash player-name-wash-right {bgColor}" aria-hidden="true"
+                ></span>
                 <h1
                     class="player-name-text {isTurn
                         ? 'text-xl font-semibold'
@@ -98,9 +114,18 @@
                 aria-hidden="true"
                 focusable="false"
             >
-                <path class="player-name-ornament-fill" d="M5.45,11.53C29.48,1.16,43.64,25.5,57.36,21c12.37-3.92,2.9-27.7-7.37-18.13,3.06-6.04,12.09-1.54,13.69,3.99,5.68,14.45-11.48,21.58-21.99,12.55-9.33-6.97-23.69-9.35-33.56-2.81-9.48,6.43-11.05.11-2.68-5.07Z"></path>
-                <path class="player-name-ornament-fill" d="M48.78,13.23c-5.03-6.36,6.16-11.99,9.7-5.28,3.05,4.29.05,10.92-5.24,11.2-4,.32-7.46-2.76-10.44-4.41-10.48-6.13-21.47-9.45-32.85-7.56C32.18.27,49.54,23.21,56.49,16.35c4.71-3.38-1.35-12.5-5.23-7.34-.46.85.32,1.96,1.02,2.19.95.22,1.79-.89,2.51-1.25,3.51,2.4-3.23,7.18-6.01,3.28Z"></path>
-                <path class="player-name-ornament-fill" d="M50.62,10.15c-1.29,3.2,3.76,5.14,4.96,1.91,1.29-3.2-3.76-5.14-4.96-1.91Z"></path>
+                <path
+                    class="player-name-ornament-fill"
+                    d="M5.45,11.53C29.48,1.16,43.64,25.5,57.36,21c12.37-3.92,2.9-27.7-7.37-18.13,3.06-6.04,12.09-1.54,13.69,3.99,5.68,14.45-11.48,21.58-21.99,12.55-9.33-6.97-23.69-9.35-33.56-2.81-9.48,6.43-11.05.11-2.68-5.07Z"
+                ></path>
+                <path
+                    class="player-name-ornament-fill"
+                    d="M48.78,13.23c-5.03-6.36,6.16-11.99,9.7-5.28,3.05,4.29.05,10.92-5.24,11.2-4,.32-7.46-2.76-10.44-4.41-10.48-6.13-21.47-9.45-32.85-7.56C32.18.27,49.54,23.21,56.49,16.35c4.71-3.38-1.35-12.5-5.23-7.34-.46.85.32,1.96,1.02,2.19.95.22,1.79-.89,2.51-1.25,3.51,2.4-3.23,7.18-6.01,3.28Z"
+                ></path>
+                <path
+                    class="player-name-ornament-fill"
+                    d="M50.62,10.15c-1.29,3.2,3.76,5.14,4.96,1.91,1.29-3.2-3.76-5.14-4.96-1.91Z"
+                ></path>
             </svg>
         </div>
 
@@ -140,7 +165,10 @@
                             class="player-company-card-hover-target"
                             class:player-company-card-hover-target-unavailable={unavailable}
                             animate:flip={{ duration: 420, easing: cubicOut }}
-                            use:animateMergedCompanyCard={{ animator: companyMergeAnimator, companyId: card.id }}
+                            use:animateMergedCompanyCard={{
+                                animator: companyMergeAnimator,
+                                companyId: card.id
+                            }}
                             onpointerenter={() => {
                                 gameSession.setHoveredOperatingCompany(card.id)
                             }}

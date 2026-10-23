@@ -18,7 +18,10 @@
     class="relative z-10 justify-self-center self-center"
     style="width: {SIZE}px; height: {SIZE}px; transform: rotate({rotation}deg);"
 >
-    <div class="absolute inset-0" style="background-color: #2e332e; clip-path: {OCTAGON_CLIP};"></div>
+    <div
+        class="absolute inset-0"
+        style="background-color: #2e332e; clip-path: {OCTAGON_CLIP};"
+    ></div>
     <div
         class="absolute"
         style="

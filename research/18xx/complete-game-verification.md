@@ -31,20 +31,20 @@ design notes retain the primary evidence for each implemented rule.
 
 ## Coverage matrix
 
-| Area | Executable coverage | Limits |
-| --- | --- | --- |
-| Real initialization and auctions | `completeGame.spec.ts`: TOP 3–4 and 1889 2–6 players, opening completion, persisted processed replay and full Undo | One reproducible opening seed per player count; not exhaustive strategies |
-| Normal endings | Complete 3-player runs from opening: TOP first diesel and final stock/operating set; 1889 bank break | Deterministic test decisions are intentionally simple |
-| Bankruptcy and scoring | Both titles' bankruptcy scenarios execute funding, automatic bankruptcy and final scoring; persisted replay, terminal rejection and Undo | Curated emergency positions, not bankruptcy forced by the complete-game strategy |
-| Share rules and companies | `sharePurchase`, `shareSale`, `stockRound`, `companyFormation` | Ownership/certificate limits, presidency and Union Bank are separately tested |
-| Geography and construction | `maps`, `liveMap`, `trackConstruction`, `stationPlacement` | Physical artwork presentation remains deferred M2 |
-| Trains, routes and dividends | `trainPurchase`, `runTrains`, `earnings`, `trainFunding` | Manual route submission remains authoritative; test sampling is not an optimizer |
-| Private income, exchange and closure | `privateCompanies`: title-specific exchanges, corporate ownership, expiry and operating closure | The full-game strategy need not activate every optional power |
-| Private decisions | `companyDecisions`: negotiated purchases, Ehime, Mitsubishi, Hunslet and track consent | Covered with curated positions as well as ordinary Action flow |
-| Phase effects | `phaseChanges`: rust/removal, forced discards, private closure, construction and start-price changes | Phase timing is checked independently of the complete-game strategy |
-| TOP structural changes | `branchSplit`, `splitCompany`, `branchSplitSelection`: allocations, certificate/asset conservation, tranche limits and Undo; PEIR lifecycle in phase tests | Splits are optional and exercised in dedicated positions |
-| Prototype interaction | Browser suites for stock turns, construction, stations, routes, funding, auctions, private decisions and splits | Disposable desktop UI; production usability is U1–U2 |
-| Distribution and hosted decisions | Title manifests and Logic/UI bundles; local multiplayer verification | Local publications only; no public release |
+| Area                                 | Executable coverage                                                                                                                                        | Limits                                                                           |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Real initialization and auctions     | `completeGame.spec.ts`: TOP 3–4 and 1889 2–6 players, opening completion, persisted processed replay and full Undo                                         | One reproducible opening seed per player count; not exhaustive strategies        |
+| Normal endings                       | Complete 3-player runs from opening: TOP first diesel and final stock/operating set; 1889 bank break                                                       | Deterministic test decisions are intentionally simple                            |
+| Bankruptcy and scoring               | Both titles' bankruptcy scenarios execute funding, automatic bankruptcy and final scoring; persisted replay, terminal rejection and Undo                   | Curated emergency positions, not bankruptcy forced by the complete-game strategy |
+| Share rules and companies            | `sharePurchase`, `shareSale`, `stockRound`, `companyFormation`                                                                                             | Ownership/certificate limits, presidency and Union Bank are separately tested    |
+| Geography and construction           | `maps`, `liveMap`, `trackConstruction`, `stationPlacement`                                                                                                 | Physical artwork presentation remains deferred M2                                |
+| Trains, routes and dividends         | `trainPurchase`, `runTrains`, `earnings`, `trainFunding`                                                                                                   | Manual route submission remains authoritative; test sampling is not an optimizer |
+| Private income, exchange and closure | `privateCompanies`: title-specific exchanges, corporate ownership, expiry and operating closure                                                            | The full-game strategy need not activate every optional power                    |
+| Private decisions                    | `companyDecisions`: negotiated purchases, Ehime, Mitsubishi, Hunslet and track consent                                                                     | Covered with curated positions as well as ordinary Action flow                   |
+| Phase effects                        | `phaseChanges`: rust/removal, forced discards, private closure, construction and start-price changes                                                       | Phase timing is checked independently of the complete-game strategy              |
+| TOP structural changes               | `branchSplit`, `splitCompany`, `branchSplitSelection`: allocations, certificate/asset conservation, tranche limits and Undo; PEIR lifecycle in phase tests | Splits are optional and exercised in dedicated positions                         |
+| Prototype interaction                | Browser suites for stock turns, construction, stations, routes, funding, auctions, private decisions and splits                                            | Disposable desktop UI; production usability is U1–U2                             |
+| Distribution and hosted decisions    | Title manifests and Logic/UI bundles; local multiplayer verification                                                                                       | Local publications only; no public release                                       |
 
 ## Rule baselines and deliberate limits
 

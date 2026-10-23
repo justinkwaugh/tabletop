@@ -244,9 +244,7 @@ export function legalTravelTerms(
         ...available.filter((t) => t.discount).map((t) => [...demanded, t.cardId])
     ]
     return tollSets
-        .flatMap((tolls) =>
-            TRAVEL_FLIPS.map((flipSecret): TravelTerms => ({ tolls, flipSecret }))
-        )
+        .flatMap((tolls) => TRAVEL_FLIPS.map((flipSecret): TravelTerms => ({ tolls, flipSecret })))
         .filter(
             (terms) =>
                 travelPlan(state, playerId, siteId, modifiers, terms.tolls, terms.flipSecret)

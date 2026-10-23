@@ -15,9 +15,10 @@ type ExtraIrrigationAction = HydratedBuildCanal | HydratedPass | HydratedEndRoun
 // Players each have ONE personal canal for the whole game (free to place, one-time use).
 // Sequential order starting left of the new canal overseer, with the overseer asked last.
 // The first player to place their canal ends Phase 5; others don't get to place.
-export class ExtraIrrigationStateHandler
-    implements MachineStateHandler<ExtraIrrigationAction, HydratedSantiagoGameState>
-{
+export class ExtraIrrigationStateHandler implements MachineStateHandler<
+    ExtraIrrigationAction,
+    HydratedSantiagoGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedSantiagoGameState>
@@ -131,8 +132,11 @@ export class ExtraIrrigationStateHandler
         throw new Error(`Unexpected action in ExtraIrrigation: ${type}`)
     }
 
-    private computeDriedSquares(state: HydratedSantiagoGameState, isLastRound: boolean): Array<{col: number, row: number, crop: string}> {
-        const result: Array<{col: number, row: number, crop: string}> = []
+    private computeDriedSquares(
+        state: HydratedSantiagoGameState,
+        isLastRound: boolean
+    ): Array<{ col: number; row: number; crop: string }> {
+        const result: Array<{ col: number; row: number; crop: string }> = []
         const connected = connectedSpringIntersections(state.board)
         for (let col = 0; col < 8; col++) {
             for (let row = 0; row < 6; row++) {
@@ -150,8 +154,11 @@ export class ExtraIrrigationStateHandler
 
     // Fields with farmers that will lose exactly one farmer this round (but not fully dry out —
     // that's computeDriedSquares' job, for fields already at 0 farmers or the final round).
-    private computeFarmerLosses(state: HydratedSantiagoGameState, isLastRound: boolean): Array<{col: number, row: number, crop: string, playerId: string}> {
-        const result: Array<{col: number, row: number, crop: string, playerId: string}> = []
+    private computeFarmerLosses(
+        state: HydratedSantiagoGameState,
+        isLastRound: boolean
+    ): Array<{ col: number; row: number; crop: string; playerId: string }> {
+        const result: Array<{ col: number; row: number; crop: string; playerId: string }> = []
         if (isLastRound) return result
         const connected = connectedSpringIntersections(state.board)
         for (let col = 0; col < 8; col++) {
@@ -170,7 +177,10 @@ export class ExtraIrrigationStateHandler
     // Queue the EndRoundEvent (carrying drought/escudo info for the history), then
     // return a self-transition so ExtraIrrigation processes it and does the real transition.
     // Drought and escudo collection happen in onAction(EndRoundEvent) above.
-    private endPhase(state: HydratedSantiagoGameState, context: MachineContext<HydratedSantiagoGameState>): MachineState {
+    private endPhase(
+        state: HydratedSantiagoGameState,
+        context: MachineContext<HydratedSantiagoGameState>
+    ): MachineState {
         const isLastRound = state.isBagEmpty()
         const driedSquares = this.computeDriedSquares(state, isLastRound)
         const farmerLosses = this.computeFarmerLosses(state, isLastRound)

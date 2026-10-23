@@ -23,7 +23,9 @@
     const highlightedPlayerIds = $derived.by(() => {
         if (shownRoundIndex === null) return gameState.winningPlayerIds
         const leadingScore = standings[0].score
-        return standings.filter(({ score }) => score === leadingScore).map(({ playerId }) => playerId)
+        return standings
+            .filter(({ score }) => score === leadingScore)
+            .map(({ playerId }) => playerId)
     })
 </script>
 
@@ -33,9 +35,11 @@
     </p>
     <ul class="space-y-1">
         {#each standings as p, i (p.playerId)}
-            <li class="flex justify-between text-sm"
+            <li
+                class="flex justify-between text-sm"
                 class:text-amber-300={highlightedPlayerIds.includes(p.playerId)}
-                animate:flip={{ duration: 200 }}>
+                animate:flip={{ duration: 200 }}
+            >
                 <span>{i + 1}. {session.getPlayerName(p.playerId)}</span>
                 <span class="font-bold">{p.score} pts</span>
             </li>

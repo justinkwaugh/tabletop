@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+    import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import { GameResult } from '@tabletop/common'
     import { fade } from 'svelte/transition'
     import { PlayerName } from '@tabletop/frontend-components'

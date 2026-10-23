@@ -11,7 +11,10 @@ test('hotseat island bidding resets the bid amount for the next player', async (
     await page.reload()
     await page.getByRole('button', { name: 'Games', exact: true }).click()
     await page.getByText('Protected Kaivai', { exact: true }).click()
-    const amount = page.getByRole('button', { name: '+', exact: true }).locator('..').locator('> h1')
+    const amount = page
+        .getByRole('button', { name: '+', exact: true })
+        .locator('..')
+        .locator('> h1')
     await expect(amount).toHaveText('0')
     await page.getByRole('button', { name: '+', exact: true }).click()
     await expect(amount).toHaveText('1')

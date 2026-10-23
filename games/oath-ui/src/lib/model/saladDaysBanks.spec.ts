@@ -17,7 +17,14 @@ import {
     powerIndexOf,
     type LegalChoice
 } from '@tabletop/oath'
-import { openTurn, required, served, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
+import {
+    openTurn,
+    required,
+    served,
+    testBanners,
+    testPlayer,
+    testState
+} from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import {
     bankRuns,
@@ -60,11 +67,20 @@ const banksOf = (held: Partial<Record<Suit, number>>): Record<Suit, number> => (
 })
 
 /** Four banks hold favor once the play to the River takes the Hearth bank's last. */
-const FOUR_LEFT = banksOf({ [Suit.Arcane]: 3, [Suit.Order]: 3, [Suit.Hearth]: 1, [Suit.Beast]: 3, [Suit.Nomad]: 2 })
+const FOUR_LEFT = banksOf({
+    [Suit.Arcane]: 3,
+    [Suit.Order]: 3,
+    [Suit.Hearth]: 1,
+    [Suit.Beast]: 3,
+    [Suit.Nomad]: 2
+})
 /** Only Arcane and Order hold favor once the play takes the Hearth bank's last. */
 const TWO_LEFT = banksOf({ [Suit.Arcane]: 3, [Suit.Order]: 3, [Suit.Hearth]: 1 })
 
-const modifier = (cardId: string) => ({ cardId, powerIndex: powerIndexOf(cardId, PowerTiming.Modifier) })
+const modifier = (cardId: string) => ({
+    cardId,
+    powerIndex: powerIndexOf(cardId, PowerTiming.Modifier)
+})
 
 type Table = {
     banks: Record<Suit, number>
@@ -77,15 +93,34 @@ type Table = {
 function table({ banks, revision = CURRENT_OATH_REVISION, rhys = {}, over = {} }: Table) {
     const state = testState(
         [
-            testPlayer({ playerId: 'rhys', color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 2, secrets: 3, handIds: [SALAD, WOLVES, TUTOR], ...rhys }),
-            testPlayer({ playerId: 'dana', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c2' })
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                favor: 2,
+                secrets: 3,
+                handIds: [SALAD, WOLVES, TUTOR],
+                ...rhys
+            }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c2'
+            })
         ],
         {
             machineState: MachineState.Searching,
             oathRevision: revision,
             chancellorPlayerId: 'dana',
             favorBank: { ...banks },
-            siteCards: { c1: 'site.river', c2: 'site.plains', p1: 'site.mountain', h1: 'site.wastes' },
+            siteCards: {
+                c1: 'site.river',
+                c2: 'site.plains',
+                p1: 'site.mountain',
+                h1: 'site.wastes'
+            },
             denizensBySite: { c1: [BIRDSONG], c2: [], p1: [], h1: [] },
             ...over
         }
@@ -102,14 +137,24 @@ type Picker = {
 }
 
 /** The banks the picker shows and opens, and the engine's answer to a complete pick, as the panel reads them. */
-function pickerOf(choices: LegalChoice[], banks: Readonly<Record<Suit, number>>, tableBanks: Readonly<Record<Suit, number>>, judge: (picks: PowerChoicePicks) => string | undefined): Picker {
+function pickerOf(
+    choices: LegalChoice[],
+    banks: Readonly<Record<Suit, number>>,
+    tableBanks: Readonly<Record<Suit, number>>,
+    judge: (picks: PowerChoicePicks) => string | undefined
+): Picker {
     return {
         choices,
         banks,
         tableBanks,
         reasonFor: (suits) => {
             const run = required(bankRuns(choices)[0], 'Salad Days asks a run of banks')
-            return judge(suits.reduce((picks, suit) => withRunToggled(run, choices, picks, suit), emptyPicks()))
+            return judge(
+                suits.reduce(
+                    (picks, suit) => withRunToggled(run, choices, picks, suit),
+                    emptyPicks()
+                )
+            )
         }
     }
 }
@@ -141,7 +186,9 @@ function accepted(picker: Picker): string[] {
     for (let a = 0; a < ALL.length; a++)
         for (let b = a + 1; b < ALL.length; b++)
             for (let c = b + 1; c < ALL.length; c++) {
-                const suits = [ALL[a], ALL[b], ALL[c]].filter((suit): suit is Suit => suit !== undefined)
+                const suits = [ALL[a], ALL[b], ALL[c]].filter(
+                    (suit): suit is Suit => suit !== undefined
+                )
                 if (picker.reasonFor(suits) === undefined) found.push([...suits].sort().join(','))
             }
     return found.sort()
@@ -157,7 +204,11 @@ function expectAgreement(picker: Picker) {
 type Placement = { play: SearchPlay; faceUp?: boolean }
 
 /** Salad Days kept from the Search and placed, as the Search panel shows its picker. */
-async function searching(state: HydratedOathGameState, placement: Placement = { play: SearchPlay.Site }, before: (draft: Awaited<ReturnType<typeof openSessionOn>>['search']) => void = () => {}) {
+async function searching(
+    state: HydratedOathGameState,
+    placement: Placement = { play: SearchPlay.Site },
+    before: (draft: Awaited<ReturnType<typeof openSessionOn>>['search']) => void = () => {}
+) {
     const session = await openSessionOn(tableOf(state))
     vi.spyOn(session, 'resolveSearch').mockResolvedValue()
     const draft = session.search
@@ -165,10 +216,15 @@ async function searching(state: HydratedOathGameState, placement: Placement = { 
     before(draft)
     await draft.choosePlacement(placement)
     expect(draft.needsWhenPlayed).toBe(true)
-    return pickerOf(draft.whenPlayed, draft.whenPlayedBanks, session.gameState.favorBank, (picks) => {
-        draft.setPicks(picks)
-        return draft.whenPlayedReason
-    })
+    return pickerOf(
+        draft.whenPlayed,
+        draft.whenPlayedBanks,
+        session.gameState.favorBank,
+        (picks) => {
+            draft.setPicks(picks)
+            return draft.whenPlayedReason
+        }
+    )
 }
 
 /** Salad Days held as a facedown adviser and played faceup to the site (R-6.1), as its panel shows the picker. */
@@ -178,10 +234,15 @@ async function flipping(state: HydratedOathGameState) {
     session.chooseAction(ActionType.PlayFacedownAdviser)
     await session.chooseAdviserPlay(SALAD, SearchPlay.Site)
     expect(session.adviserPlayChoices).toHaveLength(3)
-    return pickerOf(session.adviserPlayChoices, session.adviserPlayBanks, session.gameState.favorBank, (picks) => {
-        session.setAdviserPlayPicks(picks)
-        return session.adviserPlayReason
-    })
+    return pickerOf(
+        session.adviserPlayChoices,
+        session.adviserPlayBanks,
+        session.gameState.favorBank,
+        (picks) => {
+            session.setAdviserPlayPicks(picks)
+            return session.adviserPlayReason
+        }
+    )
 }
 
 describe('Salad Days played to the site: the picker shows each bank as the play leaves it (R-7.3.3, R-7.1.3)', () => {
@@ -192,7 +253,9 @@ describe('Salad Days played to the site: the picker shows each bank as the play 
         expect(openAfter(picker, [])).toEqual([Suit.Arcane, Suit.Order, Suit.Beast, Suit.Nomad])
         expect(openAfter(picker, [Suit.Arcane, Suit.Order])).toEqual([Suit.Beast, Suit.Nomad])
         // The Hearth bank is empty once the card is played: Hearth, Arcane, Order yields 2 of 3, so the engine refuses it.
-        expect(picker.reasonFor([Suit.Hearth, Suit.Arcane, Suit.Order])).toMatch(/the banks named yield 2, and 3 can be had/)
+        expect(picker.reasonFor([Suit.Hearth, Suit.Arcane, Suit.Order])).toMatch(
+            /the banks named yield 2, and 3 can be had/
+        )
         expect(picker.reasonFor([Suit.Arcane, Suit.Order, Suit.Beast])).toBeUndefined()
         expectAgreement(picker)
     })
@@ -201,16 +264,30 @@ describe('Salad Days played to the site: the picker shows each bank as the play 
         const picker = await searching(table({ banks: TWO_LEFT }))
         expect(picker.banks).toEqual({ ...TWO_LEFT, [Suit.Hearth]: 0 })
         expect(openAfter(picker, [])).toEqual(ALL)
-        expect(openAfter(picker, [Suit.Arcane, Suit.Order])).toEqual([Suit.Discord, Suit.Hearth, Suit.Beast, Suit.Nomad])
+        expect(openAfter(picker, [Suit.Arcane, Suit.Order])).toEqual([
+            Suit.Discord,
+            Suit.Hearth,
+            Suit.Beast,
+            Suit.Nomad
+        ])
         // Arcane, Order, Beast is accepted once played.
         expect(picker.reasonFor([Suit.Arcane, Suit.Order, Suit.Beast])).toBeUndefined()
         expectAgreement(picker)
     })
 
     it('an adviser play gains nothing first: the picker shows the table’s banks', async () => {
-        const picker = await searching(table({ banks: FOUR_LEFT }), { play: SearchPlay.Adviser, faceUp: true })
+        const picker = await searching(table({ banks: FOUR_LEFT }), {
+            play: SearchPlay.Adviser,
+            faceUp: true
+        })
         expect(picker.banks).toEqual(FOUR_LEFT)
-        expect(openAfter(picker, [])).toEqual([Suit.Arcane, Suit.Order, Suit.Hearth, Suit.Beast, Suit.Nomad])
+        expect(openAfter(picker, [])).toEqual([
+            Suit.Arcane,
+            Suit.Order,
+            Suit.Hearth,
+            Suit.Beast,
+            Suit.Nomad
+        ])
         expectAgreement(picker)
     })
 
@@ -220,7 +297,9 @@ describe('Salad Days played to the site: the picker shows each bank as the play 
             expect(picker.banks).toEqual(banks)
             expectAgreement(picker)
         }
-        const two = await searching(table({ banks: TWO_LEFT, revision: OathRevision.EngineFixes11 }))
+        const two = await searching(
+            table({ banks: TWO_LEFT, revision: OathRevision.EngineFixes11 })
+        )
         expect(openAfter(two, [])).toEqual([Suit.Arcane, Suit.Order, Suit.Hearth])
     })
 })
@@ -228,7 +307,11 @@ describe('Salad Days played to the site: the picker shows each bank as the play 
 describe('Salad Days’ picker beside the cards that change what the play gains first', () => {
     it('Book of Records carried: the site play gains a secret, not favor, so the Hearth bank keeps its 1', async () => {
         const picker = await searching(
-            table({ banks: TWO_LEFT, rhys: { relicIds: [BOOK] }, over: { pendingSearchModifiers: [modifier(BOOK)] } })
+            table({
+                banks: TWO_LEFT,
+                rhys: { relicIds: [BOOK] },
+                over: { pendingSearchModifiers: [modifier(BOOK)] }
+            })
         )
         expect(picker.banks).toEqual(TWO_LEFT)
         expect(openAfter(picker, [Suit.Arcane, Suit.Order])).toEqual([Suit.Hearth])
@@ -236,7 +319,9 @@ describe('Salad Days’ picker beside the cards that change what the play gains 
     })
 
     it('Vow of Kinship: the Hearth favor the play takes goes to the Nomad bank', async () => {
-        const picker = await searching(table({ banks: TWO_LEFT, rhys: { advisers: [{ cardId: VOW, faceUp: true }] } }))
+        const picker = await searching(
+            table({ banks: TWO_LEFT, rhys: { advisers: [{ cardId: VOW, faceUp: true }] } })
+        )
         expect(picker.banks).toEqual({ ...TWO_LEFT, [Suit.Hearth]: 0, [Suit.Nomad]: 1 })
         expect(openAfter(picker, [Suit.Arcane, Suit.Order])).toEqual([Suit.Nomad])
         expectAgreement(picker)
@@ -244,13 +329,28 @@ describe('Salad Days’ picker beside the cards that change what the play gains 
 
     it('Fertile Valley, the Hearth Homeland: its favor leaves the Hearth bank too', async () => {
         const banks = { ...TWO_LEFT, [Suit.Hearth]: 2 }
-        const picker = await searching(table({ banks, over: { siteCards: { c1: 'site.fertile-valley', c2: 'site.plains', p1: 'site.mountain', h1: 'site.wastes' } } }))
+        const picker = await searching(
+            table({
+                banks,
+                over: {
+                    siteCards: {
+                        c1: 'site.fertile-valley',
+                        c2: 'site.plains',
+                        p1: 'site.mountain',
+                        h1: 'site.wastes'
+                    }
+                }
+            })
+        )
         expect(picker.banks).toEqual({ ...banks, [Suit.Hearth]: 0 })
         expectAgreement(picker)
     })
 
     it("Dissent discarded first by the People's Favor: its favor is back in the Discord bank", async () => {
-        const state = table({ banks: TWO_LEFT, over: { banners: testBanners({ [Banner.PeoplesFavor]: 'rhys' }) } })
+        const state = table({
+            banks: TWO_LEFT,
+            over: { banners: testBanners({ [Banner.PeoplesFavor]: 'rhys' }) }
+        })
         state.denizensBySite['c1'] = [DISSENT]
         state.addTokensOn(DISSENT, { favor: 2 })
         const picker = await searching(state, { play: SearchPlay.Site }, (draft) => {
@@ -264,7 +364,11 @@ describe('Salad Days’ picker beside the cards that change what the play gains 
 
     it('a facedown Salad Days played faceup to the site (R-6.1): the same banks as from the Search', async () => {
         const picker = await flipping(
-            table({ banks: FOUR_LEFT, rhys: { handIds: [], advisers: [{ cardId: SALAD, faceUp: false }] }, over: { machineState: MachineState.ActPhase } })
+            table({
+                banks: FOUR_LEFT,
+                rhys: { handIds: [], advisers: [{ cardId: SALAD, faceUp: false }] },
+                over: { machineState: MachineState.ActPhase }
+            })
         )
         expect(picker.banks).toEqual({ ...FOUR_LEFT, [Suit.Hearth]: 0 })
         expect(picker.tableBanks[Suit.Hearth]).toBe(1)
@@ -272,9 +376,19 @@ describe('Salad Days’ picker beside the cards that change what the play gains 
     })
 
     it('Land Warden: the second card plays after Salad Days, so its site favor is not taken first', async () => {
-        const state = table({ banks: FOUR_LEFT, over: { pendingSearchModifiers: [modifier(LAND_WARDEN)], denizensBySite: { c1: [], c2: [], p1: [], h1: [] } } })
+        const state = table({
+            banks: FOUR_LEFT,
+            over: {
+                pendingSearchModifiers: [modifier(LAND_WARDEN)],
+                denizensBySite: { c1: [], c2: [], p1: [], h1: [] }
+            }
+        })
         const picker = await searching(state, { play: SearchPlay.Site }, (draft) => {
-            draft.setSecondPlay(draft.secondPlays.find((option) => option.cardId === WOLVES && option.play === SearchPlay.Site)?.key)
+            draft.setSecondPlay(
+                draft.secondPlays.find(
+                    (option) => option.cardId === WOLVES && option.play === SearchPlay.Site
+                )?.key
+            )
             expect(draft.second).toMatchObject({ cardId: WOLVES, play: SearchPlay.Site })
         })
         expect(picker.banks).toEqual({ ...FOUR_LEFT, [Suit.Hearth]: 0 })
@@ -285,7 +399,9 @@ describe('Salad Days’ picker beside the cards that change what the play gains 
     // does not take it first, and neither does the picker.
     it('Welcoming Party: its Hearth favor comes after the power, so only the site’s is taken first', async () => {
         const banks = { ...TWO_LEFT, [Suit.Hearth]: 2 }
-        const picker = await searching(table({ banks, rhys: { advisers: [{ cardId: WELCOMING_PARTY, faceUp: true }] } }))
+        const picker = await searching(
+            table({ banks, rhys: { advisers: [{ cardId: WELCOMING_PARTY, faceUp: true }] } })
+        )
         expect(picker.banks).toEqual({ ...banks, [Suit.Hearth]: 1 })
         expectAgreement(picker)
     })
@@ -295,9 +411,14 @@ describe("the banks the picker reads on the player's own view", () => {
     it('are the server’s, and nothing hidden is read', () => {
         const state = table({ banks: FOUR_LEFT })
         const me: Visibility.Perspective = { kind: 'player', playerId: 'rhys' }
-        const own = OathVisibility.state.guardForExecution(new HydratedOathGameState(served(state, me)), me)
+        const own = OathVisibility.state.guardForExecution(
+            new HydratedOathGameState(served(state, me)),
+            me
+        )
         for (const view of [state, own]) {
-            expect(whenPlayedBanks(view, playMapChanges(view, 'rhys', SALAD, SearchPlay.Site))).toEqual({ ...FOUR_LEFT, [Suit.Hearth]: 0 })
+            expect(
+                whenPlayedBanks(view, playMapChanges(view, 'rhys', SALAD, SearchPlay.Site))
+            ).toEqual({ ...FOUR_LEFT, [Suit.Hearth]: 0 })
         }
         expect(state.favorBank).toEqual(FOUR_LEFT)
     })

@@ -67,15 +67,43 @@ interface Scene {
  * 7 defense, then the attack rolls 2 swords and no skull.
  */
 function table(scene: Scene = {}): OathProjectedState {
-    const advisers = (playerId: string) => ((scene.jinx ?? []).includes(playerId) ? [{ cardId: JINX, faceUp: true }] : [])
+    const advisers = (playerId: string) =>
+        (scene.jinx ?? []).includes(playerId) ? [{ cardId: JINX, faceUp: true }] : []
     const danaBoard = scene.danaBoard ?? 5
     const beaBoard = scene.beaBoard ?? 3
     const beaAtC1 = scene.beaAtC1 ?? 2
     const s = testState(
         [
-            testPlayer({ playerId: DANA, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 7, favor: 4, secrets: 2, advisers: advisers(DANA), warbandsOnBoard: { [DANA]: danaBoard }, warbandsInPersonalBank: { [DANA]: 14 - danaBoard } }),
-            testPlayer({ playerId: BEA, color: Color.Yellow, status: PlayerStatus.Exile, siteId: scene.beaSite ?? 'c1', supply: 6, favor: 4, secrets: 2, advisers: advisers(BEA), warbandsOnBoard: { [BEA]: beaBoard }, warbandsInPersonalBank: { [BEA]: 14 - beaBoard - beaAtC1 } }),
-            testPlayer({ playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1' })
+            testPlayer({
+                playerId: DANA,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 7,
+                favor: 4,
+                secrets: 2,
+                advisers: advisers(DANA),
+                warbandsOnBoard: { [DANA]: danaBoard },
+                warbandsInPersonalBank: { [DANA]: 14 - danaBoard }
+            }),
+            testPlayer({
+                playerId: BEA,
+                color: Color.Yellow,
+                status: PlayerStatus.Exile,
+                siteId: scene.beaSite ?? 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 2,
+                advisers: advisers(BEA),
+                warbandsOnBoard: { [BEA]: beaBoard },
+                warbandsInPersonalBank: { [BEA]: 14 - beaBoard - beaAtC1 }
+            }),
+            testPlayer({
+                playerId: ANN,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1'
+            })
         ],
         {
             oathRevision: scene.revision ?? AT,
@@ -83,7 +111,9 @@ function table(scene: Scene = {}): OathProjectedState {
             oathkeeperPlayerId: scene.beaIsOathkeeper ? BEA : undefined,
             denizensBySite: { c1: scene.c1 ?? [], c2: [], p1: [], h1: [] },
             warbandsBySite: beaAtC1 > 0 ? { c1: { [BEA]: beaAtC1 } } : {},
-            siteCards: Object.fromEntries([...CRADLE, ...PROVINCES, ...HINTERLAND].map((slotId) => [slotId, slotId])),
+            siteCards: Object.fromEntries(
+                [...CRADLE, ...PROVINCES, ...HINTERLAND].map((slotId) => [slotId, slotId])
+            ),
             prng: { seed: scene.seed ?? 1, invocations: 0 }
         }
     )
@@ -102,20 +132,52 @@ function declare(
     state: OathProjectedState,
     fields: { attackDice?: number; targets?: CampaignTarget[]; defender?: CampaignDefender } = {}
 ) {
-    return engine.runNext(buildAction(Campaign, { playerId: DANA, defender: fields.defender ?? atBea, targets: fields.targets ?? [siteTarget('c1'), pawnAndFavor], attackDice: fields.attackDice ?? 4, plans: [] }), state, game)
+    return engine.runNext(
+        buildAction(Campaign, {
+            playerId: DANA,
+            defender: fields.defender ?? atBea,
+            targets: fields.targets ?? [siteTarget('c1'), pawnAndFavor],
+            attackDice: fields.attackDice ?? 4,
+            plans: []
+        }),
+        state,
+        game
+    )
 }
 
 function defend(state: OathProjectedState, plans: string[]) {
-    return engine.runNext(buildAction(CampaignDefend, { playerId: BEA, plans: plans.map((cardId) => battlePlanUse(cardId)) }), state, game)
+    return engine.runNext(
+        buildAction(CampaignDefend, {
+            playerId: BEA,
+            plans: plans.map((cardId) => battlePlanUse(cardId))
+        }),
+        state,
+        game
+    )
 }
 
 function answer(state: OathProjectedState, playerId: string, reroll: boolean) {
-    return engine.runNext(buildAction(AnswerQuestion, { playerId, answer: { kind: PowerQuestionKind.RerollDice, reroll } }), state, game)
+    return engine.runNext(
+        buildAction(AnswerQuestion, {
+            playerId,
+            answer: { kind: PowerQuestionKind.RerollDice, reroll }
+        }),
+        state,
+        game
+    )
 }
 
 function sacrifice(state: OathProjectedState, count: number, defeatKills?: WarbandGroup[]) {
     expect(state.machineState).toBe(MachineState.CampaignSacrifice)
-    return engine.runNext(buildAction(CampaignSacrifice, { playerId: DANA, sacrifice: count, ...(defeatKills ? { defeatKills } : {}) }), state, game)
+    return engine.runNext(
+        buildAction(CampaignSacrifice, {
+            playerId: DANA,
+            sacrifice: count,
+            ...(defeatKills ? { defeatKills } : {})
+        }),
+        state,
+        game
+    )
 }
 
 /** The closing step's record. */
@@ -127,13 +189,22 @@ function closing(processed: readonly GameAction[]) {
 
 const rollOf = (processed: readonly GameAction[]) => closing(processed).metadata?.roll
 
-const onDanaBoard = (count: number): WarbandGroup[] => [{ at: { kind: 'board', playerId: DANA }, owner: DANA, count }]
+const onDanaBoard = (count: number): WarbandGroup[] => [
+    { at: { kind: 'board', playerId: DANA }, owner: DANA, count }
+]
 
 /** R-5.5 — no rule reads the order the dice fell in. */
-const multiset = (faces: readonly object[]) => faces.map((face) => JSON.stringify(face)).sort().join('|')
+const multiset = (faces: readonly object[]) =>
+    faces
+        .map((face) => JSON.stringify(face))
+        .sort()
+        .join('|')
 
 /** Defense then attack, the order a Campaign with no reroll to ask draws them in. */
-function seedFor(defense: readonly RolledDefenseFace[], attack: readonly RolledAttackFace[]): number {
+function seedFor(
+    defense: readonly RolledDefenseFace[],
+    attack: readonly RolledAttackFace[]
+): number {
     for (let seed = 1; seed <= 2_000_000; seed++) {
         const prng = new Prng({ seed, invocations: 0 })
         if (multiset(rollDefenseDice(prng, defense.length)) !== multiset(defense)) continue
@@ -185,7 +256,12 @@ describe('R-5.5 — the closing step records the dice as rolled and how the defe
         const lost = sacrifice(rolled, 0, onDanaBoard(2))
         expect(closing(lost.processedActions).metadata?.attackerVictorious).toBe(false)
         expect(lost.updatedState.campaign).toBeUndefined()
-        expect(rollOf(lost.processedActions)).toMatchObject({ swords: 4, skulls: 1, shields: 1, defense: 6 })
+        expect(rollOf(lost.processedActions)).toMatchObject({
+            swords: 4,
+            skulls: 1,
+            shields: 1,
+            defense: 6
+        })
     })
 
     it('Bea rerolls the defense with Jinx: the faces recorded are the reroll, not the first roll', () => {
@@ -213,14 +289,30 @@ describe('R-5.5 — the closing step records the dice as rolled and how the defe
         expect(multiset(final.attackRoll)).not.toBe(multiset(first))
         // The reroll's sword and three hollow swords: 2 swords and no skull, so the first roll's skull killed nothing.
         const lost = sacrifice(rerolled, 0, onDanaBoard(2))
-        expect(rollOf(lost.processedActions)).toMatchObject({ attackFaces: final.attackRoll, defenseFaces: final.defenseRoll, swords: 2, skulls: 0, defense: 6 })
+        expect(rollOf(lost.processedActions)).toMatchObject({
+            attackFaces: final.attackRoll,
+            defenseFaces: final.defenseRoll,
+            swords: 2,
+            skulls: 0,
+            defense: 6
+        })
     })
 
     it('hollow swords pair and a doubling doubles the shields only: 6 swords and 2 skulls against 1 shield doubled to 2, + 3 warbands', () => {
         const defense = [SHIELD, DOUBLING]
         const attack = [HOLLOW, HOLLOW, HOLLOW, SWORD, SKULL, SKULL]
-        const scene = { beaSite: 'h2', beaAtC1: 3, beaBoard: 0, danaBoard: 6, beaIsOathkeeper: true, seed: seedFor(defense, attack) }
-        const rolled = declare(table(scene), { targets: [siteTarget('c1')], attackDice: 6 }).updatedState
+        const scene = {
+            beaSite: 'h2',
+            beaAtC1: 3,
+            beaBoard: 0,
+            danaBoard: 6,
+            beaIsOathkeeper: true,
+            seed: seedFor(defense, attack)
+        }
+        const rolled = declare(table(scene), {
+            targets: [siteTarget('c1')],
+            attackDice: 6
+        }).updatedState
         const won = sacrifice(rolled, 0)
         expect(closing(won.processedActions).metadata?.attackerVictorious).toBe(true)
         const roll = rollOf(won.processedActions)
@@ -240,8 +332,18 @@ describe('R-5.5 — the closing step records the dice as rolled and how the defe
     it('no doubling rolled: the shields count as rolled, 3 shields + 3 warbands, a tie the defender wins', () => {
         const defense = [TWO_SHIELDS, SHIELD]
         const attack = [SWORD, SWORD, SWORD, SWORD, SWORD, SWORD]
-        const scene = { beaSite: 'h2', beaAtC1: 3, beaBoard: 0, danaBoard: 6, beaIsOathkeeper: true, seed: seedFor(defense, attack) }
-        const rolled = declare(table(scene), { targets: [siteTarget('c1')], attackDice: 6 }).updatedState
+        const scene = {
+            beaSite: 'h2',
+            beaAtC1: 3,
+            beaBoard: 0,
+            danaBoard: 6,
+            beaIsOathkeeper: true,
+            seed: seedFor(defense, attack)
+        }
+        const rolled = declare(table(scene), {
+            targets: [siteTarget('c1')],
+            attackDice: 6
+        }).updatedState
         const roll = rollOf(sacrifice(rolled, 0, onDanaBoard(3)).processedActions)
         expect(roll).toMatchObject({ swords: 6, skulls: 0, shields: 3, doubled: false, defense: 6 })
     })
@@ -250,18 +352,31 @@ describe('R-5.5 — the closing step records the dice as rolled and how the defe
         const defense = [SHIELD]
         const attack = [SWORD, SWORD, SWORD, SWORD]
         const scene = { beaSite: 'h2', beaAtC1: 0, beaBoard: 0, seed: seedFor(defense, attack) }
-        const rolled = declare(table(scene), { targets: [siteTarget('c1')], defender: { kind: 'bandits' } }).updatedState
+        const rolled = declare(table(scene), {
+            targets: [siteTarget('c1')],
+            defender: { kind: 'bandits' }
+        }).updatedState
         const bandits = ongoingCampaign(rolled).defendingBandits
         expect(bandits).toBeGreaterThan(0)
         const roll = rollOf(sacrifice(rolled, 0).processedActions)
-        expect(roll).toMatchObject({ swords: 4, shields: 1, doubled: false, defendingForce: [], defendingBandits: bandits, defense: 1 + bandits })
+        expect(roll).toMatchObject({
+            swords: 4,
+            shields: 1,
+            doubled: false,
+            defendingForce: [],
+            defendingBandits: bandits,
+            defense: 1 + bandits
+        })
     })
 
     it('a Campaign a plan decides rolls nothing, so the closing step records no roll', () => {
         // Control: the same Campaign rolled records its roll.
         expect(rollOf(sacrifice(declare(table()).updatedState, 3).processedActions)).toBeDefined()
         // Bea's Hearts and Minds makes them victorious, so Dana loses half their force; Peace Envoy kills none.
-        for (const [plan, kills] of [[HEARTS_AND_MINDS, onDanaBoard(2)], [PEACE_ENVOY, undefined]] as const) {
+        for (const [plan, kills] of [
+            [HEARTS_AND_MINDS, onDanaBoard(2)],
+            [PEACE_ENVOY, undefined]
+        ] as const) {
             const declared = declare(table({ c1: [plan] }))
             const decided = defend(declared.updatedState, [plan]).updatedState
             expect(ongoingCampaign(decided).decidedVictor).toBeDefined()
@@ -279,8 +394,15 @@ describe('R-X.3 — the recorded roll reveals nothing the table had not seen', (
         const record = closing(sacrifice(rolled, 3).processedActions)
         const roll = record.metadata?.roll
         expect(roll).toBeDefined()
-        for (const perspective of [{ kind: 'player', playerId: DANA }, { kind: 'player', playerId: BEA }, { kind: 'player', playerId: ANN }, { kind: 'spectator' }] as const) {
-            expect(OathVisibility.actions.project(record, perspective)).toMatchObject({ metadata: { roll } })
+        for (const perspective of [
+            { kind: 'player', playerId: DANA },
+            { kind: 'player', playerId: BEA },
+            { kind: 'player', playerId: ANN },
+            { kind: 'spectator' }
+        ] as const) {
+            expect(OathVisibility.actions.project(record, perspective)).toMatchObject({
+                metadata: { roll }
+            })
         }
         expect(roll).toMatchObject({
             attackFaces: shown?.attackRoll,
@@ -295,7 +417,9 @@ describe('R-X.3 — the recorded roll reveals nothing the table had not seen', (
     it('the attacker’s own served view closes the Campaign to the same record', () => {
         const rolled = declare(table()).updatedState
         const fromHost = rollOf(sacrifice(rolled, 3).processedActions)
-        const fromView = rollOf(sacrifice(served(rolled, { kind: 'player', playerId: DANA }), 3).processedActions)
+        const fromView = rollOf(
+            sacrifice(served(rolled, { kind: 'player', playerId: DANA }), 3).processedActions
+        )
         expect(fromHost).toBeDefined()
         expect(fromView).toEqual(fromHost)
     })

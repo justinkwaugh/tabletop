@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { copyFile, mkdir, readFile, utimes } from 'node:fs/promises'
 import path from 'node:path'
 import { LibraryService } from './libraryService.js'
@@ -24,6 +24,13 @@ async function fixture() {
     }
     return { ...fixture, options }
 }
+
+const titleLoads = (log: MockInstance<typeof console.log>) =>
+    log.mock.calls
+        .map(([line]) =>
+            typeof line === 'string' && line.startsWith('{') ? JSON.parse(line) : undefined
+        )
+        .filter((entry) => entry?.event === 'title_logic_load')
 
 const version = (library: LibraryService, titleId: string) =>
     library.getGeneration(titleId)?.definition.info.metadata.version
@@ -129,6 +136,63 @@ describe('Collectible title generations', () => {
         expect((await fromSources.getTitle(f.titleId))?.info.metadata.version).toBe('2.0.1')
         expect(warn).toHaveBeenCalledWith(expect.stringContaining('no collectible factory'))
         expect(await readFile(bundle, 'utf8')).toContain('2.0.0')
+    })
+
+    it('wraps the load of each changed title while the previous generation serves', async () => {
+        const f = await fixture()
+        const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+        const servingDuringLoads: (string | undefined)[] = []
+        const library = new LibraryService(RedisCacheService.prototype, {
+            ...f.options,
+            whileLoadingTitle: (load) => {
+                servingDuringLoads.push(version(library, f.titleId))
+                return load()
+            }
+        })
+        await library.getTitlesMap()
+        await f.publish(f.manifest('1.1.0'))
+        await library.refreshAndActivate()
+        const uiOnly = f.manifest('1.1.0')
+        uiOnly.games[0].uiVersion = '1.2.0'
+        await f.publish(uiOnly)
+        await library.refreshAndActivate()
+        expect((await library.getServedManifest()).games[0].uiVersion).toBe('1.2.0')
+        expect(servingDuringLoads).toEqual([undefined, '1.0.0'])
+        expect(titleLoads(log).at(-1)).toEqual({
+            severity: 'INFO',
+            event: 'title_logic_load',
+            message: `Title logic loaded: ${f.titleId} 1.1.0`,
+            outcome: 'loaded',
+            titleId: f.titleId,
+            logicVersion: '1.1.0',
+            locateMs: expect.any(Number),
+            readMs: expect.any(Number),
+            bytes: (
+                await readFile(path.join(f.directory, 'synthetic', 'logic', '1.1.0', 'index.cjs'))
+            ).byteLength,
+            evaluateMs: expect.any(Number)
+        })
+    })
+
+    it('logs the timings of a load that fails', async () => {
+        const f = await fixture()
+        const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+        vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const library = new LibraryService(RedisCacheService.prototype, f.options)
+        await library.getTitlesMap()
+        await f.publish(f.manifest('9.9.9'))
+        await expect(library.refreshAndActivate()).rejects.toThrow()
+        expect(titleLoads(log).at(-1)).toEqual({
+            severity: 'WARNING',
+            event: 'title_logic_load',
+            message: `Title logic failed: ${f.titleId} 9.9.9`,
+            outcome: 'failed',
+            titleId: f.titleId,
+            logicVersion: '9.9.9',
+            locateMs: expect.any(Number),
+            importMs: expect.any(Number)
+        })
     })
 
     it('does not reconstruct unchanged title code for UI-only publications', async () => {

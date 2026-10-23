@@ -13,7 +13,10 @@ export class DebouncedLayout {
     private saving = false
     private disposed = false
 
-    constructor(snapshot: () => { ready: boolean; key: string | undefined; value: unknown }, private persist: (value: unknown) => Promise<boolean>) {
+    constructor(
+        snapshot: () => { ready: boolean; key: string | undefined; value: unknown },
+        private persist: (value: unknown) => Promise<boolean>
+    ) {
         $effect(() => {
             const current = snapshot()
             if (!current.ready) {
@@ -47,7 +50,10 @@ export class DebouncedLayout {
                 this.ready = true
             })
         })
-        $effect(() => () => { this.disposed = true; clearTimeout(this.timer) })
+        $effect(() => () => {
+            this.disposed = true
+            clearTimeout(this.timer)
+        })
     }
 
     change = (value: unknown) => {
@@ -62,12 +68,21 @@ export class DebouncedLayout {
 
     private schedule() {
         clearTimeout(this.timer)
-        this.timer = setTimeout(() => { void this.save() }, 3000)
+        this.timer = setTimeout(() => {
+            void this.save()
+        }, 3000)
     }
 
     private backup() {
         if (!this.key) return
-        try { localStorage.setItem(this.key, JSON.stringify({ base: this.baseline, value: this.value })) } catch { /* Storage can be disabled by the browser. */ }
+        try {
+            localStorage.setItem(
+                this.key,
+                JSON.stringify({ base: this.baseline, value: this.value })
+            )
+        } catch {
+            /* Storage can be disabled by the browser. */
+        }
     }
 
     private recover() {
@@ -76,13 +91,21 @@ export class DebouncedLayout {
             const raw = localStorage.getItem(this.key)
             if (!raw) return
             const draft: unknown = JSON.parse(raw)
-            if (draft && typeof draft === 'object' && 'base' in draft && 'value' in draft && JSON.stringify(draft.base) === JSON.stringify(this.baseline)) {
+            if (
+                draft &&
+                typeof draft === 'object' &&
+                'base' in draft &&
+                'value' in draft &&
+                JSON.stringify(draft.base) === JSON.stringify(this.baseline)
+            ) {
                 this.value = draft.value
                 this.dirty = true
                 this.status = 'unsaved'
                 this.schedule()
             } else localStorage.removeItem(this.key)
-        } catch { /* Ignore corrupt or unavailable recovery storage. */ }
+        } catch {
+            /* Ignore corrupt or unavailable recovery storage. */
+        }
     }
 
     save = async () => {
@@ -95,7 +118,11 @@ export class DebouncedLayout {
         this.saving = true
         this.status = 'saving'
         let saved = false
-        try { saved = await this.persist(value) } catch { saved = false }
+        try {
+            saved = await this.persist(value)
+        } catch {
+            saved = false
+        }
         if (this.disposed || epoch !== this.epoch || key !== this.key) return
         this.saving = false
         if (saved) this.baseline = value
@@ -105,10 +132,21 @@ export class DebouncedLayout {
             this.schedule()
             return
         }
-        if (!saved) { this.status = 'error'; return }
+        if (!saved) {
+            this.status = 'error'
+            return
+        }
         this.dirty = false
         this.status = 'saved'
-        if (key) { try { localStorage.removeItem(key) } catch { /* Optional recovery storage. */ } }
-        this.timer = setTimeout(() => { this.status = '' }, 2500)
+        if (key) {
+            try {
+                localStorage.removeItem(key)
+            } catch {
+                /* Optional recovery storage. */
+            }
+        }
+        this.timer = setTimeout(() => {
+            this.status = ''
+        }, 2500)
     }
 }

@@ -23,8 +23,7 @@ ETags include the account, scopes, record revisions, and loaded schema versions.
 
 `POST /api/v1/game/:titleId/updateTitlePreferences` requires `If-Match` and a scope, schema version, `set`
 object, and `unset` array. Firestore checks both revisions and changes the selected
-record in one transaction. Missing preconditions return 428; stale ones return
-412. The successful response includes both records and the new ETag, so no extra
+record in one transaction. Missing preconditions return 428; stale ones return 412. The successful response includes both records and the new ETag, so no extra
 GET is needed to reflect a successful write.
 
 Documents live under `users/:userId/preferences/:encodedScope`, using `title:ID`

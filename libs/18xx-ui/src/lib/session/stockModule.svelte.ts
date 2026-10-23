@@ -68,8 +68,7 @@ export class StockModule implements LocalSelection {
     constructor(
         private readonly session: StockSession,
         private readonly onCancel: () => void,
-        private readonly exchangeAvailable: () => boolean = () => false,
-        private readonly additionalMenuCount: () => number = () => 0
+        private readonly exchangeAvailable: () => boolean = () => false
     ) {}
 
     private trading = $derived.by(
@@ -93,20 +92,9 @@ export class StockModule implements LocalSelection {
         if (this.privateChoices.length) choices.push({ menu: 'privates' })
         return choices
     })
-    private menuSelection = $derived.by(() => {
-        if (!this.trading) return undefined
-        const selected = this.menu.entry('action')
-        if (selected) return selected
-        if (
-            !this.session.interactive ||
-            !this.session.playerId ||
-            !this.session.state.activePlayerIds.includes(this.session.playerId) ||
-            this.additionalMenuCount() ||
-            this.availableMenus.length !== 1
-        )
-            return undefined
-        return { value: this.availableMenus[0], source: 'auto' as const }
-    })
+    private menuSelection = $derived.by(() =>
+        this.trading ? this.menu.entry('action') : undefined
+    )
     openMenu = $derived.by(() => this.menuSelection?.value.menu)
     menuBuyer = $derived.by(() => this.menuSelection?.value.buyer)
     selectedSaleCompany = $derived.by(() => this.menu.value('saleCompany'))

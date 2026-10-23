@@ -53,7 +53,7 @@ describe('revealsInfo — R-X.3, the field undo is derived from', () => {
             playerId: 'p1',
             defender: { kind: 'player', playerId: 'p2' },
             targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
-            attackDice: 2,
+            attackDice: 2
         })
         const action = serverApply(state, vault, raw, HydratedCampaign)
 
@@ -95,12 +95,7 @@ describe('revealsInfo — R-X.3, the field undo is derived from', () => {
             playerId: 'p1',
             target: { kind: RecoverTargetKind.Relic, slotId: 'c1-r1' }
         })
-        const relic = serverApply(
-            relicBoard.state,
-            relicBoard.vault,
-            relicRaw,
-            HydratedRecover
-        )
+        const relic = serverApply(relicBoard.state, relicBoard.vault, relicRaw, HydratedRecover)
         expect(relic.revealsInfo).toBe(true)
 
         const bannerBoard = board({
@@ -117,12 +112,7 @@ describe('revealsInfo — R-X.3, the field undo is derived from', () => {
             // R-5.4.4 — the player names the bank the displaced favor leaves from.
             redistributeFrom: Suit.Discord
         })
-        const banner = serverApply(
-            bannerBoard.state,
-            bannerBoard.vault,
-            bannerRaw,
-            HydratedRecover
-        )
+        const banner = serverApply(bannerBoard.state, bannerBoard.vault, bannerRaw, HydratedRecover)
         expect(banner.revealsInfo).toBeFalsy()
     })
 

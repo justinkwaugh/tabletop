@@ -33,7 +33,8 @@ async function boxOf(locator: Locator) {
 const panel = (page: Page) => page.locator('.panel')
 const line = (page: Page) => panel(page).locator('.question-line')
 const form = (page: Page) => panel(page).locator('.question-form')
-const bankButtons = (page: Page) => panel(page).getByRole('button', { name: /^\+\d+ favor from the / })
+const bankButtons = (page: Page) =>
+    panel(page).getByRole('button', { name: /^\+\d+ favor from the / })
 const bankButton = (page: Page, gain: number, suit: string) =>
     panel(page).getByRole('button', { name: `+${gain} favor from the ${suit} bank`, exact: true })
 const history = (page: Page) => page.locator('.history')
@@ -54,7 +55,9 @@ const SIZES = [
 
 async function shot(page: Page, name: string, phone: boolean) {
     await page.mouse.move(2, 2)
-    await panel(page).screenshot({ path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`) })
+    await panel(page).screenshot({
+        path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`)
+    })
 }
 
 for (const { name, viewport, phone } of SIZES) {
@@ -65,21 +68,24 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`Gambling Hall's bank after the roll, on a ${name}`, () => {
         test.use({ viewport, hasTouch: phone })
 
-        test('the picture, "Rolled 6 shields:", the four faces, "Gain 6 [favor] from:" and one label-sized button per bank with favor', async ({ page }) => {
+        test('the picture, "Rolled 6 shields:", the four faces, "Gain 6 [favor] from:" and one label-sized button per bank with favor', async ({
+            page
+        }) => {
             await openTable(page, 'gamblingHallAsked')
             await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('Dana')
             await expect(panel(page).getByRole('heading', { name: 'Gambling Hall' })).toBeVisible()
-            await expect(form(page).getByRole('img', { name: 'Gambling Hall' }).first()).toBeVisible()
+            await expect(
+                form(page).getByRole('img', { name: 'Gambling Hall' }).first()
+            ).toBeVisible()
             await expect(line(page)).toHaveText(/^\s*Rolled 6 shields:\s*$/)
             const dice = form(page).locator('.die img')
             await expect(dice).toHaveCount(4)
-            expect(await dice.evaluateAll((images) => images.map((image) => image.getAttribute('alt')))).toEqual([
-                '1 shield',
-                '2 shields',
-                'Blank',
-                'Doubles the shields rolled'
-            ])
-            const gain = form(page).locator('p').filter({ hasText: /^\s*Gain\s*6\s*from:\s*$/ })
+            expect(
+                await dice.evaluateAll((images) => images.map((image) => image.getAttribute('alt')))
+            ).toEqual(['1 shield', '2 shields', 'Blank', 'Doubles the shields rolled'])
+            const gain = form(page)
+                .locator('p')
+                .filter({ hasText: /^\s*Gain\s*6\s*from:\s*$/ })
             await expect(gain).toBeVisible()
             await expect(gain.locator('img[alt="favor"]')).toHaveCount(1)
             await expect(bankButtons(page)).toHaveCount(GAINS.length)
@@ -89,7 +95,9 @@ for (const { name, viewport, phone } of SIZES) {
                 const button = bankButton(page, count, suit)
                 await expect(button).toBeVisible()
                 await expect(button).toContainText(`+${count}`)
-                const overflow = await button.evaluate((element) => element.scrollWidth - element.clientWidth)
+                const overflow = await button.evaluate(
+                    (element) => element.scrollWidth - element.clientWidth
+                )
                 expect(overflow).toBeLessThanOrEqual(0)
                 boxes.push(await boxOf(button))
             }
@@ -100,17 +108,23 @@ for (const { name, viewport, phone } of SIZES) {
                 expect(box.width).toBeLessThan(formBox.width / 2)
                 if (phone) expect(box.height).toBeGreaterThanOrEqual(44)
             }
-            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+            const overflow = await page.evaluate(
+                () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+            )
             expect(overflow).toBeLessThanOrEqual(0)
             await shot(page, 'gambling-hall-bank', phone)
         })
 
-        test('one tap on "+4 [favor] [order]" takes 4 favor from the Order bank and closes the question', async ({ page }) => {
+        test('one tap on "+4 [favor] [order]" takes 4 favor from the Order bank and closes the question', async ({
+            page
+        }) => {
             await openTable(page, 'gamblingHallAsked')
             await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('Dana')
             const before = (await call(page, 'tableFacts')).favorOf.Dana
             await bankButton(page, 4, 'Order').click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.Dana).toBe(before + 4)
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).favorOf.Dana)
+                .toBe(before + 4)
             await expect(bankButtons(page)).toHaveCount(0)
         })
 
@@ -121,7 +135,9 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(bankButtons(page)).toHaveCount(0)
         })
 
-        test('with Jinx, its reroll comes first in today’s words; Keep then asks the bank', async ({ page }) => {
+        test('with Jinx, its reroll comes first in today’s words; Keep then asks the bank', async ({
+            page
+        }) => {
             await openTable(page, 'gamblingHallJinx')
             await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('Dana')
             await expect(line(page)).toHaveText('Reroll the Gambling Hall dice? Now 6 shields.')
@@ -140,7 +156,9 @@ test.describe('the History of Gambling Hall, on a desktop at 1280', () => {
         await bankButton(page, 4, 'Order').click()
         await expect(bankButtons(page)).toHaveCount(0)
         await page.getByRole('tab', { name: 'History' }).click()
-        await expect(history(page)).toContainText(/used Gambling Hall, placing 2\s*on it: rolled 6 shields/)
+        await expect(history(page)).toContainText(
+            /used Gambling Hall, placing 2\s*on it: rolled 6 shields/
+        )
         // The bank is its suit's mark, "the Order bank" its alt, and favor its token.
         const gained = history(page).getByText(/gained 4\s*from\s*\(Gambling Hall\)/)
         await expect(gained).toBeVisible()

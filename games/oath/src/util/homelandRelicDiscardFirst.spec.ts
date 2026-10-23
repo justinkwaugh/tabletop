@@ -1,17 +1,31 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { HydratedSearchResolve, SearchPlay, SearchResolve, type SearchResolveChoice } from '../actions/searchResolve.js'
+import {
+    HydratedSearchResolve,
+    SearchPlay,
+    SearchResolve,
+    type SearchResolveChoice
+} from '../actions/searchResolve.js'
 import { HydratedPlayFacedownAdviser, PlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
 import { HydratedRecover, Recover, RecoverTargetKind } from '../actions/recover.js'
 import { Campaign, HydratedCampaign } from '../actions/campaign.js'
 import { CampaignSacrifice, HydratedCampaignSacrifice } from '../actions/campaignSacrifice.js'
-import { CampaignResolveVictory, HydratedCampaignResolveVictory } from '../actions/campaignResolveVictory.js'
+import {
+    CampaignResolveVictory,
+    HydratedCampaignResolveVictory
+} from '../actions/campaignResolveVictory.js'
 import { CompleteRest, HydratedCompleteRest } from '../actions/completeRest.js'
 import { HydratedPeek, Peek, PeekTargetKind } from '../actions/peek.js'
 import { CampaignTargetKind, type CampaignTarget } from '../model/campaign.js'
 import { Banner } from '../model/oathEnums.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
-import { openTurn, testPlayer, testState, testVaultWithRelics, withChancellor } from '../testing/fixture.js'
+import {
+    openTurn,
+    testPlayer,
+    testState,
+    testVaultWithRelics,
+    withChancellor
+} from '../testing/fixture.js'
 import { buildAction, defendingSideChooses } from '../testing/actions.js'
 import { battlePlanUse } from '../testing/choices.js'
 import { ongoingCampaign } from '../testing/required.js'
@@ -32,17 +46,46 @@ const SLOT = 'c2-r1'
  * discarded there this turn), holding the People's Favor, with Rangers drawn; Wolves, a Beast card, stands at c2 beside
  * the Wayside Inn (c2 holds two), and the relic in c2's slot is facedown in the vault. Bea, at c2, holds Relic Hunter faceup.
  */
-function table(revision: OathRevision = OathRevision.EngineFixes12, c2: string[] = [WOLVES, INN], dana: Record<string, unknown> = {}) {
+function table(
+    revision: OathRevision = OathRevision.EngineFixes12,
+    c2: string[] = [WOLVES, INN],
+    dana: Record<string, unknown> = {}
+) {
     const s = testState(
         withChancellor([
-            testPlayer({ playerId: 'dana', color: Color.Red, siteId: 'c2', favor: 6, secrets: 4, supply: 6, warbandsOnBoard: { dana: 3 }, handIds: [RANGERS, FILLER], ...dana }),
-            testPlayer({ playerId: 'bea', color: Color.Blue, siteId: 'c2', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { bea: 4 }, warbandsInPersonalBank: { bea: 6 }, advisers: [{ cardId: HUNTER, faceUp: true }] })
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: 'c2',
+                favor: 6,
+                secrets: 4,
+                supply: 6,
+                warbandsOnBoard: { dana: 3 },
+                handIds: [RANGERS, FILLER],
+                ...dana
+            }),
+            testPlayer({
+                playerId: 'bea',
+                color: Color.Blue,
+                siteId: 'c2',
+                favor: 4,
+                secrets: 3,
+                supply: 6,
+                warbandsOnBoard: { bea: 4 },
+                warbandsInPersonalBank: { bea: 6 },
+                advisers: [{ cardId: HUNTER, faceUp: true }]
+            })
         ]),
         {
             oathRevision: revision,
             denizensBySite: { c1: [], c2, p1: [], h1: [] },
             warbandsBySite: { c2: { dana: 1 } },
-            siteCards: { c1: 'site.plains', c2: 'site.deep-woods', p1: 'site.marshes', h1: 'site.mountain' },
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.deep-woods',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            },
             relicsBySite: { c2: [{ slotId: SLOT }] },
             vault: testVaultWithRelics({ [SLOT]: RELIC })
         }
@@ -52,7 +95,12 @@ function table(revision: OathRevision = OathRevision.EngineFixes12, c2: string[]
     return s
 }
 
-const rangersPlay = (first?: string): SearchResolveChoice => ({ keptCardId: RANGERS, discardOrder: [FILLER], play: SearchPlay.Site, ...(first ? { discardFirstCardId: first } : {}) })
+const rangersPlay = (first?: string): SearchResolveChoice => ({
+    keptCardId: RANGERS,
+    discardOrder: [FILLER],
+    play: SearchPlay.Site,
+    ...(first ? { discardFirstCardId: first } : {})
+})
 
 function resolve(s: HydratedOathGameState, choice: SearchResolveChoice) {
     expect(HydratedSearchResolve.reasonCannotResolve(s, 'dana', choice)).toBeUndefined()
@@ -87,8 +135,18 @@ describe('a relic Homeland keeps its relic when a card of its suit is discarded 
     })
 
     it('a facedown Rangers turned faceup there (R-6.1) with the same discard first leaves the relic too', () => {
-        const s = table(OathRevision.EngineFixes12, [WOLVES, INN], { handIds: [], advisers: [{ cardId: RANGERS, faceUp: false }] })
-        const a = new HydratedPlayFacedownAdviser(buildAction(PlayFacedownAdviser, { playerId: 'dana', cardId: RANGERS, play: SearchPlay.Site, discardFirstCardId: WOLVES }))
+        const s = table(OathRevision.EngineFixes12, [WOLVES, INN], {
+            handIds: [],
+            advisers: [{ cardId: RANGERS, faceUp: false }]
+        })
+        const a = new HydratedPlayFacedownAdviser(
+            buildAction(PlayFacedownAdviser, {
+                playerId: 'dana',
+                cardId: RANGERS,
+                play: SearchPlay.Site,
+                discardFirstCardId: WOLVES
+            })
+        )
         expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'dana', a)).toBeUndefined()
         a.apply(s)
         expect(relicState(s)).toEqual(stays)
@@ -113,7 +171,9 @@ describe('a relic Homeland keeps its relic when a card of its suit is discarded 
         const first = [siteDiscardLedgerKey(s, WOLVES) ?? '']
         expect(homelandPowerFor(s, 'dana', 'c2', RANGERS, first)?.barred).toBe(true)
         expect(homelandRelicSlot(s, 'dana', RANGERS, 'c2', WOLVES)).toBeUndefined()
-        expect(homelandPowerFor(s, 'dana', 'c2', RANGERS, [siteDiscardLedgerKey(s, INN) ?? ''])?.barred).toBe(false)
+        expect(
+            homelandPowerFor(s, 'dana', 'c2', RANGERS, [siteDiscardLedgerKey(s, INN) ?? ''])?.barred
+        ).toBe(false)
         expect(homelandRelicSlot(s, 'dana', RANGERS, 'c2', INN)).toBe(SLOT)
     })
 
@@ -131,15 +191,35 @@ describe('a relic Homeland keeps its relic when a card of its suit is discarded 
             const s = table()
             resolve(s, rangersPlay(WOLVES))
             openTurn(s, 'bea')
-            const targets: CampaignTarget[] = [{ kind: CampaignTargetKind.Site, siteId: 'c2' }, { kind: CampaignTargetKind.SiteRelic, slotId: SLOT }]
-            const choice = { defender: { kind: 'player' as const, playerId: 'dana' }, targets, attackDice: 3, plans: [battlePlanUse(HUNTER)] }
+            const targets: CampaignTarget[] = [
+                { kind: CampaignTargetKind.Site, siteId: 'c2' },
+                { kind: CampaignTargetKind.SiteRelic, slotId: SLOT }
+            ]
+            const choice = {
+                defender: { kind: 'player' as const, playerId: 'dana' },
+                targets,
+                attackDice: 3,
+                plans: [battlePlanUse(HUNTER)]
+            }
             expect(HydratedCampaign.reasonCannotCampaign(s, 'bea', choice)).toBeUndefined()
             new HydratedCampaign(buildAction(Campaign, { playerId: 'bea', ...choice })).apply(s)
             ongoingCampaign(s).swords = 9
             ongoingCampaign(s).defense = 0
-            new HydratedCampaignSacrifice(buildAction(CampaignSacrifice, { playerId: 'bea', sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) })).apply(s)
+            new HydratedCampaignSacrifice(
+                buildAction(CampaignSacrifice, {
+                    playerId: 'bea',
+                    sacrifice: 0,
+                    defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0)
+                })
+            ).apply(s)
             defendingSideChooses(s)
-            new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'bea', placements: [], burnFavor: false })).apply(s)
+            new HydratedCampaignResolveVictory(
+                buildAction(CampaignResolveVictory, {
+                    playerId: 'bea',
+                    placements: [],
+                    burnFavor: false
+                })
+            ).apply(s)
             expect(s.getPlayerState('bea').relicIds).toContain(RELIC)
         })
 

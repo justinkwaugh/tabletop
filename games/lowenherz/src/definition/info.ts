@@ -1,4 +1,3 @@
-
 import type { GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 import { lowenherzConfigurator } from './configurator.js'

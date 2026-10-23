@@ -1,6 +1,5 @@
 <script lang="ts">
     import { assert } from '@tabletop/common'
-    import { tableHeaderState } from './tableHeaderState.js'
     import { currentRoundHeading } from './roundHeading.js'
     import { isHistoryBookkeeping } from './historyNavigation.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
@@ -46,7 +45,7 @@
         for (const element of [header, phase, turn]) observer.observe(element)
         return { destroy: () => observer.disconnect() }
     }
-    const gameState = $derived(tableHeaderState(session))
+    const gameState = $derived(session.gameState)
     const titleRounds = $derived(session.presentation.titleRounds)
     const opening = $derived(
         session.presentation.openingRound?.inProgress(gameState)
@@ -68,9 +67,9 @@
     const company = $derived(gameState.companies.find((company) => company.id === companyId))
     const turnPlayerIds = $derived.by(() => {
         if (!session.isViewingHistory) return gameState.activePlayerIds
-        const actorId = session.history.visibleContext.actions.findLast(
-            (action) => !isHistoryBookkeeping(action)
-        )?.playerId
+        const actorId = session.actions
+            .slice(0, gameState.actionCount)
+            .findLast((action) => !isHistoryBookkeeping(action))?.playerId
         return actorId ? [actorId] : gameState.activePlayerIds
     })
 </script>

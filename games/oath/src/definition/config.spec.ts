@@ -21,15 +21,23 @@ describe('OathGameConfigOptions — the lobby configurator', () => {
     })
 
     it('offers the random deck only', () => {
-        const deckOption = required(OathGameConfigOptions.find((option) => option.id === 'setupVariant'), 'the deck option')
+        const deckOption = required(
+            OathGameConfigOptions.find((option) => option.id === 'setupVariant'),
+            'the deck option'
+        )
         expect(isListConfigOption(deckOption)).toBe(true)
         if (isListConfigOption(deckOption)) {
-            expect(deckOption.options.map((option) => option.value)).toEqual([SetupVariant.Randomized])
+            expect(deckOption.options.map((option) => option.value)).toEqual([
+                SetupVariant.Randomized
+            ])
         }
     })
 
     it('offers every Oath', () => {
-        const oathOption = required(OathGameConfigOptions.find((option) => option.id === 'oathType'), 'the Oath option')
+        const oathOption = required(
+            OathGameConfigOptions.find((option) => option.id === 'oathType'),
+            'the Oath option'
+        )
         expect(isListConfigOption(oathOption)).toBe(true)
         if (isListConfigOption(oathOption)) {
             expect(new Set(oathOption.options.map((option) => option.value))).toEqual(
@@ -47,7 +55,11 @@ describe('OathGameConfigOptions — the lobby configurator', () => {
 
     const casesByOptionId = OathGameConfigOptions.flatMap((option) =>
         isListConfigOption(option)
-            ? option.options.map((choice) => ({ id: option.id, name: choice.name, value: choice.value }))
+            ? option.options.map((choice) => ({
+                  id: option.id,
+                  name: choice.name,
+                  value: choice.value
+              }))
             : []
     )
 
@@ -62,7 +74,9 @@ describe('OathGameConfigOptions — the lobby configurator', () => {
 /** DESIGN, configuration compatibility — a stored setup still waiting to start may carry the retired fixed deck. */
 describe('normalizeOathConfig — stored configuration', () => {
     it('a stored setup naming the retired fixed deck starts with a random one, its Oath kept', () => {
-        expect(normalizeOathConfig({ setupVariant: 'curated', oathType: OathType.Protection })).toEqual({
+        expect(
+            normalizeOathConfig({ setupVariant: 'curated', oathType: OathType.Protection })
+        ).toEqual({
             setupVariant: SetupVariant.Randomized,
             oathType: OathType.Protection
         })
@@ -78,8 +92,12 @@ describe('normalizeOathConfig — stored configuration', () => {
     })
 
     it('rejects a value no version ever stored, rather than defaulting it', () => {
-        expect(() => normalizeOathConfig({ setupVariant: 'shuffled' })).toThrow(/Not an Oath configuration/)
-        expect(() => normalizeOathConfig({ oathType: 'conquest' })).toThrow(/Not an Oath configuration/)
+        expect(() => normalizeOathConfig({ setupVariant: 'shuffled' })).toThrow(
+            /Not an Oath configuration/
+        )
+        expect(() => normalizeOathConfig({ oathType: 'conquest' })).toThrow(
+            /Not an Oath configuration/
+        )
     })
 
     it('starting a waiting game whose stored setup names it deals a random deck, through the runtime', () => {

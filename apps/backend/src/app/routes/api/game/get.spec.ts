@@ -126,18 +126,21 @@ describe('GET /get/:gameId', () => {
         ['/get/game-1', 'W/"player-1-revision-1"', 'full'],
         ['/get/game-1', 'W/"player-1-revision-1:state-only"', 'full'],
         ['/get/game-1?includeActions=false', 'W/"player-1-revision-1:state"', 'state-only']
-    ])('refreshes incompatible cached representations for %s with %s', async (url, etag, suffix) => {
-        const { server, getGameForUser } = await createServer(playerPerspective)
-        servers.add(server)
-        const response = await server.inject({
-            method: 'GET',
-            url,
-            headers: { 'if-none-match': etag }
-        })
-        expect(response.statusCode).toBe(200)
-        expect(response.headers.etag).toBe(`W/"player-1-revision-1:${suffix}"`)
-        expect(getGameForUser).toHaveBeenCalledOnce()
-    })
+    ])(
+        'refreshes incompatible cached representations for %s with %s',
+        async (url, etag, suffix) => {
+            const { server, getGameForUser } = await createServer(playerPerspective)
+            servers.add(server)
+            const response = await server.inject({
+                method: 'GET',
+                url,
+                headers: { 'if-none-match': etag }
+            })
+            expect(response.statusCode).toBe(200)
+            expect(response.headers.etag).toBe(`W/"player-1-revision-1:${suffix}"`)
+            expect(getGameForUser).toHaveBeenCalledOnce()
+        }
+    )
 
     it.each([
         {
@@ -152,7 +155,12 @@ describe('GET /get/:gameId', () => {
             statusCode: 200,
             spans: ['game.load.etag', 'game.load.representation']
         },
-        { etag: 'W/"revision-1:full"', validator: 'matched', statusCode: 304, spans: ['game.load.etag'] }
+        {
+            etag: 'W/"revision-1:full"',
+            validator: 'matched',
+            statusCode: 304,
+            spans: ['game.load.etag']
+        }
     ])(
         'reports the work performed for a $statusCode game load',
         async ({ etag, validator, statusCode, spans }) => {

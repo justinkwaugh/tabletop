@@ -10,7 +10,8 @@ describe('ResendEmailService', () => {
         const emails: Resend['emails'] = Reflect.get(Reflect.get(service, 'resend'), 'emails')
         const send = vi.spyOn(emails, 'send').mockResolvedValue({
             data: { id: 'email-1' },
-            error: null
+            error: null,
+            headers: null
         })
         await service.sendVerificationEmail('verification-token', 'player@example.com')
         expect(send).toHaveBeenCalledWith(

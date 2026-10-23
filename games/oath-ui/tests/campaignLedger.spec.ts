@@ -4,7 +4,9 @@ import type * as TableFixture from '../src/lib/testing/tableFixture.js'
 async function openTable(page: Page, name: TableFixture.TableName) {
     await page.goto('/')
     await page.evaluate(async (name) => {
-        const fixture = await import(new URL('/src/lib/testing/tableFixture.ts', location.href).href)
+        const fixture = await import(
+            new URL('/src/lib/testing/tableFixture.ts', location.href).href
+        )
         return fixture.open(name)
     }, name)
 }
@@ -34,26 +36,36 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`a Campaign's ledger in History, on a ${name}`, () => {
         test.use({ viewport, hasTouch: phone })
 
-        test('the "Campaign won" card: the result, each side, the dice as rolled and the defense made up', async ({ page }) => {
+        test('the "Campaign won" card: the result, each side, the dice as rolled and the defense made up', async ({
+            page
+        }) => {
             await openTable(page, 'campaignLedger')
             await page.getByRole('tab', { name: 'History' }).click()
             await expect(card(page)).toHaveCount(1)
             await expect(card(page)).toHaveAttribute('data-major-event', 'campaignWon')
-            await expect(ledger(page)).toContainText(/you\s*against\s*Rhys\s*at Plains: 10 attack to 9 defense\./i)
+            await expect(ledger(page)).toContainText(
+                /you\s*against\s*Rhys\s*at Plains: 10 attack to 9 defense\./i
+            )
             await expect(ledger(page)).toContainText('10 (Plains +1); 9 rolled (Bear Traps −1):')
             await expect(ledger(page)).toContainText('5 (Plains 1, Cup of Plenty 2, pawn 2):')
             await expect(ledger(page)).toContainText(/3\s* doubled to 6, \+ 3\s*: 9 defense/)
             await expect(ledger(page)).toContainText(/Bear Traps: killed 1\s*on\s*your\s*board/)
-            await expect(ledger(page)).toContainText(/4\s*: 2 to skulls, 1 to Bear Traps, 1 sacrificed/)
+            await expect(ledger(page)).toContainText(
+                /4\s*: 2 to skulls, 1 to Bear Traps, 1 sacrificed/
+            )
             await expect(ledger(page)).toContainText(/Plains \(2\s*placed\), Cup of Plenty, 3/)
             // R-5.5.6 — nobody was asked to pick the loss; the force as rolled says where it fell.
-            await expect(ledger(page)).toContainText(/1\s*killed at Plains, Plains, Cup of Plenty, 2\s*; banished to River/)
+            await expect(ledger(page)).toContainText(
+                /1\s*killed at Plains, Plains, Cup of Plenty, 2\s*; banished to River/
+            )
             await expect(ledger(page).locator('.campaign-ledger__die')).toHaveCount(14)
             await expect(card(page).getByRole('button')).toHaveCount(0)
             await expect(card(page)).not.toContainText('From')
         })
 
-        test('every step stays a row below the card, the spoils too, unfolded', async ({ page }) => {
+        test('every step stays a row below the card, the spoils too, unfolded', async ({
+            page
+        }) => {
             await openTable(page, 'campaignLedger')
             await page.getByRole('tab', { name: 'History' }).click()
             await expect(card(page)).toBeVisible()
@@ -67,12 +79,17 @@ for (const { name, viewport, phone } of SIZES) {
                 at(/used Bear Traps; 9 swords against 9 defense;\s*you\s*lost 2\s*to skulls/i),
                 at(/campaigned against/)
             ]
-            expect(order.every((index) => index >= 0), texts.join(' | ')).toBe(true)
+            expect(
+                order.every((index) => index >= 0),
+                texts.join(' | ')
+            ).toBe(true)
             expect([...order].sort((a, b) => a - b)).toEqual(order)
             await expect(history(page).getByRole('button', { name: /steps/i })).toHaveCount(0)
         })
 
-        test('History stays 320 px wide and nothing in it runs past its edge or the screen', async ({ page }) => {
+        test('History stays 320 px wide and nothing in it runs past its edge or the screen', async ({
+            page
+        }) => {
             await openTable(page, 'campaignLedger')
             await page.getByRole('tab', { name: 'History' }).click()
             await expect(ledger(page)).toBeVisible()
@@ -81,27 +98,43 @@ for (const { name, viewport, phone } of SIZES) {
             expect(Math.round(panel.width)).toBe(320)
             const edge = panel.x + panel.width
             for (const part of await ledger(page).locator('*').all()) {
-                if (await part.isVisible()) expect(await rightOf(part)).toBeLessThanOrEqual(edge + 0.5)
+                if (await part.isVisible())
+                    expect(await rightOf(part)).toBeLessThanOrEqual(edge + 0.5)
             }
-            const overflowing = await history(page).evaluate((element) =>
-                [...element.querySelectorAll('*')].filter(
-                    (child) => child.scrollWidth > child.clientWidth + 1 && getComputedStyle(child).overflowX !== 'visible'
-                ).length
+            const overflowing = await history(page).evaluate(
+                (element) =>
+                    [...element.querySelectorAll('*')].filter(
+                        (child) =>
+                            child.scrollWidth > child.clientWidth + 1 &&
+                            getComputedStyle(child).overflowX !== 'visible'
+                    ).length
             )
             expect(overflowing).toBe(0)
-            expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width)
-            await history(page).screenshot({ path: test.info().outputPath(`campaign-ledger-${name}.png`) })
+            expect(
+                await page.evaluate(() => document.documentElement.scrollWidth)
+            ).toBeLessThanOrEqual(viewport.width)
+            await history(page).screenshot({
+                path: test.info().outputPath(`campaign-ledger-${name}.png`)
+            })
         })
 
-        test('R-5.5.6.a — losses Rhys picked read where they were killed, on the card and the row', async ({ page }) => {
+        test('R-5.5.6.a — losses Rhys picked read where they were killed, on the card and the row', async ({
+            page
+        }) => {
             await openTable(page, 'campaignLedgerPicked')
             await page.getByRole('tab', { name: 'History' }).click()
-            await expect(ledger(page)).toContainText(/1\s*killed at Plains, Plains, Cup of Plenty, 2\s*; banished to River/)
+            await expect(ledger(page)).toContainText(
+                /1\s*killed at Plains, Plains, Cup of Plenty, 2\s*; banished to River/
+            )
             await expect(ledger(page).locator('.campaign-ledger__die')).toHaveCount(0)
-            await expect(history(page)).toContainText(/picked the defense's losses: 1\s*killed at Plains/)
+            await expect(history(page)).toContainText(
+                /picked the defense's losses: 1\s*killed at Plains/
+            )
         })
 
-        test('a lost Campaign: the "Campaign lost" card with the attacker’s losses, its sacrifice a row below', async ({ page }) => {
+        test('a lost Campaign: the "Campaign lost" card with the attacker’s losses, its sacrifice a row below', async ({
+            page
+        }) => {
             await openTable(page, 'campaignLedgerLost')
             await page.getByRole('tab', { name: 'History' }).click()
             await expect(card(page)).toHaveAttribute('data-major-event', 'campaignLost')

@@ -10,7 +10,8 @@
     import type { PlayerCompanyCardData } from '$lib/utils/playerCompanyCards.js'
     import { CompanyType, Era, Good } from '@tabletop/indonesia'
 
-    let { card, unavailable = false }: { card: PlayerCompanyCardData; unavailable?: boolean } = $props()
+    let { card, unavailable = false }: { card: PlayerCompanyCardData; unavailable?: boolean } =
+        $props()
     const SIMPLE_SHIP_ICON_COLOR = '#216e7a'
 
     const cardKind: CompanyCardType = $derived.by(() => {
@@ -60,7 +61,6 @@
 
         return `profit ${card.lastOperationProfit}`
     })
-
 </script>
 
 <article
@@ -93,30 +93,32 @@
                 {#if upcomingShippingEraEntry !== null}
                     <div class="company-mini-upcoming-era-limit">
                         <span class="company-mini-era-pair">
-                            <span class="company-mini-era-letter">{upcomingShippingEraEntry.era}</span>
-                            <span class="company-mini-era-number">{upcomingShippingEraEntry.max}</span>
+                            <span class="company-mini-era-letter"
+                                >{upcomingShippingEraEntry.era}</span
+                            >
+                            <span class="company-mini-era-number"
+                                >{upcomingShippingEraEntry.max}</span
+                            >
                         </span>
                     </div>
                 {/if}
+            {:else if isSiapSajiProductionCard}
+                <SimpleSiapSajiIcon
+                    class="company-mini-icon company-mini-icon-siapsaji"
+                    fill={deedStyle.textColor}
+                />
+            {:else if card.good === Good.Rice}
+                <SimpleRiceIcon class="company-mini-icon" fill={deedStyle.textColor} />
+            {:else if card.good === Good.Spice}
+                <SimpleSpiceIcon class="company-mini-icon" fill={deedStyle.textColor} />
+            {:else if card.good === Good.Rubber}
+                <SimpleRubberIcon
+                    class="company-mini-icon"
+                    baseFill={deedStyle.textColor}
+                    coreFill={deedStyle.overlayFill}
+                />
             {:else}
-                {#if isSiapSajiProductionCard}
-                    <SimpleSiapSajiIcon
-                        class="company-mini-icon company-mini-icon-siapsaji"
-                        fill={deedStyle.textColor}
-                    />
-                {:else if card.good === Good.Rice}
-                    <SimpleRiceIcon class="company-mini-icon" fill={deedStyle.textColor} />
-                {:else if card.good === Good.Spice}
-                    <SimpleSpiceIcon class="company-mini-icon" fill={deedStyle.textColor} />
-                {:else if card.good === Good.Rubber}
-                    <SimpleRubberIcon
-                        class="company-mini-icon"
-                        baseFill={deedStyle.textColor}
-                        coreFill={deedStyle.overlayFill}
-                    />
-                {:else}
-                    <SimpleOilIcon class="company-mini-icon" fill={deedStyle.textColor} />
-                {/if}
+                <SimpleOilIcon class="company-mini-icon" fill={deedStyle.textColor} />
             {/if}
         </div>
 

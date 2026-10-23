@@ -295,7 +295,9 @@
             state.maxBusValue()
         )
         const phase4AvailableSiteCap =
-            state.currentBuildingPhase === 4 ? state.board.openSitesForPhase(4).length : Number.POSITIVE_INFINITY
+            state.currentBuildingPhase === 4
+                ? state.board.openSitesForPhase(4).length
+                : Number.POSITIVE_INFINITY
 
         const myPlayerId = gameSession.myPlayer?.id
         const playerStickValues = new Map<string, number>(
@@ -314,7 +316,11 @@
             const projectedLineExpansionAction = [...state.lineExpansionAction, myPlayerId]
             const remainingSticksByPlayer = new Map<string, number>(playerStickValues)
 
-            for (let selectionIndex = projectedLineExpansionAction.length - 1; selectionIndex >= 0; selectionIndex -= 1) {
+            for (
+                let selectionIndex = projectedLineExpansionAction.length - 1;
+                selectionIndex >= 0;
+                selectionIndex -= 1
+            ) {
                 const playerId = projectedLineExpansionAction[selectionIndex]
                 if (!playerId) {
                     continue
@@ -380,7 +386,11 @@
 
             const projectedBuildingAction = [...state.buildingAction, myPlayerId]
             let remainingSites = phase4AvailableSiteCap
-            for (let selectionIndex = projectedBuildingAction.length - 1; selectionIndex >= 0; selectionIndex -= 1) {
+            for (
+                let selectionIndex = projectedBuildingAction.length - 1;
+                selectionIndex >= 0;
+                selectionIndex -= 1
+            ) {
                 const playerId = projectedBuildingAction[selectionIndex]
                 if (!playerId) {
                     continue
@@ -413,7 +423,10 @@
                         )
                     }
                     if (selectionIndex === state.lineExpansionAction.length) {
-                        return projectedExpansionHighlightValueBySelectionIndex.get(selectionIndex) ?? 0
+                        return (
+                            projectedExpansionHighlightValueBySelectionIndex.get(selectionIndex) ??
+                            0
+                        )
                     }
                     return (
                         resolvePlacedActionValue({
@@ -430,7 +443,10 @@
                         return passengerValuesBySelectionIndex.get(selectionIndex) ?? 0
                     }
                     if (selectionIndex === state.passengersAction.length) {
-                        return projectedPassengerHighlightValueBySelectionIndex.get(selectionIndex) ?? 0
+                        return (
+                            projectedPassengerHighlightValueBySelectionIndex.get(selectionIndex) ??
+                            0
+                        )
                     }
                     return passengerValuesBySelectionIndex.get(selectionIndex) ?? 0
                 }
@@ -447,7 +463,9 @@
                         )
                     }
                     if (selectionIndex === state.buildingAction.length) {
-                        return projectedBuildingHighlightValueBySelectionIndex.get(selectionIndex) ?? 0
+                        return (
+                            projectedBuildingHighlightValueBySelectionIndex.get(selectionIndex) ?? 0
+                        )
                     }
                     return (
                         resolvePlacedActionValue({
@@ -629,9 +647,7 @@
 
 {#each actionValueBadges as badge (badge.key)}
     {@const relatedPlacementKey = placementKeyForBadge(badge.key)}
-    {#if !relatedPlacementKey ||
-        (!animatedAddedPlacementKeys.has(relatedPlacementKey) &&
-            !animatedRemovedPlacementKeys.has(relatedPlacementKey))}
+    {#if !relatedPlacementKey || (!animatedAddedPlacementKeys.has(relatedPlacementKey) && !animatedRemovedPlacementKeys.has(relatedPlacementKey))}
         <g class="pointer-events-none" aria-hidden="true">
             {#if !badge.playerId}
                 <circle
@@ -663,7 +679,9 @@
                     cx={badge.point.x}
                     cy={badge.point.y}
                     r="3.2"
-                    fill={badge.playerId ? actionValueTextColor(badge.playerId) : highlightValueTextColor}
+                    fill={badge.playerId
+                        ? actionValueTextColor(badge.playerId)
+                        : highlightValueTextColor}
                 ></circle>
             {/if}
         </g>
@@ -693,7 +711,9 @@
             tabindex="0"
             aria-label={`Choose ${highlight.actionType} action`}
             onkeydown={(event) =>
-                handleActivateFromKeyboard(event, () => handleActionSpotChoose(highlight.actionType))}
+                handleActivateFromKeyboard(event, () =>
+                    handleActionSpotChoose(highlight.actionType)
+                )}
             onclick={() => handleActionSpotChoose(highlight.actionType)}
         ></circle>
     </g>

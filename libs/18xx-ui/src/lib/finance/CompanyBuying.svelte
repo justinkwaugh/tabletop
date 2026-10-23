@@ -22,27 +22,27 @@
     <section aria-label={session.presentation.privatePurchaseLabel ?? 'Buy privates'}>
         {#if !source}
             <button
-                onclick={() =>
-                    session.privateActions.choosePurchaseSource(mine.length ? 'mine' : 'other')}
+                class:quiet={!mine.length}
+                onclick={() => session.privateActions.openPurchases()}
                 >{session.presentation.privatePurchaseLabel ?? 'Buy privates'}</button
             >
         {:else}
             {#if session.presentation.privatePurchaseHeading && !(selection?.kind === 'purchase' && selection.request.asset.kind !== 'train')}
                 <p class="prompt">{session.presentation.privatePurchaseHeading}</p>
             {/if}
-            {#if mine.length && others.length}
+            {#if others.length}
                 <div class="sources">
-                    {#if mine.length}<button
-                            aria-pressed={source === 'mine'}
-                            onclick={() => session.privateActions.choosePurchaseSource('mine')}
-                            >Mine</button
-                        >{/if}
+                    <button
+                        aria-pressed={source === 'mine'}
+                        onclick={() => session.privateActions.choosePurchaseSource('mine')}
+                        >Mine</button
+                    >
                     <span class="source-divider" aria-hidden="true"></span>
-                    {#if others.length}<button
-                            aria-pressed={source === 'other'}
-                            onclick={() => session.privateActions.choosePurchaseSource('other')}
-                            >Other players’</button
-                        >{/if}
+                    <button
+                        aria-pressed={source === 'other'}
+                        onclick={() => session.privateActions.choosePurchaseSource('other')}
+                        >Other players’</button
+                    >
                 </div>
             {/if}
             {#if selection?.kind === 'purchase' && selection.request.asset.kind !== 'train'}
@@ -97,6 +97,10 @@
                 {#if session.decisions.purchaseOfferEvaluation?.reason}<p>
                         {session.decisions.purchaseOfferEvaluation.reason}
                     </p>{/if}
+            {:else if source === 'mine' && !mine.length}
+                <p class="empty">
+                    {session.presentation.privatePurchaseEmpty ?? 'You have no privates to sell'}
+                </p>
             {:else}
                 <div class="privates">
                     {#each choices as option, i (i)}
@@ -174,6 +178,10 @@
         padding: 6px 10px;
         cursor: pointer;
     }
+    button.quiet:not(:hover) {
+        background: transparent;
+        color: var(--rail-muted, #887969);
+    }
     .sources button {
         border: none;
         background: transparent;
@@ -237,6 +245,15 @@
     }
     p {
         text-align: center;
+    }
+    .empty {
+        width: min(100%, 260px);
+        box-sizing: border-box;
+        margin: 0 auto;
+        padding: 18px 12px;
+        border: 1px dashed var(--rail-border, #c7b8a6);
+        border-radius: 4px;
+        color: var(--rail-muted, #887969);
     }
     .prompt {
         margin: 0 0 6px;

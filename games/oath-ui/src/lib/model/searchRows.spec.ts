@@ -12,7 +12,14 @@ import {
     powerIndexOf,
     type ModifierUse
 } from '@tabletop/oath'
-import { openTurn, required, served, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
+import {
+    openTurn,
+    required,
+    served,
+    testBanners,
+    testPlayer,
+    testState
+} from '@tabletop/oath/testing'
 import { searchRows } from './searchRows.js'
 
 const OBSERVATORY = 'denizen.arcane.observatory'
@@ -27,7 +34,12 @@ function board(
         [testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', favor: 2, supply: 5 })],
         {
             denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...cards },
-            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            },
             discardPileCounts: { cradle: 4, provinces: 0, hinterland: 0, ...piles },
             ...over
         }
@@ -72,9 +84,25 @@ describe('the sources a Search can draw from (R-5.1.1)', () => {
 
     it('prices the world deck at 2 for the Darkest Secret’s holder where the track says 3', () => {
         const track = board({}, {}, { visionsDrawn: 1 })
-        const holder = board({}, {}, { visionsDrawn: 1, banners: testBanners({ [Banner.DarkestSecret]: 'p1' }) })
-        expect(read(searchRows(track, 'p1', [], []))[0]).toEqual([SearchSource.WorldDeck, undefined, 3, 3, undefined])
-        expect(read(searchRows(holder, 'p1', [], []))[0]).toEqual([SearchSource.WorldDeck, undefined, 2, 3, undefined])
+        const holder = board(
+            {},
+            {},
+            { visionsDrawn: 1, banners: testBanners({ [Banner.DarkestSecret]: 'p1' }) }
+        )
+        expect(read(searchRows(track, 'p1', [], []))[0]).toEqual([
+            SearchSource.WorldDeck,
+            undefined,
+            3,
+            3,
+            undefined
+        ])
+        expect(read(searchRows(holder, 'p1', [], []))[0]).toEqual([
+            SearchSource.WorldDeck,
+            undefined,
+            2,
+            3,
+            undefined
+        ])
     })
 
     it('leaves out an empty pile', () => {
@@ -98,10 +126,24 @@ describe('the sources a Search can draw from (R-5.1.1)', () => {
 
     it('keeps the seat’s own pile with Errand Boy in use, sent without it; each other pile carries its cost', () => {
         const s = testState(
-            [testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', favor: 2, supply: 5, advisers: [{ cardId: ERRAND_BOY, faceUp: true }] })],
+            [
+                testPlayer({
+                    playerId: 'p1',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    favor: 2,
+                    supply: 5,
+                    advisers: [{ cardId: ERRAND_BOY, faceUp: true }]
+                })
+            ],
             {
                 denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
-                siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
+                siteCards: {
+                    c1: 'site.plains',
+                    c2: 'site.river',
+                    p1: 'site.marshes',
+                    h1: 'site.mountain'
+                },
                 discardPileCounts: { cradle: 4, provinces: 3, hinterland: 2 }
             }
         )
@@ -126,18 +168,41 @@ describe('the sources a Search can draw from (R-5.1.1)', () => {
 
 describe('the Marshes with Mushrooms (R-11.11-H1)', () => {
     const MUSHROOMS = 'denizen.beast.mushrooms'
-    const mushrooms: ModifierUse = { cardId: MUSHROOMS, powerIndex: powerIndexOf(MUSHROOMS, PowerTiming.Modifier) }
+    const mushrooms: ModifierUse = {
+        cardId: MUSHROOMS,
+        powerIndex: powerIndexOf(MUSHROOMS, PowerTiming.Modifier)
+    }
     const table = (oathRevision: number) => {
         const s = testState(
             [
-                testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', favor: 2, secrets: 2, supply: 5, advisers: [{ cardId: MUSHROOMS, faceUp: true }] }),
+                testPlayer({
+                    playerId: 'p1',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    favor: 2,
+                    secrets: 2,
+                    supply: 5,
+                    advisers: [{ cardId: MUSHROOMS, faceUp: true }]
+                }),
                 // A facedown adviser, so the seat's own view lacks something the server holds.
-                testPlayer({ playerId: 'p2', color: Color.Blue, siteId: 'c2', favor: 2, secrets: 2, advisers: [{ cardId: ERRAND_BOY, faceUp: false }] })
+                testPlayer({
+                    playerId: 'p2',
+                    color: Color.Blue,
+                    siteId: 'c2',
+                    favor: 2,
+                    secrets: 2,
+                    advisers: [{ cardId: ERRAND_BOY, faceUp: false }]
+                })
             ],
             {
                 oathRevision,
                 denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
-                siteCards: { c1: 'site.marshes', c2: 'site.river', p1: 'site.plains', h1: 'site.mountain' },
+                siteCards: {
+                    c1: 'site.marshes',
+                    c2: 'site.river',
+                    p1: 'site.plains',
+                    h1: 'site.mountain'
+                },
                 discardPileCounts: { cradle: 4, provinces: 0, hinterland: 0 }
             }
         )

@@ -158,7 +158,11 @@ describe('turnBarOf', () => {
     it('names whose turn is paused while a Campaign runs out of turn, with that turn’s phase', () => {
         const state = board({
             machineState: MachineState.CampaignSacrifice,
-            heldTurn: { queue: [], askingPlayerId: 'turn', resumeMachineState: MachineState.ActPhase }
+            heldTurn: {
+                queue: [],
+                askingPlayerId: 'turn',
+                resumeMachineState: MachineState.ActPhase
+            }
         })
         expect(turnBarOf(state)).toEqual({
             playerId: 'turn',
@@ -170,7 +174,11 @@ describe('turnBarOf', () => {
         const askedInIt = board({
             machineState: MachineState.PowerQuestion,
             pendingQuestions: questionAsked(MachineState.CampaignSacrifice),
-            heldTurn: { queue: [], askingPlayerId: 'turn', resumeMachineState: MachineState.RestPhase }
+            heldTurn: {
+                queue: [],
+                askingPlayerId: 'turn',
+                resumeMachineState: MachineState.RestPhase
+            }
         })
         expect(turnBarOf(askedInIt)).toMatchObject({ paused: true, phase: 'Rest Phase' })
     })

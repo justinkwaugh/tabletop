@@ -29,7 +29,7 @@
     aria-label="Game-end bonuses, paid after the final payout"
 >
     <title>Paid after the final payout of round {definition.rounds}</title>
-    <rect width={panel.width} height={panel.height} rx="8" class="sheet" />
+    <rect width={panel.width} height={panel.height} rx="8" class="sheet"></rect>
     <text x={panel.width / 2} y="18" class="title">Game End Bonus</text>
 
     {#if editionId === EditionId.Midwest}
@@ -48,7 +48,7 @@
             fill={style.hexFill[HexKind.Town]}
             stroke="#1d1d1b"
             stroke-width="1.5"
-        />
+        ></polygon>
         {#each stack as companyId, index (companyId)}
             {@const y = 74 - index * 6}
             {@const company = COMPANY_STYLE[companyId]}
@@ -58,7 +58,7 @@
                     DISC_THICKNESS} L {26 + DISC_RX} {y} Z"
                 fill={company.edge}
                 stroke={company.edge}
-            />
+            ></path>
             <ellipse
                 cx="26"
                 cy={y}
@@ -66,7 +66,7 @@
                 ry={DISC_RY}
                 fill={company.fill}
                 stroke={company.edge}
-            />
+            ></ellipse>
         {/each}
         <text x="52" y="58" class="body">Top disc earns</text>
         <text x="52" y="71" class="body">$1 a share per</text>
@@ -74,14 +74,14 @@
     {/if}
 
     <g transform="translate(0 {industryTop})">
-        <line x1="10" x2={panel.width - 10} y1="0" y2="0" class="rule" />
+        <line x1="10" x2={panel.width - 10} y1="0" y2="0" class="rule"></line>
         <text x="10" y="18" class="subtitle">Industry · per token</text>
         <polygon
             points={layout.hexPoints({ x: 26, y: 44 }, 18)}
             fill={style.hexFill[HexKind.Industry]}
             stroke="#1d1d1b"
             stroke-width="1.5"
-        />
+        ></polygon>
         <text x="26" y="49" class="plus">${perSite}</text>
         <text x="52" y="34" class="body">${perSite} per site</text>
         <text x="52" y="47" class="body">reached, split</text>

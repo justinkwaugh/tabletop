@@ -71,7 +71,14 @@ interface Scene {
 }
 
 /** Dana (an Exile) stands at the Shrouded Wood p1, which Rhys (an Exile, so an enemy) rules. */
-function table({ revision = atRevision, supply = 4, favor = 3, advisers = [HOSPITALITY, COUNCIL_SEAT], relics = [], banks = {} }: Scene = {}) {
+function table({
+    revision = atRevision,
+    supply = 4,
+    favor = 3,
+    advisers = [HOSPITALITY, COUNCIL_SEAT],
+    relics = [],
+    banks = {}
+}: Scene = {}) {
     const s = testState(
         withChancellor([
             testPlayer({
@@ -85,15 +92,43 @@ function table({ revision = atRevision, supply = 4, favor = 3, advisers = [HOSPI
                 warbandsOnBoard: { [DANA]: 3 },
                 warbandsInPersonalBank: { [DANA]: 6 },
                 // A facedown adviser, so Rhys's view does not hold everything.
-                advisers: [...advisers.map((cardId) => ({ cardId, faceUp: true })), { cardId: STORYTELLER, faceUp: false }]
+                advisers: [
+                    ...advisers.map((cardId) => ({ cardId, faceUp: true })),
+                    { cardId: STORYTELLER, faceUp: false }
+                ]
             }),
-            testPlayer({ playerId: RHYS, color: Color.Red, status: PlayerStatus.Exile, siteId: 'h3', supply: 4, favor: 1, warbandsOnBoard: { [RHYS]: 3 } }),
-            testPlayer({ playerId: ANN, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', supply: 4, favor: 1, warbandsOnBoard: { [ANN]: 3 } })
+            testPlayer({
+                playerId: RHYS,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'h3',
+                supply: 4,
+                favor: 1,
+                warbandsOnBoard: { [RHYS]: 3 }
+            }),
+            testPlayer({
+                playerId: ANN,
+                color: Color.Yellow,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 4,
+                favor: 1,
+                warbandsOnBoard: { [ANN]: 3 }
+            })
         ]),
         {
             oathRevision: revision,
             siteCards: SITES,
-            denizensBySite: { c1: [], c2: [BEAR_TRAPS, ORACLE], p1: [], p2: [WAY_STATION, BEAR_TRAPS], p3: [ORACLE], h1: [], h2: [TOLL_ROADS, ORACLE], h3: [] },
+            denizensBySite: {
+                c1: [],
+                c2: [BEAR_TRAPS, ORACLE],
+                p1: [],
+                p2: [WAY_STATION, BEAR_TRAPS],
+                p3: [ORACLE],
+                h1: [],
+                h2: [TOLL_ROADS, ORACLE],
+                h3: []
+            },
             warbandsBySite: { p1: { [RHYS]: 1 }, p2: { [ANN]: 2 }, h2: { [RHYS]: 1 } }
         }
     )
@@ -102,14 +137,26 @@ function table({ revision = atRevision, supply = 4, favor = 3, advisers = [HOSPI
     return s
 }
 
-const answer = (a: QuestionAnswer, playerId: string) => buildAction(AnswerQuestion, { playerId, answer: a })
-const pickAnswer = (siteId: string): QuestionAnswer => ({ kind: PowerQuestionKind.ShroudedWoodDestination, siteId })
-const bankAnswer = (suit: Suit): QuestionAnswer => ({ kind: PowerQuestionKind.HospitalityBank, suit })
+const answer = (a: QuestionAnswer, playerId: string) =>
+    buildAction(AnswerQuestion, { playerId, answer: a })
+const pickAnswer = (siteId: string): QuestionAnswer => ({
+    kind: PowerQuestionKind.ShroudedWoodDestination,
+    siteId
+})
+const bankAnswer = (suit: Suit): QuestionAnswer => ({
+    kind: PowerQuestionKind.HospitalityBank,
+    suit
+})
 const hospitality = modifierUse(HOSPITALITY)
 const stored = (cardId: string) => ({ cardId, powerIndex: modifierUse(cardId).powerIndex })
 
 function leaveWith(s: HydratedOathGameState, ...cards: string[]) {
-    const travel = new HydratedTravel(buildAction(Travel, { playerId: DANA, modifiers: cards.map((cardId) => modifierUse(cardId)) }))
+    const travel = new HydratedTravel(
+        buildAction(Travel, {
+            playerId: DANA,
+            modifiers: cards.map((cardId) => modifierUse(cardId))
+        })
+    )
     travel.apply(s)
     return travel
 }
@@ -123,18 +170,24 @@ function answered(s: HydratedOathGameState, a: QuestionAnswer, playerId: string)
 
 const pick = (s: HydratedOathGameState, siteId: string) => answered(s, pickAnswer(siteId), RHYS)
 const dana = (s: HydratedOathGameState) => s.getPlayerState(DANA)
-const queue = (s: HydratedOathGameState) => (s.pendingQuestions?.queue ?? []).map((q) => [q.kind, q.askedPlayerId])
+const queue = (s: HydratedOathGameState) =>
+    (s.pendingQuestions?.queue ?? []).map((q) => [q.kind, q.askedPlayerId])
 const GAINED_ORDER = 'Hospitality: gained 1 favor from the order bank'
 const GAINED_NOMAD = 'Hospitality: gained 1 favor from the nomad bank'
 
 describe('R-11.7-H2 — Hospitality is declared with no bank on a Travel out of an enemy’s Shrouded Wood', () => {
     it('accepted with no bank, nothing paid; the ruler’s question carries it', () => {
         const s = table()
-        expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, { modifiers: [hospitality] })).toBeUndefined()
+        expect(
+            HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, { modifiers: [hospitality] })
+        ).toBeUndefined()
         expect(HydratedTravel.canDoTravel(s, DANA)).toBe(true)
         const travel = leaveWith(s, HOSPITALITY)
         expect(dana(s)).toMatchObject({ siteId: 'p1', supply: 4, favor: 3 })
-        expect(travel.metadata).toMatchObject({ destinationChooser: RHYS, modifiers: [HOSPITALITY] })
+        expect(travel.metadata).toMatchObject({
+            destinationChooser: RHYS,
+            modifiers: [HOSPITALITY]
+        })
         expect(s.pendingQuestions?.queue[0]).toMatchObject({
             kind: PowerQuestionKind.ShroudedWoodDestination,
             askedPlayerId: RHYS,
@@ -144,8 +197,19 @@ describe('R-11.7-H2 — Hospitality is declared with no bank on a Travel out of 
 
     it('a bank named at the start is refused: the site, and so the bank, is not known yet', () => {
         const s = table()
-        expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, { modifiers: [modifierUse(HOSPITALITY, [bank(Suit.Nomad)])] })).toMatch(/no bank/)
-        expect(() => new HydratedTravel(buildAction(Travel, { playerId: DANA, modifiers: [modifierUse(HOSPITALITY, [bank(Suit.Nomad)])] })).apply(s)).toThrow(/no bank/)
+        expect(
+            HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, {
+                modifiers: [modifierUse(HOSPITALITY, [bank(Suit.Nomad)])]
+            })
+        ).toMatch(/no bank/)
+        expect(() =>
+            new HydratedTravel(
+                buildAction(Travel, {
+                    playerId: DANA,
+                    modifiers: [modifierUse(HOSPITALITY, [bank(Suit.Nomad)])]
+                })
+            ).apply(s)
+        ).toThrow(/no bank/)
     })
 
     it('changes no price: the panel’s picks are those of a Travel with no card, Hospitality counted at none', () => {
@@ -175,7 +239,11 @@ describe('R-11.7-H2 — Hospitality’s bank once Rhys’s pick has landed Dana'
         const picked = pick(s, 'p3')
         expect(dana(s)).toMatchObject({ siteId: 'p3', supply: 2, favor: 4 })
         expect(s.favorBank[Suit.Nomad]).toBe(2)
-        expect(picked.metadata?.woodPick).toMatchObject({ siteId: 'p3', supplySpent: 2, notes: [GAINED_NOMAD] })
+        expect(picked.metadata?.woodPick).toMatchObject({
+            siteId: 'p3',
+            supplySpent: 2,
+            notes: [GAINED_NOMAD]
+        })
         expect(queue(s)).toEqual([])
     })
 
@@ -185,7 +253,12 @@ describe('R-11.7-H2 — Hospitality’s bank once Rhys’s pick has landed Dana'
         const picked = pick(s, 'c2')
         expect(dana(s)).toMatchObject({ siteId: 'c2', supply: 2, favor: 3 })
         // The pick's own row records the travel; the bank is the traveller's answer.
-        expect(picked.metadata?.woodPick).toEqual({ travelerPlayerId: DANA, siteId: 'c2', supplySpent: 2, supplyRemaining: 2 })
+        expect(picked.metadata?.woodPick).toEqual({
+            travelerPlayerId: DANA,
+            siteId: 'c2',
+            supplySpent: 2,
+            supplyRemaining: 2
+        })
         expect(s.pendingQuestions?.queue).toEqual([
             {
                 kind: PowerQuestionKind.HospitalityBank,
@@ -199,14 +272,21 @@ describe('R-11.7-H2 — Hospitality’s bank once Rhys’s pick has landed Dana'
     })
 
     it('each answer gains from that bank, in the card’s own words', () => {
-        for (const [suit, note] of [[Suit.Order, GAINED_ORDER], [Suit.Nomad, GAINED_NOMAD]] as const) {
+        for (const [suit, note] of [
+            [Suit.Order, GAINED_ORDER],
+            [Suit.Nomad, GAINED_NOMAD]
+        ] as const) {
             const s = table()
             leaveWith(s, HOSPITALITY)
             pick(s, 'c2')
             const gained = answered(s, bankAnswer(suit), DANA)
             expect(dana(s).favor, suit).toBe(4)
             expect(s.favorBank[suit], suit).toBe(2)
-            expect(gained.metadata, suit).toMatchObject({ kind: PowerQuestionKind.HospitalityBank, cardId: HOSPITALITY, summary: note })
+            expect(gained.metadata, suit).toMatchObject({
+                kind: PowerQuestionKind.HospitalityBank,
+                cardId: HOSPITALITY,
+                summary: note
+            })
             expect(gained.metadata?.woodPick, suit).toBeUndefined()
             expect(s.pendingQuestions?.queue ?? []).toEqual([])
         }
@@ -216,8 +296,12 @@ describe('R-11.7-H2 — Hospitality’s bank once Rhys’s pick has landed Dana'
         const s = table()
         leaveWith(s, HOSPITALITY)
         pick(s, 'c2')
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, DANA, bankAnswer(Suit.Hearth))).toMatch(/hearth/)
-        expect(() => new HydratedAnswerQuestion(answer(bankAnswer(Suit.Order), RHYS)).apply(s)).toThrow()
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, DANA, bankAnswer(Suit.Hearth))).toMatch(
+            /hearth/
+        )
+        expect(() =>
+            new HydratedAnswerQuestion(answer(bankAnswer(Suit.Order), RHYS)).apply(s)
+        ).toThrow()
     })
 
     it('an empty matching bank gives nothing (R-9.3): with the Order bank empty, the Nomad favor is gained unasked; with both empty, nothing', () => {
@@ -256,7 +340,14 @@ describe('R-11.7-H2 — Hospitality with the pick’s other answers and cards', 
         expect(paid.metadata?.woodPick).toMatchObject({ siteId: 'h2', supplySpent: 2 })
         expect(paid.metadata?.tollMove).toBeDefined()
         expect(dana(s)).toMatchObject({ siteId: 'h2', supply: 2, favor: 2 })
-        expect(s.pendingQuestions?.queue).toMatchObject([{ kind: PowerQuestionKind.HospitalityBank, askedPlayerId: DANA, siteId: 'h2', banks: [Suit.Order, Suit.Nomad] }])
+        expect(s.pendingQuestions?.queue).toMatchObject([
+            {
+                kind: PowerQuestionKind.HospitalityBank,
+                askedPlayerId: DANA,
+                siteId: 'h2',
+                banks: [Suit.Order, Suit.Nomad]
+            }
+        ])
         const gained = answered(s, bankAnswer(Suit.Order), DANA)
         expect(dana(s).favor).toBe(3)
         expect(gained.metadata?.summary).toBe(GAINED_ORDER)
@@ -268,9 +359,20 @@ describe('R-11.7-H2 — Hospitality with the pick’s other answers and cards', 
         pick(s, 'p2')
         expect(queue(s)).toEqual([[PowerQuestionKind.WayStationFavor, DANA]])
         const given = answered(s, { kind: PowerQuestionKind.WayStationFavor, give: true }, DANA)
-        expect(given.metadata?.woodPick).toMatchObject({ siteId: 'p2', supplySpent: 0, chooserPlayerId: RHYS, notes: ['Way Station: paid ann 1 favor'] })
+        expect(given.metadata?.woodPick).toMatchObject({
+            siteId: 'p2',
+            supplySpent: 0,
+            chooserPlayerId: RHYS,
+            notes: ['Way Station: paid ann 1 favor']
+        })
         expect(dana(s)).toMatchObject({ siteId: 'p2', supply: 4, favor: 2 })
-        expect(s.pendingQuestions?.queue).toMatchObject([{ kind: PowerQuestionKind.HospitalityBank, siteId: 'p2', banks: [Suit.Order, Suit.Nomad] }])
+        expect(s.pendingQuestions?.queue).toMatchObject([
+            {
+                kind: PowerQuestionKind.HospitalityBank,
+                siteId: 'p2',
+                banks: [Suit.Order, Suit.Nomad]
+            }
+        ])
         const gained = answered(s, bankAnswer(Suit.Nomad), DANA)
         expect(dana(s).favor).toBe(3)
         expect(gained.metadata?.summary).toBe(GAINED_NOMAD)
@@ -282,7 +384,11 @@ describe('R-11.7-H2 — Hospitality with the pick’s other answers and cards', 
         // The Plains hold Wolves (a Beast site); no Way Station, whose favor would open the Great Slums.
         s.denizensBySite = { ...s.denizensBySite, c1: ['denizen.beast.wolves'], p2: [] }
         leaveWith(s, PATHS, HOSPITALITY)
-        const stayed = answered(s, { kind: PowerQuestionKind.ShroudedWoodDestination, stay: true }, RHYS)
+        const stayed = answered(
+            s,
+            { kind: PowerQuestionKind.ShroudedWoodDestination, stay: true },
+            RHYS
+        )
         expect(stayed.metadata?.woodStay).toEqual({ travelerPlayerId: DANA, siteId: 'p1' })
         expect(dana(s)).toMatchObject({ siteId: 'p1', supply: 1, favor: 0 })
         expect(queue(s)).toEqual([])
@@ -293,7 +399,9 @@ describe('R-11.7-H2 — Hospitality with the pick’s other answers and cards', 
         leaveWith(s, DRUM, HOSPITALITY)
         const picked = pick(s, 'c2')
         expect(dana(s).warbandsOnBoard[DANA]).toBe(4)
-        expect(picked.metadata?.woodPick?.notes).toEqual([expect.stringMatching(/^Dragonskin Drum: /)])
+        expect(picked.metadata?.woodPick?.notes).toEqual([
+            expect.stringMatching(/^Dragonskin Drum: /)
+        ])
         expect(queue(s)).toEqual([[PowerQuestionKind.HospitalityBank, DANA]])
         expect(answered(s, bankAnswer(Suit.Order), DANA).metadata?.summary).toBe(GAINED_ORDER)
     })
@@ -304,7 +412,11 @@ describe('R-11.7-H2 — Hospitality with the pick’s other answers and cards', 
         leaveWith(s, TENTS, HOSPITALITY)
         const picked = pick(s, 'p3')
         expect(dana(s)).toMatchObject({ siteId: 'p3', supply: 4 })
-        expect(picked.metadata?.woodPick).toMatchObject({ siteId: 'p3', supplySpent: 0, pricedBy: [TENTS] })
+        expect(picked.metadata?.woodPick).toMatchObject({
+            siteId: 'p3',
+            supplySpent: 0,
+            pricedBy: [TENTS]
+        })
         expect(queue(s)).toEqual([[PowerQuestionKind.HospitalityBank, DANA]])
         expect(answered(s, bankAnswer(Suit.Order), DANA).metadata?.summary).toBe(GAINED_ORDER)
     })
@@ -312,27 +424,64 @@ describe('R-11.7-H2 — Hospitality with the pick’s other answers and cards', 
     it('Special Envoy also declared: the Act Phase ends after the bank is answered, not before', () => {
         const game = testGame([DANA, RHYS, ANN])
         const start = table({ advisers: [HOSPITALITY, COUNCIL_SEAT, ENVOY] }).dehydrate()
-        const left = engine.runNext(buildAction(Travel, { playerId: DANA, modifiers: [modifierUse(ENVOY), hospitality] }), structuredClone(start), game)
+        const left = engine.runNext(
+            buildAction(Travel, { playerId: DANA, modifiers: [modifierUse(ENVOY), hospitality] }),
+            structuredClone(start),
+            game
+        )
         const picked = engine.runNext(answer(pickAnswer('c2'), RHYS), left.updatedState, game)
         expect(picked.updatedState.machineState).toBe(MachineState.PowerQuestion)
         expect(picked.processedActions.map((a) => a.type)).not.toContain(ActionType.CompleteRest)
-        expect(picked.updatedState.pendingQuestions?.queue.map((q) => q.kind)).toEqual([PowerQuestionKind.HospitalityBank])
-        expect(picked.processedActions[0]).toMatchObject({ metadata: { woodPick: { siteId: 'c2', supplySpent: 0, notes: ["Special Envoy ends dana's Act Phase"] } } })
-        const gained = engine.runNext(answer(bankAnswer(Suit.Order), DANA), picked.updatedState, game)
-        expect(gained.processedActions[0]).toMatchObject({ metadata: { summary: GAINED_ORDER, resumeMachineState: MachineState.RestPhase } })
+        expect(picked.updatedState.pendingQuestions?.queue.map((q) => q.kind)).toEqual([
+            PowerQuestionKind.HospitalityBank
+        ])
+        expect(picked.processedActions[0]).toMatchObject({
+            metadata: {
+                woodPick: {
+                    siteId: 'c2',
+                    supplySpent: 0,
+                    notes: ["Special Envoy ends dana's Act Phase"]
+                }
+            }
+        })
+        const gained = engine.runNext(
+            answer(bankAnswer(Suit.Order), DANA),
+            picked.updatedState,
+            game
+        )
+        expect(gained.processedActions[0]).toMatchObject({
+            metadata: { summary: GAINED_ORDER, resumeMachineState: MachineState.RestPhase }
+        })
         expect(gained.processedActions.map((a) => a.type)).toContain(ActionType.CompleteRest)
     })
 
     it('the Travel, the pick and the bank replay exactly', () => {
         const game = testGame([DANA, RHYS, ANN])
         const start = table().dehydrate()
-        const left = engine.runNext(buildAction(Travel, { playerId: DANA, modifiers: [hospitality] }), structuredClone(start), game)
+        const left = engine.runNext(
+            buildAction(Travel, { playerId: DANA, modifiers: [hospitality] }),
+            structuredClone(start),
+            game
+        )
         const picked = engine.runNext(answer(pickAnswer('c2'), RHYS), left.updatedState, game)
-        const gained = engine.runNext(answer(bankAnswer(Suit.Nomad), DANA), picked.updatedState, game)
+        const gained = engine.runNext(
+            answer(bankAnswer(Suit.Nomad), DANA),
+            picked.updatedState,
+            game
+        )
         expect(gained.updatedState.machineState).toBe(MachineState.ActPhase)
         let replayed = structuredClone(start)
-        for (const action of [...left.processedActions, ...picked.processedActions, ...gained.processedActions]) {
-            replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        for (const action of [
+            ...left.processedActions,
+            ...picked.processedActions,
+            ...gained.processedActions
+        ]) {
+            replayed = engine.run(
+                structuredClone(action),
+                replayed,
+                game,
+                RunMode.Single
+            ).updatedState
         }
         expect(replayed).toEqual(gained.updatedState)
     })
@@ -342,7 +491,9 @@ describe('R-X.4 — before revision 15 Hospitality is refused at the Wood, as ev
     it('refused with no bank and with one', () => {
         const s = table({ revision: before })
         for (const use of [hospitality, modifierUse(HOSPITALITY, [bank(Suit.Nomad)])]) {
-            expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, { modifiers: [use] })).toBe(
+            expect(
+                HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, { modifiers: [use] })
+            ).toBe(
                 "nothing is declared on a Travel whose destination the Shrouded Wood's ruler chooses"
             )
         }
@@ -353,9 +504,17 @@ describe('R-X.4 — before revision 15 Hospitality is refused at the Wood, as ev
 describe('R-11.7-H2 — Hospitality at the Wood on the seats’ own views', () => {
     const view = (playerId: string): Visibility.Perspective => ({ kind: 'player', playerId })
     const ownView = (s: HydratedOathGameState, playerId: string) =>
-        OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, view(playerId))), view(playerId))
+        OathVisibility.state.guardForExecution(
+            new HydratedOathGameState(served(s, view(playerId))),
+            view(playerId)
+        )
 
-    function sameOnOwnView<T>(s: HydratedOathGameState, playerId: string, check: (state: HydratedOathGameState) => T, expected: T) {
+    function sameOnOwnView<T>(
+        s: HydratedOathGameState,
+        playerId: string,
+        check: (state: HydratedOathGameState) => T,
+        expected: T
+    ) {
         const server = JSON.stringify(s.dehydrate())
         const seen = JSON.stringify(served(s, view(playerId)))
         expect(check(s)).toEqual(expected)
@@ -366,21 +525,64 @@ describe('R-11.7-H2 — Hospitality at the Wood on the seats’ own views', () =
 
     it('Dana’s declaration check, the Travel tile and the panel’s picks', () => {
         const s = table()
-        sameOnOwnView(s, DANA, (state) => HydratedTravel.reasonCannotLeaveShroudedWood(state, DANA, { modifiers: [hospitality] }), undefined)
+        sameOnOwnView(
+            s,
+            DANA,
+            (state) =>
+                HydratedTravel.reasonCannotLeaveShroudedWood(state, DANA, {
+                    modifiers: [hospitality]
+                }),
+            undefined
+        )
         sameOnOwnView(s, DANA, (state) => HydratedTravel.canDoTravel(state, DANA), true)
-        sameOnOwnView(s, DANA, (state) => woodPicksBeforeTravel(state, DANA, [hospitality]).length, 7)
+        sameOnOwnView(
+            s,
+            DANA,
+            (state) => woodPicksBeforeTravel(state, DANA, [hospitality]).length,
+            7
+        )
         // The panel lists Hospitality where a pick's banks would give its favor.
-        sameOnOwnView(s, DANA, (state) => banksOnArrival(state, DANA, stored(HOSPITALITY), 'c2'), [Suit.Order, Suit.Nomad])
-        sameOnOwnView(s, DANA, (state) => banksOnArrival(state, DANA, stored(HOSPITALITY), 'h1'), [])
+        sameOnOwnView(s, DANA, (state) => banksOnArrival(state, DANA, stored(HOSPITALITY), 'c2'), [
+            Suit.Order,
+            Suit.Nomad
+        ])
+        sameOnOwnView(
+            s,
+            DANA,
+            (state) => banksOnArrival(state, DANA, stored(HOSPITALITY), 'h1'),
+            []
+        )
     })
 
     it('the bank question as Dana is served it, and the answers checked there; Rhys sees the same banks', () => {
         const s = table()
         leaveWith(s, HOSPITALITY)
         pick(s, 'c2')
-        sameOnOwnView(s, DANA, (state) => state.pendingQuestions?.queue[0], s.pendingQuestions?.queue[0])
-        sameOnOwnView(s, RHYS, (state) => state.pendingQuestions?.queue[0], s.pendingQuestions?.queue[0])
-        sameOnOwnView(s, DANA, (state) => HydratedAnswerQuestion.reasonCannotAnswer(state, DANA, bankAnswer(Suit.Order)), undefined)
-        sameOnOwnView(s, DANA, (state) => HydratedAnswerQuestion.reasonCannotAnswer(state, DANA, bankAnswer(Suit.Beast)), 'beast is not a bank Hospitality matches at c2: choose order or nomad')
+        sameOnOwnView(
+            s,
+            DANA,
+            (state) => state.pendingQuestions?.queue[0],
+            s.pendingQuestions?.queue[0]
+        )
+        sameOnOwnView(
+            s,
+            RHYS,
+            (state) => state.pendingQuestions?.queue[0],
+            s.pendingQuestions?.queue[0]
+        )
+        sameOnOwnView(
+            s,
+            DANA,
+            (state) =>
+                HydratedAnswerQuestion.reasonCannotAnswer(state, DANA, bankAnswer(Suit.Order)),
+            undefined
+        )
+        sameOnOwnView(
+            s,
+            DANA,
+            (state) =>
+                HydratedAnswerQuestion.reasonCannotAnswer(state, DANA, bankAnswer(Suit.Beast)),
+            'beast is not a bank Hospitality matches at c2: choose order or nomad'
+        )
     })
 })

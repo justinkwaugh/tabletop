@@ -1051,7 +1051,14 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const cardId = this.adviserCardId
         const play = this.adviserPlay
         if (!playerId || !cardId || play === undefined) return []
-        return whenPlayedChoices(this.gameState, playerId, cardId, play, true, this.adviserPlayChanges)
+        return whenPlayedChoices(
+            this.gameState,
+            playerId,
+            cardId,
+            play,
+            true,
+            this.adviserPlayChanges
+        )
     }
 
     /** R-7.3.3 — the favor banks the When Played picks are judged on (Salad Days'). */
@@ -1374,7 +1381,12 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (banish.length > 0) {
             // R-5.5.7.III — the banished pawn is the defender's.
             const defenderId = this.gameState.campaign?.defenderPlayerId
-            return { kind: 'banish', sites: banish, choosing: banish.length > 1, moverId: defenderId }
+            return {
+                kind: 'banish',
+                sites: banish,
+                choosing: banish.length > 1,
+                moverId: defenderId
+            }
         }
         const question = this.question.travelPick
         if (question && question.sites.length > 0) {

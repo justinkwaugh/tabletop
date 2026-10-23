@@ -6,6 +6,7 @@
     import CompanyBuying from './CompanyBuying.svelte'
     import DecisionResponse from './DecisionResponse.svelte'
     import Tile from '../tiles/Tile.svelte'
+    import { placedTileLayout } from '../tiles/standardTileLayouts.js'
     import PrivateTrainBuying from '../trains/PrivateTrainBuying.svelte'
     import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
     let {
@@ -58,6 +59,7 @@
             <Tile
                 face={definition.face}
                 appearance={session.tileAppearance}
+                layout={placedTileLayout(session.mapView.layouts, definition.id)}
                 orientation={session.mapView.map.definition.orientation}
                 rotation={request.rotation}
                 size={48}
@@ -261,6 +263,7 @@
                     {#if definition}<Tile
                             face={definition.face}
                             appearance={session.tileAppearance}
+                            layout={placedTileLayout(session.mapView.layouts, definition.id)}
                             orientation={session.mapView.map.definition.orientation}
                             rotation={selection.details.rotation}
                         />{/if}

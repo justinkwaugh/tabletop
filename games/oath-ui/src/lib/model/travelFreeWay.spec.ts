@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color, assert, type GameAction } from '@tabletop/common'
-import { ActionType, CURRENT_OATH_REVISION, MachineState, PowerQuestionKind, Suit, isTravel, type TravelFlip } from '@tabletop/oath'
+import {
+    ActionType,
+    CURRENT_OATH_REVISION,
+    MachineState,
+    PowerQuestionKind,
+    Suit,
+    isTravel,
+    type TravelFlip
+} from '@tabletop/oath'
 import { openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import {
@@ -84,7 +92,11 @@ describe('a free way hides the dearer ways to the same site (R-7.1.4, R-11.12)',
 
     it('the hidden way is not sent in its place: Way Station’s favor way is refused once the free way shows', async () => {
         const { session, sent } = await throughThePortal()
-        const dearer = { ...waysAt(session, greatSlum)[0], tolls: [WAY_STATION], discountTolls: [WAY_STATION] }
+        const dearer = {
+            ...waysAt(session, greatSlum)[0],
+            tolls: [WAY_STATION],
+            discountTolls: [WAY_STATION]
+        }
         await session.travelTo(greatSlum, dearer)
         expect(sent).not.toHaveBeenCalled()
     })
@@ -97,7 +109,10 @@ describe('a free way hides the dearer ways to the same site (R-7.1.4, R-11.12)',
             [0, [], false, Suit.Nomad]
         ])
         const chip = chipAt(session, greatSlum)
-        expect(chip).toEqual({ ways: [{ cost: 0, favor: 0, secrets: 0 }], banks: [Suit.Order, Suit.Nomad] })
+        expect(chip).toEqual({
+            ways: [{ cost: 0, favor: 0, secrets: 0 }],
+            banks: [Suit.Order, Suit.Nomad]
+        })
         assert(chip !== undefined, 'the Great Slum has a chip')
         expect(chipWords(chip)).toBe('0 Supply, gain 1 favor from the Order or Nomad bank')
 
@@ -116,8 +131,20 @@ describe('a free way hides the dearer ways to the same site (R-7.1.4, R-11.12)',
     it('Second Wind’s free Travel beside Way Station: the free way alone', async () => {
         const state = testState(
             [
-                testPlayer({ playerId: 'dana', color: Color.Red, siteId: 'c1', supply: 3, favor: 3 }),
-                testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'h1', favor: 3, warbandsOnBoard: { rhys: 2 } })
+                testPlayer({
+                    playerId: 'dana',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    supply: 3,
+                    favor: 3
+                }),
+                testPlayer({
+                    playerId: 'rhys',
+                    color: Color.Blue,
+                    siteId: 'h1',
+                    favor: 3,
+                    warbandsOnBoard: { rhys: 2 }
+                })
             ],
             {
                 oathRevision: CURRENT_OATH_REVISION,
@@ -127,11 +154,22 @@ describe('a free way hides the dearer ways to the same site (R-7.1.4, R-11.12)',
             }
         )
         state.pendingQuestions = {
-            queue: [{ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, askedPlayerId: 'dana', action: ActionType.Travel }],
+            queue: [
+                {
+                    kind: PowerQuestionKind.FreeActionOutOfTurn,
+                    cardId: SECOND_WIND,
+                    askedPlayerId: 'dana',
+                    action: ActionType.Travel
+                }
+            ],
             askingPlayerId: 'rhys',
             resumeMachineState: MachineState.ActPhase
         }
-        state.heldTurn = { queue: [], askingPlayerId: 'rhys', resumeMachineState: MachineState.ActPhase }
+        state.heldTurn = {
+            queue: [],
+            askingPlayerId: 'rhys',
+            resumeMachineState: MachineState.ActPhase
+        }
         openTurn(state, 'rhys')
         state.activePlayerIds = ['dana']
         const dana = state.getPlayerState('dana')
@@ -147,7 +185,13 @@ describe('with no free way, every way shows as before', () => {
     it('Way Station beside 1 Supply: both ways, on the chip with "or" between them', async () => {
         const state = testState(
             [
-                testPlayer({ playerId: 'dana', color: Color.Red, siteId: 'c1', supply: 3, favor: 3 }),
+                testPlayer({
+                    playerId: 'dana',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    supply: 3,
+                    favor: 3
+                }),
                 testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'h1', favor: 3 })
             ],
             {
@@ -170,7 +214,13 @@ describe('with no free way, every way shows as before', () => {
     it('the Buried Giant’s flip is a cost: "2 Supply" and "0 + [secret]" both stay', async () => {
         const state = testState(
             [
-                testPlayer({ playerId: 'dana', color: Color.Red, siteId: 'c1', supply: 3, secrets: 1 }),
+                testPlayer({
+                    playerId: 'dana',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    supply: 3,
+                    secrets: 1
+                }),
                 testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'h1' })
             ],
             {

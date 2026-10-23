@@ -4,7 +4,9 @@ import type * as TableFixture from '../src/lib/testing/tableFixture.js'
 async function openTable(page: Page, name: TableFixture.TableName) {
     await page.goto('/')
     await page.evaluate(async (name) => {
-        const fixture = await import(new URL('/src/lib/testing/tableFixture.ts', location.href).href)
+        const fixture = await import(
+            new URL('/src/lib/testing/tableFixture.ts', location.href).href
+        )
         return fixture.open(name)
     }, name)
 }
@@ -29,7 +31,9 @@ for (const { name, viewport } of SIZES) {
             const tab = page.getByRole('tab', { name: 'History' })
             await tab.scrollIntoViewIfNeeded()
             await tab.click()
-            await expect(history(page)).toContainText(/dana\s*traveled to Plains \(free, Brass Horse\)/i)
+            await expect(history(page)).toContainText(
+                /dana\s*traveled to Plains \(free, Brass Horse\)/i
+            )
             await expect(history(page)).not.toContainText('spending')
             await page.mouse.move(2, 2)
             await history(page).screenshot({
@@ -46,7 +50,9 @@ for (const { name, viewport } of SIZES) {
                 // "favor" is drawn as its token.
                 /campaigned against\s*rhys\s*for their pawn and\s*, using Second Wind \(Sneak Attack, free\)/i
             )
-            await history(page).getByText(/Sneak Attack, free/).scrollIntoViewIfNeeded()
+            await history(page)
+                .getByText(/Sneak Attack, free/)
+                .scrollIntoViewIfNeeded()
             await page.mouse.move(2, 2)
             await history(page).screenshot({
                 path: test.info().outputPath(`sneak-attack-history-${name}.png`)

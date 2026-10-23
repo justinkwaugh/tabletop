@@ -1,6 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color } from '@tabletop/common'
-import { Banner, HydratedSearchResolve, IMPERIAL_WARBANDS, MachineState, OathRevision, PlayerStatus, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf, type LegalChoice } from '@tabletop/oath'
+import {
+    Banner,
+    HydratedSearchResolve,
+    IMPERIAL_WARBANDS,
+    MachineState,
+    OathRevision,
+    PlayerStatus,
+    PowerChoiceKind,
+    PowerTiming,
+    SearchPlay,
+    powerIndexOf,
+    type LegalChoice
+} from '@tabletop/oath'
 import { FIXTURE_SITE_CAPACITY, openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     disposeSessions,
@@ -79,7 +91,11 @@ const TENTS = 'denizen.nomad.tents'
 const TUTOR = 'denizen.arcane.tutor'
 const HELD = ['denizen.order.longbows', 'denizen.hearth.wayside-inn', 'denizen.beast.wolves']
 
-async function searchingWith(handIds: string[], advisers: string[] = [], table: Record<string, unknown> = {}) {
+async function searchingWith(
+    handIds: string[],
+    advisers: string[] = [],
+    table: Record<string, unknown> = {}
+) {
     const state = testState(
         [
             testPlayer({
@@ -167,7 +183,9 @@ describe('a faceup Search play asks its When Played choices (R-7.3.3)', () => {
         draft.keep(SALAD_DAYS)
         await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: false })
         expect(draft.needsWhenPlayed).toBe(false)
-        expect(sent).toHaveBeenCalledWith(expect.not.objectContaining({ choices: expect.anything() }))
+        expect(sent).toHaveBeenCalledWith(
+            expect.not.objectContaining({ choices: expect.anything() })
+        )
     })
 })
 
@@ -285,28 +303,51 @@ describe('Circlet of Command — the Conspiracy is not offered a relic it guards
         const CIRCLET = 'relic.circlet-of-command'
         const state = testState(
             [
-                testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', secrets: 2, handIds: ['vision.conspiracy', TUTOR], advisers: ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return'].map((cardId) => ({ cardId, faceUp: true })) }),
-                testPlayer({ playerId: 'ann', color: Color.Blue, siteId: 'c1', relicIds: [CIRCLET, 'relic.cup-of-plenty'], advisers: [{ cardId: 'denizen.hearth.salad-days', faceUp: true }] })
+                testPlayer({
+                    playerId: ME,
+                    color: Color.Red,
+                    siteId: 'c1',
+                    secrets: 2,
+                    handIds: ['vision.conspiracy', TUTOR],
+                    advisers: ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return'].map(
+                        (cardId) => ({ cardId, faceUp: true })
+                    )
+                }),
+                testPlayer({
+                    playerId: 'ann',
+                    color: Color.Blue,
+                    siteId: 'c1',
+                    relicIds: [CIRCLET, 'relic.cup-of-plenty'],
+                    advisers: [{ cardId: 'denizen.hearth.salad-days', faceUp: true }]
+                })
             ],
             { machineState: MachineState.Searching }
         )
         openTurn(state, ME)
         const draft = (await openSessionOn(tableOf(state))).search
-        expect(draft.conspiracyPrizesOf('ann').map((option) => option.prize)).toEqual([{ kind: 'relic', cardId: CIRCLET }])
+        expect(draft.conspiracyPrizesOf('ann').map((option) => option.prize)).toEqual([
+            { kind: 'relic', cardId: CIRCLET }
+        ])
     })
 })
 
 describe("R-5.1.4.I — the People's Favor's holder is offered every site in their region", () => {
     it('lists a full site in the region, and the card there to discard first', async () => {
-        const full = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
-        const state = testState([testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', handIds: [TENTS, TUTOR] })], {
-            machineState: MachineState.Searching,
-            denizensBySite: { c1: [], c2: full, p1: [] },
-            banners: {
-                [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: ME },
-                [Banner.DarkestSecret]: { value: 1 }
+        const full = Array.from(
+            { length: FIXTURE_SITE_CAPACITY },
+            (_, i) => `denizen.order.filler-${i}`
+        )
+        const state = testState(
+            [testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', handIds: [TENTS, TUTOR] })],
+            {
+                machineState: MachineState.Searching,
+                denizensBySite: { c1: [], c2: full, p1: [] },
+                banners: {
+                    [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: ME },
+                    [Banner.DarkestSecret]: { value: 1 }
+                }
             }
-        })
+        )
         openTurn(state, ME)
         const draft = (await openSessionOn(tableOf(state))).search
         draft.keep(TENTS)
@@ -327,13 +368,19 @@ describe('R-7.6.4 — a limiter kept from a Search discards down to its limit', 
         await draft.chooseDisplaced(HELD[0])
         expect(sent).not.toHaveBeenCalled()
         await draft.chooseDisplaced(HELD[1])
-        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ discardedAdviserCardIds: [HELD[0], HELD[1]] }))
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({ discardedAdviserCardIds: [HELD[0], HELD[1]] })
+        )
     })
 })
 
 const LAND_WARDEN = 'denizen.hearth.land-warden'
 const VISION = 'vision.conquest'
-const WARDEN_CARRIED = { pendingSearchModifiers: [{ cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }] }
+const WARDEN_CARRIED = {
+    pendingSearchModifiers: [
+        { cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }
+    ]
+}
 
 describe('Land Warden — the second play is picked on the cards', () => {
     it('a tap on a card picks its first way to play, a mode changes it, and a second tap drops it', async () => {
@@ -343,8 +390,16 @@ describe('Land Warden — the second play is picked on the cards', () => {
         expect(draft.secondCandidates).toEqual([WRESTLERS, HELD[0]])
 
         draft.tapSecondCard(WRESTLERS)
-        expect(draft.second).toMatchObject({ cardId: WRESTLERS, play: SearchPlay.Site, mode: 'to your site' })
-        draft.setSecondPlay(draft.secondPlays.find((option) => option.cardId === WRESTLERS && option.faceUp === false)?.key)
+        expect(draft.second).toMatchObject({
+            cardId: WRESTLERS,
+            play: SearchPlay.Site,
+            mode: 'to your site'
+        })
+        draft.setSecondPlay(
+            draft.secondPlays.find(
+                (option) => option.cardId === WRESTLERS && option.faceUp === false
+            )?.key
+        )
         expect(draft.second?.mode).toBe('adviser, facedown')
         draft.tapSecondCard(HELD[0])
         expect(draft.second?.cardId).toBe(HELD[0])
@@ -365,7 +420,10 @@ describe('Land Warden — the second play is picked on the cards', () => {
     it('with a second adviser play, the kept card is offered only to the site', async () => {
         const { draft } = await searchingWith([TENTS, TUTOR], [], WARDEN_CARRIED)
         draft.keep(TENTS)
-        draft.setSecondPlay(draft.secondPlays.find((option) => option.cardId === TUTOR && option.faceUp === false)?.key)
+        draft.setSecondPlay(
+            draft.secondPlays.find((option) => option.cardId === TUTOR && option.faceUp === false)
+                ?.key
+        )
         expect(draft.placements.map((option) => option.play)).toEqual([SearchPlay.Site])
     })
 
@@ -376,44 +434,66 @@ describe('Land Warden — the second play is picked on the cards', () => {
         const SCRYER = 'denizen.discord.scryer'
         const STORYTELLER = 'denizen.hearth.storyteller'
         const riotsSecond = (draft: Awaited<ReturnType<typeof searchingWith>>['draft']) =>
-            draft.secondPlays.find((option) => option.cardId === RIOTS && option.play === SearchPlay.Site)
+            draft.secondPlays.find(
+                (option) => option.cardId === RIOTS && option.play === SearchPlay.Site
+            )
         const onTheMob = (denizensBySite: Record<string, string[]>) => ({
             ...WARDEN_CARRIED,
             oathRevision: OathRevision.EngineFixes6,
-            banners: { [Banner.PeoplesFavor]: { value: 1, mobSide: true }, [Banner.DarkestSecret]: { value: 1 } },
+            banners: {
+                [Banner.PeoplesFavor]: { value: 1, mobSide: true },
+                [Banner.DarkestSecret]: { value: 1 }
+            },
             denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...denizensBySite }
         })
 
         it('a kept Hearth card at the site would tie Hearth with Discord, which Riots played second cannot name, so the site is not offered', async () => {
-            const { session, draft, sent } = await searchingWith([STORYTELLER, RIOTS, HELD[0]], [], onTheMob({ p1: [MERCENARIES], h1: [HELD[1]] }))
+            const { session, draft, sent } = await searchingWith(
+                [STORYTELLER, RIOTS, HELD[0]],
+                [],
+                onTheMob({ p1: [MERCENARIES], h1: [HELD[1]] })
+            )
             draft.keep(STORYTELLER)
             draft.setSecondPlay(riotsSecond(draft)?.key)
             expect(draft.second?.cardId).toBe(RIOTS)
             expect(draft.placements.map((option) => option.play)).not.toContain(SearchPlay.Site)
             await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
-            expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Adviser, secondPlay: { cardId: RIOTS, play: SearchPlay.Site } }))
+            expect(sent).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    play: SearchPlay.Adviser,
+                    secondPlay: { cardId: RIOTS, play: SearchPlay.Site }
+                })
+            )
             expect(engineRefusal(session, sent)).toBeUndefined()
         })
 
         it('a kept Discord card at the site breaks the tie, so Riots is offered second and only that placement pairs with it', async () => {
-            const { session, draft, sent } = await searchingWith([SCRYER, RIOTS, HELD[0]], [], onTheMob({ p1: [MERCENARIES], h1: [HELD[1], STORYTELLER] }))
+            const { session, draft, sent } = await searchingWith(
+                [SCRYER, RIOTS, HELD[0]],
+                [],
+                onTheMob({ p1: [MERCENARIES], h1: [HELD[1], STORYTELLER] })
+            )
             draft.keep(SCRYER)
             draft.setSecondPlay(riotsSecond(draft)?.key)
             expect(draft.second?.cardId).toBe(RIOTS)
             expect(draft.placements.map((option) => option.play)).toEqual([SearchPlay.Site])
             await draft.choosePlacement({ play: SearchPlay.Site })
-            expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, secondPlay: { cardId: RIOTS, play: SearchPlay.Site } }))
+            expect(sent).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    play: SearchPlay.Site,
+                    secondPlay: { cardId: RIOTS, play: SearchPlay.Site }
+                })
+            )
             expect(engineRefusal(session, sent)).toBeUndefined()
         })
 
         it("from revision 26 a kept Dazzle's discards break the tie, faceup or at the site, so those placements pair with Riots and facedown does not", async () => {
             const DAZZLE = 'denizen.arcane.dazzle'
             // Hearth 2 against Discord 2 with Riots; Dazzle discards the Wayside Inn in the Cradle when it is played faceup.
-            const { session, draft, sent } = await searchingWith(
-                [DAZZLE, RIOTS, HELD[0]],
-                [],
-                { ...onTheMob({ c2: [HELD[1]], p1: [MERCENARIES], h1: [STORYTELLER] }), oathRevision: OathRevision.EngineFixes22 }
-            )
+            const { session, draft, sent } = await searchingWith([DAZZLE, RIOTS, HELD[0]], [], {
+                ...onTheMob({ c2: [HELD[1]], p1: [MERCENARIES], h1: [STORYTELLER] }),
+                oathRevision: OathRevision.EngineFixes22
+            })
             draft.keep(DAZZLE)
             draft.setSecondPlay(riotsSecond(draft)?.key)
             expect(draft.second?.cardId).toBe(RIOTS)
@@ -423,7 +503,11 @@ describe('Land Warden — the second play is picked on the cards', () => {
             ])
             await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
             expect(sent).toHaveBeenCalledWith(
-                expect.objectContaining({ play: SearchPlay.Adviser, faceUp: true, secondPlay: { cardId: RIOTS, play: SearchPlay.Site } })
+                expect.objectContaining({
+                    play: SearchPlay.Adviser,
+                    faceUp: true,
+                    secondPlay: { cardId: RIOTS, play: SearchPlay.Site }
+                })
             )
             expect(engineRefusal(session, sent)).toBeUndefined()
         })
@@ -432,7 +516,12 @@ describe('Land Warden — the second play is picked on the cards', () => {
 
 const FULL = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
 const FABLED_FEAST = 'denizen.hearth.fabled-feast'
-const SLUM_SITES = { c1: 'site.great-slums', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+const SLUM_SITES = {
+    c1: 'site.great-slums',
+    c2: 'site.river',
+    p1: 'site.marshes',
+    h1: 'site.mountain'
+}
 const FAVOR_HELD = {
     [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: ME },
     [Banner.DarkestSecret]: { value: 1 }
@@ -440,7 +529,9 @@ const FAVOR_HELD = {
 
 describe('contract rule 2 — a play the engine refuses is not offered', () => {
     it('a full site with nothing to open it offers no site play', async () => {
-        const { draft } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] } })
+        const { draft } = await searchingWith([TENTS, TUTOR], [], {
+            denizensBySite: { c1: FULL, c2: [], p1: [] }
+        })
         draft.keep(TENTS)
         expect(draft.placements.map((option) => option.play)).toEqual([
             SearchPlay.Adviser,
@@ -451,36 +542,52 @@ describe('contract rule 2 — a play the engine refuses is not offered', () => {
 })
 
 /** The engine's own judgement of the Search as the draft sent it. */
-function engineRefusal(session: Awaited<ReturnType<typeof searchingWith>>['session'], sent: Awaited<ReturnType<typeof searchingWith>>['sent']) {
+function engineRefusal(
+    session: Awaited<ReturnType<typeof searchingWith>>['session'],
+    sent: Awaited<ReturnType<typeof searchingWith>>['sent']
+) {
     const [choice] = sent.mock.calls[0]
     return HydratedSearchResolve.reasonCannotResolve(session.gameState, ME, choice)
 }
 
 describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a discard first opens it', () => {
     it("the People's Favor's holder at a full site plays to the open site picked in the region", async () => {
-        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] }, banners: FAVOR_HELD })
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], {
+            denizensBySite: { c1: FULL, c2: [], p1: [] },
+            banners: FAVOR_HELD
+        })
         draft.keep(TENTS)
         expect(draft.otherSites).toEqual(['c2'])
         expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
         draft.setToSite('c2')
         await draft.choosePlacement({ play: SearchPlay.Site })
-        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ keptCardId: TENTS, play: SearchPlay.Site, toSiteId: 'c2' }))
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({ keptCardId: TENTS, play: SearchPlay.Site, toSiteId: 'c2' })
+        )
         expect(engineRefusal(session, sent)).toBeUndefined()
     })
 
     it('a full Great Slum takes the site play with a card discarded first', async () => {
-        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], {
+            siteCards: SLUM_SITES,
+            denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] }
+        })
         draft.keep(TENTS)
         expect(draft.otherSites).toEqual([])
         expect(draft.discardFirstOptions).toEqual(FULL)
         draft.setDiscardFirst(FULL[1])
         await draft.choosePlacement({ play: SearchPlay.Site })
-        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, discardFirstCardId: FULL[1] }))
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({ play: SearchPlay.Site, discardFirstCardId: FULL[1] })
+        )
         expect(engineRefusal(session, sent)).toBeUndefined()
     })
 
     it('the site play picked with nothing that opens it is judged at send: not sent, one reason, gone with the next pick', async () => {
-        const { draft, sent } = await searchingWith([TENTS, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
+        const { draft, sent } = await searchingWith([TENTS, TUTOR], [], {
+            siteCards: SLUM_SITES,
+            denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] }
+        })
         draft.keep(TENTS)
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(sent).not.toHaveBeenCalled()
@@ -490,11 +597,16 @@ describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a di
         draft.setDiscardFirst(FULL[0])
         expect(draft.placementReason).toBeUndefined()
         await draft.choosePlacement({ play: SearchPlay.Site })
-        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, discardFirstCardId: FULL[0] }))
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({ play: SearchPlay.Site, discardFirstCardId: FULL[0] })
+        )
     })
 
     it('a When Played card played to a full Great Slum is judged with its discard first', async () => {
-        const { session, draft, sent } = await searchingWith([FABLED_FEAST, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
+        const { session, draft, sent } = await searchingWith([FABLED_FEAST, TUTOR], [], {
+            siteCards: SLUM_SITES,
+            denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] }
+        })
         draft.keep(FABLED_FEAST)
         draft.setDiscardFirst(FULL[2])
         await draft.choosePlacement({ play: SearchPlay.Site })
@@ -505,7 +617,13 @@ describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a di
         expect(draft.whenPlayedComplete).toBe(true)
         expect(draft.whenPlayedReason).toBeUndefined()
         await draft.confirmWhenPlayed()
-        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ keptCardId: FABLED_FEAST, play: SearchPlay.Site, discardFirstCardId: FULL[2] }))
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                keptCardId: FABLED_FEAST,
+                play: SearchPlay.Site,
+                discardFirstCardId: FULL[2]
+            })
+        )
         expect(engineRefusal(session, sent)).toBeUndefined()
     })
 })
@@ -513,13 +631,21 @@ describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a di
 const CROP_ROTATION = 'denizen.hearth.crop-rotation'
 const NEW_GROWTH = 'denizen.beast.new-growth'
 const INN = 'denizen.hearth.wayside-inn'
-const carrying = (cardId: string) => ({ pendingSearchModifiers: [{ cardId, powerIndex: powerIndexOf(cardId, PowerTiming.Modifier) }] })
-const FULL_ELSEWHERE = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.elsewhere-${i}`)
+const carrying = (cardId: string) => ({
+    pendingSearchModifiers: [{ cardId, powerIndex: powerIndexOf(cardId, PowerTiming.Modifier) }]
+})
+const FULL_ELSEWHERE = Array.from(
+    { length: FIXTURE_SITE_CAPACITY },
+    (_, i) => `denizen.order.elsewhere-${i}`
+)
 
 /** Each site play is judged on exactly what it sends: the site played to, the card discarded first, the Search's carried modifiers. */
 describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is judged on the play it sends', () => {
     it("the People's Favor's holder at their own full site plays there once a card there is discarded first", async () => {
-        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: FULL_ELSEWHERE, p1: [] }, banners: FAVOR_HELD })
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], {
+            denizensBySite: { c1: FULL, c2: FULL_ELSEWHERE, p1: [] },
+            banners: FAVOR_HELD
+        })
         draft.keep(TENTS)
         expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
         await draft.choosePlacement({ play: SearchPlay.Site })
@@ -531,13 +657,24 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
         draft.setDiscardFirst(FULL[1])
         expect(draft.placementReason).toBeUndefined()
         await draft.choosePlacement({ play: SearchPlay.Site })
-        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ keptCardId: TENTS, play: SearchPlay.Site, discardFirstCardId: FULL[1] }))
-        expect(sent).toHaveBeenCalledWith(expect.not.objectContaining({ toSiteId: expect.anything() }))
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                keptCardId: TENTS,
+                play: SearchPlay.Site,
+                discardFirstCardId: FULL[1]
+            })
+        )
+        expect(sent).toHaveBeenCalledWith(
+            expect.not.objectContaining({ toSiteId: expect.anything() })
+        )
         expect(engineRefusal(session, sent)).toBeUndefined()
     })
 
     it('the holder with room at their own site is refused another site that is full, until a card there is discarded first', async () => {
-        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: [], c2: FULL, p1: [] }, banners: FAVOR_HELD })
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], {
+            denizensBySite: { c1: [], c2: FULL, p1: [] },
+            banners: FAVOR_HELD
+        })
         draft.keep(TENTS)
         draft.setToSite('c2')
         await draft.choosePlacement({ play: SearchPlay.Site })
@@ -547,18 +684,29 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
 
         draft.setDiscardFirst(FULL[0])
         await draft.choosePlacement({ play: SearchPlay.Site })
-        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, toSiteId: 'c2', discardFirstCardId: FULL[0] }))
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                play: SearchPlay.Site,
+                toSiteId: 'c2',
+                discardFirstCardId: FULL[0]
+            })
+        )
         expect(engineRefusal(session, sent)).toBeUndefined()
     })
 
     it('Crop Rotation carried: a card discarded first opens a full site', async () => {
-        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] }, ...carrying(CROP_ROTATION) })
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], {
+            denizensBySite: { c1: FULL, c2: [], p1: [] },
+            ...carrying(CROP_ROTATION)
+        })
         draft.keep(TENTS)
         expect(draft.otherSites).toEqual([])
         expect(draft.discardFirstOptions).toEqual(FULL)
         draft.setDiscardFirst(FULL[2])
         await draft.choosePlacement({ play: SearchPlay.Site })
-        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, discardFirstCardId: FULL[2] }))
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({ play: SearchPlay.Site, discardFirstCardId: FULL[2] })
+        )
         expect(engineRefusal(session, sent)).toBeUndefined()
     })
 
@@ -569,7 +717,9 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
         expect(draft.otherSites).toContain('p1')
         draft.setToSite('p1')
         await draft.choosePlacement({ play: SearchPlay.Site })
-        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ keptCardId: INN, play: SearchPlay.Site, toSiteId: 'p1' }))
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({ keptCardId: INN, play: SearchPlay.Site, toSiteId: 'p1' })
+        )
         expect(engineRefusal(session, sent)).toBeUndefined()
 
         const nomad = (await searchingWith([TENTS, TUTOR], [], table)).draft
@@ -580,7 +730,16 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
 
     it('New Growth carried: a full Great Slum played to opens with a card there discarded first', async () => {
         const { session, draft, sent } = await searchingWith([INN, TUTOR], [], {
-            siteCards: { c1: 'c1', c2: 'c2', p1: 'site.great-slums', p2: 'p2', p3: 'p3', h1: 'h1', h2: 'h2', h3: 'h3' },
+            siteCards: {
+                c1: 'c1',
+                c2: 'c2',
+                p1: 'site.great-slums',
+                p2: 'p2',
+                p3: 'p3',
+                h1: 'h1',
+                h2: 'h2',
+                h3: 'h3'
+            },
             denizensBySite: { c1: FULL, c2: [], p1: FULL_ELSEWHERE },
             ...carrying(NEW_GROWTH)
         })
@@ -594,12 +753,20 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
         expect(draft.discardFirstOptions).toEqual(FULL_ELSEWHERE)
         draft.setDiscardFirst(FULL_ELSEWHERE[0])
         await draft.choosePlacement({ play: SearchPlay.Site })
-        expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, toSiteId: 'p1', discardFirstCardId: FULL_ELSEWHERE[0] }))
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                play: SearchPlay.Site,
+                toSiteId: 'p1',
+                discardFirstCardId: FULL_ELSEWHERE[0]
+            })
+        )
         expect(engineRefusal(session, sent)).toBeUndefined()
     })
 
     it('a player with nothing that opens a full site is offered no card to discard first and no site play', async () => {
-        const { draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] } })
+        const { draft, sent } = await searchingWith([TENTS, TUTOR], [], {
+            denizensBySite: { c1: FULL, c2: [], p1: [] }
+        })
         draft.keep(TENTS)
         expect(draft.discardFirstOptions).toEqual([])
         expect(draft.otherSites).toEqual([])
@@ -610,10 +777,16 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
         expect(sent).not.toHaveBeenCalled()
     })
 
-    it("Land Warden: the holder at their own full site pairs a facedown adviser with the site play a discard first opens", async () => {
-        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: FULL_ELSEWHERE, p1: [] }, banners: FAVOR_HELD, ...WARDEN_CARRIED })
+    it('Land Warden: the holder at their own full site pairs a facedown adviser with the site play a discard first opens', async () => {
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], {
+            denizensBySite: { c1: FULL, c2: FULL_ELSEWHERE, p1: [] },
+            banners: FAVOR_HELD,
+            ...WARDEN_CARRIED
+        })
         draft.keep(TENTS)
-        const facedown = draft.secondPlays.find((option) => option.cardId === TUTOR && option.faceUp === false)
+        const facedown = draft.secondPlays.find(
+            (option) => option.cardId === TUTOR && option.faceUp === false
+        )
         expect(facedown).toBeDefined()
         draft.setSecondPlay(facedown?.key)
         expect(draft.placements.map((option) => option.play)).toEqual([SearchPlay.Site])
@@ -636,12 +809,19 @@ const ORACLE = 'denizen.nomad.oracle'
 
 /** The cards a When Played choice offers, in order. */
 function cardTargets(choices: readonly LegalChoice[]): string[] {
-    return choices.flatMap((legal) => legal.options.flatMap((option) => (option.kind === PowerChoiceKind.Card ? [option.cardId] : [])))
+    return choices.flatMap((legal) =>
+        legal.options.flatMap((option) =>
+            option.kind === PowerChoiceKind.Card ? [option.cardId] : []
+        )
+    )
 }
 
 /** Contract rule 2: the card a site play discards first is no longer at a site, so Great Herd is not offered it. */
 describe("R-5.1.4.I — Great Herd is not offered the card the People's Favor discards first", () => {
-    const herdTable = { denizensBySite: { c1: [], c2: [TENTS], p1: [], h1: [ORACLE] }, banners: FAVOR_HELD }
+    const herdTable = {
+        denizensBySite: { c1: [], c2: [TENTS], p1: [], h1: [ORACLE] },
+        banners: FAVOR_HELD
+    }
 
     it('with Tents discarded first, only the Oracle is offered, and the play is sent with it', async () => {
         const { session, draft, sent } = await searchingWith([GREAT_HERD, TUTOR], [], herdTable)
@@ -656,7 +836,11 @@ describe("R-5.1.4.I — Great Herd is not offered the card the People's Favor di
         expect(draft.whenPlayedReason).toBeUndefined()
         await draft.confirmWhenPlayed()
         expect(sent).toHaveBeenCalledWith(
-            expect.objectContaining({ keptCardId: GREAT_HERD, discardFirstCardId: TENTS, choices: [{ kind: PowerChoiceKind.Card, cardId: ORACLE }] })
+            expect.objectContaining({
+                keptCardId: GREAT_HERD,
+                discardFirstCardId: TENTS,
+                choices: [{ kind: PowerChoiceKind.Card, cardId: ORACLE }]
+            })
         )
         expect(engineRefusal(session, sent)).toBeUndefined()
     })
@@ -672,7 +856,10 @@ describe("R-5.1.4.I — Great Herd is not offered the card the People's Favor di
         const { draft } = await searchingWith([GREAT_HERD, TUTOR], [], herdTable)
         draft.keep(GREAT_HERD)
         await draft.choosePlacement({ play: SearchPlay.Site })
-        draft.setPicks({ ...emptyPicks(), option: { 0: cardTargets(draft.whenPlayed).indexOf(TENTS) } })
+        draft.setPicks({
+            ...emptyPicks(),
+            option: { 0: cardTargets(draft.whenPlayed).indexOf(TENTS) }
+        })
         expect(draft.picks.option).toEqual({ 0: 0 })
 
         draft.setDiscardFirst(TENTS)
@@ -689,15 +876,31 @@ describe('R-7.2.2 — Great Herd played to a site an enemy rules with Ancient Bl
     const herdTable = (bloodline: boolean) => ({
         oathRevision: OathRevision.EngineFixes12,
         players: [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 2, handIds: [GREAT_HERD, TUTOR] }),
-            testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'c2', favor: 2, advisers: bloodline ? [{ cardId: BLOODLINE, faceUp: true }] : [] })
+            testPlayer({
+                playerId: ME,
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 2,
+                handIds: [GREAT_HERD, TUTOR]
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                siteId: 'c2',
+                favor: 2,
+                advisers: bloodline ? [{ cardId: BLOODLINE, faceUp: true }] : []
+            })
         ],
         denizensBySite: { c1: [], c2: [], p1: [], h1: [ORACLE] },
         warbandsBySite: { c1: { rhys: 2 } }
     })
 
     it('the play goes straight on with no choices, and the engine accepts it', async () => {
-        const { session, draft, sent } = await searchingWith([GREAT_HERD, TUTOR], [], herdTable(true))
+        const { session, draft, sent } = await searchingWith(
+            [GREAT_HERD, TUTOR],
+            [],
+            herdTable(true)
+        )
         draft.keep(GREAT_HERD)
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(draft.needsWhenPlayed).toBe(false)
@@ -723,15 +926,35 @@ describe("R-7.3.3 — Bewitch's yes is offered once the play's own secret counts
     async function bewitching(oathRevision: OathRevision) {
         const state = testState(
             [
-                testPlayer({ playerId: ME, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 2, secrets: 2, handIds: [BEWITCH, TUTOR] }),
-                testPlayer({ playerId: 'ann', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', secrets: 2, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } })
+                testPlayer({
+                    playerId: ME,
+                    color: Color.Red,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c1',
+                    favor: 2,
+                    secrets: 2,
+                    handIds: [BEWITCH, TUTOR]
+                }),
+                testPlayer({
+                    playerId: 'ann',
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'h1',
+                    secrets: 2,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+                })
             ],
             {
                 machineState: MachineState.Searching,
                 oathRevision,
                 chancellorPlayerId: 'ann',
                 denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
-                siteCards: { c1: 'site.standing-stones', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+                siteCards: {
+                    c1: 'site.standing-stones',
+                    c2: 'site.river',
+                    p1: 'site.marshes',
+                    h1: 'site.mountain'
+                }
             }
         )
         openTurn(state, ME)
@@ -744,7 +967,9 @@ describe("R-7.3.3 — Bewitch's yes is offered once the play's own secret counts
         const draft = await bewitching(OathRevision.EngineFixes12)
         draft.keep(BEWITCH)
         await draft.choosePlacement({ play: SearchPlay.Site })
-        expect(draft.whenPlayed.map((legal) => legal.options)).toEqual([[{ kind: PowerChoiceKind.Yes }]])
+        expect(draft.whenPlayed.map((legal) => legal.options)).toEqual([
+            [{ kind: PowerChoiceKind.Yes }]
+        ])
         draft.setPicks({ ...emptyPicks(), option: { 0: 0 } })
         expect(draft.whenPlayedReason).toBeUndefined()
     })
@@ -757,7 +982,7 @@ describe("R-7.3.3 — Bewitch's yes is offered once the play's own secret counts
     })
 })
 
-describe("R-5.1.4.I — Salt the Earth's \"To which site\" rows, as the engine judges a play to another site", () => {
+describe('R-5.1.4.I — Salt the Earth\'s "To which site" rows, as the engine judges a play to another site', () => {
     const SALT = 'denizen.discord.salt-the-earth'
     const FULL = ['denizen.beast.wolves', 'denizen.hearth.storyteller', 'denizen.beast.rangers']
     const LOCKED = 'denizen.beast.vow-of-union'
@@ -837,7 +1062,7 @@ describe("Land Warden's Q&A — the kept card sent to another site leaves the se
     const sitePlacements = (draft: Awaited<ReturnType<typeof warden>>['draft']) =>
         draft.placements.filter((option) => option.play === SearchPlay.Site)
 
-    it('from revision 16, with the kept card to c2, the second card to the seat\'s site pairs with the site play, and the engine accepts it', async () => {
+    it("from revision 16, with the kept card to c2, the second card to the seat's site pairs with the site play, and the engine accepts it", async () => {
         expect(ONE_SPACE_LEFT).toHaveLength(FIXTURE_SITE_CAPACITY - 1)
         const { session, draft, sent } = await warden(OathRevision.EngineFixes12)
         draft.setSecondPlay(innToYourSite(draft)?.key)
@@ -847,7 +1072,11 @@ describe("Land Warden's Q&A — the kept card sent to another site leaves the se
         expect(sitePlacements(draft)).toHaveLength(1)
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(sent).toHaveBeenCalledWith(
-            expect.objectContaining({ keptCardId: WOLVES, toSiteId: 'c2', secondPlay: { cardId: INN, play: SearchPlay.Site } })
+            expect.objectContaining({
+                keptCardId: WOLVES,
+                toSiteId: 'c2',
+                secondPlay: { cardId: INN, play: SearchPlay.Site }
+            })
         )
         expect(engineRefusal(session, sent)).toBeUndefined()
     })

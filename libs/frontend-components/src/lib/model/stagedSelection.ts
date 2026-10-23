@@ -5,15 +5,11 @@ export type StagedSelectionEntry<TValue> = {
     source: StagedSelectionSource
 }
 
-type StageKey<TValueByStage extends Record<string, unknown>> = Extract<
-    keyof TValueByStage,
-    string
->
+type StageKey<TValueByStage extends Record<string, unknown>> = Extract<keyof TValueByStage, string>
 
-export type StagedSelectionState<TValueByStage extends Record<string, unknown>> =
-    Partial<{
-        [TCurrentStage in StageKey<TValueByStage>]: StagedSelectionEntry<TValueByStage[TCurrentStage]>
-    }>
+export type StagedSelectionState<TValueByStage extends Record<string, unknown>> = Partial<{
+    [TCurrentStage in StageKey<TValueByStage>]: StagedSelectionEntry<TValueByStage[TCurrentStage]>
+}>
 
 function stageIndex<TValueByStage extends Record<string, unknown>>(
     stageOrder: readonly StageKey<TValueByStage>[],
@@ -92,9 +88,7 @@ export function getStagedSelectionValue<
     return getStagedSelectionEntry(state, stage)?.value
 }
 
-export function getHighestManualStagedSelectionStage<
-    TValueByStage extends Record<string, unknown>
->(
+export function getHighestManualStagedSelectionStage<TValueByStage extends Record<string, unknown>>(
     state: StagedSelectionState<TValueByStage>,
     stageOrder: readonly StageKey<TValueByStage>[]
 ): StageKey<TValueByStage> | undefined {
@@ -108,18 +102,17 @@ export function getHighestManualStagedSelectionStage<
     return undefined
 }
 
-export function hasManualStagedSelection<
-    TValueByStage extends Record<string, unknown>
->(
+export function hasManualStagedSelection<TValueByStage extends Record<string, unknown>>(
     state: StagedSelectionState<TValueByStage>,
     stageOrder: readonly StageKey<TValueByStage>[]
 ): boolean {
     return getHighestManualStagedSelectionStage(state, stageOrder) !== undefined
 }
 
-export function popHighestManualStagedSelection<
-    TValueByStage extends Record<string, unknown>
->(state: StagedSelectionState<TValueByStage>, stageOrder: readonly StageKey<TValueByStage>[]): {
+export function popHighestManualStagedSelection<TValueByStage extends Record<string, unknown>>(
+    state: StagedSelectionState<TValueByStage>,
+    stageOrder: readonly StageKey<TValueByStage>[]
+): {
     nextState: StagedSelectionState<TValueByStage>
     poppedStage?: StageKey<TValueByStage>
 } {

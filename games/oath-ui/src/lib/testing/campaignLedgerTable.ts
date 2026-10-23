@@ -165,11 +165,20 @@ export function campaignLedgerTable({
             // R-5.5.6 — defeated, Dana loses half their force: 6 on their board after the roll.
             ...(sacrifice > 0
                 ? {}
-                : { defeatKills: [{ at: { kind: 'board' as const, playerId: 'Dana' }, owner: 'Dana', count: 3 }] })
+                : {
+                      defeatKills: [
+                          {
+                              at: { kind: 'board' as const, playerId: 'Dana' },
+                              owner: 'Dana',
+                              count: 3
+                          }
+                      ]
+                  })
         })
     ])
     const closing = sacrificed.actions.at(-1)
-    if (isCampaignSacrifice(closing) && closing.metadata?.attackerVictorious === false) return sacrificed
+    if (isCampaignSacrifice(closing) && closing.metadata?.attackerVictorious === false)
+        return sacrificed
     // R-5.5.6.a — before revision 7 the defender picks even a loss that changes nothing.
     const picked = sacrificed.state.activePlayerIds.includes('Rhys')
         ? played(sacrificed, [

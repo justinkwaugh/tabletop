@@ -384,7 +384,8 @@ export class QuestionDraft implements PanelDraft {
         if (!playerId) return []
         const kept: string[] = []
         for (const cardId of picks) {
-            if (!adviserLimitDiscards(this.session.gameState, playerId, kept).includes(cardId)) break
+            if (!adviserLimitDiscards(this.session.gameState, playerId, kept).includes(cardId))
+                break
             kept.push(cardId)
         }
         return kept

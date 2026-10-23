@@ -18,9 +18,8 @@ import {
     RELIC_DECK_RECT,
     SITE_SLOT_RECTS,
     VISIONS_TRACK_CELLS,
-    WORLD_DECK_RECT,
+    WORLD_DECK_RECT
 } from './boardGeometry.js'
-
 
 const inBoard = (rect: BoundingBox): boolean =>
     rect.x >= 0 &&
@@ -56,9 +55,7 @@ describe('board geometry — the map (R-2.1.1)', () => {
     })
 
     it('R-2.1.1 — the regions run left to right: Cradle, Provinces, Hinterland', () => {
-        expect(REGION_COLUMN_LEFT[Region.Cradle]).toBeLessThan(
-            REGION_COLUMN_LEFT[Region.Provinces]
-        )
+        expect(REGION_COLUMN_LEFT[Region.Cradle]).toBeLessThan(REGION_COLUMN_LEFT[Region.Provinces])
         expect(REGION_COLUMN_LEFT[Region.Provinces]).toBeLessThan(
             REGION_COLUMN_LEFT[Region.Hinterland]
         )
@@ -67,7 +64,10 @@ describe('board geometry — the map (R-2.1.1)', () => {
     it('R-2.1.1 — a region’s slots run top to bottom in the engine’s own order', () => {
         for (const region of Object.values(Region)) {
             const tops = mapSlotsFor(region).map((slotId) => SITE_SLOT_RECTS[slotId].y)
-            expect([...tops].sort((a, b) => a - b), region).toEqual(tops)
+            expect(
+                [...tops].sort((a, b) => a - b),
+                region
+            ).toEqual(tops)
         }
     })
 })

@@ -79,6 +79,9 @@ test('all backend deployments configure HTTP child health probes and disable aff
         }
         assert.ok(command.args.includes('--no-session-affinity'))
         assert.ok(command.args.includes('--no-traffic'))
+        const readiness = command.args[command.args.indexOf('--readiness-probe') + 1]
+        assert.match(readiness, /failureThreshold=3/)
+        assert.match(readiness, service === 'tasks' ? /periodSeconds=30/ : /periodSeconds=5,/)
     }
 })
 

@@ -28,11 +28,7 @@
     {#if text}
         <dt class="campaign-ledger__label text-oath-text-muted">{label}</dt>
         <dd class="campaign-ledger__value">
-            <TokenText
-                {text}
-                {seats}
-                warbandColor={gameSession.ledgerWarbandColor(side.seatId)}
-            />
+            <TokenText {text} {seats} warbandColor={gameSession.ledgerWarbandColor(side.seatId)} />
         </dd>
     {/if}
 {/snippet}

@@ -35,15 +35,39 @@ type Seat = Partial<Parameters<typeof testPlayer>[0]>
 function giant(dana: Seat = {}, oathRevision: number = CURRENT_OATH_REVISION) {
     const state = testState(
         [
-            testPlayer({ playerId: 'dana', color: Color.Red, siteId: 'c1', favor: 3, secrets: 2, supply: 5, warbandsOnBoard: { dana: 3 }, ...dana }),
-            testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'p1', favor: 2, secrets: 1, secretsFacedown: 1, advisers: [{ cardId: STORYTELLER, faceUp: false }] })
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                supply: 5,
+                warbandsOnBoard: { dana: 3 },
+                ...dana
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                siteId: 'p1',
+                favor: 2,
+                secrets: 1,
+                secretsFacedown: 1,
+                advisers: [{ cardId: STORYTELLER, faceUp: false }]
+            })
         ],
         {
             oathRevision,
             machineState: MachineState.ActPhase,
             denizensBySite: { c1: [], c2: [], p1: [], p2: [], h1: [], h2: [] },
             warbandsBySite: { c1: { dana: 1 } },
-            siteCards: { c1: 'site.buried-giant', c2: 'site.river', p1: 'site.marshes', p2: 'site.mine', h1: 'site.mountain', h2: HIDDEN_PLACE }
+            siteCards: {
+                c1: 'site.buried-giant',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                p2: 'site.mine',
+                h1: 'site.mountain',
+                h2: HIDDEN_PLACE
+            }
         }
     )
     openTurn(state, 'dana')
@@ -54,7 +78,8 @@ const view = (state: HydratedOathGameState) =>
     new HydratedOathGameState(served(state, { kind: 'player', playerId: 'dana' }))
 /** The Hidden Place's ways, as Dana's own view and the server's both price them. */
 function hiddenWays(state: HydratedOathGameState) {
-    const read = (s: HydratedOathGameState) => travelRows(s, 'dana', []).find((row) => row.slotId === 'h2')
+    const read = (s: HydratedOathGameState) =>
+        travelRows(s, 'dana', []).find((row) => row.slotId === 'h2')
     const own = read(view(state))
     expect(own).toEqual(read(state))
     return own
@@ -69,16 +94,30 @@ function recorded(fields: Record<string, unknown>): GameAction {
     }
     return { id: 'a1', gameId: 'g1', source: ActionSource.User, ...travel }
 }
-const names = { player: (id: string) => id, site: () => 'The Hidden Place', seats: ['dana', 'rhys'] }
+const names = {
+    player: (id: string) => id,
+    site: () => 'The Hidden Place',
+    seats: ['dana', 'rhys']
+}
 
 describe('R-11.13-H2 — from the Buried Giant, The Hidden Place reads "N+[secret]" and "0+[secret][secret]"', () => {
     it('with the Supply, two ways: pay 4 and flip one, or flip two for free', () => {
         const row = hiddenWays(giant())
         assert(row !== undefined, 'The Hidden Place is lit')
-        expect(row.ways.map((way) => [way.cost, way.flipSecret])).toEqual([[4, true], [0, 2]])
+        expect(row.ways.map((way) => [way.cost, way.flipSecret])).toEqual([
+            [4, true],
+            [0, 2]
+        ])
         const chip = travelChip(row.ways)
-        expect(chip).toEqual({ ways: [{ cost: 4, favor: 0, secrets: 1 }, { cost: 0, favor: 0, secrets: 2 }] })
-        expect(chip ? chipWords(chip) : undefined).toBe('4 Supply + 1 secret or 0 Supply + 2 secrets')
+        expect(chip).toEqual({
+            ways: [
+                { cost: 4, favor: 0, secrets: 1 },
+                { cost: 0, favor: 0, secrets: 2 }
+            ]
+        })
+        expect(chip ? chipWords(chip) : undefined).toBe(
+            '4 Supply + 1 secret or 0 Supply + 2 secrets'
+        )
         const nameOf = (id: string) => id
         expect(row.ways.map((way) => travelSpoken(row, way, nameOf))).toEqual([
             'Travel to The Hidden Place: spend 4 Supply, flip a secret facedown',
@@ -89,24 +128,38 @@ describe('R-11.13-H2 — from the Buried Giant, The Hidden Place reads "N+[secre
     it('with too little Supply, only the free way; with one faceup secret too, The Hidden Place is not lit', () => {
         const row = hiddenWays(giant({ supply: 3 }))
         expect(row?.ways.map((way) => [way.cost, way.flipSecret])).toEqual([[0, 2]])
-        expect(row ? travelChip(row.ways) : undefined).toEqual({ ways: [{ cost: 0, favor: 0, secrets: 2 }] })
+        expect(row ? travelChip(row.ways) : undefined).toEqual({
+            ways: [{ cost: 0, favor: 0, secrets: 2 }]
+        })
         expect(hiddenWays(giant({ supply: 3, secrets: 1, secretsFacedown: 1 }))).toBeUndefined()
     })
 
     it('every other destination keeps its ways: the Supply, or one secret for none', () => {
-        const row = travelRows(view(giant({ supply: 3 })), 'dana', []).find((r) => r.slotId === 'h1')
+        const row = travelRows(view(giant({ supply: 3 })), 'dana', []).find(
+            (r) => r.slotId === 'h1'
+        )
         expect(row?.ways.map((way) => [way.cost, way.flipSecret])).toEqual([[0, true]])
-        expect(row ? travelChip(row.ways) : undefined).toEqual({ ways: [{ cost: 0, favor: 0, secrets: 1 }] })
+        expect(row ? travelChip(row.ways) : undefined).toEqual({
+            ways: [{ cost: 0, favor: 0, secrets: 1 }]
+        })
     })
 
-    it("Toll Roads' favor rides along on both ways: \"4+[favor][secret] or 0+[favor][secret][secret]\"", () => {
+    it('Toll Roads\' favor rides along on both ways: "4+[favor][secret] or 0+[favor][secret][secret]"', () => {
         const state = giant()
         state.denizensBySite['h2'] = ['denizen.order.toll-roads']
         state.warbandsBySite['h2'] = { rhys: 1 }
         const row = hiddenWays(state)
         assert(row !== undefined, 'The Hidden Place is lit')
-        expect(row.ways.map((way) => [way.cost, way.tolls.length, way.flipSecret])).toEqual([[4, 1, true], [0, 1, 2]])
-        expect(travelChip(row.ways)).toEqual({ ways: [{ cost: 4, favor: 1, secrets: 1 }, { cost: 0, favor: 1, secrets: 2 }] })
+        expect(row.ways.map((way) => [way.cost, way.tolls.length, way.flipSecret])).toEqual([
+            [4, 1, true],
+            [0, 1, 2]
+        ])
+        expect(travelChip(row.ways)).toEqual({
+            ways: [
+                { cost: 4, favor: 1, secrets: 1 },
+                { cost: 0, favor: 1, secrets: 2 }
+            ]
+        })
         expect(travelSpoken(row, row.ways[1], (id) => id)).toBe(
             'Travel to The Hidden Place: spend no Supply, give 1 favor to rhys (Toll Roads), flip 2 secrets facedown'
         )
@@ -130,12 +183,24 @@ describe('R-11.13-H2 — from the Buried Giant, The Hidden Place reads "N+[secre
     })
 
     it('the History names each flip', () => {
-        expect(describeAction(recorded({ flipSecret: 2, metadata: { supplySpent: 0, supplyRemaining: 5, secretFlipped: 2 } }), names)).toBe(
-            'traveled to The Hidden Place; flipped 2 secrets'
-        )
-        expect(describeAction(recorded({ flipSecret: true, metadata: { supplySpent: 4, supplyRemaining: 1, secretFlipped: true } }), names)).toBe(
-            'traveled to The Hidden Place, spending 4 Supply; flipped 1 secret'
-        )
+        expect(
+            describeAction(
+                recorded({
+                    flipSecret: 2,
+                    metadata: { supplySpent: 0, supplyRemaining: 5, secretFlipped: 2 }
+                }),
+                names
+            )
+        ).toBe('traveled to The Hidden Place; flipped 2 secrets')
+        expect(
+            describeAction(
+                recorded({
+                    flipSecret: true,
+                    metadata: { supplySpent: 4, supplyRemaining: 1, secretFlipped: true }
+                }),
+                names
+            )
+        ).toBe('traveled to The Hidden Place, spending 4 Supply; flipped 1 secret')
     })
 })
 
@@ -155,7 +220,11 @@ describe("R-11.13-H2 — a power's move from the Buried Giant past the Narrow Pa
         const state = giant(dana)
         state.siteCards['h1'] = 'site.narrow-pass'
         state.machineState = MachineState.PowerQuestion
-        state.pendingQuestions = { queue: [question], askingPlayerId: 'rhys', resumeMachineState: MachineState.ActPhase }
+        state.pendingQuestions = {
+            queue: [question],
+            askingPlayerId: 'rhys',
+            resumeMachineState: MachineState.ActPhase
+        }
         const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'answerQuestion').mockResolvedValue()
         return { draft: session.question, sent }
@@ -167,17 +236,28 @@ describe("R-11.13-H2 — a power's move from the Buried Giant past the Narrow Pa
         await draft.accept()
         expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.FlipToTravel, flip: true })
         const short = await asked(flipQuestion(2), { secrets: 1, secretsFacedown: 1 })
-        expect(short.draft.acceptRefusedBecause).toBe('flipping 2 secrets takes 2 faceup secrets: you have 1')
+        expect(short.draft.acceptRefusedBecause).toBe(
+            'flipping 2 secrets takes 2 faceup secrets: you have 1'
+        )
     })
 
     it("the Brass Horse's map chip shows both secrets, and its answer carries both", async () => {
-        const horse: PowerQuestion = { kind: PowerQuestionKind.TravelFreeTo, cardId: 'relic.brass-horse', askedPlayerId: 'dana', siteIds: ['h2', 'p2'] }
+        const horse: PowerQuestion = {
+            kind: PowerQuestionKind.TravelFreeTo,
+            cardId: 'relic.brass-horse',
+            askedPlayerId: 'dana',
+            siteIds: ['h2', 'p2']
+        }
         const { draft, sent } = await asked(horse)
         expect(draft.travelFlipsAt('h2')).toBe(2)
         const site = draft.travelPick?.sites.find((s) => s.siteId === 'h2')
         expect(site ? pickChip(site) : undefined).toEqual({ free: { toll: false, secrets: 2 } })
         expect(chipWords({ free: { toll: false, secrets: 2 } })).toBe('flip 2 secrets')
         await draft.travelTo('h2')
-        expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.TravelFreeTo, siteId: 'h2', flipSecret: 2 })
+        expect(sent).toHaveBeenCalledWith({
+            kind: PowerQuestionKind.TravelFreeTo,
+            siteId: 'h2',
+            flipSecret: 2
+        })
     })
 })
