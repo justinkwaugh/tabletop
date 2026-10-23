@@ -12,6 +12,8 @@ export const NapoleonsTriumphPreferences = Type.Object(
     { additionalProperties: false }
 )
 
+export type HistoryOrder = Type.Static<typeof NapoleonsTriumphPreferences>['historyOrder']
+
 export const NapoleonsTriumphPreferenceDefinition = {
     title: {
         schema: NapoleonsTriumphPreferences,

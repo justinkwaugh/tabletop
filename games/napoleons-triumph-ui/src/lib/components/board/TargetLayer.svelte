@@ -79,8 +79,8 @@
 {#snippet approachBar(approach: number, look: string)}
     {@const box = targetBarBox(approach)}
     <rect
-        transform="translate({box.centre.x} {box.centre.y}) rotate({APPROACH_GEOMETRY[approach]
-            .angle})"
+        transform="matrix({box.along.x} {box.along.y} {-box.along.y} {box.along.x} {box.centre
+            .x} {box.centre.y})"
         x={-box.halfLength}
         y={-box.halfWidth}
         width={box.halfLength * 2}

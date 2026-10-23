@@ -4,7 +4,6 @@ import type { OrientedBox } from './orientedBox.js'
 const TARGET_BAR_INSET = 14
 const TARGET_BAR_HALF_WIDTH = 13
 
-/** The bar a player taps to send pieces to an approach, lying just inside its locale. */
 export function targetBarBox(approachId: number): OrientedBox {
     const bar = APPROACH_GEOMETRY[approachId]
     const radians = (bar.angle * Math.PI) / 180
@@ -19,5 +18,4 @@ export function targetBarBox(approachId: number): OrientedBox {
     }
 }
 
-/** How far into its locale, from the approach's line, the target bar reaches. */
 export const TARGET_BAR_DEPTH = TARGET_BAR_INSET + TARGET_BAR_HALF_WIDTH

@@ -49,7 +49,6 @@ export function setPickedUp(pickedUp: PickedUp): CommandSelection {
     return commandSelection.set(commandSelection.empty(), 'group', pickedUp, 'manual')
 }
 
-/** Aiming keeps the pieces in hand, which the threat then names to start with. */
 export function setAim(selection: CommandSelection, locale: number): CommandSelection {
     return commandSelection.set(selection, 'aim', locale, 'manual')
 }

@@ -5,6 +5,7 @@ import {
     isEndTurn,
     isThreatenAttack,
     roundLabel,
+    type HistoryOrder,
     type Scenario
 } from '@tabletop/napoleons-triumph'
 
@@ -161,12 +162,9 @@ export function historyChapters(
     return chapters
 }
 
-/** The history as the panel lists it: an attack's steps always follow the line they belong to. */
-export function chaptersInOrder(
-    chapters: HistoryChapter[],
-    newestFirst: boolean
-): HistoryChapter[] {
-    if (!newestFirst) {
+// Deliberate: an attack's steps read in the order they happened, under their threat, in either order.
+export function chaptersInOrder(chapters: HistoryChapter[], order: HistoryOrder): HistoryChapter[] {
+    if (order === 'newestLast') {
         return chapters
     }
     return chapters.toReversed().map((chapter) => ({

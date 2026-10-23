@@ -237,7 +237,7 @@ describe('the order of the history', () => {
         ])
 
     it('runs oldest to newest when the newest is last', () => {
-        expect(told(chaptersInOrder(chapters, false))).toEqual([
+        expect(told(chaptersInOrder(chapters, 'newestLast'))).toEqual([
             '7:00AM',
             'French turn',
             '0',
@@ -253,7 +253,7 @@ describe('the order of the history', () => {
     })
 
     it('runs newest to oldest when the newest is first, each line still followed by its steps in order', () => {
-        expect(told(chaptersInOrder(chapters, true))).toEqual([
+        expect(told(chaptersInOrder(chapters, 'newestFirst'))).toEqual([
             '8:00AM',
             'French turn',
             '5',

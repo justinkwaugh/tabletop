@@ -35,6 +35,7 @@ import {
     type EndedAttack,
     type Face,
     type FeintEnd,
+    type HistoryOrder,
     type HydratedNapoleonsTriumphGameState,
     type MoveOrder,
     type NapoleonsTriumphPreferences,
@@ -100,12 +101,13 @@ import { boxSamples, cornersOf } from '$lib/utils/orientedBox.js'
 import { TURN_TITLES } from '$lib/utils/turnTitles.js'
 import {
     heldApproaches,
-    layoutPieces,
+    layoutGroups,
     pieceGroups,
     type GroupSprite,
     type HeldApproach,
     type LayoutOptions,
-    type PieceGroup
+    type PieceGroup,
+    type PlacedGroup
 } from '$lib/utils/pieceLayout.js'
 import { showsArmyOf } from './armyInView.js'
 import {
@@ -414,7 +416,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         ]
     })
 
-    private pieceGroups: PieceGroup[] = $derived(
+    private standingGroups: PlacedGroup[] = $derived(
         pieceGroups(this.arrayedArmy ?? this.gameState, this.layoutOptions)
     )
 
@@ -425,7 +427,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     )
 
     sprites: GroupSprite[] = $derived.by(() =>
-        layoutPieces(this.arrayedArmy ?? this.gameState, {
+        layoutGroups(this.standingGroups, {
             ...this.layoutOptions,
             offeredApproaches: this.offeredApproaches
         })
@@ -648,7 +650,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     actionPanelFolded = $derived(this.preferences.values.actionPanelFolded)
 
-    historyNewestFirst = $derived(this.preferences.values.historyOrder === 'newestFirst')
+    historyOrder: HistoryOrder = $derived(this.preferences.values.historyOrder)
 
     battlePanelFoldable: boolean = $derived(foldsAway(this.battleStage))
 
@@ -711,7 +713,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     private riderIds: string[] = $derived(this.openRoadMarch?.unitIds ?? [])
 
     private marchGroupKey: string | undefined = $derived(
-        this.pieceGroups.find((group) =>
+        this.standingGroups.find((group) =>
             group.units.some((unit) => this.riderIds.includes(unit.id))
         )?.key
     )
@@ -740,7 +742,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     selectedGroup: PieceGroup | undefined = $derived(
-        this.pieceGroups.find((group) => group.key === this.selectedGroupKey) ??
+        this.standingGroups.find((group) => group.key === this.selectedGroupKey) ??
             this.reinforcements.find((candidate) => candidate.key === this.selectedGroupKey)
     )
 
@@ -1567,8 +1569,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.preferences.set({ actionPanelFolded })
     }
 
-    setHistoryNewestFirst(newestFirst: boolean) {
-        this.preferences.set({ historyOrder: newestFirst ? 'newestFirst' : 'newestLast' })
+    setHistoryOrder(historyOrder: HistoryOrder) {
+        this.preferences.set({ historyOrder })
     }
 
     async visitMoveReplay() {

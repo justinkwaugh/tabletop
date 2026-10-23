@@ -182,7 +182,7 @@
 {#snippet aimNote()}
     <span
         >Tap an arrow to threaten an attack across that approach. {group
-            ? 'The pieces in hand are named to start with when the attack goes on.'
+            ? 'The pieces in hand are named to start with where they can take part.'
             : 'The attacking pieces are named next.'}</span
     >
 {/snippet}

@@ -62,7 +62,7 @@ export interface PieceGroup {
     units: ProjectedUnit[]
 }
 
-interface PlacedGroup extends PieceGroup {
+export interface PlacedGroup extends PieceGroup {
     position: Position
     /** Where its singled-out units are shown nearest, when the viewer does not read the stack. */
     singledOutTowards?: Point
@@ -128,7 +128,6 @@ function withTheSingledOutForward(
     }
 }
 
-/** The pieces on the board in the groups they stand in, before any is laid out. */
 export function pieceGroups(state: BoardPieces, options: LayoutOptions): PlacedGroup[] {
     const groups = new Map<string, PlacedGroup>()
     for (const unit of state.units) {
@@ -304,12 +303,11 @@ function roomInsideLocale(approachId: number, locale: LocaleGeometry): number {
         return known
     }
     const bar = APPROACH_GEOMETRY[approachId]
-    const nearest = NEAREST_TO_THE_BAR
-    let inward = nearest
+    let inward = NEAREST_TO_THE_BAR
     while (filesStayInside(bar, locale.outline, inward + INSIDE_STEP)) {
         inward += INSIDE_STEP
     }
-    const room = inward - nearest - FAR_SIDE_CLEARANCE
+    const room = inward - NEAREST_TO_THE_BAR - FAR_SIDE_CLEARANCE
     roomInsideByApproach.set(approachId, room)
     return room
 }
@@ -331,7 +329,6 @@ function roomsToTry(approachId: number, locale: LocaleGeometry, aloneInLocale: b
     )
 }
 
-// How far into the locale the files fronting an approach begin: beyond its target bar while it is on offer.
 function frontOfFiles(approachId: number, options: LayoutOptions): number {
     return options.offeredApproaches?.includes(approachId)
         ? TARGET_BAR_DEPTH + BAR_GAP
@@ -527,7 +524,7 @@ function shiftClearOf(
 // Block-sized stand-ins laid end to end along a target bar, so the pieces placed after them keep off it.
 function targetBarStandIns(approachId: number): BlockFootprint[] {
     const box = targetBarBox(approachId)
-    const angle = APPROACH_GEOMETRY[approachId].angle
+    const angle = (Math.atan2(box.along.y, box.along.x) * 180) / Math.PI
     const count = Math.ceil((box.halfLength * 2) / BLOCK_LENGTH)
     const reach = Math.max(0, box.halfLength - BLOCK_LENGTH / 2)
     return Array.from({ length: count }, (_, index) => {
@@ -550,8 +547,12 @@ export function layoutPieces(
     state: BoardPieces,
     options: LayoutOptions = { rotation: 0 }
 ): GroupSprite[] {
+    return layoutGroups(pieceGroups(state, options), options)
+}
+
+export function layoutGroups(groups: PlacedGroup[], options: LayoutOptions): GroupSprite[] {
     const byPosition: PlacedGroup[][] = []
-    for (const group of pieceGroups(state, options)) {
+    for (const group of groups) {
         const peers = byPosition.find((entry) => samePosition(entry[0].position, group.position))
         if (peers) {
             peers.push(group)

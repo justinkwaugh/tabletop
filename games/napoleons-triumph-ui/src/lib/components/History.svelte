@@ -5,8 +5,8 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
-    const newestFirst = $derived(gameSession.historyNewestFirst)
-    const chapters = $derived(chaptersInOrder(gameSession.chapters, newestFirst))
+    const newestFirst = $derived(gameSession.historyOrder === 'newestFirst')
+    const chapters = $derived(chaptersInOrder(gameSession.chapters, gameSession.historyOrder))
 
     const indexId = $props.id()
     let scroller: HTMLDivElement | undefined = $state()
@@ -15,13 +15,14 @@
     let indexOpen = $state(false)
     let indexBounds = $state({ left: 0, top: 0, width: 0, height: 0 })
 
-    // The index lies over the list it leads into, measured as it opens.
-    function placeIndex(event: ToggleEvent) {
+    function placeIndexOverTheList(event: ToggleEvent) {
         indexOpen = event.newState === 'open'
-        if (indexOpen && scroller) {
-            const { left, top, width, height } = scroller.getBoundingClientRect()
-            indexBounds = { left, top, width, height }
+        if (!indexOpen) {
+            return
         }
+        assertExists(scroller, 'The history list is drawn')
+        const { left, top, width, height } = scroller.getBoundingClientRect()
+        indexBounds = { left, top, width, height }
     }
 
     function goToChapter(title: string) {
@@ -30,8 +31,9 @@
             (element) => element.dataset.chapter === title
         )
         assertExists(section, 'Every chapter in the index is listed')
-        scroller.scrollTop +=
-            section.getBoundingClientRect().top - scroller.getBoundingClientRect().top
+        const shown = section.getBoundingClientRect()
+        const list = scroller.getBoundingClientRect()
+        scroller.scrollTop += newestFirst ? shown.bottom - list.bottom : shown.top - list.top
         index?.hidePopover()
         indexButton?.focus()
     }
@@ -70,13 +72,13 @@
             <button
                 type="button"
                 aria-pressed={!newestFirst}
-                onclick={() => gameSession.setHistoryNewestFirst(false)}>Newest last</button
+                onclick={() => gameSession.setHistoryOrder('newestLast')}>Newest last</button
             >
             <span aria-hidden="true">/</span>
             <button
                 type="button"
                 aria-pressed={newestFirst}
-                onclick={() => gameSession.setHistoryNewestFirst(true)}>Newest first</button
+                onclick={() => gameSession.setHistoryOrder('newestFirst')}>Newest first</button
             >
         </div>
         <button
@@ -93,7 +95,7 @@
         bind:this={index}
         class="nt-history-index"
         popover="auto"
-        onbeforetoggle={placeIndex}
+        onbeforetoggle={placeIndexOverTheList}
         style:left="{indexBounds.left}px"
         style:top="{indexBounds.top}px"
         style:width="{indexBounds.width}px"
@@ -119,10 +121,16 @@
             historyComplete: gameSession.history.visibleContext.hasCompleteHistory
         }}
     >
-        <div class="nt-history" class:nt-history-newest-last={!newestFirst}>
+        <div
+            class="nt-history"
+            class:nt-history-newest-first={newestFirst}
+            class:nt-history-newest-last={!newestFirst}
+        >
             {#each chapters as chapter (chapter.title)}
                 <section class="nt-history-chapter" data-chapter={chapter.title}>
-                    <h3>{chapter.title}</h3>
+                    {#if !newestFirst}
+                        <h3>{chapter.title}</h3>
+                    {/if}
                     {#each chapter.turns as turn (`${turn.playerId}@${turn.start}`)}
                         {#if turn.title}
                             <h4>{turn.title}</h4>
@@ -134,6 +142,9 @@
                             {/each}
                         {/each}
                     {/each}
+                    {#if newestFirst}
+                        <h3>{chapter.title}</h3>
+                    {/if}
                 </section>
             {:else}
                 <p>Nothing has happened yet.</p>
@@ -230,6 +241,11 @@
         display: flex;
         flex-direction: column;
         gap: 3px;
+    }
+
+    .nt-history-newest-first h3 {
+        top: auto;
+        bottom: 0;
     }
 
     .nt-history-newest-last {
