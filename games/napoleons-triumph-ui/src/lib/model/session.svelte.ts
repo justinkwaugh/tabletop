@@ -648,6 +648,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     actionPanelFolded = $derived(this.preferences.values.actionPanelFolded)
 
+    historyNewestFirst = $derived(this.preferences.values.historyOrder === 'newestFirst')
+
     battlePanelFoldable: boolean = $derived(foldsAway(this.battleStage))
 
     battlePanelShownFolded: boolean = $derived(this.actionPanelFolded && this.battlePanelFoldable)
@@ -1563,6 +1565,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     setActionPanelFolded(actionPanelFolded: boolean) {
         this.preferences.set({ actionPanelFolded })
+    }
+
+    setHistoryNewestFirst(newestFirst: boolean) {
+        this.preferences.set({ historyOrder: newestFirst ? 'newestFirst' : 'newestLast' })
     }
 
     async visitMoveReplay() {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction, type Round, type Turn } from '@tabletop/common'
 import { ActionType, Scenario, Side } from '@tabletop/napoleons-triumph'
 import { TestGame } from '@tabletop/napoleons-triumph/testing'
-import { historyChapters, type HistoryChapter } from './historyChapters.js'
+import { chaptersInOrder, historyChapters, type HistoryChapter } from './historyChapters.js'
 
 function action(index: number, type: ActionType, playerId: string): GameAction {
     return { id: `a${index}`, gameId: 'g', source: ActionSource.User, type, playerId, index }
@@ -193,6 +193,78 @@ describe('turns as the game records them', () => {
         expect(headings().slice(1)).toEqual([
             ['2 December · 7:00AM', ['Allied turn', 'French turn']],
             ['2 December · 8:00AM', ['Allied turn']]
+        ])
+    })
+})
+
+describe('the order of the history', () => {
+    const line = (index: number) => ({
+        actionId: `a${index}`,
+        index,
+        text: `${index}`,
+        pictured: false
+    })
+    const chapters: HistoryChapter[] = [
+        {
+            title: '7:00AM',
+            turns: [
+                {
+                    playerId: 'p1',
+                    title: 'French turn',
+                    entries: [
+                        { ...line(0), steps: [] },
+                        { ...line(1), steps: [line(2), line(3)] }
+                    ]
+                },
+                { playerId: 'p2', title: 'Allies’ turn', entries: [{ ...line(4), steps: [] }] }
+            ]
+        },
+        {
+            title: '8:00AM',
+            turns: [{ playerId: 'p1', title: 'French turn', entries: [{ ...line(5), steps: [] }] }]
+        }
+    ]
+    const told = (ordered: HistoryChapter[]) =>
+        ordered.flatMap((chapter) => [
+            chapter.title,
+            ...chapter.turns.flatMap((turn) => [
+                turn.title,
+                ...turn.entries.flatMap((entry) => [
+                    entry.text,
+                    ...entry.steps.map((step) => step.text)
+                ])
+            ])
+        ])
+
+    it('runs oldest to newest when the newest is last', () => {
+        expect(told(chaptersInOrder(chapters, false))).toEqual([
+            '7:00AM',
+            'French turn',
+            '0',
+            '1',
+            '2',
+            '3',
+            'Allies’ turn',
+            '4',
+            '8:00AM',
+            'French turn',
+            '5'
+        ])
+    })
+
+    it('runs newest to oldest when the newest is first, each line still followed by its steps in order', () => {
+        expect(told(chaptersInOrder(chapters, true))).toEqual([
+            '8:00AM',
+            'French turn',
+            '5',
+            '7:00AM',
+            'Allies’ turn',
+            '4',
+            'French turn',
+            '1',
+            '2',
+            '3',
+            '0'
         ])
     })
 })

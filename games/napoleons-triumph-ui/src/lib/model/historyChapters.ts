@@ -160,3 +160,19 @@ export function historyChapters(
     }
     return chapters
 }
+
+/** The history as the panel lists it: an attack's steps always follow the line they belong to. */
+export function chaptersInOrder(
+    chapters: HistoryChapter[],
+    newestFirst: boolean
+): HistoryChapter[] {
+    if (!newestFirst) {
+        return chapters
+    }
+    return chapters.toReversed().map((chapter) => ({
+        ...chapter,
+        turns: chapter.turns
+            .toReversed()
+            .map((turn) => ({ ...turn, entries: turn.entries.toReversed() }))
+    }))
+}
