@@ -1,13 +1,17 @@
-import { Color } from '@tabletop/common'
+import { ActionSource, Color, createAction } from '@tabletop/common'
 import {
+    ActionType,
     CURRENT_OATH_REVISION,
+    ClaimDealKept,
     IMPERIAL_WARBANDS,
     MAX_OPEN_DEALS_PER_PLAYER,
     MachineState,
     OathRevision,
+    OathType,
     PlayerStatus,
     PowerQuestionKind,
     Region,
+    ResolveWake,
     TRIBUNAL_ID,
     allMapSlots,
     mapSlotsFor,
@@ -15,7 +19,7 @@ import {
     type OpenDeal
 } from '@tabletop/oath'
 import { openTurn, testPlayer, testState, testVaultWithRelics } from '@tabletop/oath/testing'
-import { tableOf, type PlayedTable } from './sessionHarness.js'
+import { played, tableOf, type PlayedTable } from './sessionHarness.js'
 
 /**
  * `offer`: Dana's Act Phase at the Tribunal, in a game at the current revision. `full`: the same,
@@ -133,4 +137,87 @@ export function tribunalAnswerTable(): PlayedTable {
     state.activePlayerIds = ['rhys']
     state.vault = testVaultWithRelics({})
     return tableOf(state)
+}
+
+/**
+ * `resolve`: Dana's Act Phase in round 4, party to two open deals: one with Rhys, made in round 3, a
+ * promise each way; one with Ann, made this round, Ann's promise alone, which Dana already claimed
+ * kept this turn. `asked`: Dana has claimed the deal with Rhys kept, and Rhys is asked. `ended`: the
+ * game ends at Rhys's Wake, Rhys winning as Usurper, with both deals still open.
+ */
+export type TribunalDealsScene = 'resolve' | 'asked' | 'ended'
+
+/** Ann's promise in the deal she made with Dana. */
+export const ANN_PROMISE = 'I will offer you Citizenship on my next turn.'
+
+/** R-7.6.3-H1 — Dana's two open deals. */
+function dealsOnTheTable(): OpenDeal[] {
+    return [
+        {
+            id: '3.7',
+            proposerPlayerId: 'dana',
+            counterpartyPlayerId: 'rhys',
+            proposerPromise: TRIBUNAL_PROMISES.fromProposer,
+            counterpartyPromise: TRIBUNAL_PROMISES.fromCounterparty,
+            round: 3
+        },
+        {
+            id: '4.2',
+            proposerPlayerId: 'ann',
+            counterpartyPlayerId: 'dana',
+            proposerPromise: ANN_PROMISE,
+            round: 4,
+            lastClaimedTurn: { round: 4, playerId: 'dana' }
+        }
+    ]
+}
+
+/** R-7.6.3-H1 — Dana, Rhys and Ann at the Tribunal in round 4, with Dana's two open deals. */
+export function tribunalDealsTable(scene: TribunalDealsScene): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const ending = scene === 'ended'
+    const state = testState(seats(home), {
+        machineState: ending ? MachineState.WakePhase : MachineState.ActPhase,
+        oathRevision: CURRENT_OATH_REVISION,
+        chancellorPlayerId: 'dana',
+        round: 4,
+        map: allMapSlots(),
+        siteCards: { [home]: TRIBUNAL_ID },
+        denizensBySite: { [home]: [] },
+        warbandsBySite: { [home]: { [IMPERIAL_WARBANDS]: 2 } },
+        openDeals: dealsOnTheTable(),
+        oathType: OathType.Supremacy,
+        // R-3.1 — Rhys, an Exile and the Usurper, wins at their Wake. Otherwise Dana, who rules the
+        // only ruled site, already keeps the Oath, so no action moves the title.
+        ...(ending
+            ? { oathkeeperPlayerId: 'rhys', oathkeeperIsUsurper: true }
+            : { oathkeeperPlayerId: 'dana' })
+    })
+    const seat = ending ? 'rhys' : 'dana'
+    openTurn(state, seat)
+    state.activePlayerIds = [seat]
+    state.vault = testVaultWithRelics({})
+    const table = tableOf(state)
+    const envelope = { gameId: table.state.gameId, source: ActionSource.User }
+    if (scene === 'asked') {
+        return played(table, [
+            createAction(ClaimDealKept, {
+                ...envelope,
+                type: ActionType.ClaimDealKept,
+                playerId: 'dana',
+                dealId: '3.7'
+            })
+        ])
+    }
+    if (ending) {
+        return played(table, [
+            createAction(ResolveWake, {
+                ...envelope,
+                type: ActionType.ResolveWake,
+                playerId: 'rhys',
+                favorSteps: []
+            })
+        ])
+    }
+    return table
 }

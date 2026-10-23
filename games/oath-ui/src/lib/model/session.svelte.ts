@@ -11,6 +11,7 @@ import {
     CampaignDefend,
     CampaignResolveVictory,
     CampaignSacrifice,
+    ClaimDealKept,
     CompleteRest,
     ConsentRequestKind,
     EndActPhase,
@@ -29,7 +30,9 @@ import {
     Peek,
     PeekTargetKind,
     HydratedLetPeek,
+    LeaveDealUnconfirmed,
     LetPeek,
+    openDealsOf,
     PlayFacedownAdviser,
     Recover,
     RecoverTargetKind,
@@ -61,6 +64,7 @@ import {
     type CitizenshipTerms,
     type HydratedOathGameState,
     type OathProjectedState,
+    type OpenDeal,
     type PendingConsent,
     type OpportunityTake,
     type PeekTarget,
@@ -127,6 +131,7 @@ import {
 import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
 import { letPeekKey } from './letPeekChoices.js'
 import { exileCitizenOffers, selfExileOffer } from './exileOffers.js'
+import { droppedDeals, tribunalDealRows, type TribunalDealRow } from './tribunalDeals.js'
 import {
     NO_PLAY_CARDS,
     adviserDiscardFirstOptions,
@@ -644,6 +649,27 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.SelfExile) return undefined
         return selfExileOffer(this.gameState, playerId)
+    }
+
+    /** R-7.6.3-H1 — Resolve Tribunal's rows, while it is the staged minor action. */
+    get tribunalDealRows(): TribunalDealRow[] {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.selection.action !== ActionType.LeaveDealUnconfirmed) return []
+        return tribunalDealRows(
+            this.gameState,
+            playerId,
+            this.validActionTypes.includes(ActionType.ClaimDealKept)
+        )
+    }
+
+    /** R-7.6.3-H1 — the open deals a seat is party to, public once agreed, for any viewer. */
+    dealsOf(playerId: string): OpenDeal[] {
+        return openDealsOf(this.gameState, playerId)
+    }
+
+    /** R-7.6.3-H1 — the deals the game's ending recorded as still open, and dropped. */
+    get droppedDeals(): OpenDeal[] {
+        return droppedDeals(this.actions)
     }
 
     chooseAdviser(cardId: string): void {
@@ -1176,6 +1202,23 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
 
     async selfExile(): Promise<void> {
         await this.commit(this.createPlayerAction(SelfExile, { type: ActionType.SelfExile }))
+    }
+
+    // R-7.6.3-H1 — ask the deal's other party to confirm it was kept.
+    async claimDealKept(dealId: string): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(ClaimDealKept, { type: ActionType.ClaimDealKept, dealId })
+        )
+    }
+
+    // R-7.6.3-H1 — close the deal for both parties, asking no one.
+    async leaveDealUnconfirmed(dealId: string): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(LeaveDealUnconfirmed, {
+                type: ActionType.LeaveDealUnconfirmed,
+                dealId
+            })
+        )
     }
 
     async offerCitizenship(

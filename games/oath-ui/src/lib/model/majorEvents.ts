@@ -28,6 +28,7 @@ import {
     type Campaign,
     type HydratedOathGameState,
     type OathType,
+    type OpenDeal,
     type WinRule
 } from '@tabletop/oath'
 import type { GameAction } from '@tabletop/common'
@@ -310,16 +311,29 @@ export function historyRows(
         .toReversed()
 }
 
-/** R-3 — the ending action's rule: the one action that recorded a win. */
-export function endingRule(actions: readonly GameAction[]): WinRule | undefined {
+/**
+ * R-3 — the ending action's record: the one action that recorded a win, with its rule and the
+ * Tribunal deals still open, which it dropped (R-7.6.3-H1).
+ */
+export function endingRecord(
+    actions: readonly GameAction[]
+): { rule: WinRule; openDealsDropped: OpenDeal[] } | undefined {
     for (const action of actions.toReversed()) {
-        const wonBy =
+        const metadata =
             isResolveWake(action) || isCompleteRest(action) || isRollEndDie(action)
-                ? action.metadata?.wonBy
+                ? action.metadata
                 : undefined
-        if (wonBy !== undefined && isWinRule(wonBy)) return wonBy
+        const wonBy = metadata?.wonBy
+        if (wonBy !== undefined && isWinRule(wonBy)) {
+            return { rule: wonBy, openDealsDropped: metadata?.openDealsDropped ?? [] }
+        }
     }
     return undefined
+}
+
+/** R-3 — the ending action's rule. */
+export function endingRule(actions: readonly GameAction[]): WinRule | undefined {
+    return endingRecord(actions)?.rule
 }
 
 const VISION_ENDINGS: ReadonlySet<WinRule> = new Set(['R-3.2', 'R-3.4.3'])

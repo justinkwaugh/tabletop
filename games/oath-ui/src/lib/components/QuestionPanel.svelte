@@ -39,6 +39,7 @@
         transferText
     } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { promiseBy } from '$lib/model/tribunalDeals.js'
 
     // Every "no" is a first-class button: silence is not an answer (R-X.1).
     let gameSession = getGameSession()
@@ -77,6 +78,16 @@
         class="whitespace-pre-wrap border-l-[3px] border-oath-frame px-2 py-0.5 text-[13px]"
         data-promise>{text}</span
     >
+{/snippet}
+
+<!-- R-7.6.3-H1 — a deal's promise, quoted with who made it: a party's chip, or "You". -->
+{#snippet quoted(text: string, playerId?: string)}
+    <p class="border-l-[3px] border-oath-frame px-2 py-0.5 text-[13px]">
+        <span data-promise-by
+            >{#if playerId}<PlayerName {playerId} />{:else}You{/if} promised:</span
+        >
+        <span class="whitespace-pre-wrap" data-promise>{text}</span>
+    </p>
 {/snippet}
 
 <div>
@@ -195,6 +206,23 @@
                 {/if}
             </div>
             <QuestionYesNo yes="Accept" no="Refuse" />
+        </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.DealKept}
+        <!-- R-7.6.3-H1 — the claimant says the deal was kept; each promise is quoted, theirs first. -->
+        {@const deal = draft.claimedDeal}
+        {@const theirs = deal && promiseBy(deal, mine.claimantPlayerId)}
+        {@const yours = deal && promiseBy(deal, mine.askedPlayerId)}
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}<PlayerName playerId={mine.claimantPlayerId} /> says your deal is kept{/snippet}
+            <div class="mb-2 flex flex-col gap-1">
+                {#if theirs}
+                    {@render quoted(theirs, mine.claimantPlayerId)}
+                {/if}
+                {#if yours}
+                    {@render quoted(yours)}
+                {/if}
+            </div>
+            <QuestionYesNo yes="Yes, it was kept" no="Not kept" />
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.JoinSite}
         <QuestionForm cardId={mine.cardId}>

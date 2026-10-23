@@ -4127,6 +4127,201 @@ test.describe('the Tribunal’s promise boxes', () => {
 })
 
 /**
+ * R-7.6.3-H1 — the Tribunal's open deals on the table. "Resolve Tribunal" is a minor action while the
+ * seat is party to one: a row per deal with "Ask <other>" and "Leave it unconfirmed", and a deal
+ * claimed this turn has "Leave" alone. Each party's name pill carries the amber mark, and the seat
+ * detail lists the deals for any viewer. The asked party answers "Yes, it was kept" or "Not kept";
+ * the History says each step, and the end of the game lists the deals it dropped.
+ */
+test.describe('the Tribunal’s open deals', () => {
+    const DANA_PROMISE = 'I will not campaign against you before the end of round 5.'
+    const RHYS_PROMISE = 'I will travel to the Hinterland on my next turn.\nAnd stay there a round.'
+    const ANN_PROMISE = 'I will offer you Citizenship on my next turn.'
+    const LEAVE_LINE = 'Only on your own turn; it closes the deal for both of you.'
+    const deals = (page: Page) => grid(page).locator('[data-deal]')
+    const deal = (page: Page, id: string) => grid(page).locator(`[data-deal="${id}"]`)
+    const ask = (page: Page, id: string, name: string) => deal(page, id).getByRole('button', { name: `Ask ${name}`, exact: true })
+    const leave = (page: Page, id: string) => deal(page, id).getByRole('button', { name: 'Leave it unconfirmed', exact: true })
+    const history = (page: Page) => page.locator('.history')
+    const mark = (page: Page, seat: string) =>
+        page.locator('.seat').filter({ has: page.getByRole('button', { name: new RegExp(`^Open ${seat}'s seat`) }) }).locator('[data-deal-mark]')
+    const detail = (page: Page) => page.locator('.seat-detail')
+    const openDealIds = async (page: Page) => (await call(page, 'openDeals')).map((open) => open.id)
+
+    async function resolve(page: Page) {
+        await openTable(page, 'tribunalDeals')
+        await minor(page, 'Resolve Tribunal').click()
+    }
+
+    async function showHistory(page: Page) {
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(history(page)).toBeVisible()
+    }
+
+    test('"Resolve Tribunal" is a minor action only while the seat is party to an open deal; "Use a power" stays', async ({ page }) => {
+        await openTable(page, 'tribunalOffer')
+        await expect(minor(page, 'Use a power')).toHaveCount(1)
+        await expect(minor(page, 'Resolve Tribunal')).toHaveCount(0)
+        await openTable(page, 'tribunalDeals')
+        await expect(minor(page, 'Use a power')).toHaveCount(1)
+        await expect(minor(page, 'Resolve Tribunal')).toHaveCount(1)
+    })
+
+    test('a row per deal: "With <chip>, round N" and both promises; "Ask <other>" and "Leave it unconfirmed", and a deal claimed this turn has "Leave" alone', async ({ page }) => {
+        await resolve(page)
+        await expect(grid(page).getByText('Resolve Tribunal', { exact: true })).toBeVisible()
+        await expect(deals(page)).toHaveCount(2)
+        const rhys = deal(page, '3.7')
+        await expect(rhys.locator('[data-deal-heading]')).toHaveText(/^With\s*rhys,\s*round 3$/)
+        const promises = rhys.locator('[data-deal-promise]')
+        await expect(promises).toHaveCount(2)
+        await expect(promises.first()).toHaveText(`you: ${DANA_PROMISE}`)
+        await expect(promises.last()).toHaveText(/^rhys\s*: I will travel/)
+        await expect(promises.last()).toContainText(RHYS_PROMISE)
+        await expect(ask(page, '3.7', 'rhys')).toBeVisible()
+        await expect(leave(page, '3.7')).toBeVisible()
+        await expect(rhys).toContainText(LEAVE_LINE)
+
+        const ann = deal(page, '4.2')
+        await expect(ann.locator('[data-deal-heading]')).toHaveText(/^With\s*ann,\s*round 4$/)
+        await expect(ann.locator('[data-deal-promise]')).toHaveCount(1)
+        await expect(ann.locator('[data-deal-promise]')).toContainText(ANN_PROMISE)
+        await expect(ann.getByRole('button', { name: /^Ask / })).toHaveCount(0)
+        await expect(leave(page, '4.2')).toBeVisible()
+        await expect(ann).toContainText(LEAVE_LINE)
+
+        // Ask and Leave share one width, the wider label's.
+        const askBox = await boxOf(ask(page, '3.7', 'rhys'))
+        const leaveBox = await boxOf(leave(page, '3.7'))
+        expect(Math.abs(askBox.width - leaveBox.width)).toBeLessThanOrEqual(1)
+    })
+
+    test('"Ask <other>" puts the question to them: "<chip> says your deal is kept", both promises quoted, "Yes, it was kept" closes it', async ({ page }) => {
+        await resolve(page)
+        await ask(page, '3.7', 'rhys').click()
+        await expect.poll(() => call(page, 'openQuestionKind')).toBe('dealKept')
+        await expect(grid(page).locator('.question-line')).toHaveText(/^dana\s*says your deal is kept$/)
+        await expect(grid(page).locator('[data-promise]')).toHaveText([DANA_PROMISE, RHYS_PROMISE])
+        await expect(grid(page).locator('[data-promise-by]')).toHaveText([/^dana\s*promised:$/, 'You promised:'])
+        await expect(answer(page, 'Not kept')).toBeVisible()
+        await answer(page, 'Yes, it was kept').click()
+        await expect.poll(() => call(page, 'openQuestionKind')).toBeUndefined()
+        await expect.poll(() => openDealIds(page)).toEqual(['4.2'])
+        await showHistory(page)
+        await expect(history(page)).toContainText(/rhys\s*confirmed the Tribunal deal with\s*you\s*was kept; it is closed/)
+        await expect(history(page)).toContainText(/you\s*asked\s*rhys\s*to confirm their Tribunal deal was kept/)
+        await expect(history(page)).not.toContainText(DANA_PROMISE)
+    })
+
+    test('"Not kept" leaves the deal open and says so; back on the claimant’s turn its row has "Leave" alone', async ({ page }) => {
+        await resolve(page)
+        await ask(page, '3.7', 'rhys').click()
+        await expect(answer(page, 'Not kept')).toBeVisible()
+        await answer(page, 'Not kept').click()
+        await expect.poll(() => call(page, 'openQuestionKind')).toBeUndefined()
+        await expect.poll(() => openDealIds(page)).toEqual(['3.7', '4.2'])
+        await showHistory(page)
+        await expect(history(page)).toContainText(/rhys\s*answered not kept; the deal with\s*you\s*stays open/)
+        await page.getByRole('tab', { name: 'Players' }).click()
+        await minor(page, 'Resolve Tribunal').click()
+        await expect(deals(page)).toHaveCount(2)
+        await expect(deal(page, '3.7').getByRole('button', { name: /^Ask / })).toHaveCount(0)
+        await expect(leave(page, '3.7')).toBeVisible()
+    })
+
+    test('"Leave it unconfirmed" closes the deal for both, asking no one; with none left the minor action goes', async ({ page }) => {
+        await resolve(page)
+        await leave(page, '4.2').click()
+        await expect.poll(() => openDealIds(page)).toEqual(['3.7'])
+        await expect.poll(() => call(page, 'openQuestionKind')).toBeUndefined()
+        await minor(page, 'Resolve Tribunal').click()
+        await expect(deals(page)).toHaveCount(1)
+        await leave(page, '3.7').click()
+        await expect.poll(() => openDealIds(page)).toEqual([])
+        await expect(minor(page, 'Resolve Tribunal')).toHaveCount(0)
+        await showHistory(page)
+        await expect(history(page)).toContainText(/you\s*left the Tribunal deal with\s*ann\s*unconfirmed; it is closed/)
+        await expect(history(page)).toContainText(/you\s*left the Tribunal deal with\s*rhys\s*unconfirmed; it is closed/)
+    })
+
+    test('each party’s name pill carries the amber mark with the count; it goes with the last deal', async ({ page }) => {
+        await openTable(page, 'tribunalDeals')
+        await expect(mark(page, 'dana')).toHaveText('2 deals')
+        await expect(mark(page, 'rhys')).toHaveText('1 deal')
+        await expect(mark(page, 'ann')).toHaveText('1 deal')
+        await minor(page, 'Resolve Tribunal').click()
+        await leave(page, '4.2').click()
+        await expect(mark(page, 'ann')).toHaveCount(0)
+        await expect(mark(page, 'dana')).toHaveText('1 deal')
+        await openTable(page, 'tribunalOffer')
+        await expect(page.locator('[data-deal-mark]')).toHaveCount(0)
+    })
+
+    test('the seat detail lists the seat’s open deals for any viewer: the other party, the round, each promise', async ({ page }) => {
+        await openTable(page, 'tribunalDeals')
+        await page.getByRole('button', { name: "Open rhys's seat", exact: true }).click()
+        await expect(detail(page).getByRole('heading', { name: 'Open deals · 1', exact: true })).toBeVisible()
+        const open = detail(page).locator('[data-open-deal]')
+        await expect(open).toHaveCount(1)
+        await expect(open.locator('[data-open-deal-meta]')).toHaveText(/^With\s*you\s*· made in round\s+3$/)
+        await expect(open.locator('[data-promise]')).toHaveText([DANA_PROMISE, RHYS_PROMISE])
+        await expect(open.locator('[data-promise-by]')).toHaveText([/^you\s*promised:$/, /^rhys\s*promised:$/])
+        await expect(open).toContainText('Either of you may claim it kept; the other confirms.')
+        await expect(open.locator('[data-promise]').last()).toHaveCSS('white-space', 'pre-wrap')
+
+        // Rhys, a third seat to Ann's deal with Dana, reads it in Ann's seat detail.
+        await openTable(page, 'tribunalDealAsked')
+        await page.getByRole('button', { name: "Open ann's seat", exact: true }).click()
+        const anns = detail(page).locator('[data-open-deal]')
+        await expect(detail(page).getByRole('heading', { name: 'Open deals · 1', exact: true })).toBeVisible()
+        await expect(anns.locator('[data-open-deal-meta]')).toHaveText(/^With\s*dana\s*· made in round\s+4$/)
+        await expect(anns.locator('[data-promise]')).toHaveText([ANN_PROMISE])
+
+        await openTable(page, 'tribunalOffer')
+        await page.getByRole('button', { name: "Open rhys's seat", exact: true }).click()
+        await expect(detail(page)).toBeVisible()
+        await expect(detail(page).getByRole('heading', { name: /^Open deals/ })).toHaveCount(0)
+    })
+
+    test('the end of the game lists every deal still open under its top row, and drops them', async ({ page }) => {
+        await openTable(page, 'tribunalDealsEnded')
+        await expect.poll(() => openDealIds(page)).toEqual([])
+        await expect(page.locator('[data-deal-mark]')).toHaveCount(0)
+        await showHistory(page)
+        const dropped = history(page).locator('[data-dropped-deals]')
+        await expect(dropped).toHaveCount(1)
+        await expect
+            .poll(async () => (await dropped.textContent())?.replace(/\s+/g, ' ').replace(/ ,/g, ',').trim())
+            .toBe(
+                'Deals still open at the end, dropped: dana and rhys, round 3 ("I will not campaign against you before the end of round 5." / ' +
+                    '"I will travel to the Hinterland on my next turn. And stay there a round."); ' +
+                    'ann and dana, round 4 ("I will offer you Citizenship on my next turn." / nothing promised)'
+            )
+        // Under the game-end row, the History's top.
+        const top = await boxOf(history(page).getByText(/won as Usurper/))
+        expect((await boxOf(dropped)).y).toBeGreaterThan(top.y)
+    })
+
+    test.describe('on a 375 px phone', () => {
+        test.use({ viewport: { width: 375, height: 812 } })
+
+        test('the rows and the question fit the panel; the buttons are 44 px tall', async ({ page }) => {
+            await resolve(page)
+            expect((await layoutSizeOf(leave(page, '3.7')))?.height).toBeGreaterThanOrEqual(44)
+            expect((await layoutSizeOf(ask(page, '3.7', 'rhys')))?.height).toBeGreaterThanOrEqual(44)
+            const row = await boxOf(deal(page, '3.7'))
+            const panel = await boxOf(grid(page))
+            expect(row.x + row.width).toBeLessThanOrEqual(panel.x + panel.width + 0.5)
+            expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
+            await ask(page, '3.7', 'rhys').click()
+            await expect(answer(page, 'Yes, it was kept')).toBeVisible()
+            expect((await layoutSizeOf(answer(page, 'Not kept')))?.height).toBeGreaterThanOrEqual(44)
+            expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
+        })
+    })
+})
+
+/**
  * Messenger: one move at a time, From, How many and To as tiles and warband pieces, each read on
  * the state the moves before leave; a whole move folds to its line and the next From opens; "Use"
  * once a move is whole and none half-built; Undo takes back one pick, then the move.

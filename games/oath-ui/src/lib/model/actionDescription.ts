@@ -22,6 +22,7 @@ import {
     isForgoFreeAction,
     isExileCitizen,
     isLeaveDealUnconfirmed,
+    otherPartyOf,
     isMoveWarbands,
     isMuster,
     isOfferCitizenship,
@@ -957,11 +958,7 @@ function describeActionCited(
     }
     if (isLeaveDealUnconfirmed(action)) {
         const deal = action.metadata?.deal
-        const other =
-            deal &&
-            (deal.proposerPlayerId === action.playerId
-                ? deal.counterpartyPlayerId
-                : deal.proposerPlayerId)
+        const other = deal && otherPartyOf(deal, action.playerId)
         return `left the Tribunal deal${other ? ` with ${nameOf(other)}` : ''} unconfirmed; it is closed`
     }
     if (isMoveWarbands(action)) {
@@ -1029,6 +1026,13 @@ function describeActionCited(
             )
         }
         const answer = action.answer
+        // R-7.6.3-H1 — the asked party's word on a claimed deal; the claimant is the deal's other party.
+        const claimant = meta.answeredDeal && otherPartyOf(meta.answeredDeal, action.playerId)
+        if (answer.kind === PowerQuestionKind.DealKept && claimant) {
+            return answer.kept
+                ? `confirmed the Tribunal deal with ${nameOf(claimant)} was kept; it is closed`
+                : `answered not kept; the deal with ${nameOf(claimant)} stays open`
+        }
         // The Gathering — the proposal's terms, from the answer's own record.
         if (answer.kind === PowerQuestionKind.GatheringFloor && answer.proposal) {
             const { withPlayerId, terms } = answer.proposal

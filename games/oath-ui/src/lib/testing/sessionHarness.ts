@@ -85,6 +85,19 @@ function gameOf(state: OathProjectedState): Game {
     )
 }
 
+/** The game a table opens on: finished, as the platform records it, when its actions ended it. */
+function openedGameOf(state: OathProjectedState): Game {
+    const game = gameOf(state)
+    if (!state.result) return game
+    return {
+        ...game,
+        status: GameStatus.Finished,
+        result: state.result,
+        winningPlayerIds: [...state.winningPlayerIds],
+        finishedAt: new Date()
+    }
+}
+
 export type PlayedTable = { state: OathProjectedState; actions: GameAction[] }
 
 /** Runs each action through the engine, keeping what it processed for the session's history. */
@@ -103,7 +116,7 @@ export function played(table: PlayedTable, actions: readonly GameAction[]): Play
 
 /** Opens a session on the table and resolves once the platform has shown its opening state. */
 export async function openSessionOn(table: PlayedTable): Promise<OathGameSession> {
-    const game = gameOf(table.state)
+    const game = openedGameOf(table.state)
     const appContext = createHarnessAppContext(HARNESS_DEFINITION)
     const bridgedContext = new BridgedContext({
         authorizationService: appContext.authorizationService,

@@ -59,6 +59,7 @@ import {
     reliquarySlotId,
     type CitizenshipTerms,
     type ExchangeTerms,
+    type OpenDeal,
     type CitizenshipTransfer,
     type LetPeekSubject,
     type OathPlayerState,
@@ -113,7 +114,7 @@ import { woodPickTable } from './woodPicksTable.js'
 import { heldAttackTable } from './heldAttackTable.js'
 import { kinshipDissentTable, kinshipPlagueTable, kinshipWakeTable } from './kinshipTables.js'
 import { RecordedStory } from './recordedStory.js'
-import { tribunalAnswerTable, tribunalOfferTable } from './tribunalTables.js'
+import { tribunalAnswerTable, tribunalDealsTable, tribunalOfferTable } from './tribunalTables.js'
 
 export type TableName =
     | 'setup'
@@ -260,6 +261,9 @@ export type TableName =
     | 'tribunalOfferFull'
     | 'tribunalOfferBefore'
     | 'tribunalAnswer'
+    | 'tribunalDeals'
+    | 'tribunalDealAsked'
+    | 'tribunalDealsEnded'
     | 'woodTraveller'
     | 'woodRuler'
     | 'woodRulerToll'
@@ -5536,6 +5540,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     tribunalOfferFull: () => tribunalOfferTable('full'),
     tribunalOfferBefore: () => tribunalOfferTable('before'),
     tribunalAnswer: tribunalAnswerTable,
+    tribunalDeals: () => tribunalDealsTable('resolve'),
+    tribunalDealAsked: () => tribunalDealsTable('asked'),
+    tribunalDealsEnded: () => tribunalDealsTable('ended'),
     woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),
     woodRuler: woodRulerTable,
     woodRulerToll: woodRulerTollTable,
@@ -5713,6 +5720,11 @@ export function openQuestionKind(): PowerQuestionKind | undefined {
 export function offeredExchangeTerms(): ExchangeTerms | undefined {
     const question = current().gameState.pendingQuestions?.queue[0]
     return question?.kind === PowerQuestionKind.Exchange ? question.terms : undefined
+}
+
+/** R-7.6.3-H1 — the Tribunal's deals open on the table. */
+export function openDeals(): OpenDeal[] {
+    return current().gameState.openDeals ?? []
 }
 
 export function viewOffTheClock(): string | undefined {

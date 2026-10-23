@@ -8,6 +8,7 @@
     import TokenText from './TokenText.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { rowActorOf } from '$lib/model/actionDescription.js'
+    import { quotedPromise } from '$lib/model/tribunalDeals.js'
 
     const timeAgo = createTimeAgo()
 
@@ -15,6 +16,7 @@
 
     let rows = $derived(gameSession.historyRows)
     let ending = $derived(gameSession.isViewingHistory ? undefined : gameSession.gameEndRow)
+    let dropped = $derived(gameSession.droppedDeals)
     // The winner the game-end row names is their chip.
     let seats = $derived({ names: gameSession.historyNames, viewerId: gameSession.myPlayer?.id })
 
@@ -68,6 +70,37 @@
                         {/if}
                     </TimelineItem>
                 </div>
+                <!-- R-7.6.3-H1 — under the game-end row, the Tribunal deals still open, from the
+                     ending's record: both parties, the round, and each promise. -->
+                {#if dropped.length > 0}
+                    <div>
+                        {@render dot()}
+                        <TimelineItem
+                            timeClass="text-oath-text-muted dark:text-oath-text-muted"
+                            title=""
+                            class="timeline-item text-left mb-5"
+                            date={timeAgo.format(gameSession.game.finishedAt)}
+                        >
+                            <p
+                                class="mt-1 text-left text-sm text-base font-normal text-oath-text"
+                                data-dropped-deals
+                            >
+                                Deals still open at the end, dropped:
+                                {#each dropped as deal, index (deal.id)}
+                                    <PlayerName playerId={deal.proposerPlayerId} />
+                                    and
+                                    <PlayerName playerId={deal.counterpartyPlayerId} />, round {deal.round}
+                                    (<span class="whitespace-pre-wrap"
+                                        >{quotedPromise(deal.proposerPromise)}</span
+                                    >
+                                    /
+                                    <span class="whitespace-pre-wrap"
+                                        >{quotedPromise(deal.counterpartyPromise)}</span
+                                    >){index < dropped.length - 1 ? '; ' : ''}{/each}
+                            </p>
+                        </TimelineItem>
+                    </div>
+                {/if}
             {/if}
             {#each rows as row (row.action.id)}
                 {@const actorId = rowActorOf(row.action)}

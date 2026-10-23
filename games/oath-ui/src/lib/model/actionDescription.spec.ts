@@ -1597,4 +1597,27 @@ describe('a Tribunal deal claimed kept or left unconfirmed', () => {
         expect(left('p1')).toBe('left the Tribunal deal with Bob unconfirmed; it is closed')
         expect(left('p2')).toBe('left the Tribunal deal with Alice unconfirmed; it is closed')
     })
+    // The asked party is the answer's own seat; the claimant is the deal's other party, from the record.
+    const answered = (playerId: string, kept: boolean) =>
+        action({
+            type: ActionType.AnswerQuestion,
+            playerId,
+            answer: { kind: PowerQuestionKind.DealKept, kept },
+            metadata: {
+                cardId: 'site.the-tribunal',
+                kind: PowerQuestionKind.DealKept,
+                summary: kept ? 'confirmed the deal with p1 was kept' : 'said the deal with p1 was not kept',
+                resumeMachineState: MachineState.ActPhase,
+                last: true,
+                answeredDeal: DEAL
+            }
+        })
+    it('"Yes, it was kept" closes the deal: "confirmed the Tribunal deal with <claimant> was kept; it is closed"', () => {
+        expect(describeAction(answered('p2', true), nameOf)).toBe('confirmed the Tribunal deal with Alice was kept; it is closed')
+        expect(describeAction(answered('p1', true), nameOf)).toBe('confirmed the Tribunal deal with Bob was kept; it is closed')
+    })
+    it('"Not kept" leaves it open: "answered not kept; the deal with <claimant> stays open"', () => {
+        expect(describeAction(answered('p2', false), nameOf)).toBe('answered not kept; the deal with Alice stays open')
+        expect(describeAction(answered('p1', false), nameOf)).toBe('answered not kept; the deal with Bob stays open')
+    })
 })
