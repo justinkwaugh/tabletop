@@ -101,8 +101,10 @@ import { TURN_TITLES } from '$lib/utils/turnTitles.js'
 import {
     heldApproaches,
     layoutPieces,
+    pieceGroups,
     type GroupSprite,
     type HeldApproach,
+    type LayoutOptions,
     type PieceGroup
 } from '$lib/utils/pieceLayout.js'
 import { showsArmyOf } from './armyInView.js'
@@ -399,20 +401,32 @@ export class NapoleonsTriumphGameSession extends GameSession<
         )?.position?.locale
     })
 
-    sprites: GroupSprite[] = $derived(
+    private layoutOptions: LayoutOptions = $derived({
+        rotation: this.boardRotation,
+        readBy: this.myPlayerId,
+        singledOut: [...committedUnits(this.attack), ...knownToTheEnemy(this.gameState.units)],
+        looseLocales: [
+            ...this.battleLocales,
+            ...[this.spreadLocale, this.pickedUpLocale, this.aimedLocale, this.threatLocale].filter(
+                (locale) => locale !== undefined
+            )
+        ]
+    })
+
+    private pieceGroups: PieceGroup[] = $derived(
+        pieceGroups(this.arrayedArmy ?? this.gameState, this.layoutOptions)
+    )
+
+    private offeredApproaches: number[] = $derived.by(() =>
+        this.targets.flatMap((target) =>
+            target.kind === TargetKind.Approach ? [target.position.approach] : []
+        )
+    )
+
+    sprites: GroupSprite[] = $derived.by(() =>
         layoutPieces(this.arrayedArmy ?? this.gameState, {
-            rotation: this.boardRotation,
-            readBy: this.myPlayerId,
-            singledOut: [...committedUnits(this.attack), ...knownToTheEnemy(this.gameState.units)],
-            looseLocales: [
-                ...this.battleLocales,
-                ...[
-                    this.spreadLocale,
-                    this.pickedUpLocale,
-                    this.aimedLocale,
-                    this.threatLocale
-                ].filter((locale) => locale !== undefined)
-            ]
+            ...this.layoutOptions,
+            offeredApproaches: this.offeredApproaches
         })
     )
 
@@ -694,9 +708,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
     private riderIds: string[] = $derived(this.openRoadMarch?.unitIds ?? [])
 
     private marchGroupKey: string | undefined = $derived(
-        this.sprites.find((sprite) =>
-            sprite.group.units.some((unit) => this.riderIds.includes(unit.id))
-        )?.group.key
+        this.pieceGroups.find((group) =>
+            group.units.some((unit) => this.riderIds.includes(unit.id))
+        )?.key
     )
 
     selectedGroupKey = $derived(
@@ -725,7 +739,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     selectedGroup: PieceGroup | undefined = $derived(
-        this.selectedSprite?.group ??
+        this.pieceGroups.find((group) => group.key === this.selectedGroupKey) ??
             this.reinforcements.find((candidate) => candidate.key === this.selectedGroupKey)
     )
 

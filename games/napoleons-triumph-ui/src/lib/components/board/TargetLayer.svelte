@@ -13,6 +13,7 @@
         type WayTarget
     } from '$lib/model/targets.js'
     import { WayStepKind } from '$lib/model/ways.js'
+    import { targetBarBox } from '$lib/utils/targetBar.js'
     import {
         WAY_SIGN_EDGE,
         WAY_SIGN_HEAD,
@@ -87,14 +88,14 @@
 {/snippet}
 
 {#snippet approachBar(approach: number, look: string)}
-    {@const bar = APPROACH_GEOMETRY[approach]}
+    {@const box = targetBarBox(approach)}
     <rect
-        transform="translate({bar.centre.x + bar.inward.x * 14} {bar.centre.y +
-            bar.inward.y * 14}) rotate({bar.angle})"
-        x={-bar.length / 2}
-        y="-13"
-        width={bar.length}
-        height="26"
+        transform="translate({box.centre.x} {box.centre.y}) rotate({APPROACH_GEOMETRY[approach]
+            .angle})"
+        x={-box.halfLength}
+        y={-box.halfWidth}
+        width={box.halfLength * 2}
+        height={box.halfWidth * 2}
         rx="3"
         class={look}
     ></rect>
@@ -150,6 +151,7 @@
             onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
         ></polygon>
     {/each}
+{:else}
     {#each approaches as target (target.key)}
         <g
             role="button"
@@ -162,7 +164,6 @@
             {@render approachBar(target.position.approach, 'nt-target-approach')}
         </g>
     {/each}
-{:else}
     {#each gameSession.waySigns as { target, at, arrow } (target.key)}
         {@const shaft = `M${arrow.tail.x} ${arrow.tail.y} Q${arrow.knee.x} ${arrow.knee.y} ${arrow.shaftEnd.x} ${arrow.shaftEnd.y}`}
         {@const head = `translate(${arrow.tip.x} ${arrow.tip.y}) rotate(${arrow.angle})`}
@@ -282,7 +283,7 @@
     .nt-target-approach {
         fill: var(--nt-approach-fill);
         stroke: var(--nt-move-line);
-        stroke-width: 2;
+        stroke-width: 3;
         cursor: pointer;
     }
 

@@ -23,11 +23,13 @@ import {
 } from './blockShape.js'
 import { screenAxes, uprightAngle } from './boardView.js'
 import { insidePolygon } from './polygon.js'
+import { TARGET_BAR_DEPTH, targetBarBox } from './targetBar.js'
 import { inReadingOrder } from './unitTypeOrder.js'
 import { byCommander } from './groupOrder.js'
 
 export const BAR_HALF_THICKNESS = 6
 const BAR_GAP = 3
+const NEAREST_TO_THE_BAR = BAR_HALF_THICKNESS + BAR_GAP
 const COLUMN_GAP = 6
 const RESERVE_ROW_GAP = 5
 const FILE_GROUP_GAP = 10
@@ -126,7 +128,8 @@ function withTheSingledOutForward(
     }
 }
 
-function placedGroups(state: BoardPieces, options: LayoutOptions): PlacedGroup[] {
+/** The pieces on the board in the groups they stand in, before any is laid out. */
+export function pieceGroups(state: BoardPieces, options: LayoutOptions): PlacedGroup[] {
     const groups = new Map<string, PlacedGroup>()
     for (const unit of state.units) {
         const position = unit.position
@@ -156,6 +159,8 @@ export interface LayoutOptions {
     readBy?: string
     /** Units that stacks the viewer does not read show at one end, so their place in the stack tells nothing. */
     singledOut?: readonly SingledOut[]
+    /** Approaches on offer as targets, whose target bars every piece stands clear of. */
+    offeredApproaches?: readonly number[]
 }
 
 function rankSpacing(count: number, room: number, loose: boolean): number {
@@ -299,7 +304,7 @@ function roomInsideLocale(approachId: number, locale: LocaleGeometry): number {
         return known
     }
     const bar = APPROACH_GEOMETRY[approachId]
-    const nearest = BAR_HALF_THICKNESS + BAR_GAP
+    const nearest = NEAREST_TO_THE_BAR
     let inward = nearest
     while (filesStayInside(bar, locale.outline, inward + INSIDE_STEP)) {
         inward += INSIDE_STEP
@@ -326,6 +331,13 @@ function roomsToTry(approachId: number, locale: LocaleGeometry, aloneInLocale: b
     )
 }
 
+// How far into the locale the files fronting an approach begin: beyond its target bar while it is on offer.
+function frontOfFiles(approachId: number, options: LayoutOptions): number {
+    return options.offeredApproaches?.includes(approachId)
+        ? TARGET_BAR_DEPTH + BAR_GAP
+        : NEAREST_TO_THE_BAR
+}
+
 function layoutBlockers(
     groups: PlacedGroup[],
     approachId: number,
@@ -338,6 +350,7 @@ function layoutBlockers(
         x: Math.cos((bar.angle * Math.PI) / 180),
         y: Math.sin((bar.angle * Math.PI) / 180)
     }
+    const front = frontOfFiles(approachId, options)
     const files = filesAcross(bar)
     const filed = fileGroups(groups, files)
     const deepest = Math.max(
@@ -345,12 +358,17 @@ function layoutBlockers(
     )
     const loose = options.looseLocales?.includes(groups[0].position.locale) === true
     const gapsInAFile = Math.max(...filed.map(({ groupsAhead }) => groupsAhead))
-    const spacing = fileSpacing(deepest, gapsInAFile, room, loose)
+    const spacing = fileSpacing(
+        deepest,
+        gapsInAFile,
+        Math.max(BLOCK_THICKNESS, room - (front - NEAREST_TO_THE_BAR)),
+        loose
+    )
     // Deliberate: groups filed one behind another stand a clear gap apart even where their own
     // blocks lie over one another, so a detached unit behind a corps is not read as part of it.
     const betweenGroups = Math.max(0, BLOCK_THICKNESS - spacing) + FILE_GROUP_GAP
     const angle = angleFacingAcross(bar)
-    const first = BAR_HALF_THICKNESS + BAR_GAP + BLOCK_THICKNESS / 2
+    const first = front + BLOCK_THICKNESS / 2
     const frontToRear = filed.map(({ group, file, ranksAhead, groupsAhead }) => {
         const sideways =
             files === 1 ? 0 : (((file + firstFile) % files) - 0.5) * (BLOCK_LENGTH + COLUMN_GAP)
@@ -506,6 +524,24 @@ function shiftClearOf(
     return best
 }
 
+// Block-sized stand-ins laid end to end along a target bar, so the pieces placed after them keep off it.
+function targetBarStandIns(approachId: number): BlockFootprint[] {
+    const box = targetBarBox(approachId)
+    const angle = APPROACH_GEOMETRY[approachId].angle
+    const count = Math.ceil((box.halfLength * 2) / BLOCK_LENGTH)
+    const reach = Math.max(0, box.halfLength - BLOCK_LENGTH / 2)
+    return Array.from({ length: count }, (_, index) => {
+        const ahead = count === 1 ? 0 : -reach + (reach * 2 * index) / (count - 1)
+        return {
+            angle,
+            centre: {
+                x: box.centre.x + box.along.x * ahead,
+                y: box.centre.y + box.along.y * ahead
+            }
+        }
+    })
+}
+
 function sortGroups(groups: PlacedGroup[]): PlacedGroup[] {
     return groups.toSorted((a, b) => byCommander(a.commander?.id, b.commander?.id))
 }
@@ -515,7 +551,7 @@ export function layoutPieces(
     options: LayoutOptions = { rotation: 0 }
 ): GroupSprite[] {
     const byPosition: PlacedGroup[][] = []
-    for (const group of placedGroups(state, options)) {
+    for (const group of pieceGroups(state, options)) {
         const peers = byPosition.find((entry) => samePosition(entry[0].position, group.position))
         if (peers) {
             peers.push(group)
@@ -523,7 +559,7 @@ export function layoutPieces(
             byPosition.push([group])
         }
     }
-    const placed: BlockFootprint[] = []
+    const placed: BlockFootprint[] = (options.offeredApproaches ?? []).flatMap(targetBarStandIns)
     const blocking = byPosition
         .flatMap((groups) => {
             const { approach } = groups[0].position

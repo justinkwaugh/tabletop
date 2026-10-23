@@ -12,8 +12,10 @@ import {
 import { BoardView, toView, viewRotation } from './boardView.js'
 import { APPROACH_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
 import { BLOCK_LENGTH, BLOCK_THICKNESS, blockSamples, coveredBy } from './blockShape.js'
+import { boxSamples } from './orientedBox.js'
 import { layoutPieces, type BlockSprite } from './pieceLayout.js'
 import { insidePolygon } from './polygon.js'
+import { targetBarBox } from './targetBar.js'
 
 const LOCALE = 94
 
@@ -575,3 +577,57 @@ describe('the units an opponent has committed to an attack', () => {
 function fromTheBar(block: BlockSprite, barCentre: Point): number {
     return Math.hypot(block.centre.x - barCentre.x, block.centre.y - barCentre.y)
 }
+
+describe('pieces in a locale with approaches on offer as targets', () => {
+    const CROWDED = 142
+    const HELD = 467
+    const OPEN = 477
+
+    function crowded(offeredApproaches: number[]) {
+        const game = new TestGame()
+        game.deployBoth()
+        const map = game.hydrated.map
+        const facingAcross = (approachId: number) => {
+            const approach = map
+                .passableApproachesOf(CROWDED)
+                .find((candidate) => candidate.id === approachId)
+            assertExists(approach, `Approach ${approachId} leads out of locale ${CROWDED}`)
+            return approach.neighbour
+        }
+        const corps = (commanderId: string, count: number, facing?: number) =>
+            Array.from({ length: count }, (_, index) => ({
+                id: `${commanderId}-${index}`,
+                side: Side.Allied,
+                face: infantry(2),
+                locale: CROWDED,
+                facing,
+                commanderId
+            }))
+        arrangeBattlefield(game, [
+            ...corps('kienmayer', 4, facingAcross(HELD)),
+            ...corps('langeron', 3)
+        ])
+        const sprites = layoutPieces(game.hydrated, { rotation: 0, offeredApproaches })
+        const of = (commanderId: string) =>
+            sprites.find((sprite) => sprite.group.commander?.id === commanderId)?.blocks ?? []
+        return { fronting: of('kienmayer'), reserve: of('langeron') }
+    }
+
+    const onTargetBar = (approachId: number, blocks: BlockSprite[]) =>
+        boxSamples(targetBarBox(approachId)).filter(coveredBy(blocks))
+
+    it('front an offered approach from beyond its target bar', () => {
+        expect(onTargetBar(HELD, crowded([]).fronting)).not.toEqual([])
+        expect(onTargetBar(HELD, crowded([HELD]).fronting)).toEqual([])
+    })
+
+    it('stand in reserve off the target bar of an offered approach', () => {
+        expect(onTargetBar(OPEN, crowded([]).reserve)).not.toEqual([])
+        const { reserve } = crowded([OPEN])
+        expect(onTargetBar(OPEN, reserve)).toEqual([])
+        const { outline } = LOCALE_GEOMETRY[CROWDED]
+        for (const block of reserve) {
+            expect(insidePolygon(block.centre, outline)).toBe(true)
+        }
+    })
+})
