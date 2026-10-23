@@ -14,9 +14,9 @@
     <small
         >{#each lineup.corporations as company (company.id)}<span class="token" title={company.name}
                 ><CompanyToken appearance={MapView1846.stations[company.id]} size={16} /></span
-            >{/each}
-        {lineup.privateNames.join(' · ')}</small
+            >{/each}</small
     >
+    <small>{lineup.privateNames.join(' · ')}</small>
 </button>
 {#if open}
     <DraftLineupDialog {lineup} onclose={() => (open = false)} />
