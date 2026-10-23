@@ -283,8 +283,12 @@
                                             {president}
                                         /></th
                                     >
-                                    {#if numberedShares}<td title="Certificate numbers"
-                                            >{entry.certificateNumbers.join(', ') || '—'}</td
+                                    {#if numberedShares}<td
+                                            class="certificate-numbers"
+                                            title="Certificate numbers"
+                                            >{#if entry.certificateNumbers.length}#{entry.certificateNumbers.join(
+                                                    ', '
+                                                )}{/if}</td
                                         >{/if}
                                     <td title="Shares">{entry.shares || '—'}</td>
                                 {/if}
@@ -804,6 +808,10 @@
     }
     td {
         padding-left: 12px;
+    }
+    /* Dimmed from the row's own colour so sold and tinted rows keep their tone. */
+    td.certificate-numbers {
+        color: color-mix(in srgb, currentColor 65%, transparent);
     }
     .empty {
         margin: 0;
