@@ -40,34 +40,33 @@
 }
 
 :root {
-    --yinsh-table: #16294a;
-    --yinsh-table-deep: #0c1830;
-    --yinsh-panel: rgb(9 19 38 / 0.9);
-    --yinsh-panel-edge: #34507a;
-    --yinsh-play: #4f6a90;
-    --yinsh-play-edge: #2f4566;
-    --yinsh-line: #a8bcd8;
-    --yinsh-line-opacity: 0.75;
-    --yinsh-label: #9fb0c8;
-    --yinsh-slot: #a8bcd8;
-    --yinsh-ink: #eef2f8;
-    --yinsh-ink-quiet: #9fb0c8;
-    --yinsh-target: #f0b04a;
-    /* Marks on the pieces, drawn over a dark band so they read on white and black alike. */
-    --yinsh-mark: #5ef0ff;
-    --yinsh-remove: #ff9a3d;
-}
-
-/* Light board: a pale play area with black lines, on a muted blue table. Panels keep the dark
-   theme. */
-.yinsh-light {
     --yinsh-table: #5e7596;
     --yinsh-table-deep: #4d6282;
+    --yinsh-panel: rgb(9 19 38 / 0.9);
+    --yinsh-panel-edge: #34507a;
     --yinsh-play: #d3d8de;
     --yinsh-play-edge: #8792a3;
     --yinsh-line: #000000;
     --yinsh-line-opacity: 1;
     --yinsh-label: #0d1626;
-    --yinsh-slot: #0d1626;
+    --yinsh-ink: #eef2f8;
+    --yinsh-ink-quiet: #9fb0c8;
+    /* Text standing straight on the table rather than on a dark panel. */
+    --yinsh-table-ink: #eef2f8;
+    --yinsh-table-ink-quiet: #c3cfdf;
     --yinsh-target: #e08a00;
+    /* Marks on the pieces, drawn over a dark band so they read on white and black alike. */
+    --yinsh-mark: #5ef0ff;
+    --yinsh-remove: #ff9a3d;
+}
+
+/* Clouds: a lighter table and board, both with wisps of cloud, like the real board. Without
+   them the board is matte. */
+.yinsh-clouds {
+    --yinsh-table: #7591bb;
+    --yinsh-table-deep: #6380ad;
+    --yinsh-play: #e2e6ec;
+    --yinsh-play-edge: #a9b6c8;
+    --yinsh-table-ink: #0d1626;
+    --yinsh-table-ink-quiet: #34445f;
 }

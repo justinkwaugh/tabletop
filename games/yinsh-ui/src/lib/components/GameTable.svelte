@@ -16,15 +16,22 @@
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
-    import BoardModeToggle from '$lib/components/BoardModeToggle.svelte'
+    import CloudToggle from '$lib/components/CloudToggle.svelte'
     import OverlayToggle from '$lib/components/OverlayToggle.svelte'
     import { YinshGameSession } from '$lib/model/session.svelte.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { trackStorm, type StormPlacement } from '$lib/board/stormPlacement.js'
+    import StormBackdrop from '$lib/components/StormBackdrop.svelte'
 
     let { gameSession }: { gameSession: GameSession<YinshGameState, HydratedYinshGameState> } =
         $props()
     assert(gameSession instanceof YinshGameSession, 'YINSH needs its own game session')
     setGameSession(gameSession)
+
+    let stormPlacement: StormPlacement | undefined = $state()
+    const placeStorm = trackStorm((placement) => {
+        stormPlacement = placement
+    })
 
     // The shared wrapper exposes full screen only as its dialog becoming modal.
     let expanded = $state(false)
@@ -52,7 +59,10 @@
     </div>
 {/snippet}
 
-<div class="yinsh-table" class:yinsh-light={gameSession.lightBoard}>
+<div class="yinsh-table" class:yinsh-clouds={gameSession.clouds}>
+    {#if gameSession.clouds}
+        <StormBackdrop placement={stormPlacement} />
+    {/if}
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -73,7 +83,7 @@
             </div>
             <DefaultTabs
                 activeTabClass="py-1 px-3 bg-[#f1ece0] border-2 border-transparent rounded-lg text-[#0c1830]"
-                inactiveTabClass="text-[#eef2f8] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#34507a]"
+                inactiveTabClass="text-(--yinsh-table-ink) py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#34507a]"
             >
                 {#snippet playersPanel()}
                     <PlayersPanel />
@@ -96,7 +106,11 @@
             <div class="shrink-0">
                 {@render turnControls()}
             </div>
-            <div class="grow-0 overflow-hidden pt-2" style="flex:1; min-height: 40dvh;">
+            <div
+                class="grow-0 overflow-hidden pt-2"
+                style="flex:1; min-height: 40dvh;"
+                {@attach placeStorm}
+            >
                 <ScalingWrapper
                     justify="center"
                     controls="bottom-left"
@@ -110,7 +124,7 @@
                         <div
                             class="pointer-events-auto absolute top-1 right-3 z-10 flex flex-col items-end gap-1.5"
                         >
-                            <BoardModeToggle />
+                            <CloudToggle />
                             <OverlayToggle
                                 glyph="A1"
                                 label="Coordinates"
@@ -125,6 +139,9 @@
                             {#if expanded}
                                 <!-- The dialog paints its own dim backdrop, so full screen redraws the table behind the board. -->
                                 <div class="fullscreen-backdrop" aria-hidden="true"></div>
+                                {#if gameSession.clouds}
+                                    <StormBackdrop placement={stormPlacement} fixed />
+                                {/if}
                                 <div class="fullscreen-controls">
                                     {@render turnControls()}
                                 </div>
@@ -139,6 +156,8 @@
 
 <style>
     .yinsh-table {
+        position: relative;
+        isolation: isolate;
         background: radial-gradient(
             ellipse at 50% 35%,
             var(--yinsh-table) 0%,
@@ -159,7 +178,7 @@
         background: var(--yinsh-table-deep);
         position: fixed;
         inset: 0;
-        z-index: -1;
+        z-index: -2;
         pointer-events: none;
     }
 

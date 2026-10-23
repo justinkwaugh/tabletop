@@ -37,13 +37,13 @@
         gap: 6px;
         font-size: 15px;
         letter-spacing: 0.04em;
-        color: var(--yinsh-ink-quiet);
+        color: var(--yinsh-table-ink-quiet);
         white-space: nowrap;
     }
 
     .pool strong {
         font-size: 17px;
-        color: var(--yinsh-ink);
+        color: var(--yinsh-table-ink);
         font-variant-numeric: tabular-nums;
     }
 

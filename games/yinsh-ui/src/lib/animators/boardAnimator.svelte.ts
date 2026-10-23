@@ -12,6 +12,7 @@ import {
     isPlaceRing,
     isRemoveRing,
     isRemoveRow,
+    ROW_LENGTH,
     type HydratedYinshGameState
 } from '@tabletop/yinsh'
 import type { YinshGameSession } from '$lib/model/session.svelte.js'
@@ -35,6 +36,7 @@ const LIFT = { duration: 0.3, rise: -14, scale: 1.1, stagger: 0.03 }
 const TAKE = 0.42
 const MARK_FADE = 0.2
 const FALLBACK = 0.18
+const FALLBACK_STAGGER = 0.008
 
 export type DrawnPiece = {
     key: string
@@ -185,20 +187,13 @@ export class BoardAnimator {
             }
         } else if (isRemoveRow(action)) {
             action.metadata?.markers.forEach((coords, index) => {
-                for (const node of this.targets(pieceKey('marker', coords))) {
-                    touched.push(node)
-                    timeline.to(
-                        node,
-                        {
-                            opacity: 0,
-                            y: LIFT.rise,
-                            scale: LIFT.scale,
-                            duration: LIFT.duration,
-                            ease: 'power1.out'
-                        },
-                        index * LIFT.stagger
-                    )
-                }
+                this.lift(
+                    pieceKey('marker', coords),
+                    timeline,
+                    touched,
+                    LIFT.duration,
+                    index * LIFT.stagger
+                )
             })
         } else if (isRemoveRing(action)) {
             const slot = this.slotOf(
@@ -256,21 +251,56 @@ export class BoardAnimator {
         for (const marker of diff.flipped) {
             this.flip(marker.coords, timeline, 0, duration, touched)
         }
-        for (const piece of [
-            ...diff.markersCome.map((m) => pieceKey('marker', m.coords)),
-            ...diff.ringsCome.map((r) => pieceKey('ring', r.coords))
-        ]) {
-            this.enter(piece, timeline, touched, { duration: duration * 0.8, scale: 1, rise: 0 })
+        // Markers come back the way a taken row leaves, only quicker: they drop in, one after
+        // another, and markers taken lift away.
+        const stagger = fast ? FALLBACK_STAGGER : LIFT.stagger
+        const settle = duration - stagger * (ROW_LENGTH - 1)
+        diff.markersCome.forEach((marker, index) => {
+            this.enter(pieceKey('marker', marker.coords), timeline, touched, {
+                duration: settle,
+                scale: LIFT.scale,
+                rise: LIFT.rise,
+                at: (index % ROW_LENGTH) * stagger
+            })
+        })
+        for (const ring of diff.ringsCome) {
+            this.enter(pieceKey('ring', ring.coords), timeline, touched, {
+                duration: duration * 0.8,
+                scale: 1,
+                rise: 0
+            })
         }
-        const gone = [
-            ...diff.markersGone.map((m) => pieceKey('marker', m.coords)),
-            ...diff.ringsGone.map((r) => pieceKey('ring', r.coords))
-        ]
-        for (const key of gone) {
-            for (const node of this.targets(key)) {
+        diff.markersGone.forEach((marker, index) => {
+            this.lift(
+                pieceKey('marker', marker.coords),
+                timeline,
+                touched,
+                settle,
+                (index % ROW_LENGTH) * stagger
+            )
+        })
+        for (const ring of diff.ringsGone) {
+            for (const node of this.targets(pieceKey('ring', ring.coords))) {
                 touched.push(node)
                 timeline.to(node, { opacity: 0, duration: duration * 0.8 }, 0)
             }
+        }
+    }
+
+    private lift(
+        key: string,
+        timeline: Timeline,
+        touched: SVGGElement[],
+        duration: number,
+        at: number
+    ) {
+        for (const node of this.targets(key)) {
+            touched.push(node)
+            timeline.to(
+                node,
+                { opacity: 0, y: LIFT.rise, scale: LIFT.scale, duration, ease: 'power1.out' },
+                at
+            )
         }
     }
 
@@ -284,7 +314,7 @@ export class BoardAnimator {
         key: string,
         timeline: Timeline,
         touched: SVGGElement[],
-        motion: { duration: number; scale: number; rise: number }
+        motion: { duration: number; scale: number; rise: number; at?: number }
     ) {
         for (const node of this.targets(key)) {
             touched.push(node)
@@ -292,7 +322,7 @@ export class BoardAnimator {
                 node,
                 { opacity: 0, scale: motion.scale, y: motion.rise },
                 { opacity: 1, scale: 1, y: 0, duration: motion.duration, ease: 'power2.out' },
-                0
+                motion.at ?? 0
             )
         }
     }

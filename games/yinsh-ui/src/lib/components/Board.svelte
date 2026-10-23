@@ -20,6 +20,8 @@
     } from '$lib/board/pieceGeometry.js'
     import { BoardAnimator, type DrawnPiece } from '$lib/animators/boardAnimator.svelte.js'
     import { dropIn } from '$lib/board/dropIn.js'
+    import { ringFace } from '$lib/board/pieceShapes.js'
+    import { BOARD_STORM, STORM_SIZE, stormImage } from '$lib/board/storm.js'
     import RingShape from './RingShape.svelte'
     import MarkerShape from './MarkerShape.svelte'
 
@@ -50,6 +52,8 @@
     })
 
     const animator = new BoardAnimator(session)
+
+    const boardStorm = $derived(session.clouds ? stormImage(BOARD_STORM) : undefined)
 
     // Back to front, so a nearer piece's side covers the one behind it.
     const pieces = $derived(
@@ -123,6 +127,9 @@
     }
 
     const RING_MARK = (RING_OUTER + RING_INNER) / 2
+    const SHADOW_SOFTNESS = 2.6
+    const DISC_SHADOW = MARKER_RADIUS + SHADOW_SOFTNESS
+    const RING_SHADOW = RING_OUTER + SHADOW_SOFTNESS
     const MARKER_MARK = MARKER_RADIUS * 0.62
 </script>
 
@@ -172,12 +179,51 @@
     {@attach animator.attach}
 >
     <defs>
-        <filter id="yinsh-shadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="2.4"></feGaussianBlur>
-        </filter>
+        <clipPath id="yinsh-play-clip">
+            <polygon points={outline}></polygon>
+        </clipPath>
+        <!-- Soft shadows as gradients rather than a blur filter: WebKit leaves the pixels of a
+             removed piece under a filter on screen until something else repaints there. -->
+        <radialGradient id="yinsh-shadow-disc">
+            <stop
+                offset={(MARKER_RADIUS - SHADOW_SOFTNESS) / DISC_SHADOW}
+                stop-color="#000"
+                stop-opacity="0.35"
+            ></stop>
+            <stop offset="1" stop-color="#000" stop-opacity="0"></stop>
+        </radialGradient>
+        <radialGradient id="yinsh-shadow-ring">
+            <stop
+                offset={(RING_INNER - SHADOW_SOFTNESS) / RING_SHADOW}
+                stop-color="#000"
+                stop-opacity="0"
+            ></stop>
+            <stop
+                offset={(RING_INNER + SHADOW_SOFTNESS) / RING_SHADOW}
+                stop-color="#000"
+                stop-opacity="0.35"
+            ></stop>
+            <stop
+                offset={(RING_OUTER - SHADOW_SOFTNESS) / RING_SHADOW}
+                stop-color="#000"
+                stop-opacity="0.35"
+            ></stop>
+            <stop offset="1" stop-color="#000" stop-opacity="0"></stop>
+        </radialGradient>
     </defs>
 
     <polygon points={outline} class="play-area"></polygon>
+    {#if session.clouds && boardStorm}
+        <image
+            href={boardStorm}
+            x={-STORM_SIZE / 2}
+            y={-STORM_SIZE / 2}
+            width={STORM_SIZE}
+            height={STORM_SIZE}
+            clip-path="url(#yinsh-play-clip)"
+            class="storm"
+        ></image>
+    {/if}
 
     <g class="lines">
         {#each lines as line, index (index)}
@@ -194,8 +240,7 @@
     {#each sides as side (side.playerId)}
         {#each side.slots as slot, index (index)}
             <g transform="translate({slot.x} {slot.y})">
-                <circle r={RING_OUTER} class="slot"></circle>
-                <circle r={RING_INNER} class="slot"></circle>
+                <path d={ringFace(RING_OUTER, RING_INNER)} fill-rule="evenodd" class="slot"></path>
                 {#if index < side.removed}
                     <RingShape
                         tone={session.toneOfPlayer(side.playerId)}
@@ -206,7 +251,7 @@
         {/each}
     {/each}
 
-    <g class="shadows" filter="url(#yinsh-shadow)">
+    <g class="shadows">
         {#each pieces as piece (piece.key)}
             {@const center = pointCenter(piece.coords)}
             <g transform="translate({center.x} {center.y})">
@@ -215,12 +260,15 @@
                         <circle
                             cx="1.5"
                             cy={RING_SIDE + 2}
-                            r={RING_MARK}
-                            stroke-width={RING_OUTER - RING_INNER}
-                            class="shadow-ring"
+                            r={RING_SHADOW}
+                            fill="url(#yinsh-shadow-ring)"
                         ></circle>
                     {:else}
-                        <circle cx="1.2" cy={MARKER_SIDE + 1.6} r={MARKER_RADIUS} class="shadow"
+                        <circle
+                            cx="1.2"
+                            cy={MARKER_SIDE + 1.6}
+                            r={DISC_SHADOW}
+                            fill="url(#yinsh-shadow-disc)"
                         ></circle>
                     {/if}
                 </g>
@@ -279,13 +327,7 @@
         {@const center = pointCenter(animator.flier.at)}
         <g transform="translate({center.x} {center.y})" class="flier">
             <g {@attach animator.flierNode()}>
-                <circle
-                    cx="1.5"
-                    cy={RING_SIDE + 2}
-                    r={RING_MARK}
-                    stroke-width={RING_OUTER - RING_INNER}
-                    class="shadow-ring"
-                    filter="url(#yinsh-shadow)"
+                <circle cx="1.5" cy={RING_SIDE + 2} r={RING_SHADOW} fill="url(#yinsh-shadow-ring)"
                 ></circle>
                 <RingShape
                     tone={session.toneOfPlayer(animator.flier.playerId)}
@@ -347,19 +389,14 @@
         pointer-events: none;
     }
 
+    /* Painted on the table in the board's own pale color, as on the real board. */
     .slot {
-        fill: none;
-        stroke: var(--yinsh-slot);
-        stroke-width: 1.4;
+        fill: var(--yinsh-play);
+        opacity: 0.7;
     }
 
-    .shadow {
-        fill: rgb(0 0 0 / 0.35);
-    }
-
-    .shadow-ring {
-        fill: none;
-        stroke: rgb(0 0 0 / 0.35);
+    .storm {
+        pointer-events: none;
     }
 
     .piece,
