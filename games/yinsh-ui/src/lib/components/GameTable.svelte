@@ -124,13 +124,13 @@
                         <div
                             class="pointer-events-auto absolute top-1 right-3 z-10 flex flex-col items-end gap-1.5"
                         >
-                            <CloudToggle />
                             <OverlayToggle
                                 glyph="A1"
                                 label="Coordinates"
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}
                             />
+                            <CloudToggle />
                         </div>
                     {/snippet}
                     {#snippet toolbar()}
