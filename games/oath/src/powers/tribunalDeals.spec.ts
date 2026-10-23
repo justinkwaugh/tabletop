@@ -67,6 +67,16 @@ describe('R-7.6.3-H1 — the Tribunal’s promises', () => {
         expect(() => actionPowerUse('ruler', TRIBUNAL_ID, [exchange('other', { promises: { fromProposer: 'x'.repeat(201) } })])).toThrow()
         expect(() => actionPowerUse('ruler', TRIBUNAL_ID, [exchange('other', { promises: { fromProposer: '' } })])).toThrow()
     })
+
+    it('a promise is at most 200 UTF-16 units, however few characters the schema counts in it', () => {
+        const combining = 'a' + '\u0301'.repeat(200)
+        expect(combining.length).toBe(201)
+        expect(probe(table(), { promises: { fromProposer: combining } })).toBe('a promise is at most 200 characters')
+        expect(probe(table(), { promises: { fromCounterparty: combining } })).toBe('a promise is at most 200 characters')
+        const withSurrogatePair = '\u{1F600}' + 'x'.repeat(198)
+        expect(withSurrogatePair.length).toBe(200)
+        expect(probe(table(), { promises: { fromProposer: withSurrogatePair } })).toBeUndefined()
+    })
 })
 
 describe('R-7.6.3-H1 — an accepted promise opens a public deal', () => {

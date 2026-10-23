@@ -4,6 +4,7 @@ import { giveFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import {
     MAX_OPEN_DEALS_PER_PLAYER,
+    PROMISE_MAX_LENGTH,
     type ExchangeAllowance,
     type ExchangeTerms,
     type ExchangeTransfer,
@@ -57,11 +58,13 @@ function hasControlCharacter(text: string): boolean {
 
 /**
  * R-7.6.3-H1 — a promise as its player wrote it: trimmed, with line breaks and no other control
- * character (its length is the schema's). Read only where the proposal is made, by its player.
+ * character, of at most 200 UTF-16 units (the schema counts characters as a person sees them, so a
+ * run of combining marks would pass it). Read only where the proposal is made, by its player.
  */
 function reasonPromiseTextInvalid(text: string | undefined): string | undefined {
     if (text === undefined) return undefined
     if (text !== text.trim()) return 'a promise cannot start or end with a space'
+    if (text.length > PROMISE_MAX_LENGTH) return 'a promise is at most 200 characters'
     if (hasControlCharacter(text)) return 'a promise holds only text and line breaks'
     return undefined
 }
