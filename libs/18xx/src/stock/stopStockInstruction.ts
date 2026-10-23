@@ -12,7 +12,6 @@ import {
 import {
     StockInstruction,
     StockInstructionStopReason,
-    removeStandingStockInstruction,
     setStandingStockInstruction,
     standingStockInstructionFor
 } from './stockInstruction.js'
@@ -53,15 +52,13 @@ export class HydratedStopStockInstruction
     }
     apply(state: HydratedGameState & StockState): void {
         assert(this.source === ActionSource.System, 'Instructions stop automatically')
-        assertExists(
-            standingStockInstructionFor(state, this.playerId),
-            'There is no standing instruction to stop'
-        )
+        const standing = standingStockInstructionFor(state, this.playerId)
+        assertExists(standing, 'There is no standing instruction to stop')
         if (this.replacement)
             setStandingStockInstruction(
                 state,
                 createStandingStockInstruction(state, this.playerId, this.replacement, this.#rules)
             )
-        else removeStandingStockInstruction(state, this.playerId)
+        else standing.stopReason = this.reason
     }
 }

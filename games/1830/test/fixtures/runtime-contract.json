@@ -45,13 +45,14 @@
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
     "SellFundingShares": "a193675c363bb94571c5d531ede931932747d5fa3ea53bfa9bd53e1ea471ff1d",
     "SellShares": "d4f3f9c06f13c4540ccecb99379e6ad8259922f817adbcce1eb4567fb6e545f7",
-    "SetStockInstruction": "1e85332f638a3f37ec83d300621cb5176e63ea1267c1986a153d038e812b2b59",
+    "SetStockInstruction": "ad09baadde9d160864f05e3fdd5eafb90bd72b6ecd6b587aee356c6691507f88",
+    "SetStockInstructionStops": "82b25d8788b58b44b0f93cfbdbcabd8b844c8bb7fdd141c61cb3d70f4fd3c703",
     "StartCompany": "088dbcf78d2b0ba76714fb09e68fa0e67df031634d115ab88a043c9748ce1450",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
     "StartStockRound": "34c29c0862740d39c48906e26c643428eba3c9bd284795e5322a156118e878d5",
-    "StopStockInstruction": "87c259506cc5823cfddb21a08db1bdc0aad3115a34b83eb8cd7eb850262c0c8b"
+    "StopStockInstruction": "441b49acff4500defe666a5f73fa3eb6a66e7b154d34ec2a2d868b583e5f181d"
   },
   "canonicalState": {
     "additionalProperties": false,
@@ -2468,6 +2469,17 @@
                     {
                       "additionalProperties": false,
                       "properties": {
+                        "ignoredStops": {
+                          "items": {
+                            "enum": [
+                              "company-started",
+                              "president-changed",
+                              "shares-sold",
+                              "presidency-threatened"
+                            ]
+                          },
+                          "type": "array"
+                        },
                         "kind": {
                           "const": "pass",
                           "type": "string"
@@ -2483,6 +2495,17 @@
                       "properties": {
                         "companyId": {
                           "type": "string"
+                        },
+                        "ignoredStops": {
+                          "items": {
+                            "enum": [
+                              "company-started",
+                              "president-changed",
+                              "shares-sold",
+                              "presidency-threatened"
+                            ]
+                          },
+                          "type": "array"
                         },
                         "kind": {
                           "const": "buy",
@@ -2617,6 +2640,251 @@
                     "type": "object"
                   },
                   "type": "array"
+                },
+                "stopReason": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "limits",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "cannot-finish",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "company-started",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "president-changed",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "shares-sold",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "presidency-threatened",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "goal-met",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "no-shares",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "cannot-afford",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "ownership-limit",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "certificate-limit",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "mixed-certificates",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        },
+                        "poolId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId",
+                        "poolId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "purchase-rejected",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        },
+                        "poolId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId",
+                        "poolId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "title",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        },
+                        "key": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "key"
+                      ],
+                      "type": "object"
+                    }
+                  ]
                 },
                 "titleSnapshot": {
                   "patternProperties": {

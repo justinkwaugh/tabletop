@@ -8,6 +8,7 @@ import {
 } from '@tabletop/18xx/testing'
 import {
     isSetStockInstruction,
+    isSetStockInstructionStops,
     type StandingStockInstruction,
     type StockRules
 } from '@tabletop/18xx'
@@ -124,7 +125,7 @@ describe('StockInstructionModule', () => {
 
     it('declares a pass out of turn', async () => {
         const { module, applied } = harness()
-        await module.declarePass()
+        await module.declarePass([])
         expect(applied).toHaveLength(1)
         const action = applied[0]
         expect(isSetStockInstruction(action) && action.outOfTurn).toBe(true)
@@ -133,12 +134,15 @@ describe('StockInstructionModule', () => {
 
     it('declares a purchase goal and clears it again', async () => {
         const { module, applied } = harness(['SetStockInstruction'], {}, [standingPass])
-        await module.declareBuy({
-            companyId: TestCompanyId,
-            preferredPoolId: 'ipo',
-            until: { kind: 'shares', count: 1 },
-            thenPass: true
-        })
+        await module.declareBuy(
+            {
+                companyId: TestCompanyId,
+                preferredPoolId: 'ipo',
+                until: { kind: 'shares', count: 1 },
+                thenPass: true
+            },
+            []
+        )
         await module.clear()
         expect(applied.map((action) => action.type)).toEqual([
             'SetStockInstruction',
@@ -158,15 +162,18 @@ describe('StockInstructionModule', () => {
     })
 
     it('refuses to declare or clear when unavailable', async () => {
-        await expect(harness([]).module.declarePass()).rejects.toThrow()
+        await expect(harness([]).module.declarePass([])).rejects.toThrow()
         await expect(harness().module.clear()).rejects.toThrow()
         await expect(
-            harness().module.declareBuy({
-                companyId: TestCompanyId,
-                preferredPoolId: 'market',
-                until: { kind: 'floated' },
-                thenPass: false
-            })
+            harness().module.declareBuy(
+                {
+                    companyId: TestCompanyId,
+                    preferredPoolId: 'market',
+                    until: { kind: 'floated' },
+                    thenPass: false
+                },
+                []
+            )
         ).rejects.toThrow()
     })
 
@@ -221,85 +228,58 @@ describe('share goal range', () => {
     it('refuses a share goal outside the reachable range', async () => {
         const { module } = harness()
         await expect(
-            module.declareBuy({
-                companyId: TestCompanyId,
-                preferredPoolId: 'ipo',
-                until: { kind: 'shares', count: 4 },
-                thenPass: false
-            })
+            module.declareBuy(
+                {
+                    companyId: TestCompanyId,
+                    preferredPoolId: 'ipo',
+                    until: { kind: 'shares', count: 4 },
+                    thenPass: false
+                },
+                []
+            )
         ).rejects.toThrow('reach')
     })
 })
 
 describe('last stop', () => {
-    const action = (overrides: Record<string, unknown>) => ({
-        id: String(overrides.id ?? Math.random()),
-        gameId: 'game',
-        source: ActionSource.User,
-        playerId: TestPlayerId,
-        ...overrides
-    })
-    const declaredBuy = action({
-        type: 'SetStockInstruction',
-        outOfTurn: true,
-        supersedable: true,
+    const stoppedBuy: StandingStockInstruction = {
+        ...standingPass,
         instruction: {
             kind: 'buy',
             companyId: TestCompanyId,
             preferredPoolId: 'ipo',
             until: { kind: 'floated' },
-            thenPass: true
-        }
-    })
-    const convertedToPass = action({
-        type: 'StopStockInstruction',
-        source: ActionSource.System,
-        reason: { code: 'goal-met', companyId: TestCompanyId },
-        replacement: { kind: 'pass' }
-    })
-    const stopped = action({
-        type: 'StopStockInstruction',
-        source: ActionSource.System,
-        reason: { code: 'shares-sold', companyId: TestCompanyId }
+            thenPass: true,
+            ignoredStops: ['president-changed']
+        },
+        stopReason: { code: 'shares-sold', companyId: TestCompanyId }
+    }
+
+    it('reports my stopped instruction and why it stopped', () => {
+        const { module } = harness(['SetStockInstruction'], {}, [stoppedBuy])
+        expect(module.mine).toBeUndefined()
+        expect(module.lastStop).toEqual(stoppedBuy)
     })
 
-    it('reports why my instruction stopped and which kind it was', () => {
-        const { module } = harness(['SetStockInstruction'], {
-            recordedActions: [declaredBuy, stopped]
-        })
-        expect(module.lastStop).toEqual({
-            kind: 'buy',
-            reason: { code: 'shares-sold', companyId: TestCompanyId }
-        })
-        const { module: converted } = harness(['SetStockInstruction'], {
-            recordedActions: [declaredBuy, convertedToPass, stopped]
-        })
-        expect(converted.lastStop).toEqual({
-            kind: 'pass',
-            reason: { code: 'shares-sold', companyId: TestCompanyId }
-        })
+    it('has no stop while my instruction runs or once the round completes', () => {
+        expect(harness(['SetStockInstruction'], {}, [standingPass]).module.lastStop).toBeUndefined()
+        const { module } = harness(['SetStockInstruction'], {}, [stoppedBuy])
+        module['session'].state.stockRound.completed = true
+        expect(module.lastStop).toBeUndefined()
     })
 
-    it('forgets the stop once I declare again, clear, or the round ends', () => {
-        const cleared = action({ type: 'SetStockInstruction', outOfTurn: true, supersedable: true })
-        expect(
-            harness(['SetStockInstruction'], { recordedActions: [declaredBuy, stopped, cleared] })
-                .module.lastStop
-        ).toBeUndefined()
-        const ended = action({
-            type: 'CompleteStockRound',
-            source: ActionSource.System,
-            playerId: undefined
-        })
-        expect(
-            harness(['SetStockInstruction'], { recordedActions: [declaredBuy, stopped, ended] })
-                .module.lastStop
-        ).toBeUndefined()
-        expect(
-            harness(['SetStockInstruction'], { recordedActions: [declaredBuy, convertedToPass] }, [
-                standingPass
-            ]).module.lastStop
-        ).toBeUndefined()
+    it('keeps going by resuming the stopped instruction with that stop ignored', async () => {
+        const { module, applied } = harness(
+            ['SetStockInstruction', 'SetStockInstructionStops'],
+            {},
+            [stoppedBuy]
+        )
+        await module.keepGoing()
+        const [action] = applied
+        expect(isSetStockInstructionStops(action) && action.ignoredStops).toEqual([
+            'president-changed',
+            'shares-sold'
+        ])
     })
 })
 
@@ -348,10 +328,35 @@ describe('replacing a declaration', () => {
             recordedActions: [standing],
             supersedes: 'standing'
         })
-        await module.declarePass()
+        await module.declarePass([])
         expect(applied[0].supersedesActionId).toBe('standing')
         const { module: fresh, applied: freshApplied } = harness()
-        await fresh.declarePass()
+        await fresh.declarePass([])
         expect(freshApplied[0].supersedesActionId).toBeUndefined()
+    })
+})
+
+describe('ignored stops', () => {
+    const stopsValid = ['SetStockInstruction', 'SetStockInstructionStops']
+
+    it('declares the stops a new instruction ignores in a canonical order', async () => {
+        const { module, applied } = harness()
+        await module.declarePass(['shares-sold', 'company-started'])
+        const [action] = applied
+        expect(isSetStockInstruction(action) && action.instruction).toEqual({
+            kind: 'pass',
+            ignoredStops: ['company-started', 'shares-sold']
+        })
+    })
+
+    it('ignores the stop the running instruction warns about', async () => {
+        const { module, applied } = harness(stopsValid, {}, [standingPass])
+        expect(module.warning).toEqual({ code: 'company-started', companyId: TestCompanyId })
+        await module.ignoreWarning()
+        const [action] = applied
+        expect(isSetStockInstructionStops(action) && action.ignoredStops).toEqual([
+            'company-started'
+        ])
+        expect(action.outOfTurn).toBe(true)
     })
 })

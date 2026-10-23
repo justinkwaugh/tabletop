@@ -365,31 +365,55 @@ stays disabled until a company is chosen.
 With an instruction declared the toggle
 shows its kind pressed and disabled, followed by one summary line ("Autopass for
 the rest of the round" or "Autobuy <company> · <pool> preferred · until float ·
-then pass"), a "Stops next turn: <reason>" status when the session's
+then pass"), a muted "· ignores <stops>" suffix naming any stops the instruction
+ignores ("sales", "company starts", "president changes", "presidency threats"), a
+"Stops next turn: <reason>" status when the session's
 `instructions.warning` reports that the instruction would stop at its next
-evaluation, and an inline Cancel button. A small "?" icon at the end of the row
-opens a popover listing when an instruction stops on its own. A refused Autobuy
+evaluation, followed by an underlined Ignore link when that reason can be ignored,
+and an inline Cancel button. A small "?" icon at the end of the row
+opens a popover listing when an instruction stops on its own. While a kind is
+selected or an instruction is declared, the popover splits that list into "You
+choose", the four stops a player may ignore (a company started, a president
+changed, shares sold to the bank, a presidency threatened), each with a switch
+on the then-pass track that is on for a watched stop and strikes the condition
+through when off, and "Always" (stock limits and an unreachable Autobuy goal), as
+bullets, closing with "Every new instruction starts with all of these on." The
+switches edit the selected kind's draft before Enable and the declared
+instruction afterwards. With nothing selected the popover is the plain bulleted
+list. A refused Autobuy
 purchase reports whether the share was unaffordable or would breach the ownership or
 certificate limit, rather than a generic refusal. After an instruction
 stops, the bar shows "Autopass stopped: <reason>" or "Autobuy stopped: <reason>" in the
-tray outline until the player declares again, clears, or the round ends. The goal
+tray outline, read from the stopped instruction the Game State keeps until the
+player declares again or the round ends. When the
+reason can be ignored the outline ends with an underlined "Keep going, ignore
+<stop>" link that resumes the stopped instruction with that stop ignored as well,
+keeping its position snapshot, so a different change it had not yet reported
+stops it again at once. The goal
 segment offers Float only for a company that has not floated, and Autobuy omits a
 floated company with no reachable share goal.
 
-The toggle's selected kind, company, pool, goal, count and then-pass values are
+The toggle's selected kind, company, pool, goal, count, then-pass and ignored-stop values are
 local component UI state. They are not staged selections: they are never
 registered with LocalSelections, `Back` and `Undo` ignore them, and a stale
 company or pool falls back to the first legal option. They belong to the player
 the bar declares for: when that player changes, as when hotseat play passes the
-turn, the next player starts with nothing chosen. Only Enable and
-Cancel commit `SetStockInstruction` through the session with `outOfTurn` set.
+turn, the next player starts with nothing chosen, and a new stock round starts
+the draft afresh. Choosing or clearing a kind, and Enable, reset the draft's
+ignored stops, so each new instruction starts watching every stop. Only Enable
+and Cancel commit `SetStockInstruction` through the session with `outOfTurn` set;
+the popover switches on a declared instruction, Ignore and Keep going commit
+`SetStockInstructionStops`, which keeps the instruction's position snapshot, so
+switching a stop back on still counts changes made since the instruction was
+declared.
 Controls disable while the session is busy, while viewing history, or when the
 action is no longer valid. The existing Pass / End turn and Undo buttons keep
 their behavior.
 
 No history surface ever presents a standing instruction: round status, the
 stock panel's history list, the shared game history, the position panel's latest
-line, and history stepping all omit SetStockInstruction and StopStockInstruction,
+line, and history stepping all omit SetStockInstruction, SetStockInstructionStops
+and StopStockInstruction,
 which count as bookkeeping for navigation. The runtime's automatic FinishStockTurn
 and BuyShares actions render and step exactly like the same actions taken by
 hand, with no automatic marker, so history never reveals that an instruction

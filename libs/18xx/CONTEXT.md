@@ -154,7 +154,7 @@ A company's entitlement to a station location, independently of placing its toke
 Permission to retain specified shares above the ordinary ownership limit.
 
 **Standing Instruction**:
-A player's declared intent, recorded in Game State as an Out-of-Turn Action, that the runtime should act for them when their Stock Turn arrives: pass for the rest of the stock round, or buy shares of one company, preferring one Certificate Pool, until a goal is met. The runtime performs the resulting pass or purchase as a System Action and stops the instruction, recording why, when the player's position has changed in a way the declaration did not anticipate. A player holds at most one, and it ends with the stock round.
+A player's declared intent, recorded in Game State as an Out-of-Turn Action, that the runtime should act for them when their Stock Turn arrives: pass for the rest of the stock round, or buy shares of one company, preferring one Certificate Pool, until a goal is met. The runtime performs the resulting pass or purchase as a System Action and stops the instruction, recording why, when the player's position has changed in a way the declaration did not anticipate. The player may tell an instruction to ignore some of those changes (a company started, a president changed, shares sold to the bank, a presidency threatened), when declaring it, while it stands, or after it stops, which resumes it against the position it was declared in; stock limits and an unreachable goal always stop it. A player holds at most one, stopped or not, and it ends with the stock round.
 _Avoid_: Auto-pass, Program, Programmed Action
 
 **Pass**:

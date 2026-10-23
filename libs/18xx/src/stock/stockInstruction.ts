@@ -9,20 +9,63 @@ const BuyUntil = Type.Union([
         { additionalProperties: false }
     )
 ])
+export const ignorableStockInstructionStops = [
+    'company-started',
+    'president-changed',
+    'shares-sold',
+    'presidency-threatened'
+] as const
+export const IgnorableStockInstructionStop = Type.Enum(ignorableStockInstructionStops)
+export type IgnorableStockInstructionStop = Type.Static<typeof IgnorableStockInstructionStop>
+export const IgnoredStockInstructionStops = Type.Array(IgnorableStockInstructionStop)
+
 export const StockInstruction = Type.Union([
-    Type.Object({ kind: Type.Literal('pass') }, { additionalProperties: false }),
+    Type.Object(
+        { kind: Type.Literal('pass'), ignoredStops: Type.Optional(IgnoredStockInstructionStops) },
+        { additionalProperties: false }
+    ),
     Type.Object(
         {
             kind: Type.Literal('buy'),
             companyId: Type.String(),
             preferredPoolId: Type.String(),
             until: BuyUntil,
-            thenPass: Type.Boolean()
+            thenPass: Type.Boolean(),
+            ignoredStops: Type.Optional(IgnoredStockInstructionStops)
         },
         { additionalProperties: false }
     )
 ])
 export type StockInstruction = Type.Static<typeof StockInstruction>
+
+export function orderedIgnorableStops(
+    stops: readonly IgnorableStockInstructionStop[]
+): IgnorableStockInstructionStop[] {
+    return ignorableStockInstructionStops.filter((stop) => stops.includes(stop))
+}
+
+export function withIgnoredStops(
+    instruction: StockInstruction,
+    ignoredStops: readonly IgnorableStockInstructionStop[]
+): StockInstruction {
+    const changed = { ...instruction }
+    delete changed.ignoredStops
+    const ordered = orderedIgnorableStops(ignoredStops)
+    return ordered.length ? { ...changed, ignoredStops: ordered } : changed
+}
+
+export function addIgnoredStop(
+    instruction: StockInstruction,
+    stop: IgnorableStockInstructionStop
+): IgnorableStockInstructionStop[] {
+    return orderedIgnorableStops([...(instruction.ignoredStops ?? []), stop])
+}
+
+export function ignorableStop(
+    reason: StockInstructionStopReason
+): IgnorableStockInstructionStop | undefined {
+    return ignorableStockInstructionStops.find((stop) => stop === reason.code)
+}
 
 export const StockPositionSnapshot = Type.Array(
     Type.Object(
@@ -44,17 +87,6 @@ export const StockInstructionTitleSnapshot = Type.Record(
     Type.Union([Type.String(), Type.Number(), Type.Boolean()])
 )
 export type StockInstructionTitleSnapshot = Type.Static<typeof StockInstructionTitleSnapshot>
-
-export const StandingStockInstruction = Type.Object(
-    {
-        playerId: Type.String(),
-        instruction: StockInstruction,
-        snapshot: StockPositionSnapshot,
-        titleSnapshot: Type.Optional(StockInstructionTitleSnapshot)
-    },
-    { additionalProperties: false }
-)
-export type StandingStockInstruction = Type.Static<typeof StandingStockInstruction>
 
 const CompanyReason = <Code extends string>(code: Code) =>
     Type.Object(
@@ -91,6 +123,21 @@ export const StockInstructionStopReason = Type.Union([
 ])
 export type StockInstructionStopReason = Type.Static<typeof StockInstructionStopReason>
 
+export const StandingStockInstruction = Type.Object(
+    {
+        playerId: Type.String(),
+        instruction: StockInstruction,
+        snapshot: StockPositionSnapshot,
+        titleSnapshot: Type.Optional(StockInstructionTitleSnapshot),
+        stopReason: Type.Optional(StockInstructionStopReason)
+    },
+    { additionalProperties: false }
+)
+export type StandingStockInstruction = Type.Static<typeof StandingStockInstruction>
+export type StoppedStockInstruction = StandingStockInstruction & {
+    stopReason: StockInstructionStopReason
+}
+
 export interface StockInstructionRules {
     securePresidency?(state: StockState, companyId: string, owner: Owner): boolean
     titleSnapshot?(state: StockState, playerId: string): StockInstructionTitleSnapshot
@@ -103,15 +150,33 @@ export interface StockInstructionRules {
 
 type InstructionState = Pick<StockState, 'stockRound'>
 
-export function standingStockInstructions(state: InstructionState): StandingStockInstruction[] {
+function declaredStockInstructions(state: InstructionState): StandingStockInstruction[] {
     return state.stockRound.instructions ?? []
+}
+
+export function declaredStockInstructionFor(
+    state: InstructionState,
+    playerId: string
+): StandingStockInstruction | undefined {
+    return declaredStockInstructions(state).find((declared) => declared.playerId === playerId)
 }
 
 export function standingStockInstructionFor(
     state: InstructionState,
     playerId: string
 ): StandingStockInstruction | undefined {
-    return standingStockInstructions(state).find((standing) => standing.playerId === playerId)
+    const declared = declaredStockInstructionFor(state, playerId)
+    return declared?.stopReason ? undefined : declared
+}
+
+export function stoppedStockInstructionFor(
+    state: InstructionState,
+    playerId: string
+): StoppedStockInstruction | undefined {
+    return declaredStockInstructions(state).find(
+        (declared): declared is StoppedStockInstruction =>
+            declared.playerId === playerId && declared.stopReason !== undefined
+    )
 }
 
 export function setStandingStockInstruction(
@@ -119,14 +184,14 @@ export function setStandingStockInstruction(
     standing: StandingStockInstruction
 ): void {
     state.stockRound.instructions = [
-        ...standingStockInstructions(state).filter((item) => item.playerId !== standing.playerId),
+        ...declaredStockInstructions(state).filter((item) => item.playerId !== standing.playerId),
         standing
     ]
 }
 
 export function removeStandingStockInstruction(state: InstructionState, playerId: string): void {
-    const remaining = standingStockInstructions(state).filter(
-        (standing) => standing.playerId !== playerId
+    const remaining = declaredStockInstructions(state).filter(
+        (declared) => declared.playerId !== playerId
     )
     if (remaining.length > 0) state.stockRound.instructions = remaining
     else delete state.stockRound.instructions
