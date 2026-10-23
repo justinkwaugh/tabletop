@@ -94,7 +94,8 @@ function nearestPrice(prices: readonly number[], target: number): number {
  * market with a tie upward, placed on that price's diagonal in the row of the leftmost component
  * (the lower when they share a column), then down and right to the soft or hard ledge
  * (§11.6.3). **Ruling:** when that row has no box at the price, the System starts from the
- * diagonal's first box on the leftmost component's side of the soft ledge.
+ * diagonal's first box on the leftmost component's side of the soft ledge, or its last box when
+ * that side has none. Every price above $0 runs along one diagonal.
  */
 export function systemMarketSpace(
     market: StockMarket,
