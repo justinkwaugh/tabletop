@@ -20,11 +20,25 @@ import { Banner } from '../model/oathEnums.js'
 import { CampaignTargetKind, type CampaignState } from '../model/campaign.js'
 import { targetedSiteIds } from '../util/campaignSite.js'
 import { partiesOf } from '../util/campaignRoll.js'
-import { addWarbandsToSite, removeWarbandsFrom } from '../util/force.js'
+import {
+    addWarbandsToSite,
+    removeWarbandsFrom,
+    returnWarbandsOnCardToBanks
+} from '../util/force.js'
 import { seizeBanner } from '../util/seize.js'
 import { commitHiddenOutputs, takeRelicFromVault, type SiteFlip } from '../util/hiddenInputs.js'
 import { discardWitnesses } from '../util/knowledge.js'
 import { releaseRelic, takeRelic, clearSiteRelicSlot } from '../util/relics.js'
+import { attackerBottomsTakenRelics } from '../util/battlePlans.js'
+import { OBSIDIAN_CAGE_ID } from '../data/relics.js'
+import { CagePlacement } from '../model/question.js'
+import {
+    cagedGroupsToBoards,
+    cageReturnsToBoards,
+    cageWentBackSummary,
+    reasonCagePlacementInvalid,
+    returnCagedWarbands
+} from '../util/obsidianCage.js'
 import { countOf, describeWarbands } from '../util/warbands.js'
 import { WarbandOwner } from '../model/warbandCounts.js'
 import { shroudedWoodChooser } from '../util/siteTravel.js'
@@ -66,6 +80,8 @@ export const CampaignResolveVictoryMetadata = Type.Object({
     relicsToDeckBottom: Type.Optional(
         Visibility.protect(Type.Array(Type.String()), { policy: Visibility.Policy.Actor })
     ),
+    /** R-10.13-H1 — the Obsidian Cage sent down by Relic Hunter: where its warbands went back. */
+    cageWentBack: Type.Optional(Type.String()),
     /** Sneak Attack — where the interrupted turn resumes. */
     resumeMachineState: Type.Optional(Type.Enum(MachineState)),
     /** R-5.5.8, R-9.4 */
@@ -91,6 +107,10 @@ export const CampaignResolveVictory = Type.Evaluate(
             burnFavor: Type.Boolean(),
             /** Relic Hunter — "you may put any relics you take on the bottom of the relic deck". */
             bottomRelicSlotIds: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
+            /** Relic Hunter — the relics taken from the defender's board that go there too. */
+            bottomRelicIds: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
+            /** R-10.13-H1 — the Obsidian Cage sent down: its Imperial warbands, as the attacker places them. */
+            cagePlacement: Type.Optional(CagePlacement),
             metadata: Type.Optional(CampaignResolveVictoryMetadata)
         })
     ])
@@ -113,6 +133,8 @@ export class HydratedCampaignResolveVictory
     declare banish?: boolean
     declare burnFavor: boolean
     declare bottomRelicSlotIds?: string[]
+    declare bottomRelicIds?: string[]
+    declare cagePlacement?: CagePlacement
     declare metadata?: CampaignResolveVictoryMetadata
 
     constructor(data: CampaignResolveVictory) {
@@ -135,11 +157,11 @@ export class HydratedCampaignResolveVictory
         assertExists(campaign, 'Resolving victory requires a Campaign in progress')
 
         const warbandsPlaced = this.placeWarbands(state, campaign)
-        const { relicsTaken, bannersSeized, seizeBurned, toBottom } = this.takeSpoils(
+        const { relicsTaken, bannersSeized, seizeBurned, toBottom, cageWentBack } = this.takeSpoils(
             state,
             campaign
         )
-        // R-7.1.4 — "after a player takes any relics" (Relic Thief).
+        // R-7.1.4 — "after a player takes any relics" (Relic Thief); one sent down is not there to take.
         const relicNotes = afterRelicsTakenPersistent(state, campaign.attackerPlayerId, relicsTaken)
         const { banishedToSiteId, favorBurned, revealed, banishNotes, tollMove } =
             this.banishAndBurn(state, campaign)
@@ -159,6 +181,7 @@ export class HydratedCampaignResolveVictory
             favorBurned,
             defenderPlayerId: campaign.defenderPlayerId,
             relicsToDeckBottom: toBottom.length > 0 ? toBottom : undefined,
+            cageWentBack,
             revealedSiteCardId: revealed?.siteCardId,
             relicsRevealed: revealed?.relicsRevealed ?? 0,
             resumeMachineState: conclusion?.resumeMachineState,
@@ -196,13 +219,21 @@ export class HydratedCampaignResolveVictory
         const relicsTaken: string[] = []
         const bannersSeized: Banner[] = []
         const toBottom: string[] = []
+        let cageWentBack: string | undefined
         let seizeBurned = 0
 
         for (const target of campaign.targets) {
             if (target.kind === CampaignTargetKind.Relic && defender) {
                 releaseRelic(state, defender.playerId, target.cardId)
-                takeRelic(state, attacker.playerId, target.cardId)
-                relicsTaken.push(target.cardId)
+                if (this.bottomRelicIds?.includes(target.cardId)) {
+                    toBottom.push(target.cardId)
+                    if (target.cardId === OBSIDIAN_CAGE_ID) cageWentBack = this.emptyCage(state)
+                    // R-X.3(b) — the relic goes into the vault, which is never rolled back.
+                    this.revealsInfo = true
+                } else {
+                    takeRelic(state, attacker.playerId, target.cardId)
+                    relicsTaken.push(target.cardId)
+                }
             }
             if (target.kind === CampaignTargetKind.Banner) {
                 seizeBurned += seizeBanner(state, target.banner, campaign.attackerPlayerId)
@@ -223,7 +254,21 @@ export class HydratedCampaignResolveVictory
             }
         }
 
-        return { relicsTaken, bannersSeized, seizeBurned, toBottom }
+        return { relicsTaken, bannersSeized, seizeBurned, toBottom, cageWentBack }
+    }
+
+    /**
+     * R-10.13-H1 — the Obsidian Cage sent down: its warbands go back as its Action moves them, the
+     * Empire's as the attacker places them; before revision 17 (R-X.4) they return to their banks.
+     * The History tells it after the Cage's own clause, so it is no power's note.
+     */
+    private emptyCage(state: HydratedOathGameState): string | undefined {
+        if (!cageReturnsToBoards(state)) {
+            returnWarbandsOnCardToBanks(state, OBSIDIAN_CAGE_ID)
+            return undefined
+        }
+        const groups = cagedGroupsToBoards(state, this.cagePlacement)
+        return cageWentBackSummary(returnCagedWarbands(state, groups)) || undefined
     }
 
     private banishAndBurn(state: HydratedOathGameState, campaign: CampaignState) {
@@ -309,6 +354,9 @@ export class HydratedCampaignResolveVictory
             banishToSiteId?: string
             banish?: boolean
             burnFavor: boolean
+            bottomRelicSlotIds?: readonly string[]
+            bottomRelicIds?: readonly string[]
+            cagePlacement?: CagePlacement
         }
     ): string | undefined {
         const campaign = state.campaign
@@ -333,6 +381,13 @@ export class HydratedCampaignResolveVictory
             choice.placements
         )
         if (placementReason) return placementReason
+
+        const bottomReason = HydratedCampaignResolveVictory.reasonCannotBottom(
+            state,
+            campaign,
+            choice
+        )
+        if (bottomReason) return bottomReason
 
         return HydratedCampaignResolveVictory.reasonCannotBanish(state, campaign, choice)
     }
@@ -389,6 +444,51 @@ export class HydratedCampaignResolveVictory
             }
         }
         return undefined
+    }
+
+    /**
+     * R-5.5.7.II-H1 — Relic Hunter's "any relics you take": a relic taken in this Campaign, from a
+     * site or from the defender's board, only when the attacker used it. Banners are no relics.
+     */
+    private static reasonCannotBottom(
+        state: HydratedOathGameState,
+        campaign: CampaignState,
+        choice: {
+            bottomRelicSlotIds?: readonly string[]
+            bottomRelicIds?: readonly string[]
+            cagePlacement?: CagePlacement
+        }
+    ): string | undefined {
+        const slotIds = choice.bottomRelicSlotIds ?? []
+        const cardIds = choice.bottomRelicIds ?? []
+        if (slotIds.length + cardIds.length > 0 && !attackerBottomsTakenRelics(state, campaign)) {
+            return 'only Relic Hunter, used as your battle plan, puts the relics you take on the bottom of the relic deck'
+        }
+        const named = new Set<string>()
+        for (const slotId of slotIds) {
+            if (named.has(slotId)) return `${slotId} is named twice`
+            named.add(slotId)
+            const targeted = campaign.targets.some(
+                (target) => target.kind === CampaignTargetKind.SiteRelic && target.slotId === slotId
+            )
+            if (!targeted) return `you did not take the facedown relic ${slotId} in this Campaign`
+        }
+        for (const cardId of cardIds) {
+            if (named.has(cardId)) return `${cardId} is named twice`
+            named.add(cardId)
+            const targeted = campaign.targets.some(
+                (target) => target.kind === CampaignTargetKind.Relic && target.cardId === cardId
+            )
+            if (!targeted || campaign.defenderPlayerId === undefined) {
+                return `you did not take ${cardId} from the defender in this Campaign`
+            }
+        }
+        if (cardIds.includes(OBSIDIAN_CAGE_ID) && cageReturnsToBoards(state)) {
+            return reasonCagePlacementInvalid(state, choice.cagePlacement)
+        }
+        return choice.cagePlacement === undefined
+            ? undefined
+            : 'only the Obsidian Cage sent down places warbands'
     }
 
     /** R-5.5.7.III — both options need the pawn-and-favor target. */

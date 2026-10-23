@@ -21,7 +21,7 @@ import {
     type LegalPowerUse
 } from '@tabletop/oath'
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
-import { emptyPicks, warbandGrids, withGridCount } from './powerChoices.js'
+import { NO_OPTION, emptyPicks, warbandGrids, withGridCount } from './powerChoices.js'
 import {
     bargainRows,
     shownBargainPicks,
@@ -569,6 +569,25 @@ describe('the Action powers draft (docs/user-interactions.md)', () => {
 
     it('before any pick there is nothing for Undo to take', async () => {
         expect((await using()).hasManualSelection()).toBe(false)
+    })
+
+    it('a count, a list or an option taken back to nothing is no pick: Undo landing there leaves the picks at once', async () => {
+        const nothing = [
+            { ...emptyPicks(), count: { 0: 0 } },
+            { ...emptyPicks(), several: { 0: [] } },
+            { ...emptyPicks(), option: { 0: NO_OPTION } },
+            { ...emptyPicks(), bargain: { 0: [] } }
+        ]
+        for (const left of nothing) {
+            const draft = await using()
+            draft.setPicks(INN_USE, ticked)
+            draft.setPicks(INN_USE, left)
+            draft.setPicks(INN_USE, { ...emptyPicks(), count: { 0: 2 } })
+            // Back past the last pick: nothing stands picked, so the picks are left.
+            expect(draft.back()).toBe(true)
+            expect(draft.hasManualSelection()).toBe(false)
+            expect(draft.back()).toBe(false)
+        }
     })
 
     it('a power not in reach is never given picks', async () => {
@@ -1665,5 +1684,69 @@ describe('the seat card’s let-peek picker draft (docs/user-interactions.md)', 
         expect(draft.open).toBe(true)
         expect(draft.back()).toBe(true)
         expect(draft.open).toBe(false)
+    })
+})
+
+/** Vow of Kinship's Q&A — its bank's favor may be placed at the Wake, never forced (R-10.10-H1). */
+describe('the Wake draft with the Vow of Kinship', () => {
+    const VOW = 'denizen.nomad.vow-of-kinship'
+    const kin = async (value: number, mobSide = false, revision = OathRevision.EngineFixes14) => {
+        const session = await opened(
+            table(
+                MachineState.WakePhase,
+                { favor: 0, advisers: [{ cardId: VOW, faceUp: true }] },
+                {
+                    oathRevision: revision,
+                    banners: {
+                        ...testBanners(),
+                        [Banner.PeoplesFavor]: { value, mobSide, holderPlayerId: ME }
+                    }
+                }
+            )
+        )
+        const sent = vi.spyOn(session, 'resolveWake').mockResolvedValue()
+        return { session, wake: session.wake, sent }
+    }
+
+    it('at 1 with an empty board, the step offers Place or none, and the Wake is not skipped', async () => {
+        const { session, wake, sent } = await kin(1)
+        expect(session.wakeNeedsDecision).toBe(true)
+        expect(wake.question).toEqual({ kind: 'favorStep', index: 0, options: ['place', 'none'] })
+        expect(wake.readyToEnd).toBe(false)
+        expect(sent).not.toHaveBeenCalled()
+    })
+
+    it('"Place none" sends a Wake with no step; Place sends the place', async () => {
+        const none = await kin(1)
+        await none.wake.chooseKind('none')
+        expect(none.sent).toHaveBeenCalledExactlyOnceWith([], undefined)
+        const place = await kin(1)
+        await place.wake.chooseKind('place')
+        expect(place.sent).toHaveBeenCalledExactlyOnceWith([{ kind: 'place' }], undefined)
+    })
+
+    it('at 2 the step is forced: Place or Return, no none', async () => {
+        const { wake } = await kin(2)
+        expect(wake.question).toEqual({ kind: 'favorStep', index: 0, options: ['place', 'return'] })
+    })
+
+    it('on the Mob side at 2, a Return leaves the second step optional: none sends the Return alone', async () => {
+        const { wake, sent } = await kin(2, true)
+        expect(wake.stepCount).toBe(2)
+        await wake.chooseKind('return')
+        await wake.chooseBank(Suit.Discord)
+        expect(wake.question).toEqual({ kind: 'favorStep', index: 1, options: ['place', 'none'] })
+        await wake.chooseKind('none')
+        expect(sent).toHaveBeenCalledExactlyOnceWith(
+            [{ kind: 'return', toSuit: Suit.Discord }],
+            undefined
+        )
+    })
+
+    it('before revision 18 the place is forced and taken with no tap, as recorded', async () => {
+        const { wake } = await kin(1, false, OathRevision.EngineFixes13)
+        expect(wake.question).toBeUndefined()
+        expect(wake.answeredLines).toEqual(['Placed 1 favor.'])
+        expect(wake.readyToEnd).toBe(true)
     })
 })

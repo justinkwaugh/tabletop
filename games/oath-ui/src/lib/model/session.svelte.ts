@@ -95,7 +95,8 @@ import {
     DefeatDraft,
     DefenceDraft,
     SkullLossesDraft,
-    VictoryDraft
+    VictoryDraft,
+    type RelicBottoms
 } from './battleDrafts.js'
 import {
     ActionPowersDraft,
@@ -506,7 +507,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     async resolveCampaignVictory(
         placements: CampaignPlacement[],
         burnFavor: boolean,
-        bottomRelicSlotIds: string[],
+        { bottomRelicSlotIds, bottomRelicIds, cagePlacement }: RelicBottoms,
         banishToSiteId?: string,
         banish?: boolean
     ): Promise<void> {
@@ -517,7 +518,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 burnFavor,
                 ...(banishToSiteId ? { banishToSiteId } : {}),
                 ...(banish ? { banish } : {}),
-                ...(bottomRelicSlotIds.length > 0 ? { bottomRelicSlotIds } : {})
+                ...(bottomRelicSlotIds.length > 0 ? { bottomRelicSlotIds } : {}),
+                ...(bottomRelicIds.length > 0 ? { bottomRelicIds } : {}),
+                ...(cagePlacement && cagePlacement.length > 0 ? { cagePlacement } : {})
             })
         )
     }

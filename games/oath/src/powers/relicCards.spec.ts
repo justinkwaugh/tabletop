@@ -334,14 +334,17 @@ describe('the peeking and taking relics', () => {
             slotId: 'reliquary.0',
             relicCardId: 'relic.cup'
         })
-        new HydratedAnswerQuestion(
+        const take = new HydratedAnswerQuestion(
             buildAction(AnswerQuestion, {
                 playerId: 'me',
                 answer: { kind: PowerQuestionKind.TakeOrLeaveRelic, take: true }
             })
-        ).apply(s)
+        )
+        take.apply(s)
         expect(s.getPlayerState('me').relicIds).toContain('relic.cup')
         expect(s.reliquarySlots().map((r) => r.slotId)).toEqual(['reliquary.1'])
+        // R-X.3 — the take moves the relic out of the vault, so it cannot be undone.
+        expect(take.revealsInfo).toBe(true)
     })
 
     it('Ivory Eye peeks at one of three kinds of thing; a facedown site comes through the vault and stays facedown', () => {

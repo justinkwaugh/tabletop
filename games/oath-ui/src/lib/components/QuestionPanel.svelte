@@ -11,6 +11,7 @@
         RerolledRollKind,
         type RerolledRoll
     } from '@tabletop/oath'
+    import QuestionCageReturn from '$lib/components/QuestionCageReturn.svelte'
     import QuestionConspiracy from '$lib/components/QuestionConspiracy.svelte'
     import QuestionForm from '$lib/components/QuestionForm.svelte'
     import QuestionGatheringFloor from '$lib/components/QuestionGatheringFloor.svelte'
@@ -22,12 +23,13 @@
     import WoodStay from '$lib/components/WoodStay.svelte'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import DefenseDice from '$lib/components/DefenseDice.svelte'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { favorToken } from '$lib/images/tileImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { tappedCount } from '$lib/model/exchangeTerms.js'
-    import { cardName, listed, siteName, suitName, transferText } from '$lib/model/names.js'
+    import { cardName, listed, plural, siteName, suitName, transferText } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // Every "no" is a first-class button: silence is not an answer (R-X.1).
@@ -43,9 +45,9 @@
     // Jinx — "after you roll … for any reason".
     function rolledDice(roll: RerolledRoll): string {
         if (roll.kind === RerolledRollKind.Campaign) return `the ${roll.side} dice`
-        return roll.kind === RerolledRollKind.GamblingHall
-            ? 'the Gambling Hall dice'
-            : 'the Relic Thief dice'
+        return roll.kind === RerolledRollKind.RelicThief
+            ? 'the Relic Thief dice'
+            : 'the Gambling Hall dice'
     }
 
     function standingRoll(roll: RerolledRoll): string {
@@ -83,6 +85,31 @@
                 />
             </div>
             <QuestionYesNo yes="Burn" no="None" />
+        </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.PayFromHomeBank}
+        <!-- Vow of Kinship: what the board left owing, from its bank only as the player chooses. -->
+        {@const home = draft.homeBank}
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}<TokenText
+                    text="Pay how many favor from {home
+                        ? `the ${suitName(home.suit)} bank`
+                        : 'your bank'}?"
+                />{/snippet}
+            <!-- The payable favor; the picked ones are placed, so they are ringed gold. -->
+            {@const paying = draft.homeBankPay ?? 0}
+            <div class="mb-2">
+                <TokenRow
+                    image={favorToken()}
+                    held={home?.payable ?? 0}
+                    addable={home?.payable ?? 0}
+                    picked={paying}
+                    label={(n) => `pay ${n} favor`}
+                    ontap={(n) => draft.setHomeBankPay(tappedCount(paying, n))}
+                    tone="gold"
+                    {busy}
+                />
+            </div>
+            <QuestionYesNo yes="Pay" no="None" />
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.PayOrLoseRelic}
         <QuestionForm cardId={mine.relicCardId}>
@@ -143,6 +170,8 @@
             {#snippet line()}Take {cardName(mine.relicCardId)}?{/snippet}
             <QuestionYesNo yes="Take" no="To the bottom" />
         </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.BottomRelic && draft.cageBoards.length > 0}
+        <QuestionCageReturn />
     {:else if mine.kind === PowerQuestionKind.BottomRelic}
         <QuestionForm>
             {#snippet line()}Which relic goes to the bottom?{/snippet}
@@ -275,15 +304,12 @@
             {/if}
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.FlipToTravel}
-        <!-- R-11.13-H1 — The Hidden Place (or the Narrow Pass from the Buried Giant) only with a flip. -->
+        <!-- R-11.13-H1 — The Hidden Place (or the Narrow Pass from the Buried Giant) only with a flip;
+             R-11.13-H2 — both at once take two. -->
+        {@const flips = mine.flips === 2 ? 'flip 2 secrets' : 'flip 1 secret'}
         <QuestionForm cardId={mine.cardId}>
             {#snippet line()}Travel to {siteName(gameState, mine.siteId)}?{/snippet}
-            <QuestionYesNo
-                yes="Travel"
-                no="Stay"
-                cost="flip 1 secret"
-                yesLabel="Travel and flip 1 secret"
-            />
+            <QuestionYesNo yes="Travel" no="Stay" cost={flips} yesLabel={`Travel and ${flips}`} />
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.WayStationFavor}
         <!-- R-11.7-H3 — Way Station at the Shrouded Wood's pick: its ruler's favor instead of the Supply;
@@ -314,6 +340,33 @@
                         onclick={() => draft.gainHospitalityFavor(suit)}
                     >
                         <FavorCost count={1} sign="+" />
+                        <img
+                            class="inline-block h-[1.1em] w-auto"
+                            src={suitImage(suit)}
+                            alt="the {suitName(suit)} bank"
+                        />
+                    </AnswerButton>
+                {/each}
+            </div>
+        </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.GamblingHallBank}
+        <!-- R-7.1.3-H2 — the roll stands, after any Jinx reroll: its faces, then one button per bank
+             with favor, "+M [favor] [suit]", M the total or what the bank holds if less (R-9.3). -->
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}Rolled {plural(mine.shields, 'shield')}:{/snippet}
+            <div class="mb-2 flex flex-wrap items-center gap-1">
+                <DefenseDice faces={mine.faces} />
+            </div>
+            <p class="mb-2 text-base"><TokenText text="Gain {mine.shields} favor from:" /></p>
+            <div class="flex flex-wrap gap-2">
+                {#each draft.gamblingHallGains as { suit, gain } (suit)}
+                    <AnswerButton
+                        width={bankWidth}
+                        disabled={busy}
+                        label="+{gain} favor from the {suitName(suit)} bank"
+                        onclick={() => draft.takeGamblingHallFavor(suit)}
+                    >
+                        <FavorCost count={gain} sign="+" />
                         <img
                             class="inline-block h-[1.1em] w-auto"
                             src={suitImage(suit)}

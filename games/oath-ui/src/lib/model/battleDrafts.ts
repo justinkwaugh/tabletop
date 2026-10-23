@@ -7,15 +7,21 @@ import {
     HydratedCampaignResolveVictory,
     HydratedCampaignSacrifice,
     HydratedCampaignSkullLosses,
+    IMPERIAL_WARBANDS,
     MachineState,
+    OBSIDIAN_CAGE_ID,
+    attackerBottomsTakenRelics,
+    cagePurpleChoiceBoards,
     countOf,
     defeatPickMatters,
     forceTotal,
     powerKey,
+    reasonCagePlacementInvalid,
     shroudedWoodChooser,
     takeFromGroups,
     warbandEntries,
     type BattlePlanUse,
+    type CagePlacement,
     type CardPower,
     type LegalChoice,
     type CampaignPlacement,
@@ -24,8 +30,15 @@ import {
     type WarbandGroup,
     type WarbandOwner
 } from '@tabletop/oath'
+import { cageCeilingAt, cageCountsAfterTap, cagePlacementOf } from './cagePlacement.js'
 import { samePowerUse } from './powerUse.js'
-import { declaredPlan, planChoices, planMoves, planPicksComplete } from './planChoices.js'
+import {
+    declaredPlan,
+    listedPlans,
+    planChoices,
+    planMoves,
+    planPicksComplete
+} from './planChoices.js'
 import { emptyPicks, type PowerChoicePicks } from './powerChoices.js'
 import type { MovePick, PowerMoves } from './powerMoves.js'
 import {
@@ -39,28 +52,52 @@ import type { OathGameSession } from './session.svelte.js'
 /** Keyed by site, then by warband owner. */
 type PlaceCounts = Record<string, Partial<Record<WarbandOwner, number>>>
 
+/** Relic Hunter — a relic taken: a facedown one from a site, by its slot, or one from the defender's board. */
+export type RelicRow =
+    { kind: 'site'; key: string; slotId: string } | { kind: 'held'; key: string; cardId: string }
+
+/**
+ * Relic Hunter — the relics the victory sends to the bottom of the relic deck, and where the
+ * Obsidian Cage's Imperial warbands go when it is one of them and they have a choice of boards.
+ */
+export type RelicBottoms = {
+    bottomRelicSlotIds: string[]
+    bottomRelicIds: string[]
+    cagePlacement?: CagePlacement
+}
+
 /** R-5.5.7.III, R-11.7 — the defeated pawn left, banished to a site, or left to the Wood's ruler. */
 type PawnChoice = { kind: 'leave' } | { kind: 'site'; siteId: string } | { kind: 'wood' }
 
 /**
- * The warbands' and the relics' steps are each a pick stage and an end stage, so Undo returns to
- * them with their picks still marked, then clears those. The pawn's one tap is its stage, so Undo
- * returns to the pawn's step bare. The favor's buttons send; they store nothing.
+ * The warbands', the relics' and the Cage's steps are each a pick stage and an end stage, so Undo
+ * returns to them with their picks still marked, then clears those. The pawn's one tap is its
+ * stage, so Undo returns to the pawn's step bare. The favor's buttons send; they store nothing.
  */
 type VictoryValueByStage = {
     counts: PlaceCounts
     warbands: true
     relicPicks: Record<string, 'keep' | 'bottom'>
     relics: true
+    cageCounts: number[]
+    cage: true
     pawn: PawnChoice
 }
 
-const VICTORY_STAGE_ORDER = ['counts', 'warbands', 'relicPicks', 'relics', 'pawn'] as const
+const VICTORY_STAGE_ORDER = [
+    'counts',
+    'warbands',
+    'relicPicks',
+    'relics',
+    'cageCounts',
+    'cage',
+    'pawn'
+] as const
 const _victoryStagesAreCovered: StagesCover<VictoryValueByStage, typeof VICTORY_STAGE_ORDER> = true
 void _victoryStagesAreCovered
 
-/** R-5.5.7's sections, in the Law's order. */
-export type SpoilsStep = 'warbands' | 'relics' | 'pawn' | 'favor'
+/** R-5.5.7's sections, in the Law's order; the Cage's warbands follow the relic that held them. */
+export type SpoilsStep = 'warbands' | 'relics' | 'cage' | 'pawn' | 'favor'
 
 /** One owner's warbands onto one site taken. */
 export type WarbandRow = { siteId: string; owner: WarbandOwner }
@@ -93,7 +130,8 @@ export class VictoryDraft implements PanelDraft {
         if (!this.playerId) return []
         const steps: SpoilsStep[] = []
         if (this.warbandRows.length > 0) steps.push('warbands')
-        if (this.relicTargets.length > 0) steps.push('relics')
+        if (this.relicRows.length > 0) steps.push('relics')
+        if (this.cageBoards.length > 0) steps.push('cage')
         if (this.banishSites.length > 0 || this.woodChooses) steps.push('pawn')
         if (this.mayBurnFavor) steps.push('favor')
         return steps
@@ -121,6 +159,8 @@ export class VictoryDraft implements PanelDraft {
                 return this.flow.value('warbands') === true
             case 'relics':
                 return this.flow.value('relics') === true
+            case 'cage':
+                return this.flow.value('cage') === true
             case 'pawn':
                 return this.pawnChosen
             case 'favor':
@@ -131,14 +171,23 @@ export class VictoryDraft implements PanelDraft {
     /** "Next": a step with several rows to set, or the warbands' default to accept, not the last. */
     get nextShown(): boolean {
         if (this.isLastStep) return false
-        if (this.step === 'warbands') return true
-        return this.step === 'relics' && this.relicTargets.length > 1 && this.relicsChosen
+        switch (this.step) {
+            case 'warbands':
+                return true
+            case 'relics':
+                return this.relicRows.length > 1 && this.relicsChosen
+            case 'cage':
+                return this.cagePlaced
+            default:
+                return false
+        }
     }
 
     next(): void {
         if (!this.nextShown) return
         if (this.step === 'warbands') this.flow.set('warbands', true)
         else if (this.step === 'relics') this.flow.set('relics', true)
+        else if (this.step === 'cage') this.flow.set('cage', true)
     }
 
     /** "Take spoils" closing a last step that is not the favor's, once its picks are made. */
@@ -146,8 +195,16 @@ export class VictoryDraft implements PanelDraft {
         const step = this.step
         if (step === undefined) return this.playerId !== undefined
         if (!this.isLastStep) return false
-        if (step === 'warbands') return true
-        return step === 'relics' && this.relicsChosen
+        switch (step) {
+            case 'warbands':
+                return true
+            case 'relics':
+                return this.relicsChosen
+            case 'cage':
+                return this.cagePlaced
+            default:
+                return false
+        }
     }
 
     // R-5.5.7.I — in the map's order: the Cradle, the Provinces, the Hinterland, each top to bottom.
@@ -286,34 +343,98 @@ export class VictoryDraft implements PanelDraft {
         if (this.warbandRows.length === 1 && !this.isLastStep) this.flow.set('warbands', true)
     }
 
-    // Relic Hunter — "you may put any relics you take on the bottom of the relic deck".
-    get relicTargets() {
-        return this.targets.flatMap((t) =>
-            t.kind === CampaignTargetKind.SiteRelic ? [t.slotId] : []
-        )
+    // Relic Hunter — "you may put any relics you take on the bottom of the relic deck": a facedown
+    // relic at a site, and, when the attacker used it, a relic taken from the defender's board.
+    get relicRows(): RelicRow[] {
+        const campaign = this.session.gameState.campaign
+        const held =
+            campaign !== undefined &&
+            this.playerId !== undefined &&
+            attackerBottomsTakenRelics(this.session.gameState, campaign)
+        return this.targets.flatMap((t): RelicRow[] => {
+            if (t.kind === CampaignTargetKind.SiteRelic) {
+                return [{ kind: 'site', key: t.slotId, slotId: t.slotId }]
+            }
+            if (t.kind === CampaignTargetKind.Relic && held) {
+                return [{ kind: 'held', key: t.cardId, cardId: t.cardId }]
+            }
+            return []
+        })
     }
 
     /** Keep it or the bottom of the relic deck; none until tapped. */
-    relicChoice(slotId: string): 'keep' | 'bottom' | undefined {
-        return this.relicTargets.includes(slotId)
-            ? this.flow.value('relicPicks')?.[slotId]
+    relicChoice(key: string): 'keep' | 'bottom' | undefined {
+        return this.relicRows.some((row) => row.key === key)
+            ? this.flow.value('relicPicks')?.[key]
             : undefined
     }
 
     private get relicsChosen(): boolean {
-        return this.relicTargets.every((slotId) => this.relicChoice(slotId) !== undefined)
+        return this.relicRows.every((row) => this.relicChoice(row.key) !== undefined)
     }
 
-    get bottomSlots() {
-        return this.relicTargets.filter((slotId) => this.relicChoice(slotId) === 'bottom')
+    get bottoms(): RelicBottoms {
+        const down = this.relicRows.filter((row) => this.relicChoice(row.key) === 'bottom')
+        return {
+            bottomRelicSlotIds: down.flatMap((row) => (row.kind === 'site' ? [row.slotId] : [])),
+            bottomRelicIds: down.flatMap((row) => (row.kind === 'held' ? [row.cardId] : [])),
+            ...(this.cageBoards.length > 0 ? { cagePlacement: this.cagePlacement } : {})
+        }
     }
 
     /** One relic's choice; with one relic the tap is the step's choice and moves on, unless it is the last. */
-    setRelic(slotId: string, bottom: boolean): void {
-        if (this.step !== 'relics' || !this.relicTargets.includes(slotId)) return
+    setRelic(key: string, bottom: boolean): void {
+        if (this.step !== 'relics' || !this.relicRows.some((row) => row.key === key)) return
         const choice: 'keep' | 'bottom' = bottom ? 'bottom' : 'keep'
-        this.flow.set('relicPicks', { ...this.flow.value('relicPicks'), [slotId]: choice })
-        if (this.relicTargets.length === 1 && !this.isLastStep) this.flow.set('relics', true)
+        this.flow.set('relicPicks', { ...this.flow.value('relicPicks'), [key]: choice })
+        if (this.relicRows.length === 1 && !this.isLastStep) this.flow.set('relics', true)
+    }
+
+    /**
+     * R-10.13-H1 — the defender's Obsidian Cage sent down with the Empire's warbands on it, and two
+     * or more Imperial boards to take them: one row per board, as Fae Merchant's Cage step. None
+     * when it is kept, holds no purple, has one board to go to, or before revision 17 (banks).
+     */
+    get cageBoards(): string[] {
+        return this.relicChoice(OBSIDIAN_CAGE_ID) === 'bottom'
+            ? cagePurpleChoiceBoards(this.session.gameState)
+            : []
+    }
+
+    /** The Imperial warbands on the Cage, every one of which the step places. */
+    get cageWarbands(): number {
+        return countOf(this.session.gameState.warbandsOnCard(OBSIDIAN_CAGE_ID), IMPERIAL_WARBANDS)
+    }
+
+    /** Each row's count; none placed when the step opens. */
+    get cageCounts(): number[] {
+        const counts = this.flow.value('cageCounts')
+        return this.cageBoards.map((_, row) => counts?.[row] ?? 0)
+    }
+
+    cageCeilingAt(row: number): number {
+        return cageCeilingAt(this.cageCounts, row, this.cageWarbands)
+    }
+
+    /** A tap on a row's pieces; with two boards the other row takes the rest. */
+    setCageCount(row: number, count: number): void {
+        if (this.step !== 'cage' || row < 0 || row >= this.cageBoards.length) return
+        this.flow.set(
+            'cageCounts',
+            cageCountsAfterTap(this.cageCounts, row, count, this.cageWarbands)
+        )
+    }
+
+    private get cagePlacement(): CagePlacement {
+        return cagePlacementOf(this.cageBoards, this.cageCounts)
+    }
+
+    /** Every warband placed, as the engine takes it. */
+    private get cagePlaced(): boolean {
+        return (
+            this.cageBoards.length > 0 &&
+            reasonCagePlacementInvalid(this.session.gameState, this.cagePlacement) === undefined
+        )
     }
 
     /** R-11.7 — the defeated pawn stands at a Shrouded Wood whose enemy ruler chooses where it goes. */
@@ -402,7 +523,8 @@ export class VictoryDraft implements PanelDraft {
                 placements: this.placements,
                 burnFavor: false,
                 banishToSiteId: this.banishSite,
-                banish: this.banishByWood || undefined
+                banish: this.banishByWood || undefined,
+                ...this.bottoms
             }
         )
     }
@@ -426,7 +548,7 @@ export class VictoryDraft implements PanelDraft {
         await this.session.resolveCampaignVictory(
             this.placements,
             burnFavor,
-            this.bottomSlots,
+            this.bottoms,
             this.banishSite,
             this.banishByWood
         )
@@ -577,8 +699,10 @@ export class DefenceDraft extends PlanDeclarationDraft {
     }
 
     get usable(): CardPower[] {
-        return this.playerId
-            ? HydratedCampaignDefend.usablePlans(this.session.gameState, this.playerId)
+        const playerId = this.playerId
+        const state = this.session.gameState
+        return playerId
+            ? listedPlans(state, playerId, HydratedCampaignDefend.usablePlans(state, playerId))
             : []
     }
 
@@ -611,8 +735,10 @@ export class AttackPlansDraft extends PlanDeclarationDraft {
     }
 
     get usable(): CardPower[] {
-        return this.playerId
-            ? HydratedCampaignAttackPlans.usablePlans(this.session.gameState, this.playerId)
+        const playerId = this.playerId
+        const state = this.session.gameState
+        return playerId
+            ? listedPlans(state, playerId, HydratedCampaignAttackPlans.usablePlans(state, playerId))
             : []
     }
 

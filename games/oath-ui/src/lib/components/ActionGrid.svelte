@@ -7,6 +7,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { type ReasonPart } from '$lib/model/names.js'
     import { cardsMakingPossible } from '$lib/model/actionCards.js'
+    import { listedActionPowers } from '$lib/model/phaseDrafts.js'
     import {
         MAJOR_ACTIONS,
         MINOR_ACTIONS,
@@ -41,10 +42,15 @@
 
     // R-7.4 — the cards that change an action are found with the powers.
     let cards = $derived(gameSession.actionCards)
+    // R-6.2 — Use a power is offered while its list holds a power: one with nothing it can pick is
+    // left out of it.
+    let powers = $derived(listedActionPowers(gameState, seat.playerId))
 
     // R-6.3 — a relic already seen shows its face, so Peek is offered only for one not seen.
     function available(entry: ActionEntry): boolean {
-        if (entry.type === ActionType.UseActionPower && cards.length > 0) return true
+        if (entry.type === ActionType.UseActionPower) {
+            return cards.length > 0 || (valid.has(entry.type) && powers.length > 0)
+        }
         if (!valid.has(entry.type)) return false
         if (entry.type === ActionType.Peek) {
             return unseenPeekSlots(gameState, seat.playerId).length > 0

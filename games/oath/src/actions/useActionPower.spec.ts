@@ -173,7 +173,7 @@ describe('R-7.1.1-H1 — a held relic works like your advisers', () => {
         state.getPlayerState('ruler').relicIds = ['relic.grand-scepter']
 
         expect(() => usePower('ruler', 'relic.grand-scepter', 1).apply(state)).toThrow(
-            /card power effects are not implemented yet/
+            /power 1 cannot be used as an "Action:" power/
         )
     })
 })
@@ -225,7 +225,7 @@ describe('Use an Action Power (R-6.2) — the doorway, complete but for the effe
     it('refuses last of all for the effect that does not exist', () => {
         const state = boardWith([], { relicIds: [SCEPTER] })
         expect(() => usePower('ruler', SCEPTER, 1).apply(state)).toThrow(
-            /card power effects are not implemented yet/
+            /power 1 cannot be used as an "Action:" power/
         )
     })
 
@@ -268,7 +268,7 @@ describe('choices ride the action, checked after the cost and before the effect'
         declareChoices(SCEPTER, 1, [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })])
         const state = boardWith([], { relicIds: [SCEPTER] })
         expect(() => usePower('ruler', SCEPTER, 1, [bank(Suit.Beast)]).apply(state)).toThrow(
-            /card power effects are not implemented yet/
+            /power 1 cannot be used as an "Action:" power/
         )
     })
 

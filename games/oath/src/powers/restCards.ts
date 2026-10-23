@@ -3,6 +3,7 @@ import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { assertExists } from '@tabletop/common'
 import { one, PowerChoiceKind } from '../util/powerChoice.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 import { chosen, registerContinuous, registerEffect, type EffectContext } from './registry.js'
 import {
     gainFavorFromBank,
@@ -98,9 +99,12 @@ registerEffect(
                     const suits = new Set(
                         here.map((id) => suitOf(id)).filter((s): s is Suit => s !== undefined)
                     )
-                    return [...suits]
-                        .filter((suit) => state.favorBank[suit] > 0)
-                        .map((suit) => ({ kind: PowerChoiceKind.FavorBank, suit }))
+                    // R-9.3, R-7.1.3 — an empty bank takes 0, as for the Vows above (R-X.4: before
+                    // revision 18 it was left out).
+                    const offered = isAtLeastOathRevision(state, OathRevision.EngineFixes14)
+                        ? [...suits]
+                        : [...suits].filter((suit) => state.favorBank[suit] > 0)
+                    return offered.map((suit) => ({ kind: PowerChoiceKind.FavorBank, suit }))
                 }
             })
         ],

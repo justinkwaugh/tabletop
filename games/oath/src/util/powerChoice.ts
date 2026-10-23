@@ -43,6 +43,17 @@ export interface ChoiceSpec {
     /** Warbands: the count goes in multiples of it (Blood Pact's "an even number"). */
     step?: number
     /**
+     * Warbands: each option is a place and the one warband the power takes from it (Wrestlers'
+     * sacrifice), so a place is picked whole. Read only by `offeredChoices`' callers.
+     */
+    byPlace?: true
+    /**
+     * Asked only while its domain offers an option: with none there is nothing to name, and the
+     * power is used all the same, its effect finding nothing (Wrestlers with no warband in the
+     * force, R-10.22).
+     */
+    askedIfAny?: true
+    /**
      * Yes: the card's "or". No Yes is its first branch and a Yes its second, so neither is the
      * default (R-7.1.3). Read only by `offeredChoices`' callers.
      */
@@ -355,10 +366,11 @@ export function reasonChoicesInvalid(
             given.shift()
         }
 
-        if (taken.length < spec.min) {
+        const least = spec.askedIfAny && optionsOf().size === 0 ? 0 : spec.min
+        if (taken.length < least) {
             return taken.length === 0
                 ? `no choice was made for ${describe(spec)}`
-                : `${taken.length} given where at least ${spec.min} of ${describe(spec)} were wanted`
+                : `${taken.length} given where at least ${least} of ${describe(spec)} were wanted`
         }
         // A surplus may belong to a later spec of the same kind.
         if (given.length > 0 && given[0].kind === spec.kind && !laterSameKind) {

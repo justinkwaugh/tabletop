@@ -209,6 +209,50 @@ describe('the question draft builds each answer', () => {
         expect(draft.acceptComplete).toBe(false)
     })
 
+    // Vow of Kinship — what the board left owing, from its bank only as the player chooses (R-10.10-H1).
+    describe('Plague Engines asks the Vow of Kinship holder how many to pay from the Nomad bank', () => {
+        const pay = (owed: number): PowerQuestion => ({
+            kind: PowerQuestionKind.PayFromHomeBank,
+            cardId: 'denizen.arcane.plague-engines',
+            askedPlayerId: ME,
+            owed,
+            toBank: Suit.Arcane
+        })
+        const holder = {
+            me: { favor: 0, advisers: [{ cardId: 'denizen.nomad.vow-of-kinship', faceUp: true }] }
+        }
+
+        it('offers the payable pieces, none picked; "Pay" waits for a count, and "None" sends 0', async () => {
+            const { draft, sent } = await asked(pay(2), [], holder)
+            expect(draft.homeBank).toEqual({ suit: Suit.Nomad, payable: 2 })
+            expect(draft.homeBankPay).toBeUndefined()
+            expect(draft.acceptComplete).toBe(false)
+            draft.setHomeBankPay(2)
+            expect(draft.acceptComplete).toBe(true)
+            expect(draft.acceptRefusedBecause).toBeUndefined()
+            await draft.accept()
+            expect(sent).toHaveBeenLastCalledWith({
+                kind: PowerQuestionKind.PayFromHomeBank,
+                favor: 2
+            })
+            await draft.decline()
+            expect(sent).toHaveBeenLastCalledWith({
+                kind: PowerQuestionKind.PayFromHomeBank,
+                favor: 0
+            })
+        })
+
+        it('a count of 0 picks none again; the pieces stop at what the bank holds', async () => {
+            const { draft } = await asked(pay(5), [], holder)
+            expect(draft.homeBank).toEqual({ suit: Suit.Nomad, payable: 3 })
+            draft.setHomeBankPay(1)
+            expect(draft.homeBankPay).toBe(1)
+            draft.setHomeBankPay(0)
+            expect(draft.homeBankPay).toBeUndefined()
+            expect(draft.acceptComplete).toBe(false)
+        })
+    })
+
     it('Fae Merchant — offers every held relic but the Grand Scepter, and the drawn one unnamed', async () => {
         const CUP = 'relic.cup-of-plenty'
         const { draft, sent } = await asked(

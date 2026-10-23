@@ -64,6 +64,18 @@ export function partiesOf(state: HydratedOathGameState, campaign: CampaignState)
     }
 }
 
+/**
+ * R-X.3, R-5.5.5.b-H1 — whether the Campaign step just taken reveals information: the dice it
+ * rolled, or the roll a later step will make. A Campaign a plan decided ("you're victorious now")
+ * rolls no dice, so once no defending plans are left to wait on, the step that settled it reveals
+ * nothing and stays undoable. Before revision 17 every such step revealed (R-X.4).
+ */
+export function campaignStepRevealsInfo(state: HydratedOathGameState): boolean {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes13)) return true
+    const campaign = state.campaign
+    return campaign?.decidedVictor === undefined || campaign.pendingDefenderPlans !== undefined
+}
+
 export function rollCampaign(
     state: HydratedOathGameState,
     campaign: CampaignState,

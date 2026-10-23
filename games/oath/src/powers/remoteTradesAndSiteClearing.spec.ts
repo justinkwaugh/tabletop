@@ -494,27 +494,33 @@ describe('Map Library and Small Friends — a Trade with a card at another site'
 
 describe('Family Heirloom — a relic drawn, then asked about', () => {
     it('asks its own player; taking keeps it, refusing sends it to the bottom through the vault', () => {
-        const s = board([], [])
-        s.requireVault().relicDeck = ['relic.cup']
-        const a = playDrawnCard(s, FAMILY_HEIRLOOM, SearchPlay.Adviser)
-        expect(a.metadata?.whenPlayed).toBe(
-            'Family Heirloom: drew a relic — take it, or put it on the bottom'
-        )
-        expect(a.metadata?.peeked).toEqual(['relic.cup'])
-        expect(s.pendingQuestions?.queue[0]).toMatchObject({
-            kind: PowerQuestionKind.KeepOrBottomRelic,
-            askedPlayerId: 'ruler',
-            relicCardId: 'relic.cup'
-        })
-        const keep = new HydratedAnswerQuestion(
-            buildAction(AnswerQuestion, {
-                playerId: 'ruler',
-                answer: { kind: PowerQuestionKind.KeepOrBottomRelic, keep: true }
+        // R-X.3(c) — from revision 17 the keep shows the relic to the table, so it cannot be undone.
+        for (const [revision, reveals] of [
+            [OathRevision.EngineFixes13, true],
+            [OathRevision.EngineFixes12, false]
+        ] as const) {
+            const s = board([], [], {}, { oathRevision: revision })
+            s.requireVault().relicDeck = ['relic.cup']
+            const a = playDrawnCard(s, FAMILY_HEIRLOOM, SearchPlay.Adviser)
+            expect(a.metadata?.whenPlayed).toBe(
+                'Family Heirloom: drew a relic — take it, or put it on the bottom'
+            )
+            expect(a.metadata?.peeked).toEqual(['relic.cup'])
+            expect(s.pendingQuestions?.queue[0]).toMatchObject({
+                kind: PowerQuestionKind.KeepOrBottomRelic,
+                askedPlayerId: 'ruler',
+                relicCardId: 'relic.cup'
             })
-        )
-        keep.apply(s)
-        expect(s.getPlayerState('ruler').relicIds).toContain('relic.cup')
-        expect(keep.revealsInfo).toBe(false)
+            const keep = new HydratedAnswerQuestion(
+                buildAction(AnswerQuestion, {
+                    playerId: 'ruler',
+                    answer: { kind: PowerQuestionKind.KeepOrBottomRelic, keep: true }
+                })
+            )
+            keep.apply(s)
+            expect(s.getPlayerState('ruler').relicIds).toContain('relic.cup')
+            expect(keep.revealsInfo, `revision ${revision}`).toBe(reveals)
+        }
 
         const t = board([], [])
         t.requireVault().relicDeck = ['relic.cup']

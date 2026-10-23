@@ -198,6 +198,8 @@ describe('relics', () => {
         // A held relic was public, so every player knows it lies at the bottom.
         expect(s.players.map((player) => player.knownRelicDeckBottom)).toEqual([[CUP], [CUP]])
         expect(kept.metadata?.summary).toContain(DRUM)
+        // R-X.3 — a relic goes into the vault, so the answer cannot be undone.
+        expect(kept.revealsInfo).toBe(true)
 
         const t = board({ c1: [FAE] }, {}, { ruler: { relicIds: [CUP] } })
         const v = vaultFor()
@@ -208,6 +210,7 @@ describe('relics', () => {
         expect(t.players.map((player) => player.knownRelicDeckBottom)).toEqual([[DRUM], []])
         // R-9.4 — a relic drawn and sent down unkept is named only in the Actor-protected fields.
         expect(unkept.metadata?.summary).not.toContain(DRUM)
+        expect(unkept.revealsInfo).toBe(true)
     })
 
     it('Relic Breaker — a facedown relic at your site goes under the deck for three warbands', () => {

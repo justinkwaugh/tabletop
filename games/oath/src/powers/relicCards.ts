@@ -83,8 +83,11 @@ registerModifier('relic.cup-of-plenty', powerIndexOf('relic.cup-of-plenty', Powe
         condition: (ctx) => {
             const cardId = ctx.particulars?.cardId
             const suit = cardId ? suitOf(cardId) : undefined
-            const matches =
-                suit !== undefined && hasFaceupAdviserOfSuit(ctx.state, ctx.playerId, suit)
+            // R-7.4-H1 — from revision 23, the advisers the Trade acts with (Master of Disguise).
+            const holder = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes19)
+                ? (ctx.particulars?.advisersOf ?? ctx.playerId)
+                : ctx.playerId
+            const matches = suit !== undefined && hasFaceupAdviserOfSuit(ctx.state, holder, suit)
             return matches ? undefined : `${ctx.particulars?.cardId} matches none of your advisers`
         },
         spendsNoSupply: () => true

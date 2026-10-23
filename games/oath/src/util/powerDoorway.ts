@@ -63,10 +63,11 @@ export function reasonCannotUsePower(
     const badChoice = reasonChoicesInvalid(state, playerId, power, choices)
     if (badChoice) return badChoice
 
-    // An unbuilt effect refuses last, after every rules check.
+    // A power with no effect refuses last, after every rules check. `legalPowers` never offers one:
+    // the only such powers are the Grand Scepter's, its holder's minor actions (R-6.4, R-6.6.1, R-6.7).
     const effect = effectFor(power)
     if (!effect) {
-        return `card power effects are not implemented yet; ${cardId} power ${powerIndex} would resolve nothing`
+        return `${cardId}'s power ${powerIndex} cannot be used as ${article} ${label} power`
     }
 
     // Before payment, so a refusal costs nothing.

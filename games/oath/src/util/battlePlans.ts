@@ -454,6 +454,16 @@ export function plansUsedBy(
     return found
 }
 
+/** Relic Hunter — "you may put any relics you take on the bottom of the relic deck", when the attacker used it. */
+export function attackerBottomsTakenRelics(
+    state: HydratedOathGameState,
+    campaign: CampaignState
+): boolean {
+    return plansUsedBy(state, campaign, campaign.attackerPlayerId).some(
+        (plan) => plan.hooks.bottomsTakenRelics === true
+    )
+}
+
 /** R-5.5.2.a — the attacker alone, or the defender and their allies. */
 export function playerIdsOnSide(campaign: CampaignState, side: BattlePlanSide): string[] {
     return side === BattlePlanSide.Attacker

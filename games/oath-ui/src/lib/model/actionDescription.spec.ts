@@ -2683,6 +2683,109 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             ])
         })
 
+        describe('R-5.5.8 — Second Wind’s grant on the row that recorded it: "free Travel and Campaign next (Second Wind)"', () => {
+            // The engine's note, unchanged since the card was built.
+            const SECOND_WIND_NOTE =
+                'Second Wind: the next Travel, and then a Campaign, cost no Supply'
+            const spoils = (
+                metadata: Record<string, unknown>,
+                fields: Record<string, unknown> = {}
+            ) =>
+                describeAction(
+                    action({
+                        type: ActionType.CampaignResolveVictory,
+                        playerId: 'p1',
+                        placements: [{ siteId: PLAINS, owner: 'p1', count: 2 }],
+                        burnFavor: false,
+                        ...fields,
+                        metadata: {
+                            warbandsPlaced: 2,
+                            relicsTaken: [],
+                            bannersSeized: [],
+                            seizeBurned: 0,
+                            favorBurned: 0,
+                            ...metadata
+                        }
+                    }),
+                    nameOf
+                )
+
+            it('a victory on the attacker’s own turn', () => {
+                expect(spoils({ triggered: [SECOND_WIND_NOTE] })).toBe(
+                    'took the spoils: placed 2 warbands at Provinces 1; free Travel and Campaign next (Second Wind)'
+                )
+            })
+
+            it('a victory in a Sneak Attack, out of turn, reads the same', () => {
+                const row = spoils(
+                    {
+                        warbandsPlaced: 0,
+                        favorBurned: 2,
+                        defenderPlayerId: 'p2',
+                        resumeMachineState: MachineState.ActPhase,
+                        triggered: [SECOND_WIND_NOTE]
+                    },
+                    { placements: [], burnFavor: true }
+                )
+                expect(row).toBe(
+                    'took the spoils: burned 2 favor from Bob; free Travel and Campaign next (Second Wind)'
+                )
+            })
+
+            it('the answer a banish waited on carries it, after the burn kept for it', () => {
+                const row = describeAction(
+                    action({
+                        type: ActionType.AnswerQuestion,
+                        playerId: 'p3',
+                        answer: {
+                            kind: PowerQuestionKind.ShroudedWoodDestination,
+                            siteId: 'slot.cradle.0'
+                        },
+                        metadata: {
+                            cardId: 'site.shrouded-wood',
+                            kind: PowerQuestionKind.ShroudedWoodDestination,
+                            summary: 'sent p2 to slot.cradle.0',
+                            triggered: ['p1 burned 2 favor', SECOND_WIND_NOTE],
+                            resumeMachineState: MachineState.ActPhase,
+                            last: true
+                        }
+                    }),
+                    nameOf
+                )
+                expect(row).toBe(
+                    'Shrouded Wood: sent Bob to Cradle 1; Alice burned 2 favor; free Travel and Campaign next (Second Wind)'
+                )
+            })
+
+            it('a victory without it prints the row it always did', () => {
+                expect(spoils({})).toBe('took the spoils: placed 2 warbands at Provinces 1')
+                expect(
+                    describeAction(
+                        action({
+                            type: ActionType.CampaignSacrifice,
+                            playerId: 'p1',
+                            sacrifice: 1,
+                            metadata: { sacrificed: 1, attackerVictorious: true }
+                        }),
+                        nameOf
+                    )
+                ).toBe('sacrificed 1 warband and won the battle')
+            })
+
+            it('beside another plan’s note, each keeps the order it was recorded in, one clause each', () => {
+                expect(
+                    spoils({ triggered: ['Field Promotion: gained 3 warbands', SECOND_WIND_NOTE] })
+                ).toBe(
+                    'took the spoils: placed 2 warbands at Provinces 1; gained 3 warbands (Field Promotion); free Travel and Campaign next (Second Wind)'
+                )
+                expect(
+                    spoils({ triggered: [SECOND_WIND_NOTE, 'Field Promotion: gained 3 warbands'] })
+                ).toBe(
+                    'took the spoils: placed 2 warbands at Provinces 1; free Travel and Campaign next (Second Wind); gained 3 warbands (Field Promotion)'
+                )
+            })
+        })
+
         it('a record without them prints the line it always did', () => {
             expect(
                 describeAction(
@@ -2736,5 +2839,62 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             })
             expect(pieces(row)).toEqual([{ count: 4, owner: 'p2' }])
         })
+    })
+})
+
+describe('Vow of Kinship — what its holder paid from the Nomad bank, its own row after the power', () => {
+    const PLAGUE = 'denizen.arcane.plague-engines'
+    const DISSENT = 'denizen.discord.dissent'
+    const paid = (cardId: string, favor: number, summary: string) =>
+        action({
+            type: ActionType.AnswerQuestion,
+            playerId: 'p2',
+            answer: { kind: PowerQuestionKind.PayFromHomeBank, favor },
+            metadata: {
+                cardId,
+                kind: PowerQuestionKind.PayFromHomeBank,
+                summary,
+                resumeMachineState: MachineState.ActPhase,
+                last: true
+            }
+        })
+
+    it('Plague Engines: the count from the Nomad bank into the Arcane bank, or none', () => {
+        const line = describeAction(
+            paid(PLAGUE, 2, 'paid 2 favor from the nomad bank into the arcane bank'),
+            nameOf,
+            'p1'
+        )
+        expect(line).toBe('Plague Engines: paid 2 favor from the Nomad bank into the Arcane bank')
+        expect(tokenParts(line).filter((part) => part.kind === 'suit')).toEqual([
+            { kind: 'suit', suit: Suit.Nomad, bank: true },
+            { kind: 'suit', suit: Suit.Arcane, bank: true }
+        ])
+        expect(describeAction(paid(PLAGUE, 0, 'paid no favor'), nameOf, 'p1')).toBe(
+            'Plague Engines: paid no favor'
+        )
+    })
+
+    it('Dissent: the count from the Nomad bank onto the card', () => {
+        expect(
+            describeAction(
+                paid(DISSENT, 1, 'paid 1 favor from the nomad bank onto it'),
+                nameOf,
+                'p1'
+            )
+        ).toBe('Dissent: paid 1 favor from the Nomad bank onto it')
+    })
+
+    it('Dissent discarded before the answer: the count from the Nomad bank into the Discord bank, as Plague Engines reads', () => {
+        const line = describeAction(
+            paid(DISSENT, 2, 'paid 2 favor from the nomad bank into the discord bank'),
+            nameOf,
+            'p1'
+        )
+        expect(line).toBe('Dissent: paid 2 favor from the Nomad bank into the Discord bank')
+        expect(tokenParts(line).filter((part) => part.kind === 'suit')).toEqual([
+            { kind: 'suit', suit: Suit.Nomad, bank: true },
+            { kind: 'suit', suit: Suit.Discord, bank: true }
+        ])
     })
 })

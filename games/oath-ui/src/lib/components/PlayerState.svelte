@@ -450,7 +450,9 @@
         padding: 8px 8px 6px;
         background: rgba(0, 0, 0, 0.22);
     }
+    /* Relics, then banners, wrap onto further lines inside the card at full size. */
     .row--held {
+        flex-wrap: wrap;
         border-top: 1px solid rgba(255, 255, 255, 0.12);
         gap: 6px;
     }

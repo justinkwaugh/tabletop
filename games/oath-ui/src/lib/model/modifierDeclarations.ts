@@ -2,6 +2,8 @@ import {
     ActionType,
     HydratedSearch,
     PowerChoiceKind,
+    cardPowers,
+    disguisedAs,
     isFreeGain,
     offeredChoices,
     usableModifiers,
@@ -61,11 +63,51 @@ function unopened(m: ModifierDeclaration): ModifierDeclaration {
 export class ModifierDeclarations {
     constructor(private readonly session: OathGameSession) {}
 
+    /**
+     * R-7.4 — the cards usable beside the cards in use: Small Friends' site and Master of
+     * Disguise's player change what is in reach. While a card in use still waits for its pick,
+     * only the cards usable whatever is picked are offered.
+     */
     get options(): CardPower[] {
         const playerId = this.session.liveSeatId
         const action = this.session.selection.action
         if (!playerId || !action) return []
-        return usableModifiers(this.session.gameState, playerId, action)
+        const state = this.session.gameState
+        const staged = this.staged
+        const usable = usableModifiers(state, playerId, action, staged)
+        return staged.reduce((kept, use) => {
+            const power = usable.find((p) => samePowerUse(p, use))
+            if (!power || this.picksInMenu(power)) return kept
+            if (picksComplete(this.choicesOf(power), this.picksOf(use))) return kept
+            const others = staged.filter((m) => !samePowerUse(m, use))
+            const each = soleDeclarations(state, playerId, power).map((way) =>
+                usableModifiers(state, playerId, action, [...others, way])
+            )
+            return kept.filter((p) => each.every((list) => list.some((q) => samePowerUse(q, p))))
+        }, usable)
+    }
+
+    /** The cards in use, each with the choices its picks make, before they are judged. */
+    private get staged(): ModifierUse[] {
+        const playerId = this.session.liveSeatId
+        if (!playerId) return []
+        return this.session.selection.modifiers.flatMap(({ use, picks, down }) => {
+            const power = cardPowers(use.cardId)[use.powerIndex]
+            if (down || !power) return []
+            const legal = offeredChoices(this.session.gameState, playerId, power)
+            if (legal.length === 0) return [use]
+            return [{ ...use, choices: powerChoicesFrom(legal, picks ?? emptyPicks()) }]
+        })
+    }
+
+    /** Master of Disguise — the player a listed card is lent by: their faceup adviser. */
+    lenderOf(power: CardPower): string | undefined {
+        const action = this.session.selection.action
+        if (!action) return undefined
+        const lender = disguisedAs(action, this.declared)
+        if (lender === undefined) return undefined
+        const advisers = this.session.gameState.getPlayerState(lender).faceupAdviserIds()
+        return advisers.includes(power.cardId) ? lender : undefined
     }
 
     /**
@@ -105,18 +147,8 @@ export class ModifierDeclarations {
     }
 
     get declared(): ModifierUse[] {
-        const playerId = this.session.liveSeatId
-        const action = this.session.selection.action
-        if (!playerId || !action) return []
-        const usable = usableModifiers(this.session.gameState, playerId, action)
-        return this.session.selection.modifiers.flatMap(({ use, picks, down }) => {
-            if (down) return []
-            const power = usable.find((p) => samePowerUse(p, use))
-            if (!power) return []
-            const legal = offeredChoices(this.session.gameState, playerId, power)
-            if (legal.length === 0) return [use]
-            return [{ ...use, choices: powerChoicesFrom(legal, picks ?? emptyPicks()) }]
-        })
+        const usable = this.options
+        return this.staged.filter((use) => usable.some((p) => samePowerUse(p, use)))
     }
 
     /**
@@ -296,7 +328,7 @@ export class ModifierDeclarations {
         const action = this.session.selection.action
         if (!playerId || !action) return []
         const state = this.session.gameState
-        const usable = usableModifiers(state, playerId, action)
+        const usable = this.options
         const declared = this.declared
         for (const entry of this.session.selection.modifiers) {
             if (entry.down) continue

@@ -14,7 +14,7 @@ import { askWoodPickForPower, woodChooserForPower } from '../util/shroudedWood.j
 //  You may put any relics you take on the bottom of the relic deck." Attacker.
 const RELIC_HUNTER = 'denizen.order.relic-hunter'
 registerBattlePlan(RELIC_HUNTER, powerIndexOf(RELIC_HUNTER, PowerTiming.BattlePlan), {
-    hooks: { targetsSiteRelics: true }
+    hooks: { targetsSiteRelics: true, bottomsTakenRelics: true }
 })
 
 // "Action: Reveal the top card of your discard pile. Travel to a site with a card of this suit.

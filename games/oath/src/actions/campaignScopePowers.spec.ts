@@ -300,7 +300,9 @@ describe('R-5.5.1.a-H2 — Jinx at a site only the Empire rules is judged in the
                 seats: { [BEA]: { siteId: 'p1' } }
             })
             openTurn(s, BEA)
-            actionPowerUse(BEA, GAMBLING_HALL, [bank(Suit.Discord)]).apply(s)
+            // From revision 21 the bank is asked after the roll (R-7.1.3-H2), so the use names none.
+            const choices = revision >= OathRevision.EngineFixes17 ? [] : [bank(Suit.Discord)]
+            actionPowerUse(BEA, GAMBLING_HALL, choices).apply(s)
             expect(offeredJinx(s), `revision ${revision}`).toEqual([BEA])
         }
     })

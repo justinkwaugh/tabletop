@@ -9,8 +9,13 @@ import {
     type WarbandGroup
 } from '@tabletop/oath'
 import { bargainChoices, type BargainPick } from './bargainPicks.js'
-import { exchangeComplete, noExchangePicks, type ExchangePicks } from './exchangeTerms.js'
-import type { MovePick } from './powerMoves.js'
+import {
+    exchangeComplete,
+    exchangePicked,
+    noExchangePicks,
+    type ExchangePicks
+} from './exchangeTerms.js'
+import { isPowerMoves, type MovePick } from './powerMoves.js'
 
 export type PowerChoicePicks = {
     option: Record<number, number>
@@ -29,21 +34,24 @@ export function emptyPicks(): PowerChoicePicks {
     return { option: {}, count: {}, terms: {}, several: {}, warbands: {}, bargain: {}, moves: [] }
 }
 
+export const NO_OPTION = -1
+
 /**
- * Anything picked at all: Undo past the last pick leaves the picks. A row of pieces tapped back to
- * none keeps its entry at 0, which is no pick.
+ * Anything picked at all: Undo past the last pick leaves the picks. A pick taken back keeps its
+ * entry with nothing in it, which is no pick: a row of pieces or a count at 0, an option at none,
+ * an emptied list or bargain, or terms that move nothing.
  */
 export function hasPicks(picks: PowerChoicePicks): boolean {
     return (
         picks.moves.length > 0 ||
         Object.values(picks.warbands).some((count) => count > 0) ||
-        [picks.option, picks.count, picks.terms, picks.several, picks.bargain].some(
-            (record) => Object.keys(record).length > 0
-        )
+        Object.values(picks.count).some((count) => count > 0) ||
+        Object.values(picks.option).some((option) => option !== NO_OPTION) ||
+        Object.values(picks.several).some((picked) => picked.length > 0) ||
+        Object.values(picks.bargain).some((picked) => picked.length > 0) ||
+        Object.values(picks.terms).some(exchangePicked)
     )
 }
-
-export const NO_OPTION = -1
 
 /**
  * R-7.1.2 — in a game created before revision 7, an open count (Witch's Bargain) stops at what the
@@ -143,7 +151,8 @@ export function warbandGrids(choices: readonly LegalChoice[]): WarbandGrid[] {
     let index = 0
     while (index < choices.length) {
         const legal = choices[index]
-        if (legal.spec.kind !== PowerChoiceKind.Warbands) {
+        // A place picked whole is one tap per place (Wrestlers), not a row of pieces.
+        if (legal.spec.kind !== PowerChoiceKind.Warbands || legal.spec.byPlace) {
             index += 1
             continue
         }
@@ -153,6 +162,7 @@ export function warbandGrids(choices: readonly LegalChoice[]): WarbandGrid[] {
                 specs.length + index < choices.length &&
                 choices[index + specs.length].spec.kind === PowerChoiceKind.Warbands &&
                 !allowsSeveral(choices[index + specs.length]) &&
+                !choices[index + specs.length].spec.byPlace &&
                 sameDomain(legal, choices[index + specs.length])
             ) {
                 specs.push(index + specs.length)
@@ -259,10 +269,52 @@ export function isMay(legal: LegalChoice | undefined): boolean {
     return legal?.spec.kind === PowerChoiceKind.Yes && legal.spec.min === 0 && !isOr(legal)
 }
 
+/**
+ * A choice the card may skip, with nothing offered now, has nothing to pick and draws no row: a
+ * "may" the card does not offer, or an optional pick with an empty offer (Ivory Eye's facedown
+ * relic when none is at a site) while another of the power's choices offers something. A choice
+ * the power needs keeps its row, which says none is legal; an "or" always draws its answers.
+ */
+export function offersNothing(choices: readonly LegalChoice[], index: number): boolean {
+    const legal = choices[index]
+    if (!legal || legal.options.length > 0 || legal.spec.min > 0 || isOr(legal)) return false
+    return isMay(legal) || choices.some((other) => other.options.length > 0)
+}
+
 /** The "may" a later spec is part of (Royal Ambitions' relic is taken only with its yes). */
 export function mayOf(choices: readonly LegalChoice[], index: number): number | undefined {
     for (let at = index - 1; at >= 0; at -= 1) if (isMay(choices[at])) return at
     return undefined
+}
+
+/** A choice with no option offered now; an "or" always offers its answers. */
+function offersNoOption(legal: LegalChoice): boolean {
+    return legal.options.length === 0 && !isOr(legal)
+}
+
+/**
+ * A power whose picks can never be made now, so its list leaves it out: a choice it needs offers
+ * nothing (Captains with no site that has a defender), or, for a power of moves, no From is
+ * offered, as "Use" waits for a whole move (Warning Signals with no warband it can move). A choice
+ * asked only while it has an option, or only with a "may" on, is not needed.
+ */
+export function picksCannotBeMade(choices: readonly LegalChoice[]): boolean {
+    if (isPowerMoves(choices)) return choices[0] !== undefined && offersNoOption(choices[0])
+    return choices.some(
+        (legal, index) =>
+            offersNoOption(legal) &&
+            legal.spec.min > 0 &&
+            !legal.spec.askedIfAny &&
+            mayOf(choices, index) === undefined
+    )
+}
+
+/**
+ * A power that asks for choices and offers nothing in any of them (Ivory Eye with nothing
+ * facedown): the one use left is with no picks, which the engine judges.
+ */
+export function offersNoPick(choices: readonly LegalChoice[]): boolean {
+    return choices.length > 0 && choices.every(offersNoOption)
 }
 
 function mayOn(choices: readonly LegalChoice[], index: number, picks: PowerChoicePicks): boolean {

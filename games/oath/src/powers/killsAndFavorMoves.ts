@@ -1,5 +1,5 @@
 import { bannerHolder } from '../util/oathkeeper.js'
-import { spendFavor, usableFavor } from '../util/favor.js'
+import { askRestFromHomeBanks, payOwedFavor } from '../util/homeBankPayment.js'
 import { isLockedFor, ownCardLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
@@ -41,24 +41,24 @@ import type { WarbandGroup } from '../model/campaign.js'
 
 // "Action: Each player (even you) places one favor per site they rule into
 // the arcane bank." (R-7.1.3: as much as each has.)
-registerEffect(
-    'denizen.arcane.plague-engines',
-    powerIndexOf('denizen.arcane.plague-engines', PowerTiming.Action),
-    {
-        choices: [],
-        resolve: (ctx) => {
-            let placed = 0
-            for (const p of ctx.state.players) {
-                const owed = sitesRuledBy(ctx.state, p.playerId).length
-                const paid = Math.min(owed, usableFavor(ctx.state, p.playerId))
-                spendFavor(ctx.state, p.playerId, paid)
-                ctx.state.favorBank[Suit.Arcane] += paid
-                placed += paid
-            }
-            return { summary: `Plague Engines: ${placed} favor placed into the arcane bank` }
+const PLAGUE_ENGINES = 'denizen.arcane.plague-engines'
+registerEffect(PLAGUE_ENGINES, powerIndexOf(PLAGUE_ENGINES, PowerTiming.Action), {
+    choices: [],
+    resolve: (ctx) => {
+        let placed = 0
+        const unpaid = new Map<string, number>()
+        for (const p of ctx.state.players) {
+            const owed = sitesRuledBy(ctx.state, p.playerId).length
+            const paid = payOwedFavor(ctx.state, p.playerId, owed)
+            ctx.state.favorBank[Suit.Arcane] += paid
+            placed += paid
+            unpaid.set(p.playerId, owed - paid)
         }
+        // Vow of Kinship — the rest from its bank only as its holder chooses (R-10.10-H1).
+        askRestFromHomeBanks(ctx.state, ctx.playerId, PLAGUE_ENGINES, unpaid, Suit.Arcane)
+        return { summary: `Plague Engines: ${placed} favor placed into the arcane bank` }
     }
-)
+})
 
 // "Action: Kill any two warbands in your region (at sites or on boards, even
 // yours) if you hold the Darkest Secret."

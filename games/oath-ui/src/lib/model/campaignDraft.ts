@@ -24,7 +24,7 @@ import {
 } from '@tabletop/oath'
 import { campaignDraftOpens } from './campaignTurn.js'
 import { samePowerUse } from './powerUse.js'
-import { declaredPlan, planChoices } from './planChoices.js'
+import { declaredPlan, listedPlans, planChoices } from './planChoices.js'
 import { emptyPicks, picksComplete, type PowerChoicePicks } from './powerChoices.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
@@ -204,8 +204,9 @@ export class CampaignDraft implements PanelDraft {
     get planOptions(): CardPower[] {
         const playerId = this.playerId
         const defender = this.defender
+        const state = this.session.gameState
         return playerId && defender && !this.plansWaitForAllies
-            ? attackerPlans(this.session.gameState, playerId, defender)
+            ? listedPlans(state, playerId, attackerPlans(state, playerId, defender))
             : []
     }
 
