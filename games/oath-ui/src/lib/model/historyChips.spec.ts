@@ -43,6 +43,24 @@ const chip = (playerId: string, possessive = false) => ({ kind: 'seat', playerId
 const READERS = [ALICE, BOB, CASS, undefined]
 
 describe('a History row names every seat inside it by its chip', () => {
+    it('the other party to a Tribunal deal claimed kept or left unconfirmed, for every reader', () => {
+        const claimed = { type: ActionType.ClaimDealKept, playerId: ALICE, dealId: 'd1', metadata: { askedPlayerId: BOB } }
+        const deal = { id: 'd1', proposerPlayerId: BOB, counterpartyPlayerId: ALICE, round: 2 }
+        const left = { type: ActionType.LeaveDealUnconfirmed, playerId: ALICE, dealId: 'd1', metadata: { deal } }
+        for (const reader of READERS) {
+            expect(row(claimed, reader)).toEqual([
+                text('asked '),
+                chip(BOB),
+                text(' to confirm their Tribunal deal was kept')
+            ])
+            expect(row(left, reader)).toEqual([
+                text('left the Tribunal deal with '),
+                chip(BOB),
+                text(' unconfirmed; it is closed')
+            ])
+        }
+    })
+
     it('an exchange partner, for every reader', () => {
         const proposed = {
             type: ActionType.UseActionPower,

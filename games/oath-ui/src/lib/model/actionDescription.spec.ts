@@ -87,7 +87,9 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.CompleteRest]: {},
     [ActionType.RollEndDie]: { metadata: { roll: 4, round: 6, threshold: 5 } },
     [ActionType.ResolveOathkeeper]: { chosenPlayerId: 'p2' },
-    [ActionType.TransferOathkeeper]: { source: 'system', fromPlayerId: 'p2', toPlayerId: 'p1' }
+    [ActionType.TransferOathkeeper]: { source: 'system', fromPlayerId: 'p2', toPlayerId: 'p1' },
+    [ActionType.ClaimDealKept]: { dealId: 'd1' },
+    [ActionType.LeaveDealUnconfirmed]: { dealId: 'd1' }
 }
 
 describe('a history line names a site by its printed name', () => {
@@ -129,10 +131,10 @@ describe('a history line names a site by its printed name', () => {
 })
 
 describe('the history tab describes every action', () => {
-    it('has a sentence for all 33 action types, and reaches no fallback', () => {
+    it('has a sentence for all 35 action types, and reaches no fallback', () => {
         const types = Object.values(ActionType)
         // Pinned rather than read off the enum, so adding an action type fails here.
-        expect(types).toHaveLength(33)
+        expect(types).toHaveLength(35)
 
         for (const type of types) {
             const fields = MINIMAL[type]
@@ -1574,5 +1576,25 @@ describe('Vow of Kinship — what its holder paid from the Nomad bank, its own r
             { kind: 'suit', suit: Suit.Nomad, bank: true },
             { kind: 'suit', suit: Suit.Discord, bank: true }
         ])
+    })
+})
+
+describe('a Tribunal deal claimed kept or left unconfirmed', () => {
+    const DEAL = {
+        id: 'd1',
+        proposerPlayerId: 'p2',
+        counterpartyPlayerId: 'p1',
+        proposerPromise: 'I will not campaign against you',
+        round: 2
+    }
+    it('the claim names the party asked to confirm it', () => {
+        const claim = action({ type: ActionType.ClaimDealKept, playerId: 'p1', dealId: 'd1', metadata: { askedPlayerId: 'p2' } })
+        expect(describeAction(claim, nameOf)).toBe('asked Bob to confirm their Tribunal deal was kept')
+    })
+    it('leaving it unconfirmed names the other party, whichever side left it', () => {
+        const left = (playerId: string) =>
+            describeAction(action({ type: ActionType.LeaveDealUnconfirmed, playerId, dealId: 'd1', metadata: { deal: DEAL } }), nameOf)
+        expect(left('p1')).toBe('left the Tribunal deal with Bob unconfirmed; it is closed')
+        expect(left('p2')).toBe('left the Tribunal deal with Alice unconfirmed; it is closed')
     })
 })

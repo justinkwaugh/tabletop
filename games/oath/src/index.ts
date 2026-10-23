@@ -55,6 +55,8 @@ export * from './actions/answerConsent.js'
 export * from './actions/answerQuestion.js'
 export * from './actions/exileCitizen.js'
 export * from './actions/selfExile.js'
+export * from './actions/claimDealKept.js'
+export * from './actions/leaveDealUnconfirmed.js'
 
 export * from './data/cardRegistry.js'
 export * from './data/cardPowers.js'

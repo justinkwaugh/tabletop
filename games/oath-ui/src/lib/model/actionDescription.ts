@@ -10,6 +10,7 @@ import {
     isAnswerConsent,
     isAnswerQuestion,
     isCampaign,
+    isClaimDealKept,
     isCampaignDefeatKills,
     isCampaignAttackPlans,
     isCampaignDefend,
@@ -20,6 +21,7 @@ import {
     isEndActPhase,
     isForgoFreeAction,
     isExileCitizen,
+    isLeaveDealUnconfirmed,
     isMoveWarbands,
     isMuster,
     isOfferCitizenship,
@@ -947,6 +949,20 @@ function describeActionCited(
     }
     if (isLetPeek(action)) {
         return describeLetPeek(action, nameOf, viewerId)
+    }
+    // R-7.6.3-H1 — a party asks the other to confirm their deal was kept, or closes it unconfirmed.
+    if (isClaimDealKept(action)) {
+        const asked = action.metadata?.askedPlayerId
+        return `asked ${asked ? nameOf(asked) : 'the other party'} to confirm their Tribunal deal was kept`
+    }
+    if (isLeaveDealUnconfirmed(action)) {
+        const deal = action.metadata?.deal
+        const other =
+            deal &&
+            (deal.proposerPlayerId === action.playerId
+                ? deal.counterpartyPlayerId
+                : deal.proposerPlayerId)
+        return `left the Tribunal deal${other ? ` with ${nameOf(other)}` : ''} unconfirmed; it is closed`
     }
     if (isMoveWarbands(action)) {
         const warbands = `${warbandsOf(action.count, action.owner, nameOf, action.playerId)} ${describeMove(action.move, nameOf)}`

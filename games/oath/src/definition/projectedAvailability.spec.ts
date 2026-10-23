@@ -16,6 +16,9 @@ import { legalPowers } from '../util/powerDoorway.js'
 import { legalChoices, PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
 import { HydratedAnswerQuestion } from '../actions/answerQuestion.js'
+import { ClaimDealKept, HydratedClaimDealKept } from '../actions/claimDealKept.js'
+import { HydratedLeaveDealUnconfirmed } from '../actions/leaveDealUnconfirmed.js'
+import { ActionType } from './actions.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { reasonExchangeInvalid } from '../util/exchange.js'
 import { Campaign, HydratedCampaign } from '../actions/campaign.js'
@@ -248,6 +251,54 @@ describe("a Tribunal offer with promises is judged the same on each party's own 
             const serverTypes = engine.getValidActionTypesForPlayer(game, asked, playerId)
             const ownTypes = engine.getValidActionTypesForPlayer(game, served(asked, seat), playerId, { perspective: seat })
             expect(ownTypes, playerId).toEqual(serverTypes)
+        }
+    })
+})
+
+// R-7.6.3-H1 — an open deal is public, so claiming it, leaving it and answering its claim are offered on
+// each seat's own view as on the server.
+describe("a Tribunal deal's claim, its leaving and its answer are offered the same on each seat's own view as on the server", () => {
+    const open = (id: string, proposerPlayerId: string, counterpartyPlayerId: string, claimed?: { round: number; playerId: string }) => ({
+        id,
+        proposerPlayerId,
+        counterpartyPlayerId,
+        proposerPromise: 'I will not campaign against you.',
+        counterpartyPromise: 'Nor I against you.',
+        round: 1,
+        ...(claimed ? { lastClaimedTurn: claimed } : {})
+    })
+    const ownView = (state: ReturnType<typeof table>, playerId: string) => {
+        const view: Visibility.Perspective = { kind: 'player', playerId }
+        return OathVisibility.state.guardForExecution(new HydratedOathGameState(served(state, view)), view)
+    }
+    const sameOffers = (state: ReturnType<typeof table>) => {
+        for (const playerId of SEATS) {
+            const seat: Visibility.Perspective = { kind: 'player', playerId }
+            const serverTypes = engine.getValidActionTypesForPlayer(game, state, playerId)
+            const ownTypes = engine.getValidActionTypesForPlayer(game, served(state, seat), playerId, { perspective: seat })
+            expect(ownTypes, playerId).toEqual(serverTypes)
+        }
+    }
+
+    it('with one deal claimed this turn and another not: the claim, the leaving, then the answer', () => {
+        const state = table(MachineState.ActPhase, 'denizen.hearth.storyteller', 'site')
+        state.openDeals = [open('d1', 'me', 'foe', { round: 1, playerId: 'me' }), open('d2', 'foe', 'me'), open('d3', 'foe', 'chan')]
+        const server = new HydratedOathGameState(state)
+        expect(engine.getValidActionTypesForPlayer(game, state, 'me')).toEqual(expect.arrayContaining([ActionType.ClaimDealKept, ActionType.LeaveDealUnconfirmed]))
+        sameOffers(state)
+        for (const dealId of ['d1', 'd2', 'd3']) {
+            expect(HydratedClaimDealKept.reasonCannotClaim(ownView(state, 'me'), 'me', dealId)).toBe(HydratedClaimDealKept.reasonCannotClaim(server, 'me', dealId))
+            expect(HydratedLeaveDealUnconfirmed.reasonCannotLeave(ownView(state, 'me'), 'me', dealId)).toBe(HydratedLeaveDealUnconfirmed.reasonCannotLeave(server, 'me', dealId))
+        }
+
+        new HydratedClaimDealKept(buildAction(ClaimDealKept, { playerId: 'me', dealId: 'd2' })).apply(server)
+        const asked = server.dehydrate()
+        sameOffers(asked)
+        for (const kept of [true, false]) {
+            const answer = { kind: PowerQuestionKind.DealKept as const, kept }
+            const reason = (s: HydratedOathGameState) => HydratedAnswerQuestion.reasonCannotAnswer(s, 'foe', answer)
+            expect(reason(server)).toBeUndefined()
+            expect(reason(ownView(asked, 'foe'))).toBe(reason(server))
         }
     })
 })

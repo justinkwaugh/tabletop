@@ -51,6 +51,11 @@ import {
 } from '../actions/resolveCitizenshipOffer.js'
 import { HydratedExileCitizen, isExileCitizen } from '../actions/exileCitizen.js'
 import { HydratedSelfExile, isSelfExile } from '../actions/selfExile.js'
+import { HydratedClaimDealKept, isClaimDealKept } from '../actions/claimDealKept.js'
+import {
+    HydratedLeaveDealUnconfirmed,
+    isLeaveDealUnconfirmed
+} from '../actions/leaveDealUnconfirmed.js'
 
 export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOathGameState> {
     hydrateAction(data: GameAction): HydratedAction {
@@ -153,6 +158,12 @@ export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOa
             }
             case isSelfExile(data): {
                 return new HydratedSelfExile(data)
+            }
+            case isClaimDealKept(data): {
+                return new HydratedClaimDealKept(data)
+            }
+            case isLeaveDealUnconfirmed(data): {
+                return new HydratedLeaveDealUnconfirmed(data)
             }
 
             default: {

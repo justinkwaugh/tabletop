@@ -248,7 +248,12 @@ export enum PowerQuestionKind {
      * Gambling Hall (revision 21) — the roll stands, after any Jinx reroll, and two or more banks
      * hold favor: the roller chooses the one they take the total from (R-7.1.3-H2).
      */
-    GamblingHallBank = 'gamblingHallBank'
+    GamblingHallBank = 'gamblingHallBank',
+    /**
+     * The Tribunal (revision 28) — one party to an open deal says it was kept; the other confirms it,
+     * which closes it, or says it was not, which leaves it open (R-7.6.3-H1).
+     */
+    DealKept = 'dealKept'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -309,6 +314,9 @@ export const OpenDeal = Type.Object({
     /** The turn it was last claimed kept in: the round, and whose turn it was. */
     lastClaimedTurn: Type.Optional(Type.Object({ round: Type.Number(), playerId: Type.String() }))
 })
+
+/** R-7.6.3-H1 — the deals still open when the game ended, listed on the ending action and dropped. */
+export const OpenDealsDropped = Type.Array(OpenDeal, { maxItems: MAX_OPEN_DEALS })
 
 export type ExchangeTerms = Type.Static<typeof ExchangeTerms>
 export const ExchangeTerms = Type.Object({
@@ -672,6 +680,16 @@ export const PowerQuestion = Type.Union([
         faces: Type.Array(RolledDefenseFace, { maxItems: 4 }),
         /** The banks that held favor when the roll stood. */
         banks: Type.Array(Type.Enum(Suit), { maxItems: 6 })
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.DealKept),
+        /** The Tribunal. */
+        cardId: Type.String(),
+        /** The other party to the deal. */
+        askedPlayerId: Type.String(),
+        claimantPlayerId: Type.String(),
+        /** The deal, public in `openDeals`, where its promises are read. */
+        dealId: Type.String()
     })
 ])
 
@@ -794,7 +812,9 @@ export const QuestionAnswer = Type.Union([
         })
     }),
     /** The bank Gambling Hall takes from: one of the question's `banks`. */
-    Type.Object({ kind: Type.Literal(PowerQuestionKind.GamblingHallBank), suit: Type.Enum(Suit) })
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.GamblingHallBank), suit: Type.Enum(Suit) }),
+    /** "Not kept" leaves the deal open, for either party to claim on a later turn. */
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.DealKept), kept: Type.Boolean() })
 ])
 
 export type QuestionOf<K extends PowerQuestionKind> = Extract<PowerQuestion, { kind: K }>

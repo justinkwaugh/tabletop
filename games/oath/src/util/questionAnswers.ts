@@ -74,6 +74,8 @@ export interface AnswerOutcome {
     titleMoment?: boolean
     /** R-7.6.3-H1 — the deal an accepted Tribunal offer with a promise opened, public from here. */
     openedDeal?: OpenDeal
+    /** R-7.6.3-H1 — the deal a claim asked about, as it stood when answered. */
+    answeredDeal?: OpenDeal
 }
 
 function rulesOf<K extends PowerQuestionKind>(kind: K): QuestionRules<K> {

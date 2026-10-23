@@ -12,13 +12,17 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { rollEndDie } from '../data/dice.js'
 import { endDieIsRolled, endDieThreshold, stableRegimeWinner } from '../util/victory.js'
+import { OpenDealsDropped } from '../model/question.js'
+import { dropOpenDealsAtGameEnd } from '../util/deals.js'
 
 export type RollEndDieMetadata = Type.Static<typeof RollEndDieMetadata>
 export const RollEndDieMetadata = Type.Object({
     roll: Type.Number(),
     round: Type.Number(),
     threshold: Type.Number(),
-    wonBy: Type.Optional(Type.String())
+    wonBy: Type.Optional(Type.String()),
+    /** R-7.6.3-H1 — the Tribunal deals still open when this roll ended the game, now dropped. */
+    openDealsDropped: Type.Optional(OpenDealsDropped)
 })
 
 export type RollEndDie = Type.Static<typeof RollEndDie>
@@ -69,7 +73,13 @@ export class HydratedRollEndDie extends HydratableAction<typeof RollEndDie> impl
         const outcome = stableRegimeWinner(state, roll)
         if (outcome) {
             state.winningPlayerIds = [outcome.winnerPlayerId]
-            this.metadata = { roll, round, threshold, wonBy: outcome.rule }
+            this.metadata = {
+                roll,
+                round,
+                threshold,
+                wonBy: outcome.rule,
+                ...dropOpenDealsAtGameEnd(state)
+            }
             return
         }
         state.round += 1

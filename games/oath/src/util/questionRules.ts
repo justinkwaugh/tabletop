@@ -49,6 +49,7 @@ import {
     reasonExchangeInvalid,
     reasonTermsOutsideCard
 } from './exchange.js'
+import { answerDealKept, reasonDealKeptInvalid } from './deals.js'
 import { GRAND_SCEPTER_ID, OBSIDIAN_CAGE_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
 import {
@@ -1022,6 +1023,13 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 pileDeposits
             }
         }
+    },
+    [PowerQuestionKind.DealKept]: {
+        reasonCannotAnswer: (state, _playerId, matched) =>
+            reasonDealKeptInvalid(state, matched.question),
+        // R-7.6.3-H1 — the asked party's word closes the deal, or leaves it open.
+        apply: (state, _playerId, matched) =>
+            answerDealKept(state, matched.question, matched.answer.kept)
     }
 }
 

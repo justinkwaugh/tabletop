@@ -70,7 +70,9 @@ export const AnswerQuestionMetadata = Type.Object({
     /** R-5.5.4-H1 — the held attack, when this answer's settling rolled it. */
     heldAttack: Type.Optional(HeldAttackRoll),
     /** R-7.6.3-H1 — the Tribunal deal this accept opened, public with its promises. */
-    openedDeal: Type.Optional(OpenDeal)
+    openedDeal: Type.Optional(OpenDeal),
+    /** R-7.6.3-H1 — the deal a claim asked about, as it stood when answered: kept closes it. */
+    answeredDeal: Type.Optional(OpenDeal)
 })
 
 export type AnswerQuestion = Type.Static<typeof AnswerQuestion>
@@ -143,7 +145,8 @@ export class HydratedAnswerQuestion
             hospitalPlaced: outcome.hospitalPlaced,
             warbandGain: outcome.warbandGain,
             titleMoment: outcome.titleMoment,
-            openedDeal: outcome.openedDeal
+            openedDeal: outcome.openedDeal,
+            answeredDeal: outcome.answeredDeal
         }
         commitHiddenOutputs(this, state, witnesses)
     }
