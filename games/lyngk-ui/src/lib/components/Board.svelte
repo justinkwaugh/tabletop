@@ -76,13 +76,16 @@
         return { x: center.x, y: center.y + topFaceY(height, radius) }
     }
 
-    // Each bolt steps through a few seeded shapes in place, so it flickers but never vanishes.
-    const BOLT_SHAPE_SECONDS = 0.4
+    // Each bolt steps through seeded shapes in place, so it flickers but never vanishes. Six
+    // keep the loop from showing: every step is to a fresh shape, including the one back to the
+    // first.
+    const BOLT_SHAPE_SECONDS = 1 / 3.6
+    const BOLT_SHAPES = 6
     const bolts = $derived(
         session.chainLinks.map(([a, b], index) => ({
             key: `${coordsKey(a)}|${coordsKey(b)}`,
-            shapes: [1, 2, 3].map((variant) =>
-                boltPath(faceCenter(a), faceCenter(b), index * 97 + variant * 13)
+            shapes: Array.from({ length: BOLT_SHAPES }, (_, variant) =>
+                boltPath(faceCenter(a), faceCenter(b), index * 97 + (variant + 1) * 13)
             )
         }))
     )
