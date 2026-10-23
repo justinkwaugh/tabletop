@@ -45,6 +45,7 @@ import {
 import {
     GATHERING_ALLOWS,
     applyExchange,
+    openDealFrom,
     reasonExchangeInvalid,
     reasonTermsOutsideCard
 } from './exchange.js'
@@ -316,11 +317,15 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (!matched.answer.accept) return `refused ${proposerPlayerId}'s exchange`
             const applied = applyExchange(state, proposerPlayerId, playerId, terms)
             settleAdviserLimitsAfterExchange(state, proposerPlayerId, cardId, applied.advisersMoved)
+            // R-7.6.3-H1 — a promise accepted opens a public deal; the summary quotes none.
+            const openedDeal = openDealFrom(state, proposerPlayerId, playerId, terms)
+            if (openedDeal) state.openDeals = [...(state.openDeals ?? []), openedDeal]
             return {
                 summary: `accepted ${proposerPlayerId}'s exchange`,
                 disclosed: applied.disclosed,
                 // R-2.11-H1 — each binding exchange is its own moment for the title.
-                titleMoment: true
+                titleMoment: true,
+                openedDeal
             }
         }
     },

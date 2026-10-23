@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { Color, type Visibility } from '@tabletop/common'
+import { Color, assert, type Visibility } from '@tabletop/common'
 import { engine } from '../testing/engine.js'
 import { testGame } from '../testing/game.js'
 import { testPlayer, testState, testVaultWithRelics } from '../testing/fixture.js'
 import { served } from '../testing/projection.js'
 import { MachineState } from './states.js'
 import { cardDefinition, cardIdsOfKind } from '../data/cardRegistry.js'
-import { BattlePlanSide, cardPowers, PowerTiming } from '../data/cardPowers.js'
+import { BattlePlanSide, cardPowers, PowerTiming, TRIBUNAL_ID } from '../data/cardPowers.js'
 import { CardKind, PlayerStatus } from '../model/oathEnums.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { CURRENT_OATH_REVISION } from '../util/revision.js'
@@ -14,7 +14,10 @@ import { hasEffect } from '../powers/registry.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { legalPowers } from '../util/powerDoorway.js'
 import { legalChoices, PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
-import { HydratedUseActionPower } from '../actions/useActionPower.js'
+import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
+import { HydratedAnswerQuestion } from '../actions/answerQuestion.js'
+import { PowerQuestionKind } from '../model/question.js'
+import { reasonExchangeInvalid } from '../util/exchange.js'
 import { Campaign, HydratedCampaign } from '../actions/campaign.js'
 import { HydratedCampaignDefend } from '../actions/campaignDefend.js'
 import { buildAction } from '../testing/actions.js'
@@ -196,4 +199,55 @@ describe("every battle plan the defender can tick is judged the same on the defe
             expect(HydratedCampaignDefend.usablePlans(own, 'foe')).toEqual(HydratedCampaignDefend.usablePlans(server, 'foe'))
         })
     }
+})
+
+// R-7.6.3-H1 — a Tribunal offer's promises are protected, so its checks must decide on each party's own view
+// what the server decides, the five-deal limit included, without reading the words.
+describe("a Tribunal offer with promises is judged the same on each party's own view as on the server", () => {
+    const offer = [{ kind: PowerChoiceKind.Exchange as const, withPlayerId: 'foe', terms: { promises: { fromProposer: 'I will not campaign against you.' } } }]
+    const deal = (i: number) => ({ id: `d${i}`, proposerPlayerId: 'foe', counterpartyPlayerId: 'chan', proposerPromise: 'An earlier promise.', round: 1 })
+
+    function tribunalTable(openDeals: number) {
+        const d = table(MachineState.ActPhase, 'denizen.hearth.storyteller', 'site')
+        d.siteCards = { ...d.siteCards, c1: TRIBUNAL_ID }
+        if (openDeals > 0) d.openDeals = Array.from({ length: openDeals }, (_, i) => deal(i))
+        return d
+    }
+
+    const ownView = (state: ReturnType<typeof table>, playerId: string) => {
+        const view: Visibility.Perspective = { kind: 'player', playerId }
+        return OathVisibility.state.guardForExecution(new HydratedOathGameState(served(state, view)), view)
+    }
+
+    it.each([0, 4, 5])('with the foe party to %i open deals: the offer, then its accept', (openDeals) => {
+        const state = tribunalTable(openDeals)
+        const use = (s: HydratedOathGameState) => HydratedUseActionPower.reasonCannotUse(s, 'me', TRIBUNAL_ID, 0, offer)
+        const server = new HydratedOathGameState(state)
+        expect(use(server)).toBe(openDeals === 5 ? 'foe already has five open deals' : undefined)
+        expect(use(ownView(state, 'me'))).toBe(use(server))
+        if (openDeals === 5) return
+
+        new HydratedUseActionPower(buildAction(UseActionPower, { playerId: 'me', cardId: TRIBUNAL_ID, powerIndex: 0, choices: offer })).apply(server)
+        // The limit reached while the offer waits refuses the accept, on the foe's view as on the server.
+        if (openDeals === 4) server.openDeals = [...(server.openDeals ?? []), deal(4)]
+        const asked = server.dehydrate()
+        const accept = { kind: PowerQuestionKind.Exchange as const, accept: true }
+        const answer = (s: HydratedOathGameState) => HydratedAnswerQuestion.reasonCannotAnswer(s, 'foe', accept)
+        expect(answer(server)).toBe(openDeals === 4 ? 'foe already has five open deals' : undefined)
+        // The table checks an answer on the asked seat's served state, which carries the promises the
+        // question protects (as with every question an asked-player policy protects); a third seat's
+        // served offer carries none, and the limit still reads the same there.
+        const foe: Visibility.Perspective = { kind: 'player', playerId: 'foe' }
+        expect(answer(new HydratedOathGameState(served(asked, foe)))).toBe(answer(server))
+        const away = ownView(asked, 'chan')
+        const pending = away.pendingQuestions?.queue[0]
+        assert(pending?.kind === PowerQuestionKind.Exchange, 'the offer waits')
+        expect(reasonExchangeInvalid(away, 'me', 'foe', pending.terms)).toBe(answer(server))
+        for (const playerId of SEATS) {
+            const seat: Visibility.Perspective = { kind: 'player', playerId }
+            const serverTypes = engine.getValidActionTypesForPlayer(game, asked, playerId)
+            const ownTypes = engine.getValidActionTypesForPlayer(game, served(asked, seat), playerId, { perspective: seat })
+            expect(ownTypes, playerId).toEqual(serverTypes)
+        }
+    })
 })

@@ -80,7 +80,48 @@ function isRelicSeenBy(context: Visibility.PolicyContext<unknown>): boolean {
     )
 }
 
+export const ExchangePartyPolicy = 'oath.exchangeParty'
+
+function stringField(value: unknown, key: string): string | undefined {
+    if (typeof value !== 'object' || value === null) return undefined
+    const field: unknown = Reflect.get(value, key)
+    return typeof field === 'string' ? field : undefined
+}
+
+/**
+ * The two players of the exchange nearest the value along its path: an offer asked of a player (its
+ * proposer and the asked player), or a proposal naming `withPlayerId` (the other party being the
+ * record's player). Both ids stay public, so the walk reads them on any node it passes.
+ */
+function exchangeParties(root: unknown, path: readonly (string | number)[]): string[] {
+    let parties: string[] = []
+    let node: unknown = root
+    for (const segment of path) {
+        const proposer = stringField(node, 'proposerPlayerId')
+        const asked = stringField(node, 'askedPlayerId')
+        const withPlayer = stringField(node, 'withPlayerId')
+        if (proposer !== undefined && asked !== undefined) parties = [proposer, asked]
+        else if (withPlayer !== undefined) {
+            const actor = stringField(root, 'playerId')
+            parties = actor === undefined ? [withPlayer] : [actor, withPlayer]
+        }
+        if (typeof node !== 'object' || node === null) break
+        node = Reflect.get(node, segment)
+    }
+    return parties
+}
+
+/** R-7.6.3-H1 — an offer's promises are its two players' until it is accepted. */
+function isExchangeParty(context: Visibility.PolicyContext<unknown>): boolean {
+    const perspective = context.perspective
+    return (
+        perspective.kind === 'player' &&
+        exchangeParties(context.root, context.path).includes(perspective.playerId)
+    )
+}
+
 export const OathVisibilityPolicies = {
+    [ExchangePartyPolicy]: isExchangeParty,
     [HandShownPolicy]: isHandShown,
     [RelicSeenPolicy]: isRelicSeenBy,
     [AdviserShownPolicy]: isAdviserShownTo,
@@ -237,12 +278,57 @@ export interface ExchangeAllowance {
     relics?: boolean
     sites?: boolean
     advisers?: boolean
+    /** The Tribunal — "binding promises of future actions", written and kept by the players. */
+    promises?: boolean
 }
+
+/** R-7.6.3-H1 — a promise of a later action as its player wrote it, counted in UTF-16 units. */
+export const PROMISE_MAX_LENGTH = 200
+export const PromiseText = Type.String({ minLength: 1, maxLength: PROMISE_MAX_LENGTH })
+
+/**
+ * R-7.6.3-H1 — a player is party to at most this many open deals, on either side. Six players can
+ * then hold at most fifteen, so `MAX_OPEN_DEALS` is a storage limit no table reaches.
+ */
+export const MAX_OPEN_DEALS_PER_PLAYER = 5
+export const MAX_OPEN_DEALS = 16
+
+/**
+ * R-7.6.3-H1 — a Tribunal deal with a promise in it, open until it is closed. Public once agreed;
+ * the engine judges nothing about it.
+ */
+export type OpenDeal = Type.Static<typeof OpenDeal>
+export const OpenDeal = Type.Object({
+    id: Type.String(),
+    proposerPlayerId: Type.String(),
+    counterpartyPlayerId: Type.String(),
+    proposerPromise: Type.Optional(PromiseText),
+    counterpartyPromise: Type.Optional(PromiseText),
+    /** The round it was agreed in. */
+    round: Type.Number(),
+    /** The turn it was last claimed kept in: the round, and whose turn it was. */
+    lastClaimedTurn: Type.Optional(Type.Object({ round: Type.Number(), playerId: Type.String() }))
+})
 
 export type ExchangeTerms = Type.Static<typeof ExchangeTerms>
 export const ExchangeTerms = Type.Object({
     fromProposer: Type.Optional(ExchangeTransfer),
-    fromCounterparty: Type.Optional(ExchangeTransfer)
+    fromCounterparty: Type.Optional(ExchangeTransfer),
+    /**
+     * R-7.6.3-H1 — each side's promise, the Tribunal's only, from revision 28. The engine records them
+     * and enforces none, and only the two players read them until the deal is accepted. The object is
+     * present only with a promise in it, so its presence says there is one without reading the words.
+     */
+    promises: Type.Optional(
+        Type.Object({
+            fromProposer: Type.Optional(
+                Visibility.protect(PromiseText, { policy: ExchangePartyPolicy })
+            ),
+            fromCounterparty: Type.Optional(
+                Visibility.protect(PromiseText, { policy: ExchangePartyPolicy })
+            )
+        })
+    )
 })
 
 /**

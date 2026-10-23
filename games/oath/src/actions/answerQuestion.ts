@@ -5,6 +5,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import {
+    OpenDeal,
     PowerQuestionKind,
     QuestionAnswer,
     ShroudedWoodPick,
@@ -67,7 +68,9 @@ export const AnswerQuestionMetadata = Type.Object({
     /** R-2.11-H1 — a binding exchange, or the answer that landed a Relic Thief take. */
     titleMoment: Type.Optional(Type.Boolean()),
     /** R-5.5.4-H1 — the held attack, when this answer's settling rolled it. */
-    heldAttack: Type.Optional(HeldAttackRoll)
+    heldAttack: Type.Optional(HeldAttackRoll),
+    /** R-7.6.3-H1 — the Tribunal deal this accept opened, public with its promises. */
+    openedDeal: Type.Optional(OpenDeal)
 })
 
 export type AnswerQuestion = Type.Static<typeof AnswerQuestion>
@@ -111,8 +114,10 @@ export class HydratedAnswerQuestion
         }
         const resume = resumeStateAfterQuestions(state)
         const outcome = applyAnswer(state, this.playerId, this.answer)
-        // R-X.3 — an answer that moves a card into the vault, or rolls, cannot be undone.
+        // R-X.3 — an answer that moves a card into the vault, rolls, or makes an offer's promises
+        // public in the deal it opens (R-7.6.3-H1) cannot be undone.
         this.revealsInfo =
+            outcome.openedDeal !== undefined ||
             outcome.relicToDeckBottom !== undefined ||
             outcome.relicTakenFromSlotId !== undefined ||
             outcome.rolled === true ||
@@ -137,7 +142,8 @@ export class HydratedAnswerQuestion
             triggered: outcome.triggered,
             hospitalPlaced: outcome.hospitalPlaced,
             warbandGain: outcome.warbandGain,
-            titleMoment: outcome.titleMoment
+            titleMoment: outcome.titleMoment,
+            openedDeal: outcome.openedDeal
         }
         commitHiddenOutputs(this, state, witnesses)
     }

@@ -15,7 +15,8 @@ import {
 } from '@tabletop/oath'
 import { offerableAdviserRows, type AdviserRowOffer } from './questionChoices.js'
 
-export type ExchangeSide = keyof ExchangeTerms
+/** The two sides that hand something over; the terms' `promises` are written, not handed over. */
+export type ExchangeSide = Exclude<keyof ExchangeTerms, 'promises'>
 
 /** The editor's picks: the terms, and the sites picked whose count of warbands is not picked yet. */
 export type ExchangePicks = { terms: ExchangeTerms; uncountedSiteIds: string[] }

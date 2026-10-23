@@ -4,6 +4,10 @@ import { Compile } from 'typebox/compile'
 import { Visibility } from '@tabletop/common'
 import { OathVisibility } from './runtime.js'
 import { OathApiActions } from './apiActions.js'
+import { buildAction } from '../testing/actions.js'
+import { UseActionPower } from '../actions/useActionPower.js'
+import { TRIBUNAL_ID } from '../data/cardPowers.js'
+import { PowerChoiceKind } from '../util/powerChoice.js'
 
 // R-9.4 — a record of every action type, with every optional field present, reaches no other seat's secret.
 const ACTOR = 'p1'
@@ -120,6 +124,27 @@ describe('every registered action type projects without naming a secret to anoth
         expect(Compile(schema).Check(record)).toBe(true)
         const own = JSON.stringify(OathVisibility.actions.project(record, { kind: 'player', playerId: ACTOR }))
         expect(own).toContain('secret.card-')
+    })
+
+    it("keeps a Tribunal offer's promises to its two players: the record's player and the one it is made to (R-7.6.3-H1)", () => {
+        const promises = { fromProposer: 'secret.promise-1', fromCounterparty: 'secret.promise-2' }
+        const record = buildAction(UseActionPower, {
+            playerId: ACTOR,
+            cardId: TRIBUNAL_ID,
+            powerIndex: 0,
+            choices: [{ kind: PowerChoiceKind.Exchange, withPlayerId: SHOWN, terms: { fromProposer: { favor: 1 }, promises } }]
+        })
+        expect(Compile(OathApiActions.useActionPower).Check(record)).toBe(true)
+        for (const playerId of [ACTOR, SHOWN]) {
+            const view = OathVisibility.actions.project(record, { kind: 'player', playerId })
+            expect(view).toHaveProperty('choices.0.terms.promises', promises)
+        }
+        for (const perspective of perspectives) {
+            const view = OathVisibility.actions.project(record, perspective)
+            expect(JSON.stringify(view)).not.toContain('secret.promise-')
+            expect(view).toHaveProperty('choices.0.terms.promises', {})
+            expect(view).toHaveProperty('choices.0.withPlayerId', SHOWN)
+        }
     })
 
     it('samples a valid record of every type', () => {

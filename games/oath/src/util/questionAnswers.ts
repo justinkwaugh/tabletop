@@ -6,6 +6,7 @@ import {
     PowerQuestionValidator,
     type Answered,
     type AnswerOf,
+    type OpenDeal,
     type QuestionAnswer,
     type QuestionOf,
     type ShroudedWoodPick,
@@ -71,6 +72,8 @@ export interface AnswerOutcome {
      * Jinx's answer when the roll waited on it).
      */
     titleMoment?: boolean
+    /** R-7.6.3-H1 — the deal an accepted Tribunal offer with a promise opened, public from here. */
+    openedDeal?: OpenDeal
 }
 
 function rulesOf<K extends PowerQuestionKind>(kind: K): QuestionRules<K> {
