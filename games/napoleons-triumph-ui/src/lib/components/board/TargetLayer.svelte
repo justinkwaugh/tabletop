@@ -55,17 +55,6 @@
         gameSession.chooseTarget(target)
     }
 
-    // Threat arrows are drawn over the pieces they belong to, so the session decides from where the tap fell whether it was meant for a block under the arrow.
-    function threaten(event: MouseEvent & { currentTarget: SVGGElement }, target: AttackTarget) {
-        event.stopPropagation()
-        const board = event.currentTarget.ownerSVGElement
-        const toBoard = board?.getScreenCTM()?.inverse()
-        if (toBoard) {
-            const at = new DOMPoint(event.clientX, event.clientY).matrixTransform(toBoard)
-            gameSession.tapThreatArrow(target, { x: at.x, y: at.y })
-        }
-    }
-
     function label(target: ReserveTarget | RetreatTarget): string {
         const place = gameSession.gameState.map.label(target.position.locale)
         if (target.kind === TargetKind.Retreat) {
@@ -211,7 +200,8 @@
             tabindex="0"
             aria-label="Threaten an attack across this approach"
             class="nt-target-attack"
-            onclick={(event) => threaten(event, target)}
+            data-threat={target.position.approach}
+            onclick={(event) => choose(event, target)}
             onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
         >
             <title>Threaten an attack across this approach</title>

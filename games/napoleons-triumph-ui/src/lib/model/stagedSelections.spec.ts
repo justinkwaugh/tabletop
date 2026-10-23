@@ -43,6 +43,7 @@ import {
     setPickedUp,
     setRide,
     setAim,
+    withoutAim,
     setGuardUnit,
     setThreat,
     guardUnitOf,
@@ -124,17 +125,28 @@ describe('command selection', () => {
     })
 
     it('aims at a locale as a choice of its own, which picking up pieces or Undo puts down', () => {
-        const aimed = setAim(94)
+        const aimed = setAim(noCommandSelection(), 94)
         expect(aimOf(aimed)).toBe(94)
         expect(hasManualCommandSelection(aimed)).toBe(true)
         expect(aimOf(setPickedUp({ groupKey: 'corps' }))).toBeUndefined()
-        expect(pickedUpOf(setAim(94))).toBeUndefined()
+        expect(pickedUpOf(aimed)).toBeUndefined()
         expect(undoCommandSelection(aimed)).toEqual(noCommandSelection())
 
         const threatening = setThreat(aimed, 246)
         const steppedBack = undoCommandSelection(threatening)
         expect(threatOf(steppedBack)).toBeUndefined()
         expect(aimOf(steppedBack)).toBe(94)
+    })
+
+    it('keeps the pieces in hand when aiming, and goes back to them when the aim is put down', () => {
+        const inHand = setCommand(corpsPickedUp(), CommandKind.Corps)
+        const aimed = setAim(inHand, 94)
+        expect(aimOf(aimed)).toBe(94)
+        expect(pickedUpOf(aimed)).toEqual(pickedUpOf(inHand))
+        expect(chosenCommandOf(aimed)).toBe(CommandKind.Corps)
+        expect(undoCommandSelection(aimed)).toEqual(inHand)
+        expect(withoutAim(aimed)).toEqual(inHand)
+        expect(aimOf(setPickedUp({ groupKey: 'other' }))).toBeUndefined()
     })
 
     it('takes back the Guard unit chosen for a threat before the threat itself', () => {

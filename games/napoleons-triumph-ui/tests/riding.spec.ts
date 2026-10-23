@@ -11,7 +11,8 @@ import {
     failOnPageErrors,
     leadDefence,
     rearrange,
-    tap
+    tap,
+    threaten
 } from './table.js'
 
 failOnPageErrors()
@@ -152,7 +153,7 @@ test('reinforcement cavalry that is riding on takes its second command and press
     await expect(ridingOn).toHaveAttribute('aria-pressed', 'true')
 
     await newCommand.click()
-    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+    await threaten(page, 38, 52)
     await page.locator('button[aria-label="Choose this unit"]:not([disabled])').first().click()
     await page.getByRole('button', { name: /^Defend/ }).click()
 

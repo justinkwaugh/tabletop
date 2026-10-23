@@ -22,11 +22,11 @@ type CommandSelectionValues = {
 export type CommandSelection = StagedSelectionState<CommandSelectionValues>
 
 const commandSelection = stagedSelection<CommandSelectionValues>()([
-    'aim',
     'group',
     'units',
     'ride',
     'command',
+    'aim',
     'destination',
     'way',
     'threat',
@@ -49,8 +49,13 @@ export function setPickedUp(pickedUp: PickedUp): CommandSelection {
     return commandSelection.set(commandSelection.empty(), 'group', pickedUp, 'manual')
 }
 
-export function setAim(locale: number): CommandSelection {
-    return commandSelection.set(commandSelection.empty(), 'aim', locale, 'manual')
+/** Aiming keeps the pieces in hand, which the threat then names to start with. */
+export function setAim(selection: CommandSelection, locale: number): CommandSelection {
+    return commandSelection.set(selection, 'aim', locale, 'manual')
+}
+
+export function withoutAim(selection: CommandSelection): CommandSelection {
+    return commandSelection.clearFrom(selection, 'aim')
 }
 
 export function aimOf(selection: CommandSelection): number | undefined {

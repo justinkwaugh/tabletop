@@ -77,7 +77,7 @@ import {
     type FlagView,
     type PlantedFlag
 } from '$lib/utils/flagLayout.js'
-import { blockOutline, topmostAt } from '$lib/utils/blockShape.js'
+import { blockOutline } from '$lib/utils/blockShape.js'
 import {
     approachPlates,
     plateOutlines,
@@ -166,6 +166,7 @@ import {
     setDestination,
     setRide,
     setAim,
+    withoutAim,
     setPickedUp,
     guardUnitOf,
     setGuardUnit,
@@ -714,9 +715,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     )
 
     selectedGroupKey = $derived(
-        this.isCommanding && this.aimedLocale === undefined
-            ? (pickedUpOf(this.selection)?.groupKey ?? this.marchGroupKey)
-            : undefined
+        this.isCommanding ? (pickedUpOf(this.selection)?.groupKey ?? this.marchGroupKey) : undefined
     )
 
     reinforcements: Reinforcement[] = $derived(
@@ -1132,7 +1131,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (!this.mayAimAt(locale)) {
             return
         }
-        this.stageCommand(locale === this.aimedLocale ? noCommandSelection() : setAim(locale))
+        this.stageCommand(
+            locale === this.aimedLocale
+                ? withoutAim(this.selection)
+                : setAim(this.selection, locale)
+        )
     }
 
     async chooseTarget(target: MoveTarget) {
@@ -1174,16 +1177,6 @@ export class NapoleonsTriumphGameSession extends GameSession<
             return
         }
         await this.move(order, target.position, way)
-    }
-
-    async tapThreatArrow(target: AttackTarget, at: Point) {
-        const sprite = this.selectedSprite
-        const under = sprite ? topmostAt(sprite.blocks, at) : undefined
-        if (sprite && under && this.mayChooseUnit(under.unit)) {
-            this.tapBlock(sprite.group, under.unit.id)
-        } else {
-            await this.chooseTarget(target)
-        }
     }
 
     async attach(commanderId: string, unitId: string) {
