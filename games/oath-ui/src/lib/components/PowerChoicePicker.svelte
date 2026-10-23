@@ -3,6 +3,7 @@
         FAVOR_BANK_ORDER,
         PlayerStatus,
         PowerChoiceKind,
+        exchangeAllowanceAt,
         exchangeAllowanceOf,
         type LegalChoice,
         type PowerChoice,
@@ -473,7 +474,10 @@
                         <ExchangeEditor
                             proposerId={gameSession.myPlayer.id}
                             counterpartyId={option.withPlayerId}
-                            allows={exchangeAllowanceOf(legal.spec)}
+                            allows={exchangeAllowanceAt(
+                                gameSession.gameState,
+                                exchangeAllowanceOf(legal.spec)
+                            )}
                             value={picks.terms[i] ?? noExchangePicks()}
                             onchange={(value) => setTerms(i, value)}
                         />

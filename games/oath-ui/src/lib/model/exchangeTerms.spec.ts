@@ -8,7 +8,9 @@ import {
     OathRevision,
     PlayerStatus,
     TINKERS_FAIR_ALLOWS,
+    TRIBUNAL_ALLOWS,
     reasonExchangeInvalid,
+    reasonTermsOutsideCard,
     type AdviserRow,
     type OathPlayerState
 } from '@tabletop/oath'
@@ -16,14 +18,18 @@ import { served, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     exchangeComplete,
     exchangeOffers,
+    exchangePicked,
     inReturnOf,
     noExchangePicks,
+    promiseDraftOf,
+    promiseLength,
     siteCounts,
     tappedCount,
     tappedSiteCount,
     transferOf,
     warbandsToMoveIn,
     withOfferedPicks,
+    withPromise,
     withSiteCount,
     withSitePicked,
     type ExchangePicks,
@@ -506,5 +512,60 @@ describe('Deed Writer — two sites that depend on each other, both boards empty
         expect(ed.listed(noExchangePicks(), 'fromCounterparty')).toEqual([])
         const picked = withSitePicked(withSitePicked(noExchangePicks(), 'fromProposer', 'c1', [], true), 'fromCounterparty', 'p1', [], true)
         expect(ed.keep(picked).uncountedSiteIds).toEqual([])
+    })
+})
+
+describe('the Tribunal’s promise boxes — each side’s promise, sent as the engine’s rule reads it (R-7.6.3-H1)', () => {
+    it('the box keeps what was typed; the terms carry it trimmed, line breaks inside kept', () => {
+        const typed = '  I will travel to the Hinterland\nnext round.  \n'
+        const picks = withPromise(noExchangePicks(), 'fromProposer', typed)
+        expect(promiseDraftOf(picks, 'fromProposer')).toBe(typed)
+        expect(promiseDraftOf(picks, 'fromCounterparty')).toBe('')
+        expect(picks.terms.promises).toEqual({ fromProposer: 'I will travel to the Hinterland\nnext round.' })
+        expect(reasonTermsOutsideCard(picks.terms, TRIBUNAL_ALLOWS)).toBeUndefined()
+    })
+
+    it('a box empty after the trim is no promise: the side has no key, and no promises object without one', () => {
+        const both = withPromise(withPromise(noExchangePicks(), 'fromProposer', 'I will.'), 'fromCounterparty', 'So will I.')
+        expect(both.terms.promises).toEqual({ fromProposer: 'I will.', fromCounterparty: 'So will I.' })
+
+        const one = withPromise(both, 'fromProposer', '   \n ')
+        expect(one.terms.promises).toEqual({ fromCounterparty: 'So will I.' })
+        expect(promiseDraftOf(one, 'fromProposer')).toBe('   \n ')
+
+        const none = withPromise(one, 'fromCounterparty', '')
+        expect(none.terms).not.toHaveProperty('promises')
+    })
+
+    it('a promise alone is an offer, "Use" ready; spaces alone are no pick', () => {
+        const promised = withPromise(noExchangePicks(), 'fromCounterparty', 'Rhys stays home.')
+        expect(exchangeComplete(promised)).toBe(true)
+        expect(exchangePicked(promised)).toBe(true)
+        const blank = withPromise(noExchangePicks(), 'fromCounterparty', '   ')
+        expect(exchangeComplete(blank)).toBe(false)
+        expect(exchangePicked(blank)).toBe(false)
+    })
+
+    it('the counter is the validator’s number: UTF-16 units of the trimmed text, so 201 is refused and 200 is not', () => {
+        const over = withPromise(noExchangePicks(), 'fromProposer', ' a' + '\u0301'.repeat(200) + ' ')
+        expect(promiseLength(over.terms, 'fromProposer')).toBe(201)
+        expect(reasonTermsOutsideCard(over.terms, TRIBUNAL_ALLOWS)).toBe('a promise is at most 200 characters')
+
+        const exact = withPromise(noExchangePicks(), 'fromProposer', '\u{1F600}' + 'x'.repeat(198))
+        expect(promiseLength(exact.terms, 'fromProposer')).toBe(200)
+        expect(reasonTermsOutsideCard(exact.terms, TRIBUNAL_ALLOWS)).toBeUndefined()
+        expect(promiseLength(exact.terms, 'fromCounterparty')).toBe(0)
+    })
+
+    it('a change to the pieces keeps both promises, in the box and in the terms', () => {
+        const s = table({}, OathRevision.EngineFixes24)
+        const promised = withPromise(withPromise(noExchangePicks(), 'fromProposer', 'I will. '), 'fromCounterparty', 'So will I.')
+        const tapped = withOfferedPicks(s, 'dana', 'rhys', TRIBUNAL_ALLOWS, 'dana', {
+            ...promised,
+            terms: { ...promised.terms, fromProposer: { favor: 2 } }
+        })
+        expect(tapped.terms).toEqual({ fromProposer: { favor: 2 }, promises: { fromProposer: 'I will.', fromCounterparty: 'So will I.' } })
+        expect(promiseDraftOf(tapped, 'fromProposer')).toBe('I will. ')
+        expect(reasonExchangeInvalid(s, 'dana', 'rhys', tapped.terms)).toBeUndefined()
     })
 })

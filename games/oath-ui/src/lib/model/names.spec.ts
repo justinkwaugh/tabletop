@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+    chipCased,
     defenseWords,
     humanizeReason,
     listed,
@@ -7,6 +8,22 @@ import {
     reasonParts,
     type Seats
 } from './names.js'
+
+describe('chipCased — a seat named in plain words as its chip shows it', () => {
+    it('capitalizes each word and leaves the rest', () => {
+        expect(chipCased('rhys')).toBe('Rhys')
+        expect(chipCased('ann marie')).toBe('Ann Marie')
+        expect(chipCased('McBride')).toBe('McBride')
+    })
+})
+
+describe('the five-deal refusal as the red line reads it (R-7.6.3-H1)', () => {
+    const seats: Seats = { player: (id) => (id === 'p2' ? 'Rhys' : 'Dana'), seats: ['p1', 'p2'] }
+    it('names the other seat, and agrees with "you" for the seat on screen', () => {
+        expect(humanizeReason('p2 already has five open deals', seats, 'p1')).toBe('Rhys already has five open deals')
+        expect(humanizeReason('p1 already has five open deals', seats, 'p1')).toBe('you already have five open deals')
+    })
+})
 
 /** The line as read: the dice drawn as `[N dice]`, the counts as their words. */
 function readDefense(dice: number, counts: Parameters<typeof defenseWords>[0]): string {

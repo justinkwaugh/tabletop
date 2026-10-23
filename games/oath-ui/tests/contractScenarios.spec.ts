@@ -3909,6 +3909,157 @@ test.describe('the exchange editor', () => {
 })
 
 /**
+ * R-7.6.3-H1, R-11.9 — the Tribunal's promise boxes: under each side of today's exchange editor, a
+ * box for that side's promise, optional, with a counter of the units the engine's rule counts; the
+ * engine's refusal of a text, or of a sixth open deal, is the one red line. The asked player reads
+ * each promise quoted under what that side gives.
+ */
+test.describe('the Tribunal’s promise boxes', () => {
+    const TRIBUNAL = 'site.the-tribunal'
+    const row = (page: Page) => grid(page).locator(`[data-action-power="${TRIBUNAL}"]`)
+    const red = (page: Page) => grid(page).locator('.text-oath-danger')
+    const mine = (page: Page) => grid(page).getByRole('textbox', { name: 'You promise (optional)', exact: true })
+    const theirs = (page: Page) => grid(page).getByRole('textbox', { name: 'Rhys promises (optional)', exact: true })
+    const counters = (page: Page) => grid(page).locator('[data-promise-count]')
+
+    async function offerTo(page: Page, table: TableFixture.TableName) {
+        await openTable(page, table)
+        await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
+        await row(page).getByRole('button', { name: 'rhys', exact: true }).click()
+    }
+
+    test('under each side a box, "You promise (optional)" and "<other> promises (optional)", each counted 0 / 200; relics are not offered', async ({ page }) => {
+        await offerTo(page, 'tribunalOffer')
+        await expect(mine(page)).toHaveValue('')
+        await expect(theirs(page)).toHaveValue('')
+        await expect(counters(page)).toHaveText(['0 / 200', '0 / 200'])
+        await expect(grid(page).getByRole('button', { name: 'dana gives 1 favor', exact: true })).toBeVisible()
+        for (const name of ['Cup of Plenty', 'Bandit Crown']) {
+            await expect(panelCards(page).filter({ has: page.getByRole('img', { name, exact: true }) })).toHaveCount(0)
+        }
+        await expect(answer(page, 'Use')).toHaveCount(0)
+        await expect(red(page)).toHaveCount(0)
+    })
+
+    test('the counter counts the trimmed text; "Use" sends both promises trimmed with the pieces, and the offer is put to Rhys', async ({ page }) => {
+        await offerTo(page, 'tribunalOffer')
+        await mine(page).fill("  I won't campaign against Rhys's sites next round. ")
+        await expect(counters(page).first()).toHaveText('49 / 200')
+        await grid(page).getByRole('button', { name: 'dana gives 2 favor', exact: true }).click()
+        // 30 + the line break + 19; the last line break is trimmed.
+        await theirs(page).fill('Rhys travels to the Hinterland\non their next turn.\n')
+        await expect(counters(page).last()).toHaveText('50 / 200')
+        await answer(page, 'Use').click()
+        await expect.poll(() => call(page, 'offeredExchangeTerms')).toEqual({
+            fromProposer: { favor: 2 },
+            promises: {
+                fromProposer: "I won't campaign against Rhys's sites next round.",
+                fromCounterparty: 'Rhys travels to the Hinterland\non their next turn.'
+            }
+        })
+    })
+
+    test('a promise alone readies "Use"; past 200 the engine’s refusal is the one red line and "Use" hides; a tab is refused too', async ({ page }) => {
+        await offerTo(page, 'tribunalOffer')
+        await theirs(page).fill('Rhys stays home.')
+        await expect(answer(page, 'Use')).toBeVisible()
+        await expect(red(page)).toHaveCount(0)
+
+        await theirs(page).fill('x'.repeat(201))
+        await expect(counters(page).last()).toHaveText('201 / 200')
+        await expect(red(page)).toHaveCount(1)
+        await expect(red(page)).toHaveText('a promise is at most 200 characters')
+        await expect(answer(page, 'Use')).toHaveCount(0)
+
+        await theirs(page).fill('x'.repeat(200))
+        await expect(counters(page).last()).toHaveText('200 / 200')
+        await expect(red(page)).toHaveCount(0)
+        await expect(answer(page, 'Use')).toBeVisible()
+
+        await mine(page).fill('a\tb')
+        await expect(red(page)).toHaveText('a promise holds only text and line breaks')
+        await expect(answer(page, 'Use')).toHaveCount(0)
+    })
+
+    test('Rhys party to five open deals: an offer with a promise is the one red line; the same pieces without one are offered', async ({ page }) => {
+        await offerTo(page, 'tribunalOfferFull')
+        await grid(page).getByRole('button', { name: 'dana gives 1 favor', exact: true }).click()
+        await expect(answer(page, 'Use')).toBeVisible()
+        await mine(page).fill('I will not campaign against Rhys.')
+        await expect(red(page)).toHaveCount(1)
+        await expect(red(page)).toHaveText('rhys already has five open deals')
+        await expect(answer(page, 'Use')).toHaveCount(0)
+        await mine(page).fill('  ')
+        await expect(red(page)).toHaveCount(0)
+        await expect(answer(page, 'Use')).toBeVisible()
+    })
+
+    test('no box in a game started before the deals, nor at Tinker’s Fair', async ({ page }) => {
+        await offerTo(page, 'tribunalOfferBefore')
+        await expect(grid(page).getByText('You give', { exact: true })).toBeVisible()
+        await expect(grid(page).getByRole('textbox')).toHaveCount(0)
+        await expect(counters(page)).toHaveCount(0)
+
+        await openTable(page, 'exchangeTinkers')
+        await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
+        await grid(page)
+            .locator('[data-action-power="denizen.hearth.tinkers-fair"]')
+            .getByRole('button', { name: 'rhys', exact: true })
+            .click()
+        await expect(grid(page).getByText('You give', { exact: true })).toBeVisible()
+        await expect(grid(page).getByRole('textbox')).toHaveCount(0)
+    })
+
+    test('Rhys is asked: each promise quoted under what its side gives, line breaks kept; Accept and Refuse', async ({ page }) => {
+        await openTable(page, 'tribunalAnswer')
+        await expect(grid(page).locator('.question-line')).toHaveText(/^Exchange with\s+dana\s*\?$/i)
+        const quotes = grid(page).locator('[data-promise]')
+        await expect(quotes).toHaveCount(2)
+        await expect(quotes.first()).toHaveText('I will not campaign against you before the end of round 5.')
+        await expect(quotes.last()).toHaveText('I will travel to the Hinterland on my next turn.\nAnd stay there a round.', { useInnerText: true })
+        await expect(quotes.last()).toHaveCSS('white-space', 'pre-wrap')
+        await expect(grid(page)).toContainText(/You get\s*2.*dana\s*promises\s*I will not campaign/s)
+        await expect(grid(page)).toContainText(/You give\s*1.*You promise\s*I will travel/s)
+        await expect(answer(page, 'Accept')).toBeVisible()
+        await expect(answer(page, 'Refuse')).toBeVisible()
+    })
+
+    test('nobody else reads them before the accept: the History rows of the offer and of its refusal quote neither promise', async ({ page }) => {
+        await offerTo(page, 'tribunalOffer')
+        await mine(page).fill('I will not campaign against Rhys.')
+        await theirs(page).fill('Rhys stays home.')
+        await answer(page, 'Use').click()
+        await expect(answer(page, 'Refuse')).toBeVisible()
+        await answer(page, 'Refuse').click()
+        await expect.poll(() => call(page, 'openQuestionKind')).toBeUndefined()
+        await page.getByRole('tab', { name: 'History' }).click()
+        const history = page.locator('.history')
+        await expect(history).toContainText('used The Tribunal')
+        await expect(history).toContainText('refused')
+        await expect(history).not.toContainText(/campaign against Rhys|stays home/)
+    })
+
+    test.describe('on a 375 px phone', () => {
+        test.use({ viewport: { width: 375, height: 812 } })
+
+        test('the sides stack, each box under its own side, 44 px tall at least and inside the panel', async ({ page }) => {
+            await offerTo(page, 'tribunalOffer')
+            const give = await boxOf(grid(page).getByText('You give', { exact: true }))
+            const promise = await boxOf(mine(page))
+            const gets = await boxOf(grid(page).getByText(/^rhys\s*gives$/))
+            const theirPromise = await boxOf(theirs(page))
+            expect(promise.y).toBeGreaterThan(give.y)
+            expect(gets.y).toBeGreaterThan(promise.y + promise.height)
+            expect(theirPromise.y).toBeGreaterThan(gets.y)
+            expect((await layoutSizeOf(mine(page)))?.height).toBeGreaterThanOrEqual(44)
+            const panel = await boxOf(row(page))
+            expect(promise.x + promise.width).toBeLessThanOrEqual(panel.x + panel.width + 0.5)
+            expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
+        })
+    })
+})
+
+/**
  * Messenger: one move at a time, From, How many and To as tiles and warband pieces, each read on
  * the state the moves before leave; a whole move folds to its line and the next From opens; "Use"
  * once a move is whole and none half-built; Undo takes back one pick, then the move.

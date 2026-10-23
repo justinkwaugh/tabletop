@@ -29,7 +29,15 @@
     import { favorToken } from '$lib/images/tileImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { tappedCount } from '$lib/model/exchangeTerms.js'
-    import { cardName, listed, plural, siteName, suitName, transferText } from '$lib/model/names.js'
+    import {
+        cardName,
+        chipCased,
+        listed,
+        plural,
+        siteName,
+        suitName,
+        transferText
+    } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // Every "no" is a first-class button: silence is not an answer (R-X.1).
@@ -59,14 +67,17 @@
 
     // A seat named in plain words, capitalized as its chip on the line above capitalizes it.
     function seatName(playerId: string): string {
-        return gameSession
-            .getPlayerName(playerId)
-            .replace(
-                /(^|\s)(\S)/g,
-                (_, space: string, letter: string) => space + letter.toUpperCase()
-            )
+        return chipCased(gameSession.getPlayerName(playerId))
     }
 </script>
+
+<!-- R-7.6.3-H1 — a promise in an offer, quoted as its player wrote it, line breaks kept. -->
+{#snippet promise(text: string)}
+    <span
+        class="whitespace-pre-wrap border-l-[3px] border-oath-frame px-2 py-0.5 text-[13px]"
+        data-promise>{text}</span
+    >
+{/snippet}
 
 <div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
@@ -161,6 +172,13 @@
                         )}
                     />
                 </span>
+                <!-- R-7.6.3-H1 — each side's promise, quoted under what that side gives. -->
+                {#if mine.terms.promises?.fromProposer}
+                    <span class="text-oath-text-muted"
+                        ><PlayerName playerId={mine.proposerPlayerId} /> promises</span
+                    >
+                    {@render promise(mine.terms.promises.fromProposer)}
+                {/if}
                 <span class="text-oath-text-muted">You give</span>
                 <span>
                     <TokenText
@@ -171,6 +189,10 @@
                         )}
                     />
                 </span>
+                {#if mine.terms.promises?.fromCounterparty}
+                    <span class="text-oath-text-muted">You promise</span>
+                    {@render promise(mine.terms.promises.fromCounterparty)}
+                {/if}
             </div>
             <QuestionYesNo yes="Accept" no="Refuse" />
         </QuestionForm>

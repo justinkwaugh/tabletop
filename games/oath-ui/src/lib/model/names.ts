@@ -109,6 +109,14 @@ const STATUS_NAMES: Record<PlayerStatus, string> = {
     [PlayerStatus.Citizen]: 'Citizen'
 }
 
+/** A seat's name in plain words, each word capitalized as its colour chip shows it. */
+export function chipCased(name: string): string {
+    return name.replace(
+        /(^|\s)(\S)/g,
+        (_, space: string, letter: string) => space + letter.toUpperCase()
+    )
+}
+
 /** A seat's status, capitalised as its board prints it. */
 export function statusName(status: PlayerStatus): string {
     return STATUS_NAMES[status]
@@ -275,6 +283,8 @@ function seatPattern(playerId: string, after = '', flags = ''): RegExp {
 const VIEWER_VERBS: readonly (readonly [string, string])[] = [
     [' is', ' are'],
     [' has', ' have'],
+    // R-7.6.3-H1 — "<X> already has five open deals".
+    [' already has', ' already have'],
     [' chooses', ' choose'],
     [' picks', ' pick'],
     [' gains', ' gain']

@@ -58,6 +58,7 @@ import {
     mapSlotsFor,
     reliquarySlotId,
     type CitizenshipTerms,
+    type ExchangeTerms,
     type CitizenshipTransfer,
     type LetPeekSubject,
     type OathPlayerState,
@@ -112,6 +113,7 @@ import { woodPickTable } from './woodPicksTable.js'
 import { heldAttackTable } from './heldAttackTable.js'
 import { kinshipDissentTable, kinshipPlagueTable, kinshipWakeTable } from './kinshipTables.js'
 import { RecordedStory } from './recordedStory.js'
+import { tribunalAnswerTable, tribunalOfferTable } from './tribunalTables.js'
 
 export type TableName =
     | 'setup'
@@ -254,6 +256,10 @@ export type TableName =
     | 'usurperWins'
     | 'deedWriter'
     | ExchangeScene
+    | 'tribunalOffer'
+    | 'tribunalOfferFull'
+    | 'tribunalOfferBefore'
+    | 'tribunalAnswer'
     | 'woodTraveller'
     | 'woodRuler'
     | 'woodRulerToll'
@@ -5526,6 +5532,10 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     exchangeDeedSwap: () => exchangeTable('exchangeDeedSwap'),
     exchangeTinkers: () => exchangeTable('exchangeTinkers'),
     exchangeGathering: () => exchangeTable('exchangeGathering'),
+    tribunalOffer: () => tribunalOfferTable('offer'),
+    tribunalOfferFull: () => tribunalOfferTable('full'),
+    tribunalOfferBefore: () => tribunalOfferTable('before'),
+    tribunalAnswer: tribunalAnswerTable,
     woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),
     woodRuler: woodRulerTable,
     woodRulerToll: woodRulerTollTable,
@@ -5697,6 +5707,12 @@ export function questionPicks(): {
 /** The kind of the question open on the table, if any. */
 export function openQuestionKind(): PowerQuestionKind | undefined {
     return current().gameState.pendingQuestions?.queue[0]?.kind
+}
+
+/** R-10.8, R-7.6.3-H1 — the terms of the exchange the open question offers, if it offers one. */
+export function offeredExchangeTerms(): ExchangeTerms | undefined {
+    const question = current().gameState.pendingQuestions?.queue[0]
+    return question?.kind === PowerQuestionKind.Exchange ? question.terms : undefined
 }
 
 export function viewOffTheClock(): string | undefined {
