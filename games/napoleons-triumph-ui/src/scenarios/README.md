@@ -1,6 +1,6 @@
 # Napoleon's Triumph scenarios
 
-The dev harness lists these under **Scenarios**. Each opens on the French command phase with only the pieces of the scenario on the map; loading one again starts it over. Regenerate them with `node scripts/build-scenarios.mjs` after building `@tabletop/napoleons-triumph`.
+The dev harness lists these under **Scenarios**. The positions built in code each open on the French command phase with only the pieces of the scenario on the map; loading one again starts it over. Regenerate them with `node scripts/build-scenarios.mjs` after building `@tabletop/napoleons-triumph`. A saved game, listed under _Saved games_, comes with every action that led to it.
 
 ## Artillery firing together
 
@@ -22,3 +22,7 @@ A threat names only the approach, so batteries are paired when the attack is dec
 ## Objectives
 
 - **Objective stars held.** 10:00AM, French command phase. Lannes's infantry holds the red and black stars of 126, Murat's corps of cavalry stands on the three stars of 128, and Bagration's two infantry units are on the blue star of 62. In the armies panel the French line shows red and black filled and green outlined, as cavalry holds nothing, with "Any one wins"; the Allied line shows the blue star with a pale fill to the French, whose faces they cannot see, and "One wins if the French hold none". Lannes's, Murat's and Bagration's stacks cover their locales' printed stars, so each locale shows its stars on a cream tag beside the stack: red and black filled at 126, green, red and black outlined at 128, and blue with the pale fill at 62 for the French, filled for the Allies. Murat's flag flies away from the printed stars of 128.
+
+## Saved games
+
+- **Decisive Allied victory at Telnitz.** A finished game from the site, with the players' names taken out, at its last action: the French attack from 131 into 142 is defeated and the French army is demoralized, every corps of both armies on the map, the crowded fight around Telnitz (131, 141 and 142) at the bottom. Its whole history steps back through the game. Switch on _Locale numbers_ in the map menu: every locale's number is printed under the pieces, those under the stacks of 131, 141 and 142 only partly showing. Press _locale 142_ in the battle panel's heading or in _The Allies hold locale 142_: the locale is outlined and shaded for a moment, and the view moves only if 142 was not on screen; zoom in elsewhere first to see it brought into view.
