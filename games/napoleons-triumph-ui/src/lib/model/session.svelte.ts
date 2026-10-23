@@ -97,6 +97,7 @@ import {
 import { THREAT_ARROW, arrowOutlines, attackMarkerScale } from '$lib/utils/attackMarker.js'
 import type { ConvexOutline } from '$lib/utils/convexOutline.js'
 import { boxSamples, cornersOf } from '$lib/utils/orientedBox.js'
+import { TURN_TITLES } from '$lib/utils/turnTitles.js'
 import {
     heldApproaches,
     layoutPieces,
@@ -591,7 +592,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
             turns: this.gameState.turnManager.series,
             scenario: this.gameState.scenario,
             describe: (action) => describeAction(action, this.gameState),
-            turnTitle: (playerId) => `${this.gameState.sideOf(playerId)} turn`
+            turnTitle: (playerId) => TURN_TITLES[this.gameState.sideOf(playerId)]
         })
     )
 
@@ -799,7 +800,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (chosen !== undefined && this.commandChoices.includes(chosen)) {
             return chosen
         }
-        // With no move open to the units in hand, Attach is the command; riding on leaves none chosen.
+        // Riding on takes no command, though the rider may be offered Attach.
         return this.ridingOn ? undefined : this.commandChoices[0]
     })
 
@@ -1616,18 +1617,21 @@ export class NapoleonsTriumphGameSession extends GameSession<
             .map((unit) => unit.id)
     }
 
+    private choosableIds(group: PieceGroup): string[] {
+        return group.units.filter((unit) => this.mayStillCommand(unit)).map((unit) => unit.id)
+    }
+
     private ridesAlone(unit: ProjectedUnit): boolean {
         return this.riderIds.includes(unit.id) && unit.commanderId === undefined
     }
 
     private startingUnits(group: PieceGroup): string[] {
-        return unitsPickedUpWith(
-            pickedUpOf(this.selection),
-            this.commandableIds(group),
-            group.commander !== undefined,
-            group.key === this.marchGroupKey ? this.riderIds : [],
-            group.units.filter((unit) => this.mayStillCommand(unit)).map((unit) => unit.id)
-        )
+        return unitsPickedUpWith(pickedUpOf(this.selection), {
+            movableIds: this.commandableIds(group),
+            choosableIds: this.choosableIds(group),
+            riderIds: group.key === this.marchGroupKey ? this.riderIds : [],
+            isCorps: group.commander !== undefined
+        })
     }
 
     private async takeStepOfTheWay(step: WayTarget) {

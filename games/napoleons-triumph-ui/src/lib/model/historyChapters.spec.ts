@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction, type Round, type Turn } from '@tabletop/common'
-import { ActionType, Scenario } from '@tabletop/napoleons-triumph'
+import { ActionType, Scenario, Side } from '@tabletop/napoleons-triumph'
+import { TestGame } from '@tabletop/napoleons-triumph/testing'
 import { historyChapters, type HistoryChapter } from './historyChapters.js'
 
 function action(index: number, type: ActionType, playerId: string): GameAction {
@@ -90,7 +91,7 @@ describe('history chapters', () => {
     })
 
     it('drops actions that have nothing to tell outside a turn', () => {
-        expect(chaptersOf(actions.slice(0, 2), rounds, turns, () => '')).toEqual([])
+        expect(chaptersOf(actions.slice(0, 2), [], [], () => '')).toEqual([])
     })
 })
 
@@ -160,5 +161,38 @@ describe('an attack in the history', () => {
         const [chapter] = chaptersOf(fought.slice(1, 3), rounds, turns, told)
         expect(entriesOf(chapter)).toHaveLength(1)
         expect(entriesOf(chapter)[0]).toMatchObject({ index: 2, steps: [] })
+    })
+})
+
+describe('turns as the game records them', () => {
+    const game = new TestGame()
+    const actions: GameAction[] = []
+    const act = (type: ActionType, side: Side) =>
+        actions.push(...game.act(type, game.playerOf(side)))
+    actions.push(...game.deploy(Side.Allied), ...game.deploy(Side.French))
+
+    function headings() {
+        const sides: Record<string, string> = {
+            [game.playerOf(Side.Allied)]: 'Allied',
+            [game.playerOf(Side.French)]: 'French'
+        }
+        return historyChapters(actions, {
+            rounds: game.state.rounds.series,
+            turns: game.state.turnManager.series,
+            scenario: game.state.scenario,
+            describe: named,
+            turnTitle: (playerId) => `${sides[playerId]} turn`
+        }).map((chapter) => [chapter.title, chapter.turns.map((turn) => turn.title)])
+    }
+
+    it('heads the turn in play as soon as the one before it ends, before anything is done in it', () => {
+        expect(headings().at(-1)).toEqual(['2 December · 7:00AM', ['Allied turn']])
+        act(ActionType.EndTurn, Side.Allied)
+        expect(headings().at(-1)).toEqual(['2 December · 7:00AM', ['Allied turn', 'French turn']])
+        act(ActionType.EndTurn, Side.French)
+        expect(headings().slice(1)).toEqual([
+            ['2 December · 7:00AM', ['Allied turn', 'French turn']],
+            ['2 December · 8:00AM', ['Allied turn']]
+        ])
     })
 })

@@ -34,7 +34,7 @@
 <div class="nt-history">
     {#each chapters.toReversed() as chapter (chapter.title)}
         <h3>{chapter.title}</h3>
-        {#each chapter.turns.toReversed() as turn (turn.start)}
+        {#each chapter.turns.toReversed() as turn (`${turn.playerId}@${turn.start}`)}
             {#if turn.title}
                 <h4>{turn.title}</h4>
             {/if}

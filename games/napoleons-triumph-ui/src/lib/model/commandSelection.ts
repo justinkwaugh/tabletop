@@ -89,12 +89,18 @@ export function withoutGuardUnit(selection: CommandSelection): CommandSelection 
     return commandSelection.clearFrom(selection, 'guard')
 }
 
+/** The units of a group that may be taken into a command: moved by it, attached, or riding on. */
+export interface GroupUnits {
+    movableIds: readonly string[]
+    /** Those that can move, and those that may still be attached though they cannot. */
+    choosableIds: readonly string[]
+    riderIds: readonly string[]
+    isCorps: boolean
+}
+
 export function unitsPickedUpWith(
     pickedUp: PickedUp | undefined,
-    movableIds: readonly string[],
-    isCorps: boolean,
-    riderIds: readonly string[],
-    choosableIds: readonly string[] = movableIds
+    { movableIds, choosableIds, riderIds, isCorps }: GroupUnits
 ): string[] {
     const tappedChoosable = choosableIds.find((id) => id === pickedUp?.tappedUnitId)
     const ridersStayInHand = riderIds.length > 0 && tappedChoosable === undefined

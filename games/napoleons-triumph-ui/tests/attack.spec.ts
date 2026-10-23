@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import type { NapoleonsTriumphGameState, Unit } from '@tabletop/napoleons-triumph'
+import type { NapoleonsTriumphGameState, Position } from '@tabletop/napoleons-triumph'
 import {
     createGame,
     deployAllies,
@@ -604,15 +604,13 @@ test('a unit chosen on its own may be attached to the other commanders standing 
     )
 })
 
-/** Murat's corps stands with Vandamme's, and the given units have moved this turn. */
-function movedBesideVandamme(state: NapoleonsTriumphGameState, moved: (unit: Unit) => boolean) {
+function muratPosition(state: NapoleonsTriumphGameState): Position {
     const murat = state.commanders.find((commander) => commander.id === 'murat')
     if (!murat?.position) throw new Error('Expected Murat on the map')
-    moveCorps(state, 'vandamme', murat.position)
-    for (const unit of state.units.filter(moved)) {
-        Object.assign(unit, { movesThisTurn: 1, enteredReserveThisTurn: true })
-    }
+    return murat.position
 }
+
+const MOVED_THIS_TURN = { movesThisTurn: 1, enteredReserveThisTurn: true }
 
 test('a detached unit that has already moved may still be attached to a commander standing with it', async ({
     page
@@ -622,16 +620,14 @@ test('a detached unit that has already moved may still be attached to a commande
     await page.getByRole('button', { name: 'End turn' }).click()
     let locale = 0
     await rearrange(page, (state) => {
-        const murat = state.commanders.find((commander) => commander.id === 'murat')
-        if (!murat?.position) throw new Error('Expected Murat on the map')
-        locale = murat.position.locale
+        const position = muratPosition(state)
+        locale = position.locale
         const unit = state.units.find((entry) => entry.commanderId === 'vandamme')
         if (!unit) throw new Error('Expected Vandamme to lead units')
         Object.assign(unit, {
             commanderId: undefined,
-            position: { ...murat.position },
-            movesThisTurn: 1,
-            enteredReserveThisTurn: true
+            position: { ...position },
+            ...MOVED_THIS_TURN
         })
     })
     await tap(page, `[data-commander="detached"][data-group*="|${locale}:r|"]`)
@@ -651,9 +647,12 @@ test('a unit of a corps that has already moved may be chosen on its own and atta
     await createGame(page)
     await deployBothArmies(page)
     await page.getByRole('button', { name: 'End turn' }).click()
-    await rearrange(page, (state) =>
-        movedBesideVandamme(state, (unit) => unit.commanderId === 'murat')
-    )
+    await rearrange(page, (state) => {
+        moveCorps(state, 'vandamme', muratPosition(state))
+        for (const unit of state.units.filter((entry) => entry.commanderId === 'murat')) {
+            Object.assign(unit, MOVED_THIS_TURN)
+        }
+    })
     const strip = page.getByRole('group', { name: 'Murat’s corps' })
     await pickUp(page, 'murat')
     await strip.getByRole('button', { name: 'Include this unit in the command' }).first().click()

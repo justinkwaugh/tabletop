@@ -49,6 +49,7 @@ import {
     threatOf,
     undoCommandSelection,
     unitsPickedUpWith,
+    type GroupUnits,
     wayStepsOf,
     type CommandSelection
 } from './commandSelection.js'
@@ -247,54 +248,61 @@ describe('choosing units of a corps', () => {
 
 describe('what a pick-up starts with', () => {
     const MOVABLE = ['F02', 'F03']
-    const NO_RIDERS: string[] = []
+
+    function units(movableIds: string[], more: Partial<GroupUnits> = {}): GroupUnits {
+        return { movableIds, choosableIds: movableIds, riderIds: [], isCorps: false, ...more }
+    }
 
     it('is every unit of a corps that can still move', () => {
-        expect(unitsPickedUpWith({ groupKey: 'corps' }, MOVABLE, true, NO_RIDERS)).toEqual(MOVABLE)
+        expect(unitsPickedUpWith({ groupKey: 'corps' }, units(MOVABLE, { isCorps: true }))).toEqual(
+            MOVABLE
+        )
     })
 
     it('is the detached unit that was tapped, when it can still move', () => {
         expect(
-            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F03' }, MOVABLE, false, NO_RIDERS)
+            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F03' }, units(MOVABLE))
         ).toEqual(['F03'])
     })
 
     it('is the first detached unit that can move when the tapped one cannot, or none was tapped', () => {
         expect(
-            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F01' }, MOVABLE, false, NO_RIDERS)
+            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F01' }, units(MOVABLE))
         ).toEqual(['F02'])
-        expect(unitsPickedUpWith({ groupKey: 'loose' }, MOVABLE, false, NO_RIDERS)).toEqual(['F02'])
-        expect(unitsPickedUpWith({ groupKey: 'loose' }, [], false, NO_RIDERS)).toEqual([])
+        expect(unitsPickedUpWith({ groupKey: 'loose' }, units(MOVABLE))).toEqual(['F02'])
+        expect(unitsPickedUpWith({ groupKey: 'loose' }, units([]))).toEqual([])
     })
 
     it('is the detached unit that was tapped when it cannot move but may be attached', () => {
         const tapped = { groupKey: 'loose', tappedUnitId: 'F01' }
-        expect(unitsPickedUpWith(tapped, [], false, NO_RIDERS, ['F01'])).toEqual(['F01'])
-        expect(unitsPickedUpWith(tapped, MOVABLE, false, NO_RIDERS, ['F01', ...MOVABLE])).toEqual([
-            'F01'
-        ])
+        expect(unitsPickedUpWith(tapped, units([], { choosableIds: ['F01'] }))).toEqual(['F01'])
+        expect(
+            unitsPickedUpWith(tapped, units(MOVABLE, { choosableIds: ['F01', ...MOVABLE] }))
+        ).toEqual(['F01'])
     })
 
     it('is the first detached unit that may be attached when none can move', () => {
-        expect(unitsPickedUpWith({ groupKey: 'loose' }, [], false, NO_RIDERS, ['F01'])).toEqual([
-            'F01'
-        ])
+        expect(
+            unitsPickedUpWith({ groupKey: 'loose' }, units([], { choosableIds: ['F01'] }))
+        ).toEqual(['F01'])
     })
 
     it('is the cavalry riding on in the group, unless another unit that can move was tapped', () => {
-        const RIDERS = ['F01']
-        expect(unitsPickedUpWith(undefined, MOVABLE, false, RIDERS)).toEqual(RIDERS)
-        expect(unitsPickedUpWith({ groupKey: 'loose' }, MOVABLE, false, RIDERS)).toEqual(RIDERS)
-        expect(
-            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F01' }, MOVABLE, false, RIDERS)
-        ).toEqual(RIDERS)
-        expect(
-            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F03' }, MOVABLE, false, RIDERS)
-        ).toEqual(['F03'])
-        expect(unitsPickedUpWith({ groupKey: 'corps' }, [], true, ['F01', 'F02'])).toEqual([
-            'F01',
-            'F02'
+        const riding = units(MOVABLE, { riderIds: ['F01'] })
+        expect(unitsPickedUpWith(undefined, riding)).toEqual(['F01'])
+        expect(unitsPickedUpWith({ groupKey: 'loose' }, riding)).toEqual(['F01'])
+        expect(unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F01' }, riding)).toEqual([
+            'F01'
         ])
+        expect(unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F03' }, riding)).toEqual([
+            'F03'
+        ])
+        expect(
+            unitsPickedUpWith(
+                { groupKey: 'corps' },
+                units([], { riderIds: ['F01', 'F02'], isCorps: true })
+            )
+        ).toEqual(['F01', 'F02'])
     })
 })
 
