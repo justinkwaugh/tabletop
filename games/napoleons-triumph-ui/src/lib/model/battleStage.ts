@@ -11,8 +11,13 @@ import {
     counterAttackCandidates,
     declareDefense,
     declareFeint,
+    corpsCommanderIds,
+    currentAttack,
+    isNamedDefender,
+    mayDefendAgainst,
     eligibleReserveDefenders,
     finalResultWith,
+    forcedDefendingCommanders,
     forcedDefense,
     initialAccountOf,
     initialResultOf,
@@ -46,6 +51,8 @@ import {
     counterSelection,
     defenceSelection,
     excessLossSelection,
+    leaveCommandersOut,
+    nameDefenders,
     leadSelection,
     nameAttackers,
     nameLeaders,
@@ -95,7 +102,27 @@ export interface DefenceStage extends Picking {
     forced: boolean
     candidates: ProjectedUnit[]
     defenders: string[]
+    commanders: DefendingCommander[]
     problem?: string
+}
+
+export enum CommanderStatus {
+    NoUnitPicked = 'NoUnitPicked',
+    Named = 'Named',
+    LeftOut = 'LeftOut',
+    /** Rule 11, step 2: blocking pieces all defend; a one-unit corps's commander is named with his unit, since leaving him out changes nothing. */
+    MustDefend = 'MustDefend',
+    /** Rule 11, step 2: named against a different approach earlier in the turn. */
+    NamedElsewhere = 'NamedElsewhere'
+}
+
+export interface DefendingCommander {
+    commanderId: string
+    status: CommanderStatus
+}
+
+export function isChoosable(status: CommanderStatus): boolean {
+    return status === CommanderStatus.Named || status === CommanderStatus.LeftOut
 }
 
 /** Rule 11, step 4: the attack has been pressed, and the defender names which of the defending pieces lead. */
@@ -189,7 +216,13 @@ export interface AdvanceStage extends Picking {
     kind: StageKind.Advance
     units: ProjectedUnit[]
     advancing: string[]
-    commanders: { commanderId: string; goes: boolean; mustGo: boolean; unitsStaying: number }[]
+    commanders: {
+        commanderId: string
+        goes: boolean
+        mustGo: boolean
+        unitsStaying: number
+        named: boolean
+    }[]
 }
 
 export type BattleStage =
@@ -234,18 +267,76 @@ function defenceStage(
     const candidateIds = idsOf(candidates)
     const named = defenceSelection.value(selections.defence, 'defenders') ?? []
     const defenders = blockers ?? named.filter((id) => candidateIds.includes(id))
+    const commanders = blockers
+        ? forcedDefendingCommanders(state).map((commanderId) => ({
+              commanderId,
+              status: CommanderStatus.MustDefend
+          }))
+        : reserveCommanders(state, candidates, defenders, selections)
     return {
         kind: StageKind.Defence,
         forced: blockers !== undefined,
         candidates,
         defenders,
+        commanders,
         problem:
             defenders.length === 0
                 ? undefined
-                : whyIllegal(() => declareDefense(copyOf(state), defenders)),
+                : whyIllegal(() =>
+                      declareDefense(copyOf(state), defenders, namedCommanderIds({ commanders }))
+                  ),
         pickableIds: blockers ? [] : candidateIds,
         roles: rolesOf(defenders, [], BattleRole.Defends)
     }
+}
+
+function reserveCommanders(
+    state: HydratedNapoleonsTriumphGameState,
+    candidates: readonly ProjectedUnit[],
+    defenders: readonly string[],
+    selections: BattleSelections
+): DefendingCommander[] {
+    const attack = currentAttack(state)
+    const leftOut = defenceSelection.value(selections.defence, 'commandersLeftOut') ?? []
+    const picked = corpsCommanderIds(defenders.map((id) => state.unit(id)))
+    return corpsCommanderIds(candidates).map((commanderId) => ({
+        commanderId,
+        status: !mayDefendAgainst(state.commander(commanderId), attack.defenseApproach)
+            ? CommanderStatus.NamedElsewhere
+            : !picked.includes(commanderId)
+              ? CommanderStatus.NoUnitPicked
+              : state.corpsUnits(commanderId).length === 1
+                ? CommanderStatus.MustDefend
+                : leftOut.includes(commanderId)
+                  ? CommanderStatus.LeftOut
+                  : CommanderStatus.Named
+    }))
+}
+
+export function namedCommanderIds(stage: Pick<DefenceStage, 'commanders'>): string[] {
+    return stage.commanders
+        .filter(
+            (entry) =>
+                entry.status === CommanderStatus.Named ||
+                entry.status === CommanderStatus.MustDefend
+        )
+        .map((entry) => entry.commanderId)
+}
+
+export function nameDefendingCommander(
+    stage: DefenceStage,
+    selections: BattleSelections,
+    commanderId: string,
+    named: boolean
+): BattleSelections {
+    const leftOut = stage.commanders
+        .filter((entry) =>
+            entry.commanderId === commanderId
+                ? !named && isChoosable(entry.status)
+                : entry.status === CommanderStatus.LeftOut
+        )
+        .map((entry) => entry.commanderId)
+    return { ...selections, defence: leaveCommandersOut(selections.defence, leftOut) }
 }
 
 function defenceLeadersStage(
@@ -529,11 +620,13 @@ function advanceStage(
                         !advancing.includes(unit.id)
                 ).length
             const mustGo = unitsStaying === 0
+            const named = state.attack !== undefined && isNamedDefender(state.attack, commander.id)
             return {
                 commanderId: commander.id,
                 unitsStaying,
                 mustGo,
-                goes: mustGo || sent.includes(commander.id)
+                goes: mustGo || (named && sent.includes(commander.id)),
+                named
             }
         })
     return {
@@ -663,19 +756,20 @@ function namedOrNone<
 }
 
 function pickDefender(
+    state: HydratedNapoleonsTriumphGameState,
     stage: DefenceStage,
     selections: BattleSelections,
     unitId: string
 ): BattleSelections {
-    return {
-        ...selections,
-        defence: namedOrNone(
-            defenceSelection,
-            selections.defence,
-            'defenders',
-            toggled(stage.defenders, unitId)
+    const defenders = toggled(stage.defenders, unitId)
+    const stillPicked = corpsCommanderIds(defenders.map((id) => state.unit(id)))
+    const leftOut = stage.commanders
+        .filter(
+            (entry) =>
+                entry.status === CommanderStatus.LeftOut && stillPicked.includes(entry.commanderId)
         )
-    }
+        .map((entry) => entry.commanderId)
+    return { ...selections, defence: nameDefenders(selections.defence, defenders, leftOut) }
 }
 
 function pickDefenceLeader(
@@ -751,7 +845,7 @@ export function pickUnit(
 ): BattleSelections {
     switch (stage.kind) {
         case StageKind.Defence:
-            return pickDefender(stage, selections, unitId)
+            return pickDefender(state, stage, selections, unitId)
         case StageKind.DefenceLeaders:
             return pickDefenceLeader(stage, selections, unitId)
         case StageKind.Retreat:
@@ -927,7 +1021,12 @@ export function sendCommander(
     goes: boolean
 ): BattleSelections {
     const sent = stage.commanders
-        .filter((entry) => !entry.mustGo && (entry.commanderId === commanderId ? goes : entry.goes))
+        .filter(
+            (entry) =>
+                !entry.mustGo &&
+                entry.named &&
+                (entry.commanderId === commanderId ? goes : entry.goes)
+        )
         .map((entry) => entry.commanderId)
     return { ...selections, advance: setCommandersGoing(selections.advance, sent) }
 }

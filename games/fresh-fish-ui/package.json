@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/fresh-fish-ui",
-    "version": "7.21.0",
+    "version": "7.22.0",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",

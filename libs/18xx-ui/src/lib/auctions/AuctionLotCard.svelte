@@ -11,7 +11,7 @@
         price,
         income,
         description = '',
-        token
+        tokens
     }: {
         session: EighteenXXSessionView
         id: string
@@ -19,11 +19,12 @@
         price?: number
         income?: number
         description?: string
-        token?: StationAppearance
+        tokens?: readonly StationAppearance[]
     } = $props()
     const money = $derived(session.presentation.money)
     const imageUrl = $derived(session.publishedCardImage(id))
     const thumbnailUrl = $derived(session.publishedCardImage(id, 'thumbnail'))
+    const plate = $derived(session.publishedCardPlate(id))
     let lightbox = $state(false)
 </script>
 
@@ -42,6 +43,7 @@
         <CardLightbox
             {imageUrl}
             {name}
+            {plate}
             onclose={() => {
                 lightbox = false
             }}
@@ -51,7 +53,7 @@
     <PrivateCard
         {money}
         phaseColors={session.presentation.phaseColors}
-        {token}
+        {tokens}
         {name}
         {description}
         value={price}

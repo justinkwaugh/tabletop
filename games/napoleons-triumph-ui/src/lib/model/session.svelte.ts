@@ -35,6 +35,7 @@ import {
     type EndedAttack,
     type Face,
     type FeintEnd,
+    type HistoryOrder,
     type HydratedNapoleonsTriumphGameState,
     type MoveOrder,
     type NapoleonsTriumphPreferences,
@@ -77,7 +78,7 @@ import {
     type FlagView,
     type PlantedFlag
 } from '$lib/utils/flagLayout.js'
-import { blockOutline, topmostAt } from '$lib/utils/blockShape.js'
+import { blockOutline } from '$lib/utils/blockShape.js'
 import {
     approachPlates,
     plateOutlines,
@@ -97,12 +98,16 @@ import {
 import { THREAT_ARROW, arrowOutlines, attackMarkerScale } from '$lib/utils/attackMarker.js'
 import type { ConvexOutline } from '$lib/utils/convexOutline.js'
 import { boxSamples, cornersOf } from '$lib/utils/orientedBox.js'
+import { TURN_TITLES } from '$lib/utils/turnTitles.js'
 import {
     heldApproaches,
-    layoutPieces,
+    layoutGroups,
+    pieceGroups,
     type GroupSprite,
     type HeldApproach,
-    type PieceGroup
+    type LayoutOptions,
+    type PieceGroup,
+    type PlacedGroup
 } from '$lib/utils/pieceLayout.js'
 import { showsArmyOf } from './armyInView.js'
 import {
@@ -133,6 +138,9 @@ import {
     committedRoles,
     rolesShown,
     sendCommander,
+    CommanderStatus,
+    namedCommanderIds,
+    nameDefendingCommander,
     sendRetreatTo,
     type BattleRole,
     type BattleStage
@@ -160,6 +168,7 @@ import {
     setDestination,
     setRide,
     setAim,
+    withoutAim,
     setPickedUp,
     guardUnitOf,
     setGuardUnit,
@@ -395,20 +404,32 @@ export class NapoleonsTriumphGameSession extends GameSession<
         )?.position?.locale
     })
 
-    sprites: GroupSprite[] = $derived(
-        layoutPieces(this.arrayedArmy ?? this.gameState, {
-            rotation: this.boardRotation,
-            readBy: this.myPlayerId,
-            singledOut: [...committedUnits(this.attack), ...knownToTheEnemy(this.gameState.units)],
-            looseLocales: [
-                ...this.battleLocales,
-                ...[
-                    this.spreadLocale,
-                    this.pickedUpLocale,
-                    this.aimedLocale,
-                    this.threatLocale
-                ].filter((locale) => locale !== undefined)
-            ]
+    private layoutOptions: LayoutOptions = $derived({
+        rotation: this.boardRotation,
+        readBy: this.myPlayerId,
+        singledOut: [...committedUnits(this.attack), ...knownToTheEnemy(this.gameState.units)],
+        looseLocales: [
+            ...this.battleLocales,
+            ...[this.spreadLocale, this.pickedUpLocale, this.aimedLocale, this.threatLocale].filter(
+                (locale) => locale !== undefined
+            )
+        ]
+    })
+
+    private standingGroups: PlacedGroup[] = $derived(
+        pieceGroups(this.arrayedArmy ?? this.gameState, this.layoutOptions)
+    )
+
+    private offeredApproaches: number[] = $derived.by(() =>
+        this.targets.flatMap((target) =>
+            target.kind === TargetKind.Approach ? [target.position.approach] : []
+        )
+    )
+
+    sprites: GroupSprite[] = $derived.by(() =>
+        layoutGroups(this.standingGroups, {
+            ...this.layoutOptions,
+            offeredApproaches: this.offeredApproaches
         })
     )
 
@@ -583,17 +604,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     chapters: HistoryChapter[] = $derived(
-        historyChapters(
-            this.actions,
-            this.gameState.rounds.series,
-            this.gameState.scenario,
-            (action) => describeAction(action, this.gameState)
-        )
+        historyChapters(this.actions, {
+            rounds: this.gameState.rounds.series,
+            turns: this.gameState.turnManager.series,
+            scenario: this.gameState.scenario,
+            describe: (action) => describeAction(action, this.gameState),
+            turnTitle: (playerId) => TURN_TITLES[this.gameState.sideOf(playerId)]
+        })
     )
 
     private picturedLines: { line: HistoryLine; time: string }[] = $derived(
         this.chapters.flatMap((chapter) =>
-            chapter.entries
+            chapter.turns
+                .flatMap((turn) => turn.entries)
                 .flatMap((entry) => [entry, ...entry.steps])
                 .filter((line) => line.pictured)
                 .map((line) => ({ line, time: chapter.title }))
@@ -626,6 +649,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     actionPanelFolded = $derived(this.preferences.values.actionPanelFolded)
+
+    historyOrder: HistoryOrder = $derived(this.preferences.values.historyOrder)
 
     battlePanelFoldable: boolean = $derived(foldsAway(this.battleStage))
 
@@ -688,15 +713,13 @@ export class NapoleonsTriumphGameSession extends GameSession<
     private riderIds: string[] = $derived(this.openRoadMarch?.unitIds ?? [])
 
     private marchGroupKey: string | undefined = $derived(
-        this.sprites.find((sprite) =>
-            sprite.group.units.some((unit) => this.riderIds.includes(unit.id))
-        )?.group.key
+        this.standingGroups.find((group) =>
+            group.units.some((unit) => this.riderIds.includes(unit.id))
+        )?.key
     )
 
     selectedGroupKey = $derived(
-        this.isCommanding && this.aimedLocale === undefined
-            ? (pickedUpOf(this.selection)?.groupKey ?? this.marchGroupKey)
-            : undefined
+        this.isCommanding ? (pickedUpOf(this.selection)?.groupKey ?? this.marchGroupKey) : undefined
     )
 
     reinforcements: Reinforcement[] = $derived(
@@ -719,7 +742,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     selectedGroup: PieceGroup | undefined = $derived(
-        this.selectedSprite?.group ??
+        this.standingGroups.find((group) => group.key === this.selectedGroupKey) ??
             this.reinforcements.find((candidate) => candidate.key === this.selectedGroupKey)
     )
 
@@ -791,9 +814,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     commandChoice: CommandChoice | undefined = $derived.by(() => {
         const chosen = chosenCommandOf(this.selection)
-        return chosen !== undefined && this.commandChoices.includes(chosen)
-            ? chosen
-            : this.commandOptions[0]
+        if (chosen !== undefined && this.commandChoices.includes(chosen)) {
+            return chosen
+        }
+        // Riding on takes no command, though the rider may be offered Attach.
+        return this.ridingOn ? undefined : this.commandChoices[0]
     })
 
     attaching = $derived(this.commandChoice === ATTACH)
@@ -1023,7 +1048,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     mayChooseUnit(unit: ProjectedUnit): boolean {
-        return this.ridesAlone(unit) ? !this.ridingOn : canStillMove(this.gameState, unit)
+        return this.ridesAlone(unit) ? !this.ridingOn : this.mayStillCommand(unit)
+    }
+
+    // Rule 9: Attach moves nothing, so a unit that has already moved may still be attached.
+    private mayStillCommand(unit: ProjectedUnit): boolean {
+        return canStillMove(this.gameState, unit) || this.attachOptions(unit).length > 0
     }
 
     selectReinforcement(reinforcement: Reinforcement) {
@@ -1105,7 +1135,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (!this.mayAimAt(locale)) {
             return
         }
-        this.stageCommand(locale === this.aimedLocale ? noCommandSelection() : setAim(locale))
+        this.stageCommand(
+            locale === this.aimedLocale
+                ? withoutAim(this.selection)
+                : setAim(this.selection, locale)
+        )
     }
 
     async chooseTarget(target: MoveTarget) {
@@ -1147,16 +1181,6 @@ export class NapoleonsTriumphGameSession extends GameSession<
             return
         }
         await this.move(order, target.position, way)
-    }
-
-    async tapThreatArrow(target: AttackTarget, at: Point) {
-        const sprite = this.selectedSprite
-        const under = sprite ? topmostAt(sprite.blocks, at) : undefined
-        if (sprite && under && this.mayChooseUnit(under.unit)) {
-            this.tapBlock(sprite.group, under.unit.id)
-        } else {
-            await this.chooseTarget(target)
-        }
     }
 
     async attach(commanderId: string, unitId: string) {
@@ -1316,6 +1340,20 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
+    nameDefendingCommander(commanderId: string, named: boolean) {
+        const stage = this.battleStage
+        if (
+            stage?.kind === StageKind.Defence &&
+            stage.commanders.some(
+                (entry) =>
+                    entry.commanderId === commanderId &&
+                    entry.status === (named ? CommanderStatus.LeftOut : CommanderStatus.Named)
+            )
+        ) {
+            this.stageBattle(nameDefendingCommander(stage, this.battle, commanderId, named))
+        }
+    }
+
     sendCommanderForward(commanderId: string, goes: boolean) {
         const stage = this.battleStage
         if (
@@ -1333,7 +1371,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (stage?.kind === StageKind.Defence && stage.defenders.length > 0 && !stage.problem) {
             await this.applyAction(
                 this.createPlayerAction(DeclareDefense, {
-                    unitIds: inGameOrder(this.gameState.units, stage.defenders)
+                    unitIds: inGameOrder(this.gameState.units, stage.defenders),
+                    commanderIds: namedCommanderIds(stage)
                 })
             )
         }
@@ -1530,6 +1569,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.preferences.set({ actionPanelFolded })
     }
 
+    setHistoryOrder(historyOrder: HistoryOrder) {
+        this.preferences.set({ historyOrder })
+    }
+
     async visitMoveReplay() {
         const replay = this.moveReplay
         this.openedReplay = undefined
@@ -1589,17 +1632,21 @@ export class NapoleonsTriumphGameSession extends GameSession<
             .map((unit) => unit.id)
     }
 
+    private choosableIds(group: PieceGroup): string[] {
+        return group.units.filter((unit) => this.mayStillCommand(unit)).map((unit) => unit.id)
+    }
+
     private ridesAlone(unit: ProjectedUnit): boolean {
         return this.riderIds.includes(unit.id) && unit.commanderId === undefined
     }
 
     private startingUnits(group: PieceGroup): string[] {
-        return unitsPickedUpWith(
-            pickedUpOf(this.selection),
-            this.commandableIds(group),
-            group.commander !== undefined,
-            group.key === this.marchGroupKey ? this.riderIds : []
-        )
+        return unitsPickedUpWith(pickedUpOf(this.selection), {
+            movableIds: this.commandableIds(group),
+            choosableIds: this.choosableIds(group),
+            riderIds: group.key === this.marchGroupKey ? this.riderIds : [],
+            isCorps: group.commander !== undefined
+        })
     }
 
     private async takeStepOfTheWay(step: WayTarget) {

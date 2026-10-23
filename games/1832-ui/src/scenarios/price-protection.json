@@ -1,0 +1,871 @@
+{
+ "game": {
+  "id": "scenario-price-protection",
+  "isPublic": false,
+  "status": "waitingForPlayers",
+  "typeId": "1832",
+  "deleted": false,
+  "name": "Price protection",
+  "ownerId": "user",
+  "players": [
+   {
+    "id": "alex",
+    "name": "alex",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "blair",
+    "name": "blair",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "casey",
+    "name": "casey",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "examplePosition": "trading"
+  },
+  "hotseat": true,
+  "winningPlayerIds": [],
+  "seed": 5,
+  "activePlayerIds": [
+   "blair"
+  ],
+  "createdAt": "2026-10-22T20:38:54.389Z",
+  "storage": "local",
+  "category": "standard"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "NH-4A49BNqSVcUYjHDEgu",
+  "gameId": "scenario-price-protection",
+  "seed": 5,
+  "prng": {
+   "seed": 5,
+   "invocations": 35
+  },
+  "protectedPrng": {
+   "seed": 3342571841,
+   "invocations": 0
+  },
+  "activePlayerIds": [
+   "blair"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 3,
+  "actionChecksum": -1710789175,
+  "players": [
+   {
+    "playerId": "alex",
+    "color": "blue"
+   },
+   {
+    "playerId": "blair",
+    "color": "red"
+   },
+   {
+    "playerId": "casey",
+    "color": "green"
+   }
+  ],
+  "phaseEvents": [],
+  "usedPrivatePowerIds": [],
+  "machineState": "ProtectingPrice",
+  "stockRound": {
+   "number": 2,
+   "completed": false,
+   "passedPlayerIds": [],
+   "turn": {
+    "acted": false,
+    "bought": false,
+    "soldBeforeBuying": false,
+    "companiesSold": []
+   },
+   "sales": [
+    {
+     "owner": {
+      "kind": "player",
+      "playerId": "alex"
+     },
+     "companyId": "CG"
+    }
+   ],
+   "companyPurchases": []
+  },
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "alex",
+     "start": 0,
+     "end": 2
+    },
+    {
+     "type": "turn",
+     "playerId": "blair",
+     "start": 2
+    }
+   ],
+   "turnOrder": [
+    "alex",
+    "blair",
+    "casey"
+   ],
+   "turnCounts": {
+    "alex": 1,
+    "blair": 0,
+    "casey": 0
+   }
+  },
+  "bank": {},
+  "companies": [
+   {
+    "id": "ACL",
+    "kind": "major",
+    "parPrice": 90,
+    "started": true,
+    "funded": true,
+    "operated": true,
+    "floated": true,
+    "president": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "CG",
+    "kind": "major",
+    "parPrice": 100,
+    "started": true,
+    "funded": true,
+    "operated": true,
+    "floated": true,
+    "president": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "P2",
+    "kind": "private"
+   },
+   {
+    "id": "P5",
+    "kind": "private"
+   }
+  ],
+  "certificatePools": [
+   {
+    "id": "initial-offering",
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "open-market",
+    "owner": {
+     "kind": "bank"
+    }
+   }
+  ],
+  "cash": [
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    },
+    "amount": 800
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    },
+    "amount": 450
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "casey"
+    },
+    "amount": 700
+   },
+   {
+    "owner": {
+     "kind": "bank"
+    },
+    "amount": 8850
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "ACL"
+    },
+    "amount": 600
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "CG"
+    },
+    "amount": 600
+   }
+  ],
+  "certificates": [
+   {
+    "id": "ACL:president",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "ACL:share:1",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "ACL:share:2",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "ACL:share:3",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "casey"
+    }
+   },
+   {
+    "id": "ACL:share:4",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "open-market"
+   },
+   {
+    "id": "ACL:share:5",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ACL:share:6",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ACL:share:7",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ACL:share:8",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CG:president",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "CG:share:1",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "CG:share:2",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "open-market"
+   },
+   {
+    "id": "CG:share:3",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "open-market"
+   },
+   {
+    "id": "CG:share:4",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "CG:share:5",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CG:share:6",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CG:share:7",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CG:share:8",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "P2:charter",
+    "companyId": "P2",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "casey"
+    }
+   },
+   {
+    "id": "P5:charter",
+    "companyId": "P5",
+    "kind": "private",
+    "owner": {
+     "kind": "company",
+     "companyId": "CG"
+    }
+   }
+  ],
+  "trainInventory": {
+   "trains": [
+    {
+     "id": "1832/2/1",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1832/2/2",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1832/2/3",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1832/2/4",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1832/2/5",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1832/2/6",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1832/2/7",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1832/3/8",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1832/3/9",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1832/3/10",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1832/3/11",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1832/3/12",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1832/3/13",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1832/4/14",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1832/4/15",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1832/4/16",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1832/4/17",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1832/5/18",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1832/5/19",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1832/5/20",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1832/6/21",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1832/6/22",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1832/6/23",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1832/8/24",
+     "definitionId": "8",
+     "status": "depot"
+    },
+    {
+     "id": "1832/8/25",
+     "definitionId": "8",
+     "status": "depot"
+    },
+    {
+     "id": "1832/8/26",
+     "definitionId": "8",
+     "status": "depot"
+    },
+    {
+     "id": "1832/10/27",
+     "definitionId": "10",
+     "status": "depot"
+    },
+    {
+     "id": "1832/10/28",
+     "definitionId": "10",
+     "status": "depot"
+    }
+   ],
+   "nextTrainNumber": 29
+  },
+  "phaseId": "2",
+  "stations": [
+   {
+    "id": "ACL:home",
+    "companyId": "ACL",
+    "status": "placed",
+    "position": {
+     "locationId": "T29",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "CG:home",
+    "companyId": "CG",
+    "status": "placed",
+    "position": {
+     "locationId": "U28",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "ACL:station:1",
+    "companyId": "ACL",
+    "status": "available"
+   },
+   {
+    "id": "ACL:station:2",
+    "companyId": "ACL",
+    "status": "available"
+   },
+   {
+    "id": "CG:station:1",
+    "companyId": "CG",
+    "status": "available"
+   },
+   {
+    "id": "CG:station:2",
+    "companyId": "CG",
+    "status": "available"
+   }
+  ],
+  "stationReservations": [],
+  "tileInventory": {
+   "placements": {},
+   "retiredPieceIds": []
+  },
+  "stockMarket": {
+   "stacks": [
+    {
+     "spaceId": "1:6",
+     "companyIds": [
+      "ACL"
+     ]
+    },
+    {
+     "spaceId": "0:6",
+     "companyIds": [
+      "CG"
+     ]
+    }
+   ]
+  },
+  "variants": {},
+  "systems": {},
+  "takeoverBuyerIds": [],
+  "coalRights": [],
+  "revenueTokens": [],
+  "companyStarts": {},
+  "priceProtection": {
+   "sellerPlayerId": "alex",
+   "sales": [
+    {
+     "companyId": "CG",
+     "shares": 2,
+     "proceeds": 200,
+     "certificateIds": [
+      "CG:share:2",
+      "CG:share:3"
+     ],
+     "fromMarketSpaceId": "0:6",
+     "blocks": [
+      2
+     ]
+    }
+   ],
+   "resume": {
+    "machineState": "StockRound"
+   }
+  }
+ },
+ "actions": [
+  {
+   "id": "price-protection-0",
+   "gameId": "scenario-price-protection",
+   "source": "user",
+   "playerId": "alex",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "alex"
+   },
+   "sales": [
+    {
+     "companyId": "CG",
+     "shares": 2
+    }
+   ],
+   "expectedProceeds": 200,
+   "createdAt": "2026-10-22T20:38:54.400Z",
+   "metadata": {
+    "seller": {
+     "kind": "player",
+     "playerId": "alex"
+    },
+    "sales": [
+     {
+      "companyId": "CG",
+      "shares": 2,
+      "certificateIds": [
+       "CG:share:2",
+       "CG:share:3"
+      ],
+      "destinationPoolId": "open-market",
+      "price": 100,
+      "proceeds": 200,
+      "fromMarketSpaceId": "0:6",
+      "fromStackIndex": 0,
+      "toMarketSpaceId": "0:6"
+     }
+    ],
+    "payments": [
+     {
+      "from": {
+       "kind": "bank"
+      },
+      "to": {
+       "kind": "player",
+       "playerId": "alex"
+      },
+      "amount": 200
+     }
+    ],
+    "proceeds": 200
+   },
+   "index": 0,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 0
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 0
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/turn/companiesSold/0"
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/sales/0"
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 600
+    },
+    {
+     "op": "replace",
+     "path": "/cash/3/amount",
+     "value": 9050
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/11/owner/kind",
+     "value": "player"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/11/owner/playerId",
+     "value": "alex"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/11/poolId"
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/12/owner/kind",
+     "value": "player"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/12/owner/playerId",
+     "value": "alex"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/12/poolId"
+    },
+    {
+     "op": "remove",
+     "path": "/priceProtection"
+    }
+   ]
+  },
+  {
+   "id": "price-protection-1",
+   "gameId": "scenario-price-protection",
+   "source": "user",
+   "playerId": "alex",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-10-22T20:38:54.405Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 1,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 0
+    },
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "alex"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 1
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -807881182
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/turn/companiesSold/0",
+     "value": "CG"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/0/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/1"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/alex",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "RpfOxPDgGCTQlHVHGvocG",
+   "gameId": "scenario-price-protection",
+   "source": "system",
+   "type": "StartPriceProtection",
+   "createdAt": "2026-10-22T20:38:54.405Z",
+   "metadata": {
+    "protectable": true
+   },
+   "index": 2,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 2
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 63611362
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "StockRound"
+    },
+    {
+     "op": "remove",
+     "path": "/priceProtection/resume"
+    }
+   ]
+  }
+ ]
+}

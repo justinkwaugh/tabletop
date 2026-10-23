@@ -1,11 +1,18 @@
 <script lang="ts">
-    import { getCompany, type CertificatePool } from '@tabletop/18xx'
+    import {
+        ignorableStop,
+        type CertificatePool,
+        type IgnorableStockInstructionStop
+    } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
+        ignorableStopNoun,
+        ignoredStopsText,
         stockInstructionKindLabel,
         stockInstructionText,
         stopReasonText
     } from './stockInstructionText.js'
+    import StopConditions, { type StopChoice } from './StopConditions.svelte'
     import { popoverAbove } from '../presentation/popoverPlacement.js'
     import { shareGoalWithin } from '../session/stockInstructionModule.svelte.js'
     import SlidingToggle from '../table/SlidingToggle.svelte'
@@ -27,24 +34,50 @@
     const disabled = $derived(session.busy || session.isViewingHistory || !instructions.canDeclare)
     type InstructionDraft = {
         playerId: string | undefined
+        stockRoundNumber: number
         mode?: 'pass' | 'buy'
         companyId?: string
         poolId?: string
         goal: 'floated' | 'shares'
         shareCount: number
         thenPass: boolean
+        ignoredStops: IgnorableStockInstructionStop[]
     }
     const playerId = $derived(session.myPlayer?.id)
+    const stockRoundNumber = $derived(gameState.stockRound.number)
     let draft = $derived<InstructionDraft>({
         playerId,
+        stockRoundNumber,
         goal: 'floated',
         shareCount: 2,
-        thenPass: false
+        thenPass: false,
+        ignoredStops: []
     })
-    function updateDraft(change: Partial<Omit<InstructionDraft, 'playerId'>>) {
+    function updateDraft(change: Partial<Omit<InstructionDraft, 'playerId' | 'stockRoundNumber'>>) {
         draft = { ...draft, ...change }
     }
+    function toggleMode(next: 'pass' | 'buy') {
+        updateDraft({ mode: draft.mode === next ? undefined : next, ignoredStops: [] })
+    }
     const mode = $derived(instructions.mine?.instruction.kind ?? draft.mode)
+    const stopChoice = $derived.by((): StopChoice | undefined => {
+        if (instructions.mine)
+            return {
+                intro: `This ${stockInstructionKindLabel(instructions.mine.instruction.kind)} stops on its own when:`,
+                ignoredStops: instructions.mine.instruction.ignoredStops ?? [],
+                change: (ignoredStops) => void instructions.setIgnoredStops(ignoredStops)
+            }
+        if (!mode) return undefined
+        return {
+            intro: `This ${stockInstructionKindLabel(mode)} will stop on its own when:`,
+            ignoredStops: draft.ignoredStops,
+            change: (ignoredStops) => updateDraft({ ignoredStops })
+        }
+    })
+    const warningStop = $derived(instructions.warning && ignorableStop(instructions.warning))
+    const resumableStop = $derived(
+        instructions.lastStop && ignorableStop(instructions.lastStop.stopReason)
+    )
     const modeIndex = $derived(mode === 'pass' ? 0 : mode === 'buy' ? 1 : -1)
     const choice = $derived(
         instructions.buyChoices.find((choice) => choice.company.id === draft.companyId)
@@ -84,20 +117,26 @@
         shareRange ? shareGoalWithin(shareRange, draft.shareCount) : draft.shareCount
     )
     function enable() {
+        const { ignoredStops } = draft
         if (mode === 'pass') {
-            updateDraft({ mode: undefined })
-            void instructions.declarePass()
+            updateDraft({ mode: undefined, ignoredStops: [] })
+            void instructions.declarePass(ignoredStops)
             return
         }
         if (!choice || !pool) return
-        updateDraft({ mode: undefined })
-        void instructions.declareBuy({
-            companyId: choice.company.id,
-            preferredPoolId: pool.id,
-            until:
-                goalKind === 'floated' ? { kind: 'floated' } : { kind: 'shares', count: shareGoal },
-            thenPass: draft.thenPass
-        })
+        updateDraft({ mode: undefined, ignoredStops: [] })
+        void instructions.declareBuy(
+            {
+                companyId: choice.company.id,
+                preferredPoolId: pool.id,
+                until:
+                    goalKind === 'floated'
+                        ? { kind: 'floated' }
+                        : { kind: 'shares', count: shareGoal },
+                thenPass: draft.thenPass
+            },
+            ignoredStops
+        )
     }
 </script>
 
@@ -109,24 +148,23 @@
                     <button
                         disabled={disabled || !!instructions.mine}
                         aria-pressed={mode === 'pass'}
-                        onclick={() =>
-                            updateDraft({ mode: draft.mode === 'pass' ? undefined : 'pass' })}
-                        >Autopass</button
+                        onclick={() => toggleMode('pass')}>Autopass</button
                     >
                     <button
                         disabled={disabled ||
                             !!instructions.mine ||
                             instructions.buyChoices.length === 0}
                         aria-pressed={mode === 'buy'}
-                        onclick={() =>
-                            updateDraft({ mode: draft.mode === 'buy' ? undefined : 'buy' })}
-                        >Autobuy</button
+                        onclick={() => toggleMode('buy')}>Autobuy</button
                     >
                 </SlidingToggle>
             </div>
             {#if instructions.mine}
+                {@const ignored = ignoredStopsText(instructions.mine.instruction.ignoredStops)}
                 <span class="summary"
-                    >{stockInstructionText(instructions.mine.instruction, names)}</span
+                    >{stockInstructionText(instructions.mine.instruction, names)}{#if ignored}<span
+                            class="ignored">{` · ${ignored}`}</span
+                        >{/if}</span
                 >
                 {#if instructions.warning}<span class="warning" role="status"
                         >Stops next turn: {stopReasonText(
@@ -134,18 +172,27 @@
                             names,
                             session.presentation.instructionStopText
                         )}</span
-                    >{/if}
+                    >{#if warningStop}<button
+                            class="link"
+                            {disabled}
+                            onclick={() => instructions.ignoreWarning()}>Ignore</button
+                        >{/if}{/if}
                 <button class="commit muted" {disabled} onclick={() => instructions.clear()}
                     >Cancel</button
                 >
             {:else if mode === undefined && instructions.lastStop}
                 <span class="connector" aria-hidden="true">›</span>
                 <span class="tray notice" role="status"
-                    >{stockInstructionKindLabel(instructions.lastStop.kind)} stopped: {stopReasonText(
-                        instructions.lastStop.reason,
+                    >{stockInstructionKindLabel(instructions.lastStop.instruction.kind)} stopped: {stopReasonText(
+                        instructions.lastStop.stopReason,
                         names,
                         session.presentation.instructionStopText
-                    )}</span
+                    )}{#if resumableStop}<button
+                            class="link"
+                            {disabled}
+                            onclick={() => instructions.keepGoing()}
+                            >Keep going, ignore {ignorableStopNoun[resumableStop]}</button
+                        >{/if}</span
                 >
             {:else if mode === 'pass'}
                 <button class="commit" {disabled} onclick={enable}>Enable</button>
@@ -286,18 +333,7 @@
                 style:bottom={`${helpBounds.bottom}px`}
                 style:width={`min(${HelpPanelWidth}px, calc(100vw - 16px))`}
             >
-                <p>
-                    A standing instruction acts for you on each of your stock turns. It ends with
-                    the stock round, and it stops on its own when:
-                </p>
-                <ul>
-                    <li>you must sell shares to meet a limit</li>
-                    <li>a company has been started</li>
-                    <li>a company changed president, other than to you</li>
-                    <li>shares of any company were sold to the bank</li>
-                    <li>a rival gained shares in a company you preside over without a majority</li>
-                    <li>it is no longer possible to meet your Autobuy goal</li>
-                </ul>
+                <StopConditions choice={stopChoice} {disabled} />
             </div>
         </div>
     </footer>
@@ -338,6 +374,18 @@
     }
     .warning {
         color: var(--rail-negative, #d0655c);
+    }
+    .ignored {
+        color: var(--rail-muted, #7f8e9e);
+    }
+    .link {
+        padding: 0;
+        color: var(--rail-text, #e3e9ef);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+    .notice .link {
+        margin-left: 6px;
     }
     button {
         font: inherit;
@@ -406,31 +454,6 @@
         box-shadow: 0 6px 18px var(--rail-shadow, #00000066);
         font-size: 12px;
         line-height: 1.4;
-    }
-    .help-panel p {
-        margin: 0 0 6px;
-    }
-    .help-panel ul {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-    }
-    .help-panel li {
-        position: relative;
-        padding-left: 16px;
-    }
-    .help-panel li + li {
-        margin-top: 4px;
-    }
-    .help-panel li::before {
-        content: '';
-        position: absolute;
-        left: 3px;
-        top: 0.55em;
-        width: 5px;
-        height: 5px;
-        border-radius: 999px;
-        background: var(--rail-positive, #2e7d5b);
     }
     .pool-name {
         line-height: 22px;

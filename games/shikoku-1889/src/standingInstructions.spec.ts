@@ -8,10 +8,13 @@ import {
     isStopStockInstruction,
     sharesOwned,
     standingStockInstructionFor,
+    stockPositionChange,
+    stoppedStockInstructionFor,
+    type EighteenXXState,
     type SellShares
 } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
-import { finishTurn, setInstruction } from '@tabletop/18xx/testing'
+import { finishTurn, setInstruction, setInstructionStops } from '@tabletop/18xx/testing'
 import { Definition as Shikoku, Shikoku1889StockRules } from './index.js'
 import { Shikoku1889Scenarios } from './scenarios/index.js'
 
@@ -145,6 +148,10 @@ describe('Standing stock instructions', () => {
             companyId: 'AR'
         })
         expect(standingStockInstructionFor(finished.updatedState, 'blair')).toBeUndefined()
+        expect(stoppedStockInstructionFor(finished.updatedState, 'blair')?.stopReason).toEqual({
+            code: 'shares-sold',
+            companyId: 'AR'
+        })
         expect(currentPlayerId(finished.updatedState)).toBe('blair')
     })
 
@@ -431,4 +438,270 @@ it('lets a player change an instruction that has already acted by declaring afre
         kind: 'pass'
     })
     expect(sharesOwned(changed.updatedState, 'IR', blair)).toBe(sharesOwned(state, 'IR', blair) + 1)
+})
+
+describe('Ignored stops', () => {
+    function alexSellsAR(example: ReturnType<typeof exampleGame>, state: EighteenXXState) {
+        const alex = { kind: 'player', playerId: 'alex' } as const
+        const sales = [{ companyId: 'AR', shares: 1 }]
+        const terms = evaluateShareSale(
+            state,
+            { playerId: 'alex', seller: alex, sales },
+            Shikoku1889StockRules
+        )
+        return example.engine.executeCanonicalAction({
+            game: example.game,
+            state,
+            action: {
+                id: 'alex-sells',
+                gameId: example.game.id,
+                source: ActionSource.User,
+                type: 'SellShares',
+                playerId: 'alex',
+                seller: alex,
+                sales,
+                expectedProceeds: terms.details!.proceeds
+            }
+        }).updatedState
+    }
+
+    it('keeps passing through a sale the player chose to ignore', () => {
+        const example = exampleGame(Shikoku1889Scenarios, 'trading')
+        const { game, engine, state } = example
+        const declared = engine.executeCanonicalAction({
+            game,
+            state,
+            action: setInstruction(game.id, 'blair', {
+                kind: 'pass',
+                ignoredStops: ['shares-sold']
+            })
+        })
+        const sold = alexSellsAR(example, declared.updatedState)
+        const finished = engine.executeCanonicalAction({
+            game,
+            state: sold,
+            action: finishTurn(game.id, 'alex')
+        })
+        expect(summarize(finished.processedActions)).toEqual([
+            'user:FinishStockTurn:alex',
+            'system:FinishStockTurn:blair'
+        ])
+    })
+
+    it('changes the stops of a running instruction without forgetting earlier changes', () => {
+        const example = exampleGame(Shikoku1889Scenarios, 'trading')
+        const { game, engine, state } = example
+        const declared = engine.executeCanonicalAction({
+            game,
+            state,
+            action: setInstruction(game.id, 'blair', { kind: 'pass' })
+        })
+        const sold = alexSellsAR(example, declared.updatedState)
+        const blairInstruction = (current: EighteenXXState) =>
+            standingStockInstructionFor(current, 'blair')!
+        expect(stockPositionChange(sold, blairInstruction(sold), Shikoku1889StockRules)).toEqual({
+            code: 'shares-sold',
+            companyId: 'AR'
+        })
+        expect(engine.getValidActionTypesForPlayer(game, sold, 'blair')).toContain(
+            'SetStockInstructionStops'
+        )
+
+        const ignoring = engine.executeCanonicalAction({
+            game,
+            state: sold,
+            action: setInstructionStops(game.id, 'blair', ['shares-sold'])
+        })
+        const ignored = blairInstruction(ignoring.updatedState)
+        expect(ignored.instruction).toEqual({ kind: 'pass', ignoredStops: ['shares-sold'] })
+        expect(ignored.snapshot).toEqual(blairInstruction(sold).snapshot)
+        expect(
+            stockPositionChange(ignoring.updatedState, ignored, Shikoku1889StockRules)
+        ).toBeUndefined()
+
+        const watchingAgain = {
+            ...setInstructionStops(game.id, 'blair', []),
+            supersedesActionId: ignoring.processedActions[0].id
+        }
+        const replaced = replaceSupersededAction({
+            engine,
+            apiActions: Shikoku.runtime.apiActions,
+            game,
+            state: ignoring.updatedState,
+            window: ignoring.processedActions,
+            replacement: watchingAgain
+        })
+        expect(replaced.kind).toBe('replace')
+        const watching = engine.executeCanonicalAction({
+            game,
+            state: ignoring.updatedState,
+            action: watchingAgain
+        }).updatedState
+        expect(blairInstruction(watching).instruction).toEqual({ kind: 'pass' })
+        expect(
+            stockPositionChange(watching, blairInstruction(watching), Shikoku1889StockRules)
+        ).toEqual({ code: 'shares-sold', companyId: 'AR' })
+    })
+
+    it('carries ignored stops into the pass that follows an Autobuy goal', () => {
+        const { game, engine, state } = exampleGame(Shikoku1889Scenarios, 'trading')
+        const blair = { kind: 'player', playerId: 'blair' } as const
+        const declared = engine.executeCanonicalAction({
+            game,
+            state,
+            action: setInstruction(game.id, 'blair', {
+                kind: 'buy',
+                companyId: 'IR',
+                preferredPoolId: 'initial-offering',
+                until: { kind: 'shares', count: sharesOwned(state, 'IR', blair) + 1 },
+                thenPass: true,
+                ignoredStops: ['company-started', 'shares-sold']
+            })
+        })
+        const finished = engine.executeCanonicalAction({
+            game,
+            state: declared.updatedState,
+            action: finishTurn(game.id, 'alex')
+        })
+        const stop = finished.processedActions[2]
+        expect(isStopStockInstruction(stop) && stop.replacement).toEqual({
+            kind: 'pass',
+            ignoredStops: ['company-started', 'shares-sold']
+        })
+    })
+
+    it('has no stops to change without a standing instruction', () => {
+        const { game, engine, state } = exampleGame(Shikoku1889Scenarios, 'trading')
+        expect(engine.getValidActionTypesForPlayer(game, state, 'blair')).not.toContain(
+            'SetStockInstructionStops'
+        )
+        expect(() =>
+            engine.executeCanonicalAction({
+                game,
+                state,
+                action: setInstructionStops(game.id, 'blair', ['shares-sold'])
+            })
+        ).toThrow()
+    })
+
+    it('resumes a stopped instruction with the stop ignored and still reports the next change', () => {
+        const example = exampleGame(Shikoku1889Scenarios, 'trading')
+        const { game, engine, state } = example
+        const alex = { kind: 'player', playerId: 'alex' } as const
+        const declared = engine.executeCanonicalAction({
+            game,
+            state,
+            action: setInstruction(game.id, 'blair', { kind: 'pass' })
+        })
+        const purchase = evaluateSharePurchase(
+            declared.updatedState,
+            { playerId: 'alex', buyer: alex, certificateId: 'IR:share:5' },
+            Shikoku1889StockRules
+        )
+        const bought = engine.executeCanonicalAction({
+            game,
+            state: declared.updatedState,
+            action: {
+                id: 'alex-buys',
+                gameId: game.id,
+                source: ActionSource.User,
+                type: 'BuyShares',
+                playerId: 'alex',
+                buyer: alex,
+                certificateId: 'IR:share:5',
+                expectedPrice: purchase.details!.price
+            }
+        })
+        const sold = alexSellsAR(example, bought.updatedState)
+        const finished = engine.executeCanonicalAction({
+            game,
+            state: sold,
+            action: finishTurn(game.id, 'alex')
+        })
+        const firstStop = finished.processedActions.at(-1)!
+        expect(isStopStockInstruction(firstStop) && firstStop.reason).toEqual({
+            code: 'shares-sold',
+            companyId: 'AR'
+        })
+
+        const resumed = engine.executeCanonicalAction({
+            game,
+            state: finished.updatedState,
+            action: setInstructionStops(game.id, 'blair', ['shares-sold'])
+        })
+        expect(summarize(resumed.processedActions)).toEqual([
+            'user:SetStockInstructionStops:blair',
+            'system:StopStockInstruction:blair'
+        ])
+        expect(stoppedStockInstructionFor(resumed.updatedState, 'blair')).toMatchObject({
+            instruction: { kind: 'pass', ignoredStops: ['shares-sold'] },
+            stopReason: { code: 'president-changed', companyId: 'IR' }
+        })
+    })
+
+    it('replaces an instruction whose stops changed by declaring afresh', () => {
+        const { game, engine, state } = exampleGame(Shikoku1889Scenarios, 'trading')
+        const declared = engine.executeCanonicalAction({
+            game,
+            state,
+            action: setInstruction(game.id, 'blair', { kind: 'pass' })
+        })
+        const ignoring = engine.executeCanonicalAction({
+            game,
+            state: declared.updatedState,
+            action: setInstructionStops(game.id, 'blair', ['shares-sold'])
+        })
+        const clear = {
+            ...setInstruction(game.id, 'blair'),
+            supersedesActionId: declared.processedActions[0].id
+        }
+        expect(
+            replaceSupersededAction({
+                engine,
+                apiActions: Shikoku.runtime.apiActions,
+                game,
+                state: ignoring.updatedState,
+                window: [...declared.processedActions, ...ignoring.processedActions],
+                replacement: clear
+            }).kind
+        ).toBe('invalid')
+        const cleared = engine.executeCanonicalAction({
+            game,
+            state: ignoring.updatedState,
+            action: setInstruction(game.id, 'blair')
+        })
+        expect(standingStockInstructionFor(cleared.updatedState, 'blair')).toBeUndefined()
+        const redeclared = engine.executeCanonicalAction({
+            game,
+            state: cleared.updatedState,
+            action: { ...setInstruction(game.id, 'blair', { kind: 'pass' }), id: 'blair-again' }
+        })
+        expect(standingStockInstructionFor(redeclared.updatedState, 'blair')?.instruction).toEqual({
+            kind: 'pass'
+        })
+    })
+
+    it('stores declared ignored stops once each, in a fixed order', () => {
+        const { game, engine, state } = exampleGame(Shikoku1889Scenarios, 'trading')
+        const declared = engine.executeCanonicalAction({
+            game,
+            state,
+            action: setInstruction(game.id, 'blair', {
+                kind: 'pass',
+                ignoredStops: ['shares-sold', 'company-started', 'shares-sold']
+            })
+        })
+        expect(standingStockInstructionFor(declared.updatedState, 'blair')?.instruction).toEqual({
+            kind: 'pass',
+            ignoredStops: ['company-started', 'shares-sold']
+        })
+        const none = engine.executeCanonicalAction({
+            game,
+            state,
+            action: setInstruction(game.id, 'blair', { kind: 'pass', ignoredStops: [] })
+        })
+        expect(standingStockInstructionFor(none.updatedState, 'blair')?.instruction).toEqual({
+            kind: 'pass'
+        })
+    })
 })

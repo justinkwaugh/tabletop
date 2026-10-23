@@ -6,10 +6,9 @@ import {
     isFinishStations,
     isFinishOperatingTurn,
     isFinishStockTurn,
-    isSetStockInstruction,
-    isStopStockInstruction,
     isSetPrivatePowerRequest,
-    isDropPrivatePowerRequest
+    isDropPrivatePowerRequest,
+    isStockInstructionAction
 } from '@tabletop/18xx'
 
 export function isHistoryBookkeeping(action: GameAction): boolean {
@@ -18,8 +17,7 @@ export function isHistoryBookkeeping(action: GameAction): boolean {
         isFinishStations(action) ||
         isFinishOperatingTurn(action) ||
         (isFinishStockTurn(action) && action.metadata?.passed === false) ||
-        isSetStockInstruction(action) ||
-        isStopStockInstruction(action) ||
+        isStockInstructionAction(action) ||
         isSetPrivatePowerRequest(action) ||
         isDropPrivatePowerRequest(action)
     )

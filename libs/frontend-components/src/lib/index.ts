@@ -69,6 +69,7 @@ export * from './utils/timeAgo.js'
 export * from './utils/dynamicComponent.js'
 export * from './utils/publishCssVarFromRect.js'
 export * from './utils/runeBackedStore.svelte.js'
+export * from './utils/pinToNewest.js'
 export * from './utils/wheelDelta.js'
 
 export * from './utils/validateLocalGameState.js'

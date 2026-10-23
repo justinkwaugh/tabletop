@@ -480,8 +480,10 @@ stay in 1832.
   that phase.
 - The System chosen is the first unused of A–E.
 - Sales to fund a takeover may be protected like other sales, once the takeover completes.
-- If the leftmost components share a column, the System starts from the lower one's row; a
-  row without the rounded average takes its own nearest value, a tie rounding up.
+- If the leftmost components share a column, the System starts from the lower one's row. The
+  average rounds to the nearest value on the whole market, a tie rounding up; a row without a
+  box at that price starts from the price diagonal's first box on the leftmost component's
+  side of the soft ledge, or its last box when that side has none.
 - Yielding: the proposer chooses the merger type and whether to yield; the other president
   agrees or refuses. A refusal bars that pairing, type and yield for the rest of the phase.
 - A takeover's buyer's president is paid for their own shares as they contribute, funding only

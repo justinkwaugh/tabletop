@@ -92,16 +92,7 @@
                         appearance={session.mapView.stations[offer.buyer.companyId]}
                         size={24}
                     />{/if}
-                <span
-                    >{isCompanyPurchaseOffer(offer)
-                        ? session.companyName(offer.buyer.companyId)
-                        : session.getPlayerName(offer.buyerPlayerId)} offers {money(offer.price)} for
-                    {offer.asset.kind === 'private'
-                        ? session.companyName(offer.asset.privateCompanyId)
-                        : offer.asset.kind === 'company'
-                          ? session.companyName(offer.asset.companyId)
-                          : offer.asset.trainId}</span
-                >
+                <span>{session.purchaseOfferText(offer)}</span>
             </DecisionResponse>
         {:else}
             <CompanyBuying {session} showEntry={session.operating.step === undefined} />

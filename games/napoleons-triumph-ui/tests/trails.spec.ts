@@ -7,7 +7,9 @@ import {
     pickUp,
     tap,
     retreat,
-    threatenWithoutTheGuard
+    threatenWithoutTheGuard,
+    ST_HILAIRE_LOCALE,
+    LOCALE_94
 } from './table.js'
 
 failOnPageErrors()
@@ -35,7 +37,7 @@ test('the map menu shows the moves of the turn in progress as arrows on the boar
     await expect(trails).toHaveCount(0)
 
     await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
+    await threatenWithoutTheGuard(page, ST_HILAIRE_LOCALE, LOCALE_94)
     await page.getByRole('button', { name: 'Retreat before combat' }).click()
     await retreat(page)
     await expect(trails).toHaveCount(1)

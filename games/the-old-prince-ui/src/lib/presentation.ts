@@ -130,6 +130,8 @@ export const TheOldPrincePresentation: TitlePresentation = {
     mapFocusExcludedCompanyIds: ['PEIR'],
     portfolioCompanyIds: ['UB'],
     includedPortfolioCompanyIds: ['UB'],
+    // The printed Union Bank card cannot name the railway drawn for it at setup.
+    publishedCardPlates: ['UB'],
     poolName: (pool) =>
         pool.id === 'reserved'
             ? 'Exchange'

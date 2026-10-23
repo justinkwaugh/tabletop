@@ -6,7 +6,9 @@ import {
     pickUp,
     tap,
     retreat,
-    threatenWithoutTheGuard
+    threatenWithoutTheGuard,
+    ST_HILAIRE_LOCALE,
+    LOCALE_94
 } from './table.js'
 
 failOnPageErrors()
@@ -73,7 +75,7 @@ test('a feint curls the attack’s arrow back, on the map while it is answered a
     await tap(page, '[aria-label="Move to locale 94"]')
     await page.getByRole('button', { name: 'End turn' }).click()
     await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
+    await threatenWithoutTheGuard(page, ST_HILAIRE_LOCALE, LOCALE_94)
     const onTheMap = page.locator('svg[data-board] [data-attack-arrow]')
     await expect(onTheMap).toHaveAttribute('data-attack-arrow', 'threat')
     await tap(page, 'svg [aria-label="Choose this unit"]')
@@ -107,7 +109,7 @@ test('an attack is one history entry, and its retreat and the move in are replay
     await tap(page, '[aria-label="Move to locale 94"]')
     await page.getByRole('button', { name: 'End turn' }).click()
     await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
+    await threatenWithoutTheGuard(page, ST_HILAIRE_LOCALE, LOCALE_94)
     await page.getByRole('button', { name: 'Retreat before combat' }).click()
     await retreat(page)
     await page.getByRole('button', { name: 'Move into the locale' }).click()
@@ -145,7 +147,7 @@ test('the picture of a history line steps to the line before and the line after'
     await tap(page, '[aria-label="Move to locale 94"]')
     await page.getByRole('button', { name: 'End turn' }).click()
     await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
+    await threatenWithoutTheGuard(page, ST_HILAIRE_LOCALE, LOCALE_94)
     await page.getByRole('button', { name: 'Retreat before combat' }).click()
     await retreat(page)
     await page.getByRole('button', { name: 'Move into the locale' }).click()
@@ -185,4 +187,44 @@ test('the picture of a history line steps to the line before and the line after'
     }
     await expect(before).toBeDisabled()
     await expect(page.locator('.nt-masthead-turn')).toHaveText('French turn')
+})
+
+test('the history lists the newest line first or last, as the player keeps it, and its index leads to each hour', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await page.getByRole('tab', { name: 'History' }).click()
+
+    const order = page.getByRole('group', { name: 'History order' })
+    const newestFirst = order.getByRole('button', { name: 'Newest first' })
+    const newestLast = order.getByRole('button', { name: 'Newest last' })
+    const lines = page.locator('.nt-history-entry')
+    const newest = /Langeron’s corps moves/
+    await expect(newestLast).toHaveAttribute('aria-pressed', 'true')
+    await expect(lines.last()).toHaveText(newest)
+    await expect(lines.last()).toBeInViewport()
+
+    await newestFirst.click()
+    await expect(newestFirst).toHaveAttribute('aria-pressed', 'true')
+    await expect(lines.first()).toHaveText(newest)
+    await expect
+        .poll(() => page.evaluate(() => JSON.stringify({ ...localStorage })))
+        .toContain('newestFirst')
+
+    await page.getByRole('button', { name: 'Index', exact: true }).click()
+    const index = page.getByRole('navigation', { name: 'History index' })
+    await expect(index.getByRole('button').last()).toHaveText('Before the battle')
+    await index.getByRole('button', { name: 'Before the battle' }).click()
+    await expect(index).toBeHidden()
+    await expect(page.locator('[data-chapter="Before the battle"] h3')).toBeInViewport()
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Austerlitz' }).click()
+    await page.getByRole('tab', { name: 'History' }).click()
+    await expect(newestFirst).toHaveAttribute('aria-pressed', 'true')
+    await expect(lines.first()).toHaveText(newest)
 })

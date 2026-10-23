@@ -9,7 +9,7 @@
         description,
         value,
         income,
-        token,
+        tokens = [],
         phaseColors = {},
         purchaseRange,
         imageUrl
@@ -19,7 +19,7 @@
         description: string
         value?: number
         income?: number
-        token?: StationAppearance
+        tokens?: readonly StationAppearance[]
         phaseColors?: Readonly<Record<string, string>>
         purchaseRange?: { minimum: number; maximum?: number }
         /** Published card artwork; when present it replaces the generated card. */
@@ -36,7 +36,12 @@
         <header>
             <div class="heading">
                 <h3>{name}</h3>
-                {#if token}<CompanyToken appearance={token} size={28} />{/if}
+                {#if tokens.length}<span class="tokens"
+                        >{#each tokens as token, index (index)}<CompanyToken
+                                appearance={token}
+                                size={28}
+                            />{/each}</span
+                    >{/if}
             </div>
             {#if value !== undefined || income !== undefined || purchaseRange}
                 <div class="values">
@@ -121,8 +126,10 @@
         justify-content: space-between;
         gap: 8px;
     }
-    .heading :global(svg) {
+    .tokens {
+        display: flex;
         flex-shrink: 0;
+        gap: 4px;
     }
     .value {
         margin-left: auto;

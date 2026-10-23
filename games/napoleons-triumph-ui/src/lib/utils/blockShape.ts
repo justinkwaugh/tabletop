@@ -66,10 +66,3 @@ export function coveredBy(
             )
         })
 }
-
-export function topmostAt<Block extends BlockFootprint>(
-    blocksInDrawingOrder: readonly Block[],
-    point: Point
-): Block | undefined {
-    return blocksInDrawingOrder.findLast((block) => coveredBy([block])(point))
-}

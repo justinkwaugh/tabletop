@@ -34,9 +34,9 @@
             name={company.name}
             description={CompanyDescriptions1846[cardId]}
             income={company.kind === 'private' && company.revenue ? company.revenue : undefined}
-            token={company.kind === 'independent'
-                ? session.mapView.stations[cardId]
-                : session.privateCompanyTokens[cardId]}
+            tokens={company.kind === 'independent'
+                ? [session.mapView.stations[cardId]]
+                : session.privateCardTokens[cardId]}
         />
         <footer>
             <div class="price">

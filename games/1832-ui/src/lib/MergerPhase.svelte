@@ -7,6 +7,7 @@
         CompanyToken,
         DecisionResponse,
         TrainBadge,
+        trainCount,
         type CardAction
     } from '@tabletop/18xx-ui'
     import type { EighteenThirtyTwoSession } from './session.svelte.js'
@@ -126,7 +127,7 @@
         <h3 class="sentence">
             <CompanyToken appearance={session.mapView.stations[discards.companyId]} size={24} />
             <strong>{session.companyName(discards.companyId)}</strong>
-            <span>discards {discards.excess} {discards.excess === 1 ? 'train' : 'trains'}</span>
+            <span>discards {trainCount(discards.excess)}</span>
         </h3>
         <p class="note">
             Its train limit is {discards.limit}. Discarded trains go to the open market.

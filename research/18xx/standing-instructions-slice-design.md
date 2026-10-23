@@ -112,6 +112,9 @@ snapshot rows stay fixed so every title's stored instruction has the same core
 shape. A title needing a new instruction kind adds its own action types and a
 decorator handler in the same pattern rather than widening the family union.
 
+Ignorable stops, and keeping a stopped instruction so it can resume, came later:
+see [Standing instructions: stops a player chooses to ignore](standing-instruction-stops-design.md).
+
 Not implemented now: instructions that survive the round, per-buyer choice,
 private visibility (the field carries a stable player id so the Owner policy
 could apply later), and instructions for auction or merger rounds in other

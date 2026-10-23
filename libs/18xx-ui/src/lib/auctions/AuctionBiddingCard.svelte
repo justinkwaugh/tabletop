@@ -2,6 +2,8 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import AuctionLotCard from './AuctionLotCard.svelte'
+    import PublishedCardPlate from '../privates/PublishedCardPlate.svelte'
+    import CompanyToken from '../tokens/CompanyToken.svelte'
     import AuctionBidControl from './AuctionBidControl.svelte'
 
     let {
@@ -24,7 +26,7 @@
             price: number
             income?: number
             description: string
-            token?: StationAppearance
+            cardTokens?: readonly StationAppearance[]
         }
         summary: readonly { label: string; value: string }[]
         amount: number
@@ -37,6 +39,7 @@
         onPass: () => void
     } = $props()
     const imageUrl = $derived(session.publishedCardImage(lot.id))
+    const plate = $derived(session.publishedCardPlate(lot.id))
 </script>
 
 <article class="centered-panel" aria-label="Current auction">
@@ -49,9 +52,16 @@
                 price={lot.price}
                 income={lot.income}
                 description={lot.description}
-                token={lot.token}
+                tokens={lot.cardTokens}
             />
+            {#if plate}<span class="badge"
+                    >{#each plate.tokens as token, index (index)}<CompanyToken
+                            appearance={token}
+                            size={24}
+                        />{/each}</span
+                >{/if}
         </div>
+        {#if plate}<PublishedCardPlate {plate} compact />{/if}
         <div class="turn">
             <div class="bid-summary">
                 {#each summary as line (line.label)}
@@ -96,8 +106,13 @@
         max-width: 100%;
     }
     .lot.image {
+        position: relative;
         width: auto;
         min-width: 0;
+    }
+    /* The plate naming what the card comes with stands close beside it. */
+    .lot.image + :global(.plate) {
+        margin-inline-start: -16px;
     }
     /* Size containment ignores content height, so fill only a pane whose height is fixed. */
     @container action-pane (min-height: 196px) {
@@ -149,6 +164,23 @@
         }
         .lot.image {
             --auction-card-height: initial;
+        }
+    }
+    .badge {
+        display: none;
+    }
+    /* Too narrow for the plate beside the card: its tokens sit on the card's corner instead. */
+    @container auction-card (max-width: 419px) {
+        .lot.image + :global(.plate) {
+            display: none;
+        }
+        .badge {
+            position: absolute;
+            top: 5%;
+            right: 7%;
+            display: flex;
+            gap: 3px;
+            pointer-events: none;
         }
     }
 </style>

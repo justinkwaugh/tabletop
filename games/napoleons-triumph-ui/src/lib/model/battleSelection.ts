@@ -24,9 +24,36 @@ export enum AttackWidth {
 
 export type DefenceValues = {
     defenders: string[]
+    commandersLeftOut: string[]
     retreating: true
 }
-export const defenceSelection = stagedSelection<DefenceValues>()(['defenders', 'retreating'])
+export const defenceSelection = stagedSelection<DefenceValues>()([
+    'defenders',
+    'commandersLeftOut',
+    'retreating'
+])
+
+export function nameDefenders(
+    defence: DefenceSelection,
+    unitIds: string[],
+    commandersLeftOut: string[]
+): DefenceSelection {
+    return unitIds.length > 0
+        ? leaveCommandersOut(
+              defenceSelection.revise(defence, 'defenders', unitIds, 'manual'),
+              commandersLeftOut
+          )
+        : defenceSelection.empty()
+}
+
+export function leaveCommandersOut(
+    defence: DefenceSelection,
+    commanderIds: string[]
+): DefenceSelection {
+    return commanderIds.length > 0
+        ? defenceSelection.revise(defence, 'commandersLeftOut', commanderIds, 'manual')
+        : defenceSelection.withdraw(defence, 'commandersLeftOut')
+}
 
 export type LeadValues = { leaders: string[] }
 export const leadSelection = stagedSelection<LeadValues>()(['leaders'])

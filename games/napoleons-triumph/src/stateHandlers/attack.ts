@@ -9,6 +9,7 @@ import {
     canPressAttack,
     eligibleReserveDefenders,
     forcedDefense,
+    forcedDefendingCommanders,
     mustDefend
 } from '../model/attackThreat.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
@@ -41,7 +42,8 @@ export class DefenseResponseStateHandler extends StepStateHandler {
         if (unitIds) {
             context.addSystemAction(DeclareDefense, {
                 playerId: defender(context.gameState),
-                unitIds
+                unitIds,
+                commanderIds: forcedDefendingCommanders(context.gameState)
             })
         }
     }

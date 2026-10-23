@@ -173,7 +173,9 @@ export function describeAction(action: GameAction, game: DescribedGame): string 
         return `${army} threaten ${kind} on ${map.label(approach.neighbour)} from ${map.label(approach.locale)}.`
     }
     if (isDeclareDefense(action)) {
-        return `${army} stand with ${count(action.unitIds.length)}.`
+        const commanders = (action.commanderIds ?? []).map((id) => commanderDefinition(id).name)
+        const withCommanders = commanders.length > 0 ? ` and ${commanders.join(' and ')}` : ''
+        return `${army} stand with ${count(action.unitIds.length)}${withCommanders}.`
     }
     if (isRetreat(action)) {
         const from = action.metadata ? map.label(action.metadata.fromLocale) : 'the locale'

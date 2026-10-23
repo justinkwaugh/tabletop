@@ -1,8 +1,9 @@
 <script lang="ts">
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import HistoryHeaderJump from './HistoryHeaderJump.svelte'
-    import { tick, type Snippet } from 'svelte'
+    import type { Snippet } from 'svelte'
     import { assertExists } from '@tabletop/common'
+    import { pinToNewest } from '@tabletop/frontend-components'
     import type { HistoryRound } from './historyRounds.js'
     import type { HistoryOperatingOrder } from './historyOperatingOrder.js'
     let {
@@ -61,40 +62,6 @@
         indexButton?.focus()
     }
     let scrollElement: HTMLDivElement | undefined = $state()
-    function pinToNewest(
-        element: HTMLDivElement,
-        pin: { newestFirst: boolean; historyComplete: boolean }
-    ) {
-        let current = pin
-        let atNewest = true
-        const showNewest = () => {
-            element.scrollTop = current.newestFirst ? 0 : element.scrollHeight
-        }
-        const onScroll = () => {
-            atNewest = current.newestFirst
-                ? element.scrollTop <= 8
-                : element.scrollHeight - element.scrollTop - element.clientHeight <= 8
-        }
-        function scrollToNewest(next: typeof pin) {
-            current = next
-            if (!next.historyComplete) return
-            atNewest = true
-            void tick().then(showNewest)
-        }
-        const content = new ResizeObserver(() => {
-            if (atNewest && current.historyComplete) showNewest()
-        })
-        for (const child of element.children) content.observe(child)
-        element.addEventListener('scroll', onScroll, { passive: true })
-        scrollToNewest(pin)
-        return {
-            update: scrollToNewest,
-            destroy() {
-                content.disconnect()
-                element.removeEventListener('scroll', onScroll)
-            }
-        }
-    }
     function phaseBackground(round: HistoryRound) {
         const colors = round.phases
             .map((phase) => {

@@ -18,6 +18,7 @@ import {
     type EighteenXXTitleRules,
     type HydratedEighteenXXState,
     type Owner,
+    type PendingPurchaseOffer,
     type Portfolio,
     type TileRotation
 } from '@tabletop/18xx'
@@ -40,6 +41,12 @@ import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import { terrainIconAppearance } from '../maps/terrainIcons.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
+import {
+    awaitedDecision,
+    purchaseOfferText,
+    type AwaitedDecision,
+    type AwaitedDecisionNames
+} from '../table/awaitedDecision.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { wealthHistory } from '../table/wealthHistory.js'
@@ -114,6 +121,18 @@ export class EighteenXXSession<
             )
         )
     )
+    privateCardTokens: Readonly<Record<string, readonly StationAppearance[]>> = $derived.by(() => ({
+        ...Object.fromEntries(
+            Object.entries(this.privateCompanyTokens).map(([privateCompanyId, token]) => [
+                privateCompanyId,
+                [token]
+            ])
+        ),
+        ...this.titlePrivateCardTokens
+    }))
+    /** Cards whose header shows other tokens than the private's own, such as several companies. */
+    protected titlePrivateCardTokens: Readonly<Record<string, readonly StationAppearance[]>> =
+        $derived({})
     private privateTokenAppearance(
         privateCompanyId: string,
         token: PrivateTokenPresentation
@@ -398,6 +417,20 @@ export class EighteenXXSession<
         const full = this.presentation.publishedCardImages?.[id]
         return (size === 'thumbnail' && this.presentation.publishedCardThumbnails?.[id]) || full
     }
+    /** The plate below a published card the presentation lists, when that presentation is on. */
+    publishedCardPlate(id: string | undefined): PublishedCardPlate | undefined {
+        if (
+            !id ||
+            !this.publishedCardImage(id) ||
+            !this.presentation.publishedCardPlates?.includes(id)
+        )
+            return undefined
+        const description = this.privates.companies.find(
+            (company) => company.id === id
+        )?.description
+        const text = /^\*\*(.+?)\*\*(?:\n\n|$)/s.exec(description ?? '')?.[1]
+        return text ? { tokens: this.privateCardTokens[id] ?? [], text } : undefined
+    }
     /** Tile rendering style for the current presentation, used by every tile drawn in the table. */
     readonly tileAppearance: TileAppearance = $derived.by(() => {
         const published = this.publishedArtwork
@@ -522,6 +555,31 @@ export class EighteenXXSession<
     /** Private powers whose rules the title applies itself, offered under Use privates. */
     protected get titlePrivatePowers(): readonly TitlePrivatePower[] {
         return []
+    }
+    awaitedDecision(state: State): AwaitedDecision | undefined {
+        return (
+            this.titleAwaitedDecision(state) ??
+            awaitedDecision(state, this.decisionNames(state), this.rules.trainRules)
+        )
+    }
+    purchaseOfferText(offer: PendingPurchaseOffer): string {
+        return purchaseOfferText(offer, this.decisionNames(this.gameState))
+    }
+    protected titleAwaitedDecision(_state: State): AwaitedDecision | undefined {
+        return undefined
+    }
+    private decisionNames(state: State): AwaitedDecisionNames {
+        return {
+            companyName: (companyId) => this.companyName(companyId),
+            ownerName: (owner) => this.ownerName(owner),
+            trainName: (trainId) => this.trainName(state, trainId),
+            money: this.presentation.money
+        }
+    }
+    private trainName(state: State, trainId: string) {
+        const train = state.trainInventory.trains.find((train) => train.id === trainId)
+        assertExists(train, `Train ${trainId} requires its inventory record`)
+        return this.trainDepot.trainDefinition(train.definitionId).name
     }
     /** A title's own placements in the station step, offered as buttons beside its stations. */
     get titleStationActions(): readonly TitleStationAction[] {
@@ -792,6 +850,8 @@ export function requireEighteenXXSession(
     assert(session instanceof EighteenXXSession, 'Expected an 18xx session')
     return session
 }
+
+export type PublishedCardPlate = { tokens: readonly StationAppearance[]; text: string }
 
 export type CompanyShareStatus = 'unfloated' | 'soldOut'
 

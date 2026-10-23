@@ -53,7 +53,11 @@ export const TheOldPrincePrivateCatalog = new PrivateCatalog(
                 closure: 'never',
                 sale: 'never',
                 description:
-                    'Union Bank holds its own cash and shares, controlled by the player who owns it. Once per stock round, that player may use a buying or company-starting action for Union Bank instead of themselves. Spend Union Bank’s cash first; its owner may contribute any shortfall. Dividends on its shares go to Union Bank. It may hold presidencies, with its owner making the company’s decisions. It cannot voluntarily sell shares. If one of its companies must buy a train, Union Bank contributes before its owner, with emergency share sales as required. It remains open throughout the game, and its cash and share value count toward its owner’s final wealth.'
+                    'Holds its own cash and shares for its owner. Dividends on its shares go to Union Bank.\n\n' +
+                    'Once per stock round, its owner may buy a share or start a company for Union Bank instead of themselves. Union Bank pays first; its owner may cover any shortfall.\n\n' +
+                    'May hold presidencies; its owner makes those companies’ decisions. Never sells shares voluntarily.\n\n' +
+                    'When one of its companies must buy a train, Union Bank pays before its owner, selling shares if required.\n\n' +
+                    'Never closes. Its cash and share value count toward its owner’s final wealth.'
             },
             {
                 id: 'KM',

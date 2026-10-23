@@ -1,6 +1,6 @@
 import type { GameAction, GameExploration, GameState, HydratedGameState } from '@tabletop/common'
 import type { EighteenXXState } from './eighteenXXState.js'
-import { isSetStockInstruction } from '../stock/setStockInstruction.js'
+import { isStockInstructionDeclaration } from '../stock/stockInstructionActions.js'
 
 export class EighteenXXGameExploration<
     State extends GameState = EighteenXXState
@@ -16,6 +16,6 @@ export class EighteenXXGameExploration<
         return exploration.dehydrate()
     }
     keepsSourceDeclaration(action: GameAction): boolean {
-        return !isSetStockInstruction(action)
+        return !isStockInstructionDeclaration(action)
     }
 }

@@ -5,15 +5,35 @@ import {
     isAdvancePhase,
     type EighteenXXState,
     type EighteenXXTitleRules,
-    type PhaseChangeState
+    type PhaseChangeState,
+    type Train,
+    type TrainRules
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
 
 export type DiscardSession = ModuleSession<
     PhaseChangeState & Pick<EighteenXXState, 'machineState'>,
-    { trainRules: Pick<EighteenXXTitleRules['trainRules'], 'trainLimit'> }
+    { trainRules: Pick<EighteenXXTitleRules['trainRules'], 'trainLimit' | 'countsForLimit'> }
 >
+
+export type PendingDiscard = {
+    companyId: string
+    trains: Train[]
+    limit: number
+    excess: number
+}
+
+export function pendingDiscard(
+    state: PhaseChangeState,
+    trainRules: Pick<TrainRules, 'trainLimit' | 'countsForLimit'>
+): PendingDiscard | undefined {
+    const companyId = state.phaseChange?.discardCompanyIds[0]
+    if (!companyId) return undefined
+    const trains = discardableTrains(state, companyId, trainRules)
+    const limit = trainRules.trainLimit(state, companyId)
+    return { companyId, trains, limit, excess: trains.length - limit }
+}
 
 export class DiscardModule {
     readonly choice = singleChoice<string>()
@@ -24,7 +44,8 @@ export class DiscardModule {
             ? this.choice.value('choice')
             : undefined
     )
-    companyId = $derived.by(() => this.session.state.phaseChange?.discardCompanyIds[0])
+    #pending = $derived.by(() => pendingDiscard(this.session.state, this.session.rules.trainRules))
+    companyId = $derived(this.#pending?.companyId)
     phaseEvent = $derived.by(() => {
         const id = this.session.state.phaseChange?.event.id
         if (!id) return undefined
@@ -34,17 +55,8 @@ export class DiscardModule {
                 : []
         )[0]
     })
-    trains = $derived.by(() =>
-        this.companyId
-            ? discardableTrains(this.session.state, this.companyId, this.session.rules.trainRules)
-            : []
-    )
-    excess = $derived.by(() =>
-        this.companyId
-            ? this.trains.length -
-              this.session.rules.trainRules.trainLimit(this.session.state, this.companyId)
-            : 0
-    )
+    trains = $derived(this.#pending?.trains ?? [])
+    excess = $derived(this.#pending?.excess ?? 0)
     canDiscard = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('DiscardTrain')
     )

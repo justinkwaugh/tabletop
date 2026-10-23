@@ -354,14 +354,12 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
         }
 
         const thirdDiverId = remainingDiverIds[0]
-        const thirdNeighbors = state.board.neighborsAt(secondCoords, Direction.Out)
-        for (const cell of thirdNeighbors) {
-            const cellDivers = state.board.sundiversForPlayerAt(convert.playerId, cell.coords)
-            if (cellDivers.find((sundiver) => sundiver.id === thirdDiverId)) {
-                return true
-            }
-        }
-
-        return false
+        return state.board
+            .transmitTowerThirdCells(convert.playerId, secondCoords)
+            .some((thirdCoords) =>
+                state.board
+                    .sundiversForPlayerAt(convert.playerId, thirdCoords)
+                    .some((sundiver) => sundiver.id === thirdDiverId)
+            )
     }
 }

@@ -208,10 +208,13 @@
                         ></span>{/if}{#if player.description}<PrivateDescription
                             {money}
                             phaseColors={session.presentation.phaseColors}
-                            token={player.owner.kind === 'company'
-                                ? session.privateCompanyTokens[player.owner.companyId]
+                            tokens={player.owner.kind === 'company'
+                                ? session.privateCardTokens[player.owner.companyId]
                                 : undefined}
                             imageUrl={session.publishedCardImage(
+                                player.owner.kind === 'company' ? player.owner.companyId : undefined
+                            )}
+                            plate={session.publishedCardPlate(
                                 player.owner.kind === 'company' ? player.owner.companyId : undefined
                             )}
                             shortName={player.name}
@@ -327,8 +330,9 @@
                                         {#if description}<PrivateDescription
                                                 {money}
                                                 phaseColors={session.presentation.phaseColors}
-                                                token={lot.token}
+                                                tokens={lot.cardTokens}
                                                 imageUrl={session.publishedCardImage(lot.id)}
+                                                plate={session.publishedCardPlate(lot.id)}
                                                 shortName={session.lotName(lot)}
                                                 fullName={lot.name}
                                                 {description}
@@ -489,8 +493,9 @@
                                         ><PrivateDescription
                                             {money}
                                             phaseColors={session.presentation.phaseColors}
-                                            token={session.privateCompanyTokens[entry.company.id]}
+                                            tokens={session.privateCardTokens[entry.company.id]}
                                             imageUrl={session.publishedCardImage(entry.company.id)}
+                                            plate={session.publishedCardPlate(entry.company.id)}
                                             shortName={session.companyName(entry.company.id)}
                                             fullName={session.companyFullName(entry.company.id)}
                                             value={entry.value}

@@ -764,22 +764,36 @@ export class HydratedSolGameBoard
                 return false
             }
 
-            const outwardNeighbors = this.graph.neighborsAt(coords, Direction.Out)
-            for (const neighbor of outwardNeighbors) {
-                if (this.sundiversForPlayerAt(playerId, neighbor.coords).length === 0) {
-                    continue
-                }
-                const thirdOuterNeighbors = this.graph.neighborsAt(neighbor.coords, Direction.Out)
-                for (const thirdNeighbor of thirdOuterNeighbors) {
-                    if (this.sundiversForPlayerAt(playerId, thirdNeighbor.coords).length > 0) {
-                        return true
-                    }
-                }
-            }
-            return false
+            return this.transmitTowerSecondCells(playerId, coords).length > 0
         }
 
         return false
+    }
+
+    public transmitTowerSecondCells(
+        playerId: string,
+        firstCoords: OffsetCoordinates
+    ): OffsetCoordinates[] {
+        return this.outwardCellsWithSundivers(playerId, firstCoords).filter(
+            (secondCoords) => this.transmitTowerThirdCells(playerId, secondCoords).length > 0
+        )
+    }
+
+    public transmitTowerThirdCells(
+        playerId: string,
+        secondCoords: OffsetCoordinates
+    ): OffsetCoordinates[] {
+        return this.outwardCellsWithSundivers(playerId, secondCoords)
+    }
+
+    private outwardCellsWithSundivers(
+        playerId: string,
+        coords: OffsetCoordinates
+    ): OffsetCoordinates[] {
+        return this.graph
+            .neighborsAt(coords, Direction.Out)
+            .map((neighbor) => neighbor.coords)
+            .filter((outward) => this.sundiversForPlayerAt(playerId, outward).length > 0)
     }
 
     hasStationInRing(playerId: string, ring: Ring): boolean {

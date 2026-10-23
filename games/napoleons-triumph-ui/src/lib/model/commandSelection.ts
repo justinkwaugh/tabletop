@@ -22,11 +22,11 @@ type CommandSelectionValues = {
 export type CommandSelection = StagedSelectionState<CommandSelectionValues>
 
 const commandSelection = stagedSelection<CommandSelectionValues>()([
-    'aim',
     'group',
     'units',
     'ride',
     'command',
+    'aim',
     'destination',
     'way',
     'threat',
@@ -49,8 +49,12 @@ export function setPickedUp(pickedUp: PickedUp): CommandSelection {
     return commandSelection.set(commandSelection.empty(), 'group', pickedUp, 'manual')
 }
 
-export function setAim(locale: number): CommandSelection {
-    return commandSelection.set(commandSelection.empty(), 'aim', locale, 'manual')
+export function setAim(selection: CommandSelection, locale: number): CommandSelection {
+    return commandSelection.set(selection, 'aim', locale, 'manual')
+}
+
+export function withoutAim(selection: CommandSelection): CommandSelection {
+    return commandSelection.clearFrom(selection, 'aim')
 }
 
 export function aimOf(selection: CommandSelection): number | undefined {
@@ -89,21 +93,28 @@ export function withoutGuardUnit(selection: CommandSelection): CommandSelection 
     return commandSelection.clearFrom(selection, 'guard')
 }
 
+/** The units of a group that may be taken into a command: moved by it, attached, or riding on. */
+export interface GroupUnits {
+    movableIds: readonly string[]
+    /** Those that can move, and those that may still be attached though they cannot. */
+    choosableIds: readonly string[]
+    riderIds: readonly string[]
+    isCorps: boolean
+}
+
 export function unitsPickedUpWith(
     pickedUp: PickedUp | undefined,
-    movableIds: readonly string[],
-    isCorps: boolean,
-    riderIds: readonly string[]
+    { movableIds, choosableIds, riderIds, isCorps }: GroupUnits
 ): string[] {
-    const tappedMovable = movableIds.find((id) => id === pickedUp?.tappedUnitId)
-    const ridersStayInHand = riderIds.length > 0 && tappedMovable === undefined
+    const tappedChoosable = choosableIds.find((id) => id === pickedUp?.tappedUnitId)
+    const ridersStayInHand = riderIds.length > 0 && tappedChoosable === undefined
     if (ridersStayInHand) {
         return [...riderIds]
     }
     if (isCorps) {
         return [...movableIds]
     }
-    return [tappedMovable ?? movableIds[0]].flatMap((id) => id ?? [])
+    return [tappedChoosable ?? movableIds[0] ?? choosableIds[0]].flatMap((id) => id ?? [])
 }
 
 export function chooseCorpsUnit(
@@ -115,7 +126,8 @@ export function chooseCorpsUnit(
     const next = chosen.includes(unitId)
         ? chosen.filter((id) => id !== unitId)
         : [...chosen, unitId]
-    const wholeCorps = next.length === 0 || movableIds.every((id) => next.includes(id))
+    const wholeCorps =
+        next.length === 0 || (movableIds.length > 0 && movableIds.every((id) => next.includes(id)))
     return withoutRideOrDestination(
         wholeCorps
             ? commandSelection.withdraw(selection, 'units')

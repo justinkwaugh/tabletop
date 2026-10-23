@@ -225,22 +225,48 @@
         }
     })
     const turnPlayerId = $derived(session.turnPlayerId(gameState))
+    const decision = $derived(
+        session.isViewingHistory || !gameState.activePlayerIds.length
+            ? undefined
+            : session.awaitedDecision(gameState)
+    )
+    const interrupted = $derived(
+        !session.isViewingHistory &&
+            gameState.activePlayerIds.length > 0 &&
+            (!!decision || gameState.activePlayerIds.some((id) => id !== turnPlayerId))
+    )
 </script>
 
 {#if gameState.result}
     <GameEnding {session} position={gameState} />
 {:else}
     <section class="position centered-panel" aria-label="Position summary">
-        {#if !session.isViewingHistory && turnPlayerId}
-            <TurnHeading {session} playerId={turnPlayerId} />
+        {#if interrupted}
+            <TurnHeading {session} playerIds={gameState.activePlayerIds} waiting />
+        {:else if !session.isViewingHistory && turnPlayerId}
+            <TurnHeading {session} playerIds={[turnPlayerId]} />
+        {/if}
+        {#if decision}
+            <header class="section-heading"><strong>{decision.title}</strong></header>
+            <div class="entry decision" aria-label="Awaited decision">
+                <div class="lines">
+                    <span class="mark"
+                        >{#if decision.companyId && session.mapView.stations[decision.companyId]}<CompanyToken
+                                appearance={session.mapView.stations[decision.companyId]}
+                                size={18}
+                            />{/if}</span
+                    >
+                    <p class="headline">{decision.text}</p>
+                </div>
+            </div>
         {/if}
         {#if !session.isViewingHistory && latest}
-            <header class="last-action"><strong>Last action</strong></header>
+            <header class="section-heading"><strong>Last action</strong></header>
         {:else if session.isViewingHistory && status}<header>
                 <strong>{status}</strong>
             </header>{/if}
         {#if latest}
-            <div class="last-action-entry" aria-label="Recorded action">
+            <div class="entry" aria-label="Recorded action">
                 <div class="lines">
                     <span class="mark"
                         >{#if latest.credit?.kind === 'company' && session.mapView.stations[latest.credit.companyId]}<CompanyToken
@@ -339,8 +365,11 @@
         flex-wrap: wrap;
         gap: 8px;
     }
-    .last-action {
+    .section-heading {
         margin-bottom: 4px;
+    }
+    .entry.decision {
+        margin-bottom: 20px;
     }
     header strong {
         font-size: 11px;
@@ -348,7 +377,7 @@
         letter-spacing: 0.06em;
         font-weight: 500;
     }
-    .last-action-entry {
+    .entry {
         display: flex;
         align-items: center;
         gap: 12px;

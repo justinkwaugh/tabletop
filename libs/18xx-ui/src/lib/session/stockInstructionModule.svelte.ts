@@ -1,17 +1,22 @@
 import { assert, assertExists } from '@tabletop/common'
 import {
     SetStockInstruction,
+    SetStockInstructionStops,
+    addIgnoredStop,
     cashOwnedBy,
-    lastStoppedStockInstruction,
+    ignorableStop,
+    withIgnoredStops,
     purchasableShares,
     purchaseOwnershipCeiling,
     sharesOwned,
     standingStockInstructionFor,
     stockPositionChange,
+    stoppedStockInstructionFor,
     type CertificatePool,
     type Company,
     type EighteenXXState,
     type EighteenXXTitleRules,
+    type IgnorableStockInstructionStop,
     type StockInstruction,
     type StoppedStockInstruction,
     companyShareCount
@@ -26,7 +31,10 @@ export type StockInstructionSession = ModuleSession<
     Pick<EighteenXXTitleRules, 'stockRules'>
 >
 
-export type BuyInstructionTerms = Omit<Extract<StockInstruction, { kind: 'buy' }>, 'kind'>
+export type BuyInstructionTerms = Omit<
+    Extract<StockInstruction, { kind: 'buy' }>,
+    'kind' | 'ignoredStops'
+>
 
 export type BuyInstructionChoice = { company: Company; pools: CertificatePool[] }
 export type ShareGoalRange = { min: number; max: number }
@@ -56,11 +64,11 @@ export class StockInstructionModule {
             ? stockPositionChange(this.session.state, this.mine, this.session.rules.stockRules)
             : undefined
     )
-    lastStop = $derived.by((): StoppedStockInstruction | undefined => {
-        const { recordedActions, playerId } = this.session
-        if (!this.open || !playerId || this.mine) return undefined
-        return lastStoppedStockInstruction(recordedActions, playerId)
-    })
+    lastStop = $derived.by((): StoppedStockInstruction | undefined =>
+        this.open && this.session.playerId
+            ? stoppedStockInstructionFor(this.session.state, this.session.playerId)
+            : undefined
+    )
     buyChoices = $derived.by((): BuyInstructionChoice[] => {
         const { state, rules, playerId } = this.session
         if (!playerId) return []
@@ -135,10 +143,13 @@ export class StockInstructionModule {
         return range.max >= range.min ? range : undefined
     }
 
-    async declarePass() {
-        await this.set({ kind: 'pass' })
+    async declarePass(ignoredStops: readonly IgnorableStockInstructionStop[]) {
+        await this.set(withIgnoredStops({ kind: 'pass' }, ignoredStops))
     }
-    async declareBuy(terms: BuyInstructionTerms) {
+    async declareBuy(
+        terms: BuyInstructionTerms,
+        ignoredStops: readonly IgnorableStockInstructionStop[]
+    ) {
         const choice = this.buyChoices.find((choice) => choice.company.id === terms.companyId)
         assertExists(choice, 'Choose a company with shares available to buy')
         assert(
@@ -152,11 +163,42 @@ export class StockInstructionModule {
                 'Choose a share goal the player can reach'
             )
         }
-        await this.set({ kind: 'buy', ...terms })
+        await this.set(withIgnoredStops({ kind: 'buy', ...terms }, ignoredStops))
     }
+    async setIgnoredStops(ignoredStops: readonly IgnorableStockInstructionStop[]) {
+        assertExists(this.mine, 'There is no standing instruction to change')
+        await this.sendIgnoredStops(ignoredStops)
+    }
+    async ignoreWarning() {
+        assertExists(this.mine, 'There is no standing instruction to change')
+        const stop = this.warning && ignorableStop(this.warning)
+        assertExists(stop, 'The instruction has no stop to ignore')
+        await this.sendIgnoredStops(addIgnoredStop(this.mine.instruction, stop))
+    }
+    async keepGoing() {
+        const stopped = this.lastStop
+        assertExists(stopped, 'No instruction has stopped')
+        const stop = ignorableStop(stopped.stopReason)
+        assertExists(stop, 'The instruction stopped for a reason that cannot be ignored')
+        await this.sendIgnoredStops(addIgnoredStop(stopped.instruction, stop))
+    }
+
     async clear() {
         assertExists(this.mine, 'There is no standing instruction to clear')
         await this.set(undefined)
+    }
+
+    private async sendIgnoredStops(ignoredStops: readonly IgnorableStockInstructionStop[]) {
+        assert(this.canDeclare, 'Standing instructions are unavailable')
+        await this.session.applyAction(
+            this.session.withSupersededAction(
+                this.session.createPlayerAction(SetStockInstructionStops, {
+                    outOfTurn: true,
+                    supersedable: true,
+                    ignoredStops: [...ignoredStops]
+                })
+            )
+        )
     }
 
     private async set(instruction: StockInstruction | undefined) {

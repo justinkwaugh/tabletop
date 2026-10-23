@@ -4,9 +4,7 @@ import {
     canThreaten,
     inReserve,
     isLegal,
-    resolveAttackOrders,
     resolveOrder,
-    roadAttackOrder,
     roadWake,
     sameRoadWake,
     traceRoadMove,
@@ -214,11 +212,10 @@ function roadMoves(
     order: MoveOrder,
     start: Position | undefined,
     entryId?: string
-): { marches: March[]; threats: AttackTarget[] } {
+): March[] {
     const marches: March[] = []
-    const threats: AttackTarget[] = []
     if (order.kind === CommandKind.Detach) {
-        return { marches, threats }
+        return marches
     }
     const entry = entryId === undefined ? undefined : state.map.findEntry(entryId)
     const paths = start
@@ -258,19 +255,9 @@ function roadMoves(
             if (isLegal(() => validateMove(state, playerId, roadOrder, position))) {
                 marches.push(march(approachTarget(position)))
             }
-            const rides =
-                !order.continues &&
-                roadAttackOrder(
-                    state,
-                    { attackerId: playerId, attackApproach: approach },
-                    units
-                ) !== undefined
-            if (rides && mayThreaten(state, playerId, approach)) {
-                threats.push(attackTarget(position))
-            }
         }
     }
-    return { marches, threats }
+    return marches
 }
 
 /** Rule 10: ways to one place that leave the same behind are one way, and the shortest stands for them. */
@@ -308,15 +295,10 @@ function localTargets(
     for (const approach of approaches) {
         const across = { locale: approach.neighbour }
         const block = { locale: start.locale, approach: approach.id }
-        const site = { attackerId: playerId, attackApproach: approach.id }
-        const ridesOn =
-            !order.continues ||
-            isLegal(() => resolveAttackOrders(state, site, [{ ...order, road: [] }]))
-        if (state.isEnemyOccupied(approach.neighbour, playerId)) {
-            if (ridesOn && mayThreaten(state, playerId, approach.id)) {
-                targets.push(attackTarget(block))
-            }
-        } else if (isLegal(() => validateMove(state, playerId, order, across))) {
+        if (
+            !state.isEnemyOccupied(approach.neighbour, playerId) &&
+            isLegal(() => validateMove(state, playerId, order, across))
+        ) {
             targets.push(reserveTarget(across.locale))
         }
         if (inReserve(start) && isLegal(() => validateMove(state, playerId, order, block))) {
@@ -370,12 +352,6 @@ export function moveTargets(
               : []
     const onFoot = start === undefined ? [] : localTargets(state, playerId, order, start)
     const reachedOnFoot = new Set(onFoot.map((target) => target.key))
-    const byRoadOnly = marchTargets(byRoad.flatMap((moves) => moves.marches)).filter(
-        (march) => !reachedOnFoot.has(march.key)
-    )
-    const onFootOrThreatened = firstOfEach(
-        [...onFoot, ...byRoad.flatMap((moves) => moves.threats)],
-        (target) => target.key
-    )
-    return [...onFootOrThreatened, ...byRoadOnly]
+    const byRoadOnly = marchTargets(byRoad.flat()).filter((march) => !reachedOnFoot.has(march.key))
+    return [...onFoot, ...byRoadOnly]
 }

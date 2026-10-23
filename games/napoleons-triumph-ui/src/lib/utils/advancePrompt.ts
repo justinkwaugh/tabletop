@@ -23,5 +23,12 @@ export function advancePrompt(stage: AdvanceStage): string {
                 : 'Units going without their commander are detached from their corps.'
         )
     }
+    for (const entry of stage.commanders.filter((entry) => !entry.named && !entry.goes)) {
+        parts.push(`${notNamedToDefend(entry.commanderId)}.`)
+    }
     return parts.join(' ')
+}
+
+export function notNamedToDefend(commanderId: string): string {
+    return `${commanderDefinition(commanderId).name} was not named to defend, so he stays in reserve`
 }

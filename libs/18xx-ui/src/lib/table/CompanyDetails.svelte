@@ -387,8 +387,9 @@
                 <PrivateDescription
                     {money}
                     phaseColors={session.presentation.phaseColors}
-                    token={session.privateCompanyTokens[item.id]}
+                    tokens={session.privateCardTokens[item.id]}
                     imageUrl={session.publishedCardImage(item.id)}
+                    plate={session.publishedCardPlate(item.id)}
                     shortName={session.companyName(item.id)}
                     fullName={session.companyFullName(item.id)}
                     description={item.description}
