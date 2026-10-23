@@ -77,6 +77,19 @@ export function returnTechMarkers(
     }
 }
 
+// Draws up to `count` items at random, as many as the pool still holds.
+export function drawFromPool<Item>(
+    state: HydratedStellarHorizonsGameState,
+    pool: Item[],
+    count: number
+): Item[] {
+    const random = state.getProtectedPrng()
+    return Array.from(
+        { length: Math.min(count, pool.length) },
+        () => pool.splice(random.randInt(pool.length), 1)[0]
+    )
+}
+
 export function drawWorldTile(
     state: HydratedStellarHorizonsGameState,
     accepts: (tileId: string) => boolean

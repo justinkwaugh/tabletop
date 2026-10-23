@@ -6,14 +6,20 @@ import { TradeGood, tradeGoodDefinition } from '../components/tradeGoods.js'
 import { WorldClass } from '../components/worldTypes.js'
 import { worldTile } from '../components/worlds.js'
 import { baseEffects, blocksBases } from './anomalies.js'
-import { CargoPartnerKind, type CargoPartner } from './cargoTransfer.js'
-import { currentCenturyRow, factionAbilities, gainInfluence } from './campaign.js'
+import {
+    CargoPartnerKind,
+    type CargoPartner,
+    cargoPartners,
+    carriesCargo,
+    sameCargoPartner
+} from './cargoTransfer.js'
+import { currentCenturyRow, factionAbilities, gainInfluence, isCampaign } from './campaign.js'
 import { replaceDemand, demandedGoods } from './demand.js'
 import { smuggled } from './events.js'
 import { freeCargo, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { Base, GoodsReward, ShipState } from './pieces.js'
-import { discardGoods } from './pools.js'
+import { discardGoods, drawFromPool } from './pools.js'
 
 // Rulebook 1.9 and 4.5.
 export const EARTH_STORAGE = 10
@@ -28,12 +34,19 @@ export enum GoodsHolderKind {
     Ship = 'Ship'
 }
 
+const EarthHolder = Type.Object({ kind: Type.Literal(GoodsHolderKind.Earth) })
+const BaseHolder = Type.Object({
+    kind: Type.Literal(GoodsHolderKind.Base),
+    systemId: Type.String()
+})
+const ShipHolder = Type.Object({ kind: Type.Literal(GoodsHolderKind.Ship), shipId: Type.String() })
+
 export type GoodsHolder = Type.Static<typeof GoodsHolder>
-export const GoodsHolder = Type.Union([
-    Type.Object({ kind: Type.Literal(GoodsHolderKind.Earth) }),
-    Type.Object({ kind: Type.Literal(GoodsHolderKind.Base), systemId: Type.String() }),
-    Type.Object({ kind: Type.Literal(GoodsHolderKind.Ship), shipId: Type.String() })
-])
+export const GoodsHolder = Type.Union([EarthHolder, BaseHolder, ShipHolder])
+
+// Where drawn goods are assigned and stored: Earth or a base.
+export type GoodsStore = Type.Static<typeof GoodsStore>
+export const GoodsStore = Type.Union([EarthHolder, BaseHolder])
 
 export type GoodsCount = Type.Static<typeof GoodsCount>
 export const GoodsCount = Type.Object({
@@ -164,15 +177,11 @@ export const GoodsDraw = Type.Object({
 })
 
 export function drawTradeGoods(state: HydratedStellarHorizonsGameState): GoodsDraw[] {
-    const random = state.getProtectedPrng()
     return state.initiativeOrder().map((playerId) => {
-        const count = Math.min(
-            state.goodsPool.length,
+        const goods = drawFromPool(
+            state,
+            state.goodsPool,
             currentCenturyRow(state, playerId)?.tradeGoods ?? 0
-        )
-        const goods = Array.from(
-            { length: count },
-            () => state.goodsPool.splice(random.randInt(state.goodsPool.length), 1)[0]
         )
         state.getPlayerState(playerId).drawnGoods = goods
         return { playerId, goods }
@@ -182,8 +191,7 @@ export function drawTradeGoods(state: HydratedStellarHorizonsGameState): GoodsDr
 export type GoodsAssignment = Type.Static<typeof GoodsAssignment>
 export const GoodsAssignment = Type.Object({
     good: Type.Enum(TradeGood),
-    // A base's system, or Earth when absent.
-    systemId: Type.Optional(Type.String())
+    store: GoodsStore
 })
 
 // A drawn good goes to a base with one of its world types, or to Earth if it lists M; never
@@ -211,44 +219,73 @@ export function canAssignToEarth(good: TradeGood): boolean {
     return tradeGoodDefinition(good).producers.includes(WorldClass.M)
 }
 
+export interface StoreRoom {
+    store: GoodsStore
+    stored: number
+    storage: number
+    // How many more goods a base may take this turn; Earth takes any number.
+    intake?: number
+}
+
+// Earth and each base, with the given assignments made.
+export function storeRooms(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    assignments: readonly GoodsAssignment[]
+): StoreRoom[] {
+    const assigned = (store: GoodsStore) =>
+        assignments.filter((assignment) => sameHolder(assignment.store, store)).length
+    const earth: GoodsStore = { kind: GoodsHolderKind.Earth }
+    const bases = state.basesOf(playerId).map((base) => {
+        const store: GoodsStore = { kind: GoodsHolderKind.Base, systemId: base.systemId }
+        const count = assigned(store)
+        return {
+            store,
+            stored: base.goods.length + count,
+            storage: storageLimit(base),
+            intake: assignmentLimit(base) - base.goodsReceived - count
+        }
+    })
+    return [
+        {
+            store: earth,
+            stored: state.getPlayerState(playerId).earthGoods.length + assigned(earth),
+            storage: EARTH_STORAGE
+        },
+        ...bases
+    ]
+}
+
 export function assignmentProblem(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
     assignments: readonly GoodsAssignment[]
 ): string | undefined {
-    const player = state.getPlayerState(playerId)
-    const remaining = [...player.drawnGoods]
-    const perBase = new Map<string, number>()
-    let toEarth = 0
+    const remaining = [...state.getPlayerState(playerId).drawnGoods]
     for (const assignment of assignments) {
         const index = remaining.indexOf(assignment.good)
         if (index < 0) {
             return `${tradeGoodDefinition(assignment.good).name} was not drawn`
         }
         remaining.splice(index, 1)
-        if (assignment.systemId === undefined) {
-            if (!canAssignToEarth(assignment.good)) {
-                return `${tradeGoodDefinition(assignment.good).name} cannot go to Earth`
-            }
-            toEarth += 1
-            continue
+        const store = assignment.store
+        const name = tradeGoodDefinition(assignment.good).name
+        if (store.kind === GoodsHolderKind.Earth && !canAssignToEarth(assignment.good)) {
+            return `${name} cannot go to Earth`
         }
-        if (!assignmentSystems(state, playerId, assignment.good).includes(assignment.systemId)) {
-            return `${tradeGoodDefinition(assignment.good).name} cannot go to that base`
+        if (
+            store.kind === GoodsHolderKind.Base &&
+            !assignmentSystems(state, playerId, assignment.good).includes(store.systemId)
+        ) {
+            return `${name} cannot go to that base`
         }
-        perBase.set(assignment.systemId, (perBase.get(assignment.systemId) ?? 0) + 1)
     }
-    if (player.earthGoods.length + toEarth > EARTH_STORAGE) {
-        return `Earth stores ${EARTH_STORAGE} goods`
-    }
-    for (const [systemId, count] of perBase) {
-        const base = state.base(playerId, systemId)
-        assertExists(base, 'An assignment names a base')
-        if (base.goodsReceived + count > assignmentLimit(base)) {
-            return `That base takes ${assignmentLimit(base)} goods a turn`
+    for (const room of storeRooms(state, playerId, assignments)) {
+        if (room.stored > room.storage) {
+            return `${room.store.kind === GoodsHolderKind.Earth ? 'Earth' : 'That base'} stores ${room.storage} goods`
         }
-        if (base.goods.length + count > storageLimit(base)) {
-            return `That base stores ${storageLimit(base)} goods`
+        if (room.intake !== undefined && room.intake < 0) {
+            return 'That base takes no more goods this turn'
         }
     }
     if (goodsCount(state, playerId) + assignments.length > MAX_GOODS) {
@@ -273,11 +310,12 @@ export function assignGoods(
     const discarded = [...player.drawnGoods]
     for (const assignment of assignments) {
         discarded.splice(discarded.indexOf(assignment.good), 1)
-        if (assignment.systemId === undefined) {
+        const store = assignment.store
+        if (store.kind === GoodsHolderKind.Earth) {
             player.earthGoods.push(assignment.good)
             continue
         }
-        const base = state.base(playerId, assignment.systemId)
+        const base = state.base(playerId, store.systemId)
         assertExists(base, 'An assignment names a base')
         base.goods.push(assignment.good)
         base.goodsReceived += 1
@@ -722,6 +760,25 @@ export function goodsPartners(
     return partners
 }
 
+// What a ship may exchange cargo with; in the campaign goods move as well as settlements, with
+// any partner but a ship that has no hold.
+export function transferPartners(
+    state: HydratedStellarHorizonsGameState,
+    ship: ShipState
+): CargoPartner[] {
+    const partners = cargoPartners(state, ship)
+    if (!isCampaign(state)) {
+        return partners
+    }
+    const goods = goodsPartners(state, ship).filter(
+        (partner) =>
+            !partners.some((candidate) => sameCargoPartner(candidate, partner)) &&
+            (partner.kind !== CargoPartnerKind.Ship ||
+                carriesCargo(state, state.ship(partner.shipId)))
+    )
+    return [...partners, ...goods]
+}
+
 export function canTransferAnyGoods(
     state: HydratedStellarHorizonsGameState,
     playerId: string
@@ -736,7 +793,6 @@ export function canTransferAnyGoods(
     )
 }
 
-// `count` counts goods moving onto the ship; a negative number moves them off it.
 export function transferGoods(
     state: HydratedStellarHorizonsGameState,
     ship: ShipState,
@@ -744,7 +800,8 @@ export function transferGoods(
     good: TradeGood,
     count: number
 ) {
-    const other = partnerGoods(state, ship, partner)
+    const other = heldGoods(state, ship.playerId, partnerHolder(ship, partner))
+    assertExists(other, 'The partner holds the Player’s goods')
     if (count > 0) {
         takeGoods(other, good, count)
         ship.goods.push(...repeat(good, count))
@@ -754,18 +811,14 @@ export function transferGoods(
     }
 }
 
-function partnerGoods(
-    state: HydratedStellarHorizonsGameState,
-    ship: ShipState,
-    partner: CargoPartner
-): TradeGood[] {
-    const holder: GoodsHolder =
-        partner.kind === CargoPartnerKind.Earth
-            ? { kind: GoodsHolderKind.Earth }
-            : partner.kind === CargoPartnerKind.Base
-              ? { kind: GoodsHolderKind.Base, systemId: ship.systemId }
-              : { kind: GoodsHolderKind.Ship, shipId: partner.shipId }
-    const goods = heldGoods(state, ship.playerId, holder)
-    assertExists(goods, 'The partner holds the Player’s goods')
-    return goods
+// A cargo partner names its holder relative to the ship: the base is the one in its system.
+export function partnerHolder(ship: ShipState, partner: CargoPartner): GoodsHolder {
+    switch (partner.kind) {
+        case CargoPartnerKind.Earth:
+            return { kind: GoodsHolderKind.Earth }
+        case CargoPartnerKind.Base:
+            return { kind: GoodsHolderKind.Base, systemId: ship.systemId }
+        case CargoPartnerKind.Ship:
+            return { kind: GoodsHolderKind.Ship, shipId: partner.shipId }
+    }
 }

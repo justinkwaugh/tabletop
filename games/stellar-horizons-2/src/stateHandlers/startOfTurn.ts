@@ -5,7 +5,7 @@ import { MachineState } from '../definition/states.js'
 import { isCampaign } from '../model/campaign.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { firstPhase } from '../model/turnPlan.js'
-import { stateForPhase } from './transitions.js'
+import { startPhase } from './transitions.js'
 
 export class StartOfTurnStateHandler implements MachineStateHandler<
     HydratedStartTurn,
@@ -32,8 +32,6 @@ export class StartOfTurnStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
         const state = context.gameState
-        return isCampaign(state)
-            ? MachineState.EconomicPhase
-            : stateForPhase(state, firstPhase(state))
+        return isCampaign(state) ? MachineState.EconomicPhase : startPhase(state, firstPhase(state))
     }
 }

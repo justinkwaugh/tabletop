@@ -19,7 +19,7 @@ import { isIdleInPhase } from '../model/idlePhases.js'
 import { canTransferAnyGoods, saleOptions } from '../model/trade.js'
 import { TurnPhase } from '../model/turn.js'
 import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
-import { stateAfterAnomaly, stateAfterPhase } from './transitions.js'
+import { stateAfterDemandDraws, stateAfterPhase } from './transitions.js'
 
 type TradingAction =
     | HydratedTransferCargo
@@ -71,7 +71,7 @@ export class TradingStateHandler implements MachineStateHandler<
 
     enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
         const state = context.gameState
-        const playerId = state.traders.at(0)
+        const playerId = state.remainingTraders.at(0)
         assertExists(playerId, 'Trading needs a Player to take their turn')
         state.activePlayerIds = [playerId]
         if (isIdleInPhase(state, playerId, TurnPhase.Cargo)) {
@@ -84,21 +84,17 @@ export class TradingStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
         const state = context.gameState
-        if (state.demandDraws.length > 0) {
-            return MachineState.ChoosingDemand
-        }
         if (!isEndPhase(action) && !isSkipPhase(action)) {
-            return MachineState.Trading
+            return stateAfterDemandDraws(state, MachineState.Trading)
         }
-        state.traders = state.traders.slice(1)
-        return state.traders.length > 0
+        state.remainingTraders = state.remainingTraders.slice(1)
+        return state.remainingTraders.length > 0
             ? MachineState.Trading
             : stateAfterPhase(state, TurnPhase.Cargo)
     }
 }
 
-// Rulebook 1.9: the Player who drew demand markers keeps one; play goes back to where it was,
-// the trading turn or the settling of the exploration phase.
+// Rulebook 1.9: the Player who drew demand markers keeps one; play then resumes where it was.
 export class ChoosingDemandStateHandler implements MachineStateHandler<
     HydratedChooseDemand,
     HydratedStellarHorizonsGameState
@@ -131,6 +127,9 @@ export class ChoosingDemandStateHandler implements MachineStateHandler<
         if (state.demandDraws.length > 0) {
             return MachineState.ChoosingDemand
         }
-        return state.traders.length > 0 ? MachineState.Trading : stateAfterAnomaly(state)
+        const resume = state.resumeAfterDemand
+        assertExists(resume, 'A demand choice needs a state to resume')
+        state.resumeAfterDemand = undefined
+        return resume
     }
 }

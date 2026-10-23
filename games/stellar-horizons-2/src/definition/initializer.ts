@@ -127,7 +127,7 @@ export class StellarHorizonsGameInitializer
             goodsPool: scenario.campaign ? initialGoodsPool() : [],
             demandPool: scenario.campaign ? initialDemandPool() : [],
             demandDraws: [],
-            traders: []
+            remainingTraders: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
         for (const worldClass of Object.values(WorldClass)) {

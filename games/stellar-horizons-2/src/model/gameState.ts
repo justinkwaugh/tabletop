@@ -56,8 +56,8 @@ export const StellarHorizonsGameState = Type.Object({
     goodsPool: Type.Array(Type.Enum(TradeGood)),
     demandPool: Type.Array(Type.Enum(TradeGood)),
     demandDraws: Type.Array(DemandDraw),
-    // The Players still to take their turn in the campaign's cargo and trade phase.
-    traders: Type.Array(Type.String()),
+    resumeAfterDemand: Type.Optional(Type.Enum(MachineState)),
+    remainingTraders: Type.Array(Type.String()),
     eventPool: Type.Array(Type.String()),
     events: Type.Array(ActiveEvent),
     eventPlacement: Type.Optional(EventPlacement),
@@ -118,7 +118,8 @@ export class HydratedStellarHorizonsGameState
     declare goodsPool: TradeGood[]
     declare demandPool: TradeGood[]
     declare demandDraws: DemandDraw[]
-    declare traders: string[]
+    declare resumeAfterDemand?: MachineState
+    declare remainingTraders: string[]
     declare eventPool: string[]
     declare events: ActiveEvent[]
     declare eventPlacement?: EventPlacement

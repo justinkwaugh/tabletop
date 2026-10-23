@@ -580,6 +580,38 @@ describe('Influence', () => {
         expect(isFirstToDevelop(hydrated, TechId.InterstellarSettlement)).toBe(false)
     })
 
+    it('resumes resolving surveys once a surveyed system’s demand marker is kept', () => {
+        const { game, state } = campaign()
+        const systemIds = ['alpha-centauri', 'barnards-star']
+        let playerId = ''
+        const ready = edit(state, (hydrated) => {
+            ;[playerId] = hydrated.initiativeOrder()
+            hydrated.anomalyPool = []
+            for (const systemId of systemIds) {
+                hydrated.systemState(systemId).explorationMarker = 1
+                hydrated.getPlayerState(playerId).pendingSurveys.push({ shipId: 'ship', systemId })
+            }
+        })
+        let current = playUntil(
+            game,
+            ready,
+            (candidate) => candidate.machineState === MachineState.ChoosingDemand
+        ).state
+        for (const systemId of systemIds) {
+            expect(current.machineState).toBe(MachineState.ChoosingDemand)
+            const [draw] = hydrate(current).demandDraws
+            expect(draw).toMatchObject({ playerId, systemId })
+            current = executeAll(
+                game,
+                current,
+                userAction(game, playerId, ActionType.ChooseDemand, { good: draw.drawn[0] })
+            ).state
+            expect(hydrate(current).systemState(systemId).demand).toBe(draw.drawn[0])
+        }
+        expect(current.resumeAfterDemand).toBeUndefined()
+        expect(hydrate(current).getPlayerState(playerId).pendingSurveys).toEqual([])
+    })
+
     it('rewards the last survey of a system with its marker and 1 IP', () => {
         const { state } = campaign()
         const hydrated = hydrate(state)
@@ -770,7 +802,9 @@ describe('Trade goods', () => {
         while (current.machineState === MachineState.AssigningGoods) {
             const [playerId] = current.activePlayerIds
             const drawn = hydrate(current).getPlayerState(playerId).drawnGoods
-            const assignments = drawn.filter(canAssignToEarth).map((good) => ({ good }))
+            const assignments = drawn
+                .filter(canAssignToEarth)
+                .map((good) => ({ good, store: { kind: GoodsHolderKind.Earth } }))
             current = executeAll(
                 game,
                 current,

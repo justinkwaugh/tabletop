@@ -3,6 +3,7 @@ import { SOL_SYSTEM_ID } from '../components/systems.js'
 import { SOL_DEMAND, type TradeGood } from '../components/tradeGoods.js'
 import { factionAbilities, isCampaign } from './campaign.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import { drawFromPool } from './pools.js'
 
 // Rulebook 1.9: draw 2 demand markers and keep 1; the Consortium draw 3.
 export const DEMAND_DRAW = 2
@@ -37,14 +38,10 @@ export function drawDemand(
     ) {
         return
     }
-    const random = state.getProtectedPrng()
-    const count = Math.min(
-        state.demandPool.length,
+    const drawn = drawFromPool(
+        state,
+        state.demandPool,
         factionAbilities(state, playerId).demandDraws ?? DEMAND_DRAW
-    )
-    const drawn = Array.from(
-        { length: count },
-        () => state.demandPool.splice(random.randInt(state.demandPool.length), 1)[0]
     )
     if (drawn.length === 1) {
         state.systemState(systemId).demand = drawn[0]

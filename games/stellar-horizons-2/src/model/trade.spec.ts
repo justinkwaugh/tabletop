@@ -19,6 +19,7 @@ import { addSettlements, removeBaseSettlement } from './settling.js'
 import { resolveNextSurvey } from './surveys.js'
 import {
     GoodsHolderKind,
+    type GoodsStore,
     assignGoods,
     assignmentProblem,
     destroyUnplaceableRewardGoods,
@@ -28,12 +29,15 @@ import {
     placeRewardGoods,
     saleOptions,
     saleProblem,
+    storeRooms,
     salePrice,
     sellGoods
 } from './trade.js'
 import { hydrate, placeBase, placeShip, startedGame } from '../testing/fixtures.js'
 
 const SYSTEM = 'alpha-centauri'
+const AT_BASE: GoodsStore = { kind: GoodsHolderKind.Base, systemId: SYSTEM }
+const AT_EARTH: GoodsStore = { kind: GoodsHolderKind.Earth }
 
 // The game starts inside the first Player's exploration Branch; these rules are played on the
 // Main Line.
@@ -91,13 +95,17 @@ describe('Drawing and assigning trade goods', () => {
             TradeGood.Ore,
             TradeGood.FineArt
         ]
-        const food = { good: TradeGood.Food, systemId: SYSTEM }
+        const food = { good: TradeGood.Food, store: AT_BASE }
         expect(assignmentProblem(state, playerId, [food])).toBeUndefined()
         expect(
-            assignmentProblem(state, playerId, [{ good: TradeGood.Ore, systemId: SYSTEM }])
+            assignmentProblem(state, playerId, [{ good: TradeGood.Ore, store: AT_BASE }])
         ).toBeDefined()
-        expect(assignmentProblem(state, playerId, [{ good: TradeGood.Food }])).toBeUndefined()
-        expect(assignmentProblem(state, playerId, [{ good: TradeGood.FineArt }])).toBeDefined()
+        expect(
+            assignmentProblem(state, playerId, [{ good: TradeGood.Food, store: AT_EARTH }])
+        ).toBeUndefined()
+        expect(
+            assignmentProblem(state, playerId, [{ good: TradeGood.FineArt, store: AT_EARTH }])
+        ).toBeDefined()
 
         const cash = state.getPlayerState(playerId).cash
         const result = assignGoods(state, playerId, [food])
@@ -112,14 +120,19 @@ describe('Drawing and assigning trade goods', () => {
         setWorlds(state, SYSTEM, ['m-1'])
         const base = placeBase(state, playerId, SYSTEM, 4)
         const two = [
-            { good: TradeGood.Food, systemId: SYSTEM },
-            { good: TradeGood.Fauna, systemId: SYSTEM }
+            { good: TradeGood.Food, store: AT_BASE },
+            { good: TradeGood.Fauna, store: AT_BASE }
         ]
         state.getPlayerState(playerId).drawnGoods = [TradeGood.Food, TradeGood.Fauna]
         // Under 5 settlements a base takes 1 good a turn and stores 2.
-        expect(assignmentProblem(state, playerId, two)).toMatch(/1 goods a turn/)
+        expect(assignmentProblem(state, playerId, two)).toMatch(/no more goods this turn/)
         base.settlements = 10
         expect(assignmentProblem(state, playerId, two)).toBeUndefined()
+        expect(storeRooms(state, playerId, two).at(-1)).toMatchObject({
+            stored: 2,
+            storage: 4,
+            intake: 0
+        })
         base.goods = [TradeGood.Ore, TradeGood.Ore, TradeGood.Ore]
         expect(assignmentProblem(state, playerId, two)).toMatch(/stores 4/)
         base.goods = []
@@ -137,7 +150,7 @@ describe('Drawing and assigning trade goods', () => {
         state.events = [{ eventId: 'smugglers', systemId: SYSTEM }]
         state.getPlayerState(playerId).drawnGoods = [TradeGood.Food]
         expect(
-            assignmentProblem(state, playerId, [{ good: TradeGood.Food, systemId: SYSTEM }])
+            assignmentProblem(state, playerId, [{ good: TradeGood.Food, store: AT_BASE }])
         ).toBeDefined()
     })
 })

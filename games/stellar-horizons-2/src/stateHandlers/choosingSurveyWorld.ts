@@ -9,7 +9,7 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { anyPendingSurveys } from '../model/surveys.js'
-import { stateAfterSurveys } from './transitions.js'
+import { stateAfterDemandDraws, stateAfterSurveys } from './transitions.js'
 
 export class ChoosingSurveyWorldStateHandler implements MachineStateHandler<
     HydratedChooseSurveyWorld,
@@ -40,11 +40,9 @@ export class ChoosingSurveyWorldStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
         const state = context.gameState
-        if (state.demandDraws.length > 0) {
-            return MachineState.ChoosingDemand
-        }
-        return anyPendingSurveys(state)
-            ? MachineState.ResolvingSurveys
-            : stateAfterSurveys(state)
+        return stateAfterDemandDraws(
+            state,
+            anyPendingSurveys(state) ? MachineState.ResolvingSurveys : stateAfterSurveys(state)
+        )
     }
 }

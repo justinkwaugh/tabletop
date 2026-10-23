@@ -6,7 +6,7 @@ import { isCampaign } from '../model/campaign.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { nextStartingBasePlacer } from '../model/startingBases.js'
 import { firstPhase } from '../model/turnPlan.js'
-import { stateForPhase } from './transitions.js'
+import { startPhase } from './transitions.js'
 
 export class ChoosingFactionsStateHandler implements MachineStateHandler<
     HydratedChooseFaction,
@@ -44,9 +44,7 @@ export class ChoosingFactionsStateHandler implements MachineStateHandler<
             return MachineState.PlacingStartingBases
         }
         // The campaign begins in the exploration phase of its first turn (rulebook 3.0).
-        return isCampaign(state)
-            ? stateForPhase(state, firstPhase(state))
-            : MachineState.StartOfTurn
+        return isCampaign(state) ? startPhase(state, firstPhase(state)) : MachineState.StartOfTurn
     }
 
     private nextChooser(state: HydratedStellarHorizonsGameState): string | undefined {

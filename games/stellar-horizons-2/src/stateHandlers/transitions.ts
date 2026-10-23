@@ -78,16 +78,16 @@ export function stateAfterGoodsDraw(state: HydratedStellarHorizonsGameState): Ma
 }
 
 export function stateAfterEconomicPhase(state: HydratedStellarHorizonsGameState): MachineState {
-    return stateForPhase(state, firstPhase(state))
+    return startPhase(state, firstPhase(state))
 }
 
 // The campaign plays the cargo and trade phase on the Main Line, in initiative order.
-export function stateForPhase(
+export function startPhase(
     state: HydratedStellarHorizonsGameState,
     phase: TurnPhase
 ): MachineState {
     if (phase === TurnPhase.Cargo && isCampaign(state)) {
-        state.traders = state.initiativeOrder()
+        state.remainingTraders = state.initiativeOrder()
         return MachineState.Trading
     }
     return branchingState(phase)
@@ -111,7 +111,7 @@ function stateAfterTerraforming(state: HydratedStellarHorizonsGameState): Machin
 
 function stateOfNextPhase(state: HydratedStellarHorizonsGameState, phase: TurnPhase): MachineState {
     const next = phaseAfter(state, phase)
-    return next === undefined ? stateAfterLastPhase(state) : stateForPhase(state, next)
+    return next === undefined ? stateAfterLastPhase(state) : startPhase(state, next)
 }
 
 export function stateAfterExploring(state: HydratedStellarHorizonsGameState): MachineState {
@@ -130,12 +130,22 @@ export function stateAfterSyndicateTakes(state: HydratedStellarHorizonsGameState
     return anyAnomalyAttempts(state) ? MachineState.ResolvingAnomalies : stateAfterAnomalies(state)
 }
 
-// After each anomaly attempt: its settlement reward is placed, a base it founds draws its
-// demand marker, its goods are placed, then the next attempt resolves.
-export function stateAfterAnomaly(state: HydratedStellarHorizonsGameState): MachineState {
-    if (state.demandDraws.length > 0) {
-        return MachineState.ChoosingDemand
+// Rulebook 1.9: a system's demand marker comes immediately, so a draw interrupts play, which
+// resumes once the marker is kept.
+export function stateAfterDemandDraws(
+    state: HydratedStellarHorizonsGameState,
+    next: MachineState
+): MachineState {
+    if (state.demandDraws.length === 0) {
+        return next
     }
+    state.resumeAfterDemand = next
+    return MachineState.ChoosingDemand
+}
+
+// After each anomaly attempt: its settlement reward is placed, its goods are placed, then the
+// next attempt resolves.
+export function stateAfterAnomaly(state: HydratedStellarHorizonsGameState): MachineState {
     discardUnplaceableRewards(state)
     if (state.settlementRewards.length > 0) {
         return MachineState.PlacingRewardSettlements
