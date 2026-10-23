@@ -33,6 +33,14 @@
     import { favorToken } from '$lib/images/tileImages.js'
     import { noExchangePicks, type ExchangePicks } from '$lib/model/exchangeTerms.js'
     import { powerChoiceCards, type CardResolvers } from '$lib/model/cardChoice.js'
+    import {
+        adviserPairs,
+        facedownSeatRows,
+        pairAt,
+        pairPicked,
+        withPairTap,
+        type FacedownSeatRow
+    } from '$lib/model/facedownRows.js'
     import { adviserBack } from '$lib/model/cardBacks.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -112,6 +120,7 @@
     let countCeiling = $derived(openCountCeiling(gameSession.gameState, gameSession.myPlayer?.id))
     let grids = $derived(warbandGrids(choices))
     let runs = $derived(bankRuns(choices))
+    let pairs = $derived(adviserPairs(choices))
     const orWidth = new ChoiceWidth()
 
     function relicSlotLabel(slotId: string): string {
@@ -210,6 +219,28 @@
         )
     }
 
+    // R-9.4 — a facedown adviser choice as a row per holder: faced where the viewer's own view
+    // names the card (their own, or one shown to them), a back otherwise, whatever this client holds.
+    function adviserRows(legal: LegalChoice): FacedownSeatRow[] | undefined {
+        return facedownSeatRows(
+            legal.options,
+            (playerId) => gameSession.gameState.getPlayerState(playerId),
+            gameSession.myPlayer?.id,
+            resolve.facedownAdviserLabel
+        )
+    }
+
+    // Dream Thief's two picks in one area: a tap fills the first empty pick or lets a picked card go.
+    function tapAdviser(legal: LegalChoice, i: number, j: number) {
+        const pair = pairAt(pairs, i)
+        if (!pair) {
+            tapOption(legal, i, optionIndexOf(legal, i, picks), j)
+            return
+        }
+        const next = withPairTap(pair, choices, picks, j)
+        if (next !== picks) picks = next
+    }
+
     function setOption(legal: LegalChoice, i: number, pick: number) {
         picks = withOptionPick(picks, legal, i, pick)
     }
@@ -278,6 +309,33 @@
             {/each}
         </div>
     {/if}
+{/snippet}
+
+<!-- Facedown advisers, a row per holder under their chip; a pair's two picks share the area. -->
+{#snippet adviserSeatRows(legal: LegalChoice, i: number, rows: FacedownSeatRow[])}
+    {@const pair = pairAt(pairs, i)}
+    {@const pick = optionIndexOf(legal, i, picks)}
+    {@const picked = pair ? pairPicked(pair, choices, picks) : pick >= 0 ? [pick] : []}
+    <div class="text-oath-text-muted mb-1">
+        {pair && words.advisers ? words.advisers : `${legal.spec.what ?? legal.spec.kind}:`}
+    </div>
+    <div class="grid grid-cols-[max-content_auto] items-center gap-x-2 gap-y-1.5">
+        {#each rows as row (row.playerId)}
+            <div class="contents" data-seat-row={row.playerId}>
+                <span class="inline-flex justify-self-start text-sm" data-seat-chip>
+                    <PlayerName playerId={row.playerId} />
+                </span>
+                <CardChoiceRow
+                    choices={row.cards}
+                    picked={picked.map(String)}
+                    onpick={(key) => tapAdviser(legal, i, Number(key))}
+                    {busy}
+                    height={80}
+                    magnifyBacks={false}
+                />
+            </div>
+        {/each}
+    </div>
 {/snippet}
 
 <!-- A card's "or": two answers of one width, neither picked until a tap (or the one legal). -->
@@ -356,13 +414,15 @@
     {@const option = legal.options[pick]}
     {@const grid = gridAt(grids, i)}
     {@const run = runAt(runs, i)}
+    {@const pair = pairAt(pairs, i)}
     {@const onMap = words.site ? siteOnMap(i) : undefined}
     {@const shown =
         (!grid || grid.specs[0] === i) &&
         (!run || run.specs[0] === i) &&
+        (!pair || pair.specs[0] === i) &&
         asked(choices, i, picks) &&
         !offersNothing(choices, i)}
-    <!-- A grid or a run draws every spec it answers once, at its first; a may's own pick shows
+    <!-- A grid, a run or a pair draws every spec it answers once, at its first; a may's own pick shows
          only while the may is on; a choice it may skip with nothing offered is not drawn. -->
     {#if shown}
         <div class="mb-1 text-xs">
@@ -548,9 +608,12 @@
             {:else}
                 <!-- A card, a relic, a facedown adviser or warbands at a site, as a card: every other
                      kind a power asks has its picker above (powerPickerReach.spec.ts). -->
+                {@const rows = adviserRows(legal)}
                 {@const cards = powerChoiceCards(legal.options, resolve)}
                 {@const underMay = mayOf(choices, i) !== undefined}
-                {#if cards}
+                {#if rows}
+                    {@render adviserSeatRows(legal, i, rows)}
+                {:else if cards}
                     <div class="text-oath-text-muted">
                         {underMay && words.may?.take
                             ? words.may.take

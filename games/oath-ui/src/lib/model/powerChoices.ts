@@ -54,6 +54,14 @@ export function hasPicks(picks: PowerChoicePicks): boolean {
 }
 
 /**
+ * Every pick the power offers may be left empty, and none is made yet (the Ivory Eye before its
+ * first tap): there is nothing to judge, so a refusal waits for a pick.
+ */
+export function awaitsFirstPick(choices: readonly LegalChoice[], picks: PowerChoicePicks): boolean {
+    return choices.length > 0 && choices.every((legal) => legal.spec.min === 0) && !hasPicks(picks)
+}
+
+/**
  * R-7.1.2 — in a game created before revision 7, an open count (Witch's Bargain) stops at what the
  * player can give: their secrets, or the favor they can use, which Vow of Kinship keeps in a bank.
  * The engine judges the pair.

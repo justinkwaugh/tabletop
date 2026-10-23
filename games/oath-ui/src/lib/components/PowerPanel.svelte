@@ -17,6 +17,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
     import { pickerWords } from '$lib/model/powerPickerWords.js'
+    import { awaitsFirstPick } from '$lib/model/powerChoices.js'
     import { MAJOR_ACTIONS } from '$lib/model/actionCatalogue.js'
     import CardLine from '$lib/components/CardLine.svelte'
     import {
@@ -90,11 +91,14 @@
     reason: string | undefined,
     cost: string | undefined
 )}
-    <!-- "Use" waits for complete picks; complete picks the engine refuses show its reason instead. -->
+    <!-- "Use" waits for complete picks; complete picks the engine refuses show its reason instead,
+         once there is a pick to judge (the Ivory Eye's are all optional, so complete from the start). -->
     {#if complete && reason}
-        <p class="text-[11px] text-oath-danger">
-            <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
-        </p>
+        {#if !awaitsFirstPick(p.choices, draft.picksOf(p))}
+            <p class="text-[11px] text-oath-danger">
+                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
+            </p>
+        {/if}
     {:else if complete}
         <button
             class="mt-1 inline-flex items-center gap-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 border-[1.5px] border-oath-primary-border px-2 py-0.5 text-xs max-sm:min-h-11"

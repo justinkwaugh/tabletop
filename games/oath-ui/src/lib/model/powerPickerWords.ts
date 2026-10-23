@@ -24,6 +24,8 @@ export type PickerWords = {
     banks?: (total: number) => string
     or?: { row?: string; first: string; second: string; secondConsequence?: string }
     may?: MayWords
+    /** Two facedown adviser picks over the same advisers, answered in one area: its heading. */
+    advisers?: string
 }
 
 export type MayWords = {
@@ -62,6 +64,8 @@ const WORDS: Record<string, PickerWords> = {
     'denizen.nomad.resettle': { site: { row: 'Place it at:', chip: 'Place it' }, tone: 'gold' },
     'denizen.order.palanquin': { site: { row: 'Carry to:', chip: 'Carry' }, tone: 'gold' },
     'relic.ivory-eye': { site: { row: 'Peek at:', chip: 'Peek' }, tone: 'gold' },
+    // "Swap any two facedown advisers": both picks in one area, in the card's words.
+    'denizen.arcane.dream-thief': { advisers: 'two facedown advisers:', tone: 'gold' },
     'denizen.beast.small-friends': { siteButtons: true, tone: 'gold' },
     'denizen.discord.scryer': { pile: 'Peek at:', tone: 'gold' },
     'denizen.nomad.convoys': { pile: 'Take:', tone: 'gold' },

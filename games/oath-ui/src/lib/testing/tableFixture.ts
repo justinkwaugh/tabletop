@@ -95,6 +95,7 @@ import {
 import { shroudedWoodState } from './shroudedWoodTable.js'
 import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
+import { facedownPickerTable } from './facedownPickerTables.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
 import { campaignLedgerTable } from './campaignLedgerTable.js'
 import { battleLossTable } from './battleLossTable.js'
@@ -312,6 +313,9 @@ export type TableName =
     | 'gamblingHallJinx'
     | 'wrestlersPick'
     | 'wrestlersOnePlace'
+    | 'facedownDreamThief'
+    | 'facedownInquisitor'
+    | 'facedownIvoryEye'
     | 'warningSignals'
     | 'warningSignalsNothingToMove'
     | 'useBadge'
@@ -5575,6 +5579,10 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     // R-10.22 — Ann answers Dana's Campaign at the Plains with Wrestlers; Rhys is their Ally.
     wrestlersPick: () => wrestlersDefends(),
     wrestlersOnePlace: () => wrestlersDefends({ annBoard: 0, rhysBoard: 0 }),
+    // R-9.4 — Dana's facedown adviser picks: Dream Thief, Inquisitor (all at the Plains), the Ivory Eye.
+    facedownDreamThief: () => facedownPickerTable('dreamThief'),
+    facedownInquisitor: () => facedownPickerTable('inquisitor'),
+    facedownIvoryEye: () => facedownPickerTable('ivoryEye'),
     warningSignals: () => warningSignalsTable(),
     warningSignalsNothingToMove: () => warningSignalsTable(true),
     useBadge: () => useBadgeTable(true),
