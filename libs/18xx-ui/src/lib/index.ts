@@ -79,6 +79,7 @@ export type {
 } from './session/titlePresentation.js'
 export type { TileSymbolName } from './tiles/tileSymbols.js'
 export { moneyFormat, type MoneyFormat } from './presentation/money.js'
+export { clickedBackdrop } from './presentation/modalDialog.js'
 export { default as OperatingActions } from './table/OperatingActions.svelte'
 
 export { default as StockMarketScene } from './stock/StockMarketScene.svelte'

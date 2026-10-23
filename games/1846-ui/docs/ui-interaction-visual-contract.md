@@ -20,6 +20,13 @@ physical board artwork is claimed for 1846.
   packets or commitments.
 - **Two-player opening.** Opening purchases are public company cards showing price,
   income or independent capitalization and debt, with the actions available now.
+- **Companies in this game.** The hidden draft and the two-player opening both carry a
+  **Companies in this game** link for every seat, whether choosing, waiting or covered.
+  It opens a modal listing what setup kept and removed for the player count: the
+  corporations in play as tokens; the privates dealt into the deck with the number of
+  Pass cards (in the two-player opening, the kept privates with no Pass cards); and the
+  removed corporations and privates, dimmed. The modal is local presentation, reads only
+  public state, and never shows packets, picks or the undrawn deck.
 - **Construction modes.** During construction the action area shows one of track
   building, station placement or issuing/redeeming shares (Finance), chosen with the
   operating-mode switch. The switch lists only modes available now and appears when
@@ -173,3 +180,8 @@ station placement or nothing to build, then the shared operating actions.
     at the end and in history. Automated (`apps/18xx-playground` finished-game spec).
 12. On desktop and narrow viewports, every action stays reachable and the board stays
     navigable. Manual.
+13. Open **Companies in this game** in a hidden draft for three, four and five players and
+    in the two-player opening. The kept and removed companies and the Pass count match
+    setup (`companyLineup.spec.ts`); every seat sees the link; the modal closes with its
+    close button, a backdrop click or Escape. Automated for the lineup, manual for the
+    modal.

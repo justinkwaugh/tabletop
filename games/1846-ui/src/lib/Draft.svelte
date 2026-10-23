@@ -1,6 +1,7 @@
 <script lang="ts">
     import { isBlank, priceFor } from '@tabletop/1846'
     import DraftCard from './DraftCard.svelte'
+    import DraftLineup from './DraftLineup.svelte'
     import type { EighteenFortySixSession } from './session.svelte.js'
     let { session }: { session: EighteenFortySixSession } = $props()
     const state = $derived(session.gameState)
@@ -23,6 +24,7 @@
                 Pay when everyone reveals.
             </p>
         </header>
+        <DraftLineup {session} />
         {#if hiddenDraft.finalOffer}
             {@const offer = hiddenDraft.finalOffer}
             <div class="draft-cards">
