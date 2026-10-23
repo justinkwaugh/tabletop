@@ -22,10 +22,10 @@
         Declare the attack: tap pieces on the map, once to attack, twice to lead, three times to
         leave out.
     {:else}
-        Declare the attack{stage.startsFromThreat
-            ? ': the pieces that made the threat are named to start with'
-            : ''}. Tap a piece, here or on the map, to attack with it, again to lead, and once more
-        to leave it out.
+        Declare the attack.{stage.startsFromThreat
+            ? ' The pieces that made the threat are already chosen.'
+            : ''} Tap a piece, here or on the map, to attack with it, again to lead, and once more to
+        leave it out.
     {/if}
 </div>
 <AttackerPicker {stage} {folded} />

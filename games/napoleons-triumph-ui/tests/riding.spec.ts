@@ -180,7 +180,9 @@ test('cavalry riding on stays in hand while a locale is aimed at, and the threat
     await expect(page.getByRole('group', { name: 'Bernadotte’s corps, riding on' })).toBeVisible()
 
     await tap(page, '[data-aim-locale="52"]')
-    await expect(page.getByText('The pieces in hand are named to start with')).toBeVisible()
+    await expect(
+        page.getByText('The pieces you chose will join the attack where they can.')
+    ).toBeVisible()
     await tap(page, `svg [data-threat="${AUSTERLITZ.approachBetween(38, 52).id}"]`)
     await page.locator('button[aria-label="Choose this unit"]:not([disabled])').first().click()
     await page.getByRole('button', { name: /^Defend/ }).click()

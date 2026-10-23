@@ -40,8 +40,8 @@
                 return { label: `${name} defends with his corps`, marker: 'defends', chosen: true }
             case CommanderStatus.NamedElsewhere:
                 return {
-                    label: `${name} was named against another approach this turn, so he cannot defend here`,
-                    marker: 'named already',
+                    label: `${name} is already defending another approach this turn, so he cannot defend here`,
+                    marker: 'defending elsewhere',
                     dimmed: true
                 }
         }

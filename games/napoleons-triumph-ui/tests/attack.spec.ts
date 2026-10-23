@@ -316,7 +316,7 @@ test('the pieces that made the threat are still named after the page is reloaded
     await press.click()
     await leadDefence(page)
     await expect(
-        page.getByText('the pieces that made the threat are named to start with')
+        page.getByText('The pieces that made the threat are already chosen.')
     ).toBeVisible()
     await expect(
         page.locator('button[aria-label="Choose this unit"][aria-pressed="true"]:not([disabled])')
@@ -438,7 +438,9 @@ test('a threat chosen from the locale it is aimed at', async ({ page }) => {
     await expect(threats).toHaveCount(0)
     await tap(page, '[data-aim-locale="94"]')
     await expect(aimedAt).toBeVisible()
-    await expect(page.getByText('The pieces in hand are named to start with')).toBeVisible()
+    await expect(
+        page.getByText('The pieces you chose will join the attack where they can.')
+    ).toBeVisible()
     await expect(threats).not.toHaveCount(0)
     await tap(page, '[data-aim-locale="94"]')
     await expect(aimedAt).toBeHidden()
