@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { GameAction } from '@tabletop/common'
-import { isAnswerQuestion, isCampaignResolveVictory, isCampaignSacrifice } from '@tabletop/oath'
+import { isAnswerQuestion, isCampaignResolveVictory, isCampaignSacrifice, ownWarbandOwner } from '@tabletop/oath'
 import { disposeSessions, openSessionOn, type PlayedTable } from '$lib/testing/sessionHarness.js'
 import { battleLossTable } from '$lib/testing/battleLossTable.js'
 import { campaignLedgerTable } from '$lib/testing/campaignLedgerTable.js'
-import { describeAction } from './actionDescription.js'
+import { describeAction, phraseWarbandOwner } from './actionDescription.js'
 import { campaignLedger, campaignStepsTo } from './campaignLedger.js'
 import { seatsById } from './names.js'
+import { tokenParts } from './tokenText.js'
 
 afterEach(() => {
     disposeSessions()
@@ -85,6 +86,25 @@ describe("Hospital in the Campaign's ledger: set aside, not lost, in the History
         const [, rhys] = campaignLedger(steps, seatsById(session.historyNames), session.gameState).sides
         // The spoils step left the banish (and its burn) to the answer, so the card names neither.
         expect(rhys.lost).toBe("Plains, Cup of Plenty; 1 of Rhys's warbands went to Hospital's site (Hospital)")
+    })
+
+    it("the Toll Roads answer that ends the Campaign: the mover's own saved warbands are drawn as the mover's", async () => {
+        const table = campaignLedgerTable({ hospital: 'Dana', toll: true })
+        const answer = stepOf(table, isAnswerQuestion)
+        // Rhys, banished, answered; the row starts with Dana's chip, the mover whose story it tells.
+        expect(answer.playerId).toBe('Rhys')
+        const row = await rowOf(table, answer, 'Ann')
+        // Dana's four lost: 2 to skulls, 1 to Bear Traps, 1 sacrificed.
+        expect(row).toContain("4 of their own warbands went to Hospital's site (Hospital)")
+        const session = await openSessionOn(table)
+        const reader = { names: seatsById(session.historyNames), viewerId: 'Ann' }
+        const owners = tokenParts(row, { warbands: true, seats: reader }).flatMap((part) =>
+            part.kind === 'warband' && part.count === 4
+                ? [phraseWarbandOwner(part.whose, answer, reader, (playerId) => ownWarbandOwner(session.gameState, playerId))]
+                : []
+        )
+        // The Hospital clause's token: Dana's colour, as its words say, not the answering seat's.
+        expect(owners).toEqual(['Dana'])
     })
 
     it('control: with no Hospital the ledger counts the same losses as killed', async () => {

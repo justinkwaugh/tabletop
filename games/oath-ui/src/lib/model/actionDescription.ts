@@ -188,7 +188,9 @@ export function rowWarbandOwner(
 /**
  * R-10.13 — a counted phrase's warbands: the owner its own words name ("Imperial", a seat, the
  * viewer's "your", the actor's "their own"), else the row's. A seat this reader cannot name
- * leaves them the row's, as every phrase was before.
+ * leaves them the row's, as every phrase was before. "Their own" is the seat whose chip starts the
+ * row, the one its words were written against (a Toll Roads answer's mover, not the seat that
+ * answered).
  */
 export function phraseWarbandOwner(
     whose: WarbandWhose,
@@ -200,7 +202,7 @@ export function phraseWarbandOwner(
     const recorded = whose.kind === 'held' ? recordedWarbandOwner(action) : undefined
     return (
         recorded ??
-        namedWarbandOwner(whose, action.playerId, reader, ownWarbandsOf) ??
+        namedWarbandOwner(whose, rowActorOf(action), reader, ownWarbandsOf) ??
         rowWarbandOwner(action, ownWarbandsOf)
     )
 }
