@@ -10,6 +10,7 @@
         hiddenDraft?.participants.find((player) => player.playerId === session.myPlayer?.id)
     )
     const choosers = $derived(state.activePlayerIds.map((id) => session.getPlayerName(id)))
+    const panel = $derived(session.packetGate.panel(mine, !!hiddenDraft?.finalOffer))
     const label = (id: string) => (isBlank(id) ? 'Pass' : session.companyName(id))
 </script>
 
@@ -45,31 +46,29 @@
                 paid.
             </p>
         {/if}
-        {#if (mine?.packet?.length || mine?.selections?.length) && !session.packetGate.visible}
+        {#if panel === 'cover'}
             <div class="draft-gate">
                 <p>Pass the device to {session.myPlayer?.name} before opening these cards.</p>
                 <button class="action-button" onclick={() => session.packetGate.reveal()}
                     >Show my cards</button
                 >
             </div>
-        {:else if mine?.packet && session.packetGate.visible}
-            {#if !hiddenDraft.finalOffer}
-                <div class="draft-cards">
-                    {#each mine.packet as id (id)}
-                        <DraftCard {session} cardId={id} price={priceFor(state, id)}>
-                            {#snippet actions()}
-                                <button
-                                    class="action-button"
-                                    disabled={!session.canChooseAction ||
-                                        !session.draftChoices.includes(id)}
-                                    onclick={() => session.choose(id)}>Choose</button
-                                >
-                            {/snippet}
-                        </DraftCard>
-                    {/each}
-                </div>
-            {/if}
-        {:else if !hiddenDraft.finalOffer}
+        {:else if panel === 'cards' && mine?.packet}
+            <div class="draft-cards">
+                {#each mine.packet as id (id)}
+                    <DraftCard {session} cardId={id} price={priceFor(state, id)}>
+                        {#snippet actions()}
+                            <button
+                                class="action-button"
+                                disabled={!session.canChooseAction ||
+                                    !session.draftChoices.includes(id)}
+                                onclick={() => session.choose(id)}>Choose</button
+                            >
+                        {/snippet}
+                    </DraftCard>
+                {/each}
+            </div>
+        {:else if panel === 'waiting'}
             <p class="draft-waiting">Waiting for {choosers.join(', ')} to choose privately.</p>
         {/if}
         {#if session.packetGate.visible && mine?.selections?.length}
@@ -85,7 +84,7 @@
                 >
             </div>
         {/if}
-        {#if mine?.packet && session.packetGate.gated && session.packetGate.visible}
+        {#if session.packetGate.canHide(mine)}
             <button class="draft-hide" onclick={() => session.packetGate.hide()}
                 >Hide my cards</button
             >

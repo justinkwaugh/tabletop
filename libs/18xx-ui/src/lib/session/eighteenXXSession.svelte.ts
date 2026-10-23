@@ -196,7 +196,7 @@ export class EighteenXXSession<
     private get localHotseat() {
         return !!this.game.hotseat && this.game.storage === GameStorage.Local
     }
-    // Players pass one device; the developer harness is excluded because it switches seats itself.
+    // The developer harness is excluded because it switches seats itself.
     protected get ordinaryHotseatPlay() {
         return this.localHotseat && !this.isDeveloperHarness
     }

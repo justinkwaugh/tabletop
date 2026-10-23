@@ -11,10 +11,13 @@ physical board artwork is claimed for 1846.
 
 ## Visual intents
 
-- **Hidden draft.** During the draft the action area shows the private packet behind
-  **Show my cards**. Showing or hiding is local presentation. Choosing a card is one
-  immediate Action. The public final-company offer stays visible while personal
-  commitments are covered. Opponents and spectators never see packets or commitments.
+- **Hidden draft.** During the draft the action area shows the private packet. In local
+  hotseat play, where players pass one device, it waits behind **Show my cards**; online
+  and in the developer harness the seat's own cards show at once, with no cover. Showing
+  or hiding is local presentation. Choosing a card is one immediate Action. A seat that is
+  not choosing sees whom the draft is waiting for. The public final-company offer stays
+  visible while personal commitments are covered. Opponents and spectators never see
+  packets or commitments.
 - **Two-player opening.** Opening purchases are public company cards showing price,
   income or independent capitalization and debt, with the actions available now.
 - **Construction modes.** During construction the action area shows one of track
@@ -102,7 +105,7 @@ station placement or nothing to build, then the shared operating actions.
   canonical inventory and stations change only on confirmation.
 - **Open Receivership panel.** A local selection registered with Undo, which closes it.
   It stays chosen only while the panel has claims for the acting player.
-- **Draft cover.** Local presentation. Submitting a card closes the packet before the
+- **Draft cover.** Local presentation, in local hotseat play only. Submitting a card closes the packet before the
   Action is sent, even if the submission fails; state publication, perspective changes
   and pending transitions close it again. In history a perspective sees only its own known
   cards, purchases are disabled, and history rows never print a draft card, the actor's
@@ -130,9 +133,11 @@ station placement or nothing to build, then the shared operating actions.
 
 ## Verification scenarios
 
-1. Open the packet, choose a card, change perspective, then open history. The packet
-   closes on submission; other perspectives show no cards; history shows only the
-   perspective's own cards and disables purchases. Manual.
+1. In local hotseat play, open the packet, choose a card, change perspective, then open
+   history. The packet closes on submission; other perspectives show no cards; history
+   shows only the perspective's own cards and disables purchases. Online, the choosing
+   seat sees its cards with no cover and the other seats see whom it is waiting for.
+   `draftPacketGate.spec.ts` covers the cover and panel choice; the rest is manual.
 2. Choose a track tile, rotate and preview it, then Undo. Nothing changes until
    confirmation; after Undo, inventory, treasury, stations and the drawing agree. Manual.
 3. In combined construction, choose Place station, place a station, then Undo. Undo

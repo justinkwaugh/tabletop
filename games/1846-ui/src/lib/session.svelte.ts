@@ -474,8 +474,9 @@ export class EighteenFortySixSession extends BaseSession {
         await this.applyAction(this.createPlayerAction(CorporateFinance, choice))
     }
     readonly packetGate = new DraftPacketGate({
-        gated: () => this.ordinaryHotseatPlay,
-        key: () => `${this.gameState.id}:${this.gameState.actionCount}:${this.myPlayer?.id}`,
+        ordinaryHotseatPlay: () => this.ordinaryHotseatPlay,
+        seatTurnKey: () =>
+            `${this.gameState.id}:${this.gameState.actionCount}:${this.myPlayer?.id}`,
         publishing: () => this.updatingVisibleState
     })
     readonly draftChoices = $derived(
