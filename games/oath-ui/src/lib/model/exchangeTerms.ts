@@ -45,8 +45,8 @@ export function promiseDraftOf(picks: ExchangePicks, side: ExchangeSide): string
  * promise trimmed, as the engine's rule reads it. A side empty after the trim promises nothing, and
  * the terms hold a `promises` object only with a promise in it. A box erased to empty keeps no
  * draft, so the picks read exactly as if it was never typed in. The drafts keep one order of
- * sides, whichever box was typed in first, so two picks with the same text in each box read the
- * same.
+ * sides, regardless of which box was typed in first, so two picks with the same text in each box
+ * read the same.
  */
 export function withPromise(picks: ExchangePicks, side: ExchangeSide, text: string): ExchangePicks {
     const typed: PromiseDrafts = { ...picks.promiseDrafts, [side]: text }
