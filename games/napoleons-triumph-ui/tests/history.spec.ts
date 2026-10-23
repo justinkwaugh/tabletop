@@ -203,20 +203,20 @@ test('the history lists the newest line first or last, as the player keeps it, a
     const newestLast = order.getByRole('button', { name: 'Newest last' })
     const lines = page.locator('.nt-history-entry')
     const newest = /Langeron’s corps moves/
-    await expect(newestFirst).toHaveAttribute('aria-pressed', 'true')
-    await expect(lines.first()).toHaveText(newest)
-
-    await newestLast.click()
     await expect(newestLast).toHaveAttribute('aria-pressed', 'true')
     await expect(lines.last()).toHaveText(newest)
     await expect(lines.last()).toBeInViewport()
+
+    await newestFirst.click()
+    await expect(newestFirst).toHaveAttribute('aria-pressed', 'true')
+    await expect(lines.first()).toHaveText(newest)
     await expect
         .poll(() => page.evaluate(() => JSON.stringify({ ...localStorage })))
-        .toContain('newestLast')
+        .toContain('newestFirst')
 
     await page.getByRole('button', { name: 'Index', exact: true }).click()
     const index = page.getByRole('navigation', { name: 'History index' })
-    await expect(index.getByRole('button').first()).toHaveText('Before the battle')
+    await expect(index.getByRole('button').last()).toHaveText('Before the battle')
     await index.getByRole('button', { name: 'Before the battle' }).click()
     await expect(index).toBeHidden()
     await expect(page.locator('[data-chapter="Before the battle"] h3')).toBeInViewport()
@@ -225,6 +225,6 @@ test('the history lists the newest line first or last, as the player keeps it, a
     await page.getByRole('button', { name: 'Games' }).click()
     await page.getByRole('button', { name: 'Austerlitz' }).click()
     await page.getByRole('tab', { name: 'History' }).click()
-    await expect(newestLast).toHaveAttribute('aria-pressed', 'true')
-    await expect(lines.last()).toHaveText(newest)
+    await expect(newestFirst).toHaveAttribute('aria-pressed', 'true')
+    await expect(lines.first()).toHaveText(newest)
 })

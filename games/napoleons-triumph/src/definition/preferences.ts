@@ -20,7 +20,7 @@ export const NapoleonsTriumphPreferenceDefinition = {
             movementTrails: false,
             localeCapacities: false,
             actionPanelFolded: false,
-            historyOrder: 'newestFirst'
+            historyOrder: 'newestLast'
         },
         version: 1
     }

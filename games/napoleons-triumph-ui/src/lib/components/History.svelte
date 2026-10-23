@@ -1,8 +1,8 @@
 <script lang="ts">
     import { assertExists } from '@tabletop/common'
+    import { pinToNewest } from '@tabletop/frontend-components'
     import { chaptersInOrder, type HistoryLine } from '$lib/model/historyChapters.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { pinToNewest } from '$lib/utils/pinToNewest.js'
 
     const gameSession = getGameSession()
     const newestFirst = $derived(gameSession.historyNewestFirst)
@@ -114,7 +114,10 @@
         bind:this={scroller}
         role="region"
         aria-label="Scrollable history"
-        {@attach pinToNewest(newestFirst)}
+        use:pinToNewest={{
+            newestFirst,
+            historyComplete: gameSession.history.visibleContext.hasCompleteHistory
+        }}
     >
         <div class="nt-history" class:nt-history-newest-last={!newestFirst}>
             {#each chapters as chapter (chapter.title)}
