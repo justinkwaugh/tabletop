@@ -90,7 +90,8 @@
        for the board. The five colors always fit; a long name gives way. */
     @media (max-width: 639px) {
         .strip {
-            height: 44px;
+            height: 38px;
+            margin-top: 6px;
             padding: 0 6px;
             gap: 6px;
         }
@@ -118,6 +119,10 @@
         .neutral {
             gap: 2px;
             padding: 3px 6px;
+        }
+
+        .neutral .token {
+            padding: 2px;
         }
 
         .token :global(svg) {
