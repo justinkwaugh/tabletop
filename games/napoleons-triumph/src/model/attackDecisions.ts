@@ -7,9 +7,15 @@ import {
     type CombatCost,
     type CombatOutcome
 } from './attackResolution.js'
-import { currentAttack, defensePosition } from './attackState.js'
+import { currentAttack, defensePosition, isNamedDefender } from './attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
-import { faceOf, samePosition, type Commander, type ProjectedUnit } from './pieces.js'
+import {
+    corpsCommanderIds,
+    faceOf,
+    samePosition,
+    type Commander,
+    type ProjectedUnit
+} from './pieces.js'
 import { distinct, legal } from './legality.js'
 
 export function nextDecision(
@@ -111,12 +117,11 @@ export function forcedAdvance(state: HydratedNapoleonsTriumphGameState): ForcedA
     if (unitsLeftWith(state, commander, [unit]).length === 0) {
         return { ...forced, commanderIds: [commander.id] }
     }
-    // A commander who was not named stays with the others; a named one may go or stay.
-    const named = currentAttack(state).defendingCommanderIds.includes(commander.id)
-    return named ? undefined : { ...forced, commanderIds: [] }
+    return isNamedDefender(currentAttack(state), commander.id)
+        ? undefined
+        : { ...forced, commanderIds: [] }
 }
 
-/** The units of a commander's corps that stay with him when the given units leave his position. */
 function unitsLeftWith(
     state: HydratedNapoleonsTriumphGameState,
     commander: Commander,
@@ -158,12 +163,12 @@ export function advance(
             'A commander advances with a unit of its corps'
         )
         legal(
-            attack.defendingCommanderIds.includes(commander.id) ||
+            isNamedDefender(attack, commander.id) ||
                 unitsLeftWith(state, commander, units).length === 0,
             'Only a named commander advances, unless he goes with his last unit'
         )
     }
-    for (const commanderId of new Set(units.flatMap((unit) => unit.commanderId ?? []))) {
+    for (const commanderId of corpsCommanderIds(units)) {
         const commander = state.commander(commanderId)
         legal(
             commanders.includes(commander) || unitsLeftWith(state, commander, units).length > 0,

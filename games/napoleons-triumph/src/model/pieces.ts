@@ -53,6 +53,10 @@ export const Commander = Type.Object({
     defendedApproach: Type.Optional(Type.Integer())
 })
 
+export function corpsCommanderIds(units: readonly ProjectedUnit[]): string[] {
+    return [...new Set(units.flatMap((unit) => unit.commanderId ?? []))]
+}
+
 export function knownFace(unit: ProjectedUnit): Face | undefined {
     return unit.shown ?? unit.face
 }

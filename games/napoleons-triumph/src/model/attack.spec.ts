@@ -712,4 +712,12 @@ describe('rule 11, step 2: commanders are defending pieces too', () => {
             })
         ).toThrow(/unit of his corps/)
     })
+
+    it('replays a record from before commanders were named exactly as it was played', () => {
+        const game = frenchTurn(corps)
+        threatenFrom(game, ATTACK_FROM)
+        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), { unitIds: ['A-one'] })
+        expect(game.state.attack?.defendingCommanderIds).toEqual(['langeron'])
+        expect(game.hydrated.commander('langeron').defendedApproach).toBeUndefined()
+    })
 })

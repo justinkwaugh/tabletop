@@ -7,7 +7,13 @@ import { currentAttack, attackLocale, defenseLocale, defensePosition } from './a
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { validateDefenseLeaders } from './leaders.js'
 import { endRoadMarch } from './movement.js'
-import { faceOf, samePosition, type Commander, type ProjectedUnit } from './pieces.js'
+import {
+    corpsCommanderIds,
+    faceOf,
+    samePosition,
+    type Commander,
+    type ProjectedUnit
+} from './pieces.js'
 import { distinct, legal } from './legality.js'
 import { hasUsableCommand } from './orders.js'
 
@@ -110,7 +116,7 @@ export function forcedDefense(state: HydratedNapoleonsTriumphGameState): string[
     return blockers.length > 0 ? blockers.map((unit) => unit.id) : undefined
 }
 
-/** The commanders blocking the defense approach with their corps, who defend with it. */
+/** Rule 11, step 2: pieces blocking the defense approach must all be named, commanders among them. */
 export function forcedDefendingCommanders(state: HydratedNapoleonsTriumphGameState): string[] {
     const attack = currentAttack(state)
     return state
@@ -118,15 +124,20 @@ export function forcedDefendingCommanders(state: HydratedNapoleonsTriumphGameSta
         .map((commander) => commander.id)
 }
 
-/** Rule 11, step 2: commanders in the defense reserve who were not named against another approach this turn. */
-export function eligibleReserveCommanders(state: HydratedNapoleonsTriumphGameState): Commander[] {
+function reserveCommanders(state: HydratedNapoleonsTriumphGameState): Commander[] {
     const attack = currentAttack(state)
-    return state
-        .commandersAt({ locale: defenseLocale(state, attack) }, attack.defenderId)
-        .filter((commander) => mayDefendAgainst(commander, attack.defenseApproach))
+    return state.commandersAt({ locale: defenseLocale(state, attack) }, attack.defenderId)
 }
 
-function mayDefendAgainst(piece: ProjectedUnit | Commander, approach: ApproachId): boolean {
+/** Rule 11, step 2: pieces named against a different approach earlier in the turn cannot be named. */
+export function eligibleReserveCommanders(state: HydratedNapoleonsTriumphGameState): Commander[] {
+    const attack = currentAttack(state)
+    return reserveCommanders(state).filter((commander) =>
+        mayDefendAgainst(commander, attack.defenseApproach)
+    )
+}
+
+export function mayDefendAgainst(piece: ProjectedUnit | Commander, approach: ApproachId): boolean {
     return piece.defendedApproach === undefined || piece.defendedApproach === approach
 }
 
@@ -157,46 +168,50 @@ export function declareDefense(
             'At most one detached unit defends from reserve'
         )
     }
-    const commanders =
-        commanderIds === undefined
-            ? [...new Set(units.flatMap((unit) => unit.commanderId ?? []))].map((id) =>
-                  state.commander(id)
-              )
-            : defendingCommanders(state, units, commanderIds, forced !== undefined)
     attack.defendingUnitIds = [...unitIds]
-    attack.defendingCommanderIds = commanders.map((commander) => commander.id)
     attack.defendersBlocking = forced !== undefined
     // Rule 15: a Guard Attack cannot be called off, so it goes straight to the defence's leading units.
     attack.awaits = attack.guardAttack ? DefenseAwaits.Leaders : DefenseAwaits.Feint
-    for (const piece of [...units, ...commanders]) {
-        piece.defendedApproach = attack.defenseApproach
+    for (const unit of units) {
+        unit.defendedApproach = attack.defenseApproach
+    }
+    // Records from before commanders were named replay as they were played: every named unit's commander, unmarked.
+    if (commanderIds === undefined) {
+        attack.defendingCommanderIds = corpsCommanderIds(units)
+        return
+    }
+    legal(distinct(commanderIds), 'A defending commander is named once')
+    const commanders = forced
+        ? checkBlockingCommanders(state, commanderIds)
+        : checkReserveCommanders(state, units, commanderIds)
+    attack.defendingCommanderIds = [...commanderIds]
+    for (const commander of commanders) {
+        commander.defendedApproach = attack.defenseApproach
     }
 }
 
-function defendingCommanders(
+function checkBlockingCommanders(
+    state: HydratedNapoleonsTriumphGameState,
+    commanderIds: readonly string[]
+): Commander[] {
+    const forced = forcedDefendingCommanders(state)
+    legal(
+        forced.length === commanderIds.length && forced.every((id) => commanderIds.includes(id)),
+        'Every piece blocking the defense approach defends, and no other'
+    )
+    return commanderIds.map((id) => state.commander(id))
+}
+
+function checkReserveCommanders(
     state: HydratedNapoleonsTriumphGameState,
     units: readonly ProjectedUnit[],
-    commanderIds: readonly string[],
-    blocking: boolean
+    commanderIds: readonly string[]
 ): Commander[] {
-    legal(distinct(commanderIds), 'A defending commander is named once')
-    if (blocking) {
-        const forced = forcedDefendingCommanders(state)
-        legal(
-            forced.length === commanderIds.length &&
-                forced.every((id) => commanderIds.includes(id)),
-            'Every piece blocking the defense approach defends, and no other'
-        )
-        return commanderIds.map((id) => state.commander(id))
-    }
     const attack = currentAttack(state)
+    const inReserve = reserveCommanders(state)
     const commanders = commanderIds.map((id) => state.commander(id))
     for (const commander of commanders) {
-        legal(
-            commander.playerId === attack.defenderId &&
-                samePosition(commander.position, { locale: defenseLocale(state, attack) }),
-            'Defending commanders stand in the defense reserve'
-        )
+        legal(inReserve.includes(commander), 'Defending commanders stand in the defense reserve')
         legal(
             mayDefendAgainst(commander, attack.defenseApproach),
             'A commander named against a different approach this turn cannot defend again'

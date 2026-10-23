@@ -24,9 +24,11 @@ export function advancePrompt(stage: AdvanceStage): string {
         )
     }
     for (const entry of stage.commanders.filter((entry) => !entry.named && !entry.goes)) {
-        parts.push(
-            `${commanderDefinition(entry.commanderId).name} was not named to defend, so he stays in reserve.`
-        )
+        parts.push(`${notNamedToDefend(entry.commanderId)}.`)
     }
     return parts.join(' ')
+}
+
+export function notNamedToDefend(commanderId: string): string {
+    return `${commanderDefinition(commanderId).name} was not named to defend, so he stays in reserve`
 }

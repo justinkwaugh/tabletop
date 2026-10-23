@@ -29,7 +29,8 @@ import {
     battleStageOf,
     knownToTheEnemy,
     commandersGoing,
-    defendingCommanders,
+    namedCommanderIds,
+    CommanderStatus,
     keptByCommander,
     liftRetreatingCommander,
     moveLossOnto,
@@ -184,27 +185,62 @@ describe('naming a defence', () => {
 })
 
 describe('naming the commanders of a defence', () => {
+    const langeron = (status: CommanderStatus) => [{ commanderId: 'langeron', status }]
+
     it('names a commander once one of his units defends, until his flag is tapped to leave him out', () => {
         const game = threatened()
-        expect(stageOf(game, StageKind.Defence).commanders).toEqual([])
+        expect(stageOf(game, StageKind.Defence).commanders).toEqual(
+            langeron(CommanderStatus.NoUnitPicked)
+        )
 
         const one = tap(game, emptyBattleSelections(), 'A-inf-a')
         const named = stageOf(game, StageKind.Defence, one)
-        expect(named.commanders).toEqual([
-            { commanderId: 'langeron', named: true, choosable: true, namedElsewhere: false }
-        ])
-        expect(defendingCommanders(named)).toEqual(['langeron'])
+        expect(named.commanders).toEqual(langeron(CommanderStatus.Named))
+        expect(namedCommanderIds(named)).toEqual(['langeron'])
 
         const leftOut = nameDefendingCommander(named, one, 'langeron', false)
         const both = tap(game, leftOut, 'A-inf-b')
-        expect(defendingCommanders(stageOf(game, StageKind.Defence, both))).toEqual([])
+        expect(stageOf(game, StageKind.Defence, both).commanders).toEqual(
+            langeron(CommanderStatus.LeftOut)
+        )
+        expect(namedCommanderIds(stageOf(game, StageKind.Defence, both))).toEqual([])
         const back = nameDefendingCommander(
             stageOf(game, StageKind.Defence, both),
             both,
             'langeron',
             true
         )
-        expect(defendingCommanders(stageOf(game, StageKind.Defence, back))).toEqual(['langeron'])
+        expect(namedCommanderIds(stageOf(game, StageKind.Defence, back))).toEqual(['langeron'])
+    })
+
+    it('names him again by default once his units are all taken back and one is picked anew', () => {
+        const game = threatened()
+        const one = tap(game, emptyBattleSelections(), 'A-inf-a', 'A-cav')
+        const leftOut = nameDefendingCommander(
+            stageOf(game, StageKind.Defence, one),
+            one,
+            'langeron',
+            false
+        )
+        const anew = tap(game, leftOut, 'A-inf-a', 'A-inf-b')
+        expect(stageOf(game, StageKind.Defence, anew).commanders).toEqual(
+            langeron(CommanderStatus.Named)
+        )
+    })
+
+    it('takes back leaving him out with Undo, keeping the units picked', () => {
+        const game = threatened()
+        const one = tap(game, emptyBattleSelections(), 'A-inf-a')
+        const leftOut = nameDefendingCommander(
+            stageOf(game, StageKind.Defence, one),
+            one,
+            'langeron',
+            false
+        )
+        const undone = undoBattleSelection(leftOut, StageKind.Defence)
+        const stage = stageOf(game, StageKind.Defence, undone)
+        expect(stage.commanders).toEqual(langeron(CommanderStatus.Named))
+        expect(stage.defenders).toEqual(['A-inf-a'])
     })
 
     it('names the commander of a one-unit corps with his unit, with nothing to choose', () => {
@@ -220,11 +256,12 @@ describe('naming the commanders of a defence', () => {
         ])
         const solo = tap(game, emptyBattleSelections(), 'A-solo')
         expect(stageOf(game, StageKind.Defence, solo).commanders).toEqual([
-            { commanderId: 'bagration', named: true, choosable: false, namedElsewhere: false }
+            { commanderId: 'langeron', status: CommanderStatus.NoUnitPicked },
+            { commanderId: 'bagration', status: CommanderStatus.MustDefend }
         ])
     })
 
-    it('leaves out a commander named against another approach this turn, and says so', () => {
+    it('shows a commander named against another approach this turn as out of it, before any pick', () => {
         const game = threatened()
         game.arrange((state) => {
             state.commander('langeron').defendedApproach = state.map.approachBetween(
@@ -232,14 +269,15 @@ describe('naming the commanders of a defence', () => {
                 96
             ).id
         })
+        expect(stageOf(game, StageKind.Defence).commanders).toEqual(
+            langeron(CommanderStatus.NamedElsewhere)
+        )
         const stage = stageOf(
             game,
             StageKind.Defence,
             tap(game, emptyBattleSelections(), 'A-inf-a')
         )
-        expect(stage.commanders).toEqual([
-            { commanderId: 'langeron', named: false, choosable: false, namedElsewhere: true }
-        ])
+        expect(stage.commanders).toEqual(langeron(CommanderStatus.NamedElsewhere))
         expect(stage.problem).toBeUndefined()
     })
 })

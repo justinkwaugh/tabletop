@@ -24,7 +24,6 @@ export enum AttackWidth {
 
 export type DefenceValues = {
     defenders: string[]
-    /** Commanders of corps that defend whom the defender left out; the rest are named with their units. */
     commandersLeftOut: string[]
     retreating: true
 }
@@ -33,6 +32,19 @@ export const defenceSelection = stagedSelection<DefenceValues>()([
     'commandersLeftOut',
     'retreating'
 ])
+
+export function nameDefenders(
+    defence: DefenceSelection,
+    unitIds: string[],
+    commandersLeftOut: string[]
+): DefenceSelection {
+    return unitIds.length > 0
+        ? leaveCommandersOut(
+              defenceSelection.revise(defence, 'defenders', unitIds, 'manual'),
+              commandersLeftOut
+          )
+        : defenceSelection.empty()
+}
 
 export function leaveCommandersOut(
     defence: DefenceSelection,

@@ -133,7 +133,8 @@ import {
     committedRoles,
     rolesShown,
     sendCommander,
-    defendingCommanders,
+    CommanderStatus,
+    namedCommanderIds,
     nameDefendingCommander,
     sendRetreatTo,
     type BattleRole,
@@ -1324,7 +1325,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
             stage?.kind === StageKind.Defence &&
             stage.commanders.some(
                 (entry) =>
-                    entry.commanderId === commanderId && entry.choosable && entry.named !== named
+                    entry.commanderId === commanderId &&
+                    entry.status === (named ? CommanderStatus.LeftOut : CommanderStatus.Named)
             )
         ) {
             this.stageBattle(nameDefendingCommander(stage, this.battle, commanderId, named))
@@ -1349,7 +1351,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
             await this.applyAction(
                 this.createPlayerAction(DeclareDefense, {
                     unitIds: inGameOrder(this.gameState.units, stage.defenders),
-                    commanderIds: defendingCommanders(stage)
+                    commanderIds: namedCommanderIds(stage)
                 })
             )
         }

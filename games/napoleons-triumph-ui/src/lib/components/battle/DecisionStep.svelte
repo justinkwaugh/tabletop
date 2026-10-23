@@ -9,7 +9,7 @@
     } from '$lib/model/battleStage.js'
     import { lossMark } from '$lib/model/roleMark.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { advancePrompt } from '$lib/utils/advancePrompt.js'
+    import { advancePrompt, notNamedToDefend } from '$lib/utils/advancePrompt.js'
     import UnitTile from '$lib/components/UnitTile.svelte'
     import Force from './Force.svelte'
     import CommanderChip from './CommanderChip.svelte'
@@ -106,7 +106,7 @@
                     ? `${name} goes forward with his last unit`
                     : commander.named
                       ? `Send ${name} forward with them`
-                      : `${name} was not named to defend, so he stays`}
+                      : notNamedToDefend(commander.commanderId)}
                 marker={commander.goes ? 'advances' : 'stays'}
                 chosen={commander.goes}
                 onclick={commander.mustGo || !commander.named
