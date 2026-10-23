@@ -26,8 +26,6 @@
     assert(gameSession instanceof LyngkGameSession, 'LYNGK needs its own game session')
     setGameSession(gameSession)
 
-    const TOGGLE_ROOM = 40
-
     // The shared wrapper exposes full screen only as its dialog becoming modal.
     let expanded = $state(false)
     const watchExpansion: Attachment<HTMLElement> = (node) => {
@@ -105,7 +103,6 @@
                     controls="bottom-left"
                     maxScale={4}
                     maxFitScale={2.5}
-                    insetTop={TOGGLE_ROOM}
                     renderAtViewScale
                     expandable
                 >

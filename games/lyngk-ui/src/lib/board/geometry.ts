@@ -17,6 +17,8 @@ export const PIECE_RADIUS =
     CLEARANCE *
     Math.min((SPACING * Math.sqrt(3)) / 4, SPACING / (2 * TILT + TALLEST_KEPT_CLEAR * SIDE))
 const FRAME_REACH = SPACING * 1.15
+// Room below the bottom labels for the zoom controls, which sit in the bottom-left corner.
+const CONTROLS_ROOM = SPACING * 0.6
 
 const HEX_DIMENSIONS = { xRadius: SPACING / Math.sqrt(3), yRadius: SPACING / 2 }
 
@@ -70,8 +72,8 @@ export function viewBox(): { viewBox: string; width: number; height: number } {
         FRAME_REACH +
         stackExtent(1, PIECE_RADIUS)
     return {
-        viewBox: `${-halfWidth} ${-halfHeight} ${halfWidth * 2} ${halfHeight * 2}`,
+        viewBox: `${-halfWidth} ${-halfHeight} ${halfWidth * 2} ${halfHeight * 2 + CONTROLS_ROOM}`,
         width: halfWidth * 2,
-        height: halfHeight * 2
+        height: halfHeight * 2 + CONTROLS_ROOM
     }
 }
