@@ -17,156 +17,135 @@
     // player's colors: the order the game is decided in.
     const ranking = $derived(session.gameState.rankingOf(playerState.playerId))
     const stackOfSix = $derived(session.gameState.variant === LyngkVariant.StackOfSix)
-    // In the Stack of 6 variant a stack of 5 is incomplete too, and is counted on the board.
-    const incomplete = $derived(
+    // Standard scores stacks of 5 off the board, so the strip holds only the tie-breaks; in
+    // Stack of 6 the stacks of 5 are still on the board and lead the strip.
+    const counts = $derived(
         (stackOfSix ? [5, 4, 3, 2, 1] : [4, 3, 2, 1]).map((height) => ({
             height,
             count: ranking[5 - height]
         }))
     )
+    const openClaims = $derived(CLAIMS_PER_PLAYER - playerState.claimed.length)
 </script>
 
 <div class="tray" class:active={isActive}>
     <div
-        class="flex items-center justify-between rounded-t-[10px] px-3 py-1 font-semibold"
+        class="flex items-center gap-2 rounded-t-[10px] px-3 py-1 font-semibold"
         style:background={session.colors.getPlayerBgColorValue(playerState.playerId)}
         style:color={session.colors.getPlayerTextColorValue(playerState.playerId)}
     >
         <span class="truncate text-[17px]">{session.getPlayerName(playerState.playerId)}</span>
-        <span class="text-[13px] tracking-[0.12em] uppercase">
+        <span
+            class="claims"
+            title="Colors claimed ({playerState.claimed.length} of {CLAIMS_PER_PLAYER})"
+        >
+            {#each playerState.claimed as color (color)}
+                <PieceIcon stack={[color]} size={24} />
+            {/each}
+            {#each { length: openClaims }, index (index)}
+                <span class="open-claim"></span>
+            {/each}
+        </span>
+        <span class="ms-auto text-[13px] tracking-[0.12em] whitespace-nowrap uppercase">
             {#if isWinner}Winner{:else if isActive}Playing{/if}
         </span>
     </div>
-    <div class="rows">
-        <span class="label"
-            >Colors <span class="of">({playerState.claimed.length} of {CLAIMS_PER_PLAYER})</span
-            ></span
-        >
-        <span class="value">
-            {#each playerState.claimed as color (color)}
-                <PieceIcon stack={[color]} size={22} />
-            {:else}
-                <span class="quiet">none yet</span>
+    {#if !stackOfSix}
+        <div class="scored" title="Stacks scored">
+            {#each playerState.scored as stack, index (index)}
+                <PieceIcon {stack} size={28} />
             {/each}
-        </span>
-
-        {#if !stackOfSix}
-            <span class="label">
-                Scored
-                <span class="box number" title="Stacks of 5 scored"
-                    ><span class="count">{ranking[0]}</span></span
-                >
+        </div>
+    {/if}
+    <div class="strip">
+        <span class="caption">{stackOfSix ? 'Stacks' : 'Tie-break'}</span>
+        {#each counts as { height, count } (height)}
+            <span class="part" title="Stacks of {height} topped by your colors">
+                <HeightIcon {height} size={16} />
+                <strong>{count}</strong>
             </span>
-            <span class="value">
-                {#each playerState.scored as stack, index (index)}
-                    <PieceIcon {stack} size={22} />
-                {/each}
-            </span>
-        {/if}
-
-        <span class="incomplete" class:wide={stackOfSix}>
-            <span class="label">Incomplete</span>
-            <span class="value boxes">
-                {#each incomplete as { height, count } (height)}
-                    <span class="box" title="Stacks of {height} topped by your colors">
-                        <HeightIcon {height} size={18} />
-                        <span class="count">{count}</span>
-                    </span>
-                {/each}
-            </span>
-        </span>
+        {/each}
     </div>
 </div>
 
 <style>
     /* Light enough for black pieces to stand out as well as ivory ones. */
     .tray {
+        --ring: 1px;
         border-radius: 12px;
         background: #c9d6e8;
         box-shadow:
-            inset 0 0 0 1px #8fa5c4,
+            inset 0 0 0 var(--ring) #8fa5c4,
             0 3px 8px rgb(0 0 0 / 0.3);
         color: #0d1626;
         overflow: hidden;
     }
 
     .tray.active {
+        --ring: 2px;
         box-shadow:
-            inset 0 0 0 2px var(--lyngk-target),
+            inset 0 0 0 var(--ring) var(--lyngk-target),
             0 3px 8px rgb(0 0 0 / 0.35);
     }
 
-    .rows {
-        display: grid;
-        grid-template-columns: 7.1rem 1fr;
-        grid-auto-rows: minmax(30px, auto);
+    /* A light slot on the player's color, so black and ivory pieces both show. */
+    .claims {
+        display: flex;
+        flex-shrink: 0;
         align-items: center;
-        column-gap: 6px;
-        row-gap: 4px;
-        padding: 8px 12px 10px;
-        font-size: 15px;
+        gap: 4px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: #c9d6e8;
     }
 
-    .label {
-        font-weight: 600;
-        white-space: nowrap;
+    .open-claim {
+        width: 24px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px dashed #7d93b4;
     }
 
-    .of {
-        font-size: 13px;
-        font-weight: 500;
-        color: #45577a;
-    }
-
-    .value {
+    .scored {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         gap: 6px;
+        min-height: 46px;
+        padding: 8px 12px;
     }
 
-    /* The label and boxes share the grid's columns; with five boxes (Stack of 6) the row takes
-       the card's full width instead. */
-    .incomplete {
-        display: contents;
-    }
-
-    .incomplete.wide {
-        grid-column: 1 / -1;
+    .strip {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 6px;
+        padding: calc(5px - var(--ring) / 2) 12px calc(5px + var(--ring) / 2);
+        background: rgb(13 22 38 / 0.06);
+        color: #45577a;
     }
 
-    .boxes {
-        flex-wrap: nowrap;
-        gap: 4px;
+    .scored + .strip {
+        border-top: 1px solid rgb(13 22 38 / 0.12);
     }
 
-    .box {
+    .caption {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .part {
         display: inline-flex;
         align-items: flex-end;
         gap: 3px;
-        padding: 2px 5px 2px 3px;
-        border-radius: 6px;
-        background: rgb(255 255 255 / 0.45);
-        box-shadow: inset 0 0 0 1px #8fa5c4;
     }
 
-    .box.number {
-        margin-left: 4px;
-        padding: 1px 7px;
-        vertical-align: middle;
-    }
-
-    .count {
-        font-weight: 700;
-        font-variant-numeric: tabular-nums;
+    .part strong {
+        font-size: 15px;
         line-height: 1.1;
-    }
-
-    .quiet {
-        color: #45577a;
+        color: #0d1626;
+        font-variant-numeric: tabular-nums;
     }
 </style>
