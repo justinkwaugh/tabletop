@@ -34,10 +34,15 @@
 <div class="nt-history">
     {#each chapters.toReversed() as chapter (chapter.title)}
         <h3>{chapter.title}</h3>
-        {#each chapter.entries.toReversed() as entry (entry.index)}
-            {@render line(entry, chapter.title, false)}
-            {#each entry.steps as step (step.index)}
-                {@render line(step, chapter.title, true)}
+        {#each chapter.turns.toReversed() as turn (turn.start)}
+            {#if turn.title}
+                <h4>{turn.title}</h4>
+            {/if}
+            {#each turn.entries.toReversed() as entry (entry.index)}
+                {@render line(entry, chapter.title, false)}
+                {#each entry.steps as step (step.index)}
+                    {@render line(step, chapter.title, true)}
+                {/each}
             {/each}
         {/each}
     {:else}
@@ -61,6 +66,13 @@
         font-size: 14px;
         font-style: italic;
         border-bottom: 1px solid rgba(43, 38, 32, 0.3);
+    }
+
+    h4 {
+        margin-top: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(43, 38, 32, 0.7);
     }
 
     .nt-history-entry {

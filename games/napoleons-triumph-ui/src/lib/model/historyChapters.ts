@@ -1,4 +1,4 @@
-import type { GameAction, Round } from '@tabletop/common'
+import type { GameAction, Round, Turn } from '@tabletop/common'
 import {
     ActionType,
     ROUNDS,
@@ -21,9 +21,24 @@ export interface HistoryEntry extends HistoryLine {
     steps: HistoryLine[]
 }
 
+/** One side's turn within the hour; before the battle the actions belong to no turn and have no title. */
+export interface HistoryTurn {
+    start: number
+    title?: string
+    entries: HistoryEntry[]
+}
+
 export interface HistoryChapter {
     title: string
-    entries: HistoryEntry[]
+    turns: HistoryTurn[]
+}
+
+export interface HistoryContext {
+    rounds: readonly Round[]
+    turns: readonly Turn[]
+    scenario: Scenario
+    describe: (action: GameAction) => string
+    turnTitle: (playerId: string) => string
 }
 
 const BEFORE_THE_BATTLE = 'Before the battle'
@@ -54,11 +69,17 @@ export function belongsToAnAttack(action: GameAction): boolean {
     return isThreatenAttack(action) || ATTACK_STEPS.includes(action.type)
 }
 
+// A round or turn is recorded as starting at the End turn that closed the one before, so the earlier one claims that action.
+function spanOf<Span extends { start: number; end?: number }>(
+    spans: readonly Span[],
+    index: number
+): Span | undefined {
+    return spans.find((span) => span.start <= index && (span.end === undefined || index < span.end))
+}
+
 export function historyChapters(
     actions: readonly GameAction[],
-    rounds: readonly Round[],
-    scenario: Scenario,
-    describe: (action: GameAction) => string
+    { rounds, turns, scenario, describe, turnTitle }: HistoryContext
 ): HistoryChapter[] {
     const chapters: HistoryChapter[] = []
     let attack: HistoryEntry | undefined
@@ -67,11 +88,38 @@ export function historyChapters(
         if (!continuesAttack) {
             attack = undefined
         }
+        const index = action.index ?? position
+        const round = spanOf(rounds, index)
+        const turn = spanOf(turns, index)
         const text = isEndTurn(action) ? '' : describe(action)
+        // A turn is headed even when nothing in it is told, so that its end shows.
+        if (text === '' && turn === undefined) {
+            return
+        }
+        const title = round
+            ? roundLabel(ROUNDS[scenario][round.number - 1], true)
+            : BEFORE_THE_BATTLE
+        const openChapter = chapters.at(-1)
+        const chapter = openChapter?.title === title ? openChapter : { title, turns: [] }
+        if (chapter !== openChapter) {
+            chapters.push(chapter)
+        }
+        const start = turn?.start ?? -1
+        const openTurn = chapter.turns.at(-1)
+        const section =
+            openTurn?.start === start
+                ? openTurn
+                : {
+                      start,
+                      title: turn?.playerId === undefined ? undefined : turnTitle(turn.playerId),
+                      entries: []
+                  }
+        if (section !== openTurn) {
+            chapter.turns.push(section)
+        }
         if (text === '') {
             return
         }
-        const index = action.index ?? position
         const line = {
             actionId: action.id,
             index,
@@ -83,17 +131,8 @@ export function historyChapters(
             attack.steps.push(line)
             return
         }
-        const round = rounds.findLast((candidate) => candidate.start <= index)
-        const title = round
-            ? roundLabel(ROUNDS[scenario][round.number - 1], true)
-            : BEFORE_THE_BATTLE
-        const open = chapters.at(-1)
-        const chapter = open?.title === title ? open : { title, entries: [] }
-        if (chapter !== open) {
-            chapters.push(chapter)
-        }
         const entry = { ...line, steps: [] }
-        chapter.entries.push(entry)
+        section.entries.push(entry)
         attack = isThreatenAttack(action) ? entry : undefined
     })
     return chapters

@@ -586,17 +586,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     chapters: HistoryChapter[] = $derived(
-        historyChapters(
-            this.actions,
-            this.gameState.rounds.series,
-            this.gameState.scenario,
-            (action) => describeAction(action, this.gameState)
-        )
+        historyChapters(this.actions, {
+            rounds: this.gameState.rounds.series,
+            turns: this.gameState.turnManager.series,
+            scenario: this.gameState.scenario,
+            describe: (action) => describeAction(action, this.gameState),
+            turnTitle: (playerId) => `${this.gameState.sideOf(playerId)} turn`
+        })
     )
 
     private picturedLines: { line: HistoryLine; time: string }[] = $derived(
         this.chapters.flatMap((chapter) =>
-            chapter.entries
+            chapter.turns
+                .flatMap((turn) => turn.entries)
                 .flatMap((entry) => [entry, ...entry.steps])
                 .filter((line) => line.pictured)
                 .map((line) => ({ line, time: chapter.title }))
