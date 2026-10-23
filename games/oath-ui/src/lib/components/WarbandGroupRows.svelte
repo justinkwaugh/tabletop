@@ -1,6 +1,7 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
     import type { WarbandGroup } from '@tabletop/oath'
+    import SeatChip from '$lib/components/SeatChip.svelte'
     import TokenRow from '$lib/components/TokenRow.svelte'
     import { warbandFigure } from '$lib/images/pieceImages.js'
     import { tappedCount } from '$lib/model/exchangeTerms.js'
@@ -78,12 +79,7 @@
                 {lead}
             {:else if playerId !== undefined}
                 <!-- The player's name, the viewer's too: the words say "your board". -->
-                <span
-                    class="rounded px-1.5 font-medium capitalize"
-                    style:background-color={gameSession.colors.getPlayerBgColorValue(playerId)}
-                    style:color={gameSession.colors.getPlayerTextColorValue(playerId)}
-                    >{gameSession.getPlayerName(playerId)}</span
-                >
+                <SeatChip {playerId} />
                 {owner}{whereText(group)}
             {:else if group.at.kind === 'board' && !isMine(group.at.playerId)}
                 {owner}{onBoard}

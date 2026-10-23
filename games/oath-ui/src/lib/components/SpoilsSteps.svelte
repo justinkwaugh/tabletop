@@ -198,7 +198,7 @@
     <button
         type="button"
         class="mt-2 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-               border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+               border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold send"
         disabled={busy}
         onclick={() => spoils.next()}
     >
@@ -216,7 +216,7 @@
             <button
                 type="button"
                 class="shrink-0 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                       border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                       border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold send"
                 style:min-width="{sendWidth.widest}px"
                 disabled={busy}
                 onclick={() => spoils.takeSpoils(false)}
@@ -228,7 +228,7 @@
                 <button
                     type="button"
                     class="burn shrink-0 rounded border border-oath-danger/60 bg-oath-danger-soft text-oath-text disabled:opacity-40
-                           px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                           px-3 py-1.5 text-sm font-semibold send"
                     style:min-width="{sendWidth.widest}px"
                     disabled={busy}
                     onclick={() => spoils.takeSpoils(true)}
@@ -243,6 +243,13 @@
 {/if}
 
 <style>
+    /* 44 px on a phone, on the screen: `FitBox` scales a step taller than its share of the screen
+       down, so the step's own buttons start that much taller (`--fit-scale`). */
+    @media (width < 40rem) {
+        .send {
+            min-height: calc(2.75rem / var(--fit-scale, 1));
+        }
+    }
     /* The burnt favor: the token as the text draws it, scorched. */
     .burn :global(img) {
         filter: sepia(1) saturate(4) hue-rotate(-30deg) brightness(0.7) contrast(1.3);

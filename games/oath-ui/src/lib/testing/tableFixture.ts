@@ -96,6 +96,7 @@ import { wrestlersDefends } from './wrestlersTable.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
 import { campaignLedgerTable } from './campaignLedgerTable.js'
 import { battleLossTable } from './battleLossTable.js'
+import { battleResultTable } from './battleResultTable.js'
 import {
     FOREST_PATHS,
     HOSPITALITY,
@@ -133,6 +134,21 @@ export type TableName =
     | 'battleLossRows'
     | 'battleLossHospital'
     | 'battleLossHospitalPlaced'
+    | 'resultGap'
+    | 'resultZealots'
+    | 'resultShort'
+    | 'resultOutright'
+    | 'resultHospital'
+    | 'resultBandits'
+    | 'resultHearts'
+    | 'resultGapSpoils'
+    | 'resultCageSpoils'
+    | 'resultOutrightSpoils'
+    | 'resultHospitalSpoils'
+    | 'resultBanditsSpoils'
+    | 'resultEnvoySpoils'
+    | 'resultAllySpoils'
+    | 'resultAllyHospitalSpoils'
     | 'visionBacks'
     | 'restBanks'
     | 'restRefused'
@@ -5391,6 +5407,21 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     battleLossRows: () => battleLossTable(),
     battleLossHospital: () => battleLossTable({ hospital: true }),
     battleLossHospitalPlaced: () => battleLossTable({ hospital: true, ended: true }),
+    resultGap: () => battleResultTable('gap'),
+    resultZealots: () => battleResultTable('zealots'),
+    resultShort: () => battleResultTable('short'),
+    resultOutright: () => battleResultTable('outright'),
+    resultHospital: () => battleResultTable('hospital'),
+    resultBandits: () => battleResultTable('bandits'),
+    resultHearts: () => battleResultTable('hearts'),
+    resultGapSpoils: () => battleResultTable('gapSpoils'),
+    resultCageSpoils: () => battleResultTable('cageSpoils'),
+    resultOutrightSpoils: () => battleResultTable('outrightSpoils'),
+    resultHospitalSpoils: () => battleResultTable('hospitalSpoils'),
+    resultBanditsSpoils: () => battleResultTable('banditsSpoils'),
+    resultEnvoySpoils: () => battleResultTable('envoySpoils'),
+    resultAllySpoils: () => battleResultTable('allySpoils'),
+    resultAllyHospitalSpoils: () => battleResultTable('allyHospitalSpoils'),
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
     restRefused: restRefusedTable,

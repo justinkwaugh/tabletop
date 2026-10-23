@@ -1555,7 +1555,7 @@ test.describe('scenario 62: the Campaign’s words', () => {
 
     test('a battle with nothing to choose says who won, over Continue', async ({ page }) => {
         await openTable(page, 'wonOutright')
-        await expect(grid(page)).toContainText('You win.')
+        await expect(grid(page)).toContainText(/\d+\s*against \d+\s*: you win\./)
         await expect(grid(page)).not.toContainText('already victorious')
         await expect(answer(page, 'Continue')).toBeVisible()
     })

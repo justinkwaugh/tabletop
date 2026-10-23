@@ -323,7 +323,7 @@ function poolsOf(step: GameAction): Pools | undefined {
 }
 
 /** R-5.5.5 — the attacker's warbands a step's skulls killed. */
-function skullsKilledIn(step: GameAction): number {
+export function skullsKilledIn(step: GameAction): number {
     const battle = battleOf(step)
     if (battle) return battle.skullsKilled
     if (isCampaignDefend(step)) return step.metadata?.skullsKilled ?? 0

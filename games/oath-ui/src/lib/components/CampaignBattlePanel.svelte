@@ -1,4 +1,5 @@
 <script lang="ts">
+    import BattleResultLine from '$lib/components/BattleResultLine.svelte'
     import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists } from '@tabletop/common'
     import { MachineState, type WarbandGroup } from '@tabletop/oath'
@@ -8,6 +9,8 @@
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import WarbandGroupRows from '$lib/components/WarbandGroupRows.svelte'
     import { warbandFigure } from '$lib/images/pieceImages.js'
+    import WentHomeLine from '$lib/components/WentHomeLine.svelte'
+    import { battleLine, currentCampaignSteps } from '$lib/model/battleResult.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ownForcePlaceName, siteName } from '$lib/model/names.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
@@ -66,6 +69,13 @@
     let loseRefusedBecause = $derived(losses.loseRefusedBecause)
 
     const battleWidth = new ChoiceWidth()
+
+    // R-5.5.5 — the attacker's battle line before the sacrifice, from the Campaign's record.
+    let battle = $derived(
+        gameState.machineState === MachineState.CampaignSacrifice
+            ? battleLine(gameState, campaign, currentCampaignSteps(gameSession.actions))
+            : undefined
+    )
 </script>
 
 <!-- R-10.22 — a row of the warbands per place, the board first; the picked warbands die, so they
@@ -134,6 +144,13 @@
                 </button>
             {/if}
         {/if}
+    {:else if gameState.machineState === MachineState.CampaignVictory}
+        <WentHomeLine />
+        {#if isAttacker}
+            <SpoilsSteps />
+        {:else}
+            <WaitingOn />
+        {/if}
     {:else if !isAttacker}
         <WaitingOn />
     {:else if gameState.machineState === MachineState.CampaignSkullLosses}
@@ -182,9 +199,9 @@
             </button>
         {/if}
     {:else if gameState.machineState === MachineState.CampaignSacrifice}
-        <!-- With nothing to sacrifice, the outcome is all there is to say. -->
-        {#if needed === 0}
-            <p class="text-sm mb-2">{losses.wonWithoutSacrifice ? 'You win.' : 'You lose.'}</p>
+        <!-- The swords against the defense: the win, or how far short; or the plan that decided it. -->
+        {#if battle}
+            <BattleResultLine parts={battle} />
         {/if}
         {#if losses.choosesSacrifice}
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
@@ -249,7 +266,5 @@
                 </button>
             {/if}
         </div>
-    {:else if gameState.machineState === MachineState.CampaignVictory}
-        <SpoilsSteps />
     {/if}
 </div>
