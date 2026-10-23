@@ -10,6 +10,8 @@
     import TargetLayer from './board/TargetLayer.svelte'
     import ApproachPlates from './board/ApproachPlates.svelte'
     import ApproachBars from './board/ApproachBars.svelte'
+    import LocaleNumbers from './board/LocaleNumbers.svelte'
+    import LocatedLocale from './board/LocatedLocale.svelte'
     import ApproachSymbols from './board/ApproachSymbols.svelte'
     import CapacityTags from './board/CapacityTags.svelte'
     import StarTags from './board/StarTags.svelte'
@@ -76,6 +78,7 @@
             </defs>
             <g data-in-picture><ArmyDisplays /></g>
             <ApproachBars />
+            <LocaleNumbers />
             <g data-in-picture>
                 <TrackMarkers />
                 <HeldApproaches approaches={gameSession.heldApproaches} />
@@ -87,6 +90,7 @@
             <g data-in-picture><PiecesLayer /></g>
             <g data-in-picture><ApproachPlates /></g>
             <g data-in-picture><GunTags /></g>
+            <LocatedLocale />
             <MovementTrails />
             <ApproachSymbols />
             <CapacityTags />

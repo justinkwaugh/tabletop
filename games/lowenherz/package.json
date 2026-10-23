@@ -1,10 +1,16 @@
 {
     "name": "@tabletop/lowenherz",
-    "version": "3.1.0",
+    "version": "3.2.0",
     "type": "module",
     "exports": {
-        "import": "./esm/index.js",
-        "types": "./src/index.ts"
+        ".": {
+            "import": "./esm/index.js",
+            "types": "./src/index.ts"
+        },
+        "./testing": {
+            "import": "./esm/testing/index.js",
+            "types": "./src/testing/index.ts"
+        }
     },
     "sideEffects": false,
     "private": true,

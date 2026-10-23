@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PlaceText from './PlaceText.svelte'
     import { ActionType, CommandKind, commanderDefinition } from '@tabletop/napoleons-triumph'
     import { corpsName, standingGroupName } from '$lib/utils/groupNames.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -136,7 +137,7 @@
 {/snippet}
 
 {#snippet guardSheet()}
-    <span>{threatSentence}</span>
+    <span><PlaceText text={threatSentence ?? ''} /></span>
     <span>To announce a Guard Attack, choose the Guard unit to show:</span>
     <div class="nt-orders-row">
         <div class="nt-orders-actions nt-orders-guards">
@@ -151,7 +152,7 @@
                         label="Show this Guard unit: {standsWith}"
                         onclick={() => gameSession.toggleGuardUnit(unitId)}
                     />
-                    <span class="nt-orders-small-text">{standsWith}</span>
+                    <span class="nt-orders-small-text"><PlaceText text={standsWith} /></span>
                 </div>
             {/each}
         </div>
@@ -182,8 +183,8 @@
 {#snippet aimNote()}
     <span
         >Tap an arrow to threaten an attack across that approach. {group
-            ? 'The pieces in hand are named to start with where they can take part.'
-            : 'The attacking pieces are named next.'}</span
+            ? 'The pieces you chose will join the attack where they can.'
+            : 'You choose the attacking pieces next.'}</span
     >
 {/snippet}
 
@@ -266,7 +267,7 @@
 <div class="nt-orders" role={title ? 'group' : undefined} aria-label={title}>
     <div class="nt-orders-lead">
         {#if title}
-            <span class="nt-orders-name">{title}</span>
+            <span class="nt-orders-name"><PlaceText text={title} /></span>
         {:else}
             <span
                 >Choose a corps or unit on the map{reinforcements.length > 0

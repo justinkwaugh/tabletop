@@ -97,6 +97,13 @@
             onclick={() => gameSession.setCapacitiesShown(!gameSession.capacitiesShown)}
             >Locale capacities</button
         >
+        <button
+            type="button"
+            class="nt-map-chip"
+            aria-pressed={gameSession.localeNumbersShown}
+            onclick={() => (gameSession.localeNumbersShown = !gameSession.localeNumbersShown)}
+            >Locale numbers</button
+        >
     </div>
 </div>
 

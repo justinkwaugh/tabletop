@@ -18,16 +18,19 @@
     import RoundHistory from './RoundHistory.svelte'
     import AuctionHistoryCard from './AuctionHistoryCard.svelte'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    import type { Snippet } from 'svelte'
     let {
         session,
         onPreviewMap,
         trainColors,
-        describeAction
+        describeAction,
+        setup
     }: {
         onPreviewMap: (action: GameAction) => void
         session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
         describeAction?: TitleActionDescription
+        setup?: Snippet
     } = $props()
     const money = $derived(session.presentation.money)
     const jumpDisabled = $derived(
@@ -108,6 +111,7 @@
     {rounds}
     phaseColors={session.presentation.phaseColors}
     {newestFirst}
+    {setup}
     historyComplete={context.hasCompleteHistory}
     onOrderChange={(first) =>
         session.preferences.set({ historyOrder: first ? 'newestFirst' : 'newestLast' }, 'family')}

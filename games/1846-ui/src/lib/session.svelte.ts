@@ -64,6 +64,7 @@ import {
 } from './stagedSelection.js'
 import { MapView1846 } from './mapView.js'
 import { Presentation1846 } from './presentation.js'
+import { DraftPacketGate } from './draftPacketGate.svelte.js'
 
 const PrivateTrackPrompts: Readonly<Record<ConstructionPrivateId, string>> = {
     MC: 'Lay up to two connected yellow tiles for free',
@@ -472,13 +473,12 @@ export class EighteenFortySixSession extends BaseSession {
     async corporateFinance(choice: FinanceChoice): Promise<void> {
         await this.applyAction(this.createPlayerAction(CorporateFinance, choice))
     }
-    private openedPacketKey = $state<string>()
-    private readonly packetKey = $derived(
-        `${this.gameState.id}:${this.gameState.actionCount}:${this.myPlayer?.id}`
-    )
-    readonly packetVisible = $derived(
-        !this.updatingVisibleState && this.openedPacketKey === this.packetKey
-    )
+    readonly packetGate = new DraftPacketGate({
+        ordinaryHotseatPlay: () => this.ordinaryHotseatPlay,
+        seatTurnKey: () =>
+            `${this.gameState.id}:${this.gameState.actionCount}:${this.myPlayer?.id}`,
+        publishing: () => this.updatingVisibleState
+    })
     readonly draftChoices = $derived(
         this.myPlayer ? choicesFor(this.gameState, this.myPlayer.id) : []
     )
@@ -509,14 +509,8 @@ export class EighteenFortySixSession extends BaseSession {
             this.createPlayerAction(AssignSteamboat, assignment ? { assignment } : {})
         )
     }
-    revealPacket(): void {
-        this.openedPacketKey = this.packetKey
-    }
-    hidePacket(): void {
-        this.openedPacketKey = undefined
-    }
     async choose(cardId: string): Promise<void> {
-        this.hidePacket()
+        this.packetGate.hide()
         await this.applyAction(this.createPlayerAction(ChooseDraftCard, { cardId }))
     }
     async buyOpeningCompany(choice: (typeof this.openingChoices)[number]): Promise<void> {
@@ -526,11 +520,11 @@ export class EighteenFortySixSession extends BaseSession {
         await this.applyAction(this.createPlayerAction(PassOpeningPurchase))
     }
     async passFinalCompany(): Promise<void> {
-        this.hidePacket()
+        this.packetGate.hide()
         await this.applyAction(this.createPlayerAction(PassFinalCompany))
     }
     override beforeNewState(transition: PresentedTransition): void {
         super.beforeNewState(transition)
-        this.hidePacket()
+        this.packetGate.hide()
     }
 }

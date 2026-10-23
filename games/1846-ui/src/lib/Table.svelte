@@ -18,6 +18,7 @@
     import { EighteenFortySixSession } from './session.svelte.js'
     import OpeningCompanies from './OpeningCompanies.svelte'
     import Draft from './Draft.svelte'
+    import SetupHistoryEntry from './SetupHistoryEntry.svelte'
     import RevenueMarkerPrompt from './RevenueMarkerPrompt.svelte'
     import NothingToBuild from './NothingToBuild.svelte'
     import SteamboatAssignment from './SteamboatAssignment.svelte'
@@ -108,6 +109,7 @@
     historyDescription={describe1846Action}
     additionalStockActions={session.stockPanels.menuOptions}
 >
+    {#snippet historySetup()}<SetupHistoryEntry {session} />{/snippet}
     {#snippet actions(_focusLocation, focusRoute)}
         <div class="midwest-actions">
             {#if showOperatingModes}

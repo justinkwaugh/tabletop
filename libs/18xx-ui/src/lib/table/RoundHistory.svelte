@@ -17,7 +17,8 @@
         currentHeaderId,
         jumpDisabled = false,
         onOrderChange,
-        orderContent
+        orderContent,
+        setup
     }: {
         onJump: (index: number) => void
         onReturn: () => void
@@ -30,6 +31,8 @@
         historyComplete?: boolean
         onOrderChange: (newestFirst: boolean) => void
         orderContent?: Snippet<[HistoryOperatingOrder]>
+        /** The title's setup, the oldest entry, before the first round. */
+        setup?: Snippet
     } = $props()
     const indexId = $props.id()
     let indexPanel: HTMLDivElement | undefined = $state()
@@ -160,6 +163,10 @@
         aria-label="Scrollable history"
     >
         <ol class="history-content" class:newest-last={!newestFirst} aria-label="Action history">
+            {#snippet setupEntry()}{#if setup}<li class="history-setup">
+                        {@render setup()}
+                    </li>{/if}{/snippet}
+            {#if !newestFirst}{@render setupEntry()}{/if}
             {#each newestFirst ? rounds : rounds.toReversed() as round (round.id)}
                 <li class="round-section" data-round-id={round.id} aria-label={round.label}>
                     {#snippet divider()}
@@ -195,7 +202,8 @@
                     {@render children(round)}
                     {#if newestFirst}{@render divider()}{/if}
                 </li>
-            {:else}<li class="empty">No actions yet.</li>{/each}
+            {:else}{#if !setup}<li class="empty">No actions yet.</li>{/if}{/each}
+            {#if newestFirst}{@render setupEntry()}{/if}
         </ol>
     </div>
 </div>
@@ -314,6 +322,15 @@
     }
     .history-content.newest-last {
         margin-top: auto;
+    }
+    .history-setup {
+        margin: var(--history-item-gap, 0.417em) 0;
+        padding: 0.25em 0.5em 0.417em;
+        border-bottom: 1px solid var(--rail-shadow, #b9ac994f);
+    }
+    .newest-first .history-setup {
+        border-top: 1px solid var(--rail-shadow, #b9ac994f);
+        border-bottom: 0;
     }
     .round-section {
         display: flow-root;

@@ -1,5 +1,5 @@
 import { GameSession, type TitlePreferences } from '@tabletop/frontend-components'
-import { assert, assertExists, type Point } from '@tabletop/common'
+import { assert, assertExists, type Color, type Point } from '@tabletop/common'
 import {
     ActionType,
     Advance,
@@ -42,6 +42,7 @@ import {
     type NapoleonsTriumphProjectedState,
     type Position,
     type ProjectedUnit,
+    SIDE_COLORS,
     Side
 } from '@tabletop/napoleons-triumph'
 import { inwardsFromTheEdge } from '$lib/map/battlefield.js'
@@ -58,7 +59,7 @@ import { describeAction } from '$lib/utils/describeAction.js'
 import { sameIds } from '$lib/utils/ids.js'
 import { moraleMarkers, type MoraleMarker } from '$lib/utils/moraleTrack.js'
 import { timeMarker } from '$lib/utils/timeTrack.js'
-import { inReadingOrder } from '$lib/utils/unitTypeOrder.js'
+import { seenFacesFirst } from '$lib/utils/unitTypeOrder.js'
 import { numberOfTrail, trailNumberOutline } from '$lib/utils/trailNumber.js'
 import { drawnArrowOutlines, lineSamples } from '$lib/utils/wayArrow.js'
 import {
@@ -240,6 +241,7 @@ import {
     type SetupLocale,
     type SetupTable
 } from './setupTable.js'
+import { arrangedFromPreset, presetsFor, type SetupPreset } from './setupPresets.js'
 import {
     TargetKind,
     attackableLocales,
@@ -288,6 +290,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
     darkBorders = $derived(this.preferences.values.darkBorders)
 
     approachSymbolsShown = $state(false)
+
+    localeNumbersShown = $state(false)
+
+    locatedLocale: { locale: number; press: number } | undefined = $state()
+
+    private locatePresses = 0
+
+    placeNames: ReadonlyMap<string, number> = $derived.by(() => {
+        const map = this.gameState.map
+        return new Map(map.localeIds.map((locale) => [map.label(locale), locale]))
+    })
+
+    private readonly localeLocatedListeners = new Set<(locale: number) => void>()
 
     movementTrailsShown = $derived(this.preferences.values.movementTrails)
 
@@ -352,6 +367,14 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const step = this.setupStep
         return step && playerId ? setupTable(this.gameState, playerId, step) : undefined
     })
+
+    private ownSetupPresets: SetupPreset[] = $derived(
+        this.setupStep && this.myPlayerId ? presetsFor(this.gameState.sideOf(this.myPlayerId)) : []
+    )
+
+    setupPresetChoices: { id: string; name: string }[] = $derived(
+        this.ownSetupPresets.map(({ id, name }) => ({ id, name }))
+    )
 
     setupLocales: SetupLocale[] = $derived(
         this.setupStep ? setupLocales(this.gameState, this.setupStep) : []
@@ -923,13 +946,21 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     armyColors(playerId: string): ArmyColors {
-        const block = this.colors.getPlayerUiColor(playerId)
-        return { block, shade: shadeOf(block), ink: this.colors.getPlayerTextColorValue(playerId) }
+        return this.colorsOf(this.colors.getPlayerColor(playerId))
     }
 
-    /** The viewer's own units are listed in reading order; anyone else's as the game holds them, so their order tells nothing. */
-    asRead(playerId: string, units: readonly ProjectedUnit[]): ProjectedUnit[] {
-        return playerId === this.myPlayerId ? inReadingOrder(units) : [...units]
+    sideColors(side: Side): ArmyColors {
+        return this.colorsOf(SIDE_COLORS[side])
+    }
+
+    private colorsOf(color: Color): ArmyColors {
+        const block = this.colors.getUiColor(color)
+        return { block, shade: shadeOf(block), ink: this.colors.getTextColorValue(color) }
+    }
+
+    /** Units whose faces the viewer sees come first in reading order, which is all of the viewer's own. */
+    asRead(units: readonly ProjectedUnit[]): ProjectedUnit[] {
+        return seenFacesFirst(units, (unit) => this.visibleFace(unit))
     }
 
     /** A picture without unit types is taken of the board as it stands while this is on, and it is on for no longer than that. */
@@ -1068,6 +1099,26 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.pickUpListeners.add(listener)
         return () => {
             this.pickUpListeners.delete(listener)
+        }
+    }
+
+    onLocaleLocated(listener: (locale: number) => void): () => void {
+        this.localeLocatedListeners.add(listener)
+        return () => {
+            this.localeLocatedListeners.delete(listener)
+        }
+    }
+
+    locateLocale(locale: number) {
+        this.locatedLocale = { locale, press: ++this.locatePresses }
+        for (const listener of this.localeLocatedListeners) {
+            listener(locale)
+        }
+    }
+
+    locatedLocaleFaded(press: number) {
+        if (this.locatedLocale?.press === press) {
+            this.locatedLocale = undefined
         }
     }
 
@@ -1255,6 +1306,20 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const step = this.setupStep
         if (step) {
             this.arrange(withCorpsOnMap(step.setup, commanderId, onMap))
+        }
+    }
+
+    startFromPreset(presetId: string) {
+        const playerId = this.myPlayerId
+        const preset = this.ownSetupPresets.find((entry) => entry.id === presetId)
+        assertExists(preset, `This army has no ${presetId} set-up`)
+        if (!this.setupStep || !playerId) {
+            return
+        }
+        this.arrange(arrangedFromPreset(this.gameState, playerId, preset))
+        // Without the Santon rule the battery is left in the pool, so its seat is opened to say so.
+        if (preset.batteryOnTheSanton && !this.gameState.santon) {
+            this.stageSetup(this.setup, { open: { kind: DestinationKind.FixedBattery } })
         }
     }
 

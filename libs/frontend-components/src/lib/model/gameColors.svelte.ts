@@ -162,9 +162,15 @@ export class GameColors<T extends GameState> {
             : this.gameContext.runtime.colorizer
     })
 
+    // Rebuilt only when a player's colour changes, not on every change of state.
+    private colorAssignmentKey: string = $derived.by(() =>
+        this.gameContext.state.players
+            .map((player) => `${player.playerId}:${player.color}`)
+            .join('|')
+    )
+
     private playerColorsById = $derived.by(() => {
-        // Do we want this to evaluate every time state changes?
-        // We only use it to get the list of assigned players/colors
+        void this.colorAssignmentKey
         const state = untrack(() => this.gameContext.state)
 
         const sessionUser = this.sessionUserStore.current

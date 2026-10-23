@@ -2,6 +2,7 @@
     import { PoliticsCardDeck } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import PoliticsCard from './PoliticsCard.svelte'
+    import DeckShade from './DeckShade.svelte'
     import Numeral from './Numeral.svelte'
     import { preloadPoliticsCardFace, preloadPoliticsCardBack } from '$lib/model/politicsCardImages'
     import { CHOOSER_DECK_GAP, responsiveCardWidth } from '$lib/model/politicsCardLayout'
@@ -104,6 +105,7 @@
                         : 'transition-opacity duration-150'}"
                     style="width: {cardWidthCss};"
                 >
+                    <DeckShade deck="A" />
                     <PoliticsCard faceDown />
                     {@render countBadge(pileACount)}
                 </button>
@@ -125,6 +127,7 @@
                         : 'transition-opacity duration-150'}"
                     style="width: {cardWidthCss};"
                 >
+                    <DeckShade deck="B" />
                     <PoliticsCard faceDown />
                     {@render countBadge(pileBCount)}
                 </button>

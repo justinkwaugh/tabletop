@@ -28,6 +28,7 @@
     } from '@tabletop/lowenherz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { revealedDuelRoundEndingWith } from '$lib/model/duelRounds.js'
+    import { politicsPileSide } from '$lib/model/politicsCardPiles.js'
 
     let {
         action,
@@ -76,9 +77,6 @@
     function slotLabel(slot: 1 | 2 | 3, kind?: SlotKind): string {
         return kind ? slotKindLabels[kind] : slotLabels[slot]
     }
-    // Pile A always renders on the left, pile B on the right (see DeckPiles.svelte) -
-    // history should describe piles the way a player actually sees them on screen.
-    const pileLabels: Record<'A' | 'B', string> = { A: 'left', B: 'right' }
 
     // A region can enclose any number of towns (each worth 5 points), so the count
     // has to be spelled out rather than a bare "including a town" - the plain
@@ -326,11 +324,11 @@
         {/each}
     {/if}
 {:else if isLookAtPoliticsPile(action)}
-    looked through the {pileLabels[action.pile]} politics pile.
+    looked through the {politicsPileSide[action.pile]} politics pile.
 {:else if isTakePoliticsCard(action)}
     {@const isMe = gameSession.myPlayer?.id === action.playerId}
     {@const takenCard = action.card}
-    took a politics card from the {pileLabels[action.pile]} pile{#if isMe && takenCard}
+    took a politics card from the {politicsPileSide[action.pile]} pile{#if isMe && takenCard}
         {' '}({politicsCardLabel(takenCard.type, takenCard.value)}){/if}.
 {:else if isPlayRenegadeCard(action)}
     {@const victimId = playerIdForOwner(action.metadata?.victimOwner)}
