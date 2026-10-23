@@ -569,6 +569,16 @@ describe('the Tribunal’s promise boxes — each side’s promise, sent as the 
         expect(promiseEdited(typed, withPromise(more, 'fromProposer', 'I s'))).toBeUndefined()
     })
 
+    it('a box erased to empty reads exactly like a box never typed in', () => {
+        const picked = { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] }
+        const erased = withPromise(withPromise(picked, 'fromProposer', 'I'), 'fromProposer', '')
+        expect(erased).toEqual(picked)
+        expect(JSON.stringify(erased)).toBe(JSON.stringify(picked))
+        expect(promiseEdited(picked, erased)).toBeUndefined()
+        const both = withPromise(withPromise(picked, 'fromProposer', 'I'), 'fromCounterparty', 'R')
+        expect(withPromise(both, 'fromProposer', '').promiseDrafts).toEqual({ fromCounterparty: 'R' })
+    })
+
     it('a change to the pieces keeps both promises, in the box and in the terms', () => {
         const s = table({}, OathRevision.EngineFixes24)
         const promised = withPromise(withPromise(noExchangePicks(), 'fromProposer', 'I will. '), 'fromCounterparty', 'So will I.')

@@ -4053,6 +4053,30 @@ test.describe('the Tribunal’s promise boxes', () => {
         await expect.poll(() => call(page, 'offeredExchangeTerms')).toEqual({ fromProposer: { favor: 1 } })
     })
 
+    test('a box typed in and erased after a favor leaves no Undo step: one Undo takes the favor and keeps the chip', async ({ page }) => {
+        await offerTo(page, 'tribunalOffer')
+        const chip = row(page).getByRole('button', { name: 'rhys', exact: true })
+        const favor = grid(page).getByRole('button', { name: 'dana gives 1 favor', exact: true })
+        await favor.click()
+        await mine(page).pressSequentially('I')
+        await mine(page).press('Backspace')
+        await expect(mine(page)).toHaveValue('')
+        await undoButton(page).click()
+        await expect(favor).toHaveAttribute('aria-pressed', 'false')
+        await expect(chip).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    test('a box typed in and erased from the opened panel leaves no Undo step: one Undo takes the chip', async ({ page }) => {
+        await offerTo(page, 'tribunalOffer')
+        const chip = row(page).getByRole('button', { name: 'rhys', exact: true })
+        await expect(chip).toHaveAttribute('aria-pressed', 'true')
+        await mine(page).pressSequentially('I')
+        await mine(page).press('Backspace')
+        await expect(mine(page)).toHaveValue('')
+        await undoButton(page).click()
+        await expect(chip).toHaveAttribute('aria-pressed', 'false')
+    })
+
     test('nobody else reads them before the accept: the History rows of the offer and of its refusal quote neither promise', async ({ page }) => {
         await offerTo(page, 'tribunalOffer')
         await mine(page).fill('I will not campaign against Rhys.')

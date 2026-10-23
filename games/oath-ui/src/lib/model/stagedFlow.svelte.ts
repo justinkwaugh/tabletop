@@ -110,7 +110,8 @@ export abstract class TapHistoryDraft<V> implements PanelDraft {
 
     // A tap that changes nothing is no pick for Undo to take back. Typing on in the box the last tap
     // typed in carries that tap on, so Undo takes the box's text back as one pick; typed back to the
-    // text before it, the tap is gone.
+    // text before it, the tap is gone, even where the value now holds an empty entry the tap under
+    // it did not (an entry with nothing in it is no pick).
     protected tap(next: V): void {
         if (JSON.stringify(this.current) === JSON.stringify(next)) return
         const taps = this.flow.value('taps') ?? []
@@ -122,7 +123,7 @@ export abstract class TapHistoryDraft<V> implements PanelDraft {
             return
         }
         const rest = taps.slice(0, -1)
-        if (JSON.stringify(before) !== JSON.stringify(next)) {
+        if (this.textEdited(before, next) === box) {
             this.flow.set('taps', [...rest, next])
         } else if (rest.length > 0) {
             this.flow.set('taps', rest)
