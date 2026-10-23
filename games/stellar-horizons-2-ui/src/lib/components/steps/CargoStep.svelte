@@ -12,7 +12,6 @@
     import CargoHold from '../CargoHold.svelte'
     import ShipTile from '../ShipTile.svelte'
     import CargoTransfer from './CargoTransfer.svelte'
-    import SaleList from './SaleList.svelte'
 
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
@@ -91,7 +90,11 @@
             <p class="empty">Nothing to load or unload at {systemName(cargoShip.systemId)}.</p>
         {/if}
     </div>
-    <SaleList />
+    {#if gameSession.saleOptions.length > 0}
+        <p class="hint">
+            You have goods to sell where there is demand: choose a marked system on the map.
+        </p>
+    {/if}
 </div>
 
 <style>

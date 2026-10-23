@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3841982839,
+  "seed": 896596586,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T18:13:57.303Z",
+  "createdAt": "2026-10-23T23:28:13.232Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "JhNk85iZeBCpRHqW15oJ7",
+  "id": "Q2sux0c5_Eyq6rJhZzr50",
   "gameId": "scenario-three-factions-at-one-anomaly",
   "seed": 3367980177,
   "prng": {
@@ -1016,7 +1016,7 @@
   "goodsPool": [],
   "demandPool": [],
   "demandDraws": [],
-  "traders": [],
+  "remainingTraders": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

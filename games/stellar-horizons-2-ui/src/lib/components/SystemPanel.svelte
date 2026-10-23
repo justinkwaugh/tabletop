@@ -2,9 +2,10 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import {
         AnomalyChallenge,
+        GoodsHolderKind,
         eventDefinition,
         shipDefinition,
-        type ShipState
+        type GoodsHolder
     } from '@tabletop/stellar-horizons-2'
     import { DEMAND_ART, FACTION_ART, SETTLEMENT_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -19,6 +20,7 @@
     import PactSummary from './PactSummary.svelte'
     import ShipCounter from './board/ShipCounter.svelte'
     import CargoHold from './CargoHold.svelte'
+    import SystemSales from './SystemSales.svelte'
 
     const COUNTER_SIZE = 140
 
@@ -32,10 +34,11 @@
             : undefined
     )
 
-    function choose(ship: ShipState) {
-        if (gameSession.selectableShipIds.includes(ship.shipId)) {
-            gameSession.selectShip(ship.shipId)
-        }
+    const base: GoodsHolder = $derived({ kind: GoodsHolderKind.Base, systemId })
+    const reward = $derived(gameSession.myGoodsReward)
+
+    function shipHolder(shipId: string): GoodsHolder {
+        return { kind: GoodsHolderKind.Ship, shipId }
     }
 
     function onKeydown(event: KeyboardEvent) {
@@ -93,11 +96,14 @@
                     width="64"
                     height="64"
                 />
-                <span class="feature-text"
-                    ><strong>Demand</strong>: {demand.prices
-                        .map(({ good, price }) => `${goodName(good)} sells for $${price}B`)
-                        .join(', ')}{demand.sol ? ', on Earth.' : ' each, and 1 IP.'}</span
-                >
+                <div class="demand-body">
+                    <span class="feature-text"
+                        ><strong>Demand</strong>: {demand.prices
+                            .map(({ good, price }) => `${goodName(good)} sells for $${price}B`)
+                            .join(', ')}{demand.sol ? ', on Earth.' : ' each, and 1 IP.'}</span
+                    >
+                    <SystemSales {systemId} />
+                </div>
             </section>
         {/if}
         {#each summary.pacts as pact (pact.id)}
@@ -108,6 +114,8 @@
             />
         {/each}
         {#each summary.fleets as fleet (fleet.playerId)}
+            {@const mine = fleet.playerId === gameSession.myPlayerId}
+            {@const baseGoods = mine ? gameSession.goodsWithReward(base, fleet.goods) : fleet.goods}
             <section
                 class="fleet"
                 class:inspected={fleet.playerId === inspectedPlayerId}
@@ -124,9 +132,17 @@
                             >{fleet.faction ? factionName(fleet.faction) : ''}</span
                         >
                     </div>
-                    {#if fleet.goods.length > 0}
+                    {#if reward && mine && gameSession.canTakeRewardGood(base)}
+                        <button
+                            type="button"
+                            class="take"
+                            onclick={() => gameSession.addRewardGood(base)}
+                            >Put {goodName(reward.good)} here</button
+                        >
+                    {/if}
+                    {#if baseGoods.length > 0}
                         <div class="goods" aria-label="Goods at the base">
-                            {#each groupGoods(fleet.goods) as group (group.good)}
+                            {#each groupGoods(baseGoods) as group (group.good)}
                                 <GoodChit good={group.good} count={group.count} size={28} />
                             {/each}
                         </div>
@@ -155,9 +171,9 @@
                 {#if fleet.ships.length > 0}
                     <div class="ships">
                         {#each fleet.ships as ship (ship.shipId)}
-                            {@const selectable = gameSession.selectableShipIds.includes(
-                                ship.shipId
-                            )}
+                            {@const selectable =
+                                gameSession.selectableShipIds.includes(ship.shipId) ||
+                                gameSession.canTakeRewardGood(shipHolder(ship.shipId))}
                             <button
                                 type="button"
                                 class="ship"
@@ -165,7 +181,7 @@
                                 class:selected={gameSession.selectedShip?.shipId === ship.shipId}
                                 disabled={!selectable}
                                 aria-label={shipDefinition(ship.shipId).name}
-                                onclick={() => choose(ship)}
+                                onclick={() => gameSession.chooseShipHere(ship.shipId)}
                             >
                                 <svg
                                     width={COUNTER_SIZE}
@@ -179,6 +195,10 @@
                                 <CargoHold
                                     gameState={gameSession.gameState}
                                     {ship}
+                                    goods={gameSession.goodsWithReward(
+                                        shipHolder(ship.shipId),
+                                        ship.goods
+                                    )}
                                     width={COUNTER_SIZE}
                                 />
                                 {#if ship.transit > 0}
@@ -201,6 +221,27 @@
     .demand {
         flex-shrink: 0;
         border-radius: 4px;
+    }
+
+    .demand-body {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .take {
+        flex-shrink: 0;
+        padding: 3px 10px;
+        border: 1px solid #f2c94c;
+        border-radius: 6px;
+        background: #f2c94c;
+        color: #1d1a14;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .take:hover {
+        background: #ffd968;
     }
 
     .goods {

@@ -1,5 +1,6 @@
 import {
     GoodsHolderKind,
+    sameHolder,
     shipDefinition,
     tradeGoodDefinition,
     type GoodsCount,
@@ -8,30 +9,57 @@ import {
     type SaleOption,
     type TradeGood
 } from '@tabletop/stellar-horizons-2'
+import { systemName } from './presentation.js'
 
+// Goods of one kind and how many; in a cargo draft a negative count moves them off the ship.
 export interface GoodsGroup {
     good: TradeGood
     count: number
 }
 
-import { systemName } from './presentation.js'
-
 export function goodName(good: TradeGood): string {
     return tradeGoodDefinition(good).name
 }
 
-// Goods of one kind together, in the order each kind first appears.
-export function groupGoods(goods: readonly TradeGood[]): GoodsGroup[] {
-    const groups: GoodsGroup[] = []
-    for (const good of goods) {
-        const group = groups.find((candidate) => candidate.good === good)
-        if (group) {
-            group.count += 1
+export function holderName(holder: GoodsHolder): string {
+    switch (holder.kind) {
+        case GoodsHolderKind.Earth:
+            return 'Earth'
+        case GoodsHolderKind.Base:
+            return `${systemName(holder.systemId)} base`
+        case GoodsHolderKind.Ship:
+            return shipDefinition(holder.shipId).name
+    }
+}
+
+// Equal items together with how many there are, in the order each first appears.
+function tally<Item>(
+    items: readonly Item[],
+    same: (a: Item, b: Item) => boolean
+): { item: Item; count: number }[] {
+    const tallies: { item: Item; count: number }[] = []
+    for (const item of items) {
+        const entry = tallies.find((candidate) => same(candidate.item, item))
+        if (entry) {
+            entry.count += 1
         } else {
-            groups.push({ good, count: 1 })
+            tallies.push({ item, count: 1 })
         }
     }
-    return groups
+    return tallies
+}
+
+export function groupGoods(goods: readonly TradeGood[]): GoodsGroup[] {
+    return tally(goods, (a, b) => a === b).map(({ item, count }) => ({ good: item, count }))
+}
+
+// Goods placed one at a time, gathered by where they went.
+export function holderCounts(holders: readonly GoodsHolder[]): GoodsCount[] {
+    return tally(holders, sameHolder).map(({ item, count }) => ({ holder: item, count }))
+}
+
+export function goodsToSell(option: SaleOption): number {
+    return option.sources.reduce((total, source) => total + source.count, 0)
 }
 
 export function goodsText(goods: readonly TradeGood[]): string {
@@ -67,20 +95,20 @@ export interface Holding {
 
 // Where a Player's goods are: Earth, then their bases, then their ships.
 export function holdings(state: HydratedStellarHorizonsGameState, playerId: string): Holding[] {
-    const earth: Holding = {
-        holder: { kind: GoodsHolderKind.Earth },
-        label: 'Earth',
-        groups: groupGoods(state.getPlayerState(playerId).earthGoods)
-    }
-    const bases: Holding[] = state.basesOf(playerId).map((base) => ({
-        holder: { kind: GoodsHolderKind.Base, systemId: base.systemId },
-        label: systemName(base.systemId),
-        groups: groupGoods(base.goods)
-    }))
-    const ships: Holding[] = state.shipsOf(playerId).map((ship) => ({
-        holder: { kind: GoodsHolderKind.Ship, shipId: ship.shipId },
-        label: shipDefinition(ship.shipId).name,
-        groups: groupGoods(ship.goods)
-    }))
-    return [earth, ...bases, ...ships].filter((holding) => holding.groups.length > 0)
+    const holding = (holder: GoodsHolder, goods: readonly TradeGood[]): Holding => ({
+        holder,
+        label: holderName(holder),
+        groups: groupGoods(goods)
+    })
+    return [
+        holding({ kind: GoodsHolderKind.Earth }, state.getPlayerState(playerId).earthGoods),
+        ...state
+            .basesOf(playerId)
+            .map((base) =>
+                holding({ kind: GoodsHolderKind.Base, systemId: base.systemId }, base.goods)
+            ),
+        ...state
+            .shipsOf(playerId)
+            .map((ship) => holding({ kind: GoodsHolderKind.Ship, shipId: ship.shipId }, ship.goods))
+    ].filter((entry) => entry.groups.length > 0)
 }

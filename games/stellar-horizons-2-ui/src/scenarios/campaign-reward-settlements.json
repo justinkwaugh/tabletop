@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 794334244,
+  "seed": 1681496177,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T18:13:57.495Z",
+  "createdAt": "2026-10-23T23:28:13.419Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "KCTyQbdN0j3LaCToMFKTm",
+  "id": "mkhyP0JctNkGm-sONdz10",
   "gameId": "scenario-campaign-reward-settlements",
   "seed": 3367980177,
   "prng": {
@@ -1000,7 +1000,7 @@
    "RareMaterials"
   ],
   "demandDraws": [],
-  "traders": [],
+  "remainingTraders": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

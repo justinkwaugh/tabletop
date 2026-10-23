@@ -1,41 +1,37 @@
 <script lang="ts">
     import {
-        EARTH_STORAGE,
+        GoodsHolderKind,
         MAX_GOODS,
-        assignmentLimit,
         canAssignToEarth,
-        goodsCount,
-        storageLimit,
-        tradeGoodDefinition
+        tradeGoodDefinition,
+        type StoreRoom,
+        type TradeGood
     } from '@tabletop/stellar-horizons-2'
-    import { DISCARD, EARTH } from '$lib/model/selection.js'
+    import { DISCARDED, type GoodsDestination } from '$lib/model/selection.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { systemName } from '$lib/utils/presentation.js'
-    import { goodName } from '$lib/utils/trade.js'
+    import { goodName, holderName } from '$lib/utils/trade.js'
     import GoodChit from '../GoodChit.svelte'
 
     const gameSession = getGameSession()
-    const gameState = $derived(gameSession.gameState)
-    const playerId = $derived(gameSession.myPlayerId ?? '')
-    const drawn = $derived(gameState.getPlayerState(playerId).drawnGoods)
+    const drawn = $derived(gameSession.drawnGoods)
     const destinations = $derived(gameSession.assignmentDraft.destinations)
     const current = $derived(gameSession.goodToAssign)
-    const chosen = (destination: string) =>
-        destinations.filter((candidate) => candidate === destination).length
-    const earthGoods = $derived(
-        gameState.getPlayerState(playerId).earthGoods.length + chosen(EARTH)
+    const discarded = $derived(
+        destinations.filter((destination) => destination.kind === DISCARDED.kind).length
     )
-    const bases = $derived(gameState.basesOf(playerId))
-    const discarded = $derived(destinations.filter((destination) => destination === DISCARD).length)
 
-    function destinationText(destination: string): string {
-        if (destination === EARTH) {
-            return 'Earth'
-        }
-        return destination === DISCARD ? 'discarded for $1B' : systemName(destination)
+    function destinationText(destination: GoodsDestination): string {
+        return destination.kind === DISCARDED.kind ? 'discarded for $1B' : holderName(destination)
     }
 
-    function worldTypes(good: (typeof drawn)[number]): string {
+    function roomText(room: StoreRoom): string {
+        const holds = `holds ${room.stored} of ${room.storage}`
+        return room.store.kind === GoodsHolderKind.Earth
+            ? `Earth ${holds}`
+            : `${holderName(room.store)} takes ${room.intake} more this turn, ${holds}`
+    }
+
+    function worldTypes(good: TradeGood): string {
         return tradeGoodDefinition(good).producers.join(' or ')
     }
 </script>
@@ -47,14 +43,8 @@
         on the map; Undo takes one back.
     </p>
     <div class="room">
-        <span>Earth holds {earthGoods} of {EARTH_STORAGE}</span>
-        {#each bases as base (base.systemId)}
-            <span
-                >{systemName(base.systemId)} takes {assignmentLimit(base) -
-                    base.goodsReceived -
-                    chosen(base.systemId)} more this turn, holds {base.goods.length +
-                    chosen(base.systemId)} of {storageLimit(base)}</span
-            >
+        {#each gameSession.assignmentRooms as room (holderName(room.store))}
+            <span>{roomText(room)}</span>
         {/each}
     </div>
     <div class="goods">
@@ -88,7 +78,7 @@
                 >Discard {goodName(current)} for $1B</button
             >
         {/if}
-        <span class="note">You hold {goodsCount(gameState, playerId)} goods.</span>
+        <span class="note">You hold {gameSession.heldGoods} goods.</span>
         <button
             type="button"
             class="primary"

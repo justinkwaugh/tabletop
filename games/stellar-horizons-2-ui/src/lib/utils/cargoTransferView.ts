@@ -14,7 +14,8 @@ import {
     type ShipState,
     type TradeGood
 } from '@tabletop/stellar-horizons-2'
-import type { CargoDraft, GoodsMove } from '$lib/model/session.svelte.js'
+import type { CargoDraft } from '$lib/model/session.svelte.js'
+import type { GoodsGroup } from './trade.js'
 
 export interface GoodsTransferRow {
     good: TradeGood
@@ -210,7 +211,7 @@ function unloadBlock(
 // partner ship.
 export function goodsAfterMoves(
     goods: readonly TradeGood[],
-    moves: readonly GoodsMove[],
+    moves: readonly GoodsGroup[],
     direction: 1 | -1
 ): TradeGood[] {
     const result = [...goods]

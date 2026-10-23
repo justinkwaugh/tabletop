@@ -65,9 +65,7 @@
         isPlaceRewardGoods,
         isSellGoods,
         isTransferGoods,
-        GoodsHolderKind,
         type CargoPartner,
-        type GoodsHolder,
         shipDefinition,
         techDefinition,
         type CompensationCounts,
@@ -86,7 +84,7 @@
         systemName
     } from '$lib/utils/presentation.js'
     import { pactTargetName, rewardSummary } from '$lib/utils/pacts.js'
-    import { goodName, goodsText } from '$lib/utils/trade.js'
+    import { goodName, goodsText, holderName } from '$lib/utils/trade.js'
 
     let { action, justify = 'start' }: { action: GameAction; justify?: 'start' | 'center' } =
         $props()
@@ -121,17 +119,6 @@
             markers: reward.markers.length ? `markers (${reward.markers.join(', ')})` : '',
             goods: reward.goods ? plural(reward.goods, 'good') : ''
         })}${goodsCash}${notYet}`
-    }
-
-    function holderName(holder: GoodsHolder): string {
-        switch (holder.kind) {
-            case GoodsHolderKind.Earth:
-                return 'Earth'
-            case GoodsHolderKind.Base:
-                return `their base at ${systemName(holder.systemId)}`
-            case GoodsHolderKind.Ship:
-                return shipName(holder.shipId)
-        }
     }
 
     function transferPartnerName(partner: CargoPartner): string {
@@ -275,7 +262,7 @@
                 ? `assigned ${action.assignments
                       .map(
                           (assignment) =>
-                              `${goodName(assignment.good)} to ${assignment.systemId ? systemName(assignment.systemId) : 'Earth'}`
+                              `${goodName(assignment.good)} to ${holderName(assignment.store)}`
                       )
                       .join(', ')}`
                 : 'assigned no goods'}{action.metadata?.discarded.length

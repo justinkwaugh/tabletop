@@ -1,6 +1,7 @@
 import type {
     AnomalyChallenge,
     GoodsHolder,
+    GoodsStore,
     PactOpening,
     PactShare,
     TechId,
@@ -45,10 +46,9 @@ export interface RewardDraft {
     systemIds: string[]
 }
 
-// Where each drawn good goes, in the order drawn: a base's system, Earth, or discarded for $1B.
-export const EARTH = 'Earth'
-export const DISCARD = 'Discard'
-export type GoodsDestination = string
+// Where each drawn good goes, in the order drawn: Earth, a base, or discarded for $1B.
+export const DISCARDED: { kind: 'Discarded' } = { kind: 'Discarded' }
+export type GoodsDestination = GoodsStore | typeof DISCARDED
 
 export interface AssignmentDraft {
     destinations: GoodsDestination[]

@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 1743908099,
+  "seed": 2250921299,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T18:13:57.477Z",
+  "createdAt": "2026-10-23T23:28:13.402Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "u3mBVrrmX3zo5L0dXvzt4",
+  "id": "dlJ78Ku8hpx542lSXIx0Y",
   "gameId": "scenario-campaign-anomaly-backs",
   "seed": 3367980177,
   "prng": {
@@ -985,7 +985,7 @@
    "RareMaterials"
   ],
   "demandDraws": [],
-  "traders": [],
+  "remainingTraders": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 423425699,
+  "seed": 967036343,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T18:13:57.506Z",
+  "createdAt": "2026-10-23T23:28:13.430Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "fkdki_XpQSWS-_C-pJ7BH",
+  "id": "4TsrlVigcYUUteR7tdQgc",
   "gameId": "scenario-campaign-trade-goods",
   "seed": 3367980177,
   "prng": {
@@ -1008,7 +1008,7 @@
    "RareMaterials"
   ],
   "demandDraws": [],
-  "traders": [],
+  "remainingTraders": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

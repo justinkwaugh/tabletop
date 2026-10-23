@@ -84,7 +84,7 @@ test('a sale beside another base pays its owner, then a new demand marker is cho
     page
 }) => {
     await openScenario(page, 'Campaign trading')
-    await page.getByRole('button', { name: /Fauna at Barnard's Star/ }).click()
+    await page.getByRole('button', { name: "Sell goods at Barnard's Star" }).click({ force: true })
     await expect(page.getByText('Pays Player 2 $1B')).toBeVisible()
     await page.getByRole('button', { name: 'Sell 1 for $6B' }).click()
     await expect(page.getByText("Barnard's Star gets a demand marker")).toBeVisible()
@@ -92,5 +92,21 @@ test('a sale beside another base pays its owner, then a new demand marker is cho
         .getByRole('button', { name: /^Keep .* demand$/ })
         .first()
         .click()
-    await expect(page.getByText('Sell goods where there is demand')).toBeVisible()
+    await expect(page.getByText('You have goods to sell where there is demand')).toBeVisible()
+})
+
+test('reward goods are placed in the zoomed system, which can be left and reopened', async ({
+    page
+}) => {
+    await openScenario(page, 'Campaign reward goods')
+    await expect(page.getByRole('heading', { name: 'Alpha Centauri' })).toBeVisible()
+    await page.getByRole('button', { name: 'Put Fauna here' }).click()
+    await expect(page.getByRole('button', { name: 'Put Fauna here' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Back to map' }).click()
+    await expect(page.getByRole('heading', { name: 'Alpha Centauri' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Place Fauna at Alpha Centauri' }).click({ force: true })
+    await page.getByRole('button', { name: 'Andromeda', exact: true }).click()
+    await page.getByRole('button', { name: 'Place Fauna', exact: true }).click()
+    await expect(page.getByText('Goods').first()).toBeVisible()
+    await expect(page.getByText('2 of 12')).toBeVisible()
 })

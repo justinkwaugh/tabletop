@@ -1,21 +1,22 @@
 <script lang="ts">
     import { SALE_INFLUENCE, SALE_PAYMENT, SOL_SYSTEM_ID } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { systemName } from '$lib/utils/presentation.js'
-    import { goodName } from '$lib/utils/trade.js'
-    import GoodChit from '../GoodChit.svelte'
+    import { goodName, goodsToSell } from '$lib/utils/trade.js'
+    import GoodChit from './GoodChit.svelte'
+
+    let { systemId }: { systemId: string } = $props()
 
     const gameSession = getGameSession()
     const draft = $derived(gameSession.saleDraft)
+    const sales = $derived(gameSession.salesIn(systemId))
+    const offEarth = $derived(systemId !== SOL_SYSTEM_ID)
 </script>
 
-{#if gameSession.saleOptions.length > 0}
-    <div class="sales" role="group" aria-label="Goods to sell">
-        <div class="heading">Sell goods where there is demand</div>
-        {#each gameSession.saleOptions as option (`${option.systemId}:${option.good}`)}
-            {@const available = option.sources.reduce((total, source) => total + source.count, 0)}
+{#if sales.length > 0}
+    <div class="sales sh-step" role="group" aria-label="Goods to sell">
+        {#each sales as option (option.good)}
+            {@const available = goodsToSell(option)}
             {@const chosen = draft?.systemId === option.systemId && draft.good === option.good}
-            {@const offEarth = option.systemId !== SOL_SYSTEM_ID}
             <div class="sale" class:chosen>
                 <button
                     type="button"
@@ -24,9 +25,7 @@
                     onclick={() => gameSession.chooseSale(option)}
                 >
                     <GoodChit good={option.good} count={available} size={28} />
-                    <span class="what"
-                        >{goodName(option.good)} at {systemName(option.systemId)}</span
-                    >
+                    <span class="what">Sell {goodName(option.good)}</span>
                     <span class="price"
                         >${option.price}B each{offEarth ? `, +${SALE_INFLUENCE} IP` : ''}</span
                     >
@@ -84,14 +83,6 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-        padding-top: 8px;
-        border-top: 1px solid #22314d;
-    }
-
-    .heading {
-        font-size: 13px;
-        font-weight: 700;
-        color: #b7c7de;
     }
 
     .sale {

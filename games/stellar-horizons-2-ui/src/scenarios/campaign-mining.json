@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3168952062,
+  "seed": 4116131792,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T18:13:57.454Z",
+  "createdAt": "2026-10-23T23:28:13.379Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "iFSmvMcrP7iGihIsgOUnb",
+  "id": "NhLekRJHDCeJwpGJgk7iq",
   "gameId": "scenario-campaign-mining",
   "seed": 3367980177,
   "prng": {
@@ -1011,7 +1011,7 @@
    "RareMaterials"
   ],
   "demandDraws": [],
-  "traders": [],
+  "remainingTraders": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

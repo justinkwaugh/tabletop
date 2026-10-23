@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 719889736,
+  "seed": 2528300270,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T18:13:57.348Z",
+  "createdAt": "2026-10-23T23:28:13.277Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "1Isk31qD9mwMIg9x3YQmx",
+  "id": "Rv2T7ONCUBjxsXGu5Ar3Z",
   "gameId": "scenario-campaign-initiative",
   "seed": 3367980177,
   "prng": {
@@ -966,7 +966,7 @@
    "RareMaterials"
   ],
   "demandDraws": [],
-  "traders": [],
+  "remainingTraders": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

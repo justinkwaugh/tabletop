@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 832010031,
+  "seed": 2143046683,
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-10-18T18:13:57.421Z",
+  "createdAt": "2026-10-23T23:28:13.346Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "2eg2QEgsO8-5I-Sc-VCyC",
+  "id": "9MHAcPKt5KVyvWQyx1QPv",
   "gameId": "scenario-campaign-terraforming",
   "seed": 3367980177,
   "prng": {
@@ -991,7 +991,7 @@
    "RareMaterials"
   ],
   "demandDraws": [],
-  "traders": [],
+  "remainingTraders": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 123662818,
+  "seed": 3905737806,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T18:13:57.547Z",
+  "createdAt": "2026-10-23T23:28:13.473Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "DlQogElxrVIMESHhg9wAD",
+  "id": "tZhhTkps-mkZmhloT3c_B",
   "gameId": "scenario-campaign-demand",
   "seed": 3367980177,
   "prng": {
@@ -1043,7 +1043,7 @@
     ]
    }
   ],
-  "traders": [
+  "remainingTraders": [
    "p0",
    "p2",
    "p1"
@@ -1086,7 +1086,8 @@
     }
    }
   ],
-  "economicTile": "EarthProduction"
+  "economicTile": "EarthProduction",
+  "resumeAfterDemand": "Trading"
  },
  "actions": []
 }

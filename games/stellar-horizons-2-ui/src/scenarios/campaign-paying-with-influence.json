@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 11153883,
+  "seed": 185885863,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T18:13:57.438Z",
+  "createdAt": "2026-10-23T23:28:13.363Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "gmmqYPsp1k2_f_GnN-8iJ",
+  "id": "qnS8DTBKlkIb_eI6vrrxr",
   "gameId": "scenario-campaign-paying-with-influence",
   "seed": 3367980177,
   "prng": {
@@ -974,7 +974,7 @@
    "RareMaterials"
   ],
   "demandDraws": [],
-  "traders": [],
+  "remainingTraders": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",
