@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PlaceText from './PlaceText.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { Side, VictoryKind } from '@tabletop/napoleons-triumph'
     import { describeAction } from '$lib/utils/describeAction.js'
@@ -27,14 +28,19 @@
 </script>
 
 {#if gameSession.isViewingHistory}
-    <p class="nt-action">{lastAction || 'The armies are about to take the field.'}</p>
+    <p class="nt-action">
+        {#if lastAction}<PlaceText text={lastAction} />{:else}The armies are about to take the
+            field.{/if}
+    </p>
 {:else if gameSession.gameState.result}
     <p class="nt-action">{outcome}</p>
 {:else if gameSession.isCommanding}
     <Orders bind:drawerHeight={ordersDrawerHeight} />
 {:else}
     <p class="nt-action">
-        <span>{lastAction || 'Waiting for the other army.'}</span>
+        <span
+            >{#if lastAction}<PlaceText text={lastAction} />{:else}Waiting for the other army.{/if}</span
+        >
         {#if waitingOn}
             <span class="nt-action-faint">Waiting for <PlayerName playerId={waitingOn} />.</span>
         {/if}

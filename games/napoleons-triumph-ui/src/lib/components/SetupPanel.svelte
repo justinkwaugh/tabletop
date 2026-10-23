@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PlaceText from './PlaceText.svelte'
     import type { Attachment } from 'svelte/attachments'
     import {
         MAX_CORPS_UNITS,
@@ -175,7 +176,7 @@
 
 {#if table && playerId}
     <div class="nt-setup" style:--nt-army={gameSession.armyColors(playerId).block}>
-        <div class="nt-setup-prompt">{guidance}</div>
+        <div class="nt-setup-prompt"><PlaceText text={guidance} /></div>
         <div class="nt-setup-pool" aria-label="Units to assign">
             {#each table.stacks as stack (faceName(stack.face))}
                 {@const name = faceName(stack.face)}

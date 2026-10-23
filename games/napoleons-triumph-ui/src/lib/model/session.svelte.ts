@@ -58,7 +58,7 @@ import { describeAction } from '$lib/utils/describeAction.js'
 import { sameIds } from '$lib/utils/ids.js'
 import { moraleMarkers, type MoraleMarker } from '$lib/utils/moraleTrack.js'
 import { timeMarker } from '$lib/utils/timeTrack.js'
-import { inReadingOrder } from '$lib/utils/unitTypeOrder.js'
+import { seenFacesFirst } from '$lib/utils/unitTypeOrder.js'
 import { numberOfTrail, trailNumberOutline } from '$lib/utils/trailNumber.js'
 import { drawnArrowOutlines, lineSamples } from '$lib/utils/wayArrow.js'
 import {
@@ -288,6 +288,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
     darkBorders = $derived(this.preferences.values.darkBorders)
 
     approachSymbolsShown = $state(false)
+
+    localeNumbersShown = $state(false)
+
+    locatedLocale: { locale: number; press: number } | undefined = $state()
+
+    private locatePresses = 0
+
+    placeNames: ReadonlyMap<string, number> = $derived.by(() => {
+        const map = this.gameState.map
+        return new Map(map.localeIds.map((locale) => [map.label(locale), locale]))
+    })
+
+    private readonly localeLocatedListeners = new Set<(locale: number) => void>()
 
     movementTrailsShown = $derived(this.preferences.values.movementTrails)
 
@@ -927,9 +940,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
         return { block, shade: shadeOf(block), ink: this.colors.getPlayerTextColorValue(playerId) }
     }
 
-    /** The viewer's own units are listed in reading order; anyone else's as the game holds them, so their order tells nothing. */
-    asRead(playerId: string, units: readonly ProjectedUnit[]): ProjectedUnit[] {
-        return playerId === this.myPlayerId ? inReadingOrder(units) : [...units]
+    /** Units whose faces the viewer sees come first in reading order, which is all of the viewer's own. */
+    asRead(units: readonly ProjectedUnit[]): ProjectedUnit[] {
+        return seenFacesFirst(units, (unit) => this.visibleFace(unit))
     }
 
     /** A picture without unit types is taken of the board as it stands while this is on, and it is on for no longer than that. */
@@ -1068,6 +1081,30 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.pickUpListeners.add(listener)
         return () => {
             this.pickUpListeners.delete(listener)
+        }
+    }
+
+    onLocaleLocated(listener: (locale: number) => void): () => void {
+        this.localeLocatedListeners.add(listener)
+        return () => {
+            this.localeLocatedListeners.delete(listener)
+        }
+    }
+
+    highlightLocale(locale: number) {
+        this.locatedLocale = { locale, press: ++this.locatePresses }
+    }
+
+    locateLocale(locale: number) {
+        this.highlightLocale(locale)
+        for (const listener of this.localeLocatedListeners) {
+            listener(locale)
+        }
+    }
+
+    locatedLocaleFaded(press: number) {
+        if (this.locatedLocale?.press === press) {
+            this.locatedLocale = undefined
         }
     }
 

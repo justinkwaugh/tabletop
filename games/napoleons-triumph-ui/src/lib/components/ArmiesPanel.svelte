@@ -35,7 +35,7 @@
         game.players.flatMap((player) => (player.side ? [{ player, side: player.side }] : []))
     )
 
-    function strength(units: ProjectedUnit[]): string {
+    function unitCount(units: ProjectedUnit[]): string {
         return units.length === 1 ? '1 unit' : `${units.length} units`
     }
 
@@ -111,7 +111,7 @@
 
 {#snippet unitBlocks(units: ProjectedUnit[], colors: ArmyColors)}
     <div class="nt-corps-units">
-        {#each units as unit (unit.id)}
+        {#each gameSession.asRead(units) as unit (unit.id)}
             <svg
                 viewBox="{-BLOCK_LENGTH / 2} {-BLOCK_THICKNESS /
                     2} {BLOCK_LENGTH} {BLOCK_THICKNESS}"
@@ -180,10 +180,9 @@
                                 <span class="nt-corps-where">{where.place}</span>
                             {/if}
                         </div>
-                        {#if units.some((unit) => gameSession.visibleFace(unit))}
-                            {@render unitBlocks(gameSession.asRead(player.playerId, units), colors)}
-                        {:else if units.length > 0}
-                            <div class="nt-corps-where">{strength(units)}</div>
+                        {#if units.length > 0}
+                            <div class="nt-corps-where nt-corps-count">{unitCount(units)}</div>
+                            {@render unitBlocks(units, colors)}
                         {/if}
                     </div>
                 {/each}
@@ -195,14 +194,9 @@
                                     ? 'Detached'
                                     : 'To set up'}</span
                             >
-                            <span class="nt-corps-where">{strength(detached)}</span>
+                            <span class="nt-corps-where">{unitCount(detached)}</span>
                         </div>
-                        {#if detached.some((unit) => gameSession.visibleFace(unit))}
-                            {@render unitBlocks(
-                                gameSession.asRead(player.playerId, detached),
-                                colors
-                            )}
-                        {/if}
+                        {@render unitBlocks(detached, colors)}
                     </div>
                 {/if}
             </div>
@@ -276,6 +270,7 @@
         display: flex;
         flex-direction: column;
         gap: 3px;
+        margin-bottom: 4px;
     }
 
     .nt-elite {
@@ -391,6 +386,11 @@
         stroke: currentColor;
         stroke-width: 1.5;
         stroke-linecap: round;
+    }
+
+    .nt-corps-count {
+        padding-top: 2px;
+        text-align: left;
     }
 
     .nt-corps-units {

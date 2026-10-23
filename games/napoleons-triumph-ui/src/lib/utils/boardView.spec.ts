@@ -4,6 +4,7 @@ import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
 import {
     BoardView,
     boundsOf,
+    centredInBand,
     focusWhereSeen,
     screenAxes,
     toView,
@@ -89,5 +90,22 @@ describe('focusing where the map can be seen', () => {
         const on = focusWhereSeen(small, { width: 600, height: 500, seenHeight: 300 }, focus)
         expect(on.maxScale).toBe(focus.maxScale)
         expect(on.rect.height).toBeCloseTo(30 + 200 / 0.8)
+    })
+})
+
+describe('a rectangle centred in the band of the view on screen', () => {
+    const rect = { x: 100, y: 200, width: 40, height: 30 }
+
+    it('is left as it is when the whole view is on screen', () => {
+        expect(centredInBand(rect, { height: 500, top: 0, bottom: 500 }, 0.5)).toEqual(rect)
+    })
+
+    it('is extended by the covered top and the part below the fold, at the scale of the view', () => {
+        const band = { height: 500, top: 100, bottom: 400 }
+        const focused = centredInBand(rect, band, 0.5)
+        expect(focused).toEqual({ x: 100, y: 0, width: 40, height: 430 })
+        const centre = focused.y + focused.height / 2
+        const screenOfRectCentre = (rect.y + rect.height / 2 - centre) * 0.5 + band.height / 2
+        expect(screenOfRectCentre).toBe((band.top + band.bottom) / 2)
     })
 })

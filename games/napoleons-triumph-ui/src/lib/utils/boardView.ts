@@ -99,3 +99,17 @@ export function focusWhereSeen(rect: BoundingBox, frame: ViewFrame, focus: Focus
         padding: focus.padding
     }
 }
+
+/** The band of the view's height that is on screen, from the top of the view: under anything hanging over the board, above the fold. */
+export interface SeenBand {
+    height: number
+    top: number
+    bottom: number
+}
+
+/** The view centres what it focuses on in its whole height, so the rectangle is extended by the parts above and below the band to come out centred in the band at this scale. */
+export function centredInBand(rect: BoundingBox, band: SeenBand, scale: number): BoundingBox {
+    const above = band.top / scale
+    const below = (band.height - band.bottom) / scale
+    return { ...rect, y: rect.y - above, height: rect.height + above + below }
+}

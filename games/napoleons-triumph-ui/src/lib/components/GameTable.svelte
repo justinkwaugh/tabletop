@@ -33,7 +33,14 @@
     import MoveReplay from '$lib/components/MoveReplay.svelte'
     import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
     import { blockCorners } from '$lib/utils/blockShape.js'
-    import { boundsOf, focusWhereSeen, viewFor, type Focus } from '$lib/utils/boardView.js'
+    import {
+        boundsOf,
+        centredInBand,
+        focusWhereSeen,
+        viewFor,
+        type Focus,
+        type SeenBand
+    } from '$lib/utils/boardView.js'
     import { boardPicture, boardPictureName, picturedLayers } from '$lib/utils/boardPicture.js'
     import boardArt from '$lib/images/board.webp'
     import setupMarks from '$lib/images/setup-marks.webp'
@@ -114,7 +121,18 @@
             animate: true,
             ...LOCATE_FOCUS
         })
+        scrollBoardIntoView()
+        session.highlightLocale(locale)
+    }
+
+    function scrollBoardIntoView() {
         boardHost?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    }
+
+    async function bringLocatedOnScreen(locale: number) {
+        await tick()
+        scrollBoardIntoView()
+        panIfOutOfView(boardHost?.querySelector(`[data-located-locale="${locale}"]`), locale, true)
     }
 
     const UNCOVERED_PADDING = 60
@@ -197,21 +215,44 @@
         }
     }
 
+    // The orders sheet hangs over the top of the board, and on a phone the board can run below the fold.
+    function seenBand(host: DOMRect): SeenBand {
+        const sheet =
+            boardCovered > 0
+                ? table?.querySelector('.nt-orders-sheet')?.getBoundingClientRect()
+                : undefined
+        const top = Math.max(host.top, sheet?.bottom ?? host.top, 0)
+        const bottom = Math.min(host.bottom, window.innerHeight)
+        return { height: host.height, top: top - host.top, bottom: bottom - host.top }
+    }
+
+    function panIfOutOfView(shape: Element | null | undefined, locale: number, animate: boolean) {
+        if (!shape || !boardHost) return
+        const at = shape.getBoundingClientRect()
+        const host = boardHost.getBoundingClientRect()
+        const band = seenBand(host)
+        const inView =
+            at.left >= host.left &&
+            at.right <= host.right &&
+            at.top >= host.top + band.top &&
+            at.bottom <= host.top + band.bottom
+        if (!inView) {
+            const rect = boundsOf(outlines([locale]), session.boardRotation)
+            wrapper?.focusRect(centredInBand(rect, band, session.zoom), {
+                animate,
+                maxScale: session.zoom,
+                padding: UNCOVERED_PADDING
+            })
+        }
+    }
+
     function panToOpenCorpsIfOutOfView(animate: boolean) {
         const open = session.setupLocales.find((entry) => entry.open)
         const shape =
             open &&
             boardHost?.querySelector(`[data-setup-locale="${CSS.escape(open.commanderId)}"]`)
-        if (!open || !shape || !boardHost) return
-        const at = shape.getBoundingClientRect()
-        const view = boardHost.getBoundingClientRect()
-        const inView =
-            at.left >= view.left &&
-            at.right <= view.right &&
-            at.top >= view.top &&
-            at.bottom <= view.bottom
-        if (!inView) {
-            panAtThisZoom(outlines([open.locale]), animate)
+        if (open) {
+            panIfOutOfView(shape, open.locale, animate)
         }
     }
 
@@ -319,11 +360,13 @@
         session.addGameStateChangeListener(followGame)
         const stopListening = session.onPickUp(() => void showPickedUp(true))
         const stopFollowingSeats = session.onSeatOpened(() => void showOpenSeat(true))
+        const stopLocating = session.onLocaleLocated((locale) => void bringLocatedOnScreen(locale))
         const stopReadingZoom = session.readZoomFrom(() => wrapper?.viewScale())
         return () => {
             session.removeGameStateChangeListener(followGame)
             stopListening()
             stopFollowingSeats()
+            stopLocating()
             stopReadingZoom()
         }
     })

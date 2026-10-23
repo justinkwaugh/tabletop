@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PlaceText from './PlaceText.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { UnitType, type ProjectedUnit } from '@tabletop/napoleons-triumph'
     import { anyLoss } from '$lib/model/attackLosses.js'
@@ -66,9 +67,11 @@
         <div class="nt-battle-head">
             <div class="nt-battle-heading">
                 <div class="nt-battle-title">
-                    {attack.guardAttack ? 'Guard Attack' : 'Attack'} from
-                    {game.map.label(game.map.approach(attack.attackApproach).locale)} into
-                    {game.map.label(game.map.approach(attack.defenseApproach).locale)}
+                    <PlaceText
+                        text="{attack.guardAttack ? 'Guard Attack' : 'Attack'} from {game.map.label(
+                            game.map.approach(attack.attackApproach).locale
+                        )} into {game.map.label(game.map.approach(attack.defenseApproach).locale)}"
+                    />
                     {#if !folded}
                         <span class="nt-battle-faint">· {terrain(attack.defenseApproach)}</span>
                         {#if printedSide}
@@ -135,9 +138,11 @@
         {#if concluded}
             <div class="nt-battle-prompt nt-battle-ending">
                 <span class="nt-battle-over">The attack is over.</span>
-                {endingOf(concluded, game.sideOf(concluded.attack.attackerId), (locale) =>
-                    game.map.label(locale)
-                )}
+                <PlaceText
+                    text={endingOf(concluded, game.sideOf(concluded.attack.attackerId), (locale) =>
+                        game.map.label(locale)
+                    )}
+                />
             </div>
             {#if gameSession.isCommanding}
                 <div class="nt-battle-continue">
