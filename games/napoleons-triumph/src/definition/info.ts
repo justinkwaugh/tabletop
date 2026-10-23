@@ -1,4 +1,4 @@
-import { GameVisibility, type GameInfo } from '@tabletop/common'
+import type { GameInfo } from '@tabletop/common'
 import { NapoleonsTriumphConfigurator } from './config.js'
 import { NapoleonsTriumphPreferenceDefinition } from './preferences.js'
 import { GAME_VERSION } from './version.js'
@@ -15,8 +15,7 @@ export const NapoleonsTriumphInfo: GameInfo = {
         maxPlayers: 2,
         defaultPlayerCount: 2,
         version: GAME_VERSION,
-        beta: true,
-        visibility: GameVisibility.Beta
+        beta: false
     },
     configurator: new NapoleonsTriumphConfigurator(),
     preferences: NapoleonsTriumphPreferenceDefinition
