@@ -1091,12 +1091,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
-    highlightLocale(locale: number) {
-        this.locatedLocale = { locale, press: ++this.locatePresses }
-    }
-
     locateLocale(locale: number) {
-        this.highlightLocale(locale)
+        this.locatedLocale = { locale, press: ++this.locatePresses }
         for (const listener of this.localeLocatedListeners) {
             listener(locale)
         }

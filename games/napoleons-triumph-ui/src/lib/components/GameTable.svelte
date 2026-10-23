@@ -112,19 +112,6 @@
         return locales.flatMap((locale) => LOCALE_GEOMETRY[locale]?.outline ?? [])
     }
 
-    const LOCATE_FOCUS = { maxScale: 0.85, padding: 28 }
-
-    function showOnMap(locale: number) {
-        if (!wrapper) return
-        const surroundings = [locale, ...session.gameState.map.adjacentLocales(locale)]
-        wrapper.focusRect(boundsOf(outlines(surroundings), session.boardRotation), {
-            animate: true,
-            ...LOCATE_FOCUS
-        })
-        scrollBoardIntoView()
-        session.highlightLocale(locale)
-    }
-
     function scrollBoardIntoView() {
         boardHost?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
     }
@@ -414,7 +401,7 @@
                     inactiveTabClass="text-[#2b2620] py-1 px-2 rounded-lg border-2 border-transparent hover:border-[#2b2620]"
                 >
                     {#snippet playersPanel()}
-                        <ArmiesPanel onlocate={showOnMap} />
+                        <ArmiesPanel />
                     {/snippet}
                     {#snippet history()}
                         <History />

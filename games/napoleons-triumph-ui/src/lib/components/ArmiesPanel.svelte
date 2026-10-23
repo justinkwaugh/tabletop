@@ -18,8 +18,6 @@
     import { armyObjectives } from '$lib/utils/armyObjectives.js'
     import StarMark from './StarMark.svelte'
 
-    let { onlocate }: { onlocate: (locale: number) => void } = $props()
-
     const gameSession = getGameSession()
     const game = $derived(gameSession.gameState)
 
@@ -166,7 +164,7 @@
                                     type="button"
                                     class="nt-corps-where nt-corps-locate"
                                     aria-label="Show {definition.name} on the map"
-                                    onclick={() => onlocate(locale)}
+                                    onclick={() => gameSession.locateLocale(locale)}
                                 >
                                     <svg viewBox="0 0 16 16" aria-hidden="true">
                                         <circle cx="8" cy="8" r="4.2"></circle>
@@ -181,7 +179,6 @@
                             {/if}
                         </div>
                         {#if units.length > 0}
-                            <div class="nt-corps-where nt-corps-count">{unitCount(units)}</div>
                             {@render unitBlocks(units, colors)}
                         {/if}
                     </div>
@@ -386,11 +383,6 @@
         stroke: currentColor;
         stroke-width: 1.5;
         stroke-linecap: round;
-    }
-
-    .nt-corps-count {
-        padding-top: 2px;
-        text-align: left;
     }
 
     .nt-corps-units {

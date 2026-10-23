@@ -83,11 +83,28 @@ test('the view moves for a place only when its locale is off screen', async ({ p
     await page.waitForTimeout(800)
     expect(await board.boundingBox()).toEqual(before)
 
-    await page.getByRole('tab', { name: /Armies/ }).click()
-    await page.getByRole('button', { name: 'Show Kienmayer on the map' }).click()
-    await page.waitForTimeout(1200)
+    for (let press = 0; press < 8 && (await onScreen(page, number)); press++) {
+        await page.getByRole('button', { name: 'Zoom in' }).click()
+        await page.waitForTimeout(500)
+    }
     expect(await onScreen(page, number)).toBe(false)
+    const zoomed = (await board.boundingBox())!
     await place.click()
     await page.waitForTimeout(1200)
     expect(await onScreen(page, page.locator('[data-located-locale="81"]'))).toBe(true)
+    expect((await board.boundingBox())!.width).toBeCloseTo(zoomed.width, 0)
+})
+
+test('a corps’s location in the armies panel highlights its locale without zooming in', async ({
+    page
+}) => {
+    await threatenFrom72Into81(page)
+    await page.waitForTimeout(1200)
+    const board = page.locator('svg[data-board]')
+    const before = (await board.boundingBox())!
+    await page.getByRole('tab', { name: /Armies/ }).click()
+    await page.getByRole('button', { name: 'Show Kienmayer on the map' }).click()
+    await expect(page.locator('[data-located-locale]')).toHaveCount(1)
+    await page.waitForTimeout(1200)
+    expect((await board.boundingBox())!.width).toBeCloseTo(before.width, 0)
 })
