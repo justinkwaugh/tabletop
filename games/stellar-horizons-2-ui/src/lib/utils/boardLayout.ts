@@ -36,22 +36,43 @@ export interface BoardLayout {
     frames: SystemFrame[]
 }
 
-// The printed map is a tall strip; turning it 60° lays the board out landscape on screen.
-function rotateSixty(coords: AxialCoordinates): AxialCoordinates {
-    return { q: -coords.r, r: coords.q + coords.r }
+// The map as printed, or turned a sixth of a circle: the tiles stay upright and every distance
+// holds, but the board's shape changes, so each screen gets the one that fills it better.
+export enum BoardTurn {
+    Printed = 'Printed',
+    Sixty = 'Sixty'
 }
 
-function boardGrid(systemIds: readonly string[]): HexGrid<BoardHex> {
+function turned(coords: AxialCoordinates, turn: BoardTurn): AxialCoordinates {
+    return turn === BoardTurn.Sixty ? { q: -coords.r, r: coords.q + coords.r } : coords
+}
+
+function boardGrid(systemIds: readonly string[], turn: BoardTurn): HexGrid<BoardHex> {
     const grid = new HexGrid<BoardHex>({ hexDefinition: BOARD_HEX })
     for (const systemId of systemIds) {
-        const coords = rotateSixty(STAR_MAP.system(systemId).coords)
+        const coords = turned(STAR_MAP.system(systemId).coords, turn)
         grid.setNode({ id: coordinatesToNumber(coords), coords, systemId })
     }
     return grid
 }
 
-export function boardLayout(systemIds: readonly string[]): BoardLayout {
-    const grid = boardGrid(systemIds)
+// The turn whose board, fitted whole into the area, is drawn largest.
+export function boardTurnFor(
+    systemIds: readonly string[],
+    area: { width: number; height: number }
+): BoardTurn {
+    if (area.width <= 0 || area.height <= 0) {
+        return BoardTurn.Printed
+    }
+    const fit = (turn: BoardTurn) => {
+        const bounds = boardGrid(systemIds, turn).boundingBox
+        return Math.min(area.width / bounds.width, area.height / bounds.height)
+    }
+    return fit(BoardTurn.Sixty) > fit(BoardTurn.Printed) ? BoardTurn.Sixty : BoardTurn.Printed
+}
+
+export function boardLayout(systemIds: readonly string[], turn: BoardTurn): BoardLayout {
+    const grid = boardGrid(systemIds, turn)
     const bounds = grid.boundingBox
     const frames = [...grid].map((hex) => {
         const geometry = SYSTEM_GEOMETRY[hex.systemId]

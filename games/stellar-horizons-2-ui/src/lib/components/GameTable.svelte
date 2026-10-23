@@ -10,7 +10,7 @@
         DefaultTabs
     } from '@tabletop/frontend-components'
     import { assert } from '@tabletop/common'
-    import { boardLayout } from '$lib/utils/boardLayout.js'
+    import { boardLayout, boardTurnFor } from '$lib/utils/boardLayout.js'
     import type {
         HydratedStellarHorizonsGameState,
         StellarHorizonsProjectedState
@@ -97,10 +97,12 @@
             ? Math.round(focusArea.height * 0.45)
             : Math.round(Math.min(400, Math.max(320, focusArea.width * 0.32)))
     )
+    const boardSystemIds = $derived(session.gameState.systems.map((system) => system.systemId))
+    const layout = $derived(boardLayout(boardSystemIds, boardTurnFor(boardSystemIds, focusArea)))
     const focusRect = $derived.by(() => {
-        const frame = boardLayout(
-            session.gameState.systems.map((system) => system.systemId)
-        ).frames.find((candidate) => candidate.systemId === session.focusedSystemId)
+        const frame = layout.frames.find(
+            (candidate) => candidate.systemId === session.focusedSystemId
+        )
         return frame
             ? {
                   x: frame.center.x - frame.width / 2,
@@ -285,7 +287,7 @@
                                     maxScale={2}
                                     overpan={mapOverpan}
                                 >
-                                    <Board />
+                                    <Board {layout} />
                                     {#snippet toolbar()}
                                         {@render fullscreenControls()}
                                         {#if session.focusedSystemId && !session.focusClosing}

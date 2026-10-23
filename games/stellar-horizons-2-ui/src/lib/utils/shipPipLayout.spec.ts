@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FACTIONS, factionShips, type ShipState } from '@tabletop/stellar-horizons-2'
-import { boardLayout } from './boardLayout.js'
+import { BoardTurn, boardLayout } from './boardLayout.js'
 import { LARGEST_PIP_RADIUS, honeycomb, shipPipLayout } from './shipPipLayout.js'
 
 const FOOTFALL_SYSTEMS = [
@@ -14,7 +14,7 @@ const FOOTFALL_SYSTEMS = [
     'alpha-centauri',
     'sirius'
 ]
-const frames = boardLayout(FOOTFALL_SYSTEMS).frames
+const frames = boardLayout(FOOTFALL_SYSTEMS, BoardTurn.Sixty).frames
 
 function fleets(factionCount: number, shipsEach: number): ShipState[][] {
     return FACTIONS.slice(0, factionCount).map(({ faction }, factionIndex) =>

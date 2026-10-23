@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import { FACTIONS, factionShips, type ShipState } from '@tabletop/stellar-horizons-2'
-import { BOARD_CELL, boardLayout } from './boardLayout.js'
+import { BOARD_CELL, BoardTurn, boardLayout } from './boardLayout.js'
 import { baseTabLayout, type TabBase } from './baseTabLayout.js'
 import { shipPipLayout } from './shipPipLayout.js'
 import { boxesOverlap, distanceToBox, printedText } from './tileFeatures.js'
@@ -16,7 +16,7 @@ const SETTLED_SYSTEMS = [
     'alpha-centauri',
     'sirius'
 ]
-const frames = boardLayout(['sol', ...SETTLED_SYSTEMS]).frames.filter(
+const frames = boardLayout(['sol', ...SETTLED_SYSTEMS], BoardTurn.Sixty).frames.filter(
     (frame) => frame.systemId !== 'sol'
 )
 

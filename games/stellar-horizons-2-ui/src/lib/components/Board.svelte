@@ -1,16 +1,15 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { boardLayout } from '$lib/utils/boardLayout.js'
+    import type { BoardLayout } from '$lib/utils/boardLayout.js'
     import SystemTile from './board/SystemTile.svelte'
     import ShipStrip from './board/ShipStrip.svelte'
     import { factionShipGroups, shipPipLayout } from '$lib/utils/shipPipLayout.js'
     import { baseTabLayout, systemTabBases } from '$lib/utils/baseTabLayout.js'
     import { anomalyBox, frameWithAnomaly } from '$lib/utils/tileFeatures.js'
 
+    let { layout }: { layout: BoardLayout } = $props()
+
     const gameSession = getGameSession()
-    const layout = $derived(
-        boardLayout(gameSession.gameState.systems.map((system) => system.systemId))
-    )
     const systems = $derived(
         layout.frames.map((printed) => {
             const state = gameSession.gameState

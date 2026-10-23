@@ -19,6 +19,10 @@
 - **Events:** an event with a challenge, placed in a system, is its printed tile, as printed, drawn just left of the anomaly position (or of the exploration marker when there is no anomaly). Several events in one system line up leftwards. The exploration step's event cards give the difficulty that applies.
 - **Placement:** the anomaly takes the tile's lower right corner, where the exploration marker otherwise sits. While a system has an anomaly its exploration marker is drawn at about three quarters of its size and rests on the anomaly's top right corner, clear of the worlds, the printed text and the tile's edge. Base tabs and ships keep clear of the anomaly.
 
+### The star map's shape
+
+- **Layout:** the systems keep the printed map's arrangement, or that arrangement turned a sixth of a circle; tiles stay upright and every distance holds either way. The map takes whichever is drawn larger when fitted whole into the map area (the window, when the map is full screen), the printed arrangement on a tie, and re-lays itself when the area changes shape. The campaign and _These are the Voyages_ are never drawn larger turned, so they keep the printed arrangement; _Footfall_ is a tall strip as printed and turns to lie across a wide, short map area.
+
 ### Inspecting a clump
 
 - **Trigger:** clicking a faction's clump of ships at a system, the player's own or a rival's, in any phase or view. Individual pips are not separate targets; the whole clump, including the small gaps between its pips, is one click target, and it does nothing on hover beyond a glow.
