@@ -196,6 +196,10 @@ export class EighteenXXSession<
     private get localHotseat() {
         return !!this.game.hotseat && this.game.storage === GameStorage.Local
     }
+    // Players pass one device; the developer harness is excluded because it switches seats itself.
+    protected get ordinaryHotseatPlay() {
+        return this.localHotseat && !this.isDeveloperHarness
+    }
     private readonly moduleSession: ModuleSession<
         HydratedEighteenXXState,
         Omit<EighteenXXSessionRules, 'state'>
@@ -231,7 +235,7 @@ export class EighteenXXSession<
             )
         },
         get ordinaryHotseatPlay() {
-            return session.localHotseat && !session.isDeveloperHarness
+            return session.ordinaryHotseatPlay
         },
         get viewingAsNonActivePlayer() {
             return session.isViewingAsNonActivePlayer

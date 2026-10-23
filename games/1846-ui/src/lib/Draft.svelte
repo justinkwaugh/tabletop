@@ -45,14 +45,14 @@
                 paid.
             </p>
         {/if}
-        {#if (mine?.packet?.length || mine?.selections?.length) && !session.packetVisible}
+        {#if (mine?.packet?.length || mine?.selections?.length) && !session.packetGate.visible}
             <div class="draft-gate">
                 <p>Pass the device to {session.myPlayer?.name} before opening these cards.</p>
-                <button class="action-button" onclick={() => session.revealPacket()}
+                <button class="action-button" onclick={() => session.packetGate.reveal()}
                     >Show my cards</button
                 >
             </div>
-        {:else if mine?.packet && session.packetVisible}
+        {:else if mine?.packet && session.packetGate.visible}
             {#if !hiddenDraft.finalOffer}
                 <div class="draft-cards">
                     {#each mine.packet as id (id)}
@@ -72,7 +72,7 @@
         {:else if !hiddenDraft.finalOffer}
             <p class="draft-waiting">Waiting for {choosers.join(', ')} to choose privately.</p>
         {/if}
-        {#if session.packetVisible && mine?.selections?.length}
+        {#if session.packetGate.visible && mine?.selections?.length}
             <div class="draft-commitments" aria-label="Your commitments">
                 <span class="commitments-label">Your picks</span>
                 {#each mine.selections as selection (selection.cardId)}<span class="commitment"
@@ -85,8 +85,10 @@
                 >
             </div>
         {/if}
-        {#if mine?.packet && session.packetVisible}
-            <button class="draft-hide" onclick={() => session.hidePacket()}>Hide my cards</button>
+        {#if mine?.packet && session.packetGate.gated && session.packetGate.visible}
+            <button class="draft-hide" onclick={() => session.packetGate.hide()}
+                >Hide my cards</button
+            >
         {/if}
     </section>
 {/if}
