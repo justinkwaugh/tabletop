@@ -93,17 +93,18 @@ export function unitsPickedUpWith(
     pickedUp: PickedUp | undefined,
     movableIds: readonly string[],
     isCorps: boolean,
-    riderIds: readonly string[]
+    riderIds: readonly string[],
+    choosableIds: readonly string[] = movableIds
 ): string[] {
-    const tappedMovable = movableIds.find((id) => id === pickedUp?.tappedUnitId)
-    const ridersStayInHand = riderIds.length > 0 && tappedMovable === undefined
+    const tappedChoosable = choosableIds.find((id) => id === pickedUp?.tappedUnitId)
+    const ridersStayInHand = riderIds.length > 0 && tappedChoosable === undefined
     if (ridersStayInHand) {
         return [...riderIds]
     }
     if (isCorps) {
         return [...movableIds]
     }
-    return [tappedMovable ?? movableIds[0]].flatMap((id) => id ?? [])
+    return [tappedChoosable ?? movableIds[0] ?? choosableIds[0]].flatMap((id) => id ?? [])
 }
 
 export function chooseCorpsUnit(
@@ -115,7 +116,8 @@ export function chooseCorpsUnit(
     const next = chosen.includes(unitId)
         ? chosen.filter((id) => id !== unitId)
         : [...chosen, unitId]
-    const wholeCorps = next.length === 0 || movableIds.every((id) => next.includes(id))
+    const wholeCorps =
+        next.length === 0 || (movableIds.length > 0 && movableIds.every((id) => next.includes(id)))
     return withoutRideOrDestination(
         wholeCorps
             ? commandSelection.withdraw(selection, 'units')

@@ -794,9 +794,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     commandChoice: CommandChoice | undefined = $derived.by(() => {
         const chosen = chosenCommandOf(this.selection)
-        return chosen !== undefined && this.commandChoices.includes(chosen)
-            ? chosen
-            : this.commandOptions[0]
+        if (chosen !== undefined && this.commandChoices.includes(chosen)) {
+            return chosen
+        }
+        // With no move open to the units in hand, Attach is the command; riding on leaves none chosen.
+        return this.ridingOn ? undefined : this.commandChoices[0]
     })
 
     attaching = $derived(this.commandChoice === ATTACH)
@@ -1026,7 +1028,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     mayChooseUnit(unit: ProjectedUnit): boolean {
-        return this.ridesAlone(unit) ? !this.ridingOn : canStillMove(this.gameState, unit)
+        return this.ridesAlone(unit) ? !this.ridingOn : this.mayStillCommand(unit)
+    }
+
+    // Rule 9: Attach moves nothing, so a unit that has already moved may still be attached.
+    private mayStillCommand(unit: ProjectedUnit): boolean {
+        return canStillMove(this.gameState, unit) || this.attachOptions(unit).length > 0
     }
 
     selectReinforcement(reinforcement: Reinforcement) {
@@ -1616,7 +1623,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
             pickedUpOf(this.selection),
             this.commandableIds(group),
             group.commander !== undefined,
-            group.key === this.marchGroupKey ? this.riderIds : []
+            group.key === this.marchGroupKey ? this.riderIds : [],
+            group.units.filter((unit) => this.mayStillCommand(unit)).map((unit) => unit.id)
         )
     }
 

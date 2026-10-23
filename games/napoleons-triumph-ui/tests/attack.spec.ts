@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import type { NapoleonsTriumphGameState, Unit } from '@tabletop/napoleons-triumph'
 import {
     createGame,
     deployAllies,
@@ -598,6 +599,69 @@ test('a unit chosen on its own may be attached to the other commanders standing 
     await expect(attachChoice).toHaveAttribute('aria-pressed', 'true')
     await expect(page.locator('.nt-target-locale')).toHaveCount(0)
     await attach.click()
+    await expect(page.locator('[data-commander="vandamme"] > g')).toHaveCount(
+        FRENCH_ARMY.vandamme.length + 1
+    )
+})
+
+/** Murat's corps stands with Vandamme's, and the given units have moved this turn. */
+function movedBesideVandamme(state: NapoleonsTriumphGameState, moved: (unit: Unit) => boolean) {
+    const murat = state.commanders.find((commander) => commander.id === 'murat')
+    if (!murat?.position) throw new Error('Expected Murat on the map')
+    moveCorps(state, 'vandamme', murat.position)
+    for (const unit of state.units.filter(moved)) {
+        Object.assign(unit, { movesThisTurn: 1, enteredReserveThisTurn: true })
+    }
+}
+
+test('a detached unit that has already moved may still be attached to a commander standing with it', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await page.getByRole('button', { name: 'End turn' }).click()
+    let locale = 0
+    await rearrange(page, (state) => {
+        const murat = state.commanders.find((commander) => commander.id === 'murat')
+        if (!murat?.position) throw new Error('Expected Murat on the map')
+        locale = murat.position.locale
+        const unit = state.units.find((entry) => entry.commanderId === 'vandamme')
+        if (!unit) throw new Error('Expected Vandamme to lead units')
+        Object.assign(unit, {
+            commanderId: undefined,
+            position: { ...murat.position },
+            movesThisTurn: 1,
+            enteredReserveThisTurn: true
+        })
+    })
+    await tap(page, `[data-commander="detached"][data-group*="|${locale}:r|"]`)
+    await expect(page.getByRole('button', { name: 'Attach', exact: true })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    )
+    await page.getByRole('button', { name: 'Attach to Murat' }).click()
+    await expect(page.locator('[data-commander="murat"] > g')).toHaveCount(
+        FRENCH_ARMY.murat.length + 1
+    )
+})
+
+test('a unit of a corps that has already moved may be chosen on its own and attached to another commander', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await rearrange(page, (state) =>
+        movedBesideVandamme(state, (unit) => unit.commanderId === 'murat')
+    )
+    const strip = page.getByRole('group', { name: 'Murat’s corps' })
+    await pickUp(page, 'murat')
+    await strip.getByRole('button', { name: 'Include this unit in the command' }).first().click()
+    await expect(page.getByRole('button', { name: 'Attach', exact: true })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    )
+    await page.getByRole('button', { name: 'Attach to Vandamme' }).click()
     await expect(page.locator('[data-commander="vandamme"] > g')).toHaveCount(
         FRENCH_ARMY.vandamme.length + 1
     )

@@ -221,6 +221,10 @@ describe('choosing units of a corps', () => {
         expect(pickedUpOf(none)).toEqual({ groupKey: 'corps' })
     })
 
+    it('sends a unit that has moved on its own, to be attached, though no unit of the corps can move', () => {
+        expect(chosenUnitsOf(chooseCorpsUnit(corpsPickedUp(), 'F01', []))).toEqual(['F01'])
+    })
+
     it('keeps the command when the units change', () => {
         const commanded = setCommand(
             chooseCorpsUnit(corpsPickedUp(), 'F01', MOVABLE),
@@ -261,6 +265,20 @@ describe('what a pick-up starts with', () => {
         ).toEqual(['F02'])
         expect(unitsPickedUpWith({ groupKey: 'loose' }, MOVABLE, false, NO_RIDERS)).toEqual(['F02'])
         expect(unitsPickedUpWith({ groupKey: 'loose' }, [], false, NO_RIDERS)).toEqual([])
+    })
+
+    it('is the detached unit that was tapped when it cannot move but may be attached', () => {
+        const tapped = { groupKey: 'loose', tappedUnitId: 'F01' }
+        expect(unitsPickedUpWith(tapped, [], false, NO_RIDERS, ['F01'])).toEqual(['F01'])
+        expect(unitsPickedUpWith(tapped, MOVABLE, false, NO_RIDERS, ['F01', ...MOVABLE])).toEqual([
+            'F01'
+        ])
+    })
+
+    it('is the first detached unit that may be attached when none can move', () => {
+        expect(unitsPickedUpWith({ groupKey: 'loose' }, [], false, NO_RIDERS, ['F01'])).toEqual([
+            'F01'
+        ])
     })
 
     it('is the cavalry riding on in the group, unless another unit that can move was tapped', () => {
