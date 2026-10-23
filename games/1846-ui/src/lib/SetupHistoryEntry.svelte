@@ -11,14 +11,12 @@
 
 <button class="setup-entry" aria-haspopup="dialog" onclick={() => (open = true)}>
     <span>Set up for {lineup.playerCount} players</span>
-    {#if lineup.removedCorporations.length || lineup.removedPrivateNames.length}<small
-            >Removed {#each lineup.removedCorporations as company (company.id)}<span
-                    class="token"
-                    title={company.name}
-                    ><CompanyToken appearance={MapView1846.stations[company.id]} size={16} /></span
-                >{/each}
-            {lineup.removedPrivateNames.join(' · ')}</small
-        >{/if}
+    <small
+        >{#each lineup.corporations as company (company.id)}<span class="token" title={company.name}
+                ><CompanyToken appearance={MapView1846.stations[company.id]} size={16} /></span
+            >{/each}
+        {lineup.privateNames.join(' · ')}</small
+    >
 </button>
 {#if open}
     <DraftLineupDialog {lineup} onclose={() => (open = false)} />

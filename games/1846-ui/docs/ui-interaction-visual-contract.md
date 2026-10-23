@@ -28,9 +28,9 @@ physical board artwork is claimed for 1846.
   removed corporations and privates, dimmed. The modal is local presentation, reads only
   public state, and never shows packets, picks or the undrawn deck.
 - **Setup in history.** The oldest history entry, before the first round, reads "Set up
-  for N players" with the removed corporations as tokens and the removed privates by
-  name. It is built from public state, so every game shows it, and clicking it opens the
-  same Companies modal.
+  for N players" with the corporations in play as tokens and the kept privates by name,
+  without Pass cards. It is built from public state, so every game shows it, and
+  clicking it opens the same Companies modal.
 - **Construction modes.** During construction the action area shows one of track
   building, station placement or issuing/redeeming shares (Finance), chosen with the
   operating-mode switch. The switch lists only modes available now and appears when
@@ -187,6 +187,6 @@ station placement or nothing to build, then the shared operating actions.
 13. Open **Companies in this game** in a hidden draft for three, four and five players and
     in the two-player opening. The kept and removed companies and the Pass count match
     setup (`companyLineup.spec.ts`); every seat sees the link; the modal closes with its
-    close button, a backdrop click or Escape. The history's oldest entry names the same
-    removals in both history orders and opens the same modal. Automated for the lineup,
+    close button, a backdrop click or Escape. The history's oldest entry names the kept
+    companies in both history orders and opens the same modal. Automated for the lineup,
     manual for the modal and the history entry.
