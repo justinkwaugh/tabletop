@@ -570,15 +570,15 @@
     }
 
     .nt-table :global(.nt-plain-button) {
-        border: 1px solid var(--nt-ink);
+        border: 1px solid var(--nt-button-edge, var(--nt-ink));
         border-radius: 3px;
         padding: 0.15rem 0.65rem;
-        color: var(--nt-ink);
-        background: transparent;
+        color: var(--nt-button-ink, var(--nt-ink));
+        background: var(--nt-button-ground, transparent);
     }
 
     .nt-table :global(.nt-plain-button:hover:not(:disabled):not([aria-pressed='true'])) {
-        background: var(--nt-hover);
+        background: var(--nt-button-hover, var(--nt-hover));
     }
 
     .nt-table :global(.nt-plain-button[aria-pressed='true']) {

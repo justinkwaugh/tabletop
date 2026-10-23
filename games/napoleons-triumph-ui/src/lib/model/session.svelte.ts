@@ -1,5 +1,5 @@
 import { GameSession, type TitlePreferences } from '@tabletop/frontend-components'
-import { assert, assertExists, type Point } from '@tabletop/common'
+import { assert, assertExists, type Color, type Point } from '@tabletop/common'
 import {
     ActionType,
     Advance,
@@ -42,6 +42,7 @@ import {
     type NapoleonsTriumphProjectedState,
     type Position,
     type ProjectedUnit,
+    SIDE_COLORS,
     Side
 } from '@tabletop/napoleons-triumph'
 import { inwardsFromTheEdge } from '$lib/map/battlefield.js'
@@ -936,8 +937,16 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     armyColors(playerId: string): ArmyColors {
-        const block = this.colors.getPlayerUiColor(playerId)
-        return { block, shade: shadeOf(block), ink: this.colors.getPlayerTextColorValue(playerId) }
+        return this.colorsOf(this.colors.getPlayerColor(playerId))
+    }
+
+    sideColors(side: Side): ArmyColors {
+        return this.colorsOf(SIDE_COLORS[side])
+    }
+
+    private colorsOf(color: Color): ArmyColors {
+        const block = this.colors.getUiColor(color)
+        return { block, shade: shadeOf(block), ink: this.colors.getTextColorValue(color) }
     }
 
     /** Units whose faces the viewer sees come first in reading order, which is all of the viewer's own. */
