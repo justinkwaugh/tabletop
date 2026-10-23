@@ -241,6 +241,7 @@ import {
     type SetupLocale,
     type SetupTable
 } from './setupTable.js'
+import { arrangedFromPreset, presetsFor, type SetupPreset } from './setupPresets.js'
 import {
     TargetKind,
     attackableLocales,
@@ -366,6 +367,14 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const step = this.setupStep
         return step && playerId ? setupTable(this.gameState, playerId, step) : undefined
     })
+
+    private ownSetupPresets: SetupPreset[] = $derived(
+        this.setupStep && this.myPlayerId ? presetsFor(this.gameState.sideOf(this.myPlayerId)) : []
+    )
+
+    setupPresetChoices: { id: string; name: string }[] = $derived(
+        this.ownSetupPresets.map(({ id, name }) => ({ id, name }))
+    )
 
     setupLocales: SetupLocale[] = $derived(
         this.setupStep ? setupLocales(this.gameState, this.setupStep) : []
@@ -1297,6 +1306,20 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const step = this.setupStep
         if (step) {
             this.arrange(withCorpsOnMap(step.setup, commanderId, onMap))
+        }
+    }
+
+    startFromPreset(presetId: string) {
+        const playerId = this.myPlayerId
+        const preset = this.ownSetupPresets.find((entry) => entry.id === presetId)
+        assertExists(preset, `This army has no ${presetId} set-up`)
+        if (!this.setupStep || !playerId) {
+            return
+        }
+        this.arrange(arrangedFromPreset(this.gameState, playerId, preset))
+        // Without the Santon rule the battery is left in the pool, so its seat is opened to say so.
+        if (preset.batteryOnTheSanton && !this.gameState.santon) {
+            this.stageSetup(this.setup, { open: { kind: DestinationKind.FixedBattery } })
         }
     }
 

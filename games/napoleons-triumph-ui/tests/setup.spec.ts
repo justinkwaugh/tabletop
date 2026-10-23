@@ -369,3 +369,35 @@ test('with the Santon in use the fixed battery may still block an approach elsew
     await expect(page.locator('.nt-setup')).toHaveCount(0)
     await expect(page.locator('[data-commander="st-hilaire"]')).toBeVisible()
 })
+
+test('a published set-up lays the whole army out, to be changed or taken back', async ({
+    page
+}) => {
+    await createGame(page)
+    const progress = page.locator('.nt-setup-progress')
+    const deploy = page.getByRole('button', { name: 'Deploy the army' })
+    await expect(progress).toHaveText('44 units to assign')
+    await expect(deploy).toBeDisabled()
+
+    await page.locator('.nt-setup-presets select').selectOption('allied-south-attack')
+    await expect(units(page, 'liechtenstein')).toHaveCount(6)
+    await expect(units(page, 'kienmayer')).toHaveCount(6)
+    await expect(deploy).toBeEnabled()
+    await expect(page.locator('.nt-setup-presets select')).toHaveValue('')
+
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(progress).toHaveText('44 units to assign')
+    await expect(units(page, 'kienmayer')).toHaveCount(0)
+})
+
+test('a published French set-up without the Santon leaves the fixed battery to be placed', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployAllies(page)
+    await page.locator('.nt-setup-presets select').selectOption('french-defend-in-place')
+    await expect(page.locator('.nt-setup-progress')).toHaveText('1 unit to assign')
+    await expect(page.locator('.nt-setup-prompt')).toContainText('fixed battery')
+    await placeFixedBattery(page)
+    await expect(page.getByRole('button', { name: 'Deploy the army' })).toBeEnabled()
+})

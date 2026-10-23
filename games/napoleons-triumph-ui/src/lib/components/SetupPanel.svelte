@@ -177,6 +177,23 @@
 {#if table && playerId}
     <div class="nt-setup" style:--nt-army={gameSession.armyColors(playerId).block}>
         <div class="nt-setup-prompt"><PlaceText text={guidance} /></div>
+        {#if gameSession.setupPresetChoices.length > 0}
+            <label class="nt-setup-presets">
+                <span>Start from a published set-up</span>
+                <select
+                    value=""
+                    onchange={(event) => {
+                        gameSession.startFromPreset(event.currentTarget.value)
+                        event.currentTarget.value = ''
+                    }}
+                >
+                    <option value="" disabled>Choose one…</option>
+                    {#each gameSession.setupPresetChoices as preset (preset.id)}
+                        <option value={preset.id}>{preset.name}</option>
+                    {/each}
+                </select>
+            </label>
+        {/if}
         <div class="nt-setup-pool" aria-label="Units to assign">
             {#each table.stacks as stack (faceName(stack.face))}
                 {@const name = faceName(stack.face)}
@@ -453,6 +470,24 @@
 
     .nt-setup-slot-needed {
         background-color: color-mix(in srgb, var(--nt-army) 30%, transparent);
+    }
+
+    .nt-setup-presets {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 8px;
+    }
+
+    .nt-setup-presets select {
+        width: auto;
+        max-width: 100%;
+        border: 1px solid var(--nt-ink);
+        border-radius: 3px;
+        padding: 0.1rem 1.8rem 0.1rem 0.5rem;
+        background-color: transparent;
+        color: var(--nt-ink);
+        font: inherit;
     }
 
     .nt-setup-footer {
