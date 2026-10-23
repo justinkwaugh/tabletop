@@ -9,7 +9,7 @@
         isDiskCell
     } from '@tabletop/fresh-fish'
     import { GRASS_DARK, GRASS_LIGHT, MARKET_LOT } from '$lib/utils/pieceColors.js'
-    import { landCornerRadii } from '$lib/utils/landShape.js'
+    import { CELL_SIZE, landCornerRadii } from '$lib/utils/landShape.js'
     import roadImg from '$lib/images/tile-road.png'
     import Disk from '$lib/components/Disk.svelte'
     import WoodMarket from '$lib/components/WoodMarket.svelte'
@@ -177,10 +177,10 @@
     onmouseleave={() => handleMouseLeave()}
     onpointerenter={(event) => handlePointerHover(event, true)}
     onpointerleave={(event) => handlePointerHover(event, false)}
-    class="cell relative isolate w-[100px] h-[100px] min-w-[100px] min-h-[100px] flex justify-center items-center
+    class="cell relative isolate flex justify-center items-center
         {interactable && interacting ? 'cursor-pointer' : ''}
         {disabled ? 'dimmed' : ''}"
-    style="--cell-bg: {backgroundImage}"
+    style="--cell-bg: {backgroundImage}; --cell-size: {CELL_SIZE}px"
     style:clip-path={cornerClip}
 >
     {#if gameSession.isExpropriationPreviewed(coords)}
@@ -235,6 +235,12 @@
 </div>
 
 <style>
+    .cell {
+        width: var(--cell-size);
+        height: var(--cell-size);
+        min-width: var(--cell-size);
+        min-height: var(--cell-size);
+    }
     /* The ground bleeds half a pixel past the square, so scaled boards show no seams between
        neighbouring squares. */
     .cell::before {
