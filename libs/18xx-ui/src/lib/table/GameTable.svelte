@@ -94,6 +94,7 @@
         numberedShareLocation,
         actions,
         historyDescription,
+        historySetup,
         privateOperationDescription
     }: {
         session: EighteenXXSessionView
@@ -104,6 +105,8 @@
         numberedShareLocation?: (companyId: string, number: number) => string | undefined
         actions: Snippet<[(locationId: string) => void, (trainId: string) => void]>
         historyDescription?: TitleActionDescription
+        /** A title's account of its setup, shown as the oldest history entry. */
+        historySetup?: Snippet
         privateOperationDescription: (
             privateCompanyId: string,
             companyId: string
@@ -814,6 +817,7 @@
         {session}
         {trainColors}
         describeAction={historyDescription}
+        setup={historySetup}
     />{/snippet}
 
 {#snippet mapScene(interactive: boolean, extents: readonly BoundingBox[] = [])}
