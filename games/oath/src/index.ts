@@ -73,6 +73,7 @@ export { attackingForceSources, hospitalHolderOf, sameLossSource } from './util/
 export { forceSitesOf } from './util/campaignSite.js'
 export * from './util/campaignTargets.js'
 export * from './util/battlePlans.js'
+export { decidingPlans, type DecidingPlans } from './util/battleOutcome.js'
 export * from './util/continuous.js'
 export { adviserLimitDiscardCount, adviserLimitDiscards } from './util/adviserLimit.js'
 export * from './util/modifiers.js'

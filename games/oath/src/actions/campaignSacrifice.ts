@@ -15,6 +15,7 @@ import {
     killFromAttackingForce
 } from '../util/campaignRoll.js'
 import { concludeCampaign, hospitalPlacedRecord } from '../util/campaignEnd.js'
+import { survivorsTakingPlan } from '../util/battleOutcome.js'
 import { MachineState } from '../definition/states.js'
 import { isImperialPlayer } from '../util/rule.js'
 import { collectAttackingForce, scopeOf } from '../util/campaign.js'
@@ -315,15 +316,10 @@ export class HydratedCampaignSacrifice
         victorSide: BattlePlanSide,
         survivors: readonly WarbandGroup[]
     ): string | undefined {
-        for (const playerId of playerIdsOnSide(campaign, victorSide)) {
-            for (const plan of plansUsedBy(state, campaign, playerId)) {
-                const take = plan.hooks.takesEnemySurvivors
-                if (take) {
-                    return take(usedPlanContext(state, campaign, playerId, plan), survivors)
-                }
-            }
-        }
-        return undefined
+        const taker = survivorsTakingPlan(state, campaign, victorSide)
+        const take = taker?.plan.hooks.takesEnemySurvivors
+        if (!taker || !take) return undefined
+        return take(usedPlanContext(state, campaign, taker.playerId, taker.plan), survivors)
     }
 
     static sacrificeNeeded(campaign: CampaignState): number {
