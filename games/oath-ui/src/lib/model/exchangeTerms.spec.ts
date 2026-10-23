@@ -22,6 +22,7 @@ import {
     inReturnOf,
     noExchangePicks,
     promiseDraftOf,
+    promiseEdited,
     promiseLength,
     siteCounts,
     tappedCount,
@@ -555,6 +556,17 @@ describe('the Tribunal’s promise boxes — each side’s promise, sent as the 
         expect(promiseLength(exact.terms, 'fromProposer')).toBe(200)
         expect(reasonTermsOutsideCard(exact.terms, TRIBUNAL_ALLOWS)).toBeUndefined()
         expect(promiseLength(exact.terms, 'fromCounterparty')).toBe(0)
+    })
+
+    it('promiseEdited names the one side whose promise is all that changed', () => {
+        const picked = { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] }
+        const typed = withPromise(picked, 'fromProposer', 'I ')
+        expect(promiseEdited(picked, typed)).toBe('fromProposer')
+        expect(promiseEdited(typed, withPromise(typed, 'fromProposer', 'I s'))).toBe('fromProposer')
+        expect(promiseEdited(typed, withPromise(typed, 'fromCounterparty', 'x'))).toBe('fromCounterparty')
+        expect(promiseEdited(typed, typed)).toBeUndefined()
+        const more = { ...typed, terms: { ...typed.terms, fromProposer: { favor: 2 } } }
+        expect(promiseEdited(typed, withPromise(more, 'fromProposer', 'I s'))).toBeUndefined()
     })
 
     it('a change to the pieces keeps both promises, in the box and in the terms', () => {

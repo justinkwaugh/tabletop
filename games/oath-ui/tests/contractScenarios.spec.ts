@@ -4024,6 +4024,35 @@ test.describe('the Tribunal’s promise boxes', () => {
         await expect(answer(page, 'Refuse')).toBeVisible()
     })
 
+    test('Undo takes back a box’s text as one pick: typed after a favor, one Undo empties the box and keeps the favor; the next takes the favor and keeps the chip', async ({ page }) => {
+        await offerTo(page, 'tribunalOffer')
+        const favor = grid(page).getByRole('button', { name: 'dana gives 1 favor', exact: true })
+        await favor.click()
+        await expect(favor).toHaveAttribute('aria-pressed', 'true')
+        // One input event per letter, as a player types.
+        await mine(page).pressSequentially('I stay home.')
+        await expect(counters(page)).toHaveText(['12 / 200', '0 / 200'])
+
+        await undoButton(page).click()
+        await expect(mine(page)).toHaveValue('')
+        await expect(theirs(page)).toHaveValue('')
+        await expect(counters(page)).toHaveText(['0 / 200', '0 / 200'])
+        await expect(favor).toHaveAttribute('aria-pressed', 'true')
+
+        await undoButton(page).click()
+        await expect(favor).toHaveAttribute('aria-pressed', 'false')
+        await expect(row(page).getByRole('button', { name: 'rhys', exact: true })).toHaveAttribute('aria-pressed', 'true')
+        await expect(counters(page)).toHaveText(['0 / 200', '0 / 200'])
+
+        // The terms sent after the text is undone carry the favor and no promise.
+        await favor.click()
+        await mine(page).pressSequentially('I stay home.')
+        await undoButton(page).click()
+        await expect(counters(page)).toHaveText(['0 / 200', '0 / 200'])
+        await answer(page, 'Use').click()
+        await expect.poll(() => call(page, 'offeredExchangeTerms')).toEqual({ fromProposer: { favor: 1 } })
+    })
+
     test('nobody else reads them before the accept: the History rows of the offer and of its refusal quote neither promise', async ({ page }) => {
         await offerTo(page, 'tribunalOffer')
         await mine(page).fill('I will not campaign against Rhys.')

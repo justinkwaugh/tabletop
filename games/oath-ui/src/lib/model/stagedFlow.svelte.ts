@@ -100,10 +100,35 @@ export abstract class TapHistoryDraft<V> implements PanelDraft {
     /** Nothing in the value is picked. */
     protected abstract isBare(value: V): boolean
 
-    // A tap that changes nothing is no pick for Undo to take back.
+    /**
+     * The text box `to` differs from `from` in, when that box's text is all that differs; a draft
+     * with no text box has none.
+     */
+    protected textEdited(_from: V, _to: V): string | undefined {
+        return undefined
+    }
+
+    // A tap that changes nothing is no pick for Undo to take back. Typing on in the box the last tap
+    // typed in carries that tap on, so Undo takes the box's text back as one pick; typed back to the
+    // text before it, the tap is gone.
     protected tap(next: V): void {
         if (JSON.stringify(this.current) === JSON.stringify(next)) return
-        this.flow.set('taps', [...(this.flow.value('taps') ?? []), next])
+        const taps = this.flow.value('taps') ?? []
+        const last = taps.at(-1)
+        const before = taps.at(-2) ?? this.opened
+        const box = last === undefined ? undefined : this.textEdited(last, next)
+        if (last === undefined || box === undefined || this.textEdited(before, last) !== box) {
+            this.flow.set('taps', [...taps, next])
+            return
+        }
+        const rest = taps.slice(0, -1)
+        if (JSON.stringify(before) !== JSON.stringify(next)) {
+            this.flow.set('taps', [...rest, next])
+        } else if (rest.length > 0) {
+            this.flow.set('taps', rest)
+        } else {
+            this.flow.reset()
+        }
     }
 
     hasManualSelection(): boolean {

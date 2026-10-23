@@ -80,7 +80,7 @@ import {
     type MovePick,
     type PowerMoves
 } from './powerMoves.js'
-import { addableCount, tappedCount } from './exchangeTerms.js'
+import { addableCount, noExchangePicks, promiseEdited, tappedCount } from './exchangeTerms.js'
 import {
     StagedFlow,
     TapHistoryDraft,
@@ -676,6 +676,33 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
     protected isBare(picks: PicksByPower): boolean {
         return !Object.values(picks).some(hasPicks)
     }
+
+    /** R-7.6.3-H1 — the one promise box, of one power's exchange, whose text is all `to` changes. */
+    protected textEdited(from: PicksByPower, to: PicksByPower): string | undefined {
+        const [key, ...more] = changedKeys(from, to)
+        if (key === undefined || more.length > 0) return undefined
+        const before = from[key] ?? emptyPicks()
+        const after = to[key] ?? emptyPicks()
+        if (!sameJson({ ...before, terms: {} }, { ...after, terms: {} })) return undefined
+        const [spec, ...others] = changedKeys(before.terms, after.terms)
+        if (spec === undefined || others.length > 0) return undefined
+        const side = promiseEdited(
+            before.terms[Number(spec)] ?? noExchangePicks(),
+            after.terms[Number(spec)] ?? noExchangePicks()
+        )
+        return side && `${key} ${spec} ${side}`
+    }
+}
+
+function sameJson(a: unknown, b: unknown): boolean {
+    return JSON.stringify(a) === JSON.stringify(b)
+}
+
+/** The keys whose values differ between two records. */
+function changedKeys<T>(from: Record<string, T>, to: Record<string, T>): string[] {
+    return [...new Set([...Object.keys(from), ...Object.keys(to)])].filter(
+        (key) => !sameJson(from[key], to[key])
+    )
 }
 
 type OfferTerms = {

@@ -60,6 +60,20 @@ export function withPromise(picks: ExchangePicks, side: ExchangeSide, text: stri
     return { ...picks, terms, promiseDrafts }
 }
 
+/**
+ * R-7.6.3-H1 — the one side whose promise `after` changes from `before`, when that promise (as typed
+ * and as the terms carry it) is all that differs.
+ */
+export function promiseEdited(before: ExchangePicks, after: ExchangePicks): ExchangeSide | undefined {
+    const sides: ExchangeSide[] = ['fromProposer', 'fromCounterparty']
+    return sides.find(
+        (side) =>
+            promiseDraftOf(before, side) !== promiseDraftOf(after, side) &&
+            JSON.stringify(withPromise(before, side, promiseDraftOf(after, side))) ===
+                JSON.stringify(after)
+    )
+}
+
 /** R-7.6.3-H1 — a promise's length as the engine's rule counts it: UTF-16 units of the sent text. */
 export function promiseLength(terms: ExchangeTerms, side: ExchangeSide): number {
     return terms.promises?.[side]?.length ?? 0
