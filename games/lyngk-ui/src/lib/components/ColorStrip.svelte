@@ -86,32 +86,28 @@
         gap: 4px;
     }
 
-    /* On a phone each player's name sits over their claimed colors, so the strip keeps its
-       height and the neutral colors keep their size. */
+    /* On a phone the strip stays one row, as short as the neutral colors allow, to leave height
+       for the board. The five colors always fit; a long name gives way. */
     @media (max-width: 639px) {
         .strip {
-            padding: 0 8px;
+            height: 44px;
+            padding: 0 6px;
             gap: 6px;
         }
 
         .side {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 2px;
-        }
-
-        .side:last-child {
-            flex-direction: column;
-            align-items: flex-end;
+            gap: 4px;
         }
 
         .side .name {
-            max-width: 100%;
+            min-width: 0;
+            padding: 1px 6px;
             font-size: 13px;
         }
 
         .claims {
-            min-height: 20px;
+            flex-shrink: 0;
+            gap: 2px;
         }
 
         .side :global(svg) {
