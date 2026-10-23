@@ -152,6 +152,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
      * certificate id (for shares auctioned like privates). Shown in place of the generated card.
      */
     publishedCardImages?: Readonly<Record<string, string>>
+    /**
+     * Published cards shown with a plate below naming what they come with, from the generated
+     * card's tokens and opening line, for prints that cannot name a company drawn at setup.
+     */
+    publishedCardPlates?: readonly string[]
     /** Smaller versions of ``publishedCardImages`` for inline display; falls back to the full image. */
     publishedCardThumbnails?: Readonly<Record<string, string>>
     /** Published share and president certificate art by company id. */

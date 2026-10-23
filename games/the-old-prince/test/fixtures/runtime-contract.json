@@ -3862,6 +3862,10 @@
         ],
         "type": "object"
       },
+      "unionBankDrawnCompanyId": {
+        "minLength": 1,
+        "type": "string"
+      },
       "winningPlayerIds": {
         "items": {
           "type": "string"

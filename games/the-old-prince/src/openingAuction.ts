@@ -245,6 +245,7 @@ export function createTheOldPrinceOpening({
     addTheOldPrinceBranches(position)
     return {
         position,
+        titleState: { unionBankDrawnCompanyId: remaining[0].companyId },
         begin: beginOfferPileAuction({
             piles: players.map((p, index) => ({
                 playerId: p.playerId,

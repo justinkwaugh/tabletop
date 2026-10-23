@@ -2,7 +2,11 @@ import { getCompany } from '@tabletop/18xx'
 import { createEighteenXXSessionClass, type MapLocationChoice } from '@tabletop/18xx-ui'
 import { type GameSession } from '@tabletop/frontend-components'
 import type { HydratedTheOldPrinceState, TheOldPrinceState } from '@tabletop/the-old-prince'
-import { TheOldPrinceTitleRules, theOldPrinceRole } from '@tabletop/the-old-prince'
+import {
+    TheOldPrinceTitleRules,
+    theOldPrinceRole,
+    unionBankStartingCompanyIds
+} from '@tabletop/the-old-prince'
 import StraightTile from './images/tokens/straight-tile.svg'
 import UnknownToken from './images/tokens/unknown.svg'
 import { TheOldPrinceMapView } from './mapView.js'
@@ -44,6 +48,11 @@ export class TheOldPrinceSession extends BaseSession {
         RF: this.mapView.stations[theOldPrinceRole(this.gameState, 'mainline')],
         MLC: this.mapView.stations[theOldPrinceRole(this.gameState, 'mainline')],
         SLC: this.mapView.stations[theOldPrinceRole(this.gameState, 'shortline')]
+    })
+    protected override titlePrivateCardTokens = $derived({
+        UB: unionBankStartingCompanyIds(this.gameState).map(
+            (companyId) => this.mapView.stations[companyId]
+        )
     })
     private splitStages: BranchSplitSelection = $state({})
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {

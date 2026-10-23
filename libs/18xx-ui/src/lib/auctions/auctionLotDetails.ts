@@ -12,7 +12,8 @@ export function auctionLotDetail(
     const token =
         session.privateCompanyTokens[lot.id] ??
         (share ? session.mapView.stations[share.companyId] : undefined)
-    return { ...lot, company, share, token }
+    const cardTokens = session.privateCardTokens[lot.id] ?? (token ? [token] : [])
+    return { ...lot, company, share, token, cardTokens }
 }
 
 export function privateLotDetail(session: EighteenXXSessionView, lot: AuctionLot) {

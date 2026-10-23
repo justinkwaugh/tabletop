@@ -27,7 +27,9 @@ export const TheOldPrinceState = composeEighteenXXState(
         ...OwnershipExemptionFields,
         fourPlusTrainIdsWithOperatingOpportunity: Type.Optional(
             Type.Array(Type.String(), { uniqueItems: true })
-        )
+        ),
+        // Optional because games set up before it was recorded lack it.
+        unionBankDrawnCompanyId: Type.Optional(Type.String({ minLength: 1 }))
     },
     [...RailwayMachineStates, ...OfferAuctionMachineStates]
 )
