@@ -1,0 +1,664 @@
+{
+ "game": {
+  "id": "scenario-markers-run-out",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "yinsh",
+  "deleted": false,
+  "name": "Markers run out",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "Alice",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Bob",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "version": "Standard"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3375250157,
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "createdAt": "2026-10-23T22:14:41.797Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-10-23T22:14:41.798Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "Oxjoh11-vqb88_Xo3YbZ6",
+  "gameId": "scenario-markers-run-out",
+  "seed": 3375250157,
+  "prng": {
+   "seed": 3375250157,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "seed": 1253738825,
+   "invocations": 0
+  },
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "white",
+    "ringsRemoved": 1
+   },
+   {
+    "playerId": "player-2",
+    "color": "black",
+    "ringsRemoved": 0
+   }
+  ],
+  "machineState": "MovingRing",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 0,
+    "player-2": 0
+   }
+  },
+  "version": "Standard",
+  "board": {
+   "points": [
+    {
+     "coords": {
+      "q": 0,
+      "r": 0
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": -1
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 0
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 1
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 1
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 0
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": -1
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": -2
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": -2
+     },
+     "ringPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": -1
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 0
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 1
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 2
+     }
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 2
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 2
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 1
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 0
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": -1
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": -2
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": -3
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": -3
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": -2
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": -1
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": 0
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 1
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 2
+     },
+     "ringPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 3
+     },
+     "ringPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 3
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 3
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 3
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 2
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 1
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 0
+     },
+     "ringPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": -1
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": -2
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": -3
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": -3
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": -4
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": -4
+     },
+     "ringPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": -3
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": -2
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": -1
+     },
+     "ringPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": 0
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": 1
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 2
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 3
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 4
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 4
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 4
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 4
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": 4
+     },
+     "ringPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": 3
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": 2
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": 1
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": 0
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": -1
+     }
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": -2
+     },
+     "markerPlayerId": "player-1"
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": -3
+     },
+     "ringPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": -4
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": -4
+     },
+     "markerPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": -4
+     }
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": -5
+     }
+    },
+    {
+     "coords": {
+      "q": 5,
+      "r": -4
+     }
+    },
+    {
+     "coords": {
+      "q": 5,
+      "r": -3
+     },
+     "ringPlayerId": "player-2"
+    },
+    {
+     "coords": {
+      "q": 5,
+      "r": -2
+     }
+    },
+    {
+     "coords": {
+      "q": 5,
+      "r": -1
+     }
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": 1
+     }
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": 2
+     }
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 3
+     }
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 4
+     }
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 5
+     }
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 5
+     }
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 5
+     }
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": 5
+     }
+    },
+    {
+     "coords": {
+      "q": -5,
+      "r": 4
+     }
+    },
+    {
+     "coords": {
+      "q": -5,
+      "r": 3
+     }
+    },
+    {
+     "coords": {
+      "q": -5,
+      "r": 2
+     }
+    },
+    {
+     "coords": {
+      "q": -5,
+      "r": 1
+     }
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": -1
+     }
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": -2
+     }
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": -3
+     }
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": -4
+     }
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": -5
+     }
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": -5
+     }
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": -5
+     }
+    }
+   ]
+  },
+  "resolvingPlayerIds": []
+ },
+ "actions": []
+}
