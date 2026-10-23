@@ -104,10 +104,12 @@
                 playerId={stage.units[0].playerId}
                 label={commander.mustGo
                     ? `${name} goes forward with his last unit`
-                    : `Send ${name} forward with them`}
+                    : commander.named
+                      ? `Send ${name} forward with them`
+                      : `${name} was not named to defend, so he stays`}
                 marker={commander.goes ? 'advances' : 'stays'}
                 chosen={commander.goes}
-                onclick={commander.mustGo
+                onclick={commander.mustGo || !commander.named
                     ? undefined
                     : () =>
                           gameSession.sendCommanderForward(commander.commanderId, !commander.goes)}

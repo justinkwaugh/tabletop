@@ -9,7 +9,7 @@ import {
 } from './attackResolution.js'
 import { currentAttack, defensePosition } from './attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
-import { faceOf, samePosition } from './pieces.js'
+import { faceOf, samePosition, type Commander, type ProjectedUnit } from './pieces.js'
 import { distinct, legal } from './legality.js'
 
 export function nextDecision(
@@ -108,10 +108,25 @@ export function forcedAdvance(state: HydratedNapoleonsTriumphGameState): ForcedA
         return { ...forced, commanderIds: [] }
     }
     const commander = state.commander(unit.commanderId)
-    const commanderMayStay = state
+    if (unitsLeftWith(state, commander, [unit]).length === 0) {
+        return { ...forced, commanderIds: [commander.id] }
+    }
+    // A commander who was not named stays with the others; a named one may go or stay.
+    const named = currentAttack(state).defendingCommanderIds.includes(commander.id)
+    return named ? undefined : { ...forced, commanderIds: [] }
+}
+
+/** The units of a commander's corps that stay with him when the given units leave his position. */
+function unitsLeftWith(
+    state: HydratedNapoleonsTriumphGameState,
+    commander: Commander,
+    leaving: readonly ProjectedUnit[]
+): ProjectedUnit[] {
+    return state
         .corpsUnits(commander.id)
-        .some((other) => other.id !== unitId && samePosition(other.position, commander.position))
-    return commanderMayStay ? undefined : { ...forced, commanderIds: [commander.id] }
+        .filter(
+            (unit) => samePosition(unit.position, commander.position) && !leaving.includes(unit)
+        )
 }
 
 export function advance(
@@ -142,16 +157,16 @@ export function advance(
             units.some((unit) => unit.commanderId === commander.id),
             'A commander advances with a unit of its corps'
         )
+        legal(
+            attack.defendingCommanderIds.includes(commander.id) ||
+                unitsLeftWith(state, commander, units).length === 0,
+            'Only a named commander advances, unless he goes with his last unit'
+        )
     }
     for (const commanderId of new Set(units.flatMap((unit) => unit.commanderId ?? []))) {
         const commander = state.commander(commanderId)
-        const remaining = state
-            .corpsUnits(commanderId)
-            .filter(
-                (unit) => samePosition(unit.position, commander.position) && !units.includes(unit)
-            )
         legal(
-            commanders.includes(commander) || remaining.length > 0,
+            commanders.includes(commander) || unitsLeftWith(state, commander, units).length > 0,
             'A commander goes forward with the last unit standing with it'
         )
     }

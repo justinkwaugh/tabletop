@@ -8,6 +8,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { corpsName } from '$lib/utils/groupNames.js'
     import CommanderChip from './CommanderChip.svelte'
+    import type { CorpsHead } from './corpsHead.js'
 
     let {
         units,
@@ -17,6 +18,7 @@
         marks = {},
         lettersOnly = false,
         byCorps = false,
+        heads = {},
         onlyPickableIds,
         onpick,
         children
@@ -28,6 +30,8 @@
         /** A role is told by the letter on the block alone, with no word under it. */
         lettersOnly?: boolean
         byCorps?: boolean
+        /** What a corps's flag says and does here, in place of only naming the corps. */
+        heads?: Record<string, CorpsHead>
         /** What is printed on a unit that has no role to show: the steps it is to lose. */
         marks?: Record<string, RoleMark | undefined>
         onlyPickableIds?: readonly string[]
@@ -73,10 +77,15 @@
             >
                 <div class="nt-force-head">
                     {#if cluster.commanderId}
+                        {@const head = heads[cluster.commanderId]}
                         <CommanderChip
                             commanderId={cluster.commanderId}
                             playerId={cluster.units[0].playerId}
-                            label={corpsName(cluster.commanderId)}
+                            label={head?.label ?? corpsName(cluster.commanderId)}
+                            marker={head?.marker}
+                            chosen={head?.chosen}
+                            dimmed={head?.dimmed}
+                            onclick={head?.onclick}
                         />
                     {:else}
                         <span class="nt-force-detached">Detached</span>

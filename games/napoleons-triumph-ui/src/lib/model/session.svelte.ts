@@ -133,6 +133,8 @@ import {
     committedRoles,
     rolesShown,
     sendCommander,
+    defendingCommanders,
+    nameDefendingCommander,
     sendRetreatTo,
     type BattleRole,
     type BattleStage
@@ -1316,6 +1318,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
+    nameDefendingCommander(commanderId: string, named: boolean) {
+        const stage = this.battleStage
+        if (
+            stage?.kind === StageKind.Defence &&
+            stage.commanders.some(
+                (entry) =>
+                    entry.commanderId === commanderId && entry.choosable && entry.named !== named
+            )
+        ) {
+            this.stageBattle(nameDefendingCommander(stage, this.battle, commanderId, named))
+        }
+    }
+
     sendCommanderForward(commanderId: string, goes: boolean) {
         const stage = this.battleStage
         if (
@@ -1333,7 +1348,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (stage?.kind === StageKind.Defence && stage.defenders.length > 0 && !stage.problem) {
             await this.applyAction(
                 this.createPlayerAction(DeclareDefense, {
-                    unitIds: inGameOrder(this.gameState.units, stage.defenders)
+                    unitIds: inGameOrder(this.gameState.units, stage.defenders),
+                    commanderIds: defendingCommanders(stage)
                 })
             )
         }

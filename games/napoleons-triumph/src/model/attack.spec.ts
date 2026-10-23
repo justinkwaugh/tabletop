@@ -580,3 +580,136 @@ describe('Guard infantry beside line infantry', () => {
         ).toThrow(/Guard infantry cannot be paired/)
     })
 })
+
+describe('rule 11, step 2: commanders are defending pieces too', () => {
+    const SECOND_FROM = 96
+    const corps: PiecePlacement[] = [
+        { id: 'F-one', side: Side.French, face: infantry(2), locale: ATTACK_FROM },
+        { id: 'F-two', side: Side.French, face: infantry(2), locale: SECOND_FROM },
+        ...['A-one', 'A-two', 'A-three'].map((id) => ({
+            id,
+            side: Side.Allied,
+            face: infantry(2),
+            locale: DEFEND_IN,
+            commanderId: 'langeron'
+        }))
+    ]
+
+    function feintFrom(game: TestGame, unitId: string) {
+        game.act(ActionType.DeclareFeint, game.playerOf(Side.French), {
+            orders: [{ kind: CommandKind.Unit, unitIds: [unitId] }],
+            end: FeintEnd.Approach
+        })
+    }
+
+    function threatenFrom(game: TestGame, from: number) {
+        const approach = game.hydrated.map.approachBetween(from, DEFEND_IN).id
+        game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), { approach })
+    }
+
+    it('cannot name a commander against a second approach in the turn he was named against another', () => {
+        const game = frenchTurn(corps)
+        const allied = game.playerOf(Side.Allied)
+        threatenFrom(game, ATTACK_FROM)
+        game.act(ActionType.DeclareDefense, allied, {
+            unitIds: ['A-one'],
+            commanderIds: ['langeron']
+        })
+        feintFrom(game, 'F-one')
+        game.act(ActionType.Advance, allied, { unitIds: ['A-one'], commanderIds: [] })
+        threatenFrom(game, SECOND_FROM)
+        expect(() =>
+            game.act(ActionType.DeclareDefense, allied, {
+                unitIds: ['A-two'],
+                commanderIds: ['langeron']
+            })
+        ).toThrow(/different approach/)
+        game.act(ActionType.DeclareDefense, allied, { unitIds: ['A-two'], commanderIds: [] })
+        expect(game.state.attack?.defendingCommanderIds).toEqual([])
+    })
+
+    it('keeps an unnamed commander in reserve when his units advance, unless they are the last with him', () => {
+        const game = frenchTurn(corps)
+        const allied = game.playerOf(Side.Allied)
+        threatenFrom(game, ATTACK_FROM)
+        game.act(ActionType.DeclareDefense, allied, {
+            unitIds: ['A-one', 'A-two'],
+            commanderIds: []
+        })
+        feintFrom(game, 'F-one')
+        expect(() =>
+            game.act(ActionType.Advance, allied, {
+                unitIds: ['A-one', 'A-two'],
+                commanderIds: ['langeron']
+            })
+        ).toThrow(/named commander/)
+        game.act(ActionType.Advance, allied, { unitIds: ['A-one', 'A-two'], commanderIds: [] })
+        expect(game.hydrated.commander('langeron').position).toEqual({ locale: DEFEND_IN })
+        expect(game.hydrated.unit('A-three').commanderId).toBe('langeron')
+    })
+
+    it('takes an unnamed commander forward with the last unit standing with him', () => {
+        const game = frenchTurn(corps.filter((placement) => placement.id !== 'A-three'))
+        const allied = game.playerOf(Side.Allied)
+        threatenFrom(game, ATTACK_FROM)
+        game.act(ActionType.DeclareDefense, allied, {
+            unitIds: ['A-one', 'A-two'],
+            commanderIds: []
+        })
+        feintFrom(game, 'F-one')
+        game.act(ActionType.Advance, allied, {
+            unitIds: ['A-one', 'A-two'],
+            commanderIds: ['langeron']
+        })
+        const defenseApproach = game.hydrated.map.approachBetween(DEFEND_IN, ATTACK_FROM).id
+        expect(game.hydrated.commander('langeron').position).toEqual({
+            locale: DEFEND_IN,
+            approach: defenseApproach
+        })
+    })
+
+    it('advances a lone named unit at once when its commander was not named and has others with him', () => {
+        const game = frenchTurn(corps)
+        const allied = game.playerOf(Side.Allied)
+        threatenFrom(game, ATTACK_FROM)
+        game.act(ActionType.DeclareDefense, allied, { unitIds: ['A-one'], commanderIds: [] })
+        feintFrom(game, 'F-one')
+        expect(game.state.machineState).toBe(MachineState.Commanding)
+        expect(game.hydrated.unit('A-one').position?.approach).toBe(
+            game.hydrated.map.approachBetween(DEFEND_IN, ATTACK_FROM).id
+        )
+        expect(game.hydrated.unit('A-one').commanderId).toBeUndefined()
+        expect(game.hydrated.commander('langeron').position).toEqual({ locale: DEFEND_IN })
+    })
+
+    it('names the commander of a corps blocking the approach with it, without asking', () => {
+        const game = frenchTurn([
+            corps[0],
+            ...corps.slice(2).map((placement) => ({ ...placement, facing: ATTACK_FROM }))
+        ])
+        const approach = game.hydrated.map.approachBetween(ATTACK_FROM, DEFEND_IN).id
+        const [, defense] = game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), {
+            approach
+        })
+        expect(defense).toMatchObject({
+            type: ActionType.DeclareDefense,
+            unitIds: ['A-one', 'A-two', 'A-three'],
+            commanderIds: ['langeron']
+        })
+        expect(game.state.attack?.defendingCommanderIds).toEqual(['langeron'])
+    })
+
+    it('names a commander only together with a unit of his corps', () => {
+        const game = frenchTurn([
+            ...corps,
+            { id: 'A-out', side: Side.Allied, face: infantry(2), locale: DEFEND_IN }
+        ])
+        threatenFrom(game, ATTACK_FROM)
+        expect(() =>
+            game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
+                unitIds: ['A-out'],
+                commanderIds: ['langeron']
+            })
+        ).toThrow(/unit of his corps/)
+    })
+})

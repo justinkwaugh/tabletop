@@ -61,6 +61,7 @@ function clearTurnState(state: HydratedNapoleonsTriumphGameState) {
     for (const commander of state.commanders) {
         commander.commandsThisTurn = undefined
         commander.enteredThisTurn = undefined
+        commander.defendedApproach = undefined
     }
     for (const player of state.players) {
         player.corpsCommandsUsed = 0

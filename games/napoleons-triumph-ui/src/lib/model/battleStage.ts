@@ -11,8 +11,10 @@ import {
     counterAttackCandidates,
     declareDefense,
     declareFeint,
+    eligibleReserveCommanders,
     eligibleReserveDefenders,
     finalResultWith,
+    forcedDefendingCommanders,
     forcedDefense,
     initialAccountOf,
     initialResultOf,
@@ -46,6 +48,7 @@ import {
     counterSelection,
     defenceSelection,
     excessLossSelection,
+    leaveCommandersOut,
     leadSelection,
     nameAttackers,
     nameLeaders,
@@ -95,7 +98,18 @@ export interface DefenceStage extends Picking {
     forced: boolean
     candidates: ProjectedUnit[]
     defenders: string[]
+    /** The commanders of the corps defending, each named or left out (rule 11, step 2). */
+    commanders: DefendingCommander[]
     problem?: string
+}
+
+export interface DefendingCommander {
+    commanderId: string
+    named: boolean
+    /** The defender may leave him out; the commander of a one-unit corps defends with his unit, since it changes nothing. */
+    choosable: boolean
+    /** He was named against another approach this turn, so he cannot defend this one. */
+    namedElsewhere: boolean
 }
 
 /** Rule 11, step 4: the attack has been pressed, and the defender names which of the defending pieces lead. */
@@ -189,7 +203,14 @@ export interface AdvanceStage extends Picking {
     kind: StageKind.Advance
     units: ProjectedUnit[]
     advancing: string[]
-    commanders: { commanderId: string; goes: boolean; mustGo: boolean; unitsStaying: number }[]
+    commanders: {
+        commanderId: string
+        goes: boolean
+        mustGo: boolean
+        unitsStaying: number
+        /** Named to defend, so he may go forward; one who was not goes only with his last unit. */
+        named: boolean
+    }[]
 }
 
 export type BattleStage =
@@ -234,18 +255,69 @@ function defenceStage(
     const candidateIds = idsOf(candidates)
     const named = defenceSelection.value(selections.defence, 'defenders') ?? []
     const defenders = blockers ?? named.filter((id) => candidateIds.includes(id))
+    const commanders = blockers
+        ? forcedDefendingCommanders(state).map((commanderId) => ({
+              commanderId,
+              named: true,
+              choosable: false,
+              namedElsewhere: false
+          }))
+        : reserveCommanders(state, defenders, selections)
     return {
         kind: StageKind.Defence,
         forced: blockers !== undefined,
         candidates,
         defenders,
+        commanders,
         problem:
             defenders.length === 0
                 ? undefined
-                : whyIllegal(() => declareDefense(copyOf(state), defenders)),
+                : whyIllegal(() =>
+                      declareDefense(copyOf(state), defenders, defendingCommanders({ commanders }))
+                  ),
         pickableIds: blockers ? [] : candidateIds,
         roles: rolesOf(defenders, [], BattleRole.Defends)
     }
+}
+
+function reserveCommanders(
+    state: HydratedNapoleonsTriumphGameState,
+    defenders: readonly string[],
+    selections: BattleSelections
+): DefendingCommander[] {
+    const eligible = eligibleReserveCommanders(state).map((commander) => commander.id)
+    const leftOut = defenceSelection.value(selections.defence, 'commandersLeftOut') ?? []
+    const commanderIds = [...new Set(defenders.flatMap((id) => state.unit(id).commanderId ?? []))]
+    return commanderIds.map((commanderId) => {
+        const namedElsewhere = !eligible.includes(commanderId)
+        const choosable = !namedElsewhere && state.corpsUnits(commanderId).length > 1
+        return {
+            commanderId,
+            named: !namedElsewhere && !(choosable && leftOut.includes(commanderId)),
+            choosable,
+            namedElsewhere
+        }
+    })
+}
+
+export function defendingCommanders(stage: Pick<DefenceStage, 'commanders'>): string[] {
+    return stage.commanders.filter((entry) => entry.named).map((entry) => entry.commanderId)
+}
+
+/** Names a commander with the units of his corps that defend, or leaves him out. */
+export function nameDefendingCommander(
+    stage: DefenceStage,
+    selections: BattleSelections,
+    commanderId: string,
+    named: boolean
+): BattleSelections {
+    const leftOut = stage.commanders
+        .filter(
+            (entry) =>
+                entry.choosable && (entry.commanderId === commanderId ? !named : !entry.named)
+        )
+        .map((entry) => entry.commanderId)
+    return { ...selections, defence: leaveCommandersOut(selections.defence, leftOut) }
 }
 
 function defenceLeadersStage(
@@ -529,11 +601,13 @@ function advanceStage(
                         !advancing.includes(unit.id)
                 ).length
             const mustGo = unitsStaying === 0
+            const named = state.attack?.defendingCommanderIds.includes(commander.id) === true
             return {
                 commanderId: commander.id,
                 unitsStaying,
                 mustGo,
-                goes: mustGo || sent.includes(commander.id)
+                goes: mustGo || (named && sent.includes(commander.id)),
+                named
             }
         })
     return {
@@ -667,14 +741,13 @@ function pickDefender(
     selections: BattleSelections,
     unitId: string
 ): BattleSelections {
+    const defenders = toggled(stage.defenders, unitId)
     return {
         ...selections,
-        defence: namedOrNone(
-            defenceSelection,
-            selections.defence,
-            'defenders',
-            toggled(stage.defenders, unitId)
-        )
+        defence:
+            defenders.length > 0
+                ? defenceSelection.revise(selections.defence, 'defenders', defenders, 'manual')
+                : defenceSelection.empty()
     }
 }
 
@@ -927,7 +1000,12 @@ export function sendCommander(
     goes: boolean
 ): BattleSelections {
     const sent = stage.commanders
-        .filter((entry) => !entry.mustGo && (entry.commanderId === commanderId ? goes : entry.goes))
+        .filter(
+            (entry) =>
+                !entry.mustGo &&
+                entry.named &&
+                (entry.commanderId === commanderId ? goes : entry.goes)
+        )
         .map((entry) => entry.commanderId)
     return { ...selections, advance: setCommandersGoing(selections.advance, sent) }
 }

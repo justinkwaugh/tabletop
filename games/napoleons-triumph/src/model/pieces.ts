@@ -49,7 +49,8 @@ export const Commander = Type.Object({
     position: Type.Optional(Position),
     eliminated: Type.Optional(Type.Literal(true)),
     commandsThisTurn: Type.Optional(Type.Integer({ minimum: 1 })),
-    enteredThisTurn: Type.Optional(Type.Literal(true))
+    enteredThisTurn: Type.Optional(Type.Literal(true)),
+    defendedApproach: Type.Optional(Type.Integer())
 })
 
 export function knownFace(unit: ProjectedUnit): Face | undefined {
