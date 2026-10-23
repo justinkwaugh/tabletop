@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { flushSync } from 'svelte'
 import { StagedFlow, TapHistoryDraft } from './stagedFlow.svelte.js'
+import {
+    noExchangePicks,
+    promiseDraftOf,
+    promiseEdited,
+    withPromise,
+    type ExchangePicks,
+    type ExchangeSide
+} from './exchangeTerms.js'
 
 type Stages = { first: string; second: string; third: number }
 const ORDER = ['first', 'second', 'third'] as const
@@ -101,5 +109,37 @@ describe('TapHistoryDraft — a box typed in is one pick for Undo', () => {
         draft.set({ a: 'x' })
         draft.set({ a: '' })
         expect(draft.hasManualSelection()).toBe(false)
+    })
+})
+
+/** A draft of one exchange's picks, its two promise boxes typed in as the Tribunal's are. */
+class PromiseDraft extends TapHistoryDraft<ExchangePicks> {
+    constructor() {
+        super(noExchangePicks())
+    }
+    type(side: ExchangeSide, text: string): void {
+        this.tap(withPromise(this.current, side, text))
+    }
+    box(side: ExchangeSide): string {
+        return promiseDraftOf(this.current, side)
+    }
+    protected isBare(value: ExchangePicks): boolean {
+        return JSON.stringify(value) === JSON.stringify(noExchangePicks())
+    }
+    protected textEdited(from: ExchangePicks, to: ExchangePicks): string | undefined {
+        return promiseEdited(from, to)
+    }
+}
+
+describe('TapHistoryDraft — the Tribunal’s promise boxes', () => {
+    it('a box erased and typed in again, the other box holding text, keeps the new text; one Undo returns both boxes', () => {
+        const draft = new PromiseDraft()
+        draft.type('fromProposer', 'I')
+        draft.type('fromCounterparty', 'R')
+        draft.type('fromProposer', '')
+        draft.type('fromProposer', 'J')
+        expect([draft.box('fromProposer'), draft.box('fromCounterparty')]).toEqual(['J', 'R'])
+        expect(draft.back()).toBe(true)
+        expect([draft.box('fromProposer'), draft.box('fromCounterparty')]).toEqual(['I', 'R'])
     })
 })

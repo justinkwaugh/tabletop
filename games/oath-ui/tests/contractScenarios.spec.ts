@@ -4077,6 +4077,20 @@ test.describe('the Tribunal’s promise boxes', () => {
         await expect(chip).toHaveAttribute('aria-pressed', 'false')
     })
 
+    test('a box erased and typed in again while the other box holds text shows the new text; one Undo returns both boxes', async ({ page }) => {
+        await offerTo(page, 'tribunalOffer')
+        await mine(page).pressSequentially('I')
+        await theirs(page).pressSequentially('R')
+        await mine(page).press('Backspace')
+        await expect(mine(page)).toHaveValue('')
+        await mine(page).pressSequentially('J')
+        await expect(mine(page)).toHaveValue('J')
+        await expect(theirs(page)).toHaveValue('R')
+        await undoButton(page).click()
+        await expect(mine(page)).toHaveValue('I')
+        await expect(theirs(page)).toHaveValue('R')
+    })
+
     test('nobody else reads them before the accept: the History rows of the offer and of its refusal quote neither promise', async ({ page }) => {
         await offerTo(page, 'tribunalOffer')
         await mine(page).fill('I will not campaign against Rhys.')

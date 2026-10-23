@@ -579,6 +579,15 @@ describe('the Tribunal’s promise boxes — each side’s promise, sent as the 
         expect(withPromise(both, 'fromProposer', '').promiseDrafts).toEqual({ fromCounterparty: 'R' })
     })
 
+    it('a box erased and typed in again, the other box holding text, is still that box’s edit', () => {
+        const both = withPromise(withPromise(noExchangePicks(), 'fromProposer', 'I'), 'fromCounterparty', 'R')
+        const erased = withPromise(both, 'fromProposer', '')
+        const retyped = withPromise(erased, 'fromProposer', 'J')
+        expect(promiseEdited(both, retyped)).toBe('fromProposer')
+        expect(promiseEdited(erased, retyped)).toBe('fromProposer')
+        expect(JSON.stringify(retyped)).toBe(JSON.stringify(withPromise(both, 'fromProposer', 'J')))
+    })
+
     it('a change to the pieces keeps both promises, in the box and in the terms', () => {
         const s = table({}, OathRevision.EngineFixes24)
         const promised = withPromise(withPromise(noExchangePicks(), 'fromProposer', 'I will. '), 'fromCounterparty', 'So will I.')

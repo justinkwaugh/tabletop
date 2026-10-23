@@ -44,11 +44,16 @@ export function promiseDraftOf(picks: ExchangePicks, side: ExchangeSide): string
  * R-7.6.3-H1 — a side's promise typed: the box keeps the text as typed, and the terms carry each
  * promise trimmed, as the engine's rule reads it. A side empty after the trim promises nothing, and
  * the terms hold a `promises` object only with a promise in it. A box erased to empty keeps no
- * draft, so the picks read exactly as if it was never typed in.
+ * draft, so the picks read exactly as if it was never typed in. The drafts keep one order of
+ * sides, whichever box was typed in first, so two picks with the same text in each box read the
+ * same.
  */
 export function withPromise(picks: ExchangePicks, side: ExchangeSide, text: string): ExchangePicks {
-    const promiseDrafts: PromiseDrafts = { ...picks.promiseDrafts, [side]: text }
-    if (text === '') delete promiseDrafts[side]
+    const typed: PromiseDrafts = { ...picks.promiseDrafts, [side]: text }
+    const promiseDrafts: PromiseDrafts = {
+        ...(typed.fromProposer ? { fromProposer: typed.fromProposer } : {}),
+        ...(typed.fromCounterparty ? { fromCounterparty: typed.fromCounterparty } : {})
+    }
     const fromProposer = promiseDrafts.fromProposer?.trim()
     const fromCounterparty = promiseDrafts.fromCounterparty?.trim()
     const terms: ExchangeTerms = { ...picks.terms }
