@@ -56,7 +56,7 @@ import {
     emptyPicks,
     favorBankSuits,
     hasPicks,
-    offersNoPick,
+    leavesNoPick,
     picksCannotBeMade,
     picksComplete,
     powerChoicesFrom,
@@ -470,8 +470,9 @@ type PicksByPower = Record<string, PowerChoicePicks>
 /**
  * R-6.2, R-7.3.2 — the "Action:" powers Use a power lists: each the engine allows, with the
  * choices its card offers now (a bank the run cannot name is not one), less one with nothing it
- * can pick. That is one whose picks can never be made, or one offering no pick whose use with
- * none the engine refuses (Ivory Eye with nothing facedown): no use of it can be sent.
+ * can pick. That is one whose picks can never be made, or one leaving the player no pick to make
+ * whose one use the engine refuses (Ivory Eye with nothing facedown; Dream Thief with one
+ * facedown adviser in the game, which it would swap with itself): no use of it can be sent.
  */
 export function listedActionPowers(
     state: HydratedOathGameState,
@@ -483,7 +484,7 @@ export function listedActionPowers(
         const choices = offeredChoices(state, playerId, printed)
         if (picksCannotBeMade(choices)) return []
         if (
-            offersNoPick(choices) &&
+            leavesNoPick(choices) &&
             HydratedUseActionPower.reasonCannotUse(
                 state,
                 playerId,

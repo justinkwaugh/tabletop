@@ -329,6 +329,34 @@ export function offersNoPick(choices: readonly LegalChoice[]): boolean {
     return choices.length > 0 && choices.every(offersNoOption)
 }
 
+/** The kinds a single pick names one thing by: a pick with one option offered is that option. */
+const ONE_THING_KINDS: ReadonlySet<PowerChoiceKind> = new Set([
+    PowerChoiceKind.Player,
+    PowerChoiceKind.Card,
+    PowerChoiceKind.Site,
+    PowerChoiceKind.Region,
+    PowerChoiceKind.RelicSlot,
+    PowerChoiceKind.FacedownAdviser
+])
+
+/**
+ * A power that asks for choices and leaves the player none to make: each choice offers nothing,
+ * or is a required single pick with one option, which the picker starts on (Dream Thief with
+ * one facedown adviser in the game, offered for both its picks). Its one use is with the picks
+ * `emptyPicks` reads as, which the engine judges.
+ */
+export function leavesNoPick(choices: readonly LegalChoice[]): boolean {
+    if (choices.length === 0 || isPowerMoves(choices)) return false
+    return choices.every(
+        (legal) =>
+            offersNoOption(legal) ||
+            (legal.spec.min > 0 &&
+                !allowsSeveral(legal) &&
+                legal.options.length === 1 &&
+                ONE_THING_KINDS.has(legal.spec.kind))
+    )
+}
+
 function mayOn(choices: readonly LegalChoice[], index: number, picks: PowerChoicePicks): boolean {
     const legal = choices[index]
     return legal !== undefined && legal.options[optionIndexOf(legal, index, picks)] !== undefined

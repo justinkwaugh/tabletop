@@ -215,3 +215,52 @@ describe('the Ivory Eye waits for a first pick before any refusal shows', () => 
         expect(awaitsFirstPick([], emptyPicks())).toBe(false)
     })
 })
+
+describe('Dream Thief is listed only while two facedown advisers can be swapped', () => {
+    /** Turns every facedown adviser in the game faceup but the cards named. */
+    function facedownOnly(cardIds: readonly string[]): HydratedOathGameState {
+        const state = facedownPickerState('dreamThief')
+        for (const player of state.players) {
+            player.setAdvisers(
+                player.knownAdvisers().map((adviser) => ({
+                    ...adviser,
+                    faceUp: adviser.faceUp || !cardIds.includes(adviser.cardId)
+                }))
+            )
+        }
+        return state
+    }
+
+    function listed(state: HydratedOathGameState): boolean {
+        return listedActionPowers(state, 'Dana').some((p) => p.cardId === DREAM_THIEF)
+    }
+
+    /** Dana's own view, as Dana's client is served it. */
+    function danaView(state: HydratedOathGameState): HydratedOathGameState {
+        return new HydratedOathGameState(served(state, { kind: 'player', playerId: 'Dana' }))
+    }
+
+    it('one facedown adviser in the whole game: left out, on the whole state and on Dana’s view', () => {
+        for (const only of [TUTOR, RHYS_PEEKED, MARA_ONE]) {
+            const state = facedownOnly([only])
+            expect(listed(state)).toBe(false)
+            expect(listed(danaView(state))).toBe(false)
+        }
+    })
+
+    it('no facedown adviser anywhere: left out', () => {
+        expect(listed(facedownOnly([]))).toBe(false)
+    })
+
+    it('two facedown advisers, one seat’s or two seats’: listed', () => {
+        for (const two of [
+            [TUTOR, HERALD],
+            [HERALD, MARA_ONE],
+            [RHYS_PEEKED, RHYS_VISION]
+        ]) {
+            const state = facedownOnly(two)
+            expect(listed(state)).toBe(true)
+            expect(listed(danaView(state))).toBe(true)
+        }
+    })
+})
