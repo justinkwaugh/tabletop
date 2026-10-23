@@ -89,17 +89,12 @@ function nearestPrice(prices: readonly number[], target: number): number {
     )
 }
 
-function spaceAt(row: number, column: number) {
-    return EighteenThirtyTwoMarket.spaces.find(
-        (space) => space.row === row && space.column === column
-    )
-}
-
 /**
- * The System's market space: the average of the two prices, rounded to a value in the row of
- * the leftmost component (the lower when they share a column) with a tie upward, then down and
- * right along that price's diagonal to the soft or hard ledge (§11.6.3). **Ruling:** a row
- * without the rounded price takes its own nearest value.
+ * The System's market space: the average of the two prices, rounded to the nearest value on the
+ * market with a tie upward, placed on that price's diagonal in the row of the leftmost component
+ * (the lower when they share a column), then down and right to the soft or hard ledge
+ * (§11.6.3). **Ruling:** when that row has no box at the price, the System starts from the
+ * diagonal's first box on the leftmost component's side of the soft ledge.
  */
 export function systemMarketSpace(
     market: StockMarket,
@@ -112,19 +107,23 @@ export function systemMarketSpace(
         first.column < second.column || (first.column === second.column && first.row > second.row)
             ? first
             : second
-    const row = EighteenThirtyTwoMarket.spaces.filter((entry) => entry.row === leftmost.row)
     const price = nearestPrice(
-        row.map((entry) => entry.price),
+        EighteenThirtyTwoMarket.spaces.map((entry) => entry.price),
         (first.price + second.price) / 2
     )
-    let space = row.find((entry) => entry.price === price)
-    assertExists(space, 'The row holds its own price')
-    for (;;) {
-        const next = spaceAt(space.row + 1, space.column + 1)
-        if (!next || next.price !== price || isLowerArea(next) !== isLowerArea(space)) break
-        space = next
-    }
-    return space
+    const diagonal = EighteenThirtyTwoMarket.spaces
+        .filter((entry) => entry.price === price)
+        .sort((a, b) => a.row - b.row)
+    let index = diagonal.findIndex((entry) => entry.row === leftmost.row)
+    if (index < 0)
+        index = diagonal.findIndex((entry) => isLowerArea(entry) === isLowerArea(leftmost))
+    if (index < 0) index = diagonal.length - 1
+    while (
+        index + 1 < diagonal.length &&
+        isLowerArea(diagonal[index + 1]) === isLowerArea(diagonal[index])
+    )
+        index++
+    return diagonal[index]
 }
 
 export const SystemFormation = Type.Object(

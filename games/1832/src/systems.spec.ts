@@ -97,14 +97,37 @@ describe('System formation', () => {
 })
 
 describe('System formation edge cases', () => {
-    it('takes the nearest price its leftmost component’s row has', () => {
+    it('rounds to the market’s nearest price, not the leftmost row’s', () => {
+        const { state } = trading()
+        placeStockMarker(state.stockMarket, 'ACL', '7:6')
+        placeStockMarker(state.stockMarket, 'CG', '3:8')
+        // $60 and $90 average $75, which rounds to $76. Row 7 has no $76, so the System takes
+        // the $76 diagonal down to the soft ledge rather than row 7's $72 beyond it.
+        expect(systemMarketSpace(state.stockMarket, ['ACL', 'CG'])).toMatchObject({
+            id: '5:8',
+            price: 76
+        })
+    })
+
+    it('stays above the soft ledge when the leftmost row lies below the price', () => {
         const { state } = trading()
         placeStockMarker(state.stockMarket, 'ACL', '5:9')
         placeStockMarker(state.stockMarket, 'CG', '0:12')
-        // $82 and $200 average $141; row 5 tops out at $110.
+        // $82 and $200 average $141, which rounds to $140; row 5 has no $140.
         expect(systemMarketSpace(state.stockMarket, ['ACL', 'CG'])).toMatchObject({
-            id: '5:12',
-            price: 110
+            id: '3:12',
+            price: 140
+        })
+    })
+
+    it('slides the price’s diagonal from its top when the leftmost row lies above it', () => {
+        const { state } = trading()
+        placeStockMarker(state.stockMarket, 'ACL', '0:0')
+        placeStockMarker(state.stockMarket, 'CG', '6:1')
+        // $64 and $30 average $47, which rounds to $50; row 0 starts at $64.
+        expect(systemMarketSpace(state.stockMarket, ['ACL', 'CG'])).toMatchObject({
+            id: '9:6',
+            price: 50
         })
     })
 
