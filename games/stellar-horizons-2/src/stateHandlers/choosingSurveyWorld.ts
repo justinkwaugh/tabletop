@@ -8,8 +8,8 @@ import { HydratedChooseSurveyWorld, isChooseSurveyWorld } from '../actions/choos
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { anyPendingSurveys } from '../model/surveys.js'
-import { stateAfterDemandDraws, stateAfterSurveys } from './transitions.js'
+import { DemandResume } from '../model/pieces.js'
+import { stateAfterDemandDraws } from './transitions.js'
 
 export class ChoosingSurveyWorldStateHandler implements MachineStateHandler<
     HydratedChooseSurveyWorld,
@@ -40,9 +40,6 @@ export class ChoosingSurveyWorldStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
         const state = context.gameState
-        return stateAfterDemandDraws(
-            state,
-            anyPendingSurveys(state) ? MachineState.ResolvingSurveys : stateAfterSurveys(state)
-        )
+        return stateAfterDemandDraws(state, DemandResume.Surveys)
     }
 }

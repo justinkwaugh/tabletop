@@ -1,5 +1,8 @@
 import {
+    EARTH_HOLDER,
     GoodsHolderKind,
+    baseHolder,
+    shipHolder,
     sameHolder,
     shipDefinition,
     tradeGoodDefinition,
@@ -101,14 +104,8 @@ export function holdings(state: HydratedStellarHorizonsGameState, playerId: stri
         groups: groupGoods(goods)
     })
     return [
-        holding({ kind: GoodsHolderKind.Earth }, state.getPlayerState(playerId).earthGoods),
-        ...state
-            .basesOf(playerId)
-            .map((base) =>
-                holding({ kind: GoodsHolderKind.Base, systemId: base.systemId }, base.goods)
-            ),
-        ...state
-            .shipsOf(playerId)
-            .map((ship) => holding({ kind: GoodsHolderKind.Ship, shipId: ship.shipId }, ship.goods))
+        holding(EARTH_HOLDER, state.getPlayerState(playerId).earthGoods),
+        ...state.basesOf(playerId).map((base) => holding(baseHolder(base.systemId), base.goods)),
+        ...state.shipsOf(playerId).map((ship) => holding(shipHolder(ship.shipId), ship.goods))
     ].filter((entry) => entry.groups.length > 0)
 }

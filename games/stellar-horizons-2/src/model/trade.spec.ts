@@ -21,6 +21,7 @@ import {
     GoodsHolderKind,
     type GoodsStore,
     assignGoods,
+    baseRooms,
     assignmentProblem,
     destroyUnplaceableRewardGoods,
     drawTradeGoods,
@@ -29,7 +30,6 @@ import {
     placeRewardGoods,
     saleOptions,
     saleProblem,
-    storeRooms,
     salePrice,
     sellGoods
 } from './trade.js'
@@ -128,11 +128,13 @@ describe('Drawing and assigning trade goods', () => {
         expect(assignmentProblem(state, playerId, two)).toMatch(/no more goods this turn/)
         base.settlements = 10
         expect(assignmentProblem(state, playerId, two)).toBeUndefined()
-        expect(storeRooms(state, playerId, two).at(-1)).toMatchObject({
-            stored: 2,
-            storage: 4,
-            intake: 0
-        })
+        expect(baseRooms(state, playerId, two)).toMatchObject([
+            {
+                stored: 2,
+                storage: 4,
+                intake: 0
+            }
+        ])
         base.goods = [TradeGood.Ore, TradeGood.Ore, TradeGood.Ore]
         expect(assignmentProblem(state, playerId, two)).toMatch(/stores 4/)
         base.goods = []
@@ -339,7 +341,7 @@ describe('Selling', () => {
         expect(state.demandDraws[0].drawn).toHaveLength(3)
     })
 
-    it('sells from Earth at Sol, where the marker stays, and never under a "no bases" anomaly', () => {
+    it('sells at Sol without IP, from Earth or a ship, keeps the marker, and never under a "no bases" anomaly', () => {
         const state = campaign()
         const [playerId] = state.initiativeOrder()
         state.getPlayerState(playerId).earthGoods = [TradeGood.Ore]
@@ -351,6 +353,20 @@ describe('Selling', () => {
         })
         expect(demandedGoods(state, SOL_SYSTEM_ID)).toContain(TradeGood.Ore)
         expect(state.demandDraws).toEqual([])
+
+        // Goods sold from a ship at Sol are sold on Earth too: no IP.
+        placeShip(state, playerId, 'starfarers-kepler', SOL_SYSTEM_ID, {
+            goods: [TradeGood.Ore]
+        })
+        const influence = state.getPlayerState(playerId).influence
+        const [fromShip] = saleOptions(state, playerId)
+        const result = sellGoods(state, playerId, {
+            systemId: SOL_SYSTEM_ID,
+            good: TradeGood.Ore,
+            sources: fromShip.sources
+        })
+        expect(result).toMatchObject({ count: 1, influence: 0 })
+        expect(state.getPlayerState(playerId).influence).toBe(influence)
 
         setWorlds(state, SYSTEM, ['m-1'])
         placeShip(state, playerId, 'starfarers-kepler', SYSTEM, { goods: [TradeGood.Food] })

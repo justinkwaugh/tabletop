@@ -6,7 +6,8 @@ import {
     type AxialCoordinates,
     type HexDefinition,
     type HexGridNode,
-    type Point
+    type Point,
+    type RectangleDimensions
 } from '@tabletop/common'
 import { STAR_MAP } from '@tabletop/stellar-horizons-2'
 import { SYSTEM_GEOMETRY } from '$lib/art/manifest.js'
@@ -59,13 +60,7 @@ function boardGrid(systemIds: readonly string[], turn: BoardTurn): HexGrid<Board
 }
 
 // The turn whose board, fitted whole into the area, is drawn largest.
-export function boardTurnFor(
-    systemIds: readonly string[],
-    area: { width: number; height: number }
-): BoardTurn {
-    if (area.width <= 0 || area.height <= 0) {
-        return BoardTurn.Printed
-    }
+export function boardTurnFor(systemIds: readonly string[], area: RectangleDimensions): BoardTurn {
     const fit = (turn: BoardTurn) => {
         const bounds = boardGrid(systemIds, turn).boundingBox
         return Math.min(area.width / bounds.width, area.height / bounds.height)

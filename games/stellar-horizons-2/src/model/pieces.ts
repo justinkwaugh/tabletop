@@ -125,6 +125,14 @@ export const GoodsReward = Type.Object({
 })
 
 // Demand markers drawn for a system, one to be kept (rulebook 1.9).
+// Where play goes on once a demand marker is kept: the trading turn, the surveys, or the next
+// step after an anomaly attempt.
+export enum DemandResume {
+    Trading = 'Trading',
+    Surveys = 'Surveys',
+    Anomaly = 'Anomaly'
+}
+
 export type DemandDraw = Type.Static<typeof DemandDraw>
 export const DemandDraw = Type.Object({
     playerId: Type.String(),

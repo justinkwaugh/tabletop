@@ -11,7 +11,8 @@ import {
 import { ActionType } from '../definition/actions.js'
 import type { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { stateAfterAnomaly, stateAfterDemandDraws } from './transitions.js'
+import { DemandResume } from '../model/pieces.js'
+import { stateAfterDemandDraws } from './transitions.js'
 
 export class PlacingRewardSettlementsStateHandler implements MachineStateHandler<
     HydratedPlaceRewardSettlements,
@@ -41,6 +42,6 @@ export class PlacingRewardSettlementsStateHandler implements MachineStateHandler
         _action: HydratedPlaceRewardSettlements,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        return stateAfterDemandDraws(context.gameState, stateAfterAnomaly(context.gameState))
+        return stateAfterDemandDraws(context.gameState, DemandResume.Anomaly)
     }
 }

@@ -113,5 +113,5 @@ The trading position after the Starfarers sold Medicine at Alpha Centauri: they 
 The end of 2100's exploration. The Starfarers resolve Megafauna at Alpha Centauri, which gives 2 IP and 2 Fauna. They have a base of 6 there and Andromeda, carrying a settlement with room for one more.
 
 - **Placing.** The map opens zoomed into Alpha Centauri. Its panel offers "Put Fauna here" beside the base and Andromeda's counter; each click places one Fauna, shown with the base's goods or in the hold, and Undo takes one back. The base takes only one good this turn, and Andromeda one.
-- **Leaving.** Back to map zooms out; Alpha Centauri keeps an outline, "2 Fauna to place", that zooms back in.
+- **Leaving.** Back to map zooms out; Alpha Centauri keeps an outline, "2 Fauna to place" (or "1 Fauna to place" after placing one), that zooms back in.
 - **The rest.** "Place 1, destroy 1 for $1B" places what was chosen and destroys the rest for $1B each.

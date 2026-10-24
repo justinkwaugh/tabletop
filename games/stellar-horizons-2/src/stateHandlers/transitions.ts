@@ -12,6 +12,7 @@ import { discardUnplaceableRewards } from '../model/settlementRewards.js'
 import { destroyUnplaceableRewardGoods } from '../model/trade.js'
 import { anyPendingSurveys } from '../model/surveys.js'
 import { nextShipTerraformer, refillWorldPool, terraformingQueue } from '../model/terraforming.js'
+import { DemandResume } from '../model/pieces.js'
 import { TurnPhase } from '../model/turn.js'
 import { branchingState, firstPhase, phaseAfter } from '../model/turnPlan.js'
 
@@ -131,16 +132,32 @@ export function stateAfterSyndicateTakes(state: HydratedStellarHorizonsGameState
 }
 
 // Rulebook 1.9: a system's demand marker comes immediately, so a draw interrupts play, which
-// resumes once the marker is kept.
+// resumes once the marker is kept. Where it resumes is worked out only then.
 export function stateAfterDemandDraws(
     state: HydratedStellarHorizonsGameState,
-    next: MachineState
+    resume: DemandResume
 ): MachineState {
-    if (state.demandDraws.length === 0) {
-        return next
+    if (state.demandDraws.length > 0) {
+        state.resumeAfterDemand = resume
+        return MachineState.ChoosingDemand
     }
-    state.resumeAfterDemand = next
-    return MachineState.ChoosingDemand
+    return resumedState(state, resume)
+}
+
+export function resumedState(
+    state: HydratedStellarHorizonsGameState,
+    resume: DemandResume
+): MachineState {
+    switch (resume) {
+        case DemandResume.Trading:
+            return MachineState.Trading
+        case DemandResume.Surveys:
+            return anyPendingSurveys(state)
+                ? MachineState.ResolvingSurveys
+                : stateAfterSurveys(state)
+        case DemandResume.Anomaly:
+            return stateAfterAnomaly(state)
+    }
 }
 
 // After each anomaly attempt: its settlement reward is placed, its goods are placed, then the

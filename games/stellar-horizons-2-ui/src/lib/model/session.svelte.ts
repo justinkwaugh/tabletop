@@ -42,7 +42,6 @@ import {
     TransferGoods,
     TurnPhase,
     MachineState,
-    GoodsHolderKind,
     PactTargetKind,
     SOL_SYSTEM_ID,
     anomalyAttemptShips,
@@ -70,7 +69,10 @@ import {
     saleOptions,
     sameHolder,
     goodsCount,
-    storeRooms,
+    baseRooms,
+    earthRoom,
+    EARTH_HOLDER,
+    baseHolder,
     rewardGoodsHolders,
     transferPartners,
     type CargoPartner,
@@ -79,6 +81,7 @@ import {
     type GoodsHolder,
     type GoodsReward,
     type SaleOption,
+    type BaseRoom,
     type StoreRoom,
     type TradeGood,
     type HydratedStellarHorizonsGameState,
@@ -174,10 +177,6 @@ export interface ShipClump {
     ships: ShipState[]
 }
 
-function rewardKey(reward: GoodsReward): string {
-    return `${reward.anomalyId}:${reward.systemId}:${reward.playerId}`
-}
-
 export class StellarHorizonsGameSession extends GameSession<
     StellarHorizonsProjectedState,
     HydratedStellarHorizonsGameState
@@ -186,7 +185,7 @@ export class StellarHorizonsGameSession extends GameSession<
     private cargoDraft: CargoDraft | undefined = $state()
     private inspected: { systemId: string; playerId: string } | undefined = $state()
     private focus: { systemId: string; closing: boolean } | undefined = $state()
-    private leftRewardFocus: string | undefined = $state()
+    private leftReward: GoodsReward | undefined = $state()
     private consolePlayer: string | undefined = $state()
 
     myPlayerId: string | undefined = $derived(this.myPlayer?.id)
@@ -426,11 +425,21 @@ export class StellarHorizonsGameSession extends GameSession<
         this.drawnGoods[this.assignmentDraft.destinations.length]
     )
 
-    // Earth and each base with the goods assigned so far.
-    assignmentRooms: StoreRoom[] = $derived.by(() => {
+    earthRoom: StoreRoom | undefined = $derived.by(() => {
         const playerId = this.myPlayerId
         return playerId
-            ? storeRooms(
+            ? earthRoom(
+                  this.gameState,
+                  playerId,
+                  this.goodsAssignments(this.assignmentDraft.destinations)
+              )
+            : undefined
+    })
+
+    baseRooms: BaseRoom[] = $derived.by(() => {
+        const playerId = this.myPlayerId
+        return playerId
+            ? baseRooms(
                   this.gameState,
                   playerId,
                   this.goodsAssignments(this.assignmentDraft.destinations)
@@ -469,16 +478,14 @@ export class StellarHorizonsGameSession extends GameSession<
         return draft
     })
 
-    // The ships and base that can take another of the reward's goods.
     rewardHolders: GoodsHolder[] = $derived.by(() => {
         const reward = this.myGoodsReward
-        if (!reward) {
+        const placed = this.rewardGoodsDraft.holders
+        if (!reward || placed.length >= reward.count) {
             return []
         }
-        const placed = this.rewardGoodsDraft.holders
         return rewardGoodsHolders(this.gameState, reward).filter(
             (holder) =>
-                placed.length < reward.count &&
                 goodsRewardProblem(this.gameState, holderCounts([...placed, holder])) === undefined
         )
     })
@@ -603,7 +610,7 @@ export class StellarHorizonsGameSession extends GameSession<
     // Player leaves it.
     private rewardFocus: string | undefined = $derived.by(() => {
         const reward = this.myGoodsReward
-        return reward && rewardKey(reward) !== this.leftRewardFocus ? reward.systemId : undefined
+        return reward && !this.isLeftReward(reward) ? reward.systemId : undefined
     })
 
     focusedSystemId: string | undefined = $derived.by(() => {
@@ -634,8 +641,8 @@ export class StellarHorizonsGameSession extends GameSession<
     leaveFocus() {
         const systemId = this.focusedSystemId
         const reward = this.myGoodsReward
-        if (reward && this.rewardFocus) {
-            this.leftRewardFocus = rewardKey(reward)
+        if (reward && systemId === reward.systemId) {
+            this.leftReward = reward
         }
         if (systemId) {
             this.focus = { systemId, closing: true }
@@ -846,11 +853,7 @@ export class StellarHorizonsGameSession extends GameSession<
                 return
             }
             case MachineState.AssigningGoods:
-                this.assignGoodTo(
-                    systemId === SOL_SYSTEM_ID
-                        ? { kind: GoodsHolderKind.Earth }
-                        : { kind: GoodsHolderKind.Base, systemId }
-                )
+                this.assignGoodTo(systemId === SOL_SYSTEM_ID ? EARTH_HOLDER : baseHolder(systemId))
                 return
             default:
                 await this.moveSelectedShip(systemId)
@@ -909,7 +912,6 @@ export class StellarHorizonsGameSession extends GameSession<
         return this.rewardHolders.some((candidate) => sameHolder(candidate, holder))
     }
 
-    // A holder's goods with the reward goods placed there so far.
     goodsWithReward(holder: GoodsHolder, goods: readonly TradeGood[]): TradeGood[] {
         const reward = this.myGoodsReward
         if (!reward) {
@@ -933,17 +935,6 @@ export class StellarHorizonsGameSession extends GameSession<
 
     salesIn(systemId: string): SaleOption[] {
         return this.saleOptions.filter((option) => option.systemId === systemId)
-    }
-
-    // A ship chosen in the system panel takes a reward good while those are placed; otherwise it
-    // is chosen for the phase.
-    chooseShipHere(shipId: string) {
-        const holder: GoodsHolder = { kind: GoodsHolderKind.Ship, shipId }
-        if (this.canTakeRewardGood(holder)) {
-            this.addRewardGood(holder)
-        } else if (this.selectableShipIds.includes(shipId)) {
-            this.selectShip(shipId)
-        }
     }
 
     // Choosing a sale sets it up to sell everything; choosing it again puts it away.
@@ -1096,10 +1087,11 @@ export class StellarHorizonsGameSession extends GameSession<
         if (!reward || this.focusedSystemId === reward.systemId) {
             return []
         }
+        const left = reward.count - this.rewardGoodsDraft.holders.length
         return [
             {
                 systemId: reward.systemId,
-                label: `${reward.count} ${goodName(reward.good)} to place`,
+                label: left > 0 ? `${left} ${goodName(reward.good)} to place` : 'Goods placed',
                 action: `Place ${goodName(reward.good)} at ${systemName(reward.systemId)}`
             }
         ]
@@ -1139,6 +1131,16 @@ export class StellarHorizonsGameSession extends GameSession<
                 action: `Add a settlement at ${systemName(systemId)}`
             }
         })
+    }
+
+    private isLeftReward(reward: GoodsReward): boolean {
+        const left = this.leftReward
+        return (
+            left !== undefined &&
+            left.anomalyId === reward.anomalyId &&
+            left.systemId === reward.systemId &&
+            left.playerId === reward.playerId
+        )
     }
 
     private isSamePactOpening(a: PactOpening, b: PactOpening): boolean {
@@ -1217,13 +1219,13 @@ export class StellarHorizonsGameSession extends GameSession<
             ) === undefined
         const name = goodName(good)
         const bases = assignmentSystems(this.gameState, playerId, good)
-            .filter((systemId) => fits({ kind: GoodsHolderKind.Base, systemId }))
+            .filter((systemId) => fits(baseHolder(systemId)))
             .map((systemId) => ({
                 systemId,
                 label: `${name} here`,
                 action: `Assign ${name} to your base at ${systemName(systemId)}`
             }))
-        return canAssignToEarth(good) && fits({ kind: GoodsHolderKind.Earth })
+        return canAssignToEarth(good) && fits(EARTH_HOLDER)
             ? [
                   ...bases,
                   {

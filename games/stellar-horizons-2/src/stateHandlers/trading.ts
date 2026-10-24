@@ -17,9 +17,10 @@ import { canTransferAnyCargo } from '../model/cargoTransfer.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { isIdleInPhase } from '../model/idlePhases.js'
 import { canTransferAnyGoods, saleOptions } from '../model/trade.js'
+import { DemandResume } from '../model/pieces.js'
 import { TurnPhase } from '../model/turn.js'
 import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
-import { stateAfterDemandDraws, stateAfterPhase } from './transitions.js'
+import { resumedState, stateAfterDemandDraws, stateAfterPhase } from './transitions.js'
 
 type TradingAction =
     | HydratedTransferCargo
@@ -85,7 +86,7 @@ export class TradingStateHandler implements MachineStateHandler<
     ): MachineState {
         const state = context.gameState
         if (!isEndPhase(action) && !isSkipPhase(action)) {
-            return stateAfterDemandDraws(state, MachineState.Trading)
+            return stateAfterDemandDraws(state, DemandResume.Trading)
         }
         state.remainingTraders = state.remainingTraders.slice(1)
         return state.remainingTraders.length > 0
@@ -128,8 +129,8 @@ export class ChoosingDemandStateHandler implements MachineStateHandler<
             return MachineState.ChoosingDemand
         }
         const resume = state.resumeAfterDemand
-        assertExists(resume, 'A demand choice needs a state to resume')
+        assertExists(resume, 'A demand choice needs a step to resume')
         state.resumeAfterDemand = undefined
-        return resume
+        return resumedState(state, resume)
     }
 }

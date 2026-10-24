@@ -77,7 +77,6 @@ export function returnTechMarkers(
     }
 }
 
-// Draws up to `count` items at random, as many as the pool still holds.
 export function drawFromPool<Item>(
     state: HydratedStellarHorizonsGameState,
     pool: Item[],

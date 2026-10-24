@@ -7,7 +7,8 @@ import {
 import type { ActionType } from '../definition/actions.js'
 import type { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { stateAfterAnomaly, stateAfterDemandDraws } from './transitions.js'
+import { DemandResume } from '../model/pieces.js'
+import { stateAfterDemandDraws } from './transitions.js'
 
 export class ResolvingAnomaliesStateHandler implements MachineStateHandler<
     HydratedResolveAnomaly,
@@ -33,6 +34,6 @@ export class ResolvingAnomaliesStateHandler implements MachineStateHandler<
         _action: HydratedResolveAnomaly,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        return stateAfterDemandDraws(context.gameState, stateAfterAnomaly(context.gameState))
+        return stateAfterDemandDraws(context.gameState, DemandResume.Anomaly)
     }
 }

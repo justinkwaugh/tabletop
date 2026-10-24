@@ -2,7 +2,8 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import {
         AnomalyChallenge,
-        GoodsHolderKind,
+        baseHolder,
+        shipHolder,
         eventDefinition,
         shipDefinition,
         type GoodsHolder
@@ -34,11 +35,17 @@
             : undefined
     )
 
-    const base: GoodsHolder = $derived({ kind: GoodsHolderKind.Base, systemId })
+    const base: GoodsHolder = $derived(baseHolder(systemId))
     const reward = $derived(gameSession.myGoodsReward)
 
-    function shipHolder(shipId: string): GoodsHolder {
-        return { kind: GoodsHolderKind.Ship, shipId }
+    // While reward goods are placed a ship takes one; otherwise it is chosen for the phase.
+    function choose(shipId: string) {
+        const holder = shipHolder(shipId)
+        if (gameSession.canTakeRewardGood(holder)) {
+            gameSession.addRewardGood(holder)
+        } else if (gameSession.selectableShipIds.includes(shipId)) {
+            gameSession.selectShip(shipId)
+        }
     }
 
     function onKeydown(event: KeyboardEvent) {
@@ -181,7 +188,7 @@
                                 class:selected={gameSession.selectedShip?.shipId === ship.shipId}
                                 disabled={!selectable}
                                 aria-label={shipDefinition(ship.shipId).name}
-                                onclick={() => gameSession.chooseShipHere(ship.shipId)}
+                                onclick={() => choose(ship.shipId)}
                             >
                                 <svg
                                     width={COUNTER_SIZE}

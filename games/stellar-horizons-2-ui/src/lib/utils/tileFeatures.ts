@@ -1,4 +1,4 @@
-import type { Point } from '@tabletop/common'
+import { assertExists, type Point } from '@tabletop/common'
 import type { SystemFrame } from './boardLayout.js'
 
 export interface Box {
@@ -39,11 +39,12 @@ const DEMAND_GAP = 6
 const TILE_ASPECT = 2 / Math.sqrt(3)
 // The demand marker's place on an open tile, as a fraction of the tile's width and height.
 const DEMAND_PREFERRED: Point = { x: -0.26, y: -0.24 }
+// Steps of a hundredth across the tile, short of its edges.
+const GRID = Array.from({ length: 97 }, (_, step) => step / 100 - 0.48)
 // Places in the tile's upper half, nearest the preferred one first.
-const DEMAND_CANDIDATES: Point[] = Array.from({ length: 97 * 49 }, (_, index) => ({
-    x: (index % 97) / 100 - 0.48,
-    y: Math.floor(index / 97) / 100 - 0.48
-})).toSorted(
+const DEMAND_CANDIDATES: Point[] = GRID.flatMap((x) =>
+    GRID.filter((y) => y <= 0).map((y) => ({ x, y }))
+).toSorted(
     (a, b) =>
         Math.hypot((a.x - DEMAND_PREFERRED.x) * TILE_ASPECT, a.y - DEMAND_PREFERRED.y) -
         Math.hypot((b.x - DEMAND_PREFERRED.x) * TILE_ASPECT, b.y - DEMAND_PREFERRED.y)
@@ -75,16 +76,12 @@ export function demandSpot(frame: Pick<SystemFrame, 'width' | 'height' | 'slots'
         frame.slots.every(
             (slot) => Math.hypot(slot.x - point.x, slot.y - point.y) >= WORLD_SIZE / 2 + radius
         )
-    const spots = DEMAND_CANDIDATES.map((candidate) => ({
+    const spot = DEMAND_CANDIDATES.map((candidate) => ({
         x: candidate.x * frame.width,
         y: candidate.y * frame.height
-    }))
-    return (
-        spots.find(clear) ?? {
-            x: DEMAND_PREFERRED.x * frame.width,
-            y: DEMAND_PREFERRED.y * frame.height
-        }
-    )
+    })).find(clear)
+    assertExists(spot, 'Every tile has room for its demand marker')
+    return spot
 }
 
 export function demandBox(spot: Point): Box {

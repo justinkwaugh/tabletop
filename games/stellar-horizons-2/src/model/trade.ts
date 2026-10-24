@@ -34,17 +34,32 @@ export enum GoodsHolderKind {
     Ship = 'Ship'
 }
 
-const EarthHolder = Type.Object({ kind: Type.Literal(GoodsHolderKind.Earth) })
-const BaseHolder = Type.Object({
+export type EarthHolder = Type.Static<typeof EarthHolder>
+export const EarthHolder = Type.Object({ kind: Type.Literal(GoodsHolderKind.Earth) })
+export type BaseHolder = Type.Static<typeof BaseHolder>
+export const BaseHolder = Type.Object({
     kind: Type.Literal(GoodsHolderKind.Base),
     systemId: Type.String()
 })
-const ShipHolder = Type.Object({ kind: Type.Literal(GoodsHolderKind.Ship), shipId: Type.String() })
+export type ShipHolder = Type.Static<typeof ShipHolder>
+export const ShipHolder = Type.Object({
+    kind: Type.Literal(GoodsHolderKind.Ship),
+    shipId: Type.String()
+})
+
+export const EARTH_HOLDER: EarthHolder = { kind: GoodsHolderKind.Earth }
+
+export function baseHolder(systemId: string): BaseHolder {
+    return { kind: GoodsHolderKind.Base, systemId }
+}
+
+export function shipHolder(shipId: string): ShipHolder {
+    return { kind: GoodsHolderKind.Ship, shipId }
+}
 
 export type GoodsHolder = Type.Static<typeof GoodsHolder>
 export const GoodsHolder = Type.Union([EarthHolder, BaseHolder, ShipHolder])
 
-// Where drawn goods are assigned and stored: Earth or a base.
 export type GoodsStore = Type.Static<typeof GoodsStore>
 export const GoodsStore = Type.Union([EarthHolder, BaseHolder])
 
@@ -220,25 +235,41 @@ export function canAssignToEarth(good: TradeGood): boolean {
 }
 
 export interface StoreRoom {
-    store: GoodsStore
     stored: number
     storage: number
-    // How many more goods a base may take this turn; Earth takes any number.
-    intake?: number
 }
 
-// Earth and each base, with the given assignments made.
-export function storeRooms(
+// A base also limits the goods it takes each turn.
+export interface BaseRoom extends StoreRoom {
+    store: BaseHolder
+    intake: number
+}
+
+function assignedTo(assignments: readonly GoodsAssignment[], store: GoodsStore): number {
+    return assignments.filter((assignment) => sameHolder(assignment.store, store)).length
+}
+
+export function earthRoom(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
     assignments: readonly GoodsAssignment[]
-): StoreRoom[] {
-    const assigned = (store: GoodsStore) =>
-        assignments.filter((assignment) => sameHolder(assignment.store, store)).length
-    const earth: GoodsStore = { kind: GoodsHolderKind.Earth }
-    const bases = state.basesOf(playerId).map((base) => {
-        const store: GoodsStore = { kind: GoodsHolderKind.Base, systemId: base.systemId }
-        const count = assigned(store)
+): StoreRoom {
+    return {
+        stored:
+            state.getPlayerState(playerId).earthGoods.length +
+            assignedTo(assignments, EARTH_HOLDER),
+        storage: EARTH_STORAGE
+    }
+}
+
+export function baseRooms(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    assignments: readonly GoodsAssignment[]
+): BaseRoom[] {
+    return state.basesOf(playerId).map((base) => {
+        const store = baseHolder(base.systemId)
+        const count = assignedTo(assignments, store)
         return {
             store,
             stored: base.goods.length + count,
@@ -246,14 +277,6 @@ export function storeRooms(
             intake: assignmentLimit(base) - base.goodsReceived - count
         }
     })
-    return [
-        {
-            store: earth,
-            stored: state.getPlayerState(playerId).earthGoods.length + assigned(earth),
-            storage: EARTH_STORAGE
-        },
-        ...bases
-    ]
 }
 
 export function assignmentProblem(
@@ -280,11 +303,15 @@ export function assignmentProblem(
             return `${name} cannot go to that base`
         }
     }
-    for (const room of storeRooms(state, playerId, assignments)) {
+    const earth = earthRoom(state, playerId, assignments)
+    if (earth.stored > earth.storage) {
+        return `Earth stores ${earth.storage} goods`
+    }
+    for (const room of baseRooms(state, playerId, assignments)) {
         if (room.stored > room.storage) {
-            return `${room.store.kind === GoodsHolderKind.Earth ? 'Earth' : 'That base'} stores ${room.storage} goods`
+            return `That base stores ${room.storage} goods`
         }
-        if (room.intake !== undefined && room.intake < 0) {
+        if (room.intake < 0) {
             return 'That base takes no more goods this turn'
         }
     }
@@ -367,10 +394,10 @@ export function rewardGoodsHolders(
             (ship) =>
                 ship.systemId === reward.systemId && hasArrived(ship) && freeCargo(state, ship) > 0
         )
-        .map((ship) => ({ kind: GoodsHolderKind.Ship, shipId: ship.shipId }))
+        .map((ship) => shipHolder(ship.shipId))
     const base = state.base(reward.playerId, reward.systemId)
     return base !== undefined && baseRoomForReward(state, base) > 0
-        ? [{ kind: GoodsHolderKind.Base, systemId: base.systemId }, ...ships]
+        ? [baseHolder(base.systemId), ...ships]
         : ships
 }
 
@@ -517,13 +544,11 @@ export function goodsHoldersIn(
     const ships: GoodsHolder[] = state
         .shipsOf(playerId)
         .filter((ship) => ship.systemId === systemId && hasArrived(ship))
-        .map((ship) => ({ kind: GoodsHolderKind.Ship, shipId: ship.shipId }))
+        .map((ship) => shipHolder(ship.shipId))
     if (systemId === SOL_SYSTEM_ID) {
-        return [{ kind: GoodsHolderKind.Earth }, ...ships]
+        return [EARTH_HOLDER, ...ships]
     }
-    return state.base(playerId, systemId) === undefined
-        ? ships
-        : [{ kind: GoodsHolderKind.Base, systemId }, ...ships]
+    return state.base(playerId, systemId) === undefined ? ships : [baseHolder(systemId), ...ships]
 }
 
 // Selling where another Player has a base and the seller has none pays one of them $1B a good;
@@ -812,13 +837,13 @@ export function transferGoods(
 }
 
 // A cargo partner names its holder relative to the ship: the base is the one in its system.
-export function partnerHolder(ship: ShipState, partner: CargoPartner): GoodsHolder {
+function partnerHolder(ship: ShipState, partner: CargoPartner): GoodsHolder {
     switch (partner.kind) {
         case CargoPartnerKind.Earth:
-            return { kind: GoodsHolderKind.Earth }
+            return EARTH_HOLDER
         case CargoPartnerKind.Base:
-            return { kind: GoodsHolderKind.Base, systemId: ship.systemId }
+            return baseHolder(ship.systemId)
         case CargoPartnerKind.Ship:
-            return { kind: GoodsHolderKind.Ship, shipId: partner.shipId }
+            return shipHolder(partner.shipId)
     }
 }

@@ -23,6 +23,7 @@ import {
     TerraformChoice,
     ActiveEvent,
     DemandDraw,
+    DemandResume,
     EventPlacement,
     GoodsReward,
     Pact,
@@ -56,7 +57,7 @@ export const StellarHorizonsGameState = Type.Object({
     goodsPool: Type.Array(Type.Enum(TradeGood)),
     demandPool: Type.Array(Type.Enum(TradeGood)),
     demandDraws: Type.Array(DemandDraw),
-    resumeAfterDemand: Type.Optional(Type.Enum(MachineState)),
+    resumeAfterDemand: Type.Optional(Type.Enum(DemandResume)),
     remainingTraders: Type.Array(Type.String()),
     eventPool: Type.Array(Type.String()),
     events: Type.Array(ActiveEvent),
@@ -118,7 +119,7 @@ export class HydratedStellarHorizonsGameState
     declare goodsPool: TradeGood[]
     declare demandPool: TradeGood[]
     declare demandDraws: DemandDraw[]
-    declare resumeAfterDemand?: MachineState
+    declare resumeAfterDemand?: DemandResume
     declare remainingTraders: string[]
     declare eventPool: string[]
     declare events: ActiveEvent[]

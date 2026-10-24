@@ -1,10 +1,8 @@
 <script lang="ts">
     import {
-        GoodsHolderKind,
         MAX_GOODS,
         canAssignToEarth,
         tradeGoodDefinition,
-        type StoreRoom,
         type TradeGood
     } from '@tabletop/stellar-horizons-2'
     import { DISCARDED, type GoodsDestination } from '$lib/model/selection.js'
@@ -24,13 +22,6 @@
         return destination.kind === DISCARDED.kind ? 'discarded for $1B' : holderName(destination)
     }
 
-    function roomText(room: StoreRoom): string {
-        const holds = `holds ${room.stored} of ${room.storage}`
-        return room.store.kind === GoodsHolderKind.Earth
-            ? `Earth ${holds}`
-            : `${holderName(room.store)} takes ${room.intake} more this turn, ${holds}`
-    }
-
     function worldTypes(good: TradeGood): string {
         return tradeGoodDefinition(good).producers.join(' or ')
     }
@@ -43,8 +34,16 @@
         on the map; Undo takes one back.
     </p>
     <div class="room">
-        {#each gameSession.assignmentRooms as room (holderName(room.store))}
-            <span>{roomText(room)}</span>
+        {#if gameSession.earthRoom}
+            <span
+                >Earth holds {gameSession.earthRoom.stored} of {gameSession.earthRoom.storage}</span
+            >
+        {/if}
+        {#each gameSession.baseRooms as room (room.store.systemId)}
+            <span
+                >{holderName(room.store)} takes {room.intake} more this turn, holds {room.stored} of
+                {room.storage}</span
+            >
         {/each}
     </div>
     <div class="goods">
