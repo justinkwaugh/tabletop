@@ -11,6 +11,7 @@
         isLayTile,
         isPrivateTileLay,
         isRespondToTrackConsent,
+        placeReference,
         trainsOwnedBy
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
@@ -41,6 +42,7 @@
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import TrainCardStrip from '../trains/TrainCardStrip.svelte'
     import { shareSign } from './shareCards.js'
+    import PlaceText from '../places/PlaceText.svelte'
 
     let {
         session,
@@ -135,9 +137,10 @@
                 session.presentation.money,
                 (id) =>
                     auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
-                (id) => session.names.routeBonus(id)
+                (id) => session.names.routeBonus(id),
+                placeReference
             )
-        return describeAction?.(action, companyName, shared) ?? shared()
+        return describeAction?.(action, { companyName, place: placeReference }, shared) ?? shared()
     }
     const labels = $derived(
         companyLabels(gameState.companies, (id) => session.companyInitials(id), companyName)
@@ -256,7 +259,7 @@
                                 size={18}
                             />{/if}</span
                     >
-                    <p class="headline">{decision.text}</p>
+                    <p class="headline"><PlaceText text={decision.text} /></p>
                 </div>
             </div>
         {/if}
@@ -281,8 +284,9 @@
                     >
                     <p class="headline">
                         {#if latest.sentence.actor}<strong>{latest.sentence.actor}</strong
-                            >{' '}{/if}{latest.sentence
-                            .text}{#if latest.trainDefinitionIds.length}{' '}<span class="trains"
+                            >{' '}{/if}<PlaceText
+                            text={latest.sentence.text}
+                        />{#if latest.trainDefinitionIds.length}{' '}<span class="trains"
                                 >{#each latest.trainDefinitionIds as id, i (i)}<TrainBadge
                                         name={session.trainDepot.trainDefinition(id).name}
                                         color={trainColors[id]}
@@ -296,7 +300,7 @@
                             >{/if}
                     </p>
                     {#if latest.payments}<p class="detail">{latest.payments}</p>{/if}
-                    {#if latest.detail}<p class="detail">{latest.detail}</p>{/if}
+                    {#if latest.detail}<p class="detail"><PlaceText text={latest.detail} /></p>{/if}
                     {#each latest.consequences as consequence (consequence.id)}
                         {@const appearance = consequence.companyId
                             ? session.mapView.stations[consequence.companyId]
@@ -312,14 +316,16 @@
                                 ? contrastingTextColor(consequence.phase.color)
                                 : undefined}
                         >
-                            <strong>{consequence.description.text}</strong
+                            <strong><PlaceText text={consequence.description.text} /></strong
                             >{#if consequence.description.trainDefinitionIds?.length}{' '}<span
                                     class="trains"
                                     >{#each consequence.description.trainDefinitionIds as id, i (i)}<TrainBadge
                                             name={session.trainDepot.trainDefinition(id).name}
                                             color={trainColors[id]}
                                         />{/each}</span
-                                >{/if}{#if consequence.description.value}{` ${consequence.description.value}`}{/if}{#if consequence.detail}{` · ${consequence.detail}`}{/if}
+                                >{/if}{#if consequence.description.value}{` ${consequence.description.value}`}{/if}{#if consequence.detail}{' · '}<PlaceText
+                                    text={consequence.detail}
+                                />{/if}
                         </p>
                     {/each}
                 </div>

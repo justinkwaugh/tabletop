@@ -13,7 +13,8 @@
         PrivateCompanies,
         CompanyDecisions,
         StockTrading,
-        StockMarket
+        StockMarket,
+        setPlaceLinks
     } from '@tabletop/18xx-ui'
     import { peirShares, peirPresident } from '@tabletop/the-old-prince'
     let {
@@ -21,6 +22,10 @@
     }: { gameSession: GameSession<TheOldPrinceState, HydratedTheOldPrinceState> } = $props()
     const session = $derived(requireTheOldPrinceSession(gameSession))
     const gameState = $derived(gameSession.gameState)
+    setPlaceLinks({
+        name: (locationId) => session.placeName(locationId),
+        reveal: (locationId) => session.map.inspect({ kind: 'hex', locationId })
+    })
 </script>
 
 <GameEnding {session} />

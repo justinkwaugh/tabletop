@@ -171,6 +171,10 @@ export class RailwayMap {
         return location
     }
 
+    placeName(id: string): string {
+        return this.location(id).name ?? id
+    }
+
     neighbor(id: string, edge: TileEdge): MapLocation | undefined {
         const node = this.grid.neighborAt(
             this.location(id).coordinates,

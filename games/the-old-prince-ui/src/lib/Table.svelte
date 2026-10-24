@@ -67,7 +67,7 @@
               }
           ]
         : []}
-    historyDescription={(action, companyName) =>
+    historyDescription={(action, { companyName }) =>
         isSplitCompany(action)
             ? {
                   text: `Split ${companyName(action.branchId)} from ${companyName(action.parentId)}`,

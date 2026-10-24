@@ -40,6 +40,7 @@ export { default as FinanceMap } from './maps/FinanceMap.svelte'
 export { default as TrainBuying } from './trains/TrainBuying.svelte'
 
 export { default as PrivateCompanies } from './privates/PrivateCompanies.svelte'
+export { setPlaceLinks, type PlaceLinks } from './places/placeLinks.js'
 
 export { default as CompanyDecisions } from './finance/CompanyDecisions.svelte'
 export { default as DecisionResponse } from './finance/DecisionResponse.svelte'
@@ -62,7 +63,8 @@ export {
 export type {
     HistoryDescription,
     HistoryNames,
-    TitleActionDescription
+    TitleActionDescription,
+    TitleHistoryNames
 } from './table/historyDescription.js'
 export { departurePaymentsDetail, joinDetails, ownerName } from './table/historyDescription.js'
 export { trainCount, type AwaitedDecision } from './table/awaitedDecision.js'

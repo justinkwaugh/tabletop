@@ -1,13 +1,11 @@
 <script lang="ts">
     import { steamboatCompanies } from '@tabletop/1846'
     import { CompanyToken } from '@tabletop/18xx-ui'
-    import { MapView1846 } from './mapView.js'
     import type { EighteenFortySixSession } from './session.svelte.js'
     let { session }: { session: EighteenFortySixSession } = $props()
     const state = $derived(session.gameState)
     const chosen = $derived(session.steamboatCompanyId)
     const current = $derived(state.steamboat)
-    const locationName = (id: string) => MapView1846.map.location(id).name ?? id
 </script>
 
 <section class="steamboat midwest-panel centered-panel" aria-label="Steamboat assignment">
@@ -32,7 +30,7 @@
     {#if current}
         <p class="current">
             Now {session.mapView.stations[current.companyId]?.label ?? current.companyId} at
-            {locationName(current.locationId)}.
+            {session.placeName(current.locationId)}.
         </p>
     {/if}
     <button disabled={!session.canChooseAction} onclick={() => session.assignSteamboat()}

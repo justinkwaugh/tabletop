@@ -15,6 +15,7 @@
     import TableNotices from './TableNotices.svelte'
     import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
+    import { setPlaceLinks } from '../places/placeLinks.js'
     import StandingInstruction from '../stock/StandingInstruction.svelte'
     import TurnHeading from './TurnHeading.svelte'
     import {
@@ -85,6 +86,9 @@
     import WealthChart from './WealthChart.svelte'
     import { seatOrderFrom } from './spreadsheetSort.js'
     import type { PhaseChartData } from '../phases/phaseChart.js'
+    const MapHexDiameter = 140
+    const FocusRadius = 220
+    const RevealMargin = 24
     let {
         session,
         additionalStockActions = [],
@@ -225,6 +229,29 @@
         }
         focusLocations([locationId])
     }
+    let revealedLocationId: string | undefined = $derived.by(() => {
+        session.gameState
+        return undefined
+    })
+    async function revealLocation(locationId: string) {
+        session.closeHistoricalMap()
+        if (revealedLocationId === locationId) {
+            revealedLocationId = undefined
+            return
+        }
+        revealedLocationId = locationId
+        showMap()
+        await tick()
+        for (const { wrapper, extents } of mapViewers())
+            wrapper.revealRect(hexViewRect(locationId, MapHexDiameter / 2, extents), {
+                padding: RevealMargin,
+                animate: true
+            })
+    }
+    setPlaceLinks({
+        name: (locationId) => session.placeName(locationId),
+        reveal: (locationId) => void revealLocation(locationId)
+    })
     let focusedCompany: string | undefined = $derived.by(() => {
         session.gameState
         return undefined
@@ -330,7 +357,9 @@
     const boardExtents = $derived(
         [boardAreas?.market, boardAreas?.depot].filter((area) => area !== undefined)
     )
-    const boardViewport = $derived(mapViewport(displayedScene, 140, boardArtwork, boardExtents))
+    const boardViewport = $derived(
+        mapViewport(displayedScene, MapHexDiameter, boardArtwork, boardExtents)
+    )
     const mapExtents = $derived(boardMode ? boardExtents : [])
     type BoardFocusTarget = 'Full' | 'Market' | 'Depot'
     let boardFocus = $state<{
@@ -374,20 +403,23 @@
     function autoFocusLocations(locations: readonly string[], animate = true) {
         focusLocations(locations, animate, autoZoomViewers())
     }
+    function hexViewRect(locationId: string, radius: number, extents: readonly BoundingBox[]) {
+        return mapSelectionRect(
+            displayedScene,
+            { kind: 'hex', locationId },
+            MapHexDiameter,
+            radius,
+            boardArtwork,
+            extents
+        )
+    }
     function focusViewerLocations(
         { wrapper, extents }: ReturnType<typeof mapViewers>[number],
         locations: readonly string[],
         animate: boolean
     ) {
         const rectangles = locations.map((locationId) =>
-            mapSelectionRect(
-                displayedScene,
-                { kind: 'hex', locationId },
-                140,
-                220,
-                boardArtwork,
-                extents
-            )
+            hexViewRect(locationId, FocusRadius, extents)
         )
         const x = Math.min(...rectangles.map((rect) => rect.x))
         const y = Math.min(...rectangles.map((rect) => rect.y))
@@ -841,7 +873,8 @@
             session.stations.preview?.position.locationId}
         translucentLocationId={consentPreview?.details.locationId}
         appearance={tileAppearance}
-        hexDiameter={140}
+        hexDiameter={MapHexDiameter}
+        outlinedLocationIds={revealedLocationId ? [revealedLocationId] : []}
         {extents}
         {terrainDiscounts}
         onselect={interactive && !consentPreview

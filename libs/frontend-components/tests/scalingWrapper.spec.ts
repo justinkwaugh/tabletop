@@ -136,6 +136,33 @@ test('full screen keeps the table and page behind it from scrolling', async ({ p
     await expect.poll(() => table.evaluate((element) => element.scrollLeft)).toBeLessThan(400)
 })
 
+for (const [reveal, expected] of [
+    [
+        { x: 600, y: 50, width: 50, height: 50 },
+        { x: -250, y: 0 }
+    ],
+    [
+        { x: 10, y: 10, width: 10, height: 10 },
+        { x: 0, y: 0 }
+    ]
+] as const) {
+    test(`revealing a ${expected.x ? 'hidden' : 'visible'} region pans only as far as needed, keeping the scale`, async ({
+        page
+    }) => {
+        await mountWrapper(page, {
+            maxScale: 2,
+            focus: { x: 0, y: 0, width: 400, height: 300 },
+            reveal
+        })
+        const board = page.getByTestId('board')
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(1000)
+        await page.getByTestId('reveal').click()
+        await expect.poll(async () => (await viewportOffset(board)).x).toBeCloseTo(expected.x)
+        expect((await viewportOffset(board)).y).toBeCloseTo(expected.y)
+        expect((await board.boundingBox())?.width).toBe(1000)
+    })
+}
+
 for (const focus of [undefined, { x: 200, y: 200, width: 300, height: 200 }]) {
     test(`the scale read as reactive state follows the view ${focus ? 'focused on a region' : 'fitted whole'}, then zoomed`, async ({
         page

@@ -48,12 +48,13 @@
     const entryOrders = $derived(entryOrderChanges(context.actions, orderChanges))
     const bankBreaks = $derived(historyBankBreaks(states))
     const companyChanges = $derived(historyCompanyChanges(context.actions))
+    const titleNames = $derived({ companyName, place: session.placeName })
     // A system action the title describes is one of its own events, unless it is routine.
     const rounds = $derived(
         historyRounds(context.actions, gameState, states, orderChanges, cash, {
             isEvent: (action) => {
                 if (action.source !== ActionSource.System) return false
-                const description = describeAction?.(action, companyName, () =>
+                const description = describeAction?.(action, titleNames, () =>
                     describeShared(action)
                 )
                 return !!description && !description.routine
@@ -87,12 +88,13 @@
             companyChanges.get(action.id),
             session.presentation.money,
             (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
-            (id) => session.names.routeBonus(id)
+            (id) => session.names.routeBonus(id),
+            session.placeName
         )
     }
     function describe(action: GameAction) {
         const shared = () => describeShared(action)
-        const description = describeAction?.(action, companyName, shared) ?? shared()
+        const description = describeAction?.(action, titleNames, shared) ?? shared()
         return entryOrders.has(action.id) ? { ...description, important: true } : description
     }
 

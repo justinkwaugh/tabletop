@@ -35,6 +35,8 @@
         animate?: boolean
     }
 
+    type RevealOptions = Omit<FocusOptions, 'maxScale'>
+
     type FocusTarget = {
         rect: FocusRect
         maxScale: number
@@ -258,11 +260,12 @@
         return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
     }
 
+    function normalizePadding(padding: FocusOptions['padding']) {
+        return typeof padding === 'number' ? { x: padding, y: padding } : padding
+    }
+
     function normalizeFocusTarget(rect: FocusRect, options: FocusOptions = {}): FocusTarget {
-        const padding =
-            typeof options.padding === 'number'
-                ? { x: options.padding, y: options.padding }
-                : options.padding
+        const padding = normalizePadding(options.padding)
 
         return {
             rect,
@@ -1112,14 +1115,7 @@
             'programmatic'
         )
 
-        if (options.animate) {
-            animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
-            return
-        }
-
-        cancelViewAnimation()
-        applyView(targetView.scale, targetView.translateX, targetView.translateY)
-        settleProgrammaticView()
+        showProgrammaticView(targetView, options.animate)
     }
 
     export function focusRect(rect: FocusRect, options: FocusOptions = {}) {
@@ -1130,16 +1126,60 @@
             return
         }
 
-        const targetView = getViewForFocusTarget(target)
+        showProgrammaticView(getViewForFocusTarget(target), target.animate)
+    }
 
-        if (target.animate) {
-            animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
+    export function revealRect(rect: FocusRect, options: RevealOptions = {}) {
+        clearActiveFocus()
+
+        if (!contentWidth || !contentHeight) {
+            return
+        }
+
+        const padding = normalizePadding(options.padding) ?? { x: 0, y: 0 }
+        const translateX = revealTranslation(
+            rect.x * currentScale + currentTranslateX,
+            rect.width * currentScale,
+            padding.x,
+            wrapperWidth - padding.x
+        )
+        const translateY = revealTranslation(
+            rect.y * currentScale + currentTranslateY,
+            rect.height * currentScale,
+            insetTop + padding.y,
+            wrapperHeight - padding.y
+        )
+        const { translateX: revealedX, translateY: revealedY } = clampTranslation(
+            currentScale,
+            currentTranslateX + translateX,
+            currentTranslateY + translateY,
+            'programmatic'
+        )
+        showProgrammaticView(
+            { scale: currentScale, translateX: revealedX, translateY: revealedY },
+            options.animate
+        )
+    }
+
+    function showProgrammaticView(
+        view: { scale: number; translateX: number; translateY: number },
+        animate = false
+    ) {
+        if (animate) {
+            animateViewTo(view.scale, view.translateX, view.translateY)
             return
         }
 
         cancelViewAnimation()
-        applyView(targetView.scale, targetView.translateX, targetView.translateY)
+        applyView(view.scale, view.translateX, view.translateY)
         settleProgrammaticView()
+    }
+
+    function revealTranslation(start: number, size: number, min: number, max: number) {
+        if (size > max - min) return (min + max) / 2 - (start + size / 2)
+        if (start < min) return min - start
+        if (start + size > max) return max - (start + size)
+        return 0
     }
 
     function getTouchDistance(touches: TouchList) {

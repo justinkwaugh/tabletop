@@ -5,6 +5,8 @@
     import AuctionBidControl from './AuctionBidControl.svelte'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import PlaceText from '../places/PlaceText.svelte'
+    import { namedPlaceText } from '@tabletop/18xx'
     import './auctionLotTable.css'
 
     let { session }: { session: EighteenXXSessionView } = $props()
@@ -30,6 +32,9 @@
     )
     const selected = $derived(lots.find((lot) => lot.id === auction.selection?.lotId))
     const playerId = $derived(auction.playerId)
+    const plainDescription = (description: string) => namedPlaceText(description, session.placeName)
+    const lotTitle = (lot: (typeof lots)[number]) =>
+        lot.company.description && plainDescription(lot.company.description)
 </script>
 
 {#snippet slotContent(lot: (typeof lots)[number], open: boolean)}
@@ -38,7 +43,7 @@
         <span class="slot-value">{money(lot.price)}</span></span
     >
     {#if open && lot.company.description}<span class="power slot-power"
-            >{lot.company.description}</span
+            >{plainDescription(lot.company.description)}</span
         >{/if}
 {/snippet}
 
@@ -55,7 +60,7 @@
                                     class:selected={selected?.id === lot.id}
                                     aria-label={`Auction ${session.lotName(lot)}`}
                                     aria-pressed={selected?.id === lot.id}
-                                    title={lot.company.description}
+                                    title={lotTitle(lot)}
                                     disabled={!auction.canNominate(
                                         lot.id,
                                         model.minimumBid(lot.id)
@@ -68,7 +73,7 @@
                                 <span
                                     class="slot"
                                     class:unavailable={!nominable.includes(lot.id)}
-                                    title={lot.company.description}
+                                    title={lotTitle(lot)}
                                 >
                                     {@render slotContent(lot, tier.open)}
                                 </span>
@@ -123,7 +128,7 @@
                                             income={lot.company.revenue}
                                         />
                                         {#if lot.company.description}<span class="power"
-                                                >{lot.company.description}</span
+                                                ><PlaceText text={lot.company.description} /></span
                                             >{/if}
                                     </span>
                                 </div></th
@@ -147,7 +152,7 @@
                     <div class="summary">
                         <span>Auction <strong>{session.lotName(selected)}</strong></span>
                         {#if tiers && selected.company.description}<span class="power full"
-                                >{selected.company.description}</span
+                                ><PlaceText text={selected.company.description} /></span
                             >{/if}
                     </div>
                     <AuctionBidControl

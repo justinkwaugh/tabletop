@@ -1841,6 +1841,12 @@ TOP branch allocation opens automatically with an auto-sourced empty allocation 
 
 Branch allocation uses one cash slider spanning both panels and one parent-cash input; branch cash is a read-only total including its bank grant. Empty train/Hunslet sections remain on the parent only if it originally owned those assets, and are hidden on the branch. Transfer arrows use larger borderless shaded buttons.
 
+### Place names and links
+
+Player text names a map location by its printed name, or by its coordinate when the hex has none; `RailwayMap.placeName` owns that choice. Text that may link a place carries a place reference (`placeReference` in `@tabletop/18xx`) instead of a name: private descriptions, the shared history description when PositionPanel asks for references, the awaited-decision text, and the deciding player's track-permission prompt. History rows, toasts, tooltips and the route breakdown pass names instead and show no links, since a history row is already one button that opens the historical map.
+
+PositionPanel (headline, detail lines and consequences, and the awaited decision), the track-permission prompt, private cards, the 1817 lot table, and the title prototype's private list draw each reference as a dotted-underlined name (`PlaceLink`), reading the name and reveal action from the place-links context. GameTable provides that context: activating a link closes a historical map preview, switches a tabbed table to its map, outlines the hex on the map's outline layer (`outlinedLocationIds`), and pans each map viewer at its current scale by the least amount that brings the hex into view with a small margin (`ScalingWrapper.revealRect`). It never zooms. The outline is GameTable's own revealed location, separate from inspection, construction and station selections and from history's selected-event outline, so it shows in live and history positions alike. Activating the link of the revealed hex again clears the outline and leaves the view alone; the next published game state, including a history step, also clears it. The title prototype table provides its own context that inspects the hex in its finance map. A place link inside a private-description row does not toggle the row's popover, and a link inside a nominate button would nest controls, so the 1817 pyramid slots show names only.
+
 ### Sidebar tab typography
 
 The shared table owns Players/History/Chat label typography in component CSS so

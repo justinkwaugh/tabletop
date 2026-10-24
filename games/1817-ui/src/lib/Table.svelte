@@ -24,7 +24,7 @@
         $props()
     const session = $derived(requireEighteenSeventeenSession(gameSession))
     const privateOperationDescription = () => undefined
-    const historyDescription: TitleActionDescription = (action, companyName, shared) => {
+    const historyDescription: TitleActionDescription = (action, { companyName }, shared) => {
         return eighteenSeventeenHistoryDescription(
             action,
             {

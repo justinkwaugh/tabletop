@@ -1,5 +1,6 @@
 import {
     isCompanyPurchaseOffer,
+    placeReference,
     type EighteenXXState,
     type Owner,
     type PendingPurchaseOffer,
@@ -39,7 +40,7 @@ export function awaitedDecision(
         return {
             title: 'Track permission',
             companyId,
-            text: `${names.companyName(companyId)} asks to lay track at ${locationId}${cost ? ` for ${names.money(cost)}` : ''}`
+            text: `${names.companyName(companyId)} asks to lay track at ${placeReference(locationId)}${cost ? ` for ${names.money(cost)}` : ''}`
         }
     }
     const offer = state.purchaseOffer

@@ -5,6 +5,7 @@ import type {
     BuyAuctionLot,
     DiscardTrain,
     FundTrain,
+    LayTile,
     PresidencyChange,
     ResolveAuction,
     RouteBonus,
@@ -15,6 +16,7 @@ import type {
 import { afterPlayerName, historyDescription } from './historyDescription.js'
 import { historyStateFixture } from './history.fixture.js'
 import { TestMarket } from '@tabletop/18xx/testing'
+import { placeReference } from '@tabletop/18xx'
 
 it('describes purchased and auctioned bonus shares without current certificates or reversal data', () => {
     const state = historyStateFixture()
@@ -105,6 +107,39 @@ it('lists a run’s bonuses beneath it, totalled by what earned them', () => {
             (id) => bonusNames[id]
         ).detail
     ).toBe('East–West +$80 · Steamboat +$40 · +$20 at G9')
+})
+
+it('names where track and stations went with the place formatter it is given', () => {
+    const state = historyStateFixture()
+    const lay: LayTile = {
+        id: 'lay',
+        gameId: 'history',
+        type: 'LayTile',
+        source: ActionSource.User,
+        playerId: 'alex',
+        companyId: 'R',
+        locationId: 'H12',
+        definitionId: 'tile',
+        rotation: 0,
+        nodeMapping: {},
+        expectedCost: 0
+    }
+    const place = (locationId: string) => (locationId === 'H12' ? 'Altoona' : locationId)
+    const describe = (formatter?: (locationId: string) => string) =>
+        historyDescription(
+            lay,
+            state,
+            TestMarket,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            formatter
+        ).text
+    expect(describe(place)).toBe('Laid track at Altoona')
+    expect(describe(placeReference)).toBe(`Laid track at ${placeReference('H12')}`)
 })
 
 it('says whether a funded train was compulsory or the president’s choice', () => {

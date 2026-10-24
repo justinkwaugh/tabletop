@@ -277,8 +277,7 @@ export function privateMarkerLabel(
     kind: string,
     locationId: string
 ): string {
-    const location = view.map.location(locationId)
-    return `${locationMarkerName(view, kind).toLowerCase()} on ${location.name ?? location.id}`
+    return `${locationMarkerName(view, kind).toLowerCase()} on ${view.map.placeName(locationId)}`
 }
 
 export function createMapDrawing(

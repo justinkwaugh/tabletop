@@ -21,7 +21,6 @@ import {
     isPlaceRevenueToken,
     isRecordMiamiRun,
     isTakeLondonShare,
-    EighteenThirtyTwoMap,
     EighteenThirtyTwoMarket
 } from '@tabletop/1832'
 import type { StockMarketMove } from '@tabletop/18xx'
@@ -30,7 +29,8 @@ import type {
     HistoryDescription,
     HistoryMapPlacement,
     HistoryNames,
-    MoneyFormat
+    MoneyFormat,
+    TitleHistoryNames
 } from '@tabletop/18xx-ui'
 import { redemptionHolderName } from './companyShareFacts.js'
 
@@ -46,11 +46,6 @@ export function eighteenThirtyTwoMapPlacement(action: GameAction): HistoryMapPla
         }
     return undefined
 }
-
-/** 1832's own actions, as history rows. */
-const placeName = (locationId: string) =>
-    EighteenThirtyTwoMap.definition.locations.find((location) => location.id === locationId)
-        ?.name ?? locationId
 
 /** Each price that fell, naming its company unless it is the row's own and falls alone. */
 function marketMoveDetail(
@@ -75,12 +70,13 @@ function marketMoveDetail(
     )
 }
 
+/** 1832's own actions, as history rows. */
 export function describe1832Action(
     action: GameAction,
-    names: HistoryNames,
+    names: HistoryNames & Pick<TitleHistoryNames, 'place'>,
     money: MoneyFormat
 ): HistoryDescription | undefined {
-    const { companyName, playerName } = names
+    const { companyName, playerName, place } = names
     if (isCapitalizeCompany(action))
         return {
             text: `${companyName(action.companyId)} received its capital`,
@@ -100,7 +96,7 @@ export function describe1832Action(
         }
     if (isPlaceRevenueToken(action))
         return {
-            text: `${companyName(action.companyId)} placed the ${TokenNames[action.kind]} token in ${placeName(action.locationId)}`
+            text: `${companyName(action.companyId)} placed the ${TokenNames[action.kind]} token in ${place(action.locationId)}`
         }
     if (isTakeLondonShare(action))
         return {

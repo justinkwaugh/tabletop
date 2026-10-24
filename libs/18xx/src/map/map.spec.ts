@@ -60,6 +60,19 @@ describe('railway map', () => {
                 })
         ).toThrow('city')
     })
+    it('names a location by its printed name, or by its coordinate when it has none', () => {
+        const map = new RailwayMap({
+            id: 'test',
+            name: 'Test',
+            orientation: HexOrientation.Flat,
+            locations: [
+                { ...base, name: 'Altoona' },
+                { ...base, id: 'plain', coordinates: { q: 0, r: 1 } }
+            ]
+        })
+        expect(map.placeName('center')).toBe('Altoona')
+        expect(map.placeName('plain')).toBe('plain')
+    })
     it('decodes explicit letter-number conventions without using labels as graph coordinates', () => {
         expect(letterNumberHexCoordinates('K19', HexOrientation.Flat, 1)).toEqual({ q: 10, r: 4 })
         expect(letterNumberHexCoordinates('I2', HexOrientation.Flat, 0)).toEqual({ q: 8, r: -3 })

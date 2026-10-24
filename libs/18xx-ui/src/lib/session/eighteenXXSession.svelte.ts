@@ -513,12 +513,8 @@ export class EighteenXXSession<
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
     }
     private noticeText(action: GameAction): string | undefined {
-        if (isPrivateTileLay(action)) {
-            const location = this.mapView.map.definition.locations.find(
-                (item) => item.id === action.locationId
-            )
-            return `${this.getPlayerName(action.playerId)} used ${this.companyName(action.privateCompanyId)} at ${location?.name ?? action.locationId}`
-        }
+        if (isPrivateTileLay(action))
+            return `${this.getPlayerName(action.playerId)} used ${this.companyName(action.privateCompanyId)} at ${this.placeName(action.locationId)}`
         if (!isPrivateExchangeAction(action)) return undefined
         const company = this.privates.exchangeCompany(action.certificateId)
         const article = /^[AEIOU]/i.test(this.companyName(company.id)) ? 'an' : 'a'
@@ -755,6 +751,7 @@ export class EighteenXXSession<
         assertExists(names, `Company ${companyId} requires its names`)
         return names
     }
+    readonly placeName = (locationId: string): string => this.mapView.map.placeName(locationId)
     lotName(lot: Pick<AuctionLot, 'id' | 'name'>) {
         return this.presentation.companyNames[lot.id]?.short ?? lot.name
     }
