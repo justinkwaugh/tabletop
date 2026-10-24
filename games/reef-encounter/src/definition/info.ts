@@ -16,7 +16,7 @@ export const ReefEncounterInfo: GameInfo = {
         defaultPlayerCount: 4,
         version: GAME_VERSION,
         beta: true,
-        visibility: GameVisibility.Alpha
+        visibility: GameVisibility.Beta
     },
     configurator: new ReefEncounterConfigurator()
 }
