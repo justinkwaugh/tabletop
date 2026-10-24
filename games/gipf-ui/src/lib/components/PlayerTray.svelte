@@ -1,7 +1,9 @@
 <script lang="ts">
     import type { HydratedGipfPlayerState } from '@tabletop/gipf'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import PieceIcon from './PieceIcon.svelte'
+    import { tallyStacks } from '$lib/board/tally.js'
+    import { discsOf } from '$lib/board/pieceShape.js'
+    import PieceTally from './PieceTally.svelte'
 
     let { playerState }: { playerState: HydratedGipfPlayerState } = $props()
 
@@ -14,6 +16,33 @@
     const opponentColor = $derived(
         session.gameState.getPlayerState(session.gameState.opponentOf(playerState.playerId)).color
     )
+
+    // Each count with its pieces beside it: the reserve and the pieces captured in short stacks,
+    // and each GIPF-piece on the board as itself.
+    const rows = $derived([
+        {
+            count: playerState.reserve,
+            caption: 'reserve',
+            color: playerState.color,
+            stacks: tallyStacks(playerState.reserve)
+        },
+        ...(usesGipf
+            ? [
+                  {
+                      count: gipfOnBoard,
+                      caption: 'GIPF',
+                      color: playerState.color,
+                      stacks: Array<number>(gipfOnBoard).fill(discsOf(true))
+                  }
+              ]
+            : []),
+        {
+            count: playerState.captured,
+            caption: 'captured',
+            color: opponentColor,
+            stacks: tallyStacks(playerState.captured)
+        }
+    ])
 </script>
 
 <div class="tray" class:active={isActive}>
@@ -27,15 +56,14 @@
             {#if isWinner}Winner{:else if isActive}Playing{/if}
         </span>
     </div>
-    <div class="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1 px-3 py-2 text-[15px]">
-        <PieceIcon color={playerState.color} size={20} />
-        <span><span class="count">{playerState.reserve}</span> in reserve</span>
-        {#if usesGipf}
-            <PieceIcon color={playerState.color} gipf size={20} />
-            <span><span class="count">{gipfOnBoard}</span> GIPF-pieces on the board</span>
-        {/if}
-        <PieceIcon color={opponentColor} size={20} />
-        <span><span class="count">{playerState.captured}</span> captured</span>
+    <div class="rows">
+        {#each rows as row (row.caption)}
+            <strong class="count">{row.count}</strong>
+            <span class="caption">{row.caption}</span>
+            <span class="tally">
+                <PieceTally color={row.color} stacks={row.stacks} />
+            </span>
+        {/each}
     </div>
 </div>
 
@@ -57,8 +85,33 @@
             0 3px 8px rgb(0 0 0 / 0.35);
     }
 
+    .rows {
+        display: grid;
+        grid-template-columns: auto auto 1fr;
+        align-items: center;
+        column-gap: 8px;
+        row-gap: 2px;
+        padding: 6px 12px 8px;
+    }
+
+    /* Two digits wide, so both cards' captions line up. */
     .count {
-        font-weight: 700;
+        min-width: 2ch;
+        font-size: 19px;
+        text-align: end;
         font-variant-numeric: tabular-nums;
+    }
+
+    .caption {
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        color: #3b4a63;
+    }
+
+    .tally {
+        display: flex;
+        justify-content: flex-end;
+        min-height: 30px;
+        align-items: center;
     }
 </style>

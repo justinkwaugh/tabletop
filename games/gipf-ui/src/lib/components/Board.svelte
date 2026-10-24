@@ -1,13 +1,13 @@
 <script lang="ts">
     import { addAxial, sameCoordinates, scaleAxial, type AxialCoordinates } from '@tabletop/common'
-    import type { Attachment } from 'svelte/attachments'
     import { ALL_POINTS, AXES, DOTS, SPOTS, type RemovedPiece } from '@tabletop/gipf'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import { coordsKey, CROWN_SCALE, DOT_RADIUS, PIECE_RADIUS, VIEW } from '$lib/board/geometry.js'
     import PieceDefs from './PieceDefs.svelte'
-    import PieceShape from './PieceShape.svelte'
-    import { BoardAnimator, DROP } from '$lib/animators/boardAnimator.svelte.js'
+    import StandingPiece from './StandingPiece.svelte'
+    import StagedPiece from './StagedPiece.svelte'
+    import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
 
     const session = getGameSession()
 
@@ -36,13 +36,16 @@
     let hoveredTarget: string | undefined = $state()
     const pieces = $derived(animator.pieces)
 
-    // The piece you are about to bring in drops onto the dot you chose, until it slides in.
+    // The piece you are about to bring in drops onto the dot you chose, until it goes in. A piece
+    // Undo took back out stands there already.
     const preview = $derived.by(() => {
+        if (animator.entering || animator.pushedIn) return undefined
+        if (animator.returned) return { ...animator.returned, drops: false }
         const dot = session.chosenDot
         const gipf = session.chosenGipf
         const playerId = session.myPlayer?.id
         if (dot === undefined || gipf === undefined || playerId === undefined) return undefined
-        return animator.entering ? undefined : { dot, gipf, playerId }
+        return { dot, gipf, playerId, drops: true }
     })
 
     type Drawn =
@@ -53,6 +56,7 @@
               coords: AxialCoordinates
               gipf: boolean
               playerId: string
+              drops: boolean
           }
 
     // Far pieces first, so nearer pieces stand in front of them. The piece coming in is drawn at
@@ -68,64 +72,16 @@
         if (incoming) {
             drawn.push({
                 kind: animator.entering ? 'entering' : 'preview',
-                key: `incoming-${coordsKey(incoming.dot)}`,
+                // Another piece type chosen on the same dot drops in afresh.
+                key: `incoming-${coordsKey(incoming.dot)}-${incoming.gipf}`,
                 coords: incoming.dot,
                 gipf: incoming.gipf,
-                playerId: incoming.playerId
+                playerId: incoming.playerId,
+                drops: preview?.drops ?? false
             })
         }
         return drawn.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
     })
-
-    // Seen from the side, the staged piece falls onto its dot, gathering speed, and settles with
-    // a small wobble; its shadow waits on the dot and darkens as the piece comes down.
-    const DROP_TOTAL = DROP.fall + DROP.wobble.length * DROP.settle * 2
-
-    function dropHeight(seconds: number): { y: number; scale: number; opacity: number } {
-        if (seconds < DROP.fall) {
-            const left = 1 - (seconds / DROP.fall) ** 2
-            return {
-                y: DROP.rise * left,
-                scale: 1 + (DROP.scale - 1) * left,
-                opacity: Math.min(1, seconds / (DROP.fall * 0.25))
-            }
-        }
-        let at = seconds - DROP.fall
-        for (const height of DROP.wobble) {
-            if (at < DROP.settle) {
-                return { y: height * (1 - (1 - at / DROP.settle) ** 2), scale: 1, opacity: 1 }
-            }
-            if (at < DROP.settle * 2) {
-                return {
-                    y: height * (1 - ((at - DROP.settle) / DROP.settle) ** 2),
-                    scale: 1,
-                    opacity: 1
-                }
-            }
-            at -= DROP.settle * 2
-        }
-        return { y: 0, scale: 1, opacity: 1 }
-    }
-
-    function dropBody(_node: Element) {
-        return {
-            duration: DROP_TOTAL * 1000,
-            css: (t: number) => {
-                const { y, scale, opacity } = dropHeight(t * DROP_TOTAL)
-                return `opacity: ${opacity}; transform: translateY(${y}px) scale(${scale})`
-            }
-        }
-    }
-
-    function dropShadow(_node: Element) {
-        return {
-            duration: DROP.fall * 1000,
-            css: (t: number) => {
-                const landed = t * t
-                return `opacity: ${landed}; transform: scale(${DROP.shadow + (1 - DROP.shadow) * landed})`
-            }
-        }
-    }
 
     const SPOT_RADIUS = PIECE_RADIUS * 0.28
 
@@ -191,45 +147,6 @@
         return `M ${-r} ${top} A ${r} ${ry} 0 0 1 ${r} ${top} L ${r} 0 A ${r} ${ry} 0 0 1 ${-r} 0 Z`
     })()
 </script>
-
-{#snippet standing(
-    color: ReturnType<typeof colorOf>,
-    gipf: boolean,
-    body?: Attachment<SVGGElement>,
-    shadow?: Attachment<SVGGElement>,
-    dropping = false
-)}
-    <g {@attach shadow}>
-        {#if dropping}
-            <g in:dropShadow>
-                <ellipse
-                    rx={PIECE_RADIUS}
-                    ry={PIECE_RADIUS * view.tilt}
-                    cy={2}
-                    class="shadow"
-                    filter="url(#gipf-soft)"
-                ></ellipse>
-            </g>
-        {:else}
-            <ellipse
-                rx={PIECE_RADIUS}
-                ry={PIECE_RADIUS * view.tilt}
-                cy={2}
-                class="shadow"
-                filter="url(#gipf-soft)"
-            ></ellipse>
-        {/if}
-    </g>
-    <g {@attach body}>
-        {#if dropping}
-            <g in:dropBody>
-                <PieceShape {color} {gipf} radius={PIECE_RADIUS} prefix="gipf-board" />
-            </g>
-        {:else}
-            <PieceShape {color} {gipf} radius={PIECE_RADIUS} prefix="gipf-board" />
-        {/if}
-    </g>
-{/snippet}
 
 <svg
     class="gipf-board"
@@ -333,12 +250,12 @@
                 onkeydown={(event) => role && onKey(event, () => choosePiece(piece.coords))}
             >
                 <g {@attach animator.piece(drawn.key)}>
-                    {@render standing(
-                        colorOf(piece.playerId),
-                        piece.gipf,
-                        animator.body(drawn.key),
-                        animator.shadow(drawn.key)
-                    )}
+                    <StandingPiece
+                        color={colorOf(piece.playerId)}
+                        gipf={piece.gipf}
+                        body={animator.body(drawn.key)}
+                        shadow={animator.shadow(drawn.key)}
+                    />
                 </g>
                 <!-- Marks lie on the top face, after the piece and outside the node that moves
                      it: a dashed ring for a row you can choose, a spot on each piece that goes,
@@ -374,17 +291,22 @@
         {:else if drawn.kind === 'entering'}
             <g transform="translate({center.x} {center.y})" class="entering">
                 <g {@attach animator.enteringPiece()}>
-                    {@render standing(
-                        colorOf(drawn.playerId),
-                        drawn.gipf,
-                        animator.enteringBody(),
-                        animator.enteringShadow()
-                    )}
+                    <StandingPiece
+                        color={colorOf(drawn.playerId)}
+                        gipf={drawn.gipf}
+                        shadow={animator.enteringShadow()}
+                        parts={animator.enteringParts}
+                    />
                 </g>
             </g>
         {:else}
             <g transform="translate({center.x} {center.y})" class="entering">
-                {@render standing(colorOf(drawn.playerId), drawn.gipf, undefined, undefined, true)}
+                <StagedPiece
+                    color={colorOf(drawn.playerId)}
+                    gipf={drawn.gipf}
+                    drops={drawn.drops}
+                    lifts={() => animator.entering === undefined && !animator.pushedIn}
+                />
             </g>
         {/if}
     {/each}
@@ -482,10 +404,6 @@
     /* A piece with nothing to choose lets clicks through to the dot or target behind it. */
     .piece.role-none {
         pointer-events: none;
-    }
-
-    .shadow {
-        fill: rgb(0 0 0 / 0.3);
     }
 
     .row-mark {

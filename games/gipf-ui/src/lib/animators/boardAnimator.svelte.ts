@@ -16,6 +16,15 @@ import {
 import type { GipfGameSession } from '$lib/model/session.svelte.js'
 import { inferPush } from '$lib/board/inferPush.js'
 import { coordsKey, VIEW } from '$lib/board/geometry.js'
+import {
+    dropCrease,
+    dropDisc,
+    dropShadow,
+    landing,
+    LIFT_OFF,
+    type Lift,
+    type PieceParts
+} from './drop.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
@@ -28,17 +37,7 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 
 const SLIDE = 0.35
 // Seen from the side, a taken piece floats straight up as it fades, and its shadow shrinks.
-const LIFT = { duration: 0.55, rise: -34, scale: 1.04, shadow: 0.55 }
-// A piece brought in falls onto its dot, gathering speed, and settles with a small wobble; its
-// shadow waits on the dot and darkens as the piece comes down.
-export const DROP = {
-    fall: 0.26,
-    rise: -50,
-    scale: 1.08,
-    wobble: [-4, -1.5],
-    settle: 0.06,
-    shadow: 0.55
-}
+const TAKE: Lift = { duration: 0.55, rise: -34, fade: 'power1.out' }
 const MARK_FADE = 0.2
 const FALLBACK_DURATION = 0.18
 
@@ -53,12 +52,17 @@ export class BoardAnimator {
     // each animated action leaves the board as it ended until that state lands.
     pieces: RemovedPiece[] = $derived.by(() => this.session.gameState.board.pieces())
     entering: Entering | undefined = $state()
+    // Until the state a move made lands, your choices still name the dot you pushed from: the
+    // piece you pushed in stays off it, and a piece Undo took back out stands on it.
+    pushedIn: boolean = $derived.by(() => this.untilLanded(false))
+    returned: Entering | undefined = $derived.by(() => this.untilLanded(undefined))
 
     private readonly pieceNodes = new Map<string, SVGGElement>()
     private readonly bodyNodes = new Map<string, SVGGElement>()
     private readonly shadowNodes = new Map<string, SVGGElement>()
     private enteringNode: SVGGElement | undefined
-    private enteringBodyNode: SVGGElement | undefined
+    private readonly enteringDiscNodes = new Map<number, SVGGElement>()
+    private enteringCreaseNode: SVGGElement | undefined
     private enteringShadowNode: SVGGElement | undefined
     private readonly markNodes = new Set<SVGGElement>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
@@ -84,7 +88,7 @@ export class BoardAnimator {
         return this.register(this.shadowNodes, key)
     }
 
-    private register(nodes: Map<string, SVGGElement>, key: string): Attachment<SVGGElement> {
+    private register<Key>(nodes: Map<Key, SVGGElement>, key: Key): Attachment<SVGGElement> {
         return (node) => {
             gsap.set(node, { svgOrigin: '0 0' })
             nodes.set(key, node)
@@ -103,12 +107,13 @@ export class BoardAnimator {
         }
     }
 
-    enteringBody(): Attachment<SVGGElement> {
-        return (node) => {
-            gsap.set(node, { svgOrigin: '0 0' })
-            this.enteringBodyNode = node
+    // The discs of the piece being pushed in, which another player's move drops onto its dot.
+    readonly enteringParts: PieceParts = {
+        disc: (index) => this.register(this.enteringDiscNodes, index),
+        crease: (node) => {
+            this.enteringCreaseNode = node
             return () => {
-                if (this.enteringBodyNode === node) this.enteringBodyNode = undefined
+                if (this.enteringCreaseNode === node) this.enteringCreaseNode = undefined
             }
         }
     }
@@ -133,6 +138,11 @@ export class BoardAnimator {
         }
     }
 
+    private untilLanded<T>(value: T): T {
+        void this.session.gameState
+        return value
+    }
+
     private async onGameStateChange({ kind, to, from, action, animationContext }: Step) {
         if (from === undefined || !ANIMATED_KINDS.has(kind)) {
             return
@@ -144,8 +154,10 @@ export class BoardAnimator {
 
         if (isPushPiece(action) && action.metadata !== undefined) {
             const { line, shifted } = action.metadata
-            // Your own piece already stands on its dot; another player's drops onto it first.
-            const at = kind === 'other-action' ? DROP.fall : 0
+            // A piece you brought in already stands on its dot; another player's, or one replayed
+            // from history, drops onto it first.
+            const at = kind === 'own-action' ? 0 : landing(action.gipf)
+            if (kind === 'own-action') this.pushedIn = true
             this.slide(line.slice(0, shifted), alongLine(line), timeline, SLIDE, touched, at)
             await this.slideIn(
                 action.playerId,
@@ -160,66 +172,90 @@ export class BoardAnimator {
             this.fadeMarks(timeline, MARK_FADE)
         } else if (isRemoveRow(action) && action.metadata !== undefined) {
             for (const removed of action.metadata.removed) {
-                this.lift(removed.coords, timeline, LIFT.duration, LIFT.rise, touched)
+                this.lift(removed.coords, timeline, TAKE, touched)
             }
             this.fadeMarks(timeline, MARK_FADE)
-        } else if (action === undefined) {
-            await this.fallback(from, to, timeline, touched)
+        }
+        let returned: Entering | undefined
+        if (action === undefined) {
+            returned = await this.fallback(kind, from, to, timeline, touched)
             this.fadeMarks(timeline, FALLBACK_DURATION)
         }
 
         animationContext.afterAnimations(() => {
             this.pieces = to.board.pieces()
             this.entering = undefined
+            this.returned = returned
             for (const node of touched) gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
             for (const node of this.markNodes) gsap.set(node, { opacity: 1 })
         })
     }
 
     // Undo and history steps carry no action, so a push is read from the two boards and the line
-    // slides either way; otherwise only pieces whose spot is left empty fade.
+    // slides either way; otherwise only pieces whose spot is left empty lift off. Undo takes your
+    // piece back out onto its dot, where it stays staged; stepping back through history, it lifts
+    // off where it stands.
     private async fallback(
+        kind: TransitionKind,
         from: HydratedGipfGameState,
         to: HydratedGipfGameState,
         timeline: Timeline,
         touched: SVGGElement[]
-    ) {
-        const push = inferPush(from.board, to.board)
+    ): Promise<Entering | undefined> {
+        const known =
+            kind === 'undo'
+                ? this.session.undoingPush
+                : kind === 'history'
+                  ? this.session.historyPush
+                  : undefined
+        const push = inferPush(from.board, to.board, known)
         if (push === undefined) {
             for (const piece of from.board.pieces()) {
                 if (to.board.pieceAt(piece.coords) === undefined) {
-                    this.lift(piece.coords, timeline, FALLBACK_DURATION, LIFT.rise / 2, touched)
+                    this.lift(piece.coords, timeline, LIFT_OFF, touched)
                 }
             }
             return
         }
         const { entry, shifted, piece } = push
+        const { line, dot } = entry
         if (push.forward) {
-            const pushed = entry.line.slice(0, shifted)
-            this.slide(pushed, alongLine(entry.line), timeline, FALLBACK_DURATION, touched)
+            this.slide(
+                line.slice(0, shifted),
+                alongLine(line),
+                timeline,
+                FALLBACK_DURATION,
+                touched
+            )
             await this.slideIn(
                 piece.playerId,
                 piece.gipf,
-                entry.dot,
-                entry.line[0],
+                dot,
+                line[0],
                 timeline,
                 FALLBACK_DURATION
             )
             return
         }
-        const along = alongLine(entry.line)
-        const pulledBack = entry.line.slice(1, shifted + 1)
-        this.slide(pulledBack, { x: -along.x, y: -along.y }, timeline, FALLBACK_DURATION, touched)
-        // The piece pushed in goes back to its dot and lifts off it.
-        const key = coordsKey(entry.line[0])
-        const returning = this.pieceNodes.get(key)
-        if (returning !== undefined) {
-            const back = offset(entry.line[0], entry.dot)
-            const step = { duration: FALLBACK_DURATION, ease: 'power1.in' }
-            timeline.to(returning, { x: back.x, y: back.y, ...step }, 0)
-            touched.push(returning)
+        this.slideBack(line, shifted, timeline, touched)
+        if (kind !== 'undo') {
+            this.lift(line[0], timeline, LIFT_OFF, touched)
+            return
         }
-        this.lift(entry.line[0], timeline, FALLBACK_DURATION, DROP.rise / 2, touched)
+        this.slide([line[0]], offset(line[0], dot), timeline, FALLBACK_DURATION, touched)
+        return { playerId: piece.playerId, gipf: piece.gipf, dot }
+    }
+
+    // The pieces a push moved along go back a spot.
+    private slideBack(
+        line: readonly AxialCoordinates[],
+        shifted: number,
+        timeline: Timeline,
+        touched: SVGGElement[]
+    ) {
+        const along = alongLine(line)
+        const pulledBack = line.slice(1, shifted + 1)
+        this.slide(pulledBack, { x: -along.x, y: -along.y }, timeline, FALLBACK_DURATION, touched)
     }
 
     private slide(
@@ -241,8 +277,7 @@ export class BoardAnimator {
     private lift(
         coords: AxialCoordinates,
         timeline: Timeline,
-        duration: number,
-        rise: number,
+        { duration, rise, fade }: Lift,
         touched: SVGGElement[]
     ) {
         const key = coordsKey(coords)
@@ -251,28 +286,15 @@ export class BoardAnimator {
         if (body === undefined || shadow === undefined) return
         touched.push(body, shadow)
         const ease = 'power1.out'
-        timeline.to(body, { opacity: 0, scale: LIFT.scale, y: rise, duration, ease }, 0)
-        timeline.to(shadow, { opacity: 0, scale: LIFT.shadow, duration, ease }, 0)
+        timeline.to(body, { scale: LIFT_OFF.scale, y: rise, duration, ease }, 0)
+        timeline.to(body, { opacity: 0, duration, ease: fade }, 0)
+        timeline.to(shadow, { opacity: 0, scale: LIFT_OFF.shadow, duration, ease }, 0)
     }
 
     private dropEntering(timeline: Timeline) {
-        const body = this.enteringBodyNode
-        const shadow = this.enteringShadowNode
-        if (body === undefined || shadow === undefined) return
-        const { fall } = DROP
-        timeline.fromTo(
-            body,
-            { opacity: 0, scale: DROP.scale, y: DROP.rise },
-            { opacity: 1, duration: fall * 0.25, ease: 'none', immediateRender: true },
-            0
-        )
-        timeline.to(body, { scale: 1, y: 0, duration: fall, ease: 'power2.in' }, 0)
-        timeline.fromTo(
-            shadow,
-            { opacity: 0, scale: DROP.shadow },
-            { opacity: 1, scale: 1, duration: fall, ease: 'power2.in', immediateRender: true },
-            0
-        )
+        for (const [index, node] of this.enteringDiscNodes) dropDisc(timeline, node, index)
+        if (this.enteringCreaseNode) dropCrease(timeline, this.enteringCreaseNode)
+        if (this.enteringShadowNode) dropShadow(timeline, this.enteringShadowNode)
     }
 
     // The new piece slides from its dot onto the first spot as the line moves along.

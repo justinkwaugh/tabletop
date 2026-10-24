@@ -1,4 +1,5 @@
-import { ENTRIES, HydratedGipfBoard, type Entry, type Piece } from '@tabletop/gipf'
+import { sameCoordinates } from '@tabletop/common'
+import { ENTRIES, HydratedGipfBoard, type Entry, type Piece, type PushPiece } from '@tabletop/gipf'
 import { coordsKey } from './geometry.js'
 
 export type InferredPush = {
@@ -10,21 +11,39 @@ export type InferredPush = {
 }
 
 // A history step or Undo carries no action, so a push is read from the boards: some way in,
-// pushed with the piece that ends on its first spot, turns one board into the other.
+// pushed with the piece that ends on its first spot, turns one board into the other. A piece that
+// moved nothing along could have come from any dot beside its spot, so a step that knows the push
+// it shows (the one undone, or the one history stepped to) follows it, if it fits the boards.
 export function inferPush(
     before: HydratedGipfBoard,
-    after: HydratedGipfBoard
+    after: HydratedGipfBoard,
+    known?: PushPiece
 ): InferredPush | undefined {
-    return pushBetween(before, after, true) ?? pushBetween(after, before, false)
+    const entry =
+        known &&
+        ENTRIES.find(
+            (e) => sameCoordinates(e.dot, known.dot) && sameCoordinates(e.line[0], known.to)
+        )
+    const found = entry && pushEither(before, after, [entry])
+    return found ?? pushEither(before, after, ENTRIES)
+}
+
+function pushEither(
+    before: HydratedGipfBoard,
+    after: HydratedGipfBoard,
+    entries: readonly Entry[]
+): InferredPush | undefined {
+    return pushBetween(before, after, true, entries) ?? pushBetween(after, before, false, entries)
 }
 
 function pushBetween(
     start: HydratedGipfBoard,
     end: HydratedGipfBoard,
-    forward: boolean
+    forward: boolean,
+    entries: readonly Entry[]
 ): InferredPush | undefined {
     const target = layout(end)
-    for (const entry of ENTRIES) {
+    for (const entry of entries) {
         const piece = end.pieceAt(entry.line[0])
         if (piece === undefined || !start.canPush(entry)) continue
         const board = new HydratedGipfBoard(start.dehydrate())

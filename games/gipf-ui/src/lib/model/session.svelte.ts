@@ -1,7 +1,12 @@
-import { GameSession, type TitlePreferences } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import {
+    GameSession,
+    type PresentedTransition,
+    type TitlePreferences
+} from '@tabletop/frontend-components'
+import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
+    isPushPiece,
     ALL_POINTS,
     FinishRemoving,
     GipfPreferenceDefinition,
@@ -17,6 +22,7 @@ import {
 import {
     hasManualGipfSelection,
     popGipfSelection,
+    restagedGipfSelection,
     setGipfSelection,
     type GipfSelection
 } from './stagedSelection.js'
@@ -35,6 +41,11 @@ const NOTATION = boardNotation(ALL_POINTS)
 
 export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGameState> {
     selection: GipfSelection = $state({})
+    // The push being undone. Undo takes your piece back out onto its dot, staged as you chose it,
+    // and a further Undo takes it off the dot.
+    undoingPush: PushPiece | undefined
+    // The push history last stepped to, whose piece came in from its own dot.
+    historyPush: PushPiece | undefined
 
     readonly notation: BoardNotation = NOTATION
 
@@ -156,8 +167,24 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         this.selection = {}
     }
 
-    override beforeNewState(): void {
-        this.resetAction()
+    override willUndo(action: GameAction): void {
+        this.undoingPush = isPushPiece(action) ? action : undefined
+    }
+
+    override onHistoryAction(action?: GameAction): void {
+        this.historyPush = isPushPiece(action) ? action : undefined
+    }
+
+    override beforeNewState({ kind }: PresentedTransition): void {
+        const push = kind === 'undo' ? this.undoingPush : undefined
+        this.selection = push ? restagedGipfSelection(push, this.hadTypeChoice(push)) : {}
+        if (kind !== 'undo') this.undoingPush = undefined
+    }
+
+    // Whether the player of a push taken back could have brought in either piece type.
+    private hadTypeChoice(push: PushPiece): boolean {
+        const state = this.incomingGameState ?? this.gameState
+        return state.canPlaySingle(push.playerId) && state.canPlayGipf(push.playerId)
     }
 
     chooseGipf(gipf: boolean) {

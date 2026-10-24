@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { emptyBoard, ENTRIES, HydratedGipfBoard } from '@tabletop/gipf'
+import { ActionType, emptyBoard, ENTRIES, HydratedGipfBoard, type PushPiece } from '@tabletop/gipf'
 import { inferPush } from './inferPush.js'
 
 function boardWith(pieces: [number, number, string][]) {
@@ -40,5 +40,54 @@ describe('inferPush', () => {
         taken.remove({ q: 0, r: 3 })
         taken.remove({ q: 0, r: 2 })
         expect(inferPush(before, taken)).toBeUndefined()
+    })
+})
+
+describe('inferPush for a piece that moved nothing along', () => {
+    // A lone piece on E2 could have come in from E1 or from either dot beside it.
+    const before = boardWith([[3, -3, 'b']])
+    const after = boardWith([
+        [0, 3, 'w'],
+        [3, -3, 'b']
+    ])
+    const pushFrom = (dot: { q: number; r: number }): PushPiece =>
+        ({
+            id: 'push',
+            gameId: 'game',
+            playerId: 'w',
+            type: ActionType.PushPiece,
+            dot,
+            to: { q: 0, r: 3 },
+            gipf: false
+        }) as PushPiece
+
+    it('could read any of the dots beside its spot', () => {
+        const dots = ENTRIES.filter((e) => e.line[0].q === 0 && e.line[0].r === 3).map((e) => e.dot)
+        expect(dots).toHaveLength(3)
+        expect(dots).toContainEqual(inferPush(before, after)?.entry.dot)
+    })
+
+    it.each([
+        { q: 0, r: 4 },
+        { q: 1, r: 3 },
+        { q: -1, r: 4 }
+    ])('follows the push history steps to, from %o', (dot) => {
+        expect(inferPush(before, after, pushFrom(dot))).toMatchObject({
+            entry: { dot },
+            shifted: 0,
+            forward: true
+        })
+    })
+
+    it('follows the push Undo takes back', () => {
+        expect(inferPush(after, before, pushFrom({ q: 1, r: 3 }))).toMatchObject({
+            entry: { dot: { q: 1, r: 3 } },
+            forward: false
+        })
+    })
+
+    it('reads the boards when the known push does not fit them', () => {
+        const elsewhere = { ...pushFrom({ q: 0, r: 4 }), dot: { q: 4, r: 0 }, to: { q: 3, r: 0 } }
+        expect(inferPush(before, after, elsewhere)?.entry.line[0]).toEqual({ q: 0, r: 3 })
     })
 })

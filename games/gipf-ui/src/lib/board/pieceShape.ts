@@ -26,10 +26,11 @@ const TOP_RADIUS = 1 - RIM_ROUND * 0.6
 // How many shades a slice can take, from facing straight down to facing straight up.
 export const SHADE_LEVELS = 9
 
-// A slice of the side at a shade level, or (level -1) a lower disc's top in shadow.
+// A slice of the side at a shade level.
 export type Slice = { y: number; rx: number; ry: number; level: number }
 export type Ellipse = { y: number; rx: number; ry: number }
-export type PieceDrawing = {
+// One disc standing on its point.
+export type DiscDrawing = {
     slices: Slice[]
     top: Ellipse
     // The trough's opening, where its floor shows; the outer wall on the far side, facing you;
@@ -38,6 +39,13 @@ export type PieceDrawing = {
     farWall: string
     nearWall: string
     centre: Ellipse
+}
+export type PieceDrawing = {
+    disc: DiscDrawing
+    // How far up the screen each disc stands, from the bottom up.
+    bases: number[]
+    // The top of a disc with another on it, in that one's shadow, where the crease shows.
+    crease: Ellipse
 }
 
 // Radius and upward slope of the disc's side at a height up it, all over its radius.
@@ -64,42 +72,50 @@ function level(facing: number): number {
     return Math.round(((facing + 1) / 2) * (SHADE_LEVELS - 1))
 }
 
-// Where each disc of a piece stands, from the bottom up, as heights over the radius.
-function discBases(gipf: boolean): number[] {
-    return gipf ? [0, THICKNESS + STACK_GAP] : [0]
+// Where each disc of a stack stands, from the bottom up, as heights over the radius.
+function discBases(discs: number): number[] {
+    return Array.from({ length: discs }, (_, index) => index * (THICKNESS + STACK_GAP))
+}
+
+export function discsOf(gipf: boolean): number {
+    return gipf ? 2 : 1
+}
+
+export function stackTop(discs: number): number {
+    return discBases(discs).at(-1)! + THICKNESS
 }
 
 export function pieceTop(gipf: boolean): number {
-    return discBases(gipf).at(-1)! + THICKNESS
+    return stackTop(discsOf(gipf))
 }
 
-// A piece of the given radius standing on its point, at the view's tilt.
-export function pieceDrawing(view: BoardView, gipf: boolean, radius: number): PieceDrawing {
+// A stack of discs of the given radius standing on its point, at the view's tilt: the same disc at
+// each base, each drawn from its own base. A piece is one disc, a GIPF-piece two.
+export function pieceDrawing(view: BoardView, discs: number, radius: number): PieceDrawing {
     const ellipse = (height: number, r: number): Ellipse => ({
         y: -view.height(height * radius),
         rx: r * radius,
         ry: r * radius * view.tilt
     })
-    const top = pieceTop(gipf)
-    const slices = discBases(gipf).flatMap((base) => {
-        const side = Array.from({ length: SLICES + 1 }, (_, index) => {
-            const height = (THICKNESS * index) / SLICES
-            const { radius: r, facing } = profile(height)
-            return { ...ellipse(base + height, r), level: level(facing) }
-        })
-        const covered = base + THICKNESS < top
-        return covered ? [...side, { ...ellipse(base + THICKNESS, TOP_RADIUS), level: -1 }] : side
+    const slices = Array.from({ length: SLICES + 1 }, (_, index) => {
+        const height = (THICKNESS * index) / SLICES
+        const { radius: r, facing } = profile(height)
+        return { ...ellipse(height, r), level: level(facing) }
     })
     const depth = view.height(TROUGH_DEPTH * radius)
-    const trough = ellipse(top, TROUGH_OUTER)
-    const centre = ellipse(top, TROUGH_INNER)
+    const trough = ellipse(THICKNESS, TROUGH_OUTER)
+    const centre = ellipse(THICKNESS, TROUGH_INNER)
     return {
-        slices,
-        top: ellipse(top, TOP_RADIUS),
-        trough,
-        farWall: farWall(trough, depth),
-        nearWall: nearWall(centre, depth),
-        centre
+        disc: {
+            slices,
+            top: ellipse(THICKNESS, TOP_RADIUS),
+            trough,
+            farWall: farWall(trough, depth),
+            nearWall: nearWall(centre, depth),
+            centre
+        },
+        bases: discBases(discs).map((base) => -view.height(base * radius)),
+        crease: ellipse(THICKNESS, TOP_RADIUS)
     }
 }
 
