@@ -406,6 +406,24 @@ test('two artillery units on a wide approach threaten one at a time and are name
     await expect(attack).toBeHidden()
 })
 
+test('the orders say how to aim an attack', async ({ page }) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    const howToAim = page.getByText('To attack, tap an enemy locale.')
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await page.getByRole('button', { name: 'End turn' }).click()
+
+    await expect(page.getByText('Choose a corps or unit on the map')).toBeVisible()
+    await expect(howToAim).toBeVisible()
+    await pickUp(page, 'st-hilaire')
+    await expect(page.getByRole('group', { name: 'St. Hilaire’s corps' })).toBeVisible()
+    await expect(howToAim).toBeVisible()
+    await tap(page, '[data-aim-locale="94"]')
+    await expect(page.getByText('Tap an arrow to threaten an attack')).toBeVisible()
+    await expect(howToAim).toBeHidden()
+})
+
 test('a threat chosen from the locale it is aimed at', async ({ page }) => {
     await createGame(page)
     await deployBothArmies(page)
