@@ -355,6 +355,11 @@ describe('R-5.5.5 (revision 7) — the attacker picks where the skulls kill, aft
             answer: { kind: PowerQuestionKind.RerollDice, reroll: false }
         })
         expect(t.state.campaign?.pendingSkullKills).toBeUndefined()
+        // The answer settled the skulls but killed none: the pick's own step records them.
+        expect(t.processed[0]).toMatchObject({
+            type: ActionType.AnswerQuestion,
+            metadata: { skullsKilled: 0 }
+        })
         expect(t.state.campaign?.pendingSkullLosses).toEqual({ skulls: 2 })
         expect(t.state.machineState).toBe(MachineState.CampaignSkullLosses)
         expect(t.state.activePlayerIds).toEqual([ATT])

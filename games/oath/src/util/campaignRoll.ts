@@ -239,14 +239,17 @@ function askRerolls(
     return asked
 }
 
-/** Jinx */
-export function settleSkullKills(state: HydratedOathGameState): void {
+/**
+ * Jinx — the skulls held for the answers kill: how many warbands they took, or undefined when no kills
+ * were held.
+ */
+export function settleSkullKills(state: HydratedOathGameState): number | undefined {
     const campaign = state.campaign
-    if (!campaign?.pendingSkullKills) return
+    if (!campaign?.pendingSkullKills) return undefined
     const { order } = campaign.pendingSkullKills
     const { skulls } = countedAttack(campaign, campaign.attackRoll)
     campaign.pendingSkullKills = undefined
-    killOrHoldForSkulls(state, campaign, skulls, order)
+    return forceTotal(killOrHoldForSkulls(state, campaign, skulls, order))
 }
 
 /** R-5.5.5 — Outriders ignores them; from revision 7 the attacker picks where they kill when that is a choice. */

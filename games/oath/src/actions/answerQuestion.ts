@@ -69,6 +69,11 @@ export const AnswerQuestionMetadata = Type.Object({
     titleMoment: Type.Optional(Type.Boolean()),
     /** R-5.5.4-H1 — the held attack, when this answer's settling rolled it. */
     heldAttack: Type.Optional(HeldAttackRoll),
+    /**
+     * R-5.5.5 — Jinx: the attacker's warbands the skulls held for the answers killed, when this answer's
+     * settling killed them (read as a Campaign's battle record reads its own).
+     */
+    skullsKilled: Type.Optional(Type.Number()),
     /** R-7.6.3-H1 — the Tribunal deal this accept opened, public with its promises. */
     openedDeal: Type.Optional(OpenDeal),
     /** R-7.6.3-H1 — the deal a claim asked about, as it stood when answered: kept closes it. */

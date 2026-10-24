@@ -121,7 +121,8 @@ function applyAnswerOf<K extends PowerQuestionKind>(
 /**
  * `settled`: the action being settled. When its answer empties the queue and so rolls the attack held
  * for the defender's reroll, it reveals information and cannot be undone (R-X.3), and the answer's
- * record (`answered`) keeps what the attack rolled for History.
+ * record (`answered`) keeps what the attack rolled for History, and the warbands the skulls held for
+ * Jinx killed once it settles them.
  */
 export function settleQueue(
     state: HydratedOathGameState,
@@ -138,7 +139,10 @@ export function settleQueue(
         if (answered) answered.heldAttack = heldAttack
     }
     // Jinx — the skulls' kills are held back until every reroll is answered.
-    if (pending.queue.length === 0 && !pending.followUp) settleSkullKills(state)
+    if (pending.queue.length === 0 && !pending.followUp) {
+        const skullsKilled = settleSkullKills(state)
+        if (answered && skullsKilled !== undefined) answered.skullsKilled = skullsKilled
+    }
     if (pending.queue.length === 0 && pending.followUp) {
         const { cardId, siteId } = pending.followUp
         pending.followUp = undefined
