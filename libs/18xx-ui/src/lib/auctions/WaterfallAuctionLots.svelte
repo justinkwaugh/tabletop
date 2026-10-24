@@ -241,30 +241,6 @@
         flex: 0 1 560px;
         margin-inline: 0;
     }
-    tr.selected > *,
-    tr.bid-row > * {
-        background: var(--rail-surface-selected, #e6dccd);
-    }
-    tr.selected > :first-child {
-        border-top-left-radius: 8px;
-    }
-    tr.selected > :last-child {
-        border-top-right-radius: 8px;
-    }
-    tr.selected:not(:has(+ tr.bid-row)) > :first-child,
-    tr.bid-row > :first-child {
-        border-bottom-left-radius: 8px;
-    }
-    tr.selected:not(:has(+ tr.bid-row)) > :last-child,
-    tr.bid-row > :last-child {
-        border-bottom-right-radius: 8px;
-    }
-    .auction-lot-table tbody tr.selected > :first-child {
-        padding-left: 8px;
-    }
-    .auction-lot-table tbody tr.selected > :last-child {
-        padding-right: 8px;
-    }
     tr.won > *,
     tr.won .income {
         color: var(--rail-muted, #887664);
@@ -279,28 +255,6 @@
         max-width: 6.5em;
         overflow: hidden;
         text-overflow: ellipsis;
-    }
-    .auction-lot-table tbody tr.bid-row > * {
-        border-top: 0;
-        padding: 2px 8px 8px;
-    }
-    .bid-line {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
-        gap: 6px 14px;
-        padding: 6px 8px;
-        border: 1px solid var(--rail-border, #c7b8a6);
-        border-radius: 6px;
-        background: var(--rail-surface-inset, #1b232d);
-    }
-    .figures {
-        display: flex;
-        flex-direction: column;
-        line-height: 1.3;
-        color: var(--rail-text, #786550);
-        font-size: 12px;
     }
     @container waterfall-lots (min-width: 640px) {
         th.bids {

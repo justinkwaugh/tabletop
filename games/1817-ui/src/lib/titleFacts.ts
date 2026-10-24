@@ -113,7 +113,8 @@ export const EighteenSeventeenMarketZones: readonly MarketZone[] = [
     {
         color: MarketZoneColors.par,
         name: 'Par',
-        description: 'A price a company may start at.'
+        description: 'A price a company may start at.',
+        banner: { label: 'Par values', shape: 'span' }
     },
     {
         color: MarketZoneColors.safe,

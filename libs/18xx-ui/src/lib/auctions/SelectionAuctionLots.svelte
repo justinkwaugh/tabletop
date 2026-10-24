@@ -35,7 +35,22 @@
     const plainDescription = (description: string) => namedPlaceText(description, session.placeName)
     const lotTitle = (lot: (typeof lots)[number]) =>
         lot.company.description && plainDescription(lot.company.description)
+    const columnCount = $derived(auction.ownTurn ? 4 : 3)
 </script>
+
+{#snippet stepper(lotId: string, amount: number, inline: boolean)}
+    <AuctionBidControl
+        {money}
+        {inline}
+        {amount}
+        increment={model.rules.increment}
+        canBid={auction.canNominate(lotId, amount)}
+        canDecrease={auction.canNominate(lotId, amount - model.rules.increment)}
+        canIncrease={auction.canNominate(lotId, amount + model.rules.increment)}
+        onChange={(amount) => auction.setBid(amount)}
+        onBid={() => auction.nominate()}
+    />
+{/snippet}
 
 {#snippet slotContent(lot: (typeof lots)[number], open: boolean)}
     <span class="slot-heading"
@@ -136,42 +151,43 @@
                             <td class="amount value">{money(lot.price)}</td>
                             <td class="amount">{money(model.minimumBid(lot.id))}</td>
                         </tr>
+                        {#if selected?.id === lot.id && auction.selection && playerId}
+                            <tr class="bid-row">
+                                <td colspan={columnCount}>
+                                    <div class="bid-line" role="group" aria-label="Your bid">
+                                        {@render stepper(lot.id, auction.selection.amount, true)}
+                                        <span class="figures"
+                                            ><span
+                                                >Available <strong
+                                                    >{money(model.cash(playerId))}</strong
+                                                ></span
+                                            ></span
+                                        >
+                                    </div>
+                                </td>
+                            </tr>
+                        {/if}
                     {/each}
                 </tbody>
             </table>
         {/if}
         {#if playerId}
             <div class="turn">
-                <div class="summary">
-                    <span
-                        >{session.getPlayerName(playerId)} has
-                        <strong>{money(model.cash(playerId))}</strong></span
-                    >
-                </div>
-                {#if selected && auction.selection}
+                {#if !selected || tiers}<div class="summary">
+                        <span
+                            >{session.getPlayerName(playerId)} has
+                            <strong>{money(model.cash(playerId))}</strong></span
+                        >
+                    </div>{/if}
+                {#if tiers && selected && auction.selection}
                     <div class="summary">
                         <span>Auction <strong>{session.lotName(selected)}</strong></span>
-                        {#if tiers && selected.company.description}<span class="power full"
+                        {#if selected.company.description}<span class="power full"
                                 ><PlaceText text={selected.company.description} /></span
                             >{/if}
                     </div>
-                    <AuctionBidControl
-                        {money}
-                        amount={auction.selection.amount}
-                        increment={model.rules.increment}
-                        canBid={auction.canNominate(selected.id, auction.selection.amount)}
-                        canDecrease={auction.canNominate(
-                            selected.id,
-                            auction.selection.amount - model.rules.increment
-                        )}
-                        canIncrease={auction.canNominate(
-                            selected.id,
-                            auction.selection.amount + model.rules.increment
-                        )}
-                        onChange={(amount) => auction.setBid(amount)}
-                        onBid={() => auction.nominate()}
-                    />
-                {:else if auction.ownTurn && auction.passOffered}
+                    {@render stepper(selected.id, auction.selection.amount, false)}
+                {:else if !selected && auction.ownTurn && auction.passOffered}
                     <button
                         class="pass action-button"
                         disabled={!auction.canPass}
@@ -289,9 +305,6 @@
         font-size: 11px;
         color: var(--rail-muted, #887969);
         font-variant-numeric: tabular-nums;
-    }
-    tr.selected {
-        background: var(--rail-surface-selected, #e6dccd);
     }
     .turn {
         display: flex;
