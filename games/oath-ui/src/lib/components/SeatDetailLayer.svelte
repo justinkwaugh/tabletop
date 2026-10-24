@@ -305,10 +305,12 @@
         gap: 10px;
         margin-bottom: 8px;
     }
+    /* A long name wraps inside the row, where the phone reads the whole of it. */
     .head h2 {
         font-size: 18px;
         font-weight: 700;
         margin: 0;
+        overflow-wrap: anywhere;
     }
     .status {
         color: #a8a29e;

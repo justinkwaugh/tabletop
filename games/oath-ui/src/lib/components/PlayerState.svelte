@@ -91,7 +91,8 @@
             class="pill"
             aria-label="Open {player.name}'s seat{isMe ? ' (you)' : ''}"
             onclick={() => gameSession.seatDetail.toggle(player.id)}
-            >{player.name}{isMe ? ' · you' : ''}</button
+            ><span class="name">{player.name}</span>{#if isMe}<span class="you">{' · you'}</span
+                >{/if}</button
         >
         {#if deals > 0}
             <!-- A scroll and the count, amber beside the pill; the deals are in the seat detail. -->
@@ -365,14 +366,14 @@
         height: 54px;
         padding: 0 8px 0 10px;
     }
-    /* The pill ellipsises before anything overflows; the title word yields first. It takes only
-       the room the pill, a deal mark and the avatar leave, up to 40%, so a mark beside the pill
-       shrinks the word before it cuts the name. */
+    /* The title word never draws narrower than 72 px (an Exile word is 75 px whole); past that
+       the name gives way. The word takes the room the pill, a deal mark and the avatar leave, up to
+       40%, so a mark beside a short name shrinks the word before it cuts the name. */
     .word {
         height: 32px;
         width: auto;
         max-width: 40%;
-        min-width: 0;
+        min-width: 72px;
         flex: 1 1 0;
         object-fit: contain;
         object-position: left;
@@ -384,10 +385,10 @@
         color: inherit;
         margin-left: auto;
         flex: 0 1 auto;
+        display: inline-flex;
+        align-items: baseline;
         min-width: 0;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
         background: var(--seat);
         font-weight: 700;
         letter-spacing: 0.06em;
@@ -396,6 +397,17 @@
         padding: 4px 8px 3px;
         border-radius: 6px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+    /* The name is cut with "…"; "· you" is never cut. */
+    .pill .name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .pill .you {
+        flex: none;
+        white-space: pre;
     }
     .avatar {
         width: 42px;
