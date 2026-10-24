@@ -22,7 +22,9 @@
     import { goodName } from '$lib/utils/trade.js'
     import {
         ANOMALY_SIZE,
+        DEMAND_SIZE,
         MARKER_SCALE_ON_ANOMALY,
+        WORLD_SIZE,
         anomalyOutline
     } from '$lib/utils/tileFeatures.js'
     import AnomalyTile from '../AnomalyTile.svelte'
@@ -31,13 +33,10 @@
     import BaseTab from './BaseTab.svelte'
     import type { BaseTab as BaseTabLayout } from '$lib/utils/baseTabLayout.js'
 
-    const WORLD_SIZE = 112
     const MARKER_SIZE = 74
     // Events sit to the left of the anomaly's place, one after another.
     const EVENT_SIZE = 96
     const EVENT_SPACING = 104
-    // The demand marker sits in the tile's upper left, under the end of its name.
-    const DEMAND_SIZE = 56
 
     let {
         frame,
@@ -176,8 +175,8 @@
     {#if demand.length > 0}
         <image
             href={DEMAND_ART[frame.systemId === SOL_SYSTEM_ID ? 'Sol' : demand[0]]}
-            x={-frame.width * 0.33 - DEMAND_SIZE / 2}
-            y={-frame.height * 0.25 - DEMAND_SIZE / 2}
+            x={frame.demand.x - DEMAND_SIZE / 2}
+            y={frame.demand.y - DEMAND_SIZE / 2}
             width={DEMAND_SIZE}
             height={DEMAND_SIZE}
             pointer-events="none"
@@ -228,9 +227,19 @@
             onclick={onTileClick}
         >
             <polygon points={tileOutline(frame, 6)}></polygon>
-            <text class="move-label" y={-frame.height * 0.3} text-anchor="middle"
-                >{mapTarget.label}</text
-            >
+            {#if mapTarget.besideDemand}
+                <text
+                    class="move-label"
+                    x={frame.demand.x}
+                    y={frame.demand.y + DEMAND_SIZE / 2 + 4}
+                    dy="0.8em"
+                    text-anchor="middle">{mapTarget.label}</text
+                >
+            {:else}
+                <text class="move-label" y={-frame.height * 0.3} text-anchor="middle"
+                    >{mapTarget.label}</text
+                >
+            {/if}
         </g>
     {/if}
 </g>

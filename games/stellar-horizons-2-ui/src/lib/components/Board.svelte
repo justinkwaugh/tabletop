@@ -1,11 +1,12 @@
 <script lang="ts">
+    import { demandedGoods } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { BoardLayout } from '$lib/utils/boardLayout.js'
     import SystemTile from './board/SystemTile.svelte'
     import ShipStrip from './board/ShipStrip.svelte'
     import { factionShipGroups, shipPipLayout } from '$lib/utils/shipPipLayout.js'
     import { baseTabLayout, systemTabBases } from '$lib/utils/baseTabLayout.js'
-    import { anomalyBox, frameWithAnomaly } from '$lib/utils/tileFeatures.js'
+    import { anomalyBox, demandBox, frameWithAnomaly } from '$lib/utils/tileFeatures.js'
 
     let { layout }: { layout: BoardLayout } = $props()
 
@@ -17,7 +18,12 @@
                 state.systemState(printed.systemId).anomaly === undefined
                     ? printed
                     : frameWithAnomaly(printed)
-            const kept = frame.anomaly ? [anomalyBox(frame.anomaly)] : []
+            const kept = [
+                ...(frame.anomaly ? [anomalyBox(frame.anomaly)] : []),
+                ...(demandedGoods(state, frame.systemId).length > 0
+                    ? [demandBox(frame.demand)]
+                    : [])
+            ]
             const bases = baseTabLayout(frame, systemTabBases(state, frame.systemId), kept)
             return {
                 frame,

@@ -44,6 +44,7 @@
         mine && gameSession.validActionTypes.includes(ActionType.DestroyGoods)
     )
     const goods = $derived(playerId ? holdings(gameSession.gameState, playerId) : [])
+    let scoreOpen = $state(false)
 
     const SCORE_LINES = [
         ['techs', 'Techs not developed'],
@@ -128,15 +129,36 @@
                 {@const score = standing.campaign.score}
                 <section>
                     <h4>
-                        Score <span>{score.total} VP · {galacticRank(score.total)}</span>
+                        <button
+                            type="button"
+                            class="fold"
+                            aria-expanded={scoreOpen}
+                            aria-controls="faction-score"
+                            onclick={() => (scoreOpen = !scoreOpen)}
+                        >
+                            Score
+                            <span class="total"
+                                >{score.total} VP · {galacticRank(score.total)}
+                                <svg
+                                    class="chevron"
+                                    class:open={scoreOpen}
+                                    viewBox="0 0 16 16"
+                                    aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg
+                                ></span
+                            >
+                        </button>
                     </h4>
-                    <div class="score">
-                        {#each SCORE_LINES as [key, label] (key)}
-                            {#if score[key] !== 0}
-                                <span>{label}</span><span class="value">{signed(score[key])}</span>
-                            {/if}
-                        {/each}
-                    </div>
+                    {#if scoreOpen}
+                        <div class="score" id="faction-score">
+                            {#each SCORE_LINES as [key, label] (key)}
+                                {#if score[key] !== 0}
+                                    <span>{label}</span><span class="value"
+                                        >{signed(score[key])}</span
+                                    >
+                                {/if}
+                            {/each}
+                        </div>
+                    {/if}
                 </section>
             {/if}
 
@@ -455,7 +477,52 @@
         color: #7fd3ff;
     }
 
-    h4 span {
+    .fold {
+        display: flex;
+        flex: 1;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin: -3px -6px;
+        padding: 3px 6px;
+        border: none;
+        border-radius: 6px;
+        background: none;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+    }
+
+    .fold:hover {
+        background: rgba(127, 211, 255, 0.08);
+    }
+
+    .total {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #8fa4c2;
+    }
+
+    .chevron {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        transform: rotate(-90deg);
+        transition: transform 150ms ease;
+    }
+
+    .chevron.open {
+        transform: none;
+    }
+
+    h4 > span {
         font-size: 12px;
         font-weight: 500;
         color: #8fa4c2;

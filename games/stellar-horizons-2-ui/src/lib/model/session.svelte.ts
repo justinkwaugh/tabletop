@@ -159,11 +159,13 @@ export interface CargoDraft {
     goods: GoodsGroup[]
 }
 
-// A system the map offers for the current choice, with what choosing it does.
+// A system the map offers for the current choice, with what choosing it does. A sale's label
+// sits beside the system's demand marker, which shows the good, rather than over it.
 export interface MapTarget {
     systemId: string
     label: string
     action: string
+    besideDemand?: boolean
 }
 
 export interface ShipClump {
@@ -1115,9 +1117,10 @@ export class StellarHorizonsGameSession extends GameSession<
                     systemId,
                     label:
                         options.length === 1
-                            ? `Sell ${goodName(only.good)} $${only.price}B`
+                            ? `Sell $${only.price}B`
                             : `Sell ${options.length} goods`,
-                    action: `Sell goods at ${systemName(systemId)}`
+                    action: `Sell goods at ${systemName(systemId)}`,
+                    besideDemand: true
                 }
             })
     }

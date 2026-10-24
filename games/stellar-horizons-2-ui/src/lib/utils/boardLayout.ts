@@ -10,6 +10,7 @@ import {
 } from '@tabletop/common'
 import { STAR_MAP } from '@tabletop/stellar-horizons-2'
 import { SYSTEM_GEOMETRY } from '$lib/art/manifest.js'
+import { demandSpot } from './tileFeatures.js'
 
 export const ART_SCALE = 0.5
 export const BOARD_MARGIN = 40
@@ -27,6 +28,7 @@ export interface SystemFrame {
     height: number
     slots: Point[]
     marker: Point
+    demand: Point
     anomaly?: Point
 }
 
@@ -85,6 +87,7 @@ export function boardLayout(systemIds: readonly string[], turn: BoardTurn): Boar
         })
         const slots = geometry.slots.map(toLocal)
         return {
+            demand: demandSpot({ width, height, slots }),
             systemId: hex.systemId,
             center: {
                 x: center.x - bounds.x + BOARD_MARGIN,

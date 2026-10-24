@@ -95,7 +95,7 @@ The end of 2100's exploration. The Starfarers have committed to Splinter Colony 
 
 The cargo and trade phase of 2110, played on the Main Line in initiative order; the Starfarers go first. They have Medicine and Food at their base at Alpha Centauri (an M and a K world), where Medicine is in demand; Fauna aboard Andromeda at Barnard's Star, where the Givers have a base and Fauna is in demand; Ore on Earth; and Polaris, empty, at Alpha Centauri.
 
-- **Selling.** The map outlines Sol ("Sell Ore $4B"), Alpha Centauri ("Sell Medicine $5B") and Barnard's Star ("Sell Fauna $6B"). Clicking Barnard's Star zooms in; its panel offers Sell Fauna at $6B each, +1 IP, with "Pays Player 2 $1B": the Starfarers have no base there.
+- **Selling.** The map outlines Sol ("Sell $4B"), Alpha Centauri ("Sell $5B") and Barnard's Star ("Sell $6B"), each label under the system's demand marker. Clicking Barnard's Star zooms in; its panel offers Sell Fauna at $6B each, +1 IP, with "Pays Player 2 $1B": the Starfarers have no base there.
 - **Demand.** Selling Fauna returns Barnard's Star's marker and the Starfarers keep one of two new ones; the cargo step comes back with what is left to sell.
 - **Loading.** Choosing Polaris shows Earth-less partners: the base, with a row for Medicine and one for Food, each moving one good per arrow beside the settlement row.
 - **The map and the system panel.** Alpha Centauri's demand marker shows in its upper left; zooming in lists "Demand: Medicine sells for $5B each, and 1 IP" and the base's goods beside its settlements. Sol shows its own marker for Ore, Rare Materials and Fine Art.

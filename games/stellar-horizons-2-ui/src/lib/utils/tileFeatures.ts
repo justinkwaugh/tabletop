@@ -32,6 +32,70 @@ export function boxesOverlap(a: Box, b: Box, gap = 0): boolean {
     )
 }
 
+export const WORLD_SIZE = 112
+export const DEMAND_SIZE = 56
+const DEMAND_GAP = 6
+// A tile's width over its height, as for every flat-topped hex.
+const TILE_ASPECT = 2 / Math.sqrt(3)
+// The demand marker's place on an open tile, as a fraction of the tile's width and height.
+const DEMAND_PREFERRED: Point = { x: -0.26, y: -0.24 }
+// Places in the tile's upper half, nearest the preferred one first.
+const DEMAND_CANDIDATES: Point[] = Array.from({ length: 97 * 49 }, (_, index) => ({
+    x: (index % 97) / 100 - 0.48,
+    y: Math.floor(index / 97) / 100 - 0.48
+})).toSorted(
+    (a, b) =>
+        Math.hypot((a.x - DEMAND_PREFERRED.x) * TILE_ASPECT, a.y - DEMAND_PREFERRED.y) -
+        Math.hypot((b.x - DEMAND_PREFERRED.x) * TILE_ASPECT, b.y - DEMAND_PREFERRED.y)
+)
+
+// Whether a point lies at least `margin` inside the tile's hexagonal edge.
+function insideTile(
+    frame: Pick<SystemFrame, 'width' | 'height'>,
+    point: Point,
+    margin: number
+): boolean {
+    const a = frame.width / 2
+    const b = frame.height / 2
+    const x = Math.abs(point.x)
+    const y = Math.abs(point.y)
+    const fromSlantedEdge = (a * b - b * x - (a / 2) * y) / Math.hypot(b, a / 2)
+    return y <= b - margin && fromSlantedEdge >= margin
+}
+
+// Worlds sit in different places on every tile, so no one spot is clear on all of them: the
+// demand marker takes the place nearest the upper left that is inside the tile's edge and clear
+// of its world slots and printed text.
+export function demandSpot(frame: Pick<SystemFrame, 'width' | 'height' | 'slots'>): Point {
+    const radius = DEMAND_SIZE / 2 + DEMAND_GAP
+    const text = printedText(frame)
+    const clear = (point: Point) =>
+        insideTile(frame, point, radius) &&
+        text.every((box) => distanceToBox(point, box) >= radius) &&
+        frame.slots.every(
+            (slot) => Math.hypot(slot.x - point.x, slot.y - point.y) >= WORLD_SIZE / 2 + radius
+        )
+    const spots = DEMAND_CANDIDATES.map((candidate) => ({
+        x: candidate.x * frame.width,
+        y: candidate.y * frame.height
+    }))
+    return (
+        spots.find(clear) ?? {
+            x: DEMAND_PREFERRED.x * frame.width,
+            y: DEMAND_PREFERRED.y * frame.height
+        }
+    )
+}
+
+export function demandBox(spot: Point): Box {
+    return {
+        left: spot.x - DEMAND_SIZE / 2,
+        top: spot.y - DEMAND_SIZE / 2,
+        right: spot.x + DEMAND_SIZE / 2,
+        bottom: spot.y + DEMAND_SIZE / 2
+    }
+}
+
 export const ANOMALY_SIZE = { width: 126, height: 110 }
 const ANOMALY_FROM_CORNER: Point = { x: -4, y: -3 }
 const MARKER_FROM_ANOMALY: Point = { x: 56, y: -44 }
