@@ -5,6 +5,7 @@ import {
     ClaimDealKept,
     IMPERIAL_WARBANDS,
     MAX_OPEN_DEALS_PER_PLAYER,
+    PROMISE_MAX_LENGTH,
     MachineState,
     OathRevision,
     OathType,
@@ -32,6 +33,9 @@ export const TRIBUNAL_PROMISES = {
     fromProposer: 'I will not campaign against you before the end of round 5.',
     fromCounterparty: 'I will travel to the Hinterland on my next turn.\nAnd stay there a round.'
 } as const
+
+/** R-7.6.3-H1 — a promise as long as the rule allows, one unbroken word: it must wrap inside its panel. */
+export const LONG_PROMISE = 'W'.repeat(PROMISE_MAX_LENGTH)
 
 function seats(home: string) {
     return [
@@ -103,14 +107,17 @@ export function tribunalOfferTable(scene: TribunalOfferScene): PlayedTable {
 
 /**
  * R-7.6.3-H1 — the Tribunal's offer put to Rhys on Dana's turn: 2 favor for 1 secret, a promise
- * each way (Rhys's over two lines). Ann is a third seat.
+ * each way (Rhys's over two lines). Ann is a third seat. `long`: Rhys's promise is `LONG_PROMISE`.
  */
-export function tribunalAnswerTable(): PlayedTable {
+export function tribunalAnswerTable(long = false): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const terms: ExchangeTerms = {
         fromProposer: { favor: 2 },
         fromCounterparty: { secrets: 1 },
-        promises: { ...TRIBUNAL_PROMISES }
+        promises: {
+            ...TRIBUNAL_PROMISES,
+            ...(long ? { fromCounterparty: LONG_PROMISE } : {})
+        }
     }
     const state = testState(seats(home), {
         machineState: MachineState.PowerQuestion,
@@ -147,33 +154,36 @@ export function tribunalAnswerTable(): PlayedTable {
  */
 export type TribunalDealsScene = 'resolve' | 'asked' | 'ended'
 
-/** Ann's promise in the deal she made with Dana. */
+/** Ann's promise in the deal they made with Dana. */
 export const ANN_PROMISE = 'I will offer you Citizenship on my next turn.'
 
-/** R-7.6.3-H1 — Dana's two open deals. */
-function dealsOnTheTable(): OpenDeal[] {
+/** R-7.6.3-H1 — Dana's two open deals; `long`, Rhys's and Ann's promises are `LONG_PROMISE`. */
+function dealsOnTheTable(long: boolean): OpenDeal[] {
     return [
         {
             id: '3.7',
             proposerPlayerId: 'dana',
             counterpartyPlayerId: 'rhys',
             proposerPromise: TRIBUNAL_PROMISES.fromProposer,
-            counterpartyPromise: TRIBUNAL_PROMISES.fromCounterparty,
+            counterpartyPromise: long ? LONG_PROMISE : TRIBUNAL_PROMISES.fromCounterparty,
             round: 3
         },
         {
             id: '4.2',
             proposerPlayerId: 'ann',
             counterpartyPlayerId: 'dana',
-            proposerPromise: ANN_PROMISE,
+            proposerPromise: long ? LONG_PROMISE : ANN_PROMISE,
             round: 4,
             lastClaimedTurn: { round: 4, playerId: 'dana' }
         }
     ]
 }
 
-/** R-7.6.3-H1 — Dana, Rhys and Ann at the Tribunal in round 4, with Dana's two open deals. */
-export function tribunalDealsTable(scene: TribunalDealsScene): PlayedTable {
+/**
+ * R-7.6.3-H1 — Dana, Rhys and Ann at the Tribunal in round 4, with Dana's two open deals; `long`, with
+ * Rhys's and Ann's promises as long as the rule allows.
+ */
+export function tribunalDealsTable(scene: TribunalDealsScene, long = false): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const ending = scene === 'ended'
     const state = testState(seats(home), {
@@ -185,7 +195,7 @@ export function tribunalDealsTable(scene: TribunalDealsScene): PlayedTable {
         siteCards: { [home]: TRIBUNAL_ID },
         denizensBySite: { [home]: [] },
         warbandsBySite: { [home]: { [IMPERIAL_WARBANDS]: 2 } },
-        openDeals: dealsOnTheTable(),
+        openDeals: dealsOnTheTable(long),
         oathType: OathType.Supremacy,
         // R-3.1 — Rhys, an Exile and the Usurper, wins at their Wake. Otherwise Dana, who rules the
         // only ruled site, already keeps the Oath, so no action moves the title.

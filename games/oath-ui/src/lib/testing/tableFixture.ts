@@ -265,6 +265,10 @@ export type TableName =
     | 'tribunalDeals'
     | 'tribunalDealAsked'
     | 'tribunalDealsEnded'
+    | 'tribunalAnswerLong'
+    | 'tribunalDealsLong'
+    | 'tribunalDealAskedLong'
+    | 'tribunalDealsEndedLong'
     | 'woodTraveller'
     | 'woodRuler'
     | 'woodRulerToll'
@@ -5598,6 +5602,10 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     tribunalDeals: () => tribunalDealsTable('resolve'),
     tribunalDealAsked: () => tribunalDealsTable('asked'),
     tribunalDealsEnded: () => tribunalDealsTable('ended'),
+    tribunalAnswerLong: () => tribunalAnswerTable(true),
+    tribunalDealsLong: () => tribunalDealsTable('resolve', true),
+    tribunalDealAskedLong: () => tribunalDealsTable('asked', true),
+    tribunalDealsEndedLong: () => tribunalDealsTable('ended', true),
     woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),
     woodRuler: woodRulerTable,
     woodRulerToll: woodRulerTollTable,

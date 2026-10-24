@@ -75,7 +75,7 @@
 <!-- R-7.6.3-H1 — a promise in an offer, quoted as its player wrote it, line breaks kept. -->
 {#snippet promise(text: string)}
     <span
-        class="whitespace-pre-wrap border-l-[3px] border-oath-frame px-2 py-0.5 text-[13px]"
+        class="min-w-0 whitespace-pre-wrap wrap-anywhere border-l-[3px] border-oath-frame px-2 py-0.5 text-[13px]"
         data-promise>{text}</span
     >
 {/snippet}
@@ -86,7 +86,7 @@
         <span data-promise-by
             >{#if playerId}<PlayerName {playerId} />{:else}You{/if} promised:</span
         >
-        <span class="whitespace-pre-wrap" data-promise>{text}</span>
+        <span class="whitespace-pre-wrap wrap-anywhere" data-promise>{text}</span>
     </p>
 {/snippet}
 

@@ -90,11 +90,11 @@
                                     <PlayerName playerId={deal.proposerPlayerId} />
                                     and
                                     <PlayerName playerId={deal.counterpartyPlayerId} />, round {deal.round}
-                                    (<span class="whitespace-pre-wrap"
+                                    (<span class="whitespace-pre-wrap wrap-anywhere"
                                         >{quotedPromise(deal.proposerPromise)}</span
                                     >
                                     /
-                                    <span class="whitespace-pre-wrap"
+                                    <span class="whitespace-pre-wrap wrap-anywhere"
                                         >{quotedPromise(deal.counterpartyPromise)}</span
                                     >){index < dropped.length - 1 ? '; ' : ''}{/each}
                             </p>

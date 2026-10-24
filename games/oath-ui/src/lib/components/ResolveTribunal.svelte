@@ -35,7 +35,7 @@
                 </p>
                 {#if mine}
                     <p
-                        class="whitespace-pre-wrap text-[13px] text-oath-text-muted"
+                        class="whitespace-pre-wrap wrap-anywhere text-[13px] text-oath-text-muted"
                         data-deal-promise
                     >
                         you: {mine}
@@ -43,7 +43,7 @@
                 {/if}
                 {#if theirs}
                     <p
-                        class="whitespace-pre-wrap text-[13px] text-oath-text-muted"
+                        class="whitespace-pre-wrap wrap-anywhere text-[13px] text-oath-text-muted"
                         data-deal-promise
                     >
                         <PlayerName playerId={otherPlayerId} />: {theirs}
