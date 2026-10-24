@@ -187,7 +187,7 @@
                             >{/if}
                     </div>
                     {@render stepper(selected.id, auction.selection.amount, false)}
-                {:else if !selected && auction.ownTurn && auction.passOffered}
+                {:else if auction.ownTurn && auction.passOffered}
                     <button
                         class="pass action-button"
                         disabled={!auction.canPass}
@@ -344,6 +344,9 @@
             flex-basis: auto;
             align-items: center;
             text-align: center;
+        }
+        .turn:not(:has(*)) {
+            display: none;
         }
         .summary {
             align-items: center;

@@ -152,7 +152,6 @@
         padding-right: 17px;
         clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 11px 50%);
     }
-    /* Loans and private powers take the strip's second line, under the steps. */
     .privates {
         display: flex;
         flex: 0 0 100%;
@@ -161,7 +160,8 @@
         border-top: 1px solid var(--rail-border, #cbbcad);
         background: var(--rail-surface-raised, #e8ded4);
     }
-    .privates:empty {
+    /* Its two components leave a space between them even when both render nothing. */
+    .privates:not(:has(*)) {
         display: none;
     }
     @container (max-width: 420px) {
