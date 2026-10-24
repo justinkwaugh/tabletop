@@ -7,7 +7,7 @@ import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { isClosed } from '../model/holds.js'
 import { pactsNaming, recordPledgeableShips } from '../model/pacts.js'
-import { TurnPhase } from '../model/turn.js'
+import { type SpanPhase, TurnPhase } from '../model/turn.js'
 import { playState } from '../model/turnPlan.js'
 import { stateAfterPhase } from './transitions.js'
 
@@ -17,7 +17,7 @@ export class PhaseStateHandler implements MachineStateHandler<
     PhaseAction,
     HydratedStellarHorizonsGameState
 > {
-    constructor(private readonly phase: TurnPhase) {}
+    constructor(private readonly phase: SpanPhase) {}
 
     isValidAction(
         action: HydratedAction,

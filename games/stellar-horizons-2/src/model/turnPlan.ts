@@ -1,7 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import { TurnPhase } from './turn.js'
+import { type SpanPhase, TurnPhase } from './turn.js'
 
 export enum MergeDirection {
     Initiative = 'Initiative',
@@ -11,7 +11,7 @@ export enum MergeDirection {
 export type MergeForm = 'ordered' | 'barrier'
 
 export interface PhaseDefinition {
-    phase: TurnPhase
+    phase: SpanPhase
     branchingState: MachineState
     playState: MachineState
     direction: MergeDirection
@@ -22,7 +22,7 @@ export interface PhaseDefinition {
 // initiative order, while exploration and tech development are simultaneous. The campaign's
 // initiative declaration, base production choices and goods assignment (4.1, 4.4, 4.5) are
 // simultaneous too.
-export const PHASE_DEFINITIONS: Record<TurnPhase, PhaseDefinition> = {
+export const PHASE_DEFINITIONS: Record<SpanPhase, PhaseDefinition> = {
     [TurnPhase.Build]: {
         phase: TurnPhase.Build,
         branchingState: MachineState.BuildPhase,
@@ -84,18 +84,41 @@ export const PHASE_DEFINITIONS: Record<TurnPhase, PhaseDefinition> = {
 // The campaign plays the cargo and trade phase on the Main Line, one Player at a time in
 // initiative order, since selling draws from the shared demand pool (campaign plan, decision 1).
 export const MAIN_LINE_PHASE_STATES: Partial<Record<MachineState, TurnPhase>> = {
-    [MachineState.Trading]: TurnPhase.Cargo
+    [MachineState.Trading]: TurnPhase.Cargo,
+    [MachineState.Attacking]: TurnPhase.Combat,
+    [MachineState.Defending]: TurnPhase.Combat,
+    [MachineState.AssigningHits]: TurnPhase.Combat,
+    [MachineState.ResolvingRaid]: TurnPhase.Combat,
+    [MachineState.EndingCombat]: TurnPhase.Combat
 }
 
-export function phaseDefinition(phase: TurnPhase): PhaseDefinition {
+export const SPAN_PHASES = Object.values(PHASE_DEFINITIONS).map((definition) => definition.phase)
+
+export function isSpanPhase(phase: TurnPhase): phase is SpanPhase {
+    return phase in PHASE_DEFINITIONS
+}
+
+// The Players still to play a Main Line phase, first in line first.
+export function mainLineQueue(state: HydratedStellarHorizonsGameState): string[] | undefined {
+    switch (MAIN_LINE_PHASE_STATES[state.machineState]) {
+        case TurnPhase.Cargo:
+            return state.remainingTraders
+        case TurnPhase.Combat:
+            return state.remainingAttackers
+        default:
+            return undefined
+    }
+}
+
+export function phaseDefinition(phase: SpanPhase): PhaseDefinition {
     return PHASE_DEFINITIONS[phase]
 }
 
-export function branchingState(phase: TurnPhase): MachineState {
+export function branchingState(phase: SpanPhase): MachineState {
     return PHASE_DEFINITIONS[phase].branchingState
 }
 
-export function playState(phase: TurnPhase): MachineState {
+export function playState(phase: SpanPhase): MachineState {
     return PHASE_DEFINITIONS[phase].playState
 }
 
@@ -144,7 +167,7 @@ export function phaseAfter(
     return phases[phases.indexOf(phase) + 1]
 }
 
-export function mergeOrder(state: HydratedStellarHorizonsGameState, phase: TurnPhase): string[] {
+export function mergeOrder(state: HydratedStellarHorizonsGameState, phase: SpanPhase): string[] {
     const order = state.initiativeOrder()
     return PHASE_DEFINITIONS[phase].direction === MergeDirection.Initiative
         ? order

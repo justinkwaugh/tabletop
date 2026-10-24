@@ -3,8 +3,8 @@ import { TechField } from '../components/techFields.js'
 import { playerCapabilities, type Capabilities } from './capabilities.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { CompensationCounts } from './exploration.js'
-import { MarkerReason, type ShipState } from './pieces.js'
-import { discardGoods, earnMarkers } from './pools.js'
+import { type CombatLoss, MarkerReason, type ShipState } from './pieces.js'
+import { awardTechMarkers, discardGoods, earnMarkers } from './pools.js'
 import { roundHalfUp } from './turn.js'
 
 export interface ShipLoss {
@@ -41,6 +41,11 @@ export function freeCargo(state: HydratedStellarHorizonsGameState, ship: ShipSta
 
 export function hasArrived(ship: ShipState): boolean {
     return ship.transit === 0
+}
+
+// Engine Upgrades treat every ship as fast.
+export function isFast(state: HydratedStellarHorizonsGameState, ship: ShipState): boolean {
+    return shipDefinition(ship.shipId).fast || capabilitiesOf(state, ship.playerId).allShipsFast
 }
 
 // The damage a ship takes before it is destroyed: a CV's size, one more with Reinforced Hulls.
@@ -95,31 +100,71 @@ export function fleetCombatIn(
         .reduce((total, ship) => total + combatValue(state, ship), 0)
 }
 
-// A lost ship's goods go back to the pool.
+// A lost ship's goods go back to the pool, and its record of attacks goes with it.
 export function removeShip(state: HydratedStellarHorizonsGameState, shipId: string) {
     const ship = state.ship(shipId)
     discardGoods(state, ship.playerId, ship.goods)
+    state.attacks = state.attacks.filter((attack) => attack.shipId !== shipId)
     delete state.ships[shipId]
 }
 
-export function loseShip(state: HydratedStellarHorizonsGameState, ship: ShipState): ShipLoss {
+// Rulebook 1.4 and 1.6: 1 engineering marker for an RE; 1 biology marker and a quarter of its
+// size in engineering markers for a CV.
+function lossCompensation(ship: ShipState): CompensationCounts {
     const definition = shipDefinition(ship.shipId)
-    const compensation: CompensationCounts =
-        definition.kind === ShipKind.RE
-            ? { [TechField.Engineering]: 1 }
-            : { [TechField.Biology]: 1, [TechField.Engineering]: roundHalfUp(definition.size / 4) }
-    for (const field of [TechField.Biology, TechField.Engineering] as const) {
+    return definition.kind === ShipKind.RE
+        ? { [TechField.Engineering]: 1 }
+        : { [TechField.Biology]: 1, [TechField.Engineering]: roundHalfUp(definition.size / 4) }
+}
+
+function compensationMarkers(ship: ShipState): [TechField, number][] {
+    const compensation = lossCompensation(ship)
+    const fields = [TechField.Biology, TechField.Engineering] as const
+    return fields.flatMap((field): [TechField, number][] => {
         const count = compensation[field]
-        if (count !== undefined) {
-            earnMarkers(state, ship.playerId, {
-                shipId: ship.shipId,
-                systemId: ship.systemId,
-                field,
-                count,
-                reason: MarkerReason.Loss
-            })
-        }
+        return count === undefined ? [] : [[field, count]]
+    })
+}
+
+// A ship lost on the Main Line draws its compensation at once.
+export function loseShipNow(state: HydratedStellarHorizonsGameState, ship: ShipState): CombatLoss {
+    const markers: CombatLoss['markers'] = []
+    let cash = 0
+    for (const [field, count] of compensationMarkers(ship)) {
+        const award = awardTechMarkers(state, ship.playerId, field, count)
+        markers.push({ field, values: award.markers })
+        cash += award.cash
+    }
+    const loss = {
+        shipId: ship.shipId,
+        settlementsLost: ship.settlements,
+        goodsLost: ship.goods.length,
+        markers,
+        cash
     }
     removeShip(state, ship.shipId)
-    return { shipId: ship.shipId, settlementsLost: ship.settlements, compensation }
+    return loss
+}
+
+// Whether a ship's loss drew its owner compensation markers from the pool.
+export function drewMarkers(loss: CombatLoss | undefined): boolean {
+    return loss?.markers.some((award) => award.values.length > 0) ?? false
+}
+
+export function loseShip(state: HydratedStellarHorizonsGameState, ship: ShipState): ShipLoss {
+    for (const [field, count] of compensationMarkers(ship)) {
+        earnMarkers(state, ship.playerId, {
+            shipId: ship.shipId,
+            systemId: ship.systemId,
+            field,
+            count,
+            reason: MarkerReason.Loss
+        })
+    }
+    removeShip(state, ship.shipId)
+    return {
+        shipId: ship.shipId,
+        settlementsLost: ship.settlements,
+        compensation: lossCompensation(ship)
+    }
 }

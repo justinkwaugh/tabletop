@@ -16,12 +16,15 @@ import { TradeGood } from '../components/tradeGoods.js'
 import { ScenarioId, scenarioDefinition, type ScenarioDefinition } from '../components/scenarios.js'
 import { MachineState } from '../definition/states.js'
 import {
+    AttackRecord,
     Base,
     Blockade,
     BlockadeStep,
     CardPile,
     CardsResume,
+    Combat,
     ConversionChance,
+    FoughtCombat,
     ShipState,
     SurveyWorldChoice,
     SystemState,
@@ -36,6 +39,7 @@ import {
     Pact,
     PledgeableShip,
     SettlementReward,
+    SystemAttack,
     TerraformRecord,
     baseKey
 } from './pieces.js'
@@ -88,7 +92,15 @@ export const StellarHorizonsGameState = Type.Object({
     // Blockades come before base production and growth, in reverse initiative order (4.4, 4.6).
     blockadeStep: Type.Optional(Type.Enum(BlockadeStep)),
     remainingBlockaders: Type.Array(Type.String()),
-    blockades: Type.Array(Blockade)
+    blockades: Type.Array(Blockade),
+    // The combat phase on the Main Line in initiative order: who has still to attack, the
+    // systems each has attacked in, the combat being fought, and the one just fought for the
+    // Players to see (rulebook 1.3).
+    remainingAttackers: Type.Array(Type.String()),
+    systemAttacks: Type.Array(SystemAttack),
+    combat: Type.Optional(Combat),
+    foughtCombat: Type.Optional(FoughtCombat),
+    attacks: Type.Array(AttackRecord)
 })
 
 export const StellarHorizonsGameStateValidator = Compile(StellarHorizonsGameState)
@@ -161,6 +173,11 @@ export class HydratedStellarHorizonsGameState
     declare blockadeStep?: BlockadeStep
     declare remainingBlockaders: string[]
     declare blockades: Blockade[]
+    declare remainingAttackers: string[]
+    declare systemAttacks: SystemAttack[]
+    declare combat?: Combat
+    declare foughtCombat?: FoughtCombat
+    declare attacks: AttackRecord[]
 
     constructor(data: StellarHorizonsProjectedState) {
         super(data, StellarHorizonsProjectedStateValidator)

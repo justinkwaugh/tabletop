@@ -141,7 +141,10 @@ export class StellarHorizonsGameInitializer
             truce: scenario.campaign !== undefined,
             escalationPool: scenario.campaign ? fullEscalationPool() : [],
             remainingBlockaders: [],
-            blockades: []
+            blockades: [],
+            remainingAttackers: [],
+            systemAttacks: [],
+            attacks: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
         for (const worldClass of Object.values(WorldClass)) {

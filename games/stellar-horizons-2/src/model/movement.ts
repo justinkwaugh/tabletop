@@ -3,7 +3,7 @@ import { isCrewVehicle, shipDefinition, ShipKind } from '../components/ships.js'
 import { shipCost } from './building.js'
 import { factionAbilities } from './campaign.js'
 import { fastMovementModifier } from './capabilities.js'
-import { capabilitiesOf, hasArrived } from './fleet.js'
+import { capabilitiesOf, hasArrived, isFast } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { ShipState } from './pieces.js'
 
@@ -23,9 +23,7 @@ export function movementModifier(state: HydratedStellarHorizonsGameState, ship: 
     if (definition.kind === ShipKind.RE) {
         return capabilities.reMovement
     }
-    // Engine Upgrades treat every ship as fast.
-    const fast = definition.fast || capabilities.allShipsFast
-    if (fast && ship.settlements === 0) {
+    if (isFast(state, ship) && ship.settlements === 0) {
         return fastMovementModifier(capabilities.cvMovement)
     }
     return capabilities.cvMovement

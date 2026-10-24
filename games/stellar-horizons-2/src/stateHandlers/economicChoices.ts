@@ -11,7 +11,7 @@ import { MachineState } from '../definition/states.js'
 import { basesAwaitingProduction, maxInitiativeBid } from '../model/economy.js'
 import { choosesEscalationKept } from '../model/escalation.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { TurnPhase } from '../model/turn.js'
+import { type SpanPhase, TurnPhase } from '../model/turn.js'
 import { branchPlayerId, branchingState, playState } from '../model/turnPlan.js'
 import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
 import { stateAfterEconomicPhase, stateAfterGrowthChoices } from './transitions.js'
@@ -22,7 +22,7 @@ abstract class EconomicChoiceHandler<Action extends HydratedAction> implements M
     Action | ConversionAction | HydratedSkipPhase,
     HydratedStellarHorizonsGameState
 > {
-    protected abstract readonly phase: TurnPhase
+    protected abstract readonly phase: SpanPhase
     protected abstract readonly choice: ActionType
 
     protected abstract isChoice(action: HydratedAction): action is Action

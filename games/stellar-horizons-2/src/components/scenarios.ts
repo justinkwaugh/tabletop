@@ -1,4 +1,4 @@
-import { TURN_PHASES, TurnPhase } from '../model/turn.js'
+import { CAMPAIGN_TURN_PHASES, TURN_PHASES, TurnPhase } from '../model/turn.js'
 import { Sector } from './systems.js'
 import { WorldClass } from './worldTypes.js'
 
@@ -132,7 +132,7 @@ export const CAMPAIGN: ScenarioDefinition = {
     minPlayers: 1,
     maxPlayers: 7,
     sectors: Object.values(Sector),
-    phases: TURN_PHASES,
+    phases: CAMPAIGN_TURN_PHASES,
     firstTurnPhases: [TurnPhase.Exploration, TurnPhase.Development],
     startYear: 2100,
     techColumns: 0,

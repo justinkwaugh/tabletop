@@ -4,6 +4,13 @@ import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { TurnPhase } from '../model/turn.js'
 import { BlockadingStateHandler } from '../stateHandlers/blockading.js'
 import { BuildingStateHandler } from '../stateHandlers/building.js'
+import {
+    AssigningHitsStateHandler,
+    AttackingStateHandler,
+    DefendingStateHandler,
+    EndingCombatStateHandler,
+    ResolvingRaidStateHandler
+} from '../stateHandlers/combat.js'
 import { ChoosingFactionsStateHandler } from '../stateHandlers/choosingFactions.js'
 import { ChoosingSurveyWorldStateHandler } from '../stateHandlers/choosingSurveyWorld.js'
 import { ChoosingTerraformWorldStateHandler } from '../stateHandlers/choosingTerraformWorld.js'
@@ -78,6 +85,11 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.CargoPhase]: new PhaseStateHandler(TurnPhase.Cargo),
     [MachineState.TransferringCargo]: new TransferringCargoStateHandler(),
     [MachineState.Trading]: new TradingStateHandler(),
+    [MachineState.Attacking]: new AttackingStateHandler(),
+    [MachineState.Defending]: new DefendingStateHandler(),
+    [MachineState.AssigningHits]: new AssigningHitsStateHandler(),
+    [MachineState.ResolvingRaid]: new ResolvingRaidStateHandler(),
+    [MachineState.EndingCombat]: new EndingCombatStateHandler(),
     [MachineState.ChoosingDemand]: new ChoosingDemandStateHandler(),
     [MachineState.MovementPhase]: new PhaseStateHandler(TurnPhase.Movement),
     [MachineState.Moving]: new MovingStateHandler(),

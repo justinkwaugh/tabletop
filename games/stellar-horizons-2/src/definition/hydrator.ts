@@ -85,6 +85,12 @@ import { HydratedChooseGrowthBase, isChooseGrowthBase } from '../actions/chooseG
 import { HydratedDeclareBlockade, isDeclareBlockade } from '../actions/declareBlockade.js'
 import { HydratedEndBlockades, isEndBlockades } from '../actions/endBlockades.js'
 import { HydratedDiscardEscalation, isDiscardEscalation } from '../actions/discardEscalation.js'
+import { HydratedDeclareAttack, isDeclareAttack } from '../actions/declareAttack.js'
+import { HydratedEndAttacks, isEndAttacks } from '../actions/endAttacks.js'
+import { HydratedDefendAttack, isDefendAttack } from '../actions/defendAttack.js'
+import { HydratedAssignHit, isAssignHit } from '../actions/assignHit.js'
+import { HydratedResolveRaid, isResolveRaid } from '../actions/resolveRaid.js'
+import { HydratedEndCombat, isEndCombat } from '../actions/endCombat.js'
 import {
     HydratedReduceTransferMarkers,
     isReduceTransferMarkers
@@ -220,6 +226,18 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedDiscardEscalation(data)
             case isReduceTransferMarkers(data):
                 return new HydratedReduceTransferMarkers(data)
+            case isDeclareAttack(data):
+                return new HydratedDeclareAttack(data)
+            case isEndAttacks(data):
+                return new HydratedEndAttacks(data)
+            case isDefendAttack(data):
+                return new HydratedDefendAttack(data)
+            case isAssignHit(data):
+                return new HydratedAssignHit(data)
+            case isResolveRaid(data):
+                return new HydratedResolveRaid(data)
+            case isEndCombat(data):
+                return new HydratedEndCombat(data)
             case isEndTurn(data):
                 return new HydratedEndTurn(data)
             default:

@@ -35,6 +35,10 @@ export interface FactionAbilities {
     favouredDeck?: CardDeck
     sellsWithoutPaying?: true
     demandDraws?: number
+    combatRoll?: number
+    raidImmune?: true
+    // After rolling for a raid, the result may be lowered to any smaller one.
+    lowersRaidResult?: true
 }
 
 export interface FactionSheet {
@@ -133,7 +137,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
             ship('praetorians-audax', 'wise-0855-0714', 1),
             ship('praetorians-odyssey', 'alpha-centauri', 2)
         ],
-        abilities: { favouredDeck: CardDeck.Fleet }
+        abilities: { favouredDeck: CardDeck.Fleet, combatRoll: 1, raidImmune: true }
     },
     {
         faction: Faction.Starfarers,
@@ -171,7 +175,11 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
             ship('syndicate-viper', 'barnards-star', 1),
             ship('syndicate-cobra', 'luhman-16', 2)
         ],
-        abilities: { combatAnomalyDifficulty: -2, takesFromOperations: true }
+        abilities: {
+            combatAnomalyDifficulty: -2,
+            takesFromOperations: true,
+            lowersRaidResult: true
+        }
     },
     {
         faction: Faction.Transhumanists,

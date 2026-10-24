@@ -2,7 +2,9 @@ import * as Type from 'typebox'
 import { Visibility } from '@tabletop/common'
 import { AnomalyChallenge } from '../components/anomalyCatalog.js'
 import { CardDeck } from '../components/cards.js'
+import { RaidResult } from '../components/combatTables.js'
 import { EscalationMarker } from '../components/escalation.js'
+import { Faction } from '../components/factions.js'
 import { TechField } from '../components/techFields.js'
 import { TradeGood } from '../components/tradeGoods.js'
 import { WorldSide } from '../components/worlds.js'
@@ -341,4 +343,161 @@ export type EscalationDiscard = Type.Static<typeof EscalationDiscard>
 export const EscalationDiscard = Type.Object({
     playerId: Type.String(),
     drawn: Type.Array(Type.Enum(EscalationMarker))
+})
+
+// Rulebook 1.3: fleet combat, planetary assault, ground combat, a raid, or a CV destroying an RE
+// (1.4).
+export enum CombatKind {
+    Fleet = 'Fleet',
+    Assault = 'Assault',
+    Ground = 'Ground',
+    Raid = 'Raid',
+    Explorer = 'Explorer'
+}
+
+export enum CombatSide {
+    Attacker = 'Attacker',
+    Defender = 'Defender'
+}
+
+// Where a modifier to a combat or raid roll comes from: a faction sheet, a card, or the back of
+// an anomaly in the system.
+export type ModifierSource = Type.Static<typeof ModifierSource>
+export const ModifierSource = Type.Union([
+    Type.Object({ kind: Type.Literal('Faction'), faction: Type.Enum(Faction) }),
+    Type.Object({ kind: Type.Literal('Card'), cardId: Type.String() }),
+    Type.Object({ kind: Type.Literal('Anomaly'), anomalyId: Type.String() })
+])
+
+export type RollModifier = Type.Static<typeof RollModifier>
+export const RollModifier = Type.Object({
+    source: ModifierSource,
+    value: Type.Number()
+})
+
+// One side's roll on the combat table (rulebook 1.5): the die, a tenth of the enemy CVs' sizes
+// (fast ones a size smaller) and of the enemy settlements up to 30, and the cards', factions'
+// and anomalies' modifiers, totalled and rounded once.
+export type SideRoll = Type.Static<typeof SideRoll>
+export const SideRoll = Type.Object({
+    die: Type.Number(),
+    enemyShips: Type.Number(),
+    enemySettlements: Type.Number(),
+    modifiers: Type.Array(RollModifier),
+    total: Type.Number(),
+    combatValue: Type.Number(),
+    hits: Type.Number()
+})
+
+export type CombatRolls = Type.Static<typeof CombatRolls>
+export const CombatRolls = Type.Object({
+    [CombatSide.Attacker]: SideRoll,
+    [CombatSide.Defender]: SideRoll
+})
+
+export type RaidRoll = Type.Static<typeof RaidRoll>
+export const RaidRoll = Type.Object({
+    die: Type.Number(),
+    modifiers: Type.Array(RollModifier),
+    total: Type.Number(),
+    percentile: Type.Number()
+})
+
+// A ship destroyed on the Main Line, with the compensation its owner drew at once.
+export type CombatLoss = Type.Static<typeof CombatLoss>
+export const CombatLoss = Type.Object({
+    shipId: Type.String(),
+    settlementsLost: Type.Number(),
+    goodsLost: Type.Number(),
+    markers: Type.Array(
+        Type.Object({ field: Type.Enum(TechField), values: Type.Array(Type.Number()) })
+    ),
+    cash: Type.Number()
+})
+
+// A raid's result (rulebook 6.1) and the raider's damage. A result that cannot apply has no
+// effect.
+export type RaidOutcome = Type.Static<typeof RaidOutcome>
+export const RaidOutcome = Type.Object({
+    result: Type.Enum(RaidResult),
+    lowered: Type.Boolean(),
+    effective: Type.Boolean(),
+    cash: Type.Number(),
+    field: Type.Optional(Type.Enum(TechField)),
+    marker: Type.Optional(Type.Number()),
+    good: Type.Optional(Type.Enum(TradeGood)),
+    stolen: Type.Optional(Type.Boolean()),
+    damage: Type.Number(),
+    lost: Type.Optional(CombatLoss)
+})
+
+// The escalation markers the attacker drew after a combat and the IP the defender gained, or
+// neither under rulebook 1.7's exception.
+export type CombatOutcome = Type.Static<typeof CombatOutcome>
+export const CombatOutcome = Type.Object({
+    owed: Type.Number(),
+    declined: Type.Boolean(),
+    escalation: Type.Optional(EscalationDraw),
+    influence: Type.Number()
+})
+
+// What the defender lost, for the escalation markers it draws the attacker (rulebook 1.7).
+export type CombatLosses = Type.Static<typeof CombatLosses>
+export const CombatLosses = Type.Object({
+    shipIds: Type.Array(Type.String()),
+    settlements: Type.Number(),
+    baseEliminated: Type.Boolean()
+})
+
+// The units one side fights with: its ships, and whether its base in the system fights.
+export type CombatForce = Type.Static<typeof CombatForce>
+export const CombatForce = Type.Object({
+    shipIds: Type.Array(Type.String()),
+    base: Type.Boolean()
+})
+
+export type Combat = Type.Static<typeof Combat>
+export const Combat = Type.Object({
+    kind: Type.Enum(CombatKind),
+    systemId: Type.String(),
+    attackerId: Type.String(),
+    defenderId: Type.String(),
+    forces: Type.Object({
+        [CombatSide.Attacker]: CombatForce,
+        [CombatSide.Defender]: CombatForce
+    }),
+    // Hits still to assign on each side's units, the attacker's first, and how many have been
+    // assigned on the side being hit, its owner choosing first and then every other hit.
+    hits: Type.Object({
+        [CombatSide.Attacker]: Type.Number(),
+        [CombatSide.Defender]: Type.Number()
+    }),
+    picks: Type.Number(),
+    rolls: Type.Optional(CombatRolls),
+    raid: Type.Optional(RaidRoll),
+    raidOutcome: Type.Optional(RaidOutcome),
+    defenderLosses: CombatLosses,
+    // The defender's side holds a ship that attacked the attacker this turn or last.
+    mayDecline: Type.Boolean()
+})
+
+// A combat once its markers are drawn, kept to show until the next combat or the end of the
+// movement phase.
+export type FoughtCombat = Type.Static<typeof FoughtCombat>
+export const FoughtCombat = Type.Evaluate(
+    Type.Intersect([Combat, Type.Object({ outcome: CombatOutcome })])
+)
+
+// A ship's attack on a Player, kept for the turn after (rulebook 1.7's exception).
+export type AttackRecord = Type.Static<typeof AttackRecord>
+export const AttackRecord = Type.Object({
+    shipId: Type.String(),
+    targetId: Type.String(),
+    year: Type.Number()
+})
+
+export type SystemAttack = Type.Static<typeof SystemAttack>
+export const SystemAttack = Type.Object({
+    playerId: Type.String(),
+    systemId: Type.String()
 })

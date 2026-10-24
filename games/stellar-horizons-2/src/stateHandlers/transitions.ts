@@ -3,6 +3,9 @@ import { isEvenDecade } from '../components/scenarios.js'
 import { MachineState } from '../definition/states.js'
 import { anyAnomalyAttempts } from '../model/anomalies.js'
 import { endBlockades, queueBlockades } from '../model/blockades.js'
+import { defenderCanAnswer, dropIdleAttackers, queueAttackers } from '../model/attacks.js'
+import { clearFoughtCombat, isBattle, isCombatOver } from '../model/combat.js'
+import { CombatKind } from '../model/pieces.js'
 import { isCampaign } from '../model/campaign.js'
 import { queueConversions } from '../model/economy.js'
 import { anyEventAttempts } from '../model/events.js'
@@ -107,16 +110,50 @@ export function stateAfterEconomicPhase(state: HydratedStellarHorizonsGameState)
         : startPhase(state, firstPhase(state))
 }
 
-// The campaign plays the cargo and trade phase on the Main Line, in initiative order.
+const COMBAT_IN_VIEW: readonly TurnPhase[] = [TurnPhase.Cargo, TurnPhase.Movement]
+
+// The campaign plays the combat phase and the cargo and trade phase on the Main Line, in
+// initiative order. Nobody with an attack to make, the truce among them, skips combat. The last
+// combat fought stays in view through the cargo and movement phases, which may be skipped.
 export function startPhase(
     state: HydratedStellarHorizonsGameState,
     phase: TurnPhase
 ): MachineState {
+    if (!COMBAT_IN_VIEW.includes(phase)) {
+        clearFoughtCombat(state)
+    }
+    if (phase === TurnPhase.Combat) {
+        queueAttackers(state)
+        return state.remainingAttackers.length > 0
+            ? MachineState.Attacking
+            : stateOfNextPhase(state, phase)
+    }
     if (phase === TurnPhase.Cargo && isCampaign(state)) {
         state.remainingTraders = state.initiativeOrder()
         return MachineState.Trading
     }
     return branchingState(phase)
+}
+
+// A combat goes from the defender's answer to the hits, the raid's result and the escalation
+// markers; between combats the attacker plays on until they have nothing left to attack.
+export function stateAfterCombatStep(state: HydratedStellarHorizonsGameState): MachineState {
+    const combat = state.combat
+    if (combat) {
+        if (isCombatOver(combat)) {
+            return MachineState.EndingCombat
+        }
+        if (isBattle(combat.kind) && !combat.rolls && defenderCanAnswer(state, combat)) {
+            return MachineState.Defending
+        }
+        return combat.kind === CombatKind.Raid
+            ? MachineState.ResolvingRaid
+            : MachineState.AssigningHits
+    }
+    dropIdleAttackers(state)
+    return state.remainingAttackers.length > 0
+        ? MachineState.Attacking
+        : stateOfNextPhase(state, TurnPhase.Combat)
 }
 
 // After growth: Prolific Breeders' bases are chosen, then the conversion rolls are taken.

@@ -8,7 +8,7 @@ import type { MachineState } from '../definition/states.js'
 import { canTransferAnyCargo } from '../model/cargoTransfer.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { isIdleInPhase } from '../model/idlePhases.js'
-import type { TurnPhase } from '../model/turn.js'
+import type { SpanPhase } from '../model/turn.js'
 import { branchPlayerId, branchingState, playState } from '../model/turnPlan.js'
 import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
 
@@ -24,7 +24,7 @@ type AnytimeAction =
 export abstract class PlayStateHandler<
     Action extends HydratedAction
 > implements MachineStateHandler<Action | AnytimeAction, HydratedStellarHorizonsGameState> {
-    protected abstract readonly phase: TurnPhase
+    protected abstract readonly phase: SpanPhase
 
     protected abstract isPhaseAction(action: HydratedAction): action is Action
 

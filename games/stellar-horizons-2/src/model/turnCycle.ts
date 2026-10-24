@@ -38,6 +38,8 @@ export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
         ship.loadedFromBase = false
         ship.explored = false
     }
+    // Rulebook 1.7's exception looks back to the turn before.
+    state.attacks = state.attacks.filter((attack) => attack.year >= state.year - DECADE)
     for (const base of state.allBases()) {
         base.spent = 0
         base.cloned = false

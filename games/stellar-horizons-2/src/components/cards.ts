@@ -55,6 +55,13 @@ export interface CardEffects {
     defendingCombat?: number
     // Escalation markers drawn beyond those owed, one of the drawn then discarded.
     extraEscalation?: number
+    // Combat and raid rolls; planetary assault and ground combat rolls, attacking or defending.
+    combatRoll?: number
+    groundRoll?: number
+    // Taken off the opponent's rolls when the owner defends: assaults and ground combat, or
+    // assaults and raids.
+    opponentGroundRoll?: number
+    opponentAssaultRaidRoll?: number
     // Economy.
     cashProduction?: number
     extraGoods?: number
@@ -99,9 +106,6 @@ export interface CardDefinition {
     points: number
     text: string
     effects: CardEffects
-    // The part of the card that needs a rule not in the game yet (combat, slice 5), as players
-    // read it.
-    waits?: string
     excludes?: string
 }
 
@@ -119,7 +123,7 @@ function card(
     points: number,
     text: string,
     effects: CardEffects,
-    extra: { copies?: number; waits?: string; excludes?: string } = {}
+    extra: { copies?: number; excludes?: string } = {}
 ): CardDefinition {
     return {
         id,
@@ -132,7 +136,6 @@ function card(
         points,
         text,
         effects,
-        ...(extra.waits ? { waits: extra.waits } : {}),
         ...(extra.excludes ? { excludes: extra.excludes } : {})
     }
 }
@@ -150,10 +153,7 @@ export const CARDS: readonly CardDefinition[] = [
         7,
         2,
         '+1 combat value to armed CVs (includes anomaly/event resolution); -1 to enemy planetary assault and raid rolls when defending',
-        { armedCvCombat: 1 },
-        {
-            waits: 'Its combat value in combat and its defence against assaults and raids are not in the game yet; its +1 already counts against blockades and in the Syndicate’s take.'
-        }
+        { armedCvCombat: 1, opponentAssaultRaidRoll: -1 }
     ),
     card(
         'minefields',
@@ -164,8 +164,7 @@ export const CARDS: readonly CardDefinition[] = [
         5,
         3,
         '+3 combat value when defending in a system where you have a base',
-        { defendingCombat: 3 },
-        { waits: 'Its defence in combat is not in the game yet; it counts against blockades.' }
+        { defendingCombat: 3 }
     ),
     card(
         'planetary-surveys',
@@ -406,8 +405,7 @@ export const CARDS: readonly CardDefinition[] = [
         25,
         7,
         '+1 to combat rolls; fleet improvements cost -3; draw +1 escalation marker each time you normally would and choose one of those drawn to discard',
-        { deckCardCost: { deck: Fleet, amount: -3 }, extraEscalation: 1 },
-        { waits: 'Its combat rolls are not in the game yet.' }
+        { deckCardCost: { deck: Fleet, amount: -3 }, extraEscalation: 1, combatRoll: 1 }
     ),
     card(
         'planetary-engineering',
@@ -527,8 +525,7 @@ export const CARDS: readonly CardDefinition[] = [
         7,
         2,
         '+1 to ground combat and planetary assault rolls (attack & defense)',
-        {},
-        { waits: 'Combat is not in the game yet.' }
+        { groundRoll: 1 }
     ),
     card(
         'environmental-tolerance',
@@ -683,11 +680,8 @@ export const CARDS: readonly CardDefinition[] = [
         15,
         5,
         "+1 IP at the start of each turn; treat all systems as -5 max pop.; +1 to ground combat and planetary assault rolls (attack & defense) (can't have reduced size)",
-        { influencePerTurn: 1, population: -5 },
-        {
-            waits: 'Its ground combat and planetary assault rolls are not in the game yet.',
-            excludes: 'reduced-body-size'
-        }
+        { influencePerTurn: 1, population: -5, groundRoll: 1 },
+        { excludes: 'reduced-body-size' }
     ),
     card(
         'infrared-vision',
@@ -732,11 +726,8 @@ export const CARDS: readonly CardDefinition[] = [
         10,
         3,
         "Treat all systems as +10 max pop.; -1 to ground combat & planetary assault rolls (attack & defense) (can't have increased size)",
-        { population: 10 },
-        {
-            waits: 'Its ground combat and planetary assault rolls are not in the game yet.',
-            excludes: 'increased-body-size'
-        }
+        { population: 10, groundRoll: -1 },
+        { excludes: 'increased-body-size' }
     ),
     card(
         'skilled-artisans',
@@ -846,8 +837,7 @@ export const CARDS: readonly CardDefinition[] = [
         30,
         5,
         "Treat all systems as +10 max pop.; -2 to opponent's ground combat & planetary assault rolls when defending",
-        { population: 10 },
-        { waits: 'Its ground combat and planetary assault rolls are not in the game yet.' }
+        { population: 10, opponentGroundRoll: -2 }
     ),
     card(
         'transcend-biology',

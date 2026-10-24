@@ -43,11 +43,12 @@ import type { ReduceTransferMarkersMetadata } from '../actions/reduceTransferMar
 import type { StartTurnMetadata } from '../actions/startTurn.js'
 import { EscalationMarker } from '../components/escalation.js'
 import type { BlockadeResult } from '../model/blockades.js'
+import { hitTargets } from '../model/hits.js'
 import type {
     HydratedStellarHorizonsGameState,
     StellarHorizonsProjectedState
 } from '../model/gameState.js'
-import { CASH_PRODUCTION } from '../model/pieces.js'
+import { CASH_PRODUCTION, CombatKind, type CombatOutcome } from '../model/pieces.js'
 import { TurnPhase } from '../model/turn.js'
 import { playPhase } from '../model/turnPlan.js'
 import {
@@ -101,6 +102,12 @@ function step(game: Game, state: StellarHorizonsProjectedState): Played {
                       }
                     : {})
             })
+        }
+        case MachineState.Attacking: {
+            const pending = hydrate(state).escalationDiscard
+            return pending
+                ? run(ActionType.DiscardEscalation, { marker: pending.drawn[0] })
+                : run(ActionType.EndAttacks)
         }
         case MachineState.Blockading: {
             const pending = hydrate(state).escalationDiscard
@@ -1219,5 +1226,150 @@ describe('Escalation and blockades', () => {
         assertExists(truce)
         expect(truce.chance).toBe(1)
         expect(second.state.truce).toBe(!truce.ended)
+    })
+})
+
+describe('The combat phase', () => {
+    const SYSTEM = 'luhman-16'
+
+    // The first Player in initiative order has the Gladiator at Luhman 16, beside the second's
+    // base of 4 and Sapphire; the truce is over and 2110's economic tile is Earth production.
+    function atWar(game: Game, state: StellarHorizonsProjectedState, truce = false) {
+        let order = { attacker: '', defender: '' }
+        const played = intoCombat(game, state, (hydrated) => {
+            const [attacker, defender] = hydrated.initiativeOrder()
+            order = { attacker, defender }
+            hydrated.truce = truce
+            hydrated.systemState(SYSTEM).worlds = [{ tileId: 'm-1', side: WorldSide.I }]
+            placeBase(hydrated, defender, SYSTEM, 4)
+            placeShip(hydrated, defender, 'consortium-sapphire', SYSTEM)
+            placeShip(hydrated, attacker, 'praetorians-gladiator', SYSTEM)
+        })
+        return { ...played, ...order }
+    }
+
+    function intoCombat(
+        game: Game,
+        state: StellarHorizonsProjectedState,
+        prepare: (state: HydratedStellarHorizonsGameState) => void
+    ): Played {
+        const ready = edit(state, (hydrated) => {
+            hydrated.economicTilePool = [EconomicTile.EarthProduction]
+            hydrated.economicTile = undefined
+            prepare(hydrated)
+        })
+        return playUntil(
+            game,
+            ready,
+            (current) => current.year > 2100 && playPhase(current) !== TurnPhase.Build
+        )
+    }
+
+    it('is skipped during the truce', () => {
+        const { game, state } = campaign()
+        const played = atWar(game, state, true)
+        expect(played.state.machineState).toBe(MachineState.Trading)
+    })
+
+    it('is played on the Main Line: attack, answer, hits in turn, then escalation and IP', () => {
+        const { game, state } = campaign()
+        const { state: start, attacker, defender } = atWar(game, state)
+        expect(start.machineState).toBe(MachineState.Attacking)
+        expect(start.activePlayerIds).toEqual([attacker])
+        const act = (current: StellarHorizonsProjectedState, type: ActionType, fields = {}) =>
+            executeAll(game, current, userAction(game, current.activePlayerIds[0], type, fields))
+        let result = act(start, ActionType.DeclareAttack, {
+            kind: CombatKind.Assault,
+            systemId: SYSTEM,
+            defenderId: defender,
+            shipIds: ['praetorians-gladiator']
+        })
+        expect(result.state.machineState).toBe(MachineState.Defending)
+        expect(result.state.activePlayerIds).toEqual([defender])
+        // Nothing is rolled until the defender answers, so the attack can still be taken back.
+        expect(actionsOf(result.processedActions, ActionType.DeclareAttack)[0].revealsInfo).toBe(
+            false
+        )
+        result = act(result.state, ActionType.DefendAttack, {
+            includeBase: false,
+            shipIds: ['consortium-sapphire']
+        })
+        expect(actionsOf(result.processedActions, ActionType.DefendAttack)[0].revealsInfo).toBe(
+            true
+        )
+        const actions = [...result.processedActions]
+        let current = result.state
+        while (current.machineState === MachineState.AssigningHits) {
+            const [target] = hitTargets(hydrate(current))
+            result = act(current, ActionType.AssignHit, { target })
+            actions.push(...result.processedActions)
+            current = result.state
+        }
+        const [end] = actionsOf(actions, ActionType.EndCombat)
+        const outcome = metadataOf<CombatOutcome>(end)
+        expect(outcome.declined).toBe(false)
+        expect(hydrate(current).getPlayerState(attacker).escalation).toHaveLength(
+            Math.min(outcome.owed, 39)
+        )
+        expect(hydrate(current).getPlayerState(defender).influence).toBe(outcome.influence)
+        // The combat stays in view, with its outcome, until the next or the movement phase ends.
+        expect(current.foughtCombat).toMatchObject({ systemId: SYSTEM, outcome })
+        const moving = playUntil(game, current, (later) => playPhase(later) === TurnPhase.Movement)
+        expect(moving.state.foughtCombat).toBeDefined()
+        const exploring = playUntil(
+            game,
+            moving.state,
+            (later) => playPhase(later) === TurnPhase.Exploration
+        )
+        expect(exploring.state.foughtCombat).toBeUndefined()
+        // One combat per system: the attacker has nothing left to attack, so the defender's
+        // turn comes if they can strike back, or the cargo phase.
+        expect(current.activePlayerIds).not.toContain(attacker)
+    })
+
+    it('ask the attacker whether to draw when the defence holds a ship that attacked them', () => {
+        const { game, state } = campaign()
+        const { state: start, attacker, defender } = atWar(game, state)
+        const ready = edit(start, (hydrated) => {
+            hydrated.attacks.push({
+                shipId: 'consortium-sapphire',
+                targetId: attacker,
+                year: hydrated.year
+            })
+        })
+        let current = execute(
+            game,
+            ready,
+            userAction(game, attacker, ActionType.DeclareAttack, {
+                kind: CombatKind.Fleet,
+                systemId: SYSTEM,
+                defenderId: defender,
+                shipIds: ['praetorians-gladiator']
+            })
+        )
+        // The defender may add their base to a fleet combat.
+        current = execute(
+            game,
+            current,
+            userAction(game, defender, ActionType.DefendAttack, { includeBase: false, shipIds: [] })
+        )
+        while (current.machineState === MachineState.AssigningHits) {
+            const [target] = hitTargets(hydrate(current))
+            current = execute(
+                game,
+                current,
+                userAction(game, current.activePlayerIds[0], ActionType.AssignHit, { target })
+            )
+        }
+        expect(current.machineState).toBe(MachineState.EndingCombat)
+        expect(current.activePlayerIds).toEqual([attacker])
+        const influence = hydrate(current).getPlayerState(defender).influence
+        current = execute(
+            game,
+            current,
+            userAction(game, attacker, ActionType.EndCombat, { declined: true })
+        )
+        expect(hydrate(current).getPlayerState(attacker).escalation).toEqual([])
+        expect(hydrate(current).getPlayerState(defender).influence).toBe(influence)
     })
 })

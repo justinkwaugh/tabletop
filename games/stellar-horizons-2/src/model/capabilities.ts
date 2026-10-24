@@ -7,6 +7,7 @@ import { TechField } from '../components/techFields.js'
 import type { TradeGood } from '../components/tradeGoods.js'
 import { WorldClass } from '../components/worldTypes.js'
 import type { ScenarioDefinition } from '../components/scenarios.js'
+import type { RollModifier } from './pieces.js'
 import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
 
 // Everything a Player's techs, faction sheet, cards and escalation markers let them do, in one
@@ -59,6 +60,10 @@ export interface Capabilities {
     difficulty: Record<AnomalyChallenge, number>
     armedCvCombat: number
     defendingCombat: number
+    // Each faction's or card's modifier to combat and raid rolls, kept apart to be named.
+    rollModifiers: SourcedRollModifier[]
+    raidImmune: boolean
+    lowersRaidResult: boolean
     extraEscalation: number
     attacksForbidden: boolean
     earthCash: number
@@ -91,6 +96,21 @@ export interface Capabilities {
     wormholes: boolean
     choosesEconomicTile: boolean
     endRollModifier: number
+}
+
+// Rulebook 1.5 and the cards: modifiers to a Player's own rolls (every combat, or ground
+// combats), and to the rolls of those who attack them (ground combats, or assaults and raids).
+export type RollEffect =
+    'combatRoll' | 'groundRoll' | 'opponentGroundRoll' | 'opponentAssaultRaidRoll'
+const ROLL_EFFECTS: readonly RollEffect[] = [
+    'combatRoll',
+    'groundRoll',
+    'opponentGroundRoll',
+    'opponentAssaultRaidRoll'
+]
+
+export interface SourcedRollModifier extends RollModifier {
+    effect: RollEffect
 }
 
 export const CV_MOVEMENT_STEPS: readonly number[] = [5, 4, 3, 2, 1.5, 1, 0.5]
@@ -274,6 +294,27 @@ export function playerCapabilities(
         },
         armedCvCombat: sum('armedCvCombat'),
         defendingCombat: sum('defendingCombat'),
+        // Praetorians and Military Academy each add 1, together 2 (campaign plan, slice 5, Q8).
+        rollModifiers: [
+            ...(abilities.combatRoll && player.faction
+                ? [
+                      {
+                          effect: 'combatRoll' as const,
+                          source: { kind: 'Faction' as const, faction: player.faction },
+                          value: abilities.combatRoll
+                      }
+                  ]
+                : []),
+            ...player.cards.flatMap(({ cardId }) => {
+                const cardEffects = cardDefinition(cardId).effects
+                return ROLL_EFFECTS.flatMap((effect): SourcedRollModifier[] => {
+                    const value = cardEffects[effect]
+                    return value ? [{ effect, source: { kind: 'Card', cardId }, value }] : []
+                })
+            })
+        ],
+        raidImmune: abilities.raidImmune === true,
+        lowersRaidResult: abilities.lowersRaidResult === true,
         extraEscalation: sum('extraEscalation'),
         attacksForbidden: escalation.some((effect) => effect.forbidsAttacks === true),
         earthCash: escalationSum('earthCash'),

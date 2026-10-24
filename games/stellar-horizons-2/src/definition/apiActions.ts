@@ -60,6 +60,12 @@ import { DeclareBlockade } from '../actions/declareBlockade.js'
 import { EndBlockades } from '../actions/endBlockades.js'
 import { DiscardEscalation } from '../actions/discardEscalation.js'
 import { ReduceTransferMarkers } from '../actions/reduceTransferMarkers.js'
+import { DeclareAttack } from '../actions/declareAttack.js'
+import { EndAttacks } from '../actions/endAttacks.js'
+import { DefendAttack } from '../actions/defendAttack.js'
+import { AssignHit } from '../actions/assignHit.js'
+import { ResolveRaid } from '../actions/resolveRaid.js'
+import { EndCombat } from '../actions/endCombat.js'
 
 export const StellarHorizonsApiActions = {
     [ActionType.ChooseFaction]: ChooseFaction,
@@ -124,5 +130,11 @@ export const StellarHorizonsApiActions = {
     [ActionType.EndBlockades]: EndBlockades,
     [ActionType.DiscardEscalation]: DiscardEscalation,
     [ActionType.ReduceTransferMarkers]: ReduceTransferMarkers,
+    [ActionType.DeclareAttack]: DeclareAttack,
+    [ActionType.EndAttacks]: EndAttacks,
+    [ActionType.DefendAttack]: DefendAttack,
+    [ActionType.AssignHit]: AssignHit,
+    [ActionType.ResolveRaid]: ResolveRaid,
+    [ActionType.EndCombat]: EndCombat,
     [ActionType.EndTurn]: EndTurn
 }

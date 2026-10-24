@@ -13,14 +13,14 @@ import { canJoinAnyPact } from './pacts.js'
 import { OperationKind } from './pieces.js'
 import { shipTerraformSlots } from './terraforming.js'
 import { canTransferAnyGoods, saleOptions } from './trade.js'
-import { TurnPhase } from './turn.js'
+import { type SpanPhase, TurnPhase } from './turn.js'
 
 // A phase ends by itself once the player can do nothing more in it. Exploring is the exception:
 // the player ends the exploration phase themselves, having read the results.
 export function isIdleInPhase(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
-    phase: TurnPhase
+    phase: SpanPhase
 ): boolean {
     switch (phase) {
         case TurnPhase.Build:
