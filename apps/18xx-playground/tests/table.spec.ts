@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 for (const title of ['TOP', '1889']) {
     test(`${title} table keeps the sidebar and actions above an unframed scaling map`, async ({
@@ -252,6 +252,114 @@ for (const title of ['TOP', '1889']) {
         )
     })
 }
+
+async function openFinishedGame(page: Page) {
+    test.setTimeout(60000)
+    await page.goto('/table')
+    await page.getByLabel('Position', { exact: true }).selectOption('finished')
+    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeAttached({
+        timeout: 30000
+    })
+}
+
+async function expectHistoryAtNewest(page: Page) {
+    const history = page.locator('.history-scroll')
+    await expect(history).toBeVisible()
+    await expect
+        .poll(() => history.evaluate((element) => element.scrollHeight - element.clientHeight))
+        .toBeGreaterThan(100)
+    await expect
+        .poll(() =>
+            history.evaluate(
+                (element) => element.scrollHeight - element.clientHeight - element.scrollTop
+            )
+        )
+        .toBeLessThan(2)
+}
+
+async function closeHistory(page: Page) {
+    const pane = page
+        .getByRole('region')
+        .filter({ has: page.getByRole('tab', { name: 'History', exact: true }) })
+        .last()
+    await pane.getByRole('button', { name: /^Pane options/ }).click()
+    await page
+        .locator('.widget-menu:popover-open')
+        .getByRole('button', { name: 'Close History tab', exact: true })
+        .click()
+}
+
+test.describe('sidebar tabs on a phone', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
+
+    test('a sideways swipe on any sidebar tab moves the table', async ({ page }) => {
+        await page.goto('/table')
+        const scroller = page.locator('.table-scroller')
+        const touch = await page.context().newCDPSession(page)
+        for (const tab of ['Players', 'History', 'Chat']) {
+            await page.getByRole('tab', { name: tab, exact: true }).click()
+            await scroller.evaluate((element) => element.scrollTo({ left: 0, behavior: 'instant' }))
+            await touch.send('Input.dispatchTouchEvent', {
+                type: 'touchStart',
+                touchPoints: [{ x: 250, y: 450 }]
+            })
+            for (let step = 1; step <= 10; step++)
+                await touch.send('Input.dispatchTouchEvent', {
+                    type: 'touchMove',
+                    touchPoints: [{ x: 250 - step * 15, y: 450 }]
+                })
+            await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+            await expect
+                .poll(() => scroller.evaluate((element) => element.scrollLeft), { message: tab })
+                .toBeGreaterThan(50)
+        }
+    })
+
+    test('the History tab opens at the newest entry', async ({ page }) => {
+        await openFinishedGame(page)
+        await page.getByRole('tab', { name: 'History', exact: true }).click()
+        await expectHistoryAtNewest(page)
+    })
+
+    test('History added back to the sidebar opens at the newest entry', async ({ page }) => {
+        await openFinishedGame(page)
+        await closeHistory(page)
+        await page
+            .locator('.widget-menu:popover-open')
+            .getByRole('button', { name: 'History', exact: true })
+            .click()
+        await expectHistoryAtNewest(page)
+    })
+
+    test('History added to the view tabs opens at the newest entry', async ({ page }) => {
+        await openFinishedGame(page)
+        await closeHistory(page)
+        await page
+            .getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })
+            .click()
+        await page
+            .locator('.widget-menu:popover-open')
+            .getByRole('button', { name: 'History', exact: true })
+            .click()
+        await expectHistoryAtNewest(page)
+    })
+})
+
+test('History added to another pane of the pane layout opens at the newest entry', async ({
+    page
+}) => {
+    await openFinishedGame(page)
+    await closeHistory(page)
+    await page.keyboard.press('Escape')
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })
+        .click()
+    await page
+        .locator('.widget-menu:popover-open')
+        .getByRole('button', { name: 'History', exact: true })
+        .click()
+    await expectHistoryAtNewest(page)
+})
 
 test.describe('player cards below the pane layout', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })

@@ -6,7 +6,9 @@
     } from './companyPresentation.js'
     import {
         defaultTableView,
+        firstTabbedView,
         initialTableLayout,
+        tabbedTableLayout,
         restoreTableWorkspace,
         saveTableWorkspace
     } from './tableWorkspace.js'
@@ -40,18 +42,18 @@
     import Lightbox from '../presentation/Lightbox.svelte'
     import CompanyOrder from './CompanyOrder.svelte'
     import CompanyOrderOverview from './CompanyOrderOverview.svelte'
-    import { untrack, tick, type Snippet } from 'svelte'
+    import { onMount, untrack, tick, type Snippet } from 'svelte'
     import { MediaQuery } from 'svelte/reactivity'
     import {
         DefaultTableLayout,
-        DefaultTabs,
         GameToaster,
         TabWorkspace,
         DebouncedLayout,
         HistoryControls,
         GameChat,
         ScalingWrapper,
-        setGameSession
+        setGameSession,
+        toastNewChatMessages
     } from '@tabletop/frontend-components'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
@@ -207,7 +209,9 @@
             for (const { wrapper, restore } of views) if (autoZooms(wrapper)) restore(options)
         }
     }
+    let mapBroughtForward = false
     function showMap() {
+        mapBroughtForward = true
         if (!boardWrapper?.isVisible()) selectedView = 'Map'
     }
     let focusedLocation: string | undefined = $derived.by(() => {
@@ -729,7 +733,17 @@
         'Actions'
     ] as const
     const sidebarViews = ['Players', 'History', 'Chat']
-    let sidebar: HTMLDivElement
+    let sidebarPane: HTMLDivElement | undefined = $state()
+    let sidebarDeleted = $state(false)
+    const tabbedSidebarShown = $derived(!paneLayout.current && !sidebarDeleted)
+    let chatShown = $state(false)
+    function trackChatShown(active: boolean) {
+        chatShown = active
+        return () => {
+            chatShown = false
+        }
+    }
+    onMount(() => toastNewChatMessages(session, () => paneLayout.current || chatShown))
     const initialView = 'Map'
     let selectedView = $state<string>(initialView)
     const view = $derived(selectedView)
@@ -748,11 +762,28 @@
         { id: 'Game info', label: 'Game info' },
         ...sidebarViews.map((id) => ({ id, label: id }))
     ]
+    const tabbedLayout = untrack(() =>
+        tabbedTableLayout({
+            board: boardAvailable,
+            chat: session.chatAvailable,
+            gameInformation: !!gameInformation
+        })
+    )
     const savedTableLayout = $derived(restoreTableWorkspace(layoutPreference.value, paneTabs))
     function preferBoard() {
         untrack(() => {
             if (selectedView !== initialView) return
             selectedView = defaultTableView(savedTableLayout, paneTabs)
+        })
+    }
+
+    let tabbedViewDefaulted = false
+    function preferFirstTabbedView() {
+        untrack(() => {
+            if (tabbedViewDefaulted) return
+            tabbedViewDefaulted = true
+            if (mapBroughtForward || selectedView !== initialView) return
+            selectedView = firstTabbedView(session.preferences.values.tabbedLayout, tabbedLayout)
         })
     }
 
@@ -781,16 +812,8 @@
         }
         const sidebarIndex = ['p', 'h', 'c'].indexOf(key)
         if (sidebarIndex >= 0) {
-            if (paneLayout.current) {
-                event.preventDefault()
-                selectedView = sidebarViews[sidebarIndex]
-                return
-            }
-            const tab = sidebar.querySelectorAll<HTMLButtonElement>('[role="tab"]')[sidebarIndex]
-            if (tab) {
-                event.preventDefault()
-                tab.click()
-            }
+            event.preventDefault()
+            selectedView = sidebarViews[sidebarIndex]
         }
     }
 </script>
@@ -1033,22 +1056,8 @@
         borderColor="border-[var(--rail-border,#b8a995)]"
     />
 {/snippet}
-{#snippet sidebarTabs()}
-    <div bind:this={sidebar} style="display: contents">
-        <DefaultTabs
-            chat={chatPanel}
-            history={historyPanel}
-            playersPanel={playerCards}
-            fontClass="railway-tab-label"
-            contentClass="p-0 mt-0 has-[.round-history]:-mt-1 h-full overflow-auto rounded-none bg-transparent dark:bg-transparent"
-            activeTabClass="py-2 px-2 text-[var(--rail-text,#5e4937)] rounded-none"
-            inactiveTabClass="py-2 px-2 text-[var(--rail-inactive,#998b79)] hover:text-[var(--rail-text,#5e4937)] rounded-none"
-        ></DefaultTabs>
-    </div>
-{/snippet}
 
-<!-- The sidebar's tabs mount the toaster; the pane layout has no sidebar. -->
-{#if paneLayout.current}<GameToaster />{/if}
+<GameToaster />
 <div
     class="railway-table"
     class:published-artwork={publishedArtwork}
@@ -1065,16 +1074,17 @@
     {#if session.preferences.ready && layoutPreference.ready}
         <DefaultTableLayout
             topPadding={0}
-            horizontalPadding={paneLayout.current || phoneLayout.current ? 0 : 8}
-            showSidebar={!paneLayout.current}
+            horizontalPadding={paneLayout.current || (phoneLayout.current && tabbedSidebarShown)
+                ? 0
+                : 8}
+            showSidebar={tabbedSidebarShown}
         >
             {#snippet mobileControlsContent()}
                 {@render historyControls()}
             {/snippet}
             {#snippet sideContent()}
                 <div class="max-sm:hidden">{@render historyControls()}</div>
-                {@render sidebarInformation()}
-                {@render sidebarTabs()}
+                <div class="sidebar-pane" bind:this={sidebarPane}></div>
             {/snippet}
             {#snippet gameContent()}
                 <div
@@ -1087,6 +1097,8 @@
                 >
                     {#if paneLayout.current}<div class="workspace-history-controls">
                             {@render historyControls(false)}
+                        </div>{:else if !tabbedSidebarShown}<div class="max-sm:hidden">
+                            {@render historyControls()}
                         </div>{/if}
                     <div class="table-heading">
                         <TableHeader
@@ -1248,10 +1260,13 @@
                     {:else if id === 'Players'}<div class="workspace-view players-pane">
                             {@render playerCards()}
                         </div>
-                    {:else if id === 'History'}<div class="workspace-view">
+                    {:else if id === 'History'}<div class="workspace-view self-scrolling">
                             {@render historyPanel()}
                         </div>
-                    {:else if id === 'Chat'}<div class="workspace-view">
+                    {:else if id === 'Chat'}<div
+                            class="workspace-view"
+                            {@attach () => trackChatShown(active)}
+                        >
                             {#if active}{@render chatPanel()}{/if}
                         </div>
                     {:else if id === 'Operating Order'}<div class="workspace-view">
@@ -1425,20 +1440,21 @@
                 {:else}
                     <div class="stacked-body">
                         <div class="original-actions">{@render actionContent()}</div>
-                        <div class="stacked-workspace">
+                        <div class="stacked-workspace" {@attach preferFirstTabbedView}>
                             <TabWorkspace
-                                tabs={workspaceTabs
-                                    .filter(
-                                        (tab) =>
-                                            tab.id !== 'Actions' &&
-                                            tab.id !== 'Player Aid' &&
-                                            !(boardAvailable && tab.id === 'Market')
-                                    )
-                                    .map((tab) =>
-                                        boardAvailable && tab.id === 'Map'
-                                            ? { ...tab, label: 'Board' }
-                                            : tab
-                                    )}
+                                tabs={tabbedLayout.tabs}
+                                fixedPane={{
+                                    target: sidebarPane,
+                                    tabs: tabbedLayout.sidebarAccepts,
+                                    label: 'Sidebar',
+                                    deletable: true
+                                }}
+                                bind:fixedPaneDeleted={sidebarDeleted}
+                                initialLayout={tabbedLayout.initial}
+                                tabTitle={sidebarTabIcon}
+                                savedLayout={session.preferences.values.tabbedLayout}
+                                onLayoutChange={(value) =>
+                                    session.preferences.set({ tabbedLayout: value }, 'family')}
                                 bind:selected={selectedView}
                                 label="Table views"
                                 splittable={false}
@@ -1507,6 +1523,11 @@
         flex: 1;
         min-height: 0;
     }
+    .sidebar-pane {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+    }
     .stacked-workspace {
         display: flex;
         flex-direction: column;
@@ -1560,6 +1581,10 @@
         min-height: 0;
         min-width: 0;
         overflow: auto;
+    }
+    /* iOS Safari rubber-bands an overflow: auto box sideways even when nothing overflows. */
+    .self-scrolling {
+        overflow: hidden;
     }
     .players-pane {
         container: player-pane / size;

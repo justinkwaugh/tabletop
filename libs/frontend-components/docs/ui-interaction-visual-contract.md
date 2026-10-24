@@ -264,7 +264,7 @@ activate a tab by updating the bound selection. No host contract changes.
 
 Dropping on a tab inserts before it, including reordering within the same pane;
 dropping on remaining pane space appends. While more than one pane exists, every split-tree pane menu ends with a red
-Delete pane item after a divider; the fixed pane is never deletable, and pane headers never show a delete button. Deletion appends its
+Delete pane item after a divider; the fixed pane is deletable only when `fixedPane.deletable` is set, and pane headers never show a delete button. Deletion appends its
 tabs to its sibling (the first surviving leaf if that sibling is split), then
 collapses the split. The selected tab remains visible.
 The surviving subtree retains its contents and divider positions, and split-button
@@ -277,12 +277,26 @@ Mouse divider resizing uses mouse down with window-level move/up listeners;
 WebKit can omit the next pointerdown after native drag/drop while still delivering
 mousedown. Touch and pen resizing use pointer capture. Blur cancels resizing.
 
-Setting `splittable={false}` provides an ordinary fixed tab bar without pane
-controls or tab dragging. It is intended for an unsplit initial layout.
+Setting `splittable={false}` keeps the workspace at its unsplit initial layout:
+no split or delete-pane controls and no tab dragging between panes. Each pane
+still has its options menu to close and add tabs, so a tab moves between panes by
+closing it in one and adding it in the other. With more than one tab, each Current
+tabs row starts with a grip. Dragging a grip up or down by pointer (finger, pen or
+mouse, via pointer capture) slides the other rows aside by whole rows and reorders
+the pane's tabs on release. Arrow Up/Down on a focused grip moves its tab one
+place and keeps focus on the grip. Closing the menu, a cancelled pointer, or lost
+capture abandons a drag without reordering. An empty pane reads "Add a tab from the
+pane menu" instead of "Drag a tab here".
 
 An optional `fixedPane` supplies a target element, label, and allowed initial tab
 IDs. Its header and panels render into that target, outside the split tree; it
-cannot split or close and does not consume main-pane capacity. Only its allowed
+cannot split and does not consume main-pane capacity. With `deletable`, its menu
+ends with Delete pane, which appends its tabs to the first main pane; the caller
+binds `fixedPaneDeleted` to hide the target. While it is deleted, the menu of each
+main pane starts with a left / right split icon, in the place of split buttons,
+that brings it back with its initial tabs (`initialLayout.sidebar`, else its
+allowed tabs) that are in the main panes, moved out of them. Its parts mount
+outside the workspace element, so they carry their own header height. Only its allowed
 tabs can enter, while they may leave for any main pane. Empty fixed panes remain
 drop targets. Content nodes stay mounted across transfers. The optional
 `tabTitle` snippet adds icons or indicators before a tab label.
@@ -314,15 +328,18 @@ original narrow layout retains its operating-order strip.
 
 Pane headers consolidate splitting and adding/moving tabs into a compact options
 popover anchored below an ellipsis button. Delete remains the far-right control.
-The fixed pane exposes only allowed tab choices; it cannot split or close.
+The fixed pane exposes only allowed tab choices; it cannot split, and offers
+Delete pane only when deletable. Without splitting, the fixed pane's tab bar uses
+the narrow tab spacing at every width.
 
 The options popup uses a consistent compact width, with split icons followed by
 Current tabs and Add tabs sections. Add tabs is always visible when tabs can be added;
 there is no separate plus button.
 
 The Add list contains only tabs absent from every pane. Already placed tabs move
-via dragging, not the catalog. Hide Add tabs when no allowed absent tabs remain;
-the fixed pane needs no options button when it has no current or available tabs.
+via dragging in a splittable workspace, and by closing and re-adding without
+splitting. Hide Add tabs when no allowed absent tabs remain; the fixed pane needs no
+options button when it has no current or available tabs and cannot be deleted.
 
 The options dropdown lists the pane’s current tabs with individual close buttons.
 Actions is protected and never closeable. Closed tabs become available in Add.

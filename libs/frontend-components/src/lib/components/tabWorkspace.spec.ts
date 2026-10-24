@@ -4,6 +4,11 @@ import {
     activateTab,
     deletePane,
     moveTab,
+    moveTabToIndex,
+    orderPaneTabs,
+    tabDragIndex,
+    tabDragShift,
+    withdrawTabs,
     resizeSplit,
     splitPane,
     swapSplit,
@@ -117,4 +122,47 @@ it('swaps entire split branches while preserving each branch size', () => {
         'root-horizontal'
     ])
     expect(swapSplit(swapped, 'root-split-vertical')).toEqual(root)
+})
+
+it('moves a tab to a clamped index and orders a pane without changing its active tab', () => {
+    expect(moveTabToIndex(['map', 'market', 'sheet', 'tiles'], 'map', 2)).toEqual([
+        'market',
+        'sheet',
+        'map',
+        'tiles'
+    ])
+    expect(moveTabToIndex(['map', 'market', 'sheet'], 'sheet', -3)).toEqual([
+        'sheet',
+        'map',
+        'market'
+    ])
+    expect(moveTabToIndex(['map', 'market', 'sheet'], 'map', 9)).toEqual(['market', 'sheet', 'map'])
+    const split = splitPane(initial(), 'root', 'vertical')
+    const ordered = orderPaneTabs(split, 'root', ['tiles', 'sheet', 'market', 'map'])
+    expect(workspaceLayout(ordered).panes[0].pane).toMatchObject({
+        tabs: ['tiles', 'sheet', 'market', 'map'],
+        active: 'map'
+    })
+})
+
+it('withdraws only the tabs present, leaving the rest of the workspace intact', () => {
+    const split = splitPane(initial(), 'root', 'vertical')
+    const second = workspaceLayout(split).panes[1].pane.id
+    const moved = moveTab(split, 'tiles', second)
+    const { root, withdrawn } = withdrawTabs(moved, ['tiles', 'players', 'market'])
+    expect(withdrawn).toEqual(['tiles', 'market'])
+    expect(workspaceLayout(root).panes.map((item) => item.pane.tabs)).toEqual([
+        ['map', 'sheet'],
+        []
+    ])
+})
+
+it('previews a tab drag by whole rows, clamped to the list', () => {
+    const tabs = ['map', 'market', 'sheet', 'tiles']
+    const drag = { tabs, tab: 'market', rowHeight: 20, offset: 31 }
+    expect(tabDragIndex(drag)).toBe(3)
+    expect(tabs.map((tab) => tabDragShift(drag, tab))).toEqual([0, 31, -20, -20])
+    const up = { ...drag, offset: -90 }
+    expect(tabDragIndex(up)).toBe(0)
+    expect(tabs.map((tab) => tabDragShift(up, tab))).toEqual([20, -20, 0, 0])
 })

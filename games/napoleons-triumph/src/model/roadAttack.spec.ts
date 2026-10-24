@@ -60,17 +60,18 @@ describe('cavalry attacking by road from the attack locale', () => {
         return game
     }
 
-    it('may ride on after the defender gives way, unseen until its move is over', () => {
+    it('is shown as it takes the locale, and may ride on after the defender gives way', () => {
         const state = taken(true).hydrated
         expect(state.unit('F-cav').position).toEqual({ locale: TAKEN })
         expect(state.roadMarch).toMatchObject({ unitIds: ['F-cav'], start: NEAR, path: [TAKEN] })
-        expect(state.unit('F-cav').shown).toBeUndefined()
+        expect(state.unit('F-cav').shown).toEqual(cavalry(2))
         expect(state.machineState).toBe(MachineState.Commanding)
     })
 
     it('has made an ordinary move, with nothing more to come, when it did not take the road', () => {
         const game = taken(false)
         expect(game.hydrated.roadMarch).toBeUndefined()
+        expect(game.hydrated.unit('F-cav').shown).toBeUndefined()
         expect(() =>
             game.act(ActionType.Move, game.playerOf(Side.French), {
                 order: { ...rider, road: [BEYOND], continues: true },
@@ -85,7 +86,7 @@ describe('cavalry attacking by road from the attack locale', () => {
         const allied = game.playerOf(Side.Allied)
         game.act(ActionType.ThreatenAttack, french, { approach: approach(game, TAKEN, BEYOND) })
         expect(game.hydrated.roadMarch).toBeDefined()
-        expect(game.hydrated.unit('F-cav').shown).toBeUndefined()
+        expect(game.hydrated.unit('F-cav').shown).toEqual(cavalry(2))
         defendWith(game, allied, ['A-line'])
         expect(() =>
             game.act(ActionType.DeclareFeint, french, { orders: [rider], end: FeintEnd.Approach })
@@ -129,7 +130,6 @@ describe('cavalry attacking by road from the attack locale', () => {
             to: { locale: further.to }
         })
         expect(game.hydrated.roadMarch).toMatchObject({ stopped: true })
-        expect(game.hydrated.unit('F-cav').shown).toBeUndefined()
         expect(() =>
             game.act(ActionType.Move, french, {
                 order: { ...rider, road: [BEYOND], continues: true },
@@ -148,7 +148,7 @@ describe('cavalry attacking by road from the attack locale', () => {
         expect(ended.getPlayerState(french).independentCommandsUsed).toBe(1)
     })
 
-    it('ends its move, and is shown, as soon as another command is given', () => {
+    it('ends its move as soon as another command is given', () => {
         const game = taken(true)
         const french = game.playerOf(Side.French)
         game.act(ActionType.Move, french, {
@@ -166,7 +166,7 @@ describe('cavalry attacking by road from the attack locale', () => {
         ).toThrow()
     })
 
-    it('ends its move, and is shown, when another command threatens an attack it cannot ride into', () => {
+    it('ends its move when another command threatens an attack it cannot ride into', () => {
         const map = new TestGame().hydrated.map
         const flank = map
             .adjacentLocales(WEST)
@@ -180,8 +180,6 @@ describe('cavalry attacking by road from the attack locale', () => {
         const game = taken(true, [
             { id: 'A-flank', side: Side.Allied, face: infantry(2), locale: flank }
         ])
-        expect(game.hydrated.unit('F-cav').shown).toBeUndefined()
-
         game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), {
             approach: approach(game, WEST, flank),
             plan: { kind: CommandKind.Unit, unitIds: ['F-inf'] }
@@ -381,7 +379,7 @@ describe('a cavalry corps of two or more units attacking by road', () => {
         expect(state.roadMarch).toBeUndefined()
     })
 
-    it('ends its stopped move, and is shown, when another command threatens', () => {
+    it('ends its stopped move when another command threatens', () => {
         const outside = map
             .adjacentLocales(flank)
             .find(
@@ -393,8 +391,6 @@ describe('a cavalry corps of two or more units attacking by road', () => {
         const game = stoppedBesideFlank([
             { id: 'F-inf', side: Side.French, face: infantry(2), locale: outside }
         ])
-        expect(game.hydrated.unit('F-c1').shown).toBeUndefined()
-
         game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), {
             approach: approach(game, outside, flank),
             plan: { kind: CommandKind.Unit, unitIds: ['F-inf'] }
@@ -417,12 +413,30 @@ describe('a cavalry corps of two or more units attacking by road', () => {
         const state = game.hydrated
         expect(state.unit('F-c1').position).toEqual({ locale: TAKEN })
         expect(state.unit('F-c2').position).toEqual({ locale: TAKEN })
+        expect(state.unit('F-c1').shown).toEqual(cavalry(2))
+        expect(state.unit('F-c2').shown).toEqual(cavalry(2))
         expect(state.roadMarch).toMatchObject({
             kind: CommandKind.Corps,
             commanderId: 'murat',
             path: [NEAR, TAKEN]
         })
         expect(state.limits.marchedLocales).toEqual([NEAR, TAKEN])
+    })
+
+    it('shows only the units that ride in, not those detached before it set out', () => {
+        const game = threatened()
+        const french = game.playerOf(Side.French)
+        game.act(ActionType.Retreat, game.playerOf(Side.Allied), {
+            losses: {},
+            destinations: { 'A-1': BEYOND, 'A-2': BEYOND },
+            kept: { bagration: 'A-1' }
+        })
+        game.act(ActionType.Occupy, french, { orders: [{ ...corps, unitIds: ['F-c1'] }] })
+        const state = game.hydrated
+        expect(state.unit('F-c1').position).toEqual({ locale: TAKEN })
+        expect(state.unit('F-c1').shown).toEqual(cavalry(2))
+        expect(state.unit('F-c2').position).toEqual({ locale: WEST })
+        expect(state.unit('F-c2').shown).toBeUndefined()
     })
 })
 
@@ -631,6 +645,7 @@ describe('cavalry reinforcements riding on in their turn of entry', () => {
         }
         const riders = [state.unit('F-off')]
         expect(state.roadMarch).toMatchObject({ unitIds: ['F-off'], path: [ENTRY, TAKEN] })
+        expect(state.unit('F-off').shown).toEqual(cavalry(2))
         expect(rideOnAttackOrder(state, site, riders)).toMatchObject({ continues: true })
         expect(roadAttackOrders(state, site, riders)).toEqual([{ ...corps, road: [] }])
     })

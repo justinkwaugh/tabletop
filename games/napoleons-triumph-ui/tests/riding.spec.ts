@@ -130,7 +130,7 @@ test('a unit standing beside cavalry that is riding on takes a command of its ow
 
     await leftOut.click()
     await tap(page, 'svg [aria-label^="Move to"]')
-    await expect(page.getByText('Choose a corps or unit on the map')).toBeVisible()
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
 })
 
 test('reinforcement cavalry that is riding on takes its second command and presses an attack', async ({
@@ -178,6 +178,7 @@ test('cavalry riding on stays in hand while a locale is aimed at, and the threat
     await frenchTurnWith(page, reinforcementCavalryRidesIn)
     const rideSwitch = page.getByRole('group', { name: RIDE_SWITCH })
     await expect(page.getByRole('group', { name: 'Bernadotte’s corps, riding on' })).toBeVisible()
+    await expect(page.getByText('Tap an enemy locale to threaten an attack.')).toBeVisible()
 
     await tap(page, '[data-aim-locale="52"]')
     await expect(

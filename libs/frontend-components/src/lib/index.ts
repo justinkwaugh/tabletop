@@ -12,6 +12,7 @@ export { default as DefaultSideContent } from './components/DefaultSideContent.s
 export { default as DefaultTableLayout } from './components/DefaultTableLayout.svelte'
 export { default as DefaultTabs } from './components/DefaultTabs.svelte'
 export { default as GameToaster } from './components/GameToaster.svelte'
+export { toastNewChatMessages } from './components/chatToasts.js'
 export { default as Floater } from './components/Floater.svelte'
 export { default as Typeahead } from './components/Typeahead.svelte'
 export { default as GameEditForm } from './components/GameEditForm.svelte'
