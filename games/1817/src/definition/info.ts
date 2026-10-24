@@ -13,7 +13,7 @@ export const EighteenSeventeenInfo: GameInfo = {
         description:
             'Railway companies on the Wall Street of the north-eastern United States, with a prototype interface.',
         minPlayers: 3,
-        maxPlayers: 12,
+        maxPlayers: 7,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
         beta: true,
