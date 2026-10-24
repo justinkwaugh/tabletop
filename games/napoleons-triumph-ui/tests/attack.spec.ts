@@ -406,7 +406,7 @@ test('two artillery units on a wide approach threaten one at a time and are name
     await expect(attack).toBeHidden()
 })
 
-test('the orders say how to threaten an attack, and choosing pieces keeps the idle line’s height', async ({
+test('the orders offer an enemy locale to threaten, and choosing pieces keeps the idle line’s height', async ({
     page
 }) => {
     await page.setViewportSize({ width: 700, height: 900 })
@@ -417,8 +417,8 @@ test('the orders say how to threaten an attack, and choosing pieces keeps the id
     await tap(page, '[aria-label="Move to locale 94"]')
     await page.getByRole('button', { name: 'End turn' }).click()
 
-    await expect(page.getByText('Choose a corps or unit on the map')).toBeVisible()
-    await expect(howToAim).toBeVisible()
+    await expect(page.getByText('Choose a corps, unit, or enemy locale on the map')).toBeVisible()
+    await expect(howToAim).toBeHidden()
     const idleLine = await page.locator('.nt-orders-rest').boundingBox()
     await pickUp(page, 'st-hilaire')
     await expect(page.getByRole('group', { name: 'St. Hilaire’s corps' })).toBeVisible()

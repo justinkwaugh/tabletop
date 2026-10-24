@@ -78,12 +78,16 @@
     })
 
     // Rule 11: a threat starts from the enemy's locale, and nothing on the board marks the ones that can be aimed at until one is tapped.
+    const mayAim = $derived(gameSession.aimableLocales.length > 0)
+
+    const idlePrompt = $derived(
+        `Choose ${mayAim ? 'a corps, unit, or enemy locale' : 'a corps or unit'} on the map${reinforcements.length > 0 ? ', bring on' : ''}`
+    )
+
     const howToAim = $derived.by(() => {
-        const stuck = group !== undefined && options.length === 0 && !ridingOn
+        const stuck = options.length === 0 && !ridingOn
         const onAnotherStep = wayToChoose !== undefined || attaching || stuck
-        return !onAnotherStep && gameSession.aimableLocales.length > 0
-            ? 'Tap an enemy locale to threaten an attack.'
-            : undefined
+        return !onAnotherStep && mayAim ? 'Tap an enemy locale to threaten an attack.' : undefined
     })
 
     // The anchor stands as tall as the idle line last stood, however it wrapped, so choosing never resizes the board.
@@ -284,11 +288,7 @@
         {#if title}
             <span class="nt-orders-name"><PlaceText text={title} /></span>
         {:else}
-            <span
-                >Choose a corps or unit on the map{reinforcements.length > 0
-                    ? ', bring on'
-                    : ''}</span
-            >
+            <span>{idlePrompt}</span>
             {@render turnActions(true)}
         {/if}
     </div>
@@ -304,9 +304,6 @@
         )}
     {:else}
         <div class="nt-orders-note nt-orders-rest" bind:clientHeight={idleLineHeight}>
-            {#if howToAim}
-                <span>{howToAim}</span>
-            {/if}
             <span class="nt-orders-faint">{stillToCommand}</span>
         </div>
     {/if}
@@ -358,13 +355,6 @@
 
     .nt-orders-anchor {
         position: relative;
-    }
-
-    /* The idle line runs its hints on, so a wide panel gives up no more of the board than one line. */
-    .nt-orders-note.nt-orders-rest {
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 0 0.45em;
     }
 
     .nt-orders-drawer {

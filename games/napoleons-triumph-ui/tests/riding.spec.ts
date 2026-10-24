@@ -130,7 +130,7 @@ test('a unit standing beside cavalry that is riding on takes a command of its ow
 
     await leftOut.click()
     await tap(page, 'svg [aria-label^="Move to"]')
-    await expect(page.getByText('Choose a corps or unit on the map')).toBeVisible()
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
 })
 
 test('reinforcement cavalry that is riding on takes its second command and presses an attack', async ({
