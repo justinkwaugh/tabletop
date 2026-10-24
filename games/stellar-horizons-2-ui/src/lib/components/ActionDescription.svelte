@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { GameAction } from '@tabletop/common'
     import { directiveText, fulfilledIn } from '$lib/utils/directives.js'
+    import { titleActionText, titleChangeText } from '$lib/utils/titles.js'
     import {
         AnomalyBackKind,
         CargoPartnerKind,
@@ -10,6 +11,9 @@
         isChooseDirective,
         isDealDirectives,
         isRedrawDirective,
+        isBuyTitle,
+        isRenounceTitle,
+        TitleRequestKind,
         type HeldDirective,
         MarkerReason,
         RepairMethod,
@@ -277,7 +281,7 @@
         </span>
         {#each action.metadata?.influence ?? [] as { playerId, amount } (playerId)}
             <span class="inline-flex items-center gap-x-1"
-                ><PlayerName {playerId} /> earns {amount} IP from their cards.</span
+                ><PlayerName {playerId} /> earns {amount} IP from their cards and titles.</span
             >
         {/each}
         {#each action.metadata?.removedDirectives ?? [] as { playerId, directiveId } (directiveId)}
@@ -585,6 +589,9 @@
             <span class="inline-flex items-center gap-x-1"
                 ><PlayerName {playerId} /> bought nothing and discards their hand.</span
             >
+        {/each}
+        {#each action.metadata?.titles ?? [] as change, index (index)}
+            <span><PlayerName playerId={change.playerId} /> {titleChangeText(change)}.</span>
         {/each}
     {:else if isAttemptAnomaly(action)}
         <span>
@@ -899,6 +906,14 @@
             >gives up their directive for {DIRECTIVE_REDRAW_COST} IP{action.metadata?.queued
                 ? '; two more are drawn once everyone has finished the phase'
                 : ' and draws two more'}</span
+        >
+    {:else if isBuyTitle(action) || isRenounceTitle(action)}
+        <span
+            >{titleActionText(
+                isBuyTitle(action) ? TitleRequestKind.Buy : TitleRequestKind.Renounce,
+                action.titleId,
+                action.metadata?.change
+            )}</span
         >
     {:else}
         <span>{action.type}</span>

@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 4248160350,
+  "seed": 982526064,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T22:51:52.636Z",
+  "createdAt": "2026-10-24T23:42:41.553Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "uWrHJAPhLRv6p1Wmyuyn_",
+  "id": "PgpV_XL3goAq1slPOSEOY",
   "gameId": "scenario-three-factions-at-one-anomaly",
   "seed": 3367980177,
   "prng": {
@@ -201,12 +201,18 @@
     "fulfilledDirectives": [],
     "directiveDrawsOwed": 0,
     "redrewDirective": false,
-    "directiveTotals": {
+    "turnRecord": {
      "miningCash": 0,
      "researchMarkers": 0,
      "baseProductionCash": 0,
-     "sales": []
+     "sales": [],
+     "terraformedClasses": [],
+     "resolvedChallenges": [],
+     "attackedByMoreEscalation": false,
+     "rolledOne": []
     },
+    "titles": [],
+    "titleRequests": [],
     "faction": "Starfarers"
    },
    {
@@ -348,12 +354,18 @@
     "fulfilledDirectives": [],
     "directiveDrawsOwed": 0,
     "redrewDirective": false,
-    "directiveTotals": {
+    "turnRecord": {
      "miningCash": 0,
      "researchMarkers": 0,
      "baseProductionCash": 0,
-     "sales": []
+     "sales": [],
+     "terraformedClasses": [],
+     "resolvedChallenges": [],
+     "attackedByMoreEscalation": false,
+     "rolledOne": []
     },
+    "titles": [],
+    "titleRequests": [],
     "faction": "Praetorians"
    },
    {
@@ -495,12 +507,18 @@
     "fulfilledDirectives": [],
     "directiveDrawsOwed": 0,
     "redrewDirective": false,
-    "directiveTotals": {
+    "turnRecord": {
      "miningCash": 0,
      "researchMarkers": 0,
      "baseProductionCash": 0,
-     "sales": []
+     "sales": [],
+     "terraformedClasses": [],
+     "resolvedChallenges": [],
+     "attackedByMoreEscalation": false,
+     "rolledOne": []
     },
+    "titles": [],
+    "titleRequests": [],
     "faction": "Givers"
    }
   ],
@@ -1084,6 +1102,8 @@
    "remaining": 0
   },
   "removedDirectives": [],
+  "availableTitles": [],
+  "titlePool": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

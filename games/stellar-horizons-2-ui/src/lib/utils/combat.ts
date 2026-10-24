@@ -6,6 +6,7 @@ import {
     damageCapacity,
     shipDefinition,
     sideOwner,
+    titleDefinition,
     type Combat,
     type CombatLoss,
     type CombatSide,
@@ -91,6 +92,8 @@ export function modifierSourceName(source: ModifierSource): string {
             return cardDefinition(source.cardId).name
         case 'Anomaly':
             return anomalyDefinition(source.anomalyId).name
+        case 'Title':
+            return titleDefinition(source.titleId).name
     }
 }
 

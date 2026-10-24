@@ -23,6 +23,7 @@ import {
     WorldSide,
     cardPile,
     TERRAFORM_POPULATION_STEP,
+    TitleId,
     WorldClass,
     crippledThreshold,
     damageCapacity,
@@ -1056,6 +1057,102 @@ function giveEscalation(state, playerId, markers) {
     }
 }
 
+// Lays a title out, from the pool if it was not drawn at the start.
+function layOutTitle(state, titleId) {
+    if (!state.availableTitles.includes(titleId)) {
+        state.titlePool = state.titlePool.filter((pooled) => pooled !== titleId)
+        state.availableTitles.push(titleId)
+    }
+}
+
+/**
+ * The cargo and trade turn (see Campaign trading) on the Main Line: the Starfarers have 3 Ore on
+ * Earth and 9 IP, and Guildmaster is laid out.
+ */
+function campaignTitleGuildmaster() {
+    const { game, state, starfarers } = campaignTradeTurn()
+    return {
+        game,
+        state: edit(state, (hydrated) => {
+            layOutTitle(hydrated, TitleId.Guildmaster)
+            const player = hydrated.getPlayerState(starfarers)
+            player.influence = 9
+            player.earthGoods.push(...takeGoods(hydrated, [TradeGood.Ore, TradeGood.Ore]))
+        })
+    }
+}
+
+/** Development in 2100, every Player with 20 IP: enough for Chancellor, which only one can have. */
+function campaignTitleRace() {
+    const { game, state } = startedGame(3, CAMPAIGN_CONFIG)
+    const ready = edit(state, (hydrated) => {
+        for (const player of hydrated.players) {
+            player.influence = 20
+        }
+    })
+    return { game, state: advanceTo(game, ready, TurnPhase.Development) }
+}
+
+/**
+ * The cargo and trade turn (see Campaign trading) on the Main Line: the Starfarers own Chancellor
+ * and Navigator, hold 6 escalation markers and 30 IP.
+ */
+function campaignTitleWarlord() {
+    const { game, state, starfarers } = campaignTradeTurn()
+    return {
+        game,
+        state: edit(state, (hydrated) => {
+            const player = hydrated.getPlayerState(starfarers)
+            player.influence = 30
+            giveEscalation(hydrated, starfarers, [
+                EscalationMarker.Points1,
+                EscalationMarker.Points1,
+                EscalationMarker.Points2,
+                EscalationMarker.Points2,
+                EscalationMarker.Points3,
+                EscalationMarker.Points3
+            ])
+            for (const titleId of [TitleId.Chancellor, TitleId.Navigator]) {
+                layOutTitle(hydrated, titleId)
+                hydrated.availableTitles = hydrated.availableTitles.filter(
+                    (available) => available !== titleId
+                )
+                player.titles.push(titleId)
+            }
+        })
+    }
+}
+
+/**
+ * Combat in 2110: the Praetorians own Admiral and hold 2 escalation markers. Their Centurion is
+ * at Wolf 359 beside the Givers' Sapphire (the Givers hold 3 markers) and their Gladiator at
+ * Luhman 16 beside the Starfarers' Polaris and base of 4 (the Starfarers hold 1).
+ */
+function campaignTitleAdmiral() {
+    return campaignAtWar(Faction.Praetorians, (state) => {
+        const praetorians = playerOf(state, Faction.Praetorians)
+        const givers = playerOf(state, Faction.Givers)
+        const starfarers = playerOf(state, Faction.Starfarers)
+        state.availableTitles = state.availableTitles.filter(
+            (titleId) => titleId !== TitleId.Admiral
+        )
+        state.getPlayerState(praetorians).titles.push(TitleId.Admiral)
+        giveEscalation(state, praetorians, [EscalationMarker.Points1, EscalationMarker.Points1])
+        giveEscalation(state, givers, [
+            EscalationMarker.Points2,
+            EscalationMarker.Points2,
+            EscalationMarker.Points2
+        ])
+        giveEscalation(state, starfarers, [EscalationMarker.Points3])
+        placeShip(state, givers, 'consortium-sapphire', 'wolf-359')
+        placeShip(state, praetorians, 'praetorians-centurion', 'wolf-359')
+        placeWorlds(state, LUHMAN_16, [[is('m-2'), WorldSide.I]])
+        placeBase(state, starfarers, LUHMAN_16, 4)
+        placeShip(state, starfarers, 'starfarers-polaris', LUHMAN_16)
+        placeShip(state, praetorians, 'praetorians-gladiator', LUHMAN_16)
+    })
+}
+
 /**
  * Initiative in 2110 with escalation markers: the Starfarers hold four of three kinds and 2 IP,
  * the Givers two different ones and no IP, the Praetorians a single one.
@@ -1185,3 +1282,11 @@ write(
     campaignDirectiveTerraform()
 )
 write('campaign-directive-goal', 'Campaign: the directive goal', campaignDirectiveGoal())
+write(
+    'campaign-title-guildmaster',
+    'Campaign: earning and buying a title',
+    campaignTitleGuildmaster()
+)
+write('campaign-title-race', 'Campaign: two Players after one title', campaignTitleRace())
+write('campaign-title-warlord', 'Campaign: becoming Warlord', campaignTitleWarlord())
+write('campaign-title-admiral', 'Campaign: an Admiral at war', campaignTitleAdmiral())

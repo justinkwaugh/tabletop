@@ -78,7 +78,7 @@ export function directiveProgress(
     directiveId: string
 ): string | undefined {
     const condition = directiveDefinition(directiveId).condition
-    const total = directiveTotal(state.getPlayerState(playerId).directiveTotals, condition)
+    const total = directiveTotal(state.getPlayerState(playerId).turnRecord, condition)
     if (!total) {
         return undefined
     }

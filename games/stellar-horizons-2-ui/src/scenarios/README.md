@@ -349,3 +349,30 @@ Terraforming in 2110: the Givers, ordered to terraform a world into O or M-class
 Exploration in 2100: the Givers, whose goal is 2 terraform directives, have fulfilled a terraform and a survey directive.
 
 - **The score.** The Givers' console score lists Directives +12 (7 and 5 VP) and Directive goal −15: the survey directive scores its points but does not count toward the goal.
+
+## Campaign title guildmaster
+
+The cargo and trade turn (see Campaign trading) on the Main Line: the Starfarers have 3 Ore on Earth and 9 IP, and Guildmaster is laid out with the rest.
+
+- **The prerequisite.** The console's Titles section lists the titles laid out with their cost to the Starfarers; none offers Buy. Selling the 3 Ore at Sol meets Guildmaster's "Sell 3 trade goods on Earth" for the turn, and its card offers Buy · 9 IP.
+- **Bought at once.** Buying it on the Main Line moves it among the Starfarers' titles and lays out a replacement from the pool; history names both. Each title now costs the Starfarers 5 more.
+
+## Campaign title race
+
+Development in 2100, every Player with 20 IP, enough for Chancellor.
+
+- **Waiting.** Buying Chancellor in a development Branch holds its 15 IP; the console shows it among the Player's titles, "Bought; settled once everyone has finished the phase", with Take back to undo it and have the IP back. A second Player may buy it too in their own Branch.
+- **Initiative decides.** Once everyone has finished developing, the earlier Player in initiative order has Chancellor; history says the later one cannot have it and has the 15 IP back.
+
+## Campaign title warlord
+
+The cargo and trade turn (see Campaign trading) on the Main Line: the Starfarers own Chancellor and Navigator, hold 6 escalation markers and 30 IP.
+
+- **Warlord.** Warlord offers Buy · 18 IP (8, +5 for each of the two titles owned). Buying it renounces Chancellor and Navigator, which are laid out again; the console then offers no other title.
+
+## Campaign title admiral
+
+Combat in 2110: the Praetorians own Admiral and hold 2 escalation markers. Their Centurion is at Wolf 359 beside the Givers' Sapphire (the Givers hold 3 markers) and their Gladiator at Luhman 16 beside the Starfarers' Polaris and base of 4 (the Starfarers hold 1).
+
+- **Only more escalation.** The map offers an attack only at Wolf 359, a fleet combat against the Givers; Luhman 16 offers nothing, the Starfarers holding fewer markers.
+- **+2.** In the combat the Praetorians' roll names Admiral +2 among its modifiers.

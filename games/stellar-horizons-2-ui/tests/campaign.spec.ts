@@ -218,3 +218,16 @@ test('a directive is kept from those drawn at the start, and shown on the consol
     await expect(page.getByRole('button', { name: 'Keep directive' })).toHaveCount(0)
     await expect(page.locator('.console h4', { hasText: 'Directives' })).toBeVisible()
 })
+
+test('a title is earned by selling on Earth and bought at once on the Main Line', async ({
+    page
+}) => {
+    await openScenario(page, 'Campaign title guildmaster')
+    const guildmaster = page.getByRole('group', { name: 'Guildmaster' })
+    await expect(guildmaster.getByRole('button', { name: /^Buy/ })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Sell goods at Sol' }).click({ force: true })
+    await page.getByRole('button', { name: /^Sell 3 for/ }).click()
+    await guildmaster.getByRole('button', { name: 'Buy · 9 IP' }).click()
+    // Owned now, it offers Renounce; a replacement is laid out in its place.
+    await expect(guildmaster.getByRole('button', { name: 'Renounce' })).toBeVisible()
+})

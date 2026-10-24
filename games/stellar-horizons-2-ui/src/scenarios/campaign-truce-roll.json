@@ -32,22 +32,22 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3912291517,
+  "seed": 3937979193,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T22:51:53.702Z",
+  "createdAt": "2026-10-24T23:42:42.656Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "030guGJM92RPj3t3fzHAV",
+  "id": "2MADa8vFqMEpDeqP21-kH",
   "gameId": "scenario-campaign-truce-roll",
   "seed": 3367980177,
   "prng": {
    "seed": 3367980177,
-   "invocations": 2493
+   "invocations": 2496
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
@@ -134,12 +134,18 @@
     "fulfilledDirectives": [],
     "directiveDrawsOwed": 0,
     "redrewDirective": false,
-    "directiveTotals": {
+    "turnRecord": {
      "miningCash": 0,
      "researchMarkers": 0,
      "baseProductionCash": 0,
-     "sales": []
+     "sales": [],
+     "terraformedClasses": [],
+     "resolvedChallenges": [],
+     "attackedByMoreEscalation": false,
+     "rolledOne": []
     },
+    "titles": [],
+    "titleRequests": [],
     "faction": "Starfarers"
    },
    {
@@ -224,12 +230,18 @@
     "fulfilledDirectives": [],
     "directiveDrawsOwed": 0,
     "redrewDirective": false,
-    "directiveTotals": {
+    "turnRecord": {
      "miningCash": 0,
      "researchMarkers": 0,
      "baseProductionCash": 0,
-     "sales": []
+     "sales": [],
+     "terraformedClasses": [],
+     "resolvedChallenges": [],
+     "attackedByMoreEscalation": false,
+     "rolledOne": []
     },
+    "titles": [],
+    "titleRequests": [],
     "faction": "Praetorians"
    },
    {
@@ -300,12 +312,18 @@
     "fulfilledDirectives": [],
     "directiveDrawsOwed": 0,
     "redrewDirective": false,
-    "directiveTotals": {
+    "turnRecord": {
      "miningCash": 0,
      "researchMarkers": 0,
      "baseProductionCash": 0,
-     "sales": []
+     "sales": [],
+     "terraformedClasses": [],
+     "resolvedChallenges": [],
+     "attackedByMoreEscalation": false,
+     "rolledOne": []
     },
+    "titles": [],
+    "titleRequests": [],
     "faction": "Givers"
    }
   ],
@@ -1345,6 +1363,24 @@
    "remaining": 39
   },
   "removedDirectives": [],
+  "availableTitles": [
+   "admiral",
+   "warlord",
+   "chancellor",
+   "guardian",
+   "cartographer",
+   "navigator"
+  ],
+  "titlePool": [
+   "engineer",
+   "geneticist",
+   "governor",
+   "guildmaster",
+   "mastermind",
+   "planetary-architect",
+   "prospector",
+   "researcher"
+  ],
   "startingPositionRandom": [
    {
     "playerId": "p0",
@@ -1398,15 +1434,15 @@
    "closedPlayerIds": [],
    "mergedPlayerIds": [],
    "branchStartIds": {
-    "p0": "gdBS7vSk5wJtiYsh1Wa4N",
-    "p2": "RXwlNTmWZvtBhkdBldBwA",
-    "p1": "5SyGi48BOfwKvMHUtzrU4"
+    "p0": "iUegdBS7vSk5wJtiYsh1W",
+    "p2": "bT7RXwlNTmWZvtBhkdBld",
+    "p1": "5of5SyGi48BOfwKvMHUtz"
    },
-   "completionId": "GoGmmB9yERRuh7a1EloCp",
+   "completionId": "4WHGoGmmB9yERRuh7a1El",
    "branchCloseIds": {
-    "p0": "BIwSJCtGqp4M13wz530Wh",
-    "p2": "sRywqLsViynQQlnGrAQFh",
-    "p1": "OEnl8XgQGr7icm1pLDwGe"
+    "p0": "GSfBIwSJCtGqp4M13wz53",
+    "p2": "qw8sRywqLsViynQQlnGrA",
+    "p1": "ClCOEnl8XgQGr7icm1pLD"
    },
    "branchPlayerId": "p0"
   }

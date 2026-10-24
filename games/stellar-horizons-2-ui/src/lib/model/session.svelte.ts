@@ -56,6 +56,9 @@ import {
     SpendInfluence,
     ChooseDirective,
     RedrawDirective,
+    BuyTitle,
+    RenounceTitle,
+    type TitleId,
     ChooseSurveyWorld,
     BuyCard,
     DrawCard,
@@ -1779,6 +1782,17 @@ export class StellarHorizonsGameSession extends GameSession<
         await this.commit(
             ActionType.ChooseDirective,
             this.createPlayerAction(ChooseDirective, { directiveId })
+        )
+    }
+
+    async buyTitle(titleId: TitleId) {
+        await this.commit(ActionType.BuyTitle, this.createPlayerAction(BuyTitle, { titleId }))
+    }
+
+    async renounceTitle(titleId: TitleId) {
+        await this.commit(
+            ActionType.RenounceTitle,
+            this.createPlayerAction(RenounceTitle, { titleId })
         )
     }
 

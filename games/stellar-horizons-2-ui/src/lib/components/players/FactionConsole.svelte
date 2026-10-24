@@ -19,7 +19,13 @@
         TurnPhase,
         choosesDirective,
         directiveScore,
-        usesDirectives
+        usesDirectives,
+        TitleRequestKind,
+        canBuyTitle,
+        titleCost,
+        canRenounceTitle,
+        titleScore,
+        usesTitles
     } from '@tabletop/stellar-horizons-2'
     import { FACTION_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -41,6 +47,8 @@
     import EscalationChip from '../escalation/EscalationChip.svelte'
     import DirectiveCard from '../directives/DirectiveCard.svelte'
     import DirectiveChoice from '../directives/DirectiveChoice.svelte'
+    import TitleCard from '../titles/TitleCard.svelte'
+    import { TITLE_REQUEST_WAITS } from '$lib/utils/titles.js'
     import { directiveProgress, goalTypes, heldDirectiveIds } from '$lib/utils/directives.js'
     import BaseTab from './BaseTab.svelte'
     import ShipIcon from './ShipIcon.svelte'
@@ -63,6 +71,12 @@
     )
     const canChooseDirective = $derived(
         mine && gameSession.validActionTypes.includes(ActionType.ChooseDirective)
+    )
+    const canBuyTitles = $derived(
+        mine && gameSession.validActionTypes.includes(ActionType.BuyTitle)
+    )
+    const canRenounceTitles = $derived(
+        mine && gameSession.validActionTypes.includes(ActionType.RenounceTitle)
     )
     // The directive step offers the choice itself.
     const choosingInStep = $derived(gameSession.actingPhase === TurnPhase.Directives)
@@ -87,6 +101,7 @@
         ['cash', 'Cash'],
         ['cards', 'Cards'],
         ['escalation', 'Escalation markers'],
+        ['titles', 'Titles'],
         ['directives', 'Directives'],
         ['directiveGoal', 'Directive goal'],
         ['playerCount', 'Players in the game']
@@ -269,6 +284,65 @@
                                     directiveId={entry.directiveId}
                                     size={92}
                                     note="Fulfilled {entry.year}"
+                                />
+                            {/each}
+                        </div>
+                    {/if}
+                </section>
+            {/if}
+
+            {#if player && playerId && usesTitles(gameSession.gameState)}
+                {@const requests = mine ? player.titleRequests : []}
+                {@const renouncing = requests
+                    .filter((request) => request.kind === TitleRequestKind.Renounce)
+                    .map((request) => request.titleId)}
+                <section>
+                    <h4>
+                        Titles <span
+                            >{plural(player.titles.length, 'title')} · {titleScore(
+                                gameSession.gameState,
+                                playerId
+                            )} VP</span
+                        >
+                    </h4>
+                    {#if player.titles.length > 0 || requests.length > 0}
+                        <div class="titles">
+                            {#each player.titles as titleId (titleId)}
+                                <TitleCard
+                                    {titleId}
+                                    note={renouncing.includes(titleId)
+                                        ? `Renounced; ${TITLE_REQUEST_WAITS}`
+                                        : undefined}
+                                    onrenounce={canRenounceTitles &&
+                                    canRenounceTitle(gameSession.gameState, playerId, titleId)
+                                        ? () => gameSession.renounceTitle(titleId)
+                                        : undefined}
+                                />
+                            {/each}
+                            {#each requests.filter((request) => request.kind === TitleRequestKind.Buy) as request (request.titleId)}
+                                <TitleCard
+                                    titleId={request.titleId}
+                                    cost={request.influence}
+                                    note="Bought; {TITLE_REQUEST_WAITS}"
+                                    renounceLabel="Take back"
+                                    onrenounce={() => gameSession.renounceTitle(request.titleId)}
+                                />
+                            {/each}
+                        </div>
+                    {:else}
+                        <div class="note">No titles owned</div>
+                    {/if}
+                    {#if mine}
+                        <div class="laid-out">Laid out</div>
+                        <div class="titles">
+                            {#each gameSession.gameState.availableTitles as titleId (titleId)}
+                                <TitleCard
+                                    {titleId}
+                                    cost={titleCost(gameSession.gameState, playerId, titleId)}
+                                    onbuy={canBuyTitles &&
+                                    canBuyTitle(gameSession.gameState, playerId, titleId)
+                                        ? () => gameSession.buyTitle(titleId)
+                                        : undefined}
                                 />
                             {/each}
                         </div>
@@ -490,6 +564,20 @@
 {/if}
 
 <style>
+    .laid-out {
+        margin-top: 8px;
+        font-size: 13px;
+        color: #9fb4d0;
+    }
+
+    .titles {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 6px;
+        margin-top: 4px;
+    }
+
     .directives {
         display: flex;
         flex-wrap: wrap;
