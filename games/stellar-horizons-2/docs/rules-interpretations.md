@@ -202,6 +202,19 @@ Slice 5b brings the combat phase. Its rulings are covered by `src/model/combat.s
 - **The combat over.** The last combat fought stays in the state, with how it ended, until the next combat or the end of the movement phase, so the Players can see the result in the combat panel even when the cargo phase is skipped.
 - **Cards.** Every card's combat part is now in play, so no card shows a "not yet" note.
 
+### The campaign (slice 6a)
+
+Slice 6a brings directives (rulebook 5.1). Its rulings are covered by `src/definition/directives.spec.ts`; the questions are numbered as in the campaign plan, all answered by the user on 2026-10-24.
+
+- **Optional (Q1).** Directives and titles are setup options, on by default; only the campaign plays them.
+- **Component data.** `src/components/directives.ts` transcribes the 42 directives from the module (`notes/vassal-inventory.md` 3.8 and appendix C.1). A6 has no image of its own there and reuses A5's; it is the science 9+ for 4 VP that completes the set (Q2). Each faction's goal is on its sheet in `src/components/factionSheets.ts`.
+- **Drawing.** Each Player draws 3 at the start and keeps 1, and 2 at the start of a turn after holding none, keeping 1; a single directive left is simply theirs. The draws are dealt on the Main Line and chosen in a Barrier span. Directives not kept go back to the pool, which has no order (Q3); one not kept or given up in a Branch waits beside its Player until the span completes, as discarded goods do.
+- **Hidden.** A Player's directives are theirs alone, held, drawn or given up; the pool is hidden from everyone, with its count public. A fulfilled directive is face up.
+- **Fulfilling (Q4).** Automatic, the moment the condition is met: 1 IP and the directive face up. Totals (cash, markers, goods sold) count from the start of the turn, so a directive chosen mid-turn counts what came before it that turn.
+- **Conditions.** Anomaly: resolving a combat or science anomaly, alone or in a pact (each partner), at rule 1.16's difficulty, the printed value plus 1 per Player, less the Starfarers' or Syndicate's reduction when they take part, before the resolvers' own cards and ships (Q6). Combat: declaring a raid or a fleet combat against, or blockading a base of, a Player with the most settlements at bases (any of those tied). Production: the cash mining ships earned, research ships' markers, or cash from base production, totalled over the turn, as received (Q7). Survey: any survey the Player completes at the named system (Q8). Trade: the goods sold at the named system over the turn. Terraform: a world replaced by one of the named classes, from the economic phase's terraforming or a mining ship's; flipping a tile keeps its class, so it does not count (agreed by the user after the 6a review, from the rulebook's "terraformed into O or M later" for a replacement).
+- **Redrawing (Q9).** Once a turn, 1 IP: on the Main Line the two are drawn at once; in a Branch the directive given up waits and the two are dealt once the span ends, then chosen in a Barrier span before play goes on. The directive given up goes back to the pool only after the two are drawn, so a redraw never draws it again (agreed after the 6a review). A survey directive whose system is fully surveyed is removed from the game at the start of the next turn, shown to everyone as a Player would show it to justify the redraw (agreed after the 6a review), and its Player draws two.
+- **Scoring.** The points of fulfilled directives, and -15 for each one short of the faction's goal.
+
 ### Not used in these scenarios
 
 Combat, escalation and influence, events, trade goods and demand, the economic phase, cards, directives, titles, mining and research, and terraforming with mining ships are all campaign rules (blue boxes). Anomalies are used only in These are the Voyages. The techs that unlock unused rules can still be developed but do nothing here.

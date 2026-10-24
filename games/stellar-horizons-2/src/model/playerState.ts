@@ -9,8 +9,11 @@ import { TechField } from '../components/techFields.js'
 import { TechId } from '../components/techs.js'
 import { TradeGood } from '../components/tradeGoods.js'
 import {
+    DirectiveTotals,
     EarnedMarkers,
+    FulfilledDirective,
     HandCard,
+    HeldDirective,
     Operation,
     OwnedCard,
     PendingAnomalyAttempt,
@@ -74,7 +77,15 @@ export const StellarHorizonsPlayerState = Type.Evaluate(
             escalationKept: Type.Optional(Type.Array(Type.Enum(EscalationMarker))),
             // Short of IP for markers the pool could not supply: no attacks until after the next
             // initiative roll (rulebook 1.7).
-            attackBanned: Type.Boolean()
+            attackBanned: Type.Boolean(),
+            // Rulebook 5.1: the directive held and any drawn to choose from, those fulfilled,
+            // the draws owed at the next deal, whether the turn's redraw is used, and the turn's
+            // totals toward a directive.
+            heldDirectives: Type.Array(HeldDirective),
+            fulfilledDirectives: Type.Array(FulfilledDirective),
+            directiveDrawsOwed: Type.Number(),
+            redrewDirective: Type.Boolean(),
+            directiveTotals: DirectiveTotals
         })
     ])
 )
@@ -119,6 +130,11 @@ export class HydratedStellarHorizonsPlayerState
     declare discardedGoods: TradeGood[]
     declare initiativeBid?: number
     declare hand: ProjectedHandCard[]
+    declare heldDirectives: StellarHorizonsProjectedPlayerState['heldDirectives']
+    declare fulfilledDirectives: FulfilledDirective[]
+    declare directiveDrawsOwed: number
+    declare redrewDirective: boolean
+    declare directiveTotals: DirectiveTotals
     declare cards: OwnedCard[]
     declare cardDraws: CardDeck[]
     declare settlementsBought: number

@@ -58,6 +58,7 @@ import {
     engine,
     execute,
     executeAll,
+    firstDrawnDirectiveId,
     hydrate,
     placeBase,
     placeShip,
@@ -165,6 +166,10 @@ function step(game: Game, state: StellarHorizonsProjectedState): Played {
             const [systemId] = growthChoiceBases(hydrate(state), playerId)
             return run(ActionType.ChooseGrowthBase, { systemId })
         }
+        case MachineState.ChoosingDirective:
+            return run(ActionType.ChooseDirective, {
+                directiveId: firstDrawnDirectiveId(state, playerId)
+            })
         case MachineState.EconomicPhase: {
             const [tile] = economicTileChoices(hydrate(state))
             return run(ActionType.ChooseEconomicTile, { tile })

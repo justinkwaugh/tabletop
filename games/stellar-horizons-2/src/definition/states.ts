@@ -49,6 +49,9 @@ export enum MachineState {
     DrawingCards = 'DrawingCards',
     Terraforming = 'Terraforming',
     ChoosingTerraformWorld = 'ChoosingTerraformWorld',
+    DealingDirectives = 'DealingDirectives',
+    DirectivePhase = 'DirectivePhase',
+    ChoosingDirective = 'ChoosingDirective',
     EndOfTurn = 'EndOfTurn',
     EndOfGame = 'EndOfGame'
 }

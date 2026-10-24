@@ -1,6 +1,7 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedChooseFaction, isChooseFaction } from '../actions/chooseFaction.js'
 import { ActionType } from '../definition/actions.js'
+import { oweFirstDirectives, usesDirectives } from '../model/directives.js'
 import { MachineState } from '../definition/states.js'
 import { isCampaign } from '../model/campaign.js'
 import { oweHandDraws } from '../model/cards.js'
@@ -51,6 +52,9 @@ export class ChoosingFactionsStateHandler implements MachineStateHandler<
         }
         for (const playerId of state.initiativeOrder()) {
             oweHandDraws(state, playerId)
+        }
+        if (usesDirectives(state)) {
+            oweFirstDirectives(state)
         }
         return stateForCardDraws(state, CardsResume.Setup)
     }

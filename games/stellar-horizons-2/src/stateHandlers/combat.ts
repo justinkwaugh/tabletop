@@ -6,22 +6,19 @@ import { HydratedDiscardEscalation, isDiscardEscalation } from '../actions/disca
 import { EndCombat, HydratedEndCombat, isEndCombat } from '../actions/endCombat.js'
 import { HydratedEndAttacks, isEndAttacks } from '../actions/endAttacks.js'
 import { HydratedResolveRaid, isResolveRaid } from '../actions/resolveRaid.js'
-import { HydratedSpendInfluence, isSpendInfluence } from '../actions/spendInfluence.js'
+import { type HydratedDestroyGoods, isDestroyGoods } from '../actions/destroyGoods.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { canSpendInfluence } from '../model/campaign.js'
 import { currentCombatOf } from '../model/combat.js'
 import { hitChooser } from '../model/hits.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { type AnytimeAction, anytimeActions, isAnytimeAction } from './anytime.js'
 import { stateAfterCombatStep } from './transitions.js'
 
-// Rulebook 4.5: goods may be discarded at any time except during combat, so only IP converts.
-function influenceConversion(state: HydratedStellarHorizonsGameState, playerId: string) {
-    return canSpendInfluence(state, playerId) ? [ActionType.SpendInfluence] : []
-}
+type CombatAnytimeAction = Exclude<AnytimeAction, HydratedDestroyGoods>
 
 abstract class CombatStepHandler<Action extends HydratedAction> implements MachineStateHandler<
-    Action | HydratedSpendInfluence,
+    Action | CombatAnytimeAction,
     HydratedStellarHorizonsGameState
 > {
     protected abstract readonly step: MachineState
@@ -34,8 +31,8 @@ abstract class CombatStepHandler<Action extends HydratedAction> implements Machi
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedStellarHorizonsGameState>
-    ): action is Action | HydratedSpendInfluence {
-        return this.isChoice(action) || isSpendInfluence(action)
+    ): action is Action | CombatAnytimeAction {
+        return this.isChoice(action) || (isAnytimeAction(action) && !isDestroyGoods(action))
     }
 
     validActionsForPlayer(
@@ -46,7 +43,11 @@ abstract class CombatStepHandler<Action extends HydratedAction> implements Machi
         if (!state.isActivePlayer(playerId)) {
             return []
         }
-        return [...this.choices, ...influenceConversion(state, playerId)]
+        // Rulebook 4.5: goods may be discarded at any time except during combat.
+        return [
+            ...this.choices,
+            ...anytimeActions(state, playerId).filter((type) => type !== ActionType.DestroyGoods)
+        ]
     }
 
     enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
@@ -55,10 +56,10 @@ abstract class CombatStepHandler<Action extends HydratedAction> implements Machi
     }
 
     onAction(
-        action: Action | HydratedSpendInfluence,
+        action: Action | CombatAnytimeAction,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        return isSpendInfluence(action) ? this.step : stateAfterCombatStep(context.gameState)
+        return isAnytimeAction(action) ? this.step : stateAfterCombatStep(context.gameState)
     }
 }
 

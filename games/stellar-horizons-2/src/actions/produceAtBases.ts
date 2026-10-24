@@ -2,12 +2,18 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { BaseProductionResult, produceAtBases } from '../model/economy.js'
+import {
+    BaseProductionResult,
+    produceAtBases,
+    recordProductionDirectives
+} from '../model/economy.js'
+import { FulfilledDirective } from '../model/pieces.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 
 export type ProduceAtBasesMetadata = Type.Static<typeof ProduceAtBasesMetadata>
 export const ProduceAtBasesMetadata = Type.Object({
-    results: Type.Array(BaseProductionResult)
+    results: Type.Array(BaseProductionResult),
+    directives: Type.Optional(Type.Array(FulfilledDirective))
 })
 
 export type ProduceAtBases = Type.Static<typeof ProduceAtBases>
@@ -39,6 +45,8 @@ export class HydratedProduceAtBases
     }
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
-        this.metadata = { results: produceAtBases(state) }
+        const results = produceAtBases(state)
+        const directives = recordProductionDirectives(state, results)
+        this.metadata = { results, ...(directives.length > 0 ? { directives } : {}) }
     }
 }

@@ -41,7 +41,7 @@ import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { economicTileChooser } from '../model/economy.js'
 import { firstPhase } from '../model/turnPlan.js'
-import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
+import { type AnytimeAction, anytimeActions, isAnytimeAction } from './anytime.js'
 import {
     stateAfterEconomicPhase,
     stateAfterGrowth,
@@ -76,7 +76,7 @@ abstract class SystemStepHandler<Action extends HydratedAction> implements Machi
     }
 }
 
-type EconomicTileAction = HydratedDrawEconomicTile | HydratedChooseEconomicTile | ConversionAction
+type EconomicTileAction = HydratedDrawEconomicTile | HydratedChooseEconomicTile | AnytimeAction
 
 // Rulebook 4.0: the turn's economic tile is drawn, or chosen by Hive Mind's owner.
 export class EconomicPhaseStateHandler implements MachineStateHandler<
@@ -84,7 +84,7 @@ export class EconomicPhaseStateHandler implements MachineStateHandler<
     HydratedStellarHorizonsGameState
 > {
     isValidAction(action: HydratedAction): action is EconomicTileAction {
-        return isDrawEconomicTile(action) || isChooseEconomicTile(action) || isConversion(action)
+        return isDrawEconomicTile(action) || isChooseEconomicTile(action) || isAnytimeAction(action)
     }
 
     validActionsForPlayer(
@@ -95,7 +95,7 @@ export class EconomicPhaseStateHandler implements MachineStateHandler<
         if (!state.isActivePlayer(playerId)) {
             return []
         }
-        return [ActionType.ChooseEconomicTile, ...conversionActions(state, playerId)]
+        return [ActionType.ChooseEconomicTile, ...anytimeActions(state, playerId)]
     }
 
     enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
@@ -111,7 +111,7 @@ export class EconomicPhaseStateHandler implements MachineStateHandler<
         action: EconomicTileAction,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        if (isConversion(action)) {
+        if (isAnytimeAction(action)) {
             return MachineState.EconomicPhase
         }
         assertExists(action.metadata, 'The economic tile was drawn')

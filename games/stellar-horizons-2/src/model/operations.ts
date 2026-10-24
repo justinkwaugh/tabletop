@@ -4,7 +4,9 @@ import { SOL_SYSTEM_ID } from '../components/systems.js'
 import { shipDefinition } from '../components/ships.js'
 import { TechField } from '../components/techFields.js'
 import { worldFace } from '../components/worlds.js'
+import { DirectiveProduction, DirectiveType } from '../components/directives.js'
 import { blocksExploration } from './anomalies.js'
+import { recordDirectiveProgress } from './directives.js'
 import { factionAbilities, isCampaign } from './campaign.js'
 import {
     capabilitiesOf,
@@ -15,7 +17,7 @@ import {
 } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { isHeld } from './holds.js'
-import { MarkerReason, OperationKind, type ShipState } from './pieces.js'
+import { FulfilledDirective, MarkerReason, OperationKind, type ShipState } from './pieces.js'
 import { earnMarkers } from './pools.js'
 import { hasRevealedWorld } from './settling.js'
 import { roundHalfUp } from './turn.js'
@@ -74,7 +76,8 @@ export const OperationResult = Type.Object({
     cash: Type.Number(),
     field: Type.Optional(Type.Enum(TechField)),
     // The Interstellar Mining Conglomerate's two dice; the lower is used.
-    rolls: Type.Optional(Type.Array(Type.Number()))
+    rolls: Type.Optional(Type.Array(Type.Number())),
+    directives: Type.Optional(Type.Array(FulfilledDirective))
 })
 
 function face(state: HydratedStellarHorizonsGameState, systemId: string, slot: number) {
@@ -134,13 +137,19 @@ export function mine(
     const cash = (success ? RICH_MINING_CASH : MINING_CASH) + capabilities.miningCash
     state.getPlayerState(ship.playerId).cash += cash
     recordOperation(ship, state, OperationKind.Mining)
+    const directive = recordDirectiveProgress(state, ship.playerId, {
+        kind: DirectiveType.Production,
+        production: DirectiveProduction.MiningCash,
+        amount: cash
+    })
     return {
         systemId: ship.systemId,
         roll,
         target,
         success,
         cash,
-        ...(rolls.length > 1 ? { rolls } : {})
+        ...(rolls.length > 1 ? { rolls } : {}),
+        ...(directive ? { directives: [directive] } : {})
     }
 }
 
@@ -165,7 +174,22 @@ export function research(
         })
     }
     recordOperation(ship, state, OperationKind.Research)
-    return { systemId: ship.systemId, roll, target, success, cash: 0, field: printed.techField }
+    const directive = success
+        ? recordDirectiveProgress(state, ship.playerId, {
+              kind: DirectiveType.Production,
+              production: DirectiveProduction.ResearchMarkers,
+              amount: 1
+          })
+        : undefined
+    return {
+        systemId: ship.systemId,
+        roll,
+        target,
+        success,
+        cash: 0,
+        field: printed.techField,
+        ...(directive ? { directives: [directive] } : {})
+    }
 }
 
 // The Syndicate's third ability: $1B from each Player mining or researching in a system where

@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { returnDiscardedDirectives } from '../model/directives.js'
 import { returnDiscardedGoods } from '../model/pools.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { queuePactAttempts } from '../model/pactResolution.js'
@@ -52,6 +53,7 @@ export class HydratedCompletePhase
             queuePactAttempts(state)
         }
         returnDiscardedGoods(state)
+        returnDiscardedDirectives(state)
         if (phase === TurnPhase.Development && isCampaign(state)) {
             this.metadata = { phase, discardedHands: dealAfterDevelopment(state) }
             return

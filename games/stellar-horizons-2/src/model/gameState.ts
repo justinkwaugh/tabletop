@@ -24,6 +24,10 @@ import {
     CardsResume,
     Combat,
     ConversionChance,
+    DirectivePile,
+    DirectiveResumePoint,
+    OptionalRules,
+    RemovedDirective,
     FoughtCombat,
     ShipState,
     SurveyWorldChoice,
@@ -100,7 +104,13 @@ export const StellarHorizonsGameState = Type.Object({
     systemAttacks: Type.Array(SystemAttack),
     combat: Type.Optional(Combat),
     foughtCombat: Type.Optional(FoughtCombat),
-    attacks: Type.Array(AttackRecord)
+    attacks: Type.Array(AttackRecord),
+    optionalRules: OptionalRules,
+    // Rulebook 5.1: the directives left to draw, those removed from the game, and where play
+    // resumes once drawn directives are chosen.
+    directivePile: DirectivePile,
+    removedDirectives: Type.Array(RemovedDirective),
+    directiveResume: Type.Optional(DirectiveResumePoint)
 })
 
 export const StellarHorizonsGameStateValidator = Compile(StellarHorizonsGameState)
@@ -178,6 +188,10 @@ export class HydratedStellarHorizonsGameState
     declare combat?: Combat
     declare foughtCombat?: FoughtCombat
     declare attacks: AttackRecord[]
+    declare optionalRules: OptionalRules
+    declare directivePile: DirectivePile
+    declare removedDirectives: RemovedDirective[]
+    declare directiveResume?: DirectiveResumePoint
 
     constructor(data: StellarHorizonsProjectedState) {
         super(data, StellarHorizonsProjectedStateValidator)

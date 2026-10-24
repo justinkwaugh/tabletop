@@ -218,7 +218,12 @@ describe('Joining a pact', () => {
 
 describe('A pact in a Hosted Game', () => {
     function hostedSetUp() {
-        const { game, state } = startedGame(2, { scenario: ScenarioId.Campaign }, { resting: true })
+        // Resting at the first exploration span, before which directives would be chosen.
+        const { game, state } = startedGame(
+            2,
+            { scenario: ScenarioId.Campaign, directives: false },
+            { resting: true }
+        )
         const placed = setUpFrom(state)
         return { game, ...placed }
     }

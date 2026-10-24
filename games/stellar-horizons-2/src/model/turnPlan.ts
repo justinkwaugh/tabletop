@@ -78,6 +78,14 @@ export const PHASE_DEFINITIONS: Record<SpanPhase, PhaseDefinition> = {
         playState: MachineState.AssigningGoods,
         direction: MergeDirection.Initiative,
         merge: 'barrier'
+    },
+    // Rulebook 5.1: directives drawn are chosen at the same time, in secret.
+    [TurnPhase.Directives]: {
+        phase: TurnPhase.Directives,
+        branchingState: MachineState.DirectivePhase,
+        playState: MachineState.ChoosingDirective,
+        direction: MergeDirection.Initiative,
+        merge: 'barrier'
     }
 }
 

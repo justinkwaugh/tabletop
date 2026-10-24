@@ -1,6 +1,8 @@
 import { isEvenDecade } from '../components/scenarios.js'
 import { gainInfluence, isCampaign } from './campaign.js'
+import { removeUnfulfillableDirectives, startDirectiveTurn, usesDirectives } from './directives.js'
 import { capabilitiesOf } from './fleet.js'
+import type { RemovedDirective } from './pieces.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 
 export const DECADE = 10
@@ -15,6 +17,8 @@ export interface TurnStart {
     arrivedShipIds: string[]
     // The IP cards give at the start of each turn (Increased Body Size).
     influence: TurnInfluence[]
+    // Survey directives whose system was fully surveyed, removed and redrawn (rulebook 5.1).
+    removedDirectives: RemovedDirective[]
 }
 
 // Rulebook 1.1: every transfer marker drops by one. The campaign does it after the economic
@@ -66,7 +70,9 @@ export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
     for (const { playerId, amount } of influence) {
         gainInfluence(state, playerId, amount)
     }
-    return { income, arrivedShipIds, influence }
+    const removedDirectives = usesDirectives(state) ? removeUnfulfillableDirectives(state) : []
+    startDirectiveTurn(state)
+    return { income, arrivedShipIds, influence, removedDirectives }
 }
 
 export function isFinalTurn(state: HydratedStellarHorizonsGameState): boolean {

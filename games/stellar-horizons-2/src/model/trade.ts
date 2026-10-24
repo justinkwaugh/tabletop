@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
+import { DirectiveType } from '../components/directives.js'
 import { baseProductionRow } from '../components/factionSheets.js'
 import { SOL_SYSTEM_ID, systemDistance } from '../components/systems.js'
 import { TradeGood, tradeGoodDefinition } from '../components/tradeGoods.js'
@@ -15,10 +16,11 @@ import {
 } from './cargoTransfer.js'
 import { currentCenturyRow, factionAbilities, gainInfluence, isCampaign } from './campaign.js'
 import { replaceDemand, demandedGoods } from './demand.js'
+import { recordDirectiveProgresses } from './directives.js'
 import { smuggled } from './events.js'
 import { capabilitiesOf, freeCargo, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import type { Base, GoodsReward, ShipState } from './pieces.js'
+import { type Base, FulfilledDirective, type GoodsReward, type ShipState } from './pieces.js'
 import { discardGoods, drawFromPool } from './pools.js'
 
 // Rulebook 1.9 and 4.5.
@@ -699,7 +701,8 @@ export const SaleResult = Type.Object({
     price: Type.Number(),
     cash: Type.Number(),
     influence: Type.Number(),
-    payment: Type.Number()
+    payment: Type.Number(),
+    directives: Type.Optional(Type.Array(FulfilledDirective))
 })
 
 // Each good sold off Earth also earns 1 IP. The demand marker then goes back to the pool and the
@@ -729,7 +732,24 @@ export function sellGoods(
         state.getPlayerState(sale.payeeId).cash += payment
     }
     replaceDemand(state, playerId, sale.systemId, sale.good)
-    return { count, price, cash, influence, payment }
+    // Rulebook 5.1's trade directives count each good sold over the turn.
+    const directives = recordDirectiveProgresses(
+        state,
+        playerId,
+        repeat(sale.good, count).map((good) => ({
+            kind: DirectiveType.Trade,
+            systemId: sale.systemId,
+            good
+        }))
+    )
+    return {
+        count,
+        price,
+        cash,
+        influence,
+        payment,
+        ...(directives.length > 0 ? { directives } : {})
+    }
 }
 
 // Rule 1.9's loading and unloading, in the cargo and trade phase: between a ship and Earth at

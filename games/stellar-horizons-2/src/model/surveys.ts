@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
+import { DirectiveType } from '../components/directives.js'
 import { starSystemDefinition } from '../components/systems.js'
 import {
     WorldSide,
@@ -10,10 +11,11 @@ import {
 } from '../components/worlds.js'
 import { AnomalySearch, searchForAnomaly } from './anomalies.js'
 import { gainInfluence, isCampaign } from './campaign.js'
+import { recordDirectiveProgress } from './directives.js'
 import { drawDemand } from './demand.js'
 import { capabilitiesOf } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import type { WorldPlacement } from './pieces.js'
+import { FulfilledDirective, type WorldPlacement } from './pieces.js'
 import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
 import { drawWorldTile, returnWorldTile } from './pools.js'
 
@@ -32,7 +34,8 @@ export const SurveyResolution = Type.Object({
     drawnTileIds: Type.Optional(Type.Array(Type.String())),
     placedSlot: Type.Optional(Type.Number()),
     awaitingChoice: Type.Boolean(),
-    anomaly: Type.Optional(AnomalySearch)
+    anomaly: Type.Optional(AnomalySearch),
+    directives: Type.Optional(Type.Array(FulfilledDirective))
 })
 
 export function placementPopulation(world: WorldPlacement): number {
@@ -85,6 +88,14 @@ export function resolveNextSurvey(state: HydratedStellarHorizonsGameState): Surv
     system.explorationMarker -= 1
     resolution.completed = true
     resolution.explorationMarker = system.explorationMarker
+    // Rulebook 5.1: any survey of the named system meets a survey directive (slice 6, Q8).
+    const directive = recordDirectiveProgress(state, player.playerId, {
+        kind: DirectiveType.Survey,
+        systemId: survey.systemId
+    })
+    if (directive) {
+        resolution.directives = [directive]
+    }
     // Campaign: whoever completes the last survey keeps the marker, earns 1 IP and draws the
     // system's demand marker if it has none.
     if (system.explorationMarker === 0 && isCampaign(state)) {

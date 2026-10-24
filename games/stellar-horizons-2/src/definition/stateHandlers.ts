@@ -1,4 +1,8 @@
 import type { HydratedAction, MachineStateHandler } from '@tabletop/common'
+import {
+    ChoosingDirectiveStateHandler,
+    DealingDirectivesStateHandler
+} from '../stateHandlers/directives.js'
 import { MachineState } from './states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { TurnPhase } from '../model/turn.js'
@@ -107,6 +111,9 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.DevelopmentPhase]: new PhaseStateHandler(TurnPhase.Development),
     [MachineState.Developing]: new DevelopingStateHandler(),
     [MachineState.DrawingCards]: new DrawingCardsStateHandler(),
+    [MachineState.DealingDirectives]: new DealingDirectivesStateHandler(),
+    [MachineState.DirectivePhase]: new PhaseStateHandler(TurnPhase.Directives),
+    [MachineState.ChoosingDirective]: new ChoosingDirectiveStateHandler(),
     [MachineState.Terraforming]: new TerraformingStateHandler(),
     [MachineState.ChoosingTerraformWorld]: new ChoosingTerraformWorldStateHandler(),
     [MachineState.EndOfTurn]: new EndOfTurnStateHandler(),

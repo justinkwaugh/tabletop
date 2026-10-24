@@ -67,5 +67,8 @@ export enum ActionType {
     Terraform = 'Terraform',
     PassTerraform = 'PassTerraform',
     ChooseTerraformWorld = 'ChooseTerraformWorld',
-    EndTurn = 'EndTurn'
+    EndTurn = 'EndTurn',
+    DealDirectives = 'DealDirectives',
+    ChooseDirective = 'ChooseDirective',
+    RedrawDirective = 'RedrawDirective'
 }

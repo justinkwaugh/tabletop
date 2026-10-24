@@ -11,14 +11,15 @@ import {
 import { Faction } from '../components/factions.js'
 import { ScenarioId } from '../components/scenarios.js'
 import { ActionType } from '../definition/actions.js'
+import { MachineState } from '../definition/states.js'
 import { Definition } from '../definition/definition.js'
 import { StellarHorizonsRuntime } from '../definition/runtime.js'
 import type {
     HydratedStellarHorizonsGameState,
     StellarHorizonsProjectedState
 } from '../model/gameState.js'
-import { baseKey, type Base, type ShipState } from '../model/pieces.js'
-import type { TurnPhase } from '../model/turn.js'
+import { DirectiveStatus, baseKey, type Base, type ShipState } from '../model/pieces.js'
+import { TurnPhase } from '../model/turn.js'
 import { playPhase } from '../model/turnPlan.js'
 
 export const engine = new GameEngine(StellarHorizonsRuntime)
@@ -164,7 +165,76 @@ export function endPhaseWithActions(game: Game, state: StellarHorizonsProjectedS
     const [playerId] = state.activePlayerIds
     const phase = playPhase(state)
     assertExists(phase, `Nobody is playing a phase in ${state.machineState}`)
+    if (phase === TurnPhase.Directives) {
+        return chooseFirstDirective(game, state)
+    }
     return executeAll(game, state, userAction(game, playerId, ActionType.EndPhase, { phase }))
+}
+
+export function firstDrawnDirectiveId(
+    state: StellarHorizonsProjectedState,
+    playerId: string
+): string {
+    const drawn = hydrate(state)
+        .getPlayerState(playerId)
+        .heldDirectives.find((held) => held.status === DirectiveStatus.Drawn)
+    assertExists(drawn?.directiveId, `${playerId} has no directive to choose`)
+    return drawn.directiveId
+}
+
+// The acting Player keeps the first of the directives they drew (rulebook 5.1).
+export function chooseFirstDirective(game: Game, state: StellarHorizonsProjectedState) {
+    const [playerId] = state.activePlayerIds
+    return executeAll(
+        game,
+        state,
+        userAction(game, playerId, ActionType.ChooseDirective, {
+            directiveId: firstDrawnDirectiveId(state, playerId)
+        })
+    )
+}
+
+// Gives the Player this directive in place of the one they hold, taking it from the pool or
+// from whoever holds it, who takes one from the pool instead (for tests and harness scenarios).
+export function giveDirective(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    directiveId: string
+) {
+    const pile = state.directivePile
+    const holder = state.players.find((player) =>
+        player.heldDirectives.some((held) => held.directiveId === directiveId)
+    )
+    if (holder && holder.playerId !== playerId) {
+        const [replacement] = pile.directives.splice(0, 1)
+        holder.heldDirectives = holder.heldDirectives.map((held) =>
+            held.directiveId === directiveId ? { ...held, directiveId: replacement } : held
+        )
+    }
+    const player = state.getPlayerState(playerId)
+    for (const held of player.heldDirectives) {
+        if (held.directiveId && held.directiveId !== directiveId) {
+            pile.directives.push(held.directiveId)
+        }
+    }
+    const index = pile.directives.indexOf(directiveId)
+    if (index >= 0) {
+        pile.directives.splice(index, 1)
+    }
+    pile.remaining = pile.directives.length
+    player.heldDirectives = [{ playerId, status: DirectiveStatus.Current, directiveId }]
+}
+
+// Every Player keeps the first directive drawn, while directives are being chosen.
+export function chooseDirectives(
+    game: Game,
+    state: StellarHorizonsProjectedState
+): StellarHorizonsProjectedState {
+    let current = state
+    while (current.machineState === MachineState.ChoosingDirective) {
+        current = chooseFirstDirective(game, current).state
+    }
+    return current
 }
 
 export function finishDecade(
@@ -187,7 +257,10 @@ export function advanceTo(
     let current = state
     for (let guard = 0; guard < 100; guard++) {
         const active = playPhase(current)
-        if (active === phase && (playerId === undefined || current.activePlayerIds[0] === playerId)) {
+        if (
+            active === phase &&
+            (playerId === undefined || current.activePlayerIds[0] === playerId)
+        ) {
             return current
         }
         assertExists(active, `${phase} was not reached before ${current.machineState}`)
@@ -206,7 +279,10 @@ export const FACTION_PICKS: readonly Faction[] = [
 export function startedGame(
     playerCount: number,
     config: GameConfig = {},
-    { resting = false }: { resting?: boolean } = {}
+    {
+        resting = false,
+        choosingDirectives = false
+    }: { resting?: boolean; choosingDirectives?: boolean } = {}
 ): {
     game: Game
     state: StellarHorizonsProjectedState
@@ -223,5 +299,8 @@ export function startedGame(
                 ? executeWithoutAdvancing(game, state, action)
                 : execute(game, state, action)
     })
-    return { game, state }
+    return {
+        game,
+        state: resting || choosingDirectives ? state : chooseDirectives(game, state)
+    }
 }

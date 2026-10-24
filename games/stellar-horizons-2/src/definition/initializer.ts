@@ -31,6 +31,8 @@ import { DECADE } from '../model/turnCycle.js'
 import { configuredScenario } from './config.js'
 import { MachineState } from './states.js'
 import { initialCardPiles } from '../model/cards.js'
+import { initialDirectivePile } from '../model/directives.js'
+import { emptyDirectiveTotals } from '../model/pieces.js'
 
 export class StellarHorizonsGameInitializer
     extends BaseGameInitializer<StellarHorizonsProjectedState, HydratedStellarHorizonsGameState>
@@ -89,7 +91,12 @@ export class StellarHorizonsGameInitializer
                     cardDraws: [],
                     settlementsBought: 0,
                     escalation: [],
-                    attackBanned: false
+                    attackBanned: false,
+                    heldDirectives: [],
+                    fulfilledDirectives: [],
+                    directiveDrawsOwed: 0,
+                    redrewDirective: false,
+                    directiveTotals: emptyDirectiveTotals()
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
@@ -144,7 +151,13 @@ export class StellarHorizonsGameInitializer
             blockades: [],
             remainingAttackers: [],
             systemAttacks: [],
-            attacks: []
+            attacks: [],
+            optionalRules: {
+                directives: scenario.campaign !== undefined && game.config.directives !== false,
+                titles: scenario.campaign !== undefined && game.config.titles !== false
+            },
+            directivePile: initialDirectivePile(scenario),
+            removedDirectives: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
         for (const worldClass of Object.values(WorldClass)) {

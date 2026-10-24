@@ -9,7 +9,7 @@ import { isClosed } from '../model/holds.js'
 import { pactsNaming, recordPledgeableShips } from '../model/pacts.js'
 import { type SpanPhase, TurnPhase } from '../model/turn.js'
 import { playState } from '../model/turnPlan.js'
-import { stateAfterPhase } from './transitions.js'
+import { stateAfterSpan } from './transitions.js'
 
 type PhaseAction = HydratedStartPhase | HydratedCompletePhase
 
@@ -41,7 +41,7 @@ export class PhaseStateHandler implements MachineStateHandler<
     ): MachineState {
         return isStartPhase(action)
             ? playState(this.phase)
-            : stateAfterPhase(context.gameState, this.phase)
+            : stateAfterSpan(context.gameState, this.phase)
     }
 }
 

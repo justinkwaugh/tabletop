@@ -63,6 +63,7 @@ export function isIdleInPhase(
         case TurnPhase.Initiative:
         case TurnPhase.BaseProduction:
         case TurnPhase.TradeGoods:
+        case TurnPhase.Directives:
             return true
     }
 }

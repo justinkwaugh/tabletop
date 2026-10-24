@@ -1,4 +1,5 @@
 import { CardDeck } from './cards.js'
+import { type DirectiveGoal, DirectiveType } from './directives.js'
 import { Faction } from './factions.js'
 import { TechField } from './techFields.js'
 
@@ -47,7 +48,11 @@ export interface FactionSheet {
     centuries: readonly CenturyRow[]
     initialShips: readonly InitialShip[]
     abilities: FactionAbilities
+    // Rulebook 5.1's directive goal; the solo and cooperative goals are slice 7's.
+    directiveGoal: DirectiveGoal
 }
+
+const { Anomaly, Combat, Production, Survey, Trade, Terraform } = DirectiveType
 
 export const LAST_CENTURY = 2500
 
@@ -85,6 +90,7 @@ function ship(shipId: string, systemId: string, transit = 0): InitialShip {
 export const FACTION_SHEETS: readonly FactionSheet[] = [
     {
         faction: Faction.Consortium,
+        directiveGoal: { count: 4, types: [Production, Trade] },
         settlementCost: 5,
         centuries: centuries(
             [25, 1, 2, 2, 5, 1, 3],
@@ -104,6 +110,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
     },
     {
         faction: Faction.Givers,
+        directiveGoal: { count: 2, types: [Terraform] },
         settlementCost: 4,
         centuries: centuries(
             [24, 1, 1, 1, 5, 1, 2],
@@ -123,6 +130,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
     },
     {
         faction: Faction.Praetorians,
+        directiveGoal: { count: 4, types: [Anomaly, Combat] },
         settlementCost: 6,
         centuries: centuries(
             [28, 2, 3, 2, 4, 1, 2],
@@ -141,6 +149,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
     },
     {
         faction: Faction.Starfarers,
+        directiveGoal: { count: 4, types: [Anomaly, Survey] },
         settlementCost: 5,
         centuries: centuries(
             [25, 1, 2, 2, 5, 2, 2],
@@ -160,6 +169,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
     },
     {
         faction: Faction.Syndicate,
+        directiveGoal: { count: 4, types: [Combat, Trade] },
         settlementCost: 4,
         centuries: centuries(
             [23, 1, 1, 2, 5, 1, 2],
@@ -183,6 +193,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
     },
     {
         faction: Faction.Transhumanists,
+        directiveGoal: { count: 5, types: [] },
         settlementCost: 5,
         centuries: centuries(
             [25, 3, 2, 2, 5, 1, 2],
@@ -202,6 +213,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
     },
     {
         faction: Faction.TruePath,
+        directiveGoal: { count: 3, types: [Production, Terraform] },
         settlementCost: 3,
         centuries: centuries(
             [20, 1, 1, 1, 5, 1, 2],

@@ -6,6 +6,7 @@ import {
     type RandomFunction
 } from '@tabletop/common'
 import { cardDefinition, deckCards, type CardLevel } from '../components/cards.js'
+import { DIRECTIVES } from '../components/directives.js'
 import type { CardDeck } from '../components/cards.js'
 import {
     StellarHorizonsGameStateValidator,
@@ -29,6 +30,7 @@ export class StellarHorizonsGameExploration implements GameExploration<StellarHo
         for (const pile of sample.cardPiles) {
             populateDeck(sample, pile.deck, pile.level, random)
         }
+        populateDirectives(sample, random)
         assert(
             StellarHorizonsGameStateValidator.Check(sample),
             'Exploration must produce a complete Stellar Horizons state'
@@ -38,6 +40,35 @@ export class StellarHorizonsGameExploration implements GameExploration<StellarHo
 }
 
 type ProjectedPlayer = StellarHorizonsProjectedState['players'][number]
+
+// Directives held, drawn or given up are hidden from everyone but their Player, and the pool
+// from all (campaign plan, slice 6). The hidden ones are sampled from those not seen: neither
+// fulfilled, removed from the game, nor in the exploring Player's own hands.
+function populateDirectives(state: StellarHorizonsProjectedState, random: RandomFunction) {
+    const seen = new Set([
+        ...state.removedDirectives.map((removed) => removed.directiveId),
+        ...state.players.flatMap((player) => [
+            ...player.fulfilledDirectives.map((entry) => entry.directiveId),
+            ...player.heldDirectives.flatMap((held) =>
+                held.directiveId === undefined ? [] : [held.directiveId]
+            )
+        ])
+    ])
+    const unseen = DIRECTIVES.map((directive) => directive.id).filter((id) => !seen.has(id))
+    shuffle(unseen, random)
+    for (const held of state.players.flatMap((player) => player.heldDirectives)) {
+        if (held.directiveId === undefined) {
+            const directiveId = unseen.pop()
+            assert(directiveId !== undefined, 'More directives are held than printed')
+            held.directiveId = directiveId
+        }
+    }
+    assert(
+        unseen.length === state.directivePile.remaining,
+        'The unseen directives must fill the pool'
+    )
+    state.directivePile.directives = unseen
+}
 
 // The cards a Player's view shows them: those they own and those in their hand.
 function knownCardIds(player: ProjectedPlayer): string[] {

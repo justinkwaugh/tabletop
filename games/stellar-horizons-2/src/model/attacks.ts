@@ -1,9 +1,11 @@
 import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
+import { DirectiveAttack, DirectiveType } from '../components/directives.js'
 import { shipDefinition, ShipKind } from '../components/ships.js'
 import { SOL_SYSTEM_ID } from '../components/systems.js'
 import { arrivedShipsIn, clearFoughtCombat, crewVehiclesIn, currentCombatOf } from './combat.js'
 import { rollCombat } from './combatRolls.js'
+import { recordDirectiveProgress } from './directives.js'
 import { canAttack } from './escalation.js'
 import {
     capabilitiesOf,
@@ -21,6 +23,7 @@ import {
     CombatLoss,
     CombatRolls,
     CombatSide,
+    FulfilledDirective,
     RaidOutcome,
     RaidRoll,
     type ShipState
@@ -253,7 +256,8 @@ export const DeclaredAttack = Type.Object({
     hits: Type.Array(HitOutcome),
     raid: Type.Optional(RaidRoll),
     raidOutcome: Type.Optional(RaidOutcome),
-    explorerLoss: Type.Optional(CombatLoss)
+    explorerLoss: Type.Optional(CombatLoss),
+    directives: Type.Optional(Type.Array(FulfilledDirective))
 })
 
 // The dice rolled, or markers drawn, as the attack was declared or answered.
@@ -313,7 +317,38 @@ export function declareAttack(
         mayDecline: false
     }
     state.combat = combat
-    switch (kind) {
+    const directive = recordAttackDirective(state, attackerId, declaration)
+    const declared = startCombat(state, combat, declaration)
+    return directive ? { ...declared, directives: [directive] } : declared
+}
+
+// Rulebook 5.1's combat directives are met as the raid or fleet combat is declared.
+function recordAttackDirective(
+    state: HydratedStellarHorizonsGameState,
+    attackerId: string,
+    declaration: AttackDeclaration
+): FulfilledDirective | undefined {
+    const attack =
+        declaration.kind === CombatKind.Raid
+            ? DirectiveAttack.Raid
+            : declaration.kind === CombatKind.Fleet
+              ? DirectiveAttack.FleetCombat
+              : undefined
+    return attack === undefined
+        ? undefined
+        : recordDirectiveProgress(state, attackerId, {
+              kind: DirectiveType.Combat,
+              attack,
+              targetId: declaration.defenderId
+          })
+}
+
+function startCombat(
+    state: HydratedStellarHorizonsGameState,
+    combat: Combat,
+    declaration: AttackDeclaration
+): DeclaredAttack {
+    switch (declaration.kind) {
         case CombatKind.Explorer: {
             assertExists(declaration.explorerId, 'An RE attack names the RE')
             const explorerLoss = loseShipNow(state, state.ship(declaration.explorerId))

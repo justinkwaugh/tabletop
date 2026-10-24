@@ -15,7 +15,9 @@ import {
 
 export type StellarHorizonsGameConfig = Type.Static<typeof StellarHorizonsGameConfig>
 export const StellarHorizonsGameConfig = Type.Object({
-    scenario: Type.Optional(Type.Enum(ScenarioId))
+    scenario: Type.Optional(Type.Enum(ScenarioId)),
+    directives: Type.Optional(Type.Boolean()),
+    titles: Type.Optional(Type.Boolean())
 })
 
 export const StellarHorizonsGameConfigOptions: GameConfigOptions = [
@@ -28,6 +30,22 @@ export const StellarHorizonsGameConfigOptions: GameConfigOptions = [
         default: FOOTFALL.id,
         options: SCENARIOS.map((scenario) => ({ name: scenario.name, value: scenario.id })),
         alwaysShow: true
+    },
+    {
+        id: 'directives',
+        type: ConfigOptionType.Boolean,
+        name: 'Directives',
+        description:
+            'Campaign only: each Player holds a secret directive from their government, worth points when fulfilled, and must fulfil a number of their faction’s types or lose 15 points for each one short.',
+        default: true
+    },
+    {
+        id: 'titles',
+        type: ConfigOptionType.Boolean,
+        name: 'Titles',
+        description:
+            'Campaign only: titles such as Admiral and Chancellor, bought with influence once their prerequisite is met, each worth 10 points and a lasting benefit.',
+        default: true
     }
 ]
 

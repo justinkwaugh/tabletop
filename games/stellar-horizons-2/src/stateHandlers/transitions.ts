@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import { EconomicTile } from '../components/economicTiles.js'
 import { isEvenDecade } from '../components/scenarios.js'
 import { MachineState } from '../definition/states.js'
@@ -17,7 +18,8 @@ import { destroyUnplaceableRewardGoods } from '../model/trade.js'
 import { anyPendingSurveys } from '../model/surveys.js'
 import { nextShipTerraformer, refillWorldPool, terraformingQueue } from '../model/terraforming.js'
 import { nextCardDrawer } from '../model/cards.js'
-import { BlockadeStep, CardsResume, DemandResume } from '../model/pieces.js'
+import { BlockadeStep, CardsResume, DemandResume, DirectiveResume } from '../model/pieces.js'
+import { anyDirectiveChoice, anyDirectiveDeal, usesDirectives } from '../model/directives.js'
 import { TurnPhase } from '../model/turn.js'
 import { branchingState, firstPhase, phaseAfter } from '../model/turnPlan.js'
 
@@ -248,12 +250,63 @@ export function resumedAfterCards(
 ): MachineState {
     switch (resume) {
         case CardsResume.Setup:
-            return startPhase(state, firstPhase(state))
+            return stateForDirectives(state, DirectiveResume.Setup)
         case CardsResume.Anomaly:
             return stateAfterAnomaly(state)
         case CardsResume.AfterDevelopment:
             return stateOfNextPhase(state, TurnPhase.Development)
     }
+}
+
+// Rulebook 5.1: directives are dealt at the start, at the start of each turn to Players holding
+// none, and after a span to Players who redrew in it; those drawn are then chosen. Play resumes
+// where it was once they are.
+export function stateForDirectives(
+    state: HydratedStellarHorizonsGameState,
+    resume: DirectiveResume,
+    phase?: TurnPhase
+): MachineState {
+    if (!usesDirectives(state) || (!anyDirectiveDeal(state) && !anyDirectiveChoice(state))) {
+        return resumedAfterDirectives(state, resume, phase)
+    }
+    state.directiveResume = { resume, ...(phase !== undefined ? { phase } : {}) }
+    return anyDirectiveDeal(state)
+        ? MachineState.DealingDirectives
+        : branchingState(TurnPhase.Directives)
+}
+
+export function stateAfterDirectives(state: HydratedStellarHorizonsGameState): MachineState {
+    const point = state.directiveResume
+    assertExists(point, 'Choosing directives needs a step to resume')
+    state.directiveResume = undefined
+    return resumedAfterDirectives(state, point.resume, point.phase)
+}
+
+function resumedAfterDirectives(
+    state: HydratedStellarHorizonsGameState,
+    resume: DirectiveResume,
+    phase: TurnPhase | undefined
+): MachineState {
+    switch (resume) {
+        case DirectiveResume.Setup:
+            return startPhase(state, firstPhase(state))
+        case DirectiveResume.TurnStart:
+            return MachineState.EconomicPhase
+        case DirectiveResume.AfterPhase:
+            assertExists(phase, 'Resuming after a span needs its phase')
+            return stateAfterPhase(state, phase)
+    }
+}
+
+// A span's Players may have redrawn directives in their Branches; those are dealt before play
+// goes on.
+export function stateAfterSpan(
+    state: HydratedStellarHorizonsGameState,
+    phase: TurnPhase
+): MachineState {
+    return phase === TurnPhase.Directives
+        ? stateAfterDirectives(state)
+        : stateForDirectives(state, DirectiveResume.AfterPhase, phase)
 }
 
 // After each anomaly attempt: a card earned from the hand is replaced, its settlement reward is

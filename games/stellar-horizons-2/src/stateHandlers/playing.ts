@@ -10,20 +10,16 @@ import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { isIdleInPhase } from '../model/idlePhases.js'
 import type { SpanPhase } from '../model/turn.js'
 import { branchPlayerId, branchingState, playState } from '../model/turnPlan.js'
-import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
+import { type AnytimeAction, anytimeActions, isAnytimeAction } from './anytime.js'
 
-type AnytimeAction =
-    | HydratedScrapShip
-    | HydratedTransferCargo
-    | HydratedEndPhase
-    | HydratedSkipPhase
-    | ConversionAction
+type PlayAnytimeAction =
+    HydratedScrapShip | HydratedTransferCargo | HydratedEndPhase | HydratedSkipPhase | AnytimeAction
 
 // Rulebook 1.2 and 1.8: a ship may be scrapped, and settlements moved between a player's own
 // ships, at any point in the player's turn; in the campaign an IP may be turned into $1B.
 export abstract class PlayStateHandler<
     Action extends HydratedAction
-> implements MachineStateHandler<Action | AnytimeAction, HydratedStellarHorizonsGameState> {
+> implements MachineStateHandler<Action | PlayAnytimeAction, HydratedStellarHorizonsGameState> {
     protected abstract readonly phase: SpanPhase
 
     protected abstract isPhaseAction(action: HydratedAction): action is Action
@@ -36,13 +32,13 @@ export abstract class PlayStateHandler<
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedStellarHorizonsGameState>
-    ): action is Action | AnytimeAction {
+    ): action is Action | PlayAnytimeAction {
         return (
             this.isPhaseAction(action) ||
             isScrapShip(action) ||
             isTransferCargo(action) ||
             isSkipPhase(action) ||
-            isConversion(action) ||
+            isAnytimeAction(action) ||
             (isEndPhase(action) && action.phase === this.phase)
         )
     }
@@ -62,7 +58,7 @@ export abstract class PlayStateHandler<
         if (canTransferAnyCargo(state, playerId)) {
             anytime.push(ActionType.TransferCargo)
         }
-        anytime.push(...conversionActions(state, playerId))
+        anytime.push(...anytimeActions(state, playerId))
         return [
             ...new Set([...this.phaseActions(playerId, state), ...anytime, ActionType.EndPhase])
         ]
@@ -77,7 +73,7 @@ export abstract class PlayStateHandler<
     }
 
     onAction(
-        action: Action | AnytimeAction,
+        action: Action | PlayAnytimeAction,
         _context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
         return isEndPhase(action) || isSkipPhase(action)

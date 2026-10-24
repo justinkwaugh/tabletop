@@ -19,7 +19,7 @@ import { isIdleInPhase } from '../model/idlePhases.js'
 import { canTransferAnyGoods, saleOptions } from '../model/trade.js'
 import { DemandResume } from '../model/pieces.js'
 import { TurnPhase } from '../model/turn.js'
-import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
+import { type AnytimeAction, anytimeActions, isAnytimeAction } from './anytime.js'
 import { resumedState, stateAfterDemandDraws, stateAfterPhase } from './transitions.js'
 
 type TradingAction =
@@ -29,7 +29,7 @@ type TradingAction =
     | HydratedScrapShip
     | HydratedEndPhase
     | HydratedSkipPhase
-    | ConversionAction
+    | AnytimeAction
 
 // The campaign's cargo and trade phase (rulebook 1.8 and 1.9): each Player in initiative order
 // loads, unloads, buys settlements and sells in any order, then ends their turn.
@@ -47,7 +47,7 @@ export class TradingStateHandler implements MachineStateHandler<
             isSellGoods(action) ||
             isScrapShip(action) ||
             isSkipPhase(action) ||
-            isConversion(action) ||
+            isAnytimeAction(action) ||
             (isEndPhase(action) && action.phase === TurnPhase.Cargo)
         )
     }
@@ -65,7 +65,7 @@ export class TradingStateHandler implements MachineStateHandler<
             ...(canTransferAnyGoods(state, playerId) ? [ActionType.TransferGoods] : []),
             ...(saleOptions(state, playerId).length > 0 ? [ActionType.SellGoods] : []),
             ...(state.shipsOf(playerId).length > 0 ? [ActionType.ScrapShip] : []),
-            ...conversionActions(state, playerId),
+            ...anytimeActions(state, playerId),
             ActionType.EndPhase
         ]
     }

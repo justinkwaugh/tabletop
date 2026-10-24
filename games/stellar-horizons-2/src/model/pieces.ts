@@ -8,6 +8,7 @@ import { Faction } from '../components/factions.js'
 import { TechField } from '../components/techFields.js'
 import { TradeGood } from '../components/tradeGoods.js'
 import { WorldSide } from '../components/worlds.js'
+import { TurnPhase } from './turn.js'
 
 export type WorldPlacement = Type.Static<typeof WorldPlacement>
 export const WorldPlacement = Type.Object({
@@ -500,4 +501,82 @@ export type SystemAttack = Type.Static<typeof SystemAttack>
 export const SystemAttack = Type.Object({
     playerId: Type.String(),
     systemId: Type.String()
+})
+
+// Rulebook 5.1: a Player's current directive, those they drew to choose from, those not kept
+// while playing a Branch, which go back to the pool when the span ends, and one given up for a
+// redraw in a Branch, which goes back once its Player has drawn again. Only its holder sees which
+// directive each is.
+export enum DirectiveStatus {
+    Current = 'Current',
+    Drawn = 'Drawn',
+    Discarded = 'Discarded',
+    GivenUp = 'GivenUp'
+}
+
+export type HeldDirective = Type.Static<typeof HeldDirective>
+export const HeldDirective = Type.Object({
+    playerId: Type.String(),
+    status: Type.Enum(DirectiveStatus),
+    directiveId: Visibility.protect(Type.String(), { policy: Visibility.Policy.Owner })
+})
+
+// The directives not yet drawn, hidden, with their count public.
+export type DirectivePile = Type.Static<typeof DirectivePile>
+export const DirectivePile = Type.Object({
+    directives: Visibility.protect(Type.Array(Type.String()), {
+        policy: Visibility.Policy.HostOnly,
+        redaction: Visibility.redaction.emptyArray()
+    }),
+    remaining: Type.Number()
+})
+
+export type FulfilledDirective = Type.Static<typeof FulfilledDirective>
+export const FulfilledDirective = Type.Object({
+    playerId: Type.String(),
+    directiveId: Type.String(),
+    year: Type.Number()
+})
+
+// A survey directive whose system was fully surveyed, removed from the game and shown, as a
+// Player would to justify the redraw (campaign plan, slice 6).
+export type RemovedDirective = Type.Static<typeof RemovedDirective>
+export const RemovedDirective = Type.Object({
+    playerId: Type.String(),
+    directiveId: Type.String()
+})
+
+// Rulebook 5.0's optional rules, chosen at setup; only the campaign plays them.
+export type OptionalRules = Type.Static<typeof OptionalRules>
+export const OptionalRules = Type.Object({
+    directives: Type.Boolean(),
+    titles: Type.Boolean()
+})
+
+// The turn's totals toward a directive that adds up over the turn (rulebook 5.1: "met on the
+// turn you fulfil it").
+export type DirectiveTotals = Type.Static<typeof DirectiveTotals>
+export const DirectiveTotals = Type.Object({
+    miningCash: Type.Number(),
+    researchMarkers: Type.Number(),
+    baseProductionCash: Type.Number(),
+    sales: Type.Array(Type.Object({ systemId: Type.String(), good: Type.Enum(TradeGood) }))
+})
+
+export function emptyDirectiveTotals(): DirectiveTotals {
+    return { miningCash: 0, researchMarkers: 0, baseProductionCash: 0, sales: [] }
+}
+
+// Directives are dealt at the start, at the start of a turn, and after a span in which a Player
+// redrew; play then resumes where it was, after that span's phase.
+export enum DirectiveResume {
+    Setup = 'Setup',
+    TurnStart = 'TurnStart',
+    AfterPhase = 'AfterPhase'
+}
+
+export type DirectiveResumePoint = Type.Static<typeof DirectiveResumePoint>
+export const DirectiveResumePoint = Type.Object({
+    resume: Type.Enum(DirectiveResume),
+    phase: Type.Optional(Type.Enum(TurnPhase))
 })

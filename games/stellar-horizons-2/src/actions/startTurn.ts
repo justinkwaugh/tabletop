@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { RemovedDirective } from '../model/pieces.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { beginTurn } from '../model/turnCycle.js'
 
@@ -12,7 +13,8 @@ export const StartTurnMetadata = Type.Object({
     arrivedShipIds: Type.Array(Type.String()),
     influence: Type.Optional(
         Type.Array(Type.Object({ playerId: Type.String(), amount: Type.Number() }))
-    )
+    ),
+    removedDirectives: Type.Optional(Type.Array(RemovedDirective))
 })
 
 export type StartTurn = Type.Static<typeof StartTurn>

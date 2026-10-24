@@ -1,11 +1,19 @@
 import * as Type from 'typebox'
+import { DirectiveAttack, DirectiveType } from '../components/directives.js'
 import { blocksBases } from './anomalies.js'
+import { recordDirectiveProgresses } from './directives.js'
 import { gainInfluence } from './campaign.js'
 import { canAttack, drawEscalation } from './escalation.js'
 import { halts } from './events.js'
 import { capabilitiesOf, fleetCombatIn, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import { type Base, type Blockade, BlockadeStep, EscalationDraw } from './pieces.js'
+import {
+    type Base,
+    type Blockade,
+    BlockadeStep,
+    EscalationDraw,
+    FulfilledDirective
+} from './pieces.js'
 
 // Rulebook 4.4 and 4.6: before base production, and before growth and migration, Players may
 // blockade other Players' bases in reverse initiative order. Each blockaded base draws its
@@ -144,7 +152,8 @@ export const BlockadeResult = Type.Object({
     escalation: EscalationDraw,
     // The combined value the blockader's ships beat.
     force: Type.Number(),
-    defence: Type.Number()
+    defence: Type.Number(),
+    directives: Type.Optional(Type.Array(FulfilledDirective))
 })
 
 export function declareBlockade(
@@ -155,12 +164,22 @@ export function declareBlockade(
 ): BlockadeResult {
     const force = fleetCombatIn(state, playerId, systemId)
     const defence = combinedDefence(state, targetIds, systemId)
+    // Rulebook 5.1's blockade directive, met by any base named.
+    const directives = recordDirectiveProgresses(
+        state,
+        playerId,
+        targetIds.map((targetId) => ({
+            kind: DirectiveType.Combat,
+            attack: DirectiveAttack.Blockade,
+            targetId
+        }))
+    )
     state.blockades.push({ playerId, systemId, targetIds: [...targetIds] })
     const escalation = drawEscalation(state, playerId, BLOCKADE_ESCALATION * targetIds.length)
     for (const targetId of targetIds) {
         gainInfluence(state, targetId, BLOCKADE_INFLUENCE)
     }
-    return { escalation, force, defence }
+    return { escalation, force, defence, ...(directives.length > 0 ? { directives } : {}) }
 }
 
 export function endBlockades(state: HydratedStellarHorizonsGameState) {

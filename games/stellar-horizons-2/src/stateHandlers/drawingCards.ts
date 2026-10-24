@@ -9,10 +9,10 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { drawableLevels, nextCardDrawer } from '../model/cards.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
+import { type AnytimeAction, anytimeActions, isAnytimeAction } from './anytime.js'
 import { resumedAfterCards } from './transitions.js'
 
-type DrawingAction = HydratedDrawCard | ConversionAction
+type DrawingAction = HydratedDrawCard | AnytimeAction
 
 // Cards owed to hands are drawn on the Main Line, one at a time, in initiative order, since
 // they come from the shared decks (rulebook 1.20). The drawer chooses each card's level; with
@@ -25,7 +25,7 @@ export class DrawingCardsStateHandler implements MachineStateHandler<
         action: HydratedAction,
         _context: MachineContext<HydratedStellarHorizonsGameState>
     ): action is DrawingAction {
-        return isDrawCard(action) || isConversion(action)
+        return isDrawCard(action) || isAnytimeAction(action)
     }
 
     validActionsForPlayer(
@@ -36,7 +36,7 @@ export class DrawingCardsStateHandler implements MachineStateHandler<
         if (!state.isActivePlayer(playerId)) {
             return []
         }
-        return [ActionType.DrawCard, ...conversionActions(state, playerId)]
+        return [ActionType.DrawCard, ...anytimeActions(state, playerId)]
     }
 
     enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
@@ -61,7 +61,7 @@ export class DrawingCardsStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
         const state = context.gameState
-        if (isConversion(action) || nextCardDrawer(state) !== undefined) {
+        if (isAnytimeAction(action) || nextCardDrawer(state) !== undefined) {
             return MachineState.DrawingCards
         }
         const resume = state.resumeAfterCards

@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import { baseProductionRow } from '../components/factionSheets.js'
+import { DirectiveProduction, DirectiveType } from '../components/directives.js'
 import { ECONOMIC_TILES, EconomicTile } from '../components/economicTiles.js'
 import { isDwarfStar, systemDefinition } from '../components/systems.js'
 import { TECH_FIELDS } from '../components/techFields.js'
@@ -12,7 +13,8 @@ import { effectiveHabitability } from './campaign.js'
 import { capabilitiesOf } from './fleet.js'
 import { halts } from './events.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import { CASH_PRODUCTION, Production, type Base } from './pieces.js'
+import { CASH_PRODUCTION, type FulfilledDirective, Production, type Base } from './pieces.js'
+import { recordDirectiveProgress } from './directives.js'
 import { awardTechMarkers } from './pools.js'
 import { removeBaseSettlement, addSettlements } from './settling.js'
 import { roundHalfUp } from './turn.js'
@@ -239,6 +241,29 @@ export function produceAtBases(state: HydratedStellarHorizonsGameState): BasePro
         }
     }
     return results
+}
+
+// Rulebook 5.1's production directives total each Player's cash from base production.
+export function recordProductionDirectives(
+    state: HydratedStellarHorizonsGameState,
+    results: readonly BaseProductionResult[]
+): FulfilledDirective[] {
+    return state.initiativeOrder().flatMap((playerId) => {
+        const cash = results
+            .filter(
+                (result) => result.playerId === playerId && result.production === CASH_PRODUCTION
+            )
+            .reduce((total, result) => total + result.cash, 0)
+        const fulfilled =
+            cash > 0
+                ? recordDirectiveProgress(state, playerId, {
+                      kind: DirectiveType.Production,
+                      production: DirectiveProduction.BaseProductionCash,
+                      amount: cash
+                  })
+                : undefined
+        return fulfilled ? [fulfilled] : []
+    })
 }
 
 // Rulebook 4.6.

@@ -6,11 +6,11 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { dropIdleBlockaders } from '../model/blockades.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
+import { type AnytimeAction, anytimeActions, isAnytimeAction } from './anytime.js'
 import { stateAfterBlockades } from './transitions.js'
 
 type BlockadingAction =
-    HydratedDeclareBlockade | HydratedEndBlockades | HydratedDiscardEscalation | ConversionAction
+    HydratedDeclareBlockade | HydratedEndBlockades | HydratedDiscardEscalation | AnytimeAction
 
 // Rulebook 4.4 and 4.6: on the Main Line in reverse initiative order, each Player who can
 // blockade declares their blockades, one system at a time, then ends their turn. Military
@@ -27,7 +27,7 @@ export class BlockadingStateHandler implements MachineStateHandler<
             isDeclareBlockade(action) ||
             isEndBlockades(action) ||
             isDiscardEscalation(action) ||
-            isConversion(action)
+            isAnytimeAction(action)
         )
     }
 
@@ -45,7 +45,7 @@ export class BlockadingStateHandler implements MachineStateHandler<
         return [
             ActionType.DeclareBlockade,
             ActionType.EndBlockades,
-            ...conversionActions(state, playerId)
+            ...anytimeActions(state, playerId)
         ]
     }
 
