@@ -1,3 +1,4 @@
+import { CardDeck } from './cards.js'
 import { Faction } from './factions.js'
 import { TechField } from './techFields.js'
 
@@ -27,7 +28,11 @@ export interface FactionAbilities {
     takesFromOperations?: true
     extraTerraforms?: number
     habitabilityBonus?: number
-    converts?: true
+    // The die roll at or under which a settlement converts after growth.
+    conversionRoll?: number
+    // An extra card of this deck in hand, and +3 instead of +5 for each card of it owned
+    // (rulebook 1.20).
+    favouredDeck?: CardDeck
     sellsWithoutPaying?: true
     demandDraws?: number
 }
@@ -128,7 +133,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
             ship('praetorians-audax', 'wise-0855-0714', 1),
             ship('praetorians-odyssey', 'alpha-centauri', 2)
         ],
-        abilities: {}
+        abilities: { favouredDeck: CardDeck.Fleet }
     },
     {
         faction: Faction.Starfarers,
@@ -185,7 +190,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
             ship('transhumanists-daedalus', 'alpha-centauri', 2),
             ship('transhumanists-curie', 'luhman-16', 2)
         ],
-        abilities: {}
+        abilities: { favouredDeck: CardDeck.Genetic }
     },
     {
         faction: Faction.TruePath,
@@ -204,7 +209,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
             ship('truepath-ardent-spirit', 'luhman-16', 2),
             ship('truepath-pilgrim', 'barnards-star', 3)
         ],
-        abilities: { habitabilityBonus: 20, converts: true }
+        abilities: { habitabilityBonus: 20, conversionRoll: 4 }
     }
 ]
 

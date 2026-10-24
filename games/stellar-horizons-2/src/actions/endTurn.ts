@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { isCampaign } from '../model/campaign.js'
+import { shuffleDiscards } from '../model/cards.js'
 import { EventOutcome, applyEachTurnEffects, releaseAbandonedEvents } from '../model/events.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { EndRoll, campaignWinners, rollForEnd } from '../model/scoring.js'
@@ -17,7 +18,8 @@ export const EndTurnMetadata = Type.Object({
     gameOver: Type.Boolean(),
     endRoll: Type.Optional(EndRoll),
     eventEffects: Type.Optional(Type.Array(EventOutcome)),
-    releasedEvents: Type.Optional(Type.Array(Type.String()))
+    releasedEvents: Type.Optional(Type.Array(Type.String())),
+    shuffledCards: Type.Optional(Type.Number())
 })
 
 export type EndTurn = Type.Static<typeof EndTurn>
@@ -49,6 +51,8 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
         returnSpentMarkers(state)
         const year = state.year
         if (isCampaign(state)) {
+            // Turn step 9: the discarded cards go back into their decks.
+            const shuffledCards = shuffleDiscards(state)
             const eventEffects = applyEachTurnEffects(state)
             const releasedEvents = releaseAbandonedEvents(state)
             const endRoll = rollForEnd(state)
@@ -58,7 +62,15 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
             if (!gameOver) {
                 state.year += DECADE
             }
-            this.metadata = { year, victorIds, gameOver, endRoll, eventEffects, releasedEvents }
+            this.metadata = {
+                year,
+                victorIds,
+                gameOver,
+                endRoll,
+                eventEffects,
+                releasedEvents,
+                shuffledCards
+            }
             return
         }
         const victorIds = victoriousPlayerIds(state)

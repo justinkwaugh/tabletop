@@ -3,7 +3,7 @@ import { isEvenDecade } from '../components/scenarios.js'
 import { MachineState } from '../definition/states.js'
 import { anyAnomalyAttempts } from '../model/anomalies.js'
 import { isCampaign } from '../model/campaign.js'
-import { converters } from '../model/economy.js'
+import { queueConversions } from '../model/economy.js'
 import { anyEventAttempts } from '../model/events.js'
 import { pendingSyndicateTakes } from '../model/operations.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
@@ -12,7 +12,8 @@ import { discardUnplaceableRewards } from '../model/settlementRewards.js'
 import { destroyUnplaceableRewardGoods } from '../model/trade.js'
 import { anyPendingSurveys } from '../model/surveys.js'
 import { nextShipTerraformer, refillWorldPool, terraformingQueue } from '../model/terraforming.js'
-import { DemandResume } from '../model/pieces.js'
+import { nextCardDrawer } from '../model/cards.js'
+import { CardsResume, DemandResume } from '../model/pieces.js'
 import { TurnPhase } from '../model/turn.js'
 import { branchingState, firstPhase, phaseAfter } from '../model/turnPlan.js'
 
@@ -29,6 +30,8 @@ export function stateAfterPhase(
             return MachineState.ProducingAtBases
         case TurnPhase.TradeGoods:
             return stateAfterEconomicPhase(state)
+        case TurnPhase.Development:
+            return stateForCardDraws(state, CardsResume.AfterDevelopment)
         default:
             return stateOfNextPhase(state, phase)
     }
@@ -94,8 +97,16 @@ export function startPhase(
     return branchingState(phase)
 }
 
+// After growth: Prolific Breeders' bases are chosen, then the conversion rolls are taken.
 export function stateAfterGrowth(state: HydratedStellarHorizonsGameState): MachineState {
-    return converters(state).length > 0
+    return state.growthChoosers.length > 0
+        ? MachineState.ChoosingGrowthBase
+        : stateAfterGrowthChoices(state)
+}
+
+export function stateAfterGrowthChoices(state: HydratedStellarHorizonsGameState): MachineState {
+    queueConversions(state)
+    return state.conversions.length > 0
         ? MachineState.ConvertingSettlements
         : stateAfterEconomicPhase(state)
 }
@@ -160,9 +171,38 @@ export function resumedState(
     }
 }
 
-// After each anomaly attempt: its settlement reward is placed, its goods are placed, then the
-// next attempt resolves.
+// Cards owed to hands are drawn before play goes on (rulebook 1.20).
+export function stateForCardDraws(
+    state: HydratedStellarHorizonsGameState,
+    resume: CardsResume
+): MachineState {
+    if (nextCardDrawer(state) !== undefined) {
+        state.resumeAfterCards = resume
+        return MachineState.DrawingCards
+    }
+    return resumedAfterCards(state, resume)
+}
+
+export function resumedAfterCards(
+    state: HydratedStellarHorizonsGameState,
+    resume: CardsResume
+): MachineState {
+    switch (resume) {
+        case CardsResume.Setup:
+            return startPhase(state, firstPhase(state))
+        case CardsResume.Anomaly:
+            return stateAfterAnomaly(state)
+        case CardsResume.AfterDevelopment:
+            return stateOfNextPhase(state, TurnPhase.Development)
+    }
+}
+
+// After each anomaly attempt: a card earned from the hand is replaced, its settlement reward is
+// placed, its goods are placed, then the next attempt resolves.
 export function stateAfterAnomaly(state: HydratedStellarHorizonsGameState): MachineState {
+    if (nextCardDrawer(state) !== undefined) {
+        return stateForCardDraws(state, CardsResume.Anomaly)
+    }
     discardUnplaceableRewards(state)
     if (state.settlementRewards.length > 0) {
         return MachineState.PlacingRewardSettlements

@@ -40,8 +40,12 @@ function botAction(game: Game, state: HydratedStellarHorizonsGameState): GameAct
             })
         case MachineState.ChoosingSurveyWorld: {
             const choice = state.surveyChoice
-            const slots = choice ? surveySwapSlots(state, choice.systemId, choice.drawnTileId) : []
-            return act(ActionType.ChooseSurveyWorld, { slot: slots[0] })
+            if (!choice || choice.fillsSlot) {
+                return act(ActionType.ChooseSurveyWorld, { tileId: choice?.drawnTileIds[0] })
+            }
+            const [tileId] = choice.drawnTileIds
+            const [slot] = surveySwapSlots(state, choice.systemId, tileId)
+            return act(ActionType.ChooseSurveyWorld, slot === undefined ? {} : { tileId, slot })
         }
         case MachineState.Terraforming: {
             const [target] = terraformTargets(state, playerId)
@@ -60,7 +64,8 @@ function botAction(game: Game, state: HydratedStellarHorizonsGameState): GameAct
             return (
                 (state.scenario === ScenarioId.Voyages
                     ? voyagesAction(state, playerId, phase, act)
-                    : turnAction(state, playerId, phase, act)) ?? act(ActionType.EndPhase, { phase })
+                    : turnAction(state, playerId, phase, act)) ??
+                act(ActionType.EndPhase, { phase })
             )
         }
     }

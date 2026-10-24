@@ -1,3 +1,4 @@
+import { CardDeck } from '../components/cards.js'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, assertExists } from '@tabletop/common'
 import { HydratedResolveAnomaly } from '../actions/resolveAnomaly.js'
@@ -80,13 +81,11 @@ describe('Resolving an anomaly in the campaign', () => {
         expect(baseEffects(state, SYSTEM).markerProduction?.fields).toEqual([TechField.Biology])
     })
 
-    it('removes a tile whose back says so, and notes rewards not in the game yet', () => {
+    it('removes a tile whose back says so, and earns its card', () => {
         const state = campaign()
         const [playerId] = state.initiativeOrder()
         placeAnomaly(state, 'alien-derelict')
-        expect(resolve(state, playerId, 'alien-derelict').reward?.notYet).toEqual([
-            'a level I Fleet card'
-        ])
+        expect(resolve(state, playerId, 'alien-derelict').reward?.card?.deck).toBe(CardDeck.Fleet)
         placeAnomaly(state, 'violent-separatists')
         state.systemState(SYSTEM).anomalyResolved = undefined
         resolve(state, playerId, 'violent-separatists')
@@ -190,8 +189,8 @@ describe('The backs of resolved anomalies', () => {
         placeBase(dissidents.state, dissidents.playerId, SYSTEM, 3)
         expect(migrationChance(dissidents.state, dissidents.playerId, SYSTEM, 0)).toBe(100)
         const nanobots = withBack('nanobot-swarm')
-        expect(buildCost(nanobots.state, 'starfarers-kepler', SYSTEM)).toBe(
-            buildCost(nanobots.state, 'starfarers-kepler', 'sol') - 1
+        expect(buildCost(nanobots.state, nanobots.playerId, 'starfarers-kepler', SYSTEM)).toBe(
+            buildCost(nanobots.state, nanobots.playerId, 'starfarers-kepler', 'sol') - 1
         )
     })
 })

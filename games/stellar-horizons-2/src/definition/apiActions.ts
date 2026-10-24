@@ -51,6 +51,11 @@ import { GrowSettlements } from '../actions/growSettlements.js'
 import { ConvertSettlement } from '../actions/convertSettlement.js'
 import { PassConversion } from '../actions/passConversion.js'
 import { SpendInfluence } from '../actions/spendInfluence.js'
+import { BuyCard } from '../actions/buyCard.js'
+import { DrawCard } from '../actions/drawCard.js'
+import { ChooseEndRollModifier } from '../actions/chooseEndRollModifier.js'
+import { ChooseEconomicTile } from '../actions/chooseEconomicTile.js'
+import { ChooseGrowthBase } from '../actions/chooseGrowthBase.js'
 
 export const StellarHorizonsApiActions = {
     [ActionType.ChooseFaction]: ChooseFaction,
@@ -106,5 +111,10 @@ export const StellarHorizonsApiActions = {
     [ActionType.ProposePact]: ProposePact,
     [ActionType.AcceptPact]: AcceptPact,
     [ActionType.WithdrawPact]: WithdrawPact,
+    [ActionType.BuyCard]: BuyCard,
+    [ActionType.DrawCard]: DrawCard,
+    [ActionType.ChooseEndRollModifier]: ChooseEndRollModifier,
+    [ActionType.ChooseEconomicTile]: ChooseEconomicTile,
+    [ActionType.ChooseGrowthBase]: ChooseGrowthBase,
     [ActionType.EndTurn]: EndTurn
 }

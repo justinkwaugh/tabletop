@@ -1,14 +1,17 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { Color, Hydratable, PlayerState } from '@tabletop/common'
+import { Color, Hydratable, PlayerState, Visibility } from '@tabletop/common'
 import { AnomalyChallenge, anomalyDefinition } from '../components/anomalies.js'
+import { CardDeck, cardDefinition } from '../components/cards.js'
 import { Faction } from '../components/factions.js'
 import { TechField } from '../components/techFields.js'
 import { TechId } from '../components/techs.js'
 import { TradeGood } from '../components/tradeGoods.js'
 import {
     EarnedMarkers,
+    HandCard,
     Operation,
+    OwnedCard,
     PendingAnomalyAttempt,
     PendingEventAttempt,
     PendingSurvey,
@@ -57,16 +60,33 @@ export const StellarHorizonsPlayerState = Type.Evaluate(
             earthGoods: Type.Array(Type.Enum(TradeGood)),
             drawnGoods: Type.Array(Type.Enum(TradeGood)),
             discardedGoods: Type.Array(Type.Enum(TradeGood)),
-            initiativeBid: Type.Optional(Type.Number())
+            initiativeBid: Type.Optional(Type.Number()),
+            hand: Type.Array(HandCard),
+            cards: Type.Array(OwnedCard),
+            // Cards owed to the hand, drawn on the Main Line one at a time (rulebook 1.20).
+            cardDraws: Type.Array(Type.Enum(CardDeck)),
+            settlementsBought: Type.Number(),
+            // Transcend Biology's announced change to the end roll's chance.
+            endRollModifier: Type.Optional(Type.Number())
         })
     ])
 )
 
-export const StellarHorizonsPlayerStateValidator = Compile(StellarHorizonsPlayerState)
+// Another Player's hand shows only its backs: which card each is, is omitted.
+export const StellarHorizonsProjectedPlayerState = Visibility.createProjectionSchema(
+    StellarHorizonsPlayerState
+)
+export type StellarHorizonsProjectedPlayerState = Type.Static<
+    typeof StellarHorizonsProjectedPlayerState
+>
+export type ProjectedHandCard = StellarHorizonsProjectedPlayerState['hand'][number]
+export const StellarHorizonsProjectedPlayerStateValidator = Compile(
+    StellarHorizonsProjectedPlayerState
+)
 
 export class HydratedStellarHorizonsPlayerState
-    extends Hydratable<typeof StellarHorizonsPlayerState>
-    implements StellarHorizonsPlayerState
+    extends Hydratable<typeof StellarHorizonsProjectedPlayerState>
+    implements StellarHorizonsProjectedPlayerState
 {
     declare playerId: string
     declare color: Color
@@ -91,9 +111,14 @@ export class HydratedStellarHorizonsPlayerState
     declare drawnGoods: TradeGood[]
     declare discardedGoods: TradeGood[]
     declare initiativeBid?: number
+    declare hand: ProjectedHandCard[]
+    declare cards: OwnedCard[]
+    declare cardDraws: CardDeck[]
+    declare settlementsBought: number
+    declare endRollModifier?: number
 
-    constructor(data: StellarHorizonsPlayerState) {
-        super(data, StellarHorizonsPlayerStateValidator)
+    constructor(data: StellarHorizonsProjectedPlayerState) {
+        super(data, StellarHorizonsProjectedPlayerStateValidator)
     }
 
     ownsTech(techId: TechId): boolean {
@@ -110,6 +135,18 @@ export class HydratedStellarHorizonsPlayerState
 
     markerTotal(field: TechField): number {
         return this.techMarkers[field].reduce((total, value) => total + value, 0)
+    }
+
+    ownsCard(cardId: string): boolean {
+        return this.cards.some((owned) => owned.cardId === cardId)
+    }
+
+    handCards(deck: CardDeck): ProjectedHandCard[] {
+        return this.hand.filter((card) => card.deck === deck)
+    }
+
+    cardPoints(): number {
+        return this.cards.reduce((total, owned) => total + cardDefinition(owned.cardId).points, 0)
     }
 
     anomaliesResolved(challenge: AnomalyChallenge): number {

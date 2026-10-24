@@ -90,10 +90,12 @@ describe('strength against an anomaly', () => {
             ship(hydrated, table.starfarers, 'starfarers-andromeda', 'vega', 0)
         })
         const hydrated = hydrate(state)
-        expect(anomalyStrength(hydrated.ship('starfarers-kepler'), AnomalyChallenge.Science)).toBe(
-            3
-        )
-        expect(anomalyStrength(hydrated.ship('starfarers-orion'), AnomalyChallenge.Science)).toBe(6)
+        expect(
+            anomalyStrength(hydrated, hydrated.ship('starfarers-kepler'), AnomalyChallenge.Science)
+        ).toBe(3)
+        expect(
+            anomalyStrength(hydrated, hydrated.ship('starfarers-orion'), AnomalyChallenge.Science)
+        ).toBe(6)
         expect(
             anomalyAttemptShips(hydrated, starfarers, 'vega').map((entry) => entry.shipId)
         ).toEqual(['starfarers-andromeda', 'starfarers-kepler', 'starfarers-orion'])
@@ -107,9 +109,9 @@ describe('strength against an anomaly', () => {
             ship(hydrated, table.starfarers, 'starfarers-andromeda', 'vega')
         })
         const hydrated = hydrate(state)
-        expect(anomalyStrength(hydrated.ship('starfarers-voyager'), AnomalyChallenge.Combat)).toBe(
-            5
-        )
+        expect(
+            anomalyStrength(hydrated, hydrated.ship('starfarers-voyager'), AnomalyChallenge.Combat)
+        ).toBe(5)
         expect(
             anomalyAttemptShips(hydrated, starfarers, 'vega').map((entry) => entry.shipId)
         ).toEqual(['starfarers-voyager'])

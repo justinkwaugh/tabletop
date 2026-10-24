@@ -113,13 +113,17 @@ describe('finding anomalies', () => {
     it('rolls when a survey is completed, and only then', () => {
         const state = voyages()
         const [playerId] = state.initiativeOrder()
-        state.getPlayerState(playerId).pendingSurveys.push({ shipId: 'ship', systemId: 'vega' })
+        state
+            .getPlayerState(playerId)
+            .pendingSurveys.push({ shipId: 'starfarers-kepler', systemId: 'vega' })
         const completed = resolveNextSurvey(state)
         expect(completed.completed).toBe(true)
         expect(completed.anomaly?.roll).toBeGreaterThanOrEqual(1)
 
         state.systemState('altair').explorationMarker = 0
-        state.getPlayerState(playerId).pendingSurveys.push({ shipId: 'ship', systemId: 'altair' })
+        state
+            .getPlayerState(playerId)
+            .pendingSurveys.push({ shipId: 'starfarers-kepler', systemId: 'altair' })
         const wasted = resolveNextSurvey(state)
         expect(wasted.completed).toBe(false)
         expect(wasted.anomaly).toBeUndefined()

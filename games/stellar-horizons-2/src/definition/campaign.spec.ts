@@ -11,11 +11,14 @@ import { TECHS, TechId } from '../components/techs.js'
 import { shipsAvailableToBuild } from '../model/building.js'
 import { anomalyDifficulty } from '../model/anomalies.js'
 import { effectiveHabitability } from '../model/campaign.js'
-import { isFirstToDevelop, isValidTechPayment } from '../model/development.js'
+import { isFirstToDevelop, isValidPayment } from '../model/development.js'
+import { drawableLevels } from '../model/cards.js'
 import {
     type ConversionResult,
     availableProductions,
     conversionTargets,
+    economicTileChoices,
+    growthChoiceBases,
     systemPopulationLimit
 } from '../model/economy.js'
 import { capabilitiesOf } from '../model/fleet.js'
@@ -119,6 +122,20 @@ function step(game: Game, state: StellarHorizonsProjectedState): Played {
         }
         case MachineState.ChoosingTerraformWorld:
             return run(ActionType.ChooseTerraformWorld, { removedTileIds: [] })
+        case MachineState.DrawingCards: {
+            const hydrated = hydrate(state)
+            const deck = hydrated.getPlayerState(playerId).cardDraws[0]
+            const [level] = drawableLevels(hydrated, playerId, deck)
+            return run(ActionType.DrawCard, { deck, level })
+        }
+        case MachineState.ChoosingGrowthBase: {
+            const [systemId] = growthChoiceBases(hydrate(state), playerId)
+            return run(ActionType.ChooseGrowthBase, { systemId })
+        }
+        case MachineState.EconomicPhase: {
+            const [tile] = economicTileChoices(hydrate(state))
+            return run(ActionType.ChooseEconomicTile, { tile })
+        }
         default: {
             const phase = playPhase(state)
             assertExists(phase, `Nobody is playing a phase in ${state.machineState}`)
@@ -567,10 +584,10 @@ describe('Influence', () => {
         player.influence = 3
         // Interstellar Settlement costs 10: a 4 marker and 3 IP (6 points).
         expect(
-            isValidTechPayment(hydrated, playerId, TechId.InterstellarSettlement, [4], 0, 3)
+            isValidPayment(hydrated, playerId, { techId: TechId.InterstellarSettlement }, [4], 0, 3)
         ).toBe(true)
         expect(
-            isValidTechPayment(hydrated, playerId, TechId.InterstellarSettlement, [4], 0, 2)
+            isValidPayment(hydrated, playerId, { techId: TechId.InterstellarSettlement }, [4], 0, 2)
         ).toBe(false)
         expect(isFirstToDevelop(hydrated, TechId.InterstellarSettlement)).toBe(true)
         hydrated.otherPlayers(playerId)[0].techs.push({
@@ -589,7 +606,9 @@ describe('Influence', () => {
             hydrated.anomalyPool = []
             for (const systemId of systemIds) {
                 hydrated.systemState(systemId).explorationMarker = 1
-                hydrated.getPlayerState(playerId).pendingSurveys.push({ shipId: 'ship', systemId })
+                hydrated
+                    .getPlayerState(playerId)
+                    .pendingSurveys.push({ shipId: 'starfarers-kepler', systemId })
             }
         })
         let current = playUntil(
@@ -619,7 +638,7 @@ describe('Influence', () => {
         hydrated.systemState('alpha-centauri').explorationMarker = 1
         hydrated.anomalyPool = []
         hydrated.getPlayerState(playerId).pendingSurveys.push({
-            shipId: 'ship',
+            shipId: 'starfarers-kepler',
             systemId: 'alpha-centauri'
         })
         resolveNextSurvey(hydrated)
@@ -803,7 +822,7 @@ describe('Trade goods', () => {
             const [playerId] = current.activePlayerIds
             const drawn = hydrate(current).getPlayerState(playerId).drawnGoods
             const assignments = drawn
-                .filter(canAssignToEarth)
+                .filter((good) => canAssignToEarth(hydrate(current), playerId, good))
                 .map((good) => ({ good, store: { kind: GoodsHolderKind.Earth } }))
             current = executeAll(
                 game,
@@ -815,7 +834,9 @@ describe('Trade goods', () => {
         let kept = 0
         for (const record of draws) {
             const player = settled.getPlayerState(record.playerId)
-            const earth = record.goods.filter(canAssignToEarth)
+            const earth = record.goods.filter((good) =>
+                canAssignToEarth(settled, record.playerId, good)
+            )
             expect(player.earthGoods).toEqual(earth)
             expect(player.drawnGoods).toEqual([])
             expect(player.discardedGoods).toEqual([])
@@ -882,5 +903,86 @@ describe('The cargo and trade phase', () => {
         })
         // The third Player has nothing to load, unload or sell either, so the phase moves on.
         expect(playPhase(current)).toBe(TurnPhase.Movement)
+    })
+})
+
+describe('Card effects in the campaign turn', () => {
+    function own(state: HydratedStellarHorizonsGameState, playerId: string, cardId: string) {
+        state.getPlayerState(playerId).cards.push({ cardId, year: state.year - 10, bought: true })
+    }
+
+    it('let Hive Mind’s owner choose the economic tile from those left', () => {
+        const { game, state } = campaign()
+        const [owner] = state.turnManager.turnOrder
+        const ready = edit(state, (hydrated) => own(hydrated, owner, 'hive-mind'))
+        const played = playUntil(
+            game,
+            ready,
+            (current) => current.machineState === MachineState.EconomicPhase
+        )
+        expect(played.state.activePlayerIds).toEqual([owner])
+        const choices = economicTileChoices(hydrate(played.state))
+        expect(choices).toHaveLength(ECONOMIC_TILES.length)
+        const chosen = executeAll(
+            game,
+            played.state,
+            userAction(game, owner, ActionType.ChooseEconomicTile, {
+                tile: EconomicTile.SettlementGrowth
+            })
+        )
+        expect(chosen.state.economicTile).toBe(EconomicTile.SettlementGrowth)
+        expect(chosen.state.economicTilePool).not.toContain(EconomicTile.SettlementGrowth)
+    })
+
+    it('ask Prolific Breeders’ owner for a base after growth when more than one can grow', () => {
+        const { game, state } = campaign()
+        const [owner] = state.turnManager.turnOrder
+        const played = nextTurnWith(game, state, EconomicTile.SettlementGrowth, (hydrated) => {
+            own(hydrated, owner, 'prolific-breeders')
+            for (const systemId of ['alpha-centauri', 'barnards-star']) {
+                hydrated.systemState(systemId).worlds = [
+                    {
+                        tileId: hydrated.worldPool.splice(
+                            hydrated.worldPool.findIndex((id) => id.startsWith('m-')),
+                            1
+                        )[0],
+                        side: WorldSide.I
+                    }
+                ]
+                placeBase(hydrated, owner, systemId, 2)
+            }
+        })
+        const grown = finishTurn(game, played.state)
+        const chosen = actionsOf(grown.actions, ActionType.ChooseGrowthBase)
+        expect(chosen).toHaveLength(1)
+        expect(metadataOf<{ settlements: number }>(chosen[0]).settlements).toBe(1)
+    })
+
+    it('repair a point on each CV for free as Self Repair’s owner starts building', () => {
+        const { game, state } = campaign()
+        const [owner] = state.turnManager.turnOrder
+        const cv = hydrate(state)
+            .shipsOf(owner)
+            .find((ship) => shipDefinition(ship.shipId).kind === 'CV')
+        assertExists(cv, 'Every faction starts with a CV')
+        const ready = edit(state, (hydrated) => {
+            own(hydrated, owner, 'self-repair-system')
+            hydrated.ship(cv.shipId).damage = 1
+        })
+        const played = playUntil(
+            game,
+            ready,
+            (current) => current.machineState === MachineState.Building
+        )
+        const starts = actionsOf(played.actions, ActionType.StartPhase).filter(
+            (action) => action.playerId === owner
+        )
+        expect(
+            starts.some((action) =>
+                (metadataOf<{ repairedShipIds?: string[] }>(action).repairedShipIds ?? []).includes(
+                    cv.shipId
+                )
+            )
+        ).toBe(true)
     })
 })

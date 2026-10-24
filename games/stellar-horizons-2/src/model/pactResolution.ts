@@ -47,7 +47,7 @@ export function grantPactShares(
     const anomaly = anomalyDefinition(candidate.terms.targetId)
     const field = anomaly.reward.markers?.field
     const good = anomaly.reward.goods?.good
-    return candidate.terms.partnerIds.map((playerId, index) => {
+    return candidate.terms.partnerIds.map((playerId) => {
         const share = candidate.terms.shares[playerId]
         const granted = grantReward(
             state,
@@ -58,8 +58,8 @@ export function grantPactShares(
                 markers: field && share.markers > 0 ? { field, count: share.markers } : undefined,
                 settlements: share.settlements,
                 goods: good && share.goods > 0 ? { good, count: share.goods } : undefined,
-                // A card cannot be split; cards wait for slice 4 either way.
-                ...(index === 0 ? { card: anomaly.reward.card } : {})
+                // A card cannot be split: the pact names the partner who earns it.
+                card: share.cards > 0 ? anomaly.reward.card : undefined
             },
             { anomalyId: anomaly.id, systemId: candidate.systemId }
         )

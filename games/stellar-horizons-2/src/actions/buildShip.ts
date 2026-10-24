@@ -38,7 +38,7 @@ export class HydratedBuildShip extends HydratableAction<typeof BuildShip> implem
         if (!canBuildShip(state, this.playerId, this.shipId, this.systemId)) {
             throw Error('Invalid BuildShip action')
         }
-        const cost = buildCost(state, this.shipId, this.systemId)
+        const cost = buildCost(state, this.playerId, this.shipId, this.systemId)
         state.getPlayerState(this.playerId).cash -= cost
         const base = state.base(this.playerId, this.systemId)
         if (base) {

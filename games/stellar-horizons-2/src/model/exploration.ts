@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { ShipKind, shipDefinition } from '../components/ships.js'
+import { isCrewVehicle, shipDefinition, ShipKind } from '../components/ships.js'
 import { blocksExploration } from './anomalies.js'
 import { starSystemDefinition } from '../components/systems.js'
 import { TechField } from '../components/techFields.js'
@@ -7,6 +7,7 @@ import {
     capabilitiesOf,
     crippledThreshold,
     currentExploration,
+    damageCapacity,
     hasArrived,
     isCrippled,
     loseShip
@@ -31,6 +32,7 @@ export const ExplorationResult = Type.Object({
     field: Type.Enum(TechField),
     explorationValue: Type.Number(),
     rewardRoll: Type.Optional(Type.Number()),
+    rewardRolls: Type.Optional(Type.Array(Type.Number())),
     markerCount: Type.Number(),
     malfunctionRate: Type.Number(),
     malfunctionRoll: Type.Number(),
@@ -59,7 +61,7 @@ export function canExplore(state: HydratedStellarHorizonsGameState, ship: ShipSt
         hasArrived(ship) &&
         !ship.explored &&
         !isHeld(state, ship) &&
-        !isCrippled(ship) &&
+        !isCrippled(state, ship) &&
         state.systemState(ship.systemId).explorationMarker > 0 &&
         !blocksExploration(state, ship.systemId)
     )
@@ -75,10 +77,9 @@ export function canExploreAnyShip(
 export function explorationValue(state: HydratedStellarHorizonsGameState, ship: ShipState): number {
     const definition = shipDefinition(ship.shipId)
     const capabilities = capabilitiesOf(state, ship.playerId)
-    const techBonus =
-        definition.kind === ShipKind.CV
-            ? capabilities.cvExplorationBonus
-            : capabilities.reExplorationBonus
+    const techBonus = isCrewVehicle(definition)
+        ? capabilities.cvExplorationBonus
+        : capabilities.reExplorationBonus
     return (
         state.systemState(ship.systemId).explorationMarker +
         currentExploration(ship) +
@@ -87,9 +88,16 @@ export function explorationValue(state: HydratedStellarHorizonsGameState, ship: 
     )
 }
 
+export function explorationDice(state: HydratedStellarHorizonsGameState, ship: ShipState) {
+    const capabilities = capabilitiesOf(state, ship.playerId)
+    return isCrewVehicle(shipDefinition(ship.shipId))
+        ? capabilities.cvExplorationDice
+        : capabilities.reExplorationDice
+}
+
 export function malfunctionRate(state: HydratedStellarHorizonsGameState, ship: ShipState) {
     const capabilities = capabilitiesOf(state, ship.playerId)
-    return shipDefinition(ship.shipId).kind === ShipKind.CV
+    return isCrewVehicle(shipDefinition(ship.shipId))
         ? capabilities.cvMalfunction
         : capabilities.reMalfunction
 }
@@ -104,7 +112,12 @@ export function explore(
     const value = explorationValue(state, ship)
     const random = state.getPlayerPrng(ship.playerId)
     const remainder = value % EXPLORATION_STEP
-    const rewardRoll = remainder > 0 ? random.dieRoll(10) : undefined
+    // Explorer's Guild and Quantum Sensors roll two dice; the lower is always the better.
+    const rewardRolls =
+        remainder > 0
+            ? Array.from({ length: explorationDice(state, ship) }, () => random.dieRoll(10))
+            : []
+    const rewardRoll = rewardRolls.length > 0 ? Math.min(...rewardRolls) : undefined
     const rate = malfunctionRate(state, ship)
     const malfunctionRoll = random.dieRoll(100)
     const markerCount =
@@ -124,6 +137,7 @@ export function explore(
         field,
         explorationValue: value,
         rewardRoll,
+        ...(rewardRolls.length > 1 ? { rewardRolls } : {}),
         markerCount,
         malfunctionRate: rate,
         malfunctionRoll,
@@ -143,7 +157,7 @@ export function explore(
     }
     const damage = malfunctionRoll <= SEVERE_MALFUNCTION_ROLL ? 2 : 1
     ship.damage += damage
-    if (ship.damage >= definition.size) {
+    if (ship.damage >= damageCapacity(state, ship)) {
         const loss = loseShip(state, ship)
         return {
             ...result,
@@ -153,5 +167,5 @@ export function explore(
             compensation: loss.compensation
         }
     }
-    return { ...result, damage, crippled: ship.damage >= crippledThreshold(definition) }
+    return { ...result, damage, crippled: ship.damage >= crippledThreshold(state, ship) }
 }

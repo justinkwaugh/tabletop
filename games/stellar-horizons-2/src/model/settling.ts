@@ -2,6 +2,7 @@ import { SOL_SYSTEM_ID } from '../components/systems.js'
 import { isRevealedWorld } from '../components/worlds.js'
 import { blocksBases } from './anomalies.js'
 import { atBaseLimit, effectiveHabitability } from './campaign.js'
+import { MIN_PRICE } from './capabilities.js'
 import { capabilitiesOf, freeCargo, hasArrived } from './fleet.js'
 import { drawDemand, releaseDemand } from './demand.js'
 import { discardGoods } from './pools.js'
@@ -28,6 +29,23 @@ export function canSettleSystem(
     return threshold !== undefined && effectiveHabitability(state, playerId, systemId) >= threshold
 }
 
+// Pioneers take $1B off the Player's first settlement bought on Earth each turn.
+export function settlementPurchaseCost(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    count: number
+): number {
+    const capabilities = capabilitiesOf(state, playerId)
+    const first =
+        count > 0 && state.getPlayerState(playerId).settlementsBought === 0
+            ? Math.min(
+                  capabilities.firstSettlementDiscount,
+                  capabilities.settlementCost - MIN_PRICE
+              )
+            : 0
+    return count * capabilities.settlementCost - first
+}
+
 export function settlementPurchaseLimit(
     state: HydratedStellarHorizonsGameState,
     ship: ShipState
@@ -37,7 +55,14 @@ export function settlementPurchaseLimit(
         return 0
     }
     const cash = state.getPlayerState(ship.playerId).cash
-    return Math.min(freeCargo(state, ship), Math.floor(cash / capabilities.settlementCost))
+    let count = 0
+    while (
+        count < freeCargo(state, ship) &&
+        settlementPurchaseCost(state, ship.playerId, count + 1) <= cash
+    ) {
+        count += 1
+    }
+    return count
 }
 
 export function canLoadFromBase(state: HydratedStellarHorizonsGameState, ship: ShipState) {

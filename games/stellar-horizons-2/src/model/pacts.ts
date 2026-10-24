@@ -36,7 +36,7 @@ export interface PactTarget {
 }
 
 export function emptyShare(): PactShare {
-    return { influence: 0, cash: 0, markers: 0, settlements: 0, goods: 0 }
+    return { influence: 0, cash: 0, markers: 0, settlements: 0, goods: 0, cards: 0 }
 }
 
 // The target as everyone sees it: an unresolved anomaly or an event on the map, its difficulty
@@ -65,7 +65,8 @@ export function pactTarget(
                       cash: anomaly.reward.cash ?? 0,
                       markers: anomaly.reward.markers?.count ?? 0,
                       settlements: anomaly.reward.settlements ?? 0,
-                      goods: anomaly.reward.goods?.count ?? 0
+                      goods: anomaly.reward.goods?.count ?? 0,
+                      cards: anomaly.reward.card ? 1 : 0
                   }
                 : emptyShare()
         }
@@ -94,7 +95,7 @@ function easiestFor(
 export function recordPledgeableShips(state: HydratedStellarHorizonsGameState) {
     state.pledgeableShips = state.allShips().flatMap((ship) => {
         const strength = (challenge: AnomalyChallenge) =>
-            hasStrengthFor(ship, challenge) ? anomalyStrength(ship, challenge) : 0
+            hasStrengthFor(state, ship, challenge) ? anomalyStrength(state, ship, challenge) : 0
         const science = strength(AnomalyChallenge.Science)
         const combat = strength(AnomalyChallenge.Combat)
         return !ship.explored && science + combat > 0
@@ -232,7 +233,7 @@ export function canJoinAnyPact(state: HydratedStellarHorizonsGameState, playerId
                     ship.systemId === opening.systemId &&
                     canTakePart(state, ship, opening.challenge)
             )
-            .reduce((total, ship) => total + anomalyStrength(ship, opening.challenge), 0)
+            .reduce((total, ship) => total + anomalyStrength(state, ship, opening.challenge), 0)
         const partners = possiblePartners(state, playerId, opening)
         const pledgeable = partners.reduce(
             (total, other) =>
@@ -299,7 +300,7 @@ function isFreeToPledge(
     return (
         ship !== undefined &&
         ship.systemId === opening.systemId &&
-        hasStrengthFor(ship, opening.challenge) &&
+        hasStrengthFor(state, ship, opening.challenge) &&
         !ship.explored &&
         !heldShipIds(state, playerId, exceptPactId).includes(shipId)
     )
@@ -324,7 +325,8 @@ function sumsMatch(terms: PactTerms, reward: PactShare): boolean {
         total('cash') === reward.cash &&
         total('markers') === reward.markers &&
         total('settlements') === reward.settlements &&
-        total('goods') === reward.goods
+        total('goods') === reward.goods &&
+        total('cards') === reward.cards
     )
 }
 

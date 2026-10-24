@@ -2,10 +2,13 @@ import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import { baseProductionRow } from '../components/factionSheets.js'
 import { ECONOMIC_TILES, EconomicTile } from '../components/economicTiles.js'
+import { isDwarfStar, systemDefinition } from '../components/systems.js'
 import { TECH_FIELDS } from '../components/techFields.js'
-import { worldFace } from '../components/worlds.js'
+import { WorldClass } from '../components/worldTypes.js'
+import { worldFace, worldTile } from '../components/worlds.js'
 import { baseEffects, blocksBases } from './anomalies.js'
-import { effectiveHabitability, factionAbilities } from './campaign.js'
+import { effectiveHabitability } from './campaign.js'
+import { capabilitiesOf } from './fleet.js'
 import { halts } from './events.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { CASH_PRODUCTION, Production, type Base } from './pieces.js'
@@ -15,17 +18,31 @@ import { ProducedGoods, produceGoods } from './trade.js'
 
 // Rulebook 4.0: tiles are drawn without replacement and reshuffled once all seven are used,
 // and the tile of the turn before is never drawn twice running.
-export function drawEconomicTile(state: HydratedStellarHorizonsGameState): EconomicTile {
+export function economicTileChoices(state: HydratedStellarHorizonsGameState): EconomicTile[] {
+    const pool = state.economicTilePool.length === 0 ? ECONOMIC_TILES : state.economicTilePool
+    return pool.filter((tile) => tile !== state.economicTile)
+}
+
+export function takeEconomicTile(state: HydratedStellarHorizonsGameState, tile: EconomicTile) {
     if (state.economicTilePool.length === 0) {
         state.economicTilePool = [...ECONOMIC_TILES]
     }
-    const previous = state.economicTile
-    const candidates = state.economicTilePool.filter((tile) => tile !== previous)
-    const random = state.getProtectedPrng()
-    const tile = candidates[random.randInt(candidates.length)]
     state.economicTilePool.splice(state.economicTilePool.indexOf(tile), 1)
     state.economicTile = tile
+}
+
+export function drawEconomicTile(state: HydratedStellarHorizonsGameState): EconomicTile {
+    const candidates = economicTileChoices(state)
+    const tile = candidates[state.getProtectedPrng().randInt(candidates.length)]
+    takeEconomicTile(state, tile)
     return tile
+}
+
+// Hive Mind's owner chooses the tile from those left instead of drawing it.
+export function economicTileChooser(state: HydratedStellarHorizonsGameState): string | undefined {
+    return state
+        .initiativeOrder()
+        .find((playerId) => capabilitiesOf(state, playerId).choosesEconomicTile)
 }
 
 // Rulebook 4.1: up to 3 IP may be declared, each adding 20% to the initiative roll.
@@ -53,7 +70,9 @@ export function rollInitiative(state: HydratedStellarHorizonsGameState): Initiat
         const bid = player.initiativeBid ?? 0
         player.initiativeBid = undefined
         const roll = random.dieRoll(100)
-        return { playerId, bid, roll, total: roll + bid * INITIATIVE_PER_INFLUENCE }
+        // Cunning adds 20% to the roll.
+        const bonus = capabilitiesOf(state, playerId).initiativeBonus
+        return { playerId, bid, roll, total: roll + bid * INITIATIVE_PER_INFLUENCE + bonus }
     })
     const order = rolls
         .map((roll, index) => ({ roll, index }))
@@ -101,7 +120,10 @@ export function productionYield(
               ? effects.markerProduction.count
               : 0
     const bonus = production === CASH_PRODUCTION ? row.cashBonus : row.techBonus
-    return productionValue(state, base.systemId, production) + bonus + anomaly
+    // Robo Miners, Deep Core Mining and the Interstellar Mining Conglomerate.
+    const cards =
+        production === CASH_PRODUCTION ? capabilitiesOf(state, base.playerId).cashProduction : 0
+    return productionValue(state, base.systemId, production) + bonus + anomaly + cards
 }
 
 // A base in a system with a "no bases" anomaly produces nothing until it is resolved (1.16).
@@ -206,6 +228,15 @@ export const CATCH_UP_STEP = 10
 export const CATCH_UP_BONUS = 10
 export const MAX_CHANCE = 100
 
+function worldClasses(state: HydratedStellarHorizonsGameState, systemId: string): WorldClass[] {
+    return state.systemState(systemId).worlds.flatMap((world) => {
+        const worldClass = worldTile(world.tileId).worldClass
+        return worldClass === WorldClass.None ? [] : [worldClass]
+    })
+}
+
+// Cards that raise or lower population limits apply only to their owner (rulebook 4.6), so a
+// system's limit can differ from Player to Player: by world class, by star, or everywhere.
 export function systemPopulationLimit(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
@@ -219,7 +250,43 @@ export function systemPopulationLimit(
         .allBases()
         .filter((base) => base.systemId === systemId && base.playerId !== playerId).length
     const tunnels = baseEffects(state, systemId).populationLimit ?? 0
-    return worlds + tunnels - POPULATION_LIMIT_PER_RIVAL * rivals
+    const capabilities = capabilitiesOf(state, playerId)
+    const cards =
+        worldClasses(state, systemId).reduce(
+            (total, worldClass) => total + (capabilities.populationByClass[worldClass] ?? 0),
+            0
+        ) +
+        capabilities.population +
+        (isDwarfStar(systemDefinition(systemId)) ? capabilities.dwarfStarPopulation : 0)
+    return worlds + tunnels + cards - POPULATION_LIMIT_PER_RIVAL * rivals
+}
+
+// The growth cards give a base after growth and migration: everywhere, by star, and for each
+// world of a class in its system.
+export function cardGrowth(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string
+): number {
+    const capabilities = capabilitiesOf(state, playerId)
+    return (
+        capabilities.growth +
+        (isDwarfStar(systemDefinition(systemId)) ? capabilities.dwarfStarGrowth : 0) +
+        worldClasses(state, systemId).reduce(
+            (total, worldClass) => total + (capabilities.growthByClass[worldClass] ?? 0),
+            0
+        )
+    )
+}
+
+function growthLimit(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string
+): number {
+    return capabilitiesOf(state, playerId).growthPastLimit
+        ? Number.POSITIVE_INFINITY
+        : systemPopulationLimit(state, playerId, systemId)
 }
 
 export function totalSettlements(state: HydratedStellarHorizonsGameState, playerId: string) {
@@ -251,9 +318,23 @@ export const GrowthResult = Type.Object({
     after: Type.Number()
 })
 
+// Prolific Breeders' settlement at a base of the Player's choice (rulebook 4.6).
+export type ChosenGrowth = Type.Static<typeof ChosenGrowth>
+export const ChosenGrowth = Type.Object({
+    playerId: Type.String(),
+    systemId: Type.String(),
+    settlements: Type.Number()
+})
+
+export interface Growth {
+    results: GrowthResult[]
+    chosen: ChosenGrowth[]
+}
+
 // Rulebook 4.6: growth, then migration, each capped by the system's population limit for the
-// base's owner.
-export function growSettlements(state: HydratedStellarHorizonsGameState): GrowthResult[] {
+// base's owner, then the growth cards' extra settlements, capped the same way unless Transcend
+// Biology lifts the limit. Prolific Breeders' base is chosen afterwards when there is a choice.
+export function growSettlements(state: HydratedStellarHorizonsGameState): Growth {
     const random = state.getProtectedPrng()
     // The catch-up bonus compares the settlements Players had as the phase began.
     const startTotals: Record<string, number> = Object.fromEntries(
@@ -282,11 +363,22 @@ export function growSettlements(state: HydratedStellarHorizonsGameState): Growth
                 leader - startTotals[playerId]
             )
             // Stunning Vistas add a settlement in migration, within the limit like the rest.
+            // Eager Migrants bring two; Transcend Biology stops migration.
+            const migrants = capabilitiesOf(state, playerId).migrationSettlements
             const migration =
-                (migrationRoll <= chance ? 1 : 0) +
-                (baseEffects(state, base.systemId).migrationSettlement ?? 0)
+                migrants === 0
+                    ? 0
+                    : (migrationRoll <= chance ? migrants : 0) +
+                      (baseEffects(state, base.systemId).migrationSettlement ?? 0)
+            const extra = cardGrowth(state, playerId, base.systemId)
             const limit = systemPopulationLimit(state, playerId, base.systemId)
-            const after = Math.max(before, Math.min(limit, before + growth + migration))
+            const after = Math.max(
+                before,
+                Math.min(
+                    growthLimit(state, playerId, base.systemId),
+                    before + growth + migration + extra
+                )
+            )
             base.settlements = after
             results.push({
                 playerId,
@@ -302,18 +394,59 @@ export function growSettlements(state: HydratedStellarHorizonsGameState): Growth
             })
         }
     }
-    return results
+    const chosen = state.initiativeOrder().flatMap((playerId) => {
+        const bases = growthChoiceBases(state, playerId)
+        if (bases.length === 1) {
+            return [growAtChosenBase(state, playerId, bases[0])]
+        }
+        if (bases.length > 1) {
+            state.growthChoosers.push(playerId)
+        }
+        return []
+    })
+    return { results, chosen }
 }
 
-// The True Path's first ability: after growth, in one system where they and another player
-// both have bases, a die roll of 4 or less converts one of that player's settlements.
-export const CONVERSION_ROLL = 4
+// Bases where Prolific Breeders' settlement can go: any that grows and is under its limit.
+export function growthChoiceBases(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string
+): string[] {
+    if (capabilitiesOf(state, playerId).chosenGrowth === 0) {
+        return []
+    }
+    return state
+        .basesOf(playerId)
+        .filter(
+            (base) =>
+                !blocksBases(state, base.systemId) &&
+                !halts(state, base.systemId) &&
+                base.settlements < growthLimit(state, playerId, base.systemId)
+        )
+        .map((base) => base.systemId)
+}
 
+export function growAtChosenBase(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string
+): ChosenGrowth {
+    const base = state.base(playerId, systemId)
+    assertExists(base, `No base of ${playerId} in ${systemId}`)
+    const room = growthLimit(state, playerId, systemId) - base.settlements
+    const settlements = Math.max(0, Math.min(room, capabilitiesOf(state, playerId).chosenGrowth))
+    base.settlements += settlements
+    return { playerId, systemId, settlements }
+}
+
+// The True Path's first ability and Cultural Dominance: after growth, in one system where they
+// and another player both have bases, a die roll at or under 4 (3 for the card) converts one of
+// that player's settlements. Each is a roll of its own.
 export function conversionTargets(
     state: HydratedStellarHorizonsGameState,
     playerId: string
 ): Base[] {
-    if (!factionAbilities(state, playerId).converts) {
+    if (capabilitiesOf(state, playerId).conversionRolls.length === 0) {
         return []
     }
     const systems = new Set(state.basesOf(playerId).map((base) => base.systemId))
@@ -328,16 +461,28 @@ export function conversionTargets(
         )
 }
 
-export function converters(state: HydratedStellarHorizonsGameState): string[] {
-    return state
+// The conversion rolls to take after growth, in initiative order.
+export function queueConversions(state: HydratedStellarHorizonsGameState) {
+    state.conversions = state
         .initiativeOrder()
-        .filter((playerId) => conversionTargets(state, playerId).length > 0)
+        .flatMap((playerId) =>
+            capabilitiesOf(state, playerId).conversionRolls.map((roll) => ({ playerId, roll }))
+        )
+    dropUnusableConversions(state)
+}
+
+// A roll with nobody left to convert is passed over.
+export function dropUnusableConversions(state: HydratedStellarHorizonsGameState) {
+    state.conversions = state.conversions.filter(
+        (chance) => conversionTargets(state, chance.playerId).length > 0
+    )
 }
 
 export type ConversionResult = Type.Static<typeof ConversionResult>
 export const ConversionResult = Type.Object({
     roll: Type.Number(),
-    converted: Type.Boolean()
+    converted: Type.Boolean(),
+    target: Type.Optional(Type.Number())
 })
 
 export function convertSettlement(
@@ -348,11 +493,15 @@ export function convertSettlement(
 ): ConversionResult {
     const target = state.base(targetPlayerId, systemId)
     assertExists(target, `No base of ${targetPlayerId} in ${systemId}`)
+    const [chance, ...rest] = state.conversions
+    assertExists(chance, 'No conversion roll is waiting')
+    state.conversions = rest
     const roll = state.getProtectedPrng().dieRoll(10)
-    const converted = roll <= CONVERSION_ROLL
+    const converted = roll <= chance.roll
     if (converted) {
         removeBaseSettlement(state, targetPlayerId, systemId)
         addSettlements(state, playerId, systemId, 1)
     }
-    return { roll, converted }
+    dropUnusableConversions(state)
+    return { roll, converted, target: chance.roll }
 }

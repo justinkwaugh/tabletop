@@ -1,18 +1,19 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedAssignGoods, isAssignGoods } from '../actions/assignGoods.js'
 import { HydratedChooseProduction, isChooseProduction } from '../actions/chooseProduction.js'
+import { HydratedChooseGrowthBase, isChooseGrowthBase } from '../actions/chooseGrowthBase.js'
 import { HydratedConvertSettlement, isConvertSettlement } from '../actions/convertSettlement.js'
 import { HydratedDeclareInitiative, isDeclareInitiative } from '../actions/declareInitiative.js'
 import { HydratedPassConversion, isPassConversion } from '../actions/passConversion.js'
 import { HydratedSkipPhase, SkipPhase, isSkipPhase } from '../actions/skipPhase.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { basesAwaitingProduction, converters, maxInitiativeBid } from '../model/economy.js'
+import { basesAwaitingProduction, maxInitiativeBid } from '../model/economy.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { TurnPhase } from '../model/turn.js'
 import { branchPlayerId, branchingState, playState } from '../model/turnPlan.js'
 import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
-import { stateAfterEconomicPhase } from './transitions.js'
+import { stateAfterEconomicPhase, stateAfterGrowthChoices } from './transitions.js'
 
 // The campaign's simultaneous economic choices (rulebook 4.1, 4.4 and 4.5), each a Barrier span's
 // Branch. A Player with nothing to choose skips it; one who has chosen everything is done.
@@ -107,9 +108,51 @@ export class AssigningGoodsStateHandler extends EconomicChoiceHandler<HydratedAs
     }
 }
 
+type GrowthChoiceAction = HydratedChooseGrowthBase | ConversionAction
+
+// Prolific Breeders' base after growth, on the Main Line in initiative order (rulebook 4.6).
+export class ChoosingGrowthBaseStateHandler implements MachineStateHandler<
+    GrowthChoiceAction,
+    HydratedStellarHorizonsGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedStellarHorizonsGameState>
+    ): action is GrowthChoiceAction {
+        return isChooseGrowthBase(action) || isConversion(action)
+    }
+
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedStellarHorizonsGameState>
+    ): ActionType[] {
+        const state = context.gameState
+        if (!state.isActivePlayer(playerId)) {
+            return []
+        }
+        return [ActionType.ChooseGrowthBase, ...conversionActions(state, playerId)]
+    }
+
+    enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
+        context.gameState.activePlayerIds = context.gameState.growthChoosers.slice(0, 1)
+    }
+
+    onAction(
+        action: GrowthChoiceAction,
+        context: MachineContext<HydratedStellarHorizonsGameState>
+    ): MachineState {
+        const state = context.gameState
+        if (isConversion(action) || state.growthChoosers.length > 0) {
+            return MachineState.ChoosingGrowthBase
+        }
+        return stateAfterGrowthChoices(state)
+    }
+}
+
 type ConvertingAction = HydratedConvertSettlement | HydratedPassConversion | ConversionAction
 
-// The True Path's conversion after growth (faction ability 1), on the Main Line.
+// The conversion rolls after growth (the True Path's ability, Cultural Dominance), on the Main
+// Line, one roll at a time in initiative order.
 export class ConvertingSettlementsStateHandler implements MachineStateHandler<
     ConvertingAction,
     HydratedStellarHorizonsGameState
@@ -137,14 +180,15 @@ export class ConvertingSettlementsStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
-        context.gameState.activePlayerIds = converters(context.gameState).slice(0, 1)
+        const next = context.gameState.conversions.at(0)
+        context.gameState.activePlayerIds = next ? [next.playerId] : []
     }
 
     onAction(
         action: ConvertingAction,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        return isConversion(action)
+        return isConversion(action) || context.gameState.conversions.length > 0
             ? MachineState.ConvertingSettlements
             : stateAfterEconomicPhase(context.gameState)
     }

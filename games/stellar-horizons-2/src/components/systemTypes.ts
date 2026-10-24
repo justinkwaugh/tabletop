@@ -25,6 +25,7 @@ export type SystemDefinition =
           name: string
           sector: Sector.Sol
           coords: AxialCoordinates
+          star: string
           worldSlots: 0
           earthlikeRestricted: false
       }
@@ -33,6 +34,8 @@ export type SystemDefinition =
           name: string
           sector: Sector
           coords: AxialCoordinates
+          // The star type printed on the tile, e.g. "M4V Red Dwarf (3100K)".
+          star: string
           worldSlots: number
           earthlikeRestricted: boolean
           habitability: number
@@ -41,3 +44,9 @@ export type SystemDefinition =
       }
 
 export type StarSystemDefinition = Extract<SystemDefinition, { habitability: number }>
+
+// Infrared Vision (genetic manipulation II) counts systems whose printed star is a red or brown
+// dwarf.
+export function isDwarfStar(system: SystemDefinition): boolean {
+    return /\b(Red|Brown) Dwarf\b/i.test(system.star)
+}

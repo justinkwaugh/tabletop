@@ -402,7 +402,7 @@ export function isValidEventAttempt(
         shipIds.length > 0 &&
         new Set(shipIds).size === shipIds.length &&
         chosen.length === shipIds.length &&
-        attemptStrength(chosen, challenge) >= difficulty
+        attemptStrength(state, chosen, challenge) >= difficulty
     )
 }
 

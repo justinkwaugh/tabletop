@@ -1,4 +1,4 @@
-import { ShipKind, shipDefinition, type ShipDefinition } from '../components/ships.js'
+import { isCrewVehicle, shipDefinition, ShipKind } from '../components/ships.js'
 import { TechField } from '../components/techFields.js'
 import { playerCapabilities, type Capabilities } from './capabilities.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
@@ -17,7 +17,11 @@ export function capabilitiesOf(
     state: HydratedStellarHorizonsGameState,
     playerId: string
 ): Capabilities {
-    return playerCapabilities(state.getPlayerState(playerId), state.scenarioDefinition())
+    return playerCapabilities(
+        state.getPlayerState(playerId),
+        state.scenarioDefinition(),
+        state.year
+    )
 }
 
 export function cargoCapacity(state: HydratedStellarHorizonsGameState, ship: ShipState): number {
@@ -25,7 +29,10 @@ export function cargoCapacity(state: HydratedStellarHorizonsGameState, ship: Shi
     if (definition.cargo === 0) {
         return 0
     }
-    return definition.cargo + capabilitiesOf(state, ship.playerId).cargoBonus
+    const capabilities = capabilitiesOf(state, ship.playerId)
+    // Freight Haulers add to crew vehicles that carry cargo.
+    const cvBonus = isCrewVehicle(definition) ? capabilities.cvCargoBonus : 0
+    return definition.cargo + capabilities.cargoBonus + cvBonus
 }
 
 export function freeCargo(state: HydratedStellarHorizonsGameState, ship: ShipState): number {
@@ -36,13 +43,26 @@ export function hasArrived(ship: ShipState): boolean {
     return ship.transit === 0
 }
 
-export function crippledThreshold(definition: ShipDefinition): number {
-    return roundHalfUp(definition.size / 2)
+// The damage a ship takes before it is destroyed: a CV's size, one more with Reinforced Hulls.
+export function damageCapacity(state: HydratedStellarHorizonsGameState, ship: ShipState): number {
+    const definition = shipDefinition(ship.shipId)
+    return isCrewVehicle(definition)
+        ? definition.size + capabilitiesOf(state, ship.playerId).cvDamageBonus
+        : definition.size
 }
 
-export function isCrippled(ship: ShipState): boolean {
-    const definition = shipDefinition(ship.shipId)
-    return definition.kind === ShipKind.CV && ship.damage >= crippledThreshold(definition)
+// Half the damage capacity, the modified one with Reinforced Hulls (designer ruling).
+export function crippledThreshold(
+    state: HydratedStellarHorizonsGameState,
+    ship: ShipState
+): number {
+    return roundHalfUp(damageCapacity(state, ship) / 2)
+}
+
+export function isCrippled(state: HydratedStellarHorizonsGameState, ship: ShipState): boolean {
+    return (
+        isCrewVehicle(shipDefinition(ship.shipId)) && ship.damage >= crippledThreshold(state, ship)
+    )
 }
 
 export function currentExploration(ship: ShipState): number {

@@ -7,15 +7,19 @@ import {
     type AnomalyDefinition,
     type BaseEffects
 } from '../components/anomalies.js'
-import { shipDefinition } from '../components/ships.js'
-import { factionAbilities, gainInfluence } from './campaign.js'
-import { currentCombat, currentExploration, hasArrived, isCrippled } from './fleet.js'
+import { isCrewVehicle, shipDefinition, ShipKind } from '../components/ships.js'
+import { gainInfluence } from './campaign.js'
+import {
+    capabilitiesOf,
+    currentCombat,
+    currentExploration,
+    hasArrived,
+    isCrippled
+} from './fleet.js'
 import { isHeld } from './holds.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { PendingAnomalyAttempt, ShipState } from './pieces.js'
 import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
-
-export const RESEARCH_SHIP_BONUS = 1
 
 export type AnomalySearch = Type.Static<typeof AnomalySearch>
 export const AnomalySearch = Type.Object({
@@ -68,7 +72,8 @@ export function usesAnomalyRewards(state: HydratedStellarHorizonsGameState): boo
 export const ANOMALY_INFLUENCE = 1
 
 // Rulebook 1.16: printed difficulty plus the number of players; in the campaign the Starfarers
-// take 1 off science challenges and the Syndicate 2 off combat challenges.
+// take 1 off science challenges and the Syndicate 2 off combat challenges, and cards take more
+// off (Cunning, Enhanced Intellect, Science Academy).
 export function anomalyDifficulty(
     state: HydratedStellarHorizonsGameState,
     anomalyId: string,
@@ -84,30 +89,48 @@ export function challengeDifficulty(
     challenge: AnomalyChallenge,
     playerId?: string
 ): number {
-    const abilities = playerId === undefined ? {} : factionAbilities(state, playerId)
     const modifier =
-        challenge === AnomalyChallenge.Combat
-            ? abilities.combatAnomalyDifficulty
-            : abilities.scienceAnomalyDifficulty
-    return printed + state.numPlayers + (modifier ?? 0)
+        playerId === undefined ? 0 : capabilitiesOf(state, playerId).difficulty[challenge]
+    return printed + state.numPlayers + modifier
 }
 
 // Every completed survey rolls; a system holds one anomaly at a time (rulebook 1.16).
 // Campaign: finding an anomaly earns 1 IP even when the system already has one or the pool is
-// empty; the Starfarers find one on 30% instead of 20%.
+// empty; the Starfarers find one on 30% instead of 20%, and cards add 5% for surveys completed
+// by the ship kind they name.
+export function anomalyChance(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    shipId?: string
+): number | undefined {
+    const anomalies = state.scenarioDefinition().anomalies
+    if (!anomalies) {
+        return undefined
+    }
+    const capabilities = capabilitiesOf(state, playerId)
+    const kind = shipId === undefined ? undefined : shipDefinition(shipId).kind
+    const bonus =
+        kind === ShipKind.CV
+            ? capabilities.cvAnomalyChance
+            : kind === ShipKind.RE
+              ? capabilities.reAnomalyChance
+              : 0
+    return (capabilities.anomalyChance ?? anomalies.chance) + bonus
+}
+
 export function searchForAnomaly(
     state: HydratedStellarHorizonsGameState,
     systemId: string,
-    playerId: string
+    playerId: string,
+    shipId?: string
 ): AnomalySearch | undefined {
-    const anomalies = state.scenarioDefinition().anomalies
-    if (!anomalies) {
+    const chance = anomalyChance(state, playerId, shipId)
+    if (chance === undefined) {
         return undefined
     }
     const random = state.getProtectedPrng()
     const roll = random.dieRoll(100)
     const system = state.systemState(systemId)
-    const chance = factionAbilities(state, playerId).anomalyChance ?? anomalies.chance
     if (roll > chance) {
         return { roll }
     }
@@ -131,17 +154,34 @@ export const AnomalyResolution = Type.Object({
 })
 
 // Only the ship's own value counts, with +1 for a research ship on a science challenge; tech
-// and system bonuses do not apply (rulebook 1.16).
-export function anomalyStrength(ship: ShipState, challenge: AnomalyChallenge): number {
+// and system bonuses do not apply (rulebook 1.16). Cards that say so do: Hypersonic Missiles'
+// +1 for armed CVs and Research Vessel Upgrades' +2 in place of the +1.
+export function anomalyStrength(
+    state: HydratedStellarHorizonsGameState,
+    ship: ShipState,
+    challenge: AnomalyChallenge
+): number {
+    const definition = shipDefinition(ship.shipId)
     if (challenge === AnomalyChallenge.Combat) {
-        return currentCombat(ship)
+        const combat = currentCombat(ship)
+        return combat > 0 && isCrewVehicle(definition)
+            ? combat + capabilitiesOf(state, ship.playerId).armedCvCombat
+            : combat
     }
-    const research = shipDefinition(ship.shipId).research ? RESEARCH_SHIP_BONUS : 0
+    const research = definition.research
+        ? capabilitiesOf(state, ship.playerId).researchShipBonus
+        : 0
     return currentExploration(ship) + research
 }
 
-export function hasStrengthFor(ship: ShipState, challenge: AnomalyChallenge): boolean {
-    return hasArrived(ship) && !isCrippled(ship) && anomalyStrength(ship, challenge) > 0
+export function hasStrengthFor(
+    state: HydratedStellarHorizonsGameState,
+    ship: ShipState,
+    challenge: AnomalyChallenge
+): boolean {
+    return (
+        hasArrived(ship) && !isCrippled(state, ship) && anomalyStrength(state, ship, challenge) > 0
+    )
 }
 
 export function canTakePart(
@@ -149,7 +189,7 @@ export function canTakePart(
     ship: ShipState,
     challenge: AnomalyChallenge
 ): boolean {
-    return hasStrengthFor(ship, challenge) && !ship.explored && !isHeld(state, ship)
+    return hasStrengthFor(state, ship, challenge) && !ship.explored && !isHeld(state, ship)
 }
 
 export function canJoinAnomalyAttempt(
@@ -170,8 +210,12 @@ export function anomalyAttemptShips(
         .filter((ship) => ship.systemId === systemId && canJoinAnomalyAttempt(state, ship))
 }
 
-export function attemptStrength(ships: readonly ShipState[], challenge: AnomalyChallenge): number {
-    return ships.reduce((total, ship) => total + anomalyStrength(ship, challenge), 0)
+export function attemptStrength(
+    state: HydratedStellarHorizonsGameState,
+    ships: readonly ShipState[],
+    challenge: AnomalyChallenge
+): number {
+    return ships.reduce((total, ship) => total + anomalyStrength(state, ship, challenge), 0)
 }
 
 export function hasPendingAttempt(
@@ -200,7 +244,8 @@ export function isValidAnomalyAttempt(
         shipIds.length > 0 &&
         new Set(shipIds).size === shipIds.length &&
         chosen.length === shipIds.length &&
-        attemptStrength(chosen, anomaly.challenge) >= anomalyDifficulty(state, anomaly.id, playerId)
+        attemptStrength(state, chosen, anomaly.challenge) >=
+            anomalyDifficulty(state, anomaly.id, playerId)
     )
 }
 

@@ -1,5 +1,6 @@
 import { SOL_SYSTEM_ID, systemDistance } from '../components/systems.js'
-import { ShipKind, shipDefinition } from '../components/ships.js'
+import { isCrewVehicle, shipDefinition, ShipKind } from '../components/ships.js'
+import { shipCost } from './building.js'
 import { factionAbilities } from './campaign.js'
 import { fastMovementModifier } from './capabilities.js'
 import { capabilitiesOf, hasArrived } from './fleet.js'
@@ -13,9 +14,7 @@ export interface MoveOption {
 
 export function shipRange(state: HydratedStellarHorizonsGameState, ship: ShipState): number {
     const capabilities = capabilitiesOf(state, ship.playerId)
-    return shipDefinition(ship.shipId).kind === ShipKind.CV
-        ? capabilities.cvRange
-        : capabilities.reRange
+    return isCrewVehicle(shipDefinition(ship.shipId)) ? capabilities.cvRange : capabilities.reRange
 }
 
 export function movementModifier(state: HydratedStellarHorizonsGameState, ship: ShipState) {
@@ -24,10 +23,66 @@ export function movementModifier(state: HydratedStellarHorizonsGameState, ship: 
     if (definition.kind === ShipKind.RE) {
         return capabilities.reMovement
     }
-    if (definition.fast && ship.settlements === 0) {
+    // Engine Upgrades treat every ship as fast.
+    const fast = definition.fast || capabilities.allShipsFast
+    if (fast && ship.settlements === 0) {
         return fastMovementModifier(capabilities.cvMovement)
     }
     return capabilities.cvMovement
+}
+
+// What a ship's moves depend on, worked out once per ship: its range, the systems it may trace
+// range from, its movement modifier and the bases Stabilized Wormholes join.
+interface ShipReach {
+    range: number
+    anchors: string[]
+    modifier: number
+    wormholeBases: string[]
+}
+
+function shipReach(state: HydratedStellarHorizonsGameState, ship: ShipState): ShipReach {
+    const cost = shipCost(state, ship.playerId, ship.shipId)
+    // The Starfarers' bases count as twice their size for extending range.
+    const baseRange = factionAbilities(state, ship.playerId).baseRangeMultiplier ?? 1
+    const bases = state.basesOf(ship.playerId)
+    return {
+        range: shipRange(state, ship),
+        anchors: [
+            SOL_SYSTEM_ID,
+            ...bases
+                .filter((base) => base.settlements * baseRange >= cost)
+                .map((base) => base.systemId)
+        ],
+        modifier: movementModifier(state, ship),
+        wormholeBases: capabilitiesOf(state, ship.playerId).wormholes
+            ? bases.map((base) => base.systemId).filter((systemId) => systemId !== SOL_SYSTEM_ID)
+            : []
+    }
+}
+
+// Stabilized Wormholes make any two systems where the owner has bases one hex apart for their
+// ships, Sol excepted (errata 4); a trip may take that hop once on its way.
+function reachDistance(reach: ShipReach, fromSystemId: string, toSystemId: string): number {
+    let best = systemDistance(fromSystemId, toSystemId)
+    for (const entry of reach.wormholeBases) {
+        for (const exit of reach.wormholeBases) {
+            if (entry !== exit) {
+                best = Math.min(
+                    best,
+                    systemDistance(fromSystemId, entry) + 1 + systemDistance(exit, toSystemId)
+                )
+            }
+        }
+    }
+    return best
+}
+
+function reachesSystem(reach: ShipReach, systemId: string): boolean {
+    return reach.anchors.some((anchor) => reachDistance(reach, anchor, systemId) <= reach.range)
+}
+
+function reachTime(reach: ShipReach, fromSystemId: string, systemId: string): number {
+    return Math.max(1, Math.ceil(reachDistance(reach, fromSystemId, systemId) * reach.modifier))
 }
 
 export function isWithinRange(
@@ -35,18 +90,7 @@ export function isWithinRange(
     ship: ShipState,
     systemId: string
 ): boolean {
-    const range = shipRange(state, ship)
-    const cost = shipDefinition(ship.shipId).cost
-    // The Starfarers' bases count as twice their size for extending range.
-    const baseRange = factionAbilities(state, ship.playerId).baseRangeMultiplier ?? 1
-    const anchors = [
-        SOL_SYSTEM_ID,
-        ...state
-            .basesOf(ship.playerId)
-            .filter((base) => base.settlements * baseRange >= cost)
-            .map((base) => base.systemId)
-    ]
-    return anchors.some((anchor) => systemDistance(anchor, systemId) <= range)
+    return reachesSystem(shipReach(state, ship), systemId)
 }
 
 export function travelTime(
@@ -54,8 +98,7 @@ export function travelTime(
     ship: ShipState,
     systemId: string
 ): number {
-    const hexes = systemDistance(ship.systemId, systemId)
-    return Math.max(1, Math.ceil(hexes * movementModifier(state, ship)))
+    return reachTime(shipReach(state, ship), ship.systemId, systemId)
 }
 
 export function moveOptions(
@@ -65,10 +108,11 @@ export function moveOptions(
     if (!hasArrived(ship)) {
         return []
     }
+    const reach = shipReach(state, ship)
     return state.systems
         .map((system) => system.systemId)
-        .filter((systemId) => systemId !== ship.systemId && isWithinRange(state, ship, systemId))
-        .map((systemId) => ({ systemId, turns: travelTime(state, ship, systemId) }))
+        .filter((systemId) => systemId !== ship.systemId && reachesSystem(reach, systemId))
+        .map((systemId) => ({ systemId, turns: reachTime(reach, ship.systemId, systemId) }))
 }
 
 export function canMoveAnyShip(state: HydratedStellarHorizonsGameState, playerId: string): boolean {

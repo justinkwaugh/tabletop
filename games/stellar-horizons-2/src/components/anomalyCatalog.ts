@@ -1,14 +1,10 @@
+import { CardDeck } from './cards.js'
 import { TechField } from './techFields.js'
 import { TradeGood } from './tradeGoods.js'
 
 export enum AnomalyChallenge {
     Science = 'Science',
     Combat = 'Combat'
-}
-
-export enum CardDeck {
-    Fleet = 'Fleet',
-    Genetic = 'Genetic'
 }
 
 // The reward printed on an anomaly's front (rulebook 1.16), earned by whoever resolves it.

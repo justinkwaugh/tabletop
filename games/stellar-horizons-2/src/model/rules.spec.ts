@@ -10,7 +10,7 @@ import { MachineState } from '../definition/states.js'
 import { hydrate, placeBase, placeShip, startedGame } from '../testing/fixtures.js'
 import { RepairMethod, buildLocations, canRepair, shipsAvailableToBuild } from './building.js'
 import { capabilitiesOf, loseShip } from './fleet.js'
-import { isTechAvailable, isValidTechPayment, techCost } from './development.js'
+import { isTechAvailable, isValidPayment, techCost } from './development.js'
 import { explorationValue, surveyThreshold } from './exploration.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { moveOptions } from './movement.js'
@@ -219,7 +219,9 @@ describe('exploration and surveys', () => {
     it('lowers the marker and fills an empty world slot on a completed survey', () => {
         const state = freshState()
         const [first] = state.initiativeOrder()
-        state.getPlayerState(first).pendingSurveys.push({ shipId: 'x', systemId: 'alpha-centauri' })
+        state
+            .getPlayerState(first)
+            .pendingSurveys.push({ shipId: 'starfarers-kepler', systemId: 'alpha-centauri' })
         const resolution = resolveNextSurvey(state)
         expect(resolution.completed).toBe(true)
         expect(state.systemState('alpha-centauri').explorationMarker).toBe(4)
@@ -246,7 +248,9 @@ describe('exploration and surveys', () => {
             system.explorationMarker = 5
             system.worlds.forEach((world) => state.worldPool.push(world.tileId))
             system.worlds = []
-            state.getPlayerState(first).pendingSurveys.push({ shipId: 'x', systemId: 'sirius' })
+            state
+                .getPlayerState(first)
+                .pendingSurveys.push({ shipId: 'starfarers-kepler', systemId: 'sirius' })
             resolveNextSurvey(state)
             const placed = system.worlds[0]
             expect(['M', 'O']).not.toContain(worldTile(placed.tileId).worldClass)
@@ -264,12 +268,14 @@ describe('exploration and surveys', () => {
             { tileId: giant, side: WorldSide.I }
         ]
         state.worldPool = state.worldPool.filter((id) => maxPopulation(id, WorldSide.I) === 10)
-        state.getPlayerState(first).pendingSurveys.push({ shipId: 'x', systemId: 'luhman-16' })
+        state
+            .getPlayerState(first)
+            .pendingSurveys.push({ shipId: 'starfarers-kepler', systemId: 'luhman-16' })
         const resolution = resolveNextSurvey(state)
         expect(resolution.awaitingChoice).toBe(true)
-        expect(state.surveyChoice?.drawnTileId).toBe(resolution.drawnTileId)
+        expect(state.surveyChoice?.drawnTileIds).toEqual([resolution.drawnTileId])
 
-        const replaced = applySurveyChoice(state, 0)
+        const replaced = applySurveyChoice(state, resolution.drawnTileId, 0)
         expect(replaced?.tileId).toBe(noWorld)
         expect(state.removedWorlds).toEqual([noWorld])
         expect(system.worlds[0].tileId).toBe(resolution.drawnTileId)
@@ -305,11 +311,11 @@ describe('tech development', () => {
         const [a] = state.initiativeOrder()
         const player = state.getPlayerState(a)
         player.techMarkers.Biology = [4, 4, 3]
-        expect(isValidTechPayment(state, a, TechId.Terraforming, [4, 4], 2)).toBe(true)
-        expect(isValidTechPayment(state, a, TechId.Terraforming, [4, 4, 3], 0)).toBe(true)
-        expect(isValidTechPayment(state, a, TechId.Terraforming, [4, 4, 3], 1)).toBe(false)
-        expect(isValidTechPayment(state, a, TechId.Terraforming, [4, 4], 1)).toBe(false)
-        expect(isValidTechPayment(state, a, TechId.Terraforming, [5, 5], 0)).toBe(false)
+        expect(isValidPayment(state, a, { techId: TechId.Terraforming }, [4, 4], 2)).toBe(true)
+        expect(isValidPayment(state, a, { techId: TechId.Terraforming }, [4, 4, 3], 0)).toBe(true)
+        expect(isValidPayment(state, a, { techId: TechId.Terraforming }, [4, 4, 3], 1)).toBe(false)
+        expect(isValidPayment(state, a, { techId: TechId.Terraforming }, [4, 4], 1)).toBe(false)
+        expect(isValidPayment(state, a, { techId: TechId.Terraforming }, [5, 5], 0)).toBe(false)
     })
 })
 

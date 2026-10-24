@@ -7,7 +7,7 @@ import {
     canDevelopAnyTech,
     isFirstToDevelop,
     isTechAvailable,
-    isValidTechPayment,
+    isValidPayment,
     removeMarkers,
     techCost
 } from '../model/development.js'
@@ -65,10 +65,10 @@ export class HydratedDevelopTech
         const player = state.getPlayerState(this.playerId)
         if (
             !isTechAvailable(state, this.playerId, this.techId) ||
-            !isValidTechPayment(
+            !isValidPayment(
                 state,
                 this.playerId,
-                this.techId,
+                { techId: this.techId },
                 this.markers,
                 this.cash,
                 this.influence

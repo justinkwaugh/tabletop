@@ -2,12 +2,13 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { GrowthResult, growSettlements } from '../model/economy.js'
+import { ChosenGrowth, GrowthResult, growSettlements } from '../model/economy.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 
 export type GrowSettlementsMetadata = Type.Static<typeof GrowSettlementsMetadata>
 export const GrowSettlementsMetadata = Type.Object({
-    results: Type.Array(GrowthResult)
+    results: Type.Array(GrowthResult),
+    chosen: Type.Optional(Type.Array(ChosenGrowth))
 })
 
 export type GrowSettlements = Type.Static<typeof GrowSettlements>
@@ -39,6 +40,7 @@ export class HydratedGrowSettlements
     }
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
-        this.metadata = { results: growSettlements(state) }
+        const { results, chosen } = growSettlements(state)
+        this.metadata = chosen.length > 0 ? { results, chosen } : { results }
     }
 }

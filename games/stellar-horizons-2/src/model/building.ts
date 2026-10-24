@@ -1,7 +1,14 @@
 import { SOL_SYSTEM_ID } from '../components/systems.js'
-import { ShipKind, factionShips, shipDefinition, type ShipDefinition } from '../components/ships.js'
+import {
+    factionShips,
+    isCrewVehicle,
+    shipDefinition,
+    ShipKind,
+    type ShipDefinition
+} from '../components/ships.js'
 import { baseEffects, blocksBases } from './anomalies.js'
-import { atShipLimit } from './campaign.js'
+import { atCrewVehicleLimit, atShipLimit } from './campaign.js'
+import { MIN_PRICE } from './capabilities.js'
 import { capabilitiesOf, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { ShipState } from './pieces.js'
@@ -10,6 +17,11 @@ import { roundHalfUp } from './turn.js'
 export const DOCK_REPAIR_COST = 1
 export const REMOTE_REPAIR_POINT_COST = 3
 export const CLONING_COST = 5
+
+// Cyborg Species make cloning cheaper.
+export function cloningCost(state: HydratedStellarHorizonsGameState, playerId: string): number {
+    return capabilitiesOf(state, playerId).cloningCost ?? CLONING_COST
+}
 
 export enum RepairMethod {
     Dock = 'Dock',
@@ -26,22 +38,40 @@ export function shipsAvailableToBuild(
         return []
     }
     const maxSize = capabilitiesOf(state, playerId).cvMaxSize
+    const crewVehicles = !atCrewVehicleLimit(state, playerId)
     return factionShips(faction).filter(
         (definition) =>
             !state.findShip(definition.id) &&
-            (definition.kind === ShipKind.RE || definition.size <= maxSize)
+            (definition.kind === ShipKind.RE || (crewVehicles && definition.size <= maxSize))
     )
+}
+
+// Crew Focus, Robotic Focus and Engine Upgrades change what a ship costs to buy, and with it the
+// base size a build and range need (designer ruling), never below $1B; repairs and scrap
+// refunds keep the printed cost.
+export function shipCost(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    shipId: string
+): number {
+    const definition = shipDefinition(shipId)
+    const capabilities = capabilitiesOf(state, playerId)
+    const change =
+        (isCrewVehicle(definition) ? capabilities.cvCostChange : capabilities.reCostChange) +
+        (definition.fast ? capabilities.fastShipCostChange : 0)
+    return change === 0 ? definition.cost : Math.max(MIN_PRICE, definition.cost + change)
 }
 
 // Nanobot Swarm's back makes ships built at a base in its system $1B cheaper.
 export function buildCost(
     state: HydratedStellarHorizonsGameState,
+    playerId: string,
     shipId: string,
     systemId: string
 ): number {
     const reduction =
         systemId === SOL_SYSTEM_ID ? 0 : (baseEffects(state, systemId).shipCostReduction ?? 0)
-    return Math.max(0, shipDefinition(shipId).cost - reduction)
+    return Math.max(0, shipCost(state, playerId, shipId) - reduction)
 }
 
 export function buildLocations(
@@ -49,13 +79,13 @@ export function buildLocations(
     playerId: string,
     shipId: string
 ): string[] {
-    const cost = shipDefinition(shipId).cost
+    const cost = shipCost(state, playerId, shipId)
     const bases = state
         .basesOf(playerId)
         .filter(
             (base) =>
                 base.settlements >= cost &&
-                base.spent + buildCost(state, shipId, base.systemId) <= base.settlements
+                base.spent + buildCost(state, playerId, shipId, base.systemId) <= base.settlements
         )
         .map((base) => base.systemId)
     return [SOL_SYSTEM_ID, ...bases]
@@ -69,14 +99,16 @@ export function canBuildShip(
 ): boolean {
     return (
         shipsAvailableToBuild(state, playerId).some((candidate) => candidate.id === shipId) &&
-        state.getPlayerState(playerId).cash >= buildCost(state, shipId, systemId) &&
+        state.getPlayerState(playerId).cash >= buildCost(state, playerId, shipId, systemId) &&
         buildLocations(state, playerId, shipId).includes(systemId)
     )
 }
 
 export function canBuildAnyShip(state: HydratedStellarHorizonsGameState, playerId: string) {
     const cash = state.getPlayerState(playerId).cash
-    return shipsAvailableToBuild(state, playerId).some((definition) => definition.cost <= cash)
+    return shipsAvailableToBuild(state, playerId).some(
+        (definition) => shipCost(state, playerId, definition.id) <= cash
+    )
 }
 
 export function dockRepairCapacity(
@@ -146,6 +178,22 @@ export function canRepairAnyShip(state: HydratedStellarHorizonsGameState, player
         )
 }
 
+// Self Repair System takes a point of damage off each of the Player's CVs, free, as their build
+// and repair phase begins.
+export function selfRepair(state: HydratedStellarHorizonsGameState, playerId: string): string[] {
+    const points = capabilitiesOf(state, playerId).selfRepair
+    if (points === 0) {
+        return []
+    }
+    return state
+        .shipsOf(playerId)
+        .filter((ship) => isCrewVehicle(shipDefinition(ship.shipId)) && ship.damage > 0)
+        .map((ship) => {
+            ship.damage = Math.max(0, ship.damage - points)
+            return ship.shipId
+        })
+}
+
 export function scrapRefund(ship: ShipState): number {
     if (ship.systemId !== SOL_SYSTEM_ID || !hasArrived(ship) || ship.damage > 0) {
         return 0
@@ -157,7 +205,7 @@ export function cloningBases(state: HydratedStellarHorizonsGameState, playerId: 
     if (!capabilitiesOf(state, playerId).cloning) {
         return []
     }
-    if (state.getPlayerState(playerId).cash < CLONING_COST) {
+    if (state.getPlayerState(playerId).cash < cloningCost(state, playerId)) {
         return []
     }
     return state

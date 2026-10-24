@@ -3,10 +3,11 @@ import { HydratedChooseFaction, isChooseFaction } from '../actions/chooseFaction
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { isCampaign } from '../model/campaign.js'
+import { oweHandDraws } from '../model/cards.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { CardsResume } from '../model/pieces.js'
 import { nextStartingBasePlacer } from '../model/startingBases.js'
-import { firstPhase } from '../model/turnPlan.js'
-import { startPhase } from './transitions.js'
+import { stateForCardDraws } from './transitions.js'
 
 export class ChoosingFactionsStateHandler implements MachineStateHandler<
     HydratedChooseFaction,
@@ -43,8 +44,15 @@ export class ChoosingFactionsStateHandler implements MachineStateHandler<
         if (nextStartingBasePlacer(state)) {
             return MachineState.PlacingStartingBases
         }
-        // The campaign begins in the exploration phase of its first turn (rulebook 3.0).
-        return isCampaign(state) ? startPhase(state, firstPhase(state)) : MachineState.StartOfTurn
+        // The campaign deals each hand (setup step 13), then begins in the exploration phase of
+        // its first turn (rulebook 3.0).
+        if (!isCampaign(state)) {
+            return MachineState.StartOfTurn
+        }
+        for (const playerId of state.initiativeOrder()) {
+            oweHandDraws(state, playerId)
+        }
+        return stateForCardDraws(state, CardsResume.Setup)
     }
 
     private nextChooser(state: HydratedStellarHorizonsGameState): string | undefined {

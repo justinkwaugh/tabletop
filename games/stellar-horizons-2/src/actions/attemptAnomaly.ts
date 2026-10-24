@@ -61,7 +61,7 @@ export class HydratedAttemptAnomaly
         const attempt = commitAnomalyAttempt(state, this.playerId, this.systemId, this.shipIds)
         this.metadata = {
             anomalyId: attempt.anomalyId,
-            strength: attemptStrength(ships, anomalyDefinition(attempt.anomalyId).challenge),
+            strength: attemptStrength(state, ships, anomalyDefinition(attempt.anomalyId).challenge),
             difficulty: anomalyDifficulty(state, attempt.anomalyId, this.playerId)
         }
     }

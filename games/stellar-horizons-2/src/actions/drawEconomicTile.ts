@@ -52,13 +52,18 @@ export class HydratedDrawEconomicTile
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
         const tile = drawEconomicTile(state)
-        const earthProduction =
-            tile === EconomicTile.EarthProduction
-                ? state.initiativeOrder().map((playerId) => ({
-                      playerId,
-                      ...produceAtEarth(state, playerId, extraEarthMarkers(state))
-                  }))
-                : []
-        this.metadata = { tile, earthProduction }
+        this.metadata = { tile, earthProduction: playEconomicTile(state, tile) }
     }
+}
+
+export function playEconomicTile(
+    state: HydratedStellarHorizonsGameState,
+    tile: EconomicTile
+): EarthProductionRecord[] {
+    return tile === EconomicTile.EarthProduction
+        ? state.initiativeOrder().map((playerId) => ({
+              playerId,
+              ...produceAtEarth(state, playerId, extraEarthMarkers(state))
+          }))
+        : []
 }

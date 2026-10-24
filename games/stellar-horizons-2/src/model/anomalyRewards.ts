@@ -4,6 +4,7 @@ import { STAR_MAP } from '../components/starMap.js'
 import { SOL_SYSTEM_ID, starSystemDefinition } from '../components/systems.js'
 import { WorldSide } from '../components/worlds.js'
 import { gainInfluence } from './campaign.js'
+import { RewardCard, earnRewardCard } from './cards.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { awardTechMarkers, drawWorldTile } from './pools.js'
 import { canStartInSystem } from './surveys.js'
@@ -19,7 +20,7 @@ export const GrantedReward = Type.Object({
     settlements: Type.Number(),
     goods: Type.Number(),
     goodsCash: Type.Number(),
-    notYet: Type.Array(Type.String())
+    card: Type.Optional(RewardCard)
 })
 
 export type TurnedOver = Type.Static<typeof TurnedOver>
@@ -34,7 +35,7 @@ export interface RewardSource {
 }
 
 // Rulebook 1.16: the front's reward goes to whoever resolves the anomaly. Its settlements and
-// goods are placed by the Player afterwards; cards wait for slice 4 of the campaign plan.
+// goods are placed by the Player afterwards; its card is drawn at once.
 export function grantReward(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
@@ -57,6 +58,7 @@ export function grantReward(
     const goodsCash = reward.goods
         ? queueRewardGoods(state, { playerId, ...source, good: reward.goods.good }, goods)
         : 0
+    const card = reward.card ? earnRewardCard(state, playerId, reward.card) : undefined
     return {
         playerId,
         influence,
@@ -66,7 +68,7 @@ export function grantReward(
         settlements,
         goods,
         goodsCash,
-        notYet: reward.card ? [`a level I ${reward.card} card`] : []
+        ...(card ? { card } : {})
     }
 }
 

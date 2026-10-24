@@ -4,7 +4,6 @@ export {
     ANOMALIES,
     AnomalyBackKind,
     AnomalyChallenge,
-    CardDeck,
     type AnomalyBack,
     type AnomalyDefinition,
     type AnomalyReward,

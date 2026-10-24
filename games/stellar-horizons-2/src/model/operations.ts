@@ -6,7 +6,13 @@ import { TechField } from '../components/techFields.js'
 import { worldFace } from '../components/worlds.js'
 import { blocksExploration } from './anomalies.js'
 import { factionAbilities, isCampaign } from './campaign.js'
-import { currentCombat, currentExploration, hasArrived, isCrippled } from './fleet.js'
+import {
+    capabilitiesOf,
+    currentCombat,
+    currentExploration,
+    hasArrived,
+    isCrippled
+} from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { isHeld } from './holds.js'
 import { MarkerReason, OperationKind, type ShipState } from './pieces.js'
@@ -34,7 +40,7 @@ export function canOperate(
         hasArrived(ship) &&
         !ship.explored &&
         !isHeld(state, ship) &&
-        !isCrippled(ship) &&
+        !isCrippled(state, ship) &&
         ship.systemId !== SOL_SYSTEM_ID &&
         hasRevealedWorld(state, ship.systemId) &&
         state.base(ship.playerId, ship.systemId) === undefined &&
@@ -66,7 +72,9 @@ export const OperationResult = Type.Object({
     target: Type.Number(),
     success: Type.Boolean(),
     cash: Type.Number(),
-    field: Type.Optional(Type.Enum(TechField))
+    field: Type.Optional(Type.Enum(TechField)),
+    // The Interstellar Mining Conglomerate's two dice; the lower is used.
+    rolls: Type.Optional(Type.Array(Type.Number()))
 })
 
 function face(state: HydratedStellarHorizonsGameState, systemId: string, slot: number) {
@@ -103,22 +111,37 @@ export function researchTarget(
     ship: ShipState,
     slot: number
 ): number {
-    return face(state, ship.systemId, slot).techValue + roundHalfUp(currentExploration(ship) / 2)
+    // Research Vessel Upgrades use the ship's full exploration value.
+    const exploration = capabilitiesOf(state, ship.playerId).researchFullValue
+        ? currentExploration(ship)
+        : roundHalfUp(currentExploration(ship) / 2)
+    return face(state, ship.systemId, slot).techValue + exploration
 }
 
-// Mining earns $1B, or $2B on a die at or under the world's cash value.
+// Mining earns $1B, or $2B on a die at or under the world's cash value; Mining Vessel Upgrades
+// add $1B either way, and the Conglomerate rolls two dice and keeps the lower.
 export function mine(
     state: HydratedStellarHorizonsGameState,
     ship: ShipState,
     slot: number
 ): OperationResult {
+    const capabilities = capabilitiesOf(state, ship.playerId)
     const target = miningTarget(state, ship, slot)
-    const roll = state.getPlayerPrng(ship.playerId).dieRoll(10)
+    const random = state.getPlayerPrng(ship.playerId)
+    const rolls = Array.from({ length: capabilities.miningDice }, () => random.dieRoll(10))
+    const roll = Math.min(...rolls)
     const success = roll <= target
-    const cash = success ? RICH_MINING_CASH : MINING_CASH
+    const cash = (success ? RICH_MINING_CASH : MINING_CASH) + capabilities.miningCash
     state.getPlayerState(ship.playerId).cash += cash
     recordOperation(ship, state, OperationKind.Mining)
-    return { systemId: ship.systemId, roll, target, success, cash }
+    return {
+        systemId: ship.systemId,
+        roll,
+        target,
+        success,
+        cash,
+        ...(rolls.length > 1 ? { rolls } : {})
+    }
 }
 
 // Research earns one marker of the world's type on a die at or under its research value plus

@@ -16,7 +16,7 @@ import {
 import { currentCenturyRow, factionAbilities, gainInfluence, isCampaign } from './campaign.js'
 import { replaceDemand, demandedGoods } from './demand.js'
 import { smuggled } from './events.js'
-import { freeCargo, hasArrived } from './fleet.js'
+import { capabilitiesOf, freeCargo, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { Base, GoodsReward, ShipState } from './pieces.js'
 import { discardGoods, drawFromPool } from './pools.js'
@@ -193,11 +193,11 @@ export const GoodsDraw = Type.Object({
 
 export function drawTradeGoods(state: HydratedStellarHorizonsGameState): GoodsDraw[] {
     return state.initiativeOrder().map((playerId) => {
-        const goods = drawFromPool(
-            state,
-            state.goodsPool,
-            currentCenturyRow(state, playerId)?.tradeGoods ?? 0
-        )
+        // Trader's Guild and the genetic manipulations that name a good draw more.
+        const count =
+            (currentCenturyRow(state, playerId)?.tradeGoods ?? 0) +
+            capabilitiesOf(state, playerId).extraGoods
+        const goods = drawFromPool(state, state.goodsPool, count)
         state.getPlayerState(playerId).drawnGoods = goods
         return { playerId, goods }
     })
@@ -208,6 +208,19 @@ export const GoodsAssignment = Type.Object({
     good: Type.Enum(TradeGood),
     store: GoodsStore
 })
+
+// Culinary Geniuses, Gifted Artists and the skilled genetic manipulations let their goods be
+// produced in any system (Gifted Artists' not at Sol): assigned to any base, or to Earth.
+function producesAnywhere(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    good: TradeGood,
+    systemId: string
+): boolean {
+    return capabilitiesOf(state, playerId).producesAnywhere.some(
+        (entry) => entry.good === good && (!entry.exceptSol || systemId !== SOL_SYSTEM_ID)
+    )
+}
 
 // A drawn good goes to a base with one of its world types, or to Earth if it lists M; never
 // where a "no bases" anomaly or Smugglers stop the base taking goods.
@@ -223,15 +236,23 @@ export function assignmentSystems(
             (base) =>
                 !blocksBases(state, base.systemId) &&
                 !smuggled(state, base.systemId) &&
-                tradeWorldClasses(state, base.systemId).some((worldClass) =>
-                    producers.includes(worldClass)
-                )
+                (producesAnywhere(state, playerId, good, base.systemId) ||
+                    tradeWorldClasses(state, base.systemId).some((worldClass) =>
+                        producers.includes(worldClass)
+                    ))
         )
         .map((base) => base.systemId)
 }
 
-export function canAssignToEarth(good: TradeGood): boolean {
-    return tradeGoodDefinition(good).producers.includes(WorldClass.M)
+export function canAssignToEarth(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    good: TradeGood
+): boolean {
+    return (
+        tradeGoodDefinition(good).producers.includes(WorldClass.M) ||
+        producesAnywhere(state, playerId, good, SOL_SYSTEM_ID)
+    )
 }
 
 export interface StoreRoom {
@@ -293,7 +314,10 @@ export function assignmentProblem(
         remaining.splice(index, 1)
         const store = assignment.store
         const name = tradeGoodDefinition(assignment.good).name
-        if (store.kind === GoodsHolderKind.Earth && !canAssignToEarth(assignment.good)) {
+        if (
+            store.kind === GoodsHolderKind.Earth &&
+            !canAssignToEarth(state, playerId, assignment.good)
+        ) {
             return `${name} cannot go to Earth`
         }
         if (
@@ -521,18 +545,22 @@ export function queueRewardGoods(
 }
 
 // Rulebook 1.9: the base price, $1B more for each world in the system of the types it favours
-// and $1B less for each of the types that produce it, and off Earth the distance from Sol.
+// and $1B less for each of the types that produce it, and off Earth the distance from Sol. The
+// genetic manipulations that name a good sell it for $1B more.
 export function salePrice(
     state: HydratedStellarHorizonsGameState,
     systemId: string,
-    good: TradeGood
+    good: TradeGood,
+    sellerId?: string
 ): number {
     const definition = tradeGoodDefinition(good)
     const classes = tradeWorldClasses(state, systemId)
     const favoured = classes.filter((worldClass) => definition.favoured.includes(worldClass))
     const producing = classes.filter((worldClass) => definition.producers.includes(worldClass))
     const distance = systemId === SOL_SYSTEM_ID ? 0 : systemDistance(SOL_SYSTEM_ID, systemId)
-    return Math.max(0, definition.price + favoured.length - producing.length + distance)
+    const bonus =
+        sellerId === undefined ? 0 : (capabilitiesOf(state, sellerId).saleBonus[good] ?? 0)
+    return Math.max(0, definition.price + favoured.length - producing.length + distance + bonus)
 }
 
 // Where a Player's goods in a system are: their arrived ships and base there, or Earth at Sol.
@@ -604,7 +632,7 @@ export function saleOptions(
                       {
                           systemId,
                           good,
-                          price: salePrice(state, systemId, good),
+                          price: salePrice(state, systemId, good, playerId),
                           sources,
                           payeeIds: salePayees(state, playerId, systemId)
                       }
@@ -680,7 +708,7 @@ export function sellGoods(
     playerId: string,
     sale: Sale
 ): SaleResult {
-    const price = salePrice(state, sale.systemId, sale.good)
+    const price = salePrice(state, sale.systemId, sale.good, playerId)
     let count = 0
     for (const source of sale.sources) {
         const goods = heldGoods(state, playerId, source.holder)
@@ -699,7 +727,7 @@ export function sellGoods(
         player.cash -= payment
         state.getPlayerState(sale.payeeId).cash += payment
     }
-    replaceDemand(state, playerId, sale.systemId)
+    replaceDemand(state, playerId, sale.systemId, sale.good)
     return { count, price, cash, influence, payment }
 }
 

@@ -8,6 +8,15 @@ import { queuePactAttempts } from '../model/pactResolution.js'
 import { TurnPhase } from '../model/turn.js'
 import { currentPhase } from '../model/turnPlan.js'
 import { PhaseMetadata } from './startPhase.js'
+import { isCampaign } from '../model/campaign.js'
+import { discardHand, hasBoughtThisTurn, oweHandDraws } from '../model/cards.js'
+
+export type CompletePhaseMetadata = Type.Static<typeof CompletePhaseMetadata>
+export const CompletePhaseMetadata = Type.Object({
+    ...PhaseMetadata.properties,
+    // Players who bought nothing and so discarded their hands (rulebook 1.20).
+    discardedHands: Type.Optional(Type.Array(Type.String()))
+})
 
 export type CompletePhase = Type.Static<typeof CompletePhase>
 export const CompletePhase = Type.Evaluate(
@@ -15,7 +24,7 @@ export const CompletePhase = Type.Evaluate(
         GameAction,
         Type.Object({
             type: Type.Literal(ActionType.CompletePhase),
-            metadata: Type.Optional(PhaseMetadata)
+            metadata: Type.Optional(CompletePhaseMetadata)
         })
     ])
 )
@@ -31,7 +40,7 @@ export class HydratedCompletePhase
     implements CompletePhase
 {
     declare type: ActionType.CompletePhase
-    declare metadata?: PhaseMetadata
+    declare metadata?: CompletePhaseMetadata
 
     constructor(data: CompletePhase) {
         super(data, CompletePhaseValidator)
@@ -43,6 +52,24 @@ export class HydratedCompletePhase
             queuePactAttempts(state)
         }
         returnDiscardedGoods(state)
+        if (phase === TurnPhase.Development && isCampaign(state)) {
+            this.metadata = { phase, discardedHands: dealAfterDevelopment(state) }
+            return
+        }
         this.metadata = { phase }
     }
+}
+
+// Rulebook 1.20: once everyone has developed, a Player who bought no tech and no card discards
+// their hand, and every hand is owed what it lacks of its size.
+function dealAfterDevelopment(state: HydratedStellarHorizonsGameState): string[] {
+    const discarded = state
+        .initiativeOrder()
+        .filter(
+            (playerId) => !hasBoughtThisTurn(state, playerId) && discardHand(state, playerId) > 0
+        )
+    for (const playerId of state.initiativeOrder()) {
+        oweHandDraws(state, playerId)
+    }
+    return discarded
 }

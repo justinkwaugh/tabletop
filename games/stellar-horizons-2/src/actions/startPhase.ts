@@ -5,10 +5,13 @@ import { ActionType } from '../definition/actions.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { TurnPhase } from '../model/turn.js'
 import { currentPhase } from '../model/turnPlan.js'
+import { selfRepair } from '../model/building.js'
 
 export type PhaseMetadata = Type.Static<typeof PhaseMetadata>
 export const PhaseMetadata = Type.Object({
-    phase: Type.Enum(TurnPhase)
+    phase: Type.Enum(TurnPhase),
+    // Self Repair System's free repairs at the start of the build phase.
+    repairedShipIds: Type.Optional(Type.Array(Type.String()))
 })
 
 export type StartPhase = Type.Static<typeof StartPhase>
@@ -39,6 +42,8 @@ export class HydratedStartPhase extends HydratableAction<typeof StartPhase> impl
     }
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
-        this.metadata = { phase: currentPhase(state) }
+        const phase = currentPhase(state)
+        const repairedShipIds = phase === TurnPhase.Build ? selfRepair(state, this.playerId) : []
+        this.metadata = repairedShipIds.length > 0 ? { phase, repairedShipIds } : { phase }
     }
 }

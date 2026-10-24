@@ -40,9 +40,11 @@ export class HydratedConvertSettlement
     }
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
-        const isTarget = conversionTargets(state, this.playerId).some(
-            (base) => base.systemId === this.systemId && base.playerId === this.targetPlayerId
-        )
+        const isTarget =
+            state.conversions.at(0)?.playerId === this.playerId &&
+            conversionTargets(state, this.playerId).some(
+                (base) => base.systemId === this.systemId && base.playerId === this.targetPlayerId
+            )
         if (!isTarget) {
             throw Error('Invalid ConvertSettlement action')
         }

@@ -7,8 +7,10 @@ import { ChoosingFactionsStateHandler } from '../stateHandlers/choosingFactions.
 import { ChoosingSurveyWorldStateHandler } from '../stateHandlers/choosingSurveyWorld.js'
 import { ChoosingTerraformWorldStateHandler } from '../stateHandlers/choosingTerraformWorld.js'
 import { DevelopingStateHandler } from '../stateHandlers/developing.js'
+import { DrawingCardsStateHandler } from '../stateHandlers/drawingCards.js'
 import {
     AssigningGoodsStateHandler,
+    ChoosingGrowthBaseStateHandler,
     ChoosingProductionStateHandler,
     ConvertingSettlementsStateHandler,
     DecidingInitiativeStateHandler
@@ -65,6 +67,7 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.TradeGoodsPhase]: new PhaseStateHandler(TurnPhase.TradeGoods),
     [MachineState.AssigningGoods]: new AssigningGoodsStateHandler(),
     [MachineState.GrowingSettlements]: new GrowingSettlementsStateHandler(),
+    [MachineState.ChoosingGrowthBase]: new ChoosingGrowthBaseStateHandler(),
     [MachineState.ConvertingSettlements]: new ConvertingSettlementsStateHandler(),
     [MachineState.BuildPhase]: new PhaseStateHandler(TurnPhase.Build),
     [MachineState.Building]: new BuildingStateHandler(),
@@ -87,6 +90,7 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.ResolvingShipTerraforms]: new ResolvingShipTerraformsStateHandler(),
     [MachineState.DevelopmentPhase]: new PhaseStateHandler(TurnPhase.Development),
     [MachineState.Developing]: new DevelopingStateHandler(),
+    [MachineState.DrawingCards]: new DrawingCardsStateHandler(),
     [MachineState.Terraforming]: new TerraformingStateHandler(),
     [MachineState.ChoosingTerraformWorld]: new ChoosingTerraformWorldStateHandler(),
     [MachineState.EndOfTurn]: new EndOfTurnStateHandler(),

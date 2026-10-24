@@ -1,30 +1,97 @@
-import { factionSheet } from '../components/factionSheets.js'
-import { TECHS, type TechEffects } from '../components/techs.js'
+import { AnomalyChallenge } from '../components/anomalyCatalog.js'
+import { CardDeck, cardDefinition, type CardEffects } from '../components/cards.js'
+import { factionSheet, type FactionAbilities } from '../components/factionSheets.js'
+import { techDefinition, type TechEffects } from '../components/techs.js'
+import { TechField } from '../components/techFields.js'
+import type { TradeGood } from '../components/tradeGoods.js'
+import { WorldClass } from '../components/worldTypes.js'
 import type { ScenarioDefinition } from '../components/scenarios.js'
 import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
 
+// Everything a Player's techs, faction sheet and cards let them do, in one place: rules read
+// this instead of asking which tech, faction or card a Player has. Techs in a chain keep their
+// best value; faction abilities and card bonuses add to it (rulebook 1.12).
 export interface Capabilities {
     canBuySettlements: boolean
     settleHabitability?: number
+    habitabilityBonus: number
     terraforms: number
     terraformDraws: number
     cvMalfunction: number
     reMalfunction: number
     cvExplorationBonus: number
     reExplorationBonus: number
+    cvExplorationDice: number
+    reExplorationDice: number
     cvMovement: number
     reMovement: number
+    allShipsFast: boolean
     cvRange: number
     reRange: number
     cvMaxSize: number
+    cvCostChange: number
+    reCostChange: number
+    fastShipCostChange: number
+    cvDamageBonus: number
+    maxShipsBonus: number
+    extraRe: number
+    selfRepair: number
     settlementCost: number
+    firstSettlementDiscount: number
     cloning: boolean
+    cloningCost?: number
     shipTerraforming: boolean
     cargoBonus: number
+    cvCargoBonus: number
+    // Tech points off a tech of each field, and off a card of each deck.
+    techDiscount: Record<TechField, number>
+    cardDiscount: Record<CardDeck, number>
+    cardLevels: Record<CardDeck, number>
+    handSize: Record<CardDeck, number>
+    cardSurcharge: Record<CardDeck, number>
+    anomalyChance?: number
+    cvAnomalyChance: number
+    reAnomalyChance: number
+    difficulty: Record<AnomalyChallenge, number>
+    armedCvCombat: number
+    researchFullValue: boolean
+    researchShipBonus: number
+    surveyDraws: number
+    miningCash: number
+    miningDice: number
+    cashProduction: number
+    extraGoods: number
+    producesAnywhere: { good: TradeGood; exceptSol: boolean }[]
+    saleBonus: Partial<Record<TradeGood, number>>
+    demandDraws: number
+    keepsTwoDemand: boolean
+    influencePerTurn: number
+    initiativeBonus: number
+    populationByClass: Partial<Record<WorldClass, number>>
+    population: number
+    dwarfStarPopulation: number
+    growth: number
+    dwarfStarGrowth: number
+    growthByClass: Partial<Record<WorldClass, number>>
+    chosenGrowth: number
+    migrationSettlements: number
+    growthPastLimit: boolean
+    conversionRolls: number[]
+    wormholes: boolean
+    choosesEconomicTile: boolean
+    endRollModifier: number
 }
 
 export const CV_MOVEMENT_STEPS: readonly number[] = [5, 4, 3, 2, 1.5, 1, 0.5]
 export const MIN_MOVEMENT_MODIFIER = 0.5
+// Rulebook 1.20.
+export const CARD_SURCHARGE = 5
+export const FAVOURED_CARD_SURCHARGE = 3
+export const HAND_SIZE = 1
+// Rulebook 1.9: draw 2 demand markers and keep 1.
+export const DEMAND_DRAW = 2
+// Campaign plan, slice 4 (Q15): no price below $1B.
+export const MIN_PRICE = 1
 
 const BASELINE = {
     cvMalfunction: 50,
@@ -33,44 +100,205 @@ const BASELINE = {
     reMovement: 3,
     cvRange: 1,
     reRange: 1,
-    cvMaxSize: 2
+    cvMaxSize: 2,
+    cardLevel: 1,
+    researchShipBonus: 1
 }
+
+type NumericCardEffect = {
+    [Key in keyof CardEffects]-?: CardEffects[Key] extends number | undefined ? Key : never
+}[keyof CardEffects]
 
 export function playerCapabilities(
     player: HydratedStellarHorizonsPlayerState,
-    scenario: ScenarioDefinition
+    scenario: ScenarioDefinition,
+    year: number
 ): Capabilities {
-    const owned = TECHS.filter((definition) => player.ownsTech(definition.id))
-    const values = (key: keyof TechEffects): number[] =>
-        owned.flatMap((definition) => {
-            const value = definition.effects[key]
-            return typeof value === 'number' ? [value] : []
-        })
-    const has = (key: keyof TechEffects): boolean =>
-        owned.some((definition) => definition.effects[key] !== undefined)
+    const techValues = new Map<string, number[]>()
+    const techFlags = new Set<string>()
+    for (const owned of player.techs) {
+        for (const [key, value] of Object.entries(techDefinition(owned.techId).effects)) {
+            techFlags.add(key)
+            if (typeof value === 'number') {
+                techValues.set(key, [...(techValues.get(key) ?? []), value])
+            }
+        }
+    }
+    const values = (key: keyof TechEffects): number[] => techValues.get(key) ?? []
+    const has = (key: keyof TechEffects): boolean => techFlags.has(key)
     const lowest = (key: keyof TechEffects, baseline: number) => Math.min(baseline, ...values(key))
     const highest = (key: keyof TechEffects, baseline: number) => Math.max(baseline, ...values(key))
     const habitability = values('settleHabitability')
 
+    const abilities: FactionAbilities =
+        scenario.campaign && player.faction ? factionSheet(player.faction).abilities : {}
+    const effects = player.cards.map((card) => cardDefinition(card.cardId).effects)
+    // Discounts from a card bought this turn wait for the next (campaign plan, slice 4, Q2).
+    const discounts = player.cards
+        .filter((card) => !card.bought || card.year < year)
+        .map((card) => cardDefinition(card.cardId).effects)
+    const sum = (key: NumericCardEffect, from = effects) =>
+        from.reduce((total, effect) => total + (effect[key] ?? 0), 0)
+    const any = (test: (effect: CardEffects) => boolean) => effects.some(test)
+    const byClass = (key: 'populationByClass' | 'growthByClass') => {
+        const totals: Partial<Record<WorldClass, number>> = {}
+        for (const worldClass of Object.values(WorldClass)) {
+            const total = effects.reduce(
+                (subtotal, effect) => subtotal + (effect[key]?.[worldClass] ?? 0),
+                0
+            )
+            if (total !== 0) {
+                totals[worldClass] = total
+            }
+        }
+        return totals
+    }
+    // Discounts are negative cost changes; their total is the points taken off.
+    const discount = (
+        general: 'techCost' | 'cardCost',
+        specific: (effect: CardEffects) => number
+    ) => -sum(general, discounts) - discounts.reduce((total, effect) => total + specific(effect), 0)
+
+    const techTerraforms = scenario.terraforming ? highest('terraforms', 0) : 0
+    const conversionRolls = [
+        ...(abilities.conversionRoll === undefined ? [] : [abilities.conversionRoll]),
+        ...effects.flatMap((effect) =>
+            effect.conversionRoll === undefined ? [] : [effect.conversionRoll]
+        )
+    ]
+    const saleBonus: Partial<Record<TradeGood, number>> = {}
+    for (const effect of effects) {
+        for (const good of effect.saleBonus?.goods ?? []) {
+            saleBonus[good] = (saleBonus[good] ?? 0) + (effect.saleBonus?.amount ?? 0)
+        }
+    }
+
     return {
         canBuySettlements: has('buySettlements'),
         settleHabitability: habitability.length > 0 ? Math.min(...habitability) : undefined,
-        terraforms: scenario.terraforming ? highest('terraforms', 0) : 0,
-        terraformDraws: highest('terraformDraws', 1),
-        cvMalfunction: lowest('cvMalfunction', BASELINE.cvMalfunction),
-        reMalfunction: lowest('reMalfunction', BASELINE.reMalfunction),
-        cvExplorationBonus: highest('cvExplorationBonus', 0),
-        reExplorationBonus: highest('reExplorationBonus', 0),
+        habitabilityBonus: (abilities.habitabilityBonus ?? 0) + sum('habitability'),
+        // The Givers' extra action needs no tech; Planetary Engineering's adds to the tech's.
+        terraforms:
+            techTerraforms +
+            (techTerraforms > 0 ? sum('terraforms') : 0) +
+            (abilities.extraTerraforms ?? 0),
+        terraformDraws: highest('terraformDraws', 1) + sum('sideTwoTerraformDraws'),
+        cvMalfunction: Math.max(
+            0,
+            lowest('cvMalfunction', BASELINE.cvMalfunction) + sum('cvMalfunction')
+        ),
+        reMalfunction: Math.max(
+            0,
+            lowest('reMalfunction', BASELINE.reMalfunction) + sum('reMalfunction')
+        ),
+        cvExplorationBonus: highest('cvExplorationBonus', 0) + sum('cvExplorationBonus'),
+        reExplorationBonus: highest('reExplorationBonus', 0) + sum('reExplorationBonus'),
+        cvExplorationDice: Math.max(1, ...effects.map((effect) => effect.cvExplorationDice ?? 1)),
+        reExplorationDice: Math.max(1, ...effects.map((effect) => effect.reExplorationDice ?? 1)),
         cvMovement: lowest('cvMovement', BASELINE.cvMovement),
         reMovement: lowest('reMovement', BASELINE.reMovement),
+        allShipsFast: any((effect) => effect.allShipsFast === true),
         cvRange: highest('cvRange', BASELINE.cvRange),
         reRange: highest('reRange', BASELINE.reRange),
         cvMaxSize: highest('cvMaxSize', BASELINE.cvMaxSize),
-        settlementCost: settlementCost(player, scenario) - highest('settlementDiscount', 0),
+        cvCostChange: sum('cvCost'),
+        reCostChange: sum('reCost'),
+        fastShipCostChange: sum('fastShipCost'),
+        cvDamageBonus: sum('cvDamage'),
+        maxShipsBonus: sum('maxShips'),
+        extraRe: sum('extraRe'),
+        selfRepair: sum('selfRepair'),
+        settlementCost: Math.max(
+            MIN_PRICE,
+            settlementCost(player, scenario) -
+                highest('settlementDiscount', 0) +
+                sum('settlementCost')
+        ),
+        firstSettlementDiscount: -sum('firstSettlementCost'),
         cloning: has('cloning'),
+        cloningCost: effects.find((effect) => effect.cloningCost !== undefined)?.cloningCost,
         shipTerraforming: has('mineTerraforming'),
-        cargoBonus: highest('cargoBonus', 0)
+        cargoBonus: highest('cargoBonus', 0),
+        cvCargoBonus: sum('cvCargo'),
+        techDiscount: perField((field) =>
+            discount('techCost', (effect) =>
+                effect.fieldTechCost?.field === field ? effect.fieldTechCost.amount : 0
+            )
+        ),
+        cardDiscount: perDeck((deck) =>
+            discount('cardCost', (effect) =>
+                effect.deckCardCost?.deck === deck ? effect.deckCardCost.amount : 0
+            )
+        ),
+        cardLevels: {
+            [CardDeck.Fleet]: highest('fleetLevel', BASELINE.cardLevel),
+            [CardDeck.Genetic]: highest('geneticLevel', BASELINE.cardLevel)
+        },
+        handSize: perDeck(
+            (deck) => HAND_SIZE + (abilities.favouredDeck === deck ? 1 : 0) + sum('handSize')
+        ),
+        cardSurcharge: perDeck((deck) =>
+            abilities.favouredDeck === deck ? FAVOURED_CARD_SURCHARGE : CARD_SURCHARGE
+        ),
+        anomalyChance: abilities.anomalyChance,
+        cvAnomalyChance: sum('cvAnomalyChance'),
+        reAnomalyChance: sum('reAnomalyChance'),
+        difficulty: {
+            [AnomalyChallenge.Science]:
+                (abilities.scienceAnomalyDifficulty ?? 0) + sum('scienceDifficulty'),
+            [AnomalyChallenge.Combat]:
+                (abilities.combatAnomalyDifficulty ?? 0) + sum('combatDifficulty')
+        },
+        armedCvCombat: sum('armedCvCombat'),
+        researchFullValue: any((effect) => effect.researchFullValue === true),
+        researchShipBonus: Math.max(
+            BASELINE.researchShipBonus,
+            ...effects.map((effect) => effect.researchShipBonus ?? 0)
+        ),
+        surveyDraws: Math.max(1, ...effects.map((effect) => effect.surveyDraws ?? 1)),
+        miningCash: sum('miningCash'),
+        miningDice: Math.max(1, ...effects.map((effect) => effect.miningDice ?? 1)),
+        cashProduction: sum('cashProduction'),
+        extraGoods: sum('extraGoods'),
+        producesAnywhere: effects.flatMap((effect) =>
+            (effect.producesAnywhere?.goods ?? []).map((good) => ({
+                good,
+                exceptSol: effect.producesAnywhere?.exceptSol === true
+            }))
+        ),
+        saleBonus,
+        demandDraws: (abilities.demandDraws ?? DEMAND_DRAW) + sum('demandChoices'),
+        keepsTwoDemand: any((effect) => effect.keepsTwoDemand === true),
+        influencePerTurn: sum('influencePerTurn'),
+        initiativeBonus: sum('initiative'),
+        populationByClass: byClass('populationByClass'),
+        population: sum('population'),
+        dwarfStarPopulation: sum('dwarfStarPopulation'),
+        growth: sum('growth'),
+        dwarfStarGrowth: sum('dwarfStarGrowth'),
+        growthByClass: byClass('growthByClass'),
+        chosenGrowth: sum('chosenGrowth'),
+        migrationSettlements: any((effect) => effect.noMigration === true)
+            ? 0
+            : Math.max(1, ...effects.map((effect) => effect.migration ?? 1)),
+        growthPastLimit: any((effect) => effect.growthPastLimit === true),
+        conversionRolls,
+        wormholes: any((effect) => effect.wormholes === true),
+        choosesEconomicTile: any((effect) => effect.choosesEconomicTile === true),
+        endRollModifier: Math.max(0, ...effects.map((effect) => effect.endRollModifier ?? 0))
     }
+}
+
+function perField(value: (field: TechField) => number): Record<TechField, number> {
+    return {
+        [TechField.Biology]: value(TechField.Biology),
+        [TechField.Physics]: value(TechField.Physics),
+        [TechField.Engineering]: value(TechField.Engineering)
+    }
+}
+
+function perDeck(value: (deck: CardDeck) => number): Record<CardDeck, number> {
+    return { [CardDeck.Fleet]: value(CardDeck.Fleet), [CardDeck.Genetic]: value(CardDeck.Genetic) }
 }
 
 // Scenarios price settlements at $5B for everyone; the campaign uses the faction sheet.

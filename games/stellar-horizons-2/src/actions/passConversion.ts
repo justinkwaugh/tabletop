@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { dropUnusableConversions } from '../model/economy.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 
 export type PassConversion = Type.Static<typeof PassConversion>
@@ -32,5 +33,11 @@ export class HydratedPassConversion
         super(data, PassConversionValidator)
     }
 
-    apply(_state: HydratedStellarHorizonsGameState, _context?: MachineContext) {}
+    apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
+        if (state.conversions.at(0)?.playerId !== this.playerId) {
+            throw Error('Invalid PassConversion action')
+        }
+        state.conversions = state.conversions.slice(1)
+        dropUnusableConversions(state)
+    }
 }

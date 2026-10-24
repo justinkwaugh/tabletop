@@ -5,6 +5,7 @@ import {
     MachineContext,
     assertExists
 } from '@tabletop/common'
+import { HydratedChooseEconomicTile, isChooseEconomicTile } from '../actions/chooseEconomicTile.js'
 import {
     DrawEconomicTile,
     HydratedDrawEconomicTile,
@@ -30,9 +31,11 @@ import {
     RollInitiative,
     isRollInitiative
 } from '../actions/rollInitiative.js'
-import type { ActionType } from '../definition/actions.js'
-import type { MachineState } from '../definition/states.js'
+import { ActionType } from '../definition/actions.js'
+import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { economicTileChooser } from '../model/economy.js'
+import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
 import {
     stateAfterEconomicPhase,
     stateAfterGrowth,
@@ -66,17 +69,44 @@ abstract class SystemStepHandler<Action extends HydratedAction> implements Machi
     }
 }
 
-export class EconomicPhaseStateHandler extends SystemStepHandler<HydratedDrawEconomicTile> {
-    protected readonly systemAction = DrawEconomicTile
+type EconomicTileAction = HydratedDrawEconomicTile | HydratedChooseEconomicTile | ConversionAction
 
-    isValidAction(action: HydratedAction): action is HydratedDrawEconomicTile {
-        return isDrawEconomicTile(action)
+// Rulebook 4.0: the turn's economic tile is drawn, or chosen by Hive Mind's owner.
+export class EconomicPhaseStateHandler implements MachineStateHandler<
+    EconomicTileAction,
+    HydratedStellarHorizonsGameState
+> {
+    isValidAction(action: HydratedAction): action is EconomicTileAction {
+        return isDrawEconomicTile(action) || isChooseEconomicTile(action) || isConversion(action)
+    }
+
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedStellarHorizonsGameState>
+    ): ActionType[] {
+        const state = context.gameState
+        if (!state.isActivePlayer(playerId)) {
+            return []
+        }
+        return [ActionType.ChooseEconomicTile, ...conversionActions(state, playerId)]
+    }
+
+    enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
+        const state = context.gameState
+        const chooser = economicTileChooser(state)
+        state.activePlayerIds = chooser === undefined ? [] : [chooser]
+        if (chooser === undefined) {
+            context.addSystemAction(DrawEconomicTile)
+        }
     }
 
     onAction(
-        action: HydratedDrawEconomicTile,
+        action: EconomicTileAction,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
+        if (isConversion(action)) {
+            return MachineState.EconomicPhase
+        }
         assertExists(action.metadata, 'The economic tile was drawn')
         return stateForEconomicTile(context.gameState, action.metadata.tile)
     }

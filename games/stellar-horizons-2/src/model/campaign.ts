@@ -7,8 +7,10 @@ import {
     type CenturyRow,
     type FactionAbilities
 } from '../components/factionSheets.js'
+import { isCrewVehicle, shipDefinition } from '../components/ships.js'
 import { starSystemDefinition } from '../components/systems.js'
 import { TECH_FIELDS } from '../components/techFields.js'
+import { capabilitiesOf } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { TechMarkers, emptyTechMarkers } from './playerState.js'
 import { awardTechMarkers } from './pools.js'
@@ -40,9 +42,19 @@ export function currentCenturyRow(
     return isCampaign(state) && faction !== undefined ? centuryRow(faction, state.year) : undefined
 }
 
-// Rulebook 1.2 and 1.8: the campaign caps ships and bases by century.
+// Rulebook 1.2 and 1.8: the campaign caps ships and bases by century. Fleet Logistics raise
+// the cap; Robotic Swarms' extra ship must be an RE.
 export function maxShips(state: HydratedStellarHorizonsGameState, playerId: string) {
-    return currentCenturyRow(state, playerId)?.maxShips ?? Number.POSITIVE_INFINITY
+    const capabilities = capabilitiesOf(state, playerId)
+    return (
+        (currentCenturyRow(state, playerId)?.maxShips ?? Number.POSITIVE_INFINITY) +
+        capabilities.maxShipsBonus +
+        capabilities.extraRe
+    )
+}
+
+export function maxCrewVehicles(state: HydratedStellarHorizonsGameState, playerId: string) {
+    return maxShips(state, playerId) - capabilitiesOf(state, playerId).extraRe
 }
 
 export function maxBases(state: HydratedStellarHorizonsGameState, playerId: string) {
@@ -53,11 +65,19 @@ export function atShipLimit(state: HydratedStellarHorizonsGameState, playerId: s
     return state.shipsOf(playerId).length >= maxShips(state, playerId)
 }
 
+export function atCrewVehicleLimit(state: HydratedStellarHorizonsGameState, playerId: string) {
+    const crewVehicles = state
+        .shipsOf(playerId)
+        .filter((ship) => isCrewVehicle(shipDefinition(ship.shipId))).length
+    return crewVehicles >= maxCrewVehicles(state, playerId)
+}
+
 export function atBaseLimit(state: HydratedStellarHorizonsGameState, playerId: string) {
     return state.basesOf(playerId).length >= maxBases(state, playerId)
 }
 
-// The True Path treat every system's habitability as 20% higher, to at most 100%.
+// The True Path, and Environmental Tolerance, treat every system's habitability as 20% higher,
+// to at most 100%, for founding bases and migration.
 export const MAX_HABITABILITY = 100
 
 export function effectiveHabitability(
@@ -65,7 +85,7 @@ export function effectiveHabitability(
     playerId: string,
     systemId: string
 ): number {
-    const bonus = factionAbilities(state, playerId).habitabilityBonus ?? 0
+    const bonus = capabilitiesOf(state, playerId).habitabilityBonus
     return Math.min(MAX_HABITABILITY, starSystemDefinition(systemId).habitability + bonus)
 }
 

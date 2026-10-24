@@ -1,5 +1,7 @@
 import * as Type from 'typebox'
+import { Visibility } from '@tabletop/common'
 import { AnomalyChallenge } from '../components/anomalyCatalog.js'
+import { CardDeck } from '../components/cards.js'
 import { TechField } from '../components/techFields.js'
 import { TradeGood } from '../components/tradeGoods.js'
 import { WorldSide } from '../components/worlds.js'
@@ -17,7 +19,9 @@ export const SystemState = Type.Object({
     worlds: Type.Array(WorldPlacement),
     anomaly: Type.Optional(Type.String()),
     anomalyResolved: Type.Optional(Type.Boolean()),
-    demand: Type.Optional(Type.Enum(TradeGood))
+    demand: Type.Optional(Type.Enum(TradeGood)),
+    // Starports (fleet improvement II) let a system hold a second marker.
+    secondDemand: Type.Optional(Type.Enum(TradeGood))
 })
 
 export type ShipState = Type.Static<typeof ShipState>
@@ -137,7 +141,9 @@ export type DemandDraw = Type.Static<typeof DemandDraw>
 export const DemandDraw = Type.Object({
     playerId: Type.String(),
     systemId: Type.String(),
-    drawn: Type.Array(Type.Enum(TradeGood))
+    drawn: Type.Array(Type.Enum(TradeGood)),
+    // How many of those drawn are still to be kept: 2 with Starports.
+    keep: Type.Number()
 })
 
 // An event challenge on the map (rulebook 4.2).
@@ -174,7 +180,9 @@ export const PactShare = Type.Object({
     cash: Type.Number(),
     markers: Type.Number(),
     settlements: Type.Number(),
-    goods: Type.Number()
+    goods: Type.Number(),
+    // The card an anomaly gives, 1 for the partner who earns it.
+    cards: Type.Number()
 })
 
 export type PactTerms = Type.Static<typeof PactTerms>
@@ -210,11 +218,14 @@ export const PledgeableShip = Type.Object({
     combat: Type.Number()
 })
 
+// A survey's drawn worlds waiting for the surveyor: one for an empty slot (two with Planetary
+// Surveys), or a replacement for a smaller world in a full system.
 export type SurveyWorldChoice = Type.Static<typeof SurveyWorldChoice>
 export const SurveyWorldChoice = Type.Object({
     playerId: Type.String(),
     systemId: Type.String(),
-    drawnTileId: Type.String()
+    drawnTileIds: Type.Array(Type.String()),
+    fillsSlot: Type.Boolean()
 })
 
 export type TerraformTarget = Type.Static<typeof TerraformTarget>
@@ -242,4 +253,58 @@ export const TerraformChoice = Type.Object({
     systemId: Type.String(),
     slot: Type.Number(),
     drawnTileIds: Type.Array(Type.String())
+})
+
+// The schema of CardLevel, the levels the decks print.
+export const CardLevelValue = Type.Union([Type.Literal(1), Type.Literal(2), Type.Literal(3)])
+
+// Rulebook 1.20. A card in a Player's hand shows its back, its type and level, to everyone; only
+// its owner sees which card it is.
+export type HandCard = Type.Static<typeof HandCard>
+export const HandCard = Type.Object({
+    playerId: Type.String(),
+    deck: Type.Enum(CardDeck),
+    level: CardLevelValue,
+    cardId: Visibility.protect(Type.String(), { policy: Visibility.Policy.Owner })
+})
+
+// A card bought or earned, face up in front of its owner.
+export type OwnedCard = Type.Static<typeof OwnedCard>
+export const OwnedCard = Type.Object({
+    cardId: Type.String(),
+    year: Type.Number(),
+    // Bought in a development phase, rather than earned from an anomaly or a pact.
+    bought: Type.Boolean()
+})
+
+// One of the six decks with its discards. Nobody sees which cards they hold, only how many.
+export type CardPile = Type.Static<typeof CardPile>
+export const CardPile = Type.Object({
+    deck: Type.Enum(CardDeck),
+    level: CardLevelValue,
+    cards: Visibility.protect(Type.Array(Type.String()), {
+        policy: Visibility.Policy.HostOnly,
+        redaction: Visibility.redaction.emptyArray()
+    }),
+    remaining: Type.Number(),
+    discards: Visibility.protect(Type.Array(Type.String()), {
+        policy: Visibility.Policy.HostOnly,
+        redaction: Visibility.redaction.emptyArray()
+    }),
+    discarded: Type.Number()
+})
+
+// Where play goes on once the cards owed are drawn: the first exploration phase after setup,
+// the next anomaly attempt, or what follows the development phase.
+export enum CardsResume {
+    Setup = 'Setup',
+    Anomaly = 'Anomaly',
+    AfterDevelopment = 'AfterDevelopment'
+}
+
+// One conversion roll after growth (rulebook 4.6): the True Path's, or Cultural Dominance's.
+export type ConversionChance = Type.Static<typeof ConversionChance>
+export const ConversionChance = Type.Object({
+    playerId: Type.String(),
+    roll: Type.Number()
 })

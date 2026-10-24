@@ -16,6 +16,9 @@ import { ScenarioId, scenarioDefinition, type ScenarioDefinition } from '../comp
 import { MachineState } from '../definition/states.js'
 import {
     Base,
+    CardPile,
+    CardsResume,
+    ConversionChance,
     ShipState,
     SurveyWorldChoice,
     SystemState,
@@ -67,7 +70,13 @@ export const StellarHorizonsGameState = Type.Object({
     pledgeableShips: Type.Array(PledgeableShip),
     setAsideWorlds: Type.Array(Type.String()),
     economicTilePool: Type.Array(Type.Enum(EconomicTile)),
-    economicTile: Type.Optional(Type.Enum(EconomicTile))
+    economicTile: Type.Optional(Type.Enum(EconomicTile)),
+    cardPiles: Type.Array(CardPile),
+    resumeAfterCards: Type.Optional(Type.Enum(CardsResume)),
+    // Players with Prolific Breeders still to choose a base, and the conversion rolls still to
+    // take, after growth (rulebook 4.6).
+    growthChoosers: Type.Array(Type.String()),
+    conversions: Type.Array(ConversionChance)
 })
 
 export const StellarHorizonsGameStateValidator = Compile(StellarHorizonsGameState)
@@ -130,6 +139,10 @@ export class HydratedStellarHorizonsGameState
     declare setAsideWorlds: string[]
     declare economicTilePool: EconomicTile[]
     declare economicTile?: EconomicTile
+    declare cardPiles: CardPile[]
+    declare resumeAfterCards?: CardsResume
+    declare growthChoosers: string[]
+    declare conversions: ConversionChance[]
 
     constructor(data: StellarHorizonsProjectedState) {
         super(data, StellarHorizonsProjectedStateValidator)

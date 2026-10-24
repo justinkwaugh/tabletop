@@ -74,6 +74,14 @@ import { HydratedGrowSettlements, isGrowSettlements } from '../actions/growSettl
 import { HydratedConvertSettlement, isConvertSettlement } from '../actions/convertSettlement.js'
 import { HydratedPassConversion, isPassConversion } from '../actions/passConversion.js'
 import { HydratedSpendInfluence, isSpendInfluence } from '../actions/spendInfluence.js'
+import { HydratedBuyCard, isBuyCard } from '../actions/buyCard.js'
+import { HydratedDrawCard, isDrawCard } from '../actions/drawCard.js'
+import {
+    HydratedChooseEndRollModifier,
+    isChooseEndRollModifier
+} from '../actions/chooseEndRollModifier.js'
+import { HydratedChooseEconomicTile, isChooseEconomicTile } from '../actions/chooseEconomicTile.js'
+import { HydratedChooseGrowthBase, isChooseGrowthBase } from '../actions/chooseGrowthBase.js'
 
 export class StellarHorizonsHydrator implements GameHydrator<
     StellarHorizonsProjectedState,
@@ -187,6 +195,16 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedAcceptPact(data)
             case isWithdrawPact(data):
                 return new HydratedWithdrawPact(data)
+            case isBuyCard(data):
+                return new HydratedBuyCard(data)
+            case isDrawCard(data):
+                return new HydratedDrawCard(data)
+            case isChooseEndRollModifier(data):
+                return new HydratedChooseEndRollModifier(data)
+            case isChooseEconomicTile(data):
+                return new HydratedChooseEconomicTile(data)
+            case isChooseGrowthBase(data):
+                return new HydratedChooseGrowthBase(data)
             case isEndTurn(data):
                 return new HydratedEndTurn(data)
             default:

@@ -3,6 +3,7 @@ import { assertExists } from '@tabletop/common'
 import { SOL_SYSTEM_ID, systemDistance } from '../components/systems.js'
 import { TECH_FIELDS, type TechField } from '../components/techFields.js'
 import { TECHS } from '../components/techs.js'
+import { capabilitiesOf } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { roundHalfUp } from './turn.js'
 import { DECADE } from './turnCycle.js'
@@ -32,6 +33,7 @@ export const CampaignScore = Type.Object({
     influence: Type.Number(),
     techPoints: Type.Number(),
     cash: Type.Number(),
+    cards: Type.Number(),
     playerCount: Type.Number(),
     total: Type.Number()
 })
@@ -68,6 +70,7 @@ export function campaignScore(
         influence: Math.floor(player.influence / INFLUENCE_PER_POINT),
         techPoints: Math.floor(markerTotal / TECH_POINTS_PER_POINT),
         cash: Math.floor(player.cash / CASH_PER_POINT),
+        cards: player.cardPoints(),
         playerCount: PLAYER_COUNT_BONUS[state.numPlayers] ?? 0
     }
     const total = roundHalfUp(Object.values(score).reduce((sum, value) => sum + value, 0))
@@ -140,14 +143,32 @@ export type EndRoll = Type.Static<typeof EndRoll>
 export const EndRoll = Type.Object({
     chance: Type.Number(),
     roll: Type.Number(),
-    ended: Type.Boolean()
+    ended: Type.Boolean(),
+    // Transcend Biology's announced change, by the Player who made it.
+    modifier: Type.Optional(Type.Object({ playerId: Type.String(), amount: Type.Number() }))
 })
 
+// Transcend Biology lets its owner move the chance by up to 3%, announced before the roll.
+export function endRollModifier(
+    state: HydratedStellarHorizonsGameState
+): { playerId: string; amount: number } | undefined {
+    for (const player of state.players) {
+        const limit = capabilitiesOf(state, player.playerId).endRollModifier
+        const amount = Math.max(-limit, Math.min(limit, player.endRollModifier ?? 0))
+        if (limit > 0 && amount !== 0) {
+            return { playerId: player.playerId, amount }
+        }
+    }
+    return undefined
+}
+
 export function rollForEnd(state: HydratedStellarHorizonsGameState): EndRoll | undefined {
-    const chance = endRollChance(state)
-    if (chance === undefined) {
+    const printed = endRollChance(state)
+    if (printed === undefined) {
         return undefined
     }
+    const modifier = endRollModifier(state)
+    const chance = Math.max(0, printed + (modifier?.amount ?? 0))
     const roll = state.getProtectedPrng().dieRoll(100)
-    return { chance, roll, ended: roll <= chance }
+    return { chance, roll, ended: roll <= chance, ...(modifier ? { modifier } : {}) }
 }

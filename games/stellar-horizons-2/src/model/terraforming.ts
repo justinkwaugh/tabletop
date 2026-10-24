@@ -9,7 +9,7 @@ import {
 } from '../components/worlds.js'
 import { shipDefinition } from '../components/ships.js'
 import { blocksBases, blocksExploration } from './anomalies.js'
-import { factionAbilities, gainInfluence } from './campaign.js'
+import { gainInfluence } from './campaign.js'
 import { capabilitiesOf, hasArrived, isCrippled } from './fleet.js'
 import { isHeld } from './holds.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
@@ -34,11 +34,10 @@ export const TerraformOutcome = Type.Object({
     awaitingChoice: Type.Boolean()
 })
 
-// Rulebook 4.7: the Givers terraform once more than their tech allows, never the same world
-// twice in a phase.
+// Rulebook 4.7: the Givers terraform once more than their tech allows, and Planetary
+// Engineering once more than the tech gives, never the same world twice in a phase.
 export function terraformsAllowed(state: HydratedStellarHorizonsGameState, playerId: string) {
-    const extra = factionAbilities(state, playerId).extraTerraforms ?? 0
-    return capabilitiesOf(state, playerId).terraforms + extra
+    return capabilitiesOf(state, playerId).terraforms
 }
 
 export const IP_FOR_FLIP = 1
@@ -209,7 +208,7 @@ export function shipTerraformSlots(
         !hasArrived(ship) ||
         ship.explored ||
         isHeld(state, ship) ||
-        isCrippled(ship) ||
+        isCrippled(state, ship) ||
         blocksExploration(state, ship.systemId) ||
         blocksBases(state, ship.systemId)
     ) {

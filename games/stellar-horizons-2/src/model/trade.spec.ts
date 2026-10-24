@@ -225,7 +225,7 @@ describe('Goods from anomalies', () => {
     it('are split item by item in a pact, each partner placing their own', () => {
         const state = campaign()
         const [first, second] = state.initiativeOrder()
-        const share = { influence: 1, cash: 0, markers: 0, settlements: 0, goods: 1 }
+        const share = { influence: 1, cash: 0, markers: 0, settlements: 0, goods: 1, cards: 0 }
         grantPactShares(state, {
             id: 'pact',
             systemId: SYSTEM,
@@ -293,7 +293,7 @@ describe('Selling', () => {
         expect(player.influence).toBe(influence + 2)
         expect(state.systemState(SYSTEM).demand).toBeUndefined()
         expect(state.demandDraws).toEqual([
-            { playerId, systemId: SYSTEM, drawn: expect.any(Array) }
+            { playerId, systemId: SYSTEM, drawn: expect.any(Array), keep: 1 }
         ])
         expect(state.demandDraws[0].drawn).toHaveLength(2)
     })
@@ -395,7 +395,9 @@ describe('Demand markers', () => {
         const state = campaign()
         const [playerId] = state.initiativeOrder()
         state.systemState(SYSTEM).explorationMarker = 1
-        state.getPlayerState(playerId).pendingSurveys = [{ shipId: 'any', systemId: SYSTEM }]
+        state.getPlayerState(playerId).pendingSurveys = [
+            { shipId: 'starfarers-kepler', systemId: SYSTEM }
+        ]
         resolveNextSurvey(state)
         expect(state.demandDraws.map((draw) => draw.systemId)).toEqual([SYSTEM])
     })

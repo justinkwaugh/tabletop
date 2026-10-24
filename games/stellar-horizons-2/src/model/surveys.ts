@@ -11,6 +11,7 @@ import {
 import { AnomalySearch, searchForAnomaly } from './anomalies.js'
 import { gainInfluence, isCampaign } from './campaign.js'
 import { drawDemand } from './demand.js'
+import { capabilitiesOf } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { WorldPlacement } from './pieces.js'
 import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
@@ -27,6 +28,8 @@ export const SurveyResolution = Type.Object({
     completed: Type.Boolean(),
     explorationMarker: Type.Number(),
     drawnTileId: Type.Optional(Type.String()),
+    // Planetary Surveys draw two worlds to choose from.
+    drawnTileIds: Type.Optional(Type.Array(Type.String())),
     placedSlot: Type.Optional(Type.Number()),
     awaitingChoice: Type.Boolean(),
     anomaly: Type.Optional(AnomalySearch)
@@ -90,45 +93,61 @@ export function resolveNextSurvey(state: HydratedStellarHorizonsGameState): Surv
         drawDemand(state, player.playerId, survey.systemId)
     }
     drawSurveyWorld(state, resolution)
-    resolution.anomaly = searchForAnomaly(state, survey.systemId, player.playerId)
+    resolution.anomaly = searchForAnomaly(state, survey.systemId, player.playerId, survey.shipId)
     return resolution
 }
 
 function drawSurveyWorld(state: HydratedStellarHorizonsGameState, resolution: SurveyResolution) {
     const system = state.systemState(resolution.systemId)
     const isLegal = (tileId: string) => canStartInSystem(resolution.systemId, tileId)
-
-    if (system.worlds.length < starSystemDefinition(resolution.systemId).worldSlots) {
-        const tileId = drawWorldTile(state, isLegal)
-        if (tileId) {
-            system.worlds.push({ tileId, side: WorldSide.I })
-            resolution.drawnTileId = tileId
-            resolution.placedSlot = system.worlds.length - 1
-        }
-        return
-    }
-
+    const fillsSlot = system.worlds.length < starSystemDefinition(resolution.systemId).worldSlots
     const hasSmallWorld = system.worlds.some(
         (world) => placementPopulation(world) < SURVEY_REPLACEMENT_POPULATION
     )
-    if (!hasSmallWorld) {
+    if (!fillsSlot && !hasSmallWorld) {
         return
     }
-    const tileId = drawWorldTile(state, isLegal)
-    if (!tileId) {
+    const drawnTileIds = drawSurveyTiles(state, resolution.playerId, isLegal)
+    if (drawnTileIds.length === 0) {
         return
     }
-    resolution.drawnTileId = tileId
-    if (surveySwapSlots(state, resolution.systemId, tileId).length > 0) {
+    resolution.drawnTileId = drawnTileIds[0]
+    if (drawnTileIds.length > 1) {
+        resolution.drawnTileIds = drawnTileIds
+    }
+    if (fillsSlot && drawnTileIds.length === 1) {
+        system.worlds.push({ tileId: drawnTileIds[0], side: WorldSide.I })
+        resolution.placedSlot = system.worlds.length - 1
+        return
+    }
+    const usable =
+        fillsSlot ||
+        drawnTileIds.some(
+            (tileId) => surveySwapSlots(state, resolution.systemId, tileId).length > 0
+        )
+    if (usable) {
         state.surveyChoice = {
             playerId: resolution.playerId,
             systemId: resolution.systemId,
-            drawnTileId: tileId
+            drawnTileIds,
+            fillsSlot
         }
         resolution.awaitingChoice = true
     } else {
-        returnWorldTile(state, tileId)
+        drawnTileIds.forEach((tileId) => returnWorldTile(state, tileId))
     }
+}
+
+// Planetary Surveys draw two worlds for the Player's completed surveys.
+function drawSurveyTiles(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    isLegal: (tileId: string) => boolean
+): string[] {
+    return Array.from({ length: capabilitiesOf(state, playerId).surveyDraws }).flatMap(() => {
+        const tileId = drawWorldTile(state, isLegal)
+        return tileId === undefined ? [] : [tileId]
+    })
 }
 
 export function surveySwapSlots(
@@ -147,20 +166,56 @@ export function surveySwapSlots(
         )
 }
 
+// The surveyor's choice: which drawn world fills the empty slot, or which replaces a smaller
+// world in a full system, if any. The other drawn worlds go back to the pool.
+export function surveyChoiceProblem(
+    state: HydratedStellarHorizonsGameState,
+    tileId: string | undefined,
+    slot: number | undefined
+): string | undefined {
+    const choice = state.surveyChoice
+    if (!choice) {
+        return 'No survey world choice is pending'
+    }
+    if (choice.fillsSlot) {
+        return tileId !== undefined && choice.drawnTileIds.includes(tileId) && slot === undefined
+            ? undefined
+            : 'Choose one of the drawn worlds'
+    }
+    if (tileId === undefined && slot === undefined) {
+        return undefined
+    }
+    return tileId !== undefined &&
+        slot !== undefined &&
+        choice.drawnTileIds.includes(tileId) &&
+        surveySwapSlots(state, choice.systemId, tileId).includes(slot)
+        ? undefined
+        : 'That world cannot replace that one'
+}
+
 export function applySurveyChoice(
     state: HydratedStellarHorizonsGameState,
+    tileId: string | undefined,
     slot: number | undefined
 ): WorldPlacement | undefined {
     const choice = state.surveyChoice
     assertExists(choice, 'No survey world choice is pending')
     state.surveyChoice = undefined
-    if (slot === undefined) {
-        returnWorldTile(state, choice.drawnTileId)
+    for (const drawn of choice.drawnTileIds) {
+        if (drawn !== tileId) {
+            returnWorldTile(state, drawn)
+        }
+    }
+    if (tileId === undefined) {
         return undefined
     }
     const system = state.systemState(choice.systemId)
+    if (choice.fillsSlot || slot === undefined) {
+        system.worlds.push({ tileId, side: WorldSide.I })
+        return undefined
+    }
     const replaced = system.worlds[slot]
-    system.worlds[slot] = { tileId: choice.drawnTileId, side: WorldSide.I }
+    system.worlds[slot] = { tileId, side: WorldSide.I }
     if (isRevealedWorld(replaced.tileId)) {
         returnWorldTile(state, replaced.tileId)
     } else {

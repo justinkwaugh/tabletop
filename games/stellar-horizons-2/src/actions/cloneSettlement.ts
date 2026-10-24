@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { CLONING_COST, cloningBases } from '../model/building.js'
+import { cloningBases, cloningCost } from '../model/building.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 
 export type CloneSettlement = Type.Static<typeof CloneSettlement>
@@ -41,7 +41,7 @@ export class HydratedCloneSettlement
         if (!base || !cloningBases(state, this.playerId).includes(this.systemId)) {
             throw Error('Invalid CloneSettlement action')
         }
-        player.cash -= CLONING_COST
+        player.cash -= cloningCost(state, this.playerId)
         base.settlements += 1
         base.cloned = true
     }

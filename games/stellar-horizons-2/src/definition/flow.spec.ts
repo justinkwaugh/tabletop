@@ -118,7 +118,9 @@ describe('Footfall turn flow', () => {
             hydrated.worldPool = hydrated.worldPool.filter(
                 (id) => maxPopulation(id, WorldSide.I) === 9
             )
-            hydrated.getPlayerState(first).pendingSurveys.push({ shipId: 'x', systemId: 'luhman-16' })
+            hydrated
+                .getPlayerState(first)
+                .pendingSurveys.push({ shipId: 'starfarers-kepler', systemId: 'luhman-16' })
         })
         state = finishDecade(game, state)
         expect(state.machineState).toBe(MachineState.ChoosingSurveyWorld)
@@ -126,7 +128,10 @@ describe('Footfall turn flow', () => {
         state = execute(
             game,
             state,
-            userAction(game, first, ActionType.ChooseSurveyWorld, { slot: 0 })
+            userAction(game, first, ActionType.ChooseSurveyWorld, {
+                tileId: hydrate(state).surveyChoice?.drawnTileIds[0],
+                slot: 0
+            })
         )
         const chosen = hydrate(state)
         expect(maxPopulation(chosen.systemState('luhman-16').worlds[0].tileId, WorldSide.I)).toBe(9)

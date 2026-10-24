@@ -21,7 +21,6 @@ import { initialDemandPool, initialGoodsPool } from '../components/tradeGoods.js
 import { ALL_WORLD_TILE_IDS, WorldClass, worldTile } from '../components/worlds.js'
 import {
     HydratedStellarHorizonsGameState,
-    type StellarHorizonsGameState,
     type StellarHorizonsProjectedState
 } from '../model/gameState.js'
 import { HydratedStellarHorizonsPlayerState, emptyTechMarkers } from '../model/playerState.js'
@@ -30,6 +29,7 @@ import { fillWorldSlots } from '../model/surveys.js'
 import { DECADE } from '../model/turnCycle.js'
 import { configuredScenario } from './config.js'
 import { MachineState } from './states.js'
+import { initialCardPiles } from '../model/cards.js'
 
 export class StellarHorizonsGameInitializer
     extends BaseGameInitializer<StellarHorizonsProjectedState, HydratedStellarHorizonsGameState>
@@ -82,13 +82,17 @@ export class StellarHorizonsGameInitializer
                     explorationMarkers: 0,
                     earthGoods: [],
                     drawnGoods: [],
-                    discardedGoods: []
+                    discardedGoods: [],
+                    hand: [],
+                    cards: [],
+                    cardDraws: [],
+                    settlementsBought: 0
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
         assertExists(state.protectedPrng, 'Drawing starting tech markers requires protectedPrng')
 
-        const stellarState: StellarHorizonsGameState = Object.assign(state, {
+        const stellarState: StellarHorizonsProjectedState = Object.assign(state, {
             players,
             machineState: MachineState.ChoosingFactions,
             turnManager,
@@ -127,7 +131,10 @@ export class StellarHorizonsGameInitializer
             goodsPool: scenario.campaign ? initialGoodsPool() : [],
             demandPool: scenario.campaign ? initialDemandPool() : [],
             demandDraws: [],
-            remainingTraders: []
+            remainingTraders: [],
+            cardPiles: scenario.campaign ? initialCardPiles() : [],
+            growthChoosers: [],
+            conversions: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
         for (const worldClass of Object.values(WorldClass)) {

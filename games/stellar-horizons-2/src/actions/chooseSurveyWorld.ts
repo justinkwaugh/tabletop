@@ -3,12 +3,12 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { applySurveyChoice, surveySwapSlots } from '../model/surveys.js'
+import { applySurveyChoice, surveyChoiceProblem } from '../model/surveys.js'
 
 export type ChooseSurveyWorldMetadata = Type.Static<typeof ChooseSurveyWorldMetadata>
 export const ChooseSurveyWorldMetadata = Type.Object({
     systemId: Type.String(),
-    drawnTileId: Type.String(),
+    drawnTileIds: Type.Array(Type.String()),
     replacedTileId: Type.Optional(Type.String())
 })
 
@@ -19,6 +19,7 @@ export const ChooseSurveyWorld = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.ChooseSurveyWorld),
             playerId: Type.String(),
+            tileId: Type.Optional(Type.String()),
             slot: Type.Optional(Type.Number()),
             metadata: Type.Optional(ChooseSurveyWorldMetadata)
         })
@@ -37,6 +38,7 @@ export class HydratedChooseSurveyWorld
 {
     declare type: ActionType.ChooseSurveyWorld
     declare playerId: string
+    declare tileId?: string
     declare slot?: number
     declare metadata?: ChooseSurveyWorldMetadata
 
@@ -49,15 +51,14 @@ export class HydratedChooseSurveyWorld
         if (
             !choice ||
             choice.playerId !== this.playerId ||
-            (this.slot !== undefined &&
-                !surveySwapSlots(state, choice.systemId, choice.drawnTileId).includes(this.slot))
+            surveyChoiceProblem(state, this.tileId, this.slot) !== undefined
         ) {
             throw Error('Invalid ChooseSurveyWorld action')
         }
-        const replaced = applySurveyChoice(state, this.slot)
+        const replaced = applySurveyChoice(state, this.tileId, this.slot)
         this.metadata = {
             systemId: choice.systemId,
-            drawnTileId: choice.drawnTileId,
+            drawnTileIds: choice.drawnTileIds,
             replacedTileId: replaced?.tileId
         }
     }

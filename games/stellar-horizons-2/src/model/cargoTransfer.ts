@@ -10,6 +10,7 @@ import {
     canSettleSystem,
     canUnload,
     removeBaseSettlement,
+    settlementPurchaseCost,
     settlementPurchaseLimit
 } from './settling.js'
 import { TurnPhase } from './turn.js'
@@ -142,8 +143,10 @@ export function transferCargo(
     const systemId = ship.systemId
     switch (partner.kind) {
         case CargoPartnerKind.Earth: {
-            const cost = settlements * capabilitiesOf(state, ship.playerId).settlementCost
-            state.getPlayerState(ship.playerId).cash -= cost
+            const cost = settlementPurchaseCost(state, ship.playerId, settlements)
+            const player = state.getPlayerState(ship.playerId)
+            player.cash -= cost
+            player.settlementsBought += settlements
             ship.settlements += settlements
             return { systemId, cost }
         }

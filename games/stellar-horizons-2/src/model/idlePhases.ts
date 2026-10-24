@@ -1,7 +1,9 @@
 import { attemptableSystemIds } from './anomalies.js'
 import { canBuildAnyShip, canRepairAnyShip, cloningBases } from './building.js'
 import { canTransferAnyCargo } from './cargoTransfer.js'
-import { canDevelopAnyTech } from './development.js'
+import { canBuyAnyCard, canDevelopAnyTech } from './development.js'
+import { capabilitiesOf } from './fleet.js'
+import { endRollChance } from './scoring.js'
 import { canExploreAnyShip } from './exploration.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { attemptableEventIds } from './events.js'
@@ -48,8 +50,16 @@ export function isIdleInPhase(
                     .some((ship) => shipTerraformSlots(state, ship).length > 0) &&
                 !hasExploredThisDecade(state, playerId)
             )
+        // Transcend Biology's owner announces their change before an end roll.
         case TurnPhase.Development:
-            return !canDevelopAnyTech(state, playerId)
+            return (
+                !canDevelopAnyTech(state, playerId) &&
+                !canBuyAnyCard(state, playerId) &&
+                !(
+                    capabilitiesOf(state, playerId).endRollModifier > 0 &&
+                    endRollChance(state) !== undefined
+                )
+            )
         case TurnPhase.Initiative:
         case TurnPhase.BaseProduction:
         case TurnPhase.TradeGoods:

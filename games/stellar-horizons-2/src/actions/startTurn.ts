@@ -9,7 +9,10 @@ export type StartTurnMetadata = Type.Static<typeof StartTurnMetadata>
 export const StartTurnMetadata = Type.Object({
     year: Type.Number(),
     income: Type.Number(),
-    arrivedShipIds: Type.Array(Type.String())
+    arrivedShipIds: Type.Array(Type.String()),
+    influence: Type.Optional(
+        Type.Array(Type.Object({ playerId: Type.String(), amount: Type.Number() }))
+    )
 })
 
 export type StartTurn = Type.Static<typeof StartTurn>
