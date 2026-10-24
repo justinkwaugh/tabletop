@@ -104,7 +104,7 @@
     }
     .steps {
         display: flex;
-        flex: 1;
+        flex: 1 1 100%;
         min-width: 0;
         justify-content: center;
     }
@@ -152,24 +152,17 @@
         padding-right: 17px;
         clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 11px 50%);
     }
+    /* Loans and private powers take the strip's second line, under the steps. */
     .privates {
         display: flex;
-        flex: none;
+        flex: 0 0 100%;
         align-items: center;
+        justify-content: center;
+        border-top: 1px solid var(--rail-border, #cbbcad);
+        background: var(--rail-surface-raised, #e8ded4);
     }
     .privates:empty {
         display: none;
-    }
-    @container (max-width: 480px) {
-        .steps,
-        .privates {
-            flex-basis: 100%;
-        }
-        .privates {
-            justify-content: center;
-            border-top: 1px solid var(--rail-border, #cbbcad);
-            background: var(--rail-surface-raised, #e8ded4);
-        }
     }
     @container (max-width: 420px) {
         button {
