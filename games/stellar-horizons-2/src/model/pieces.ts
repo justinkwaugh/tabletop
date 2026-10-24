@@ -6,7 +6,9 @@ import { RaidResult } from '../components/combatTables.js'
 import { EscalationMarker } from '../components/escalation.js'
 import { Faction } from '../components/factions.js'
 import { TechField } from '../components/techFields.js'
+import { OperationRoll, TitleId } from '../components/titles.js'
 import { TradeGood } from '../components/tradeGoods.js'
+import { WorldClass } from '../components/worldTypes.js'
 import { WorldSide } from '../components/worlds.js'
 import { TurnPhase } from './turn.js'
 
@@ -367,7 +369,8 @@ export type ModifierSource = Type.Static<typeof ModifierSource>
 export const ModifierSource = Type.Union([
     Type.Object({ kind: Type.Literal('Faction'), faction: Type.Enum(Faction) }),
     Type.Object({ kind: Type.Literal('Card'), cardId: Type.String() }),
-    Type.Object({ kind: Type.Literal('Anomaly'), anomalyId: Type.String() })
+    Type.Object({ kind: Type.Literal('Anomaly'), anomalyId: Type.String() }),
+    Type.Object({ kind: Type.Literal('Title'), titleId: Type.Enum(TitleId) })
 ])
 
 export type RollModifier = Type.Static<typeof RollModifier>
@@ -546,6 +549,52 @@ export const RemovedDirective = Type.Object({
     directiveId: Type.String()
 })
 
+// Rulebook 5.2: a title bought or renounced while playing a Branch waits, its IP held, until the
+// span ends, when such requests are settled in initiative order.
+export enum TitleRequestKind {
+    Buy = 'Buy',
+    Renounce = 'Renounce'
+}
+
+export type TitleRequest = Type.Static<typeof TitleRequest>
+export const TitleRequest = Type.Object({
+    kind: Type.Enum(TitleRequestKind),
+    titleId: Type.Enum(TitleId),
+    influence: Type.Number()
+})
+
+// A title bought or renounced on the Main Line, or a request settled after a span. A purchase
+// fails when an earlier Player in initiative order took the title, and its IP comes back.
+export type TitlePurchase = Type.Static<typeof TitlePurchase>
+export const TitlePurchase = Type.Object({
+    playerId: Type.String(),
+    kind: Type.Literal(TitleRequestKind.Buy),
+    titleId: Type.Enum(TitleId),
+    influence: Type.Number(),
+    failed: Type.Boolean(),
+    // Titles given up by buying Warlord.
+    renounced: Type.Array(Type.Enum(TitleId)),
+    // The title laid out in its place.
+    replacement: Type.Optional(Type.Enum(TitleId))
+})
+
+export type TitleRenunciation = Type.Static<typeof TitleRenunciation>
+export const TitleRenunciation = Type.Object({
+    playerId: Type.String(),
+    kind: Type.Literal(TitleRequestKind.Renounce),
+    titleId: Type.Enum(TitleId)
+})
+
+export type TitleChange = Type.Static<typeof TitleChange>
+export const TitleChange = Type.Union([TitlePurchase, TitleRenunciation])
+
+// Buying or renouncing a title: settled at once on the Main Line, or waiting for the span to end.
+export type TitleActionMetadata = Type.Static<typeof TitleActionMetadata>
+export const TitleActionMetadata = Type.Object({
+    queued: Type.Boolean(),
+    change: Type.Optional(TitleChange)
+})
+
 // Rulebook 5.0's optional rules, chosen at setup; only the campaign plays them.
 export type OptionalRules = Type.Static<typeof OptionalRules>
 export const OptionalRules = Type.Object({
@@ -553,18 +602,36 @@ export const OptionalRules = Type.Object({
     titles: Type.Boolean()
 })
 
-// The turn's totals toward a directive that adds up over the turn (rulebook 5.1: "met on the
-// turn you fulfil it").
-export type DirectiveTotals = Type.Static<typeof DirectiveTotals>
-export const DirectiveTotals = Type.Object({
+// What a Player has done this turn: the totals toward a directive that adds up over the turn
+// (rulebook 5.1: "met on the turn you fulfil it"), and the achievements a title asks for this
+// turn (5.2: "the prerequisite must be met this turn").
+export type TurnRecord = Type.Static<typeof TurnRecord>
+export const TurnRecord = Type.Object({
     miningCash: Type.Number(),
     researchMarkers: Type.Number(),
     baseProductionCash: Type.Number(),
-    sales: Type.Array(Type.Object({ systemId: Type.String(), good: Type.Enum(TradeGood) }))
+    sales: Type.Array(Type.Object({ systemId: Type.String(), good: Type.Enum(TradeGood) })),
+    terraformedClasses: Type.Array(Type.Enum(WorldClass)),
+    resolvedChallenges: Type.Array(
+        Type.Object({ challenge: Type.Enum(AnomalyChallenge), difficulty: Type.Number() })
+    ),
+    attackedByMoreEscalation: Type.Boolean(),
+    // How far above the rate the closest malfunction roll avoided was.
+    narrowestMalfunction: Type.Optional(Type.Number()),
+    rolledOne: Type.Array(Type.Enum(OperationRoll))
 })
 
-export function emptyDirectiveTotals(): DirectiveTotals {
-    return { miningCash: 0, researchMarkers: 0, baseProductionCash: 0, sales: [] }
+export function emptyTurnRecord(): TurnRecord {
+    return {
+        miningCash: 0,
+        researchMarkers: 0,
+        baseProductionCash: 0,
+        sales: [],
+        terraformedClasses: [],
+        resolvedChallenges: [],
+        attackedByMoreEscalation: false,
+        rolledOne: []
+    }
 }
 
 // Directives are dealt at the start, at the start of a turn, and after a span in which a Player

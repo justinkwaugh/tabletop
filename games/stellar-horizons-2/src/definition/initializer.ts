@@ -32,7 +32,8 @@ import { configuredScenario } from './config.js'
 import { MachineState } from './states.js'
 import { initialCardPiles } from '../model/cards.js'
 import { initialDirectivePile } from '../model/directives.js'
-import { emptyDirectiveTotals } from '../model/pieces.js'
+import { layOutTitles } from '../model/titles.js'
+import { emptyTurnRecord } from '../model/pieces.js'
 
 export class StellarHorizonsGameInitializer
     extends BaseGameInitializer<StellarHorizonsProjectedState, HydratedStellarHorizonsGameState>
@@ -96,7 +97,9 @@ export class StellarHorizonsGameInitializer
                     fulfilledDirectives: [],
                     directiveDrawsOwed: 0,
                     redrewDirective: false,
-                    directiveTotals: emptyDirectiveTotals()
+                    turnRecord: emptyTurnRecord(),
+                    titles: [],
+                    titleRequests: []
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
@@ -157,7 +160,9 @@ export class StellarHorizonsGameInitializer
                 titles: scenario.campaign !== undefined && game.config.titles !== false
             },
             directivePile: initialDirectivePile(scenario),
-            removedDirectives: []
+            removedDirectives: [],
+            availableTitles: [],
+            titlePool: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
         for (const worldClass of Object.values(WorldClass)) {
@@ -168,6 +173,7 @@ export class StellarHorizonsGameInitializer
             )
         }
 
+        layOutTitles(hydrated)
         for (const systemId of surveyedSystemIds) {
             if (hydrated.isSystemInPlay(systemId)) {
                 fillWorldSlots(hydrated, systemId)

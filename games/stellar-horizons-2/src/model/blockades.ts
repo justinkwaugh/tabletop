@@ -1,7 +1,8 @@
 import * as Type from 'typebox'
 import { DirectiveAttack, DirectiveType } from '../components/directives.js'
 import { blocksBases } from './anomalies.js'
-import { recordDirectiveProgresses } from './directives.js'
+import { attackablePlayers } from './attacks.js'
+import { recordAttack, recordTurnProgresses } from './turnRecord.js'
 import { gainInfluence } from './campaign.js'
 import { canAttack, drawEscalation } from './escalation.js'
 import { halts } from './events.js'
@@ -70,12 +71,13 @@ export function blockadeableBases(
     ) {
         return []
     }
+    const targetIds = attackablePlayers(state, playerId).map((player) => player.playerId)
     return state
         .allBases()
         .filter(
             (base) =>
                 base.systemId === systemId &&
-                base.playerId !== playerId &&
+                targetIds.includes(base.playerId) &&
                 !isBlockaded(state, base.playerId, systemId)
         )
 }
@@ -165,7 +167,7 @@ export function declareBlockade(
     const force = fleetCombatIn(state, playerId, systemId)
     const defence = combinedDefence(state, targetIds, systemId)
     // Rulebook 5.1's blockade directive, met by any base named.
-    const directives = recordDirectiveProgresses(
+    const directives = recordTurnProgresses(
         state,
         playerId,
         targetIds.map((targetId) => ({
@@ -174,8 +176,15 @@ export function declareBlockade(
             targetId
         }))
     )
+    for (const targetId of targetIds) {
+        recordAttack(state, playerId, targetId)
+    }
     state.blockades.push({ playerId, systemId, targetIds: [...targetIds] })
     const escalation = drawEscalation(state, playerId, BLOCKADE_ESCALATION * targetIds.length)
+    // Admiral's prerequisite may be met once the blockader's markers are drawn too (rulebook 5.2).
+    for (const targetId of targetIds) {
+        recordAttack(state, playerId, targetId)
+    }
     for (const targetId of targetIds) {
         gainInfluence(state, targetId, BLOCKADE_INFLUENCE)
     }

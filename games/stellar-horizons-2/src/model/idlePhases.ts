@@ -8,6 +8,7 @@ import { canExploreAnyShip } from './exploration.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { attemptableEventIds } from './events.js'
 import { canMoveAnyShip } from './movement.js'
+import { canBuyExpiringTitle } from './titles.js'
 import { canOperateAnyShip } from './operations.js'
 import { canJoinAnyPact } from './pacts.js'
 import { OperationKind } from './pieces.js'
@@ -51,10 +52,13 @@ export function isIdleInPhase(
                 !hasExploredThisDecade(state, playerId)
             )
         // Transcend Biology's owner announces their change before an end roll.
+        // A Player plays the development phase while they can buy a title whose prerequisite is
+        // for this turn only, so it can always be bought before the turn ends (slice 6, Q10).
         case TurnPhase.Development:
             return (
                 !canDevelopAnyTech(state, playerId) &&
                 !canBuyAnyCard(state, playerId) &&
+                !canBuyExpiringTitle(state, playerId) &&
                 !(
                     capabilitiesOf(state, playerId).endRollModifier > 0 &&
                     endRollChance(state) !== undefined

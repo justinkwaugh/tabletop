@@ -3,6 +3,7 @@ import { gainInfluence, isCampaign } from './campaign.js'
 import { removeUnfulfillableDirectives, startDirectiveTurn, usesDirectives } from './directives.js'
 import { capabilitiesOf } from './fleet.js'
 import type { RemovedDirective } from './pieces.js'
+import { startTurnRecord } from './turnRecord.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 
 export const DECADE = 10
@@ -70,6 +71,7 @@ export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
     for (const { playerId, amount } of influence) {
         gainInfluence(state, playerId, amount)
     }
+    startTurnRecord(state)
     const removedDirectives = usesDirectives(state) ? removeUnfulfillableDirectives(state) : []
     startDirectiveTurn(state)
     return { income, arrivedShipIds, influence, removedDirectives }

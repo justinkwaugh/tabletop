@@ -14,6 +14,7 @@ import {
 } from './fleet.js'
 import { isHeld } from './holds.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import { recordMalfunctionRoll } from './turnRecord.js'
 import { MarkerReason, type ShipState } from './pieces.js'
 import { earnMarkers } from './pools.js'
 
@@ -120,6 +121,7 @@ export function explore(
     const rewardRoll = rewardRolls.length > 0 ? Math.min(...rewardRolls) : undefined
     const rate = malfunctionRate(state, ship)
     const malfunctionRoll = random.dieRoll(100)
+    recordMalfunctionRoll(state, ship.playerId, malfunctionRoll, rate)
     const markerCount =
         Math.floor(value / EXPLORATION_STEP) +
         (rewardRoll !== undefined && rewardRoll <= remainder ? 1 : 0)

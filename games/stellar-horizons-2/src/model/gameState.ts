@@ -15,6 +15,7 @@ import { EscalationMarker } from '../components/escalation.js'
 import { TradeGood } from '../components/tradeGoods.js'
 import { ScenarioId, scenarioDefinition, type ScenarioDefinition } from '../components/scenarios.js'
 import { MachineState } from '../definition/states.js'
+import { TitleId } from '../components/titles.js'
 import {
     AttackRecord,
     Base,
@@ -110,7 +111,10 @@ export const StellarHorizonsGameState = Type.Object({
     // resumes once drawn directives are chosen.
     directivePile: DirectivePile,
     removedDirectives: Type.Array(RemovedDirective),
-    directiveResume: Type.Optional(DirectiveResumePoint)
+    directiveResume: Type.Optional(DirectiveResumePoint),
+    // Rulebook 5.2: the titles laid out to buy, and those left to draw when one is bought.
+    availableTitles: Type.Array(Type.Enum(TitleId)),
+    titlePool: Type.Array(Type.Enum(TitleId))
 })
 
 export const StellarHorizonsGameStateValidator = Compile(StellarHorizonsGameState)
@@ -192,6 +196,8 @@ export class HydratedStellarHorizonsGameState
     declare directivePile: DirectivePile
     declare removedDirectives: RemovedDirective[]
     declare directiveResume?: DirectiveResumePoint
+    declare availableTitles: TitleId[]
+    declare titlePool: TitleId[]
 
     constructor(data: StellarHorizonsProjectedState) {
         super(data, StellarHorizonsProjectedStateValidator)

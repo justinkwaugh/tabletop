@@ -5,7 +5,7 @@ import { shipDefinition, ShipKind } from '../components/ships.js'
 import { SOL_SYSTEM_ID } from '../components/systems.js'
 import { arrivedShipsIn, clearFoughtCombat, crewVehiclesIn, currentCombatOf } from './combat.js'
 import { rollCombat } from './combatRolls.js'
-import { recordDirectiveProgress } from './directives.js'
+import { recordTurnProgress } from './turnRecord.js'
 import { canAttack } from './escalation.js'
 import {
     capabilitiesOf,
@@ -29,6 +29,7 @@ import {
     type ShipState
 } from './pieces.js'
 import { raidChoices, resolveRaid, rollRaid } from './raids.js'
+import { recordAttack } from './turnRecord.js'
 
 function isArmed(ship: ShipState): boolean {
     return currentCombat(ship) > 0
@@ -89,7 +90,8 @@ function systemAttackOptions(
         .filter((ship) => ship.damage === 0)
         .map((ship) => ship.shipId)
     const ownBase = state.base(playerId, systemId)
-    return state.otherPlayers(playerId).flatMap((other) => {
+    const capabilities = capabilitiesOf(state, playerId)
+    return attackablePlayers(state, playerId).flatMap((other) => {
         const defenderId = other.playerId
         const cvs = crewVehiclesIn(state, defenderId, systemId)
         const base = state.base(defenderId, systemId)
@@ -112,6 +114,7 @@ function systemAttackOptions(
         }
         if (
             raiders.length > 0 &&
+            !capabilities.cannotRaid &&
             base &&
             !capabilitiesOf(state, defenderId).raidImmune &&
             !cvs.some(isArmed)
@@ -138,6 +141,15 @@ function systemAttackOptions(
         }
         return options
     })
+}
+
+// Rulebook 5.2's Admiral can only attack, or blockade (slice 5, Q5), Players who have more
+// escalation markers.
+export function attackablePlayers(state: HydratedStellarHorizonsGameState, playerId: string) {
+    const markers = state.getPlayerState(playerId).escalation.length
+    return capabilitiesOf(state, playerId).attacksOnlyMoreEscalation
+        ? state.otherPlayers(playerId).filter((other) => other.escalation.length > markers)
+        : state.otherPlayers(playerId)
 }
 
 export function canAttackAnywhere(state: HydratedStellarHorizonsGameState, playerId: string) {
@@ -295,6 +307,7 @@ export function declareAttack(
 ): DeclaredAttack {
     const { kind, systemId, defenderId, shipIds } = declaration
     clearFoughtCombat(state)
+    recordAttack(state, attackerId, defenderId)
     state.systemAttacks.push({ playerId: attackerId, systemId })
     for (const shipId of shipIds) {
         state.attacks.push({ shipId, targetId: defenderId, year: state.year })
@@ -336,7 +349,7 @@ function recordAttackDirective(
               : undefined
     return attack === undefined
         ? undefined
-        : recordDirectiveProgress(state, attackerId, {
+        : recordTurnProgress(state, attackerId, {
               kind: DirectiveType.Combat,
               attack,
               targetId: declaration.defenderId

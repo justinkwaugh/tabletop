@@ -7,9 +7,11 @@ import { EscalationMarker } from '../components/escalation.js'
 import { Faction } from '../components/factions.js'
 import { TechField } from '../components/techFields.js'
 import { TechId } from '../components/techs.js'
+import { TitleId } from '../components/titles.js'
 import { TradeGood } from '../components/tradeGoods.js'
 import {
-    DirectiveTotals,
+    TitleRequest,
+    TurnRecord,
     EarnedMarkers,
     FulfilledDirective,
     HandCard,
@@ -85,7 +87,10 @@ export const StellarHorizonsPlayerState = Type.Evaluate(
             fulfilledDirectives: Type.Array(FulfilledDirective),
             directiveDrawsOwed: Type.Number(),
             redrewDirective: Type.Boolean(),
-            directiveTotals: DirectiveTotals
+            turnRecord: TurnRecord,
+            // Rulebook 5.2: titles owned, and those bought or renounced in a Branch, waiting.
+            titles: Type.Array(Type.Enum(TitleId)),
+            titleRequests: Type.Array(TitleRequest)
         })
     ])
 )
@@ -134,7 +139,9 @@ export class HydratedStellarHorizonsPlayerState
     declare fulfilledDirectives: FulfilledDirective[]
     declare directiveDrawsOwed: number
     declare redrewDirective: boolean
-    declare directiveTotals: DirectiveTotals
+    declare turnRecord: TurnRecord
+    declare titles: TitleId[]
+    declare titleRequests: TitleRequest[]
     declare cards: OwnedCard[]
     declare cardDraws: CardDeck[]
     declare settlementsBought: number

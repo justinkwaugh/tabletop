@@ -15,10 +15,10 @@ import { WorldClass } from '../components/worldTypes.js'
 import {
     directiveScore,
     directiveTargets,
-    recordDirectiveProgress,
     redrawDirective,
     ruledDifficulty
 } from '../model/directives.js'
+import { recordTurnProgress } from '../model/turnRecord.js'
 import {
     StellarHorizonsGameStateValidator,
     type HydratedStellarHorizonsGameState,
@@ -138,7 +138,7 @@ describe('Fulfilling a directive', () => {
         giveDirective(hydrated, playerId, 'p4')
         const influence = hydrated.getPlayerState(playerId).influence
         const cash = (amount: number) =>
-            recordDirectiveProgress(hydrated, playerId, {
+            recordTurnProgress(hydrated, playerId, {
                 kind: DirectiveType.Production,
                 production: DirectiveProduction.BaseProductionCash,
                 amount
@@ -157,7 +157,7 @@ describe('Fulfilling a directive', () => {
         const [playerId] = hydrated.initiativeOrder()
         giveDirective(hydrated, playerId, 't3')
         const sell = (systemId: string, good: TradeGood) =>
-            recordDirectiveProgress(hydrated, playerId, {
+            recordTurnProgress(hydrated, playerId, {
                 kind: DirectiveType.Trade,
                 systemId,
                 good
@@ -179,7 +179,7 @@ describe('Fulfilling a directive', () => {
         expect(directiveTargets(hydrated, holder).toSorted()).toEqual([second, third].toSorted())
         giveDirective(hydrated, holder, 'c1')
         const attack = (attack: DirectiveAttack, targetId: string) =>
-            recordDirectiveProgress(hydrated, holder, {
+            recordTurnProgress(hydrated, holder, {
                 kind: DirectiveType.Combat,
                 attack,
                 targetId
@@ -199,7 +199,7 @@ describe('Fulfilling a directive', () => {
         expect(ruledDifficulty(hydrated, 5, AnomalyChallenge.Combat, [starfarers])).toBe(8)
         giveDirective(hydrated, givers, 'a2')
         const resolve = (challenge: AnomalyChallenge, difficulty: number) =>
-            recordDirectiveProgress(hydrated, givers, {
+            recordTurnProgress(hydrated, givers, {
                 kind: DirectiveType.Anomaly,
                 challenge,
                 difficulty
@@ -209,7 +209,7 @@ describe('Fulfilling a directive', () => {
         expect(resolve(AnomalyChallenge.Combat, 7)?.directiveId).toBe('a2')
         giveDirective(hydrated, givers, 'tf2')
         const terraform = (worldClass: WorldClass) =>
-            recordDirectiveProgress(hydrated, givers, {
+            recordTurnProgress(hydrated, givers, {
                 kind: DirectiveType.Terraform,
                 worldClass
             })
@@ -228,7 +228,7 @@ describe('The next directive', () => {
             giveDirective(hydrated, surveyor, 's4')
             hydrated.systemState('procyon').explorationMarker = 0
             giveDirective(hydrated, fulfiller, 'p1')
-            recordDirectiveProgress(hydrated, fulfiller, {
+            recordTurnProgress(hydrated, fulfiller, {
                 kind: DirectiveType.Production,
                 production: DirectiveProduction.MiningCash,
                 amount: 3

@@ -11,7 +11,7 @@ import {
 } from '../components/worlds.js'
 import { AnomalySearch, searchForAnomaly } from './anomalies.js'
 import { gainInfluence, isCampaign } from './campaign.js'
-import { recordDirectiveProgress } from './directives.js'
+import { recordTurnProgress } from './turnRecord.js'
 import { drawDemand } from './demand.js'
 import { capabilitiesOf } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
@@ -89,7 +89,7 @@ export function resolveNextSurvey(state: HydratedStellarHorizonsGameState): Surv
     resolution.completed = true
     resolution.explorationMarker = system.explorationMarker
     // Rulebook 5.1: any survey of the named system meets a survey directive (slice 6, Q8).
-    const directive = recordDirectiveProgress(state, player.playerId, {
+    const directive = recordTurnProgress(state, player.playerId, {
         kind: DirectiveType.Survey,
         systemId: survey.systemId
     })

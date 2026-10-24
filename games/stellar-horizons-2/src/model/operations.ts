@@ -6,7 +6,8 @@ import { TechField } from '../components/techFields.js'
 import { worldFace } from '../components/worlds.js'
 import { DirectiveProduction, DirectiveType } from '../components/directives.js'
 import { blocksExploration } from './anomalies.js'
-import { recordDirectiveProgress } from './directives.js'
+import { recordOperationRoll, recordTurnProgress } from './turnRecord.js'
+import { OperationRoll } from '../components/titles.js'
 import { factionAbilities, isCampaign } from './campaign.js'
 import {
     capabilitiesOf,
@@ -106,7 +107,11 @@ export function miningTarget(
     ship: ShipState,
     slot: number
 ): number {
-    return face(state, ship.systemId, slot).cash
+    // Prospector treats world values as 1 higher for mining (rulebook 5.2).
+    return (
+        face(state, ship.systemId, slot).cash +
+        capabilitiesOf(state, ship.playerId).miningWorldValue
+    )
 }
 
 export function researchTarget(
@@ -118,7 +123,12 @@ export function researchTarget(
     const exploration = capabilitiesOf(state, ship.playerId).researchFullValue
         ? currentExploration(ship)
         : roundHalfUp(currentExploration(ship) / 2)
-    return face(state, ship.systemId, slot).techValue + exploration
+    // Researcher treats world values as 1 higher for research (rulebook 5.2).
+    return (
+        face(state, ship.systemId, slot).techValue +
+        capabilitiesOf(state, ship.playerId).researchWorldValue +
+        exploration
+    )
 }
 
 // Mining earns $1B, or $2B on a die at or under the world's cash value; Mining Vessel Upgrades
@@ -133,11 +143,12 @@ export function mine(
     const random = state.getPlayerPrng(ship.playerId)
     const rolls = Array.from({ length: capabilities.miningDice }, () => random.dieRoll(10))
     const roll = Math.min(...rolls)
+    recordOperationRoll(state, ship.playerId, OperationRoll.Mining, roll)
     const success = roll <= target
     const cash = (success ? RICH_MINING_CASH : MINING_CASH) + capabilities.miningCash
     state.getPlayerState(ship.playerId).cash += cash
     recordOperation(ship, state, OperationKind.Mining)
-    const directive = recordDirectiveProgress(state, ship.playerId, {
+    const directive = recordTurnProgress(state, ship.playerId, {
         kind: DirectiveType.Production,
         production: DirectiveProduction.MiningCash,
         amount: cash
@@ -163,6 +174,7 @@ export function research(
     const printed = face(state, ship.systemId, slot)
     const target = researchTarget(state, ship, slot)
     const roll = state.getPlayerPrng(ship.playerId).dieRoll(10)
+    recordOperationRoll(state, ship.playerId, OperationRoll.Research, roll)
     const success = roll <= target
     if (success) {
         earnMarkers(state, ship.playerId, {
@@ -175,7 +187,7 @@ export function research(
     }
     recordOperation(ship, state, OperationKind.Research)
     const directive = success
-        ? recordDirectiveProgress(state, ship.playerId, {
+        ? recordTurnProgress(state, ship.playerId, {
               kind: DirectiveType.Production,
               production: DirectiveProduction.ResearchMarkers,
               amount: 1

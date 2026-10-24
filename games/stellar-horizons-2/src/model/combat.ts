@@ -4,6 +4,7 @@ import { SOL_SYSTEM_ID } from '../components/systems.js'
 import { gainInfluence } from './campaign.js'
 import { drawEscalation } from './escalation.js'
 import { hasArrived } from './fleet.js'
+import { recordAttack } from './turnRecord.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import {
     type Combat,
@@ -140,6 +141,8 @@ export function endCombat(
         gainInfluence(state, combat.defenderId, owed)
         outcome = { owed, declined, escalation, influence: owed }
     }
+    // Admiral's prerequisite may be checked after the combat too (rulebook 5.2).
+    recordAttack(state, combat.attackerId, combat.defenderId)
     state.foughtCombat = { ...combat, outcome }
     return outcome
 }

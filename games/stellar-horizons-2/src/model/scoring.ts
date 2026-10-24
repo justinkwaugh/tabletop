@@ -5,6 +5,7 @@ import { TECH_FIELDS, type TechField } from '../components/techFields.js'
 import { TECHS } from '../components/techs.js'
 import { directiveScore } from './directives.js'
 import { escalationScore } from './escalation.js'
+import { titleScore } from './titles.js'
 import { capabilitiesOf } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { roundHalfUp } from './turn.js'
@@ -37,6 +38,7 @@ export const CampaignScore = Type.Object({
     cash: Type.Number(),
     cards: Type.Number(),
     escalation: Type.Number(),
+    titles: Type.Number(),
     directives: Type.Number(),
     // -15 for each directive short of the faction's goal (rulebook 5.1).
     directiveGoal: Type.Number(),
@@ -79,6 +81,7 @@ export function campaignScore(
         cash: Math.floor(player.cash / CASH_PER_POINT),
         cards: player.cardPoints(),
         escalation: escalationScore(player),
+        titles: titleScore(state, playerId),
         directives: directives.points,
         directiveGoal: -directives.penalty,
         playerCount: PLAYER_COUNT_BONUS[state.numPlayers] ?? 0

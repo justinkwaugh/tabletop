@@ -91,6 +91,8 @@ import { HydratedDefendAttack, isDefendAttack } from '../actions/defendAttack.js
 import { HydratedAssignHit, isAssignHit } from '../actions/assignHit.js'
 import { HydratedResolveRaid, isResolveRaid } from '../actions/resolveRaid.js'
 import { HydratedEndCombat, isEndCombat } from '../actions/endCombat.js'
+import { HydratedBuyTitle, isBuyTitle } from '../actions/buyTitle.js'
+import { HydratedRenounceTitle, isRenounceTitle } from '../actions/renounceTitle.js'
 import { HydratedDealDirectives, isDealDirectives } from '../actions/dealDirectives.js'
 import { HydratedChooseDirective, isChooseDirective } from '../actions/chooseDirective.js'
 import { HydratedRedrawDirective, isRedrawDirective } from '../actions/redrawDirective.js'
@@ -241,6 +243,10 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedResolveRaid(data)
             case isEndCombat(data):
                 return new HydratedEndCombat(data)
+            case isBuyTitle(data):
+                return new HydratedBuyTitle(data)
+            case isRenounceTitle(data):
+                return new HydratedRenounceTitle(data)
             case isDealDirectives(data):
                 return new HydratedDealDirectives(data)
             case isChooseDirective(data):

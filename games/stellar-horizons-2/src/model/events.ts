@@ -14,6 +14,8 @@ import { TechField } from '../components/techFields.js'
 import { TECHS } from '../components/techs.js'
 import { worldTile, WorldSide } from '../components/worlds.js'
 import { attemptStrength, blocksBases, canTakePart, challengeDifficulty } from './anomalies.js'
+import { ruledDifficulty } from './directives.js'
+import { recordResolvedEvent } from './turnRecord.js'
 import { gainInfluence } from './campaign.js'
 import { removeShip } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
@@ -478,6 +480,22 @@ function eventPactShares(
     )
 }
 
+// Rulebook 5.2: Guardian and Mastermind ask for a combat or science anomaly or event of 10+
+// difficulty, resolved alone or with other Players, at the ruled difficulty (campaign plan, slice
+// 6, Q6).
+function recordResolved(
+    state: HydratedStellarHorizonsGameState,
+    eventId: string,
+    challenge: AnomalyChallenge,
+    resolverIds: readonly string[]
+) {
+    const printed = printedEventDifficulty(eventId, challenge)
+    if (printed !== undefined) {
+        const difficulty = ruledDifficulty(state, printed, challenge, resolverIds)
+        recordResolvedEvent(state, resolverIds, challenge, difficulty)
+    }
+}
+
 // Attempts resolve in initiative order after the anomalies; the event returns to the pool and
 // its IP goes to whoever resolved it.
 export function resolveNextEventAttempt(state: HydratedStellarHorizonsGameState): EventResolution {
@@ -495,9 +513,16 @@ export function resolveNextEventAttempt(state: HydratedStellarHorizonsGameState)
     if (resolved) {
         state.events = state.events.filter((candidate) => candidate.eventId !== attempt.eventId)
         state.eventPool.push(attempt.eventId)
-        for (const [partnerId, share] of Object.entries(pactShares ?? { [playerId]: influence })) {
+        const shares = Object.entries(pactShares ?? { [playerId]: influence })
+        for (const [partnerId, share] of shares) {
             gainInfluence(state, partnerId, share)
         }
+        recordResolved(
+            state,
+            attempt.eventId,
+            attempt.challenge,
+            shares.map(([partnerId]) => partnerId)
+        )
     }
     return {
         playerId,

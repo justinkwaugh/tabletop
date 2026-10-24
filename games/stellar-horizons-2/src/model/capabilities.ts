@@ -3,6 +3,7 @@ import { CardDeck, cardDefinition, type CardEffects } from '../components/cards.
 import { escalationDefinition, type EscalationEffects } from '../components/escalation.js'
 import { factionSheet, type FactionAbilities } from '../components/factionSheets.js'
 import { techDefinition, type TechEffects } from '../components/techs.js'
+import { titleDefinition, type TitleEffects } from '../components/titles.js'
 import { TechField } from '../components/techFields.js'
 import type { TradeGood } from '../components/tradeGoods.js'
 import { WorldClass } from '../components/worldTypes.js'
@@ -60,8 +61,17 @@ export interface Capabilities {
     difficulty: Record<AnomalyChallenge, number>
     armedCvCombat: number
     defendingCombat: number
-    // Each faction's or card's modifier to combat and raid rolls, kept apart to be named.
+    // Each faction's, card's or title's modifier to combat and raid rolls, kept apart to be named.
     rollModifiers: SourcedRollModifier[]
+    // Admiral's restrictions (rulebook 5.2).
+    cannotRaid: boolean
+    attacksOnlyMoreEscalation: boolean
+    // Cartographer's +5% to find anomalies, Guildmaster's IP for each good sold on Earth, and
+    // Prospector's and Researcher's +1 to world values.
+    titleAnomalyChance: number
+    earthSaleInfluence: number
+    miningWorldValue: number
+    researchWorldValue: number
     raidImmune: boolean
     lowersRaidResult: boolean
     extraEscalation: number
@@ -140,6 +150,10 @@ type NumericCardEffect = {
     [Key in keyof CardEffects]-?: CardEffects[Key] extends number | undefined ? Key : never
 }[keyof CardEffects]
 
+type NumericTitleEffect = {
+    [Key in keyof TitleEffects]-?: TitleEffects[Key] extends number | undefined ? Key : never
+}[keyof TitleEffects]
+
 type NumericEscalationEffect = {
     [Key in keyof EscalationEffects]-?: EscalationEffects[Key] extends number | undefined
         ? Key
@@ -167,6 +181,21 @@ export function playerCapabilities(
     const highest = (key: keyof TechEffects, baseline: number) => Math.max(baseline, ...values(key))
     const habitability = values('settleHabitability')
 
+    const titles: TitleEffects[] = player.titles.map((titleId) => titleDefinition(titleId).effects)
+    const titleSum = (key: NumericTitleEffect) =>
+        titles.reduce((total, effect) => total + (effect[key] ?? 0), 0)
+    const titleDeckAmount = (key: 'handSize' | 'cardCost', deck: CardDeck) =>
+        titles.reduce(
+            (total, effect) =>
+                total + (effect[key]?.deck === deck ? (effect[key]?.amount ?? 0) : 0),
+            0
+        )
+    const titleDifficulty = (challenge: AnomalyChallenge) =>
+        titles.reduce(
+            (total, effect) =>
+                total + (effect.difficulty?.challenge === challenge ? effect.difficulty.amount : 0),
+            0
+        )
     const abilities: FactionAbilities =
         scenario.campaign && player.faction ? factionSheet(player.faction).abilities : {}
     const effects = player.cards.map((card) => cardDefinition(card.cardId).effects)
@@ -218,18 +247,25 @@ export function playerCapabilities(
         settleHabitability: habitability.length > 0 ? Math.min(...habitability) : undefined,
         habitabilityBonus: (abilities.habitabilityBonus ?? 0) + sum('habitability'),
         // The Givers' extra action needs no tech; Planetary Engineering's adds to the tech's.
+        // Planetary Architect adds to an action the Player has, as Planetary Engineering does
+        // (campaign plan, slice 6, Q11).
         terraforms:
             techTerraforms +
             (techTerraforms > 0 ? sum('terraforms') : 0) +
-            (abilities.extraTerraforms ?? 0),
+            (abilities.extraTerraforms ?? 0) +
+            (techTerraforms > 0 || abilities.extraTerraforms ? titleSum('extraTerraforms') : 0),
         terraformDraws: highest('terraformDraws', 1) + sum('sideTwoTerraformDraws'),
         cvMalfunction: Math.max(
             0,
-            lowest('cvMalfunction', BASELINE.cvMalfunction) + sum('cvMalfunction')
+            lowest('cvMalfunction', BASELINE.cvMalfunction) +
+                sum('cvMalfunction') +
+                titleSum('malfunction')
         ),
         reMalfunction: Math.max(
             0,
-            lowest('reMalfunction', BASELINE.reMalfunction) + sum('reMalfunction')
+            lowest('reMalfunction', BASELINE.reMalfunction) +
+                sum('reMalfunction') +
+                titleSum('malfunction')
         ),
         cvExplorationBonus: highest('cvExplorationBonus', 0) + sum('cvExplorationBonus'),
         reExplorationBonus: highest('reExplorationBonus', 0) + sum('reExplorationBonus'),
@@ -268,17 +304,22 @@ export function playerCapabilities(
                 effect.fieldTechCost?.field === field ? effect.fieldTechCost.amount : 0
             )
         ),
-        cardDiscount: perDeck((deck) =>
-            discount('cardCost', (effect) =>
-                effect.deckCardCost?.deck === deck ? effect.deckCardCost.amount : 0
-            )
+        cardDiscount: perDeck(
+            (deck) =>
+                discount('cardCost', (effect) =>
+                    effect.deckCardCost?.deck === deck ? effect.deckCardCost.amount : 0
+                ) - titleDeckAmount('cardCost', deck)
         ),
         cardLevels: {
             [CardDeck.Fleet]: highest('fleetLevel', BASELINE.cardLevel),
             [CardDeck.Genetic]: highest('geneticLevel', BASELINE.cardLevel)
         },
         handSize: perDeck(
-            (deck) => HAND_SIZE + (abilities.favouredDeck === deck ? 1 : 0) + sum('handSize')
+            (deck) =>
+                HAND_SIZE +
+                (abilities.favouredDeck === deck ? 1 : 0) +
+                sum('handSize') +
+                titleDeckAmount('handSize', deck)
         ),
         cardSurcharge: perDeck((deck) =>
             abilities.favouredDeck === deck ? FAVOURED_CARD_SURCHARGE : CARD_SURCHARGE
@@ -288,9 +329,13 @@ export function playerCapabilities(
         reAnomalyChance: sum('reAnomalyChance'),
         difficulty: {
             [AnomalyChallenge.Science]:
-                (abilities.scienceAnomalyDifficulty ?? 0) + sum('scienceDifficulty'),
+                (abilities.scienceAnomalyDifficulty ?? 0) +
+                sum('scienceDifficulty') +
+                titleDifficulty(AnomalyChallenge.Science),
             [AnomalyChallenge.Combat]:
-                (abilities.combatAnomalyDifficulty ?? 0) + sum('combatDifficulty')
+                (abilities.combatAnomalyDifficulty ?? 0) +
+                sum('combatDifficulty') +
+                titleDifficulty(AnomalyChallenge.Combat)
         },
         armedCvCombat: sum('armedCvCombat'),
         defendingCombat: sum('defendingCombat'),
@@ -311,8 +356,21 @@ export function playerCapabilities(
                     const value = cardEffects[effect]
                     return value ? [{ effect, source: { kind: 'Card', cardId }, value }] : []
                 })
+            }),
+            // Admiral's +2 and Warlord's +1 (rulebook 5.2).
+            ...player.titles.flatMap((titleId): SourcedRollModifier[] => {
+                const value = titleDefinition(titleId).effects.combatRoll
+                return value
+                    ? [{ effect: 'combatRoll', source: { kind: 'Title', titleId }, value }]
+                    : []
             })
         ],
+        cannotRaid: titles.some((title) => title.cannotRaid === true),
+        attacksOnlyMoreEscalation: titles.some((title) => title.attacksOnlyMoreEscalation === true),
+        titleAnomalyChance: titleSum('anomalyChance'),
+        earthSaleInfluence: titleSum('earthSaleInfluence'),
+        miningWorldValue: titleSum('miningWorldValue'),
+        researchWorldValue: titleSum('researchWorldValue'),
         raidImmune: abilities.raidImmune === true,
         lowersRaidResult: abilities.lowersRaidResult === true,
         extraEscalation: sum('extraEscalation'),
@@ -322,7 +380,7 @@ export function playerCapabilities(
             (field) => escalation.filter((effect) => effect.earthMarker === field).length
         ),
         saleChange: escalationSum('saleChange'),
-        migrationChange: escalationSum('migrationChange'),
+        migrationChange: escalationSum('migrationChange') + titleSum('migrationHabitability'),
         researchFullValue: any((effect) => effect.researchFullValue === true),
         researchShipBonus: Math.max(
             BASELINE.researchShipBonus,
@@ -342,7 +400,7 @@ export function playerCapabilities(
         saleBonus,
         demandDraws: (abilities.demandDraws ?? DEMAND_DRAW) + sum('demandChoices'),
         keepsTwoDemand: any((effect) => effect.keepsTwoDemand === true),
-        influencePerTurn: sum('influencePerTurn'),
+        influencePerTurn: sum('influencePerTurn') + titleSum('influencePerTurn'),
         initiativeBonus: sum('initiative') + escalationSum('initiative'),
         populationByClass: byClass('populationByClass'),
         population: sum('population'),

@@ -16,7 +16,7 @@ import {
 } from './cargoTransfer.js'
 import { currentCenturyRow, factionAbilities, gainInfluence, isCampaign } from './campaign.js'
 import { replaceDemand, demandedGoods } from './demand.js'
-import { recordDirectiveProgresses } from './directives.js'
+import { recordTurnProgresses } from './turnRecord.js'
 import { smuggled } from './events.js'
 import { capabilitiesOf, freeCargo, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
@@ -724,7 +724,12 @@ export function sellGoods(
     const player = state.getPlayerState(playerId)
     const cash = count * price
     player.cash += cash
-    const influence = sale.systemId === SOL_SYSTEM_ID ? 0 : count * SALE_INFLUENCE
+    // Guildmaster earns 1 IP for each good sold on Earth (rulebook 5.2).
+    const influence =
+        count *
+        (sale.systemId === SOL_SYSTEM_ID
+            ? capabilitiesOf(state, playerId).earthSaleInfluence
+            : SALE_INFLUENCE)
     gainInfluence(state, playerId, influence)
     const payment = sale.payeeId === undefined ? 0 : count * SALE_PAYMENT
     if (sale.payeeId !== undefined) {
@@ -733,7 +738,7 @@ export function sellGoods(
     }
     replaceDemand(state, playerId, sale.systemId, sale.good)
     // Rulebook 5.1's trade directives count each good sold over the turn.
-    const directives = recordDirectiveProgresses(
+    const directives = recordTurnProgresses(
         state,
         playerId,
         repeat(sale.good, count).map((good) => ({

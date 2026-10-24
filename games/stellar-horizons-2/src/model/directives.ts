@@ -6,7 +6,6 @@ import {
     DIRECTIVE_INFLUENCE,
     DIRECTIVE_REDRAW_COST,
     DIRECTIVE_SHORTFALL_PENALTY,
-    DirectiveAttack,
     type DirectiveCondition,
     type DirectiveGoal,
     DirectiveProduction,
@@ -17,20 +16,19 @@ import {
 } from '../components/directives.js'
 import { factionSheet } from '../components/factionSheets.js'
 import type { ScenarioDefinition } from '../components/scenarios.js'
-import { TradeGood } from '../components/tradeGoods.js'
-import { WorldClass } from '../components/worldTypes.js'
 import { gainInfluence, isCampaign } from './campaign.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import {
     type DirectivePile,
     DirectiveStatus,
-    type DirectiveTotals,
+    type TurnRecord,
     FulfilledDirective,
     HeldDirective,
-    type RemovedDirective,
-    emptyDirectiveTotals
+    type RemovedDirective
 } from './pieces.js'
 import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
+import type { TurnProgress } from './turnRecord.js'
+import { isInBranch } from './turnPlan.js'
 
 // Rulebook 5.1: directives are orders from a Player's government, kept secret until fulfilled,
 // worth points at the end; each faction must fulfil a number of its types.
@@ -187,14 +185,13 @@ export function removeUnfulfillableDirectives(
     })
 }
 
-// The turn's totals start afresh, and so does the once-a-turn redraw. A Player holding no
-// directive, having fulfilled theirs or had it removed, draws two (rulebook 5.1).
+// The once-a-turn redraw starts afresh. A Player holding no directive, having fulfilled theirs or
+// had it removed, draws two (rulebook 5.1).
 export function startDirectiveTurn(state: HydratedStellarHorizonsGameState) {
     if (!usesDirectives(state)) {
         return
     }
     for (const player of state.players) {
-        player.directiveTotals = emptyDirectiveTotals()
         player.redrewDirective = false
         if (player.heldDirectives.length === 0 && state.directivePile.remaining > 0) {
             player.directiveDrawsOwed = DIRECTIVE_DRAW
@@ -216,10 +213,6 @@ export interface DirectiveChoice {
     // The directives not kept, named only to their Player.
     returned: HeldDirective[]
     directives?: FulfilledDirective[]
-}
-
-function isInBranch(state: HydratedStellarHorizonsGameState): boolean {
-    return state.parallelSpan?.branchPlayerId !== undefined
 }
 
 // The Player keeps one of the directives drawn; the rest go back to the pool, or wait beside the
@@ -294,16 +287,7 @@ export function redrawDirective(
     return { queued: false, givenUp: current, drawn }
 }
 
-// What happened toward a directive, as each rule reports it.
-export type DirectiveProgress =
-    | { kind: DirectiveType.Anomaly; challenge: AnomalyChallenge; difficulty: number }
-    | { kind: DirectiveType.Combat; attack: DirectiveAttack; targetId: string }
-    | { kind: DirectiveType.Production; production: DirectiveProduction; amount: number }
-    | { kind: DirectiveType.Survey; systemId: string }
-    | { kind: DirectiveType.Trade; systemId: string; good: TradeGood }
-    | { kind: DirectiveType.Terraform; worldClass: WorldClass }
-
-const PRODUCTION_TOTALS: Record<
+export const PRODUCTION_TOTALS: Record<
     DirectiveProduction,
     'miningCash' | 'researchMarkers' | 'baseProductionCash'
 > = {
@@ -315,7 +299,7 @@ const PRODUCTION_TOTALS: Record<
 // How much of a directive that adds up over the turn the turn has given, against what it needs;
 // nothing for the others.
 export function directiveTotal(
-    totals: DirectiveTotals,
+    totals: TurnRecord,
     condition: DirectiveCondition
 ): { done: number; needed: number } | undefined {
     switch (condition.kind) {
@@ -360,9 +344,9 @@ function isMet(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
     condition: DirectiveCondition,
-    progress: DirectiveProgress | undefined
+    progress: TurnProgress | undefined
 ): boolean {
-    const total = directiveTotal(state.getPlayerState(playerId).directiveTotals, condition)
+    const total = directiveTotal(state.getPlayerState(playerId).turnRecord, condition)
     if (total) {
         return total.done >= total.needed
     }
@@ -395,10 +379,10 @@ function isMet(
 
 // Fulfilment is automatic (campaign plan, slice 6, Q4): 1 IP and the directive face up for
 // scoring. The next is drawn at the start of the next turn.
-function checkDirective(
+export function checkDirective(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
-    progress?: DirectiveProgress
+    progress?: TurnProgress
 ): FulfilledDirective | undefined {
     const directiveId = currentDirectiveId(state, playerId)
     if (
@@ -413,37 +397,6 @@ function checkDirective(
     player.fulfilledDirectives.push(fulfilled)
     gainInfluence(state, playerId, DIRECTIVE_INFLUENCE)
     return fulfilled
-}
-
-export function recordDirectiveProgress(
-    state: HydratedStellarHorizonsGameState,
-    playerId: string,
-    progress: DirectiveProgress
-): FulfilledDirective | undefined {
-    if (!usesDirectives(state)) {
-        return undefined
-    }
-    const totals = state.getPlayerState(playerId).directiveTotals
-    if (progress.kind === DirectiveType.Production) {
-        totals[PRODUCTION_TOTALS[progress.production]] += progress.amount
-    }
-    if (progress.kind === DirectiveType.Trade) {
-        totals.sales.push({ systemId: progress.systemId, good: progress.good })
-    }
-    return checkDirective(state, playerId, progress)
-}
-
-// Several things toward a Player's directive at once, such as the goods of one sale or the bases
-// of one blockade: the directive is fulfilled by the first that meets it.
-export function recordDirectiveProgresses(
-    state: HydratedStellarHorizonsGameState,
-    playerId: string,
-    progresses: readonly DirectiveProgress[]
-): FulfilledDirective[] {
-    return progresses.flatMap((progress) => {
-        const fulfilled = recordDirectiveProgress(state, playerId, progress)
-        return fulfilled ? [fulfilled] : []
-    })
 }
 
 // Rulebook 5.1's difficulty for an anomaly directive, and Guardian's and Mastermind's 10+:

@@ -1,6 +1,7 @@
 import { TechField } from '../components/techFields.js'
 import type { TradeGood } from '../components/tradeGoods.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import { isInBranch } from './turnPlan.js'
 import type { EarnedMarkers } from './pieces.js'
 
 export const TECH_MARKER_VALUES: readonly number[] = [1, 2, 3, 4, 5]
@@ -113,7 +114,7 @@ export function discardGoods(
     playerId: string,
     goods: readonly TradeGood[]
 ) {
-    if (state.parallelSpan?.branchPlayerId === undefined) {
+    if (!isInBranch(state)) {
         state.goodsPool.push(...goods)
     } else {
         state.getPlayerState(playerId).discardedGoods.push(...goods)

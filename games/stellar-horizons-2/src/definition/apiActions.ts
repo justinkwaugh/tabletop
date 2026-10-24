@@ -66,6 +66,8 @@ import { DefendAttack } from '../actions/defendAttack.js'
 import { AssignHit } from '../actions/assignHit.js'
 import { ResolveRaid } from '../actions/resolveRaid.js'
 import { EndCombat } from '../actions/endCombat.js'
+import { BuyTitle } from '../actions/buyTitle.js'
+import { RenounceTitle } from '../actions/renounceTitle.js'
 import { DealDirectives } from '../actions/dealDirectives.js'
 import { ChooseDirective } from '../actions/chooseDirective.js'
 import { RedrawDirective } from '../actions/redrawDirective.js'
@@ -139,6 +141,8 @@ export const StellarHorizonsApiActions = {
     [ActionType.AssignHit]: AssignHit,
     [ActionType.ResolveRaid]: ResolveRaid,
     [ActionType.EndCombat]: EndCombat,
+    [ActionType.BuyTitle]: BuyTitle,
+    [ActionType.RenounceTitle]: RenounceTitle,
     [ActionType.DealDirectives]: DealDirectives,
     [ActionType.ChooseDirective]: ChooseDirective,
     [ActionType.RedrawDirective]: RedrawDirective,

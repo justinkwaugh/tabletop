@@ -3,7 +3,8 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
 import { DirectiveType } from '../components/directives.js'
 import { ActionType } from '../definition/actions.js'
-import { recordDirectiveProgress, ruledDifficulty } from '../model/directives.js'
+import { ruledDifficulty } from '../model/directives.js'
+import { recordTurnProgress } from '../model/turnRecord.js'
 import { FulfilledDirective } from '../model/pieces.js'
 import { anomalyDefinition } from '../components/anomalies.js'
 import {
@@ -92,7 +93,7 @@ export class HydratedResolveAnomaly
             resolverIds
         )
         return resolverIds.flatMap((playerId) => {
-            const fulfilled = recordDirectiveProgress(state, playerId, {
+            const fulfilled = recordTurnProgress(state, playerId, {
                 kind: DirectiveType.Anomaly,
                 challenge: anomaly.challenge,
                 difficulty

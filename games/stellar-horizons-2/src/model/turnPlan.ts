@@ -182,6 +182,12 @@ export function mergeOrder(state: HydratedStellarHorizonsGameState, phase: SpanP
         : order.toReversed()
 }
 
+// A Branch may change only what its Player owns; what touches others or a shared pool waits for
+// the span to end (docs/parallel-spans.md).
+export function isInBranch(state: HydratedStellarHorizonsGameState): boolean {
+    return state.parallelSpan?.branchPlayerId !== undefined
+}
+
 export function branchPlayerId(state: HydratedStellarHorizonsGameState): string {
     const playerId = state.parallelSpan?.branchPlayerId
     assertExists(playerId, 'No Branch is being played')

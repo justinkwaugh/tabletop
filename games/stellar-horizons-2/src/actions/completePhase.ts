@@ -3,6 +3,8 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { returnDiscardedDirectives } from '../model/directives.js'
+import { TitleChange, TitleRequestKind } from '../model/pieces.js'
+import { settleTitleRequests } from '../model/titles.js'
 import { returnDiscardedGoods } from '../model/pools.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { queuePactAttempts } from '../model/pactResolution.js'
@@ -16,7 +18,9 @@ export type CompletePhaseMetadata = Type.Static<typeof CompletePhaseMetadata>
 export const CompletePhaseMetadata = Type.Object({
     ...PhaseMetadata.properties,
     // Players who bought nothing and so discarded their hands (rulebook 1.20).
-    discardedHands: Type.Optional(Type.Array(Type.String()))
+    discardedHands: Type.Optional(Type.Array(Type.String())),
+    // Titles bought or renounced in the span's Branches, settled in initiative order (5.2).
+    titles: Type.Optional(Type.Array(TitleChange))
 })
 
 export type CompletePhase = Type.Static<typeof CompletePhase>
@@ -54,11 +58,17 @@ export class HydratedCompletePhase
         }
         returnDiscardedGoods(state)
         returnDiscardedDirectives(state)
-        if (phase === TurnPhase.Development && isCampaign(state)) {
-            this.metadata = { phase, discardedHands: dealAfterDevelopment(state) }
-            return
+        const titles = settleTitleRequests(state)
+        this.revealsInfo = titles.some(
+            (change) => change.kind === TitleRequestKind.Buy && change.replacement !== undefined
+        )
+        this.metadata = {
+            phase,
+            ...(phase === TurnPhase.Development && isCampaign(state)
+                ? { discardedHands: dealAfterDevelopment(state) }
+                : {}),
+            ...(titles.length > 0 ? { titles } : {})
         }
-        this.metadata = { phase }
     }
 }
 

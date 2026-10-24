@@ -14,7 +14,7 @@ import { capabilitiesOf } from './fleet.js'
 import { halts } from './events.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { CASH_PRODUCTION, type FulfilledDirective, Production, type Base } from './pieces.js'
-import { recordDirectiveProgress } from './directives.js'
+import { recordTurnProgress } from './turnRecord.js'
 import { awardTechMarkers } from './pools.js'
 import { removeBaseSettlement, addSettlements } from './settling.js'
 import { roundHalfUp } from './turn.js'
@@ -256,7 +256,7 @@ export function recordProductionDirectives(
             .reduce((total, result) => total + result.cash, 0)
         const fulfilled =
             cash > 0
-                ? recordDirectiveProgress(state, playerId, {
+                ? recordTurnProgress(state, playerId, {
                       kind: DirectiveType.Production,
                       production: DirectiveProduction.BaseProductionCash,
                       amount: cash

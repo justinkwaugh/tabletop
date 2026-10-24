@@ -115,7 +115,10 @@ export function anomalyChance(
             : kind === ShipKind.RE
               ? capabilities.reAnomalyChance
               : 0
-    return (capabilities.anomalyChance ?? anomalies.chance) + bonus
+    // Cartographer adds 5% to every survey (rulebook 5.2).
+    return (
+        (capabilities.anomalyChance ?? anomalies.chance) + bonus + capabilities.titleAnomalyChance
+    )
 }
 
 export function searchForAnomaly(

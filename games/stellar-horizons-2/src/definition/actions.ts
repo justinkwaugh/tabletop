@@ -70,5 +70,7 @@ export enum ActionType {
     EndTurn = 'EndTurn',
     DealDirectives = 'DealDirectives',
     ChooseDirective = 'ChooseDirective',
-    RedrawDirective = 'RedrawDirective'
+    RedrawDirective = 'RedrawDirective',
+    BuyTitle = 'BuyTitle',
+    RenounceTitle = 'RenounceTitle'
 }

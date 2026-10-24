@@ -4,7 +4,7 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { DirectiveType } from '../components/directives.js'
 import { worldTile } from '../components/worlds.js'
 import { ActionType } from '../definition/actions.js'
-import { recordDirectiveProgress } from '../model/directives.js'
+import { recordTurnProgress } from '../model/turnRecord.js'
 import { FulfilledDirective } from '../model/pieces.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { applyTerraformChoice, isValidTerraformChoice } from '../model/terraforming.js'
@@ -65,7 +65,7 @@ export class HydratedChooseTerraformWorld
         const directive =
             this.tileId === undefined
                 ? undefined
-                : recordDirectiveProgress(state, this.playerId, {
+                : recordTurnProgress(state, this.playerId, {
                       kind: DirectiveType.Terraform,
                       worldClass: worldTile(this.tileId).worldClass
                   })
