@@ -171,6 +171,11 @@
 - **Planetary Surveys:** the survey choice shows both drawn worlds, each with `Place this`, or, in a full system, every swap either allows.
 - **Pacts:** a reward with a card adds a Card column to the split, with `Earns it` on the partner who earns it and `Give` on the others.
 
+### Choosing a directive
+
+- **Meaning:** the directives a Player drew are theirs to choose from, each shown as its printed marker: its type in the printed header colour, its condition, and its points in a gold disc. Tapping one keeps it; nothing else is staged, and Undo takes the choice back while nothing hidden has been revealed since.
+- **Where:** at the start, at the start of a turn and after a span in which they redrew, the action panel's directive step shows the drawn markers with the faction's goal; the phase has no done button, since keeping one ends it. A Player who drew while acting on the Main Line chooses from the same markers in their console's Directives section.
+
 ### Star map or tech chart
 
 - **Default:** the main area shows the star map, and switches to the tech chart while the acting player is in the develop-techs phase.
@@ -197,6 +202,7 @@
 - **Console:** under the standings, one panel about a single player: a header in their faction's colour with faction, player, initiative and phase; cash and the marker total in each field; in the campaign, their IP, with a `1 IP → $1B` button on the viewer's own console while they can spend it, a line with their ships and bases against the century's limits and their settlement price, and their score so far with its rank and the categories that are not zero, the categories shown by clicking anywhere on the Score row, which keeps the total, the rank and a chevron in view (folded to begin with, kept while the console is shown); in a scenario won by resolving anomalies, the tiles they have resolved with the science and combat counts and the goal; their bases as map tabs with the system and its population (green once it reaches the population a winning system needs); their ships as map pips grouped by the system they are at or travelling to, with the turns left after a ship still on its way; and techs developed out of the chart in each field, marked `new` for a field developed this turn.
 - **Trigger:** clicking a standings row shows that player in the console and tints the row in their faction's colour. The viewer's own row is shown to begin with.
 - **Cards (campaign):** the console lists the player's owned cards, compact (name, level, points, printed cost), each showing its text when tapped; then `Hand`: the viewer's own cards the same way, another player's as backs showing only the deck and level. The score breakdown has a `Cards` line.
+- **Directives (campaign, when played):** after the score, the player's directive goal and how many count toward it; the current directive face up on the viewer's own console, with this turn's total toward it when it adds up over the turn, and as a `Directive` back on another player's; a `Redraw · 1 IP` button beside it while the viewer may redraw; the drawn markers to choose from when the viewer has drawn outside the directive step; a note while a directive given up waits for the span to end, or while none is held; and the fulfilled directives, smaller, each with its year. The score breakdown has `Directives` and `Directive goal` lines.
 - **Unaffected:** the choice changes nothing on the star map or in the action panel.
 
 ## Shared visual state

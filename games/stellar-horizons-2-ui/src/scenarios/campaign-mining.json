@@ -32,27 +32,27 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 363902712,
+  "seed": 1836726126,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T21:34:06.923Z",
+  "createdAt": "2026-10-24T22:51:52.946Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "ZsskpriAi3Cd5WzSlY6j3",
+  "id": "Ev42iB4K_vXMCkzy4FSU6",
   "gameId": "scenario-campaign-mining",
   "seed": 3367980177,
   "prng": {
    "seed": 3367980177,
-   "invocations": 498
+   "invocations": 778
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
    "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
-   "invocations": 48
+   "invocations": 57
   },
   "masterSeed": "0123456789abcdef0123456789abcdef",
   "activePlayerIds": [
@@ -124,6 +124,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p0",
+      "status": "Current",
+      "directiveId": "t6"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Starfarers"
    },
    {
@@ -191,6 +207,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p1",
+      "status": "Current",
+      "directiveId": "c2"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Praetorians"
    },
    {
@@ -248,6 +280,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p2",
+      "status": "Current",
+      "directiveId": "c3"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Givers"
    }
   ],
@@ -1243,6 +1291,55 @@
   "remainingAttackers": [],
   "systemAttacks": [],
   "attacks": [],
+  "optionalRules": {
+   "directives": true,
+   "titles": true
+  },
+  "directivePile": {
+   "directives": [
+    "a1",
+    "a2",
+    "a4",
+    "a5",
+    "c1",
+    "c4",
+    "c5",
+    "c6",
+    "p1",
+    "p2",
+    "p3",
+    "p4",
+    "p5",
+    "p6",
+    "s1",
+    "s2",
+    "s3",
+    "s5",
+    "s7",
+    "s8",
+    "s9",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t7",
+    "t8",
+    "t9",
+    "tf1",
+    "tf2",
+    "tf3",
+    "tf5",
+    "s6",
+    "s4",
+    "tf4",
+    "a3",
+    "a6",
+    "s10"
+   ],
+   "remaining": 39
+  },
+  "removedDirectives": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",
@@ -1295,15 +1392,15 @@
    "closedPlayerIds": [],
    "mergedPlayerIds": [],
    "branchStartIds": {
-    "p0": "0W8nkFviujYeOdOTs8Lo3",
-    "p2": "CPST7CdgfH5Bvplzk998M",
-    "p1": "TxCcwWdf6y16byoVL1LT3"
+    "p0": "y27GAku7HwnqewQSBSxZS",
+    "p2": "ZuTDuGwVookgL5fNV9YNM",
+    "p1": "NDvhPmGrE7cKDUP6Tai9x"
    },
-   "completionId": "Hm5RSgpGFcym4PVpg9nhT",
+   "completionId": "bKzPmnrhbGnL5fpeRFlyq",
    "branchCloseIds": {
-    "p0": "DaBuWFf9ACm1zz5izZev6",
-    "p2": "U2eiYuEkVlmIUZWldr7g6",
-    "p1": "lQ9kwII6Lt81jkJfkDAmj"
+    "p0": "x677Rvj1MWT1QlPAH4NyR",
+    "p2": "fKwKngWTAYq4VX4pTkj65",
+    "p1": "nBSMpl85MKY4CUco8Uv54"
    },
    "branchPlayerId": "p0"
   }

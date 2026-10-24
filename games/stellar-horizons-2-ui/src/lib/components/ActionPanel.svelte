@@ -29,6 +29,7 @@
     import GrowthBaseStep from './steps/GrowthBaseStep.svelte'
     import BlockadeStep from './steps/BlockadeStep.svelte'
     import CombatStep from './steps/CombatStep.svelte'
+    import DirectiveStep from './steps/DirectiveStep.svelte'
 
     const gameSession = getGameSession()
     const machineState = $derived(gameSession.gameState.machineState)
@@ -66,6 +67,8 @@
             <ProductionStep />
         {:else if gameSession.actingPhase === TurnPhase.TradeGoods}
             <AssignGoodsStep />
+        {:else if gameSession.actingPhase === TurnPhase.Directives}
+            <DirectiveStep />
         {/if}
     {:else if machineState === MachineState.ChoosingSurveyWorld}
         <SurveyChoice />

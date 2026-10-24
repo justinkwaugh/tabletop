@@ -26,6 +26,13 @@ async function createCampaign(page: Page) {
     for (const faction of ['The Starfarers', 'The Givers', 'The Praetorians']) {
         await page.getByRole('button', { name: new RegExp(`^${faction}`) }).click()
     }
+    // Each Player keeps the first directive they drew, the harness passing to the next.
+    const drawn = page.getByRole('group', { name: 'Directives drawn' }).getByRole('button')
+    for (let player = 1; player < 3; player++) {
+        await drawn.first().click()
+        await expect(page.locator('[title$=" has finished"]')).toHaveCount(player)
+    }
+    await drawn.first().click()
 }
 
 test('a campaign opens in the exploration phase of 2100 with IP and victory points', async ({
@@ -181,15 +188,33 @@ test('an assault is declared, answered and its hits placed from the combat panel
     await step.getByRole('button', { name: /^Guildmaster/ }).click()
     await step.getByRole('button', { name: /^Sapphire/ }).click()
     await step.getByRole('button', { name: 'Defend with 2 ships' }).click()
-    // The Player Guide's 14 against 11, each modifier named.
+    // The Player Guide's 14 against 11, each modifier named; the dice are set only to leave hits
+    // to choose on both sides.
     await expect(
         panel.getByText(
-            'Rolled 1 + 0.2 (CVs) + 0.3 (settlements) + 1 (The Praetorians) + 1 (Military Academy) = 4 · combat value 14'
+            /^Rolled \d+ \+ 0\.2 \(CVs\) \+ 0\.3 \(settlements\) \+ 1 \(The Praetorians\) \+ 1 \(Military Academy\) = \d+ · combat value 14/
         )
     ).toBeVisible()
-    await expect(panel.getByText('Rolled 3 + 0.3 (CVs) = 3 · combat value 11')).toBeVisible()
-    // The Givers' 3 hits land on the Praetorians' units first, the Praetorians choosing first.
-    await expect(panel.getByText('3 hits left on these units')).toBeVisible()
+    await expect(
+        panel.getByText(/^Rolled \d+ \+ 0\.3 \(CVs\) = \d+ · combat value 11/)
+    ).toBeVisible()
+    // The Givers' hits land on the Praetorians' units first, the Praetorians choosing first.
+    // Hits that leave no choice may follow it, so the count only has to move on.
+    const left = panel.getByText(/hits? left on these units/)
+    const before = await left.innerText()
     await panel.locator('.unit.target').first().click()
-    await expect(panel.getByText('2 hits left on these units')).toBeVisible()
+    await expect(left).not.toHaveText(before)
+})
+
+test('a directive is kept from those drawn at the start, and shown on the console', async ({
+    page
+}) => {
+    await openScenario(page, 'Campaign directive choice')
+    const drawn = page.getByRole('group', { name: 'Directives drawn' }).getByRole('button')
+    await expect(drawn).toHaveCount(3)
+    await expect(page.getByText(/^Your goal: \d directives/)).toBeVisible()
+    await drawn.first().click()
+    await expect(page.locator('[title="Player 1 has finished"]')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Keep directive' })).toHaveCount(0)
+    await expect(page.locator('.console h4', { hasText: 'Directives' })).toBeVisible()
 })

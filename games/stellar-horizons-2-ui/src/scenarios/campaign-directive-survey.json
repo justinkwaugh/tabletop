@@ -1,0 +1,1377 @@
+{
+ "game": {
+  "id": "scenario-campaign-directive-survey",
+  "isPublic": false,
+  "status": "waitingForPlayers",
+  "typeId": "stellar-horizons-2",
+  "deleted": false,
+  "name": "Campaign: a survey directive",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "p0",
+    "name": "Player 1",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p1",
+    "name": "Player 3",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p2",
+    "name": "Player 2",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "scenario": "Campaign"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 268341870,
+  "activePlayerIds": [
+   "p0"
+  ],
+  "createdAt": "2026-10-24T22:51:54.720Z",
+  "storage": "remote",
+  "category": "standard"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "MRylSYY1e2w_RdItiZWpz",
+  "gameId": "scenario-campaign-directive-survey",
+  "seed": 3367980177,
+  "prng": {
+   "seed": 3367980177,
+   "invocations": 778
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+   "invocations": 57
+  },
+  "masterSeed": "0123456789abcdef0123456789abcdef",
+  "activePlayerIds": [
+   "p0"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "p0",
+    "color": "blue",
+    "cash": 25,
+    "techMarkers": {
+     "Biology": [
+      2
+     ],
+     "Physics": [
+      4,
+      4
+     ],
+     "Engineering": [
+      2,
+      2
+     ]
+    },
+    "spentMarkers": {
+     "Biology": [],
+     "Physics": [],
+     "Engineering": []
+    },
+    "earnedMarkers": [],
+    "techs": [],
+    "remoteRepairUsed": false,
+    "fieldsDeveloped": [],
+    "pendingSurveys": [
+     {
+      "shipId": "starfarers-copernicus",
+      "systemId": "procyon"
+     }
+    ],
+    "anomalyAttempts": [],
+    "anomalies": [],
+    "influence": 0,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
+    "explorationMarkers": 0,
+    "earthGoods": [],
+    "drawnGoods": [],
+    "discardedGoods": [],
+    "hand": [
+     {
+      "playerId": "p0",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "resilient-crews"
+     },
+     {
+      "playerId": "p0",
+      "deck": "Genetic",
+      "level": 1,
+      "cardId": "skilled-entertainers"
+     }
+    ],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
+    "escalation": [],
+    "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p0",
+      "status": "Current",
+      "directiveId": "s4"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
+    "faction": "Starfarers"
+   },
+   {
+    "playerId": "p1",
+    "color": "purple",
+    "cash": 28,
+    "techMarkers": {
+     "Biology": [
+      1,
+      2
+     ],
+     "Physics": [
+      2,
+      5,
+      5
+     ],
+     "Engineering": [
+      4,
+      4
+     ]
+    },
+    "spentMarkers": {
+     "Biology": [],
+     "Physics": [],
+     "Engineering": []
+    },
+    "earnedMarkers": [],
+    "techs": [],
+    "remoteRepairUsed": false,
+    "fieldsDeveloped": [],
+    "pendingSurveys": [],
+    "anomalyAttempts": [],
+    "anomalies": [],
+    "influence": 0,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
+    "explorationMarkers": 0,
+    "earthGoods": [],
+    "drawnGoods": [],
+    "discardedGoods": [],
+    "hand": [
+     {
+      "playerId": "p1",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "resilient-crews"
+     },
+     {
+      "playerId": "p1",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "superior-robotics"
+     },
+     {
+      "playerId": "p1",
+      "deck": "Genetic",
+      "level": 1,
+      "cardId": "skilled-naturalists"
+     }
+    ],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
+    "escalation": [],
+    "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p1",
+      "status": "Current",
+      "directiveId": "c2"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
+    "faction": "Praetorians"
+   },
+   {
+    "playerId": "p2",
+    "color": "green",
+    "cash": 24,
+    "techMarkers": {
+     "Biology": [
+      1
+     ],
+     "Physics": [
+      4
+     ],
+     "Engineering": [
+      5
+     ]
+    },
+    "spentMarkers": {
+     "Biology": [],
+     "Physics": [],
+     "Engineering": []
+    },
+    "earnedMarkers": [],
+    "techs": [],
+    "remoteRepairUsed": false,
+    "fieldsDeveloped": [],
+    "pendingSurveys": [],
+    "anomalyAttempts": [],
+    "anomalies": [],
+    "influence": 0,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
+    "explorationMarkers": 0,
+    "earthGoods": [],
+    "drawnGoods": [],
+    "discardedGoods": [],
+    "hand": [
+     {
+      "playerId": "p2",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "planetary-surveys"
+     },
+     {
+      "playerId": "p2",
+      "deck": "Genetic",
+      "level": 1,
+      "cardId": "skilled-engineers"
+     }
+    ],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
+    "escalation": [],
+    "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p2",
+      "status": "Current",
+      "directiveId": "c3"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
+    "faction": "Givers"
+   }
+  ],
+  "machineState": "Exploring",
+  "turnManager": {
+   "series": [],
+   "turnOrder": [
+    "p0",
+    "p2",
+    "p1"
+   ],
+   "turnCounts": {
+    "p0": 0,
+    "p1": 0,
+    "p2": 0
+   }
+  },
+  "scenario": "Campaign",
+  "year": 2100,
+  "systems": [
+   {
+    "systemId": "gliese-251",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "luytens-star",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "tau-ceti",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "epsilon-eridani",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "kapteyns-star",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "gx-andromedae",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "lalande-21185",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "wolf-359",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "ross-128",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "v2306-ophiuchi",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "barnards-star",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "sol",
+    "explorationMarker": 0,
+    "worlds": []
+   },
+   {
+    "systemId": "wise-0855-0714",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "procyon",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "gliese-876",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "luhman-16",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "alpha-centauri",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "sirius",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "vega",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "61-cygni",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "altair",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "epsilon-indi",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "beta-hydri",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "fomalhaut",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "beta-comae-berenices",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "delta-pavonis",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "61-virginis",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "trappist-1",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "arcturus",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "gamma-serpentis",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "alpha-mensae",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "innes-star",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "72-herculis",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "26-draconis",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "beta-aquilae",
+    "explorationMarker": 5,
+    "worlds": []
+   },
+   {
+    "systemId": "18-scorpii",
+    "explorationMarker": 5,
+    "worlds": []
+   }
+  ],
+  "ships": {
+   "starfarers-kuiper": {
+    "shipId": "starfarers-kuiper",
+    "playerId": "p0",
+    "systemId": "lalande-21185",
+    "transit": 0,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "starfarers-messier": {
+    "shipId": "starfarers-messier",
+    "playerId": "p0",
+    "systemId": "barnards-star",
+    "transit": 1,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "starfarers-kepler": {
+    "shipId": "starfarers-kepler",
+    "playerId": "p0",
+    "systemId": "wise-0855-0714",
+    "transit": 1,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "starfarers-copernicus": {
+    "shipId": "starfarers-copernicus",
+    "playerId": "p0",
+    "systemId": "luhman-16",
+    "transit": 2,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "starfarers-orion": {
+    "shipId": "starfarers-orion",
+    "playerId": "p0",
+    "systemId": "alpha-centauri",
+    "transit": 2,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "givers-linnaeus": {
+    "shipId": "givers-linnaeus",
+    "playerId": "p2",
+    "systemId": "wise-0855-0714",
+    "transit": 0,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "givers-mendel": {
+    "shipId": "givers-mendel",
+    "playerId": "p2",
+    "systemId": "wolf-359",
+    "transit": 0,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "givers-humboldt": {
+    "shipId": "givers-humboldt",
+    "playerId": "p2",
+    "systemId": "lalande-21185",
+    "transit": 1,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "givers-bougainville": {
+    "shipId": "givers-bougainville",
+    "playerId": "p2",
+    "systemId": "luhman-16",
+    "transit": 2,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "givers-darwin": {
+    "shipId": "givers-darwin",
+    "playerId": "p2",
+    "systemId": "alpha-centauri",
+    "transit": 3,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "praetorians-peregrinus": {
+    "shipId": "praetorians-peregrinus",
+    "playerId": "p1",
+    "systemId": "luhman-16",
+    "transit": 0,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "praetorians-fidelis": {
+    "shipId": "praetorians-fidelis",
+    "playerId": "p1",
+    "systemId": "wolf-359",
+    "transit": 1,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "praetorians-audax": {
+    "shipId": "praetorians-audax",
+    "playerId": "p1",
+    "systemId": "wise-0855-0714",
+    "transit": 1,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   },
+   "praetorians-odyssey": {
+    "shipId": "praetorians-odyssey",
+    "playerId": "p1",
+    "systemId": "alpha-centauri",
+    "transit": 2,
+    "damage": 0,
+    "settlements": 0,
+    "goods": [],
+    "loadedFromBase": false,
+    "explored": false
+   }
+  },
+  "bases": {},
+  "worldPool": [
+   "m-2",
+   "m-4",
+   "m-5",
+   "m-6",
+   "m-7",
+   "m-9",
+   "m-10",
+   "m-12",
+   "m-15",
+   "m-17",
+   "o-1",
+   "o-3",
+   "o-4",
+   "o-5",
+   "o-6",
+   "o-9",
+   "l-1",
+   "l-3",
+   "l-5",
+   "l-6",
+   "l-7",
+   "l-8",
+   "l-10",
+   "l-13",
+   "l-14",
+   "l-16",
+   "h-1",
+   "h-2",
+   "h-4",
+   "h-6",
+   "h-7",
+   "h-8",
+   "h-9",
+   "h-12",
+   "h-13",
+   "h-16",
+   "p-1",
+   "p-2",
+   "p-3",
+   "p-4",
+   "p-5",
+   "p-6",
+   "p-7",
+   "p-8",
+   "p-9",
+   "p-10",
+   "p-11",
+   "p-12",
+   "p-13",
+   "p-14",
+   "k-1",
+   "k-2",
+   "k-3",
+   "k-4",
+   "k-5",
+   "k-6",
+   "k-7",
+   "k-8",
+   "k-9",
+   "k-10",
+   "k-11",
+   "k-12",
+   "k-13",
+   "k-14",
+   "k-15",
+   "k-16",
+   "k-17",
+   "k-18",
+   "k-19",
+   "k-20",
+   "k-21",
+   "k-22",
+   "k-23",
+   "a-1",
+   "a-2",
+   "a-3",
+   "a-4",
+   "a-5",
+   "a-6",
+   "a-7",
+   "a-8",
+   "a-9",
+   "a-10",
+   "a-11",
+   "j-1",
+   "j-2",
+   "j-3",
+   "j-4",
+   "j-5",
+   "j-6",
+   "j-7",
+   "j-8",
+   "j-9",
+   "j-10",
+   "j-11",
+   "j-12",
+   "j-13",
+   "j-14",
+   "j-15",
+   "j-16",
+   "j-17",
+   "j-18",
+   "j-19",
+   "j-20",
+   "d-1",
+   "d-2",
+   "d-3",
+   "d-4",
+   "d-5",
+   "d-6",
+   "d-7",
+   "d-8",
+   "d-9",
+   "d-10",
+   "d-11",
+   "d-12",
+   "e-1",
+   "e-2",
+   "e-3",
+   "e-4",
+   "e-5",
+   "e-6",
+   "e-7",
+   "none-1",
+   "none-2",
+   "none-3",
+   "none-4",
+   "none-5",
+   "none-6",
+   "none-7",
+   "none-8",
+   "none-9",
+   "none-10",
+   "none-11"
+  ],
+  "removedWorlds": [],
+  "techPools": {
+   "Biology": [
+    11,
+    11,
+    13,
+    13,
+    13
+   ],
+   "Physics": [
+    13,
+    12,
+    13,
+    10,
+    11
+   ],
+   "Engineering": [
+    13,
+    11,
+    13,
+    11,
+    12
+   ]
+  },
+  "anomalyPool": [
+   "adorable-critters",
+   "alien-artifacts",
+   "alien-derelict",
+   "alien-remains",
+   "alien-sentinel",
+   "anarchist-outpost",
+   "asteroid-clouds",
+   "colossal-comet",
+   "decapod-infestation",
+   "dissidents",
+   "hostile-xenomorphs",
+   "ice-caverns",
+   "medicinal-herbs",
+   "megafauna",
+   "mineral-veins",
+   "nanobot-swarm",
+   "natural-stimulants",
+   "pirate-lair",
+   "predatory-plants",
+   "primal-carnivores",
+   "rare-crystals",
+   "rescue-scout-ship",
+   "savage-storms",
+   "severe-radiation",
+   "shadow-fleet",
+   "splinter-colony",
+   "stellar-chart",
+   "stellar-flares",
+   "stunning-vistas",
+   "symbiotic-spores",
+   "system-quarantine",
+   "terran-dna",
+   "tunnel-complex",
+   "violent-separatists"
+  ],
+  "terraformQueue": [],
+  "terraformedWorlds": [],
+  "setAsideWorlds": [
+   "m-1",
+   "m-18",
+   "m-13",
+   "m-3",
+   "m-14",
+   "m-11",
+   "m-16",
+   "m-8",
+   "o-10",
+   "o-12",
+   "o-7",
+   "o-2",
+   "o-11",
+   "o-8",
+   "l-2",
+   "l-12",
+   "l-4",
+   "l-11",
+   "l-15",
+   "l-9",
+   "h-10",
+   "h-5",
+   "h-11",
+   "h-3",
+   "h-15",
+   "h-14"
+  ],
+  "economicTilePool": [
+   "RollInitiative",
+   "DrawEvent",
+   "EarthProduction",
+   "BaseProduction",
+   "DrawTradeGoods",
+   "SettlementGrowth",
+   "Terraforming"
+  ],
+  "eventPool": [
+   "apprehend-renegade",
+   "breakthrough-biology",
+   "breakthrough-engineering",
+   "breakthrough-physics",
+   "collapsing-biosphere",
+   "colonial-rush",
+   "contagion",
+   "first-contact",
+   "homesteaders",
+   "hostile-probe",
+   "incoming-comet",
+   "infectious-parasites",
+   "irradiated-atmosphere",
+   "pirate-raids-3",
+   "pirate-raids-5",
+   "prisoner-revolt",
+   "smugglers",
+   "supervolcano",
+   "unrest",
+   "ai-sentient-emergence"
+  ],
+  "events": [],
+  "homesteaders": [],
+  "pacts": [],
+  "pledgeableShips": [
+   {
+    "playerId": "p2",
+    "shipId": "givers-linnaeus",
+    "systemId": "wise-0855-0714",
+    "science": 1,
+    "combat": 0
+   },
+   {
+    "playerId": "p2",
+    "shipId": "givers-mendel",
+    "systemId": "wolf-359",
+    "science": 2,
+    "combat": 0
+   },
+   {
+    "playerId": "p1",
+    "shipId": "praetorians-peregrinus",
+    "systemId": "luhman-16",
+    "science": 3,
+    "combat": 0
+   },
+   {
+    "playerId": "p0",
+    "shipId": "starfarers-kuiper",
+    "systemId": "lalande-21185",
+    "science": 2,
+    "combat": 0
+   }
+  ],
+  "settlementRewards": [],
+  "goodsRewards": [],
+  "goodsPool": [
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials"
+  ],
+  "demandPool": [
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Beverages",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials"
+  ],
+  "demandDraws": [],
+  "remainingTraders": [],
+  "cardPiles": [
+   {
+    "deck": "Fleet",
+    "level": 1,
+    "cards": [
+     "crew-focus",
+     "hypersonic-missiles",
+     "minefields",
+     "reinforced-hulls",
+     "robotic-focus",
+     "robo-miners",
+     "scout-ships",
+     "sensor-upgrades",
+     "sensor-upgrades",
+     "sensor-upgrades",
+     "superior-robotics"
+    ],
+    "remaining": 11,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Fleet",
+    "level": 2,
+    "cards": [
+     "deep-core-mining",
+     "engine-upgrades",
+     "explorers-guild",
+     "freight-haulers",
+     "mining-vessel-upgrades",
+     "quantum-sensors",
+     "research-vessel-upgrades",
+     "robotic-swarms",
+     "robotic-swarms",
+     "self-repair-system",
+     "starports",
+     "traders-guild"
+    ],
+    "remaining": 12,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Fleet",
+    "level": 3,
+    "cards": [
+     "fleet-logistics",
+     "fleet-logistics",
+     "interstellar-mining-conglomerate",
+     "military-academy",
+     "planetary-engineering",
+     "science-academy",
+     "stabilized-wormholes",
+     "stabilized-wormholes"
+    ],
+    "remaining": 8,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Genetic",
+    "level": 1,
+    "cards": [
+     "aquatic-tolerance",
+     "arid-tolerance",
+     "cold-tolerance",
+     "creative",
+     "culinary-geniuses",
+     "cunning",
+     "enhanced-strength",
+     "environmental-tolerance",
+     "gifted-artists",
+     "pioneers",
+     "prolific-breeders",
+     "radiation-tolerance",
+     "skilled-biologists",
+     "skilled-physicists"
+    ],
+    "remaining": 14,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Genetic",
+    "level": 2,
+    "cards": [
+     "cultural-dominance",
+     "eager-migrants",
+     "increased-body-size",
+     "infrared-vision",
+     "enhanced-intellect",
+     "neural-interface",
+     "reduced-body-size",
+     "skilled-artisans",
+     "spacefaring-populace",
+     "zero-g-tolerance"
+    ],
+    "remaining": 10,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Genetic",
+    "level": 3,
+    "cards": [
+     "aquatic-species",
+     "cyborg-species",
+     "desert-species",
+     "flying",
+     "hive-mind",
+     "natural-immortality",
+     "subterranean",
+     "transcend-biology"
+    ],
+    "remaining": 8,
+    "discards": [],
+    "discarded": 0
+   }
+  ],
+  "growthChoosers": [],
+  "conversions": [],
+  "truce": true,
+  "escalationPool": [
+   "Points1",
+   "Points1",
+   "Points2",
+   "Points2",
+   "Points2",
+   "Points2",
+   "Points3",
+   "Points3",
+   "Points3",
+   "Points3",
+   "Points4",
+   "Points4",
+   "Points4",
+   "Points5",
+   "EarthCash",
+   "EarthCash",
+   "EarthCash",
+   "EarthCash",
+   "NoAttack",
+   "NoAttack",
+   "NoAttack",
+   "NoAttack",
+   "Initiative20",
+   "Initiative20",
+   "Initiative30",
+   "Initiative40",
+   "SettlementCost1",
+   "SettlementCost1",
+   "SettlementCost1",
+   "SettlementCost1",
+   "SettlementCost2",
+   "SaleCost1",
+   "SaleCost2",
+   "Migration20",
+   "Migration30",
+   "Migration30",
+   "EarthEngineering",
+   "EarthEngineering",
+   "EarthPhysics"
+  ],
+  "remainingBlockaders": [],
+  "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
+  "optionalRules": {
+   "directives": true,
+   "titles": true
+  },
+  "directivePile": {
+   "directives": [
+    "a1",
+    "a2",
+    "a4",
+    "a5",
+    "c1",
+    "c4",
+    "c5",
+    "c6",
+    "p1",
+    "p2",
+    "p3",
+    "p4",
+    "p5",
+    "p6",
+    "s1",
+    "s2",
+    "s3",
+    "s5",
+    "s7",
+    "s8",
+    "s9",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t7",
+    "t8",
+    "t9",
+    "tf1",
+    "tf2",
+    "tf3",
+    "tf5",
+    "s6",
+    "tf4",
+    "a3",
+    "a6",
+    "s10",
+    "t6"
+   ],
+   "remaining": 39
+  },
+  "removedDirectives": [],
+  "startingPositionRandom": [
+   {
+    "playerId": "p0",
+    "identity": {
+     "seed": 1482267465,
+     "invocations": 0
+    },
+    "rules": {
+     "algorithm": "chacha20-v1",
+     "seed": "fc9b97b440afea59cbfa00226932a2dc82ee32edc8a6dfa42a6a865f5f1bc83f",
+     "invocations": 0
+    }
+   },
+   {
+    "playerId": "p2",
+    "identity": {
+     "seed": 2931998875,
+     "invocations": 0
+    },
+    "rules": {
+     "algorithm": "chacha20-v1",
+     "seed": "5f257d5782d26c07577c20ab9c5f6fee244674dc3130ab758fc69baf84c2adb5",
+     "invocations": 0
+    }
+   },
+   {
+    "playerId": "p1",
+    "identity": {
+     "seed": 2139800122,
+     "invocations": 0
+    },
+    "rules": {
+     "algorithm": "chacha20-v1",
+     "seed": "8c1c470c1acd944fb959c391a77888ca74cbbbdb328ba3fedc6ee133d120f756",
+     "invocations": 0
+    }
+   }
+  ],
+  "parallelSpan": {
+   "machineState": "ExplorationPhase",
+   "branchPoint": {
+    "actionCount": 0,
+    "actionChecksum": 0
+   },
+   "playerIds": [
+    "p0",
+    "p2",
+    "p1"
+   ],
+   "closedPlayerIds": [],
+   "mergedPlayerIds": [],
+   "branchStartIds": {
+    "p0": "y27GAku7HwnqewQSBSxZS",
+    "p2": "ZuTDuGwVookgL5fNV9YNM",
+    "p1": "NDvhPmGrE7cKDUP6Tai9x"
+   },
+   "completionId": "bKzPmnrhbGnL5fpeRFlyq",
+   "branchCloseIds": {
+    "p0": "x677Rvj1MWT1QlPAH4NyR",
+    "p2": "fKwKngWTAYq4VX4pTkj65",
+    "p1": "nBSMpl85MKY4CUco8Uv54"
+   },
+   "branchPlayerId": "p0"
+  }
+ },
+ "actions": []
+}

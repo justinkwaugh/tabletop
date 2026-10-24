@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 497932975,
+  "seed": 4248160350,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T21:34:06.692Z",
+  "createdAt": "2026-10-24T22:51:52.636Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "wOgKPaqs97isWQviS_kNG",
+  "id": "uWrHJAPhLRv6p1Wmyuyn_",
   "gameId": "scenario-three-factions-at-one-anomaly",
   "seed": 3367980177,
   "prng": {
@@ -197,6 +197,16 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Starfarers"
    },
    {
@@ -334,6 +344,16 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Praetorians"
    },
    {
@@ -471,6 +491,16 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Givers"
    }
   ],
@@ -1045,6 +1075,15 @@
   "remainingAttackers": [],
   "systemAttacks": [],
   "attacks": [],
+  "optionalRules": {
+   "directives": false,
+   "titles": false
+  },
+  "directivePile": {
+   "directives": [],
+   "remaining": 0
+  },
+  "removedDirectives": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

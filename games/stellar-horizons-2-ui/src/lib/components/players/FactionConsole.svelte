@@ -11,7 +11,15 @@
         anomalyDefinition,
         escalationScore,
         galacticRank,
-        shipDefinition
+        shipDefinition,
+        DIRECTIVE_REDRAW_COST,
+        DIRECTIVE_SHORTFALL_PENALTY,
+        directiveGoalProgress,
+        DirectiveStatus,
+        TurnPhase,
+        choosesDirective,
+        directiveScore,
+        usesDirectives
     } from '@tabletop/stellar-horizons-2'
     import { FACTION_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -31,6 +39,9 @@
     import CardBack from '../cards/CardBack.svelte'
     import CardFace from '../cards/CardFace.svelte'
     import EscalationChip from '../escalation/EscalationChip.svelte'
+    import DirectiveCard from '../directives/DirectiveCard.svelte'
+    import DirectiveChoice from '../directives/DirectiveChoice.svelte'
+    import { directiveProgress, goalTypes, heldDirectiveIds } from '$lib/utils/directives.js'
     import BaseTab from './BaseTab.svelte'
     import ShipIcon from './ShipIcon.svelte'
 
@@ -47,6 +58,14 @@
     const canDestroyGoods = $derived(
         mine && gameSession.validActionTypes.includes(ActionType.DestroyGoods)
     )
+    const canRedrawDirective = $derived(
+        mine && gameSession.validActionTypes.includes(ActionType.RedrawDirective)
+    )
+    const canChooseDirective = $derived(
+        mine && gameSession.validActionTypes.includes(ActionType.ChooseDirective)
+    )
+    // The directive step offers the choice itself.
+    const choosingInStep = $derived(gameSession.actingPhase === TurnPhase.Directives)
     const goods = $derived(playerId ? holdings(gameSession.gameState, playerId) : [])
     let scoreOpen = $state(false)
     // An owned or held card shows its text once tapped.
@@ -68,6 +87,8 @@
         ['cash', 'Cash'],
         ['cards', 'Cards'],
         ['escalation', 'Escalation markers'],
+        ['directives', 'Directives'],
+        ['directiveGoal', 'Directive goal'],
         ['playerCount', 'Players in the game']
     ] as const
 
@@ -169,6 +190,86 @@
                                         >{signed(score[key])}</span
                                     >
                                 {/if}
+                            {/each}
+                        </div>
+                    {/if}
+                </section>
+            {/if}
+
+            {#if player && playerId && usesDirectives(gameSession.gameState)}
+                {@const current = heldDirectiveIds(
+                    gameSession.gameState,
+                    playerId,
+                    DirectiveStatus.Current
+                )}
+                {@const discarded = heldDirectiveIds(
+                    gameSession.gameState,
+                    playerId,
+                    DirectiveStatus.Discarded
+                )}
+                {@const directiveGoal = directiveGoalProgress(gameSession.gameState, playerId)}
+                <section>
+                    <h4>
+                        Directives <span
+                            >{plural(player.fulfilledDirectives.length, 'fulfilled', 'fulfilled')} · {directiveScore(
+                                gameSession.gameState,
+                                playerId
+                            ).points} VP</span
+                        >
+                    </h4>
+                    {#if directiveGoal}
+                        <div class="note">
+                            Goal: {directiveGoal.counted} of {directiveGoal.goal.count}
+                            {goalTypes(directiveGoal.goal.types)}; {DIRECTIVE_SHORTFALL_PENALTY} VP lost
+                            for each one short
+                        </div>
+                    {/if}
+                    <div class="directives">
+                        {#each current as directiveId, index (directiveId ?? index)}
+                            <DirectiveCard
+                                {directiveId}
+                                note={directiveId && mine
+                                    ? directiveProgress(
+                                          gameSession.gameState,
+                                          playerId,
+                                          directiveId
+                                      )
+                                    : undefined}
+                            />
+                        {/each}
+                        {#if canRedrawDirective}
+                            <button
+                                type="button"
+                                class="spend"
+                                title="Give up this directive for two more to choose from, once a turn"
+                                onclick={() => gameSession.redrawDirective()}
+                                >Redraw · {DIRECTIVE_REDRAW_COST} IP</button
+                            >
+                        {/if}
+                    </div>
+                    {#if mine && canChooseDirective && !choosingInStep}
+                        <div class="note">Keep one of the directives you drew:</div>
+                        <DirectiveChoice />
+                    {:else if current.length === 0 && discarded.length === 0}
+                        <div class="note">
+                            {choosesDirective(player)
+                                ? 'Choosing a directive'
+                                : 'No directive held; two are drawn at the start of the next turn'}
+                        </div>
+                    {/if}
+                    {#if mine && discarded.length > 0 && current.length === 0}
+                        <div class="note">
+                            Given up; two more are drawn once everyone has finished this phase
+                        </div>
+                    {/if}
+                    {#if player.fulfilledDirectives.length > 0}
+                        <div class="directives">
+                            {#each player.fulfilledDirectives as entry (entry.directiveId)}
+                                <DirectiveCard
+                                    directiveId={entry.directiveId}
+                                    size={92}
+                                    note="Fulfilled {entry.year}"
+                                />
                             {/each}
                         </div>
                     {/if}
@@ -389,6 +490,14 @@
 {/if}
 
 <style>
+    .directives {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 6px;
+        margin-top: 4px;
+    }
+
     .escalation {
         display: flex;
         flex-wrap: wrap;

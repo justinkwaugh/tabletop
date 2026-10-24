@@ -32,27 +32,27 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 1543138388,
+  "seed": 1140273314,
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-24T21:34:07.608Z",
+  "createdAt": "2026-10-24T22:51:53.947Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "yAWMTvAUXGt41Imp9027s",
+  "id": "ZR0IyEFzeq4tjupenvgPt",
   "gameId": "scenario-campaign-combat-modifiers",
   "seed": 3367980177,
   "prng": {
    "seed": 3367980177,
-   "invocations": 1373
+   "invocations": 1653
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
    "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
-   "invocations": 71
+   "invocations": 80
   },
   "masterSeed": "0123456789abcdef0123456789abcdef",
   "activePlayerIds": [
@@ -74,14 +74,14 @@
      "Physics": [
       4,
       4,
-      2,
+      1,
       1
      ],
      "Engineering": [
       2,
       2,
-      2,
-      2
+      3,
+      1
      ]
     },
     "spentMarkers": {
@@ -110,13 +110,13 @@
       "playerId": "p0",
       "deck": "Fleet",
       "level": 1,
-      "cardId": "reinforced-hulls"
+      "cardId": "scout-ships"
      },
      {
       "playerId": "p0",
       "deck": "Genetic",
       "level": 1,
-      "cardId": "arid-tolerance"
+      "cardId": "aquatic-tolerance"
      }
     ],
     "cards": [],
@@ -124,6 +124,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p0",
+      "status": "Current",
+      "directiveId": "t6"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Starfarers"
    },
    {
@@ -135,21 +151,21 @@
       1,
       2,
       1,
-      1
+      2
      ],
      "Physics": [
       2,
       5,
       5,
+      2,
       4,
-      1,
-      3
+      5
      ],
      "Engineering": [
       4,
       4,
       1,
-      3
+      1
      ]
     },
     "spentMarkers": {
@@ -178,19 +194,19 @@
       "playerId": "p1",
       "deck": "Fleet",
       "level": 1,
-      "cardId": "sensor-upgrades"
+      "cardId": "crew-focus"
      },
      {
       "playerId": "p1",
       "deck": "Fleet",
       "level": 1,
-      "cardId": "scout-ships"
+      "cardId": "sensor-upgrades"
      },
      {
       "playerId": "p1",
       "deck": "Genetic",
       "level": 1,
-      "cardId": "environmental-tolerance"
+      "cardId": "cold-tolerance"
      }
     ],
     "cards": [
@@ -214,6 +230,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p1",
+      "status": "Current",
+      "directiveId": "c2"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Praetorians"
    },
    {
@@ -227,11 +259,11 @@
      ],
      "Physics": [
       4,
-      5
+      2
      ],
      "Engineering": [
       5,
-      1
+      3
      ]
     },
     "spentMarkers": {
@@ -260,13 +292,13 @@
       "playerId": "p2",
       "deck": "Fleet",
       "level": 1,
-      "cardId": "sensor-upgrades"
+      "cardId": "robo-miners"
      },
      {
       "playerId": "p2",
       "deck": "Genetic",
       "level": 1,
-      "cardId": "cold-tolerance"
+      "cardId": "culinary-geniuses"
      }
     ],
     "cards": [
@@ -295,6 +327,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p2",
+      "status": "Current",
+      "directiveId": "c3"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Givers"
    }
   ],
@@ -841,23 +889,23 @@
   "removedWorlds": [],
   "techPools": {
    "Biology": [
-    9,
     10,
+    9,
     13,
     13,
     12
    ],
    "Physics": [
     11,
-    11,
-    12,
+    10,
+    13,
     9,
     10
    ],
    "Engineering": [
+    10,
     11,
-    9,
-    12,
+    11,
     11,
     12
    ]
@@ -1136,9 +1184,9 @@
     "deck": "Fleet",
     "level": 1,
     "cards": [
-     "crew-focus",
+     "reinforced-hulls",
      "robotic-focus",
-     "robo-miners",
+     "sensor-upgrades",
      "sensor-upgrades",
      "superior-robotics",
      "resilient-crews",
@@ -1191,10 +1239,10 @@
     "deck": "Genetic",
     "level": 1,
     "cards": [
-     "aquatic-tolerance",
+     "arid-tolerance",
      "creative",
-     "culinary-geniuses",
      "cunning",
+     "environmental-tolerance",
      "gifted-artists",
      "pioneers",
      "prolific-breeders",
@@ -1295,6 +1343,55 @@
   ],
   "systemAttacks": [],
   "attacks": [],
+  "optionalRules": {
+   "directives": true,
+   "titles": true
+  },
+  "directivePile": {
+   "directives": [
+    "a1",
+    "a2",
+    "a4",
+    "a5",
+    "c1",
+    "c4",
+    "c5",
+    "c6",
+    "p1",
+    "p2",
+    "p3",
+    "p4",
+    "p5",
+    "p6",
+    "s1",
+    "s2",
+    "s3",
+    "s5",
+    "s7",
+    "s8",
+    "s9",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t7",
+    "t8",
+    "t9",
+    "tf1",
+    "tf2",
+    "tf3",
+    "tf5",
+    "s6",
+    "s4",
+    "tf4",
+    "a3",
+    "a6",
+    "s10"
+   ],
+   "remaining": 39
+  },
+  "removedDirectives": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

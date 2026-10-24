@@ -205,18 +205,18 @@ Developing in 2110 under the truce (the header shows TRUCE; its tooltip gives th
 
 ## Campaign assault
 
-2110's combat phase after the truce, the Praetorians first in initiative order: the Player Guide's combat example. The Praetorians' Odyssey and Gladiator are at Luhman 16, beside the Givers' base of 3, Guildmaster and Sapphire (carrying a settlement). The Praetorians own Military Academy. The dice are set for the Player Guide's assault, both ships against the base, Guildmaster and Sapphire: the Praetorians roll 1, the Givers 3.
+2110's combat phase after the truce, the Praetorians first in initiative order: the Player Guide's combat example. The Praetorians' Odyssey and Gladiator are at Luhman 16, beside the Givers' base of 3, Guildmaster and Sapphire (carrying a settlement). The Praetorians own Military Academy. The dice are set so that the Player Guide's assault, both ships against the base, Guildmaster and Sapphire, leaves hits to choose on both sides.
 
 - **Declaring.** Luhman 16 shows "Attack" on the map. Choosing it offers a fleet combat and a planetary assault against the Givers; choosing the assault and both ships enables "Planetary assault".
 - **The answer.** The Givers' panel asks which CVs join the base; the combat panel opens beside the zoomed map for everyone.
-- **The rolls.** The combat panel gives each side's roll with every modifier named: "1 + 0.2 (CVs) + 0.3 (settlements) + 1 (The Praetorians) + 1 (Military Academy) = 4 · combat value 14 · 4 hits" against "3 + 0.3 (CVs) = 3 · combat value 11 · 3 hits". History gives the same.
-- **Hits.** The Givers' 3 hits on the Praetorians come first, the Praetorians choosing first, then in turns; then the Praetorians' 4 on the Givers, the Givers first. The Player choosing taps a unit in the combat panel; the others see who chooses. Forced hits are placed without asking.
+- **The rolls.** The combat panel gives each side's roll with every modifier named, "die + 0.2 (CVs) + 0.3 (settlements) + 1 (The Praetorians) + 1 (Military Academy) = total · combat value 14" against "die + 0.3 (CVs) = total · combat value 11", and each side's hits. History gives the same.
+- **Hits.** The Givers' hits on the Praetorians come first, the Praetorians choosing first, then in turns; then the Praetorians' on the Givers, the Givers first. The Player choosing taps a unit in the combat panel; the others see who chooses. Forced hits are placed without asking.
 - **Escalation.** History counts the markers owed (1, +1 per Givers CV destroyed, +0.5 per settlement, +2 for the base); Military Academy draws one more and asks which to discard, then the Givers gain as many IP.
 - **The combat over.** The panel stays open with the units as they ended, the ships destroyed, and the markers drawn and IP gained, until the viewer goes back to the map or the next combat begins; it is cleared after the movement phase.
 
 ## Campaign hits
 
-The Player Guide's assault (see Campaign assault) already rolled and answered by both Givers CVs, with the Gladiator a hit from crippled and the Sapphire a hit from destroyed. The Givers' 2 hits on the Praetorians come first, then the Praetorians' 4 on the Givers.
+The Player Guide's assault (see Campaign assault) already rolled and answered by both Givers CVs, with the Gladiator a hit from crippled and the Sapphire a hit from destroyed. The Givers' hits on the Praetorians come first, then the Praetorians' on the Givers.
 
 - **Crippling.** A hit on the Gladiator cripples it: its counter shows the damage and its combat value drops.
 - **Destroying.** A hit on the Sapphire destroys it with its settlement: the panel lists it as destroyed, and history gives the compensation the Givers drew. That hit cannot be undone, since the markers were drawn.
@@ -249,29 +249,29 @@ The Starfarers first, with a base of 12 at Alpha Centauri beside the Givers' bas
 
 The third faction plays the Syndicate here: their Viper is at Barnard's Star beside the Givers' base of 4, which holds Ore, and the Starfarers' RE. The Givers hold markers of every type. Barnard's Star offers a raid (the Givers have no armed CV there), an assault and destroying the RE. The dice are set for the raid.
 
-- **$1B.** The raid rolls 1, the lowest result, so nothing is asked: the Syndicate takes $1B, and the 8% damage roll (2 damage) destroys the Viper. The panel and history give the result, the Viper's loss with its compensation, and 1 escalation marker.
+- **$1B.** The raid rolls 1 or 2, the lowest result, so nothing is asked: the Syndicate takes $1B. The panel and history give the result, the damage roll and any damage to the Viper, and 1 escalation marker.
 
 ## Campaign raid more cash
 
-As Campaign raid cash, but the raid rolls 3.
+As Campaign raid cash, but the raid rolls 3 or 4.
 
 - **The Syndicate's choice.** The combat panel offers $1B or $2B; the other Players see that the Syndicate chooses. The result shows in the panel once chosen.
 
 ## Campaign raid marker
 
-As Campaign raid cash, but the raid rolls 5.
+As Campaign raid cash, but the raid rolls 5 or 6.
 
 - **A marker.** The panel offers either cash result or a marker of each type the Givers hold; the stolen marker's value shows in the panel and history.
 
 ## Campaign raid good
 
-As Campaign raid cash, but the raid rolls 8.
+As Campaign raid cash, but the raid rolls 7 or 8.
 
 - **A good.** Besides the lower results, the panel offers "Take Ore into the hold" or "Destroy Ore for $1B".
 
 ## Campaign raid settlement
 
-As Campaign raid cash, but the raid rolls 10.
+As Campaign raid cash, but the raid rolls 9 or 10.
 
 - **A settlement.** Every result is offered, up to destroying one of the base's 4 settlements.
 
@@ -280,3 +280,72 @@ As Campaign raid cash, but the raid rolls 10.
 The Praetorians' Centurion beside the Givers' RE Linnaeus at Procyon, where the Givers have no base or CV.
 
 - **Destroying an RE.** Procyon offers "Destroy an RE"; choosing Linnaeus and the Centurion destroys it at once. The Givers draw an engineering marker, the Praetorians an escalation marker and the Givers 1 IP; Procyon is then this phase's combat for the Praetorians.
+
+## Campaign directive choice
+
+The start of the campaign with directives on: every Player has drawn three directives.
+
+- **Keeping one.** The step shows the three drawn, each with its type, condition and points, and the faction's goal ("Your goal: 4 directives anomaly or survey"). Tapping one keeps it; the others go back. With Options → Non-active view, another Player's console shows only a directive's back.
+- **Secret.** History says each Player kept a directive, naming it only to its Player.
+
+## Campaign directive trade
+
+The cargo and trade turn (see Campaign trading), with the Starfarers ordered to sell 2 Ore on Earth and 2 Ore stored there.
+
+- **Progress.** The console's directive reads "0 of 2 sold this turn".
+- **Fulfilling.** Selling both Ore at Sol fulfils it at once: history adds "fulfils the directive “Sell 2 Ore on Earth” for 4 VP and 1 IP", the console shows it face up among those fulfilled, and the Starfarers hold none until the next turn.
+
+## Campaign directive production
+
+Base production in 2110: the Starfarers' bases of 12 at Alpha Centauri and 4 at Luhman 16, ordered to earn $7B cash from base production.
+
+- **Totalled.** Choosing cash at both bases ($6B and $4B) fulfils it when production is collected, which neither base would alone.
+
+## Campaign directive combat
+
+Combat in 2110: the Praetorians, ordered to start a fleet combat against the Player with the most settlements, have the Centurion at Wolf 359 beside the Givers' Sapphire. The Givers have the largest base, 6 at Alpha Centauri; the Starfarers have one of 2.
+
+- **Declared.** Declaring the fleet combat against the Givers fulfils it at once, before the dice.
+
+## Campaign directive anomaly
+
+Exploration in 2100: the Starfarers, ordered to resolve a science anomaly of 9+ difficulty, are attempting Terran DNA at Alpha Centauri, printed 8, plus 3 for the Players, less 1 for the Starfarers: 10.
+
+- **Resolved.** Ending everyone's exploration resolves it, and history adds the directive fulfilled.
+
+## Campaign directive redraw
+
+Exploration in 2100, every Player with 2 IP.
+
+- **In a Branch.** The console's Redraw · 1 IP gives up the directive; the console says two more are drawn once everyone has finished the phase. Redraw is not offered again this turn.
+- **After the span.** Once everyone has finished exploring, the Player who redrew draws two and keeps one before play goes on; the others wait.
+
+## Campaign directive surveyed
+
+Development in 2100: the first Player is ordered to survey Procyon, which is already fully surveyed.
+
+- **Removed and redrawn.** Finishing the turn starts 2110 by removing it from the game ("gives up the directive … its system fully surveyed, and draws two"), and that Player keeps one of two before the economic phase.
+
+## Campaign directive main line redraw
+
+The cargo and trade turn (see Campaign trading) on the Main Line, the Starfarers with 2 IP.
+
+- **At once.** The console's Redraw · 1 IP draws two directives straight away, the one given up going back to the pool only after; the console shows the two to keep one from. History says the Starfarers gave up their directive and drew two more.
+
+## Campaign directive survey
+
+Exploration in 2100: the Starfarers, ordered to complete a survey at Procyon, have a survey of it waiting to resolve.
+
+- **Any survey.** Ending everyone's exploration resolves the survey, and history adds the directive fulfilled, though Procyon is not yet fully surveyed.
+
+## Campaign directive terraform
+
+Terraforming in 2110: the Givers, ordered to terraform a world into O or M-class, own Terraforming and a base at Alpha Centauri, whose one world is an L-class already on side II. The world pool holds only an O-class world it may be replaced with.
+
+- **Replaced.** Terraforming the L-class world draws the O-class one; replacing the world with it fulfils the directive. Flipping a world from side I does not, since its class stays the same.
+
+## Campaign directive goal
+
+Exploration in 2100: the Givers, whose goal is 2 terraform directives, have fulfilled a terraform and a survey directive.
+
+- **The score.** The Givers' console score lists Directives +12 (7 and 5 VP) and Directive goal −15: the survey directive scores its points but does not count toward the goal.

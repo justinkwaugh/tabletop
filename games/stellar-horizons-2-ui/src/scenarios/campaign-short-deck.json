@@ -32,27 +32,27 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3902198623,
+  "seed": 3580967051,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T21:34:07.183Z",
+  "createdAt": "2026-10-24T22:51:53.324Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "rmUakQASByXskQG4508F5",
+  "id": "s-NqK3XgtNqZEVPxxkGjH",
   "gameId": "scenario-campaign-short-deck",
   "seed": 3367980177,
   "prng": {
    "seed": 3367980177,
-   "invocations": 743
+   "invocations": 1023
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
    "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
-   "invocations": 48
+   "invocations": 57
   },
   "masterSeed": "0123456789abcdef0123456789abcdef",
   "activePlayerIds": [
@@ -120,6 +120,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p0",
+      "status": "Current",
+      "directiveId": "t6"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Starfarers"
    },
    {
@@ -172,6 +188,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p1",
+      "status": "Current",
+      "directiveId": "c2"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Praetorians"
    },
    {
@@ -219,6 +251,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p2",
+      "status": "Current",
+      "directiveId": "c3"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Givers"
    }
   ],
@@ -1190,6 +1238,55 @@
   "remainingAttackers": [],
   "systemAttacks": [],
   "attacks": [],
+  "optionalRules": {
+   "directives": true,
+   "titles": true
+  },
+  "directivePile": {
+   "directives": [
+    "a1",
+    "a2",
+    "a4",
+    "a5",
+    "c1",
+    "c4",
+    "c5",
+    "c6",
+    "p1",
+    "p2",
+    "p3",
+    "p4",
+    "p5",
+    "p6",
+    "s1",
+    "s2",
+    "s3",
+    "s5",
+    "s7",
+    "s8",
+    "s9",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t7",
+    "t8",
+    "t9",
+    "tf1",
+    "tf2",
+    "tf3",
+    "tf5",
+    "s6",
+    "s4",
+    "tf4",
+    "a3",
+    "a6",
+    "s10"
+   ],
+   "remaining": 39
+  },
+  "removedDirectives": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

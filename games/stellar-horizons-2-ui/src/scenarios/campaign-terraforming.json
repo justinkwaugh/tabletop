@@ -32,27 +32,27 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 1577575143,
+  "seed": 3010985705,
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-10-24T21:34:06.859Z",
+  "createdAt": "2026-10-24T22:51:52.852Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "f5_M9QualXSVft0btqEk2",
+  "id": "Nre9u9MOSpTN1G1lDKTTP",
   "gameId": "scenario-campaign-terraforming",
   "seed": 3367980177,
   "prng": {
    "seed": 3367980177,
-   "invocations": 1093
+   "invocations": 1373
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
    "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
-   "invocations": 56
+   "invocations": 65
   },
   "masterSeed": "0123456789abcdef0123456789abcdef",
   "activePlayerIds": [
@@ -105,13 +105,13 @@
       "playerId": "p0",
       "deck": "Fleet",
       "level": 1,
-      "cardId": "sensor-upgrades"
+      "cardId": "crew-focus"
      },
      {
       "playerId": "p0",
       "deck": "Genetic",
       "level": 1,
-      "cardId": "gifted-artists"
+      "cardId": "pioneers"
      }
     ],
     "cards": [],
@@ -119,6 +119,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p0",
+      "status": "Current",
+      "directiveId": "t6"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Starfarers"
    },
    {
@@ -172,7 +188,7 @@
       "playerId": "p1",
       "deck": "Fleet",
       "level": 1,
-      "cardId": "sensor-upgrades"
+      "cardId": "scout-ships"
      },
      {
       "playerId": "p1",
@@ -186,6 +202,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p1",
+      "status": "Current",
+      "directiveId": "c2"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Praetorians"
    },
    {
@@ -234,13 +266,13 @@
       "playerId": "p2",
       "deck": "Fleet",
       "level": 1,
-      "cardId": "robo-miners"
+      "cardId": "minefields"
      },
      {
       "playerId": "p2",
       "deck": "Genetic",
       "level": 1,
-      "cardId": "cold-tolerance"
+      "cardId": "enhanced-strength"
      }
     ],
     "cards": [],
@@ -248,6 +280,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p2",
+      "status": "Current",
+      "directiveId": "c3"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Givers"
    }
   ],
@@ -1060,11 +1108,11 @@
     "deck": "Fleet",
     "level": 1,
     "cards": [
-     "crew-focus",
-     "minefields",
      "reinforced-hulls",
      "robotic-focus",
-     "scout-ships",
+     "robo-miners",
+     "sensor-upgrades",
+     "sensor-upgrades",
      "sensor-upgrades",
      "superior-robotics",
      "resilient-crews",
@@ -1120,11 +1168,11 @@
     "cards": [
      "aquatic-tolerance",
      "arid-tolerance",
+     "cold-tolerance",
      "culinary-geniuses",
      "cunning",
-     "enhanced-strength",
      "environmental-tolerance",
-     "pioneers",
+     "gifted-artists",
      "prolific-breeders",
      "radiation-tolerance",
      "skilled-biologists",
@@ -1223,6 +1271,55 @@
   "remainingAttackers": [],
   "systemAttacks": [],
   "attacks": [],
+  "optionalRules": {
+   "directives": true,
+   "titles": true
+  },
+  "directivePile": {
+   "directives": [
+    "a1",
+    "a2",
+    "a4",
+    "a5",
+    "c1",
+    "c4",
+    "c5",
+    "c6",
+    "p1",
+    "p2",
+    "p3",
+    "p4",
+    "p5",
+    "p6",
+    "s1",
+    "s2",
+    "s3",
+    "s5",
+    "s7",
+    "s8",
+    "s9",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t7",
+    "t8",
+    "t9",
+    "tf1",
+    "tf2",
+    "tf3",
+    "tf5",
+    "s6",
+    "s4",
+    "tf4",
+    "a3",
+    "a6",
+    "s10"
+   ],
+   "remaining": 39
+  },
+  "removedDirectives": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

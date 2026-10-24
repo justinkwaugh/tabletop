@@ -54,6 +54,8 @@ import {
     TerraformWithShip,
     WithdrawPact,
     SpendInfluence,
+    ChooseDirective,
+    RedrawDirective,
     ChooseSurveyWorld,
     BuyCard,
     DrawCard,
@@ -1773,6 +1775,17 @@ export class StellarHorizonsGameSession extends GameSession<
         )
     }
 
+    async chooseDirective(directiveId: string) {
+        await this.commit(
+            ActionType.ChooseDirective,
+            this.createPlayerAction(ChooseDirective, { directiveId })
+        )
+    }
+
+    async redrawDirective() {
+        await this.commit(ActionType.RedrawDirective, this.createPlayerAction(RedrawDirective, {}))
+    }
+
     async spendInfluence(influence: number) {
         await this.commit(
             ActionType.SpendInfluence,
@@ -1879,10 +1892,12 @@ export class StellarHorizonsGameSession extends GameSession<
     }
 
     // Combat's attacker ends their turn between combats; the rest of a combat is not theirs to end.
+    // A directive choice ends with the directive kept.
     canEndPhase: boolean = $derived(
-        this.actingPhase !== TurnPhase.Combat ||
-            (this.gameState.machineState === MachineState.Attacking &&
-                !this.gameState.escalationDiscard)
+        this.actingPhase !== TurnPhase.Directives &&
+            (this.actingPhase !== TurnPhase.Combat ||
+                (this.gameState.machineState === MachineState.Attacking &&
+                    !this.gameState.escalationDiscard))
     )
 
     async endPhase() {

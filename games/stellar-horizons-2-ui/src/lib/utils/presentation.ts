@@ -22,7 +22,8 @@ export const PHASE_LABELS: Record<TurnPhase, string> = {
     [TurnPhase.Development]: 'Develop techs',
     [TurnPhase.Initiative]: 'Initiative',
     [TurnPhase.BaseProduction]: 'Base production',
-    [TurnPhase.TradeGoods]: 'Trade goods'
+    [TurnPhase.TradeGoods]: 'Trade goods',
+    [TurnPhase.Directives]: 'Directives'
 }
 
 export const PHASE_DONE_LABELS: Record<TurnPhase, string> = {
@@ -34,7 +35,8 @@ export const PHASE_DONE_LABELS: Record<TurnPhase, string> = {
     [TurnPhase.Development]: 'Done developing',
     [TurnPhase.Initiative]: 'Declare',
     [TurnPhase.BaseProduction]: 'Done producing',
-    [TurnPhase.TradeGoods]: 'Assign goods'
+    [TurnPhase.TradeGoods]: 'Assign goods',
+    [TurnPhase.Directives]: 'Keep directive'
 }
 
 export const PHASE_STARTED: Record<TurnPhase, string> = {
@@ -46,7 +48,8 @@ export const PHASE_STARTED: Record<TurnPhase, string> = {
     [TurnPhase.Development]: 'starts developing techs',
     [TurnPhase.Initiative]: 'starts declaring IP for initiative',
     [TurnPhase.BaseProduction]: 'starts choosing base production',
-    [TurnPhase.TradeGoods]: 'starts assigning trade goods'
+    [TurnPhase.TradeGoods]: 'starts assigning trade goods',
+    [TurnPhase.Directives]: 'starts choosing a directive'
 }
 
 export const PHASE_FINISHED: Record<TurnPhase, string> = {
@@ -58,7 +61,8 @@ export const PHASE_FINISHED: Record<TurnPhase, string> = {
     [TurnPhase.Development]: 'finished developing techs',
     [TurnPhase.Initiative]: 'declared IP for initiative',
     [TurnPhase.BaseProduction]: 'chose base production',
-    [TurnPhase.TradeGoods]: 'assigned trade goods'
+    [TurnPhase.TradeGoods]: 'assigned trade goods',
+    [TurnPhase.Directives]: 'chose a directive'
 }
 
 export const PHASE_SKIPPED: Record<TurnPhase, string> = {
@@ -70,7 +74,8 @@ export const PHASE_SKIPPED: Record<TurnPhase, string> = {
     [TurnPhase.Development]: 'has no tech to develop',
     [TurnPhase.Initiative]: 'has no IP to declare',
     [TurnPhase.BaseProduction]: 'has no base to produce at',
-    [TurnPhase.TradeGoods]: 'drew no trade goods'
+    [TurnPhase.TradeGoods]: 'drew no trade goods',
+    [TurnPhase.Directives]: 'has no directive to choose'
 }
 
 export const PHASE_OVER: Record<TurnPhase, string> = {
@@ -82,7 +87,8 @@ export const PHASE_OVER: Record<TurnPhase, string> = {
     [TurnPhase.Development]: 'Everyone has finished developing techs.',
     [TurnPhase.Initiative]: 'Everyone has declared their IP.',
     [TurnPhase.BaseProduction]: 'Every base has chosen what to produce.',
-    [TurnPhase.TradeGoods]: 'Everyone has assigned their trade goods.'
+    [TurnPhase.TradeGoods]: 'Everyone has assigned their trade goods.',
+    [TurnPhase.Directives]: 'Everyone has chosen their directive.'
 }
 
 export const COMBAT_KIND_LABELS: Record<CombatKind, string> = {

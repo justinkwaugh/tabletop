@@ -1,8 +1,16 @@
 <script lang="ts">
     import type { GameAction } from '@tabletop/common'
+    import { directiveText, fulfilledIn } from '$lib/utils/directives.js'
     import {
         AnomalyBackKind,
         CargoPartnerKind,
+        DIRECTIVE_INFLUENCE,
+        DIRECTIVE_REDRAW_COST,
+        directiveDefinition,
+        isChooseDirective,
+        isDealDirectives,
+        isRedrawDirective,
+        type HeldDirective,
         MarkerReason,
         RepairMethod,
         TechField,
@@ -125,6 +133,20 @@
     const gameSession = getGameSession()
     // A drawn card is named only to its drawer, as the projection does in a hosted game.
     const viewerId = $derived(gameSession.myPlayerId)
+
+    // Each Player's directives drawn in a deal, in the order they drew.
+    function dealtCounts(dealt: readonly HeldDirective[]): { playerId: string; count: number }[] {
+        const counts: { playerId: string; count: number }[] = []
+        for (const held of dealt) {
+            const entry = counts.find((candidate) => candidate.playerId === held.playerId)
+            if (entry) {
+                entry.count += 1
+            } else {
+                counts.push({ playerId: held.playerId, count: 1 })
+            }
+        }
+        return counts
+    }
 
     function shipName(shipId: string): string {
         return shipDefinition(shipId).name
@@ -256,6 +278,13 @@
         {#each action.metadata?.influence ?? [] as { playerId, amount } (playerId)}
             <span class="inline-flex items-center gap-x-1"
                 ><PlayerName {playerId} /> earns {amount} IP from their cards.</span
+            >
+        {/each}
+        {#each action.metadata?.removedDirectives ?? [] as { playerId, directiveId } (directiveId)}
+            <span class="inline-flex items-center gap-x-1"
+                ><PlayerName {playerId} /> gives up the directive “{directiveText(
+                    directiveDefinition(directiveId).condition
+                )}”, its system fully surveyed, and draws two.</span
             >
         {/each}
     {:else if isBuildShip(action)}
@@ -848,7 +877,38 @@
                 {action.metadata.shuffledCards === 1 ? 'is' : 'are'} shuffled back into the decks.
             {/if}
         </span>
+    {:else if isDealDirectives(action)}
+        {@const dealt = dealtCounts(action.metadata?.dealt ?? [])}
+        <span>Directives are dealt:</span>
+        {#each dealt as { playerId, count }, index (playerId)}
+            <span class="inline-flex items-center gap-x-1"
+                ><PlayerName {playerId} /> draws {plural(count, 'directive')}{index <
+                dealt.length - 1
+                    ? ';'
+                    : '.'}</span
+            >
+        {/each}
+    {:else if isChooseDirective(action)}
+        <span
+            >keeps a directive{action.directiveId
+                ? `: “${directiveText(directiveDefinition(action.directiveId).condition)}”`
+                : ''}</span
+        >
+    {:else if isRedrawDirective(action)}
+        <span
+            >gives up their directive for {DIRECTIVE_REDRAW_COST} IP{action.metadata?.queued
+                ? '; two more are drawn once everyone has finished the phase'
+                : ' and draws two more'}</span
+        >
     {:else}
         <span>{action.type}</span>
     {/if}
+    {#each fulfilledIn(action) as fulfilled (fulfilled.directiveId)}
+        {@const directive = directiveDefinition(fulfilled.directiveId)}
+        <span
+            ><PlayerName playerId={fulfilled.playerId} /> fulfils the directive “{directiveText(
+                directive.condition
+            )}” for {directive.points} VP and {DIRECTIVE_INFLUENCE} IP.</span
+        >
+    {/each}
 </span>

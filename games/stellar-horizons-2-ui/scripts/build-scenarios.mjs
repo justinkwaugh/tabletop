@@ -22,8 +22,12 @@ import {
     TurnPhase,
     WorldSide,
     cardPile,
+    TERRAFORM_POPULATION_STEP,
+    WorldClass,
     crippledThreshold,
     damageCapacity,
+    maxPopulation,
+    worldTile,
     raidResult,
     recordPledgeableShips,
     recountPile
@@ -36,6 +40,7 @@ import {
     execute,
     executeAll,
     finishDecade,
+    giveDirective,
     hydrate,
     placeBase,
     placeShip,
@@ -849,6 +854,200 @@ function campaignExplorerAttack() {
     })
 }
 
+/** The start of the campaign: each Player has drawn three directives to keep one. */
+function campaignDirectiveChoice() {
+    return startedGame(3, CAMPAIGN_CONFIG, { choosingDirectives: true })
+}
+
+/**
+ * The cargo and trade turn (see Campaign trading) with the Starfarers ordered to sell 2 Ore on
+ * Earth, and 2 Ore stored there.
+ */
+function campaignDirectiveTrade() {
+    const { game, state, starfarers } = campaignTradeTurn()
+    return {
+        game,
+        state: edit(state, (hydrated) => {
+            giveDirective(hydrated, starfarers, 't3')
+            hydrated
+                .getPlayerState(starfarers)
+                .earthGoods.push(...takeGoods(hydrated, [TradeGood.Ore]))
+        })
+    }
+}
+
+/**
+ * Base production in 2110: the Starfarers' base of 12 at Alpha Centauri and base of 4 at Luhman
+ * 16, ordered to earn $7B cash from base production.
+ */
+function campaignDirectiveProduction() {
+    return campaignInto(EconomicTile.BaseProduction, 3, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        placeWorlds(state, 'alpha-centauri', [
+            [is('m-1'), WorldSide.I],
+            [ofClass('d-'), WorldSide.I]
+        ])
+        placeWorlds(state, 'luhman-16', [[ofClass('j-'), WorldSide.I]])
+        placeBase(state, starfarers, 'alpha-centauri', 12)
+        placeBase(state, starfarers, 'luhman-16', 4)
+        giveDirective(state, starfarers, 'p4')
+    })
+}
+
+/**
+ * Combat in 2110: the Praetorians, ordered to start a fleet combat against the Player with the
+ * most settlements, have the Centurion at Wolf 359 beside the Givers' Sapphire. The Givers have
+ * the largest base, 6 at Alpha Centauri; the Starfarers have one of 2.
+ */
+function campaignDirectiveCombat() {
+    return campaignAtWar(Faction.Praetorians, (state) => {
+        const praetorians = playerOf(state, Faction.Praetorians)
+        const givers = playerOf(state, Faction.Givers)
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        placeBase(state, givers, 'alpha-centauri', 6)
+        placeBase(state, playerOf(state, Faction.Starfarers), 'alpha-centauri', 2)
+        placeShip(state, givers, 'consortium-sapphire', 'wolf-359')
+        placeShip(state, praetorians, 'praetorians-centurion', 'wolf-359')
+        giveDirective(state, praetorians, 'c3')
+    })
+}
+
+/** Exploration in 2100 with 2 IP for each Player, to redraw a directive in their Branch. */
+function campaignDirectiveRedraw() {
+    const { game, state } = startedGame(3, CAMPAIGN_CONFIG)
+    return {
+        game,
+        state: edit(state, (hydrated) => {
+            for (const player of hydrated.players) {
+                player.influence = 2
+            }
+        })
+    }
+}
+
+/**
+ * Development in 2100: the first Player is ordered to survey Procyon, which is already fully
+ * surveyed.
+ */
+function campaignDirectiveSurveyed() {
+    const { game, state } = startedGame(3, CAMPAIGN_CONFIG)
+    const ready = edit(state, (hydrated) => {
+        giveDirective(hydrated, hydrated.initiativeOrder()[0], 's4')
+        hydrated.systemState('procyon').explorationMarker = 0
+    })
+    return { game, state: advanceTo(game, ready, TurnPhase.Development) }
+}
+
+/**
+ * Exploration in 2100: the Starfarers, ordered to resolve a science anomaly of 9+ difficulty, are
+ * attempting Terran DNA at Alpha Centauri (printed 8, +3 Players, -1 for the Starfarers: 10).
+ */
+function campaignDirectiveAnomaly() {
+    const { game, state } = startedGame(3, CAMPAIGN_CONFIG)
+    return {
+        game,
+        state: edit(state, (hydrated) => {
+            const starfarers = playerOf(hydrated, Faction.Starfarers)
+            giveDirective(hydrated, starfarers, 'a6')
+            placeWorlds(hydrated, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+            hydrated.anomalyPool.splice(hydrated.anomalyPool.indexOf('terran-dna'), 1)
+            hydrated.systemState('alpha-centauri').anomaly = 'terran-dna'
+            hydrated.getPlayerState(starfarers).anomalyAttempts.push({
+                systemId: 'alpha-centauri',
+                anomalyId: 'terran-dna',
+                shipIds: []
+            })
+        })
+    }
+}
+
+/**
+ * The cargo and trade turn (see Campaign trading) on the Main Line, the Starfarers with 2 IP to
+ * redraw their directive there.
+ */
+function campaignDirectiveMainLineRedraw() {
+    const { game, state, starfarers } = campaignTradeTurn()
+    return {
+        game,
+        state: edit(state, (hydrated) => {
+            hydrated.getPlayerState(starfarers).influence = 2
+        })
+    }
+}
+
+/**
+ * Exploration in 2100: the Starfarers, ordered to complete a survey at Procyon, have a survey of
+ * it waiting to resolve once everyone has explored.
+ */
+function campaignDirectiveSurvey() {
+    const { game, state } = startedGame(3, CAMPAIGN_CONFIG)
+    return {
+        game,
+        state: edit(state, (hydrated) => {
+            const starfarers = playerOf(hydrated, Faction.Starfarers)
+            giveDirective(hydrated, starfarers, 's4')
+            const [ship] = hydrated.shipsOf(starfarers)
+            hydrated
+                .getPlayerState(starfarers)
+                .pendingSurveys.push({ shipId: ship.shipId, systemId: 'procyon' })
+        })
+    }
+}
+
+/**
+ * Terraforming in 2110: the Givers, ordered to terraform a world into O or M-class, own
+ * Terraforming and a base at Alpha Centauri, whose one world is an L-class already on side II.
+ * The world pool holds only an O-class world it may be replaced with.
+ */
+function campaignDirectiveTerraform() {
+    return campaignInto(EconomicTile.Terraforming, 3, (state) => {
+        const givers = playerOf(state, Faction.Givers)
+        state.getPlayerState(givers).techs.push({ techId: TechId.Terraforming, year: 2090 })
+        const tiles = [...state.worldPool, ...state.setAsideWorlds]
+        const ofWorldClass = (worldClass) =>
+            tiles.filter((tileId) => worldTile(tileId).worldClass === worldClass)
+        const [world, replacement] = ofWorldClass(WorldClass.L)
+            .flatMap((tileId) => {
+                const current = maxPopulation(tileId, WorldSide.II)
+                const fits = ofWorldClass(WorldClass.O).find((candidate) => {
+                    const population = maxPopulation(candidate, WorldSide.I)
+                    return population > current && population <= current + TERRAFORM_POPULATION_STEP
+                })
+                return fits ? [[tileId, fits]] : []
+            })
+            .at(0)
+        placeWorlds(state, 'alpha-centauri', [[is(world), WorldSide.II]])
+        placeBase(state, givers, 'alpha-centauri', 8)
+        // The rest of the pool waits set aside, so the terraform draws the O-class world.
+        state.setAsideWorlds = [...state.setAsideWorlds, ...state.worldPool].filter(
+            (tileId) => tileId !== replacement
+        )
+        state.worldPool = [replacement]
+        giveDirective(state, givers, 'tf2')
+    })
+}
+
+/**
+ * Exploration in 2100: the Givers, whose goal is 2 terraform directives, have fulfilled one
+ * terraform and one survey directive.
+ */
+function campaignDirectiveGoal() {
+    const { game, state } = startedGame(3, CAMPAIGN_CONFIG)
+    return {
+        game,
+        state: edit(state, (hydrated) => {
+            const givers = playerOf(hydrated, Faction.Givers)
+            const player = hydrated.getPlayerState(givers)
+            for (const directiveId of ['tf1', 's9']) {
+                giveDirective(hydrated, givers, directiveId)
+                player.heldDirectives = []
+                player.fulfilledDirectives.push({ playerId: givers, directiveId, year: 2090 })
+            }
+            giveDirective(hydrated, givers, hydrated.directivePile.directives[0])
+        })
+    }
+}
+
 // Moves escalation markers from the pool to a Player.
 function giveEscalation(state, playerId, markers) {
     for (const marker of markers) {
@@ -959,3 +1158,30 @@ write(
     campaignRaid(RaidResult.DestroySettlement)
 )
 write('campaign-explorer-attack', 'Campaign: destroying an RE', campaignExplorerAttack())
+write('campaign-directive-choice', 'Campaign: choosing a directive', campaignDirectiveChoice())
+write('campaign-directive-trade', 'Campaign: a trade directive', campaignDirectiveTrade())
+write(
+    'campaign-directive-production',
+    'Campaign: a production directive',
+    campaignDirectiveProduction()
+)
+write('campaign-directive-combat', 'Campaign: a combat directive', campaignDirectiveCombat())
+write('campaign-directive-anomaly', 'Campaign: an anomaly directive', campaignDirectiveAnomaly())
+write('campaign-directive-redraw', 'Campaign: redrawing a directive', campaignDirectiveRedraw())
+write(
+    'campaign-directive-surveyed',
+    'Campaign: a surveyed system’s directive',
+    campaignDirectiveSurveyed()
+)
+write(
+    'campaign-directive-main-line-redraw',
+    'Campaign: redrawing a directive on the Main Line',
+    campaignDirectiveMainLineRedraw()
+)
+write('campaign-directive-survey', 'Campaign: a survey directive', campaignDirectiveSurvey())
+write(
+    'campaign-directive-terraform',
+    'Campaign: a terraform directive',
+    campaignDirectiveTerraform()
+)
+write('campaign-directive-goal', 'Campaign: the directive goal', campaignDirectiveGoal())

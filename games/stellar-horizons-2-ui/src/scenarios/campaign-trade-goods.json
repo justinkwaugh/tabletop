@@ -32,27 +32,27 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2732242605,
+  "seed": 1375205854,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T21:34:07.015Z",
+  "createdAt": "2026-10-24T22:51:53.084Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "ADzqDYLVzlqRDG2-zEZtA",
+  "id": "cisapA6vzx1wcWaYm9aof",
   "gameId": "scenario-campaign-trade-goods",
   "seed": 3367980177,
   "prng": {
    "seed": 3367980177,
-   "invocations": 1373
+   "invocations": 1653
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
    "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
-   "invocations": 62
+   "invocations": 71
   },
   "masterSeed": "0123456789abcdef0123456789abcdef",
   "activePlayerIds": [
@@ -109,13 +109,13 @@
       "playerId": "p0",
       "deck": "Fleet",
       "level": 1,
-      "cardId": "sensor-upgrades"
+      "cardId": "crew-focus"
      },
      {
       "playerId": "p0",
       "deck": "Genetic",
       "level": 1,
-      "cardId": "gifted-artists"
+      "cardId": "pioneers"
      }
     ],
     "cards": [],
@@ -123,6 +123,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p0",
+      "status": "Current",
+      "directiveId": "t6"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Starfarers"
    },
    {
@@ -164,7 +180,7 @@
     "explorationMarkers": 0,
     "earthGoods": [],
     "drawnGoods": [
-     "Food",
+     "RareMaterials",
      "Beverages"
     ],
     "discardedGoods": [],
@@ -179,7 +195,7 @@
       "playerId": "p1",
       "deck": "Fleet",
       "level": 1,
-      "cardId": "sensor-upgrades"
+      "cardId": "scout-ships"
      },
      {
       "playerId": "p1",
@@ -193,6 +209,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p1",
+      "status": "Current",
+      "directiveId": "c2"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Praetorians"
    },
    {
@@ -230,8 +262,8 @@
     "explorationMarkers": 0,
     "earthGoods": [],
     "drawnGoods": [
-     "Machinery",
-     "Entertainment"
+     "Fauna",
+     "Ore"
     ],
     "discardedGoods": [],
     "hand": [
@@ -239,13 +271,13 @@
       "playerId": "p2",
       "deck": "Fleet",
       "level": 1,
-      "cardId": "robo-miners"
+      "cardId": "minefields"
      },
      {
       "playerId": "p2",
       "deck": "Genetic",
       "level": 1,
-      "cardId": "cold-tolerance"
+      "cardId": "enhanced-strength"
      }
     ],
     "cards": [],
@@ -253,6 +285,22 @@
     "settlementsBought": 0,
     "escalation": [],
     "attackBanned": false,
+    "heldDirectives": [
+     {
+      "playerId": "p2",
+      "status": "Current",
+      "directiveId": "c3"
+     }
+    ],
+    "fulfilledDirectives": [],
+    "directiveDrawsOwed": 0,
+    "redrewDirective": false,
+    "directiveTotals": {
+     "miningCash": 0,
+     "researchMarkers": 0,
+     "baseProductionCash": 0,
+     "sales": []
+    },
     "faction": "Givers"
    }
   ],
@@ -942,84 +990,84 @@
    "Beverages",
    "Beverages",
    "Beverages",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "FineArt",
-   "FineArt",
-   "FineArt",
-   "FineArt",
-   "FineArt",
-   "FineArt",
-   "FineArt",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Food",
-   "Food",
-   "Food",
-   "Food",
-   "Food",
-   "Food",
-   "Food",
-   "Food",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "RareMaterials",
-   "RareMaterials",
-   "RareMaterials",
-   "RareMaterials",
-   "RareMaterials",
-   "RareMaterials",
-   "RareMaterials",
    "Beverages",
-   "Beverages"
+   "Beverages",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "Entertainment",
+   "FineArt"
   ],
   "demandPool": [
    "Beverages",
@@ -1077,11 +1125,11 @@
     "deck": "Fleet",
     "level": 1,
     "cards": [
-     "crew-focus",
-     "minefields",
      "reinforced-hulls",
      "robotic-focus",
-     "scout-ships",
+     "robo-miners",
+     "sensor-upgrades",
+     "sensor-upgrades",
      "sensor-upgrades",
      "superior-robotics",
      "resilient-crews",
@@ -1137,11 +1185,11 @@
     "cards": [
      "aquatic-tolerance",
      "arid-tolerance",
+     "cold-tolerance",
      "culinary-geniuses",
      "cunning",
-     "enhanced-strength",
      "environmental-tolerance",
-     "pioneers",
+     "gifted-artists",
      "prolific-breeders",
      "radiation-tolerance",
      "skilled-biologists",
@@ -1240,6 +1288,55 @@
   "remainingAttackers": [],
   "systemAttacks": [],
   "attacks": [],
+  "optionalRules": {
+   "directives": true,
+   "titles": true
+  },
+  "directivePile": {
+   "directives": [
+    "a1",
+    "a2",
+    "a4",
+    "a5",
+    "c1",
+    "c4",
+    "c5",
+    "c6",
+    "p1",
+    "p2",
+    "p3",
+    "p4",
+    "p5",
+    "p6",
+    "s1",
+    "s2",
+    "s3",
+    "s5",
+    "s7",
+    "s8",
+    "s9",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t7",
+    "t8",
+    "t9",
+    "tf1",
+    "tf2",
+    "tf3",
+    "tf5",
+    "s6",
+    "s4",
+    "tf4",
+    "a3",
+    "a6",
+    "s10"
+   ],
+   "remaining": 39
+  },
+  "removedDirectives": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",
@@ -1293,15 +1390,15 @@
    "closedPlayerIds": [],
    "mergedPlayerIds": [],
    "branchStartIds": {
-    "p0": "QpBboqngyoMsF71VeQLgC",
-    "p2": "c2LBVVibriepTGAfZnfPA",
-    "p1": "kfGGwYoVpmqK2NjyLFp8k"
+    "p0": "e221REJvNPjA7Yw8J3VXy",
+    "p2": "BXRJHH0z7aZXHnTVd6k5f",
+    "p1": "cJVi8ue1V14TC4MSWQ6R2"
    },
-   "completionId": "KJjU2Zk45cBFjeMTgcqbP",
+   "completionId": "UFY7fnwUtSkdD0s7YotNQ",
    "branchCloseIds": {
-    "p0": "ijlyyaXlfTnzXkTHR12pv",
-    "p2": "kqrTssglmeWh7EWEzTf3h",
-    "p1": "vE6MMA1nL2vC9d2uu2He2"
+    "p0": "icksqiVAOsywHYpMCejzv",
+    "p2": "doxgdL59WvBPz1an6Djhz",
+    "p1": "BtL8H6iWLvwfx4lfaGrVV"
    },
    "branchPlayerId": "p0"
   }
