@@ -107,3 +107,55 @@ it('drops the retired pane lock from saved layouts', () => {
     ])
     expect(saveWorkspace(restored.root, restored.fixed)).not.toHaveProperty('locked')
 })
+it('starts a sidebar that accepts more tabs with only its initial tabs, and returns missing tabs there', () => {
+    const accepted = ['Market', 'Tiles', 'Players', 'History', 'Chat']
+    const initialLayout = { main: ['Map', 'Market', 'Tiles'], sidebar }
+    const fresh = restoreWorkspace(null, tabs, accepted, undefined, [], [], initialLayout)
+    expect(fresh.fixed.tabs).toEqual(sidebar)
+    expect(workspaceLayout(fresh.root).panes[0].pane.tabs).toEqual([
+        'Map',
+        'Market',
+        'Tiles',
+        'Actions'
+    ])
+    const restored = restoreWorkspace(
+        { v: 1, sidebar: ['Tiles'], main: ['Map'] },
+        tabs,
+        accepted,
+        undefined,
+        [],
+        [],
+        initialLayout
+    )
+    expect(restored.fixed.tabs).toEqual(['Tiles', 'Players', 'History', 'Chat'])
+    expect(workspaceLayout(restored.root).panes[0].pane.tabs).toEqual(['Map', 'Market', 'Actions'])
+})
+it('round trips a deleted sidebar and keeps its missing tabs in the main pane', () => {
+    const initialLayout = { main: ['Map'], sidebar }
+    const restored = restoreWorkspace(
+        { v: 1, sidebarDeleted: true, sidebar: ['Chat'], main: ['Map', 'Players'] },
+        tabs,
+        sidebar,
+        undefined,
+        [],
+        [],
+        initialLayout
+    )
+    expect(restored.fixedDeleted).toBe(true)
+    expect(restored.fixed.tabs).toEqual([])
+    expect(workspaceLayout(restored.root).panes[0].pane.tabs).toEqual([
+        'Map',
+        'Players',
+        'Market',
+        'Tiles',
+        'Actions',
+        'History',
+        'Chat'
+    ])
+    expect(saveWorkspace(restored.root, restored.fixed, [], true)).toEqual({
+        sidebarDeleted: true,
+        v: 1,
+        sidebar: [],
+        main: ['Map', 'Players', 'Market', 'Tiles', 'Actions', 'History', 'Chat']
+    })
+})

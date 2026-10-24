@@ -13,6 +13,7 @@
         closeTab,
         addTab,
         deletePane,
+        mergeTabs,
         maxSplitRatio,
         minSplitRatio,
         moveTab,
@@ -36,7 +37,8 @@
         fixedPane,
         tabTitle,
         savedLayout,
-        onLayoutChange
+        onLayoutChange,
+        fixedPaneDeleted = $bindable(false)
     }: {
         tabs: readonly WorkspaceTab[]
         children: Snippet<[string, boolean]>
@@ -49,6 +51,7 @@
         splittable?: boolean
         initialSplit?: WorkspaceInitialSplit
         initialLayout?: InitialWorkspace
+        fixedPaneDeleted?: boolean
     } = $props()
     const instanceId = $props.id()
     const closableTabs = $derived(tabs.filter((tab) => tab.closable !== false).map((tab) => tab.id))
@@ -60,21 +63,23 @@
     )
     let root: WorkspaceNode = $state(initial.root)
     let fixed: WorkspacePane = $state(initial.fixed)
+    fixedPaneDeleted = untrack(() => initial.fixedDeleted && !!fixedPane?.deletable)
     let lastLayout = JSON.stringify(
-        saveWorkspace(initial.root, initial.fixed, recordedClosableTabs)
+        saveWorkspace(initial.root, initial.fixed, recordedClosableTabs, fixedPaneDeleted)
     )
     $effect(() => {
         if (resize) return
-        const value = saveWorkspace(root, fixed, recordedClosableTabs)
+        const value = saveWorkspace(root, fixed, recordedClosableTabs, fixedPaneDeleted)
         const serialized = JSON.stringify(value)
         if (serialized === lastLayout) return
         lastLayout = serialized
         untrack(() => onLayoutChange?.(value))
     })
     const mainLayout = $derived(workspaceLayout(root))
+    const shownFixedPane = $derived(fixedPaneDeleted ? undefined : fixedPane)
     const layout = $derived({
         ...mainLayout,
-        panes: fixedPane
+        panes: shownFixedPane
             ? [
                   ...mainLayout.panes,
                   { pane: fixed, x: 0, y: 0, width: 100, height: 100, available: [] }
@@ -182,6 +187,22 @@
         void tick().then(() =>
             document.getElementById(`${instanceId}-tab-${encodeURIComponent(tab)}`)?.focus()
         )
+    }
+    function deleteFixedPane() {
+        root = mergeTabs(root, fixed)
+        fixed = { ...fixed, tabs: [], active: undefined }
+        fixedPaneDeleted = true
+    }
+    function restoreFixedPane() {
+        if (!fixedPane) return
+        const home = (initialLayout?.sidebar ?? fixedPane.tabs).filter(
+            (tab) =>
+                accepts(tab, 'fixed') &&
+                mainLayout.panes.some((item) => item.pane.tabs.includes(tab))
+        )
+        root = home.reduce(closeTab, root)
+        fixed = { ...fixed, tabs: home, active: home[0] }
+        fixedPaneDeleted = false
     }
     function removeTab(tab: string) {
         if (!closableTabs.includes(tab)) return
@@ -314,6 +335,9 @@
 <div class="workspace" aria-label={label} bind:this={element}>
     {#snippet paneHeader(item: PaneLayout)}
         {@const menuId = `${instanceId}-menu-${item.pane.id}`}
+        {@const paneSplits = splittable && item.pane.id !== 'fixed'}
+        {@const addsFixedPane = !!fixedPane && fixedPaneDeleted && item.pane.id !== 'fixed'}
+        {@const paneActions = paneSplits || addsFixedPane}
         <section
             class="pane"
             class:fixed={item.pane.id === 'fixed'}
@@ -368,7 +392,7 @@
                         </button>
                     {/each}
                 </div>
-                {#if splittable && (item.pane.id !== 'fixed' || item.pane.tabs.length || availableTabs(item.pane.id).length)}<div
+                {#if paneActions || item.pane.tabs.length || availableTabs(item.pane.id).length}<div
                         class="split-controls"
                     >
                         <button
@@ -398,7 +422,30 @@
                                 if (event.newState === 'closed') menuButton = undefined
                             }}
                         >
-                            {#if item.pane.id !== 'fixed'}
+                            {#if addsFixedPane}
+                                <div class="pane-actions">
+                                    <!-- Adding unmounts this button before popovertargetaction would run, so close the menu first. -->
+                                    <button
+                                        aria-label={`Add ${fixedPane?.label} pane`}
+                                        title="Split left / right"
+                                        onclick={(event) => {
+                                            event.currentTarget
+                                                .closest<HTMLElement>('[popover]')
+                                                ?.hidePopover()
+                                            restoreFixedPane()
+                                        }}
+                                    >
+                                        <svg
+                                            viewBox="0 0 20 20"
+                                            width="18"
+                                            height="18"
+                                            aria-hidden="true"
+                                            ><rect x="2" y="3" width="16" height="14" rx="1"
+                                            ></rect><path d="M10 3v14"></path></svg
+                                        >
+                                    </button>
+                                </div>
+                            {:else if paneSplits}
                                 <div class="pane-actions">
                                     {#each ['horizontal', 'vertical'] as const as axis (axis)}
                                         <button
@@ -427,7 +474,7 @@
                                     {/each}
                                 </div>
                             {/if}
-                            {#if item.pane.tabs.length}{#if item.pane.id !== 'fixed'}<hr />{/if}
+                            {#if item.pane.tabs.length}{#if paneActions}<hr />{/if}
                                 <strong>Current tabs</strong>
                                 {#each item.pane.tabs as id (id)}
                                     <div class="existing-tab">
@@ -448,7 +495,7 @@
                                     </div>
                                 {/each}
                             {/if}
-                            {#if availableTabs(item.pane.id).length}{#if item.pane.id !== 'fixed' || item.pane.tabs.length}<hr
+                            {#if availableTabs(item.pane.id).length}{#if paneActions || item.pane.tabs.length}<hr
                                     />{/if}
                                 <strong>Add tabs</strong>
                                 {#each availableTabs(item.pane.id) as tab (tab.id)}
@@ -466,7 +513,16 @@
                                     </button>
                                 {/each}
                             {/if}
-                            {#if item.pane.id !== 'fixed' && mainLayout.panes.length > 1}<hr />
+                            {#if item.pane.id === 'fixed' && fixedPane?.deletable}<hr />
+                                <button
+                                    class="delete-pane"
+                                    aria-label={`Delete ${fixedPane.label} pane`}
+                                    onclick={deleteFixedPane}
+                                >
+                                    Delete pane
+                                </button>
+                            {/if}
+                            {#if paneSplits && mainLayout.panes.length > 1}<hr />
                                 <button
                                     class="delete-pane"
                                     aria-label={`Delete pane ${layout.panes.indexOf(item) + 1}`}
@@ -481,11 +537,13 @@
                         </div>
                     </div>{/if}
             </header>
-            {#if !item.pane.tabs.length}<div class="empty">Drag a tab here</div>{/if}
+            {#if !item.pane.tabs.length}<div class="empty">
+                    {splittable ? 'Drag a tab here' : 'Add a tab from the pane menu'}
+                </div>{/if}
         </section>
     {/snippet}
     {#each mainLayout.panes as item (item.pane.id)}{@render paneHeader(item)}{/each}
-    {#if fixedPane}{@render paneHeader({
+    {#if shownFixedPane}{@render paneHeader({
             pane: fixed,
             x: 0,
             y: 0,
@@ -578,7 +636,6 @@
 
 <style>
     .workspace {
-        --workspace-header-height: 35px;
         position: relative;
         flex: 1;
         min-width: 0;
@@ -586,8 +643,10 @@
         height: 100%;
         color: var(--workspace-text, #374151);
     }
+    /* Fixed-pane parts mount outside .workspace, so they carry the header height themselves. */
     .pane,
     .panel {
+        --workspace-header-height: 35px;
         position: absolute;
         box-sizing: border-box;
         min-width: 0;
@@ -836,6 +895,10 @@
     }
     .short-label {
         display: none;
+    }
+    .fixed .tabs {
+        gap: 16px;
+        padding-inline: 8px;
     }
     @media (width < 640px) {
         .has-short {

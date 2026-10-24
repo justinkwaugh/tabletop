@@ -164,7 +164,7 @@ export function resizeSplit(root: WorkspaceNode, id: string, ratio: number): Wor
     }
 }
 
-function mergeTabs(node: WorkspaceNode, pane: WorkspacePane): WorkspaceNode {
+export function mergeTabs(node: WorkspaceNode, pane: WorkspacePane): WorkspaceNode {
     if (node.kind === 'pane')
         return { ...node, tabs: [...node.tabs, ...pane.tabs], active: node.active ?? pane.active }
     return { ...node, first: mergeTabs(node.first, pane) }

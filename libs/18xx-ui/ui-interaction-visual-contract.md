@@ -986,7 +986,7 @@ left unchanged and can add it from the pane menu. A new arrangement for a title 
 board areas places Board before Map in the map pane. When the paned workspace opens
 with Board and Map in the same pane and Map still the initial selection, Board is
 selected instead. Below the paned breakpoint the Map tab shows the board
-instead, labelled Board and selected by default, and Market is not offered.
+instead, labelled Board and selected by default, and Market is an optional tab.
 
 Map framing (placement choices, route previews, company starts, hex, company and
 route focus, history steps and their restores) applies to every open map view,
@@ -2009,9 +2009,11 @@ Artifacts, with no Site Frontend publication, Logic, or host API change.
 
 ### Sidebar layout
 
-At every viewport width, Players/History/Chat remain in the existing left sidebar,
-with history controls and phase/depot/title information above them. Player cards
-remain stacked vertically. P/H/C select those sidebar tabs. The action area belongs to the tab workspace.
+Below 1024px, Players/History/Chat start in the left sidebar, with the history
+controls above them at 640px and wider (on phones they sit above the table). The
+title's game information is not shown there; it is the optional Game info tab.
+Player cards remain stacked vertically in the sidebar. P/H/C select those tabs
+wherever they are. The action area belongs to the tab workspace.
 
 Below 1024px the view tabs stack beneath the action area and keep at least half the
 viewport height, so the board stays usable when the action area or an expanded
@@ -2020,6 +2022,26 @@ squeezing the board. In every action state the stacked action area takes its
 content height, with no viewport-height cap or internal vertical scroll area, and
 no action content extends over the view tabs. On phone widths (below 640px) the game column has no
 horizontal padding and reaches the screen edge.
+
+Below 1024px the stacked view tabs and the sidebar tabs are the two panes of one
+`TabWorkspace`; the sidebar is its fixed pane. Neither pane splits or drags tabs,
+and the view tabs' pane cannot be deleted. The sidebar's menu deletes it: its tabs
+join the end of the view tabs, the table becomes one column, and at 640px and wider
+the history controls move to the top of the game column. A phone's single column
+keeps 8px padding on both sides. While the sidebar is deleted, a left / right split
+icon at the top of the view tabs' menu, where pane splits go, adds it back with the sidebar's initial tabs that are among the view
+tabs, moved out of them. Each pane menu closes its tabs and adds any tab that is in neither pane,
+so a tab moves sides by closing it in one and adding it in the other. Map (Board
+when the title has board areas) stays in the view tabs and cannot close. By default
+the view tabs hold Map, Spreadsheet, Companies, Tiles, and Market (without board
+areas), and the sidebar Players, History, and Chat (Chat only where chat is
+available); Player Aid, Depot, Stats, Market (with board areas), and Game info (when
+the title supplies game information) are optional.
+The sidebar keeps the tab icons and the unread-chat dot, with the phone tab spacing
+at every width so the three tabs and the menu fit its 320px. A new chat message
+raises a toast unless Chat is the shown tab of its pane. The arrangement,
+including a deleted sidebar (`sidebarDeleted`), saves to the `tabbedLayout` family
+preference, separate from the paned `paneLayout`.
 
 ### Splittable table workspace
 

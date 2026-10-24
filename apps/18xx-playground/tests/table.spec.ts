@@ -253,6 +253,33 @@ for (const title of ['TOP', '1889']) {
     })
 }
 
+test.describe('sidebar tabs on a phone', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
+
+    test('a sideways swipe on any sidebar tab moves the table', async ({ page }) => {
+        await page.goto('/table')
+        const scroller = page.locator('.table-scroller')
+        const touch = await page.context().newCDPSession(page)
+        for (const tab of ['Players', 'History', 'Chat']) {
+            await page.getByRole('tab', { name: tab, exact: true }).click()
+            await scroller.evaluate((element) => element.scrollTo({ left: 0, behavior: 'instant' }))
+            await touch.send('Input.dispatchTouchEvent', {
+                type: 'touchStart',
+                touchPoints: [{ x: 250, y: 450 }]
+            })
+            for (let step = 1; step <= 10; step++)
+                await touch.send('Input.dispatchTouchEvent', {
+                    type: 'touchMove',
+                    touchPoints: [{ x: 250 - step * 15, y: 450 }]
+                })
+            await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+            await expect
+                .poll(() => scroller.evaluate((element) => element.scrollLeft), { message: tab })
+                .toBeGreaterThan(50)
+        }
+    })
+})
+
 test.describe('player cards below the pane layout', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 

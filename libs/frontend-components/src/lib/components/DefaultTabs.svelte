@@ -1,19 +1,11 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/gameSessionContext.js'
-    import type { GameChatMessage } from '@tabletop/common'
-    import { onMount, type ComponentType, type Snippet } from 'svelte'
+    import { onMount, type Snippet } from 'svelte'
     import { Tabs, TabItem, Indicator } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid, AnnotationSolid } from 'flowbite-svelte-icons'
-    import { toast } from 'svelte-sonner'
-    import { ChatEventType, type ChatEvent } from '$lib/services/chatService.js'
-    import ChatToast from '$lib/components/ChatToast.svelte'
+    import { toastNewChatMessages } from '$lib/components/chatToasts.js'
     import GameToaster from '$lib/components/GameToaster.svelte'
     import GameChat from '$lib/components/GameChat.svelte'
-    import {
-        adminChatAuthorBgColor,
-        adminChatAuthorName,
-        adminChatAuthorTextColor
-    } from '$lib/components/chatPresentation.js'
 
     let {
         history,
@@ -59,39 +51,7 @@
         chatActive = false
     }
 
-    function toastAttribution(message: GameChatMessage) {
-        if (message.admin) {
-            return {
-                playerName: adminChatAuthorName,
-                playerBgColor: adminChatAuthorBgColor,
-                playerTextColor: adminChatAuthorTextColor
-            }
-        }
-        return {
-            playerName: gameSession.getPlayerName(message.playerId),
-            playerBgColor: gameSession.colors.getPlayerBgColorValue(message.playerId),
-            playerTextColor: gameSession.colors.getPlayerTextColorValue(message.playerId)
-        }
-    }
-
-    async function chatListener(event: ChatEvent) {
-        if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
-            toast.custom(ChatToast as unknown as ComponentType, {
-                duration: 3000,
-                position: 'bottom-left',
-                componentProps: { message: event.message, ...toastAttribution(event.message) }
-            })
-        }
-    }
-
-    onMount(() => {
-        const chatService = gameSession.chatService
-        chatService.addListener(chatListener)
-
-        return () => {
-            chatService.removeListener(chatListener)
-        }
-    })
+    onMount(() => toastNewChatMessages(gameSession, () => chatActive))
 </script>
 
 <GameToaster />

@@ -234,9 +234,9 @@
         flex-direction: column;
         flex: 1;
         min-height: 0;
-        overflow-y: auto;
+        overflow: hidden auto;
         scrollbar-width: thin;
-        overscroll-behavior: contain;
+        overscroll-behavior-y: contain;
     }
     .history-toolbar {
         display: grid;
