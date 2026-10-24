@@ -22,6 +22,7 @@ import {
     samePosition,
     type Commander,
     type LocaleId,
+    type MoveOrder,
     type NapoleonsTriumphProjectedState,
     type Position,
     type ProjectedUnit
@@ -88,7 +89,8 @@ export interface Movement {
     to: Position
     from?: Position
     entry?: Point
-    road: LocaleId[]
+    /** The locales the road took the pieces through on the way, short of where they stopped. */
+    via: LocaleId[]
 }
 
 export function standingOf(state: Readonly<NapoleonsTriumphProjectedState>): Standing {
@@ -110,8 +112,25 @@ function positionKey(position: Position | undefined): string {
     return position ? `${position.locale}:${position.approach ?? 'reserve'}` : 'off the map'
 }
 
+function ordersOf(action: GameAction): readonly MoveOrder[] {
+    if (isMove(action)) {
+        return [action.order]
+    }
+    return isDeclareAttack(action) || isDeclareFeint(action) || isOccupy(action)
+        ? action.orders
+        : []
+}
+
+// The road of an order made in an attack ends in the locale attacked from, the road of a move in the
+// locale moved to: the pieces pass through every locale on it but that one.
+function viaOf(order: MoveOrder | undefined, to: Position): LocaleId[] {
+    const road = order?.road ?? []
+    return road.at(-1) === to.locale ? road.slice(0, -1) : [...road]
+}
+
 export function movementsOf(action: GameAction, before: Standing, after: Standing): Movement[] {
     const stood = new Map(before.units.map((unit) => [unit.id, unit.position]))
+    const orders = ordersOf(action)
     const marched = isMove(action) ? action.order : undefined
     const entry = marched?.entryId ? ENTRY_GEOMETRY[marched.entryId].at : undefined
     const movements = new Map<string, Movement>()
@@ -127,7 +146,10 @@ export function movementsOf(action: GameAction, before: Standing, after: Standin
             to,
             from,
             entry: from ? undefined : entry,
-            road: marched?.unitIds.includes(unit.id) ? (marched.road ?? []) : []
+            via: viaOf(
+                orders.find((order) => order.unitIds.includes(unit.id)),
+                to
+            )
         }
         movement.unitIds.push(unit.id)
         movements.set(key, movement)
@@ -186,7 +208,7 @@ function subjectOf(action: GameAction, before: Standing, after: Standing): Subje
         locales: [
             ...movements.flatMap((movement) => [
                 ...(movement.from ? [movement.from.locale] : []),
-                ...movement.road,
+                ...movement.via,
                 movement.to.locale
             ]),
             ...[...lost, ...setDown].flatMap((unit) => unit.position?.locale ?? []),
@@ -294,7 +316,7 @@ function arrowLine(
     if (!start || arrived.length === 0) {
         return []
     }
-    const bends = movement.road.slice(0, -1).map((locale) => LOCALE_GEOMETRY[locale].anchor)
+    const bends = movement.via.map((locale) => LOCALE_GEOMETRY[locale].anchor)
     const end = midpoint(arrived.map((block) => block.centre))
     const [tail, ...onwards] = arrowAlong([start, ...bends, end], left, arrived)
     return tail ? [onBoard(tail), ...onwards] : []
@@ -310,7 +332,7 @@ function attackMarkIn(
 }
 
 function firstPlaceOnTheWay(movement: Movement): Point {
-    const [next] = movement.road
+    const [next] = movement.via
     if (next !== undefined) {
         return LOCALE_GEOMETRY[next].anchor
     }
