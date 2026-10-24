@@ -51,16 +51,14 @@ function position(stacks, machineState = MachineState.MovingStacks) {
         const stack = stacks[spaceName(space.coords)] ?? ''
         space.stack =
             typeof stack === 'string'
-                ? stack
-                      .split('')
-                      .map((letter) =>
-                          letter === 'd'
-                              ? { dvonn: true, placedAt: nextOrigin() }
-                              : {
-                                    playerId: letter === 'w' ? FIRST : SECOND,
-                                    placedAt: nextOrigin()
-                                }
-                      )
+                ? stack.split('').map((letter) =>
+                      letter === 'd'
+                          ? { dvonn: true, placedAt: nextOrigin() }
+                          : {
+                                playerId: letter === 'w' ? FIRST : SECOND,
+                                placedAt: nextOrigin()
+                            }
+                  )
                 : stack
     }
     state.machineState = machineState
@@ -241,5 +239,21 @@ write(
         G2: 'w',
         H3: 'b',
         K3: 'd'
+    })
+)
+
+// Alice controls 44 of the 47 pieces left, the three DVONN pieces among them; Bob has one, so
+// her player card's tally runs to six stacks.
+write(
+    'nearly-all-pieces',
+    'Nearly all pieces',
+    position({
+        C3: 'bbbbbdwwww',
+        D3: 'bbbbbbwwww',
+        E3: 'bbww',
+        F3: 'bbbbbdwwwww',
+        G3: 'bbbbdwww',
+        H3: 'w',
+        I3: 'b'
     })
 )

@@ -2,6 +2,8 @@
     import { MachineState, PIECES_PER_PLAYER, type HydratedDvonnPlayerState } from '@tabletop/dvonn'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PIECE_RADIUS, stackBounds } from '$lib/board/pieceGeometry.js'
+    import { coordsKey } from '$lib/board/geometry.js'
+    import { controlledTally, inStacks, TALLY_HEIGHT } from '$lib/board/tally.js'
     import StackShape from './StackShape.svelte'
 
     let { playerState }: { playerState: HydratedDvonnPlayerState } = $props()
@@ -23,11 +25,29 @@
             ? PIECES_PER_PLAYER - session.gameState.board.piecesOf(playerState.playerId)
             : session.gameState.score(playerState.playerId)
     )
-    const caption = $derived(placing ? 'to place' : 'controlled')
+    const caption = $derived(placing ? 'to place' : 'high')
 
-    const ICON_PIECES = 3
-    const bounds = stackBounds(ICON_PIECES, PIECE_RADIUS)
-    const reach = PIECE_RADIUS + 1
+    // The same pieces as stacks: the pieces in hand, or each controlled piece itself.
+    const tally = $derived(
+        placing
+            ? inStacks(
+                  Array.from({ length: count }, (_, index) => ({
+                      tone,
+                      seedKey: `hand-${playerState.playerId}-${index}`
+                  }))
+              )
+            : controlledTally(session.gameState.board.spaces, playerState.playerId).map((stack) =>
+                  stack.map((piece) => ({
+                      tone: session.toneOfPiece(piece),
+                      seedKey: coordsKey(piece.placedAt)
+                  }))
+              )
+    )
+
+    const RADIUS = PIECE_RADIUS
+    const PITCH = RADIUS * 2 + 7
+    const bounds = stackBounds(TALLY_HEIGHT, RADIUS)
+    const tallyHeight = bounds.bottom - bounds.top + 2
 </script>
 
 <div class="tray" class:active={isActive}>
@@ -42,24 +62,27 @@
         </span>
     </div>
     <div class="body">
-        <svg
-            width="34"
-            height="34"
-            viewBox="{-reach} {bounds.top - 1} {reach * 2} {bounds.bottom - bounds.top + 2}"
-            aria-hidden="true"
-        >
-            <StackShape
-                tones={Array.from({ length: ICON_PIECES }, () => tone)}
-                seedKeys={Array.from(
-                    { length: ICON_PIECES },
-                    (_, index) => `tray-${playerState.playerId}-${index}`
-                )}
-                radius={PIECE_RADIUS}
-                showCount={false}
-            />
-        </svg>
         <strong>{count}</strong>
         <span class="caption">{caption}</span>
+        {#if tally.length > 0}
+            <svg
+                class="tally"
+                height="44"
+                viewBox="{-RADIUS - 1} {bounds.top - 1} {tally.length * PITCH} {tallyHeight}"
+                aria-hidden="true"
+            >
+                {#each tally as stack, index (index)}
+                    <g transform="translate({index * PITCH} 0)">
+                        <StackShape
+                            tones={stack.map((piece) => piece.tone)}
+                            seedKeys={stack.map((piece) => piece.seedKey)}
+                            radius={RADIUS}
+                            showCount={false}
+                        />
+                    </g>
+                {/each}
+            </svg>
+        {/if}
     </div>
 </div>
 
@@ -93,6 +116,12 @@
     .body strong {
         font-size: 22px;
         font-variant-numeric: tabular-nums;
+    }
+
+    .tally {
+        margin-inline-start: auto;
+        width: auto;
+        max-width: 60%;
     }
 
     .caption {

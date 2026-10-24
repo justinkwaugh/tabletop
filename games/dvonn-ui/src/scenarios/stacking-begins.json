@@ -27,24 +27,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 3386903582,
+        "seed": 1674497401,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-24T01:59:00.242Z",
+        "createdAt": "2026-10-24T03:12:43.553Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-24T01:59:00.242Z"
+        "startedAt": "2026-10-24T03:12:43.553Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "KybpO3_NA2_5w75qY46R2",
+        "id": "6Ui7m32D3beFbu8Qd9sdv",
         "gameId": "scenario-stacking-begins",
-        "seed": 3386903582,
+        "seed": 1674497401,
         "prng": {
-            "seed": 3386903582,
+            "seed": 1674497401,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 271567847,
+            "seed": 2854440827,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],

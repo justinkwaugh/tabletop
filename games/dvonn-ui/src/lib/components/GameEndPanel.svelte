@@ -12,7 +12,7 @@
 
     // Rule G2: each player's stacks piled together; the higher pile wins.
     const reason = $derived(
-        `No moves remain; pieces controlled ${session.gameState.players
+        `No moves remain; stack height ${session.gameState.players
             .map((player) => session.gameState.score(player.playerId))
             .toSorted((a, b) => b - a)
             .join(' to ')}`
