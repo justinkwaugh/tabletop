@@ -77,14 +77,17 @@
             : 'More than one road leads there. Tap the locale to march through: a corps closes the reserves it marches into to other units this turn.'
     })
 
-    // Nothing on the board marks a locale that can be aimed at until it is tapped, so the orders of pieces in hand say so. Not on the idle line: it would grow taller than the anchor, and choosing would resize the board.
+    // Rule 11: a threat starts from the enemy's locale, and nothing on the board marks the ones that can be aimed at until one is tapped.
     const howToAim = $derived.by(() => {
-        const onAnotherStep =
-            wayToChoose !== undefined || attaching || (options.length === 0 && !ridingOn)
+        const stuck = group !== undefined && options.length === 0 && !ridingOn
+        const onAnotherStep = wayToChoose !== undefined || attaching || stuck
         return !onAnotherStep && gameSession.aimableLocales.length > 0
-            ? 'To attack, tap an enemy locale.'
+            ? 'Tap an enemy locale to threaten an attack.'
             : undefined
     })
+
+    // The anchor stands as tall as the idle line last stood, however it wrapped, so choosing never resizes the board.
+    let idleLineHeight = $state(18)
 
     const aside = $derived.by(() => {
         if (!group || ridingOn) {
@@ -127,7 +130,7 @@
 {/snippet}
 
 {#snippet drawer(sheet: Snippet, note: Snippet, marks: TargetMark[] | undefined)}
-    <div class="nt-orders-anchor">
+    <div class="nt-orders-anchor" style:height="{idleLineHeight}px">
         <div class="nt-orders-drawer" bind:clientHeight={drawerHeight}>
             <div class="nt-orders-sheet">
                 {@render sheet()}
@@ -300,7 +303,10 @@
             problem ? undefined : marksOn(gameSession.targets, gameSession.closedReserves)
         )}
     {:else}
-        <div class="nt-orders-note nt-orders-rest">
+        <div class="nt-orders-note nt-orders-rest" bind:clientHeight={idleLineHeight}>
+            {#if howToAim}
+                <span>{howToAim}</span>
+            {/if}
             <span class="nt-orders-faint">{stillToCommand}</span>
         </div>
     {/if}
@@ -352,7 +358,13 @@
 
     .nt-orders-anchor {
         position: relative;
-        height: 18px;
+    }
+
+    /* The idle line runs its hints on, so a wide panel gives up no more of the board than one line. */
+    .nt-orders-note.nt-orders-rest {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0 0.45em;
     }
 
     .nt-orders-drawer {

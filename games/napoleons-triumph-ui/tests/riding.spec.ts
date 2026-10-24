@@ -178,7 +178,7 @@ test('cavalry riding on stays in hand while a locale is aimed at, and the threat
     await frenchTurnWith(page, reinforcementCavalryRidesIn)
     const rideSwitch = page.getByRole('group', { name: RIDE_SWITCH })
     await expect(page.getByRole('group', { name: 'Bernadotte’s corps, riding on' })).toBeVisible()
-    await expect(page.getByText('To attack, tap an enemy locale.')).toBeVisible()
+    await expect(page.getByText('Tap an enemy locale to threaten an attack.')).toBeVisible()
 
     await tap(page, '[data-aim-locale="52"]')
     await expect(
