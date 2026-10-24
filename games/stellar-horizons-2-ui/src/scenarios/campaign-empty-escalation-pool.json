@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2369331454,
+  "seed": 1440060480,
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-24T15:32:32.581Z",
+  "createdAt": "2026-10-24T21:34:07.399Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "lzJ0IYPTRNv6hPGDtP1wT",
+  "id": "_M4-RvEkyFuwQbYeLaCqh",
   "gameId": "scenario-campaign-empty-escalation-pool",
   "seed": 3367980177,
   "prng": {
@@ -1193,6 +1193,9 @@
    "p1"
   ],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

@@ -71,6 +71,16 @@
         isChooseEndRollModifier,
         isChooseGrowthBase,
         BLOCKADE_INFLUENCE,
+        CombatKind,
+        CombatSide,
+        isAssignHit,
+        isDeclareAttack,
+        isDefendAttack,
+        isEndAttacks,
+        isEndCombat,
+        isResolveRaid,
+        type CombatRolls,
+        type HitOutcome,
         isDeclareBlockade,
         isDiscardEscalation,
         isEndBlockades,
@@ -94,11 +104,15 @@
         PHASE_SKIPPED,
         PHASE_STARTED,
         factionName,
+        markersText,
         plural,
         productionLabel,
         rolledText,
+        capitalized,
+        COMBAT_KIND_LABELS,
         systemName
     } from '$lib/utils/presentation.js'
+    import { lossText, raidOutcomeText, raidRollText, rollText } from '$lib/utils/combat.js'
     import { pactTargetName, rewardSummary } from '$lib/utils/pacts.js'
     import { goodName, goodsText, holderName } from '$lib/utils/trade.js'
     import { cardBackText, cardTitle } from '$lib/utils/cards.js'
@@ -116,15 +130,11 @@
         return shipDefinition(shipId).name
     }
 
-    function markers(field: TechField, count: number): string {
-        return plural(count, `${field.toLowerCase()} marker`)
-    }
-
     function compensationText(compensation: CompensationCounts): string {
         const parts = [
-            ...(compensation.Biology ? [markers(TechField.Biology, compensation.Biology)] : []),
+            ...(compensation.Biology ? [markersText(TechField.Biology, compensation.Biology)] : []),
             ...(compensation.Engineering
-                ? [markers(TechField.Engineering, compensation.Engineering)]
+                ? [markersText(TechField.Engineering, compensation.Engineering)]
                 : [])
         ]
         return parts.length > 0 ? ` (${parts.join(' and ')} in compensation)` : ''
@@ -167,6 +177,34 @@
         return `drawing ${escalationList(draw.drawn)}${lost}${banned}`
     }
 
+    function hitText(hit: HitOutcome): string {
+        const target = hit.target.kind === 'Ship' ? shipName(hit.target.shipId) : 'the base'
+        const chooser = hit.chooserId
+            ? ` (${gameSession.getPlayerName(hit.chooserId)}'s choice)`
+            : ''
+        const result = hit.lost
+            ? `: ${lossText(hit.lost)}`
+            : hit.baseEliminated
+              ? ': the base is eliminated'
+              : ''
+        return `a hit on ${target}${chooser}${result}`
+    }
+
+    function hitsText(hits: readonly HitOutcome[]): string {
+        return hits.length > 0 ? `${hits.map(hitText).join('; ')}.` : ''
+    }
+
+    function rollsText(rolls: CombatRolls | undefined): string {
+        if (!rolls) {
+            return ''
+        }
+        const side = (key: CombatSide) => {
+            const roll = rolls[key]
+            return `${key === CombatSide.Attacker ? 'the attack' : 'the defence'} rolls ${rollText(roll)} with ${roll.combatValue} combat value: ${plural(roll.hits, 'hit')}`
+        }
+        return `${capitalized(side(CombatSide.Attacker))}; ${side(CombatSide.Defender)}.`
+    }
+
     function signedPercent(value: number): string {
         return value > 0 ? ` + ${value}%` : ` − ${-value}%`
     }
@@ -190,7 +228,7 @@
                 ? `for the loss of ${shipName(entry.shipId)}`
                 : `for ${shipName(entry.shipId)}'s exploration of ${systemName(entry.systemId)}`
         const survey = entry.survey ? ', enough for a survey' : ''
-        return `${markers(entry.field, entry.markers.length)}${drawn}${cash} ${reason}${survey}`
+        return `${markersText(entry.field, entry.markers.length)}${drawn}${cash} ${reason}${survey}`
     }
 </script>
 
@@ -345,7 +383,7 @@
             explored {action.metadata ? systemName(action.metadata.systemId) : ''} with {shipName(
                 action.shipId
             )}{action.metadata
-                ? `: ${markers(action.metadata.field, action.metadata.markerCount)} earned`
+                ? `: ${markersText(action.metadata.field, action.metadata.markerCount)} earned`
                 : ''}{action.metadata?.rewardRoll !== undefined && action.metadata.rewardRolls
                 ? ` (${rolledText(action.metadata.rewardRoll, action.metadata.rewardRolls)} for one more)`
                 : ''}{action.metadata?.destroyed
@@ -703,6 +741,58 @@
         <span
             >{action.tileId ? 'replaced a terraformed world' : 'kept their terraformed world'}</span
         >
+    {:else if isDeclareAttack(action)}
+        <span
+            >{action.kind === CombatKind.Explorer && action.explorerId
+                ? `destroys ${shipName(action.explorerId)} at ${systemName(action.systemId)}, an RE of`
+                : `starts a ${COMBAT_KIND_LABELS[action.kind].toLowerCase()} at ${systemName(action.systemId)}${action.shipIds.length ? ` with ${action.shipIds.map(shipName).join(' and ')}` : ''} against`}</span
+        >
+        <PlayerName playerId={action.defenderId} />
+        {#if action.metadata}
+            {@const metadata = action.metadata}
+            {#if metadata.explorerLoss}
+                <span>({lossText(metadata.explorerLoss)}).</span>
+            {/if}
+            {#if metadata.raid}
+                <span
+                    >The raid rolls {raidRollText(metadata.raid)} and {metadata.raid.percentile}%
+                    for damage.</span
+                >
+            {/if}
+            {#if metadata.raidOutcome}
+                <span>{raidOutcomeText(metadata.raidOutcome)}</span>
+            {/if}
+            <span>{rollsText(metadata.rolls)}</span>
+            <span>{capitalized(hitsText(metadata.hits))}</span>
+        {/if}
+    {:else if isDefendAttack(action)}
+        <span
+            >defends {action.includeBase
+                ? 'with their base too'
+                : action.shipIds.length
+                  ? `with ${action.shipIds.map(shipName).join(' and ')}`
+                  : 'without adding to the defence'}.</span
+        >
+        {#if action.metadata}
+            <span>{rollsText(action.metadata.rolls)}</span>
+            <span>{capitalized(hitsText(action.metadata.hits))}</span>
+        {/if}
+    {:else if isAssignHit(action)}
+        <span>assigns {hitsText(action.metadata?.hits ?? [])}</span>
+    {:else if isResolveRaid(action)}
+        <span>{action.metadata ? raidOutcomeText(action.metadata) : ''}</span>
+    {:else if isEndCombat(action)}
+        {#if action.metadata?.declined}
+            <span>declines the escalation markers, so the defender gains no IP.</span>
+        {:else if action.metadata}
+            <span
+                >The attacker {action.metadata.escalation
+                    ? escalationDrawText(action.metadata.escalation)
+                    : ''}; the defender gains {action.metadata.influence} IP.</span
+            >
+        {/if}
+    {:else if isEndAttacks(action)}
+        <span>makes no more attacks</span>
     {:else if isDeclareBlockade(action)}
         <span>blockaded</span>
         {#each action.targetIds as targetId, index (targetId)}

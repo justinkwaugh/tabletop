@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2481063919,
+  "seed": 1568828338,
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-24T15:32:32.520Z",
+  "createdAt": "2026-10-24T21:34:07.340Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "mBK5yltnLXXqghXi1NiK1",
+  "id": "0svPYpd9Jz7yng_cm2s4l",
   "gameId": "scenario-campaign-blockade-growth",
   "seed": 3367980177,
   "prng": {
@@ -1227,6 +1227,9 @@
    "p1"
   ],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

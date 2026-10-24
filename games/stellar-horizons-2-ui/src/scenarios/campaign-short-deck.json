@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 336043768,
+  "seed": 3902198623,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T15:32:32.363Z",
+  "createdAt": "2026-10-24T21:34:07.183Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "WPbkaNn_Yfam_eNC9J-SL",
+  "id": "rmUakQASByXskQG4508F5",
   "gameId": "scenario-campaign-short-deck",
   "seed": 3367980177,
   "prng": {
@@ -1187,6 +1187,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

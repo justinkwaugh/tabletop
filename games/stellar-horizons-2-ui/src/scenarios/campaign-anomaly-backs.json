@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2157441238,
+  "seed": 758546461,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T15:32:32.148Z",
+  "createdAt": "2026-10-24T21:34:06.966Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "3cVFjf-d_5ItiocHP6PX-",
+  "id": "9gBCimOXDt9FvBfzrZn3u",
   "gameId": "scenario-campaign-anomaly-backs",
   "seed": 3367980177,
   "prng": {
@@ -1214,6 +1214,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

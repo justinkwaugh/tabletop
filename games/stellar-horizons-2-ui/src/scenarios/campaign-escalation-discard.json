@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 1643344179,
+  "seed": 678151461,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T15:32:32.549Z",
+  "createdAt": "2026-10-24T21:34:07.369Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "TRv6KrY1m7b4ENF_g4CRL",
+  "id": "p2GBZ9gQ_OMhvVYmfFbtS",
   "gameId": "scenario-campaign-escalation-discard",
   "seed": 3367980177,
   "prng": {
@@ -1198,6 +1198,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

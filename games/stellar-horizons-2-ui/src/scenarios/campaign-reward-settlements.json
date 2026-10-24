@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 235171382,
+  "seed": 3645251460,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T15:32:32.178Z",
+  "createdAt": "2026-10-24T21:34:06.997Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "Cc-T1QczGp2jB52SXxrGL",
+  "id": "8qD7BzZFlQIj1ZAYnTwz3",
   "gameId": "scenario-campaign-reward-settlements",
   "seed": 3367980177,
   "prng": {
@@ -1229,6 +1229,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

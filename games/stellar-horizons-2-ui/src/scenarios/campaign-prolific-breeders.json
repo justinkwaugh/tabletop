@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2614027444,
+  "seed": 1318268716,
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-10-24T15:32:32.413Z",
+  "createdAt": "2026-10-24T21:34:07.234Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "IXhUa3iT6ON8_vWrWac8P",
+  "id": "6irp_dHQoRMApokXxygof",
   "gameId": "scenario-campaign-prolific-breeders",
   "seed": 3367980177,
   "prng": {
@@ -1229,6 +1229,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

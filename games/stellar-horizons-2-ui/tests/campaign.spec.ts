@@ -140,3 +140,56 @@ test('the escalation markers to keep are chosen before declaring initiative', as
     await declare.click()
     await expect(page.locator('[title="Player 1 has finished"]')).toBeVisible()
 })
+
+test('an assault is declared, answered and its hits placed from the combat panel', async ({
+    page
+}) => {
+    await openScenario(page, 'Campaign assault')
+    await page.getByRole('button', { name: 'Attack at Luhman 16' }).click({ force: true })
+    const step = page.locator('.sh-step')
+    const assault = step.getByRole('button', { name: /^Planetary assault/ })
+    await assault.click()
+    const declare = step.getByRole('button', { name: 'Planetary assault', exact: true })
+    await expect(declare).toBeDisabled()
+    await step.getByRole('button', { name: /^Odyssey/ }).click()
+    await step.getByRole('button', { name: /^Gladiator/ }).click()
+    await expect(declare).toBeEnabled()
+    // Undo takes back a ship at a time, then the kind of combat and the system, undoing no action.
+    const undo = page.getByRole('button', { name: 'UNDO' })
+    await undo.click()
+    await expect(step.getByRole('button', { name: /^Gladiator/ })).toHaveAttribute(
+        'aria-pressed',
+        'false'
+    )
+    await expect(declare).toBeEnabled()
+    await undo.click()
+    await expect(declare).toBeDisabled()
+    await undo.click()
+    await expect(declare).toHaveCount(0)
+    await expect(assault).toHaveAttribute('aria-pressed', 'false')
+    await undo.click()
+    await expect(assault).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Attack at Luhman 16' })).toBeAttached()
+    await page.getByRole('button', { name: 'Attack at Luhman 16' }).click({ force: true })
+    await assault.click()
+    await step.getByRole('button', { name: /^Odyssey/ }).click()
+    await step.getByRole('button', { name: /^Gladiator/ }).click()
+    await declare.click()
+    // The Givers answer: the defence and the combat panel beside the map.
+    const panel = page.getByRole('complementary', { name: 'Combat at Luhman 16' })
+    await expect(panel).toBeVisible()
+    await step.getByRole('button', { name: /^Guildmaster/ }).click()
+    await step.getByRole('button', { name: /^Sapphire/ }).click()
+    await step.getByRole('button', { name: 'Defend with 2 ships' }).click()
+    // The Player Guide's 14 against 11, each modifier named.
+    await expect(
+        panel.getByText(
+            'Rolled 1 + 0.2 (CVs) + 0.3 (settlements) + 1 (The Praetorians) + 1 (Military Academy) = 4 · combat value 14'
+        )
+    ).toBeVisible()
+    await expect(panel.getByText('Rolled 3 + 0.3 (CVs) = 3 · combat value 11')).toBeVisible()
+    // The Givers' 3 hits land on the Praetorians' units first, the Praetorians choosing first.
+    await expect(panel.getByText('3 hits left on these units')).toBeVisible()
+    await panel.locator('.unit.target').first().click()
+    await expect(panel.getByText('2 hits left on these units')).toBeVisible()
+})

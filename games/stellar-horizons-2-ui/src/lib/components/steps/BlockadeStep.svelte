@@ -12,7 +12,7 @@
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { plural, systemName } from '$lib/utils/presentation.js'
-    import EscalationChip from '../escalation/EscalationChip.svelte'
+    import EscalationDiscardChoice from '../escalation/EscalationDiscardChoice.svelte'
 
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
@@ -35,22 +35,7 @@
 
 <div class="sh-step">
     {#if pending}
-        <p class="hint">
-            Military Academy draws you one escalation marker more. Choose one of those drawn to
-            discard.
-        </p>
-        <div class="row">
-            {#each pending.drawn as marker, index (index)}
-                <button
-                    type="button"
-                    class="discard"
-                    onclick={() => gameSession.discardEscalation(marker)}
-                >
-                    <EscalationChip {marker} />
-                    <span>Discard</span>
-                </button>
-            {/each}
-        </div>
+        <EscalationDiscardChoice drawn={pending.drawn} />
     {:else}
         <p class="hint">
             Before {growth ? 'growth and migration' : 'base production'}, you may blockade other
@@ -145,12 +130,5 @@
 
     .balance {
         margin: 0;
-    }
-
-    .discard {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
     }
 </style>

@@ -1,6 +1,8 @@
 import {
     CASH_PRODUCTION,
+    CombatKind,
     EconomicTile,
+    RaidResult,
     Faction,
     TechField,
     TechId,
@@ -13,6 +15,7 @@ import {
 
 export const PHASE_LABELS: Record<TurnPhase, string> = {
     [TurnPhase.Build]: 'Build & repair',
+    [TurnPhase.Combat]: 'Combat',
     [TurnPhase.Cargo]: 'Cargo',
     [TurnPhase.Movement]: 'Movement',
     [TurnPhase.Exploration]: 'Exploration',
@@ -24,6 +27,7 @@ export const PHASE_LABELS: Record<TurnPhase, string> = {
 
 export const PHASE_DONE_LABELS: Record<TurnPhase, string> = {
     [TurnPhase.Build]: 'Done building',
+    [TurnPhase.Combat]: 'No more attacks',
     [TurnPhase.Cargo]: 'Done with cargo',
     [TurnPhase.Movement]: 'Done moving',
     [TurnPhase.Exploration]: 'Done exploring',
@@ -35,6 +39,7 @@ export const PHASE_DONE_LABELS: Record<TurnPhase, string> = {
 
 export const PHASE_STARTED: Record<TurnPhase, string> = {
     [TurnPhase.Build]: 'starts building',
+    [TurnPhase.Combat]: 'starts attacking',
     [TurnPhase.Cargo]: 'starts transferring cargo',
     [TurnPhase.Movement]: 'starts moving',
     [TurnPhase.Exploration]: 'starts exploring',
@@ -46,6 +51,7 @@ export const PHASE_STARTED: Record<TurnPhase, string> = {
 
 export const PHASE_FINISHED: Record<TurnPhase, string> = {
     [TurnPhase.Build]: 'finished building',
+    [TurnPhase.Combat]: 'finished attacking',
     [TurnPhase.Cargo]: 'finished with cargo',
     [TurnPhase.Movement]: 'finished moving',
     [TurnPhase.Exploration]: 'finished exploring',
@@ -57,6 +63,7 @@ export const PHASE_FINISHED: Record<TurnPhase, string> = {
 
 export const PHASE_SKIPPED: Record<TurnPhase, string> = {
     [TurnPhase.Build]: 'has nothing more to build',
+    [TurnPhase.Combat]: 'has nothing to attack',
     [TurnPhase.Cargo]: 'has no cargo to move',
     [TurnPhase.Movement]: 'has no ships to move',
     [TurnPhase.Exploration]: 'has nothing to explore',
@@ -68,6 +75,7 @@ export const PHASE_SKIPPED: Record<TurnPhase, string> = {
 
 export const PHASE_OVER: Record<TurnPhase, string> = {
     [TurnPhase.Build]: 'Everyone has finished building.',
+    [TurnPhase.Combat]: 'The combat phase is over.',
     [TurnPhase.Cargo]: 'Cargo transfers are over.',
     [TurnPhase.Movement]: 'Everyone has finished moving.',
     [TurnPhase.Exploration]: 'Everyone has finished exploring.',
@@ -75,6 +83,22 @@ export const PHASE_OVER: Record<TurnPhase, string> = {
     [TurnPhase.Initiative]: 'Everyone has declared their IP.',
     [TurnPhase.BaseProduction]: 'Every base has chosen what to produce.',
     [TurnPhase.TradeGoods]: 'Everyone has assigned their trade goods.'
+}
+
+export const COMBAT_KIND_LABELS: Record<CombatKind, string> = {
+    [CombatKind.Fleet]: 'Fleet combat',
+    [CombatKind.Assault]: 'Planetary assault',
+    [CombatKind.Ground]: 'Ground combat',
+    [CombatKind.Raid]: 'Raid',
+    [CombatKind.Explorer]: 'Destroy an RE'
+}
+
+export const RAID_RESULT_LABELS: Record<RaidResult, string> = {
+    [RaidResult.StealCash]: 'Steal $1B',
+    [RaidResult.StealMoreCash]: 'Steal $2B',
+    [RaidResult.StealMarker]: 'Steal a tech marker',
+    [RaidResult.TakeGood]: 'Steal or destroy a good',
+    [RaidResult.DestroySettlement]: 'Destroy a settlement'
 }
 
 export const ECONOMIC_TILE_LABELS: Record<EconomicTile, string> = {
@@ -221,4 +245,8 @@ export function rolledText(roll: number, rolls?: readonly number[]): string {
 
 export function plural(count: number, noun: string, pluralNoun = `${noun}s`): string {
     return `${count} ${count === 1 ? noun : pluralNoun}`
+}
+
+export function markersText(field: TechField, count: number): string {
+    return plural(count, `${field.toLowerCase()} marker`)
 }

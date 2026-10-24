@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 1125743308,
+  "seed": 578875570,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T15:32:32.228Z",
+  "createdAt": "2026-10-24T21:34:07.047Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "kakjsvaOnXEZ6ACNG9FhU",
+  "id": "obrMmuX6bRE9S7071F1DF",
   "gameId": "scenario-campaign-trading",
   "seed": 3367980177,
   "prng": {
@@ -1269,6 +1269,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

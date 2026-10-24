@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2719946223,
+  "seed": 2780722958,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T15:32:32.323Z",
+  "createdAt": "2026-10-24T21:34:07.142Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "By7hSFtOzN9RqWOI4zyZF",
+  "id": "Dtw3OquV1g1LA5wQLHRTh",
   "gameId": "scenario-campaign-buying-cards",
   "seed": 3367980177,
   "prng": {
@@ -1222,6 +1222,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

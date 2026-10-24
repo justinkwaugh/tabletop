@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2113934022,
+  "seed": 363902712,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T15:32:32.107Z",
+  "createdAt": "2026-10-24T21:34:06.923Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "oSufjwZF7mGXfq1YyCHQK",
+  "id": "ZsskpriAi3Cd5WzSlY6j3",
   "gameId": "scenario-campaign-mining",
   "seed": 3367980177,
   "prng": {
@@ -1240,6 +1240,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

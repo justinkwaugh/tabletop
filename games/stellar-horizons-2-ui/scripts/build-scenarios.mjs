@@ -8,16 +8,23 @@ import { startingPosition } from '@tabletop/common/testing'
 import {
     ActionType,
     CardDeck,
+    CombatKind,
+    CombatSide,
     EconomicTile,
     EscalationMarker,
     Faction,
     GoodsHolderKind,
+    MachineState,
+    RaidResult,
     ScenarioId,
     TechId,
     TradeGood,
     TurnPhase,
     WorldSide,
     cardPile,
+    crippledThreshold,
+    damageCapacity,
+    raidResult,
     recordPledgeableShips,
     recountPile
 } from '@tabletop/stellar-horizons-2'
@@ -27,7 +34,9 @@ import {
     edit,
     endPhase,
     execute,
+    executeAll,
     finishDecade,
+    hydrate,
     placeBase,
     placeShip,
     startedGame,
@@ -603,6 +612,243 @@ function campaignTruceRoll() {
     return { game, state: advanceTo(game, state, TurnPhase.Development) }
 }
 
+/**
+ * A campaign in 2110's combat phase after the truce, with the Earth production tile and the
+ * given Player first in initiative order.
+ */
+function campaignAtWar(firstFaction, arrange) {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        state.economicTilePool = [EconomicTile.EarthProduction]
+        state.truce = false
+        const first = playerOf(state, firstFaction)
+        state.turnManager.reorder([
+            first,
+            ...state.initiativeOrder().filter((playerId) => playerId !== first)
+        ])
+        arrange(state)
+    })
+    return { game, state: advanceTo(game, arranged, TurnPhase.Combat) }
+}
+
+/**
+ * Draws the protected randomness ahead until the moves a scenario expects of the Players give
+ * the result it promises: the dice are rolled only once they act in the harness.
+ */
+function withDice({ game, state: position }, play, promised) {
+    for (let skipped = 0; skipped < 2000; skipped++) {
+        const state = structuredClone(position)
+        state.protectedPrng.invocations += skipped
+        if (promised(play(game, state))) {
+            return { game, state }
+        }
+    }
+    throw new Error('No dice give the promised result')
+}
+
+function act(game, state, type, fields) {
+    return execute(game, state, userAction(game, state.activePlayerIds[0], type, fields))
+}
+
+const LUHMAN_16 = 'luhman-16'
+
+/**
+ * The Player Guide's combat example: the Praetorians' Odyssey and Gladiator at Luhman 16 beside
+ * the Givers' base of 3, Guildmaster and Sapphire (carrying a settlement). The Praetorians own
+ * Military Academy.
+ */
+function guideExample(arrange = () => {}) {
+    return campaignAtWar(Faction.Praetorians, (state) => {
+        const praetorians = playerOf(state, Faction.Praetorians)
+        const givers = playerOf(state, Faction.Givers)
+        ownCard(state, praetorians, 'military-academy')
+        placeWorlds(state, LUHMAN_16, [[is('m-2'), WorldSide.I]])
+        placeBase(state, givers, LUHMAN_16, 3)
+        placeShip(state, givers, 'consortium-guildmaster', LUHMAN_16)
+        placeShip(state, givers, 'consortium-sapphire', LUHMAN_16, { settlements: 1 })
+        placeShip(state, praetorians, 'praetorians-odyssey', LUHMAN_16)
+        placeShip(state, praetorians, 'praetorians-gladiator', LUHMAN_16)
+        arrange(state)
+    })
+}
+
+// The Player Guide's assault, both Praetorian ships against the base and both Givers CVs.
+function guideAssault(game, state) {
+    const declared = act(game, state, ActionType.DeclareAttack, {
+        kind: CombatKind.Assault,
+        systemId: LUHMAN_16,
+        defenderId: playerOf(hydrate(state), Faction.Givers),
+        shipIds: ['praetorians-odyssey', 'praetorians-gladiator']
+    })
+    return act(game, declared, ActionType.DefendAttack, {
+        includeBase: false,
+        shipIds: ['consortium-guildmaster', 'consortium-sapphire']
+    })
+}
+
+// Hits land on both sides, and the first is a choice.
+function hitsOnBothSides(played) {
+    const state = hydrate(played)
+    const combat = state.combat
+    return (
+        state.machineState === MachineState.AssigningHits &&
+        combat.hits[CombatSide.Attacker] > 0 &&
+        combat.hits[CombatSide.Defender] > 0
+    )
+}
+
+/** The Player Guide's example, with dice that leave hits to choose on both sides. */
+function campaignAssault() {
+    return withDice(guideExample(), guideAssault, hitsOnBothSides)
+}
+
+/**
+ * The Player Guide's assault already rolled, with hits to choose on both sides: the Gladiator is
+ * a hit from crippled and the Sapphire a hit from destroyed.
+ */
+function campaignHits() {
+    const position = withDice(
+        guideExample((state) => {
+            const gladiator = state.ship('praetorians-gladiator')
+            gladiator.damage = crippledThreshold(state, gladiator) - 1
+            const sapphire = state.ship('consortium-sapphire')
+            sapphire.damage = damageCapacity(state, sapphire) - 1
+        }),
+        guideAssault,
+        hitsOnBothSides
+    )
+    return { game: position.game, state: guideAssault(position.game, position.state) }
+}
+
+/**
+ * The Praetorians' Odyssey and Gladiator at Luhman 16 beside the Givers' lone base of 2, with
+ * dice that eliminate it.
+ */
+function campaignBaseEliminated() {
+    const assault = (game, state) =>
+        act(game, state, ActionType.DeclareAttack, {
+            kind: CombatKind.Assault,
+            systemId: LUHMAN_16,
+            defenderId: playerOf(hydrate(state), Faction.Givers),
+            shipIds: ['praetorians-odyssey', 'praetorians-gladiator']
+        })
+    return withDice(
+        campaignAtWar(Faction.Praetorians, (state) => {
+            const praetorians = playerOf(state, Faction.Praetorians)
+            placeWorlds(state, LUHMAN_16, [[is('m-2'), WorldSide.I]])
+            placeBase(state, playerOf(state, Faction.Givers), LUHMAN_16, 2)
+            placeShip(state, praetorians, 'praetorians-odyssey', LUHMAN_16)
+            placeShip(state, praetorians, 'praetorians-gladiator', LUHMAN_16)
+        }),
+        assault,
+        (played) => {
+            const state = hydrate(played)
+            return state.base(playerOf(state, Faction.Givers), LUHMAN_16) === undefined
+        }
+    )
+}
+
+/**
+ * Every combat modifier at once, in a planetary assault at Luhman 16. The Praetorians (+1) own
+ * Military Academy (+1), Enhanced Strength and Increased Body Size (+1 each on the ground); the
+ * Givers own Hypersonic Missiles (-1 to assaults on them), Minefields (+3 defending), Subterranean
+ * (-2 to ground attacks on them) and Reduced Body Size (-1 on the ground). Tunnel Complex lies
+ * turned over there, -1 to whoever fights the Givers' base.
+ */
+function campaignCombatModifiers() {
+    return guideExample((state) => {
+        const praetorians = playerOf(state, Faction.Praetorians)
+        const givers = playerOf(state, Faction.Givers)
+        ownCard(state, praetorians, 'enhanced-strength')
+        ownCard(state, praetorians, 'increased-body-size')
+        for (const cardId of [
+            'hypersonic-missiles',
+            'minefields',
+            'subterranean',
+            'reduced-body-size'
+        ]) {
+            ownCard(state, givers, cardId)
+        }
+        state.systemState(LUHMAN_16).anomaly = 'tunnel-complex'
+        state.systemState(LUHMAN_16).anomalyResolved = true
+    })
+}
+
+/**
+ * A fleet combat at Wolf 359 against the Givers' Sapphire, which attacked the Praetorians last
+ * turn, so they may decline the escalation markers afterwards.
+ */
+function campaignDeclineEscalation() {
+    return campaignAtWar(Faction.Praetorians, (state) => {
+        const praetorians = playerOf(state, Faction.Praetorians)
+        const givers = playerOf(state, Faction.Givers)
+        placeShip(state, givers, 'consortium-sapphire', 'wolf-359')
+        placeShip(state, praetorians, 'praetorians-centurion', 'wolf-359')
+        state.attacks.push({ shipId: 'consortium-sapphire', targetId: praetorians, year: 2100 })
+    })
+}
+
+/**
+ * Ground combat at Alpha Centauri: the Starfarers' base of 12 against the Givers' base of 6,
+ * with the Givers' Guildmaster and Sapphire there to join the defence.
+ */
+function campaignGroundCombat() {
+    return campaignAtWar(Faction.Starfarers, (state) => {
+        const givers = playerOf(state, Faction.Givers)
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        placeBase(state, playerOf(state, Faction.Starfarers), 'alpha-centauri', 12)
+        placeBase(state, givers, 'alpha-centauri', 6)
+        placeShip(state, givers, 'consortium-guildmaster', 'alpha-centauri')
+        placeShip(state, givers, 'consortium-sapphire', 'alpha-centauri')
+    })
+}
+
+/**
+ * A Syndicate raid: the third faction plays the Syndicate, whose Viper is at Barnard's Star
+ * beside the Givers' base of 4 holding Ore. The Givers hold markers of every type. The dice
+ * give the result named.
+ */
+function campaignRaid(result) {
+    // The raid's roll, from the declaration's history entry.
+    const raid = (game, state) =>
+        executeAll(
+            game,
+            state,
+            userAction(game, state.activePlayerIds[0], ActionType.DeclareAttack, {
+                kind: CombatKind.Raid,
+                systemId: 'barnards-star',
+                defenderId: playerOf(hydrate(state), Faction.Givers),
+                shipIds: ['syndicate-viper']
+            })
+        ).processedActions.find((action) => action.type === ActionType.DeclareAttack).metadata.raid
+    return withDice(
+        campaignAtWar(Faction.Praetorians, (state) => {
+            const raider = playerOf(state, Faction.Praetorians)
+            state.getPlayerState(raider).faction = Faction.Syndicate
+            for (const ship of state.shipsOf(raider)) {
+                delete state.ships[ship.shipId]
+            }
+            const givers = playerOf(state, Faction.Givers)
+            placeWorlds(state, 'barnards-star', [[ofClass('d-'), WorldSide.I]])
+            const base = placeBase(state, givers, 'barnards-star', 4)
+            base.goods = takeGoods(state, [TradeGood.Ore])
+            placeShip(state, raider, 'syndicate-viper', 'barnards-star')
+        }),
+        raid,
+        (roll) => raidResult(roll.total) === result
+    )
+}
+
+/** An RE attack: the Praetorians' Centurion beside the Givers' Linnaeus at Procyon. */
+function campaignExplorerAttack() {
+    return campaignAtWar(Faction.Praetorians, (state) => {
+        const linnaeus = state.ship('givers-linnaeus')
+        linnaeus.systemId = 'procyon'
+        linnaeus.transit = 0
+        placeShip(state, playerOf(state, Faction.Praetorians), 'praetorians-centurion', 'procyon')
+    })
+}
+
 // Moves escalation markers from the pool to a Player.
 function giveEscalation(state, playerId, markers) {
     for (const marker of markers) {
@@ -689,3 +935,27 @@ write(
     campaignEmptyEscalationPool()
 )
 write('campaign-truce-roll', 'Campaign: the truce roll', campaignTruceRoll())
+write('campaign-assault', 'Campaign: a planetary assault', campaignAssault())
+write('campaign-hits', 'Campaign: crippling and destroying ships', campaignHits())
+write('campaign-base-eliminated', 'Campaign: a base eliminated', campaignBaseEliminated())
+write('campaign-combat-modifiers', 'Campaign: every combat modifier', campaignCombatModifiers())
+write('campaign-decline-escalation', 'Campaign: declining escalation', campaignDeclineEscalation())
+write('campaign-ground-combat', 'Campaign: ground combat', campaignGroundCombat())
+write('campaign-raid-cash', 'Campaign: a raid stealing $1B', campaignRaid(RaidResult.StealCash))
+write(
+    'campaign-raid-more-cash',
+    'Campaign: a raid stealing $2B',
+    campaignRaid(RaidResult.StealMoreCash)
+)
+write(
+    'campaign-raid-marker',
+    'Campaign: a raid stealing a marker',
+    campaignRaid(RaidResult.StealMarker)
+)
+write('campaign-raid-good', 'Campaign: a raid taking a good', campaignRaid(RaidResult.TakeGood))
+write(
+    'campaign-raid-settlement',
+    'Campaign: a raid destroying a settlement',
+    campaignRaid(RaidResult.DestroySettlement)
+)
+write('campaign-explorer-attack', 'Campaign: destroying an RE', campaignExplorerAttack())

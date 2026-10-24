@@ -257,9 +257,23 @@
 - **Meaning:** the escalation markers chosen to keep at the initiative discard, in the order chosen. One kind of selection, owned by the game session; read by the initiative step through the session's mask of the held markers it keeps. Only markers the Player still holds count, and only while they play their initiative Branch. The IP buttons wait until it holds the number to keep.
 - **Lifetime:** Undo takes back the last chosen; declaring initiative clears it.
 
+### Attack draft
+
+- **Meaning:** the attack being set up in the combat step: its system, then the kind of combat and the defender, then the ships (and an RE attack's RE). One kind of selection, owned by the game session; read by the combat step and the map targets. Each part is kept only while it is still a choice in the current state.
+- **Lifetime:** Undo takes back a ship at a time, then the RE, the kind of combat and the system; choosing the system again and declaring the attack clear it.
+
+### Defence draft
+
+- **Meaning:** the CVs the defender of an assault or ground combat adds, in the order chosen; only their CVs in the system count. Undo takes back the last; defending clears it.
+
+### Combat focus
+
+- **Meaning:** while a combat is fought, every viewer's map zooms into its system with the combat panel beside it instead of the system panel. The panel shows both sides' units, each roll with its modifiers named, and the hits; the Player choosing a hit taps a unit there, and the raider chooses the raid's result there. Once fought, the combat stays in the panel as it ended, with the raid's result and the escalation markers drawn.
+- **Lifetime:** Back to map leaves it for that combat; the next combat focuses again. Showing the combat from the hit or raid step returns to it. A combat already fought shows only until the viewer leaves it (or reloads and leaves it again), the next combat begins, or the movement phase ends; focusing its system afterwards shows the system panel.
+
 ### Map targets
 
-- **Meaning:** the systems the map offers for the current choice, each with its label and the action a click takes: destinations in movement, and the systems for placing an event, Homesteaders, reward settlements or the next drawn good, for selling goods, for blockading, and the system of reward goods while it is not zoomed into.
+- **Meaning:** the systems the map offers for the current choice, each with its label and the action a click takes: destinations in movement, and the systems for placing an event, Homesteaders, reward settlements or the next drawn good, for selling goods, for blockading, for attacking, and the system of reward goods while it is not zoomed into.
 - **Source:** derived from the selection, the drafts and the Machine State; never stored.
 
 ### Cargo draft

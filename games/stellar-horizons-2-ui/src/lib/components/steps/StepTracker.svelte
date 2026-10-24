@@ -2,6 +2,7 @@
     import {
         TurnPhase,
         isCampaign,
+        isSpanPhase,
         phaseDefinition,
         scenarioPhases
     } from '@tabletop/stellar-horizons-2'
@@ -32,7 +33,9 @@
     const acting = $derived(gameSession.actingPhase)
     const order = $derived(gameSession.phaseOrder)
     // Under a barrier nobody's play lands before anyone else's, so the track has no direction.
-    const unordered = $derived(current ? phaseDefinition(current).merge === 'barrier' : false)
+    const unordered = $derived(
+        current && isSpanPhase(current) ? phaseDefinition(current).merge === 'barrier' : false
+    )
 
     function name(playerId: string): string {
         return playerId === gameSession.myPlayerId ? 'You' : gameSession.getPlayerName(playerId)
@@ -113,7 +116,7 @@
             </ol>
         {/if}
     </div>
-    {#if acting && !economic}
+    {#if acting && !economic && gameSession.canEndPhase}
         <button type="button" class="done" onclick={() => gameSession.endPhase()}>
             {PHASE_DONE_LABELS[acting]}
         </button>

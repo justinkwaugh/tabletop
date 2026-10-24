@@ -3,9 +3,28 @@ import type { GameAction } from '@tabletop/common'
 import {
     ActionType,
     AssignGoods,
+    AssignHit,
+    CombatKind,
+    DeclareAttack,
     DeclareBlockade,
+    DefendAttack,
     DiscardEscalation,
+    EndAttacks,
     EndBlockades,
+    EndCombat,
+    ResolveRaid,
+    attackDeclaration,
+    attackOptionFor,
+    attackOptions,
+    defendingShipOptions,
+    isValidAttack,
+    mainLineQueue,
+    type AttackDeclaration,
+    type AttackOption,
+    type Combat,
+    type FoughtCombat,
+    type HitTarget,
+    type RaidChoice,
     blockadeSystems,
     blockadeableBases,
     canBlockade,
@@ -118,6 +137,7 @@ import {
     type TechId
 } from '@tabletop/stellar-horizons-2'
 import { cargoDraftFits } from '$lib/utils/cargoTransferView.js'
+import { type CombatRef, combatRef, sameCombat } from '$lib/utils/combat.js'
 import { evenShares, type ShareItem } from '$lib/utils/pacts.js'
 import { plural, systemName } from '$lib/utils/presentation.js'
 import {
@@ -129,8 +149,14 @@ import {
 } from '$lib/utils/trade.js'
 import {
     DISCARDED,
+    attackSelection,
     blockadeSelection,
+    defenceSelection,
     keptSelection,
+    selectedAttackDraft,
+    selectedDefenceDraft,
+    type AttackDraft,
+    type DefenceDraft,
     selectedBlockadeDraft,
     selectedKeptDraft,
     type BlockadeDraft,
@@ -214,6 +240,7 @@ export class StellarHorizonsGameSession extends GameSession<
     private focus: { systemId: string; closing: boolean } | undefined = $state()
     private leftReward: GoodsReward | undefined = $state()
     private consolePlayer: string | undefined = $state()
+    private leftCombat: CombatRef | undefined = $state()
 
     myPlayerId: string | undefined = $derived(this.myPlayer?.id)
 
@@ -235,13 +262,13 @@ export class StellarHorizonsGameSession extends GameSession<
     // Who plays the phase, in the order their play lands on the main line, and how far each is.
     phaseOrder: PhaseOrderEntry[] = $derived.by(() => {
         const span = this.gameState.parallelSpan
-        const remainingTraders = this.gameState.remainingTraders
-        if (this.gameState.machineState === MachineState.Trading) {
+        const queue = mainLineQueue(this.gameState)
+        if (queue) {
             return this.gameState.initiativeOrder().map((playerId) => ({
                 playerId,
-                progress: !remainingTraders.includes(playerId)
+                progress: !queue.includes(playerId)
                     ? 'done'
-                    : remainingTraders[0] === playerId
+                    : queue[0] === playerId
                       ? 'playing'
                       : 'pending'
             }))
@@ -553,6 +580,98 @@ export class StellarHorizonsGameSession extends GameSession<
         }
     })
 
+    attackChoices: AttackOption[] = $derived.by(() => {
+        const playerId = this.myPlayerId
+        return playerId &&
+            this.canAct &&
+            this.gameState.machineState === MachineState.Attacking &&
+            !this.gameState.escalationDiscard
+            ? attackOptions(this.gameState, playerId)
+            : []
+    })
+
+    // The attack being set up: its system, then the kind of combat and the defender, then the
+    // ships, each kept only while it is still a choice.
+    attackDraft: AttackDraft | undefined = $derived.by(() => {
+        const draft = selectedAttackDraft(this.selection)
+        if (!draft) {
+            return undefined
+        }
+        const here = this.attackChoices.filter((option) => option.systemId === draft.systemId)
+        if (here.length === 0) {
+            return undefined
+        }
+        const option =
+            draft.combatKind !== undefined && draft.defenderId !== undefined
+                ? attackOptionFor(here, {
+                      kind: draft.combatKind,
+                      systemId: draft.systemId,
+                      defenderId: draft.defenderId
+                  })
+                : undefined
+        if (!option) {
+            return { systemId: draft.systemId, shipIds: [] }
+        }
+        return {
+            ...draft,
+            shipIds: draft.shipIds.filter((shipId) => option.shipIds.includes(shipId)),
+            explorerId:
+                draft.explorerId && option.explorerIds.includes(draft.explorerId)
+                    ? draft.explorerId
+                    : undefined
+        }
+    })
+
+    // The attacks open in the drafted system, and the one chosen there.
+    attackSystemChoices: AttackOption[] = $derived.by(() => {
+        const systemId = this.attackDraft?.systemId
+        return this.attackChoices.filter((option) => option.systemId === systemId)
+    })
+
+    attackOption: AttackOption | undefined = $derived.by(() => {
+        const draft = this.attackDraft
+        return draft?.combatKind !== undefined && draft.defenderId !== undefined
+            ? attackOptionFor(this.attackSystemChoices, {
+                  kind: draft.combatKind,
+                  systemId: draft.systemId,
+                  defenderId: draft.defenderId
+              })
+            : undefined
+    })
+
+    // The declaration the draft makes, once it names the combat and its defender.
+    private attackDeclaration: AttackDeclaration | undefined = $derived.by(() => {
+        const draft = this.attackDraft
+        return draft?.combatKind !== undefined && draft.defenderId !== undefined
+            ? attackDeclaration({ ...draft, kind: draft.combatKind, defenderId: draft.defenderId })
+            : undefined
+    })
+
+    attackReady: boolean = $derived.by(() => {
+        const declaration = this.attackDeclaration
+        const playerId = this.myPlayerId
+        return (
+            declaration !== undefined &&
+            playerId !== undefined &&
+            isValidAttack(this.gameState, playerId, declaration)
+        )
+    })
+
+    defenceDraft: DefenceDraft = $derived.by(() => {
+        const combat = this.gameState.combat
+        const draft = selectedDefenceDraft(this.selection)
+        if (
+            !combat ||
+            !draft ||
+            !this.canAct ||
+            this.gameState.machineState !== MachineState.Defending
+        ) {
+            return { shipIds: [] }
+        }
+        const options = defendingShipOptions(this.gameState, combat)
+        return { shipIds: draft.shipIds.filter((shipId) => options.includes(shipId)) }
+    })
+
     blockadeDraft: BlockadeDraft | undefined = $derived.by(() => {
         const draft = selectedBlockadeDraft(this.selection)
         const playerId = this.myPlayerId
@@ -631,6 +750,14 @@ export class StellarHorizonsGameSession extends GameSession<
                     label: '+1 settlement',
                     action: `Prolific Breeders at ${systemName(systemId)}`
                 }))
+            case MachineState.Attacking:
+                return [...new Set(this.attackChoices.map((option) => option.systemId))].map(
+                    (systemId) => ({
+                        systemId,
+                        label: 'Attack',
+                        action: `Attack at ${systemName(systemId)}`
+                    })
+                )
             case MachineState.Blockading:
                 return this.gameState.escalationDiscard
                     ? []
@@ -700,10 +827,35 @@ export class StellarHorizonsGameSession extends GameSession<
         return reward && !this.isLeftReward(reward) ? reward.systemId : undefined
     })
 
+    // The combat being fought, or else the one just fought with its outcome.
+    shownCombat: Combat | FoughtCombat | undefined = $derived(
+        this.gameState.combat ?? this.gameState.foughtCombat
+    )
+
+    // A combat is followed in its system, with the combat panel beside the map, until the viewer
+    // leaves it, and stays there once fought until they have seen how it ended.
+    private shownCombatRef: CombatRef | undefined = $derived(
+        this.shownCombat && combatRef(this.gameState.year, this.shownCombat)
+    )
+
+    private combatFocus: string | undefined = $derived(
+        this.shownCombat && !sameCombat(this.shownCombatRef, this.leftCombat)
+            ? this.shownCombat.systemId
+            : undefined
+    )
+
     focusedSystemId: string | undefined = $derived.by(() => {
-        const systemId = this.focus?.systemId ?? this.rewardFocus
+        const systemId = this.focus?.systemId ?? this.rewardFocus ?? this.combatFocus
         return systemId && this.gameState.isSystemInPlay(systemId) ? systemId : undefined
     })
+
+    // A combat being fought shows whenever its system is in focus; one already fought only until
+    // the viewer leaves it.
+    combatInFocus: boolean = $derived(
+        this.shownCombat !== undefined &&
+            this.focusedSystemId === this.shownCombat.systemId &&
+            (this.gameState.combat !== undefined || this.combatFocus !== undefined)
+    )
 
     focusClosing: boolean = $derived(this.focus?.closing ?? false)
 
@@ -730,6 +882,9 @@ export class StellarHorizonsGameSession extends GameSession<
         const reward = this.myGoodsReward
         if (reward && systemId === reward.systemId) {
             this.leftReward = reward
+        }
+        if (systemId && systemId === this.combatFocus) {
+            this.leftCombat = this.shownCombatRef
         }
         if (systemId) {
             this.focus = { systemId, closing: true }
@@ -944,6 +1099,9 @@ export class StellarHorizonsGameSession extends GameSession<
             case MachineState.Blockading:
                 this.chooseBlockadeSystem(systemId)
                 return
+            case MachineState.Attacking:
+                this.chooseAttackSystem(systemId)
+                return
             case MachineState.PlacingRewardSettlements:
                 this.select(
                     rewardSelection({ systemIds: [...this.rewardDraft.systemIds, systemId] })
@@ -1100,6 +1258,91 @@ export class StellarHorizonsGameSession extends GameSession<
             ActionType.DestroyGoods,
             this.createPlayerAction(DestroyGoods, { holder, good, count: 1 })
         )
+    }
+
+    chooseAttackSystem(systemId: string) {
+        this.select(
+            this.attackDraft?.systemId === systemId
+                ? undefined
+                : attackSelection({ systemId, shipIds: [] })
+        )
+    }
+
+    chooseAttack(combatKind: CombatKind, defenderId: string) {
+        const draft = this.attackDraft
+        if (draft) {
+            this.select(
+                attackSelection({ systemId: draft.systemId, combatKind, defenderId, shipIds: [] })
+            )
+        }
+    }
+
+    // A raid or an RE attack takes one ship, so choosing another replaces it.
+    toggleAttackShip(shipId: string) {
+        const draft = this.attackDraft
+        if (!draft) {
+            return
+        }
+        const single =
+            draft.combatKind === CombatKind.Raid || draft.combatKind === CombatKind.Explorer
+        const shipIds = draft.shipIds.includes(shipId)
+            ? draft.shipIds.filter((candidate) => candidate !== shipId)
+            : single
+              ? [shipId]
+              : [...draft.shipIds, shipId]
+        this.select(attackSelection({ ...draft, shipIds }))
+    }
+
+    chooseExplorer(explorerId: string) {
+        const draft = this.attackDraft
+        if (draft) {
+            this.select(attackSelection({ ...draft, explorerId }))
+        }
+    }
+
+    async commitAttack() {
+        const declaration = this.attackDeclaration
+        if (!declaration || !this.attackReady) {
+            throw new Error('The attack drafted is not one the Player can make')
+        }
+        this.clearSelection()
+        await this.commit(
+            ActionType.DeclareAttack,
+            this.createPlayerAction(DeclareAttack, declaration)
+        )
+    }
+
+    async endAttacks() {
+        this.clearSelection()
+        await this.commit(ActionType.EndAttacks, this.createPlayerAction(EndAttacks, {}))
+    }
+
+    toggleDefenceShip(shipId: string) {
+        const shipIds = this.defenceDraft.shipIds.includes(shipId)
+            ? this.defenceDraft.shipIds.filter((candidate) => candidate !== shipId)
+            : [...this.defenceDraft.shipIds, shipId]
+        this.select(defenceSelection({ shipIds }))
+    }
+
+    async defend(includeBase: boolean) {
+        const shipIds = this.defenceDraft.shipIds
+        this.clearSelection()
+        await this.commit(
+            ActionType.DefendAttack,
+            this.createPlayerAction(DefendAttack, { includeBase, shipIds })
+        )
+    }
+
+    async assignHit(target: HitTarget) {
+        await this.commit(ActionType.AssignHit, this.createPlayerAction(AssignHit, { target }))
+    }
+
+    async resolveRaid(choice: RaidChoice) {
+        await this.commit(ActionType.ResolveRaid, this.createPlayerAction(ResolveRaid, choice))
+    }
+
+    async endCombat(declined: boolean) {
+        await this.commit(ActionType.EndCombat, this.createPlayerAction(EndCombat, { declined }))
     }
 
     chooseBlockadeSystem(systemId: string) {
@@ -1635,9 +1878,20 @@ export class StellarHorizonsGameSession extends GameSession<
         await this.commit(ActionType.PassConversion, this.createPlayerAction(PassConversion, {}))
     }
 
+    // Combat's attacker ends their turn between combats; the rest of a combat is not theirs to end.
+    canEndPhase: boolean = $derived(
+        this.actingPhase !== TurnPhase.Combat ||
+            (this.gameState.machineState === MachineState.Attacking &&
+                !this.gameState.escalationDiscard)
+    )
+
     async endPhase() {
         const phase = this.myPhase
         if (!phase) {
+            return
+        }
+        if (phase === TurnPhase.Combat) {
+            await this.endAttacks()
             return
         }
         this.clearSelection()

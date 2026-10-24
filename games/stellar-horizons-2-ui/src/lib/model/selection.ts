@@ -1,5 +1,6 @@
 import type {
     AnomalyChallenge,
+    CombatKind,
     EscalationMarker,
     GoodsHolder,
     GoodsStore,
@@ -21,7 +22,9 @@ export enum SelectionKind {
     RewardGoods = 'RewardGoods',
     Sale = 'Sale',
     Blockade = 'Blockade',
-    EscalationKept = 'EscalationKept'
+    EscalationKept = 'EscalationKept',
+    Attack = 'Attack',
+    Defence = 'Defence'
 }
 
 export interface AnomalyDraft {
@@ -80,6 +83,18 @@ export interface KeptDraft {
     kept: EscalationMarker[]
 }
 
+export interface AttackDraft {
+    systemId: string
+    combatKind?: CombatKind
+    defenderId?: string
+    shipIds: string[]
+    explorerId?: string
+}
+
+export interface DefenceDraft {
+    shipIds: string[]
+}
+
 export type Selection =
     | { kind: SelectionKind.Ship; shipId: string }
     | { kind: SelectionKind.Tech; techId: TechId }
@@ -93,6 +108,8 @@ export type Selection =
     | ({ kind: SelectionKind.Sale } & SaleDraft)
     | ({ kind: SelectionKind.Blockade } & BlockadeDraft)
     | ({ kind: SelectionKind.EscalationKept } & KeptDraft)
+    | ({ kind: SelectionKind.Attack } & AttackDraft)
+    | ({ kind: SelectionKind.Defence } & DefenceDraft)
 
 export function shipSelection(shipId: string): Selection {
     return { kind: SelectionKind.Ship, shipId }
@@ -256,8 +273,47 @@ export function keptSelection(draft: KeptDraft): Selection | undefined {
     return draft.kept.length > 0 ? { kind: SelectionKind.EscalationKept, ...draft } : undefined
 }
 
+export function selectedAttackDraft(selection: Selection | undefined): AttackDraft | undefined {
+    return selection?.kind === SelectionKind.Attack
+        ? {
+              systemId: selection.systemId,
+              combatKind: selection.combatKind,
+              defenderId: selection.defenderId,
+              shipIds: selection.shipIds,
+              explorerId: selection.explorerId
+          }
+        : undefined
+}
+
+export function attackSelection(draft: AttackDraft): Selection {
+    return { kind: SelectionKind.Attack, ...draft }
+}
+
+export function selectedDefenceDraft(selection: Selection | undefined): DefenceDraft | undefined {
+    return selection?.kind === SelectionKind.Defence ? { shipIds: selection.shipIds } : undefined
+}
+
+export function defenceSelection(draft: DefenceDraft): Selection | undefined {
+    return draft.shipIds.length > 0 ? { kind: SelectionKind.Defence, ...draft } : undefined
+}
+
+// An attack is taken back a ship at a time, then the RE, the kind of combat and the system.
+function popAttack(draft: AttackDraft): Selection | undefined {
+    if (draft.shipIds.length > 0) {
+        return attackSelection({ ...draft, shipIds: draft.shipIds.slice(0, -1) })
+    }
+    if (draft.explorerId) {
+        return attackSelection({ ...draft, explorerId: undefined })
+    }
+    if (draft.combatKind) {
+        return attackSelection({ systemId: draft.systemId, shipIds: [] })
+    }
+    return undefined
+}
+
 // Undo takes back one placement at a time, of reward settlements, drawn goods or reward goods,
-// one named base of a blockade and one kept escalation marker; any other choice goes whole.
+// one named base of a blockade, one kept escalation marker, one defending ship and the attack's
+// choices in turn; any other choice goes whole.
 export function popSelection(selection: Selection | undefined): Selection | undefined {
     switch (selection?.kind) {
         case SelectionKind.RewardSettlements:
@@ -272,6 +328,10 @@ export function popSelection(selection: Selection | undefined): Selection | unde
                 : undefined
         case SelectionKind.EscalationKept:
             return keptSelection({ kept: selection.kept.slice(0, -1) })
+        case SelectionKind.Attack:
+            return popAttack(selection)
+        case SelectionKind.Defence:
+            return defenceSelection({ shipIds: selection.shipIds.slice(0, -1) })
         default:
             return undefined
     }

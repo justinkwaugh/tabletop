@@ -28,6 +28,7 @@
     import EconomicTileStep from './steps/EconomicTileStep.svelte'
     import GrowthBaseStep from './steps/GrowthBaseStep.svelte'
     import BlockadeStep from './steps/BlockadeStep.svelte'
+    import CombatStep from './steps/CombatStep.svelte'
 
     const gameSession = getGameSession()
     const machineState = $derived(gameSession.gameState.machineState)
@@ -49,6 +50,8 @@
         <StepTracker />
         {#if gameSession.actingPhase === TurnPhase.Build}
             <BuildStep />
+        {:else if gameSession.actingPhase === TurnPhase.Combat}
+            <CombatStep />
         {:else if gameSession.actingPhase === TurnPhase.Cargo}
             <CargoStep />
         {:else if gameSession.actingPhase === TurnPhase.Movement}

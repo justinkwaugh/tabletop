@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 1981414338,
+  "seed": 122317423,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T15:32:32.096Z",
+  "createdAt": "2026-10-24T21:34:06.908Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "pFS-eQFBTajghFN_G2ULK",
+  "id": "8cpyR9Vi_VYIA6Mf27IpL",
   "gameId": "scenario-campaign-pact",
   "seed": 3367980177,
   "prng": {
@@ -1221,6 +1221,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

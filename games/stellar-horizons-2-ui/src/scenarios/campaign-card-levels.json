@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3395387153,
+  "seed": 3802875923,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T15:32:32.340Z",
+  "createdAt": "2026-10-24T21:34:07.160Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "zku2h4MlKwy8jvCWaGbrV",
+  "id": "qPL3gj8UpXwCGknlLLOB-",
   "gameId": "scenario-campaign-card-levels",
   "seed": 3367980177,
   "prng": {
@@ -1182,6 +1182,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

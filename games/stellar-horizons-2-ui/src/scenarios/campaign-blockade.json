@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 1807841487,
+  "seed": 3880065941,
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-24T15:32:32.490Z",
+  "createdAt": "2026-10-24T21:34:07.310Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "Y3dRu2BOeH7y1mLjc1PKk",
+  "id": "U6lMPyLfvrEqR55PkBOst",
   "gameId": "scenario-campaign-blockade",
   "seed": 3367980177,
   "prng": {
@@ -1231,6 +1231,9 @@
    "p1"
   ],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

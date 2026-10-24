@@ -25,6 +25,7 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import TechTree from '$lib/components/TechTree.svelte'
     import SystemPanel from '$lib/components/SystemPanel.svelte'
+    import CombatPanel from '$lib/components/combat/CombatPanel.svelte'
     import FactionSheet from '$lib/components/prototype/playerArea/FactionSheet.svelte'
     import { playerArea } from '$lib/components/prototype/playerArea/campaignMock.svelte.js'
     import { fly } from 'svelte/transition'
@@ -307,7 +308,13 @@
                                                     easing: cubicInOut
                                                 }}
                                             >
-                                                <SystemPanel systemId={session.focusedSystemId} />
+                                                {#if session.combatInFocus}
+                                                    <CombatPanel />
+                                                {:else}
+                                                    <SystemPanel
+                                                        systemId={session.focusedSystemId}
+                                                    />
+                                                {/if}
                                             </div>
                                         {/if}
                                     {/snippet}

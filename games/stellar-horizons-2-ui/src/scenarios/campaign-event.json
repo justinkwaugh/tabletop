@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2513554235,
+  "seed": 906821705,
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-10-24T15:32:32.117Z",
+  "createdAt": "2026-10-24T21:34:06.934Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "k49VNIvvmpa9_6eD0niNL",
+  "id": "CNzzRFXFoSKXoMMio7ith",
   "gameId": "scenario-campaign-event",
   "seed": 3367980177,
   "prng": {
@@ -1210,6 +1210,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

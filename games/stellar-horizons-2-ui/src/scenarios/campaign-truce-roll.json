@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3644128363,
+  "seed": 767450784,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T15:32:32.610Z",
+  "createdAt": "2026-10-24T21:34:07.428Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "6WYrN5gHIhcRMSmGv0Vjh",
+  "id": "VJdQ-QLVU8LJiNvD1ztZt",
   "gameId": "scenario-campaign-truce-roll",
   "seed": 3367980177,
   "prng": {
@@ -1245,6 +1245,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

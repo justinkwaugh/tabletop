@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { AnomalyChallenge } from '@tabletop/stellar-horizons-2'
+import { AnomalyChallenge, CombatKind } from '@tabletop/stellar-horizons-2'
 import { GoodsHolderKind } from '@tabletop/stellar-horizons-2'
 import {
     DISCARDED,
     SelectionKind,
     assignmentSelection,
+    attackSelection,
+    defenceSelection,
+    selectedAttackDraft,
+    selectedDefenceDraft,
     rewardGoodsSelection,
     selectedAssignmentDraft,
     selectedRewardGoodsDraft,
@@ -50,6 +54,43 @@ describe('Undo over a selection', () => {
         const ship = { kind: GoodsHolderKind.Ship, shipId: 'starfarers-andromeda' } as const
         const placed = rewardGoodsSelection({ holders: [ship, ship] })
         expect(selectedRewardGoodsDraft(popSelection(placed))).toEqual({ holders: [ship] })
+    })
+
+    it('takes back an attack a ship at a time, then the RE, the kind of combat and the system', () => {
+        const drafted = attackSelection({
+            systemId: 'procyon',
+            combatKind: CombatKind.Explorer,
+            defenderId: 'p2',
+            shipIds: ['praetorians-centurion'],
+            explorerId: 'givers-linnaeus'
+        })
+        const noShip = popSelection(drafted)
+        expect(selectedAttackDraft(noShip)).toMatchObject({
+            combatKind: CombatKind.Explorer,
+            shipIds: [],
+            explorerId: 'givers-linnaeus'
+        })
+        const noExplorer = popSelection(noShip)
+        expect(selectedAttackDraft(noExplorer)).toMatchObject({
+            combatKind: CombatKind.Explorer,
+            explorerId: undefined
+        })
+        const systemOnly = popSelection(noExplorer)
+        expect(selectedAttackDraft(systemOnly)).toEqual({
+            systemId: 'procyon',
+            combatKind: undefined,
+            defenderId: undefined,
+            shipIds: [],
+            explorerId: undefined
+        })
+        expect(popSelection(systemOnly)).toBeUndefined()
+    })
+
+    it('takes back one defending ship at a time', () => {
+        const two = defenceSelection({ shipIds: ['consortium-guildmaster', 'consortium-sapphire'] })
+        const one = popSelection(two)
+        expect(selectedDefenceDraft(one)).toEqual({ shipIds: ['consortium-guildmaster'] })
+        expect(popSelection(one)).toBeUndefined()
     })
 
     it('clears any other choice whole', () => {

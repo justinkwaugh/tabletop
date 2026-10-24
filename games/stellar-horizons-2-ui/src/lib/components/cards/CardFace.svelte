@@ -33,9 +33,6 @@
     </span>
     {#if !compact}
         <span class="text">{card.text}</span>
-        {#if card.waits}
-            <span class="waits">{card.waits}</span>
-        {/if}
     {/if}
     <span class="foot">
         <span class="points" title="{card.points} victory points">★ {card.points}</span>
@@ -116,13 +113,6 @@
         font-size: 12px;
         line-height: 1.35;
         font-style: italic;
-    }
-
-    .waits {
-        padding: 0 8px;
-        font-size: 11px;
-        line-height: 1.3;
-        color: #8fa4c2;
     }
 
     .foot {

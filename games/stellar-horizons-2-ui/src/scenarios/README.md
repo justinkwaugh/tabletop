@@ -202,3 +202,81 @@ The blockade of _Campaign blockade_, with only one escalation marker left in the
 Developing in 2110 under the truce (the header shows TRUCE; its tooltip gives the 1% chance).
 
 - **The roll.** Ending everyone's development ends the turn; history's end-of-turn entry gives the truce roll against 1% and whether the truce holds.
+
+## Campaign assault
+
+2110's combat phase after the truce, the Praetorians first in initiative order: the Player Guide's combat example. The Praetorians' Odyssey and Gladiator are at Luhman 16, beside the Givers' base of 3, Guildmaster and Sapphire (carrying a settlement). The Praetorians own Military Academy. The dice are set for the Player Guide's assault, both ships against the base, Guildmaster and Sapphire: the Praetorians roll 1, the Givers 3.
+
+- **Declaring.** Luhman 16 shows "Attack" on the map. Choosing it offers a fleet combat and a planetary assault against the Givers; choosing the assault and both ships enables "Planetary assault".
+- **The answer.** The Givers' panel asks which CVs join the base; the combat panel opens beside the zoomed map for everyone.
+- **The rolls.** The combat panel gives each side's roll with every modifier named: "1 + 0.2 (CVs) + 0.3 (settlements) + 1 (The Praetorians) + 1 (Military Academy) = 4 · combat value 14 · 4 hits" against "3 + 0.3 (CVs) = 3 · combat value 11 · 3 hits". History gives the same.
+- **Hits.** The Givers' 3 hits on the Praetorians come first, the Praetorians choosing first, then in turns; then the Praetorians' 4 on the Givers, the Givers first. The Player choosing taps a unit in the combat panel; the others see who chooses. Forced hits are placed without asking.
+- **Escalation.** History counts the markers owed (1, +1 per Givers CV destroyed, +0.5 per settlement, +2 for the base); Military Academy draws one more and asks which to discard, then the Givers gain as many IP.
+- **The combat over.** The panel stays open with the units as they ended, the ships destroyed, and the markers drawn and IP gained, until the viewer goes back to the map or the next combat begins; it is cleared after the movement phase.
+
+## Campaign hits
+
+The Player Guide's assault (see Campaign assault) already rolled and answered by both Givers CVs, with the Gladiator a hit from crippled and the Sapphire a hit from destroyed. The Givers' 2 hits on the Praetorians come first, then the Praetorians' 4 on the Givers.
+
+- **Crippling.** A hit on the Gladiator cripples it: its counter shows the damage and its combat value drops.
+- **Destroying.** A hit on the Sapphire destroys it with its settlement: the panel lists it as destroyed, and history gives the compensation the Givers drew. That hit cannot be undone, since the markers were drawn.
+
+## Campaign base eliminated
+
+The Praetorians' Odyssey and Gladiator at Luhman 16 beside the Givers' lone base of 2, with no Givers CV there.
+
+- **Elimination.** The assault needs no answer, so it rolls at once; the dice give the Praetorians enough hits to take both settlements, placed without asking. The panel shows the base eliminated, and history counts 1 + 1 for the settlements + 2 for the base: 4 escalation markers. The cargo phase is skipped; the panel stays until the viewer leaves it.
+
+## Campaign combat modifiers
+
+The Player Guide's position (see Campaign assault) with every combat modifier. The Praetorians own Military Academy, Enhanced Strength and Increased Body Size; the Givers own Hypersonic Missiles, Minefields, Subterranean and Reduced Body Size; Tunnel Complex lies turned over at Luhman 16.
+
+- **The rolls.** In the assault with both ships against the base and both CVs, the Praetorians' roll lists The Praetorians +1, Military Academy +1, Enhanced Strength +1, Increased Body Size +1, Hypersonic Missiles −1, Subterranean −2 and Tunnel Complex −1. The Givers' lists Reduced Body Size −1, and their combat value is 16: 11, Minefields' 3, and Hypersonic Missiles' +1 for each armed CV.
+
+## Campaign decline escalation
+
+A fleet combat at Wolf 359: the Praetorians' Centurion against the Givers' Sapphire, which attacked the Praetorians last turn.
+
+- **Declining.** After the hits the Praetorians are asked whether to draw their escalation marker or decline it; declining gives the Givers no IP, and history says so.
+
+## Campaign ground combat
+
+The Starfarers first, with a base of 12 at Alpha Centauri beside the Givers' base of 6, Guildmaster and Sapphire.
+
+- **Ground combat.** It needs no ships: the Starfarers' base attacks. The Givers choose which CVs join their base. Hits on the Starfarers can only take settlements from their base, so they are placed without asking.
+
+## Campaign raid cash
+
+The third faction plays the Syndicate here: their Viper is at Barnard's Star beside the Givers' base of 4, which holds Ore, and the Starfarers' RE. The Givers hold markers of every type. Barnard's Star offers a raid (the Givers have no armed CV there), an assault and destroying the RE. The dice are set for the raid.
+
+- **$1B.** The raid rolls 1, the lowest result, so nothing is asked: the Syndicate takes $1B, and the 8% damage roll (2 damage) destroys the Viper. The panel and history give the result, the Viper's loss with its compensation, and 1 escalation marker.
+
+## Campaign raid more cash
+
+As Campaign raid cash, but the raid rolls 3.
+
+- **The Syndicate's choice.** The combat panel offers $1B or $2B; the other Players see that the Syndicate chooses. The result shows in the panel once chosen.
+
+## Campaign raid marker
+
+As Campaign raid cash, but the raid rolls 5.
+
+- **A marker.** The panel offers either cash result or a marker of each type the Givers hold; the stolen marker's value shows in the panel and history.
+
+## Campaign raid good
+
+As Campaign raid cash, but the raid rolls 8.
+
+- **A good.** Besides the lower results, the panel offers "Take Ore into the hold" or "Destroy Ore for $1B".
+
+## Campaign raid settlement
+
+As Campaign raid cash, but the raid rolls 10.
+
+- **A settlement.** Every result is offered, up to destroying one of the base's 4 settlements.
+
+## Campaign explorer attack
+
+The Praetorians' Centurion beside the Givers' RE Linnaeus at Procyon, where the Givers have no base or CV.
+
+- **Destroying an RE.** Procyon offers "Destroy an RE"; choosing Linnaeus and the Centurion destroys it at once. The Givers draw an engineering marker, the Praetorians an escalation marker and the Givers 1 IP; Procyon is then this phase's combat for the Praetorians.

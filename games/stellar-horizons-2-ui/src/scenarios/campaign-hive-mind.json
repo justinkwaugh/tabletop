@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 62702690,
+  "seed": 1316884173,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T15:32:32.443Z",
+  "createdAt": "2026-10-24T21:34:07.264Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "oi-ejtLr-vJOITNP8NG99",
+  "id": "SXhnnTZLqSZS0RHxtwj1m",
   "gameId": "scenario-campaign-hive-mind",
   "seed": 3367980177,
   "prng": {
@@ -1208,6 +1208,9 @@
   ],
   "remainingBlockaders": [],
   "blockades": [],
+  "remainingAttackers": [],
+  "systemAttacks": [],
+  "attacks": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",
