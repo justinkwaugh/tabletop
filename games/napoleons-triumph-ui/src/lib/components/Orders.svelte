@@ -77,10 +77,14 @@
             : 'More than one road leads there. Tap the locale to march through: a corps closes the reserves it marches into to other units this turn.'
     })
 
-    /** Rule 11: an attack is aimed at the enemy's locale, which nothing on the board marks until it is tapped. */
-    const howToAim = $derived(
-        gameSession.aimableLocales.length > 0 ? 'To attack, tap an enemy locale.' : undefined
-    )
+    // Nothing on the board marks a locale that can be aimed at until it is tapped, so the orders of pieces in hand say so. Not on the idle line: it would grow taller than the anchor, and choosing would resize the board.
+    const howToAim = $derived.by(() => {
+        const onAnotherStep =
+            wayToChoose !== undefined || attaching || (options.length === 0 && !ridingOn)
+        return !onAnotherStep && gameSession.aimableLocales.length > 0
+            ? 'To attack, tap an enemy locale.'
+            : undefined
+    })
 
     const aside = $derived.by(() => {
         if (!group || ridingOn) {
@@ -267,7 +271,7 @@
     {:else if aside}
         <span>{aside}</span>
     {/if}
-    {#if howToAim && !wayToChoose && !ridingOn && !attaching}
+    {#if howToAim}
         <span>{howToAim}</span>
     {/if}
 {/snippet}
@@ -297,9 +301,6 @@
         )}
     {:else}
         <div class="nt-orders-note nt-orders-rest">
-            {#if howToAim}
-                <span>{howToAim}</span>
-            {/if}
             <span class="nt-orders-faint">{stillToCommand}</span>
         </div>
     {/if}
@@ -347,13 +348,6 @@
     .nt-orders-rest,
     .nt-orders-anchor {
         min-height: 18px;
-    }
-
-    /* The idle hints share one line, as tall as the anchor. */
-    .nt-orders-note.nt-orders-rest {
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 0 0.45em;
     }
 
     .nt-orders-anchor {

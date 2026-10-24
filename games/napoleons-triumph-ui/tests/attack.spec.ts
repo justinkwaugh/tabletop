@@ -406,7 +406,9 @@ test('two artillery units on a wide approach threaten one at a time and are name
     await expect(attack).toBeHidden()
 })
 
-test('the orders say how to aim an attack', async ({ page }) => {
+test('the orders of pieces in hand say how to aim an attack, the idle line keeping its height', async ({
+    page
+}) => {
     await createGame(page)
     await deployBothArmies(page)
     const howToAim = page.getByText('To attack, tap an enemy locale.')
@@ -415,7 +417,7 @@ test('the orders say how to aim an attack', async ({ page }) => {
     await page.getByRole('button', { name: 'End turn' }).click()
 
     await expect(page.getByText('Choose a corps or unit on the map')).toBeVisible()
-    await expect(howToAim).toBeVisible()
+    await expect(howToAim).toBeHidden()
     await pickUp(page, 'st-hilaire')
     await expect(page.getByRole('group', { name: 'St. Hilaire’s corps' })).toBeVisible()
     await expect(howToAim).toBeVisible()
