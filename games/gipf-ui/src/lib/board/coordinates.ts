@@ -1,5 +1,5 @@
-import { addAxial, coordinatesToNumber, type AxialCoordinates, type Point } from '@tabletop/common'
-import { pointCenter } from './geometry.js'
+import { coordinatesToNumber, type AxialCoordinates, type Point } from '@tabletop/common'
+import { VIEW } from './geometry.js'
 
 // GIPF notation: columns A–I left to right, each counted up from 1 at its bottom dot.
 // Each column is labelled with the names of its bottom and top points.
@@ -14,7 +14,6 @@ export type CoordinateLabel = {
     at: Point
 }
 
-const LABEL_REACH = 0.6
 const ABOVE: AxialCoordinates = { q: 0, r: -1 }
 const BELOW: AxialCoordinates = { q: 0, r: 1 }
 
@@ -52,20 +51,17 @@ export function boardNotation(positions: readonly AxialCoordinates[]): BoardNota
     }
 }
 
+// Columns run straight up the screen, so a label sits above or below its dot.
 function labelBeside(
     key: string,
     text: string,
-    ring: AxialCoordinates,
+    dot: AxialCoordinates,
     direction: AxialCoordinates
 ): CoordinateLabel {
-    const from = pointCenter(ring)
-    const to = pointCenter(addAxial(ring, direction))
+    const center = VIEW.center(dot)
     return {
         key,
         text,
-        at: {
-            x: from.x + (to.x - from.x) * LABEL_REACH,
-            y: from.y + (to.y - from.y) * LABEL_REACH
-        }
+        at: { x: center.x, y: center.y + VIEW.labelOffset(direction === ABOVE) }
     }
 }

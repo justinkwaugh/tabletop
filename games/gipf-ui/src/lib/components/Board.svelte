@@ -1,25 +1,19 @@
 <script lang="ts">
     import { addAxial, sameCoordinates, scaleAxial, type AxialCoordinates } from '@tabletop/common'
-    import { ALL_POINTS, AXES, DOTS, SPOTS, type Piece } from '@tabletop/gipf'
+    import type { Attachment } from 'svelte/attachments'
+    import { ALL_POINTS, AXES, DOTS, SPOTS, type RemovedPiece } from '@tabletop/gipf'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import {
-        coordsKey,
-        DOT_RADIUS,
-        playAreaOutline,
-        PIECE_RADIUS,
-        pointCenter,
-        viewBox
-    } from '$lib/board/geometry.js'
+    import { coordsKey, CROWN_SCALE, DOT_RADIUS, PIECE_RADIUS, VIEW } from '$lib/board/geometry.js'
+    import PieceDefs from './PieceDefs.svelte'
     import PieceShape from './PieceShape.svelte'
-    import { CROWN_SCALE, topFaceY } from '$lib/board/pieceGeometry.js'
-    import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
-    import { cubicOut } from 'svelte/easing'
+    import { BoardAnimator, DROP } from '$lib/animators/boardAnimator.svelte.js'
 
     const session = getGameSession()
 
-    const frame = viewBox()
-    const playArea = playAreaOutline()
+    const view = VIEW
+    const frame = view.frame()
+    const playArea = view.playAreaOutline()
     const inBoard = (coords: AxialCoordinates) => includesCoords(ALL_POINTS, coords)
 
     // Lines run dot to dot across the play area; the board's rim has no line between dots.
@@ -32,13 +26,14 @@
                 }
                 const crossesPlay = points.some((point) => includesCoords(SPOTS, point))
                 const end = points[points.length - 1]
-                return crossesPlay ? [{ from: pointCenter(start), to: pointCenter(end) }] : []
+                return crossesPlay ? [{ from: view.center(start), to: view.center(end) }] : []
             }
         )
     )
 
     const animator = new BoardAnimator(session)
     let hoveredDot: string | undefined = $state()
+    let hoveredTarget: string | undefined = $state()
     const pieces = $derived(animator.pieces)
 
     // The piece you are about to bring in drops onto the dot you chose, until it slides in.
@@ -50,28 +45,92 @@
         return animator.entering ? undefined : { dot, gipf, playerId }
     })
 
-    function drop(_node: Element) {
+    type Drawn =
+        | { kind: 'piece'; key: string; coords: AxialCoordinates; piece: RemovedPiece }
+        | {
+              kind: 'entering' | 'preview'
+              key: string
+              coords: AxialCoordinates
+              gipf: boolean
+              playerId: string
+          }
+
+    // Far pieces first, so nearer pieces stand in front of them. The piece coming in is drawn at
+    // its dot's depth: the line it pushes moves with it, so the order holds as it slides.
+    const drawOrder: Drawn[] = $derived.by(() => {
+        const drawn: Drawn[] = pieces.map((piece) => ({
+            kind: 'piece',
+            key: coordsKey(piece.coords),
+            coords: piece.coords,
+            piece
+        }))
+        const incoming = animator.entering ?? preview
+        if (incoming) {
+            drawn.push({
+                kind: animator.entering ? 'entering' : 'preview',
+                key: `incoming-${coordsKey(incoming.dot)}`,
+                coords: incoming.dot,
+                gipf: incoming.gipf,
+                playerId: incoming.playerId
+            })
+        }
+        return drawn.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
+    })
+
+    // Seen from the side, the staged piece falls onto its dot, gathering speed, and settles with
+    // a small wobble; its shadow waits on the dot and darkens as the piece comes down.
+    const DROP_TOTAL = DROP.fall + DROP.wobble.length * DROP.settle * 2
+
+    function dropHeight(seconds: number): { y: number; scale: number; opacity: number } {
+        if (seconds < DROP.fall) {
+            const left = 1 - (seconds / DROP.fall) ** 2
+            return {
+                y: DROP.rise * left,
+                scale: 1 + (DROP.scale - 1) * left,
+                opacity: Math.min(1, seconds / (DROP.fall * 0.25))
+            }
+        }
+        let at = seconds - DROP.fall
+        for (const height of DROP.wobble) {
+            if (at < DROP.settle) {
+                return { y: height * (1 - (1 - at / DROP.settle) ** 2), scale: 1, opacity: 1 }
+            }
+            if (at < DROP.settle * 2) {
+                return {
+                    y: height * (1 - ((at - DROP.settle) / DROP.settle) ** 2),
+                    scale: 1,
+                    opacity: 1
+                }
+            }
+            at -= DROP.settle * 2
+        }
+        return { y: 0, scale: 1, opacity: 1 }
+    }
+
+    function dropBody(_node: Element) {
         return {
-            duration: 220,
-            easing: cubicOut,
-            css: (t: number) =>
-                `opacity: ${t}; transform: translateY(${(1 - t) * -18}px) scale(${1 + (1 - t) * 0.15})`
+            duration: DROP_TOTAL * 1000,
+            css: (t: number) => {
+                const { y, scale, opacity } = dropHeight(t * DROP_TOTAL)
+                return `opacity: ${opacity}; transform: translateY(${y}px) scale(${scale})`
+            }
+        }
+    }
+
+    function dropShadow(_node: Element) {
+        return {
+            duration: DROP.fall * 1000,
+            css: (t: number) => {
+                const landed = t * t
+                return `opacity: ${landed}; transform: scale(${DROP.shadow + (1 - DROP.shadow) * landed})`
+            }
         }
     }
 
     const SPOT_RADIUS = PIECE_RADIUS * 0.28
-    const markedPieces = $derived(
-        pieces
-            .filter((piece) => rowRole(piece.coords) !== undefined)
-            .toSorted(
-                (a, b) =>
-                    Number(includesCoords(session.rowGipfPieces, a.coords)) -
-                    Number(includesCoords(session.rowGipfPieces, b.coords))
-            )
-    )
 
-    function colorOf(piece: Piece) {
-        return session.gameState.getPlayerState(piece.playerId).color
+    function colorOf(playerId: string) {
+        return session.gameState.getPlayerState(playerId).color
     }
 
     function isEntryDot(coords: AxialCoordinates) {
@@ -106,22 +165,71 @@
         }
     }
 
+    // Arrows lie on the board, from the dot to the edge of the ring around the first spot, so
+    // they are laid out flat and then seen at the tilt.
     function arrow(from: AxialCoordinates, to: AxialCoordinates): string {
-        const start = pointCenter(from)
-        const end = pointCenter(to)
-        const dx = end.x - start.x
-        const dy = end.y - start.y
-        const length = Math.hypot(dx, dy)
-        const ux = dx / length
-        const uy = dy / length
-        const tipX = end.x - ux * PIECE_RADIUS * 0.55
-        const tipY = end.y - uy * PIECE_RADIUS * 0.55
-        const baseX = start.x + ux * DOT_RADIUS * 2
-        const baseY = start.y + uy * DOT_RADIUS * 2
-        const wing = 7
-        return `M ${baseX} ${baseY} L ${tipX} ${tipY} M ${tipX - ux * wing - uy * wing} ${tipY - uy * wing + ux * wing} L ${tipX} ${tipY} L ${tipX - ux * wing + uy * wing} ${tipY - uy * wing - ux * wing}`
+        const start = view.center(from)
+        const end = view.center(to)
+        const flat = (x: number, y: number) => `${x} ${y * view.tilt}`
+        const [sx, sy, ex, ey] = [start.x, start.y / view.tilt, end.x, end.y / view.tilt]
+        const length = Math.hypot(ex - sx, ey - sy)
+        const ux = (ex - sx) / length
+        const uy = (ey - sy) / length
+        const tipX = ex - ux * (PIECE_RADIUS + 2)
+        const tipY = ey - uy * (PIECE_RADIUS + 2)
+        const baseX = sx + ux * DOT_RADIUS * 2
+        const baseY = sy + uy * DOT_RADIUS * 2
+        const wing = 8
+        return `M ${flat(baseX, baseY)} L ${flat(tipX, tipY)} M ${flat(tipX - ux * wing - uy * wing, tipY - uy * wing + ux * wing)} L ${flat(tipX, tipY)} L ${flat(tipX - ux * wing + uy * wing, tipY - uy * wing - ux * wing)}`
     }
+
+    // Everything a GIPF-piece standing on a spot would cover, for clicks on a target there.
+    const standingOutline = (() => {
+        const r = PIECE_RADIUS
+        const ry = r * view.tilt
+        const top = view.topFace(true)
+        return `M ${-r} ${top} A ${r} ${ry} 0 0 1 ${r} ${top} L ${r} 0 A ${r} ${ry} 0 0 1 ${-r} 0 Z`
+    })()
 </script>
+
+{#snippet standing(
+    color: ReturnType<typeof colorOf>,
+    gipf: boolean,
+    body?: Attachment<SVGGElement>,
+    shadow?: Attachment<SVGGElement>,
+    dropping = false
+)}
+    <g {@attach shadow}>
+        {#if dropping}
+            <g in:dropShadow>
+                <ellipse
+                    rx={PIECE_RADIUS}
+                    ry={PIECE_RADIUS * view.tilt}
+                    cy={2}
+                    class="shadow"
+                    filter="url(#gipf-soft)"
+                ></ellipse>
+            </g>
+        {:else}
+            <ellipse
+                rx={PIECE_RADIUS}
+                ry={PIECE_RADIUS * view.tilt}
+                cy={2}
+                class="shadow"
+                filter="url(#gipf-soft)"
+            ></ellipse>
+        {/if}
+    </g>
+    <g {@attach body}>
+        {#if dropping}
+            <g in:dropBody>
+                <PieceShape {color} {gipf} radius={PIECE_RADIUS} prefix="gipf-board" />
+            </g>
+        {:else}
+            <PieceShape {color} {gipf} radius={PIECE_RADIUS} prefix="gipf-board" />
+        {/if}
+    </g>
+{/snippet}
 
 <svg
     class="gipf-board"
@@ -133,6 +241,7 @@
     {@attach animator.attach}
 >
     <defs>
+        <PieceDefs prefix="gipf-board" />
         <filter id="gipf-soft" x="-40%" y="-40%" width="180%" height="180%">
             <feGaussianBlur stdDeviation="2.5"></feGaussianBlur>
         </filter>
@@ -151,7 +260,7 @@
     {/each}
 
     {#each DOTS as coords (coordsKey(coords))}
-        {@const center = pointCenter(coords)}
+        {@const center = view.center(coords)}
         {@const entry = isEntryDot(coords)}
         <g
             transform="translate({center.x} {center.y})"
@@ -170,69 +279,121 @@
             onblur={() => (hoveredDot = undefined)}
         >
             {#if entry}
-                <circle r={DOT_RADIUS * 2.4} class="dot-hit"></circle>
+                <ellipse rx={DOT_RADIUS * 2.4} ry={DOT_RADIUS * 2.4 * view.tilt} class="dot-hit"
+                ></ellipse>
             {/if}
-            <circle r={DOT_RADIUS} class="dot-core"></circle>
+            <ellipse rx={DOT_RADIUS} ry={DOT_RADIUS * view.tilt} class="dot-core"></ellipse>
         </g>
     {/each}
 
-    {#each pieces as piece (coordsKey(piece.coords))}
-        {@const center = pointCenter(piece.coords)}
-        {@const role = rowRole(piece.coords)}
-        <g
-            transform="translate({center.x} {center.y})"
-            class="piece role-{role ?? 'none'}"
-            role="button"
-            tabindex={role ? 0 : -1}
-            aria-disabled={!role}
-            aria-label="{piece.gipf ? 'GIPF-piece' : 'piece'} {session.notation.name(piece.coords)}"
-            onclick={() => role && choosePiece(piece.coords)}
-            onkeydown={(event) => role && onKey(event, () => choosePiece(piece.coords))}
-        >
-            <g {@attach animator.piece(coordsKey(piece.coords))}>
-                <PieceShape color={colorOf(piece)} gipf={piece.gipf} radius={PIECE_RADIUS} />
-            </g>
-        </g>
-    {/each}
-
+    <!-- Rings on the board: round the dots you can bring a piece in from, and round the spots
+         you can push into, behind whatever stands there. -->
     <g {@attach animator.marks()}>
         {#each session.entryDots as coords (coordsKey(coords))}
-            {@const center = pointCenter(coords)}
-            <circle
+            {@const center = view.center(coords)}
+            <ellipse
                 cx={center.x}
                 cy={center.y}
-                r={DOT_RADIUS * 2.4}
+                rx={DOT_RADIUS * 2.4}
+                ry={DOT_RADIUS * 2.4 * view.tilt}
                 class="dot-ring"
                 class:chosen={isChosenDot(coords)}
                 class:hovered={hoveredDot === coordsKey(coords)}
-            ></circle>
+            ></ellipse>
         {/each}
-        <!-- Marks sit on each piece's top face, so they never reach a neighbour: a dashed ring for a
-             row you can choose, a spot on each piece that goes, and on your own GIPF-pieces the
-             crown ring coloured for keep or take. -->
-        {#each markedPieces as piece (coordsKey(piece.coords))}
-            {@const center = pointCenter(piece.coords)}
-            {@const role = rowRole(piece.coords)}
-            {@const faceY = center.y + topFaceY(piece.gipf, PIECE_RADIUS)}
-            {#if role === 'row'}
-                <circle cx={center.x} cy={faceY} r={PIECE_RADIUS - 3} class="row-mark role-row"
-                ></circle>
-            {:else}
-                {#if includesCoords(session.rowGipfPieces, piece.coords)}
-                    <circle
-                        cx={center.x}
-                        cy={faceY}
-                        r={PIECE_RADIUS * CROWN_SCALE}
-                        class="crown-mark role-{role}"
-                    ></circle>
-                {/if}
-                <circle cx={center.x} cy={faceY} r={SPOT_RADIUS} class="mark-spot role-{role}"
-                ></circle>
-            {/if}
-        {/each}
-
         {#each session.targets as entry (coordsKey(entry.line[0]))}
-            {@const center = pointCenter(entry.line[0])}
+            {@const center = view.center(entry.line[0])}
+            <ellipse
+                cx={center.x}
+                cy={center.y}
+                rx={PIECE_RADIUS + 2}
+                ry={(PIECE_RADIUS + 2) * view.tilt}
+                class="target-ring"
+                class:hovered={hoveredTarget === coordsKey(entry.line[0])}
+            ></ellipse>
+        {/each}
+    </g>
+
+    {#each drawOrder as drawn (drawn.key)}
+        {@const center = view.center(drawn.coords)}
+        {#if drawn.kind === 'piece'}
+            {@const piece = drawn.piece}
+            {@const role = rowRole(piece.coords)}
+            {@const faceY = view.topFace(piece.gipf)}
+            <g
+                transform="translate({center.x} {center.y})"
+                class="piece role-{role ?? 'none'}"
+                role="button"
+                tabindex={role ? 0 : -1}
+                aria-disabled={!role}
+                aria-label="{piece.gipf ? 'GIPF-piece' : 'piece'} {session.notation.name(
+                    piece.coords
+                )}"
+                onclick={() => role && choosePiece(piece.coords)}
+                onkeydown={(event) => role && onKey(event, () => choosePiece(piece.coords))}
+            >
+                <g {@attach animator.piece(drawn.key)}>
+                    {@render standing(
+                        colorOf(piece.playerId),
+                        piece.gipf,
+                        animator.body(drawn.key),
+                        animator.shadow(drawn.key)
+                    )}
+                </g>
+                <!-- Marks lie on the top face, after the piece and outside the node that moves
+                     it: a dashed ring for a row you can choose, a spot on each piece that goes,
+                     and on your own GIPF-pieces the crown ring coloured for keep or take. -->
+                {#if role}
+                    <g {@attach animator.marks()}>
+                        {#if role === 'row'}
+                            <ellipse
+                                cy={faceY}
+                                rx={PIECE_RADIUS - 3}
+                                ry={(PIECE_RADIUS - 3) * view.tilt}
+                                class="row-mark role-row"
+                            ></ellipse>
+                        {:else}
+                            {#if includesCoords(session.rowGipfPieces, piece.coords)}
+                                <ellipse
+                                    cy={faceY}
+                                    rx={PIECE_RADIUS * CROWN_SCALE}
+                                    ry={PIECE_RADIUS * CROWN_SCALE * view.tilt}
+                                    class="crown-mark role-{role}"
+                                ></ellipse>
+                            {/if}
+                            <ellipse
+                                cy={faceY}
+                                rx={SPOT_RADIUS}
+                                ry={SPOT_RADIUS * view.tilt}
+                                class="mark-spot role-{role}"
+                            ></ellipse>
+                        {/if}
+                    </g>
+                {/if}
+            </g>
+        {:else if drawn.kind === 'entering'}
+            <g transform="translate({center.x} {center.y})" class="entering">
+                <g {@attach animator.enteringPiece()}>
+                    {@render standing(
+                        colorOf(drawn.playerId),
+                        drawn.gipf,
+                        animator.enteringBody(),
+                        animator.enteringShadow()
+                    )}
+                </g>
+            </g>
+        {:else}
+            <g transform="translate({center.x} {center.y})" class="entering">
+                {@render standing(colorOf(drawn.playerId), drawn.gipf, undefined, undefined, true)}
+            </g>
+        {/if}
+    {/each}
+
+    <!-- Arrows and the targets' click areas stand above the pieces. -->
+    <g {@attach animator.marks()}>
+        {#each session.targets as entry (coordsKey(entry.line[0]))}
+            {@const center = view.center(entry.line[0])}
+            {@const key = coordsKey(entry.line[0])}
             <g
                 class="target"
                 role="button"
@@ -240,36 +401,20 @@
                 aria-label="push to {session.notation.name(entry.line[0])}"
                 onclick={() => session.push(entry.line[0])}
                 onkeydown={(event) => onKey(event, () => session.push(entry.line[0]))}
+                onpointerenter={() => (hoveredTarget = key)}
+                onpointerleave={() => (hoveredTarget = undefined)}
+                onfocus={() => (hoveredTarget = key)}
+                onblur={() => (hoveredTarget = undefined)}
             >
+                <path
+                    d={standingOutline}
+                    transform="translate({center.x} {center.y})"
+                    class="target-hit"
+                ></path>
                 <path d={arrow(entry.dot, entry.line[0])} class="arrow"></path>
-                <circle cx={center.x} cy={center.y} r={PIECE_RADIUS + 2} class="target-ring"
-                ></circle>
             </g>
         {/each}
     </g>
-    {#if animator.entering}
-        {@const center = pointCenter(animator.entering.dot)}
-        <g transform="translate({center.x} {center.y})" class="entering">
-            <g {@attach animator.enteringPiece()}>
-                <PieceShape
-                    color={session.gameState.getPlayerState(animator.entering.playerId).color}
-                    gipf={animator.entering.gipf}
-                    radius={PIECE_RADIUS}
-                />
-            </g>
-        </g>
-    {:else if preview}
-        {@const center = pointCenter(preview.dot)}
-        <g transform="translate({center.x} {center.y})" class="entering">
-            <g in:drop>
-                <PieceShape
-                    color={session.gameState.getPlayerState(preview.playerId).color}
-                    gipf={preview.gipf}
-                    radius={PIECE_RADIUS}
-                />
-            </g>
-        </g>
-    {/if}
 </svg>
 
 <style>
@@ -332,6 +477,15 @@
 
     .piece {
         outline: none;
+    }
+
+    /* A piece with nothing to choose lets clicks through to the dot or target behind it. */
+    .piece.role-none {
+        pointer-events: none;
+    }
+
+    .shadow {
+        fill: rgb(0 0 0 / 0.3);
     }
 
     .row-mark {
@@ -417,11 +571,15 @@
         stroke: var(--gipf-target);
         stroke-width: 2;
         stroke-dasharray: 5 4;
+        pointer-events: none;
     }
 
-    .target:hover .target-ring,
-    .target:focus-visible .target-ring {
+    .target-ring.hovered {
         fill: rgb(240 176 74 / 0.3);
         stroke-dasharray: none;
+    }
+
+    .target-hit {
+        fill: transparent;
     }
 </style>

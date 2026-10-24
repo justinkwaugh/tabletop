@@ -2,86 +2,79 @@
 
 <script lang="ts">
     import { Color } from '@tabletop/common'
-    import { CROWN_SCALE, pieceDiscs } from '$lib/board/pieceGeometry.js'
+    import { VIEW } from '$lib/board/geometry.js'
+    import { pieceDrawing } from '$lib/board/pieceShape.js'
 
-    let { color, gipf, radius }: { color: Color; gipf: boolean; radius: number } = $props()
+    // A piece standing on its point, seen from the near side of the table. The gradients come
+    // from a PieceDefs with the same prefix in the same SVG.
+    let {
+        color,
+        gipf,
+        radius,
+        prefix
+    }: { color: Color; gipf: boolean; radius: number; prefix: string } = $props()
 
-    const id = $props.id()
-    const light = $derived(color === Color.White)
-    const discs = $derived(pieceDiscs(gipf, radius))
-    const top = $derived(discs[discs.length - 1])
+    const tone = $derived(color === Color.White ? 'light' : 'dark')
+    const drawing = $derived(pieceDrawing(VIEW, gipf, radius))
 </script>
 
-<defs>
-    <radialGradient id="gipf-face-{id}" cx="0.45" cy="0.4" r="0.75">
-        {#if light}
-            <stop offset="0" stop-color="#f6f3ec"></stop>
-            <stop offset="1" stop-color="#e2dccf"></stop>
-        {:else}
-            <stop offset="0" stop-color="#34363b"></stop>
-            <stop offset="1" stop-color="#1b1c1f"></stop>
-        {/if}
-    </radialGradient>
-</defs>
-
-<circle r={radius} cy={discs[0].sideY + 2} class="shadow"></circle>
-{#each discs as disc, index (index)}
-    <circle r={radius} cy={disc.sideY} class="side" class:light></circle>
-    {#if disc.covered}
-        <circle r={radius} cy={disc.faceY} class="gap" class:light></circle>
-    {:else}
-        <circle r={radius} cy={disc.faceY} fill="url(#gipf-face-{id})" class="face" class:light
-        ></circle>
-    {/if}
+{#each drawing.slices as slice, index (index)}
+    <ellipse
+        cy={slice.y}
+        rx={slice.rx}
+        ry={slice.ry}
+        fill={slice.level < 0 ? undefined : `url(#${prefix}-${tone}-side-${slice.level})`}
+        class:crease={slice.level < 0}
+        class={tone}
+    ></ellipse>
 {/each}
-{#if gipf}
-    <circle r={radius * CROWN_SCALE} cy={top.faceY} class="crown" class:light></circle>
-{/if}
+<ellipse
+    cy={drawing.top.y}
+    rx={drawing.top.rx}
+    ry={drawing.top.ry}
+    fill="url(#{prefix}-{tone}-face)"
+></ellipse>
+<ellipse cy={drawing.trough.y} rx={drawing.trough.rx} ry={drawing.trough.ry} class="trough {tone}"
+></ellipse>
+<path d={drawing.farWall} class="far-wall {tone}"></path>
+<path d={drawing.nearWall} class="near-wall {tone}"></path>
+<ellipse
+    cy={drawing.centre.y}
+    rx={drawing.centre.rx}
+    ry={drawing.centre.ry}
+    fill="url(#{prefix}-{tone}-face)"
+></ellipse>
 
 <style>
-    .shadow {
-        fill: rgb(0 0 0 / 0.3);
+    .crease.light {
+        fill: #5e5644;
     }
 
-    .side {
-        fill: #4a4d54;
-        stroke: #000;
-        stroke-width: 1;
+    .crease.dark {
+        fill: #000;
     }
 
-    .side.light {
-        fill: #a89f8c;
-        stroke: #7d7564;
+    .trough.light {
+        fill: #cfc6a6;
     }
 
-    .face {
-        stroke: #8a8e96;
-        stroke-width: 1.2;
+    .far-wall.light {
+        fill: #b4aa88;
     }
 
-    /* The lower disc's face, seen in the shadow beneath the raised top disc. */
-    .gap {
-        fill: #0b0c0e;
-        stroke: #000;
-        stroke-width: 1;
+    .near-wall.light {
+        fill: #ddd5b9;
     }
 
-    .gap.light {
-        fill: #6f6858;
-        stroke: #4f4a3e;
+    .trough.dark {
+        fill: #161415;
     }
 
-    .crown {
-        fill: none;
-        stroke: rgb(255 255 255 / 0.4);
-        stroke-width: 2;
+    .far-wall.dark {
+        fill: #0a0909;
     }
 
-    .crown.light {
-        stroke: rgb(0 0 0 / 0.28);
-    }
-
-    .face.light {
-        stroke: #8d8676;
+    .near-wall.dark {
+        fill: #2b2829;
     }
 </style>
