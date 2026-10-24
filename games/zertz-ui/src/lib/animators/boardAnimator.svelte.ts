@@ -9,6 +9,7 @@ import type {
 } from '@tabletop/frontend-components'
 import {
     isCapture,
+    isPlaceMarble,
     type HydratedZertzGameState,
     type MarbleColor,
     type Ring
@@ -129,6 +130,11 @@ export class BoardAnimator {
                 }
             }
         } else {
+            // A placed marble lands at once, where its preview stood, rather than after the
+            // outlines fade.
+            if (isPlaceMarble(action)) {
+                this.rings = to.board.rings
+            }
             if (isCapture(action) && action.metadata !== undefined) {
                 await this.jump(
                     action.from,

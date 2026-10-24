@@ -31,9 +31,8 @@
     let hoveredKey: string | undefined = $state()
     let focusedKey: string | undefined = $state()
 
-    // The outline grows outward from a fixed gap, so a thicker line never covers the ring, and
-    // stays within half the space between rings, so neighbouring outlines never meet.
-    const HIGHLIGHT_GAP = 0.5
+    // Outlines sit just inside a ring's outer edge, so they never reach the touching neighbours.
+    const HIGHLIGHT_INSET = 0.5
     const HIGHLIGHT_WIDTH = 1.4
     const EMPHASIZED_HIGHLIGHT_WIDTH = 2
     const HIGHLIGHT_FADE_IN = 120
@@ -155,7 +154,10 @@
                 aria-label="{role ?? 'ring'} {session.notation.name(ring.coords)}"
                 onclick={() => activate(ring, role)}
                 onkeydown={(event) => onKey(event, ring, role)}
-                onpointerenter={() => (hoveredKey = coordsKey(ring.coords))}
+                onpointerenter={(event) => {
+                    // A tap enters and leaves at once, so touch would only flash the preview.
+                    if (event.pointerType !== 'touch') hoveredKey = coordsKey(ring.coords)
+                }}
                 onpointerleave={() => (hoveredKey = undefined)}
                 onfocus={(event) => {
                     if (event.currentTarget.matches(':focus-visible'))
@@ -198,7 +200,7 @@
                     <circle
                         cx={center.x}
                         cy={center.y}
-                        r={RING_OUTER_RADIUS + HIGHLIGHT_GAP + width / 2}
+                        r={RING_OUTER_RADIUS - HIGHLIGHT_INSET - width / 2}
                         stroke-width={width}
                         class="ring-highlight role-{role}"
                         class:emphasized
