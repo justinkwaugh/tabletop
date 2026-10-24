@@ -190,6 +190,7 @@
                                         {@render actionControls()}
                                         {@render views()}
                                     </div>
+                                    <MessageDialog />
                                     {#if session.playerAidOpen}
                                         <PlayerAid />
                                     {/if}
@@ -199,7 +200,9 @@
                             </div>
                         {/snippet}
                     </ScalingWrapper>
-                    <MessageDialog />
+                    {#if !expanded}
+                        <MessageDialog />
+                    {/if}
                     {#if session.playerAidOpen && !expanded && !compactTable.current}
                         <PlayerAid />
                     {/if}

@@ -4,7 +4,7 @@
 
 ## Rules source
 
-The German rulebook and message cards govern; the implementation is in English. Where the English translation differs from the German cards, the German wins (the potato blight card cuts Amalie-Bio by 3, not 1). Rule data lives in `src/components/`: the yield chart and varieties, both potato-market boards with their printed starting rows, the twenty message cards, and the costs.
+The German rulebook and message cards govern; the implementation is in English. Where the English translation differs from the German cards, the German wins (the green awareness & blight card cuts Amalie-Bio by 3, not 1; the plain potato blight card cuts it by 1). Rule data lives in `src/components/`: the yield chart and varieties, both potato-market boards with their printed starting rows, the twenty message cards, and the costs.
 
 ## Play
 
