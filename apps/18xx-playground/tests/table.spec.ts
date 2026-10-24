@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 for (const title of ['TOP', '1889']) {
     test(`${title} table keeps the sidebar and actions above an unframed scaling map`, async ({
@@ -279,15 +279,17 @@ test.describe('sidebar tabs on a phone', () => {
         }
     })
 
-    test('the History tab opens at the newest entry', async ({ page }) => {
+    async function openFinishedGame(page: Page) {
         test.setTimeout(60000)
         await page.goto('/table')
         await page.getByLabel('Position', { exact: true }).selectOption('finished')
         await expect(
             page.getByRole('heading', { name: 'Player 2 wins', exact: true })
         ).toBeAttached({ timeout: 30000 })
+    }
+
+    async function expectHistoryAtNewest(page: Page) {
         const history = page.locator('.history-scroll')
-        await page.getByRole('tab', { name: 'History', exact: true }).click()
         await expect(history).toBeVisible()
         await expect
             .poll(() => history.evaluate((element) => element.scrollHeight - element.clientHeight))
@@ -299,6 +301,27 @@ test.describe('sidebar tabs on a phone', () => {
                 )
             )
             .toBeLessThan(2)
+    }
+
+    test('the History tab opens at the newest entry', async ({ page }) => {
+        await openFinishedGame(page)
+        await page.getByRole('tab', { name: 'History', exact: true }).click()
+        await expectHistoryAtNewest(page)
+    })
+
+    test('History moved from the sidebar to the view tabs opens at the newest entry', async ({
+        page
+    }) => {
+        await openFinishedGame(page)
+        const menu = page.locator('.widget-menu:popover-open')
+        await page.getByRole('button', { name: 'Pane options for Sidebar', exact: true }).click()
+        await menu.getByRole('button', { name: 'Close History tab', exact: true }).click()
+        await page
+            .getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })
+            .click()
+        await menu.getByRole('button', { name: 'History', exact: true }).click()
+        await page.getByRole('tab', { name: 'History', exact: true }).click()
+        await expectHistoryAtNewest(page)
     })
 })
 

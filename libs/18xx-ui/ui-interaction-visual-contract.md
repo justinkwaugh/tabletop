@@ -2031,7 +2031,9 @@ the history controls move to the top of the game column. A phone's single column
 keeps 8px padding on both sides. While the sidebar is deleted, a left / right split
 icon at the top of the view tabs' menu, where pane splits go, adds it back with the sidebar's initial tabs that are among the view
 tabs, moved out of them. Each pane menu closes its tabs and adds any tab that is in neither pane,
-so a tab moves sides by closing it in one and adding it in the other. Each row under
+so a tab moves sides by closing it in one and adding it in the other. Closing a tab
+keeps the menu open; adding one closes it. A tab keeps its scroll position while
+other tabs are switched, so History stays at its newest entry. Each row under
 Current tabs has a grip: dragging it up or down by finger or mouse slides the other
 rows aside and reorders the pane's tabs on release, and Arrow Up/Down on a focused
 grip moves its tab one place. The order saves with the arrangement. On load each pane shows
