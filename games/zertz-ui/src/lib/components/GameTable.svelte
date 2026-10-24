@@ -118,12 +118,20 @@
                     {#snippet overlay()}
                         <div class="pointer-events-auto absolute top-1 right-3 z-10">
                             <div class="flex flex-col items-end gap-1.5">
-                                <OverlayToggle
-                                    glyph="A1"
-                                    label="Coordinates"
-                                    pressed={gameSession.showCoordinates}
-                                    onToggle={() => gameSession.toggleCoordinates()}
-                                />
+                                <div class="flex gap-1.5">
+                                    <OverlayToggle
+                                        glyph="A1"
+                                        label="Coordinates"
+                                        pressed={gameSession.showCoordinates}
+                                        onToggle={() => gameSession.toggleCoordinates()}
+                                    />
+                                    <OverlayToggle
+                                        glyph="∠"
+                                        label="Tilt"
+                                        pressed={gameSession.tiltedBoard}
+                                        onToggle={() => gameSession.toggleTiltedBoard()}
+                                    />
+                                </div>
                                 <OverlayToggle
                                     glyph="≈"
                                     label="Ripples"

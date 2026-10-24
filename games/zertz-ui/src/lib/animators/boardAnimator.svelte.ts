@@ -16,7 +16,7 @@ import {
 } from '@tabletop/zertz'
 import { includesCoords, type ZertzGameSession } from '$lib/model/session.svelte.js'
 import { sinkingRingsAfter } from '$lib/board/sinkingRings.js'
-import { coordsKey, ringCenter } from '$lib/board/geometry.js'
+import { coordsKey } from '$lib/board/geometry.js'
 import { inferJump } from '$lib/board/inferJump.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
@@ -29,8 +29,17 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 ])
 
 const SINK = { duration: 0.5, drop: 4, scale: 0.9 }
+// Straight down, a marble rising from the board swells toward the eye; seen from the side, it
+// floats straight up.
 const LIFT = { duration: 0.55, rise: -14, scale: 1.15 }
-const JUMP = { duration: 0.5, peakScale: 1.28 }
+const TILTED_LIFT = { rise: -34, scale: 1.04 }
+const JUMP = { duration: 0.5, rise: 0, peakScale: 1.28 }
+const TILTED_JUMP = { rise: -30, peakScale: 1.06 }
+// A jumper's momentum carries it a little past its ring as it lands; it rocks back and settles.
+const LANDING = { rebound: [2.4, -1.2, 0.45, 0], step: 0.07 }
+// Seen from the side, a placed marble falls into its ring, gathering speed, and settles with a
+// small wobble; its shadow waits in the ring and darkens as the marble comes down.
+const DROP = { fall: 0.26, rise: -50, scale: 1.08, wobble: [-4, -1.5], settle: 0.06, shadow: 0.55 }
 const CLAIMED_RING_DELAY = 0.1
 const CAPTURED_LIFT_AT = JUMP.duration * 0.45
 const FALLBACK_DURATION = 0.18
@@ -49,8 +58,10 @@ export class BoardAnimator {
 
     private readonly ringNodes = new Map<string, SVGGElement>()
     private readonly marbleNodes = new Map<string, SVGGElement>()
+    private readonly marbleShadowNodes = new Map<string, SVGGElement>()
     private readonly shadowNodes = new Map<string, SVGGElement>()
     private flierNode: SVGGElement | undefined
+    private flierBodyNode: SVGGElement | undefined
     private outlineLayer: SVGGElement | undefined
     private readonly listener = (step: Step) => this.onGameStateChange(step)
 
@@ -67,6 +78,10 @@ export class BoardAnimator {
 
     marble(key: string): Attachment<SVGGElement> {
         return (node) => this.track(this.marbleNodes, key, node)
+    }
+
+    marbleShadow(key: string): Attachment<SVGGElement> {
+        return (node) => this.track(this.marbleShadowNodes, key, node)
     }
 
     shadow(key: string): Attachment<SVGGElement> {
@@ -88,6 +103,16 @@ export class BoardAnimator {
             this.flierNode = node
             return () => {
                 if (this.flierNode === node) this.flierNode = undefined
+            }
+        }
+    }
+
+    flierBody(): Attachment<SVGGElement> {
+        return (node) => {
+            gsap.set(node, { svgOrigin: '0 0' })
+            this.flierBodyNode = node
+            return () => {
+                if (this.flierBodyNode === node) this.flierBodyNode = undefined
             }
         }
     }
@@ -134,6 +159,10 @@ export class BoardAnimator {
             // outlines fade.
             if (isPlaceMarble(action)) {
                 this.rings = to.board.rings
+                if (this.session.view.tilted) {
+                    await tick()
+                    this.drop(action.coords, timeline)
+                }
             }
             if (isCapture(action) && action.metadata !== undefined) {
                 await this.jump(
@@ -173,13 +202,45 @@ export class BoardAnimator {
     }
 
     private lift(coords: AxialCoordinates, timeline: Timeline, at: number, duration: number) {
-        const node = this.marbleNodes.get(coordsKey(coords))
-        if (node === undefined) return
-        timeline.to(
-            node,
-            { opacity: 0, scale: LIFT.scale, y: LIFT.rise, duration, ease: 'power1.out' },
-            at
+        const key = coordsKey(coords)
+        const body = this.marbleNodes.get(key)
+        if (body === undefined) return
+        const { rise, scale } = this.session.view.tilted ? TILTED_LIFT : LIFT
+        timeline.to(body, { opacity: 0, scale, y: rise, duration, ease: 'power1.out' }, at)
+        this.fadeShadow(key, timeline, at, duration)
+    }
+
+    private fadeShadow(key: string, timeline: Timeline, at: number, duration: number) {
+        const shadow = this.marbleShadowNodes.get(key)
+        if (shadow === undefined) return
+        timeline.to(shadow, { opacity: 0, scale: DROP.shadow, duration, ease: 'power1.out' }, at)
+    }
+
+    private drop(coords: AxialCoordinates, timeline: Timeline) {
+        const key = coordsKey(coords)
+        const body = this.marbleNodes.get(key)
+        const shadow = this.marbleShadowNodes.get(key)
+        if (body === undefined || shadow === undefined) return
+        const { fall } = DROP
+        timeline.fromTo(
+            body,
+            { opacity: 0, scale: DROP.scale, y: DROP.rise },
+            { opacity: 1, duration: fall * 0.25, ease: 'none', immediateRender: true },
+            0
         )
+        timeline.to(body, { scale: 1, y: 0, duration: fall, ease: 'power2.in' }, 0)
+        timeline.fromTo(
+            shadow,
+            { opacity: 0, scale: DROP.shadow },
+            { opacity: 1, scale: 1, duration: fall, ease: 'power2.in', immediateRender: true },
+            0
+        )
+        let at = fall
+        for (const height of DROP.wobble) {
+            timeline.to(body, { y: height, duration: DROP.settle, ease: 'power1.out' }, at)
+            timeline.to(body, { y: 0, duration: DROP.settle, ease: 'power1.in' }, at + DROP.settle)
+            at += DROP.settle * 2
+        }
     }
 
     // The move's targets are spent, so their outlines fade for as long as the move animates.
@@ -200,10 +261,14 @@ export class BoardAnimator {
         }
     }
 
+    // Seen from the side, an undone placement lifts back out of its ring as it fades.
     private fade(coords: AxialCoordinates, timeline: Timeline) {
-        const node = this.marbleNodes.get(coordsKey(coords))
-        if (node === undefined) return
-        timeline.to(node, { opacity: 0, duration: FALLBACK_DURATION, ease: 'power1.out' }, 0)
+        const key = coordsKey(coords)
+        const body = this.marbleNodes.get(key)
+        if (body === undefined) return
+        const y = this.session.view.tilted ? DROP.rise / 2 : 0
+        timeline.to(body, { opacity: 0, y, duration: FALLBACK_DURATION, ease: 'power1.in' }, 0)
+        this.fadeShadow(key, timeline, 0, FALLBACK_DURATION)
     }
 
     // The jumper flies on a layer above the board, so it never passes under a ring.
@@ -219,12 +284,15 @@ export class BoardAnimator {
         const flier = this.flierNode
         if (flier === undefined) return
 
-        const source = this.marbleNodes.get(coordsKey(from))
-        if (source !== undefined) {
-            timeline.set(source, { opacity: 0 }, 0)
+        for (const nodes of [this.marbleNodes, this.marbleShadowNodes]) {
+            const source = nodes.get(coordsKey(from))
+            if (source !== undefined) {
+                timeline.set(source, { opacity: 0 }, 0)
+            }
         }
-        const start = ringCenter(from)
-        const end = ringCenter(to)
+        const start = this.session.view.center(from)
+        const end = this.session.view.center(to)
+        const distance = Math.hypot(end.x - start.x, end.y - start.y)
         const half = duration / 2
         timeline.to(
             flier,
@@ -236,7 +304,28 @@ export class BoardAnimator {
             },
             0
         )
-        timeline.to(flier, { scale: JUMP.peakScale, duration: half, ease: 'power1.out' }, 0)
-        timeline.to(flier, { scale: 1, duration: half, ease: 'power1.in' }, half)
+        // The shadow keeps to the board while the marble rises over the one it takes.
+        const body = this.flierBodyNode
+        if (body === undefined) return
+        const { rise, peakScale } = this.session.view.tilted ? TILTED_JUMP : JUMP
+        timeline.to(body, { y: rise, scale: peakScale, duration: half, ease: 'power2.out' }, 0)
+        timeline.to(body, { y: 0, scale: 1, duration: half, ease: 'power2.in' }, half)
+        // A quick catch-up through history just arrives.
+        if (duration <= FALLBACK_DURATION) return
+        let at = duration
+        for (const reach of LANDING.rebound) {
+            const along = reach / distance
+            timeline.to(
+                body,
+                {
+                    x: (end.x - start.x) * along,
+                    y: (end.y - start.y) * along,
+                    duration: LANDING.step,
+                    ease: 'sine.inOut'
+                },
+                at
+            )
+            at += LANDING.step
+        }
     }
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
+    import type { Attachment } from 'svelte/attachments'
     import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import type { MarbleColor, Ring } from '@tabletop/zertz'
     import MarbleDefs from './MarbleDefs.svelte'
@@ -8,21 +9,24 @@
     import { includesCoords } from '$lib/model/session.svelte.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
     import {
-        boardFrame,
         coordsKey,
         MARBLE_RADIUS,
         RING_MID_RADIUS,
         RING_OUTER_RADIUS,
-        RING_WIDTH,
-        ringCenter
+        RING_WIDTH
     } from '$lib/board/geometry.js'
 
     const session = getGameSession()
 
     const animator = new BoardAnimator(session)
 
-    const frame = $derived(boardFrame(session.gameState.setup))
+    const view = $derived(session.view)
+    const frame = $derived(view.frame(session.gameState.setup))
     const rings = $derived(animator.rings)
+    // Far rings first, so nearer rings and their marbles stand in front of them.
+    const drawOrder = $derived(
+        rings.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
+    )
     const removedPositions = $derived.by(() => {
         const present = new Set(rings.map((ring) => coordsKey(ring.coords)))
         return frame.positions.filter((coords) => !present.has(coordsKey(coords)))
@@ -70,6 +74,11 @@
         }
     }
 
+    function hover(event: PointerEvent, coords: AxialCoordinates) {
+        // A tap enters and leaves at once, so touch would only flash the preview.
+        if (event.pointerType !== 'touch') hoveredKey = coordsKey(coords)
+    }
+
     function isHovered(coords: AxialCoordinates): boolean {
         return hoveredKey === coordsKey(coords)
     }
@@ -86,6 +95,15 @@
 >
     <defs>
         <MarbleDefs prefix="zertz-board" />
+        <linearGradient id="zertz-ring-inside" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0b0d0e"></stop>
+            <stop offset="1" stop-color="#2b3034"></stop>
+        </linearGradient>
+        <radialGradient id="zertz-ring-cone" cx="0.4" cy="0.32" r="0.75">
+            <stop offset="0" stop-color="#2a3033"></stop>
+            <stop offset="0.6" stop-color="#0e1012"></stop>
+            <stop offset="1" stop-color="#030404"></stop>
+        </radialGradient>
         <radialGradient id="zertz-ring-plastic" cx="0.4" cy="0.32" r="0.75">
             <stop offset="0" stop-color="#3d4448"></stop>
             <stop offset="0.6" stop-color="#16191b"></stop>
@@ -98,19 +116,32 @@
     </defs>
 
     {#snippet ringShadow(coords: AxialCoordinates)}
-        {@const center = ringCenter(coords)}
-        <circle
-            cx={center.x}
-            cy={center.y + 3}
-            r={RING_MID_RADIUS}
-            stroke-width={RING_WIDTH}
-            class="ring-shadow"
-        ></circle>
+        {@const center = view.center(coords)}
+        <g transform="translate({center.x} {center.y + 3 + view.band}) scale(1 {view.tilt})">
+            <circle r={RING_MID_RADIUS} stroke-width={RING_WIDTH} class="ring-shadow"></circle>
+        </g>
     {/snippet}
 
-    {#snippet marble(color: MarbleColor, coords: AxialCoordinates, seed: number)}
-        <circle r={MARBLE_RADIUS} cy="3" class="shadow" filter="url(#zertz-soft)"></circle>
-        <MarbleShape prefix="zertz-board" {color} radius={MARBLE_RADIUS} {seed} />
+    <!-- Drawn at the marble's centre, which sits above its ring; the shadow falls on the ring. -->
+    {#snippet marble(
+        color: MarbleColor,
+        seed: number,
+        body?: Attachment<SVGGElement>,
+        shadow?: Attachment<SVGGElement>
+    )}
+        <g transform="translate(0 {view.lift + 3 * view.tilt})">
+            <g {@attach shadow}>
+                <ellipse
+                    rx={MARBLE_RADIUS}
+                    ry={MARBLE_RADIUS * view.tilt}
+                    class="shadow"
+                    filter="url(#zertz-soft)"
+                ></ellipse>
+            </g>
+        </g>
+        <g {@attach body}>
+            <MarbleShape prefix="zertz-board" {color} radius={MARBLE_RADIUS} {seed} />
+        </g>
     {/snippet}
 
     {#if session.showCoordinates}
@@ -134,12 +165,18 @@
     </g>
 
     {#each removedPositions as coords (coordsKey(coords))}
-        {@const center = ringCenter(coords)}
-        <circle cx={center.x} cy={center.y} r={RING_MID_RADIUS} class="ghost"></circle>
+        {@const center = view.center(coords)}
+        <ellipse
+            cx={center.x}
+            cy={center.y}
+            rx={RING_MID_RADIUS}
+            ry={RING_MID_RADIUS * view.tilt}
+            class="ghost"
+        ></ellipse>
     {/each}
 
-    {#each rings as ring (coordsKey(ring.coords))}
-        {@const center = ringCenter(ring.coords)}
+    {#each drawOrder as ring (coordsKey(ring.coords))}
+        {@const center = view.center(ring.coords)}
         {@const role = roleOf(ring)}
         {@const interactive = role !== undefined}
         <g transform="translate({center.x} {center.y})">
@@ -154,10 +191,7 @@
                 aria-label="{role ?? 'ring'} {session.notation.name(ring.coords)}"
                 onclick={() => activate(ring, role)}
                 onkeydown={(event) => onKey(event, ring, role)}
-                onpointerenter={(event) => {
-                    // A tap enters and leaves at once, so touch would only flash the preview.
-                    if (event.pointerType !== 'touch') hoveredKey = coordsKey(ring.coords)
-                }}
+                onpointerenter={(event) => hover(event, ring.coords)}
                 onpointerleave={() => (hoveredKey = undefined)}
                 onfocus={(event) => {
                     if (event.currentTarget.matches(':focus-visible'))
@@ -165,22 +199,18 @@
                 }}
                 onblur={() => (focusedKey = undefined)}
             >
-                <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
-                <circle r={RING_MID_RADIUS} stroke-width={RING_WIDTH} class="ring-body"></circle>
-                <circle r={RING_OUTER_RADIUS - 1.5} class="ring-rim"></circle>
-                {#if ring.marble}
-                    <g {@attach animator.marble(coordsKey(ring.coords))}>
-                        {@render marble(ring.marble, ring.coords, coordinatesToNumber(ring.coords))}
+                {#if view.tilted}
+                    <g transform="translate(0 {view.band}) scale(1 {view.tilt})">
+                        <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
                     </g>
-                {:else if role === 'place' && session.chosenColor && isHovered(ring.coords)}
-                    <g class="preview">
-                        <MarbleShape
-                            prefix="zertz-board"
-                            color={session.chosenColor}
-                            radius={MARBLE_RADIUS}
-                            seed={coordinatesToNumber(ring.coords)}
-                        />
-                    </g>
+                    <path d={view.cone} class="ring-cone"></path>
+                    <path d={view.seeThrough} class="ring-hollow"></path>
+                    <path d={view.rimEdgePath} class="ring-inside"></path>
+                {:else}
+                    <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
+                    <circle r={RING_MID_RADIUS} stroke-width={RING_WIDTH} class="ring-body"
+                    ></circle>
+                    <circle r={RING_OUTER_RADIUS - 1.5} class="ring-rim"></circle>
                 {/if}
             </g>
         </g>
@@ -193,30 +223,67 @@
             {#each rings as ring (coordsKey(ring.coords))}
                 {@const role = roleOf(ring)}
                 {#if role !== undefined}
-                    {@const center = ringCenter(ring.coords)}
+                    {@const center = view.center(ring.coords)}
                     {@const emphasized =
                         isHovered(ring.coords) || focusedKey === coordsKey(ring.coords)}
                     {@const width = highlightWidth(role, emphasized)}
-                    <circle
+                    {@const radius = RING_OUTER_RADIUS - HIGHLIGHT_INSET - width / 2}
+                    <!-- Around the ring's base, which in the tilted view spreads past its top. -->
+                    <ellipse
                         cx={center.x}
-                        cy={center.y}
-                        r={RING_OUTER_RADIUS - HIGHLIGHT_INSET - width / 2}
+                        cy={center.y + view.band}
+                        rx={radius}
+                        ry={radius * view.tilt}
                         stroke-width={width}
                         class="ring-highlight role-{role}"
                         class:emphasized
                         in:fade|global={{ duration: HIGHLIGHT_FADE_IN }}
                         out:fade={{ duration: HIGHLIGHT_FADE_OUT }}
-                    ></circle>
+                    ></ellipse>
                 {/if}
             {/each}
         </g>
     {/key}
 
+    <!-- Marbles stand above every ring and outline. A marble reaches beyond its own ring in
+         the tilted view, so it passes pointing on to its ring. -->
+    {#each drawOrder as ring (coordsKey(ring.coords))}
+        {@const center = view.center(ring.coords)}
+        {@const role = roleOf(ring)}
+        {#if ring.marble}
+            <g
+                transform="translate({center.x} {center.y - view.lift})"
+                class="marble"
+                class:interactive={role !== undefined}
+                role="presentation"
+                onclick={() => activate(ring, role)}
+                onpointerenter={(event) => hover(event, ring.coords)}
+                onpointerleave={() => (hoveredKey = undefined)}
+            >
+                {@render marble(
+                    ring.marble,
+                    coordinatesToNumber(ring.coords),
+                    animator.marble(coordsKey(ring.coords)),
+                    animator.marbleShadow(coordsKey(ring.coords))
+                )}
+            </g>
+        {:else if role === 'place' && session.chosenColor && isHovered(ring.coords)}
+            <g class="preview" transform="translate({center.x} {center.y - view.lift})">
+                <MarbleShape
+                    prefix="zertz-board"
+                    color={session.chosenColor}
+                    radius={MARBLE_RADIUS}
+                    seed={coordinatesToNumber(ring.coords)}
+                />
+            </g>
+        {/if}
+    {/each}
+
     {#if animator.flight}
-        {@const center = ringCenter(animator.flight.from)}
-        <g transform="translate({center.x} {center.y})" class="flight">
+        {@const center = view.center(animator.flight.from)}
+        <g transform="translate({center.x} {center.y - view.lift})" class="flight">
             <g {@attach animator.flier()}>
-                {@render marble(animator.flight.color, animator.flight.from, animator.flight.seed)}
+                {@render marble(animator.flight.color, animator.flight.seed, animator.flierBody())}
             </g>
         </g>
     {/if}
@@ -263,6 +330,22 @@
     .ring-body {
         fill: none;
         stroke: url(#zertz-ring-plastic);
+    }
+
+    .ring-cone {
+        fill: url(#zertz-ring-cone);
+        fill-rule: evenodd;
+    }
+
+    .ring-hollow {
+        fill: #021624;
+        fill-opacity: 0.45;
+        pointer-events: none;
+    }
+
+    .ring-inside {
+        fill: url(#zertz-ring-inside);
+        pointer-events: none;
     }
 
     .ring-rim {

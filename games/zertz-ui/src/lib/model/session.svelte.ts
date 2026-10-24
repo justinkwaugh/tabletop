@@ -17,7 +17,7 @@ import {
     setZertzSelection,
     type ZertzSelection
 } from './stagedSelection.js'
-import { boardFrame } from '$lib/board/geometry.js'
+import { boardView, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 import { sinkingRingsAfter } from '$lib/board/sinkingRings.js'
 
@@ -33,8 +33,12 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
 
     showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
     rippleWater: boolean = $derived(this.preferences.values.rippleWater)
+    tiltedBoard: boolean = $derived(this.preferences.values.tiltedBoard)
+    view: BoardView = $derived(boardView(this.tiltedBoard))
 
-    notation: BoardNotation = $derived(boardNotation(boardFrame(this.gameState.setup).positions))
+    notation: BoardNotation = $derived(
+        boardNotation(this.view.frame(this.gameState.setup).positions, this.view)
+    )
 
     // The actions list moves ahead as soon as an action is taken, so the sunken rings follow the
     // actions behind the state on show, which an animated transition still holds back.
@@ -120,6 +124,10 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
 
     toggleRippleWater() {
         this.preferences.set({ rippleWater: !this.rippleWater })
+    }
+
+    toggleTiltedBoard() {
+        this.preferences.set({ tiltedBoard: !this.tiltedBoard })
     }
 
     resetAction() {
