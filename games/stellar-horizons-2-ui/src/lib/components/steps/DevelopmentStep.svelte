@@ -1,36 +1,53 @@
 <script lang="ts">
+    import { assertExists } from '@tabletop/common'
     import {
         TECH_FIELDS,
+        CardUnavailable,
+        cardDefinition,
+        cardUnavailability,
         cashAndInfluence,
+        endRollModifierChoices,
         influencePoints,
         isCampaign,
-        techCost,
+        purchaseCost,
+        purchaseField,
         techDefinition,
-        type TechId
+        canAfford,
+        type Purchase
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { suggestPayment } from '$lib/model/payment.js'
     import { TECH_EFFECT_TEXT } from '$lib/utils/presentation.js'
+    import { cardTitle } from '$lib/utils/cards.js'
     import TechMarker from '../TechMarker.svelte'
     import TechMarkerTotal from '../TechMarkerTotal.svelte'
+    import CardFace from '../cards/CardFace.svelte'
 
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
     const playerId = $derived(gameSession.myPlayerId ?? '')
     const player = $derived(gameState.getPlayerState(playerId))
     const techId = $derived(gameSession.selectedTech)
+    const cardId = $derived(gameSession.selectedCard)
 
-    let chosen: { techId: TechId; indexes: number[] } | undefined = $state()
+    // A tech from the chart or a card from the hand: both are paid the same way.
+    const purchase: Purchase | undefined = $derived(
+        techId ? { techId } : cardId ? { cardId } : undefined
+    )
+    // The tech or card id the payment being drafted is for.
+    const purchaseKey = $derived(techId ?? cardId)
+
+    let chosenMarkers: { purchaseKey: string; indexes: number[] } | undefined = $state()
     // Campaign: IP pay 2 points each. Unless the player picks a number, as many are used as
     // the cash on hand cannot cover.
-    let chosenInfluence: { techId: TechId; influence: number } | undefined = $state()
+    let chosenInfluence: { purchaseKey: string; influence: number } | undefined = $state()
 
-    const tech = $derived(techId ? techDefinition(techId) : undefined)
-    const cost = $derived(techId ? techCost(gameState, playerId, techId) : 0)
-    const held = $derived(tech ? player.techMarkers[tech.field] : [])
+    const field = $derived(purchase ? purchaseField(purchase) : undefined)
+    const cost = $derived(purchase ? purchaseCost(gameState, playerId, purchase) : 0)
+    const held = $derived(field ? player.techMarkers[field] : [])
     const selectedIndexes: number[] = $derived.by(() => {
-        if (!techId) return []
-        if (chosen && chosen.techId === techId) return chosen.indexes
+        if (!purchaseKey) return []
+        if (chosenMarkers && chosenMarkers.purchaseKey === purchaseKey) return chosenMarkers.indexes
         // IP count towards what can be paid, so markers are still suggested first.
         const suggestion = suggestPayment(
             held,
@@ -53,13 +70,13 @@
     const keeping = $derived(ordered.filter((entry) => !selectedIndexes.includes(entry.index)))
     const markers = $derived(paying.map((entry) => entry.value))
     const payment = $derived(
-        techId
+        purchase && purchaseKey
             ? cashAndInfluence(
                   gameState,
                   playerId,
-                  techId,
+                  purchase,
                   markers.reduce((total, value) => total + value, 0),
-                  chosenInfluence && chosenInfluence.techId === techId
+                  chosenInfluence && chosenInfluence.purchaseKey === purchaseKey
                       ? chosenInfluence.influence
                       : undefined
               )
@@ -70,54 +87,104 @@
     const cash = $derived(payment.cash)
     const affordable = $derived(cash <= player.cash)
 
+    // The hand, each card with what it costs now, and why one cannot be bought.
+    function unavailableText(id: string, reason: CardUnavailable): string {
+        const definition = cardDefinition(id)
+        switch (reason) {
+            case CardUnavailable.TypeBought:
+                return `${definition.field} bought`
+            case CardUnavailable.Excluded:
+                assertExists(definition.excludes, 'Only a card that excludes another is excluded')
+                return `Not with ${cardDefinition(definition.excludes).name}`
+            case CardUnavailable.NotHeld:
+                return 'Not in hand'
+        }
+    }
+    const hand = $derived(
+        player.hand.flatMap((card) => {
+            if (card.cardId === undefined) return []
+            const id = card.cardId
+            const reason = cardUnavailability(gameState, playerId, id)
+            const note =
+                reason !== undefined
+                    ? unavailableText(id, reason)
+                    : !canAfford(gameState, playerId, { cardId: id })
+                      ? 'Too dear'
+                      : undefined
+            return [
+                {
+                    cardId: id,
+                    cost: purchaseCost(gameState, playerId, { cardId: id }),
+                    note
+                }
+            ]
+        })
+    )
+    const modifiers = $derived(endRollModifierChoices(gameState, playerId))
+    const modifier = $derived(player.endRollModifier ?? 0)
+
     function adjustInfluence(change: number) {
-        if (!techId) return
+        if (!purchaseKey) return
         const next = Math.max(0, Math.min(maxInfluence, influence + change))
-        chosenInfluence = { techId, influence: next }
+        chosenInfluence = { purchaseKey, influence: next }
     }
 
-    const developLabel = $derived.by(() => {
+    const payLabel = $derived.by(() => {
+        const verb = cardId ? 'Buy' : 'Develop'
         const parts = [
             markers.join('+'),
             influence > 0 ? `${influence} IP` : '',
             cash > 0 ? `$${cash}B` : ''
         ].filter(Boolean)
-        return parts.length > 0 ? `Develop with ${parts.join(' and ')}` : 'Develop for free'
+        return parts.length > 0 ? `${verb} with ${parts.join(' and ')}` : `${verb} for free`
     })
 
     function toggle(index: number) {
-        if (!techId) return
+        if (!purchaseKey) return
         const next = selectedIndexes.includes(index)
             ? selectedIndexes.filter((candidate) => candidate !== index)
             : [...selectedIndexes, index]
-        chosen = { techId, indexes: next }
+        chosenMarkers = { purchaseKey, indexes: next }
     }
 
-    async function develop() {
-        if (!techId || !affordable) return
-        chosen = undefined
+    async function pay() {
+        if (!purchase || !affordable) return
+        chosenMarkers = undefined
         chosenInfluence = undefined
-        await gameSession.developTech(techId, markers, cash, influence)
+        if (techId) {
+            await gameSession.developTech(techId, markers, cash, influence)
+        } else if (cardId) {
+            await gameSession.buyCard(cardId, markers, cash, influence)
+        }
     }
 </script>
 
 <div class="sh-step">
-    {#if tech}
-        <div class="section-title">{tech.name}</div>
-        <p class="hint">
-            {TECH_EFFECT_TEXT[tech.id]}. Cost {cost}
-            {tech.field.toLowerCase()} points.
-        </p>
+    {#if purchase && field}
+        {#if techId}
+            {@const tech = techDefinition(techId)}
+            <div class="section-title">{tech.name}</div>
+            <p class="hint">
+                {TECH_EFFECT_TEXT[tech.id]}. Cost {cost}
+                {field.toLowerCase()} points.
+            </p>
+        {:else if cardId}
+            <div class="section-title">{cardTitle(cardId)}</div>
+            <p class="hint">
+                {cardDefinition(cardId).text}. Cost {cost}
+                {field.toLowerCase()} points; it counts as your {field.toLowerCase()} purchase this turn.
+            </p>
+        {/if}
         <div class="payment">
             <div class="group">
                 <span class="label">Pay with</span>
                 <span class="chits">
                     {#each paying as marker (marker.index)}
                         <TechMarker
-                            field={tech.field}
+                            {field}
                             value={marker.value}
                             size={40}
-                            label="Keep {tech.field.toLowerCase()} {marker.value}"
+                            label="Keep {field.toLowerCase()} {marker.value}"
                             onclick={() => toggle(marker.index)}
                         />
                     {/each}
@@ -151,10 +218,10 @@
                     <span class="chits">
                         {#each keeping as marker (marker.index)}
                             <TechMarker
-                                field={tech.field}
+                                {field}
                                 value={marker.value}
                                 size={40}
-                                label="Pay with {tech.field.toLowerCase()} {marker.value}"
+                                label="Pay with {field.toLowerCase()} {marker.value}"
                                 onclick={() => toggle(marker.index)}
                             />
                         {/each}
@@ -163,10 +230,9 @@
             {/if}
         </div>
         <div class="buttons">
-            <button type="button" class="primary" disabled={!affordable} onclick={develop}>
-                {developLabel}
+            <button type="button" class="primary" disabled={!affordable} onclick={pay}>
+                {payLabel}
             </button>
-            <button type="button" onclick={() => gameSession.clearSelection()}>Cancel</button>
         </div>
     {:else}
         <dl class="funds" aria-label="Available to spend">
@@ -189,11 +255,81 @@
                 </div>
             {/if}
         </dl>
-        <div class="prompt">Choose a tech on the chart below</div>
+        {#if hand.length > 0}
+            <div class="hand" aria-label="Your hand">
+                {#each hand as card (card.cardId)}
+                    <CardFace
+                        cardId={card.cardId}
+                        cost={card.cost}
+                        note={card.note}
+                        disabled={card.note !== undefined}
+                        onclick={() => gameSession.selectCard(card.cardId)}
+                    />
+                {/each}
+            </div>
+        {/if}
+        {#if modifiers.length > 0}
+            <div
+                class="modifier"
+                role="group"
+                aria-label="Transcend Biology's change to the end roll"
+            >
+                <span class="label">End roll</span>
+                {#each modifiers as amount (amount)}
+                    <button
+                        type="button"
+                        class="chip"
+                        class:on={modifier === amount}
+                        aria-pressed={modifier === amount}
+                        disabled={modifier === amount}
+                        onclick={() => gameSession.chooseEndRollModifier(amount)}
+                        >{amount === 0 ? 'No change' : `${amount > 0 ? '+' : ''}${amount}%`}</button
+                    >
+                {/each}
+            </div>
+        {/if}
+        <div class="prompt">
+            {hand.length > 0
+                ? 'Choose a tech on the chart below, or a card from your hand'
+                : 'Choose a tech on the chart below'}
+        </div>
     {/if}
 </div>
 
 <style>
+    .hand {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .modifier {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .chip {
+        padding: 3px 9px;
+        border-radius: 6px;
+        border: 1px solid #2f4366;
+        font-size: 13px;
+    }
+
+    .chip.on {
+        border-color: #7fd3ff;
+        background: #18324f;
+    }
+
+    .modifier .label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #8fa4c2;
+    }
+
     .influence-picker {
         display: inline-flex;
         align-items: center;

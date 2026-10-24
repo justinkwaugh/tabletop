@@ -115,3 +115,57 @@ The end of 2100's exploration. The Starfarers resolve Megafauna at Alpha Centaur
 - **Placing.** The map opens zoomed into Alpha Centauri. Its panel offers "Put Fauna here" beside the base and Andromeda's counter; each click places one Fauna, shown with the base's goods or in the hold, and Undo takes one back. The base takes only one good this turn, and Andromeda one.
 - **Leaving.** Back to map zooms out; Alpha Centauri keeps an outline, "2 Fauna to place" (or "1 Fauna to place" after placing one), that zooms back in.
 - **The rest.** "Place 1, destroy 1 for $1B" places what was chosen and destroys the rest for $1B each.
+
+## Campaign buying cards
+
+Developing techs in 2100. Player 1 (the Starfarers) holds Scout Ships and Gifted Artists and owns Robo Miners; the Givers own Cunning. Everyone has biology 5, 4, 3, physics 5, 5, 4, engineering 4, 3, 3 IP and $6B.
+
+- **The hand.** The action panel shows the Starfarers' hand under their totals. Scout Ships costs 17 (12 printed, +5 for Robo Miners, a fleet improvement I they own), its circle ringed in gold; Gifted Artists costs its printed 7.
+- **Buying.** Choosing Scout Ships opens the payment panel with `Buy with 5+5+4 and $3B` (or IP). Buying it moves it to the console's owned cards; Gifted Artists stays in the hand, and physics techs are no longer available this turn, since the card was the physics purchase. Its text says so before buying.
+- **The deal.** When everyone has finished, a Player who bought nothing discards their hand and history says so; every hand is filled again, level I only, drawn for them in initiative order. The console shows the new hand to its owner and only the backs (type and level) to others.
+- **Protected view.** With Options → Protected mode, choosing Player 2 shows Player 1's hand as backs and the decks' cards hidden; history names a drawn card only to its drawer.
+
+## Campaign card levels
+
+The deal after 2100's development: nobody bought anything, so every hand was discarded. Player 1 (the Starfarers) owns Starship Theoretical Concepts, so they may draw fleet improvements of level I or II.
+
+- **Choosing.** The panel asks for the level of Player 1's fleet card, each with the cards left in its deck. Choosing level II draws one: history says "drew …" with its name for Player 1 and "a level II fleet improvement" for others. Their genetic card has only level I to draw from, so it is drawn for them.
+- **The others.** The other Players' draws are level I only and happen without asking; then 2110 begins.
+
+## Campaign short deck
+
+The same deal as Campaign card levels, but the level I fleet deck is down to one card, the second copy of Resilient Crews, and Player 1 (the Starfarers) owns the first. The rest of level I lies in the discards.
+
+- **A copy.** The panel offers Level I (1 card) and Level II. Choosing level I draws Resilient Crews: history says Player 1 drew it, a copy of a card they have, and discarded it. Their draw is still owed and level I is now empty, so a level II fleet improvement is drawn for them without asking.
+- **A short deck.** The Players after them have only level I to draw from: history says each "could draw no fleet improvement". Their genetic cards are drawn, and 2110 begins with their hands short of a fleet card; the end of 2100 says 17 discarded cards are shuffled back into the decks.
+
+## Campaign anomaly card
+
+The end of 2100's exploration. The Starfarers resolved Alien Remains at Alpha Centauri; the level I genetic deck held only the card in their hand, so they earned it from the hand. Advanced Genetic Manipulation lets them draw its replacement at level II or III.
+
+- **Earned from the hand.** History says the Starfarers earned their card "from their hand"; the console lists it among owned cards.
+- **The replacement.** The panel asks for the level of the replacement at once, before the development phase. Choosing one fills the hand and play goes on to developing techs.
+
+## Campaign card pact
+
+Exploration in 2100: Alien Derelict lies at Alpha Centauri with a Starfarers ship and a Givers ship there.
+
+- **The card's recipient.** Proposing a pact with both shows a Card column in the split: the proposer earns it to begin with, and Give hands it to the other partner. A split without the card, or with it twice, cannot be proposed.
+
+## Campaign Prolific Breeders
+
+2110 draws _Settlement growth_. The Givers own Prolific Breeders and have bases at Alpha Centauri (4) and Luhman 16 (2), both below their limits.
+
+- **Choosing on the map.** After growth the Givers are asked for a base; both systems show "+1 settlement" on the map. Choosing one adds a settlement there and history says so. With only one base able to grow, the settlement goes there without asking.
+
+## Campaign Hive Mind
+
+The start of 2110. The Starfarers own Hive Mind.
+
+- **Choosing the tile.** Instead of a drawn tile, the Starfarers are offered every economic tile left in the cycle. Choosing one plays it; history says they chose it with Hive Mind. A later turn never offers the tile of the turn before.
+
+## Campaign Planetary Surveys
+
+The end of 2100's exploration. The Starfarers own Planetary Surveys and completed a survey of Alpha Centauri, which has an empty world slot.
+
+- **Two worlds.** The panel shows the two worlds drawn and asks which to place; the other goes back to the pool. In a full system both are offered as replacements for smaller worlds, or neither.

@@ -32,27 +32,27 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 967036343,
+  "seed": 3280498942,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-23T23:28:13.430Z",
+  "createdAt": "2026-10-24T04:40:33.786Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "4TsrlVigcYUUteR7tdQgc",
+  "id": "rJ3g6Wljz1PMUmoF_DJPA",
   "gameId": "scenario-campaign-trade-goods",
   "seed": 3367980177,
   "prng": {
    "seed": 3367980177,
-   "invocations": 883
+   "invocations": 1373
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
    "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
-   "invocations": 48
+   "invocations": 62
   },
   "masterSeed": "0123456789abcdef0123456789abcdef",
   "activePlayerIds": [
@@ -104,6 +104,23 @@
      "FineArt"
     ],
     "discardedGoods": [],
+    "hand": [
+     {
+      "playerId": "p0",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "sensor-upgrades"
+     },
+     {
+      "playerId": "p0",
+      "deck": "Genetic",
+      "level": 1,
+      "cardId": "gifted-artists"
+     }
+    ],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
     "faction": "Starfarers"
    },
    {
@@ -145,10 +162,33 @@
     "explorationMarkers": 0,
     "earthGoods": [],
     "drawnGoods": [
-     "RareMaterials",
-     "Ore"
+     "Food",
+     "Beverages"
     ],
     "discardedGoods": [],
+    "hand": [
+     {
+      "playerId": "p1",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "hypersonic-missiles"
+     },
+     {
+      "playerId": "p1",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "sensor-upgrades"
+     },
+     {
+      "playerId": "p1",
+      "deck": "Genetic",
+      "level": 1,
+      "cardId": "creative"
+     }
+    ],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
     "faction": "Praetorians"
    },
    {
@@ -186,10 +226,27 @@
     "explorationMarkers": 0,
     "earthGoods": [],
     "drawnGoods": [
-     "Ore",
-     "FineArt"
+     "Machinery",
+     "Entertainment"
     ],
     "discardedGoods": [],
+    "hand": [
+     {
+      "playerId": "p2",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "robo-miners"
+     },
+     {
+      "playerId": "p2",
+      "deck": "Genetic",
+      "level": 1,
+      "cardId": "cold-tolerance"
+     }
+    ],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
     "faction": "Givers"
    }
   ],
@@ -879,84 +936,84 @@
    "Beverages",
    "Beverages",
    "Beverages",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Entertainment",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "Fauna",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "FineArt",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Flora",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Food",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Machinery",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Medicine",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "Ore",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
+   "RareMaterials",
    "Beverages",
-   "Beverages",
-   "Beverages",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Entertainment",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "Fauna",
-   "FineArt",
-   "FineArt",
-   "FineArt",
-   "FineArt",
-   "FineArt",
-   "FineArt",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Flora",
-   "Food",
-   "Food",
-   "Food",
-   "Food",
-   "Food",
-   "Food",
-   "Food",
-   "Food",
-   "Food",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Machinery",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Medicine",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "Ore",
-   "RareMaterials",
-   "RareMaterials",
-   "RareMaterials",
-   "RareMaterials",
-   "RareMaterials",
-   "RareMaterials",
-   "Ore",
-   "Fauna"
+   "Beverages"
   ],
   "demandPool": [
    "Beverages",
@@ -1009,6 +1066,127 @@
   ],
   "demandDraws": [],
   "remainingTraders": [],
+  "cardPiles": [
+   {
+    "deck": "Fleet",
+    "level": 1,
+    "cards": [
+     "crew-focus",
+     "minefields",
+     "reinforced-hulls",
+     "robotic-focus",
+     "scout-ships",
+     "sensor-upgrades",
+     "superior-robotics",
+     "resilient-crews",
+     "planetary-surveys",
+     "resilient-crews",
+     "superior-robotics"
+    ],
+    "remaining": 11,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Fleet",
+    "level": 2,
+    "cards": [
+     "deep-core-mining",
+     "engine-upgrades",
+     "explorers-guild",
+     "freight-haulers",
+     "mining-vessel-upgrades",
+     "quantum-sensors",
+     "research-vessel-upgrades",
+     "robotic-swarms",
+     "robotic-swarms",
+     "self-repair-system",
+     "starports",
+     "traders-guild"
+    ],
+    "remaining": 12,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Fleet",
+    "level": 3,
+    "cards": [
+     "fleet-logistics",
+     "fleet-logistics",
+     "interstellar-mining-conglomerate",
+     "military-academy",
+     "planetary-engineering",
+     "science-academy",
+     "stabilized-wormholes",
+     "stabilized-wormholes"
+    ],
+    "remaining": 8,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Genetic",
+    "level": 1,
+    "cards": [
+     "aquatic-tolerance",
+     "arid-tolerance",
+     "culinary-geniuses",
+     "cunning",
+     "enhanced-strength",
+     "environmental-tolerance",
+     "pioneers",
+     "prolific-breeders",
+     "radiation-tolerance",
+     "skilled-biologists",
+     "skilled-physicists",
+     "skilled-entertainers",
+     "skilled-engineers",
+     "skilled-naturalists"
+    ],
+    "remaining": 14,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Genetic",
+    "level": 2,
+    "cards": [
+     "cultural-dominance",
+     "eager-migrants",
+     "increased-body-size",
+     "infrared-vision",
+     "enhanced-intellect",
+     "neural-interface",
+     "reduced-body-size",
+     "skilled-artisans",
+     "spacefaring-populace",
+     "zero-g-tolerance"
+    ],
+    "remaining": 10,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Genetic",
+    "level": 3,
+    "cards": [
+     "aquatic-species",
+     "cyborg-species",
+     "desert-species",
+     "flying",
+     "hive-mind",
+     "natural-immortality",
+     "subterranean",
+     "transcend-biology"
+    ],
+    "remaining": 8,
+    "discards": [],
+    "discarded": 0
+   }
+  ],
+  "growthChoosers": [],
+  "conversions": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",
@@ -1062,15 +1240,15 @@
    "closedPlayerIds": [],
    "mergedPlayerIds": [],
    "branchStartIds": {
-    "p0": "bKzPmnrhbGnL5fpeRFlyq",
-    "p2": "x677Rvj1MWT1QlPAH4NyR",
-    "p1": "fKwKngWTAYq4VX4pTkj65"
+    "p0": "QpBboqngyoMsF71VeQLgC",
+    "p2": "c2LBVVibriepTGAfZnfPA",
+    "p1": "kfGGwYoVpmqK2NjyLFp8k"
    },
-   "completionId": "nBSMpl85MKY4CUco8Uv54",
+   "completionId": "KJjU2Zk45cBFjeMTgcqbP",
    "branchCloseIds": {
-    "p0": "wFXLGqzzRY3Rt2lVVIflq",
-    "p2": "PCvp2EpiBdkAuqhZrh4BI",
-    "p1": "dgh9w9BElKlyf5hQ4JgLR"
+    "p0": "ijlyyaXlfTnzXkTHR12pv",
+    "p2": "kqrTssglmeWh7EWEzTf3h",
+    "p1": "vE6MMA1nL2vC9d2uu2He2"
    },
    "branchPlayerId": "p0"
   }

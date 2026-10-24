@@ -26,6 +26,16 @@ import {
     WithdrawPact,
     SpendInfluence,
     ChooseSurveyWorld,
+    BuyCard,
+    DrawCard,
+    ChooseEconomicTile,
+    ChooseEndRollModifier,
+    ChooseGrowthBase,
+    CardDeck,
+    type CardLevel,
+    type EconomicTile,
+    growthChoiceBases,
+    isCardAvailable,
     ChooseTerraformWorld,
     CloneSettlement,
     DevelopTech,
@@ -134,6 +144,8 @@ import {
     type RewardDraft,
     selectedShipId,
     selectedTechId,
+    selectedCardId,
+    cardSelection,
     shipSelection,
     techSelection,
     toggleAnomalyShip,
@@ -250,6 +262,16 @@ export class StellarHorizonsGameSession extends GameSession<
             return undefined
         }
         return isTechAvailable(this.gameState, playerId, techId) ? techId : undefined
+    })
+
+    // A card from the viewer's hand chosen to buy, while it can still be bought.
+    selectedCard: string | undefined = $derived.by(() => {
+        const cardId = selectedCardId(this.selection)
+        const playerId = this.myPlayerId
+        if (!cardId || !playerId || this.actingPhase !== TurnPhase.Development) {
+            return undefined
+        }
+        return isCardAvailable(this.gameState, playerId, cardId) ? cardId : undefined
     })
 
     // The ships chosen so far for an anomaly, less any that can no longer take part.
@@ -552,6 +574,12 @@ export class StellarHorizonsGameSession extends GameSession<
                 return this.rewardGoodsTargets()
             case MachineState.Trading:
                 return this.saleTargets()
+            case MachineState.ChoosingGrowthBase:
+                return growthChoiceBases(this.gameState, playerId).map((systemId) => ({
+                    systemId,
+                    label: '+1 settlement',
+                    action: `Prolific Breeders at ${systemName(systemId)}`
+                }))
             default:
                 return []
         }
@@ -811,6 +839,21 @@ export class StellarHorizonsGameSession extends GameSession<
         this.updatePactDraft((draft) => ({ ...draft, shares }))
     }
 
+    // A card cannot be split, so one partner earns it.
+    givePactCard(partnerId: string) {
+        const terms = this.pactTerms
+        if (!terms) {
+            return
+        }
+        const shares: Record<string, PactShare> = Object.fromEntries(
+            Object.entries(terms.shares).map(([id, share]) => [
+                id,
+                { ...share, cards: id === partnerId ? 1 : 0 }
+            ])
+        )
+        this.updatePactDraft((draft) => ({ ...draft, shares }))
+    }
+
     choosePactKeeper(partnerId: string) {
         this.updatePactDraft((draft) => ({ ...draft, keeperId: partnerId }))
     }
@@ -835,6 +878,9 @@ export class StellarHorizonsGameSession extends GameSession<
                 return
             case MachineState.PlacingHomesteaders:
                 await this.placeHomesteaders(systemId)
+                return
+            case MachineState.ChoosingGrowthBase:
+                await this.chooseGrowthBase(systemId)
                 return
             case MachineState.PlacingRewardSettlements:
                 this.select(
@@ -992,6 +1038,10 @@ export class StellarHorizonsGameSession extends GameSession<
             ActionType.DestroyGoods,
             this.createPlayerAction(DestroyGoods, { holder, good, count: 1 })
         )
+    }
+
+    selectCard(cardId: string) {
+        this.select(selectedCardId(this.selection) === cardId ? undefined : cardSelection(cardId))
     }
 
     selectTech(techId: TechId) {
@@ -1225,7 +1275,7 @@ export class StellarHorizonsGameSession extends GameSession<
                 label: `${name} here`,
                 action: `Assign ${name} to your base at ${systemName(systemId)}`
             }))
-        return canAssignToEarth(good) && fits(EARTH_HOLDER)
+        return canAssignToEarth(this.gameState, playerId, good) && fits(EARTH_HOLDER)
             ? [
                   ...bases,
                   {
@@ -1311,6 +1361,44 @@ export class StellarHorizonsGameSession extends GameSession<
                 cash,
                 ...(influence > 0 ? { influence } : {})
             })
+        )
+    }
+
+    async buyCard(cardId: string, markers: number[], cash: number, influence = 0) {
+        this.clearSelection()
+        await this.commit(
+            ActionType.BuyCard,
+            this.createPlayerAction(BuyCard, {
+                cardId,
+                markers,
+                cash,
+                ...(influence > 0 ? { influence } : {})
+            })
+        )
+    }
+
+    async drawCard(deck: CardDeck, level: CardLevel) {
+        await this.commit(ActionType.DrawCard, this.createPlayerAction(DrawCard, { deck, level }))
+    }
+
+    async chooseEndRollModifier(amount: number) {
+        await this.commit(
+            ActionType.ChooseEndRollModifier,
+            this.createPlayerAction(ChooseEndRollModifier, { amount })
+        )
+    }
+
+    async chooseEconomicTile(tile: EconomicTile) {
+        await this.commit(
+            ActionType.ChooseEconomicTile,
+            this.createPlayerAction(ChooseEconomicTile, { tile })
+        )
+    }
+
+    async chooseGrowthBase(systemId: string) {
+        await this.commit(
+            ActionType.ChooseGrowthBase,
+            this.createPlayerAction(ChooseGrowthBase, { systemId })
         )
     }
 
@@ -1422,10 +1510,13 @@ export class StellarHorizonsGameSession extends GameSession<
         this.enterPhase()
     }
 
-    async chooseSurveyWorld(slot: number | undefined) {
+    async chooseSurveyWorld(tileId: string | undefined, slot: number | undefined) {
         await this.commit(
             ActionType.ChooseSurveyWorld,
-            this.createPlayerAction(ChooseSurveyWorld, { slot })
+            this.createPlayerAction(ChooseSurveyWorld, {
+                ...(tileId === undefined ? {} : { tileId }),
+                ...(slot === undefined ? {} : { slot })
+            })
         )
     }
 

@@ -207,6 +207,18 @@ export function rollChance(target: number): string {
     return `${Math.min(Math.max(target, 0), 10) * 10}%`
 }
 
+export function capitalized(text: string): string {
+    return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+// A roll as history tells it; with two dice the lower is kept (Explorer's Guild, Quantum
+// Sensors, the Interstellar Mining Conglomerate).
+export function rolledText(roll: number, rolls?: readonly number[]): string {
+    return rolls && rolls.length > 1
+        ? `rolled ${rolls.join(' and ')}, keeping ${roll}`
+        : `rolled ${roll}`
+}
+
 export function plural(count: number, noun: string, pluralNoun = `${noun}s`): string {
     return `${count} ${count === 1 ? noun : pluralNoun}`
 }

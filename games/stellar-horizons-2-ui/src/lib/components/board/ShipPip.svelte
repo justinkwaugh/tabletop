@@ -121,7 +121,7 @@
             height={(halfSide + DAMAGE_GAP) * 2}
             rx={r * 0.32 + DAMAGE_GAP}
             class="damage"
-            class:crippled={isCrippled(ship)}
+            class:crippled={isCrippled(gameSession.gameState, ship)}
         ></rect>
     {/if}
 </g>

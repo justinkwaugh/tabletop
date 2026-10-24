@@ -65,6 +65,15 @@
         isPlaceRewardGoods,
         isSellGoods,
         isTransferGoods,
+        isBuyCard,
+        isDrawCard,
+        isChooseEconomicTile,
+        isChooseEndRollModifier,
+        isChooseGrowthBase,
+        RewardCardOutcome,
+        cardDefinition,
+        deckName,
+        type RewardCard,
         type CargoPartner,
         shipDefinition,
         techDefinition,
@@ -81,13 +90,20 @@
         factionName,
         plural,
         productionLabel,
+        rolledText,
         systemName
     } from '$lib/utils/presentation.js'
     import { pactTargetName, rewardSummary } from '$lib/utils/pacts.js'
     import { goodName, goodsText, holderName } from '$lib/utils/trade.js'
+    import { cardBackText, cardTitle } from '$lib/utils/cards.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { action, justify = 'start' }: { action: GameAction; justify?: 'start' | 'center' } =
         $props()
+
+    const gameSession = getGameSession()
+    // A drawn card is named only to its drawer, as the projection does in a hosted game.
+    const viewerId = $derived(gameSession.myPlayerId)
 
     function shipName(shipId: string): string {
         return shipDefinition(shipId).name
@@ -107,18 +123,33 @@
         return parts.length > 0 ? ` (${parts.join(' and ')} in compensation)` : ''
     }
 
+    function rewardCardText(card: RewardCard | undefined): string {
+        if (!card) {
+            return ''
+        }
+        const name = card.cardId ? cardTitle(card.cardId) : ''
+        switch (card.outcome) {
+            case RewardCardOutcome.Earned:
+                return name
+            case RewardCardOutcome.FromHand:
+                return `${name}, from their hand`
+            case RewardCardOutcome.AlreadyOwned:
+                return `no card (${name} drawn, already owned)`
+            case RewardCardOutcome.DeckEmpty:
+                return `no card (the level I ${deckName(card.deck)} deck is empty)`
+        }
+    }
+
     function rewardText(reward: GrantedReward): string {
-        const notYet = reward.notYet.length
-            ? ` (${reward.notYet.join(' and ')} not in the game yet)`
-            : ''
         const goodsCash = reward.goodsCash
             ? ` ($${reward.goodsCash}B for goods the pool lacked)`
             : ''
         return `${rewardSummary({
             ...reward,
             markers: reward.markers.length ? `markers (${reward.markers.join(', ')})` : '',
-            goods: reward.goods ? plural(reward.goods, 'good') : ''
-        })}${goodsCash}${notYet}`
+            goods: reward.goods ? plural(reward.goods, 'good') : '',
+            card: rewardCardText(reward.card)
+        })}${goodsCash}`
     }
 
     function transferPartnerName(partner: CargoPartner): string {
@@ -165,6 +196,11 @@
                 ? `; ${plural(action.metadata.arrivedShipIds.length, 'ship')} arrived`
                 : ''}.
         </span>
+        {#each action.metadata?.influence ?? [] as { playerId, amount } (playerId)}
+            <span class="inline-flex items-center gap-x-1"
+                ><PlayerName {playerId} /> earns {amount} IP from their cards.</span
+            >
+        {/each}
     {:else if isBuildShip(action)}
         <span>built {shipName(action.shipId)} at {systemName(action.systemId)}</span>
     {:else if isRepairShip(action)}
@@ -291,6 +327,8 @@
                 action.shipId
             )}{action.metadata
                 ? `: ${markers(action.metadata.field, action.metadata.markerCount)} earned`
+                : ''}{action.metadata?.rewardRoll !== undefined && action.metadata.rewardRolls
+                ? ` (${rolledText(action.metadata.rewardRoll, action.metadata.rewardRolls)} for one more)`
                 : ''}{action.metadata?.destroyed
                 ? `; the ship was lost to a malfunction${compensationText(action.metadata.compensation)}`
                 : action.metadata?.damage
@@ -308,6 +346,47 @@
             >developed {techDefinition(action.techId).name}{action.influence
                 ? ` with ${action.influence} IP`
                 : ''}{action.metadata?.first ? ', the first to do so (+1 IP)' : ''}</span
+        >
+    {:else if isBuyCard(action)}
+        <span
+            >bought {cardTitle(action.cardId)}{action.metadata
+                ? ` for ${action.metadata.cost} ${cardDefinition(action.cardId).field.toLowerCase()} points`
+                : ''}{action.influence ? `, ${action.influence} IP of them` : ''}</span
+        >
+    {:else if isDrawCard(action)}
+        {@const drawn = action.metadata?.drawn?.cardId}
+        {#if action.level === undefined}
+            <span>could draw no {deckName(action.deck)}: no deck they may draw from has cards</span>
+        {:else}
+            {@const card =
+                viewerId === action.playerId && drawn !== undefined
+                    ? cardTitle(drawn)
+                    : cardBackText(action.deck, action.level)}
+            <span
+                >drew {card}{action.metadata?.kept
+                    ? ''
+                    : ', a copy of a card they have, and discarded it'}</span
+            >
+        {/if}
+    {:else if isChooseEconomicTile(action)}
+        <span
+            >chose the economic tile with Hive Mind: {ECONOMIC_TILE_LABELS[
+                action.tile
+            ].toLowerCase()}.{action.metadata?.earthProduction.length
+                ? ' Every faction collects its Earth production.'
+                : ''}</span
+        >
+    {:else if isChooseGrowthBase(action)}
+        <span
+            >grew {plural(action.metadata?.settlements ?? 0, 'settlement')} at {systemName(
+                action.systemId
+            )} with Prolific Breeders</span
+        >
+    {:else if isChooseEndRollModifier(action)}
+        <span
+            >announced Transcend Biology's change to the end roll: {action.amount === 0
+                ? 'none'
+                : `${action.amount > 0 ? '+' : ''}${action.amount}%`}</span
         >
     {:else if isDrawEconomicTile(action)}
         {#if action.metadata}
@@ -372,12 +451,19 @@
         {:else}
             <span>no base gained any.</span>
         {/each}
+        {#each action.metadata?.chosen ?? [] as chosen (chosen.playerId)}
+            <span class="inline-flex items-center gap-x-1"
+                ><PlayerName playerId={chosen.playerId} /> +{chosen.settlements} at {systemName(
+                    chosen.systemId
+                )} with Prolific Breeders</span
+            >
+        {/each}
     {:else if isConvertSettlement(action)}
         <span>tried to convert a settlement of</span>
         <PlayerName playerId={action.targetPlayerId} />
         <span
             >at {systemName(action.systemId)}{action.metadata
-                ? `: rolled ${action.metadata.roll}, ${action.metadata.converted ? 'converted' : 'failed'}`
+                ? `: rolled ${action.metadata.roll}${action.metadata.target === undefined ? '' : ` against ${action.metadata.target}`}, ${action.metadata.converted ? 'converted' : 'failed'}`
                 : ''}</span
         >
     {:else if isPassConversion(action)}
@@ -385,13 +471,25 @@
     {:else if isSpendInfluence(action)}
         <span>turned {action.influence} IP into ${action.influence * CASH_PER_INFLUENCE}B</span>
     {:else if isStartPhase(action)}
-        <span>{action.metadata ? PHASE_STARTED[action.metadata.phase] : 'starts a phase'}</span>
+        <span
+            >{action.metadata ? PHASE_STARTED[action.metadata.phase] : 'starts a phase'}{action
+                .metadata?.repairedShipIds?.length
+                ? `; Self Repair System took a point of damage off ${action.metadata.repairedShipIds
+                      .map(shipName)
+                      .join(', ')}`
+                : ''}</span
+        >
     {:else if isEndPhase(action)}
         <span>{PHASE_FINISHED[action.phase]}</span>
     {:else if isSkipPhase(action)}
         <span>{action.metadata ? PHASE_SKIPPED[action.metadata.phase] : 'has nothing to do'}</span>
     {:else if isCompletePhase(action)}
         <span>{action.metadata ? PHASE_OVER[action.metadata.phase] : 'The phase is over.'}</span>
+        {#each action.metadata?.discardedHands ?? [] as playerId (playerId)}
+            <span class="inline-flex items-center gap-x-1"
+                ><PlayerName {playerId} /> bought nothing and discards their hand.</span
+            >
+        {/each}
     {:else if isAttemptAnomaly(action)}
         <span>
             sent {action.shipIds.map(shipName).join(', ')} to resolve {action.metadata
@@ -450,7 +548,7 @@
             >mined {action.metadata ? systemName(action.metadata.systemId) : ''} with {shipName(
                 action.shipId
             )}{action.metadata
-                ? `: rolled ${action.metadata.roll} against ${action.metadata.target}, $${action.metadata.cash}B`
+                ? `: ${rolledText(action.metadata.roll, action.metadata.rolls)} against ${action.metadata.target}, $${action.metadata.cash}B`
                 : ''}</span
         >
     {:else if isResearch(action)}
@@ -558,9 +656,11 @@
         {/if}
     {:else if isChooseSurveyWorld(action)}
         <span
-            >{action.slot === undefined
+            >{action.tileId === undefined
                 ? 'kept their surveyed worlds'
-                : 'swapped in a newly surveyed world'}</span
+                : action.slot === undefined
+                  ? 'chose which surveyed world to place'
+                  : 'swapped in a newly surveyed world'}</span
         >
     {:else if isTerraform(action)}
         <span
@@ -581,13 +681,19 @@
                     .endRoll.roll} against {action.metadata.endRoll.chance}%.
             {:else if action.metadata?.endRoll}
                 {action.metadata.year} ends; the end roll was {action.metadata.endRoll.roll}
-                against {action.metadata.endRoll.chance}%.
+                against {action.metadata.endRoll.chance}%{action.metadata.endRoll.modifier
+                    ? `, Transcend Biology moving it ${action.metadata.endRoll.modifier.amount > 0 ? 'up' : 'down'} ${Math.abs(action.metadata.endRoll.modifier.amount)}%`
+                    : ''}.
             {:else if action.metadata?.victorIds.length}
                 The goal is reached in {action.metadata.year}!
             {:else if action.metadata?.gameOver}
                 {action.metadata.year} ends and nobody reached the goal.
             {:else}
                 {action.metadata?.year} ends.
+            {/if}
+            {#if action.metadata?.shuffledCards}
+                {plural(action.metadata.shuffledCards, 'discarded card')}
+                {action.metadata.shuffledCards === 1 ? 'is' : 'are'} shuffled back into the decks.
             {/if}
         </span>
     {:else}

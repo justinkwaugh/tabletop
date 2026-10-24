@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 896596586,
+  "seed": 1273438728,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-23T23:28:13.232Z",
+  "createdAt": "2026-10-24T04:40:33.478Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "Q2sux0c5_Eyq6rJhZzr50",
+  "id": "mPyzdIolx2pZTHwpKPmx5",
   "gameId": "scenario-three-factions-at-one-anomaly",
   "seed": 3367980177,
   "prng": {
@@ -191,6 +191,10 @@
     "earthGoods": [],
     "drawnGoods": [],
     "discardedGoods": [],
+    "hand": [],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
     "faction": "Starfarers"
    },
    {
@@ -322,6 +326,10 @@
     "earthGoods": [],
     "drawnGoods": [],
     "discardedGoods": [],
+    "hand": [],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
     "faction": "Praetorians"
    },
    {
@@ -453,6 +461,10 @@
     "earthGoods": [],
     "drawnGoods": [],
     "discardedGoods": [],
+    "hand": [],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
     "faction": "Givers"
    }
   ],
@@ -1017,6 +1029,9 @@
   "demandPool": [],
   "demandDraws": [],
   "remainingTraders": [],
+  "cardPiles": [],
+  "growthChoosers": [],
+  "conversions": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

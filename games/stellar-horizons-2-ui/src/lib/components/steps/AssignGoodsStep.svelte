@@ -65,6 +65,8 @@
     {#if current && gameSession.mapTargets.length === 0}
         <p class="hint">
             {goodName(current)} has nowhere to go: no base with room has a world of its types{canAssignToEarth(
+                gameSession.gameState,
+                gameSession.myPlayerId ?? '',
                 current
             )
                 ? ', and Earth is full'

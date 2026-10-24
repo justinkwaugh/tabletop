@@ -49,7 +49,7 @@ export function anomalyOpportunities(
         const chosenIds = draft?.systemId === system.systemId ? draft.shipIds : []
         const ships = anomalyAttemptShips(state, playerId, system.systemId).map((ship) => ({
             ship,
-            strength: anomalyStrength(ship, summary.anomaly.challenge),
+            strength: anomalyStrength(state, ship, summary.anomaly.challenge),
             chosen: chosenIds.includes(ship.shipId)
         }))
         if (ships.length === 0 && !committed) {

@@ -20,7 +20,8 @@
         cash: '$B',
         markers: 'Markers',
         settlements: 'Settlements',
-        goods: 'Goods'
+        goods: 'Goods',
+        cards: 'Card'
     }
 
     const gameSession = getGameSession()
@@ -103,23 +104,36 @@
                         <td><PlayerName {playerId} /></td>
                         {#each items as item (item)}
                             <td>
-                                <span class="stepper">
+                                {#if item === 'cards'}
                                     <button
                                         type="button"
-                                        aria-label="Less {ITEM_LABELS[item]}"
-                                        onclick={() =>
-                                            gameSession.adjustPactShare(playerId, item, -1)}
-                                        >−</button
+                                        class="chip"
+                                        class:on={terms.shares[playerId].cards > 0}
+                                        aria-pressed={terms.shares[playerId].cards > 0}
+                                        onclick={() => gameSession.givePactCard(playerId)}
+                                        >{terms.shares[playerId].cards > 0
+                                            ? 'Earns it'
+                                            : 'Give'}</button
                                     >
-                                    <span>{terms.shares[playerId][item]}</span>
-                                    <button
-                                        type="button"
-                                        aria-label="More {ITEM_LABELS[item]}"
-                                        onclick={() =>
-                                            gameSession.adjustPactShare(playerId, item, 1)}
-                                        >+</button
-                                    >
-                                </span>
+                                {:else}
+                                    <span class="stepper">
+                                        <button
+                                            type="button"
+                                            aria-label="Less {ITEM_LABELS[item]}"
+                                            onclick={() =>
+                                                gameSession.adjustPactShare(playerId, item, -1)}
+                                            >−</button
+                                        >
+                                        <span>{terms.shares[playerId][item]}</span>
+                                        <button
+                                            type="button"
+                                            aria-label="More {ITEM_LABELS[item]}"
+                                            onclick={() =>
+                                                gameSession.adjustPactShare(playerId, item, 1)}
+                                            >+</button
+                                        >
+                                    </span>
+                                {/if}
                             </td>
                         {/each}
                     </tr>

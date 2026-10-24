@@ -181,11 +181,11 @@
     }
 
     /* The results sit in their own darker panel, like the cargo transfer. Each result is the
-       ship's name and outcome labels above four shared columns: exploration die, what it
+       ship's name and outcome labels above four shared columns: exploration dice, what it
        found, malfunction dice, anything salvaged. With room, results fill several columns. */
     .results {
         display: grid;
-        grid-template-columns: 40px max-content max-content 1fr;
+        grid-template-columns: minmax(40px, max-content) max-content max-content 1fr;
         column-gap: 10px;
         width: fit-content;
         max-width: 100%;
@@ -200,7 +200,10 @@
     .results.columns {
         grid-auto-flow: column;
         grid-template-rows: repeat(var(--result-rows), auto);
-        grid-template-columns: repeat(var(--result-columns), 40px max-content max-content 1fr);
+        grid-template-columns: repeat(
+            var(--result-columns),
+            minmax(40px, max-content) max-content max-content 1fr
+        );
         padding-right: 6px;
     }
 

@@ -27,6 +27,8 @@
     import AnomalyTile from '../AnomalyTile.svelte'
     import GoodChit from '../GoodChit.svelte'
     import TechMarkerTotal from '../TechMarkerTotal.svelte'
+    import CardBack from '../cards/CardBack.svelte'
+    import CardFace from '../cards/CardFace.svelte'
     import BaseTab from './BaseTab.svelte'
     import ShipIcon from './ShipIcon.svelte'
 
@@ -45,6 +47,13 @@
     )
     const goods = $derived(playerId ? holdings(gameSession.gameState, playerId) : [])
     let scoreOpen = $state(false)
+    // An owned or held card shows its text once tapped.
+    let openCardId: string | undefined = $state()
+    const player = $derived(playerId ? gameSession.gameState.getPlayerState(playerId) : undefined)
+
+    function toggleCard(cardId: string) {
+        openCardId = openCardId === cardId ? undefined : cardId
+    }
 
     const SCORE_LINES = [
         ['techs', 'Techs not developed'],
@@ -55,6 +64,7 @@
         ['influence', 'IP'],
         ['techPoints', 'Tech points'],
         ['cash', 'Cash'],
+        ['cards', 'Cards'],
         ['playerCount', 'Players in the game']
     ] as const
 
@@ -254,6 +264,48 @@
                 </section>
             {/if}
 
+            {#if player && isCampaign(gameSession.gameState)}
+                <section>
+                    <h4>
+                        Cards <span
+                            >{plural(player.cards.length, 'card')} · {player.cardPoints()} VP</span
+                        >
+                    </h4>
+                    {#if player.cards.length > 0}
+                        <div class="cards">
+                            {#each player.cards as card (card.cardId)}
+                                <CardFace
+                                    cardId={card.cardId}
+                                    compact={openCardId !== card.cardId}
+                                    onclick={() => toggleCard(card.cardId)}
+                                />
+                            {/each}
+                        </div>
+                    {:else}
+                        <div class="note">No cards owned</div>
+                    {/if}
+                    <div class="hand">
+                        <span class="where">Hand</span>
+                        <span class="cards">
+                            {#each player.hand as card, index (card.cardId ?? index)}
+                                {#if mine && card.cardId}
+                                    {@const cardId = card.cardId}
+                                    <CardFace
+                                        {cardId}
+                                        compact={openCardId !== cardId}
+                                        onclick={() => toggleCard(cardId)}
+                                    />
+                                {:else}
+                                    <CardBack deck={card.deck} level={card.level} />
+                                {/if}
+                            {:else}
+                                <span class="note">Empty</span>
+                            {/each}
+                        </span>
+                    </div>
+                </section>
+            {/if}
+
             <section>
                 <h4>Ships <span>{shipCount}</span></h4>
                 {#each view.fleet as group (group.systemId)}
@@ -307,6 +359,26 @@
 {/if}
 
 <style>
+    .cards {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .hand {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding-top: 6px;
+    }
+
+    .hand .where {
+        min-width: 44px;
+        padding-top: 4px;
+        font-size: 13px;
+    }
+
     .holding {
         display: flex;
         align-items: center;

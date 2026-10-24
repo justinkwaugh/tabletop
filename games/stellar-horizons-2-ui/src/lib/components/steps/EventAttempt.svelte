@@ -41,7 +41,10 @@
     const strength = $derived(
         ships
             .filter((ship) => chosen.includes(ship.shipId))
-            .reduce((total, ship) => total + anomalyStrength(ship, challenge), 0)
+            .reduce(
+                (total, ship) => total + anomalyStrength(gameSession.gameState, ship, challenge),
+                0
+            )
     )
     const committed = $derived(
         gameState
@@ -95,7 +98,9 @@
                         onclick={() =>
                             gameSession.toggleEventShip(event.eventId, challenge, ship.shipId)}
                     >
-                        <div class="strength">+{anomalyStrength(ship, challenge)}</div>
+                        <div class="strength">
+                            +{anomalyStrength(gameSession.gameState, ship, challenge)}
+                        </div>
                     </ShipTile>
                 {/each}
                 <div class="commit">

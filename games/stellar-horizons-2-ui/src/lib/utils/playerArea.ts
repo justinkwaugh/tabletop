@@ -6,6 +6,7 @@ import {
     VictoryKind,
     campaignScore,
     capabilitiesOf,
+    maxShips,
     currentCenturyRow,
     isCampaign,
     settlementVictory,
@@ -198,7 +199,7 @@ function campaignSheet(
     }
     return {
         ships: state.shipsOf(playerId).length,
-        maxShips: row.maxShips,
+        maxShips: maxShips(state, playerId),
         bases: state.basesOf(playerId).length,
         maxBases: row.maxBases,
         settlementCost: capabilitiesOf(state, playerId).settlementCost

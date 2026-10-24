@@ -7,7 +7,7 @@
         type Explore
     } from '@tabletop/stellar-horizons-2'
     import type { GameAction } from '@tabletop/common'
-    import { FIELD_COLORS, plural } from '$lib/utils/presentation.js'
+    import { FIELD_COLORS, capitalized, plural, rolledText } from '$lib/utils/presentation.js'
     import DieFace from '../DieFace.svelte'
 
     const DIE_SIZE = 40
@@ -22,6 +22,15 @@
     const explore: Explore | undefined = $derived(isExplore(action) ? action : undefined)
     const result = $derived(explore?.metadata)
     const extraMarkerTarget = $derived(result ? result.explorationValue % EXPLORATION_STEP : 0)
+    // Explorer's Guild and Quantum Sensors roll two dice and keep the lower.
+    const rewardDice = $derived(
+        result?.rewardRoll === undefined ? [] : (result.rewardRolls ?? [result.rewardRoll])
+    )
+    const rewardLabel = $derived(
+        result?.rewardRoll === undefined
+            ? ''
+            : `${capitalized(rolledText(result.rewardRoll, result.rewardRolls))}: ${extraMarkerTarget} or less earns one more marker`
+    )
     const malfunctionLabel = $derived(
         result
             ? `Rolled ${result.malfunctionRoll}%: ${result.malfunctionRate}% or less is a malfunction`
@@ -60,14 +69,9 @@
             </span>
         </span>
         <span class="roll">
-            {#if result.rewardRoll !== undefined}
-                <DieFace
-                    face={String(result.rewardRoll)}
-                    color="red"
-                    size={DIE_SIZE}
-                    label="Rolled {result.rewardRoll}: {extraMarkerTarget} or less earns one more marker"
-                />
-            {/if}
+            {#each rewardDice as face, index (index)}
+                <DieFace face={String(face)} color="red" size={DIE_SIZE} label={rewardLabel} />
+            {/each}
         </span>
         <span class="found">
             {#each { length: result.markerCount } as _, index (index)}
@@ -157,6 +161,10 @@
         font-weight: 700;
         color: #e8f1ff;
         white-space: nowrap;
+    }
+
+    .roll {
+        gap: 4px;
     }
 
     .roll,

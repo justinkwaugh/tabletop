@@ -11,6 +11,7 @@ import type {
 export enum SelectionKind {
     Ship = 'Ship',
     Tech = 'Tech',
+    Card = 'Card',
     Anomaly = 'Anomaly',
     Event = 'Event',
     Pact = 'Pact',
@@ -70,6 +71,7 @@ export interface SaleDraft {
 export type Selection =
     | { kind: SelectionKind.Ship; shipId: string }
     | { kind: SelectionKind.Tech; techId: TechId }
+    | { kind: SelectionKind.Card; cardId: string }
     | ({ kind: SelectionKind.Anomaly } & AnomalyDraft)
     | ({ kind: SelectionKind.Event } & EventDraft)
     | ({ kind: SelectionKind.Pact } & PactDraft)
@@ -84,6 +86,15 @@ export function shipSelection(shipId: string): Selection {
 
 export function techSelection(techId: TechId): Selection {
     return { kind: SelectionKind.Tech, techId }
+}
+
+// A card in the viewer's hand, chosen to buy in the development step.
+export function cardSelection(cardId: string): Selection {
+    return { kind: SelectionKind.Card, cardId }
+}
+
+export function selectedCardId(selection: Selection | undefined): string | undefined {
+    return selection?.kind === SelectionKind.Card ? selection.cardId : undefined
 }
 
 export function selectedShipId(selection: Selection | undefined): string | undefined {

@@ -24,6 +24,9 @@
     import TerraformChoice from './steps/TerraformChoice.svelte'
     import PactList from './steps/PactList.svelte'
     import WaitingPanel from './steps/WaitingPanel.svelte'
+    import DrawCardStep from './steps/DrawCardStep.svelte'
+    import EconomicTileStep from './steps/EconomicTileStep.svelte'
+    import GrowthBaseStep from './steps/GrowthBaseStep.svelte'
 
     const gameSession = getGameSession()
     const machineState = $derived(gameSession.gameState.machineState)
@@ -68,6 +71,12 @@
         <TerraformChoice />
     {:else if machineState === MachineState.ConvertingSettlements}
         <ConversionStep />
+    {:else if machineState === MachineState.ChoosingGrowthBase}
+        <GrowthBaseStep />
+    {:else if machineState === MachineState.DrawingCards}
+        <DrawCardStep />
+    {:else if machineState === MachineState.EconomicPhase}
+        <EconomicTileStep />
     {:else if machineState === MachineState.PlacingRewardSettlements}
         <RewardSettlementsStep />
     {:else if machineState === MachineState.PlacingRewardGoods}

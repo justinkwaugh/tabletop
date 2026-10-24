@@ -32,27 +32,27 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2585582345,
+  "seed": 3093213438,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-23T23:28:13.497Z",
+  "createdAt": "2026-10-24T04:40:33.890Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "iKSizIPrujR8leG16onqz",
+  "id": "KsOJ8VyDlyoXDcI1QvjQA",
   "gameId": "scenario-campaign-reward-goods",
   "seed": 3367980177,
   "prng": {
    "seed": 3367980177,
-   "invocations": 288
+   "invocations": 533
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
    "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
-   "invocations": 41
+   "invocations": 48
   },
   "masterSeed": "0123456789abcdef0123456789abcdef",
   "activePlayerIds": [
@@ -102,6 +102,23 @@
     "earthGoods": [],
     "drawnGoods": [],
     "discardedGoods": [],
+    "hand": [
+     {
+      "playerId": "p0",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "resilient-crews"
+     },
+     {
+      "playerId": "p0",
+      "deck": "Genetic",
+      "level": 1,
+      "cardId": "skilled-entertainers"
+     }
+    ],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
     "faction": "Starfarers"
    },
    {
@@ -144,6 +161,29 @@
     "earthGoods": [],
     "drawnGoods": [],
     "discardedGoods": [],
+    "hand": [
+     {
+      "playerId": "p1",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "resilient-crews"
+     },
+     {
+      "playerId": "p1",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "superior-robotics"
+     },
+     {
+      "playerId": "p1",
+      "deck": "Genetic",
+      "level": 1,
+      "cardId": "skilled-naturalists"
+     }
+    ],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
     "faction": "Praetorians"
    },
    {
@@ -182,6 +222,23 @@
     "earthGoods": [],
     "drawnGoods": [],
     "discardedGoods": [],
+    "hand": [
+     {
+      "playerId": "p2",
+      "deck": "Fleet",
+      "level": 1,
+      "cardId": "planetary-surveys"
+     },
+     {
+      "playerId": "p2",
+      "deck": "Genetic",
+      "level": 1,
+      "cardId": "skilled-engineers"
+     }
+    ],
+    "cards": [],
+    "cardDraws": [],
+    "settlementsBought": 0,
     "faction": "Givers"
    }
   ],
@@ -1009,6 +1066,127 @@
   ],
   "demandDraws": [],
   "remainingTraders": [],
+  "cardPiles": [
+   {
+    "deck": "Fleet",
+    "level": 1,
+    "cards": [
+     "crew-focus",
+     "hypersonic-missiles",
+     "minefields",
+     "reinforced-hulls",
+     "robotic-focus",
+     "robo-miners",
+     "scout-ships",
+     "sensor-upgrades",
+     "sensor-upgrades",
+     "sensor-upgrades",
+     "superior-robotics"
+    ],
+    "remaining": 11,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Fleet",
+    "level": 2,
+    "cards": [
+     "deep-core-mining",
+     "engine-upgrades",
+     "explorers-guild",
+     "freight-haulers",
+     "mining-vessel-upgrades",
+     "quantum-sensors",
+     "research-vessel-upgrades",
+     "robotic-swarms",
+     "robotic-swarms",
+     "self-repair-system",
+     "starports",
+     "traders-guild"
+    ],
+    "remaining": 12,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Fleet",
+    "level": 3,
+    "cards": [
+     "fleet-logistics",
+     "fleet-logistics",
+     "interstellar-mining-conglomerate",
+     "military-academy",
+     "planetary-engineering",
+     "science-academy",
+     "stabilized-wormholes",
+     "stabilized-wormholes"
+    ],
+    "remaining": 8,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Genetic",
+    "level": 1,
+    "cards": [
+     "aquatic-tolerance",
+     "arid-tolerance",
+     "cold-tolerance",
+     "creative",
+     "culinary-geniuses",
+     "cunning",
+     "enhanced-strength",
+     "environmental-tolerance",
+     "gifted-artists",
+     "pioneers",
+     "prolific-breeders",
+     "radiation-tolerance",
+     "skilled-biologists",
+     "skilled-physicists"
+    ],
+    "remaining": 14,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Genetic",
+    "level": 2,
+    "cards": [
+     "cultural-dominance",
+     "eager-migrants",
+     "increased-body-size",
+     "infrared-vision",
+     "enhanced-intellect",
+     "neural-interface",
+     "reduced-body-size",
+     "skilled-artisans",
+     "spacefaring-populace",
+     "zero-g-tolerance"
+    ],
+    "remaining": 10,
+    "discards": [],
+    "discarded": 0
+   },
+   {
+    "deck": "Genetic",
+    "level": 3,
+    "cards": [
+     "aquatic-species",
+     "cyborg-species",
+     "desert-species",
+     "flying",
+     "hive-mind",
+     "natural-immortality",
+     "subterranean",
+     "transcend-biology"
+    ],
+    "remaining": 8,
+    "discards": [],
+    "discarded": 0
+   }
+  ],
+  "growthChoosers": [],
+  "conversions": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

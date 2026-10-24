@@ -148,7 +148,28 @@
     - Available techs show a cyan frame and their current cost.
     - The chosen tech shows a thick gold frame.
     - The action panel shows that tech's payment in a darker panel with two labelled groups of bare chits, each from the highest value down: `PAY WITH`, holding the suggested markers followed by the cash top-up in gold (red when the player cannot afford it), and `KEEP`, slightly faded, holding the rest. Clicking a chit moves it to the other group; that changes only the payment, not the chart. The button reads `Develop with 5+4+1 and $2B`, naming the chits in the same order.
-- **Commit:** developing the tech commits the action and clears the choice; Cancel clears it without committing.
+- **Commit:** developing the tech commits the action and clears the choice; Undo, or clicking the tech again, clears it without committing. There is no Cancel.
+
+### Buying a card
+
+- **Trigger:** during the develop-techs phase of the campaign, the acting player clicks a card of their hand in the action panel.
+- **Before a choice:** under the point totals the action panel shows the player's hand, one card each: the deck's band (tan for fleet improvements, olive for genetic manipulations) with the name and level, the printed text, any part not in the game yet in muted text, the points on the star and, in the circle of the card's tech type colour, what it costs the player now (ringed in gold when that differs from the printed cost). A card that cannot be bought is faded with the reason in red: the type already bought this turn, too dear, or `Not with` the card it excludes. The prompt reads `Choose a tech on the chart below, or a card from your hand`.
+- **Emphasis:** the chosen card replaces the hand with its title, text and cost, and the same `PAY WITH` / `KEEP` panel as a tech, its button reading `Buy with 5+5+4 and $3B`.
+- **Commit:** buying commits the action and clears the choice; Undo clears it without committing. A card and a tech share the one selection.
+- **Transcend Biology:** its owner also sees `End roll` with −3%, No change and +3%; the chosen one is highlighted and stands until changed.
+
+### Drawing cards
+
+- **Trigger:** after the development phase (and after an anomaly gives a card from the hand), the next Player owed a card whose techs allow more than one level with cards left.
+- **The panel:** says which deck is drawn and how many cards are owed, with one button per level and the cards left in its deck. A draw with one level left is made without asking.
+- **History:** names the drawn card to its drawer only; others read `drew a level II fleet improvement`, and a discarded copy is said to be one.
+
+### Other card choices
+
+- **Hive Mind:** at the start of the turn its owner's panel lists the economic tiles left in the cycle as buttons.
+- **Prolific Breeders:** after growth the owner's bases that can grow show `+1 settlement` on the map; the panel says to choose on the map.
+- **Planetary Surveys:** the survey choice shows both drawn worlds, each with `Place this`, or, in a full system, every swap either allows.
+- **Pacts:** a reward with a card adds a Card column to the split, with `Earns it` on the partner who earns it and `Give` on the others.
 
 ### Star map or tech chart
 
@@ -175,6 +196,7 @@
 - **Standings:** one aligned row per player in initiative order: initiative, faction emblem, name (`You` for the viewer) with their current phase beneath (`Done` in green once they have finished), then right-aligned columns: `RE` and `CV` in play, `SET` (settlements at bases) and `$B` (cash, in gold). In a scenario won by resolving anomalies, an `ANOM` column before the cash gives the anomalies resolved against the number needed (`2/4`), with the science and combat split in its tooltip. In the campaign, `IP` (in violet) and `VP`, the victory points if the campaign ended now, follow the cash.
 - **Console:** under the standings, one panel about a single player: a header in their faction's colour with faction, player, initiative and phase; cash and the marker total in each field; in the campaign, their IP, with a `1 IP → $1B` button on the viewer's own console while they can spend it, a line with their ships and bases against the century's limits and their settlement price, and their score so far with its rank and the categories that are not zero, the categories shown by clicking anywhere on the Score row, which keeps the total, the rank and a chevron in view (folded to begin with, kept while the console is shown); in a scenario won by resolving anomalies, the tiles they have resolved with the science and combat counts and the goal; their bases as map tabs with the system and its population (green once it reaches the population a winning system needs); their ships as map pips grouped by the system they are at or travelling to, with the turns left after a ship still on its way; and techs developed out of the chart in each field, marked `new` for a field developed this turn.
 - **Trigger:** clicking a standings row shows that player in the console and tints the row in their faction's colour. The viewer's own row is shown to begin with.
+- **Cards (campaign):** the console lists the player's owned cards, compact (name, level, points, printed cost), each showing its text when tapped; then `Hand`: the viewer's own cards the same way, another player's as backs showing only the deck and level. The score breakdown has a `Cards` line.
 - **Unaffected:** the choice changes nothing on the star map or in the action panel.
 
 ## Shared visual state
@@ -183,7 +205,7 @@
 
 - **Meaning:** the acting player's manual choice of a ship or a tech.
 - **Owner and readers:** owned by the game session. It is read by the star map (selection outline, destination outlines), the tech chart (gold frame) and the action panel (tile border, payment).
-- **Lifetime:** cleared by clicking the chosen item again, by Cancel in the tech payment, by Undo (which clears a manual choice before undoing any action; a reward placement loses only its last settlement), by ending the phase, and by committing any action that consumes the choice.
+- **Lifetime:** cleared by clicking the chosen item again, by Undo (which clears a manual choice before undoing any action; a reward placement loses only its last settlement), by ending the phase, and by committing any action that consumes the choice.
 - **Validity:** derived from the current state. A ship choice applies only while the player can act, is in a ship phase, and still owns the ship. A tech choice applies only during the develop-techs phase while the tech is still available.
 - **History and replay:** the player cannot act in History View, so no choice is shown there, and returning to Live View shows a still-valid choice again. Replay and silent restoration do not change the choice.
 

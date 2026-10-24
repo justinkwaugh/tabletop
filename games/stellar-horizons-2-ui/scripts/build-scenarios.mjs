@@ -7,6 +7,7 @@ import { scenarioJson } from '@tabletop/common'
 import { startingPosition } from '@tabletop/common/testing'
 import {
     ActionType,
+    CardDeck,
     EconomicTile,
     Faction,
     GoodsHolderKind,
@@ -15,12 +16,15 @@ import {
     TradeGood,
     TurnPhase,
     WorldSide,
-    recordPledgeableShips
+    cardPile,
+    recordPledgeableShips,
+    recountPile
 } from '@tabletop/stellar-horizons-2'
 import {
     VOYAGES_CONFIG,
     advanceTo,
     edit,
+    endPhase,
     execute,
     finishDecade,
     placeBase,
@@ -358,6 +362,192 @@ function campaignRewardGoods() {
     return { game, state: finishDecade(game, arranged) }
 }
 
+// Takes a card out of its deck or discards, or out of the hand that drew it, which then takes
+// another card of its deck, so it is never in two places.
+function takeCard(state, cardId) {
+    for (const pile of state.cardPiles) {
+        for (const cards of [pile.cards, pile.discards]) {
+            if (cards.includes(cardId)) {
+                cards.splice(cards.indexOf(cardId), 1)
+                recountPile(pile)
+                return pile
+            }
+        }
+    }
+    for (const player of state.players) {
+        const card = player.hand.find((held) => held.cardId === cardId)
+        if (card) {
+            const deck = cardPile(state, card.deck, card.level)
+            card.cardId = deck.cards.shift()
+            recountPile(deck)
+            return deck
+        }
+    }
+    throw new Error(`${cardId} is neither in a deck nor in a hand`)
+}
+
+function ownCard(state, playerId, cardId) {
+    takeCard(state, cardId)
+    state.getPlayerState(playerId).cards.push({ cardId, year: 2090, bought: true })
+}
+
+// Puts a card in a Player's hand in place of the hand's card of the same deck, returned to it.
+function holdCard(state, playerId, cardId) {
+    const pile = takeCard(state, cardId)
+    const player = state.getPlayerState(playerId)
+    const index = player.hand.findIndex((card) => card.deck === pile.deck)
+    const [returned] = player.hand.splice(index, 1)
+    const back = cardPile(state, returned.deck, returned.level)
+    back.cards.push(returned.cardId)
+    recountPile(back)
+    player.hand.push({ playerId, deck: pile.deck, level: pile.level, cardId })
+}
+
+/**
+ * Developing in 2100 with cards to buy: the Starfarers hold Scout Ships and Gifted Artists and
+ * own Robo Miners, so another fleet improvement I costs 5 more; everyone has markers and IP.
+ */
+function campaignBuyingCards() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        holdCard(state, starfarers, 'scout-ships')
+        holdCard(state, starfarers, 'gifted-artists')
+        ownCard(state, starfarers, 'robo-miners')
+        ownCard(state, playerOf(state, Faction.Givers), 'cunning')
+        for (const player of state.players) {
+            player.techMarkers = { Biology: [5, 4, 3], Physics: [5, 5, 4], Engineering: [4, 3] }
+            player.influence = 3
+            player.cash = 6
+        }
+    })
+    return { game, state: advanceTo(game, arranged, TurnPhase.Development) }
+}
+
+/**
+ * The deal after 2100's development: nobody bought anything, so every hand is discarded and
+ * redrawn, and the Starfarers, with Starship Theoretical Concepts, choose their fleet card's level.
+ */
+function campaignCardLevels() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        state.getPlayerState(starfarers).techs.push({
+            techId: TechId.StarshipTheoreticalConcepts,
+            year: 2090
+        })
+        for (const player of state.players) {
+            player.cash = 0
+        }
+    })
+    let state = advanceTo(game, arranged, TurnPhase.Development)
+    while (state.machineState !== 'DrawingCards') {
+        state = endPhase(game, state)
+    }
+    return { game, state }
+}
+
+/**
+ * The same deal, with the level I fleet deck down to one card: a copy of Resilient Crews, which
+ * the Starfarers own. Drawing it there discards it and they draw again, from level II; the
+ * Players after them find level I empty and go without a fleet card.
+ */
+function campaignShortDeck() {
+    const { game, state: dealing } = campaignCardLevels()
+    const state = edit(dealing, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        const copy = 'resilient-crews'
+        ownCard(state, starfarers, copy)
+        takeCard(state, copy)
+        const pile = cardPile(state, CardDeck.Fleet, 1)
+        pile.discards.push(...pile.cards)
+        pile.cards = [copy]
+        recountPile(pile)
+    })
+    return { game, state }
+}
+
+/**
+ * The Starfarers resolve Alien Remains at the end of 2100's exploration. The level I genetic deck
+ * holds only the card in their hand, so they earn it from the hand and draw its replacement at
+ * once; Advanced Genetic Manipulation lets them choose level II or III for it.
+ */
+function campaignAnomalyCard() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        const player = state.getPlayerState(starfarers)
+        player.techs.push({ techId: TechId.AdvancedGeneticManipulation, year: 2090 })
+        const held = player.hand.find((card) => card.deck === CardDeck.Genetic)
+        const pile = cardPile(state, CardDeck.Genetic, 1)
+        // The rest of level I waits among the discards, shuffled back at the end of the turn.
+        pile.discards.push(...pile.cards)
+        pile.cards = [held.cardId]
+        recountPile(pile)
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        state.anomalyPool.splice(state.anomalyPool.indexOf('alien-remains'), 1)
+        state.systemState('alpha-centauri').anomaly = 'alien-remains'
+        player.anomalyAttempts.push({
+            systemId: 'alpha-centauri',
+            anomalyId: 'alien-remains',
+            shipIds: []
+        })
+    })
+    return { game, state: finishDecade(game, arranged) }
+}
+
+/** Exploration in 2100: Alien Derelict at Alpha Centauri, with a Starfarers and a Givers ship. */
+function campaignCardPact() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        state.anomalyPool.splice(state.anomalyPool.indexOf('alien-derelict'), 1)
+        state.systemState('alpha-centauri').anomaly = 'alien-derelict'
+        placeShip(state, playerOf(state, Faction.Starfarers), 'starfarers-orion', 'alpha-centauri')
+        placeShip(state, playerOf(state, Faction.Givers), 'givers-darwin', 'alpha-centauri')
+        recordPledgeableShips(state)
+    })
+    return { game, state: arranged }
+}
+
+/** Growth in 2110: the Givers own Prolific Breeders and have two bases that can grow. */
+function campaignProlificBreeders() {
+    return campaignInto(EconomicTile.SettlementGrowth, 3, (state) => {
+        const givers = playerOf(state, Faction.Givers)
+        ownCard(state, givers, 'prolific-breeders')
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        placeWorlds(state, 'luhman-16', [[is('m-2'), WorldSide.I]])
+        placeBase(state, givers, 'alpha-centauri', 4)
+        placeBase(state, givers, 'luhman-16', 2)
+    })
+}
+
+/** The start of 2110: the Starfarers own Hive Mind and choose the economic tile. */
+function campaignHiveMind() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        ownCard(state, playerOf(state, Faction.Starfarers), 'hive-mind')
+    })
+    return { game, state: finishDecade(game, arranged) }
+}
+
+/**
+ * The end of 2100's exploration: the Starfarers own Planetary Surveys and complete a survey of
+ * Alpha Centauri, so they draw two worlds for its empty slot and choose one.
+ */
+function campaignPlanetarySurveys() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        ownCard(state, starfarers, 'planetary-surveys')
+        state.getPlayerState(starfarers).pendingSurveys.push({
+            shipId: 'starfarers-kepler',
+            systemId: 'alpha-centauri'
+        })
+    })
+    return { game, state: finishDecade(game, arranged) }
+}
+
 function write(slug, name, { game, state }) {
     // Players are named by their place in initiative order.
     const order = state.turnManager.turnOrder
@@ -397,3 +587,11 @@ write('campaign-trade-goods', 'Campaign: assigning trade goods', campaignTradeGo
 write('campaign-trading', 'Campaign: cargo and trade', campaignTradeTurn())
 write('campaign-demand', 'Campaign: choosing demand', campaignDemandChoice())
 write('campaign-reward-goods', 'Campaign: reward goods', campaignRewardGoods())
+write('campaign-buying-cards', 'Campaign: buying cards', campaignBuyingCards())
+write('campaign-card-levels', 'Campaign: choosing a card level', campaignCardLevels())
+write('campaign-short-deck', 'Campaign: a short deck', campaignShortDeck())
+write('campaign-anomaly-card', 'Campaign: a card from an anomaly', campaignAnomalyCard())
+write('campaign-card-pact', 'Campaign: a pact for a card', campaignCardPact())
+write('campaign-prolific-breeders', 'Campaign: Prolific Breeders', campaignProlificBreeders())
+write('campaign-hive-mind', 'Campaign: Hive Mind', campaignHiveMind())
+write('campaign-planetary-surveys', 'Campaign: Planetary Surveys', campaignPlanetarySurveys())
