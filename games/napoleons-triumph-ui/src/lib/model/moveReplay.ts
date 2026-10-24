@@ -89,7 +89,6 @@ export interface Movement {
     to: Position
     from?: Position
     entry?: Point
-    /** The locales the road took the pieces through on the way, short of where they stopped. */
     via: LocaleId[]
 }
 
@@ -112,31 +111,32 @@ function positionKey(position: Position | undefined): string {
     return position ? `${position.locale}:${position.approach ?? 'reserve'}` : 'off the map'
 }
 
-function ordersOf(action: GameAction): readonly MoveOrder[] {
-    if (isMove(action)) {
-        return [action.order]
-    }
+function attackOrdersOf(action: GameAction): readonly MoveOrder[] {
     return isDeclareAttack(action) || isDeclareFeint(action) || isOccupy(action)
         ? action.orders
         : []
+}
+
+function ordersOf(action: GameAction): readonly MoveOrder[] {
+    return isMove(action) ? [action.order] : attackOrdersOf(action)
 }
 
 // The road of an order made in an attack ends in the locale attacked from, the road of a move in the
 // locale moved to: the pieces pass through every locale on it but that one.
 function viaOf(order: MoveOrder | undefined, to: Position): LocaleId[] {
     const road = order?.road ?? []
-    return road.at(-1) === to.locale ? road.slice(0, -1) : [...road]
+    return road.at(-1) === to.locale ? road.slice(0, -1) : road
 }
 
 export function movementsOf(action: GameAction, before: Standing, after: Standing): Movement[] {
     const stood = new Map(before.units.map((unit) => [unit.id, unit.position]))
     const orders = ordersOf(action)
-    const marched = isMove(action) ? action.order : undefined
-    const entry = marched?.entryId ? ENTRY_GEOMETRY[marched.entryId].at : undefined
     const movements = new Map<string, Movement>()
     for (const unit of after.units) {
         const from = stood.get(unit.id)
         const to = unit.position
+        const order = orders.find((candidate) => candidate.unitIds.includes(unit.id))
+        const entry = !from && order?.entryId ? ENTRY_GEOMETRY[order.entryId].at : undefined
         if (!to || samePosition(from, to) || (!from && !entry)) {
             continue
         }
@@ -145,11 +145,8 @@ export function movementsOf(action: GameAction, before: Standing, after: Standin
             unitIds: [],
             to,
             from,
-            entry: from ? undefined : entry,
-            via: viaOf(
-                orders.find((order) => order.unitIds.includes(unit.id)),
-                to
-            )
+            entry,
+            via: viaOf(order, to)
         }
         movement.unitIds.push(unit.id)
         movements.set(key, movement)
@@ -170,8 +167,9 @@ function unitsNamedBy(action: GameAction): string[] {
     if (isDeclareDefense(action) || isCounterAttack(action) || isAdvance(action)) {
         return action.unitIds
     }
-    if (isDeclareAttack(action) || isDeclareFeint(action) || isOccupy(action)) {
-        return action.orders.flatMap((order) => order.unitIds)
+    const orders = attackOrdersOf(action)
+    if (orders.length > 0) {
+        return orders.flatMap((order) => order.unitIds)
     }
     if (isAssignLosses(action)) {
         return Object.keys(action.allocation)
