@@ -78,6 +78,18 @@ test('an unsplittable workspace adds and closes tabs without splitting or deleti
         'false'
     )
     await page.getByRole('button', { name: 'Pane options for Example pane 1' }).click()
+    const tabs = page.getByRole('tablist', { name: 'Example tabs 1' }).getByRole('tab')
+    const grip = menu.getByRole('button', { name: 'Move Notes tab', exact: true })
+    const box = (await grip.boundingBox())!
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width / 2, box.y - box.height * 2, { steps: 6 })
+    await page.mouse.up()
+    await expect(tabs).toHaveText(['Notes', 'Editor', 'Preview'])
+    await menu.getByRole('button', { name: 'Move Editor tab', exact: true }).focus()
+    await page.keyboard.press('ArrowUp')
+    await expect(tabs).toHaveText(['Editor', 'Notes', 'Preview'])
+    await expect(menu.getByRole('button', { name: 'Move Editor tab', exact: true })).toBeFocused()
     await page.getByRole('button', { name: 'Close preview tab' }).click()
     await expect(page.getByRole('tab', { name: 'Preview', exact: true })).toHaveCount(0)
     await expect(page.getByLabel('Saved layout')).toHaveText(

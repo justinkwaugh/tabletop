@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { WorkspaceTab, WorkspaceFixedPane } from './workspaceTypes.js'
     import {
+        initialSidebarTabs,
         restoreWorkspaceTabs,
         saveWorkspace,
         type SavedWorkspace,
@@ -17,6 +18,12 @@
         maxSplitRatio,
         minSplitRatio,
         moveTab,
+        moveTabToIndex,
+        orderPaneTabs,
+        tabDragIndex,
+        tabDragShift,
+        withdrawTabs,
+        type TabDrag,
         resizeSplit,
         splitPane,
         swapSplit,
@@ -63,13 +70,21 @@
     )
     let root: WorkspaceNode = $state(initial.root)
     let fixed: WorkspacePane = $state(initial.fixed)
-    fixedPaneDeleted = untrack(() => initial.fixedDeleted && !!fixedPane?.deletable)
+    fixedPaneDeleted = untrack(() => initial.fixedPaneDeleted && !!fixedPane?.deletable)
     let lastLayout = JSON.stringify(
-        saveWorkspace(initial.root, initial.fixed, recordedClosableTabs, fixedPaneDeleted)
+        saveWorkspace(
+            initial.root,
+            fixedPaneDeleted ? undefined : initial.fixed,
+            recordedClosableTabs
+        )
     )
     $effect(() => {
         if (resize) return
-        const value = saveWorkspace(root, fixed, recordedClosableTabs, fixedPaneDeleted)
+        const value = saveWorkspace(
+            root,
+            fixedPaneDeleted ? undefined : fixed,
+            recordedClosableTabs
+        )
         const serialized = JSON.stringify(value)
         if (serialized === lastLayout) return
         lastLayout = serialized
@@ -193,16 +208,56 @@
         fixed = { ...fixed, tabs: [], active: undefined }
         fixedPaneDeleted = true
     }
-    function restoreFixedPane() {
-        if (!fixedPane) return
-        const home = (initialLayout?.sidebar ?? fixedPane.tabs).filter(
-            (tab) =>
-                accepts(tab, 'fixed') &&
-                mainLayout.panes.some((item) => item.pane.tabs.includes(tab))
+    function restoreFixedPane(pane: WorkspaceFixedPane) {
+        const returning = withdrawTabs(
+            root,
+            initialSidebarTabs(pane.tabs, initialLayout).filter((tab) => accepts(tab, 'fixed'))
         )
-        root = home.reduce(closeTab, root)
-        fixed = { ...fixed, tabs: home, active: home[0] }
+        root = returning.root
+        fixed = { ...fixed, tabs: returning.withdrawn, active: returning.withdrawn[0] }
         fixedPaneDeleted = false
+    }
+    let drag: (TabDrag & { pane: string; startY: number }) | undefined = $state()
+    function dragShift(pane: string, tab: string) {
+        return drag?.pane === pane ? tabDragShift(drag, tab) : 0
+    }
+    function orderTabs(pane: string, order: readonly string[]) {
+        if (pane === 'fixed') fixed = { ...fixed, tabs: [...order] }
+        else root = orderPaneTabs(root, pane, order)
+    }
+    function startDrag(event: PointerEvent, pane: WorkspacePane, tab: string) {
+        const grip = event.currentTarget
+        const row = grip instanceof HTMLElement ? grip.parentElement : null
+        if (!(grip instanceof HTMLElement) || !row || event.button !== 0) return
+        event.preventDefault()
+        grip.setPointerCapture(event.pointerId)
+        drag = {
+            pane: pane.id,
+            tab,
+            tabs: pane.tabs,
+            startY: event.clientY,
+            rowHeight: row.getBoundingClientRect().height,
+            offset: 0
+        }
+    }
+    function moveDrag(event: PointerEvent) {
+        if (drag) drag = { ...drag, offset: event.clientY - drag.startY }
+    }
+    function dropDrag() {
+        if (!drag) return
+        const index = tabDragIndex(drag)
+        if (index !== drag.tabs.indexOf(drag.tab))
+            orderTabs(drag.pane, moveTabToIndex(drag.tabs, drag.tab, index))
+        drag = undefined
+    }
+    function reorderKeys(event: KeyboardEvent, pane: WorkspacePane, tab: string) {
+        const step = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0
+        const index = pane.tabs.indexOf(tab) + step
+        if (!step || index < 0 || index >= pane.tabs.length) return
+        event.preventDefault()
+        const grip = event.currentTarget
+        orderTabs(pane.id, moveTabToIndex(pane.tabs, tab, index))
+        if (grip instanceof HTMLElement) void tick().then(() => grip.focus())
     }
     function removeTab(tab: string) {
         if (!closableTabs.includes(tab)) return
@@ -336,8 +391,11 @@
     {#snippet paneHeader(item: PaneLayout)}
         {@const menuId = `${instanceId}-menu-${item.pane.id}`}
         {@const paneSplits = splittable && item.pane.id !== 'fixed'}
-        {@const addsFixedPane = !!fixedPane && fixedPaneDeleted && item.pane.id !== 'fixed'}
-        {@const paneActions = paneSplits || addsFixedPane}
+        {@const restorableFixedPane =
+            fixedPaneDeleted && item.pane.id !== 'fixed' ? fixedPane : undefined}
+        {@const deletableFixedPane =
+            item.pane.id === 'fixed' && fixedPane?.deletable ? fixedPane : undefined}
+        {@const paneActions = paneSplits || !!restorableFixedPane}
         <section
             class="pane"
             class:fixed={item.pane.id === 'fixed'}
@@ -392,7 +450,7 @@
                         </button>
                     {/each}
                 </div>
-                {#if paneActions || item.pane.tabs.length || availableTabs(item.pane.id).length}<div
+                {#if paneActions || deletableFixedPane || item.pane.tabs.length || availableTabs(item.pane.id).length}<div
                         class="split-controls"
                     >
                         <button
@@ -419,20 +477,22 @@
                             style:right={menuPosition.right}
                             style:max-height={menuPosition.maxHeight}
                             ontoggle={(event) => {
-                                if (event.newState === 'closed') menuButton = undefined
+                                if (event.newState !== 'closed') return
+                                menuButton = undefined
+                                drag = undefined
                             }}
                         >
-                            {#if addsFixedPane}
+                            {#if restorableFixedPane}
                                 <div class="pane-actions">
                                     <!-- Adding unmounts this button before popovertargetaction would run, so close the menu first. -->
                                     <button
-                                        aria-label={`Add ${fixedPane?.label} pane`}
+                                        aria-label={`Add ${restorableFixedPane.label} pane`}
                                         title="Split left / right"
                                         onclick={(event) => {
                                             event.currentTarget
                                                 .closest<HTMLElement>('[popover]')
                                                 ?.hidePopover()
-                                            restoreFixedPane()
+                                            restoreFixedPane(restorableFixedPane)
                                         }}
                                     >
                                         <svg
@@ -477,8 +537,39 @@
                             {#if item.pane.tabs.length}{#if paneActions}<hr />{/if}
                                 <strong>Current tabs</strong>
                                 {#each item.pane.tabs as id (id)}
-                                    <div class="existing-tab">
-                                        <span>{tabs.find((tab) => tab.id === id)?.label}</span>
+                                    {@const tabLabel = tabs.find((tab) => tab.id === id)?.label}
+                                    <div
+                                        class="existing-tab"
+                                        class:dragging={drag?.pane === item.pane.id &&
+                                            drag.tab === id}
+                                        class:reordering={drag?.pane === item.pane.id}
+                                        style:transform={drag?.pane === item.pane.id
+                                            ? `translateY(${dragShift(item.pane.id, id)}px)`
+                                            : undefined}
+                                    >
+                                        {#if !splittable && item.pane.tabs.length > 1}<button
+                                                class="reorder-tab"
+                                                aria-label={`Move ${tabLabel} tab`}
+                                                title="Drag to reorder; Arrow Up/Down moves"
+                                                onpointerdown={(event) =>
+                                                    startDrag(event, item.pane, id)}
+                                                onpointermove={moveDrag}
+                                                onpointerup={dropDrag}
+                                                onpointercancel={() => (drag = undefined)}
+                                                onlostpointercapture={() => (drag = undefined)}
+                                                onkeydown={(event) =>
+                                                    reorderKeys(event, item.pane, id)}
+                                                ><svg
+                                                    viewBox="0 0 20 20"
+                                                    width="14"
+                                                    height="14"
+                                                    aria-hidden="true"
+                                                    ><path
+                                                        d="M7 5h.01M13 5h.01M7 10h.01M13 10h.01M7 15h.01M13 15h.01"
+                                                    ></path></svg
+                                                ></button
+                                            >{/if}
+                                        <span class="tab-label">{tabLabel}</span>
                                         {#if closableTabs.includes(id)}<button
                                                 class="close-tab"
                                                 aria-label={`Close ${id} tab`}
@@ -513,10 +604,11 @@
                                     </button>
                                 {/each}
                             {/if}
-                            {#if item.pane.id === 'fixed' && fixedPane?.deletable}<hr />
+                            {#if deletableFixedPane}{#if item.pane.tabs.length || availableTabs(item.pane.id).length}<hr
+                                    />{/if}
                                 <button
                                     class="delete-pane"
-                                    aria-label={`Delete ${fixedPane.label} pane`}
+                                    aria-label={`Delete ${deletableFixedPane.label} pane`}
                                     onclick={deleteFixedPane}
                                 >
                                     Delete pane
@@ -769,13 +861,44 @@
         color: var(--workspace-text, #374151);
     }
     .existing-tab {
+        position: relative;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 20px;
+        gap: 4px;
         min-height: 26px;
         font-size: 12px;
         padding-left: 4px;
+        border-radius: 3px;
+        background: var(--workspace-surface, #ffffff);
+    }
+    .existing-tab .tab-label {
+        flex: 1;
+    }
+    .existing-tab.reordering:not(.dragging) {
+        transition: transform 120ms ease;
+    }
+    .existing-tab.dragging {
+        z-index: 1;
+        box-shadow: 0 2px 8px #00000040;
+    }
+    .widget-menu .reorder-tab {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        margin-left: -4px;
+        padding: 0;
+        border: 0;
+        color: var(--workspace-muted, #6b7280);
+        cursor: grab;
+        touch-action: none;
+    }
+    .reorder-tab svg {
+        stroke-width: 2.6;
+        stroke-linecap: round;
+    }
+    .existing-tab.dragging .reorder-tab {
+        cursor: grabbing;
     }
     .widget-menu .close-tab {
         width: 24px;

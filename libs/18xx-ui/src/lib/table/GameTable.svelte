@@ -6,7 +6,9 @@
     } from './companyPresentation.js'
     import {
         defaultTableView,
+        firstTabbedView,
         initialTableLayout,
+        tabbedTableLayout,
         restoreTableWorkspace,
         saveTableWorkspace
     } from './tableWorkspace.js'
@@ -51,8 +53,7 @@
         GameChat,
         ScalingWrapper,
         setGameSession,
-        toastNewChatMessages,
-        type WorkspaceTab
+        toastNewChatMessages
     } from '@tabletop/frontend-components'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
@@ -208,7 +209,9 @@
             for (const { wrapper, restore } of views) if (autoZooms(wrapper)) restore(options)
         }
     }
+    let mapBroughtForward = false
     function showMap() {
+        mapBroughtForward = true
         if (!boardWrapper?.isVisible()) selectedView = 'Map'
     }
     let focusedLocation: string | undefined = $derived.by(() => {
@@ -759,31 +762,28 @@
         { id: 'Game info', label: 'Game info' },
         ...sidebarViews.map((id) => ({ id, label: id }))
     ]
-    const tabbedSidebarViews = sidebarViews.filter((id) => id !== 'Chat' || session.chatAvailable)
-    const tabbedTabs: WorkspaceTab[] = [
-        { id: 'Map', label: boardAvailable ? 'Board' : 'Map', closable: false },
-        { id: 'Market', label: 'Market', ...(boardAvailable ? { optional: true } : {}) },
-        { id: 'Spreadsheet', label: 'Spreadsheet', shortLabel: 'Sheet' },
-        { id: 'Companies', label: 'Companies' },
-        { id: 'Tiles', label: 'Tiles' },
-        ...tabbedSidebarViews.map((id) => ({ id, label: id })),
-        ...['Player Aid', 'Depot', 'Stats'].map((id) => ({ id, label: id, optional: true })),
-        ...(untrack(() => gameInformation)
-            ? [{ id: 'Game info', label: 'Game info', optional: true }]
-            : [])
-    ]
-    const tabbedLayout = {
-        main: tabbedTabs
-            .filter((tab) => !tab.optional && !tabbedSidebarViews.includes(tab.id))
-            .map((tab) => tab.id),
-        sidebar: tabbedSidebarViews
-    }
-    const sidebarPaneTabs = tabbedTabs.filter((tab) => tab.id !== 'Map').map((tab) => tab.id)
+    const tabbedLayout = untrack(() =>
+        tabbedTableLayout({
+            board: boardAvailable,
+            chat: session.chatAvailable,
+            gameInformation: !!gameInformation
+        })
+    )
     const savedTableLayout = $derived(restoreTableWorkspace(layoutPreference.value, paneTabs))
     function preferBoard() {
         untrack(() => {
             if (selectedView !== initialView) return
             selectedView = defaultTableView(savedTableLayout, paneTabs)
+        })
+    }
+
+    let tabbedViewDefaulted = false
+    function preferFirstTabbedView() {
+        untrack(() => {
+            if (tabbedViewDefaulted) return
+            tabbedViewDefaulted = true
+            if (mapBroughtForward || selectedView !== initialView) return
+            selectedView = firstTabbedView(session.preferences.values.tabbedLayout, tabbedLayout)
         })
     }
 
@@ -1433,17 +1433,17 @@
                 {:else}
                     <div class="stacked-body">
                         <div class="original-actions">{@render actionContent()}</div>
-                        <div class="stacked-workspace">
+                        <div class="stacked-workspace" {@attach preferFirstTabbedView}>
                             <TabWorkspace
-                                tabs={tabbedTabs}
+                                tabs={tabbedLayout.tabs}
                                 fixedPane={{
                                     target: sidebarPane,
-                                    tabs: sidebarPaneTabs,
+                                    tabs: tabbedLayout.sidebarAccepts,
                                     label: 'Sidebar',
                                     deletable: true
                                 }}
                                 bind:fixedPaneDeleted={sidebarDeleted}
-                                initialLayout={tabbedLayout}
+                                initialLayout={tabbedLayout.initial}
                                 tabTitle={sidebarTabIcon}
                                 savedLayout={session.preferences.values.tabbedLayout}
                                 onLayoutChange={(value) =>

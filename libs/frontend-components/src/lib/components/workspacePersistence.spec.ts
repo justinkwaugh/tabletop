@@ -141,7 +141,7 @@ it('round trips a deleted sidebar and keeps its missing tabs in the main pane', 
         [],
         initialLayout
     )
-    expect(restored.fixedDeleted).toBe(true)
+    expect(restored.fixedPaneDeleted).toBe(true)
     expect(restored.fixed.tabs).toEqual([])
     expect(workspaceLayout(restored.root).panes[0].pane.tabs).toEqual([
         'Map',
@@ -152,7 +152,7 @@ it('round trips a deleted sidebar and keeps its missing tabs in the main pane', 
         'History',
         'Chat'
     ])
-    expect(saveWorkspace(restored.root, restored.fixed, [], true)).toEqual({
+    expect(saveWorkspace(restored.root, undefined)).toEqual({
         sidebarDeleted: true,
         v: 1,
         sidebar: [],

@@ -2031,7 +2031,14 @@ the history controls move to the top of the game column. A phone's single column
 keeps 8px padding on both sides. While the sidebar is deleted, a left / right split
 icon at the top of the view tabs' menu, where pane splits go, adds it back with the sidebar's initial tabs that are among the view
 tabs, moved out of them. Each pane menu closes its tabs and adds any tab that is in neither pane,
-so a tab moves sides by closing it in one and adding it in the other. Map (Board
+so a tab moves sides by closing it in one and adding it in the other. Each row under
+Current tabs has a grip: dragging it up or down by finger or mouse slides the other
+rows aside and reorders the pane's tabs on release, and Arrow Up/Down on a focused
+grip moves its tab one place. The order saves with the arrangement. On load each pane shows
+its first tab, unless a flow that brings the map forward (such as a pending tile or
+station placement) has selected Map, whichever of the two runs first. The default
+applies once, the first time the tabbed layout appears; later resizes keep the
+current selection. Map (Board
 when the title has board areas) stays in the view tabs and cannot close. By default
 the view tabs hold Map, Spreadsheet, Companies, Tiles, and Market (without board
 areas), and the sidebar Players, History, and Chat (Chat only where chat is
