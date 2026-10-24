@@ -27,6 +27,7 @@
     import DrawCardStep from './steps/DrawCardStep.svelte'
     import EconomicTileStep from './steps/EconomicTileStep.svelte'
     import GrowthBaseStep from './steps/GrowthBaseStep.svelte'
+    import BlockadeStep from './steps/BlockadeStep.svelte'
 
     const gameSession = getGameSession()
     const machineState = $derived(gameSession.gameState.machineState)
@@ -73,6 +74,8 @@
         <ConversionStep />
     {:else if machineState === MachineState.ChoosingGrowthBase}
         <GrowthBaseStep />
+    {:else if machineState === MachineState.Blockading}
+        <BlockadeStep />
     {:else if machineState === MachineState.DrawingCards}
         <DrawCardStep />
     {:else if machineState === MachineState.EconomicPhase}

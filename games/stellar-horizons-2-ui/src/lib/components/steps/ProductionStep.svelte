@@ -4,10 +4,12 @@
         availableProductions,
         baseEffects,
         basesAwaitingProduction,
+        blockadeOf,
         producingBases,
         productionYield,
         resolvedAnomaly
     } from '@tabletop/stellar-horizons-2'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         FIELD_COLORS,
@@ -41,12 +43,18 @@
         value they show for it, plus the bonus for the base's settlements.
     </p>
     {#each waiting as base (base.systemId)}
+        {@const blockade = blockadeOf(gameState, playerId, base.systemId)}
         <div class="base">
             <span class="system"
                 >{systemName(base.systemId)}
                 <span class="note">{plural(base.settlements, 'settlement')}</span></span
             >
-            {#if backNote(base.systemId)}
+            {#if blockade}
+                <span class="note"
+                    >Blockaded by <PlayerName playerId={blockade.playerId} />: half production, no
+                    anomaly bonus</span
+                >
+            {:else if backNote(base.systemId)}
                 <span class="note">{backNote(base.systemId)}</span>
             {/if}
             <span class="choices">

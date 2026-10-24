@@ -1,7 +1,12 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { MachineState, isCampaign, isEvenDecade } from '@tabletop/stellar-horizons-2'
+    import {
+        MachineState,
+        isCampaign,
+        isEvenDecade,
+        truceChance
+    } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PHASE_LABELS } from '$lib/utils/presentation.js'
 
@@ -16,6 +21,8 @@
         if (gameState.machineState === MachineState.Terraforming) return 'TERRAFORMING'
         if (gameState.machineState === MachineState.ConvertingSettlements && gameSession.canAct)
             return 'CONVERSION'
+        if (gameState.machineState === MachineState.Blockading && gameSession.canAct)
+            return 'BLOCKADES'
         if (gameState.machineState === MachineState.PlacingEvent && gameSession.canAct)
             return 'PLACE THE EVENT'
         if (gameState.machineState === MachineState.PlacingHomesteaders && gameSession.canAct)
@@ -33,6 +40,13 @@
         }
         return undefined
     })
+    const truce = $derived.by(() => {
+        if (!gameState.truce) return undefined
+        const chance = truceChance(gameState)
+        return chance === undefined
+            ? 'Truce: no faction may attack another. Rolls to end it begin at the end of 2110.'
+            : `Truce: no faction may attack another. It ends on a roll of ${chance}% or less at the end of this decade.`
+    })
 </script>
 
 <div class="header">
@@ -40,11 +54,14 @@
         <span class="year-number">DECADE {gameState.year}</span>
         {#if isEvenDecade(gameState.year) && !isCampaign(gameState)}
             <span
-                class="even"
+                class="badge"
                 title={gameState.scenarioDefinition().terraforming
                     ? 'Even decade: income and terraforming'
                     : 'Even decade: income'}>EVEN DECADE</span
             >
+        {/if}
+        {#if truce}
+            <span class="badge" title={truce}>TRUCE</span>
         {/if}
     </div>
     <div class="status">
@@ -102,7 +119,7 @@
         white-space: nowrap;
     }
 
-    .even {
+    .badge {
         font-size: 11px;
         color: #7fd3ff;
         border: 1px solid #2a5878;

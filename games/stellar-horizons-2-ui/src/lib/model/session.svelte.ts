@@ -3,6 +3,16 @@ import type { GameAction } from '@tabletop/common'
 import {
     ActionType,
     AssignGoods,
+    DeclareBlockade,
+    DiscardEscalation,
+    EndBlockades,
+    blockadeSystems,
+    blockadeableBases,
+    canBlockade,
+    choosesEscalationKept,
+    escalationKeepCount,
+    keptMask,
+    type EscalationMarker,
     AttemptAnomaly,
     AcceptPact,
     AttemptEvent,
@@ -119,6 +129,11 @@ import {
 } from '$lib/utils/trade.js'
 import {
     DISCARDED,
+    blockadeSelection,
+    keptSelection,
+    selectedBlockadeDraft,
+    selectedKeptDraft,
+    type BlockadeDraft,
     anomalySelection,
     assignmentSelection,
     rewardGoodsSelection,
@@ -538,6 +553,42 @@ export class StellarHorizonsGameSession extends GameSession<
         }
     })
 
+    blockadeDraft: BlockadeDraft | undefined = $derived.by(() => {
+        const draft = selectedBlockadeDraft(this.selection)
+        const playerId = this.myPlayerId
+        if (
+            !draft ||
+            !playerId ||
+            !this.canAct ||
+            this.gameState.machineState !== MachineState.Blockading ||
+            !blockadeSystems(this.gameState, playerId).includes(draft.systemId)
+        ) {
+            return undefined
+        }
+        const named = blockadeableBases(this.gameState, playerId, draft.systemId).map(
+            (base) => base.playerId
+        )
+        return {
+            systemId: draft.systemId,
+            targetIds: draft.targetIds.filter((targetId) => named.includes(targetId))
+        }
+    })
+
+    keptEscalationMask: boolean[] = $derived.by(() => {
+        const playerId = this.myPlayerId
+        if (!playerId || this.actingPhase !== TurnPhase.Initiative) {
+            return []
+        }
+        const held = this.gameState.getPlayerState(playerId).escalation
+        return keptMask(held, selectedKeptDraft(this.selection)?.kept ?? [])
+    })
+
+    keptEscalation: EscalationMarker[] = $derived.by(() => {
+        const playerId = this.myPlayerId
+        const held = playerId ? this.gameState.getPlayerState(playerId).escalation : []
+        return held.filter((_, index) => this.keptEscalationMask[index])
+    })
+
     mapTargets: MapTarget[] = $derived.by(() => {
         const playerId = this.myPlayerId
         if (!playerId) {
@@ -580,6 +631,14 @@ export class StellarHorizonsGameSession extends GameSession<
                     label: '+1 settlement',
                     action: `Prolific Breeders at ${systemName(systemId)}`
                 }))
+            case MachineState.Blockading:
+                return this.gameState.escalationDiscard
+                    ? []
+                    : blockadeSystems(this.gameState, playerId).map((systemId) => ({
+                          systemId,
+                          label: 'Blockade',
+                          action: `Blockade at ${systemName(systemId)}`
+                      }))
             default:
                 return []
         }
@@ -882,6 +941,9 @@ export class StellarHorizonsGameSession extends GameSession<
             case MachineState.ChoosingGrowthBase:
                 await this.chooseGrowthBase(systemId)
                 return
+            case MachineState.Blockading:
+                this.chooseBlockadeSystem(systemId)
+                return
             case MachineState.PlacingRewardSettlements:
                 this.select(
                     rewardSelection({ systemIds: [...this.rewardDraft.systemIds, systemId] })
@@ -1038,6 +1100,72 @@ export class StellarHorizonsGameSession extends GameSession<
             ActionType.DestroyGoods,
             this.createPlayerAction(DestroyGoods, { holder, good, count: 1 })
         )
+    }
+
+    chooseBlockadeSystem(systemId: string) {
+        this.select(
+            this.blockadeDraft?.systemId === systemId
+                ? undefined
+                : blockadeSelection({ systemId, targetIds: [] })
+        )
+    }
+
+    toggleBlockadeTarget(targetId: string) {
+        const draft = this.blockadeDraft
+        if (!draft) {
+            return
+        }
+        const targetIds = draft.targetIds.includes(targetId)
+            ? draft.targetIds.filter((candidate) => candidate !== targetId)
+            : [...draft.targetIds, targetId]
+        this.select(blockadeSelection({ ...draft, targetIds }))
+    }
+
+    async commitBlockade() {
+        const draft = this.blockadeDraft
+        const playerId = this.myPlayerId
+        if (!draft || !playerId) {
+            return
+        }
+        if (!canBlockade(this.gameState, playerId, draft.systemId, draft.targetIds)) {
+            throw new Error('The blockade drafted is not one the Player can make')
+        }
+        this.clearSelection()
+        await this.commit(
+            ActionType.DeclareBlockade,
+            this.createPlayerAction(DeclareBlockade, {
+                systemId: draft.systemId,
+                targetIds: draft.targetIds
+            })
+        )
+    }
+
+    async endBlockades() {
+        this.clearSelection()
+        await this.commit(ActionType.EndBlockades, this.createPlayerAction(EndBlockades, {}))
+    }
+
+    async discardEscalation(marker: EscalationMarker) {
+        await this.commit(
+            ActionType.DiscardEscalation,
+            this.createPlayerAction(DiscardEscalation, { marker })
+        )
+    }
+
+    toggleKeptEscalation(index: number) {
+        const playerId = this.myPlayerId
+        if (!playerId) {
+            return
+        }
+        const held = this.gameState.getPlayerState(playerId).escalation
+        const kept = selectedKeptDraft(this.selection)?.kept ?? []
+        const marker = held[index]
+        if (this.keptEscalationMask[index]) {
+            const position = kept.lastIndexOf(marker)
+            this.select(keptSelection({ kept: kept.filter((_, at) => at !== position) }))
+        } else if (kept.length < escalationKeepCount(held.length)) {
+            this.select(keptSelection({ kept: [...kept, marker] }))
+        }
     }
 
     selectCard(cardId: string) {
@@ -1410,9 +1538,16 @@ export class StellarHorizonsGameSession extends GameSession<
     }
 
     async declareInitiative(influence: number) {
+        const playerId = this.myPlayerId
+        const player = playerId ? this.gameState.getPlayerState(playerId) : undefined
+        const kept = player && choosesEscalationKept(player) ? this.keptEscalation : undefined
+        if (player && kept && kept.length !== escalationKeepCount(player.escalation.length)) {
+            throw new Error('Initiative is declared only once the markers to keep are chosen')
+        }
+        this.clearSelection()
         await this.commit(
             ActionType.DeclareInitiative,
-            this.createPlayerAction(DeclareInitiative, { influence })
+            this.createPlayerAction(DeclareInitiative, { influence, ...(kept ? { kept } : {}) })
         )
     }
 

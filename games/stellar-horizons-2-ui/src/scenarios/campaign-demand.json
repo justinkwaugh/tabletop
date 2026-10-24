@@ -32,22 +32,22 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3756772873,
+  "seed": 3040028602,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T04:40:33.854Z",
+  "createdAt": "2026-10-24T15:32:32.266Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "nGPVJRoE_nfNslTz6nyqt",
+  "id": "Nq2WMJbt1jsYw-NPRAvcs",
   "gameId": "scenario-campaign-demand",
   "seed": 3367980177,
   "prng": {
    "seed": 3367980177,
-   "invocations": 1338
+   "invocations": 1373
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
@@ -124,6 +124,8 @@
     "cards": [],
     "cardDraws": [],
     "settlementsBought": 0,
+    "escalation": [],
+    "attackBanned": false,
     "faction": "Starfarers"
    },
    {
@@ -196,6 +198,8 @@
     "cards": [],
     "cardDraws": [],
     "settlementsBought": 0,
+    "escalation": [],
+    "attackBanned": false,
     "faction": "Praetorians"
    },
    {
@@ -254,6 +258,8 @@
     "cards": [],
     "cardDraws": [],
     "settlementsBought": 0,
+    "escalation": [],
+    "attackBanned": false,
     "faction": "Givers"
    }
   ],
@@ -1227,6 +1233,50 @@
   ],
   "growthChoosers": [],
   "conversions": [],
+  "truce": true,
+  "escalationPool": [
+   "Points1",
+   "Points1",
+   "Points2",
+   "Points2",
+   "Points2",
+   "Points2",
+   "Points3",
+   "Points3",
+   "Points3",
+   "Points3",
+   "Points4",
+   "Points4",
+   "Points4",
+   "Points5",
+   "EarthCash",
+   "EarthCash",
+   "EarthCash",
+   "EarthCash",
+   "NoAttack",
+   "NoAttack",
+   "NoAttack",
+   "NoAttack",
+   "Initiative20",
+   "Initiative20",
+   "Initiative30",
+   "Initiative40",
+   "SettlementCost1",
+   "SettlementCost1",
+   "SettlementCost1",
+   "SettlementCost1",
+   "SettlementCost2",
+   "SaleCost1",
+   "SaleCost2",
+   "Migration20",
+   "Migration30",
+   "Migration30",
+   "EarthEngineering",
+   "EarthEngineering",
+   "EarthPhysics"
+  ],
+  "remainingBlockaders": [],
+  "blockades": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

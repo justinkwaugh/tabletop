@@ -70,6 +70,12 @@
         isChooseEconomicTile,
         isChooseEndRollModifier,
         isChooseGrowthBase,
+        BLOCKADE_INFLUENCE,
+        isDeclareBlockade,
+        isDiscardEscalation,
+        isEndBlockades,
+        isReduceTransferMarkers,
+        type EscalationDraw,
         RewardCardOutcome,
         cardDefinition,
         deckName,
@@ -96,6 +102,7 @@
     import { pactTargetName, rewardSummary } from '$lib/utils/pacts.js'
     import { goodName, goodsText, holderName } from '$lib/utils/trade.js'
     import { cardBackText, cardTitle } from '$lib/utils/cards.js'
+    import { escalationList, escalationName } from '$lib/utils/escalation.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { action, justify = 'start' }: { action: GameAction; justify?: 'start' | 'center' } =
@@ -150,6 +157,18 @@
             goods: reward.goods ? plural(reward.goods, 'good') : '',
             card: rewardCardText(reward.card)
         })}${goodsCash}`
+    }
+
+    function escalationDrawText(draw: EscalationDraw): string {
+        const short = draw.owed - Math.min(draw.owed, draw.drawn.length)
+        const lost =
+            short > 0 ? `; the pool was ${short} short, costing ${draw.influenceLost} IP` : ''
+        const banned = draw.banned ? ', and they cannot attack until the next initiative roll' : ''
+        return `drawing ${escalationList(draw.drawn)}${lost}${banned}`
+    }
+
+    function signedPercent(value: number): string {
+        return value > 0 ? ` + ${value}%` : ` − ${-value}%`
     }
 
     function transferPartnerName(partner: CargoPartner): string {
@@ -402,7 +421,9 @@
         <span
             >{action.influence > 0
                 ? `spent ${action.influence} IP on initiative`
-                : 'spent no IP on initiative'}</span
+                : 'spent no IP on initiative'}{action.kept
+                ? ` and chose to keep ${escalationList(action.kept)}`
+                : ''}</span
         >
     {:else if isRollInitiative(action)}
         <span>Initiative rolled:</span>
@@ -411,8 +432,13 @@
             <span class="inline-flex items-center gap-x-1"
                 >{index + 1}. <PlayerName {playerId} />
                 {roll
-                    ? `${roll.total}%${roll.bid ? ` (${roll.roll} + ${roll.bid} IP)` : ''}`
+                    ? `${roll.total}%${roll.bid || roll.modifier ? ` (${roll.roll}${roll.bid ? ` + ${roll.bid} IP` : ''}${roll.modifier ? signedPercent(roll.modifier) : ''})` : ''}`
                     : ''}{index < (action.metadata?.order.length ?? 0) - 1 ? ',' : ''}</span
+            >
+        {/each}
+        {#each action.metadata?.escalationDiscards ?? [] as { playerId, discarded } (playerId)}
+            <span class="inline-flex items-center gap-x-1"
+                ><PlayerName {playerId} /> returns {escalationList(discarded)}.</span
             >
         {/each}
     {:else if isChooseProduction(action)}
@@ -430,7 +456,10 @@
                     ? ` and ${goodsText(result.goods.goods)}`
                     : ''}{result.goods.cash ? ` and $${result.goods.cash}B for goods` : ''} at {systemName(
                     result.systemId
-                )}{index < (action.metadata?.results.length ?? 0) - 1 ? ';' : ''}</span
+                )}{result.blockaded ? ' (blockaded, halved)' : ''}{index <
+                (action.metadata?.results.length ?? 0) - 1
+                    ? ';'
+                    : ''}</span
             >
         {:else}
             <span>nothing.</span>
@@ -674,6 +703,33 @@
         <span
             >{action.tileId ? 'replaced a terraformed world' : 'kept their terraformed world'}</span
         >
+    {:else if isDeclareBlockade(action)}
+        <span>blockaded</span>
+        {#each action.targetIds as targetId, index (targetId)}
+            <span class="inline-flex items-center gap-x-1"
+                ><PlayerName playerId={targetId} />{index < action.targetIds.length - 1
+                    ? ' and'
+                    : ''}</span
+            >
+        {/each}
+        <span
+            >at {systemName(action.systemId)}{action.metadata
+                ? `, ${action.metadata.force} against ${action.metadata.defence}, ${escalationDrawText(action.metadata.escalation)}`
+                : ''}; {action.targetIds.length === 1
+                ? 'the blockaded faction gains'
+                : 'each blockaded faction gains'}
+            {BLOCKADE_INFLUENCE} IP</span
+        >
+    {:else if isEndBlockades(action)}
+        <span>declared no more blockades</span>
+    {:else if isDiscardEscalation(action)}
+        <span>discarded {escalationName(action.marker)} (Military Academy)</span>
+    {:else if isReduceTransferMarkers(action)}
+        <span
+            >Transfer markers drop{action.metadata?.arrivedShipIds.length
+                ? `: ${plural(action.metadata.arrivedShipIds.length, 'ship')} arrived`
+                : ''}.</span
+        >
     {:else if isEndTurn(action)}
         <span>
             {#if action.metadata?.endRoll?.ended}
@@ -690,6 +746,12 @@
                 {action.metadata.year} ends and nobody reached the goal.
             {:else}
                 {action.metadata?.year} ends.
+            {/if}
+            {#if action.metadata?.truceRoll}
+                The truce roll was {action.metadata.truceRoll.roll} against {action.metadata
+                    .truceRoll.chance}%: {action.metadata.truceRoll.ended
+                    ? 'the truce is over, and factions may now attack each other.'
+                    : 'the truce holds.'}
             {/if}
             {#if action.metadata?.shuffledCards}
                 {plural(action.metadata.shuffledCards, 'discarded card')}

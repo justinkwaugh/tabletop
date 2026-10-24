@@ -1,5 +1,6 @@
 import type {
     AnomalyChallenge,
+    EscalationMarker,
     GoodsHolder,
     GoodsStore,
     PactOpening,
@@ -18,7 +19,9 @@ export enum SelectionKind {
     RewardSettlements = 'RewardSettlements',
     AssignGoods = 'AssignGoods',
     RewardGoods = 'RewardGoods',
-    Sale = 'Sale'
+    Sale = 'Sale',
+    Blockade = 'Blockade',
+    EscalationKept = 'EscalationKept'
 }
 
 export interface AnomalyDraft {
@@ -68,6 +71,15 @@ export interface SaleDraft {
     payeeId?: string
 }
 
+export interface BlockadeDraft {
+    systemId: string
+    targetIds: string[]
+}
+
+export interface KeptDraft {
+    kept: EscalationMarker[]
+}
+
 export type Selection =
     | { kind: SelectionKind.Ship; shipId: string }
     | { kind: SelectionKind.Tech; techId: TechId }
@@ -79,6 +91,8 @@ export type Selection =
     | ({ kind: SelectionKind.AssignGoods } & AssignmentDraft)
     | ({ kind: SelectionKind.RewardGoods } & RewardGoodsDraft)
     | ({ kind: SelectionKind.Sale } & SaleDraft)
+    | ({ kind: SelectionKind.Blockade } & BlockadeDraft)
+    | ({ kind: SelectionKind.EscalationKept } & KeptDraft)
 
 export function shipSelection(shipId: string): Selection {
     return { kind: SelectionKind.Ship, shipId }
@@ -224,8 +238,26 @@ export function saleSelection(draft: SaleDraft): Selection {
     return { kind: SelectionKind.Sale, ...draft }
 }
 
-// Undo takes back one placement at a time, of reward settlements, drawn goods or reward goods;
-// any other choice goes whole.
+export function selectedBlockadeDraft(selection: Selection | undefined): BlockadeDraft | undefined {
+    return selection?.kind === SelectionKind.Blockade
+        ? { systemId: selection.systemId, targetIds: selection.targetIds }
+        : undefined
+}
+
+export function blockadeSelection(draft: BlockadeDraft): Selection {
+    return { kind: SelectionKind.Blockade, ...draft }
+}
+
+export function selectedKeptDraft(selection: Selection | undefined): KeptDraft | undefined {
+    return selection?.kind === SelectionKind.EscalationKept ? { kept: selection.kept } : undefined
+}
+
+export function keptSelection(draft: KeptDraft): Selection | undefined {
+    return draft.kept.length > 0 ? { kind: SelectionKind.EscalationKept, ...draft } : undefined
+}
+
+// Undo takes back one placement at a time, of reward settlements, drawn goods or reward goods,
+// one named base of a blockade and one kept escalation marker; any other choice goes whole.
 export function popSelection(selection: Selection | undefined): Selection | undefined {
     switch (selection?.kind) {
         case SelectionKind.RewardSettlements:
@@ -234,6 +266,12 @@ export function popSelection(selection: Selection | undefined): Selection | unde
             return assignmentSelection({ destinations: selection.destinations.slice(0, -1) })
         case SelectionKind.RewardGoods:
             return rewardGoodsSelection({ holders: selection.holders.slice(0, -1) })
+        case SelectionKind.Blockade:
+            return selection.targetIds.length > 0
+                ? blockadeSelection({ ...selection, targetIds: selection.targetIds.slice(0, -1) })
+                : undefined
+        case SelectionKind.EscalationKept:
+            return keptSelection({ kept: selection.kept.slice(0, -1) })
         default:
             return undefined
     }

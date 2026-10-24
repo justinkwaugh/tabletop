@@ -9,6 +9,7 @@ import {
     ActionType,
     CardDeck,
     EconomicTile,
+    EscalationMarker,
     Faction,
     GoodsHolderKind,
     ScenarioId,
@@ -548,6 +549,90 @@ function campaignPlanetarySurveys() {
     return { game, state: finishDecade(game, arranged) }
 }
 
+/**
+ * Base production in 2110 after the truce: the Praetorians' Gladiator and Odyssey (combat 14) at
+ * Alpha Centauri, beside a Givers base of 6 and a Starfarers base of 4.
+ */
+function campaignBlockade() {
+    return campaignInto(EconomicTile.BaseProduction, 3, (state) => {
+        state.truce = false
+        const praetorians = playerOf(state, Faction.Praetorians)
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        placeBase(state, playerOf(state, Faction.Givers), 'alpha-centauri', 6)
+        placeBase(state, playerOf(state, Faction.Starfarers), 'alpha-centauri', 4)
+        placeShip(state, praetorians, 'praetorians-gladiator', 'alpha-centauri')
+        placeShip(state, praetorians, 'praetorians-odyssey', 'alpha-centauri')
+    })
+}
+
+/**
+ * Growth in 2110 after the truce: the Praetorians own Military Academy and their Gladiator
+ * (combat 8) is at Luhman 16, beside a Givers base of 5.
+ */
+function campaignBlockadeGrowth() {
+    return campaignInto(EconomicTile.SettlementGrowth, 3, (state) => {
+        state.truce = false
+        const praetorians = playerOf(state, Faction.Praetorians)
+        ownCard(state, praetorians, 'military-academy')
+        placeWorlds(state, 'luhman-16', [[is('m-2'), WorldSide.I]])
+        placeBase(state, playerOf(state, Faction.Givers), 'luhman-16', 5)
+        placeShip(state, praetorians, 'praetorians-gladiator', 'luhman-16')
+    })
+}
+
+/**
+ * The same blockade with one escalation marker left in the pool: the Praetorians, with no IP,
+ * owe two.
+ */
+function campaignEmptyEscalationPool() {
+    return campaignInto(EconomicTile.BaseProduction, 3, (state) => {
+        state.truce = false
+        const praetorians = playerOf(state, Faction.Praetorians)
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        placeBase(state, playerOf(state, Faction.Givers), 'alpha-centauri', 6)
+        placeBase(state, playerOf(state, Faction.Starfarers), 'alpha-centauri', 4)
+        placeShip(state, praetorians, 'praetorians-gladiator', 'alpha-centauri')
+        placeShip(state, praetorians, 'praetorians-odyssey', 'alpha-centauri')
+        state.escalationPool = [EscalationMarker.Points3]
+    })
+}
+
+/** Developing in 2110 under the truce, whose roll at 1% ends the turn. */
+function campaignTruceRoll() {
+    const { game, state } = campaignInto(EconomicTile.EarthProduction, 3, () => {})
+    return { game, state: advanceTo(game, state, TurnPhase.Development) }
+}
+
+// Moves escalation markers from the pool to a Player.
+function giveEscalation(state, playerId, markers) {
+    for (const marker of markers) {
+        state.escalationPool.splice(state.escalationPool.indexOf(marker), 1)
+        state.getPlayerState(playerId).escalation.push(marker)
+    }
+}
+
+/**
+ * Initiative in 2110 with escalation markers: the Starfarers hold four of three kinds and 2 IP,
+ * the Givers two different ones and no IP, the Praetorians a single one.
+ */
+function campaignEscalationDiscard() {
+    return campaignInto(EconomicTile.RollInitiative, 3, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        state.getPlayerState(starfarers).influence = 2
+        giveEscalation(state, starfarers, [
+            EscalationMarker.Points4,
+            EscalationMarker.Initiative20,
+            EscalationMarker.Initiative20,
+            EscalationMarker.EarthEngineering
+        ])
+        giveEscalation(state, playerOf(state, Faction.Givers), [
+            EscalationMarker.Points2,
+            EscalationMarker.NoAttack
+        ])
+        giveEscalation(state, playerOf(state, Faction.Praetorians), [EscalationMarker.Points3])
+    })
+}
+
 function write(slug, name, { game, state }) {
     // Players are named by their place in initiative order.
     const order = state.turnManager.turnOrder
@@ -595,3 +680,12 @@ write('campaign-card-pact', 'Campaign: a pact for a card', campaignCardPact())
 write('campaign-prolific-breeders', 'Campaign: Prolific Breeders', campaignProlificBreeders())
 write('campaign-hive-mind', 'Campaign: Hive Mind', campaignHiveMind())
 write('campaign-planetary-surveys', 'Campaign: Planetary Surveys', campaignPlanetarySurveys())
+write('campaign-blockade', 'Campaign: a blockade', campaignBlockade())
+write('campaign-blockade-growth', 'Campaign: a blockade before growth', campaignBlockadeGrowth())
+write('campaign-escalation-discard', 'Campaign: discarding escalation', campaignEscalationDiscard())
+write(
+    'campaign-empty-escalation-pool',
+    'Campaign: an empty escalation pool',
+    campaignEmptyEscalationPool()
+)
+write('campaign-truce-roll', 'Campaign: the truce roll', campaignTruceRoll())

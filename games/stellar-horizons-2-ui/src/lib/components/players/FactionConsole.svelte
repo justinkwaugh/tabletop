@@ -9,6 +9,7 @@
         goodsCount,
         isCampaign,
         anomalyDefinition,
+        escalationScore,
         galacticRank,
         shipDefinition
     } from '@tabletop/stellar-horizons-2'
@@ -29,6 +30,7 @@
     import TechMarkerTotal from '../TechMarkerTotal.svelte'
     import CardBack from '../cards/CardBack.svelte'
     import CardFace from '../cards/CardFace.svelte'
+    import EscalationChip from '../escalation/EscalationChip.svelte'
     import BaseTab from './BaseTab.svelte'
     import ShipIcon from './ShipIcon.svelte'
 
@@ -65,6 +67,7 @@
         ['techPoints', 'Tech points'],
         ['cash', 'Cash'],
         ['cards', 'Cards'],
+        ['escalation', 'Escalation markers'],
         ['playerCount', 'Players in the game']
     ] as const
 
@@ -306,6 +309,33 @@
                 </section>
             {/if}
 
+            {#if player && isCampaign(gameSession.gameState)}
+                <section>
+                    <h4>
+                        Escalation <span
+                            >{plural(player.escalation.length, 'marker')} · {escalationScore(
+                                player
+                            )} VP</span
+                        >
+                    </h4>
+                    {#if player.escalation.length > 0}
+                        <div class="escalation">
+                            {#each player.escalation as marker, index (index)}
+                                <EscalationChip {marker} size={40} />
+                            {/each}
+                        </div>
+                    {:else}
+                        <div class="note">No escalation markers</div>
+                    {/if}
+                    {#if player.attackBanned}
+                        <div class="note">
+                            Short of IP for escalation markers: no attacks until after the next
+                            initiative roll
+                        </div>
+                    {/if}
+                </section>
+            {/if}
+
             <section>
                 <h4>Ships <span>{shipCount}</span></h4>
                 {#each view.fleet as group (group.systemId)}
@@ -359,6 +389,12 @@
 {/if}
 
 <style>
+    .escalation {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
     .cards {
         display: flex;
         flex-wrap: wrap;

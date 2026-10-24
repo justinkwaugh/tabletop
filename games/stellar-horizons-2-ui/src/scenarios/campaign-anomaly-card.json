@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2630250921,
+  "seed": 1761099629,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-24T04:40:33.968Z",
+  "createdAt": "2026-10-24T15:32:32.386Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "dKOEoTU346WAJy3dl1ySq",
+  "id": "S2ljiDuMxh4dWSfTcnSS9",
   "gameId": "scenario-campaign-anomaly-card",
   "seed": 3367980177,
   "prng": {
@@ -126,6 +126,8 @@
      "Genetic"
     ],
     "settlementsBought": 0,
+    "escalation": [],
+    "attackBanned": false,
     "faction": "Starfarers"
    },
    {
@@ -191,6 +193,8 @@
     "cards": [],
     "cardDraws": [],
     "settlementsBought": 0,
+    "escalation": [],
+    "attackBanned": false,
     "faction": "Praetorians"
    },
    {
@@ -246,6 +250,8 @@
     "cards": [],
     "cardDraws": [],
     "settlementsBought": 0,
+    "escalation": [],
+    "attackBanned": false,
     "faction": "Givers"
    }
   ],
@@ -1167,6 +1173,50 @@
   ],
   "growthChoosers": [],
   "conversions": [],
+  "truce": true,
+  "escalationPool": [
+   "Points1",
+   "Points1",
+   "Points2",
+   "Points2",
+   "Points2",
+   "Points2",
+   "Points3",
+   "Points3",
+   "Points3",
+   "Points3",
+   "Points4",
+   "Points4",
+   "Points4",
+   "Points5",
+   "EarthCash",
+   "EarthCash",
+   "EarthCash",
+   "EarthCash",
+   "NoAttack",
+   "NoAttack",
+   "NoAttack",
+   "NoAttack",
+   "Initiative20",
+   "Initiative20",
+   "Initiative30",
+   "Initiative40",
+   "SettlementCost1",
+   "SettlementCost1",
+   "SettlementCost1",
+   "SettlementCost1",
+   "SettlementCost2",
+   "SaleCost1",
+   "SaleCost2",
+   "Migration20",
+   "Migration30",
+   "Migration30",
+   "EarthEngineering",
+   "EarthEngineering",
+   "EarthPhysics"
+  ],
+  "remainingBlockaders": [],
+  "blockades": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

@@ -169,3 +169,36 @@ The start of 2110. The Starfarers own Hive Mind.
 The end of 2100's exploration. The Starfarers own Planetary Surveys and completed a survey of Alpha Centauri, which has an empty world slot.
 
 - **Two worlds.** The panel shows the two worlds drawn and asks which to place; the other goes back to the pool. In a full system both are offered as replacements for smaller worlds, or neither.
+
+## Campaign blockade
+
+2110 draws _Base production_ after the truce has ended. The Praetorians' Gladiator and Odyssey (combat 14) are at Alpha Centauri, beside a Givers base of 6 and a Starfarers base of 4. Ships with transfer markers are still in transit: they arrive once the economic phase is over.
+
+- **The blockade turn.** The Praetorians blockade first, in reverse initiative order; Alpha Centauri shows "Blockade" on the map. Naming the Givers shows "14 against 6"; naming both shows "14 against 10" and the blockade goes ahead. Naming both and blockading draws the Praetorians two escalation markers, shown face up on their console, and gives the Givers and Starfarers 1 IP each.
+- **Half production.** The Givers' and Starfarers' production choices say "Blockaded by" the Praetorians, with halved amounts. History lists both as "blockaded, halved", then "Transfer markers drop" with the ships that arrive.
+
+## Campaign blockade growth
+
+2110 draws _Settlement growth_ after the truce. The Praetorians own Military Academy and their Gladiator (combat 8) is at Luhman 16, beside a Givers base of 5.
+
+- **Military Academy's discard.** Blockading the Givers draws two markers instead of one; the panel then asks which of them to discard, and nothing else can be done first.
+- **No growth.** The Givers base stays at 5: blockaded bases neither grow nor migrate.
+
+## Campaign escalation discard
+
+2110 draws _Roll initiative_ during the truce (the header shows TRUCE). The Starfarers hold four escalation markers of three kinds and 2 IP, the Givers two different markers and no IP, the Praetorians a single marker.
+
+- **Choosing what to keep.** The Starfarers' Branch asks for two markers to keep before the IP buttons work. The Givers, with no IP, still get a Branch for the keep choice. The Praetorians, with one marker, have nothing to choose and are skipped.
+- **After the rolls.** History lists each roll with its modifiers (the Starfarers' Initiative −20% markers lower theirs), then what each Player returned. Each console shows what was kept.
+
+## Campaign empty escalation pool
+
+The blockade of _Campaign blockade_, with only one escalation marker left in the pool and the Praetorians holding no IP.
+
+- **Short of markers and IP.** Blockading both bases owes two markers; one is drawn. History says the pool was 1 short, costing 0 IP, and that the Praetorians cannot attack until the next initiative roll; their console says so too. The Givers and Starfarers still gain 1 IP each.
+
+## Campaign truce roll
+
+Developing in 2110 under the truce (the header shows TRUCE; its tooltip gives the 1% chance).
+
+- **The roll.** Ending everyone's development ends the turn; history's end-of-turn entry gives the truce roll against 1% and whether the truce holds.

@@ -247,9 +247,19 @@
 
 - **Meaning:** the sale being set up: system, good, count and whom to pay. One kind of selection; its count is kept within what is there to sell when it changes. Leaving the zoomed system clears it.
 
+### Blockade draft
+
+- **Meaning:** the system to blockade and the bases named there, in the order named. One kind of selection, owned by the game session; read by the blockade step and the map targets. It is dropped while its system can no longer be blockaded, and a named base that can no longer be is left out.
+- **Lifetime:** Undo takes back the last named base, then the system; choosing the system again, Blockade and No more blockades clear it.
+
+### Kept escalation draft
+
+- **Meaning:** the escalation markers chosen to keep at the initiative discard, in the order chosen. One kind of selection, owned by the game session; read by the initiative step through the session's mask of the held markers it keeps. Only markers the Player still holds count, and only while they play their initiative Branch. The IP buttons wait until it holds the number to keep.
+- **Lifetime:** Undo takes back the last chosen; declaring initiative clears it.
+
 ### Map targets
 
-- **Meaning:** the systems the map offers for the current choice, each with its label and the action a click takes: destinations in movement, and the systems for placing an event, Homesteaders, reward settlements or the next drawn good, for selling goods, and the system of reward goods while it is not zoomed into.
+- **Meaning:** the systems the map offers for the current choice, each with its label and the action a click takes: destinations in movement, and the systems for placing an event, Homesteaders, reward settlements or the next drawn good, for selling goods, for blockading, and the system of reward goods while it is not zoomed into.
 - **Source:** derived from the selection, the drafts and the Machine State; never stored.
 
 ### Cargo draft

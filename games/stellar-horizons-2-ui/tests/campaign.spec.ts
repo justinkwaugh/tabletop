@@ -110,3 +110,33 @@ test('reward goods are placed in the zoomed system, which can be left and reopen
     await expect(page.getByText('Goods').first()).toBeVisible()
     await expect(page.getByText('2 of 12')).toBeVisible()
 })
+
+test('a blockade chosen on the map names its bases, then halves their production', async ({
+    page
+}) => {
+    await openScenario(page, 'Campaign blockade')
+    await page.getByRole('button', { name: 'Blockade at Alpha Centauri' }).click({ force: true })
+    const targets = page.locator('.sh-step button.target')
+    await targets.first().click()
+    await expect(page.getByText(/Your ships: 14 against [46]$/)).toBeVisible()
+    await targets.nth(1).click()
+    await expect(page.getByText('Your ships: 14 against 10')).toBeVisible()
+    // Undo takes back the last base named, then the system.
+    await page.getByRole('button', { name: 'UNDO' }).click()
+    await expect(targets).toHaveCount(2)
+    await targets.nth(1).click()
+    await page.getByRole('button', { name: 'Blockade 2 bases' }).click()
+    await expect(page.getByText(/^Blockaded by/)).toBeVisible()
+})
+
+test('the escalation markers to keep are chosen before declaring initiative', async ({ page }) => {
+    await openScenario(page, 'Campaign escalation discard')
+    const declare = page.getByRole('button', { name: 'No IP' })
+    await expect(declare).toBeDisabled()
+    await page.getByRole('button', { name: '4 VP' }).click()
+    await expect(declare).toBeDisabled()
+    await page.getByRole('button', { name: 'Earth Production +1 Eng Marker' }).click()
+    await expect(declare).toBeEnabled()
+    await declare.click()
+    await expect(page.locator('[title="Player 1 has finished"]')).toBeVisible()
+})
