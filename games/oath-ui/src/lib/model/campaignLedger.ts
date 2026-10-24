@@ -332,12 +332,16 @@ function poolsOf(step: GameAction): Pools | undefined {
     return undefined
 }
 
-/** R-5.5.5 — the attacker's warbands a step's skulls killed. */
+/**
+ * R-5.5.5 — the attacker's warbands a step's skulls killed. An answer counts the held attack it rolled
+ * and the kills Jinx held for it; an answer recorded before it kept the latter counts none.
+ */
 export function skullsKilledIn(step: GameAction): number {
     const battle = battleOf(step)
     if (battle) return battle.skullsKilled
     if (isCampaignDefend(step)) return step.metadata?.skullsKilled ?? 0
-    if (isAnswerQuestion(step)) return step.metadata?.heldAttack?.skullsKilled ?? 0
+    if (isAnswerQuestion(step))
+        return (step.metadata?.heldAttack?.skullsKilled ?? 0) + (step.metadata?.skullsKilled ?? 0)
     if (isCampaignSkullLosses(step)) return forceTotal(step.metadata?.killed ?? step.kills)
     return 0
 }
