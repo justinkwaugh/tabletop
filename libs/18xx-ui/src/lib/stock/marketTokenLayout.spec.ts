@@ -13,6 +13,9 @@ import {
     MarketCellWidth,
     MarketScenePadding,
     MarketTokenSize,
+    MarketZoneGap,
+    marketColumnLefts,
+    marketColumnsWidth,
     marketLowerRightSpace
 } from './marketTokenLayout.js'
 
@@ -147,4 +150,31 @@ it('spreads a crowded stack from where the stack sits', () => {
     expect(expandedMarketStack(chart, market, '1:1').every((point) => point.x === stackX)).toBe(
         true
     )
+})
+
+it('sets a set-apart zone off with a gap either side, keeping every cell its full width', () => {
+    const cell = { width: 30, height: 96 }
+    const chart = new StockMarketChart(
+        createRectangularStockMarketSpaces([[0, 0, 0, 0, 40, 45]], (_row, column) =>
+            column === 0 ? 'red' : column < 4 ? 'orange' : 'white'
+        )
+    )
+    const zones = [
+        { color: 'red', name: 'Liquidation', description: '' },
+        { color: 'orange', name: 'Acquisition', description: '', setApart: true as const }
+    ]
+    const lefts = marketColumnLefts(chart, cell, zones)
+    expect(lefts).toEqual([
+        0,
+        30 + MarketZoneGap,
+        60 + MarketZoneGap,
+        90 + MarketZoneGap,
+        120 + 2 * MarketZoneGap,
+        150 + 2 * MarketZoneGap
+    ])
+    expect(marketColumnsWidth(lefts, cell)).toBe(180 + 2 * MarketZoneGap)
+    const market: StockMarket = { stacks: [] }
+    placeStockMarker(market, 'A', '0:4')
+    expect(marketTokenLayout(chart, market, cell, zones)[0].x).toBe(lefts[4] + cell.width / 2)
+    expect(marketColumnLefts(chart, cell)).toEqual([0, 30, 60, 90, 120, 150])
 })

@@ -895,7 +895,11 @@
             area={viewportRect(boardViewport, boardAreas.market)}
         >
             {@const corner = boardInformation
-                ? marketLowerRightSpace(session.stockMarketChart, session.presentation.marketCell)
+                ? marketLowerRightSpace(
+                      session.stockMarketChart,
+                      session.presentation.marketCell,
+                      session.presentation.marketZones
+                  )
                 : undefined}
             <div class="board-market">
                 <StockMarketScene

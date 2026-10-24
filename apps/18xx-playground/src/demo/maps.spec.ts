@@ -1,4 +1,5 @@
 import { Presentation1846 } from '../../../../games/1846-ui/src/lib/presentation.js'
+import { EighteenSeventeenPresentation } from '../../../../games/1817-ui/src/lib/presentation.js'
 import { MapView1846 } from '../../../../games/1846-ui/src/lib/mapView.js'
 import { Market1846 } from '../../../../games/1846/src/stock.js'
 import { describe, expect, it } from 'vitest'
@@ -16,7 +17,9 @@ import {
     MarketCellHeight,
     MarketCellWidth,
     MarketScenePadding,
-    MarketZoneBannerHeight
+    MarketZoneBannerHeight,
+    marketColumnLefts,
+    marketColumnsWidth
 } from '../../../../libs/18xx-ui/src/lib/stock/marketTokenLayout.js'
 
 type MapScene = ReturnType<typeof createMapDrawing>
@@ -154,7 +157,9 @@ describe.each([
     {
         name: '1817',
         view: EighteenSeventeenMapView,
-        market: EighteenSeventeenMarket
+        market: EighteenSeventeenMarket,
+        cell: EighteenSeventeenPresentation.marketCell,
+        zones: EighteenSeventeenPresentation.marketZones
     },
     {
         name: '1832',
@@ -181,12 +186,18 @@ describe.each([
                     y > hex.y + 62
             )
         const cells = market.spaces.map((space) => space.id.split(':').map(Number))
-        const columns = Math.max(...cells.map(([, column]) => column)) + 1
         const rows = Math.max(...cells.map(([row]) => row)) + 1
         const cellWidth = cell?.width ?? MarketCellWidth
         const cellHeight = cell?.height ?? MarketCellHeight
         const banner = zones?.some((zone) => zone.banner) ? MarketZoneBannerHeight : 0
-        const width = 2 * MarketScenePadding + columns * cellWidth
+        const lefts = marketColumnLefts(
+            market,
+            { width: cellWidth, height: cellHeight },
+            zones ?? []
+        )
+        const width =
+            2 * MarketScenePadding +
+            marketColumnsWidth(lefts, { width: cellWidth, height: cellHeight })
         const height = 2 * MarketScenePadding + banner + rows * cellHeight
         const area = areas!.market!
         const scale = Math.min(area.width / width, area.height / height)
@@ -194,7 +205,7 @@ describe.each([
         for (const [row, column] of cells)
             expect(
                 clear(
-                    left + (MarketScenePadding + column * cellWidth) * scale,
+                    left + (MarketScenePadding + lefts[column]) * scale,
                     area.y + (MarketScenePadding + banner + row * cellHeight) * scale,
                     cellWidth * scale,
                     cellHeight * scale

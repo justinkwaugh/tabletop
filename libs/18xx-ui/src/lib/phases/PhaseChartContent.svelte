@@ -117,7 +117,7 @@
                 <thead
                     ><tr
                         ><th>Train</th><th class="money">Price</th><th class="number">Remaining</th
-                        ><th>Obsoleted / rusted by</th></tr
+                        ><th>Rusted by</th></tr
                     ></thead
                 >
                 <tbody>

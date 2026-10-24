@@ -54,8 +54,11 @@ export type CompanyOrigin = { text: string; companyIds: readonly string[] }
  */
 export type MarketZoneBanner = { label: string; shape: 'arrow' | 'span' }
 
-/** Replaces the tint of a zone's chart colour, which dark mode dims, where the colour carries meaning. */
-export type MarketZoneFill = { kind: 'solid'; color: string } | { kind: 'recessed' }
+/**
+ * Replaces the tint of a zone's chart colour, which dark mode dims, where the colour carries meaning.
+ * A solid fill dark enough to need light text names its ``ink``.
+ */
+export type MarketZoneFill = { kind: 'solid'; color: string; ink?: string } | { kind: 'recessed' }
 
 /** The meaning of the market spaces of one colour, for their descriptions and the legend. */
 export type MarketZone = {
@@ -66,6 +69,10 @@ export type MarketZone = {
     fill?: MarketZoneFill
     /** Drawn stacked in each space's lower left, clear of a company stack at the right. */
     marks?: readonly string[]
+    /** Printed sideways down the left of each of the zone's spaces, below its price. */
+    label?: string
+    /** Drawn as one group, a little apart from the spaces on either side of it. */
+    setApart?: true
 }
 
 /**

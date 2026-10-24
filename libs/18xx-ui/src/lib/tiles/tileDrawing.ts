@@ -43,6 +43,11 @@ export type TileLayout = {
     revenuePositionsByRotation?: Partial<Record<TileRotation, Readonly<Record<string, Point>>>>
     revenuePositionsByOrientation?: Partial<Record<HexOrientation, Readonly<Record<string, Point>>>>
     labelPosition?: Point
+    /**
+     * Degrees clockwise to turn a city's row of station spaces off the tile's own axis, by node
+     * id, such as to level a two-space city under a row of revenues.
+     */
+    slotRowTurns?: Readonly<Record<string, number>>
     hideRevenue?: true | readonly string[]
     /** Lays staged revenue boxes out in a column or a row rather than whichever fits best. */
     revenueStack?: 'column' | 'row'
@@ -105,6 +110,8 @@ export function createTileDrawing(
     )
     const angle =
         ((rotation * 60 + (orientation === HexOrientation.Pointy ? 30 : 0)) * Math.PI) / 180
+    const slotRowAngle = (nodeId: string) =>
+        angle + ((layout.slotRowTurns?.[nodeId] ?? 0) * Math.PI) / 180
     const centers = new Map<string, Point>()
     const automaticTownPaths = new Map<string, readonly TilePath[]>()
     for (const node of face.nodes) {
@@ -212,7 +219,7 @@ export function createTileDrawing(
     const stationSlots = face.nodes.flatMap((node) => {
         const center = centers.get(node.id)
         return center && node.kind === 'city' && node.stationSlots > 0
-            ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
+            ? stationPositions(node.stationSlots, center, slotRowAngle(node.id), citySlotRadius)
             : []
     })
     const occupied: Point[] = [
@@ -221,7 +228,7 @@ export function createTileDrawing(
             const center = centers.get(node.id)
             assertExists(center, `Unknown tile node ${node.id}`)
             return node.kind === 'city' && node.stationSlots > 0
-                ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
+                ? stationPositions(node.stationSlots, center, slotRowAngle(node.id), citySlotRadius)
                 : [center]
         })
     ]
@@ -290,7 +297,12 @@ export function createTileDrawing(
             center,
             slots:
                 node.kind === 'city'
-                    ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
+                    ? stationPositions(
+                          node.stationSlots,
+                          center,
+                          slotRowAngle(node.id),
+                          citySlotRadius
+                      )
                     : [],
             revenuePosition,
             revenueCells,

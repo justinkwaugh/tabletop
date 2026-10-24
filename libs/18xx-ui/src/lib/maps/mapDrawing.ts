@@ -175,8 +175,8 @@ export type MapDrawnLocation = {
      * radians. ``radius`` is the text's baseline.
      */
     nameArcs: readonly NameArc[]
-    /** Height of the printed terrain cost row: centred below the hex's stops, or mid-hex. */
-    terrainY: number
+    /** Centre of the printed terrain cost row: below the hex's stops, or mid-hex. */
+    terrainPosition: Point
     /** Height of a local line drawn ``above``: over the hex's stops and any name curved on them. */
     localLineAboveY?: number
 }
@@ -302,7 +302,7 @@ export function createMapDrawing(
         namesBelow = [],
         symbolPositions = {},
         nameLines = {},
-        terrainHeights = {}
+        terrainPositions = {}
     }: Pick<
         MapViewDefinition,
         | 'layouts'
@@ -319,7 +319,7 @@ export function createMapDrawing(
         | 'namesBelow'
         | 'symbolPositions'
         | 'nameLines'
-        | 'terrainHeights'
+        | 'terrainPositions'
     > = {}
 ): MapDrawing {
     const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
@@ -383,8 +383,11 @@ export function createMapDrawing(
                 tileLayout,
                 locationStyle
             ))
-        const terrainRowOf = (tileDrawing: TileDrawing) =>
-            terrainHeights[location.id] ?? terrainY(tileDrawing, face, map.definition.orientation)
+        const terrainRowOf = (tileDrawing: TileDrawing): Point =>
+            terrainPositions[location.id] ?? {
+                x: 0,
+                y: terrainY(tileDrawing, face, map.definition.orientation)
+            }
         const [loneNode, ...otherNodes] = face.nodes
         const ownCityNames = cityNames[location.id]
         const arcAround = (text: string, center: Point, obstacles: readonly Point[] = []) =>
@@ -420,7 +423,7 @@ export function createMapDrawing(
         })
             ? aboveStops(
                   stopDrawing(),
-                  !placement && location.terrain ? terrainRowOf(stopDrawing()) : undefined,
+                  !placement && location.terrain ? terrainRowOf(stopDrawing()).y : undefined,
                   nameArcs,
                   nameShown && !curvedName ? { baseline: nameBaseline, rows: nameRows } : undefined
               )
@@ -518,7 +521,7 @@ export function createMapDrawing(
                 !!namePositions[location.id] &&
                 !face.nodes.some((node) => node.kind === 'offboard'),
             nameArcs,
-            terrainY: terrainRow,
+            terrainPosition: terrainRow,
             localLineAboveY,
             revenueAnnotations: [
                 ...badges,
@@ -702,10 +705,10 @@ export function terrainRowWidths(kindCount: number, cost: string) {
 function terrainBox(
     terrain: NonNullable<MapLocation['terrain']>,
     costPrefix: string,
-    row: number
+    row: Point
 ): Obstacle {
     const widths = terrainRowWidths(terrain.kinds.length, `${costPrefix}${terrain.cost}`)
-    return box({ x: 0, y: row }, (widths.icons + widths.cost) / 2, 6)
+    return box(row, (widths.icons + widths.cost) / 2, 6)
 }
 
 // Long names split at the space nearest their middle.

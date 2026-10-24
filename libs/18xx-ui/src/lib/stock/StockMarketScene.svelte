@@ -15,6 +15,8 @@
     import {
         marketTokenLayout,
         expandedMarketStack,
+        marketColumnLefts,
+        MarketZoneGap,
         DefaultMarketCell,
         type MarketCellDimensions,
         MarketTokenSize,
@@ -43,7 +45,26 @@
         cell?: MarketCellDimensions
         renderScale?: number
     } = $props()
-    const columns = $derived(Math.max(...chart.spaces.map((space) => space.column)) + 1)
+    const SolidFillInk = '#253b35'
+    // Below this width a three-digit price at full size reaches the space's right edge.
+    const NarrowCellWidth = 34
+    // A set-apart zone's gaps are grid tracks of their own, so each column's track follows them.
+    const columnLefts = $derived(marketColumnLefts(chart, cell, zones))
+    const gapBefore = $derived(
+        columnLefts.map((left, column) => column > 0 && left - columnLefts[column - 1] > cell.width)
+    )
+    const columnTracks = $derived(
+        gapBefore.map((_, column) => column + gapBefore.slice(0, column + 1).filter(Boolean).length)
+    )
+    const gridColumns = $derived(
+        gapBefore
+            .map((gap) =>
+                gap
+                    ? `${MarketZoneGap * renderScale}px ${cell.width * renderScale}px`
+                    : `${cell.width * renderScale}px`
+            )
+            .join(' ')
+    )
     const rows = $derived(Math.max(...chart.spaces.map((space) => space.row)) + 1)
     const spaceRows = $derived(new Map(chart.spaces.map((space) => [space.id, space.row])))
     // An edge arrow marks a sideways move that leaves the row, such as up at a row's end.
@@ -70,14 +91,18 @@
                 : []
         })
     )
-    let tokens = $derived(marketTokenLayout(chart, market, cell))
+    // A solid fill keeps its colour in dark mode, so its text keeps the light-mode ink.
+    function solidInk(zone: MarketZone | undefined): string | undefined {
+        return zone?.fill?.kind === 'solid' ? (zone.fill.ink ?? SolidFillInk) : undefined
+    }
+    let tokens = $derived(marketTokenLayout(chart, market, cell, zones))
     let hoveredSpace: string | undefined = $derived.by(() => {
         market
         animation?.updatingVisibleState
         return undefined
     })
     const expanded = $derived(
-        hoveredSpace ? expandedMarketStack(chart, market, hoveredSpace, cell) : []
+        hoveredSpace ? expandedMarketStack(chart, market, hoveredSpace, cell, zones) : []
     )
     const expandedIds = $derived(
         market.stacks.find((stack) => stack.spaceId === hoveredSpace)?.companyIds ?? []
@@ -117,8 +142,8 @@
         if (!activeSession) return
         const listener = async ({ to, from, action, animationContext }: MarketStateChange) => {
             if (!from || !board || getComputedStyle(board).visibility !== 'visible') return
-            const before = marketTokenLayout(chart, from, cell)
-            const after = marketTokenLayout(chart, to, cell)
+            const before = marketTokenLayout(chart, from, cell, zones)
+            const after = marketTokenLayout(chart, to, cell, zones)
             if (JSON.stringify(before) === JSON.stringify(after)) return
             hoveredSpace = undefined
             // The market shown when the run began; a newer one published meanwhile, such as a
@@ -206,13 +231,14 @@
 >
     {#if banners.length}<div
             class="banners"
-            style:grid-template-columns={`repeat(${columns}, ${cell.width * renderScale}px)`}
+            class:narrow={cell.width < NarrowCellWidth}
+            style:grid-template-columns={gridColumns}
             style:height={`${MarketZoneBannerHeight * renderScale}px`}
         >
             {#each banners as banner (banner.color)}<div
                     class="banner"
                     class:arrow={banner.shape === 'arrow'}
-                    style:grid-column={`${banner.firstColumn + 1} / ${banner.lastColumn + 2}`}
+                    style:grid-column={`${columnTracks[banner.firstColumn] + 1} / ${columnTracks[banner.lastColumn] + 2}`}
                     style:--market-color={banner.zoneColor}
                     style:--market-lightness={marketDarkLightness[banner.color]}
                 >
@@ -230,10 +256,11 @@
         </div>{/if}
     <div
         class="grid"
+        class:narrow={cell.width < NarrowCellWidth}
         role="group"
         aria-label="Market spaces"
         onpointerleave={() => (hoveredSpace = undefined)}
-        style:grid-template-columns={`repeat(${columns}, ${cell.width * renderScale}px)`}
+        style:grid-template-columns={gridColumns}
         style:grid-template-rows={`repeat(${rows}, ${cell.height * renderScale}px)`}
     >
         {#each chart.spaces as space (space.id)}
@@ -253,12 +280,13 @@
                 aria-label={`Market value ${space.price}${zone ? `, ${zone.name}` : ''}${crowded ? ', expand company stack' : ''}`}
                 title={zone ? `${zone.name}: ${zone.description}` : undefined}
                 data-market-space={space.id}
-                style:grid-column={space.column + 1}
+                style:grid-column={columnTracks[space.column] + 1}
                 style:grid-row={space.row + 1}
                 style:--market-color={tinted || fillKind
                     ? marketSpaceColor(space.color, zone)
                     : undefined}
                 style:--market-lightness={marketDarkLightness[space.color]}
+                style:--price-ink={solidInk(zone)}
                 onpointerenter={() => expandStack(space.id)}
                 onfocus={() => expandStack(space.id)}
                 onblur={() => (hoveredSpace = undefined)}
@@ -272,6 +300,8 @@
                 }}
             >
                 <strong>{space.price}</strong>
+                {#if zone?.label}<span class="zone-label" aria-hidden="true">{zone.label}</span
+                    >{/if}
                 {#if zone?.marks}<span class="marks" aria-hidden="true"
                         >{#each zone.marks as mark (mark)}<span>{mark}</span>{/each}</span
                     >{/if}
@@ -375,6 +405,11 @@
         text-transform: uppercase;
         white-space: nowrap;
     }
+    .narrow .banner {
+        gap: calc(4px * var(--render-scale));
+        font-size: calc(9px * var(--render-scale));
+        letter-spacing: 0.06em;
+    }
     .banner.arrow {
         padding-left: calc(6px * var(--render-scale));
     }
@@ -400,6 +435,12 @@
     }
     .banner-tick:last-child {
         margin-left: calc(-8px * var(--render-scale));
+    }
+    .narrow .banner-tick:first-child {
+        margin-right: calc(-4px * var(--render-scale));
+    }
+    .narrow .banner-tick:last-child {
+        margin-left: calc(-4px * var(--render-scale));
     }
     .banner-head {
         flex: none;
@@ -438,9 +479,6 @@
     .space.recessed {
         background: var(--market-color);
     }
-    .space.solid {
-        --price-ink: #253b35;
-    }
     .space:focus-visible {
         outline: calc(2px * var(--render-scale)) solid
             light-dark(#796047, var(--rail-focus, #b8cddd));
@@ -469,6 +507,24 @@
         top: calc(2px * var(--render-scale));
         left: calc(4px * var(--render-scale));
         font-size: calc(13px * var(--render-scale));
+    }
+    .narrow strong {
+        left: calc(3px * var(--render-scale));
+        font-size: calc(11px * var(--render-scale));
+    }
+    /* Reads downward below the price. */
+    .zone-label {
+        position: absolute;
+        top: calc(21px * var(--render-scale));
+        left: calc(4px * var(--render-scale));
+        color: var(--price-ink);
+        font-size: calc(9px * var(--render-scale));
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        line-height: 1;
+        text-transform: uppercase;
+        white-space: nowrap;
+        writing-mode: vertical-rl;
     }
     .marks {
         position: absolute;
