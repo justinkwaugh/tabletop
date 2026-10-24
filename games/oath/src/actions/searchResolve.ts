@@ -21,7 +21,8 @@ import {
     favorShortOf,
     playCard,
     playMapChanges,
-    reasonCannotPlayCard
+    reasonCannotPlayCard,
+    whenPlayedMapLeaving
 } from '../util/cardPlay.js'
 import type { PlayMapChanges } from '../powers/registry.js'
 import type { ActiveModifier } from '../util/modifiers.js'
@@ -382,7 +383,9 @@ type KeptPlay = Pick<
 
 /**
  * Land Warden — the kept card's play lands before the second card's When Played power resolves: its map changes,
- * and what it gains first (R-7.3.3), with the Search's carried modifiers, as `playCard` plays it.
+ * and what it gains first (R-7.3.3), with the Search's carried modifiers, as `playCard` plays it. From revision 26
+ * the kept card's own When Played power has resolved too, so the cards it puts off the map are gone (Riots' Q&A
+ * counts the cards at all sites as it resolves).
  */
 function keptPlayMapChanges(
     state: HydratedOathGameState,
@@ -390,13 +393,21 @@ function keptPlayMapChanges(
     keptCardId: string,
     kept: KeptPlay
 ): PlayMapChanges {
-    return playMapChanges(state, playerId, keptCardId, kept.play, {
+    const changes = playMapChanges(state, playerId, keptCardId, kept.play, {
         carried: searchPlayModifiers(state),
         discardFirstCardId: kept.discardFirstCardId,
         toSiteId: kept.toSiteId,
         faceUp: kept.faceUp,
         discardedAdviserCardIds: kept.discardedAdviserCardIds
     })
+    // R-X.4 — before revision 26 the second card was judged on the map before the kept card's power.
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes22)) return changes
+    const gone = whenPlayedMapLeaving(state, playerId, keptCardId, kept.play, kept.faceUp, changes)
+    return {
+        ...changes,
+        leaving: [...changes.leaving, ...gone],
+        arriving: changes.arriving.filter((id) => !gone.includes(id))
+    }
 }
 
 /** Land Warden — R-7.4: the Search's modifiers last the whole action, so they reach the second card's play as they reach the first. */

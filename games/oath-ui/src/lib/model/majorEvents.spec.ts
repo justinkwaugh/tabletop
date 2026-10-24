@@ -206,7 +206,7 @@ describe('the other major events', () => {
         ).toBe('You are an Exile again')
     })
 
-    it('a Campaign won pictures what changed hands, from whom', () => {
+    it('a Campaign won pictures what changed hands; who fought whom is its ledger’s, not an aside', () => {
         const campaign = action({
             type: ActionType.Campaign,
             playerId: 'p3',
@@ -227,30 +227,32 @@ describe('the other major events', () => {
         })
         const [, belongsTo] = campaignsBefore([campaign, spoils])
         expect(belongsTo).toBe(campaign)
-        const won = majorEventOf(spoils, context('p2', { campaign: belongsTo }))
-        expect(won).toMatchObject({
-            kind: MajorEventKind.CampaignWon,
-            aside: 'against Ann',
-            consequence: 'From Ann: Book of Records, the Darkest Secret'
-        })
+        const won = majorEventOf(spoils, context('p2'))
+        expect(won).toMatchObject({ kind: MajorEventKind.CampaignWon, heading: 'Campaign won' })
+        expect(won?.aside).toBeUndefined()
+        expect(won?.consequence).toBeUndefined()
         expect(won?.pictures).toEqual([
             { kind: 'card', cardId: 'relic.book-of-records' },
             { kind: 'banner', banner: Banner.DarkestSecret }
         ])
     })
 
-    it('a Campaign lost is rose, and nothing changed hands', () => {
+    it('a Campaign lost is rose; its ledger tells the rest', () => {
         const lost = action({
             type: ActionType.CampaignSacrifice,
             playerId: 'p3',
             sacrifice: 0,
             metadata: { attack: 2, defense: 3, attackerVictorious: false, sacrificed: 0 }
         })
-        expect(majorEventOf(lost, context())).toMatchObject({
+        const event = majorEventOf(lost, context())
+        expect(event).toMatchObject({
             kind: MajorEventKind.CampaignLost,
+            heading: 'Campaign lost',
             tone: 'danger',
-            consequence: 'Nothing changed hands'
+            pictures: []
         })
+        expect(event?.aside).toBeUndefined()
+        expect(event?.consequence).toBeUndefined()
     })
 
     it('the end die, by the Chancellor’s roll or inside a Rest recorded before', () => {
@@ -414,47 +416,6 @@ describe('every seat a framed row names is its chip: the aside, the line that fo
             .join('')
     const chips = (viewerId?: string, extra: Partial<MajorEventContext> = {}) =>
         context(viewerId, { seatsById: true, ...extra })
-
-    it('a Campaign won and lost: "against <chip>", "From <chip>: …"', () => {
-        const campaign = action({
-            type: ActionType.Campaign,
-            playerId: 'p3',
-            defender: { kind: 'player', playerId: 'p1' },
-            targets: [],
-            attackDice: 3
-        })
-        const spoils = action({
-            type: ActionType.CampaignResolveVictory,
-            playerId: 'p3',
-            metadata: {
-                warbandsPlaced: 0,
-                seizeBurned: 0,
-                favorBurned: 0,
-                relicsTaken: ['relic.book-of-records'],
-                bannersSeized: []
-            }
-        })
-        const won = majorEventOf(
-            spoils,
-            chips('p2', { campaign: campaignsBefore([campaign, spoils])[1] })
-        )
-        expect(drawn(won?.aside, 'p2')).toBe('against <Ann>')
-        expect(drawn(won?.consequence, 'p2')).toBe('From <Ann>: Book of Records')
-        expect(drawn(won?.aside, 'p1')).toBe('against <you>')
-        const lost = action({
-            type: ActionType.CampaignSacrifice,
-            playerId: 'p3',
-            sacrifice: 0,
-            metadata: { attack: 2, defense: 3, attackerVictorious: false, sacrificed: 0 }
-        })
-        expect(
-            drawn(
-                majorEventOf(lost, chips('p2', { campaign: campaignsBefore([campaign, lost])[1] }))
-                    ?.aside,
-                'p2'
-            )
-        ).toBe('against <Ann>')
-    })
 
     it('Citizenship and the Usurper: the seat starts the line as its chip, and the verb agrees with "you"', () => {
         const taken = action({

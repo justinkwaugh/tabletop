@@ -5,6 +5,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, Region, Suit } from '../model/oathEnums.js'
 import type { WarbandGroup } from '../model/campaign.js'
 import type { PileDeposit } from '../model/hidden.js'
+import type { PlayMapChanges } from './registry.js'
 import { discardCards } from '../util/discard.js'
 import { discardFromPlayInChosenOrder } from '../util/orderedDiscard.js'
 import {
@@ -235,15 +236,48 @@ export function discardDenizensAtSites(
     matches: (cardId: string) => boolean,
     sourceCardId: string
 ): DiscardedDenizens {
-    const discarded = siteIds.flatMap((siteId) =>
-        state
-            .denizensAt(siteId)
-            .filter((id) => matches(id) && !isLockedFor(state, actingPlayerId, id))
-    )
+    const discarded = denizensToDiscardAtSites(state, actingPlayerId, siteIds, matches)
     return {
         discarded,
         pileDeposits: discardFromPlayInChosenOrder(state, actingPlayerId, discarded, sourceCardId)
     }
+}
+
+/**
+ * R-10.5, R-7.2.2 — the denizens `discardDenizensAtSites` takes: those that match and are not locked where they
+ * stand. Given a play's `mapChanges`, on the map that play leaves, read from the state before the play or after it.
+ */
+export function denizensToDiscardAtSites(
+    state: HydratedOathGameState,
+    actingPlayerId: string,
+    siteIds: readonly string[],
+    matches: (cardId: string) => boolean,
+    mapChanges?: PlayMapChanges
+): string[] {
+    return siteIds.flatMap((siteId) =>
+        denizensAfterPlay(state, siteId, mapChanges).filter(
+            (id) => matches(id) && !isLockedFor(state, actingPlayerId, id, siteId)
+        )
+    )
+}
+
+/**
+ * R-5.1.4 — the denizens at a site once one play is made: without the cards it discards first, and with the card it
+ * puts there. Before the play that card is at no site yet; after it, it stands there already.
+ */
+export function denizensAfterPlay(
+    state: HydratedOathGameState,
+    siteId: string,
+    mapChanges: PlayMapChanges | undefined
+): string[] {
+    const staying = state
+        .denizensAt(siteId)
+        .filter((id) => !(mapChanges?.leaving ?? []).includes(id))
+    const arriving =
+        mapChanges?.siteId === siteId
+            ? mapChanges.arriving.filter((id) => siteHolding(state, id) === undefined)
+            : []
+    return [...staying, ...arriving]
 }
 
 export interface DiscardedDenizens {
@@ -288,20 +322,20 @@ export function moveFavorBetweenBanks(
 
 /**
  * R-10.25 — a 1:1 swap leaves capacity unchanged; the caller's domain refuses a locked target (R-7.2.2).
- * From revision 10, two cards at one site swap to the same place, so nothing moves.
+ * From revision 10, two cards at one site swap to the same place, so nothing moves. Says whether they moved.
  */
 export function swapPlayedCardWithSiteCard(
     state: HydratedOathGameState,
     playerId: string,
     playedCardId: string,
     siteCardId: string
-): void {
+): boolean {
     const targetSite = siteHolding(state, siteCardId)
     assertExists(targetSite, `${siteCardId} is a denizen at a site`)
     const player = state.getPlayerState(playerId)
     const playedAtSite = siteHolding(state, playedCardId)
     if (playedAtSite === targetSite && isAtLeastOathRevision(state, OathRevision.EngineFixes6)) {
-        return
+        return false
     }
     if (playedAtSite) {
         state.denizensBySite[playedAtSite] = state.denizensBySite[playedAtSite].map((id) =>
@@ -317,6 +351,7 @@ export function swapPlayedCardWithSiteCard(
     state.denizensBySite[targetSite] = state.denizensBySite[targetSite].map((id) =>
         id === siteCardId ? playedCardId : id
     )
+    return true
 }
 
 export function moveWarbandsBoardToSite(

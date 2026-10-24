@@ -183,6 +183,21 @@ describe('R-11.7 — leaving a Shrouded Wood an enemy rules pays at the ruler’
         expect(answer.metadata?.woodPick?.supplySpent).toBe(0)
     })
 
+    it('from revision 27 a free Travel out of the Wood names the card that granted it', () => {
+        const s = table(OathRevision.EngineFixes23, { supply: 0 })
+        Object.assign(s.getPlayerState('me'), {
+            freeTravelAtAction: s.actionCount,
+            freeTravelGrantedBy: 'relic.brass-horse'
+        })
+        const { travel } = leaveAndPick(s, 'h1')
+        expect(travel.metadata).toMatchObject({
+            supplySpent: 0,
+            paysAtPick: true,
+            freeActionOf: 'relic.brass-horse'
+        })
+        expect(s.getPlayerState('me').freeTravelGrantedBy).toBeUndefined()
+    })
+
     it('Tyrant kills a warband at the site the ruler picks', () => {
         const s = table(atRevision, { supply: 3, decadent: false, advisers: [TYRANT] })
         const { answer } = leaveAndPick(s, 'p2')

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Suit } from '@tabletop/oath'
 import { tokenParts } from './tokenText.js'
+import { namedWarbandOwner } from './actionDescription.js'
 
 const text = (t: string) => ({ kind: 'text', text: t })
 
@@ -71,11 +72,56 @@ describe('History text, which draws warbands too', () => {
     const history = (t: string) => tokenParts(t, { warbands: true })
 
     it('draws a counted warband as its token, keeping the words for its alt', () => {
-        expect(history('killed a warband on your board')).toEqual([
+        expect(history('killed a warband at the Plains')).toEqual([
             text('killed '),
             { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
+            text(' at the Plains')
+        ])
+    })
+
+    it('R-10.13 — warbands on a seat’s board, or lost by a seat, are held as that seat’s own', () => {
+        expect(history('killed a warband on your board')).toEqual([
+            text('killed '),
+            { kind: 'warband', count: 1, whose: { kind: 'held', name: 'your' }, words: 'warband' },
             text(' on your board')
         ])
+        expect(history("killed 1 warband on Dana's board (Bear Traps)")).toEqual([
+            text('killed '),
+            { kind: 'warband', count: 1, whose: { kind: 'held', name: 'Dana' }, words: 'warband' },
+            text(" on Dana's board (Bear Traps)")
+        ])
+        expect(history('9 swords against 9 defense; Dana lost 2 warbands to skulls')).toEqual([
+            text('9 swords against 9 defense; Dana lost '),
+            { kind: 'warband', count: 2, whose: { kind: 'held', name: 'Dana' }, words: 'warbands' },
+            text(' to skulls')
+        ])
+        expect(history('lost 2 warbands to skulls')).toEqual([
+            text('lost '),
+            { kind: 'warband', count: 2, whose: { kind: 'row' }, words: 'warbands' },
+            text(' to skulls')
+        ])
+    })
+
+    it('R-10.13 — a seat id that begins with "-" or "_" is the whole loser', () => {
+        for (const id of ['-aB3xQ', '_aB3xQ']) {
+            expect(history(`9 swords against 9 defense; ${id} lost 2 warbands to skulls`)).toEqual([
+                text(`9 swords against 9 defense; ${id} lost `),
+                { kind: 'warband', count: 2, whose: { kind: 'held', name: id }, words: 'warbands' },
+                text(' to skulls')
+            ])
+        }
+    })
+
+    it('R-10.13 — a loser whose seat id begins with "-" holds that seat’s own warbands', () => {
+        const [, lost] = history('9 swords against 9 defense; -aB3xQ lost 2 warbands to skulls')
+        const reader = {
+            names: { player: (id: string) => id, seats: ['p1', '-aB3xQ'] },
+            viewerId: undefined
+        }
+        const ownWarbandsOf = (id: string) => (id === '-aB3xQ' ? 'imperial' : id)
+        expect(
+            lost.kind === 'warband' && namedWarbandOwner(lost.whose, 'p1', reader, ownWarbandsOf)
+        ).toBe('imperial')
     })
 
     it('marks the Empire’s warbands, and swallows a named owner into the token', () => {
@@ -165,7 +211,7 @@ describe('the skull as its symbol, in the rows that ask for it', () => {
             tokenParts('Dana lost 1 warband to a skull', { warbands: true, skulls: true })
         ).toEqual([
             text('Dana lost '),
-            { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
+            { kind: 'warband', count: 1, whose: { kind: 'held', name: 'Dana' }, words: 'warband' },
             text(' to a '),
             { kind: 'skull', words: 'skull' }
         ])

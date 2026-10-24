@@ -47,7 +47,7 @@ interface Scene {
 
 /**
  * Dana and Bea stand at c1, which the Empire rules with two warbands; Ann, the Chancellor, is at
- * h1 and Rhys at p2, away from the battle unless a scene moves him.
+ * h1 and Rhys at p2, away from the battle unless a scene moves them.
  */
 function table(scene: Scene): HydratedOathGameState {
     const s = testState(
@@ -183,7 +183,7 @@ describe("an Ally's Vow of Peace forbids the attacker's sacrifice (R-5.5.2-H1)",
         expect(ongoingCampaign(s).attackerVictorious).toBeUndefined()
     })
 
-    it('Ann defends as the Chancellor and Rhys, admitted as her Ally, holds it: the sacrifice is refused', () => {
+    it('Ann defends as the Chancellor and Rhys, admitted as their Ally, holds it: the sacrifice is refused', () => {
         const s = table({
             revision: atRevision,
             ann: { siteId: 'c1' },
@@ -229,7 +229,7 @@ describe('who is on the defending side, and what is not refused', () => {
         }
     })
 
-    it("Rhys at the targeted site holds it but is not admitted, by his choice or by Bea's: the sacrifice is accepted", () => {
+    it("Rhys at the targeted site holds it but is not admitted, by their choice or by Bea's: the sacrifice is accepted", () => {
         for (const [joins, admitted] of [
             [false, false],
             [true, false]
@@ -285,7 +285,7 @@ describe('who is on the defending side, and what is not refused', () => {
 })
 
 describe('the Campaign around the refusal', () => {
-    it('the defeat that follows: Dana sacrifices nothing, loses, and R-5.5.6 kills half her force', () => {
+    it('the defeat that follows: Dana sacrifices nothing, loses, and R-5.5.6 kills half their force', () => {
         const s = table({ revision: atRevision, ann: { advisers: [adviser(VOW_OF_PEACE)] } })
         // No attack dice, so no skull kills before the defeat.
         attack(s, { attackDice: 0 })
@@ -357,7 +357,7 @@ describe('revision 12 (R-X.4)', () => {
 
 describe("the sacrifice check on the attacker's own view, where hidden values cannot be read", () => {
     const dana = { kind: 'player', playerId: DANA } as const
-    /** Dana's own view as her table judges on it: projected, then guarded. */
+    /** Dana's own view as their table judges on it: projected, then guarded. */
     const ownView = (s: HydratedOathGameState) =>
         OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, dana)), dana)
 

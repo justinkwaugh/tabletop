@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { ActionType } from '@tabletop/oath'
-import { ALL_ACTIONS, MAJOR_ACTIONS, MINOR_ACTIONS } from './actionCatalogue.js'
+import {
+    ALL_ACTIONS,
+    MAJOR_ACTIONS,
+    MINOR_ACTIONS,
+    MINOR_TARGETED_ACTIONS
+} from './actionCatalogue.js'
 
 /** R-5, R-6 — the counts are the Law's, not the arrays'. */
 describe('action catalogue (R-5, R-6)', () => {
@@ -18,11 +23,23 @@ describe('action catalogue (R-5, R-6)', () => {
         )
     })
 
-    it('R-6 — eight minor action types: a Peek covers R-6.3 (the Reliquary needs none, R-6.4-H1), and letting another peek is its own', () => {
-        expect(MINOR_ACTIONS).toHaveLength(8)
+    it('R-6 — eight minor action types and the Tribunal’s: a Peek covers R-6.3 (the Reliquary needs none, R-6.4-H1), and letting another peek is its own', () => {
+        expect(MINOR_ACTIONS).toHaveLength(9)
         expect(MINOR_ACTIONS.map((a) => a.type)).toContain(ActionType.LetPeek)
         expect(MINOR_ACTIONS.map((a) => a.type)).toContain(ActionType.Peek)
         expect(MINOR_ACTIONS.find((a) => a.type === ActionType.Peek)?.rule).toBe('R-6.3')
+    })
+
+    it('R-7.6.3-H1 — "Resolve Tribunal" is one minor action for both of an open deal’s actions, offered while leaving one is', () => {
+        const entry = MINOR_ACTIONS.find((a) => a.label === 'Resolve Tribunal')
+        expect(entry?.type).toBe(ActionType.LeaveDealUnconfirmed)
+        expect(entry?.rule).toBe('R-7.6.3-H1')
+        expect(MINOR_TARGETED_ACTIONS.has(ActionType.LeaveDealUnconfirmed)).toBe(true)
+        expect(ALL_ACTIONS.map((a) => a.type)).not.toContain(ActionType.ClaimDealKept)
+        // The Act menu's power entry keeps its name; the Tribunal is inside it.
+        expect(MINOR_ACTIONS.find((a) => a.type === ActionType.UseActionPower)?.label).toBe(
+            'Use a power'
+        )
     })
 
     it('R-6.6.2’s answer is not an Act Phase action', () => {

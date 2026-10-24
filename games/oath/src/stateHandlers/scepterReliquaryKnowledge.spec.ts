@@ -235,7 +235,7 @@ describe('R-6.4-H1 — a Grand Scepter taken in a Campaign teaches its taker the
         throw Error('no seed gave Rhys the victory')
     }
 
-    it('his view does not hold the Reliquary for the rest of that turn, and does once the turn is over; Dana keeps what she saw', () => {
+    it("Rhys's view does not hold the Reliquary for the rest of that turn, and does once the turn is over; Dana keeps what they saw", () => {
         const { r, victory } = taken(NOW)
         expect(r.knows(RHYS)).toEqual([])
         // The take reveals nothing hidden, so Undo is not barred by a teach.
@@ -290,8 +290,8 @@ describe('R-6.4-H1 — a Grand Scepter recovered teaches its taker the Reliquary
 })
 
 describe("R-6.4-H1 — a Grand Scepter Relic Thief takes on another player's turn is learned when that turn ends", () => {
-    // Dana recovers the Scepter on her turn; Mara, in the same region with Relic Thief, rolls for it.
-    it('neither Dana, who held it, nor Mara, who took it from her, learns it on Dana’s turn; Mara does once it ends', () => {
+    // Dana recovers the Scepter on their turn; Mara, in the same region with Relic Thief, rolls for it.
+    it('neither Dana, who held it, nor Mara, who took it from them, learns it on Dana’s turn; Mara does once it ends', () => {
         for (let seed = 1; seed < 400; seed++) {
             const r = runner(
                 scepterAtC1(

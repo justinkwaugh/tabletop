@@ -337,7 +337,7 @@ describe('R-X.4: a game created before revision 13 adds the site dice after the 
 
 describe('the Step 2 pools with other targets, sites and plans', () => {
     it('a Mountain and a Plains fold in target order, both before the plans', () => {
-        // Rhys rules both; his People's Favor (1) is the third target. Mountain first: its die from the
+        // Rhys rules both; their People's Favor (1) is the third target. Mountain first: its die from the
         // empty pool adds a defense die (4), and Rangers sees it. Plains first: no defense die is added.
         const banner = {
             banners: {
@@ -383,12 +383,12 @@ describe('the Step 2 pools with other targets, sites and plans', () => {
     }
     const onlyTargets: [string, CampaignTarget, Partial<Scene>][] = [
         [
-            'his relic',
+            'their relic',
             { kind: CampaignTargetKind.Relic, cardId: MAP },
             { rhys: { relicIds: [MAP] } }
         ],
         [
-            'his banner',
+            'their banner',
             PEOPLES_FAVOR,
             {
                 state: {
@@ -409,7 +409,7 @@ describe('the Step 2 pools with other targets, sites and plans', () => {
         })
     }
 
-    it('the Mountain counts through his pawn and favor too', () => {
+    it('the Mountain counts through their pawn and favor too', () => {
         const s = table(pawnOnly)
         campaign(s, { targets: [PAWN_AND_FAVOR], plans: [battlePlanUse(RANGERS)] })
         expect(ongoingCampaign(s).attackPool).toBe(0)
@@ -448,7 +448,7 @@ describe('the Step 2 pools with other targets, sites and plans', () => {
         expect(ongoingCampaign(s).attackPool).toBe(2)
     })
 
-    it('Captains: Dana acts from the Plains she names, so her pawn on the Mountain takes nothing', () => {
+    it('Captains: Dana acts from the Plains they name, so their pawn on the Mountain takes nothing', () => {
         for (const revision of [atRevision, before]) {
             const s = table({
                 revision,
@@ -686,7 +686,7 @@ describe('Peace Envoy declared once the Citizens asked to join have answered', (
 
 describe("Peace Envoy's check on the attacker's own view, where hidden values cannot be read", () => {
     const dana = { kind: 'player', playerId: DANA } as const
-    /** Dana's own view as her table judges on it: projected, then guarded. */
+    /** Dana's own view as their table judges on it: projected, then guarded. */
     const ownView = (s: HydratedOathGameState) =>
         OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, dana)), dana)
 

@@ -278,7 +278,7 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
 })
 
 /**
- * Dana keeps her favor in the nomad bank (Vow of Kinship): none on her board, `nomad` in the bank.
+ * Dana keeps their favor in the nomad bank (Vow of Kinship): none on their board, `nomad` in the bank.
  * Toll Roads at the Cradle site Rhys rules takes a favor to travel there.
  */
 function kinship(nomad: number, denizens: Record<string, string[]> = {}) {
@@ -404,7 +404,7 @@ const useOf = (cardId: string) => ({
 })
 
 /**
- * Dana keeps her favor in the nomad bank (Vow of Kinship), none on her board, and holds `card`, a
+ * Dana keeps their favor in the nomad bank (Vow of Kinship), none on their board, and holds `card`, a
  * Travel card whose cost places a favor (A Fast Steed, Tents). The Cradle site c2 holds Oracle, the
  * one nomad card Hospitality matches there.
  */
@@ -550,7 +550,7 @@ describe('Hospitality’s bank as the way’s card costs leave it (R-7.1.2, R-7.
     })
 })
 
-/** Dana keeps her favor in the nomad bank, one there; Toll Roads stands at c2, which no one rules, so its toll goes to the bandits. */
+/** Dana keeps their favor in the nomad bank, one there; Toll Roads stands at c2, which no one rules, so its toll goes to the bandits. */
 function banditToll(dana: Partial<Seat> = {}) {
     const state = kinship(1, { c2: [ORACLE, TOLL_ROADS] })
     state.warbandsBySite = {}

@@ -158,8 +158,12 @@ export const OathPlayerState = Type.Object({
     restPowersUsedThisTurn: Type.Array(Type.String(), { maxItems: 16 }),
     /** Knights Errant, Hunting Party — the action index at which a Campaign costs no Supply. */
     freeCampaignAtAction: Type.Optional(Type.Number()),
+    /** From revision 27 — the card whose grant set `freeCampaignAtAction`. */
+    freeCampaignGrantedBy: Type.Optional(Type.String()),
     /** Second Wind — the action index at which a Travel costs no Supply. */
     freeTravelAtAction: Type.Optional(Type.Number()),
+    /** From revision 27 — the card whose grant set `freeTravelAtAction`. */
+    freeTravelGrantedBy: Type.Optional(Type.String()),
     campaignAsIf: Type.Optional(CampaignAsIf)
 })
 
@@ -183,7 +187,9 @@ export class HydratedOathPlayerState
     declare secrets: number
     declare secretsFacedown: number
     declare freeCampaignAtAction?: number
+    declare freeCampaignGrantedBy?: string
     declare freeTravelAtAction?: number
+    declare freeTravelGrantedBy?: string
     declare campaignAsIf?: CampaignAsIf
     declare warbandsOnBoard: WarbandCounts
     declare warbandsInPersonalBank: WarbandCounts

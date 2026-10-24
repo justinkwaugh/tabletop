@@ -47,8 +47,8 @@ const names: HistoryNames = {
 }
 
 /**
- * Dana on turn at c1 with `facedown` as her one facedown adviser beside `faceup`, holding `relics`;
- * `here` at her site. Rhys sits at the Plains.
+ * Dana on turn at c1 with `facedown` as their one facedown adviser beside `faceup`, holding `relics`;
+ * `here` at their site. Rhys sits at the Plains.
  */
 function table(
     facedown: string,
@@ -217,7 +217,7 @@ describe('R-6.1, R-7.4 — Crop Rotation: its cards join "Discard first", and pi
     })
 })
 
-describe('R-6.1, R-7.4 — New Growth: its sites join "Play to:", and picking one uses it', () => {
+describe('R-6.1, R-7.4 — New Growth: its sites join "To which site", and picking one uses it', () => {
     it('another site is offered; the site picked declares New Growth, and the History names the site and the card', async () => {
         const state = table(WOLVES, [NEW_GROWTH])
         const { session, lastSent } = await playing(state)

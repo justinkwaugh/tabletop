@@ -7,6 +7,8 @@ import { rollEndDie } from '../data/dice.js'
 import { endDieIsRolled, stableRegimeWinner, warExhaustionWinner } from '../util/victory.js'
 import { reasonNotYourTurn } from '../util/turn.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
+import { OpenDealsDropped } from '../model/question.js'
+import { dropOpenDealsAtGameEnd } from '../util/deals.js'
 
 // R-3.4
 export const FINAL_ROUND = 8
@@ -18,7 +20,9 @@ export const CompleteRestMetadata = Type.Object({
     awaitsEndDie: Type.Optional(Type.Boolean()),
     endDieRoll: Type.Optional(Type.Number()),
     round: Type.Optional(Type.Number()),
-    wonBy: Type.Optional(Type.String())
+    wonBy: Type.Optional(Type.String()),
+    /** R-7.6.3-H1 — the Tribunal deals still open when this action ended the game, now dropped. */
+    openDealsDropped: Type.Optional(OpenDealsDropped)
 })
 
 export type CompleteRest = Type.Static<typeof CompleteRest>
@@ -97,6 +101,7 @@ export class HydratedCompleteRest
             if (outcome) {
                 state.winningPlayerIds = [outcome.winnerPlayerId]
                 metadata.wonBy = outcome.rule
+                Object.assign(metadata, dropOpenDealsAtGameEnd(state))
                 this.metadata = metadata
                 return
             }
@@ -107,6 +112,7 @@ export class HydratedCompleteRest
             const outcome = warExhaustionWinner(state)
             state.winningPlayerIds = [outcome.winnerPlayerId]
             metadata.wonBy = outcome.rule
+            Object.assign(metadata, dropOpenDealsAtGameEnd(state))
             this.metadata = metadata
             return
         }

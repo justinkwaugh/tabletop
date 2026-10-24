@@ -50,7 +50,7 @@ const use = (cardId: string) => ({ cardId, powerIndex: powerIndexOf(cardId, Powe
 
 type Seat = Parameters<typeof testPlayer>[0]
 
-/** Dana at c1 with plenty to spend, her cards and the cards at her site as the case needs. */
+/** Dana at c1 with plenty to spend, their cards and the cards at their site as the case needs. */
 function table(
     me: Partial<Seat>,
     here: string[] = [],

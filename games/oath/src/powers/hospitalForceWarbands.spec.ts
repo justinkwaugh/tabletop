@@ -140,8 +140,8 @@ function sacrifice(
     new HydratedCampaignSacrifice(buildAction(CampaignSacrifice, { playerId, ...fields })).apply(s)
 }
 
-describe("a Citizen attacker with Vow of Union: the Empire's warbands at her sites are hers for Hospital (R-10.28-H2)", () => {
-    /** Bea (a Citizen, Vow of Union) attacks Dana (an Exile) at c1, using Hospital at p1; c2's three Imperial warbands join her force. */
+describe("a Citizen attacker with Vow of Union: the Empire's warbands at their sites are theirs for Hospital (R-10.28-H2)", () => {
+    /** Bea (a Citizen, Vow of Union) attacks Dana (an Exile) at c1, using Hospital at p1; c2's three Imperial warbands join their force. */
     function citizenAttacks(revision: number) {
         const s = table({
             revision,
@@ -162,7 +162,7 @@ describe("a Citizen attacker with Vow of Union: the Empire's warbands at her sit
         ).apply(s)
     }
 
-    it('A: skull losses picked at a Vow of Union site are held for her Hospital, and not an enemy warband killed', () => {
+    it('A: skull losses picked at a Vow of Union site are held for their Hospital, and not an enemy warband killed', () => {
         const s = citizenAttacks(atRevision)
         skullsPicked(s)
         expect(heldFor(s, BEA)).toBe(2)
@@ -170,17 +170,17 @@ describe("a Citizen attacker with Vow of Union: the Empire's warbands at her sit
         expect(enemyWarbandsKilledFor(s, ongoingCampaign(s), BattlePlanSide.Defender)).toBe(0)
     })
 
-    it("defeated, her Hospital's site is a Vow of Union site too: its survivor goes to her board (R-5.5.6-H2), so what Hospital held dies at the end", () => {
+    it("defeated, their Hospital's site is a Vow of Union site too: its survivor goes to their board (R-5.5.6-H2), so what Hospital held dies at the end", () => {
         const s = citizenAttacks(atRevision)
         Object.assign(ongoingCampaign(s), { swords: 0, defense: 1 })
-        // Half her force of seven: two at c2 and one on her board.
+        // Half their force of seven: two at c2 and one on their board.
         sacrifice(s, BEA, { sacrifice: 0, defeatKills: [atSite('c2', 2), onBoard(BEA, 1)] })
         expect(s.campaign).toBeUndefined()
         expect(s.warbandsBySite['p1']?.[I] ?? 0).toBe(0)
         expect(imperialBank(s)).toBe(CHANCELLOR_BANK + 3)
     })
 
-    it("R-X.4 — before revision 13 the Empire's warbands there are the Chancellor's, so her Hospital misses them, as recorded", () => {
+    it("R-X.4 — before revision 13 the Empire's warbands there are the Chancellor's, so their Hospital misses them, as recorded", () => {
         const s = citizenAttacks(before)
         skullsPicked(s)
         expect(heldFor(s, BEA)).toBe(0)
@@ -189,10 +189,10 @@ describe("a Citizen attacker with Vow of Union: the Empire's warbands at her sit
     })
 })
 
-describe("B: a defeated Citizen attacker through Captains: the Empire's warbands at the Captains site are hers for Hospital", () => {
+describe("B: a defeated Citizen attacker through Captains: the Empire's warbands at the Captains site are theirs for Hospital", () => {
     /**
      * Bea (a Citizen) rules c1, where Captains is, and names c2 (three Imperial warbands), where Dana (an
-     * Exile) stands; she attacks Dana's pawn and is defeated. Hospital is at p1, which she rules.
+     * Exile) stands; Bea attacks Dana's pawn and is defeated. Hospital is at p1, which they rule.
      */
     function defeatedFromCaptains(revision: number) {
         const s = table({
@@ -207,7 +207,7 @@ describe("B: a defeated Citizen attacker through Captains: the Empire's warbands
         s.actionCount += 1
         attack(s, BEA, DANA, [{ kind: CampaignTargetKind.PawnAndFavor }], [HOSPITAL])
         Object.assign(ongoingCampaign(s), { swords: 0, defense: 1 })
-        // R-5.5.6 — half her force of six: two at c2 and one on her board; c2's last goes to her board.
+        // R-5.5.6 — half their force of six: two at c2 and one on their board; c2's last goes to their board.
         sacrifice(s, BEA, { sacrifice: 0, defeatKills: [atSite('c2', 2), onBoard(BEA, 1)] })
         expect(s.campaign).toBeUndefined()
         expect(s.warbandsBySite['c2']?.[I] ?? 0).toBe(0)
@@ -215,7 +215,7 @@ describe("B: a defeated Citizen attacker through Captains: the Empire's warbands
         return s
     }
 
-    it('all three are held, and placed on her Hospital site at the end', () => {
+    it('all three are held, and placed on their Hospital site at the end', () => {
         const s = defeatedFromCaptains(atRevision)
         expect(imperialBank(s)).toBe(CHANCELLOR_BANK)
         expect(s.warbandsBySite['p1']?.[I]).toBe(1 + 3)
@@ -228,7 +228,7 @@ describe("B: a defeated Citizen attacker through Captains: the Empire's warbands
     })
 })
 
-describe("a Citizen defender: the Empire's warbands at her targeted sites are hers for Hospital", () => {
+describe("a Citizen defender: the Empire's warbands at their targeted sites are theirs for Hospital", () => {
     /** Dana attacks Bea (a Citizen) at c1, two Imperial warbands there; Ann, the Chancellor, joins as an Ally. */
     function citizenDefends(
         revision: number,
@@ -264,7 +264,7 @@ describe("a Citizen defender: the Empire's warbands at her targeted sites are he
         return s
     }
 
-    it("C: her own Hospital catches the Empire's warbands killed at her targeted site", () => {
+    it("C: their own Hospital catches the Empire's warbands killed at their targeted site", () => {
         const s = citizenDefends(atRevision, BEA)
         defendingSideChooses(s, [atSite('c1', 1)])
         expect(heldFor(s, BEA)).toBe(1)
@@ -272,7 +272,7 @@ describe("a Citizen defender: the Empire's warbands at her targeted sites are he
         expect(enemyWarbandsKilledFor(s, ongoingCampaign(s), BattlePlanSide.Attacker)).toBe(0)
     })
 
-    it("the reverse: the Chancellor's Hospital, as her Ally, does not catch them (R-10.28: you alone)", () => {
+    it("the reverse: the Chancellor's Hospital, as their Ally, does not catch them (R-10.28: you alone)", () => {
         const s = citizenDefends(atRevision, ANN)
         defendingSideChooses(s, [atSite('c1', 1)])
         expect(heldFor(s, ANN)).toBe(0)
@@ -293,7 +293,7 @@ describe("a Citizen defender: the Empire's warbands at her targeted sites are he
         expect(imperialBank(s)).toBe(CHANCELLOR_BANK + 1)
     })
 
-    it("the Ally answering later sees her redirect: the Chancellor's Wrestlers sacrifice at her site is held for her Hospital", () => {
+    it("the Ally answering later sees their redirect: the Chancellor's Wrestlers sacrifice at their site is held for their Hospital", () => {
         const s = table({
             revision: atRevision,
             dana: { warbandsOnBoard: { [DANA]: 8 } },
@@ -310,7 +310,7 @@ describe("a Citizen defender: the Empire's warbands at her targeted sites are he
         expect(imperialBank(s)).toBe(CHANCELLOR_BANK)
     })
 
-    it("a Hospital whose site is lost: the warbands held for her are killed at the end, and count for the attacker's Cauldron", () => {
+    it("a Hospital whose site is lost: the warbands held for them are killed at the end, and count for the attacker's Cauldron", () => {
         const s = citizenDefends(
             atRevision,
             BEA,
@@ -335,7 +335,7 @@ describe("a Citizen defender: the Empire's warbands at her targeted sites are he
         expect(imperialBank(s)).toBe(CHANCELLOR_BANK + 2)
     })
 
-    it("R-X.4 — before revision 13 they are the Chancellor's, so the Chancellor's Hospital catches them and hers does not, as recorded", () => {
+    it("R-X.4 — before revision 13 they are the Chancellor's, so the Chancellor's Hospital catches them and theirs does not, as recorded", () => {
         const hers = citizenDefends(before, BEA)
         defendingSideChooses(hers, [atSite('c1', 1)])
         expect(heldFor(hers, BEA)).toBe(0)
@@ -348,7 +348,7 @@ describe("a Citizen defender: the Empire's warbands at her targeted sites are he
     })
 })
 
-describe("the Chancellor defending: the Empire's warbands at her targeted sites and on her board are hers", () => {
+describe("the Chancellor defending: the Empire's warbands at their targeted sites and on their board are theirs", () => {
     function chancellorDefends(revision: number) {
         const s = table({
             revision,
@@ -379,7 +379,7 @@ describe("the Chancellor defending: the Empire's warbands at her targeted sites 
     }
 })
 
-describe("D: a Citizen attacking the Chancellor through Captains — the warbands at the Captains site are hers (Captains' Q&A)", () => {
+describe("D: a Citizen attacking the Chancellor through Captains — the warbands at the Captains site are theirs (Captains' Q&A)", () => {
     /**
      * Bea (a Citizen) rules c1, where Captains is, and names c2 (two Imperial warbands) to attack Ann,
      * the Chancellor, who uses Hospital at h1.
@@ -409,7 +409,7 @@ describe("D: a Citizen attacking the Chancellor through Captains — the warband
         return s
     }
 
-    it("her sacrifice at the Captains site is not held for the Chancellor's Hospital, and counts for the Chancellor's Cauldron", () => {
+    it("their sacrifice at the Captains site is not held for the Chancellor's Hospital, and counts for the Chancellor's Cauldron", () => {
         const s = captainsAttack(atRevision)
         expect(heldFor(s, ANN)).toBe(0)
         expect(imperialBank(s)).toBe(CHANCELLOR_BANK + 2)
@@ -423,7 +423,7 @@ describe("D: a Citizen attacking the Chancellor through Captains — the warband
         expect(enemyWarbandsKilledFor(s, ongoingCampaign(s), BattlePlanSide.Defender)).toBe(0)
     })
 
-    it('she has no Hospital of her own here: outside the Empire for this Campaign, she rules no site through its warbands (R-5.5.1.a)', () => {
+    it('they have no Hospital of their own here: outside the Empire for this Campaign, they rule no site through its warbands (R-5.5.1.a)', () => {
         const s = captainsTable(atRevision)
         s.denizensBySite['c1'] = [CAPTAINS, HOSPITAL]
         expect(() => attack(s, BEA, ANN, [siteTarget('c2')], [HOSPITAL])).toThrow(

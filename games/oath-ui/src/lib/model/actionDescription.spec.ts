@@ -98,7 +98,9 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.CompleteRest]: {},
     [ActionType.RollEndDie]: { metadata: { roll: 4, round: 6, threshold: 5 } },
     [ActionType.ResolveOathkeeper]: { chosenPlayerId: 'p2' },
-    [ActionType.TransferOathkeeper]: { source: 'system', fromPlayerId: 'p2', toPlayerId: 'p1' }
+    [ActionType.TransferOathkeeper]: { source: 'system', fromPlayerId: 'p2', toPlayerId: 'p1' },
+    [ActionType.ClaimDealKept]: { dealId: 'd1' },
+    [ActionType.LeaveDealUnconfirmed]: { dealId: 'd1' }
 }
 
 describe('a history line names a site by its printed name', () => {
@@ -175,10 +177,10 @@ describe('a history line names a site by its printed name', () => {
 })
 
 describe('the history tab describes every action', () => {
-    it('has a sentence for all 33 action types, and reaches no fallback', () => {
+    it('has a sentence for all 35 action types, and reaches no fallback', () => {
         const types = Object.values(ActionType)
         // Pinned rather than read off the enum, so adding an action type fails here.
-        expect(types).toHaveLength(33)
+        expect(types).toHaveLength(35)
 
         for (const type of types) {
             const fields = MINIMAL[type]
@@ -1193,6 +1195,75 @@ describe('the history tab describes every action', () => {
         expect(campaigned).toMatch(
             /^campaigned against Bob for .+ \(free, Second Wind\); Citizens may join the defense$/
         )
+    })
+
+    describe('R-10.2 — a free action names the card that granted it, as Second Wind’s does', () => {
+        const travel = (metadata: Record<string, unknown>) =>
+            describeAction(
+                action({
+                    type: ActionType.Travel,
+                    playerId: 'p1',
+                    siteId: 'slot.provinces.1',
+                    metadata: { supplySpent: 0, supplyRemaining: 4, ...metadata }
+                }),
+                nameOf
+            )
+        const campaign = (
+            metadata: Record<string, unknown>,
+            plans: { cardId: string; powerIndex: number }[] = []
+        ) =>
+            describeAction(
+                action({
+                    type: ActionType.Campaign,
+                    playerId: 'p1',
+                    defender: { kind: 'player', playerId: 'p2' },
+                    targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                    attackDice: 3,
+                    plans,
+                    metadata: { supplySpent: 0, ...metadata }
+                }),
+                nameOf
+            )
+
+        it('a free Travel: "traveled to Provinces 2 (free, Brass Horse)"', () => {
+            expect(travel({ freeActionOf: 'relic.brass-horse' })).toBe(
+                'traveled to Provinces 2 (free, Brass Horse)'
+            )
+        })
+
+        it.each([
+            ['denizen.order.knights-errant', 'Knights Errant'],
+            ['denizen.order.hunting-party', 'Hunting Party'],
+            ['denizen.order.captains', 'Captains'],
+            ['denizen.beast.wild-allies', 'Wild Allies'],
+            ['denizen.discord.second-wind', 'Second Wind']
+        ])('a free Campaign granted by %s ends "(free, %s)"', (cardId, name) => {
+            expect(campaign({ freeActionOf: cardId })).toBe(
+                `campaigned against Bob for their pawn and favor (free, ${name})`
+            )
+        })
+
+        it('a Sneak Attack reads "(Sneak Attack, free)" after its plans: "…, using Second Wind (Sneak Attack, free)"', () => {
+            const SECOND_WIND = 'denizen.discord.second-wind'
+            expect(campaign({ sneakAttack: true })).toBe(
+                'campaigned against Bob for their pawn and favor (Sneak Attack, free)'
+            )
+            expect(
+                campaign({ sneakAttack: true }, [
+                    {
+                        cardId: SECOND_WIND,
+                        powerIndex: powerIndexOf(SECOND_WIND, PowerTiming.BattlePlan)
+                    }
+                ])
+            ).toBe(
+                'campaigned against Bob for their pawn and favor, using Second Wind (Sneak Attack, free)'
+            )
+        })
+
+        it('a game from before the record (no card, no Sneak Attack mark) reads as it always has', () => {
+            expect(travel({})).toBe('traveled to Provinces 2')
+            expect(campaign({})).toBe('campaigned against Bob for their pawn and favor')
+        })
     })
 
     describe('R-7.1.4 — a Travel names each toll it paid and a secret it flipped', () => {
@@ -2659,6 +2730,28 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             )
         })
 
+        it('Warning Signals declared with nothing to move reads that it moved nothing', () => {
+            const planNotes = ['Warning Signals: p3 moved nothing']
+            expect(
+                describeAction(
+                    action({
+                        type: ActionType.CampaignDefend,
+                        playerId: 'p3',
+                        plans: [],
+                        metadata: {
+                            plansUsed: ['Warning Signals'],
+                            swords: 2,
+                            defense: 3,
+                            planNotes
+                        }
+                    }),
+                    nameOf
+                )
+            ).toBe(
+                'used Warning Signals; 2 swords against 3 defense; moved nothing (Warning Signals)'
+            )
+        })
+
         it('the victor’s plans follow the spoils, after the placements', () => {
             const row = action({
                 type: ActionType.CampaignResolveVictory,
@@ -2896,5 +2989,73 @@ describe('Vow of Kinship — what its holder paid from the Nomad bank, its own r
             { kind: 'suit', suit: Suit.Nomad, bank: true },
             { kind: 'suit', suit: Suit.Discord, bank: true }
         ])
+    })
+})
+
+describe('a Tribunal deal claimed kept or left unconfirmed', () => {
+    const DEAL = {
+        id: 'd1',
+        proposerPlayerId: 'p2',
+        counterpartyPlayerId: 'p1',
+        proposerPromise: 'I will not campaign against you',
+        round: 2
+    }
+    it('the claim names the party asked to confirm it', () => {
+        const claim = action({
+            type: ActionType.ClaimDealKept,
+            playerId: 'p1',
+            dealId: 'd1',
+            metadata: { askedPlayerId: 'p2' }
+        })
+        expect(describeAction(claim, nameOf)).toBe(
+            'asked Bob to confirm their Tribunal deal was kept'
+        )
+    })
+    it('leaving it unconfirmed names the other party, whichever side left it', () => {
+        const left = (playerId: string) =>
+            describeAction(
+                action({
+                    type: ActionType.LeaveDealUnconfirmed,
+                    playerId,
+                    dealId: 'd1',
+                    metadata: { deal: DEAL }
+                }),
+                nameOf
+            )
+        expect(left('p1')).toBe('left the Tribunal deal with Bob unconfirmed; it is closed')
+        expect(left('p2')).toBe('left the Tribunal deal with Alice unconfirmed; it is closed')
+    })
+    // The asked party is the answer's own seat; the claimant is the deal's other party, from the record.
+    const answered = (playerId: string, kept: boolean) =>
+        action({
+            type: ActionType.AnswerQuestion,
+            playerId,
+            answer: { kind: PowerQuestionKind.DealKept, kept },
+            metadata: {
+                cardId: 'site.the-tribunal',
+                kind: PowerQuestionKind.DealKept,
+                summary: kept
+                    ? 'confirmed the deal with p1 was kept'
+                    : 'said the deal with p1 was not kept',
+                resumeMachineState: MachineState.ActPhase,
+                last: true,
+                answeredDeal: DEAL
+            }
+        })
+    it('"Yes, it was kept" closes the deal: "confirmed the Tribunal deal with <claimant> was kept; it is closed"', () => {
+        expect(describeAction(answered('p2', true), nameOf)).toBe(
+            'confirmed the Tribunal deal with Alice was kept; it is closed'
+        )
+        expect(describeAction(answered('p1', true), nameOf)).toBe(
+            'confirmed the Tribunal deal with Bob was kept; it is closed'
+        )
+    })
+    it('"Not kept" leaves it open: "answered not kept; the deal with <claimant> stays open"', () => {
+        expect(describeAction(answered('p2', false), nameOf)).toBe(
+            'answered not kept; the deal with Alice stays open'
+        )
+        expect(describeAction(answered('p1', false), nameOf)).toBe(
+            'answered not kept; the deal with Bob stays open'
+        )
     })
 })

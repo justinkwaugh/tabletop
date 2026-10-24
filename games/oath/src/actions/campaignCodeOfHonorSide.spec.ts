@@ -48,7 +48,7 @@ interface Scene {
 
 /**
  * Dana and Bea stand at c1, which the Empire rules with two warbands; Ann, the Chancellor, is at
- * h1 and Rhys at p2, away from the battle unless a scene moves him. By default Bea holds Bear
+ * h1 and Rhys at p2, away from the battle unless a scene moves them. By default Bea holds Bear
  * Traps and Ann Code of Honor.
  */
 function table(scene: Scene): HydratedOathGameState {
@@ -171,7 +171,7 @@ describe('Code of Honor cannot be used once its side has used another battle pla
         expect(ongoingCampaign(s).plansUsed).toEqual([BEAR_TRAPS])
     })
 
-    it('Ann defends and uses a plan; Rhys, admitted as her Ally, cannot use his Code of Honor', () => {
+    it('Ann defends and uses a plan; Rhys, admitted as their Ally, cannot use their Code of Honor', () => {
         const s = table({
             revision: atRevision,
             bea: { siteId: 'p2', advisers: [] },
@@ -247,7 +247,7 @@ describe('what Code of Honor still allows, and what it still locks', () => {
         expect(used.metadata?.attackPool).toBe(1)
     })
 
-    it('Bea uses Code of Honor first: the rest of her side is locked out, as before', () => {
+    it('Bea uses Code of Honor first: the rest of their side is locked out, as before', () => {
         const s = table({
             revision: atRevision,
             bea: { advisers: [adviser(CODE_OF_HONOR)] },
@@ -330,7 +330,7 @@ describe('revision 12 (R-X.4)', () => {
 
 describe("the defending side's checks on Ann's own view, where hidden values cannot be read", () => {
     const ann = { kind: 'player', playerId: ANN } as const
-    /** Ann's own view as her table judges on it: projected, then guarded. */
+    /** Ann's own view as their table judges on it: projected, then guarded. */
     const ownView = (s: HydratedOathGameState) =>
         OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, ann)), ann)
 

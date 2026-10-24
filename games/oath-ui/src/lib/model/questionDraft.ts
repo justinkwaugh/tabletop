@@ -29,6 +29,7 @@ import {
     warbandOwnerGainedByPower,
     woodTravelPaysAtPick,
     type ConspiracyPlay,
+    type OpenDeal,
     PowerQuestionValidator,
     type PowerQuestion,
     type ProjectedPowerQuestion,
@@ -403,6 +404,13 @@ export class QuestionDraft implements PanelDraft {
         const picked = this.adviserDiscards
         if (picked.length < this.adviserDiscardCount) return undefined
         return this.reasonCannot(adviserDiscardsAnswer(picked))
+    }
+
+    /** R-7.6.3-H1 — the deal a "kept?" question is about, public in the open deals. */
+    get claimedDeal(): OpenDeal | undefined {
+        const question = this.mine
+        if (question?.kind !== PowerQuestionKind.DealKept) return undefined
+        return this.session.gameState.openDeals?.find((deal) => deal.id === question.dealId)
     }
 
     /** The yes answer has every pick it needs; until then it is not offered. */
@@ -810,6 +818,8 @@ export class QuestionDraft implements PanelDraft {
                 return { kind: question.kind, pay: yes }
             case PowerQuestionKind.Exchange:
                 return { kind: question.kind, accept: yes }
+            case PowerQuestionKind.DealKept:
+                return { kind: question.kind, kept: yes }
             case PowerQuestionKind.JoinSite:
                 return { kind: question.kind, join: yes }
             case PowerQuestionKind.KeepOrBottomRelic:

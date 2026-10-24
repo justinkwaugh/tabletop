@@ -29,10 +29,10 @@ const PALANQUIN = 'denizen.order.palanquin'
 const IVORY_EYE = 'relic.ivory-eye'
 
 /**
- * Dana, the Chancellor, stands at the Drowned City (c1, Cradle), which Rhys rules with 2. She rules
+ * Dana, the Chancellor, stands at the Drowned City (c1, Cradle), which Rhys rules with 2. They rule
  * the Plains (c2), where Captains lies and Rhys's pawn stands, and the Great Slum (p1), where
- * Ann's pawn stands. Captains offers the sites she rules; Siege Engines, in her advisers, the
- * faceup sites in her region. h3 is facedown.
+ * Ann's pawn stands. Captains offers the sites they rule; Siege Engines, in their advisers, the
+ * faceup sites in their region. h3 is facedown.
  */
 function table(
     dana: Partial<OathPlayerState> = {},

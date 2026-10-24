@@ -81,18 +81,25 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(panel(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
             await expect(panel(page).locator('.question-line')).toHaveText(/^Pay\s*Rhys\s*1\?$/)
             const pay = panel(page).getByRole('button', { name: 'Pay', exact: true })
-            const refuse = panel(page).getByRole('button', { name: 'Refuse', exact: true })
+            const refuse = panel(page).getByRole('button', {
+                name: 'Refuse, you stay',
+                exact: true
+            })
             const [payBox, refuseBox, panelBox] = [
                 await boxOf(page, pay),
                 await boxOf(page, refuse),
                 await boxOf(page, panel(page))
             ]
-            // One width for the two, the wider label's, never stretched across the panel.
+            // One width for the two, the wider label's ("Refuse · you stay"), never stretched across the panel.
             expect(Math.abs(payBox.width - refuseBox.width)).toBeLessThan(1)
-            expect(payBox.width + refuseBox.width).toBeLessThan(panelBox.width * 0.6)
             if (phone) {
+                // Too wide for one line on a phone: one per line, 44 px tall.
+                expect(payBox.width).toBeLessThan(panelBox.width * 0.6)
+                expect(refuseBox.y).toBeGreaterThanOrEqual(payBox.y + payBox.height)
                 expect(payBox.height).toBeGreaterThanOrEqual(44)
                 expect(refuseBox.height).toBeGreaterThanOrEqual(44)
+            } else {
+                expect(payBox.width + refuseBox.width).toBeLessThan(panelBox.width * 0.6)
             }
             return { pay, refuse }
         }
@@ -253,7 +260,7 @@ test.describe('the Shrouded Wood ruler’s pick on a desktop at 1280', () => {
         )
 
         await siteAt(page, 'slot.provinces.1').locator('.board-card').click()
-        // The table passes to the traveller, asked before anything is paid or moved; her map lights nothing.
+        // The table passes to the traveller, asked before anything is paid or moved; their map lights nothing.
         await expect(panel(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
         const facts = await call(page, 'tableFacts')
         expect(facts.seatId).toBe('Dana')

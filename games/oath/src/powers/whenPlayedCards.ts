@@ -14,6 +14,7 @@ import { persistentMatchingAdvisers } from '../util/persistent.js'
 import {
     burnSecretsFromDarkestSecret,
     denizensOnMap,
+    denizensToDiscardAtSites,
     discardDenizensAtSites,
     faceupSitesInYourRegion,
     favorObtainableFromPicks,
@@ -96,27 +97,40 @@ registerEffect(
     }
 )
 
-// "When played, discard all [suit:hearth] and [suit:order] cards at sites in your region."
-registerEffect(
-    'denizen.arcane.dazzle',
-    powerIndexOf('denizen.arcane.dazzle', PowerTiming.WhenPlayed),
-    {
+/**
+ * Dazzle, Threatening Roar — "discard all [suit] and [suit] cards at sites in your region": the cards it discards
+ * are the ones its play leaves there, so Land Warden's second card sees them gone.
+ */
+function registerRegionDiscard(cardId: string, suits: readonly [Suit, Suit]): void {
+    const matches = (id: string) => suits.some((suit) => suitOf(id) === suit)
+    registerEffect(cardId, powerIndexOf(cardId, PowerTiming.WhenPlayed), {
         choices: [],
+        mapLeaving: (ctx) =>
+            denizensToDiscardAtSites(
+                ctx.state,
+                ctx.playerId,
+                faceupSitesInYourRegion(ctx.state, ctx.playerId),
+                matches,
+                ctx.mapChanges
+            ),
         resolve: (ctx) => {
             const { discarded, pileDeposits } = discardDenizensAtSites(
                 ctx.state,
                 ctx.playerId,
                 faceupSitesInYourRegion(ctx.state, ctx.playerId),
-                (id) => suitOf(id) === Suit.Hearth || suitOf(id) === Suit.Order,
+                matches,
                 ctx.power.cardId
             )
             return {
-                summary: `discarded ${discarded.length} hearth and order cards in the region`,
+                summary: `discarded ${discarded.length} ${suits[0]} and ${suits[1]} cards in the region`,
                 pileDeposits
             }
         }
-    }
-)
+    })
+}
+
+// "When played, discard all [suit:hearth] and [suit:order] cards at sites in your region."
+registerRegionDiscard('denizen.arcane.dazzle', [Suit.Hearth, Suit.Order])
 
 // "When played, gain warbands equal to the total number of [suit:beast] cards
 // (including Animal Host) at any sites (regardless of rule)."
@@ -144,26 +158,7 @@ registerEffect(
 
 // "When played, discard all [suit:nomad] and [suit:beast] cards at sites in your
 // region." R-9.1, read literally: played to a site in your region it discards itself.
-registerEffect(
-    'denizen.beast.threatening-roar',
-    powerIndexOf('denizen.beast.threatening-roar', PowerTiming.WhenPlayed),
-    {
-        choices: [],
-        resolve: (ctx) => {
-            const { discarded, pileDeposits } = discardDenizensAtSites(
-                ctx.state,
-                ctx.playerId,
-                faceupSitesInYourRegion(ctx.state, ctx.playerId),
-                (id) => suitOf(id) === Suit.Nomad || suitOf(id) === Suit.Beast,
-                ctx.power.cardId
-            )
-            return {
-                summary: `discarded ${discarded.length} nomad and beast cards in the region`,
-                pileDeposits
-            }
-        }
-    }
-)
+registerRegionDiscard('denizen.beast.threatening-roar', [Suit.Nomad, Suit.Beast])
 
 // "When played, gain four warbands."
 registerEffect(
@@ -254,8 +249,12 @@ registerEffect(GREAT_HERD, powerIndexOf(GREAT_HERD, PowerTiming.WhenPlayed), {
             !ownCardLockedFor(ctx.state, ctx.playerId, GREAT_HERD),
             'Great Herd is locked where it was played, so it cannot be swapped'
         )
-        swapPlayedCardWithSiteCard(ctx.state, ctx.playerId, GREAT_HERD, target.cardId)
-        return { summary: `swapped Great Herd with ${target.cardId}` }
+        // R-10.25 — with the Nomad card at its own site, the two swap to the same place: nothing moves.
+        return swapPlayedCardWithSiteCard(ctx.state, ctx.playerId, GREAT_HERD, target.cardId)
+            ? { summary: `swapped Great Herd with ${target.cardId}` }
+            : {
+                  summary: `kept Great Herd where it was played, at the same site as ${target.cardId}`
+              }
     }
 })
 

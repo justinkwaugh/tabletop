@@ -15,6 +15,7 @@ import {
 } from '@tabletop/oath'
 import { campaignRecords, required, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
+import { battleLossTable } from '$lib/testing/battleLossTable.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 import { emptyPicks } from './powerChoices.js'
 import { withCount, withFrom, withTo, type MovePick } from './powerMoves.js'
@@ -1007,6 +1008,39 @@ describe('the losses draft (docs/user-interactions.md)', () => {
 })
 
 /**
+ * R-5.5.6.a — Ann, the Chancellor, chooses 3 of a defence at the Plains, on Ann's board and on
+ * Rhys's (a Citizen ally): one row per place, each by its player; Hospital's line when Ann used it.
+ */
+describe('the losses draft, row by row with its player', () => {
+    const lost = async (hospital: boolean) =>
+        (await openSessionOn(battleLossTable({ hospital }))).defeat
+
+    it('names each row’s player: a board’s own player, and the defender for a site', async () => {
+        const defeat = await lost(false)
+        expect(defeat.required).toBe(3)
+        expect(defeat.groups.map((group) => defeat.playerOf(group))).toEqual(['Ann', 'Ann', 'Rhys'])
+    })
+
+    it('keeps each player’s rows together, a board’s before a site’s', async () => {
+        const defeat = await lost(false)
+        expect(defeat.groups.map((group) => group.at)).toEqual([
+            { kind: 'site', siteId: expect.any(String) },
+            { kind: 'board', playerId: 'Ann' },
+            { kind: 'board', playerId: 'Rhys' }
+        ])
+        expect(defeat.rowOrder).toEqual([1, 0, 2])
+    })
+
+    it('no Hospital, no Hospital line', async () => {
+        expect((await lost(false)).hospitalHolders).toEqual([])
+    })
+
+    it('names the one player whose Hospital holds warbands picked here, once', async () => {
+        expect((await lost(true)).hospitalHolders).toEqual(['Ann'])
+    })
+})
+
+/**
  * Warning Signals: "Move any warbands to and from your board and any sites you rule (except the
  * last warband from a site)" — Messenger's text, so Messenger's moves, one at a time.
  */
@@ -1225,13 +1259,21 @@ describe('Warning Signals’ moves in the defence draft', () => {
         expect(defence.usePlansRefusedBecause).toBeUndefined()
     })
 
-    it('with no warband it can move, Warning Signals has nothing to pick and is not listed; Mountain Giant still is', async () => {
+    it('with no warband it can move, Warning Signals stays listed and is declared moving nothing; Mountain Giant still is', async () => {
         // None on the board, and the one at c1 is the site's last.
-        const defence = (await warned({}, { c1: { [FOE]: 1 } }, true)).defence
-        expect(defence.usable.map((power) => power.cardId)).toEqual([GIANT])
-        expect(defence.isDeclared(WARNING_PLAN)).toBe(false)
-        expect(defence.noPlansRefusedBecause).toBeUndefined()
-        // One on the board to move to c1: it is listed again.
+        const session = await warned({}, { c1: { [FOE]: 1 } }, true)
+        const sent = vi.spyOn(session, 'defendCampaign').mockResolvedValue()
+        const defence = session.defence
+        expect(defence.usable.map((power) => power.cardId)).toEqual([WARNING, GIANT])
+        expect(defence.isDeclared(WARNING_PLAN)).toBe(true)
+        const moves = required(defence.movesOf(WARNING_PLAN), 'Warning Signals’ moves')
+        expect(moves.whole).toEqual([])
+        expect(moves.open?.sources).toEqual([])
+        expect(defence.plansComplete).toBe(true)
+        expect(defence.usePlansRefusedBecause).toBeUndefined()
+        await defence.answer(true)
+        expect(sent).toHaveBeenLastCalledWith([{ ...WARNING_PLAN, choices: [] }])
+        // One on the board to move to c1: it is listed as before.
         const one = (await warned({ [FOE]: 1 }, { c1: { [FOE]: 1 } }, true)).defence
         expect(one.usable.map((power) => power.cardId)).toEqual([WARNING, GIANT])
     })

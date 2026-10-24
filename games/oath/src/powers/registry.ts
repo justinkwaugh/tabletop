@@ -60,9 +60,12 @@ export interface EffectContext {
  * the check and the resolve count the same map.
  */
 export interface PlayMapChanges {
-    /** Taken off the map first: the card the People's Favor, the Great Slum or Crop Rotation discards (R-5.1.4.I, R-11.10). */
+    /**
+     * Taken off the map first: the card the People's Favor, the Great Slum or Crop Rotation discards (R-5.1.4.I,
+     * R-11.10), and from revision 26 what Land Warden's kept card's When Played power puts off it (R-X.4).
+     */
     leaving: readonly string[]
-    /** Put at a site: the played card, and Land Warden's kept card before the second card. */
+    /** Put at a site: the played card, and Land Warden's kept card before the second card unless its power took it off. */
     arriving: readonly string[]
     /** R-5.1.4.I — the site the card is played to: the pawn's, or the one the People's Favor or New Growth names. */
     siteId?: string
@@ -432,6 +435,12 @@ export interface EffectDefinition {
     /** R-7.1.4 — the tolls its use owes, paid with its cost (Forced Labor on Oracle). */
     tollOccasion?: TollOccasion
     resolve: (ctx: EffectContext) => EffectResult
+    /**
+     * R-5.1.4 — the denizens a When Played power that takes no choices puts off the map, on the map
+     * `ctx.mapChanges` says its play leaves, `ctx.state` unchanged: Land Warden's second card is judged on the map
+     * after the kept card's power.
+     */
+    mapLeaving?: (ctx: EffectContext) => string[]
     /** The state `ctx.choices` leave, `ctx.state` unchanged: what `sequential` choices read. */
     stateAfter?: (ctx: EffectContext) => HydratedOathGameState
     /** R-7.4 — never read by the doorway. */

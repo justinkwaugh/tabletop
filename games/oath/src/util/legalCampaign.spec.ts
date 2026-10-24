@@ -115,7 +115,7 @@ describe('a legal defender needs a legal declaration of targets (R-5.5.1, R-5.5.
         ])
     })
 
-    it('R-5.5.1.a: the Chancellor may choose a Citizen who rules his site through Imperial warbands, but suspended the Citizen rules nothing there', () => {
+    it('R-5.5.1.a: the Chancellor may choose a Citizen who rules their site through Imperial warbands, but suspended the Citizen rules nothing there', () => {
         const s = board(
             { [DEF]: { siteId: 'h3' } },
             { warbandsBySite: { c2: { [IMPERIAL_WARBANDS]: 1 } } }

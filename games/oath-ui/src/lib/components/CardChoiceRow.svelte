@@ -12,6 +12,7 @@
         busy = false,
         height = 90,
         discard = false,
+        magnifyBacks = true,
         under
     }: {
         choices: readonly CardChoice[]
@@ -21,6 +22,8 @@
         height?: number
         /** The picked card is discarded, so it rings red, as a Search's displaced adviser does. */
         discard?: boolean
+        /** A back carries a magnifier too; off where a back shows nothing more enlarged (a facedown adviser). */
+        magnifyBacks?: boolean
         under?: Snippet<[CardChoice]>
     } = $props()
 </script>
@@ -45,10 +48,12 @@
                     label={choice.label}
                 />
             </button>
-            <Magnifier
-                preview={{ cardId: choice.cardId, back: choice.back, label: choice.label }}
-                label={choice.label}
-            />
+            {#if magnifyBacks || choice.cardId !== undefined}
+                <Magnifier
+                    preview={{ cardId: choice.cardId, back: choice.back, label: choice.label }}
+                    label={choice.label}
+                />
+            {/if}
             {#if choice.caption}
                 <span
                     class="max-w-[7rem] text-center text-[10px] leading-tight text-oath-text-muted"

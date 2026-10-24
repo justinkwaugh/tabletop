@@ -27,6 +27,11 @@ export function attackDieBlank(): string {
     return imageNamed(byName, 'attack.sword')
 }
 
+/** R-5.5.2 — a defense die not yet rolled: the blank blue face. */
+export function defenseDieBlank(): string {
+    return imageNamed(byName, 'defense.blank')
+}
+
 // R-3.3 — the end die's face for a roll of `value`.
 export function endDieImage(value: number): string {
     return imageNamed(byName, `end.${value}`)

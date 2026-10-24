@@ -56,7 +56,7 @@ import {
     emptyPicks,
     favorBankSuits,
     hasPicks,
-    offersNoPick,
+    leavesNoPick,
     picksCannotBeMade,
     picksComplete,
     powerChoicesFrom,
@@ -80,7 +80,7 @@ import {
     type MovePick,
     type PowerMoves
 } from './powerMoves.js'
-import { addableCount, tappedCount } from './exchangeTerms.js'
+import { addableCount, noExchangePicks, promiseEdited, tappedCount } from './exchangeTerms.js'
 import {
     StagedFlow,
     TapHistoryDraft,
@@ -470,8 +470,9 @@ type PicksByPower = Record<string, PowerChoicePicks>
 /**
  * R-6.2, R-7.3.2 — the "Action:" powers Use a power lists: each the engine allows, with the
  * choices its card offers now (a bank the run cannot name is not one), less one with nothing it
- * can pick. That is one whose picks can never be made, or one offering no pick whose use with
- * none the engine refuses (Ivory Eye with nothing facedown): no use of it can be sent.
+ * can pick. That is one whose picks can never be made, or one leaving the player no pick to make
+ * whose one use the engine refuses (Ivory Eye with nothing facedown; Dream Thief with one
+ * facedown adviser in the game, which it would swap with itself): no use of it can be sent.
  */
 export function listedActionPowers(
     state: HydratedOathGameState,
@@ -483,7 +484,7 @@ export function listedActionPowers(
         const choices = offeredChoices(state, playerId, printed)
         if (picksCannotBeMade(choices)) return []
         if (
-            offersNoPick(choices) &&
+            leavesNoPick(choices) &&
             HydratedUseActionPower.reasonCannotUse(
                 state,
                 playerId,
@@ -496,6 +497,14 @@ export function listedActionPowers(
         }
         return [{ ...use, choices }]
     })
+}
+
+/**
+ * R-6.2 — the cards whose power Use a power lists, each once, in its order: in the seat's Act
+ * Phase each carries a "Use" badge where it lies.
+ */
+export function cardsWithListedPower(state: HydratedOathGameState, playerId: string): string[] {
+    return [...new Set(listedActionPowers(state, playerId).map((use) => use.cardId))]
 }
 
 /**
@@ -513,10 +522,18 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
             : undefined
     }
 
+    /** The card whose "Use" badge opened the panel, which then lists its powers alone. */
+    get card(): string | undefined {
+        return this.playerId ? this.session.selection.value('powerCard') : undefined
+    }
+
     /** The powers the panel lists, each with the choices its card offers now. */
     get powers(): LegalPowerUse[] {
         const playerId = this.playerId
-        return playerId ? listedActionPowers(this.session.gameState, playerId) : []
+        if (!playerId) return []
+        const listed = listedActionPowers(this.session.gameState, playerId)
+        const card = this.card
+        return card === undefined ? listed : listed.filter((power) => power.cardId === card)
     }
 
     private storedOf(use: PowerUseKey): PowerChoicePicks {
@@ -664,6 +681,33 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
     protected isBare(picks: PicksByPower): boolean {
         return !Object.values(picks).some(hasPicks)
     }
+
+    /** R-7.6.3-H1 — the one promise box, of one power's exchange, whose text is all `to` changes. */
+    protected textEdited(from: PicksByPower, to: PicksByPower): string | undefined {
+        const [key, ...more] = changedKeys(from, to)
+        if (key === undefined || more.length > 0) return undefined
+        const before = from[key] ?? emptyPicks()
+        const after = to[key] ?? emptyPicks()
+        if (!sameJson({ ...before, terms: {} }, { ...after, terms: {} })) return undefined
+        const [spec, ...others] = changedKeys(before.terms, after.terms)
+        if (spec === undefined || others.length > 0) return undefined
+        const side = promiseEdited(
+            before.terms[Number(spec)] ?? noExchangePicks(),
+            after.terms[Number(spec)] ?? noExchangePicks()
+        )
+        return side && `${key} ${spec} ${side}`
+    }
+}
+
+function sameJson(a: unknown, b: unknown): boolean {
+    return JSON.stringify(a) === JSON.stringify(b)
+}
+
+/** The keys whose values differ between two records. */
+function changedKeys<T>(from: Record<string, T>, to: Record<string, T>): string[] {
+    return [...new Set([...Object.keys(from), ...Object.keys(to)])].filter(
+        (key) => !sameJson(from[key], to[key])
+    )
 }
 
 type OfferTerms = {

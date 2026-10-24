@@ -3,9 +3,12 @@ import { assert, assertExists } from '@tabletop/common'
 import { giveFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import {
+    MAX_OPEN_DEALS_PER_PLAYER,
+    PROMISE_MAX_LENGTH,
     type ExchangeAllowance,
     type ExchangeTerms,
     type ExchangeTransfer,
+    type OpenDeal,
     type SiteTransfer
 } from '../model/question.js'
 import { rulesSite, rulingWarbandOwners, actsAsIfBanditsAreWarbands, warbandsAt } from './rule.js'
@@ -31,11 +34,56 @@ import type { AdvisersMoved } from './adviserLimit.js'
 export const TINKERS_FAIR_ALLOWS: ExchangeAllowance = { relics: true }
 export const DEED_WRITER_ALLOWS: ExchangeAllowance = { sites: true }
 export const GATHERING_ALLOWS: ExchangeAllowance = { relics: true, advisers: true }
+/** R-11.9 — favor and secrets, and the promises the players write (R-7.6.3-H1). */
+export const TRIBUNAL_ALLOWS: ExchangeAllowance = { promises: true }
+
+/** R-7.6.3-H1 — what a card's exchange may carry in this game: promises from revision 28 only. */
+export function exchangeAllowanceAt(
+    state: HydratedOathGameState,
+    allows: ExchangeAllowance
+): ExchangeAllowance {
+    return allows.promises && !isAtLeastOathRevision(state, OathRevision.EngineFixes24)
+        ? { ...allows, promises: false }
+        : allows
+}
+
+/** A control character other than a line break (C0, DEL and C1). */
+function hasControlCharacter(text: string): boolean {
+    for (const character of text) {
+        const code = character.codePointAt(0) ?? 0
+        if (code !== 0x0a && (code < 0x20 || (code >= 0x7f && code < 0xa0))) return true
+    }
+    return false
+}
+
+/**
+ * R-7.6.3-H1 — a promise as its player wrote it: trimmed, with line breaks and no other control
+ * character, of at most 200 UTF-16 units (the schema counts characters as a person sees them, so a
+ * run of combining marks would pass it). Read only where the proposal is made, by its player.
+ */
+function reasonPromiseTextInvalid(text: string | undefined): string | undefined {
+    if (text === undefined) return undefined
+    if (text !== text.trim()) return 'a promise cannot start or end with a space'
+    if (text.length > PROMISE_MAX_LENGTH) return 'a promise is at most 200 characters'
+    if (hasControlCharacter(text)) return 'a promise holds only text and line breaks'
+    return undefined
+}
 
 export function reasonTermsOutsideCard(
     terms: ExchangeTerms,
     allows: ExchangeAllowance
 ): string | undefined {
+    const promises = terms.promises
+    if (promises) {
+        if (!allows.promises) return 'this exchange cannot include promises'
+        // The object is present only with a promise in it, so later checks need not read the words.
+        if (promises.fromProposer === undefined && promises.fromCounterparty === undefined)
+            return 'a promise needs its words'
+        const reason =
+            reasonPromiseTextInvalid(promises.fromProposer) ??
+            reasonPromiseTextInvalid(promises.fromCounterparty)
+        if (reason) return reason
+    }
     for (const side of [terms.fromProposer, terms.fromCounterparty]) {
         if (!side) continue
         if (!allows.relics && (side.relicCardIds?.length ?? 0) > 0)
@@ -59,6 +107,36 @@ function isEmptyTransfer(t?: ExchangeTransfer): boolean {
     )
 }
 
+/** R-7.6.3-H1 — the open deals a player is party to, on either side. */
+export function openDealsOf(state: HydratedOathGameState, playerId: string): OpenDeal[] {
+    return (state.openDeals ?? []).filter(
+        (deal) => deal.proposerPlayerId === playerId || deal.counterpartyPlayerId === playerId
+    )
+}
+
+/**
+ * R-7.6.3-H1 — the deal an accepted exchange with a promise in it opens. It reads the promises, so
+ * on a player's own view it defers to the host.
+ */
+export function openDealFrom(
+    state: HydratedOathGameState,
+    proposerPlayerId: string,
+    counterpartyPlayerId: string,
+    terms: ExchangeTerms
+): OpenDeal | undefined {
+    const promises = terms.promises
+    if (!promises) return undefined
+    const { fromProposer, fromCounterparty } = promises
+    return {
+        id: `${state.round}.${state.actionCount}`,
+        proposerPlayerId,
+        counterpartyPlayerId,
+        ...(fromProposer !== undefined ? { proposerPromise: fromProposer } : {}),
+        ...(fromCounterparty !== undefined ? { counterpartyPromise: fromCounterparty } : {}),
+        round: state.round
+    }
+}
+
 export function reasonExchangeInvalid(
     state: HydratedOathGameState,
     proposerId: string,
@@ -67,8 +145,17 @@ export function reasonExchangeInvalid(
 ): string | undefined {
     if (proposerId === counterpartyId) return 'an exchange needs two players'
     if (!state.findPlayerState(counterpartyId)) return `no such player ${counterpartyId}`
-    if (isEmptyTransfer(terms.fromProposer) && isEmptyTransfer(terms.fromCounterparty))
+    // R-7.6.3-H1 — at the Tribunal a promise alone is something exchanged. Its presence says so
+    // without reading the words, which only the two players may (`ExchangePartyPolicy`).
+    const promised = terms.promises !== undefined
+    if (!promised && isEmptyTransfer(terms.fromProposer) && isEmptyTransfer(terms.fromCounterparty))
         return 'the exchange is empty'
+    if (promised) {
+        const full = [proposerId, counterpartyId].find(
+            (playerId) => openDealsOf(state, playerId).length >= MAX_OPEN_DEALS_PER_PLAYER
+        )
+        if (full) return `${full} already has five open deals`
+    }
     // R-10.8 — "and vice versa": each side is judged with what comes back in the same exchange.
     return (
         reasonTransferInvalid(
