@@ -61,6 +61,8 @@ export function occupyAfterRetreat(
         relocate(state, command, { locale }, road)
         expendOrder(state, command)
         if (road) {
+            // Rulebook Attack Example 1: cavalry riding in by road is shown as it takes the locale, before it rides on.
+            state.revealAll(command.units)
             settleRoadMarch(state, command, road, { locale })
         }
     }

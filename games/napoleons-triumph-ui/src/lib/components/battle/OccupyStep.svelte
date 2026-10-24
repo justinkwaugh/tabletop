@@ -16,8 +16,7 @@
         The defender has retreated. Name the units that made the threat; they move into the locale.
     {/if}
     {#if stage.roadOrders || stage.byRoad}
-        Cavalry that rides in by road may ride on or threaten again, and is shown when its move
-        ends.
+        Cavalry that rides in by road is shown to the enemy, and may ride on or threaten again.
     {/if}
 </div>
 <AttackerPicker {stage} {folded} />
