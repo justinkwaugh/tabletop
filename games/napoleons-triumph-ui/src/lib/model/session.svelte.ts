@@ -293,6 +293,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     localeNumbersShown = $state(false)
 
+    unitsHidden = $state(false)
+
     locatedLocale: { locale: number; press: number } | undefined = $state()
 
     private locatePresses = 0
@@ -584,19 +586,27 @@ export class NapoleonsTriumphGameSession extends GameSession<
             : []
     })
 
+    private unitOutlines: ConvexOutline[] = $derived(
+        this.unitsHidden
+            ? []
+            : [
+                  ...this.sprites.flatMap((sprite) => sprite.blocks.map(blockOutline)),
+                  ...plateOutlines(this.approachPlates),
+                  ...this.gunTags.map((tag) => cornersOf(tag.box)),
+                  ...this.flags.flatMap((flag) => flagOutlines(flag, this.flagView))
+              ]
+    )
+
     private drawnOverTheMap: ConvexOutline[] = $derived([
-        ...this.sprites.flatMap((sprite) => sprite.blocks.map(blockOutline)),
+        ...this.unitOutlines,
         ...this.arrowOutlines,
-        ...plateOutlines(this.approachPlates),
-        ...this.gunTags.map((tag) => cornersOf(tag.box)),
         ...this.approachSymbolTags.map((tag) => cornersOf(tag.cover)),
         ...this.movementTrails.flatMap((trail) => [
             ...drawnArrowOutlines(trail.arrow),
             trailNumberOutline(numberOfTrail(trail, this.flagSize))
         ]),
         ...this.retreatArrows.flatMap(retreatArrowOutlines),
-        ...this.waySigns.map(({ at }) => waySignOutline(at, this.flagSize)),
-        ...this.flags.flatMap((flag) => flagOutlines(flag, this.flagView))
+        ...this.waySigns.map(({ at }) => waySignOutline(at, this.flagSize))
     ])
 
     // Placed after the flags and kept off them, so no flag hides a capacity; the flags keep off the printed boxes instead.
