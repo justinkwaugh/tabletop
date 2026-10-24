@@ -278,6 +278,28 @@ test.describe('sidebar tabs on a phone', () => {
                 .toBeGreaterThan(50)
         }
     })
+
+    test('the History tab opens at the newest entry', async ({ page }) => {
+        test.setTimeout(60000)
+        await page.goto('/table')
+        await page.getByLabel('Position', { exact: true }).selectOption('finished')
+        await expect(
+            page.getByRole('heading', { name: 'Player 2 wins', exact: true })
+        ).toBeAttached({ timeout: 30000 })
+        const history = page.locator('.history-scroll')
+        await page.getByRole('tab', { name: 'History', exact: true }).click()
+        await expect(history).toBeVisible()
+        await expect
+            .poll(() => history.evaluate((element) => element.scrollHeight - element.clientHeight))
+            .toBeGreaterThan(100)
+        await expect
+            .poll(() =>
+                history.evaluate(
+                    (element) => element.scrollHeight - element.clientHeight - element.scrollTop
+                )
+            )
+            .toBeLessThan(2)
+    })
 })
 
 test.describe('player cards below the pane layout', () => {

@@ -135,7 +135,6 @@ test('the tabbed layout adds and closes views in both panes and saves them apart
     await expect(page.getByRole('tab', { name: 'Tiles', exact: true })).toHaveCount(0)
     await sidebar.click()
     await menu.getByRole('button', { name: 'Close Chat tab', exact: true }).click()
-    await sidebar.click()
     await menu.getByRole('button', { name: 'Stats', exact: true }).click()
     await expect(
         page.getByRole('tablist', { name: 'Sidebar tabs', exact: true }).getByRole('tab')
@@ -285,10 +284,9 @@ test('an emptied sidebar keeps its pane menu so it can still be deleted', async 
         exact: true
     })
     const sidebar = page.getByRole('button', { name: 'Pane options for Sidebar', exact: true })
-    for (const tab of ['Players', 'History', 'Chat']) {
-        await sidebar.click()
+    await sidebar.click()
+    for (const tab of ['Players', 'History', 'Chat'])
         await menu.getByRole('button', { name: `Close ${tab} tab`, exact: true }).click()
-    }
     for (const tab of [
         'Players',
         'History',

@@ -108,8 +108,10 @@
     }
     function mountPane(node: HTMLElement, target: HTMLElement | undefined) {
         const home = node.parentNode
+        // Re-inserting a panel resets every scroll position inside it, so it moves only when its parent changes.
         function move(next: HTMLElement | undefined) {
-            ;(next ?? home)?.appendChild(node)
+            const parent = next ?? home
+            if (parent && node.parentNode !== parent) parent.appendChild(node)
         }
         move(target)
         return {
