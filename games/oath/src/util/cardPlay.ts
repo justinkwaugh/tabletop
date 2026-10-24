@@ -10,7 +10,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { cardDefinition, CONSPIRACY_ID, kindOf, suitOf } from '../data/cardRegistry.js'
-import { effectiveSiteCapacity, SALT_THE_EARTH } from './capacity.js'
+import { SALT_THE_EARTH, siteCapacityAfterPlay } from './capacity.js'
 import {
     detachFromPlay,
     discardCards,
@@ -30,6 +30,7 @@ import {
     type PlayMapChanges
 } from '../powers/registry.js'
 import { pawnSiteId } from './pawn.js'
+import { denizensAfterPlay } from '../powers/vocabulary.js'
 import { isFaceupPlay, powerOutcomeOf } from './powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
 import { modifierContext, type ActiveModifier } from './modifiers.js'
@@ -772,15 +773,21 @@ export function reasonCannotPlaceCard(
                 )
                 if (firstReason) return firstReason
             }
+            // Land Warden — from revision 29 the second card is judged on the site as the kept card's play leaves
+            // it: with the kept card there, and at capacity 1 after Salt the Earth (R-2.8.1). Before (R-X.4), on
+            // the site as it stood before the kept card.
+            const earlier = isAtLeastOathRevision(state, OathRevision.EngineFixes25)
+                ? options.earlierMapChanges
+                : undefined
+            const atTarget = denizensAfterPlay(state, target, earlier)
             if (saltTheEarth) {
-                if (state.denizensAt(target).some((id) => isLockedFor(state, playerId, id))) {
+                if (atTarget.some((id) => isLockedFor(state, playerId, id, target))) {
                     return 'Salt the Earth cannot be played to a site with any locked cards'
                 }
             } else {
-                const freed =
-                    first !== undefined && state.denizensAt(target).includes(first) ? 1 : 0
-                const capacity = effectiveSiteCapacity(state, target)
-                if (state.denizensAt(target).length - freed >= capacity) {
+                const freed = first !== undefined && atTarget.includes(first) ? 1 : 0
+                const capacity = siteCapacityAfterPlay(state, target, earlier)
+                if (atTarget.length - freed >= capacity) {
                     return `site ${target} is at its capacity of ${capacity}`
                 }
             }
