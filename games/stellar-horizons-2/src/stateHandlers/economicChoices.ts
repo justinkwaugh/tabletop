@@ -9,6 +9,7 @@ import { HydratedSkipPhase, SkipPhase, isSkipPhase } from '../actions/skipPhase.
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { basesAwaitingProduction, maxInitiativeBid } from '../model/economy.js'
+import { choosesEscalationKept } from '../model/escalation.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { TurnPhase } from '../model/turn.js'
 import { branchPlayerId, branchingState, playState } from '../model/turnPlan.js'
@@ -75,9 +76,10 @@ export class DecidingInitiativeStateHandler extends EconomicChoiceHandler<Hydrat
     }
 
     protected hasChoice(state: HydratedStellarHorizonsGameState, playerId: string): boolean {
+        const player = state.getPlayerState(playerId)
         return (
-            state.getPlayerState(playerId).initiativeBid === undefined &&
-            maxInitiativeBid(state, playerId) > 0
+            player.initiativeBid === undefined &&
+            (maxInitiativeBid(state, playerId) > 0 || choosesEscalationKept(player))
         )
     }
 }

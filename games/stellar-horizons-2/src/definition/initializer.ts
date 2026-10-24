@@ -11,6 +11,7 @@ import {
 } from '@tabletop/common'
 import { ANOMALIES } from '../components/anomalies.js'
 import { ECONOMIC_TILES } from '../components/economicTiles.js'
+import { fullEscalationPool } from '../components/escalation.js'
 import { EVENTS } from '../components/events.js'
 import { FACTION_COLORS } from '../components/factions.js'
 import { STAR_MAP } from '../components/starMap.js'
@@ -86,7 +87,9 @@ export class StellarHorizonsGameInitializer
                     hand: [],
                     cards: [],
                     cardDraws: [],
-                    settlementsBought: 0
+                    settlementsBought: 0,
+                    escalation: [],
+                    attackBanned: false
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
@@ -134,7 +137,11 @@ export class StellarHorizonsGameInitializer
             remainingTraders: [],
             cardPiles: scenario.campaign ? initialCardPiles() : [],
             growthChoosers: [],
-            conversions: []
+            conversions: [],
+            truce: scenario.campaign !== undefined,
+            escalationPool: scenario.campaign ? fullEscalationPool() : [],
+            remainingBlockaders: [],
+            blockades: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
         for (const worldClass of Object.values(WorldClass)) {

@@ -56,6 +56,10 @@ import { DrawCard } from '../actions/drawCard.js'
 import { ChooseEndRollModifier } from '../actions/chooseEndRollModifier.js'
 import { ChooseEconomicTile } from '../actions/chooseEconomicTile.js'
 import { ChooseGrowthBase } from '../actions/chooseGrowthBase.js'
+import { DeclareBlockade } from '../actions/declareBlockade.js'
+import { EndBlockades } from '../actions/endBlockades.js'
+import { DiscardEscalation } from '../actions/discardEscalation.js'
+import { ReduceTransferMarkers } from '../actions/reduceTransferMarkers.js'
 
 export const StellarHorizonsApiActions = {
     [ActionType.ChooseFaction]: ChooseFaction,
@@ -116,5 +120,9 @@ export const StellarHorizonsApiActions = {
     [ActionType.ChooseEndRollModifier]: ChooseEndRollModifier,
     [ActionType.ChooseEconomicTile]: ChooseEconomicTile,
     [ActionType.ChooseGrowthBase]: ChooseGrowthBase,
+    [ActionType.DeclareBlockade]: DeclareBlockade,
+    [ActionType.EndBlockades]: EndBlockades,
+    [ActionType.DiscardEscalation]: DiscardEscalation,
+    [ActionType.ReduceTransferMarkers]: ReduceTransferMarkers,
     [ActionType.EndTurn]: EndTurn
 }

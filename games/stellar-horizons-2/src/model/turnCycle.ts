@@ -17,7 +17,9 @@ export interface TurnStart {
     influence: TurnInfluence[]
 }
 
-export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
+// Rulebook 1.1: every transfer marker drops by one. The campaign does it after the economic
+// phase, as rule 1.0 orders the turn, so ships arriving are not yet there for blockades.
+export function dropTransferMarkers(state: HydratedStellarHorizonsGameState): string[] {
     const arrivedShipIds: string[] = []
     for (const ship of state.allShips()) {
         if (ship.transit > 0) {
@@ -26,6 +28,13 @@ export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
                 arrivedShipIds.push(ship.shipId)
             }
         }
+    }
+    return arrivedShipIds
+}
+
+export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
+    const arrivedShipIds = isCampaign(state) ? [] : dropTransferMarkers(state)
+    for (const ship of state.allShips()) {
         ship.loadedFromBase = false
         ship.explored = false
     }

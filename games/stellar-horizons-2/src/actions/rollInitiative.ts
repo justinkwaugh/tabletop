@@ -3,12 +3,14 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { InitiativeRoll, rollInitiative } from '../model/economy.js'
+import { EscalationDiscards, discardEscalation } from '../model/escalation.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 
 export type RollInitiativeMetadata = Type.Static<typeof RollInitiativeMetadata>
 export const RollInitiativeMetadata = Type.Object({
     rolls: Type.Array(InitiativeRoll),
-    order: Type.Array(Type.String())
+    order: Type.Array(Type.String()),
+    escalationDiscards: Type.Array(EscalationDiscards)
 })
 
 export type RollInitiative = Type.Static<typeof RollInitiative>
@@ -41,6 +43,11 @@ export class HydratedRollInitiative
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
         const rolls = rollInitiative(state)
-        this.metadata = { rolls, order: [...state.initiativeOrder()] }
+        // Rulebook 4.1: half the escalation markers go once the rolls are made.
+        this.metadata = {
+            rolls,
+            order: [...state.initiativeOrder()],
+            escalationDiscards: discardEscalation(state)
+        }
     }
 }

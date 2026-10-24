@@ -8,7 +8,7 @@ import { blocksExploration } from './anomalies.js'
 import { factionAbilities, isCampaign } from './campaign.js'
 import {
     capabilitiesOf,
-    currentCombat,
+    fleetCombatIn,
     currentExploration,
     hasArrived,
     isCrippled
@@ -181,13 +181,6 @@ export const SyndicateTake = Type.Object({
     cash: Type.Number()
 })
 
-function combatIn(state: HydratedStellarHorizonsGameState, playerId: string, systemId: string) {
-    return state
-        .shipsOf(playerId)
-        .filter((ship) => ship.systemId === systemId && hasArrived(ship))
-        .reduce((total, ship) => total + currentCombat(ship), 0)
-}
-
 export function pendingSyndicateTakes(state: HydratedStellarHorizonsGameState): SyndicateTake[] {
     const takers = state.players.filter(
         (player) => factionAbilities(state, player.playerId).takesFromOperations
@@ -198,8 +191,8 @@ export function pendingSyndicateTakes(state: HydratedStellarHorizonsGameState): 
                 .filter(
                     (taker) =>
                         taker.playerId !== playerId &&
-                        combatIn(state, taker.playerId, operation.systemId) >
-                            combatIn(state, playerId, operation.systemId)
+                        fleetCombatIn(state, taker.playerId, operation.systemId) >
+                            fleetCombatIn(state, playerId, operation.systemId)
                 )
                 .map((taker) => ({
                     fromPlayerId: playerId,

@@ -29,7 +29,8 @@ export function canSettleSystem(
     return threshold !== undefined && effectiveHabitability(state, playerId, systemId) >= threshold
 }
 
-// Pioneers take $1B off the Player's first settlement bought on Earth each turn.
+// Pioneers take $1B off the Player's first settlement bought on Earth each turn, never past the
+// cheapest price; escalation's surcharge comes on top.
 export function settlementPurchaseCost(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
@@ -40,7 +41,7 @@ export function settlementPurchaseCost(
         count > 0 && state.getPlayerState(playerId).settlementsBought === 0
             ? Math.min(
                   capabilities.firstSettlementDiscount,
-                  capabilities.settlementCost - MIN_PRICE
+                  capabilities.settlementCost - capabilities.settlementSurcharge - MIN_PRICE
               )
             : 0
     return count * capabilities.settlementCost - first

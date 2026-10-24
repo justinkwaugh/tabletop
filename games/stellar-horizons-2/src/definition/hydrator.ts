@@ -82,6 +82,13 @@ import {
 } from '../actions/chooseEndRollModifier.js'
 import { HydratedChooseEconomicTile, isChooseEconomicTile } from '../actions/chooseEconomicTile.js'
 import { HydratedChooseGrowthBase, isChooseGrowthBase } from '../actions/chooseGrowthBase.js'
+import { HydratedDeclareBlockade, isDeclareBlockade } from '../actions/declareBlockade.js'
+import { HydratedEndBlockades, isEndBlockades } from '../actions/endBlockades.js'
+import { HydratedDiscardEscalation, isDiscardEscalation } from '../actions/discardEscalation.js'
+import {
+    HydratedReduceTransferMarkers,
+    isReduceTransferMarkers
+} from '../actions/reduceTransferMarkers.js'
 
 export class StellarHorizonsHydrator implements GameHydrator<
     StellarHorizonsProjectedState,
@@ -205,6 +212,14 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedChooseEconomicTile(data)
             case isChooseGrowthBase(data):
                 return new HydratedChooseGrowthBase(data)
+            case isDeclareBlockade(data):
+                return new HydratedDeclareBlockade(data)
+            case isEndBlockades(data):
+                return new HydratedEndBlockades(data)
+            case isDiscardEscalation(data):
+                return new HydratedDiscardEscalation(data)
+            case isReduceTransferMarkers(data):
+                return new HydratedReduceTransferMarkers(data)
             case isEndTurn(data):
                 return new HydratedEndTurn(data)
             default:

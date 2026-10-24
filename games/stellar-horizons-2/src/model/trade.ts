@@ -546,7 +546,8 @@ export function queueRewardGoods(
 
 // Rulebook 1.9: the base price, $1B more for each world in the system of the types it favours
 // and $1B less for each of the types that produce it, and off Earth the distance from Sol. The
-// genetic manipulations that name a good sell it for $1B more.
+// genetic manipulations that name a good sell it for $1B more; escalation markers take $1B or
+// $2B off. It is never below $0.
 export function salePrice(
     state: HydratedStellarHorizonsGameState,
     systemId: string,
@@ -558,8 +559,8 @@ export function salePrice(
     const favoured = classes.filter((worldClass) => definition.favoured.includes(worldClass))
     const producing = classes.filter((worldClass) => definition.producers.includes(worldClass))
     const distance = systemId === SOL_SYSTEM_ID ? 0 : systemDistance(SOL_SYSTEM_ID, systemId)
-    const bonus =
-        sellerId === undefined ? 0 : (capabilitiesOf(state, sellerId).saleBonus[good] ?? 0)
+    const capabilities = sellerId === undefined ? undefined : capabilitiesOf(state, sellerId)
+    const bonus = (capabilities?.saleBonus[good] ?? 0) + (capabilities?.saleChange ?? 0)
     return Math.max(0, definition.price + favoured.length - producing.length + distance + bonus)
 }
 

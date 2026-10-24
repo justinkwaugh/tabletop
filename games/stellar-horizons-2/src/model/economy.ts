@@ -7,6 +7,7 @@ import { TECH_FIELDS } from '../components/techFields.js'
 import { WorldClass } from '../components/worldTypes.js'
 import { worldFace, worldTile } from '../components/worlds.js'
 import { baseEffects, blocksBases } from './anomalies.js'
+import { isBlockaded } from './blockades.js'
 import { effectiveHabitability } from './campaign.js'
 import { capabilitiesOf } from './fleet.js'
 import { halts } from './events.js'
@@ -14,6 +15,7 @@ import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { CASH_PRODUCTION, Production, type Base } from './pieces.js'
 import { awardTechMarkers } from './pools.js'
 import { removeBaseSettlement, addSettlements } from './settling.js'
+import { roundHalfUp } from './turn.js'
 import { ProducedGoods, produceGoods } from './trade.js'
 
 // Rulebook 4.0: tiles are drawn without replacement and reshuffled once all seven are used,
@@ -58,6 +60,8 @@ export const InitiativeRoll = Type.Object({
     playerId: Type.String(),
     bid: Type.Number(),
     roll: Type.Number(),
+    // Cunning's +20% and the escalation markers' penalties.
+    modifier: Type.Number(),
     total: Type.Number()
 })
 
@@ -70,9 +74,14 @@ export function rollInitiative(state: HydratedStellarHorizonsGameState): Initiat
         const bid = player.initiativeBid ?? 0
         player.initiativeBid = undefined
         const roll = random.dieRoll(100)
-        // Cunning adds 20% to the roll.
-        const bonus = capabilitiesOf(state, playerId).initiativeBonus
-        return { playerId, bid, roll, total: roll + bid * INITIATIVE_PER_INFLUENCE + bonus }
+        const modifier = capabilitiesOf(state, playerId).initiativeBonus
+        return {
+            playerId,
+            bid,
+            roll,
+            modifier,
+            total: roll + bid * INITIATIVE_PER_INFLUENCE + modifier
+        }
     })
     const order = rolls
         .map((roll, index) => ({ roll, index }))
@@ -104,26 +113,34 @@ export function productionValue(
     }, 0)
 }
 
+// A blockaded base produces half, rounded 0.5 up, and no anomaly bonus, Natural Stimulants'
+// doubled settlements included (rulebook 4.4; forum: production bonuses apply only at
+// unblockaded bases).
 export function productionYield(
     state: HydratedStellarHorizonsGameState,
     base: Base,
     production: Production
 ): number {
+    const blockaded = isBlockaded(state, base.playerId, base.systemId)
     const effects = baseEffects(state, base.systemId)
     const row = baseProductionRow(
-        effects.settlementsDoubledForProduction ? base.settlements * 2 : base.settlements
+        effects.settlementsDoubledForProduction && !blockaded
+            ? base.settlements * 2
+            : base.settlements
     )
-    const anomaly =
-        production === CASH_PRODUCTION
-            ? (effects.cashProduction ?? 0)
-            : effects.markerProduction?.fields.includes(production)
-              ? effects.markerProduction.count
-              : 0
+    const anomaly = blockaded
+        ? 0
+        : production === CASH_PRODUCTION
+          ? (effects.cashProduction ?? 0)
+          : effects.markerProduction?.fields.includes(production)
+            ? effects.markerProduction.count
+            : 0
     const bonus = production === CASH_PRODUCTION ? row.cashBonus : row.techBonus
     // Robo Miners, Deep Core Mining and the Interstellar Mining Conglomerate.
     const cards =
         production === CASH_PRODUCTION ? capabilitiesOf(state, base.playerId).cashProduction : 0
-    return productionValue(state, base.systemId, production) + bonus + anomaly + cards
+    const total = productionValue(state, base.systemId, production) + bonus + cards
+    return blockaded ? roundHalfUp(total / 2) : total + anomaly
 }
 
 // A base in a system with a "no bases" anomaly produces nothing until it is resolved (1.16).
@@ -160,7 +177,8 @@ export const BaseProductionResult = Type.Object({
     markers: Type.Array(Type.Number()),
     cash: Type.Number(),
     settlements: Type.Number(),
-    goods: ProducedGoods
+    goods: ProducedGoods,
+    blockaded: Type.Boolean()
 })
 
 // Hostile Xenomorphs take a settlement during production; Symbiotic Spores add one after it,
@@ -199,12 +217,13 @@ export function produceAtBases(state: HydratedStellarHorizonsGameState): BasePro
             ) {
                 continue
             }
+            const blockaded = isBlockaded(state, playerId, base.systemId)
             const amount = productionYield(state, base, production)
             const { markers, cash } =
                 production === CASH_PRODUCTION
                     ? payCash(state, playerId, amount)
                     : awardTechMarkers(state, playerId, production, amount)
-            const goods = produceGoods(state, base)
+            const goods = blockaded ? { goods: [], cash: 0 } : produceGoods(state, base)
             const settlements = settleProductionEffects(state, base)
             results.push({
                 playerId,
@@ -214,7 +233,8 @@ export function produceAtBases(state: HydratedStellarHorizonsGameState): BasePro
                 markers,
                 cash,
                 settlements,
-                goods
+                goods,
+                blockaded
             })
         }
     }
@@ -301,7 +321,14 @@ export function migrationChance(
 ): number {
     const bonus = Math.floor(Math.max(0, behindLeader) / CATCH_UP_STEP) * CATCH_UP_BONUS
     const anomaly = baseEffects(state, systemId).migrationHabitability ?? 0
-    return Math.min(MAX_CHANCE, effectiveHabitability(state, playerId, systemId) + anomaly + bonus)
+    const escalation = capabilitiesOf(state, playerId).migrationChange
+    return Math.max(
+        0,
+        Math.min(
+            MAX_CHANCE,
+            effectiveHabitability(state, playerId, systemId) + anomaly + bonus + escalation
+        )
+    )
 }
 
 export type GrowthResult = Type.Static<typeof GrowthResult>
@@ -331,6 +358,16 @@ export interface Growth {
     chosen: ChosenGrowth[]
 }
 
+// A "no bases" anomaly, a halting event or a blockade stops growth, migration and the cards'
+// extra growth (rulebook 1.16, 4.2 and 4.6).
+function canGrow(state: HydratedStellarHorizonsGameState, base: Base): boolean {
+    return (
+        !blocksBases(state, base.systemId) &&
+        !halts(state, base.systemId) &&
+        !isBlockaded(state, base.playerId, base.systemId)
+    )
+}
+
 // Rulebook 4.6: growth, then migration, each capped by the system's population limit for the
 // base's owner, then the growth cards' extra settlements, capped the same way unless Transcend
 // Biology lifts the limit. Prolific Breeders' base is chosen afterwards when there is a choice.
@@ -344,7 +381,7 @@ export function growSettlements(state: HydratedStellarHorizonsGameState): Growth
     const results: GrowthResult[] = []
     for (const playerId of state.initiativeOrder()) {
         for (const base of state.basesOf(playerId)) {
-            if (blocksBases(state, base.systemId) || halts(state, base.systemId)) {
+            if (!canGrow(state, base)) {
                 continue
             }
             const before = base.settlements
@@ -419,8 +456,7 @@ export function growthChoiceBases(
         .basesOf(playerId)
         .filter(
             (base) =>
-                !blocksBases(state, base.systemId) &&
-                !halts(state, base.systemId) &&
+                canGrow(state, base) &&
                 base.settlements < growthLimit(state, playerId, base.systemId)
         )
         .map((base) => base.systemId)

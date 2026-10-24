@@ -74,6 +74,27 @@ export function currentCombat(ship: ShipState): number {
     return combat === 0 ? 0 : Math.max(1, combat - ship.damage)
 }
 
+// A ship's combat value wherever the rules ask for it (combat, blockades, the Syndicate's take):
+// printed, less damage, at least 1 if armed, and Hypersonic Missiles' +1 for armed CVs.
+export function combatValue(state: HydratedStellarHorizonsGameState, ship: ShipState): number {
+    const combat = currentCombat(ship)
+    return combat > 0 && isCrewVehicle(shipDefinition(ship.shipId))
+        ? combat + capabilitiesOf(state, ship.playerId).armedCvCombat
+        : combat
+}
+
+// The combined combat value of a Player's arrived ships in a system.
+export function fleetCombatIn(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string
+): number {
+    return state
+        .shipsOf(playerId)
+        .filter((ship) => ship.systemId === systemId && hasArrived(ship))
+        .reduce((total, ship) => total + combatValue(state, ship), 0)
+}
+
 // A lost ship's goods go back to the pool.
 export function removeShip(state: HydratedStellarHorizonsGameState, shipId: string) {
     const ship = state.ship(shipId)

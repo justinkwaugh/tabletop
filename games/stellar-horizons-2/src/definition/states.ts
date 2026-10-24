@@ -9,6 +9,8 @@ export enum MachineState {
     InitiativePhase = 'InitiativePhase',
     DecidingInitiative = 'DecidingInitiative',
     RollingInitiative = 'RollingInitiative',
+    Blockading = 'Blockading',
+    ReducingTransferMarkers = 'ReducingTransferMarkers',
     BaseProductionPhase = 'BaseProductionPhase',
     ChoosingProduction = 'ChoosingProduction',
     ProducingAtBases = 'ProducingAtBases',

@@ -1,5 +1,6 @@
 import { AnomalyChallenge } from '../components/anomalyCatalog.js'
 import { CardDeck, cardDefinition, type CardEffects } from '../components/cards.js'
+import { escalationDefinition, type EscalationEffects } from '../components/escalation.js'
 import { factionSheet, type FactionAbilities } from '../components/factionSheets.js'
 import { techDefinition, type TechEffects } from '../components/techs.js'
 import { TechField } from '../components/techFields.js'
@@ -8,9 +9,10 @@ import { WorldClass } from '../components/worldTypes.js'
 import type { ScenarioDefinition } from '../components/scenarios.js'
 import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
 
-// Everything a Player's techs, faction sheet and cards let them do, in one place: rules read
-// this instead of asking which tech, faction or card a Player has. Techs in a chain keep their
-// best value; faction abilities and card bonuses add to it (rulebook 1.12).
+// Everything a Player's techs, faction sheet, cards and escalation markers let them do, in one
+// place: rules read this instead of asking which tech, faction, card or marker a Player has.
+// Techs in a chain keep their best value; faction abilities and card bonuses add to it (rulebook
+// 1.12), and escalation markers are cumulative (Player Guide 2.5).
 export interface Capabilities {
     canBuySettlements: boolean
     settleHabitability?: number
@@ -37,6 +39,8 @@ export interface Capabilities {
     extraRe: number
     selfRepair: number
     settlementCost: number
+    // Escalation's on-Earth surcharge, already in settlementCost.
+    settlementSurcharge: number
     firstSettlementDiscount: number
     cloning: boolean
     cloningCost?: number
@@ -54,6 +58,13 @@ export interface Capabilities {
     reAnomalyChance: number
     difficulty: Record<AnomalyChallenge, number>
     armedCvCombat: number
+    defendingCombat: number
+    extraEscalation: number
+    attacksForbidden: boolean
+    earthCash: number
+    earthMarkers: Record<TechField, number>
+    saleChange: number
+    migrationChange: number
     researchFullValue: boolean
     researchShipBonus: number
     surveyDraws: number
@@ -109,6 +120,12 @@ type NumericCardEffect = {
     [Key in keyof CardEffects]-?: CardEffects[Key] extends number | undefined ? Key : never
 }[keyof CardEffects]
 
+type NumericEscalationEffect = {
+    [Key in keyof EscalationEffects]-?: EscalationEffects[Key] extends number | undefined
+        ? Key
+        : never
+}[keyof EscalationEffects]
+
 export function playerCapabilities(
     player: HydratedStellarHorizonsPlayerState,
     scenario: ScenarioDefinition,
@@ -133,6 +150,9 @@ export function playerCapabilities(
     const abilities: FactionAbilities =
         scenario.campaign && player.faction ? factionSheet(player.faction).abilities : {}
     const effects = player.cards.map((card) => cardDefinition(card.cardId).effects)
+    const escalation = player.escalation.map((marker) => escalationDefinition(marker).effects)
+    const escalationSum = (key: NumericEscalationEffect) =>
+        escalation.reduce((total, effect) => total + (effect[key] ?? 0), 0)
     // Discounts from a card bought this turn wait for the next (campaign plan, slice 4, Q2).
     const discounts = player.cards
         .filter((card) => !card.bought || card.year < year)
@@ -208,12 +228,15 @@ export function playerCapabilities(
         maxShipsBonus: sum('maxShips'),
         extraRe: sum('extraRe'),
         selfRepair: sum('selfRepair'),
-        settlementCost: Math.max(
-            MIN_PRICE,
-            settlementCost(player, scenario) -
-                highest('settlementDiscount', 0) +
-                sum('settlementCost')
-        ),
+        // Escalation's surcharge comes on top of the cheapest price the discounts allow.
+        settlementCost:
+            Math.max(
+                MIN_PRICE,
+                settlementCost(player, scenario) -
+                    highest('settlementDiscount', 0) +
+                    sum('settlementCost')
+            ) + escalationSum('earthSettlementCost'),
+        settlementSurcharge: escalationSum('earthSettlementCost'),
         firstSettlementDiscount: -sum('firstSettlementCost'),
         cloning: has('cloning'),
         cloningCost: effects.find((effect) => effect.cloningCost !== undefined)?.cloningCost,
@@ -250,6 +273,15 @@ export function playerCapabilities(
                 (abilities.combatAnomalyDifficulty ?? 0) + sum('combatDifficulty')
         },
         armedCvCombat: sum('armedCvCombat'),
+        defendingCombat: sum('defendingCombat'),
+        extraEscalation: sum('extraEscalation'),
+        attacksForbidden: escalation.some((effect) => effect.forbidsAttacks === true),
+        earthCash: escalationSum('earthCash'),
+        earthMarkers: perField(
+            (field) => escalation.filter((effect) => effect.earthMarker === field).length
+        ),
+        saleChange: escalationSum('saleChange'),
+        migrationChange: escalationSum('migrationChange'),
         researchFullValue: any((effect) => effect.researchFullValue === true),
         researchShipBonus: Math.max(
             BASELINE.researchShipBonus,
@@ -270,7 +302,7 @@ export function playerCapabilities(
         demandDraws: (abilities.demandDraws ?? DEMAND_DRAW) + sum('demandChoices'),
         keepsTwoDemand: any((effect) => effect.keepsTwoDemand === true),
         influencePerTurn: sum('influencePerTurn'),
-        initiativeBonus: sum('initiative'),
+        initiativeBonus: sum('initiative') + escalationSum('initiative'),
         populationByClass: byClass('populationByClass'),
         population: sum('population'),
         dwarfStarPopulation: sum('dwarfStarPopulation'),

@@ -51,6 +51,10 @@ export interface CardEffects {
     scienceDifficulty?: number
     combatDifficulty?: number
     armedCvCombat?: number
+    // Combat value when defending in a system where the owner has a base.
+    defendingCombat?: number
+    // Escalation markers drawn beyond those owed, one of the drawn then discarded.
+    extraEscalation?: number
     // Economy.
     cashProduction?: number
     extraGoods?: number
@@ -148,7 +152,7 @@ export const CARDS: readonly CardDefinition[] = [
         '+1 combat value to armed CVs (includes anomaly/event resolution); -1 to enemy planetary assault and raid rolls when defending',
         { armedCvCombat: 1 },
         {
-            waits: 'Its combat value in combat and its defence against assaults and raids are not in the game yet.'
+            waits: 'Its combat value in combat and its defence against assaults and raids are not in the game yet; its +1 already counts against blockades and in the Syndicate’s take.'
         }
     ),
     card(
@@ -160,8 +164,8 @@ export const CARDS: readonly CardDefinition[] = [
         5,
         3,
         '+3 combat value when defending in a system where you have a base',
-        {},
-        { waits: 'Combat is not in the game yet.' }
+        { defendingCombat: 3 },
+        { waits: 'Its defence in combat is not in the game yet; it counts against blockades.' }
     ),
     card(
         'planetary-surveys',
@@ -402,8 +406,8 @@ export const CARDS: readonly CardDefinition[] = [
         25,
         7,
         '+1 to combat rolls; fleet improvements cost -3; draw +1 escalation marker each time you normally would and choose one of those drawn to discard',
-        { deckCardCost: { deck: Fleet, amount: -3 } },
-        { waits: 'Its combat rolls and escalation markers are not in the game yet.' }
+        { deckCardCost: { deck: Fleet, amount: -3 }, extraEscalation: 1 },
+        { waits: 'Its combat rolls are not in the game yet.' }
     ),
     card(
         'planetary-engineering',

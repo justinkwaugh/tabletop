@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Visibility } from '@tabletop/common'
 import { AnomalyChallenge } from '../components/anomalyCatalog.js'
 import { CardDeck } from '../components/cards.js'
+import { EscalationMarker } from '../components/escalation.js'
 import { TechField } from '../components/techFields.js'
 import { TradeGood } from '../components/tradeGoods.js'
 import { WorldSide } from '../components/worlds.js'
@@ -307,4 +308,37 @@ export type ConversionChance = Type.Static<typeof ConversionChance>
 export const ConversionChance = Type.Object({
     playerId: Type.String(),
     roll: Type.Number()
+})
+
+// The two economic steps that blockades come before (rulebook 4.4 and 4.6).
+export enum BlockadeStep {
+    Production = 'Production',
+    Growth = 'Growth'
+}
+
+// One Player's blockade of other Players' bases in a system, for the current step.
+export type Blockade = Type.Static<typeof Blockade>
+export const Blockade = Type.Object({
+    playerId: Type.String(),
+    systemId: Type.String(),
+    targetIds: Type.Array(Type.String())
+})
+
+// Escalation markers a Player drew (rulebook 1.7). Those the pool could not supply cost 1 IP
+// each; a Player without the IP loses what they have and may not attack until after the next
+// initiative roll.
+export type EscalationDraw = Type.Static<typeof EscalationDraw>
+export const EscalationDraw = Type.Object({
+    playerId: Type.String(),
+    owed: Type.Number(),
+    drawn: Type.Array(Type.Enum(EscalationMarker)),
+    influenceLost: Type.Number(),
+    banned: Type.Boolean()
+})
+
+// Military Academy's extra marker: one of those drawn is discarded, the drawer's choice.
+export type EscalationDiscard = Type.Static<typeof EscalationDiscard>
+export const EscalationDiscard = Type.Object({
+    playerId: Type.String(),
+    drawn: Type.Array(Type.Enum(EscalationMarker))
 })

@@ -4,6 +4,7 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { isCampaign } from '../model/campaign.js'
 import { shuffleDiscards } from '../model/cards.js'
+import { TruceRoll, rollForTruce } from '../model/escalation.js'
 import { EventOutcome, applyEachTurnEffects, releaseAbandonedEvents } from '../model/events.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { EndRoll, campaignWinners, rollForEnd } from '../model/scoring.js'
@@ -19,7 +20,8 @@ export const EndTurnMetadata = Type.Object({
     endRoll: Type.Optional(EndRoll),
     eventEffects: Type.Optional(Type.Array(EventOutcome)),
     releasedEvents: Type.Optional(Type.Array(Type.String())),
-    shuffledCards: Type.Optional(Type.Number())
+    shuffledCards: Type.Optional(Type.Number()),
+    truceRoll: Type.Optional(TruceRoll)
 })
 
 export type EndTurn = Type.Static<typeof EndTurn>
@@ -55,6 +57,7 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
             const shuffledCards = shuffleDiscards(state)
             const eventEffects = applyEachTurnEffects(state)
             const releasedEvents = releaseAbandonedEvents(state)
+            const truceRoll = rollForTruce(state)
             const endRoll = rollForEnd(state)
             const gameOver = endRoll?.ended ?? false
             const victorIds = gameOver ? campaignWinners(state) : []
@@ -69,7 +72,8 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
                 endRoll,
                 eventEffects,
                 releasedEvents,
-                shuffledCards
+                shuffledCards,
+                ...(truceRoll ? { truceRoll } : {})
             }
             return
         }

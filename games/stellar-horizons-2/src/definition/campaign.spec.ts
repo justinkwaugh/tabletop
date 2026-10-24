@@ -21,6 +21,7 @@ import {
     growthChoiceBases,
     systemPopulationLimit
 } from '../model/economy.js'
+import { choosesEscalationKept, escalationKeepCount } from '../model/escalation.js'
 import { capabilitiesOf } from '../model/fleet.js'
 import { isWithinRange } from '../model/movement.js'
 import { eventPlacementSystems } from '../model/events.js'
@@ -37,6 +38,11 @@ import { GoodsHolderKind, canAssignToEarth } from '../model/trade.js'
 import type { GrowSettlementsMetadata } from '../actions/growSettlements.js'
 import type { ProduceAtBasesMetadata } from '../actions/produceAtBases.js'
 import type { RollInitiativeMetadata } from '../actions/rollInitiative.js'
+import type { EndTurnMetadata } from '../actions/endTurn.js'
+import type { ReduceTransferMarkersMetadata } from '../actions/reduceTransferMarkers.js'
+import type { StartTurnMetadata } from '../actions/startTurn.js'
+import { EscalationMarker } from '../components/escalation.js'
+import type { BlockadeResult } from '../model/blockades.js'
 import type {
     HydratedStellarHorizonsGameState,
     StellarHorizonsProjectedState
@@ -49,9 +55,11 @@ import {
     createGame,
     edit,
     engine,
+    execute,
     executeAll,
     hydrate,
     placeBase,
+    placeShip,
     startedGame,
     userAction
 } from '../testing/fixtures.js'
@@ -80,8 +88,26 @@ function step(game: Game, state: StellarHorizonsProjectedState): Played {
         return { state: result.state, actions: result.processedActions }
     }
     switch (state.machineState) {
-        case MachineState.DecidingInitiative:
-            return run(ActionType.DeclareInitiative, { influence: 0 })
+        case MachineState.DecidingInitiative: {
+            const player = hydrate(state).getPlayerState(playerId)
+            return run(ActionType.DeclareInitiative, {
+                influence: 0,
+                ...(choosesEscalationKept(player)
+                    ? {
+                          kept: player.escalation.slice(
+                              0,
+                              escalationKeepCount(player.escalation.length)
+                          )
+                      }
+                    : {})
+            })
+        }
+        case MachineState.Blockading: {
+            const pending = hydrate(state).escalationDiscard
+            return pending
+                ? run(ActionType.DiscardEscalation, { marker: pending.drawn[0] })
+                : run(ActionType.EndBlockades)
+        }
         case MachineState.ChoosingProduction: {
             const base = hydrate(state)
                 .basesOf(playerId)
@@ -984,5 +1010,214 @@ describe('Card effects in the campaign turn', () => {
                 )
             )
         ).toBe(true)
+    })
+})
+
+describe('Escalation and blockades', () => {
+    const SYSTEM = 'alpha-centauri'
+
+    // Fixes the next economic tile and plays until the given state.
+    function intoTile(
+        game: Game,
+        state: StellarHorizonsProjectedState,
+        tile: EconomicTile,
+        prepare: (state: HydratedStellarHorizonsGameState) => void,
+        stop: MachineState
+    ): Played {
+        const ready = edit(state, (hydrated) => {
+            hydrated.economicTilePool = [tile]
+            hydrated.economicTile = undefined
+            prepare(hydrated)
+        })
+        return playUntil(game, ready, (current) => current.machineState === stop)
+    }
+
+    // The first and last Players in initiative order each have a warship at Alpha Centauri,
+    // beside the middle Player's base of 6.
+    function frontLine(hydrated: HydratedStellarHorizonsGameState) {
+        const [first, middle, last] = hydrated.initiativeOrder()
+        hydrated.truce = false
+        hydrated.systemState(SYSTEM).worlds = [{ tileId: 'm-1', side: WorldSide.I }]
+        placeBase(hydrated, middle, SYSTEM, 6)
+        placeShip(hydrated, first, 'praetorians-centurion', SYSTEM)
+        placeShip(hydrated, last, 'praetorians-gladiator', SYSTEM)
+        return { first, middle, last }
+    }
+
+    it('come before base production, on the Main Line in reverse initiative order', () => {
+        const { game, state } = campaign()
+        let order = { first: '', middle: '', last: '' }
+        let { state: current } = intoTile(
+            game,
+            state,
+            EconomicTile.BaseProduction,
+            (hydrated) => {
+                order = frontLine(hydrated)
+            },
+            MachineState.Blockading
+        )
+        const { first, middle, last } = order
+        expect(current.activePlayerIds).toEqual([last])
+        const declared = executeAll(
+            game,
+            current,
+            userAction(game, last, ActionType.DeclareBlockade, {
+                systemId: SYSTEM,
+                targetIds: [middle]
+            })
+        )
+        current = declared.state
+        const metadata = metadataOf<BlockadeResult>(declared.processedActions[0])
+        expect(metadata).toMatchObject({ force: 8, defence: 6 })
+        expect(hydrate(current).getPlayerState(last).escalation).toHaveLength(1)
+        expect(hydrate(current).getPlayerState(middle).influence).toBe(1)
+        // The middle base is blockaded already, so the first Player has nothing left to do.
+        expect(current.machineState).toBe(MachineState.ChoosingProduction)
+        expect(current.activePlayerIds).not.toContain(first)
+        const produced = playUntil(
+            game,
+            current,
+            (next) => next.machineState === MachineState.ReducingTransferMarkers || next.year > 2110
+        )
+        const [produce] = actionsOf(produced.actions, ActionType.ProduceAtBases)
+        const result = metadataOf<ProduceAtBasesMetadata>(produce).results.find(
+            (entry) => entry.playerId === middle
+        )
+        // m-1 side I gives $4B and 6 settlements $1B more: $5B halved, rounded up.
+        expect(result).toMatchObject({ blockaded: true, amount: 3 })
+        expect(hydrate(produced.state).blockades).toEqual([])
+    })
+
+    it('stop growth, and are not offered during the truce', () => {
+        const { game, state } = campaign()
+        const peaceful = nextTurnWith(game, state, EconomicTile.SettlementGrowth, (hydrated) => {
+            frontLine(hydrated)
+            hydrated.truce = true
+        })
+        expect(actionsOf(peaceful.actions, ActionType.EndBlockades)).toEqual([])
+        expect(actionsOf(peaceful.actions, ActionType.DeclareBlockade)).toEqual([])
+
+        let order = { first: '', middle: '', last: '' }
+        const { state: blockading } = intoTile(
+            game,
+            state,
+            EconomicTile.SettlementGrowth,
+            (hydrated) => {
+                order = frontLine(hydrated)
+            },
+            MachineState.Blockading
+        )
+        const declared = executeAll(
+            game,
+            blockading,
+            userAction(game, order.last, ActionType.DeclareBlockade, {
+                systemId: SYSTEM,
+                targetIds: [order.middle]
+            })
+        )
+        const [grow] = actionsOf(declared.processedActions, ActionType.GrowSettlements)
+        const results = metadataOf<GrowSettlementsMetadata>(grow).results
+        expect(results.some((entry) => entry.playerId === order.middle)).toBe(false)
+    })
+
+    it('come before the transfer markers drop, so arriving ships are not yet there', () => {
+        const { game, state } = campaign()
+        const entered = nextTurnWith(game, state, EconomicTile.BaseProduction, (hydrated) => {
+            frontLine(hydrated)
+            hydrated.ship('praetorians-gladiator').transit = 1
+            hydrated.ship('praetorians-centurion').transit = 1
+        })
+        expect(entered.state.machineState).toBe(MachineState.ChoosingProduction)
+        const built = playUntil(
+            game,
+            entered.state,
+            (current) => playPhase(current) === TurnPhase.Build
+        )
+        const played = { actions: [...entered.actions, ...built.actions] }
+        const [start] = actionsOf(played.actions, ActionType.StartTurn)
+        expect(metadataOf<StartTurnMetadata>(start).arrivedShipIds).toEqual([])
+        const [drop] = actionsOf(played.actions, ActionType.ReduceTransferMarkers)
+        expect(metadataOf<ReduceTransferMarkersMetadata>(drop).arrivedShipIds).toEqual(
+            expect.arrayContaining(['praetorians-gladiator', 'praetorians-centurion'])
+        )
+    })
+
+    it('ask for Military Academy’s discard straight after the draw', () => {
+        const { game, state } = campaign()
+        let order = { first: '', middle: '', last: '' }
+        const { state: blockading } = intoTile(
+            game,
+            state,
+            EconomicTile.BaseProduction,
+            (hydrated) => {
+                order = frontLine(hydrated)
+                hydrated
+                    .getPlayerState(order.last)
+                    .cards.push({ cardId: 'military-academy', year: 2090, bought: false })
+            },
+            MachineState.Blockading
+        )
+        const declared = execute(
+            game,
+            blockading,
+            userAction(game, order.last, ActionType.DeclareBlockade, {
+                systemId: SYSTEM,
+                targetIds: [order.middle]
+            })
+        )
+        expect(declared.machineState).toBe(MachineState.Blockading)
+        expect(declared.activePlayerIds).toEqual([order.last])
+        const pending = hydrate(declared).escalationDiscard
+        assertExists(pending)
+        expect(pending.drawn).toHaveLength(2)
+        const discarded = execute(
+            game,
+            declared,
+            userAction(game, order.last, ActionType.DiscardEscalation, {
+                marker: pending.drawn[0]
+            })
+        )
+        expect(hydrate(discarded).getPlayerState(order.last).escalation).toEqual([pending.drawn[1]])
+        expect(discarded.machineState).toBe(MachineState.ChoosingProduction)
+    })
+
+    it('are halved after the initiative roll, keeping what each Player chose in their Branch', () => {
+        const { game, state } = campaign()
+        const markers = [EscalationMarker.Points4, EscalationMarker.NoAttack]
+        let current = nextTurnWith(game, state, EconomicTile.RollInitiative, (hydrated) => {
+            // Markers but no IP: the keep choice alone opens a Branch.
+            hydrated.getPlayerState(hydrated.initiativeOrder()[0]).escalation = [...markers]
+        }).state
+        expect(current.machineState).toBe(MachineState.DecidingInitiative)
+        const [playerId] = current.activePlayerIds
+        const result = executeAll(
+            game,
+            current,
+            userAction(game, playerId, ActionType.DeclareInitiative, {
+                influence: 0,
+                kept: [EscalationMarker.Points4]
+            })
+        )
+        current = result.state
+        const [roll] = actionsOf(result.processedActions, ActionType.RollInitiative)
+        expect(metadataOf<RollInitiativeMetadata>(roll).escalationDiscards).toEqual([
+            { playerId, discarded: [EscalationMarker.NoAttack] }
+        ])
+        expect(hydrate(current).getPlayerState(playerId).escalation).toEqual([
+            EscalationMarker.Points4
+        ])
+    })
+
+    it('roll for the truce at the end of every turn from 2110', () => {
+        const { game, state } = campaign()
+        const first = finishTurn(game, state)
+        const [end2100] = actionsOf(first.actions, ActionType.EndTurn)
+        expect(metadataOf<EndTurnMetadata>(end2100).truceRoll).toBeUndefined()
+        const second = finishTurn(game, first.state)
+        const [end2110] = actionsOf(second.actions, ActionType.EndTurn)
+        const truce = metadataOf<EndTurnMetadata>(end2110).truceRoll
+        assertExists(truce)
+        expect(truce.chance).toBe(1)
+        expect(second.state.truce).toBe(!truce.ended)
     })
 })

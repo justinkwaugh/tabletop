@@ -46,6 +46,8 @@ export interface ScenarioAnomalies {
 export interface CampaignRules {
     setAsideWorlds: Partial<Record<WorldClass, number>>
     endRollYear: number
+    // The end of the first turn whose end rolls for the truce, at this chance, rising 1% a turn.
+    truce: { rollYear: number; chance: number }
 }
 
 export interface ScenarioDefinition {
@@ -149,7 +151,8 @@ export const CAMPAIGN: ScenarioDefinition = {
             [WorldClass.L]: 6,
             [WorldClass.H]: 6
         },
-        endRollYear: 2500
+        endRollYear: 2500,
+        truce: { rollYear: 2110, chance: 1 }
     },
     victory: { kind: VictoryKind.Score }
 }

@@ -3,6 +3,7 @@ import { assertExists } from '@tabletop/common'
 import { SOL_SYSTEM_ID, systemDistance } from '../components/systems.js'
 import { TECH_FIELDS, type TechField } from '../components/techFields.js'
 import { TECHS } from '../components/techs.js'
+import { escalationScore } from './escalation.js'
 import { capabilitiesOf } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { roundHalfUp } from './turn.js'
@@ -34,6 +35,7 @@ export const CampaignScore = Type.Object({
     techPoints: Type.Number(),
     cash: Type.Number(),
     cards: Type.Number(),
+    escalation: Type.Number(),
     playerCount: Type.Number(),
     total: Type.Number()
 })
@@ -71,6 +73,7 @@ export function campaignScore(
         techPoints: Math.floor(markerTotal / TECH_POINTS_PER_POINT),
         cash: Math.floor(player.cash / CASH_PER_POINT),
         cards: player.cardPoints(),
+        escalation: escalationScore(player),
         playerCount: PLAYER_COUNT_BONUS[state.numPlayers] ?? 0
     }
     const total = roundHalfUp(Object.values(score).reduce((sum, value) => sum + value, 0))

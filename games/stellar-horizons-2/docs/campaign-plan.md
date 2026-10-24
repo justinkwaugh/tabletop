@@ -1,6 +1,6 @@
 # Stellar Horizons II campaign: plan
 
-Status: proposed 2026-10-17. Slices 1 and 2 built and reviewed 2026-10-18, their rulings agreed; slice 3 built 2026-10-18; slice 4 agreed and its logic built 2026-10-24. Decisions 1 and 3 agreed 2026-10-17; decision 2 agreed 2026-10-18, with Common Actions in the engine. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
+Status: proposed 2026-10-17. Slices 1 and 2 built and reviewed 2026-10-18, their rulings agreed; slice 3 built 2026-10-18; slice 4 built and reviewed 2026-10-24; slice 5 proposed 2026-10-24. Decisions 1 and 3 agreed 2026-10-17; decision 2 agreed 2026-10-18, with Common Actions in the engine. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
 
 ## What the campaign adds
 
@@ -220,6 +220,87 @@ Proposed 2026-10-24. Every question was answered by the user the same day: Q3 as
     - Harness scenarios: buying (a hand, markers and IP), the deal (a redraw, a duplicate, a short deck), the anomaly card (alone and in a pact), growth with Prolific Breeders, Hive Mind's tile, Planetary Surveys and a protected-view check.
 - **No migration.** Stellar Horizons II is unreleased, so the new state fields need none; the harness scenarios are regenerated.
 
+## Slice 5 in detail
+
+Proposed 2026-10-24. Sources: rulebook 1.3 to 1.7, 3.0 (the truce), 4.1, 4.4 and 4.6, the combat and raid tables (`notes/vassal-charts.md` 6.0 and 6.1), the Player Guide's combat example (3.3) and escalation markers (2.5), and the 39 escalation counters (`notes/vassal-inventory.md` 3.10 and appendix A.4). Questions are numbered **Q1** to **Q10**; each has a proposal. The user answered every question on 2026-10-24: Q6 against the proposal, the rest as proposed. What slice 5 builds, and how:
+
+- **Two halves (Q1).** Proposal: build and review it in two halves, each playable and committed on its own. **5a:** the truce, escalation markers and their effects, the discard at initiative, blockades, and the economic phase moved ahead of the transfer drop. **5b:** the combat phase, with its four types and REs, the tables, hits and damage, escalation from combat, and every faction, card and anomaly modifier. 5a draws escalation through blockades, so both halves are exercised as they land.
+- **Components.**
+    - `src/components/escalation.ts`: the 39 markers. 14 are victory points (two 1s, four 2s, four 3s, three 4s and one 5; the 5's file is named `Escalation 6.png`). 22 are penalties, printed in red. 3 are bonuses, printed in purple. Each marker's effect is data.
+    - `src/components/combatTables.ts`: the combat table (20 rows of combat value by the modified die, from 3 or less to 12+) and the raid table.
+- **The truce** (3.0). The campaign starts under it. From the end of 2110, a System Action at the end of each turn rolls percentiles: the truce ends on 1% in 2110, rising 1% a turn. While it holds there is no combat phase and nobody can attack. The turn header shows it with the next chance, and history records each roll. The advanced start's 2250 at 10% is slice 7's.
+- **Escalation markers.**
+    - **The pool.** The 39 drawn at random on the protected stream. Its contents are public, as the event and goods pools are, since every marker drawn is public too. **Q2 (agreed):** drawn markers are public, face up in front of their owner, as owned cards are. The rulebook doesn't say. The Admiral title (slice 6) compares how many each Player holds.
+    - **Effects.** All are cumulative and fold into `capabilitiesOf`:
+        - Earth production −$2B cash, never below $0, or +1 engineering or physics marker;
+        - initiative roll −20%, −30% or −40%;
+        - settlements cost +$1B or +$2B on Earth;
+        - −$1B or −$2B for each good sold, with the existing $0 floor;
+        - migration chance −20% or −30%;
+        - You Can't Attack.
+    - **Scoring.** A new category of the breakdown: the printed points, −1 for each red marker. The two purple bonus markers score nothing.
+    - **Drawing.** The pool may run dry. The drawer then loses 1 IP for each marker they could not draw, ignoring Military Academy's extra one. If they lack the IP, they lose all they have and cannot attack until after the next initiative roll. The other side still gains the full IP.
+    - **Military Academy** draws one marker more each time and discards one of those drawn: a choice on the Main Line, made at once.
+- **The discard at initiative** (4.1). After the rolls each Player discards half their markers, rounded up (with 1 marker they discard it), keeping the ones they choose. Discards go back to the pool. **Q3:** proposal, choose what to keep in the initiative Branch, beside the IP declaration, and apply it after the rolls. The rolls still use the markers held before the discard, and nothing a roll shows changes which markers are worth keeping. This saves a second wait on every initiative tile. A Player with markers but no IP now has a Branch too. The choice is skipped when every marker goes, or when all the markers have the same effect.
+- **Order of the turn.** In the campaign the economic phase moves ahead of the transfer drop, as rule 1.0 orders it. Ships arriving this turn are not yet in their system for a blockade. A new System Action drops the markers after the economic phase, and the arrivals move from `StartTurn`'s metadata into it. Footfall and These are the Voyages keep their order. The combat phase goes between build and cargo in the campaign's phase list.
+- **Blockades** (4.4, 4.6). Before base production, and before growth and migration, each Player who can blockade gets a turn on the Main Line, in reverse initiative order. Players who can't are skipped.
+    - **The condition.** In their turn a Player blockades any number of systems. In each they name one or more other Players' bases. Their arrived ships' total combat value there must exceed the named Players' ships' combat value plus those Players' settlements there, all together.
+    - **Escalation.** The blockader draws 1 escalation marker per base and each blockaded Player gains 1 IP. The decline exception is for combat only. After the review (the user, 2026-10-24): a base already blockaded in the step can't be blockaded again, nor a base where the step does nothing (a "no bases" anomaly or a halting event), and the cards' cash production is halved with the rest.
+    - **Effect.** A blockaded base produces half, the whole production (world value, settlement bonus and cards) halved and rounded 0.5 up (Player Guide 1.1). It gets no anomaly production bonus and no anomaly goods. On the growth tile it neither grows nor migrates, and gets no extra growth from cards or anomalies. The True Path's conversion is not growth, so it is unaffected. A blockade lasts for its step.
+    - **Combat value (Q4).** Combat value is what a ship's combat value means everywhere: printed, less damage, at least 1 if armed, plus Hypersonic Missiles' +1 for armed CVs. Proposal: Minefields' +3 counts for the blockaded Player, who is defending a system where they have a base. One function serves combat, blockades and the Syndicate's take, so Hypersonic Missiles now counts in the take too.
+    - **Q5: blockades and attacks.** The truce forbids attacks; whether it forbids blockades is disputed on BoardGameGeek. The same reading decides whether You Can't Attack, the empty-pool ban, Admiral (slice 6) and Demilitarised Earth (slice 7) stop blockades. Proposal: a blockade counts as an attack for all of these. It draws escalation and gives its victim IP as an attack does, and the truce is there to keep the opening peaceful. The other reading, Ardrosis's: a blockade is not one of the four combat types, so it is allowed throughout.
+- **The combat phase** (1.3). On the Main Line in initiative order. Each Player with a legal attack gets a turn; the rest are skipped, and so is the whole phase during the truce. In their turn a Player starts at most one combat in each system where they have arrived ships or a base, in any order, then ends their turn. They can't attack while holding You Can't Attack or while banned by an empty pool.
+    - **Q6: REs (agreed).** Destroying an RE is part of the combat rules, and rule 1.5 calls it a combat ("any combat except raids and attacks on REs"), so it uses the system's one combat for the phase (the user, 2026-10-24; BoardGameGeek has no discussion of it). The proposal, a separate allowance, was turned down.
+    - **Fleet combat.** The attacker chooses one or more armed, uncrippled CVs and one other Player. All of that Player's arrived CVs defend, unarmed and crippled ones too. The defender may add their base there.
+    - **Planetary assault.** The attacker's armed, uncrippled CVs against a base. The defender may add any of their CVs there, armed or not.
+    - **Ground combat.** The attacker's base against another base in the system. The attacker can't add CVs; the defender may.
+    - **Raid.** One armed, undamaged CV against a base whose owner has no armed arrived CV in the system. Praetorian bases can't be raided.
+    - **RE attack** (1.4). An armed, uncrippled CV destroys one RE of the attacker's choice, except at Sol or where the RE's owner has a base or an arrived CV. The owner draws 1 engineering marker, as loss compensation already does.
+    - **The defender's answer.** When the defender has something to choose (the base in a fleet combat, CVs in an assault or ground combat) they answer on the Main Line before the dice. Otherwise the dice follow the declaration at once.
+- **Resolving** (1.5).
+    - **Combat value.** Each side totals its combat value: CVs as above, and a base's settlements up to 30. Minefields adds +3 to its owner's side when they defend in a system where they have a base, whether or not the base is in the combat.
+    - **The die.** Each side rolls a die and adds a tenth of the enemy CVs' sizes, fast ones one size smaller (Engine Upgrades makes every ship fast). It adds a tenth of the enemy settlements in the combat, up to 30. Then the modifiers:
+        - Praetorians +1;
+        - Military Academy +1;
+        - Enhanced Strength and Increased Body Size +1 in assault and ground combat, attacking or defending;
+        - Reduced Body Size −1 in the same;
+        - Subterranean −2 to the opponent's assault and ground rolls when its owner defends;
+        - Hypersonic Missiles −1 to the opponent's assault and raid rolls when its owner defends;
+        - Tunnel Complex −1 to the opponent's assault, ground and raid rolls of a Player with a base there (**Q7**: proposal, attacking or defending; in a ground combat there both sides take it).
+
+        The total is rounded once, 0.5 up, as in the Player Guide's example (7.5 is 8), and read against the side's combat value on the table. The roll and every modifier go to history.
+
+    - **Q8: Praetorians with Military Academy.** The raid text says "+1 for Praetorians or Military Academy". Proposal: they add, +2, since each says "+1 to combat rolls" and card bonuses stack with each other (slice 4, Q6).
+    - **Hits** (**Q9**). Hits on the attacker are assigned first, the attacker, defender and attacker taking turns one hit at a time; then hits on the defender, starting with the defender. A hit is 1 damage to a CV in the combat or 1 settlement off a base in it. A CV whose damage reaches its capacity is destroyed, with its cargo and the usual compensation. A base that loses its last settlement is gone, as today. Hits left over once every unit is gone are lost. Proposal: one Action per hit, as the rule alternates them. A hit is placed for the Player when only one unit can take it, when the choices are alike (settlements of one base, or undamaged ships of one kind), and all at once when the hits are enough to destroy every unit. The faster alternative is a house rule: each Player assigns all the hits on their own units.
+- **Raids** (6.1). The raider rolls a die (Praetorians and Military Academy +1; Hypersonic Missiles and Tunnel Complex −1) and percentiles.
+    - **The Syndicate** may then lower its die to any smaller result, even one that cannot apply (the table's note).
+    - **Results:**
+        - 1–2 steal $1B;
+        - 3–4 steal $2B, or $1B from a Player with only $1B;
+        - 5–6 steal a random marker of a type the raider chooses among those the victim holds;
+        - 7–8 take a good of the raider's choice from the base, into the raider's cargo if there is room, or destroy it for $1B;
+        - 9 or more destroy a settlement, never the base's last.
+
+        A result that can't apply has no effect.
+
+    - **Damage.** Then the raider takes 1 damage at 25% or less (20% if fast), or 2 at 10% or less, and may be destroyed, losing what it stole into cargo.
+- **Escalation and IP** (1.7). After each combat the attacker draws 1 marker, +1 for each defending CV destroyed, +0.5 for each defending settlement destroyed (at the base or in a destroyed CV's cargo), +2 for eliminating the base and +2 at Sol, rounded once, 0.5 up. Only the defender's losses count, as in the Player Guide's example. A raid with no effect draws nothing. An RE attack draws 1. The defender gains IP equal to what the attacker should have drawn.
+    - **The decline exception.** Each ship records the Players it attacked this turn and last turn. When the defender's side included a ship that attacked the attacker, the attacker chooses whether to draw. Declining gives the defender no IP. The choice is offered only then, since markers can be worth points (and Warlord, slice 6, wants six).
+    - Combat challenges at anomalies and events stay out of all this (designer ruling), as now.
+- **Interface.**
+    - **The combat step.** Systems where the Player can attack get map targets. Choosing one opens the action panel with the combat types and targets possible there, then the CVs to send, shown with their combat value and size. The defender's answer goes in their panel.
+    - **Q10: the combat panel.** Proposal: a panel in the main area beside the map while a combat resolves, rather than in the zoomed system view. It shows both sides' units with damage, the two rolls with each modifier, the table lookup and the hits left to assign. The Player assigning a hit taps a unit in it.
+    - **Raids.** The raid result shows both dice, then the Syndicate's lower-result choice, the marker type and the good, all in the panel.
+    - **Escalation.** The decline choice and Military Academy's discard go in the action panel. Escalation markers sit on each faction console, face up. The initiative step gains the keep-which choice.
+    - **Blockades.** Map targets for systems where the Player can blockade, then a list of the bases there with the combined value to beat.
+    - **The truce** in the turn header.
+    - Combat history entries read like the Player Guide's example, for example "Praetorians attack the Consortium base at Luhman 16 with Odyssey and Gladiator; Sapphire defends". They give each roll in full: the die, the modifiers, the total and the hits.
+- **Harness scenarios.** For 5a: the truce roll, the discard at initiative, a blockade at production and at growth, a multi-Player blockade, and an empty escalation pool. For 5b: one of each combat type, an RE attack, a raid of each result with the Syndicate's choice, hit assignment with a crippled and a destroyed ship, a base eliminated, the decline exception, Military Academy's discard, and each card modifier.
+- **Card text.** The `waits` notes come off Minefields, Enhanced Strength, Hypersonic Missiles, the body sizes, Subterranean, Military Academy and Tunnel Complex's back as each part lands.
+- **Later slices.** The Admiral and Warlord titles and combat directives are slice 6's. Demilitarised Earth, the advanced start's truce and removing combat in cooperative and solo play are slice 7's.
+- **Online length.** After the truce the combat phase is one more wait each turn for every Player with a legal attack, and a combat adds the defender's answer and the hit assignment. Blockades add a wait on two of the seven tiles, for Players who can blockade.
+- **No migration**, as before: the game is unreleased, and the harness scenarios are regenerated.
+
 ## Rulings to make
 
 The rulebook leaves these open. Each is decided in its slice, recorded in `docs/rules-interpretations.md` with the reasoning, and raised with you:
@@ -227,7 +308,7 @@ The rulebook leaves these open. Each is decided in its slice, recorded in `docs/
 - Base production of tech: read as that many tech markers of the chosen type (the highest research value of that type in the system, plus the tech bonus), as rule 4.4 says "cash or tech markers produced". Agreed 2026-10-18.
 - The largest base bonus when Players tie: each tied Player gets it. Agreed 2026-10-18.
 
-- The truce: whether blockades are allowed during it (disputed on BoardGameGeek).
+- The truce: whether blockades are allowed during it (disputed on BoardGameGeek): slice 5, Q5.
 - "No exploration" anomalies also block mining and research. Agreed 2026-10-18.
 - Rounding follows the Player Guide (1.1): halve or double before adding or subtracting, and round only the final value, 0.5 up. This settles escalation discards, fractional combat modifiers and half escalation markers. Agreed 2026-10-18.
 - Terraforming tile disposal with two draws.

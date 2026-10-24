@@ -27,6 +27,11 @@ import {
     isProduceAtBases
 } from '../actions/produceAtBases.js'
 import {
+    HydratedReduceTransferMarkers,
+    ReduceTransferMarkers,
+    isReduceTransferMarkers
+} from '../actions/reduceTransferMarkers.js'
+import {
     HydratedRollInitiative,
     RollInitiative,
     isRollInitiative
@@ -35,12 +40,14 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { economicTileChooser } from '../model/economy.js'
+import { firstPhase } from '../model/turnPlan.js'
 import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
 import {
     stateAfterEconomicPhase,
     stateAfterGrowth,
     stateAfterGoodsDraw,
-    stateForEconomicTile
+    stateForEconomicTile,
+    startPhase
 } from './transitions.js'
 
 abstract class SystemStepHandler<Action extends HydratedAction> implements MachineStateHandler<
@@ -169,5 +176,21 @@ export class DrawingTradeGoodsStateHandler extends SystemStepHandler<HydratedDra
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
         return stateAfterGoodsDraw(context.gameState)
+    }
+}
+
+// The campaign drops the transfer markers once the economic phase is over (rulebook 1.0).
+export class ReducingTransferMarkersStateHandler extends SystemStepHandler<HydratedReduceTransferMarkers> {
+    protected readonly systemAction = ReduceTransferMarkers
+
+    isValidAction(action: HydratedAction): action is HydratedReduceTransferMarkers {
+        return isReduceTransferMarkers(action)
+    }
+
+    onAction(
+        _action: HydratedReduceTransferMarkers,
+        context: MachineContext<HydratedStellarHorizonsGameState>
+    ): MachineState {
+        return startPhase(context.gameState, firstPhase(context.gameState))
     }
 }

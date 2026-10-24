@@ -2,6 +2,7 @@ import type { HydratedAction, MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { TurnPhase } from '../model/turn.js'
+import { BlockadingStateHandler } from '../stateHandlers/blockading.js'
 import { BuildingStateHandler } from '../stateHandlers/building.js'
 import { ChoosingFactionsStateHandler } from '../stateHandlers/choosingFactions.js'
 import { ChoosingSurveyWorldStateHandler } from '../stateHandlers/choosingSurveyWorld.js'
@@ -20,6 +21,7 @@ import {
     EconomicPhaseStateHandler,
     GrowingSettlementsStateHandler,
     ProducingAtBasesStateHandler,
+    ReducingTransferMarkersStateHandler,
     RollingInitiativeStateHandler
 } from '../stateHandlers/economicPhase.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
@@ -60,6 +62,8 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.InitiativePhase]: new PhaseStateHandler(TurnPhase.Initiative),
     [MachineState.DecidingInitiative]: new DecidingInitiativeStateHandler(),
     [MachineState.RollingInitiative]: new RollingInitiativeStateHandler(),
+    [MachineState.Blockading]: new BlockadingStateHandler(),
+    [MachineState.ReducingTransferMarkers]: new ReducingTransferMarkersStateHandler(),
     [MachineState.BaseProductionPhase]: new PhaseStateHandler(TurnPhase.BaseProduction),
     [MachineState.ChoosingProduction]: new ChoosingProductionStateHandler(),
     [MachineState.ProducingAtBases]: new ProducingAtBasesStateHandler(),

@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { Color, Hydratable, PlayerState, Visibility } from '@tabletop/common'
 import { AnomalyChallenge, anomalyDefinition } from '../components/anomalies.js'
 import { CardDeck, cardDefinition } from '../components/cards.js'
+import { EscalationMarker } from '../components/escalation.js'
 import { Faction } from '../components/factions.js'
 import { TechField } from '../components/techFields.js'
 import { TechId } from '../components/techs.js'
@@ -67,7 +68,13 @@ export const StellarHorizonsPlayerState = Type.Evaluate(
             cardDraws: Type.Array(Type.Enum(CardDeck)),
             settlementsBought: Type.Number(),
             // Transcend Biology's announced change to the end roll's chance.
-            endRollModifier: Type.Optional(Type.Number())
+            endRollModifier: Type.Optional(Type.Number()),
+            escalation: Type.Array(Type.Enum(EscalationMarker)),
+            // The markers chosen to keep at the next initiative roll's discard (rulebook 4.1).
+            escalationKept: Type.Optional(Type.Array(Type.Enum(EscalationMarker))),
+            // Short of IP for markers the pool could not supply: no attacks until after the next
+            // initiative roll (rulebook 1.7).
+            attackBanned: Type.Boolean()
         })
     ])
 )
@@ -116,6 +123,9 @@ export class HydratedStellarHorizonsPlayerState
     declare cardDraws: CardDeck[]
     declare settlementsBought: number
     declare endRollModifier?: number
+    declare escalation: EscalationMarker[]
+    declare escalationKept?: EscalationMarker[]
+    declare attackBanned: boolean
 
     constructor(data: StellarHorizonsProjectedPlayerState) {
         super(data, StellarHorizonsProjectedPlayerStateValidator)

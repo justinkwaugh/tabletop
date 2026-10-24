@@ -2,6 +2,7 @@ import { EconomicTile } from '../components/economicTiles.js'
 import { isEvenDecade } from '../components/scenarios.js'
 import { MachineState } from '../definition/states.js'
 import { anyAnomalyAttempts } from '../model/anomalies.js'
+import { endBlockades, queueBlockades } from '../model/blockades.js'
 import { isCampaign } from '../model/campaign.js'
 import { queueConversions } from '../model/economy.js'
 import { anyEventAttempts } from '../model/events.js'
@@ -13,7 +14,7 @@ import { destroyUnplaceableRewardGoods } from '../model/trade.js'
 import { anyPendingSurveys } from '../model/surveys.js'
 import { nextShipTerraformer, refillWorldPool, terraformingQueue } from '../model/terraforming.js'
 import { nextCardDrawer } from '../model/cards.js'
-import { CardsResume, DemandResume } from '../model/pieces.js'
+import { BlockadeStep, CardsResume, DemandResume } from '../model/pieces.js'
 import { TurnPhase } from '../model/turn.js'
 import { branchingState, firstPhase, phaseAfter } from '../model/turnPlan.js'
 
@@ -46,13 +47,13 @@ export function stateForEconomicTile(
         case EconomicTile.RollInitiative:
             return branchingState(TurnPhase.Initiative)
         case EconomicTile.BaseProduction:
-            return branchingState(TurnPhase.BaseProduction)
+            return stateForBlockades(state, BlockadeStep.Production)
         case EconomicTile.DrawEvent:
             return MachineState.DrawingEvent
         case EconomicTile.DrawTradeGoods:
             return MachineState.DrawingTradeGoods
         case EconomicTile.SettlementGrowth:
-            return MachineState.GrowingSettlements
+            return stateForBlockades(state, BlockadeStep.Growth)
         case EconomicTile.Terraforming:
             state.terraformQueue = terraformingQueue(state)
             state.terraformedWorlds = []
@@ -81,8 +82,29 @@ export function stateAfterGoodsDraw(state: HydratedStellarHorizonsGameState): Ma
         : stateAfterEconomicPhase(state)
 }
 
+// Rulebook 4.4 and 4.6: blockades are declared before base production and before growth.
+function stateForBlockades(
+    state: HydratedStellarHorizonsGameState,
+    step: BlockadeStep
+): MachineState {
+    queueBlockades(state, step)
+    return state.remainingBlockaders.length > 0
+        ? MachineState.Blockading
+        : stateAfterBlockades(state)
+}
+
+export function stateAfterBlockades(state: HydratedStellarHorizonsGameState): MachineState {
+    return state.blockadeStep === BlockadeStep.Growth
+        ? MachineState.GrowingSettlements
+        : branchingState(TurnPhase.BaseProduction)
+}
+
+// The economic phase's blockades last for its step; the transfer markers drop after it.
 export function stateAfterEconomicPhase(state: HydratedStellarHorizonsGameState): MachineState {
-    return startPhase(state, firstPhase(state))
+    endBlockades(state)
+    return isCampaign(state)
+        ? MachineState.ReducingTransferMarkers
+        : startPhase(state, firstPhase(state))
 }
 
 // The campaign plays the cargo and trade phase on the Main Line, in initiative order.

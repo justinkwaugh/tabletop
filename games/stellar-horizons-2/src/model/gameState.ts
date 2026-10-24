@@ -11,11 +11,14 @@ import {
     type RandomState
 } from '@tabletop/common'
 import { EconomicTile } from '../components/economicTiles.js'
+import { EscalationMarker } from '../components/escalation.js'
 import { TradeGood } from '../components/tradeGoods.js'
 import { ScenarioId, scenarioDefinition, type ScenarioDefinition } from '../components/scenarios.js'
 import { MachineState } from '../definition/states.js'
 import {
     Base,
+    Blockade,
+    BlockadeStep,
     CardPile,
     CardsResume,
     ConversionChance,
@@ -27,6 +30,7 @@ import {
     ActiveEvent,
     DemandDraw,
     DemandResume,
+    EscalationDiscard,
     EventPlacement,
     GoodsReward,
     Pact,
@@ -76,7 +80,15 @@ export const StellarHorizonsGameState = Type.Object({
     // Players with Prolific Breeders still to choose a base, and the conversion rolls still to
     // take, after growth (rulebook 4.6).
     growthChoosers: Type.Array(Type.String()),
-    conversions: Type.Array(ConversionChance)
+    conversions: Type.Array(ConversionChance),
+    // Rulebook 3.0: no faction may attack another until a roll ends the truce.
+    truce: Type.Boolean(),
+    escalationPool: Type.Array(Type.Enum(EscalationMarker)),
+    escalationDiscard: Type.Optional(EscalationDiscard),
+    // Blockades come before base production and growth, in reverse initiative order (4.4, 4.6).
+    blockadeStep: Type.Optional(Type.Enum(BlockadeStep)),
+    remainingBlockaders: Type.Array(Type.String()),
+    blockades: Type.Array(Blockade)
 })
 
 export const StellarHorizonsGameStateValidator = Compile(StellarHorizonsGameState)
@@ -143,6 +155,12 @@ export class HydratedStellarHorizonsGameState
     declare resumeAfterCards?: CardsResume
     declare growthChoosers: string[]
     declare conversions: ConversionChance[]
+    declare truce: boolean
+    declare escalationPool: EscalationMarker[]
+    declare escalationDiscard?: EscalationDiscard
+    declare blockadeStep?: BlockadeStep
+    declare remainingBlockaders: string[]
+    declare blockades: Blockade[]
 
     constructor(data: StellarHorizonsProjectedState) {
         super(data, StellarHorizonsProjectedStateValidator)
