@@ -14,12 +14,9 @@ import { EighteenSeventeenMapView } from '@tabletop/1817-ui/playground'
 import { EighteenThirtyTwoMarket } from '@tabletop/1832'
 import { EighteenThirtyTwoMapView } from '@tabletop/1832-ui/playground'
 import {
-    MarketCellHeight,
-    MarketCellWidth,
     MarketScenePadding,
     MarketZoneBannerHeight,
-    marketColumnLefts,
-    marketColumnsWidth
+    marketGeometry
 } from '../../../../libs/18xx-ui/src/lib/stock/marketTokenLayout.js'
 
 type MapScene = ReturnType<typeof createMapDrawing>
@@ -186,29 +183,20 @@ describe.each([
                     y > hex.y + 62
             )
         const cells = market.spaces.map((space) => space.id.split(':').map(Number))
-        const rows = Math.max(...cells.map(([row]) => row)) + 1
-        const cellWidth = cell?.width ?? MarketCellWidth
-        const cellHeight = cell?.height ?? MarketCellHeight
         const banner = zones?.some((zone) => zone.banner) ? MarketZoneBannerHeight : 0
-        const lefts = marketColumnLefts(
-            market,
-            { width: cellWidth, height: cellHeight },
-            zones ?? []
-        )
-        const width =
-            2 * MarketScenePadding +
-            marketColumnsWidth(lefts, { width: cellWidth, height: cellHeight })
-        const height = 2 * MarketScenePadding + banner + rows * cellHeight
+        const geometry = marketGeometry(market, cell, zones)
+        const width = 2 * MarketScenePadding + geometry.width
+        const height = 2 * MarketScenePadding + banner + geometry.height
         const area = areas!.market!
         const scale = Math.min(area.width / width, area.height / height)
         const left = area.x + (area.width - width * scale) / 2
         for (const [row, column] of cells)
             expect(
                 clear(
-                    left + (MarketScenePadding + lefts[column]) * scale,
-                    area.y + (MarketScenePadding + banner + row * cellHeight) * scale,
-                    cellWidth * scale,
-                    cellHeight * scale
+                    left + (MarketScenePadding + geometry.columnLefts[column]) * scale,
+                    area.y + (MarketScenePadding + banner + row * geometry.cell.height) * scale,
+                    geometry.cell.width * scale,
+                    geometry.cell.height * scale
                 )
             ).toBe(true)
         const depot = areas!.depot!

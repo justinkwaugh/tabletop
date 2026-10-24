@@ -17,16 +17,24 @@ export const MarketZoneGap = 8
 // Stacked tokens sit against the cell's right edge, clear of the price at the upper left.
 const MarketStackInset = 4
 
-/**
- * Each column's left edge in unscaled scene pixels, with a gap between the columns of a set-apart
- * zone and the columns either side of them.
- */
-export function marketColumnLefts(
+/** Where the market's columns and rows fall, in unscaled scene pixels. */
+export interface MarketGeometry {
+    readonly cell: MarketCellDimensions
+    readonly columnLefts: readonly number[]
+    /** Whether a gap comes before each column, either side of a set-apart zone's columns. */
+    readonly gapBefore: readonly boolean[]
+    readonly rows: number
+    readonly width: number
+    readonly height: number
+}
+
+export function marketGeometry(
     chart: StockMarketChart,
     cell = DefaultMarketCell,
     zones: readonly MarketZone[] = []
-): number[] {
+): MarketGeometry {
     const columns = Math.max(...chart.spaces.map((space) => space.column)) + 1
+    const rows = Math.max(...chart.spaces.map((space) => space.row)) + 1
     const apartColors = new Set(zones.filter((zone) => zone.setApart).map((zone) => zone.color))
     const groups = Array.from(
         { length: columns },
@@ -34,18 +42,15 @@ export function marketColumnLefts(
             chart.spaces.find((space) => space.column === column && apartColors.has(space.color))
                 ?.color
     )
+    const gapBefore = groups.map((group, column) => column > 0 && group !== groups[column - 1])
     let left = 0
-    return groups.map((group, column) => {
-        if (column > 0 && group !== groups[column - 1]) left += MarketZoneGap
+    const columnLefts = gapBefore.map((gap) => {
+        if (gap) left += MarketZoneGap
         const columnLeft = left
         left += cell.width
         return columnLeft
     })
-}
-
-/** The width of the market's columns and gaps, in unscaled scene pixels. */
-export function marketColumnsWidth(lefts: readonly number[], cell = DefaultMarketCell): number {
-    return (lefts.at(-1) ?? 0) + cell.width
+    return { cell, columnLefts, gapBefore, rows, width: left, height: rows * cell.height }
 }
 
 /**
@@ -54,22 +59,19 @@ export function marketColumnsWidth(lefts: readonly number[], cell = DefaultMarke
  */
 export function marketLowerRightSpace(
     chart: StockMarketChart,
-    cell = DefaultMarketCell,
-    zones: readonly MarketZone[] = []
+    geometry = marketGeometry(chart)
 ): BoundingBox | undefined {
-    const lefts = marketColumnLefts(chart, cell, zones)
-    const columns = lefts.length
-    const rows = Math.max(...chart.spaces.map((space) => space.row)) + 1
+    const { cell, columnLefts, rows } = geometry
     let firstEmptyColumn = 0
     let largest: BoundingBox | undefined
     for (let top = rows - 1; top >= 0; top--) {
         const occupied = chart.spaces.filter((space) => space.row === top)
         firstEmptyColumn = Math.max(firstEmptyColumn, ...occupied.map((space) => space.column + 1))
-        if (firstEmptyColumn >= columns) break
+        if (firstEmptyColumn >= columnLefts.length) break
         const space = {
-            x: MarketScenePadding + lefts[firstEmptyColumn],
+            x: MarketScenePadding + columnLefts[firstEmptyColumn],
             y: MarketScenePadding + top * cell.height,
-            width: marketColumnsWidth(lefts, cell) - lefts[firstEmptyColumn],
+            width: geometry.width - columnLefts[firstEmptyColumn],
             height: (rows - top) * cell.height
         }
         if (!largest || space.width * space.height > largest.width * largest.height) largest = space
@@ -86,10 +88,9 @@ function stackOffsetX(count: number, cell: MarketCellDimensions) {
 export function marketTokenLayout(
     chart: StockMarketChart,
     market: StockMarket,
-    cell = DefaultMarketCell,
-    zones: readonly MarketZone[] = []
+    geometry = marketGeometry(chart)
 ) {
-    const lefts = marketColumnLefts(chart, cell, zones)
+    const { cell, columnLefts } = geometry
     const topInset = cell.width < 50 ? 20 : MarketStackInset
     const tokenHeight = cell.height - topInset - MarketStackInset
     return market.stacks.flatMap((stack) => {
@@ -105,7 +106,7 @@ export function marketTokenLayout(
         return stack.companyIds.map((companyId, index) => ({
             companyId,
             spaceId: space.id,
-            x: lefts[space.column] + x,
+            x: columnLefts[space.column] + x,
             y:
                 space.row * cell.height +
                 topInset +
@@ -125,20 +126,17 @@ export function expandedMarketStack(
     chart: StockMarketChart,
     market: StockMarket,
     spaceId: string,
-    cell = DefaultMarketCell,
-    zones: readonly MarketZone[] = []
+    geometry = marketGeometry(chart)
 ): Point[] {
+    const { cell, columnLefts, width, height } = geometry
     const count = market.stacks.find((stack) => stack.spaceId === spaceId)?.companyIds.length ?? 0
     const space = chart.space(spaceId)
-    const lefts = marketColumnLefts(chart, cell, zones)
-    const width = marketColumnsWidth(lefts, cell)
-    const height = (Math.max(...chart.spaces.map((item) => item.row)) + 1) * cell.height
     const step = MarketTokenSize + 4
     const span = Math.max(0, count - 1) * step
     const radius = MarketTokenSize / 2
     const x = Math.max(
         radius,
-        Math.min(width - radius, lefts[space.column] + stackOffsetX(count, cell))
+        Math.min(width - radius, columnLefts[space.column] + stackOffsetX(count, cell))
     )
     const y = Math.max(
         radius,

@@ -110,8 +110,13 @@ export function createTileDrawing(
     )
     const angle =
         ((rotation * 60 + (orientation === HexOrientation.Pointy ? 30 : 0)) * Math.PI) / 180
-    const slotRowAngle = (nodeId: string) =>
-        angle + ((layout.slotRowTurns?.[nodeId] ?? 0) * Math.PI) / 180
+    const citySlots = (node: Extract<TileNode, { kind: 'city' }>, center: Point) =>
+        stationPositions(
+            node.stationSlots,
+            center,
+            angle + ((layout.slotRowTurns?.[node.id] ?? 0) * Math.PI) / 180,
+            citySlotRadius
+        )
     const centers = new Map<string, Point>()
     const automaticTownPaths = new Map<string, readonly TilePath[]>()
     for (const node of face.nodes) {
@@ -219,7 +224,7 @@ export function createTileDrawing(
     const stationSlots = face.nodes.flatMap((node) => {
         const center = centers.get(node.id)
         return center && node.kind === 'city' && node.stationSlots > 0
-            ? stationPositions(node.stationSlots, center, slotRowAngle(node.id), citySlotRadius)
+            ? citySlots(node, center)
             : []
     })
     const occupied: Point[] = [
@@ -228,7 +233,7 @@ export function createTileDrawing(
             const center = centers.get(node.id)
             assertExists(center, `Unknown tile node ${node.id}`)
             return node.kind === 'city' && node.stationSlots > 0
-                ? stationPositions(node.stationSlots, center, slotRowAngle(node.id), citySlotRadius)
+                ? citySlots(node, center)
                 : [center]
         })
     ]
@@ -295,15 +300,7 @@ export function createTileDrawing(
         return {
             node,
             center,
-            slots:
-                node.kind === 'city'
-                    ? stationPositions(
-                          node.stationSlots,
-                          center,
-                          slotRowAngle(node.id),
-                          citySlotRadius
-                      )
-                    : [],
+            slots: node.kind === 'city' ? citySlots(node, center) : [],
             revenuePosition,
             revenueCells,
             revenueHidden,

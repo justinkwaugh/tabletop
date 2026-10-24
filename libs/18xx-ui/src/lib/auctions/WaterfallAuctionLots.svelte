@@ -6,6 +6,7 @@
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import './auctionLotTable.css'
+    import AuctionBidRow from './AuctionBidRow.svelte'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -174,50 +175,41 @@
                         </td>
                     </tr>
                     {#if stagedBid && selectedLot?.id === lot.id}
-                        <tr class="bid-row">
-                            <td colspan={columnCount}>
-                                <div class="bid-line" role="group" aria-label="Your bid">
+                        <AuctionBidRow columns={columnCount} label="Your bid">
+                            {#snippet control()}
+                                {@render stepper(
+                                    lot.id,
+                                    stagedBid.amount,
+                                    (amount) => auction.setBid(amount),
+                                    () => auction.confirm()
+                                )}
+                            {/snippet}
+                            {#snippet figures()}
+                                {#if playerId}{@render cash(playerId)}{/if}
+                            {/snippet}
+                        </AuctionBidRow>
+                    {:else if contest?.lotId === lot.id}
+                        <AuctionBidRow columns={columnCount} label="Current auction">
+                            {#snippet control()}
+                                {#if auction.ownTurn && auction.raiseAmount !== undefined}
                                     {@render stepper(
                                         lot.id,
-                                        stagedBid.amount,
-                                        (amount) => auction.setBid(amount),
-                                        () => auction.confirm()
+                                        auction.raiseAmount,
+                                        (amount) => auction.setRaise(amount),
+                                        () => auction.raise(),
+                                        () => auction.pass()
                                     )}
-                                    {#if playerId}<span class="figures"
-                                            >{@render cash(playerId)}</span
-                                        >{/if}
-                                </div>
-                            </td>
-                        </tr>
-                    {:else if contest?.lotId === lot.id}
-                        <tr class="bid-row">
-                            <td colspan={columnCount}>
-                                <div class="bid-line" role="group" aria-label="Current auction">
-                                    {#if auction.ownTurn && auction.raiseAmount !== undefined}
-                                        {@render stepper(
-                                            lot.id,
-                                            auction.raiseAmount,
-                                            (amount) => auction.setRaise(amount),
-                                            () => auction.raise(),
-                                            () => auction.pass()
-                                        )}
-                                    {/if}
-                                    <span class="figures">
-                                        <span
-                                            >High bidder <strong
-                                                >{session.getPlayerName(
-                                                    contest.highBidderId
-                                                )}</strong
-                                            ></span
-                                        >
-                                        <span
-                                            >High bid <strong>{money(contest.highBid)}</strong
-                                            ></span
-                                        >
-                                    </span>
-                                </div>
-                            </td>
-                        </tr>
+                                {/if}
+                            {/snippet}
+                            {#snippet figures()}
+                                <span
+                                    >High bidder <strong
+                                        >{session.getPlayerName(contest.highBidderId)}</strong
+                                    ></span
+                                >
+                                <span>High bid <strong>{money(contest.highBid)}</strong></span>
+                            {/snippet}
+                        </AuctionBidRow>
                     {/if}
                 {/each}
             </tbody>

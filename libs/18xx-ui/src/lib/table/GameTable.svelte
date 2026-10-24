@@ -66,7 +66,7 @@
     import HistoricalMapViewer from '../maps/HistoricalMapViewer.svelte'
     import StockMarketScene from '../stock/StockMarketScene.svelte'
     import MarketLegend from '../stock/MarketLegend.svelte'
-    import { marketLowerRightSpace } from '../stock/marketTokenLayout.js'
+    import { marketGeometry, marketLowerRightSpace } from '../stock/marketTokenLayout.js'
     import BoardInset from '../maps/BoardInset.svelte'
     import BoardFocus from './BoardFocus.svelte'
     import BoardAutoZoom from './BoardAutoZoom.svelte'
@@ -897,8 +897,11 @@
             {@const corner = boardInformation
                 ? marketLowerRightSpace(
                       session.stockMarketChart,
-                      session.presentation.marketCell,
-                      session.presentation.marketZones
+                      marketGeometry(
+                          session.stockMarketChart,
+                          session.presentation.marketCell,
+                          session.presentation.marketZones
+                      )
                   )
                 : undefined}
             <div class="board-market">

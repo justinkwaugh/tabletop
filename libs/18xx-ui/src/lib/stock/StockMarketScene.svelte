@@ -15,7 +15,7 @@
     import {
         marketTokenLayout,
         expandedMarketStack,
-        marketColumnLefts,
+        marketGeometry,
         MarketZoneGap,
         DefaultMarketCell,
         type MarketCellDimensions,
@@ -48,16 +48,15 @@
     const SolidFillInk = '#253b35'
     // Below this width a three-digit price at full size reaches the space's right edge.
     const NarrowCellWidth = 34
-    // A set-apart zone's gaps are grid tracks of their own, so each column's track follows them.
-    const columnLefts = $derived(marketColumnLefts(chart, cell, zones))
-    const gapBefore = $derived(
-        columnLefts.map((left, column) => column > 0 && left - columnLefts[column - 1] > cell.width)
-    )
+    const geometry = $derived(marketGeometry(chart, cell, zones))
+    // Each gap is a grid track of its own, so a column's track counts the gaps before it.
     const columnTracks = $derived(
-        gapBefore.map((_, column) => column + gapBefore.slice(0, column + 1).filter(Boolean).length)
+        geometry.gapBefore.map(
+            (_, column) => column + geometry.gapBefore.slice(0, column + 1).filter(Boolean).length
+        )
     )
     const gridColumns = $derived(
-        gapBefore
+        geometry.gapBefore
             .map((gap) =>
                 gap
                     ? `${MarketZoneGap * renderScale}px ${cell.width * renderScale}px`
@@ -65,7 +64,6 @@
             )
             .join(' ')
     )
-    const rows = $derived(Math.max(...chart.spaces.map((space) => space.row)) + 1)
     const spaceRows = $derived(new Map(chart.spaces.map((space) => [space.id, space.row])))
     // An edge arrow marks a sideways move that leaves the row, such as up at a row's end.
     function leavesRow(space: StockMarketSpace, move: 'left' | 'right'): boolean {
@@ -95,14 +93,14 @@
     function solidInk(zone: MarketZone | undefined): string | undefined {
         return zone?.fill?.kind === 'solid' ? (zone.fill.ink ?? SolidFillInk) : undefined
     }
-    let tokens = $derived(marketTokenLayout(chart, market, cell, zones))
+    let tokens = $derived(marketTokenLayout(chart, market, geometry))
     let hoveredSpace: string | undefined = $derived.by(() => {
         market
         animation?.updatingVisibleState
         return undefined
     })
     const expanded = $derived(
-        hoveredSpace ? expandedMarketStack(chart, market, hoveredSpace, cell, zones) : []
+        hoveredSpace ? expandedMarketStack(chart, market, hoveredSpace, geometry) : []
     )
     const expandedIds = $derived(
         market.stacks.find((stack) => stack.spaceId === hoveredSpace)?.companyIds ?? []
@@ -142,8 +140,8 @@
         if (!activeSession) return
         const listener = async ({ to, from, action, animationContext }: MarketStateChange) => {
             if (!from || !board || getComputedStyle(board).visibility !== 'visible') return
-            const before = marketTokenLayout(chart, from, cell, zones)
-            const after = marketTokenLayout(chart, to, cell, zones)
+            const before = marketTokenLayout(chart, from, geometry)
+            const after = marketTokenLayout(chart, to, geometry)
             if (JSON.stringify(before) === JSON.stringify(after)) return
             hoveredSpace = undefined
             // The market shown when the run began; a newer one published meanwhile, such as a
@@ -261,7 +259,7 @@
         aria-label="Market spaces"
         onpointerleave={() => (hoveredSpace = undefined)}
         style:grid-template-columns={gridColumns}
-        style:grid-template-rows={`repeat(${rows}, ${cell.height * renderScale}px)`}
+        style:grid-template-rows={`repeat(${geometry.rows}, ${cell.height * renderScale}px)`}
     >
         {#each chart.spaces as space (space.id)}
             {@const crowded = tokens.some(
@@ -512,7 +510,6 @@
         left: calc(3px * var(--render-scale));
         font-size: calc(11px * var(--render-scale));
     }
-    /* Reads downward below the price. */
     .zone-label {
         position: absolute;
         top: calc(21px * var(--render-scale));

@@ -116,7 +116,6 @@
     clip-path: inset(50%);
 }
 
-/* A chosen lot's row, joined to the bid row opened under it. */
 .auction-lot-table tr.selected > *,
 .auction-lot-table tr.bid-row > * {
     background: var(--rail-surface-selected, #e6dccd);

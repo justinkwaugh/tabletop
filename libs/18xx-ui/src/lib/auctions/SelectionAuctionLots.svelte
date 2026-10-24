@@ -8,6 +8,7 @@
     import PlaceText from '../places/PlaceText.svelte'
     import { namedPlaceText } from '@tabletop/18xx'
     import './auctionLotTable.css'
+    import AuctionBidRow from './AuctionBidRow.svelte'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -36,6 +37,8 @@
     const lotTitle = (lot: (typeof lots)[number]) =>
         lot.company.description && plainDescription(lot.company.description)
     const columnCount = $derived(auction.ownTurn ? 4 : 3)
+    // The table opens the bid under the chosen lot; the tiers bid beside them.
+    const bidsInline = $derived(!tiers && !!selected)
 </script>
 
 {#snippet stepper(lotId: string, amount: number, inline: boolean)}
@@ -152,20 +155,18 @@
                             <td class="amount">{money(model.minimumBid(lot.id))}</td>
                         </tr>
                         {#if selected?.id === lot.id && auction.selection && playerId}
-                            <tr class="bid-row">
-                                <td colspan={columnCount}>
-                                    <div class="bid-line" role="group" aria-label="Your bid">
-                                        {@render stepper(lot.id, auction.selection.amount, true)}
-                                        <span class="figures"
-                                            ><span
-                                                >Available <strong
-                                                    >{money(model.cash(playerId))}</strong
-                                                ></span
-                                            ></span
-                                        >
-                                    </div>
-                                </td>
-                            </tr>
+                            {@const amount = auction.selection.amount}
+                            <AuctionBidRow columns={columnCount} label="Your bid">
+                                {#snippet control()}
+                                    {@render stepper(lot.id, amount, true)}
+                                {/snippet}
+                                {#snippet figures()}
+                                    <span
+                                        >Available <strong>{money(model.cash(playerId))}</strong
+                                        ></span
+                                    >
+                                {/snippet}
+                            </AuctionBidRow>
                         {/if}
                     {/each}
                 </tbody>
@@ -173,7 +174,7 @@
         {/if}
         {#if playerId}
             <div class="turn">
-                {#if !selected || tiers}<div class="summary">
+                {#if !bidsInline}<div class="summary">
                         <span
                             >{session.getPlayerName(playerId)} has
                             <strong>{money(model.cash(playerId))}</strong></span
