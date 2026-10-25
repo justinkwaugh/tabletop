@@ -1,5 +1,9 @@
 <svelte:options namespace="svg" />
 
+<script module lang="ts">
+    export const SHADOW_SOFTNESS = 2.6
+</script>
+
 <script lang="ts">
     import { VIEW } from '$lib/board/geometry.js'
     import { MARKER_RADIUS, RING_OUTER } from '$lib/board/pieceGeometry.js'
@@ -14,11 +18,11 @@
         <circle cx="1.6" cy="1.6" r={RING_OUTER + SHADOW_SOFTNESS} fill="url(#{prefix}-shadow-ring)"
         ></circle>
     {:else}
-        <circle cx="1.2" cy="1.2" r={MARKER_RADIUS + SHADOW_SOFTNESS} fill="url(#{prefix}-shadow-disc)"
+        <circle
+            cx="1.2"
+            cy="1.2"
+            r={MARKER_RADIUS + SHADOW_SOFTNESS}
+            fill="url(#{prefix}-shadow-disc)"
         ></circle>
     {/if}
 </g>
-
-<script module lang="ts">
-    export const SHADOW_SOFTNESS = 2.6
-</script>

@@ -12,7 +12,7 @@
         RING_INNER,
         RING_OUTER
     } from '$lib/board/pieceGeometry.js'
-    import { BoardAnimator, type DrawnPiece } from '$lib/animators/boardAnimator.svelte.js'
+    import { BoardAnimator, pieceId, type DrawnPiece } from '$lib/animators/boardAnimator.svelte.js'
     import { dropIn } from '$lib/board/dropIn.js'
     import { ellipsePath, markerDrawing, ringDrawing } from '$lib/board/pieceShape.js'
     import { BOARD_STORM, STORM_SIZE, stormImage } from '$lib/board/storm.js'
@@ -20,6 +20,7 @@
     import MarkerShape from './MarkerShape.svelte'
     import PieceDefs from './PieceDefs.svelte'
     import PieceShadow from './PieceShadow.svelte'
+    import FlippingMarker from './FlippingMarker.svelte'
     import type { Tone } from '$lib/board/pieceStyle.js'
 
     const session = getGameSession()
@@ -59,7 +60,7 @@
     const sides = $derived(
         session.gameState.players.map((player) => ({
             playerId: player.playerId,
-            removed: animator.ringsRemoved[player.playerId] ?? 0,
+            removed: animator.removed[player.playerId] ?? [],
             slots: VIEW.ringSlots(player.playerId === session.topPlayerId ? 'top' : 'bottom').slice(
                 0,
                 session.gameState.ringsToWin
@@ -86,9 +87,7 @@
         return undefined
     }
 
-    const destinations = $derived(
-        session.destinations.map((move) => VIEW.center(move.to))
-    )
+    const destinations = $derived(session.destinations.map((move) => VIEW.center(move.to)))
 
     // Far first, so where a nearer ring's click area overlaps the one behind it, the nearer
     // takes the click, as it stands in front.
@@ -165,29 +164,20 @@
 {#snippet drawn(piece: DrawnPiece)}
     {@const center = VIEW.center(piece.coords)}
     {@const role = markOn(piece)}
-    <g transform="translate({center.x} {center.y})" class="piece">
+    <g transform="translate({center.x} {center.y})" class="piece" id={pieceId(piece.key)}>
         <g {@attach animator.node(piece.key)}>
             {#if piece.kind === 'ring'}
-                {@render ring(session.toneOfPlayer(piece.playerId), coordsKey(piece.coords))}
+                {@render ring(session.toneOfPlayer(piece.playerId), piece.seed)}
             {:else if piece.flip}
-                {#each [{ face: 'front', playerId: piece.playerId }, { face: 'back', playerId: piece.flip.toPlayerId }] as side (side.face)}
-                    <g
-                        {@attach animator.flipFace(
-                            `${piece.key}:${side.face}`,
-                            piece.flip.angle,
-                            side.face === 'back'
-                        )}
-                    >
-                        <g transform="rotate({-piece.flip.angle})">
-                            {@render marker(
-                                session.toneOfPlayer(side.playerId),
-                                coordsKey(piece.coords)
-                            )}
-                        </g>
-                    </g>
-                {/each}
+                <FlippingMarker
+                    tone={session.toneOfPlayer(piece.playerId)}
+                    toTone={session.toneOfPlayer(piece.flip.toPlayerId)}
+                    seedKey={piece.seed}
+                    prefix={PREFIX}
+                    part={animator.flipPart(piece.key)}
+                />
             {:else}
-                {@render marker(session.toneOfPlayer(piece.playerId), coordsKey(piece.coords))}
+                {@render marker(session.toneOfPlayer(piece.playerId), piece.seed)}
             {/if}
         </g>
         {#if piece.kind === 'ring' && session.chosenFrom && sameCoordinates(session.chosenFrom, piece.coords)}
@@ -200,7 +190,7 @@
                 <!-- The marker sits down in the hole, behind the ring's near half. -->
                 <RingShape
                     tone={session.toneOfPlayer(piece.playerId)}
-                    seedKey={coordsKey(piece.coords)}
+                    seedKey={piece.seed}
                     prefix={PREFIX}
                     near
                 />
@@ -274,12 +264,9 @@
         {#each side.slots as slot, index (index)}
             <g transform="translate({slot.x} {slot.y})">
                 <path d={SLOT} fill-rule="evenodd" class="slot"></path>
-                {#if index < side.removed}
+                {#if index < side.removed.length}
                     {@render ringShadow()}
-                    {@render ring(
-                        session.toneOfPlayer(side.playerId),
-                        `slot-${side.playerId}-${index}`
-                    )}
+                    {@render ring(session.toneOfPlayer(side.playerId), side.removed[index])}
                 {/if}
             </g>
         {/each}
@@ -315,28 +302,45 @@
         {/each}
     </g>
 
-    <!-- A marker turning over is drawn above the ring in flight: it pops up and turns as the
-         ring slides beneath it. -->
-    {#each pieces.filter((piece) => !piece.flip) as piece (piece.key)}
+    {#each pieces as piece (piece.key)}
         {@render drawn(piece)}
     {/each}
 
+    <!-- The ring in flight: its node follows the ground, with its shadow; its body rises above.
+         While it still stands around the marker it leaves, the marker shows in its hole, in
+         front of the far half and behind the near half. -->
     {#if animator.flier}
-        {@const center = VIEW.center(animator.flier.at)}
-        <g transform="translate({center.x} {center.y})" class="flier">
-            <g {@attach animator.flierNode()}>
-                {@render ringShadow()}
-                {@render ring(
-                    session.toneOfPlayer(animator.flier.playerId),
-                    coordsKey(animator.flier.at)
-                )}
+        {@const flier = animator.flier}
+        {@const tone = session.toneOfPlayer(flier.playerId)}
+        <g transform="translate({flier.at.x} {flier.at.y})" class="flier">
+            <g {@attach animator.flierPart('node')}>
+                <g {@attach animator.flierPart('shadow')}>{@render ringShadow()}</g>
+                <g {@attach animator.flierPart('body')}>{@render ring(tone, flier.seed)}</g>
             </g>
+            {#if flier.leaves}
+                <use
+                    href="#{pieceId(flier.leaves)}"
+                    transform="translate({-flier.at.x} {-flier.at.y})"
+                    {@attach animator.flierPart('left')}
+                ></use>
+                <g {@attach animator.flierPart('nearNode')}>
+                    <g {@attach animator.flierPart('nearBody')}>
+                        <RingShape {tone} seedKey={flier.seed} prefix={PREFIX} near />
+                    </g>
+                </g>
+            {/if}
+        </g>
+        <g class="occluders" aria-hidden="true">
+            {#each pieces as piece (piece.key)}
+                {#if piece.key !== flier.leaves}
+                    <use
+                        href="#{pieceId(piece.key)}"
+                        {@attach animator.occluder(VIEW.center(piece.coords).y)}
+                    ></use>
+                {/if}
+            {/each}
         </g>
     {/if}
-
-    {#each pieces.filter((piece) => piece.flip) as piece (piece.key)}
-        {@render drawn(piece)}
-    {/each}
 
     <g class="targets">
         {#each clickable as coords (coordsKey(coords))}
@@ -397,6 +401,7 @@
 
     .piece,
     .flier,
+    .occluders,
     .marks {
         pointer-events: none;
     }

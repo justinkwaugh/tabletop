@@ -111,8 +111,14 @@ export class HydratedYinshGameState
     }
 
     removeRing(playerId: string, coords: AxialCoordinates): number {
-        this.board.removeRing(coords)
+        const id = this.board.removeRing(coords)
         const player = this.getPlayerState(playerId)
+        const ids = player.removedRingIds ?? []
+        if (id !== undefined && ids.length === player.ringsRemoved) {
+            player.removedRingIds = [...ids, id]
+        } else {
+            delete player.removedRingIds
+        }
         player.ringsRemoved += 1
         return player.ringsRemoved
     }

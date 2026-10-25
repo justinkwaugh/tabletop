@@ -59,7 +59,8 @@
             {
                 "playerId": "player-2",
                 "color": "black",
-                "ringsRemoved": 2
+                "ringsRemoved": 2,
+                "removedRingIds": [8, 9]
             }
         ],
         "machineState": "MovingRing",
@@ -241,7 +242,8 @@
                         "q": 0,
                         "r": 3
                     },
-                    "ringPlayerId": "player-1"
+                    "ringPlayerId": "player-1",
+                    "ringId": 0
                 },
                 {
                     "coords": {
@@ -314,28 +316,32 @@
                         "q": 4,
                         "r": -4
                     },
-                    "ringPlayerId": "player-1"
+                    "ringPlayerId": "player-1",
+                    "ringId": 1
                 },
                 {
                     "coords": {
                         "q": 4,
                         "r": -3
                     },
-                    "ringPlayerId": "player-1"
+                    "ringPlayerId": "player-1",
+                    "ringId": 2
                 },
                 {
                     "coords": {
                         "q": 4,
                         "r": -2
                     },
-                    "ringPlayerId": "player-1"
+                    "ringPlayerId": "player-1",
+                    "ringId": 3
                 },
                 {
                     "coords": {
                         "q": 4,
                         "r": -1
                     },
-                    "ringPlayerId": "player-1"
+                    "ringPlayerId": "player-1",
+                    "ringId": 4
                 },
                 {
                     "coords": {
@@ -462,21 +468,24 @@
                         "q": 5,
                         "r": -4
                     },
-                    "ringPlayerId": "player-2"
+                    "ringPlayerId": "player-2",
+                    "ringId": 5
                 },
                 {
                     "coords": {
                         "q": 5,
                         "r": -3
                     },
-                    "ringPlayerId": "player-2"
+                    "ringPlayerId": "player-2",
+                    "ringId": 6
                 },
                 {
                     "coords": {
                         "q": 5,
                         "r": -2
                     },
-                    "ringPlayerId": "player-2"
+                    "ringPlayerId": "player-2",
+                    "ringId": 7
                 },
                 {
                     "coords": {

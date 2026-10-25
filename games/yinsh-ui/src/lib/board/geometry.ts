@@ -170,8 +170,9 @@ const LABEL_REACH = SPACING * 0.6
 const ALONG_EDGE = { x: Math.cos(Math.PI / 6), y: -Math.sin(Math.PI / 6) }
 const OUTWARD = { x: -Math.sin(Math.PI / 6), y: -Math.cos(Math.PI / 6) }
 const SLOT_OFFSET = RING_OUTER + SLOT_LABEL_CLEARANCE
-// Measured along the edge from a label, so the spaces sit between labels rather than on them.
-const SLOT_SHIFT = -SPACING * 0.7
+// Measured along the edge from a label, so the spaces sit between labels rather than on them,
+// and the outermost stays inside the frame, which the game's column clips.
+const SLOT_SHIFT = -SPACING * 0.62
 
 // The 8 before C8, and the I below I4, on the board's plane.
 const LINE_8_LABEL = {

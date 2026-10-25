@@ -23,11 +23,7 @@
 </script>
 
 {#each drawing.slices as slice, index (index)}
-    <ellipse
-        cy={slice.y}
-        rx={slice.rx}
-        ry={slice.ry}
-        fill="url(#{prefix}-blue-side-{slice.level})"
+    <ellipse cy={slice.y} rx={slice.rx} ry={slice.ry} fill="url(#{prefix}-blue-side-{slice.level})"
     ></ellipse>
 {/each}
 {#each specks.side as speck, index (index)}
@@ -44,11 +40,20 @@
 <path d={ellipsePath(drawing.lip)} fill={MARKER_BLUE.lip}></path>
 <g transform="translate(0 {-drawing.height}) scale(1 {VIEW.tilt})">
     {#each specks.lip as speck, index (index)}
-        <SpeckMark {...speck} y={speck.y * MARKER_RADIUS} scale={MARKER_RADIUS} fill={speck.color} />
+        <SpeckMark
+            {...speck}
+            y={speck.y * MARKER_RADIUS}
+            scale={MARKER_RADIUS}
+            fill={speck.color}
+        />
     {/each}
 </g>
 <!-- The face sits down inside the lip: the lip's inner wall shows on the far side. -->
-<path d={ellipsePath(drawing.opening)} fill={MARKER_BLUE.wall} stroke={style.edge} stroke-width="0.5"
+<path
+    d={ellipsePath(drawing.opening)}
+    fill={MARKER_BLUE.wall}
+    stroke={style.edge}
+    stroke-width="0.5"
 ></path>
 <g clip-path="url(#{prefix}-marker-wall)">
     {#each specks.wall as speck, index (index)}

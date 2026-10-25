@@ -177,21 +177,11 @@ export function markerDrawing(view: BoardView, radius: number, height: number): 
         ry: r * radius * view.tilt
     })
     return {
-        slices: sideSlices(
-            view,
-            radius,
-            MARKER_SLICES,
-            thickness,
-            round,
-            round
-        ),
+        slices: sideSlices(view, radius, MARKER_SLICES, thickness, round, round),
         outline: silhouette(at(0, 1), at(thickness, 1)),
         lip: at(thickness, 1 - round),
         opening: at(thickness, MARKER_FACE),
-        face: lens(
-            at(thickness, MARKER_FACE),
-            at(thickness * (1 - MARKER_RECESS), MARKER_FACE)
-        ),
+        face: lens(at(thickness, MARKER_FACE), at(thickness * (1 - MARKER_RECESS), MARKER_FACE)),
         innerWall: `${ellipsePath(at(thickness, MARKER_FACE))} ${lens(
             at(thickness, MARKER_FACE),
             at(thickness * (1 - MARKER_RECESS), MARKER_FACE)

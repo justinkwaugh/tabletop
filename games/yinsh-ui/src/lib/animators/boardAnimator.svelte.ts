@@ -1,7 +1,7 @@
 import { tick } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
-import { distanceAxial, sameCoordinates, type AxialCoordinates, type Point } from '@tabletop/common'
+import { sameCoordinates, type AxialCoordinates, type Point } from '@tabletop/common'
 import type {
     AnimationContext,
     TransitionKind,
@@ -17,8 +17,11 @@ import {
 } from '@tabletop/yinsh'
 import type { YinshGameSession } from '$lib/model/session.svelte.js'
 import { boardDiff, type BoardDiff } from '$lib/board/boardDiff.js'
-import { coordsKey, flatCenter, VIEW } from '$lib/board/geometry.js'
-import { DROP } from '$lib/board/dropIn.js'
+import { coordsKey, flatCenter, SPACING, VIEW } from '$lib/board/geometry.js'
+import { flightPose, progressAt } from '$lib/board/ringFlight.js'
+import { flipPose } from '$lib/board/flipPose.js'
+import { MARKER_HEIGHT, MARKER_RADIUS, RING_HEIGHT } from '$lib/board/pieceGeometry.js'
+import { DROP, MARKER_DROP } from '$lib/board/dropIn.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
@@ -29,33 +32,67 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'exploration'
 ])
 
-const PLACE = { duration: 0.3, scale: 1.25, rise: -14 }
-const MOVE = { start: 0.1, duration: 0.42 }
-const FLIP = { duration: 0.26, rise: -10, scale: 1.12 }
-const LIFT = { duration: 0.3, rise: -14, scale: 1.1, stagger: 0.03 }
-const TAKE = 0.42
+// A ring's flight takes a little longer the farther it goes.
+const FLIGHT = { base: 0.5, perSpace: 0.03 }
+// A removed ring's flight to its space grows with the square root of the distance, so one from
+// the far side takes longer than one from nearby without dragging: about 0.6 s from two or three
+// spaces away, 0.7 s from ten.
+const TAKE = { base: 0.5, perRootSpace: 0.065 }
+// Markers the ring passes are blown over just behind it, tossed up a little as they turn.
+const FLIP = { wake: 0.03, duration: 0.3, hop: 5 }
+// Taken markers float straight up one after another as they fade, their shadows shrinking.
+const LIFT = { duration: 0.35, rise: -34, scale: 1.02, stagger: 0.03 }
 const MARK_FADE = 0.2
-const FALLBACK = 0.18
-const FALLBACK_STAGGER = 0.008
+const QUICK = 0.18
+const QUICK_STAGGER = 0.008
 
 export type DrawnPiece = {
     key: string
     kind: 'ring' | 'marker'
     coords: AxialCoordinates
     playerId: string
-    // A marker turning over shows this player's face once it has flipped. It turns along the
-    // ring's path, at `angle` degrees on the board's plane.
-    flip?: { toPlayerId: string; angle: number }
+    // What its specks are seeded by: a ring's id where it has one, so they move with it.
+    seed: string
+    // A marker turning over shows this player's face once it has flipped.
+    flip?: { toPlayerId: string }
 }
 
-// The ring in flight, drawn above the board at the point it leaves.
-export type Flier = { at: AxialCoordinates; playerId: string }
+// The ring in flight, drawn above the board at the point it leaves. `leaves` is the key of the
+// marker it leaves in its hole, which it lifts off over.
+export type Flier = {
+    at: Point
+    playerId: string
+    seed: string
+    leaves?: string
+}
+
+export type FlipPart = 'before' | 'turning' | 'side' | 'face' | 'upper' | 'lower' | 'after'
+
+// Where a removed ring lies: a slot on the table, with the specks of the ring that lies there.
+export type RemovedRings = Record<string, string[]>
 
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedYinshGameState, AnimationContext>
+type FlierParts = {
+    node?: SVGGElement
+    body?: SVGGElement
+    shadow?: SVGGElement
+    nearNode?: SVGGElement
+    nearBody?: SVGGElement
+    left?: SVGUseElement
+}
 
 export function pieceKey(kind: DrawnPiece['kind'], coords: AxialCoordinates): string {
     return `${kind}-${coordsKey(coords)}`
+}
+
+// An id for a piece's drawing, which occluders and the flier copy.
+export function pieceId(key: string): string {
+    return `yinsh-${key.replace(',', '_')}`
+}
+
+export function ringSeed(id: number | undefined, coords: AxialCoordinates): string {
+    return id === undefined ? coordsKey(coords) : `ring-${id}`
 }
 
 function drawnPieces(state: HydratedYinshGameState): DrawnPiece[] {
@@ -67,7 +104,10 @@ function drawnPieces(state: HydratedYinshGameState): DrawnPiece[] {
                       key: pieceKey('marker', point.coords),
                       kind: 'marker' as const,
                       coords: point.coords,
-                      playerId: point.markerPlayerId
+                      playerId: point.markerPlayerId,
+                      // Markers stay on their point until taken, so the point serves as their
+                      // identity.
+                      seed: coordsKey(point.coords)
                   }
               ]),
         ...(point.ringPlayerId === undefined
@@ -77,27 +117,39 @@ function drawnPieces(state: HydratedYinshGameState): DrawnPiece[] {
                       key: pieceKey('ring', point.coords),
                       kind: 'ring' as const,
                       coords: point.coords,
-                      playerId: point.ringPlayerId
+                      playerId: point.ringPlayerId,
+                      seed: ringSeed(point.ringId, point.coords)
                   }
               ])
     ])
 }
 
-function removedCounts(state: HydratedYinshGameState): Record<string, number> {
-    return Object.fromEntries(state.players.map((p) => [p.playerId, p.ringsRemoved]))
+function removedRings(state: HydratedYinshGameState): RemovedRings {
+    return Object.fromEntries(
+        state.players.map((player) => [
+            player.playerId,
+            Array.from({ length: player.ringsRemoved }, (_, index) => {
+                const id = player.removedRingIds?.[index]
+                return id === undefined ? `slot-${player.playerId}-${index}` : `ring-${id}`
+            })
+        ])
+    )
 }
 
 export class BoardAnimator {
     // What the board draws. A replay plays several actions before the visible state catches
     // up, so each animated action leaves the board as it ended until that state lands.
     pieces: DrawnPiece[] = $derived.by(() => drawnPieces(this.session.gameState))
-    ringsRemoved: Record<string, number> = $derived.by(() => removedCounts(this.session.gameState))
+    removed: RemovedRings = $derived.by(() => removedRings(this.session.gameState))
     flier: Flier | undefined = $state()
 
     private readonly nodes = new Map<string, SVGGElement>()
-    private flierElement: SVGGElement | undefined
+    private readonly flipParts = new Map<string, Partial<Record<FlipPart, SVGElement>>>()
+    private flierParts: FlierParts = {}
     // The marks fade with the move: the destination spots' layer and each piece's own marks.
     private readonly markNodes = new Set<SVGGElement>()
+    // Copies of the pieces drawn over the flier, each with its point's distance down the screen.
+    private readonly occluders = new Map<SVGUseElement, number>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
 
     constructor(private readonly session: YinshGameSession) {}
@@ -117,24 +169,36 @@ export class BoardAnimator {
         }
     }
 
-    // One face of a turning marker. Its frame is turned to the ring's path, so squashing it
-    // across x turns the marker over along that path; the other face waits edge-on.
-    flipFace(key: string, angle: number, waiting: boolean): Attachment<SVGGElement> {
-        return (element) => {
-            gsap.set(element, { svgOrigin: '0 0', rotation: angle, scaleX: waiting ? 0 : 1 })
-            this.nodes.set(key, element)
+    flipPart(key: string): (name: FlipPart) => Attachment<SVGElement> {
+        return (name) => (element) => {
+            const parts = this.flipParts.get(key) ?? {}
+            parts[name] = element
+            this.flipParts.set(key, parts)
             return () => {
-                if (this.nodes.get(key) === element) this.nodes.delete(key)
+                const current = this.flipParts.get(key)
+                if (current?.[name] === element) delete current[name]
             }
         }
     }
 
-    flierNode(): Attachment<SVGGElement> {
+    flierPart(name: keyof FlierParts): Attachment<SVGGElement | SVGUseElement> {
         return (element) => {
             gsap.set(element, { svgOrigin: '0 0' })
-            this.flierElement = element
+            ;(this.flierParts as Record<string, Element>)[name] = element
             return () => {
-                if (this.flierElement === element) this.flierElement = undefined
+                if (this.flierParts[name] === element) delete this.flierParts[name]
+            }
+        }
+    }
+
+    // A copy of the piece at screen depth `y`, drawn over the flier while the flier is low and
+    // behind it.
+    occluder(y: number): Attachment<SVGUseElement> {
+        return (element) => {
+            element.style.visibility = 'hidden'
+            this.occluders.set(element, y)
+            return () => {
+                this.occluders.delete(element)
             }
         }
     }
@@ -155,40 +219,42 @@ export class BoardAnimator {
         const timeline = animationContext.actionTimeline
         // Each point's drawing is reused for whatever piece next stands there, so every node a
         // move touches is put back once the move lands.
-        const touched: SVGGElement[] = []
+        const touched: SVGElement[] = []
         const diff = boardDiff(from.board, to.board)
-        const fast = action === undefined
+        const quick = action === undefined
 
         this.pieces = this.inBetween(from, diff)
-        this.flier = diff.movedRing && {
-            at: diff.movedRing.from,
-            playerId: diff.movedRing.playerId
-        }
-        if (isRemoveRing(action)) {
-            this.flier = { at: action.coords, playerId: action.playerId }
+        this.flier = this.flierFor(from, to, diff, action)
+        // A ring taken back from its slot leaves it as it flies; one taken lands there first.
+        const before = removedRings(from)
+        const after = removedRings(to)
+        this.removed = Object.fromEntries(
+            Object.entries(before).map(([playerId, seeds]) => [
+                playerId,
+                seeds.length <= (after[playerId]?.length ?? 0) ? seeds : after[playerId]
+            ])
+        )
+        if (this.flier !== undefined) {
+            const leaving = this.flierStart(from, to, diff, action)
             this.pieces = this.pieces.filter(
-                (piece) => piece.key !== pieceKey('ring', action.coords)
+                (piece) =>
+                    !(piece.kind === 'ring' && leaving && sameCoordinates(piece.coords, leaving))
             )
         }
         await tick()
 
         if (isPlaceRing(action)) {
-            this.enter(pieceKey('ring', action.coords), timeline, touched, PLACE)
+            this.drop(pieceKey('ring', action.coords), timeline, touched, DROP, 0)
         } else if (isMoveRing(action)) {
             // The mover's own marker already dropped into the ring as a staged preview.
+            const start = kind === 'own-action' ? 0 : MARKER_DROP.fall + MARKER_DROP.settle * 2
             if (kind !== 'own-action') {
-                this.enter(pieceKey('marker', action.from), timeline, touched, DROP)
+                this.drop(pieceKey('marker', action.from), timeline, touched, MARKER_DROP, 0)
             }
-            this.flyRing(action.from, VIEW.center(action.to), timeline, MOVE.start, MOVE.duration)
-            const length = distanceAxial(action.from, action.to)
-            for (const marker of diff.flipped) {
-                const passed = distanceAxial(action.from, marker.coords) / length
-                const at = MOVE.start + MOVE.duration * passed - FLIP.duration / 2
-                this.flip(marker.coords, timeline, Math.max(at, 0), FLIP.duration, touched)
-            }
+            this.moveRing(action.from, action.to, diff, timeline, touched, start, false)
         } else if (isRemoveRow(action)) {
             action.metadata?.markers.forEach((coords, index) => {
-                this.lift(
+                this.liftAway(
                     pieceKey('marker', coords),
                     timeline,
                     touched,
@@ -201,17 +267,20 @@ export class BoardAnimator {
                 action.playerId,
                 to.getPlayerState(action.playerId).ringsRemoved - 1
             )
-            this.flyRing(action.coords, slot, timeline, 0, TAKE)
-        } else {
-            this.fallback(diff, timeline, touched, fast)
+            const start = flatCenter(action.coords)
+            const spaces = Math.hypot(slot.x - start.x, slot.y - start.y) / SPACING
+            const duration = TAKE.base + TAKE.perRootSpace * Math.sqrt(spaces)
+            this.fly(start, slot, timeline, 0, duration, false)
+        } else if (quick) {
+            this.fallback(from, to, diff, timeline, touched)
         }
-        for (const marks of this.markNodes) {
-            timeline.to(marks, { opacity: 0, duration: fast ? FALLBACK : MARK_FADE }, 0)
+        if (this.markNodes.size > 0) {
+            timeline.to([...this.markNodes], { opacity: 0, duration: quick ? QUICK : MARK_FADE }, 0)
         }
 
         animationContext.afterAnimations(() => {
             this.pieces = drawnPieces(to)
-            this.ringsRemoved = removedCounts(to)
+            this.removed = removedRings(to)
             this.flier = undefined
             for (const node of touched) {
                 gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
@@ -220,176 +289,403 @@ export class BoardAnimator {
         })
     }
 
-    // The board partway: the `from` pieces without the ring in flight, with markers about to
-    // turn showing both faces, and with every arriving piece drawn so it can fade in.
+    // The board partway: the `from` pieces, with markers about to turn showing both faces, and
+    // every arriving piece drawn so it can come in.
     private inBetween(from: HydratedYinshGameState, diff: BoardDiff): DrawnPiece[] {
-        const moving = diff.movedRing
-        const angle = moving ? travelAngle(moving.from, moving.to) : 90
-        const kept = drawnPieces(from).flatMap((piece): DrawnPiece[] => {
-            if (moving && piece.kind === 'ring' && sameCoordinates(piece.coords, moving.from)) {
-                return []
-            }
+        const kept = drawnPieces(from).map((piece): DrawnPiece => {
             const flip = diff.flipped.find((marker) => sameCoordinates(marker.coords, piece.coords))
-            return [
-                flip && piece.kind === 'marker'
-                    ? { ...piece, flip: { toPlayerId: flip.toPlayerId, angle } }
-                    : piece
-            ]
+            return flip && piece.kind === 'marker'
+                ? { ...piece, flip: { toPlayerId: flip.toPlayerId } }
+                : piece
         })
         const arriving = [
-            ...diff.markersCome.map((marker) => ({ ...marker, kind: 'marker' as const })),
-            ...diff.ringsCome.map((ring) => ({ ...ring, kind: 'ring' as const }))
+            ...diff.markersCome.map((marker) => ({
+                ...marker,
+                kind: 'marker' as const,
+                seed: coordsKey(marker.coords)
+            })),
+            ...diff.ringsCome.map((ring) => ({
+                ...ring,
+                kind: 'ring' as const,
+                seed: ringSeed(undefined, ring.coords)
+            }))
         ].map((piece) => ({ ...piece, key: pieceKey(piece.kind, piece.coords) }))
         return [...kept, ...arriving]
     }
 
-    // Undo and history steps carry no action: everything moves at once, quickly.
-    private fallback(diff: BoardDiff, timeline: Timeline, touched: SVGGElement[], fast: boolean) {
-        const duration = fast ? FALLBACK : MOVE.duration
-        if (diff.movedRing) {
-            this.flyRing(diff.movedRing.from, VIEW.center(diff.movedRing.to), timeline, 0, duration)
-        }
-        for (const marker of diff.flipped) {
-            this.flip(marker.coords, timeline, 0, duration, touched)
-        }
-        // Markers come back the way a taken row leaves, only quicker: they drop in, one after
-        // another, and markers taken lift away.
-        const stagger = fast ? FALLBACK_STAGGER : LIFT.stagger
-        const settle = duration - stagger * (ROW_LENGTH - 1)
-        diff.markersCome.forEach((marker, index) => {
-            this.enter(pieceKey('marker', marker.coords), timeline, touched, {
-                duration: settle,
-                scale: LIFT.scale,
-                rise: LIFT.rise,
-                at: (index % ROW_LENGTH) * stagger
-            })
+    // The point a flying ring leaves, if it leaves one.
+    private flierStart(
+        from: HydratedYinshGameState,
+        to: HydratedYinshGameState,
+        diff: BoardDiff,
+        action: Step['action']
+    ): AxialCoordinates | undefined {
+        if (isRemoveRing(action)) return action.coords
+        if (diff.movedRing) return diff.movedRing.from
+        if (action === undefined) return this.taken(from, to)?.coords
+        return undefined
+    }
+
+    private flierFor(
+        from: HydratedYinshGameState,
+        to: HydratedYinshGameState,
+        diff: BoardDiff,
+        action: Step['action']
+    ): Flier | undefined {
+        const ringAt = (coords: AxialCoordinates, playerId: string): Flier => ({
+            at: VIEW.center(coords),
+            playerId,
+            seed: ringSeed(from.board.ringIdAt(coords), coords)
         })
-        for (const ring of diff.ringsCome) {
-            this.enter(pieceKey('ring', ring.coords), timeline, touched, {
-                duration: duration * 0.8,
-                scale: 1,
-                rise: 0
-            })
+        if (isRemoveRing(action)) return ringAt(action.coords, action.playerId)
+        if (diff.movedRing) {
+            const start = diff.movedRing.from
+            // Going forward the ring leaves a marker in its hole; taken back, it leaves none.
+            const leaves =
+                to.board.markerAt(start) === undefined ? undefined : pieceKey('marker', start)
+            return { ...ringAt(start, diff.movedRing.playerId), leaves }
         }
+        if (action !== undefined) return undefined
+        const taken = this.taken(from, to)
+        if (taken) return ringAt(taken.coords, taken.playerId)
+        const returned = this.returned(from, to)
+        if (returned) {
+            const index = to.getPlayerState(returned.playerId).ringsRemoved
+            const slot = VIEW.project(this.slotOf(returned.playerId, index))
+            return {
+                at: slot,
+                playerId: returned.playerId,
+                seed: removedRings(from)[returned.playerId][index]
+            }
+        }
+        return undefined
+    }
+
+    // A ring gone from the board to its player's slots, read from the two states.
+    private taken(from: HydratedYinshGameState, to: HydratedYinshGameState) {
+        const gone = boardDiff(from.board, to.board).ringsGone
+        return gone.find(
+            (ring) =>
+                to.getPlayerState(ring.playerId).ringsRemoved >
+                from.getPlayerState(ring.playerId).ringsRemoved
+        )
+    }
+
+    // A ring back from its player's slots onto the board.
+    private returned(from: HydratedYinshGameState, to: HydratedYinshGameState) {
+        const come = boardDiff(from.board, to.board).ringsCome
+        return come.find(
+            (ring) =>
+                to.getPlayerState(ring.playerId).ringsRemoved <
+                from.getPlayerState(ring.playerId).ringsRemoved
+        )
+    }
+
+    // Undo and history steps carry no action: everything moves at once, quickly, read from the
+    // two boards.
+    private fallback(
+        from: HydratedYinshGameState,
+        to: HydratedYinshGameState,
+        diff: BoardDiff,
+        timeline: Timeline,
+        touched: SVGElement[]
+    ) {
+        if (diff.movedRing) {
+            this.moveRing(diff.movedRing.from, diff.movedRing.to, diff, timeline, touched, 0, true)
+        }
+        const taken = this.taken(from, to)
+        const returned = this.returned(from, to)
+        if (taken) {
+            const slot = this.slotOf(
+                taken.playerId,
+                to.getPlayerState(taken.playerId).ringsRemoved - 1
+            )
+            this.fly(flatCenter(taken.coords), slot, timeline, 0, QUICK, true)
+        }
+        if (returned) {
+            const index = to.getPlayerState(returned.playerId).ringsRemoved
+            this.fly(
+                this.slotOf(returned.playerId, index),
+                flatCenter(returned.coords),
+                timeline,
+                0,
+                QUICK,
+                true
+            )
+            // The flier lands where the ring is drawn arriving.
+            const node = this.nodes.get(pieceKey('ring', returned.coords))
+            if (node) {
+                touched.push(node)
+                timeline.set(node, { opacity: 0 }, 0)
+            }
+        }
+        const quickDrop = { ...DROP, fall: QUICK, bounce: 0 }
+        for (const ring of diff.ringsCome) {
+            if (returned && sameCoordinates(ring.coords, returned.coords)) continue
+            this.drop(pieceKey('ring', ring.coords), timeline, touched, quickDrop, 0)
+        }
+        for (const ring of diff.ringsGone) {
+            if (taken && sameCoordinates(ring.coords, taken.coords)) continue
+            this.liftAway(pieceKey('ring', ring.coords), timeline, touched, QUICK, 0, DROP.rise)
+        }
+        // Markers come back the way a taken row leaves, only quicker: they drop in one after
+        // another, and markers taken lift away.
+        const settle = QUICK - QUICK_STAGGER * (ROW_LENGTH - 1)
+        diff.markersCome.forEach((marker, index) => {
+            this.drop(
+                pieceKey('marker', marker.coords),
+                timeline,
+                touched,
+                {
+                    ...MARKER_DROP,
+                    rise: LIFT.rise,
+                    fall: settle,
+                    bounce: 0
+                },
+                (index % ROW_LENGTH) * QUICK_STAGGER
+            )
+        })
         diff.markersGone.forEach((marker, index) => {
-            this.lift(
+            this.liftAway(
                 pieceKey('marker', marker.coords),
                 timeline,
                 touched,
                 settle,
-                (index % ROW_LENGTH) * stagger
+                (index % ROW_LENGTH) * QUICK_STAGGER
             )
         })
-        for (const ring of diff.ringsGone) {
-            for (const node of this.targets(pieceKey('ring', ring.coords))) {
-                touched.push(node)
-                timeline.to(node, { opacity: 0, duration: duration * 0.8 }, 0)
-            }
+    }
+
+    // The ring lifts off over the marker left in its hole and flies to its point, blowing over
+    // every marker it passes just behind it.
+    private moveRing(
+        from: AxialCoordinates,
+        to: AxialCoordinates,
+        diff: BoardDiff,
+        timeline: Timeline,
+        touched: SVGElement[],
+        at: number,
+        quick: boolean
+    ) {
+        const start = flatCenter(from)
+        const end = flatCenter(to)
+        const length = Math.hypot(end.x - start.x, end.y - start.y)
+        const duration = quick ? QUICK : FLIGHT.base + (FLIGHT.perSpace * length) / SPACING
+        this.fly(start, end, timeline, at, duration, quick)
+        const travel = { x: end.x - start.x, y: end.y - start.y }
+        const flipDuration = quick ? QUICK : FLIP.duration
+        for (const marker of diff.flipped) {
+            const point = flatCenter(marker.coords)
+            const distance = Math.hypot(point.x - start.x, point.y - start.y)
+            const passed = at + duration * progressAt(distance, length, quick)
+            const begin = quick ? 0 : passed + FLIP.wake
+            this.flip(
+                pieceKey('marker', marker.coords),
+                travel,
+                timeline,
+                begin,
+                flipDuration,
+                touched
+            )
         }
     }
 
-    private lift(
+    // Flies the flier from `from` to `to` on the board's plane: its node follows the ground, its
+    // body rises above it, and its shadow stays on the ground, paling as the ring rises.
+    private fly(
+        from: Point,
+        to: Point,
+        timeline: Timeline,
+        at: number,
+        duration: number,
+        quick: boolean
+    ) {
+        const { node, body, shadow, nearNode, nearBody, left } = this.flierParts
+        if (node === undefined || body === undefined || shadow === undefined) return
+        const length = Math.hypot(to.x - from.x, to.y - from.y)
+        const direction = { x: (to.x - from.x) / (length || 1), y: (to.y - from.y) / (length || 1) }
+        const anchor = VIEW.project(from)
+        const ground = (along: number) =>
+            VIEW.project({ x: from.x + direction.x * along, y: from.y + direction.y * along })
+        const pose = (u: number) => {
+            const { along, lift, scale } = flightPose(u, length, quick)
+            const point = ground(along)
+            const x = point.x - anchor.x
+            const y = point.y - anchor.y
+            const rise = -VIEW.height(lift)
+            for (const n of [node, nearNode]) if (n) gsap.set(n, { x, y })
+            for (const b of [body, nearBody]) if (b) gsap.set(b, { y: rise, scale })
+            gsap.set(shadow, {
+                opacity: Math.max(0.35, 1 - lift / 40),
+                scale: 1 - Math.min(0.2, lift / 150)
+            })
+            // The marker left behind sits in the hole until the ring clears it.
+            const low = lift < MARKER_HEIGHT
+            if (left) left.style.visibility = low && along === 0 ? 'visible' : 'hidden'
+            if (nearNode) nearNode.style.visibility = low && along === 0 ? 'visible' : 'hidden'
+            this.occlude(anchor.y + y, lift)
+        }
+        pose(0)
+        const progress = { u: 0 }
+        timeline.to(
+            progress,
+            { u: 1, duration, ease: 'none', onUpdate: () => pose(progress.u) },
+            at
+        )
+    }
+
+    // Pieces nearer the viewer than the flier stand in front of it while it is lower than they
+    // are tall; once it is higher it passes over them.
+    private occlude(ground: number, lift: number) {
+        for (const [use, y] of this.occluders) {
+            use.style.visibility = y > ground + 0.5 && lift < RING_HEIGHT ? 'visible' : 'hidden'
+        }
+    }
+
+    // The marker turns over along the ring's path, tossed up as it goes; its shadow pales under it.
+    private flip(
+        key: string,
+        travel: Point,
+        timeline: Timeline,
+        at: number,
+        duration: number,
+        touched: SVGElement[]
+    ) {
+        const parts = this.flipParts.get(key)
+        const shadow = this.nodes.get(`${key}:shadow`)
+        if (parts === undefined) return
+        const { before, turning, side, face, upper, lower, after } = parts
+        if (!before || !turning || !side || !face || !upper || !lower || !after) return
+        const show = (element: SVGElement, shown: boolean) =>
+            element.setAttribute('visibility', shown ? 'visible' : 'hidden')
+        const pose = (turn: number) => {
+            const drawn = flipPose(VIEW, {
+                radius: MARKER_RADIUS,
+                height: MARKER_HEIGHT,
+                travel,
+                turn,
+                hop: FLIP.hop
+            })
+            side.setAttribute('d', drawn.side)
+            face.setAttribute('transform', drawn.face)
+            show(upper, drawn.upperFace)
+            show(lower, !drawn.upperFace)
+        }
+        const progress = { turn: 0 }
+        timeline.to(
+            progress,
+            {
+                turn: Math.PI,
+                duration,
+                ease: 'sine.inOut',
+                onStart: () => {
+                    show(before, false)
+                    show(turning, true)
+                    pose(0)
+                },
+                onUpdate: () => pose(progress.turn),
+                onComplete: () => {
+                    show(turning, false)
+                    show(after, true)
+                }
+            },
+            at
+        )
+        if (shadow) {
+            touched.push(shadow)
+            timeline.to(
+                shadow,
+                { opacity: 0.4, scale: 0.9, duration: duration / 2, ease: 'sine.out' },
+                at
+            )
+            timeline.to(
+                shadow,
+                { opacity: 1, scale: 1, duration: duration / 2, ease: 'sine.in' },
+                at + duration / 2
+            )
+        }
+    }
+
+    // A piece falls onto its point, gathering speed, and settles with a small bounce; its shadow
+    // waits on the board, small and faint, and darkens as the piece comes down.
+    private drop(
         key: string,
         timeline: Timeline,
-        touched: SVGGElement[],
-        duration: number,
+        touched: SVGElement[],
+        motion: typeof DROP,
         at: number
     ) {
-        for (const node of this.targets(key)) {
-            touched.push(node)
-            timeline.to(
-                node,
-                { opacity: 0, y: LIFT.rise, scale: LIFT.scale, duration, ease: 'power1.out' },
+        const body = this.nodes.get(key)
+        const shadow = this.nodes.get(`${key}:shadow`)
+        if (body !== undefined) {
+            touched.push(body)
+            timeline.fromTo(
+                body,
+                { opacity: 0, scale: motion.scale, y: motion.rise },
+                { opacity: 1, duration: motion.fall * 0.25, ease: 'none', immediateRender: true },
+                at
+            )
+            timeline.to(body, { scale: 1, y: 0, duration: motion.fall, ease: 'power2.in' }, at)
+            if (motion.bounce !== 0) {
+                const landed = at + motion.fall
+                timeline.to(
+                    body,
+                    { y: motion.bounce, duration: motion.settle, ease: 'power1.out' },
+                    landed
+                )
+                timeline.to(
+                    body,
+                    { y: 0, duration: motion.settle, ease: 'power1.in' },
+                    landed + motion.settle
+                )
+            }
+        }
+        if (shadow !== undefined) {
+            touched.push(shadow)
+            timeline.fromTo(
+                shadow,
+                { opacity: 0, scale: motion.shadow },
+                {
+                    opacity: 1,
+                    scale: 1,
+                    duration: motion.fall,
+                    ease: 'power2.in',
+                    immediateRender: true
+                },
                 at
             )
         }
     }
 
-    private targets(key: string): SVGGElement[] {
-        return [this.nodes.get(key), this.nodes.get(`${key}:shadow`)].filter(
-            (node) => node !== undefined
-        )
-    }
-
-    private enter(
+    // A piece floats straight up off the board as it fades; its shadow shrinks where it lay.
+    private liftAway(
         key: string,
         timeline: Timeline,
-        touched: SVGGElement[],
-        motion: { duration: number; scale: number; rise: number; at?: number }
+        touched: SVGElement[],
+        duration: number,
+        at: number,
+        rise = LIFT.rise
     ) {
-        for (const node of this.targets(key)) {
-            touched.push(node)
-            timeline.fromTo(
-                node,
-                { opacity: 0, scale: motion.scale, y: motion.rise },
-                { opacity: 1, scale: 1, y: 0, duration: motion.duration, ease: 'power2.out' },
-                motion.at ?? 0
+        const body = this.nodes.get(key)
+        const shadow = this.nodes.get(`${key}:shadow`)
+        if (body !== undefined) {
+            touched.push(body)
+            timeline.to(
+                body,
+                { opacity: 0, y: rise, scale: LIFT.scale, duration, ease: 'power1.out' },
+                at
             )
+        }
+        if (shadow !== undefined) {
+            touched.push(shadow)
+            timeline.to(shadow, { opacity: 0, scale: 0.7, duration, ease: 'power1.out' }, at)
         }
     }
 
-    private flip(
-        coords: AxialCoordinates,
-        timeline: Timeline,
-        at: number,
-        duration: number,
-        touched: SVGGElement[]
-    ) {
-        const key = pieceKey('marker', coords)
-        const front = this.nodes.get(`${key}:front`)
-        const back = this.nodes.get(`${key}:back`)
-        const disc = this.nodes.get(key)
-        if (front === undefined || back === undefined || disc === undefined) return
-        touched.push(front, back, disc)
-        const half = duration / 2
-        // The marker lifts off the board to turn over and settles back.
-        timeline.to(
-            disc,
-            { y: FLIP.rise, scale: FLIP.scale, duration: half, ease: 'power1.out' },
-            at
-        )
-        timeline.to(disc, { y: 0, scale: 1, duration: half, ease: 'power1.in' }, at + half)
-        timeline.to(front, { scaleX: 0, duration: half, ease: 'power1.in' }, at)
-        timeline.fromTo(
-            back,
-            { scaleX: 0 },
-            { scaleX: 1, duration: half, ease: 'power1.out', immediateRender: false },
-            at + half
-        )
-    }
-
-    private flyRing(
-        from: AxialCoordinates,
-        to: Point,
-        timeline: Timeline,
-        at: number,
-        duration: number
-    ) {
-        const node = this.flierElement
-        if (node === undefined) return
-        const start = VIEW.center(from)
-        gsap.set(node, { x: 0, y: 0, scale: 1 })
-        timeline.to(
-            node,
-            { x: to.x - start.x, y: to.y - start.y, duration, ease: 'power2.inOut' },
-            at
-        )
-        timeline.to(
-            node,
-            { scale: 1.06, duration: duration / 2, yoyo: true, repeat: 1, ease: 'sine.inOut' },
-            at
-        )
-    }
-
+    // A removed ring's slot, on the board's plane.
     private slotOf(playerId: string, index: number): Point {
         const side = playerId === this.session.topPlayerId ? 'top' : 'bottom'
-        return VIEW.ringSlots(side)[index]
+        const slot = VIEW.ringSlots(side)[index]
+        return { x: slot.x, y: slot.y / VIEW.tilt }
     }
-}
-
-// On the board's plane: the marker turns over in a frame drawn flat on the board.
-function travelAngle(from: AxialCoordinates, to: AxialCoordinates): number {
-    const start = flatCenter(from)
-    const end = flatCenter(to)
-    return (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI
 }

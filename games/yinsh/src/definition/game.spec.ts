@@ -134,6 +134,7 @@ function position(
         for (const name of placed.slice(placed.length - removed)) {
             const point = pointIn(next, name)
             delete point.ringPlayerId
+            delete point.ringId
         }
     }
     return next
@@ -260,6 +261,39 @@ describe('moving a ring', () => {
         const game = createGame()
         const state = position(game, { [W]: ['F3'], [B]: ['D4'] })
         rejects(game, state, moveAction(game, W, 'D4', 'D5'))
+    })
+})
+
+describe('ring ids', () => {
+    const ringIdAt = (state: YinshGameState, name: string) => hydrate(state).board.ringIdAt(p(name))
+
+    it('numbers rings in placing order and moves each id with its ring', () => {
+        const game = createGame()
+        let state = position(game, { [W]: ['F3'], [B]: ['G9'] })
+        expect(ringIdAt(state, 'F3')).toBe(0)
+        expect(ringIdAt(state, 'G9')).toBe(1)
+        state = move(game, state, W, 'F3', 'F8')
+        expect(ringIdAt(state, 'F8')).toBe(0)
+        expect(pointIn(state, 'F3').ringId).toBeUndefined()
+    })
+
+    it('keeps the ids of removed rings in order', () => {
+        const game = createGame()
+        let state = position(game, { [W]: ['F3'], [B]: [] }, { [W]: ['B3', 'C3', 'D3', 'E3'] })
+        state = move(game, state, W, 'F3', 'F9')
+        state = takeRow(game, state, W, 'F3', 'B3')
+        state = takeRing(game, state, W, 'F9')
+        const white = state.players.find((player) => player.playerId === W)
+        expect(white?.removedRingIds).toEqual([0])
+    })
+
+    it('gives no ids to a game saved without them', () => {
+        const game = createGame()
+        let state = start(game)
+        state = execute(game, state, placeAction(game, W, p('F5')))
+        delete pointIn(state, 'F5').ringId
+        state = execute(game, state, placeAction(game, B, p('F6')))
+        expect(ringIdAt(state, 'F6')).toBeUndefined()
     })
 })
 
