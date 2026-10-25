@@ -119,9 +119,8 @@ export class BoardView {
         const slots = (['top', 'bottom'] as const).flatMap((side) =>
             this.ringSlots(side).map(standing)
         )
-        // Centred on the board, so the table's storm lines up with the board's. The ring spaces
-        // may reach a little past the sides, into the table: on phones the board's width limits
-        // its size.
+        // Centred on the board. The ring spaces may reach a little past the sides, into the table:
+        // on phones the board's width limits its size.
         const halfWidth =
             Math.max(...board.map((e) => Math.max(-e.left, e.right))) + FRAME_MARGIN
         const halfHeight =

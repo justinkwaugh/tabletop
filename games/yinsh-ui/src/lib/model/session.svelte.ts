@@ -32,12 +32,6 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
 
     readonly preferences: TitlePreferences<typeof YinshPreferences> =
         this.createPreferences(YinshPreferenceDefinition)
-    clouds: boolean = $derived(this.preferences.values.clouds)
-
-    toggleClouds() {
-        this.preferences.set({ clouds: !this.clouds })
-    }
-
     showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
 
     toggleCoordinates() {

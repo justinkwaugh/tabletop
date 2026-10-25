@@ -47,6 +47,6 @@
     }
 
     .toggle:hover {
-        background: rgb(255 255 255 / 0.08);
+        background: rgb(28 44 74 / 0.92);
     }
 </style>

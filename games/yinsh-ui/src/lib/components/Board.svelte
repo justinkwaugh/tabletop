@@ -15,8 +15,6 @@
     import { BoardAnimator, pieceId, type DrawnPiece } from '$lib/animators/boardAnimator.svelte.js'
     import { dropIn } from '$lib/board/dropIn.js'
     import { ellipsePath, markerDrawing, ringDrawing } from '$lib/board/pieceShape.js'
-    import { STORM_SIZE } from '$lib/board/storm.js'
-    import { BOARD_STORM_IMAGE } from '$lib/board/stormImages.js'
     import RingShape from './RingShape.svelte'
     import MarkerShape from './MarkerShape.svelte'
     import PieceDefs from './PieceDefs.svelte'
@@ -132,7 +130,6 @@
     // A ring's silhouette: the click area of every point, so the whole of a ring standing there
     // takes the click.
     const STANDING = ringDrawing(VIEW, RING_OUTER).outline
-    const lying = `scale(1 ${VIEW.tilt})`
     // A removed ring's space, painted on the table where the ring will lie.
     const SLOT = [RING_OUTER, RING_INNER]
         .map((r) => ellipsePath({ y: 0, rx: r, ry: r * VIEW.tilt }))
@@ -225,27 +222,10 @@
     {@attach animator.attach}
 >
     <defs>
-        <clipPath id="yinsh-play-clip">
-            <polygon points={outline}></polygon>
-        </clipPath>
         <PieceDefs prefix={PREFIX} />
     </defs>
 
     <polygon points={outline} class="play-area"></polygon>
-    <!-- Printed on the board, so it foreshortens with it about the board's middle. -->
-    {#if session.clouds}
-        <g clip-path="url(#yinsh-play-clip)">
-            <image
-                href={BOARD_STORM_IMAGE}
-                x={-STORM_SIZE / 2}
-                y={-STORM_SIZE / 2}
-                width={STORM_SIZE}
-                height={STORM_SIZE}
-                transform={lying}
-                class="storm"
-            ></image>
-        </g>
-    {/if}
 
     <g class="lines">
         {#each lines as line, index (index)}
@@ -392,10 +372,6 @@
     .slot {
         fill: var(--yinsh-play);
         opacity: 0.7;
-    }
-
-    .storm {
-        pointer-events: none;
     }
 
     .piece,

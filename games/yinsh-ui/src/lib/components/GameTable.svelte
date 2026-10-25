@@ -16,22 +16,14 @@
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
-    import CloudToggle from '$lib/components/CloudToggle.svelte'
     import OverlayToggle from '$lib/components/OverlayToggle.svelte'
     import { YinshGameSession } from '$lib/model/session.svelte.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { trackStorm, type StormPlacement } from '$lib/board/stormPlacement.js'
-    import StormBackdrop from '$lib/components/StormBackdrop.svelte'
 
     let { gameSession }: { gameSession: GameSession<YinshGameState, HydratedYinshGameState> } =
         $props()
     assert(gameSession instanceof YinshGameSession, 'YINSH needs its own game session')
     setGameSession(gameSession)
-
-    let stormPlacement: StormPlacement | undefined = $state()
-    const placeStorm = trackStorm((placement) => {
-        stormPlacement = placement
-    })
 
     // The shared wrapper exposes full screen only as its dialog becoming modal.
     let expanded = $state(false)
@@ -59,10 +51,7 @@
     </div>
 {/snippet}
 
-<div class="yinsh-table" class:yinsh-clouds={gameSession.clouds}>
-    {#if gameSession.clouds}
-        <StormBackdrop placement={stormPlacement} />
-    {/if}
+<div class="yinsh-table">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -109,7 +98,6 @@
             <div
                 class="grow-0 overflow-hidden pt-2"
                 style="flex:1; min-height: 40dvh;"
-                {@attach placeStorm}
             >
                 <ScalingWrapper
                     justify="center"
@@ -130,7 +118,6 @@
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}
                             />
-                            <CloudToggle />
                         </div>
                     {/snippet}
                     {#snippet toolbar()}
@@ -139,9 +126,6 @@
                             {#if expanded}
                                 <!-- The dialog paints its own dim backdrop, so full screen redraws the table behind the board. -->
                                 <div class="fullscreen-backdrop" aria-hidden="true"></div>
-                                {#if gameSession.clouds}
-                                    <StormBackdrop placement={stormPlacement} fixed />
-                                {/if}
                                 <div class="fullscreen-controls">
                                     {@render turnControls()}
                                 </div>
