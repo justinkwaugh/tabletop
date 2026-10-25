@@ -193,6 +193,9 @@ export function frenchTurn(
 
 export function passTurns(game: TestGame, turns: number) {
     for (let turn = 0; turn < turns; turn++) {
+        if (game.state.machineState === MachineState.RideRevealed) {
+            game.act(ActionType.AcknowledgeReveal, game.activePlayerId)
+        }
         game.act(ActionType.EndTurn, game.activePlayerId)
     }
 }

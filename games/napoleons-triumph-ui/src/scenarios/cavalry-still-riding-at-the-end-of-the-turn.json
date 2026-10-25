@@ -1,0 +1,266 @@
+{
+ "game": {
+  "id": "scenario-cavalry-still-riding-at-the-end-of-the-turn",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "napoleons-triumph",
+  "deleted": false,
+  "name": "Cavalry still riding at the end of the turn",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "p0",
+    "name": "Player 1",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p1",
+    "name": "Player 2",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {},
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3367980177,
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-10-24T23:50:41.893Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-10-24T23:50:41.893Z",
+  "protectedInformation": true
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "05nI0QaGZPgfCdrAiIMRi",
+  "gameId": "scenario-cavalry-still-riding-at-the-end-of-the-turn",
+  "seed": 3367980177,
+  "prng": {
+   "seed": 3367980177,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+   "invocations": 140
+  },
+  "masterSeed": "0123456789abcdef0123456789abcdef",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "p0",
+    "color": "red",
+    "morale": 27,
+    "moraleLost": 0,
+    "corpsCommandsUsed": 0,
+    "independentCommandsUsed": 0,
+    "heavyCavalryCommitted": false,
+    "guardCommitted": false,
+    "guardAttackForfeited": false,
+    "artilleryFire": {},
+    "side": "Allied",
+    "armyDisplay": [
+     {
+      "type": "Cavalry",
+      "strength": 2
+     }
+    ]
+   },
+   {
+    "playerId": "p1",
+    "color": "blue",
+    "morale": 23,
+    "moraleLost": 0,
+    "corpsCommandsUsed": 0,
+    "independentCommandsUsed": 0,
+    "heavyCavalryCommitted": false,
+    "guardCommitted": false,
+    "guardAttackForfeited": false,
+    "artilleryFire": {},
+    "side": "French",
+    "armyDisplay": [
+     {
+      "type": "Cavalry",
+      "strength": 3
+     },
+     {
+      "type": "Cavalry",
+      "strength": 2
+     }
+    ]
+   }
+  ],
+  "machineState": "Commanding",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "p1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "p0",
+    "p1"
+   ],
+   "turnCounts": {
+    "p0": 1,
+    "p1": 0
+   }
+  },
+  "rounds": {
+   "series": [
+    {
+     "type": "round",
+     "start": 0,
+     "number": 1
+    }
+   ]
+  },
+  "scenario": "December2",
+  "santon": false,
+  "units": [
+   {
+    "id": "F01",
+    "playerId": "p1",
+    "face": {
+     "type": "Cavalry",
+     "strength": 3
+    },
+    "commanderId": "murat",
+    "position": {
+     "locale": 52
+    }
+   },
+   {
+    "id": "F02",
+    "playerId": "p1",
+    "face": {
+     "type": "Cavalry",
+     "strength": 2
+    },
+    "commanderId": "murat",
+    "position": {
+     "locale": 52
+    }
+   },
+   {
+    "id": "A01",
+    "playerId": "p0",
+    "face": {
+     "type": "Cavalry",
+     "strength": 2
+    },
+    "position": {
+     "locale": 63
+    }
+   }
+  ],
+  "commanders": [
+   {
+    "id": "bernadotte",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "bessieres",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "davout",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "lannes",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "legrand",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "murat",
+    "playerId": "p1",
+    "position": {
+     "locale": 52
+    }
+   },
+   {
+    "id": "st-hilaire",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "vandamme",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "bagration",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "constantine",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "dokhturov",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "kienmayer",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "kollowrath",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "langeron",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "liechtenstein",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "miloradovich",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "prebyshevsky",
+    "playerId": "p0",
+    "eliminated": true
+   }
+  ],
+  "frenchReinforcementsEntered": false,
+  "limits": {
+   "closedApproaches": [],
+   "bombardedApproaches": [],
+   "stormedLocales": [],
+   "marchedLocales": []
+  }
+ },
+ "actions": []
+}

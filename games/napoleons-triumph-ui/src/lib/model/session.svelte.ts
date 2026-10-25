@@ -13,6 +13,7 @@ import {
     DeclareFeint,
     DeployArmy,
     isDeployArmy,
+    AcknowledgeReveal,
     EndTurn,
     MachineState,
     Move,
@@ -344,6 +345,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
     canAct = $derived(this.isMyTurn && !this.isViewingHistory && this.armyInView)
 
     isCommanding = $derived(this.canAct && this.gameState.machineState === MachineState.Commanding)
+
+    /** The turn opens on the enemy cavalry still riding when the last one ended, face-up until this player has seen it. */
+    isSeeingRide = $derived(
+        this.canAct && this.gameState.machineState === MachineState.RideRevealed
+    )
 
     isAuction = $derived(
         this.gameState.machineState === MachineState.Bidding ||
@@ -1250,6 +1256,13 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
         this.stageCommand(noCommandSelection())
         await this.applyAction(this.createPlayerAction(Attach, { commanderId, unitId }))
+    }
+
+    async acknowledgeReveal() {
+        if (!this.validActionTypes.includes(ActionType.AcknowledgeReveal)) {
+            return
+        }
+        await this.applyAction(this.createPlayerAction(AcknowledgeReveal, {}))
     }
 
     async endTurn() {

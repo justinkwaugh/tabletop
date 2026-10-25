@@ -3,6 +3,7 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import { Side, VictoryKind } from '@tabletop/napoleons-triumph'
     import { describeAction } from '$lib/utils/describeAction.js'
+    import { revealedRideLines } from '$lib/utils/revealedRide.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Orders from './Orders.svelte'
 
@@ -34,6 +35,19 @@
     </p>
 {:else if gameSession.gameState.result}
     <p class="nt-action">{outcome}</p>
+{:else if gameSession.isSeeingRide}
+    {@const lines = revealedRideLines(game)}
+    <div class="nt-reveal">
+        <p class="nt-action"><span><PlaceText text={lines?.riding ?? ''} /></span></p>
+        <p class="nt-action">
+            <span>{lines?.revealed}</span>
+            <button
+                type="button"
+                class="nt-plain-button"
+                onclick={() => gameSession.acknowledgeReveal()}>Continue</button
+            >
+        </p>
+    </div>
 {:else if gameSession.isCommanding}
     <Orders bind:drawerHeight={ordersDrawerHeight} />
 {:else}
@@ -54,6 +68,12 @@
         gap: 0 12px;
         font-size: 16px;
         line-height: 1.35;
+    }
+
+    .nt-reveal {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
 
     .nt-action-faint {
