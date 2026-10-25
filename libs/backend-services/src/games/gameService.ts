@@ -17,11 +17,9 @@ import {
     findLast,
     isOutOfTurnDeclaration,
     isSameSimultaneousGroup,
-    CALL_GAME_ACTION_TYPE,
-    type CallGameAction,
     type CallVote,
-    GameCallKind,
-    isConcession,
+    createCallGameAction,
+    isTwoPlayerGame,
     PlayerVote,
     PlayerVoteKind,
     PlayerVoteOutcome,
@@ -1577,13 +1575,13 @@ export class GameService {
         user,
         definition,
         gameId,
-        declaredWinnerIds,
+        declaredWinnerId,
         publishedUiSupportsCalls
     }: {
         user: User
         definition: GameDefinition
         gameId: string
-        declaredWinnerIds: string[]
+        declaredWinnerId?: string
         publishedUiSupportsCalls: boolean
     }): Promise<Game> {
         if (!publishedUiSupportsCalls) {
@@ -1599,33 +1597,33 @@ export class GameService {
         if (ineligibility) {
             throw new DisallowedPlayerVoteError({ gameId, reason: ineligibility })
         }
-        this.validateDeclaredWinners(game, player, declaredWinnerIds)
+        this.validateDeclaredWinner(game, player, declaredWinnerId)
         const vote: CallVote = {
             id: nanoid(),
             kind: PlayerVoteKind.Call,
             initiatorPlayerId: player.id,
-            declaredWinnerIds,
             approvingPlayerIds: [player.id],
             decliningPlayerIds: []
         }
+        if (declaredWinnerId !== undefined) vote.declaredWinnerId = declaredWinnerId
         if (playerVoteOutcome(vote, game.players) === PlayerVoteOutcome.Passed) {
-            return this.endGameByCall({ user, definition, gameId, vote })
+            return this.passCall({ user, definition, game, vote })
         }
         return this.openVote(game, player, vote)
     }
 
-    private validateDeclaredWinners(game: Game, player: Player, declaredWinnerIds: string[]) {
+    private validateDeclaredWinner(game: Game, player: Player, declaredWinnerId?: string) {
         const disallowed = (reason: string) =>
             new DisallowedPlayerVoteError({ gameId: game.id, reason })
-        if (new Set(declaredWinnerIds).size !== declaredWinnerIds.length) {
-            throw disallowed('a winner is named twice')
+        if (
+            declaredWinnerId !== undefined &&
+            !game.players.some((other) => other.id === declaredWinnerId)
+        ) {
+            throw disallowed('the winner is not a player in this game')
         }
-        if (!declaredWinnerIds.every((id) => game.players.some((other) => other.id === id))) {
-            throw disallowed('a winner is not a player in this game')
-        }
-        if (isConcession(game.players)) {
+        if (isTwoPlayerGame(game.players)) {
             const opponent = game.players.find((other) => other.id !== player.id)
-            if (declaredWinnerIds.length !== 1 || declaredWinnerIds[0] !== opponent?.id) {
+            if (declaredWinnerId === undefined || declaredWinnerId !== opponent?.id) {
                 throw disallowed('conceding makes the other player the winner')
             }
         }
@@ -1676,6 +1674,12 @@ export class GameService {
                 if (vote.approvingPlayerIds.includes(player.id)) {
                     return UpdateValidationResult.Cancel
                 }
+                if (
+                    vote.kind === PlayerVoteKind.Call &&
+                    vote.decliningPlayerIds.includes(player.id)
+                ) {
+                    throw new DisallowedPlayerVoteError({ gameId, reason: 'you declined' })
+                }
                 fields.vote = {
                     ...vote,
                     approvingPlayerIds: [...vote.approvingPlayerIds, player.id]
@@ -1696,7 +1700,7 @@ export class GameService {
         }
         return vote.kind === PlayerVoteKind.Undo
             ? this.resolveUndoVote({ user, definition, gameId, vote })
-            : this.endGameByCall({ user, definition, gameId, vote })
+            : this.passCall({ user, definition, game: updatedGame, vote })
     }
 
     @Timed('game.declineVote')
@@ -1806,6 +1810,26 @@ export class GameService {
         return representation.game
     }
 
+    private async passCall({
+        user,
+        definition,
+        game,
+        vote
+    }: {
+        user: User
+        definition: GameDefinition
+        game: Game
+        vote: CallVote
+    }): Promise<Game> {
+        try {
+            return await this.endGameByCall({ user, definition, gameId: game.id, vote })
+        } catch (error) {
+            // Nobody is left to vote on a passed call, so a call that cannot be appended closes.
+            await this.closeVote(game, vote.id)
+            throw error
+        }
+    }
+
     @Retryable({
         maxAttempts: 3,
         value: [GameUpdateCollisionError]
@@ -1826,20 +1850,16 @@ export class GameService {
         if (!game || !state) {
             throw new GameNotFoundError({ id: gameId })
         }
-        const action: CallGameAction = {
-            id: nanoid(),
-            gameId,
-            type: CALL_GAME_ACTION_TYPE,
-            source: ActionSource.System,
-            index: state.actionCount,
-            call: {
-                kind: isConcession(game.players) ? GameCallKind.Conceded : GameCallKind.Called,
-                initiatorPlayerId: vote.initiatorPlayerId,
-                declaredWinnerIds: vote.declaredWinnerIds,
-                approvingPlayerIds: vote.approvingPlayerIds,
-                decliningPlayerIds: vote.decliningPlayerIds
-            }
+        const gameOver = new DisallowedPlayerVoteError({ gameId, reason: 'the game is over' })
+        if (game.status !== GameStatus.Started || state.result !== undefined) {
+            throw gameOver
         }
+        const action = createCallGameAction({
+            gameId,
+            index: state.actionCount,
+            vote,
+            players: game.players
+        })
         const actionResult = measureSync('engine.execute', () =>
             new GameEngine(definition.runtime).executeCanonicalAction({ action, state, game })
         )
@@ -1850,9 +1870,12 @@ export class GameService {
                 state: actionResult.updatedState,
                 validator: async (existingGame, existingState, newState, _actions, gameUpdates) => {
                     if (existingGame.status !== GameStatus.Started) {
-                        throw new GameNotInProgressError({ id: gameId })
+                        throw gameOver
                     }
-                    if (!isConcession(existingGame.players) && existingGame.vote?.id !== vote.id) {
+                    if (
+                        !isTwoPlayerGame(existingGame.players) &&
+                        existingGame.vote?.id !== vote.id
+                    ) {
                         throw new DisallowedPlayerVoteError({
                             gameId,
                             reason: 'the vote is closed'

@@ -268,7 +268,7 @@ it('describes a called game by its call, not by an actor', () => {
         call: {
             kind: GameCallKind.Conceded,
             initiatorPlayerId: 'alex',
-            declaredWinnerIds: ['blake'],
+            declaredWinnerId: 'blake',
             approvingPlayerIds: ['alex'],
             decliningPlayerIds: []
         }

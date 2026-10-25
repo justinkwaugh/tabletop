@@ -26,7 +26,7 @@ type CallRequest = Static<typeof CallRequest>
 const CallRequest = Type.Object(
     {
         gameId: Type.String(),
-        declaredWinnerIds: Type.Array(Type.String())
+        declaredWinnerId: Type.Optional(Type.String())
     },
     { additionalProperties: false }
 )

@@ -1,6 +1,5 @@
 import { APIError } from '@tabletop/frontend-components'
 import {
-    nameList,
     PlayerVoteKind,
     requiredCallApprovals,
     votingPlayers,
@@ -25,9 +24,8 @@ export function voteErrorMessage(error: unknown): string {
         : 'That did not work. Please try again.'
 }
 
-export function callWinnersDetail(winnerNames: readonly string[]): string {
-    if (winnerNames.length === 0) return 'with no winner'
-    return `with ${nameList(winnerNames)} as the ${winnerNames.length === 1 ? 'winner' : 'winners'}`
+export function callWinnerDetail(winnerName: string | undefined): string {
+    return winnerName === undefined ? 'with no winner' : `with ${winnerName} as the winner`
 }
 
 export function voteTally(

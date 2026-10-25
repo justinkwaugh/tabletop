@@ -3,7 +3,7 @@
     import { onMount, onDestroy, untrack, type Snippet } from 'svelte'
     import {
         assertExists,
-        isConcession,
+        isTwoPlayerGame,
         scenarioJson,
         type Game,
         type ScenarioData,
@@ -193,11 +193,11 @@
         )
     }
 
-    async function endByCall(declaredWinnerIds: string[]) {
+    async function endByCall(declaredWinnerId?: string) {
         const session = gameSession
         assertExists(session, 'Ending by call is offered with a game open')
         await attemptScenario('The game could not be ended by a call', async () =>
-            openScenario(await gameService.calledCopy(session.primaryGame.id, declaredWinnerIds))
+            openScenario(await gameService.calledCopy(session.primaryGame.id, declaredWinnerId))
         )
     }
 
@@ -325,10 +325,10 @@
                             >
                             {#if gameSession.gameState.result === undefined}
                                 {@const [first, second] = gameSession.game.players}
-                                {#if isConcession(gameSession.game.players)}
+                                {#if isTwoPlayerGame(gameSession.game.players)}
                                     <DropdownItem
                                         class="w-full px-2"
-                                        onclick={() => endByCall([first.id])}
+                                        onclick={() => endByCall(first.id)}
                                         ><div class="ms-2">
                                             Copy with {second.name} conceding
                                         </div></DropdownItem
@@ -336,12 +336,12 @@
                                 {:else}
                                     <DropdownItem
                                         class="w-full px-2"
-                                        onclick={() => endByCall([first.id])}
+                                        onclick={() => endByCall(first.id)}
                                         ><div class="ms-2">
                                             Copy called, {first.name} wins
                                         </div></DropdownItem
                                     >
-                                    <DropdownItem class="w-full px-2" onclick={() => endByCall([])}
+                                    <DropdownItem class="w-full px-2" onclick={() => endByCall()}
                                         ><div class="ms-2">
                                             Copy called, no winner
                                         </div></DropdownItem

@@ -2,7 +2,7 @@ import {
     callRequestIneligibility,
     findPlayerForUserId,
     GameClientCapability,
-    isConcession,
+    isTwoPlayerGame,
     type Game
 } from '@tabletop/common'
 
@@ -23,7 +23,7 @@ export function callGameOffer(
     ) {
         return undefined
     }
-    const concession = isConcession(game.players)
+    const concession = isTwoPlayerGame(game.players)
     if (!concession && game.vote) return undefined
     return { concession, label: concession ? 'Concede' : 'Call the game' }
 }

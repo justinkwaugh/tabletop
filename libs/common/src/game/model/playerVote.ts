@@ -27,7 +27,7 @@ export const CallVote = Type.Object({
     id: Type.String(),
     kind: Type.Literal(PlayerVoteKind.Call),
     initiatorPlayerId: Type.String(),
-    declaredWinnerIds: Type.Array(Type.String()),
+    declaredWinnerId: Type.Optional(Type.String()),
     approvingPlayerIds: Type.Array(Type.String()),
     decliningPlayerIds: Type.Array(Type.String())
 })
@@ -49,12 +49,12 @@ export function votingPlayers<T extends Pick<Player, 'userId'>>(players: readonl
     return players.filter((player) => player.userId !== undefined)
 }
 
-export function isConcession(players: readonly unknown[]): boolean {
+export function isTwoPlayerGame(players: readonly unknown[]): boolean {
     return players.length === 2
 }
 
 export function requiredCallApprovals(players: readonly VotingPlayer[]): number {
-    return isConcession(players) ? 1 : Math.floor(votingPlayers(players).length / 2) + 1
+    return isTwoPlayerGame(players) ? 1 : Math.floor(votingPlayers(players).length / 2) + 1
 }
 
 export function playerVoteOutcome(

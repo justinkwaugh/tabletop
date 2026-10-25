@@ -123,7 +123,7 @@ A Player Vote for an Authorized Undo that the asking Player's own Undo cannot re
 _Avoid_: Undo request vote, rollback vote
 
 **Call Request**:
-A Player Vote to end an In Progress Game before its rules end it, naming the winners or no winner. It passes when a strict majority of Players with an account agree and fails once that majority is out of reach. Play continues while it is open.
+A Player Vote to end an In Progress Game before its rules end it, naming one winner or no winner. It passes when a strict majority of Players with an account agree and fails once that majority is out of reach. Play continues while it is open.
 _Avoid_: Forfeit vote, end-game vote
 
 **Concede**:
@@ -131,7 +131,7 @@ A Player's ending of a two-Player Game in the other Player's favour. It is a Cal
 _Avoid_: Resign, forfeit, surrender
 
 **Called Game**:
-A Finished Game ended by a Call Request or a Concede rather than by its rules. Its result is a Win for the declared winners, or Abandoned when none were named, and it carries no final scores. Players cannot undo it; an administrator can.
+A Finished Game ended by a Call Request or a Concede rather than by its rules. Its result is a Win for the declared winner, or Abandoned when none was named, and it carries no final scores. Players cannot undo it; an administrator can.
 _Avoid_: Forfeited game, aborted game
 
 **Fork**:

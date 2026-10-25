@@ -11,9 +11,8 @@ describe('gameCallText', () => {
         expect(nameListSeparator(0, 1)).toBe('')
     })
 
-    it('agrees the verb with the winners', () => {
-        expect(winVerb(['a'], 'b')).toBe('wins')
-        expect(winVerb(['a'], 'a')).toBe('win')
-        expect(winVerb(['a', 'b'], undefined)).toBe('win')
+    it('agrees the verb with the winner', () => {
+        expect(winVerb('a', 'b')).toBe('wins')
+        expect(winVerb('a', 'a')).toBe('win')
     })
 })

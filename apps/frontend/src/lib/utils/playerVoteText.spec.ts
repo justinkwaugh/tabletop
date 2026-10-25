@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { APIError } from '@tabletop/frontend-components'
 import { PlayerVoteKind } from '@tabletop/common'
 import {
-    callWinnersDetail,
+    callWinnerDetail,
     undoneDetail,
     undoneSummary,
     voteErrorMessage,
@@ -32,10 +32,9 @@ describe('playerVoteText', () => {
         expect(voteErrorMessage(new Error('offline'))).toBe('That did not work. Please try again.')
     })
 
-    it('names the winners a call declares', () => {
-        expect(callWinnersDetail([])).toBe('with no winner')
-        expect(callWinnersDetail(['Ann'])).toBe('with Ann as the winner')
-        expect(callWinnersDetail(['Ann', 'Bo', 'Cy'])).toBe('with Ann, Bo and Cy as the winners')
+    it('names the winner a call declares', () => {
+        expect(callWinnerDetail(undefined)).toBe('with no winner')
+        expect(callWinnerDetail('Ann')).toBe('with Ann as the winner')
     })
 
     it('counts agreement against everyone for undo and the majority for a call', () => {
@@ -52,7 +51,6 @@ describe('playerVoteText', () => {
                 {
                     ...base,
                     kind: PlayerVoteKind.Call,
-                    declaredWinnerIds: [],
                     decliningPlayerIds: []
                 },
                 players

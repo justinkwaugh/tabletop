@@ -814,8 +814,8 @@ export class TabletopApi {
         return this.postVote(game, 'undo/open', { actionIndex, targetActionId })
     }
 
-    async requestCall(game: Game, declaredWinnerIds: string[]): Promise<Game> {
-        return this.postVote(game, 'call', { declaredWinnerIds })
+    async requestCall(game: Game, declaredWinnerId?: string): Promise<Game> {
+        return this.postVote(game, 'call', { declaredWinnerId })
     }
 
     async approveVote(game: Game, voteId: string): Promise<Game> {
@@ -835,7 +835,7 @@ export class TabletopApi {
         route: VoteRoute,
         body:
             | { actionIndex: number; targetActionId: string }
-            | { declaredWinnerIds: string[] }
+            | { declaredWinnerId?: string }
             | { voteId: string }
     ): Promise<Game> {
         const response = await this.titleRequest(game.typeId)

@@ -285,7 +285,6 @@ describe('history', () => {
             call: {
                 kind: GameCallKind.Called,
                 initiatorPlayerId: 'p1',
-                declaredWinnerIds: [],
                 approvingPlayerIds: ['p1', 'p2'],
                 decliningPlayerIds: []
             }

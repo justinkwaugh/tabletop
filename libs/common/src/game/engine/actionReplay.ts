@@ -1,5 +1,5 @@
 import * as Value from 'typebox/value'
-import { ActionSource, type GameAction } from './gameAction.js'
+import { ActionSource, type GameAction, withoutActionPatches } from './gameAction.js'
 import { isCascadedSystemAction } from './actionHistory.js'
 
 const VolatileKeys = ['id', 'index', 'undoPatch', 'forwardPatch', 'createdAt', 'updatedAt'] as const
@@ -37,9 +37,7 @@ export function runs(actions: readonly GameAction[]): GameAction[][] {
 }
 
 export function unprocessed(action: GameAction): GameAction {
-    const copy = structuredClone(action)
+    const copy = withoutActionPatches(action)
     delete copy.index
-    delete copy.undoPatch
-    delete copy.forwardPatch
     return copy
 }

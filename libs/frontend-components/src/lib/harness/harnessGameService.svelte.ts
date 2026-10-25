@@ -12,16 +12,11 @@ import {
     GameStorage,
     GameCategory,
     assertExists,
-    ActionSource,
-    CALL_GAME_ACTION_TYPE,
-    GameCallKind,
-    isConcession,
+    createCallGameAction,
+    isTwoPlayerGame,
     requiredCallApprovals,
-    type CallGameAction,
-    type GameCall,
     type ScenarioData
 } from '@tabletop/common'
-import { nanoid } from 'nanoid'
 import { SvelteMap } from 'svelte/reactivity'
 import type { GameService } from '$lib/services/gameService.js'
 import type { GameStore } from '$lib/persistence/gameStore.js'
@@ -177,32 +172,26 @@ export class HarnessGameService implements GameService {
         return this.forkOf(gameId, 'latest')
     }
 
-    /** A copy of the game ended as a passed call would end it, to check a title's called ending. */
-    async calledCopy(gameId: string, declaredWinnerIds: string[]): Promise<ScenarioData> {
+    async calledCopy(gameId: string, declaredWinnerId?: string): Promise<ScenarioData> {
         const { game, state, actions } = await this.scenarioOf(gameId)
         const players = game.players
-        const conceded = isConcession(players)
-        const initiator = conceded
-            ? players.find((player) => !declaredWinnerIds.includes(player.id))
+        const initiator = isTwoPlayerGame(players)
+            ? players.find((player) => player.id !== declaredWinnerId)
             : players[0]
         assertExists(initiator, 'A concession needs a player who does not win')
         const approvers = [initiator, ...players.filter((player) => player !== initiator)]
-        const call: GameCall = {
-            kind: conceded ? GameCallKind.Conceded : GameCallKind.Called,
-            initiatorPlayerId: initiator.id,
-            declaredWinnerIds,
-            approvingPlayerIds: approvers
-                .slice(0, requiredCallApprovals(players))
-                .map((player) => player.id),
-            decliningPlayerIds: []
-        }
-        const action: CallGameAction = {
-            id: nanoid(),
+        const action = createCallGameAction({
             gameId: game.id,
-            type: CALL_GAME_ACTION_TYPE,
-            source: ActionSource.System,
-            call
-        }
+            vote: {
+                initiatorPlayerId: initiator.id,
+                declaredWinnerId,
+                approvingPlayerIds: approvers
+                    .slice(0, requiredCallApprovals(players))
+                    .map((player) => player.id),
+                decliningPlayerIds: []
+            },
+            players
+        })
         const definition = this.libraryService.getTitle(game.typeId)
         assertExists(definition, `Game definition not found for typeId ${game.typeId}`)
         const engine = new GameEngine(await definition.runtime())
@@ -214,7 +203,7 @@ export class HarnessGameService implements GameService {
         return {
             game: {
                 ...game,
-                call,
+                call: action.call,
                 status: GameStatus.Finished,
                 finishedAt: new Date(),
                 result: updatedState.result,

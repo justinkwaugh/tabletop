@@ -74,7 +74,7 @@ describe('history entries', () => {
             call: {
                 kind: GameCallKind.Conceded,
                 initiatorPlayerId: 'a',
-                declaredWinnerIds: ['b'],
+                declaredWinnerId: 'b',
                 approvingPlayerIds: ['a'],
                 decliningPlayerIds: []
             }

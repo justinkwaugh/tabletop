@@ -8,6 +8,7 @@
 
     const gameSession = getGameSession()
     const call = $derived(gameSession.gameCall)
+    const winnerId = $derived(call?.declaredWinnerId)
     const otherApprovers = $derived(
         call?.approvingPlayerIds.filter((playerId) => playerId !== call.initiatorPlayerId) ?? []
     )
@@ -24,15 +25,15 @@
     <div class="flex flex-col items-center gap-1 text-center {className}">
         {#if call.kind === GameCallKind.Conceded}
             <p>{@render names([call.initiatorPlayerId])} conceded.</p>
-        {:else if call.declaredWinnerIds.length === 0}
+        {:else if winnerId === undefined}
             <p>The game was called with no winner.</p>
         {:else}
             <p>The game was called.</p>
         {/if}
-        {#if call.declaredWinnerIds.length > 0}
+        {#if winnerId !== undefined}
             <p>
-                {@render names(call.declaredWinnerIds)}
-                {winVerb(call.declaredWinnerIds, gameSession.myPlayer?.id)}.
+                <PlayerName playerId={winnerId} />
+                {winVerb(winnerId, gameSession.myPlayer?.id)}.
             </p>
         {/if}
         {#if call.kind === GameCallKind.Called}

@@ -20,7 +20,7 @@
     import { untrack } from 'svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
-        callWinnersDetail,
+        callWinnerDetail,
         undoneDetail,
         undoneSummary,
         voteErrorMessage,
@@ -166,7 +166,7 @@
                         >{/if}{:else}<span class="font-medium text-white"
                         >is asking to end the game</span
                     ><span class="text-gray-400"
-                        >{` ${callWinnersDetail(vote.declaredWinnerIds.map(playerName))}`}</span
+                        >{` ${callWinnerDetail(vote.declaredWinnerId === undefined ? undefined : playerName(vote.declaredWinnerId))}`}</span
                     >{/if}
             </span>
         </span>

@@ -3,6 +3,6 @@ export function nameListSeparator(position: number, count: number): string {
     return position === count - 2 ? ' and ' : ', '
 }
 
-export function winVerb(winnerIds: readonly string[], myPlayerId: string | undefined): string {
-    return winnerIds.length === 1 && winnerIds[0] !== myPlayerId ? 'wins' : 'win'
+export function winVerb(winnerId: string, myPlayerId: string | undefined): string {
+    return winnerId === myPlayerId ? 'win' : 'wins'
 }

@@ -3,6 +3,7 @@ import { GameCallKind, type GameCall } from '../model/gameCall.js'
 import { GameResult } from '../model/gameResult.js'
 import {
     CALL_GAME_ACTION_TYPE,
+    createCallGameAction,
     gameCallDescription,
     gameCallOf,
     type CallGameAction
@@ -10,6 +11,11 @@ import {
 import { ActionSource } from './gameAction.js'
 import { undoRecordedAction } from './recordedHistory.js'
 import { createNoteGame, step } from './tests/noteGame.js'
+
+function withoutWinner(action: CallGameAction): CallGameAction {
+    delete action.call.declaredWinnerId
+    return action
+}
 
 function callGame(gameId: string, call: Partial<GameCall> = {}): CallGameAction {
     return {
@@ -20,7 +26,7 @@ function callGame(gameId: string, call: Partial<GameCall> = {}): CallGameAction 
         call: {
             kind: GameCallKind.Called,
             initiatorPlayerId: 'p1',
-            declaredWinnerIds: ['p2'],
+            declaredWinnerId: 'p2',
             approvingPlayerIds: ['p1', 'p2'],
             decliningPlayerIds: [],
             ...call
@@ -29,7 +35,7 @@ function callGame(gameId: string, call: Partial<GameCall> = {}): CallGameAction 
 }
 
 describe('callGame', () => {
-    it('ends the game with the declared winners and leaves machine state alone', () => {
+    it('ends the game with the declared winner and leaves machine state alone', () => {
         const { engine, game, state } = createNoteGame()
         const { processedActions, updatedState } = engine.executeCanonicalAction({
             action: callGame(game.id),
@@ -49,7 +55,7 @@ describe('callGame', () => {
     it('abandons the game when nobody is declared the winner', () => {
         const { engine, game, state } = createNoteGame()
         const { updatedState } = engine.executeCanonicalAction({
-            action: callGame(game.id, { declaredWinnerIds: [] }),
+            action: withoutWinner(callGame(game.id)),
             state,
             game
         })
@@ -57,11 +63,11 @@ describe('callGame', () => {
         expect(updatedState.winningPlayerIds).toEqual([])
     })
 
-    it('refuses winners who are not players and Actions from a player', () => {
+    it('refuses a winner who is not a player and Actions from a player', () => {
         const { engine, game, state } = createNoteGame()
         expect(() =>
             engine.executeCanonicalAction({
-                action: callGame(game.id, { declaredWinnerIds: ['stranger'] }),
+                action: callGame(game.id, { declaredWinnerId: 'stranger' }),
                 state,
                 game
             })
@@ -95,24 +101,55 @@ describe('callGame', () => {
 
 describe('gameCallDescription', () => {
     const nameOf = (playerId: string) => playerId.toUpperCase()
-    const call = (overrides: Partial<GameCall>): GameCall => {
-        const action = gameCallOf(callGame('g', overrides))
+    const call = (overrides: Partial<GameCall>, winner = true): GameCall => {
+        const built = callGame('g', overrides)
+        const action = gameCallOf(winner ? built : withoutWinner(built))
         if (!action) throw Error('Expected a call')
         return action
     }
 
-    it('describes a concession, a call with winners and one without', () => {
+    it('describes a concession, a call with a winner and one without', () => {
         expect(
             gameCallDescription(
-                call({ kind: GameCallKind.Conceded, declaredWinnerIds: ['p2'] }),
+                call({ kind: GameCallKind.Conceded, declaredWinnerId: 'p2' }),
                 nameOf
             )
         ).toBe('P1 conceded; P2 wins')
-        expect(gameCallDescription(call({ declaredWinnerIds: ['p2', 'p3'] }), nameOf)).toBe(
-            'The game was called; P2 and P3 win'
+        expect(gameCallDescription(call({ declaredWinnerId: 'p3' }), nameOf)).toBe(
+            'The game was called; P3 wins'
         )
-        expect(gameCallDescription(call({ declaredWinnerIds: [] }), nameOf)).toBe(
+        expect(gameCallDescription(call({}, false), nameOf)).toBe(
             'The game was called with no winner'
         )
+    })
+})
+
+describe('createCallGameAction', () => {
+    const vote = { initiatorPlayerId: 'p1', approvingPlayerIds: ['p1'], decliningPlayerIds: [] }
+
+    it('records a two-player call as a concession', () => {
+        const action = createCallGameAction({
+            gameId: 'g',
+            vote: { ...vote, declaredWinnerId: 'p2' },
+            players: ['p1', 'p2']
+        })
+        expect(action.call).toEqual({
+            ...vote,
+            kind: GameCallKind.Conceded,
+            declaredWinnerId: 'p2'
+        })
+        expect(gameCallOf(action)).toBe(action.call)
+    })
+
+    it('leaves the winner out of a call with no winner', () => {
+        const action = createCallGameAction({
+            gameId: 'g',
+            index: 4,
+            vote,
+            players: ['p1', 'p2', 'p3']
+        })
+        expect(action.index).toBe(4)
+        expect(action.call.kind).toBe(GameCallKind.Called)
+        expect('declaredWinnerId' in action.call).toBe(false)
     })
 })

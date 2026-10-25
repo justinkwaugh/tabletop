@@ -112,7 +112,7 @@ describe('history chapters', () => {
             call: {
                 kind: GameCallKind.Conceded,
                 initiatorPlayerId: 'p0',
-                declaredWinnerIds: ['p1'],
+                declaredWinnerId: 'p1',
                 approvingPlayerIds: ['p0'],
                 decliningPlayerIds: []
             }

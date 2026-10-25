@@ -21,7 +21,6 @@ describe('playerVoteOutcome', () => {
         id: 'v',
         kind: PlayerVoteKind.Call,
         initiatorPlayerId: 'a',
-        declaredWinnerIds: [],
         approvingPlayerIds,
         decliningPlayerIds
     })

@@ -71,7 +71,7 @@ describe('player vote routes', () => {
     })
 
     it('tells the game service whether the published UI supports called games', async () => {
-        const call = { gameId: 'game-1', declaredWinnerIds: ['p2'] }
+        const call = { gameId: 'game-1', declaredWinnerId: 'p2' }
         const supported = await createServer()
         servers.add(supported.server)
         const accepted = await supported.server.inject({

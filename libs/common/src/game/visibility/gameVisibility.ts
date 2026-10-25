@@ -1,5 +1,5 @@
 import jsonpatch from 'fast-json-patch'
-import { ActionSource, type GameAction } from '../engine/gameAction.js'
+import { ActionSource, type GameAction, withoutActionPatches } from '../engine/gameAction.js'
 import { createPatch } from '../engine/statePatch.js'
 import { isCallGameAction } from '../engine/callGame.js'
 import type {
@@ -100,7 +100,7 @@ function projectCascade<State extends GameState, ProjectedState extends GameStat
     for (const transition of actionCascade.transitions) {
         const after = projectState(transition.after)
         const action = isCallGameAction(transition.action)
-            ? withoutCanonicalPatches(transition.action)
+            ? withoutActionPatches(transition.action)
             : options.visibility.actions.project(transition.action, options.perspective, context)
         action.forwardPatch = createPatch(previous, after)
         action.undoPatch = createPatch(after, previous)
@@ -109,13 +109,6 @@ function projectCascade<State extends GameState, ProjectedState extends GameStat
     }
 
     return { actions: transitions.map(({ action }) => action) }
-}
-
-function withoutCanonicalPatches(action: GameAction): GameAction {
-    const projected = structuredClone(action)
-    delete projected.undoPatch
-    delete projected.forwardPatch
-    return projected
 }
 
 export function projectActionHistory<State extends GameState, ProjectedState extends GameState>(

@@ -1,7 +1,7 @@
 import { assertExists } from '../../util/assertions.js'
 import { isOutOfTurnDeclaration } from './actionHistory.js'
 import { ActionSource, type GameAction } from './gameAction.js'
-import { isCallGameAction } from './callGame.js'
+import { CALL_GAME_ACTION_TYPE } from './callGame.js'
 
 export enum PlayerUndoRestriction {
     CalledGame = 'calledGame',
@@ -38,7 +38,7 @@ export function playerUndoRestriction(
     playerId: string
 ): PlayerUndoRestriction | undefined {
     for (const action of undoneActions) {
-        if (isCallGameAction(action)) return PlayerUndoRestriction.CalledGame
+        if (action.type === CALL_GAME_ACTION_TYPE) return PlayerUndoRestriction.CalledGame
         if (action.revealsInfo) return PlayerUndoRestriction.RevealsInformation
         if (
             isOtherPlayersUserAction(action, playerId) &&

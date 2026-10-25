@@ -70,7 +70,7 @@ const callGame = (): CallGameAction => ({
         kind: GameCallKind.Conceded,
         initiatorPlayerId: 'amira',
         approvingPlayerIds: ['amira'],
-        declaredWinnerIds: ['bashir'],
+        declaredWinnerId: 'bashir',
         decliningPlayerIds: []
     }
 })
