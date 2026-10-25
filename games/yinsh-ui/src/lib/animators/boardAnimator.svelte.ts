@@ -174,10 +174,11 @@ export class BoardAnimator {
     }
 
     // A copy of the piece at screen depth `y`, drawn over the flier while the flier is low and
-    // behind it.
+    // behind it. Copies are hidden with `display`, not `visibility`: a turning marker's parts set
+    // `visibility="visible"` on themselves, which would show through a hidden copy, above the flier.
     occluder(y: number): Attachment<SVGUseElement> {
         return (element) => {
-            element.style.visibility = 'hidden'
+            element.style.display = 'none'
             this.occluders.set(element, y)
             return () => {
                 this.occluders.delete(element)
@@ -483,7 +484,7 @@ export class BoardAnimator {
             })
             // The marker left behind sits in the hole until the ring clears it.
             const low = lift < MARKER_HEIGHT
-            if (left) left.style.visibility = low && along === 0 ? 'visible' : 'hidden'
+            if (left) left.style.display = low && along === 0 ? '' : 'none'
             if (nearNode) nearNode.style.visibility = low && along === 0 ? 'visible' : 'hidden'
             this.occlude(anchor.y + y, lift)
         }
@@ -500,7 +501,7 @@ export class BoardAnimator {
     // are tall; once it is higher it passes over them.
     private occlude(ground: number, lift: number) {
         for (const [use, y] of this.occluders) {
-            use.style.visibility = y > ground + 0.5 && lift < RING_HEIGHT ? 'visible' : 'hidden'
+            use.style.display = y > ground + 0.5 && lift < RING_HEIGHT ? '' : 'none'
         }
     }
 
