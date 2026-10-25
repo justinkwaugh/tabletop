@@ -22,13 +22,13 @@
 </script>
 
 <div class="tray" class:active={isActive}>
-    <div
-        class="flex items-center gap-2 rounded-t-[10px] px-3 py-1 font-semibold"
-        style:background={session.colors.getPlayerBgColorValue(playerState.playerId)}
-        style:color={session.colors.getPlayerTextColorValue(playerState.playerId)}
-    >
+    <!-- The player's colour shows as one of their rings rather than a band of it across the card. -->
+    <div class="flex items-center gap-2 px-3 pt-2 font-semibold">
+        <RingIcon {tone} seedKey="tray-name-{playerState.playerId}" size={22} />
         <span class="truncate text-[17px]">{session.getPlayerName(playerState.playerId)}</span>
-        <span class="ms-auto text-[13px] tracking-[0.12em] whitespace-nowrap uppercase">
+        <span
+            class="ms-auto text-[13px] tracking-[0.12em] whitespace-nowrap text-(--yinsh-ink-quiet) uppercase"
+        >
             {#if isWinner}Winner{:else if isActive}Playing{/if}
         </span>
     </div>
@@ -47,23 +47,21 @@
 </div>
 
 <style>
-    /* Light enough for black rings to stand out as well as white ones. */
+    /* White like the action card, so black rings stand out as well as white ones. */
     .tray {
-        --ring: 1px;
         border-radius: 12px;
-        background: #c9d6e8;
+        background: var(--yinsh-panel);
         box-shadow:
-            inset 0 0 0 var(--ring) #8fa5c4,
-            0 3px 8px rgb(0 0 0 / 0.3);
-        color: #0d1626;
+            inset 0 0 0 1px var(--yinsh-panel-edge),
+            var(--yinsh-panel-shadow);
+        color: var(--yinsh-ink);
         overflow: hidden;
     }
 
     .tray.active {
-        --ring: 2px;
         box-shadow:
-            inset 0 0 0 var(--ring) var(--yinsh-target),
-            0 3px 8px rgb(0 0 0 / 0.35);
+            inset 0 0 0 2px var(--yinsh-target),
+            var(--yinsh-panel-shadow);
     }
 
     .body {

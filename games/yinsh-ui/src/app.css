@@ -43,15 +43,18 @@
     /* The printed board's pale steel blue, with a paler play area. */
     --yinsh-table: #8fb3ca;
     --yinsh-table-deep: #7a9eb8;
-    --yinsh-panel: rgb(9 19 38 / 0.9);
-    --yinsh-panel-edge: #34507a;
+    /* Controls and cards sit on white like paper on the table, lifted by a soft shadow. */
+    --yinsh-panel: #ffffff;
+    --yinsh-panel-edge: rgb(13 22 38 / 0.1);
+    --yinsh-panel-shadow: 0 2px 8px rgb(13 22 38 / 0.18);
+    --yinsh-panel-hover: #eef3f7;
     --yinsh-play: #d6e4eb;
     --yinsh-play-edge: #9dbacb;
     --yinsh-line: #000000;
     --yinsh-line-opacity: 1;
     --yinsh-label: #0d1626;
-    --yinsh-ink: #eef2f8;
-    --yinsh-ink-quiet: #9fb0c8;
+    --yinsh-ink: #0d1626;
+    --yinsh-ink-quiet: #45577a;
     /* Text standing straight on the table rather than on a dark panel. */
     --yinsh-table-ink: #0d1626;
     --yinsh-table-ink-quiet: #34445f;

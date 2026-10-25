@@ -50,11 +50,13 @@
 </div>
 
 <style>
-    /* Light like the player panels, so black pieces show as well as the rest. */
+    /* White like the player panels, so black pieces show as well as the rest. */
     .history {
-        background: #c9d6e8;
-        color: #0d1626;
-        box-shadow: inset 0 0 0 1px #8fa5c4;
+        background: var(--yinsh-panel);
+        color: var(--yinsh-ink);
+        box-shadow:
+            inset 0 0 0 1px var(--yinsh-panel-edge),
+            var(--yinsh-panel-shadow);
     }
 
     .entry {

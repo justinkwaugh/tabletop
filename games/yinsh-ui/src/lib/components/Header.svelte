@@ -59,7 +59,7 @@
     }
 
     .header-button:hover {
-        background: rgb(255 255 255 / 0.08);
+        background: rgb(13 22 38 / 0.08);
     }
 
     @media (max-width: 639px) {

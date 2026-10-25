@@ -54,20 +54,21 @@
 <div class="yinsh-table">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
+            <!-- Faded controls in a pale steel blue that still shows on white. -->
             <HistoryControls
-                enabledColor="text-[#eef2f8]"
-                disabledColor="text-[#5a6f90]"
-                borderClass="border-[#34507a] border-b-2"
-                bgClass="bg-[#0b1730]"
+                enabledColor="text-[#0d1626]"
+                disabledColor="text-[#a9bac8]"
+                borderClass="border-b border-[#dbe4eb]"
+                bgClass="bg-white shadow-[0_2px_8px_rgb(13_22_38/0.18)]"
             />
         {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
                 <HistoryControls
-                    enabledColor="text-[#eef2f8]"
-                    disabledColor="text-[#5a6f90]"
-                    borderClass="rounded-lg border-2 border-[#34507a]"
-                    bgClass="rounded-lg bg-[#0b1730]"
+                    enabledColor="text-[#0d1626]"
+                    disabledColor="text-[#a9bac8]"
+                    borderClass="rounded-lg border border-[rgb(13_22_38/0.1)]"
+                    bgClass="rounded-lg bg-white shadow-[0_2px_8px_rgb(13_22_38/0.18)]"
                 />
             </div>
             <DefaultTabs
@@ -82,11 +83,14 @@
                 {/snippet}
                 {#snippet chat()}
                     <GameChat
-                        timeColor="text-gray-400"
-                        bgColor="bg-[#0c1830]"
-                        inputBgColor="bg-[#0c1830]"
-                        inputBorderColor="border-[#34507a]"
-                        borderColor="border-[#34507a]"
+                        timeColor="text-[#45577a]"
+                        messageTextColor="text-[#0d1626]"
+                        composerTextColor="text-[#0d1626]"
+                        messageHoverColor="hover:bg-[#eef3f7]"
+                        bgColor="bg-white shadow-[0_2px_8px_rgb(13_22_38/0.18)]"
+                        inputBgColor="bg-[#f4f7fa]"
+                        inputBorderColor="border-[#c5d3de]"
+                        borderColor="border-[#dbe4eb]"
                     />
                 {/snippet}
             </DefaultTabs>
@@ -155,7 +159,9 @@
         margin: 0 8px;
         border-radius: 12px;
         background: var(--yinsh-panel);
-        box-shadow: inset 0 0 0 1px var(--yinsh-panel-edge);
+        box-shadow:
+            inset 0 0 0 1px var(--yinsh-panel-edge),
+            var(--yinsh-panel-shadow);
     }
 
     .fullscreen-backdrop {
