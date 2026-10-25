@@ -8,10 +8,18 @@ import {
     gameCallOf,
     type CallGameAction
 } from './callGame.js'
-import { ActionSource } from './gameAction.js'
+import { ActionSource, type GameAction } from './gameAction.js'
 import { undoRecordedAction } from './recordedHistory.js'
 import { createGameFork } from './gameFork.js'
-import { createNoteGame, noteGameRuntime, step } from './tests/noteGame.js'
+import {
+    createNoteGame,
+    Note,
+    noteGameRuntime,
+    step,
+    type HydratedNoteGameState
+} from './tests/noteGame.js'
+import { GameEngine } from './gameEngine.js'
+import type { MachineContext } from './machineContext.js'
 import { PlayerVoteKind, type CallVote, type UndoVote } from '../model/playerVote.js'
 
 function withoutWinner(action: CallGameAction): CallGameAction {
@@ -97,6 +105,31 @@ describe('callGame', () => {
                 state: called,
                 game
             })
+        ).toThrow('A Game State with a result accepts no further Actions')
+    })
+})
+
+describe('the result invariant', () => {
+    it('processes no queued Action after one that ended the game', () => {
+        const { game, state } = createNoteGame()
+        const playing = noteGameRuntime.stateHandlers.playing
+        const engine = new GameEngine({
+            ...noteGameRuntime,
+            stateHandlers: {
+                playing: {
+                    ...playing,
+                    onAction(action: GameAction, context: MachineContext<HydratedNoteGameState>) {
+                        if (action.type === 'step') {
+                            context.gameState.result = GameResult.Abandoned
+                            context.addSystemAction(Note, { playerId: 'p1', text: 'too late' })
+                        }
+                        return 'playing'
+                    }
+                }
+            }
+        })
+        expect(() =>
+            engine.executeCanonicalAction({ action: step('end', game.id, 'p1'), state, game })
         ).toThrow('A Game State with a result accepts no further Actions')
     })
 })

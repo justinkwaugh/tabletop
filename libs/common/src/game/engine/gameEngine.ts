@@ -350,6 +350,10 @@ export class GameEngine<
         ) {
             const currentAction = machineContext.nextPendingAction()
             assertExists(currentAction, 'Action to process was unexpectedly null')
+            assert(
+                hydratedState.result === undefined,
+                'A Game State with a result accepts no further Actions'
+            )
 
             assert(
                 this.isPlayerAllowed(currentAction, hydratedState),

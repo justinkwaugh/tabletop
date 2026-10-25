@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { nanoid } from 'nanoid'
 import { type CallBallot, GameCall, GameCallKind } from '../model/gameCall.js'
 import { GameResult, validateGameResult } from '../model/gameResult.js'
+import type { Game } from '../model/game.js'
 import type { GameState } from '../model/gameState.js'
 import { isTwoPlayerGame } from '../model/playerVote.js'
 import { ActionSource, GameAction } from './gameAction.js'
@@ -29,6 +30,17 @@ export function isCallGameAction(action: GameAction): action is CallGameAction {
 
 export function gameCallOf(action: GameAction | undefined): GameCall | undefined {
     return action !== undefined && isCallGameAction(action) ? action.call : undefined
+}
+
+/**
+ * A copy of a game at a history position has no open vote, and keeps the call only when its
+ * retained history ends with it.
+ */
+export function resetCopiedGameVoting(copy: Game, retainedActions: readonly GameAction[]): void {
+    delete copy.vote
+    const call = gameCallOf(retainedActions.at(-1))
+    if (call) copy.call = call
+    else delete copy.call
 }
 
 export function createCallGameAction({
