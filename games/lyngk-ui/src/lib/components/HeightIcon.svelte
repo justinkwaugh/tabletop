@@ -1,14 +1,15 @@
 <script lang="ts">
-    import { stackBounds, stackDiscs, sideHeight, TILT } from '$lib/board/pieceGeometry.js'
+    import { VIEW } from '$lib/board/geometry.js'
+    import { stackBounds, stackDiscs, sideHeight } from '$lib/board/pieceGeometry.js'
 
     // A plain stack of the given height, for counts that are about size rather than colors.
     let { height, size = 16 }: { height: number; size?: number } = $props()
 
     const RADIUS = 9
-    const ry = RADIUS * TILT
-    const side = sideHeight(RADIUS)
-    const discs = $derived(stackDiscs(height, RADIUS))
-    const tallest = stackBounds(5, RADIUS)
+    const ry = RADIUS * VIEW.tilt
+    const side = sideHeight(VIEW, RADIUS)
+    const discs = $derived(stackDiscs(VIEW, height, RADIUS))
+    const tallest = stackBounds(VIEW, 5, RADIUS)
     const viewHeight = tallest.bottom - tallest.top + 2
 
     function sidePath(faceY: number): string {
@@ -33,14 +34,14 @@
 
 <style>
     .side {
-        fill: #6d7c93;
-        stroke: #26303f;
+        fill: #8a8070;
+        stroke: #3b3329;
         stroke-width: 0.9;
     }
 
     .face {
-        fill: #a3b1c6;
-        stroke: #26303f;
+        fill: #c9c0ad;
+        stroke: #3b3329;
         stroke-width: 0.9;
     }
 </style>

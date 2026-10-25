@@ -141,8 +141,9 @@ export class HydratedLyngkGameState
 
     move(playerId: string, path: MovePath): MoveOutcome {
         const landedOn = [...this.board.stackAt(path.to)]
+        const movedIds = this.board.idsAt(path.from)
         const moved = this.board.lift(path.from)
-        this.board.drop(path.to, moved)
+        this.board.drop(path.to, moved, movedIds)
         const result = this.board.stackAt(path.to)
         const top = topOf(result)
         const ownsTop = top !== undefined && this.getPlayerState(playerId).claimed.includes(top)

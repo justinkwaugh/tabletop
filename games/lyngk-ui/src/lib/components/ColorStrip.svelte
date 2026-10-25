@@ -1,5 +1,7 @@
 <script lang="ts">
-    import { ACTIVE_COLORS, type PieceColor } from '@tabletop/lyngk'
+    import { flip } from 'svelte/animate'
+    import type { PieceColor } from '@tabletop/lyngk'
+    import { claimFlight } from '$lib/animators/claimFlight.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PIECE_STYLES } from '$lib/board/pieceStyle.js'
     import PieceIcon from './PieceIcon.svelte'
@@ -10,6 +12,8 @@
     // neutral colors between them.
     const [first, second] = $derived(session.gameState.players)
     const neutral = $derived(session.gameState.unclaimedColors())
+    // A claimed color flies from the neutral pieces to its player's side, and back when taken back.
+    const { send, receive } = claimFlight()
 
     function nameOf(playerId: string): string {
         return playerId === session.myPlayer?.id ? 'You' : session.getPlayerName(playerId)
@@ -29,7 +33,14 @@
         >
         <span class="claims">
             {#each colors as color (color)}
-                <PieceIcon stack={[color]} size={36} />
+                <span
+                    class="claim"
+                    in:receive={{ key: color }}
+                    out:send={{ key: color }}
+                    animate:flip={{ duration: 250 }}
+                >
+                    <PieceIcon stack={[color]} size={36} />
+                </span>
             {/each}
         </span>
     </div>
@@ -38,23 +49,22 @@
 <div class="strip">
     {@render claims(first.playerId, first.claimed)}
     <div class="neutral" aria-label="Neutral colors">
-        {#each ACTIVE_COLORS as color (color)}
-            {#if neutral.includes(color)}
-                {@const claimable = session.claimable.includes(color)}
-                <button
-                    type="button"
-                    class="token"
-                    class:claimable
-                    disabled={!claimable}
-                    aria-label={label(color)}
-                    title={claimable
-                        ? `Claim ${PIECE_STYLES[color].name}`
-                        : PIECE_STYLES[color].name}
-                    onclick={() => session.claim(color)}
-                >
-                    <PieceIcon stack={[color]} size={36} />
-                </button>
-            {/if}
+        {#each neutral as color (color)}
+            {@const claimable = session.claimable.includes(color)}
+            <button
+                type="button"
+                class="token"
+                class:claimable
+                disabled={!claimable}
+                aria-label={label(color)}
+                title={claimable ? `Claim ${PIECE_STYLES[color].name}` : PIECE_STYLES[color].name}
+                onclick={() => session.claim(color)}
+                in:receive={{ key: color }}
+                out:send={{ key: color }}
+                animate:flip={{ duration: 250 }}
+            >
+                <PieceIcon stack={[color]} size={36} ring={claimable} />
+            </button>
         {/each}
     </div>
     {@render claims(second.playerId, second.claimed)}
@@ -77,13 +87,20 @@
         min-width: 0;
     }
 
-    .side:last-child {
+    /* The second player's side mirrors the first: name outermost, each new claim beyond the
+       last, so nothing shifts when one lands. */
+    .side:last-child,
+    .side:last-child .claims {
         flex-direction: row-reverse;
     }
 
     .claims {
         display: flex;
         gap: 4px;
+    }
+
+    .claim {
+        display: inline-flex;
     }
 
     /* On a phone the strip stays one row, as short as the neutral colors allow, to leave height
@@ -116,17 +133,14 @@
             height: auto;
         }
 
-        .neutral {
-            gap: 2px;
-            padding: 3px 6px;
+        .strip .neutral {
+            gap: 3px;
+            padding: 0 6px;
         }
 
-        .neutral .token {
-            padding: 2px;
-        }
-
+        /* The pieces as wide as before, 30px, with room for the ring around each. */
         .token :global(svg) {
-            width: 30px;
+            width: 38.3px;
             height: auto;
         }
     }
@@ -142,20 +156,18 @@
         font-weight: 600;
     }
 
+    /* Each token keeps room for its ring, so the rings never meet. */
     .neutral {
         display: flex;
-        gap: 6px;
-        padding: 4px 12px;
+        gap: 4px;
+        padding: 0 12px;
         border-radius: 999px;
-        background: var(--lyngk-tray);
+        background: var(--lyngk-card);
+        box-shadow: 0 1px 4px rgb(60 45 25 / 0.2);
     }
 
     .token {
         display: inline-flex;
-        padding: 3px;
-        border-radius: 999px;
-        outline: 2.5px solid transparent;
-        transition: outline-color 0.2s;
     }
 
     .token:disabled {
@@ -163,11 +175,11 @@
     }
 
     .token.claimable {
-        outline-color: var(--lyngk-mark);
         cursor: pointer;
     }
 
     .token.claimable:hover {
-        outline-width: 3.5px;
+        --ring-width: 3.5px;
+        --ring-width-under: 5.5px;
     }
 </style>

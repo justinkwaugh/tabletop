@@ -26,24 +26,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 3582194890,
+        "seed": 4093350198,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-22T06:18:26.993Z",
+        "createdAt": "2026-10-25T03:01:55.003Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-22T06:18:26.993Z"
+        "startedAt": "2026-10-25T03:01:55.004Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "iUqCxgZDYKs9MOI-PvFoN",
+        "id": "TBU-fKB8MF0prdvTm0y2u",
         "gameId": "scenario-claim-to-move",
-        "seed": 3582194890,
+        "seed": 4093350198,
         "prng": {
-            "seed": 3582194890,
+            "seed": 4093350198,
             "invocations": 43
         },
         "protectedPrng": {
-            "seed": 1191291935,
+            "seed": 2840551902,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -87,7 +87,8 @@
                         "q": 0,
                         "r": 0
                     },
-                    "stack": ["green"]
+                    "stack": ["green"],
+                    "ids": [0]
                 },
                 {
                     "coords": {
@@ -108,7 +109,8 @@
                         "q": 0,
                         "r": 1
                     },
-                    "stack": ["blue", "red", "black"]
+                    "stack": ["blue", "red", "black"],
+                    "ids": [1, 2, 3]
                 },
                 {
                     "coords": {
@@ -269,7 +271,8 @@
                         "q": 0,
                         "r": 3
                     },
-                    "stack": ["ivory"]
+                    "stack": ["ivory"],
+                    "ids": [4]
                 },
                 {
                     "coords": {
@@ -297,14 +300,16 @@
                         "q": -3,
                         "r": 2
                     },
-                    "stack": ["blue"]
+                    "stack": ["blue"],
+                    "ids": [6]
                 },
                 {
                     "coords": {
                         "q": -3,
                         "r": 1
                     },
-                    "stack": ["black"]
+                    "stack": ["black"],
+                    "ids": [5]
                 },
                 {
                     "coords": {

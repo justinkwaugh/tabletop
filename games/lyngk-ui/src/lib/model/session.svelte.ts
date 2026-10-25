@@ -1,8 +1,13 @@
-import { GameSession, type TitlePreferences } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import {
+    GameSession,
+    type PresentedTransition,
+    type TitlePreferences
+} from '@tabletop/frontend-components'
+import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     ClaimColor,
+    isMoveStack,
     LyngkPreferenceDefinition,
     MoveStack,
     POINTS,
@@ -20,7 +25,7 @@ import {
 } from './stagedSelection.js'
 import { coordsKey } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
-import { chainLinks, shortestRoute } from '$lib/board/route.js'
+import { lyngkConnections, shortestRoute } from '$lib/board/route.js'
 
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
     return list.some((candidate) => sameCoordinates(candidate, coords))
@@ -44,11 +49,16 @@ export class LyngkGameSession extends GameSession<LyngkGameState, HydratedLyngkG
     readonly preferences: TitlePreferences<typeof LyngkPreferences> =
         this.createPreferences(LyngkPreferenceDefinition)
 
-    lightBoard: boolean = $derived(this.preferences.values.lightBoard)
+    showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
 
-    toggleLightBoard() {
-        this.preferences.set({ lightBoard: !this.lightBoard })
+    toggleCoordinates() {
+        this.preferences.set({ showCoordinates: !this.showCoordinates })
     }
+
+    // The move being taken back, and the one history last stepped to: the boards alone cannot
+    // tell which LYNGK-points a chain went through.
+    undoingMove: MoveStack | undefined
+    historyMove: MoveStack | undefined
 
     canMove = $derived(this.canAct(ActionType.MoveStack))
     canClaim = $derived(this.canAct(ActionType.ClaimColor))
@@ -85,12 +95,24 @@ export class LyngkGameSession extends GameSession<LyngkGameState, HydratedLyngkG
         uniqueCoords(this.pathsFromChosen.map((path) => path.to))
     )
 
-    // The LYNGK-points the chosen stack can pass through, marked so the reach makes sense.
-    links: AxialCoordinates[] = $derived(
-        uniqueCoords(this.pathsFromChosen.flatMap((path) => path.via))
-    )
+    // The LYNGK connections from the chosen stack, shown whether or not a move goes through them,
+    // and the LYNGK-points they reach, marked so the reach makes sense.
+    chainLinks: [AxialCoordinates, AxialCoordinates][] = $derived.by(() => {
+        const playerId = this.myPlayer?.id
+        return this.chosenFrom === undefined || playerId === undefined
+            ? []
+            : lyngkConnections(
+                  this.gameState.board,
+                  this.chosenFrom,
+                  this.gameState.rightsOf(playerId).owned
+              )
+    })
 
-    chainLinks: [AxialCoordinates, AxialCoordinates][] = $derived(chainLinks(this.pathsFromChosen))
+    links: AxialCoordinates[] = $derived(
+        uniqueCoords(this.chainLinks.flat()).filter(
+            (coords) => this.chosenFrom && !sameCoordinates(coords, this.chosenFrom)
+        )
+    )
 
     private canAct(type: ActionType): boolean {
         return !this.isViewingHistory && this.isMyTurn && this.validActionTypes.includes(type)
@@ -112,8 +134,17 @@ export class LyngkGameSession extends GameSession<LyngkGameState, HydratedLyngkG
         this.selection = {}
     }
 
-    override beforeNewState(): void {
+    override willUndo(action: GameAction): void {
+        this.undoingMove = isMoveStack(action) ? action : undefined
+    }
+
+    override onHistoryAction(action?: GameAction): void {
+        this.historyMove = isMoveStack(action) ? action : undefined
+    }
+
+    override beforeNewState({ kind }: PresentedTransition): void {
         this.resetAction()
+        if (kind !== 'undo') this.undoingMove = undefined
     }
 
     // A tap lands the chosen stack, or picks up (or puts back) a stack.

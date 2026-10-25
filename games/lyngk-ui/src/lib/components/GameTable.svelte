@@ -16,8 +16,8 @@
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
-    import BoardModeToggle from '$lib/components/BoardModeToggle.svelte'
     import ColorStrip from '$lib/components/ColorStrip.svelte'
+    import OverlayToggle from '$lib/components/OverlayToggle.svelte'
     import { LyngkGameSession } from '$lib/model/session.svelte.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -53,28 +53,28 @@
     <ColorStrip />
 {/snippet}
 
-<div class="lyngk-table" class:lyngk-light={gameSession.lightBoard}>
+<div class="lyngk-table">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
-                enabledColor="text-[#eef2f8]"
-                disabledColor="text-[#5a6f90]"
-                borderClass="border-[#34507a] border-b-2"
-                bgClass="bg-[#0b1730]"
+                enabledColor="text-[#f6f0e3]"
+                disabledColor="text-[#8c7d66]"
+                borderClass="border-[#75664f] border-b-2"
+                bgClass="bg-[#3b3329]"
             />
         {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
                 <HistoryControls
-                    enabledColor="text-[#eef2f8]"
-                    disabledColor="text-[#5a6f90]"
-                    borderClass="rounded-lg border-2 border-[#34507a]"
-                    bgClass="rounded-lg bg-[#0b1730]"
+                    enabledColor="text-[#f6f0e3]"
+                    disabledColor="text-[#8c7d66]"
+                    borderClass="rounded-lg border-2 border-[#75664f]"
+                    bgClass="rounded-lg bg-[#3b3329]"
                 />
             </div>
             <DefaultTabs
-                activeTabClass="py-1 px-3 bg-[#f1ece0] border-2 border-transparent rounded-lg text-[#0c1830]"
-                inactiveTabClass="text-[#eef2f8] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#34507a]"
+                activeTabClass="py-1 px-3 bg-[#fbf9f3] border-2 border-transparent rounded-lg text-[#2a2519] shadow-sm"
+                inactiveTabClass="text-(--lyngk-table-ink) py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#b4ac98]"
             >
                 {#snippet playersPanel()}
                     <PlayersPanel />
@@ -85,10 +85,10 @@
                 {#snippet chat()}
                     <GameChat
                         timeColor="text-gray-400"
-                        bgColor="bg-[#0c1830]"
-                        inputBgColor="bg-[#0c1830]"
-                        inputBorderColor="border-[#34507a]"
-                        borderColor="border-[#34507a]"
+                        bgColor="bg-[#3b3329]"
+                        inputBgColor="bg-[#2e2820]"
+                        inputBorderColor="border-[#75664f]"
+                        borderColor="border-[#75664f]"
                     />
                 {/snippet}
             </DefaultTabs>
@@ -109,7 +109,12 @@
                     <Board />
                     {#snippet overlay()}
                         <div class="pointer-events-auto absolute top-1 right-3 z-10">
-                            <BoardModeToggle />
+                            <OverlayToggle
+                                glyph="A1"
+                                label="Coordinates"
+                                pressed={gameSession.showCoordinates}
+                                onToggle={() => gameSession.toggleCoordinates()}
+                            />
                         </div>
                     {/snippet}
                     {#snippet toolbar()}

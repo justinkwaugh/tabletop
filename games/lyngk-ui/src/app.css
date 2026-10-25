@@ -40,37 +40,31 @@
 }
 
 :root {
-    --lyngk-table: #16294a;
-    --lyngk-table-deep: #0c1830;
-    --lyngk-panel: rgb(9 19 38 / 0.9);
-    --lyngk-panel-edge: #34507a;
-    --lyngk-play: #4f6a90;
-    --lyngk-play-edge: #2f4566;
-    --lyngk-line: #a8bcd8;
-    --lyngk-line-opacity: 0.75;
-    --lyngk-label: #9fb0c8;
-    --lyngk-ink: #eef2f8;
-    --lyngk-ink-quiet: #9fb0c8;
-    --lyngk-tray: rgb(201 214 232 / 0.85);
-    --lyngk-target: #f0b04a;
-    --lyngk-link: #4fd1e8;
+    /* The printed board's taupe cream, with a white play area and black lines. */
+    --lyngk-table: #e2dccb;
+    --lyngk-table-deep: #cdc6b1;
+    --lyngk-play: #ffffff;
+    --lyngk-play-edge: #b4ac98;
+    --lyngk-line: #000000;
+    --lyngk-line-opacity: 1;
+    --lyngk-label: #2a2519;
+    /* Dark warm panels for the prompt and the controls, with cream text. */
+    --lyngk-panel: rgb(59 51 41 / 0.95);
+    --lyngk-panel-edge: #75664f;
+    --lyngk-ink: #f6f0e3;
+    --lyngk-ink-quiet: #cdbfa5;
+    /* Text standing on the table itself rather than on a panel. */
+    --lyngk-table-ink: #2a2519;
+    /* Cards and the history list are white like the play area, so every piece color shows. */
+    --lyngk-card: #fbf9f3;
+    --lyngk-card-ink: #2a2519;
+    --lyngk-card-quiet: #6b604c;
+    --lyngk-card-rule: #cfc7b4;
+    --lyngk-target: #e08a00;
+    --lyngk-link: #0a8fb0;
     /* Marks on the pieces, drawn over a dark band so they read on every disc color. */
     --lyngk-mark: #5ef0ff;
     --lyngk-link-mark: #5ef0ff;
     --lyngk-bolt: #12b8f0;
     --lyngk-bolt-glow: #6fe3ff;
-}
-
-/* Light board: a pale play area with black lines and points, on a muted blue table. Panels
-   keep the dark theme. */
-.lyngk-light {
-    --lyngk-table: #5e7596;
-    --lyngk-table-deep: #4d6282;
-    --lyngk-play: #d3d8de;
-    --lyngk-play-edge: #8792a3;
-    --lyngk-line: #000000;
-    --lyngk-line-opacity: 1;
-    --lyngk-label: #0d1626;
-    --lyngk-target: #e08a00;
-    --lyngk-link: #0a8fb0;
 }

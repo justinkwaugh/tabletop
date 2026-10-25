@@ -142,6 +142,66 @@ describe('board', () => {
     })
 })
 
+// Gives each piece an identity, counting up from the bottom of each stack in turn.
+function numbered(state: LyngkGameState): LyngkGameState {
+    let next = 0
+    for (const point of state.board.points) {
+        point.ids = point.stack.map(() => next++)
+    }
+    return state
+}
+
+const idsAt = (state: LyngkGameState, coords: AxialCoordinates) =>
+    new HydratedLyngkGameState(state).board.idsAt(coords)
+
+describe('piece identities', () => {
+    it('names each piece by the point it was dealt to', () => {
+        const state = start(createGame())
+        expect(state.board.points.map((point) => point.ids)).toEqual(
+            state.board.points.map((_, index) => [index])
+        )
+    })
+
+    it('carries the moved pieces onto the stack they land on', () => {
+        const game = createGame()
+        const state = numbered(
+            withStacks(start(game), [
+                [c(-3), [I]],
+                [c(0), [U]]
+            ])
+        )
+        const [moving, target] = [idsAt(state, c(-3))!, idsAt(state, c(0))!]
+        const moved = move(game, state, A, c(-3), c(0))
+        expect(idsAt(moved, c(0))).toEqual([...target, ...moving])
+        expect(idsAt(moved, c(-3))).toBeUndefined()
+    })
+
+    it('leaves them out where the stack landed on has none', () => {
+        const game = createGame()
+        const state = withStacks(start(game), [
+            [c(-3), [I]],
+            [c(0), [U]]
+        ])
+        state.board.points.find((point) => point.coords.r === -3 && point.coords.q === 0)!.ids = [7]
+        expect(idsAt(move(game, state, A, c(-3), c(0)), c(0))).toBeUndefined()
+    })
+
+    it('takes them off the board with a scored stack', () => {
+        const game = createGame()
+        const state = numbered(
+            withStacks(
+                start(game),
+                [
+                    [c(0), [I]],
+                    [c(1), [U, R, G, K]]
+                ],
+                { [A]: [I] }
+            )
+        )
+        expect(idsAt(move(game, state, A, c(0), c(1)), c(1))).toBeUndefined()
+    })
+})
+
 describe('moves', () => {
     it('moves to an adjacent piece or along a line over empty points, never over a piece', () => {
         const game = createGame()

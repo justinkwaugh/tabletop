@@ -1,5 +1,5 @@
-import { addAxial, coordinatesToNumber, type AxialCoordinates, type Point } from '@tabletop/common'
-import { pointCenter } from './geometry.js'
+import { coordinatesToNumber, type AxialCoordinates, type Point } from '@tabletop/common'
+import { VIEW } from './geometry.js'
 
 // Columns A–I left to right, each counted up from 1 at its bottom point, BoardSpace style.
 // Each column is labelled with the names of its bottom and top points; a column of one point
@@ -14,10 +14,6 @@ export type CoordinateLabel = {
     text: string
     at: Point
 }
-
-const LABEL_REACH = 0.6
-const ABOVE: AxialCoordinates = { q: 0, r: -1 }
-const BELOW: AxialCoordinates = { q: 0, r: 1 }
 
 export function boardNotation(positions: readonly AxialCoordinates[]): BoardNotation {
     const columns = [...new Set(positions.map((coords) => coords.q))].sort((a, b) => a - b)
@@ -35,10 +31,10 @@ export function boardNotation(positions: readonly AxialCoordinates[]): BoardNota
         const top = { q, r: topOf.get(q) ?? 0 }
         const bottom = { q, r: bottomOf.get(q) ?? 0 }
         const letter = letterOf(q)
-        const bottomLabel = labelBeside(`bottom-${letter}`, `${letter}1`, bottom, BELOW)
+        const bottomLabel = labelBeside(`bottom-${letter}`, `${letter}1`, bottom, false)
         return top.r === bottom.r
             ? [bottomLabel]
-            : [labelBeside(`top-${letter}`, `${letter}${numberOf(top)}`, top, ABOVE), bottomLabel]
+            : [labelBeside(`top-${letter}`, `${letter}${numberOf(top)}`, top, true), bottomLabel]
     })
 
     const names = new Map(
@@ -53,20 +49,13 @@ export function boardNotation(positions: readonly AxialCoordinates[]): BoardNota
     }
 }
 
+// A label sits straight above or below its point, clear of a tall stack standing there.
 function labelBeside(
     key: string,
     text: string,
     point: AxialCoordinates,
-    direction: AxialCoordinates
+    above: boolean
 ): CoordinateLabel {
-    const from = pointCenter(point)
-    const to = pointCenter(addAxial(point, direction))
-    return {
-        key,
-        text,
-        at: {
-            x: from.x + (to.x - from.x) * LABEL_REACH,
-            y: from.y + (to.y - from.y) * LABEL_REACH
-        }
-    }
+    const center = VIEW.center(point)
+    return { key, text, at: { x: center.x, y: center.y + VIEW.labelOffset(above) } }
 }

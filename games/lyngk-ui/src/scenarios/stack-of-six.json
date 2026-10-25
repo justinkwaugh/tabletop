@@ -26,24 +26,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 3531474313,
+        "seed": 3754720102,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-22T06:18:27.000Z",
+        "createdAt": "2026-10-25T03:01:55.006Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-22T06:18:27.000Z"
+        "startedAt": "2026-10-25T03:01:55.006Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "5PsB4fXZ0P-0r2DXNOrfy",
+        "id": "2xqc8sJ8tFXY42jHpe7cq",
         "gameId": "scenario-stack-of-six",
-        "seed": 3531474313,
+        "seed": 3754720102,
         "prng": {
-            "seed": 3531474313,
+            "seed": 3754720102,
             "invocations": 43
         },
         "protectedPrng": {
-            "seed": 110241129,
+            "seed": 101362259,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -87,7 +87,8 @@
                         "q": 0,
                         "r": 0
                     },
-                    "stack": ["red"]
+                    "stack": ["red"],
+                    "ids": [0]
                 },
                 {
                     "coords": {
@@ -108,7 +109,8 @@
                         "q": 0,
                         "r": 1
                     },
-                    "stack": ["joker", "blue", "ivory", "green", "black"]
+                    "stack": ["joker", "blue", "ivory", "green", "black"],
+                    "ids": [1, 2, 3, 4, 5]
                 },
                 {
                     "coords": {
@@ -143,7 +145,8 @@
                         "q": 2,
                         "r": -2
                     },
-                    "stack": ["blue"]
+                    "stack": ["blue"],
+                    "ids": [8]
                 },
                 {
                     "coords": {
@@ -185,7 +188,8 @@
                         "q": -2,
                         "r": 2
                     },
-                    "stack": ["green", "ivory"]
+                    "stack": ["green", "ivory"],
+                    "ids": [6, 7]
                 },
                 {
                     "coords": {

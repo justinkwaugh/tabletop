@@ -9,7 +9,7 @@
 </script>
 
 <div
-    class="flex h-[44px] items-center justify-between px-4 tracking-[0.08em] text-(--lyngk-ink) max-sm:h-[30px] max-sm:px-1"
+    class="flex h-[44px] items-center justify-between px-4 tracking-[0.08em] text-(--lyngk-table-ink) max-sm:h-[30px] max-sm:px-1"
 >
     <div class="header-grid grid text-[18px] max-sm:text-[14px]">
         {#if session.isViewingHistory}

@@ -3,67 +3,56 @@ import { seededRandom } from './random.js'
 
 export type PieceStyle = {
     face: string
-    side: string
     edge: string
-    groove: string
     bevel: string
     speck: string
+    // A second fleck color, mixed in among the first (the jokers' grey).
+    speckAlt?: string
     name: string
 }
 
 export const PIECE_STYLES: Record<PieceColor, PieceStyle> = {
     [PieceColor.Ivory]: {
-        face: '#efe3c3',
-        side: '#d2c39b',
-        edge: '#8a7b55',
-        groove: '#b9a97f',
-        bevel: '#fbf4df',
+        face: '#ece2c9',
+        edge: '#877a5a',
+        bevel: '#f9f3e3',
         speck: '#1a1a1a',
         name: 'ivory'
     },
     [PieceColor.Blue]: {
-        face: '#2f5fb8',
-        side: '#234b93',
-        edge: '#0f2450',
-        groove: '#1f4389',
-        bevel: '#4f7dd0',
+        face: '#2357ad',
+        edge: '#0a1f4d',
+        bevel: '#4475c9',
         speck: '#0b0b0e',
         name: 'blue'
     },
     [PieceColor.Red]: {
-        face: '#d0352a',
-        side: '#a9271f',
-        edge: '#55100b',
-        groove: '#a2241c',
-        bevel: '#e45a4e',
+        face: '#cc2e28',
+        edge: '#520e0a',
+        bevel: '#e0544a',
         speck: '#120808',
         name: 'red'
     },
     [PieceColor.Green]: {
-        face: '#1f9a5c',
-        side: '#177a48',
-        edge: '#063a20',
-        groove: '#137443',
-        bevel: '#3cb878',
+        face: '#178c58',
+        edge: '#04341c',
+        bevel: '#33a873',
         speck: '#07120c',
         name: 'green'
     },
     [PieceColor.Black]: {
         face: '#1d1e21',
-        side: '#121315',
         edge: '#000000',
-        groove: '#060607',
         bevel: '#3a3c41',
         speck: '#ecebe6',
         name: 'black'
     },
     [PieceColor.Joker]: {
         face: '#fbfbf9',
-        side: '#e6e5e1',
         edge: '#7d7b76',
-        groove: '#cfcdc8',
         bevel: '#ffffff',
         speck: '#151515',
+        speckAlt: '#8e8e8b',
         name: 'joker'
     }
 }
@@ -80,7 +69,14 @@ const FACE_SPECKS: Record<PieceColor, number> = {
 }
 
 // Positions and sizes are fractions of the radius; y is before the tilt is applied.
-export type Speck = { x: number; y: number; r: number; stretch: number; angle: number }
+export type Speck = {
+    x: number
+    y: number
+    r: number
+    stretch: number
+    angle: number
+    alt: boolean
+}
 
 export function faceSpecks(color: PieceColor, seed: number): Speck[] {
     const random = seededRandom(seed)
@@ -96,13 +92,20 @@ export function faceSpecks(color: PieceColor, seed: number): Speck[] {
 }
 
 // Specks on the visible side band: x across the width, v down the band from its top edge.
-export type SideSpeck = { x: number; v: number; r: number; stretch: number; angle: number }
+export type SideSpeck = {
+    x: number
+    v: number
+    r: number
+    stretch: number
+    angle: number
+    alt: boolean
+}
 
 export function sideSpecks(color: PieceColor, seed: number): SideSpeck[] {
     const random = seededRandom(seed * 31 + 7)
     const count = Math.round(FACE_SPECKS[color] * 0.25)
     return Array.from({ length: count }, () => ({
-        x: (random() * 2 - 1) * 0.94,
+        x: (random() * 2 - 1) * 0.86,
         v: 0.15 + random() * 0.7,
         ...speckShape(random)
     }))
@@ -110,17 +113,28 @@ export function sideSpecks(color: PieceColor, seed: number): SideSpeck[] {
 
 function speckShape(random: () => number) {
     return {
+        alt: random() < 0.4,
         r: 0.02 + 0.035 * random() ** 2,
         stretch: 1 + random() * 1.2,
         angle: random() * 180
     }
 }
 
-// A piece's specks follow its point and level, so a stack in flight is seeded for where it
-// lands and looks the same once it is down.
-export function pieceSeed(pointKey: string, level: number, color: PieceColor): number {
+// A piece's specks follow the piece, named by the point it was dealt to, so they stay put as it
+// moves. A board without identities (a game from before they were kept) seeds them by point and
+// level instead, and a stack in flight for where it lands, so it looks the same once it is down.
+export function pieceSeed(
+    id: number | undefined,
+    pointKey: string,
+    level: number,
+    color: PieceColor
+) {
+    return hashed(id === undefined ? `${pointKey}|${level}|${color}` : `piece|${id}`)
+}
+
+function hashed(text: string): number {
     let hash = 2166136261
-    for (const char of `${pointKey}|${level}|${color}`) {
+    for (const char of text) {
         hash = Math.imul(hash ^ char.charCodeAt(0), 16777619)
     }
     return hash

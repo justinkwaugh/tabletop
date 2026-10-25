@@ -7,7 +7,10 @@ import { hasRepeatedColor, PieceColor, Stack, topOf, type ColorRights } from './
 export type Point = Type.Static<typeof Point>
 export const Point = Type.Object({
     coords: AxialCoordinates,
-    stack: Stack
+    stack: Stack,
+    // Each piece's identity, bottom to top: the index of the point it was dealt to, so a piece
+    // can be drawn the same wherever it goes. Boards set up without them leave them out.
+    ids: Type.Optional(Type.Array(Type.Number()))
 })
 
 export type LyngkBoard = Type.Static<typeof LyngkBoard>
@@ -52,15 +55,26 @@ export class HydratedLyngkBoard extends Hydratable<typeof LyngkBoard> implements
         return this.points.filter((point) => point.stack.length > 0)
     }
 
+    idsAt(coords: AxialCoordinates): number[] | undefined {
+        return isPoint(coords) ? this.pointAt(coords).ids : undefined
+    }
+
     lift(coords: AxialCoordinates): PieceColor[] {
         const point = this.pointAt(coords)
         const stack = point.stack
         point.stack = []
+        delete point.ids
         return stack
     }
 
-    drop(coords: AxialCoordinates, stack: readonly PieceColor[]) {
+    // The pieces' identities come along only if the stack landed on has its own.
+    drop(coords: AxialCoordinates, stack: readonly PieceColor[], ids?: readonly number[]) {
         const point = this.pointAt(coords)
+        if (ids !== undefined && (point.stack.length === 0 || point.ids !== undefined)) {
+            point.ids = [...(point.ids ?? []), ...ids]
+        } else {
+            delete point.ids
+        }
         point.stack = [...point.stack, ...stack]
     }
 

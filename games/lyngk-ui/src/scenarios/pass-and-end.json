@@ -26,24 +26,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 1990433736,
+        "seed": 2626112396,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-22T06:18:26.996Z",
+        "createdAt": "2026-10-25T03:01:55.005Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-22T06:18:26.997Z"
+        "startedAt": "2026-10-25T03:01:55.005Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "_Zy9fCkHqf8dFrAn-5Fwg",
+        "id": "Vtj02eiB0CjWiF0sA4swK",
         "gameId": "scenario-pass-and-end",
-        "seed": 1990433736,
+        "seed": 2626112396,
         "prng": {
-            "seed": 1990433736,
+            "seed": 2626112396,
             "invocations": 43
         },
         "protectedPrng": {
-            "seed": 1611516579,
+            "seed": 4031363467,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -171,7 +171,8 @@
                         "q": 0,
                         "r": 2
                     },
-                    "stack": ["ivory"]
+                    "stack": ["ivory"],
+                    "ids": [2]
                 },
                 {
                     "coords": {
@@ -213,7 +214,8 @@
                         "q": 0,
                         "r": -2
                     },
-                    "stack": ["green"]
+                    "stack": ["green"],
+                    "ids": [1]
                 },
                 {
                     "coords": {
@@ -332,7 +334,8 @@
                         "q": 0,
                         "r": -3
                     },
-                    "stack": ["red"]
+                    "stack": ["red"],
+                    "ids": [0]
                 },
                 {
                     "coords": {

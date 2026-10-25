@@ -69,15 +69,14 @@
 </div>
 
 <style>
-    /* Light enough for black pieces to stand out as well as ivory ones. */
+    /* White like the play area, without an outline, so black pieces stand out as well as
+       ivory ones; the player to move is ringed. */
     .tray {
-        --ring: 1px;
+        --ring: 0px;
         border-radius: 12px;
-        background: #c9d6e8;
-        box-shadow:
-            inset 0 0 0 var(--ring) #8fa5c4,
-            0 3px 8px rgb(0 0 0 / 0.3);
-        color: #0d1626;
+        background: var(--lyngk-card);
+        box-shadow: 0 2px 6px rgb(60 45 25 / 0.25);
+        color: var(--lyngk-card-ink);
         overflow: hidden;
     }
 
@@ -85,7 +84,7 @@
         --ring: 2px;
         box-shadow:
             inset 0 0 0 var(--ring) var(--lyngk-target),
-            0 3px 8px rgb(0 0 0 / 0.35);
+            0 2px 6px rgb(60 45 25 / 0.3);
     }
 
     /* A light slot on the player's color, so black and ivory pieces both show. */
@@ -96,14 +95,14 @@
         gap: 4px;
         padding: 2px 6px;
         border-radius: 999px;
-        background: #c9d6e8;
+        background: var(--lyngk-card);
     }
 
     .open-claim {
         width: 24px;
         height: 16px;
         border-radius: 50%;
-        border: 2px dashed #7d93b4;
+        border: 2px dashed #a89c84;
     }
 
     .scored {
@@ -121,12 +120,12 @@
         justify-content: space-between;
         gap: 6px;
         padding: calc(5px - var(--ring) / 2) 12px calc(5px + var(--ring) / 2);
-        background: rgb(13 22 38 / 0.06);
-        color: #45577a;
+        background: rgb(60 45 25 / 0.06);
+        color: var(--lyngk-card-quiet);
     }
 
     .scored + .strip {
-        border-top: 1px solid rgb(13 22 38 / 0.12);
+        border-top: 1px solid rgb(60 45 25 / 0.12);
     }
 
     .caption {
@@ -145,7 +144,7 @@
     .part strong {
         font-size: 15px;
         line-height: 1.1;
-        color: #0d1626;
+        color: var(--lyngk-card-ink);
         font-variant-numeric: tabular-nums;
     }
 </style>

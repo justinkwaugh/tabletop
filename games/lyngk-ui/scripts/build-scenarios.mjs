@@ -36,10 +36,16 @@ function position(stacks, { claims = {}, scored = {}, variant = 'Standard' } = {
         startingPositions: { playerIds: [FIRST, SECOND] }
     })
     for (const point of state.board.points) point.stack = []
+    // Each piece gets its own identity, so the specks it is drawn with stay with it.
+    let nextId = 0
     for (const [q, r, stack] of stacks) {
         const point = state.board.points.find((p) => p.coords.q === q && p.coords.r === r)
         if (!point) throw Error(`No point ${q},${r}`)
         point.stack = stack
+        point.ids = stack.map(() => nextId++)
+    }
+    for (const point of state.board.points) {
+        if (point.stack.length === 0) delete point.ids
     }
     for (const player of state.players) {
         player.claimed = claims[player.playerId] ?? []
@@ -125,5 +131,36 @@ write(
             [2, -2, ['blue']]
         ],
         { claims: { [FIRST]: ['red', 'ivory'], [SECOND]: ['green'] }, variant: 'StackOfSix' }
+    )
+)
+
+// All 43 pieces in play, piled high: stacks of 5 on E1 (on the near edge, under its label) and
+// E4 (the centre), each with pieces on the three points behind it, where a tall stack reaches
+// over its neighbours; a stack of 4 on E7, under the top label.
+write(
+    'tall-stacks',
+    'Tall stacks',
+    position(
+        [
+            [0, 3, ['ivory', 'green', 'red', 'black', 'blue']],
+            [0, 2, ['red']],
+            [1, 2, ['green']],
+            [-1, 3, ['ivory']],
+            [0, 0, ['joker', 'red', 'green', 'ivory', 'black']],
+            [0, -1, ['blue']],
+            [1, -1, ['black', 'ivory', 'green', 'red']],
+            [-1, 0, ['green', 'blue', 'ivory']],
+            [0, -3, ['blue', 'red', 'joker', 'green']],
+            [2, 1, ['red', 'black', 'blue', 'ivory']],
+            [-2, 2, ['black', 'joker', 'green']],
+            [2, -2, ['ivory', 'blue']],
+            [-2, -1, ['green', 'red']],
+            [3, -3, ['black']],
+            [-3, 1, ['blue', 'black']],
+            [1, 1, ['blue']],
+            [-1, -2, ['red', 'ivory']],
+            [1, -3, ['black']]
+        ],
+        { claims: { [FIRST]: ['red'], [SECOND]: ['green'] } }
     )
 )

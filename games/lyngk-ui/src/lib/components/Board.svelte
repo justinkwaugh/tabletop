@@ -3,24 +3,19 @@
     import { POINTS } from '@tabletop/lyngk'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import {
-        boardOutline,
-        coordsKey,
-        PIECE_RADIUS,
-        pointCenter,
-        viewBox
-    } from '$lib/board/geometry.js'
-    import { TILT, topFaceY } from '$lib/board/pieceGeometry.js'
+    import { coordsKey, PIECE_RADIUS, VIEW } from '$lib/board/geometry.js'
+    import { topFaceY } from '$lib/board/pieceGeometry.js'
     import { PIECE_STYLES } from '$lib/board/pieceStyle.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
     import { boltPath } from '$lib/board/lightning.js'
     import { prefersReducedMotion } from 'svelte/motion'
     import StackShape from './StackShape.svelte'
+    import PieceDefs from './PieceDefs.svelte'
 
     const session = getGameSession()
 
-    const frame = viewBox()
-    const outline = boardOutline()
+    const frame = VIEW.frame()
+    const outline = VIEW.playAreaOutline()
 
     const AXES: AxialCoordinates[] = [
         { q: 0, r: 1 },
@@ -28,23 +23,32 @@
         { q: 1, r: -1 }
     ]
 
-    // Each line runs as far as consecutive points go.
+    // Each line runs as far as consecutive points go, and on a little past its last points, as
+    // on the printed board: a fraction of the step between points.
+    const WHISKER = 0.25
     const lines = AXES.flatMap((axis) =>
         POINTS.filter(
             (point) => !includesCoords(POINTS, addAxial(point, { q: -axis.q, r: -axis.r }))
         ).flatMap((start) => {
             let end = start
             while (includesCoords(POINTS, addAxial(end, axis))) end = addAxial(end, axis)
-            return sameCoordinates(start, end)
-                ? []
-                : [{ from: pointCenter(start), to: pointCenter(end) }]
+            if (sameCoordinates(start, end)) return []
+            const [from, to] = [VIEW.center(start), VIEW.center(end)]
+            const next = VIEW.center(addAxial(start, axis))
+            const step = { x: (next.x - from.x) * WHISKER, y: (next.y - from.y) * WHISKER }
+            return [
+                {
+                    from: { x: from.x - step.x, y: from.y - step.y },
+                    to: { x: to.x + step.x, y: to.y + step.y }
+                }
+            ]
         })
     )
 
     const animator = new BoardAnimator(session)
     // Back to front, so a nearer stack covers the one behind it.
     const stacks = $derived(
-        animator.stacks.toSorted((a, b) => pointCenter(a.coords).y - pointCenter(b.coords).y)
+        animator.stacks.toSorted((a, b) => VIEW.center(a.coords).y - VIEW.center(b.coords).y)
     )
 
     const radius = PIECE_RADIUS
@@ -63,17 +67,10 @@
         return undefined
     }
 
-    const marked = $derived(
-        stacks.flatMap((point) => {
-            const role = roleOf(point.coords)
-            return role ? [{ ...point, role }] : []
-        })
-    )
-
     function faceCenter(coords: AxialCoordinates) {
-        const center = pointCenter(coords)
+        const center = VIEW.center(coords)
         const height = session.gameState.board.stackAt(coords).length
-        return { x: center.x, y: center.y + topFaceY(height, radius) }
+        return { x: center.x, y: center.y + topFaceY(VIEW, height, radius) }
     }
 
     // Each bolt steps through seeded shapes in place, so it flickers but never vanishes. Six
@@ -89,6 +86,10 @@
             )
         }))
     )
+
+    function stackId({ q, r }: AxialCoordinates): string {
+        return `lyngk-stack-${q}_${r}`
+    }
 
     function isClickable(coords: AxialCoordinates): boolean {
         return includesCoords(session.landings, coords) || includesCoords(session.movable, coords)
@@ -124,6 +125,7 @@
     aria-label="LYNGK board"
     {@attach animator.attach}
 >
+    <defs><PieceDefs prefix="lyngk-board" /></defs>
     <polygon points={outline} class="play-area"></polygon>
 
     <g class="lines">
@@ -132,14 +134,18 @@
         {/each}
     </g>
 
-    {#each session.notation.labels as label (label.key)}
-        <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
-    {/each}
+    {#if session.showCoordinates}
+        {#each session.notation.labels as label (label.key)}
+            <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
+        {/each}
+    {/if}
 
     {#each stacks as point (coordsKey(point.coords))}
-        {@const center = pointCenter(point.coords)}
+        {@const center = VIEW.center(point.coords)}
         {@const clickable = isClickable(point.coords)}
+        {@const key = coordsKey(point.coords)}
         <g
+            id={stackId(point.coords)}
             transform="translate({center.x} {center.y})"
             class="stack"
             class:clickable
@@ -151,77 +157,102 @@
             onkeydown={(event) =>
                 clickable && onKey(event, () => session.choosePoint(point.coords))}
         >
-            <g {@attach animator.stack(coordsKey(point.coords))}>
-                <StackShape stack={point.stack} {radius} seedKey={coordsKey(point.coords)} />
+            <g {@attach animator.stack(key, 'whole')}>
+                <StackShape
+                    stack={point.stack}
+                    ids={point.ids}
+                    {radius}
+                    prefix="lyngk-board"
+                    seedKey={key}
+                    parts={{
+                        body: animator.stack(key, 'body'),
+                        shadow: animator.stack(key, 'shadow')
+                    }}
+                />
+                <!-- Marks sit on the top face, in front of the stacks behind and behind the ones in
+                     front. They fade with the move, and leave with the stack when it lifts off. -->
+                {#key session.gameState}
+                    {@const role = roleOf(point.coords)}
+                    {@const faceY = topFaceY(VIEW, point.stack.length, radius)}
+                    {#if role}
+                        <g class="marks" {@attach animator.mark()}>
+                            {#if role !== 'link' && !(role === 'movable' && session.chosenFrom)}
+                                <g class="ring role-{role}">
+                                    {#each ['under', 'over'] as layer (layer)}
+                                        <ellipse
+                                            cy={faceY}
+                                            rx={radius * RING_SCALE}
+                                            ry={radius * RING_SCALE * VIEW.tilt}
+                                            class={layer}
+                                        ></ellipse>
+                                    {/each}
+                                </g>
+                            {/if}
+                            {#if role === 'landing' || role === 'link'}
+                                <ellipse
+                                    cy={faceY}
+                                    rx={radius * 0.2}
+                                    ry={radius * 0.2 * VIEW.tilt}
+                                    class="spot role-{role}"
+                                ></ellipse>
+                            {/if}
+                        </g>
+                    {/if}
+                {/key}
             </g>
         </g>
     {/each}
 
+    <!-- Lightning runs between top faces, above every stack. -->
     {#key session.gameState}
-        <g class="marks" {@attach animator.marks()}>
-            {#each marked as point (coordsKey(point.coords))}
-                {@const center = pointCenter(point.coords)}
-                {@const faceY = center.y + topFaceY(point.stack.length, radius)}
-                {#if point.role !== 'link' && !(point.role === 'movable' && session.chosenFrom)}
-                    <g class="ring role-{point.role}">
-                        {#each ['under', 'over'] as layer (layer)}
-                            <ellipse
-                                cx={center.x}
-                                cy={faceY}
-                                rx={radius * RING_SCALE}
-                                ry={radius * RING_SCALE * TILT}
-                                class={layer}
-                            ></ellipse>
-                        {/each}
-                    </g>
-                {/if}
-            {/each}
-            {#if bolts.length > 0}
-                <g class="bolts" aria-hidden="true">
-                    {#each bolts as bolt (bolt.key)}
-                        {#each ['glow', 'body', 'core'] as layer (layer)}
-                            <path d={bolt.shapes[0]} class="bolt {layer}">
-                                {#if !prefersReducedMotion.current}
-                                    <animate
-                                        attributeName="d"
-                                        values={bolt.shapes.join(';')}
-                                        dur="{BOLT_SHAPE_SECONDS * bolt.shapes.length}s"
-                                        calcMode="discrete"
-                                        repeatCount="indefinite"
-                                    ></animate>
-                                {/if}
-                            </path>
-                        {/each}
+        {#if bolts.length > 0}
+            <g class="bolts marks" aria-hidden="true" {@attach animator.mark()}>
+                {#each bolts as bolt (bolt.key)}
+                    {#each ['glow', 'body', 'core'] as layer (layer)}
+                        <path d={bolt.shapes[0]} class="bolt {layer}">
+                            {#if !prefersReducedMotion.current}
+                                <animate
+                                    attributeName="d"
+                                    values={bolt.shapes.join(';')}
+                                    dur="{BOLT_SHAPE_SECONDS * bolt.shapes.length}s"
+                                    calcMode="discrete"
+                                    repeatCount="indefinite"
+                                ></animate>
+                            {/if}
+                        </path>
                     {/each}
-                </g>
-            {/if}
-            {#each marked as point (coordsKey(point.coords))}
-                {@const center = pointCenter(point.coords)}
-                {@const faceY = center.y + topFaceY(point.stack.length, radius)}
-                {#if point.role === 'landing' || point.role === 'link'}
-                    <ellipse
-                        cx={center.x}
-                        cy={faceY}
-                        rx={radius * 0.2}
-                        ry={radius * 0.2 * TILT}
-                        class="spot role-{point.role}"
-                    ></ellipse>
-                {/if}
-            {/each}
-        </g>
+                {/each}
+            </g>
+        {/if}
     {/key}
 
     {#if animator.flier}
-        {@const center = pointCenter(animator.flier.from)}
+        {@const center = VIEW.center(animator.flier.from)}
         <g transform="translate({center.x} {center.y})" class="flier">
-            <g {@attach animator.flierNode()}>
+            <g {@attach animator.flierNode('whole')}>
                 <StackShape
+                    parts={{
+                        body: animator.flierNode('body'),
+                        shadow: animator.flierNode('shadow')
+                    }}
                     stack={animator.flier.stack}
+                    ids={animator.flier.ids}
                     {radius}
+                    prefix="lyngk-board"
                     seedKey={coordsKey(animator.flier.landsOn)}
                     baseLevel={animator.flier.baseLevel}
                 />
             </g>
+        </g>
+        <g class="occluders" aria-hidden="true">
+            {#each stacks as point (coordsKey(point.coords))}
+                {#if !animator.flier.passes.includes(coordsKey(point.coords))}
+                    <use
+                        href="#{stackId(point.coords)}"
+                        {@attach animator.occluder(VIEW.center(point.coords).y)}
+                    ></use>
+                {/if}
+            {/each}
         </g>
     {/if}
 </svg>
@@ -261,6 +292,12 @@
 
     .stack.clickable {
         cursor: pointer;
+    }
+
+    /* A stack with nothing to choose lets taps through to the one behind it, which a tall
+       stack in front may half cover. */
+    .stack:not(.clickable) {
+        pointer-events: none;
     }
 
     .marks {
@@ -347,7 +384,8 @@
         fill: var(--lyngk-link-mark);
     }
 
-    .flier {
+    .flier,
+    .occluders {
         pointer-events: none;
     }
 </style>

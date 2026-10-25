@@ -58,6 +58,7 @@ export class LyngkGameInitializer
         const pieces = shuffledPieces(prng.random)
         board.points.forEach((point, index) => {
             point.stack = [pieces[index]]
+            point.ids = [index]
         })
 
         const players = turnManager.turnOrder.map(

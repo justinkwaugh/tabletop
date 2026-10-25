@@ -45,16 +45,16 @@
             </span>
         </button>
     {:else}
-        <div class="p-3 text-center italic text-(--lyngk-ink-quiet)">No moves yet</div>
+        <div class="p-3 text-center italic text-(--lyngk-card-quiet)">No moves yet</div>
     {/each}
 </div>
 
 <style>
-    /* Light like the player panels, so black pieces show as well as the rest. */
+    /* White like the player cards, so black pieces show as well as the rest. */
     .history {
-        background: #c9d6e8;
-        color: #0d1626;
-        box-shadow: inset 0 0 0 1px #8fa5c4;
+        background: var(--lyngk-card);
+        color: var(--lyngk-card-ink);
+        box-shadow: 0 2px 6px rgb(60 45 25 / 0.25);
     }
 
     .entry {
@@ -66,7 +66,7 @@
     }
 
     .entry:hover {
-        background: rgb(13 22 38 / 0.07);
+        background: rgb(60 45 25 / 0.07);
     }
 
     .entry.replaying {
@@ -81,7 +81,7 @@
         font-size: 11px;
         letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: #45577a;
+        color: var(--lyngk-card-quiet);
     }
 
     .divider::before,
@@ -89,6 +89,6 @@
         content: '';
         flex: 1;
         height: 1px;
-        background: #8fa5c4;
+        background: var(--lyngk-card-rule);
     }
 </style>

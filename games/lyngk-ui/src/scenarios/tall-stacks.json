@@ -1,0 +1,409 @@
+{
+    "game": {
+        "id": "scenario-tall-stacks",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "lyngk",
+        "deleted": false,
+        "name": "Tall stacks",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Alice",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Bob",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "variant": "Standard"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 1466211613,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-10-25T03:01:55.007Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-10-25T03:01:55.007Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "3Om0z3gB_IBSR0hPvMOhv",
+        "gameId": "scenario-tall-stacks",
+        "seed": 1466211613,
+        "prng": {
+            "seed": 1466211613,
+            "invocations": 43
+        },
+        "protectedPrng": {
+            "seed": 665905389,
+            "invocations": 0
+        },
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "purple",
+                "claimed": ["red"],
+                "scored": []
+            },
+            {
+                "playerId": "player-2",
+                "color": "orange",
+                "claimed": ["green"],
+                "scored": []
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            }
+        },
+        "variant": "Standard",
+        "board": {
+            "points": [
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "stack": ["joker", "red", "green", "ivory", "black"],
+                    "ids": [8, 9, 10, 11, 12]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "stack": ["black", "ivory", "green", "red"],
+                    "ids": [14, 15, 16, 17]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "stack": ["green", "blue", "ivory"],
+                    "ids": [18, 19, 20]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "stack": ["blue"],
+                    "ids": [13]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -2
+                    },
+                    "stack": ["ivory", "blue"],
+                    "ids": [32, 33]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 1
+                    },
+                    "stack": ["blue"],
+                    "ids": [39]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 2
+                    },
+                    "stack": ["red"],
+                    "ids": [5]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 2
+                    },
+                    "stack": ["black", "joker", "green"],
+                    "ids": [29, 30, 31]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -3
+                    },
+                    "stack": ["black"],
+                    "ids": [36]
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 1
+                    },
+                    "stack": ["red", "black", "blue", "ivory"],
+                    "ids": [25, 26, 27, 28]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 2
+                    },
+                    "stack": ["green"],
+                    "ids": [6]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 3
+                    },
+                    "stack": ["ivory", "green", "red", "black", "blue"],
+                    "ids": [0, 1, 2, 3, 4]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 3
+                    },
+                    "stack": ["ivory"],
+                    "ids": [7]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 1
+                    },
+                    "stack": ["blue", "black"],
+                    "ids": [37, 38]
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -1
+                    },
+                    "stack": ["green", "red"],
+                    "ids": [34, 35]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -2
+                    },
+                    "stack": ["red", "ivory"],
+                    "ids": [40, 41]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -3
+                    },
+                    "stack": ["blue", "red", "joker", "green"],
+                    "ids": [21, 22, 23, 24]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -3
+                    },
+                    "stack": ["black"],
+                    "ids": [42]
+                },
+                {
+                    "coords": {
+                        "q": 4,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 4
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -4,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -4
+                    },
+                    "stack": []
+                }
+            ]
+        },
+        "claimedThisTurn": false
+    },
+    "actions": []
+}
