@@ -53,7 +53,7 @@
     </div>
 {/snippet}
 
-<div class="zertz-table zertz-water" class:rippled={gameSession.rippleWater}>
+<div class="zertz-table zertz-water">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -99,12 +99,6 @@
                 class="relative isolate grow-0 overflow-hidden pt-2"
                 style="flex:1; min-height: 40dvh;"
             >
-                {#if gameSession.rippleWater}
-                    <div
-                        class="zertz-ripples pointer-events-none absolute inset-0 -z-10"
-                        aria-hidden="true"
-                    ></div>
-                {/if}
                 <ScalingWrapper
                     justify="center"
                     controls="bottom-left"
@@ -117,26 +111,18 @@
                     <Board />
                     {#snippet overlay()}
                         <div class="pointer-events-auto absolute top-1 right-3 z-10">
-                            <div class="flex flex-col items-end gap-1.5">
-                                <div class="flex gap-1.5">
-                                    <OverlayToggle
-                                        glyph="A1"
-                                        label="Coordinates"
-                                        pressed={gameSession.showCoordinates}
-                                        onToggle={() => gameSession.toggleCoordinates()}
-                                    />
-                                    <OverlayToggle
-                                        glyph="∠"
-                                        label="Tilt"
-                                        pressed={gameSession.tiltedBoard}
-                                        onToggle={() => gameSession.toggleTiltedBoard()}
-                                    />
-                                </div>
+                            <div class="flex gap-1.5">
                                 <OverlayToggle
-                                    glyph="≈"
-                                    label="Ripples"
-                                    pressed={gameSession.rippleWater}
-                                    onToggle={() => gameSession.toggleRippleWater()}
+                                    glyph="A1"
+                                    label="Coordinates"
+                                    pressed={gameSession.showCoordinates}
+                                    onToggle={() => gameSession.toggleCoordinates()}
+                                />
+                                <OverlayToggle
+                                    glyph="∠"
+                                    label="Tilt"
+                                    pressed={gameSession.tiltedBoard}
+                                    onToggle={() => gameSession.toggleTiltedBoard()}
                                 />
                             </div>
                         </div>
@@ -146,15 +132,7 @@
                         <div {@attach watchExpansion}>
                             {#if expanded}
                                 <!-- The dialog paints its own dim backdrop, so full screen needs the water redrawn behind the board. -->
-                                <div
-                                    class="fullscreen-water zertz-water"
-                                    class:rippled={gameSession.rippleWater}
-                                    aria-hidden="true"
-                                >
-                                    {#if gameSession.rippleWater}
-                                        <div class="zertz-ripples h-full w-full"></div>
-                                    {/if}
-                                </div>
+                                <div class="fullscreen-water zertz-water" aria-hidden="true"></div>
                                 <div class="fullscreen-controls">
                                     {@render turnControls()}
                                 </div>

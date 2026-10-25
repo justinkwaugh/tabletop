@@ -40,8 +40,6 @@
 }
 
 :root {
-    --zertz-water: #1b7fb0;
-    --zertz-water-deep: #0a3554;
     --zertz-panel: rgb(8 42 68 / 0.88);
     --zertz-panel-edge: #2f74a0;
     --zertz-tray-top: #15507a;
@@ -55,25 +53,4 @@
 
 .zertz-water {
     background-color: #0f527c;
-}
-
-.zertz-water.rippled {
-    background-color: var(--zertz-water-deep);
-    background-image: radial-gradient(
-        ellipse at 50% 30%,
-        var(--zertz-water) 0%,
-        #125f8c 45%,
-        var(--zertz-water-deep) 100%
-    );
-    background-attachment: fixed;
-}
-
-/* Ripple texture printed by scripts/build-ripples.mjs. */
-.zertz-ripples {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2400' height='2400' viewBox='0 0 2400 2400'%3E%3Cfilter id='w' x='-10%' y='-10%' width='120%' height='120%'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.006' numOctaves='2' seed='3'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='30'/%3E%3CfeGaussianBlur stdDeviation='11'/%3E%3C/filter%3E%3Cg fill='none' filter='url(%23w)'%3E%3Ccircle cx='1200' cy='1200' r='70.0' stroke='%23ffffff' stroke-opacity='0.055' stroke-width='25.6'/%3E%3Ccircle cx='1200' cy='1200' r='110.0' stroke='%23021624' stroke-opacity='0.064' stroke-width='25.6'/%3E%3Ccircle cx='1200' cy='1200' r='150.0' stroke='%23ffffff' stroke-opacity='0.050' stroke-width='28.2'/%3E%3Ccircle cx='1200' cy='1200' r='194.0' stroke='%23021624' stroke-opacity='0.058' stroke-width='28.2'/%3E%3Ccircle cx='1200' cy='1200' r='238.0' stroke='%23ffffff' stroke-opacity='0.044' stroke-width='31.0'/%3E%3Ccircle cx='1200' cy='1200' r='286.4' stroke='%23021624' stroke-opacity='0.051' stroke-width='31.0'/%3E%3Ccircle cx='1200' cy='1200' r='334.8' stroke='%23ffffff' stroke-opacity='0.037' stroke-width='34.1'/%3E%3Ccircle cx='1200' cy='1200' r='388.0' stroke='%23021624' stroke-opacity='0.044' stroke-width='34.1'/%3E%3Ccircle cx='1200' cy='1200' r='441.3' stroke='%23ffffff' stroke-opacity='0.031' stroke-width='37.5'/%3E%3Ccircle cx='1200' cy='1200' r='499.8' stroke='%23021624' stroke-opacity='0.036' stroke-width='37.5'/%3E%3Ccircle cx='1200' cy='1200' r='558.4' stroke='%23ffffff' stroke-opacity='0.024' stroke-width='41.2'/%3E%3Ccircle cx='1200' cy='1200' r='622.8' stroke='%23021624' stroke-opacity='0.028' stroke-width='41.2'/%3E%3Ccircle cx='1200' cy='1200' r='687.2' stroke='%23ffffff' stroke-opacity='0.017' stroke-width='45.4'/%3E%3Ccircle cx='1200' cy='1200' r='758.1' stroke='%23021624' stroke-opacity='0.020' stroke-width='45.4'/%3E%3Ccircle cx='1200' cy='1200' r='829.0' stroke='%23ffffff' stroke-opacity='0.010' stroke-width='49.9'/%3E%3Ccircle cx='1200' cy='1200' r='906.9' stroke='%23021624' stroke-opacity='0.011' stroke-width='49.9'/%3E%3Ccircle cx='1200' cy='1200' r='984.9' stroke='%23ffffff' stroke-opacity='0.003' stroke-width='54.9'/%3E%3Ccircle cx='1200' cy='1200' r='1070.6' stroke='%23021624' stroke-opacity='0.004' stroke-width='54.9'/%3E%3C/g%3E%3C/svg%3E");
-    /* The board rests below the centre by half the room kept for the coordinates toggle. */
-    background-position: center calc(50% + 20px);
-    background-repeat: no-repeat;
-    /* Fade the swells out before the layer's edges so they meet the table without a seam. */
-    mask-image: radial-gradient(farthest-side at 50% calc(50% + 20px), #000 45%, transparent 100%);
 }

@@ -32,7 +32,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         this.createPreferences(ZertzPreferenceDefinition)
 
     showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
-    rippleWater: boolean = $derived(this.preferences.values.rippleWater)
     tiltedBoard: boolean = $derived(this.preferences.values.tiltedBoard)
     view: BoardView = $derived(boardView(this.tiltedBoard))
 
@@ -120,10 +119,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
 
     toggleCoordinates() {
         this.preferences.set({ showCoordinates: !this.showCoordinates })
-    }
-
-    toggleRippleWater() {
-        this.preferences.set({ rippleWater: !this.rippleWater })
     }
 
     toggleTiltedBoard() {
