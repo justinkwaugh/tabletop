@@ -147,7 +147,7 @@ describe('Choosing a ring to move', () => {
 })
 
 describe('Undo of a move', () => {
-    it('takes the move back, with the ring unchosen on its point', async () => {
+    it('takes the move back with its ring chosen again, the marker still in it', async () => {
         const session = await aliceSession()
         await session.choosePoint(F3)
         await settled(session.choosePoint(G3))
@@ -158,8 +158,35 @@ describe('Undo of a move', () => {
         await settled(session.undo())
         expect(session.gameState.actionCount).toBe(0)
         expect(session.gameState.board.ringsOf(ALICE)).toContainEqual(F3)
-        expect(session.selection).toEqual({})
-        expect(session.movable).toContainEqual(F3)
+        expect(session.chosenFrom).toEqual(F3)
+        expect(session.restaged).toBe(true)
+        expect(session.hasManualSelection()).toBe(true)
+    })
+
+    it('then puts the ring down, lifting its marker out, without undoing any action', async () => {
+        const session = await aliceSession()
+        await session.choosePoint(F3)
+        await settled(session.choosePoint(G3))
+        await settled(session.undo())
+
+        await settled(session.undo())
+        expect(session.chosenFrom).toBeUndefined()
+        expect(session.lifting).toEqual(F3)
+        expect(session.gameState.actionCount).toBe(0)
+        expect(session.hasManualSelection()).toBe(false)
+    })
+
+    it('drops the marker in afresh when the ring is chosen again by hand', async () => {
+        const session = await aliceSession()
+        await session.choosePoint(F3)
+        await settled(session.choosePoint(G3))
+        await settled(session.undo())
+        await settled(session.undo())
+
+        await session.choosePoint(F3)
+        expect(session.chosenFrom).toEqual(F3)
+        expect(session.restaged).toBe(false)
+        expect(session.lifting).toBeUndefined()
     })
 })
 

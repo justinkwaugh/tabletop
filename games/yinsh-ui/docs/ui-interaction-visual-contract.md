@@ -34,7 +34,7 @@
 ## 4. Shared State Contracts
 
 - **Animation scope**: the board animates only `own-action`, `other-action`, `undo`, `history` and `exploration` transitions; page loads, server syncs and view switches show the board at rest. Without an action (undo, state-only history) the animator reads the change from the two boards (`board/boardDiff.ts`): a ring that left one point and arrived in line glides, markers that changed face turn over, pieces that left fade and pieces that arrived fade in, all within 0.18 s.
-- **Staged selection** (`selection`: `from` while moving, `anchor` while taking a row): manual choices only. Undo lets go of the chosen ring or row end, then undoes the last committed action. Cleared in `beforeNewState` for every presented transition.
+- **Staged selection** (`selection`: `from` while moving, `anchor` while taking a row): manual choices only. Undo lets go of the chosen ring or row end, then undoes the last committed action. Set in `beforeNewState` for every presented transition: cleared, except that Undo of a ring move (noted in `willUndo`) chooses its ring again, with its marker still in it (`restaged`, so the marker does not drop in again). Letting go of a chosen ring, by Undo, choosing it again or choosing another, lifts its marker back out (`lifting`, `liftOut` in 0.18 s).
 - **Target lists**: derived from the displayed state; empty when the viewer cannot act, including in History View.
 
 ## 5. Forbidden Couplings
@@ -53,7 +53,7 @@
 - Choose a ring: a preview marker inside it, cyan spots on every destination; tap it again to put it back.
 - Choose the rows scenario: move F3 to F6, tap C4, then G4; C4–G4 goes, one ring comes off.
 - Rows for both scenario: Alice takes her row and ring, then Bob his, before Bob moves.
-- Undo after a move: the ring glides back, markers turn back, the left marker fades; every piece group has opacity 1 afterwards.
+- Undo after a move: the ring flies back around the marker it left, which stays standing, markers turn back, and the ring is chosen again with the marker in it; every piece group has opacity 1 afterwards. Undo again: the marker lifts out of the ring and the ring is no longer chosen.
 - Refresh: two screenshots 0.1 s and 1 s after opening are identical.
 - History View: no marks or targets.
 

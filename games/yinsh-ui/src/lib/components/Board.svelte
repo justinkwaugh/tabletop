@@ -13,7 +13,7 @@
         RING_OUTER
     } from '$lib/board/pieceGeometry.js'
     import { BoardAnimator, pieceId, type DrawnPiece } from '$lib/animators/boardAnimator.svelte.js'
-    import { dropIn } from '$lib/board/dropIn.js'
+    import { dropIn, liftOut } from '$lib/board/dropIn.js'
     import { ellipsePath, markerDrawing, ringDrawing } from '$lib/board/pieceShape.js'
     import RingShape from './RingShape.svelte'
     import MarkerShape from './MarkerShape.svelte'
@@ -179,11 +179,25 @@
         {#if piece.kind === 'ring' && session.chosenFrom && sameCoordinates(session.chosenFrom, piece.coords)}
             <!-- Rule E2: the marker goes into the chosen ring before it moves. A staged preview, so
                  a local transition; the animator owns the motion once the move is committed. -->
+            <!-- A ring Undo put back already holds its marker, so it does not drop in again. -->
             {#key coordsKey(session.chosenFrom)}
-                <g class="drop" in:dropIn|global>
+                <g class="drop" in:dropIn|global={{ instant: session.restaged }}>
                     {@render marker(myTone, coordsKey(piece.coords))}
                 </g>
                 <!-- The marker sits down in the hole, behind the ring's near half. -->
+                <RingShape
+                    tone={session.toneOfPlayer(piece.playerId)}
+                    seedKey={piece.seed}
+                    prefix={PREFIX}
+                    near
+                />
+            {/key}
+        {:else if piece.kind === 'ring' && session.lifting && sameCoordinates(session.lifting, piece.coords)}
+            <!-- The ring was put down: its staged marker lifts back out of the hole. -->
+            {#key session.lifting}
+                <g class="drop" in:liftOut|global onintroend={() => session.liftedOut()}>
+                    {@render marker(myTone, coordsKey(piece.coords))}
+                </g>
                 <RingShape
                     tone={session.toneOfPlayer(piece.playerId)}
                     seedKey={piece.seed}

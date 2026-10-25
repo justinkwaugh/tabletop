@@ -1,7 +1,12 @@
-import { GameSession, type TitlePreferences } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import {
+    GameSession,
+    type PresentedTransition,
+    type TitlePreferences
+} from '@tabletop/frontend-components'
+import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
+    isMoveRing,
     MoveRing,
     PlaceRing,
     POINTS,
@@ -29,6 +34,12 @@ export function includesCoords(list: readonly AxialCoordinates[], coords: AxialC
 
 export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshGameState> {
     selection: YinshSelection = $state({})
+    // The move being taken back: Undo puts its ring back chosen, the marker still in it.
+    private undoingMove: MoveRing | undefined
+    // Whether the chosen ring is one Undo put back, so its marker is already in it.
+    restaged: boolean = $state(false)
+    // A ring just put down, whose staged marker is lifting back out of it.
+    lifting: AxialCoordinates | undefined = $state()
 
     readonly preferences: TitlePreferences<typeof YinshPreferences> =
         this.createPreferences(YinshPreferenceDefinition)
@@ -101,7 +112,9 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
 
     override async undo() {
         if (this.hasManualSelection()) {
+            const chosen = this.chosenFrom
             this.selection = popYinshSelection(this.selection)
+            if (chosen && !this.chosenFrom) this.lifting = chosen
             return
         }
         await super.undo()
@@ -111,8 +124,25 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
         this.selection = {}
     }
 
-    override beforeNewState(): void {
-        this.resetAction()
+    override willUndo(action: GameAction): void {
+        this.undoingMove = isMoveRing(action) ? action : undefined
+    }
+
+    override beforeNewState({ kind }: PresentedTransition): void {
+        const move = kind === 'undo' ? this.undoingMove : undefined
+        this.selection = move ? setYinshSelection({}, 'from', coordsKey(move.from)) : {}
+        this.restaged = move !== undefined
+        this.lifting = undefined
+        if (kind !== 'undo') this.undoingMove = undefined
+    }
+
+    // Whether an Undo under way leaves the marker at `coords` in its ring, to be chosen again.
+    keepsMarker(coords: AxialCoordinates): boolean {
+        return this.undoingMove !== undefined && sameCoordinates(this.undoingMove.from, coords)
+    }
+
+    liftedOut() {
+        this.lifting = undefined
     }
 
     isClickable(coords: AxialCoordinates): boolean {
@@ -136,12 +166,16 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
                 this.createPlayerAction(MoveRing, { from: this.chosenFrom, to: coords })
             )
         } else if (includesCoords(this.movable, coords)) {
-            const same = this.chosenFrom !== undefined && sameCoordinates(this.chosenFrom, coords)
+            const chosen = this.chosenFrom
+            const same = chosen !== undefined && sameCoordinates(chosen, coords)
             this.selection = setYinshSelection(
                 this.selection,
                 'from',
                 same ? undefined : coordsKey(coords)
             )
+            this.restaged = false
+            if (chosen) this.lifting = chosen
+            else if (this.lifting && sameCoordinates(this.lifting, coords)) this.lifting = undefined
         } else if (includesCoords(this.rowOptions.markers, coords)) {
             await this.chooseMarker(coords)
         } else if (includesCoords(this.removableRings, coords)) {

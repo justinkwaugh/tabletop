@@ -408,7 +408,9 @@ export class BoardAnimator {
                 (index % ROW_LENGTH) * QUICK_STAGGER
             )
         })
-        diff.markersGone.forEach((marker, index) => {
+        // A move taken back leaves its marker standing: the ring lands back around it, chosen.
+        const gone = diff.markersGone.filter((marker) => !this.session.keepsMarker(marker.coords))
+        gone.forEach((marker, index) => {
             this.liftAway(
                 pieceKey('marker', marker.coords),
                 timeline,
