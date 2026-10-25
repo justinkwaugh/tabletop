@@ -1,13 +1,10 @@
 <script lang="ts">
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { MachineState, PhaseName } from '@tabletop/kaivai'
+    import { PhaseName } from '@tabletop/kaivai'
     import { flip } from 'svelte/animate'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     let gameSession = getGameSession() as KaivaiGameSession
-    const isGameOver = $derived(
-        gameSession.gameState.result !== undefined ||
-            gameSession.gameState.machineState === MachineState.EndOfGame
-    )
+    const isGameOver = $derived(gameSession.gameState.result !== undefined)
     const phaseName = $derived(
         gameSession.gameCall ? undefined : gameSession.gameState.phases.currentPhase?.name
     )

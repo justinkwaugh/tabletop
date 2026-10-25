@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
     GameCallKind,
+    GameEngine,
     GameResult,
     GameStatus,
     PlayerVoteKind,
@@ -333,6 +334,22 @@ describe('Call votes', () => {
         await host.vote(true, 'p2')
         await expect(host.undo('s1', 'p1')).rejects.toBeInstanceOf(DisallowedUndoError)
         await expect(host.preview(0, 'p1')).rejects.toBeInstanceOf(DisallowedPlayerVoteError)
+    })
+
+    it('closes an open call when the game ends by its rules', async () => {
+        const host = createCallHost()
+        await host.call([], 'p1')
+        const execute = GameEngine.prototype.executeCanonicalAction
+        vi.spyOn(GameEngine.prototype, 'executeCanonicalAction').mockImplementationOnce(function (
+            this: GameEngine,
+            input
+        ) {
+            const executed = execute.call(this, input)
+            executed.updatedState.result = GameResult.Abandoned
+            return executed
+        })
+        await host.apply(host.step('s1', 'p1'))
+        expect(host.game.vote).toBeUndefined()
     })
 
     it('retries the call when another action lands at the same moment', async () => {

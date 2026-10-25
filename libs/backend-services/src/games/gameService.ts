@@ -1255,6 +1255,9 @@ export class GameService {
                     if (lastPlayerAction) {
                         gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
                     }
+                    if (newState.result && existingGame.vote?.kind === PlayerVoteKind.Call) {
+                        gameUpdates.vote = undefined
+                    }
                     if (
                         !existingState.result &&
                         newState.result &&

@@ -3,6 +3,7 @@
     import { toast } from 'svelte-sonner'
     import {
         assertExists,
+        findPlayerForUserId,
         requiredCallApprovals,
         votingPlayers,
         type GameState,
@@ -26,13 +27,10 @@
     const colors = $derived(session.bridge.colors)
 
     const game = $derived(gameService.cachedGame(session.primaryGame.id) ?? session.primaryGame)
-    const me = $derived(
-        game.players.find(
-            (player) =>
-                player.userId !== undefined &&
-                player.userId === authorizationService.getSessionUser()?.id
-        )
-    )
+    const me = $derived.by(() => {
+        const userId = authorizationService.getSessionUser()?.id
+        return userId === undefined ? undefined : findPlayerForUserId(game, userId)
+    })
     const opponent = $derived(game.players.find((player) => player.id !== me?.id))
 
     let winnerIds: string[] = $state([])
