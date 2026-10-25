@@ -29,7 +29,7 @@ export type TransitionRequest = { kind: TransitionKind; intent?: TransitionInten
  */
 export type PresentedTransition = {
     kind: TransitionKind
-    actions: readonly GameAction[]
+    actions: GameAction[]
     intent: TransitionIntent
 }
 
@@ -57,7 +57,8 @@ export interface PresentableContext<T extends GameState, U extends HydratedGameS
 }
 
 export interface DisplayedStateOutput<U> {
-    publish(state: U, transition: PresentedTransition): void
+    /** `actions` are the ones that led to `state`, read from the same context at the same time. */
+    publish(state: U, transition: PresentedTransition, actions: GameAction[]): void
     setPending(pending: boolean): void
 }
 
@@ -72,9 +73,14 @@ export interface TransitionPresenterDependencies<
     onError(error: unknown): void
 }
 
-type PendingChange<T extends GameState, U extends HydratedGameState<T> & T> = {
+// A context's state and the actions that led to it, read at the same moment
+type Observation<T extends GameState, U extends HydratedGameState<T> & T> = {
     context: PresentableContext<T, U>
     state: T
+    actions: GameAction[]
+}
+
+type PendingChange<T extends GameState, U extends HydratedGameState<T> & T> = Observation<T, U> & {
     kind: TransitionKind
     intent: TransitionIntent
 }
@@ -121,8 +127,7 @@ export class TransitionPresenter<
     }
 
     presentInitial(): void {
-        const { context, state } = this.observe()
-        this.queue(context, state, { kind: 'initial' })
+        this.queue(this.observe(), { kind: 'initial' })
     }
 
     present(request: TransitionRequest, write: () => void): void {
@@ -132,7 +137,7 @@ export class TransitionPresenter<
         } finally {
             const after = this.observe()
             if (after.context !== before.context || after.state !== before.state) {
-                this.queue(after.context, after.state, request)
+                this.queue(after, request)
             }
         }
     }
@@ -141,9 +146,9 @@ export class TransitionPresenter<
         try {
             write()
         } finally {
-            const { context, state } = this.observe()
+            const { context, state, actions } = this.observe()
             this.pending = undefined
-            this.show(context, context.runtime.hydrator.hydrateState(state), {
+            this.show(context, context.runtime.hydrator.hydrateState(state), actions, {
                 kind,
                 actions: [],
                 intent: 'silent'
@@ -156,17 +161,19 @@ export class TransitionPresenter<
         await new Promise<void>((resolve) => this.waiters.push(resolve))
     }
 
-    private observe() {
+    private observe(): Observation<T, U> {
         const context = this.deps.source()
-        return { context, state: context.state }
+        // A copy, because a context appends to its actions in place before replacing them
+        return { context, state: context.state, actions: [...context.actions] }
     }
 
-    private queue(context: PresentableContext<T, U>, state: T, request: TransitionRequest) {
+    private queue({ context, state, actions }: Observation<T, U>, request: TransitionRequest) {
         const intent = request.intent ?? DEFAULT_INTENT[request.kind]
         const earlier = this.pending
         this.pending = {
             context,
             state,
+            actions,
             kind: request.kind,
             intent: earlier ? this.quietest(earlier.intent, intent) : intent
         }
@@ -180,7 +187,7 @@ export class TransitionPresenter<
     private async drain() {
         try {
             while (this.pending) {
-                const { context, state, kind, intent } = this.pending
+                const { context, state, actions, kind, intent } = this.pending
                 this.pending = undefined
                 const from = this.displayed
                 if (
@@ -194,6 +201,7 @@ export class TransitionPresenter<
                     context,
                     from,
                     context.runtime.hydrator.hydrateState(state),
+                    actions,
                     kind,
                     intent
                 )
@@ -211,13 +219,16 @@ export class TransitionPresenter<
         context: PresentableContext<T, U>,
         from: U | undefined,
         to: U,
+        presentedActions: GameAction[],
         kind: TransitionKind,
         intent: TransitionIntent
     ) {
         this.incomingState = to
         try {
             const actions = await this.animate(context, from, to, kind, intent)
-            if (this.displayed === from) this.show(context, to, { kind, actions, intent })
+            if (this.displayed === from) {
+                this.show(context, to, presentedActions, { kind, actions, intent })
+            }
         } catch (error) {
             this.deps.onError(error)
         } finally {
@@ -274,8 +285,13 @@ export class TransitionPresenter<
         animationContext.runAfterAnimations()
     }
 
-    private show(context: PresentableContext<T, U>, state: U, transition: PresentedTransition) {
-        this.deps.output.publish(state, transition)
+    private show(
+        context: PresentableContext<T, U>,
+        state: U,
+        actions: GameAction[],
+        transition: PresentedTransition
+    ) {
+        this.deps.output.publish(state, transition, actions)
         this.displayed = state
         this.displayedContext = context
     }

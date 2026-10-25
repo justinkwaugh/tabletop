@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createAction, GameEngine, type GameAction } from '@tabletop/common'
+import { assertExists, createAction, GameEngine, type GameAction } from '@tabletop/common'
 import {
     createPrivateHandGame,
     runtime,
@@ -55,13 +55,19 @@ function fixture() {
     const animations = new HeldAnimations()
     const published: HydratedPrivateHandState[] = []
     const transitions: PresentedTransition[] = []
+    const publishedActions: GameAction[][] = []
     const pendingLog: boolean[] = []
     const errors: unknown[] = []
     const steps: TransitionStep<HydratedPrivateHandState, AnimationTimeline>[] = []
     const output = {
-        publish: (state: HydratedPrivateHandState, transition: PresentedTransition) => {
+        publish: (
+            state: HydratedPrivateHandState,
+            transition: PresentedTransition,
+            actions: GameAction[]
+        ) => {
             published.push(state)
             transitions.push(transition)
+            publishedActions.push(actions)
         },
         setPending: (pending: boolean) => {
             pendingLog.push(pending)
@@ -103,6 +109,7 @@ function fixture() {
         context,
         published,
         transitions,
+        publishedActions,
         pendingLog,
         errors,
         steps,
@@ -129,6 +136,22 @@ describe('TransitionPresenter', () => {
         expect(f.published).toHaveLength(1)
         expect(f.transitions[0]).toEqual({ kind: 'initial', actions: [], intent: 'actions' })
         expect(f.pendingLog).toEqual([true, false])
+    })
+
+    it('publishes the actions that led to each state, read when the change was made', async () => {
+        const f = fixture()
+        await f.start()
+        expect(f.publishedActions).toEqual([[]])
+
+        f.presenter.present({ kind: 'own-action' }, () => f.play('p1', 'r1'))
+        const played = f.context.actions.at(-1)
+        assertExists(played, 'The play was recorded')
+        // The context appends in place while the play is still animating
+        f.context.actions.push({ ...structuredClone(played), id: 'later', index: 1 })
+        await f.animations.release()
+
+        expect(f.published.at(-1)?.actionCount).toBe(1)
+        expect(f.publishedActions.at(-1)?.map((action) => action.id)).toEqual([played.id])
     })
 
     it('animates the actions between the displayed and the new state in order', async () => {
@@ -286,9 +309,9 @@ describe('TransitionPresenter', () => {
         await f.start()
         let failures = 1
         const publish = f.output.publish
-        f.output.publish = (state, transition) => {
+        f.output.publish = (state, transition, actions) => {
             if (failures-- > 0) throw new Error('hook failed')
-            publish(state, transition)
+            publish(state, transition, actions)
         }
         f.presenter.present({ kind: 'own-action' }, () => f.play('p1', 'r1'))
         await f.animations.release()

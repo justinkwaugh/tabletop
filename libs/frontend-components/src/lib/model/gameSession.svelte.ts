@@ -186,19 +186,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     // Only updated after game state change listeners complete
     gameState: U
 
-    // Exposed directly for the UI
-    // Should these be hydrated?
-    actions: GameAction[] = $derived.by(() => {
-        return this.currentVisibleContext.actions
-    })
+    // The actions that led to gameState, published with it
+    actions: GameAction[]
 
-    // Expose the current action and index for the relevant context
     currentAction = $derived.by(() => {
         return this.actions.at(-1)
     })
 
     currentActionIndex = $derived.by(() => {
-        return this.currentVisibleContext.state.actionCount - 1
+        return this.gameState.actionCount - 1
     })
 
     // Switches between the contexts to show in the UI
@@ -652,7 +648,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.presenter = new TransitionPresenter<T, U, AnimationContext>({
             source: () => this.currentVisibleContext,
             output: {
-                publish: (state, transition) => this.publishState(state, transition),
+                publish: (state, transition, actions) =>
+                    this.publishState(state, transition, actions),
                 setPending: (pending) => this.setPendingPresentation(pending)
             },
             createAnimationContext: () => new AnimationContext(),
@@ -710,6 +707,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.colors = new GameColors(this.authorizationBridge, this.gameContext)
 
         this.gameState = $state.raw(this.runtime.hydrator.hydrateState(state))
+        this.actions = $state.raw([...this.gameContext.actions])
         this.bridge = new GameSessionBridge(this)
 
         if (!game.hotseat) {
@@ -844,10 +842,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return this.presenter.incoming
     }
 
-    private publishState(state: U, transition: PresentedTransition) {
+    private publishState(state: U, transition: PresentedTransition, actions: GameAction[]) {
         this.beforeNewState(transition)
         this.reconcilePlayerPerspective(state)
         this.gameState = state
+        this.actions = actions
     }
 
     private setPendingPresentation(pending: boolean) {
