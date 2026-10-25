@@ -16,7 +16,8 @@ import {
     type HydratedYinshGameState
 } from '@tabletop/yinsh'
 import type { YinshGameSession } from '$lib/model/session.svelte.js'
-import { boardDiff, type BoardDiff } from '$lib/board/boardDiff.js'
+import { boardDiff, ringReturned, ringTaken, type BoardDiff } from '$lib/board/boardDiff.js'
+import { removedRings, ringSeed, type RemovedRings } from '$lib/board/ringSeeds.js'
 import { coordsKey, flatCenter, SPACING, VIEW } from '$lib/board/geometry.js'
 import { flightPose, progressAt } from '$lib/board/ringFlight.js'
 import { flipPose } from '$lib/board/flipPose.js'
@@ -68,9 +69,6 @@ export type Flier = {
 
 export type FlipPart = 'before' | 'turning' | 'side' | 'face' | 'upper' | 'lower' | 'after'
 
-// Where a removed ring lies: a slot on the table, with the specks of the ring that lies there.
-export type RemovedRings = Record<string, string[]>
-
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedYinshGameState, AnimationContext>
 type FlierParts = {
@@ -89,10 +87,6 @@ export function pieceKey(kind: DrawnPiece['kind'], coords: AxialCoordinates): st
 // An id for a piece's drawing, which occluders and the flier copy.
 export function pieceId(key: string): string {
     return `yinsh-${key.replace(',', '_')}`
-}
-
-export function ringSeed(id: number | undefined, coords: AxialCoordinates): string {
-    return id === undefined ? coordsKey(coords) : `ring-${id}`
 }
 
 function drawnPieces(state: HydratedYinshGameState): DrawnPiece[] {
@@ -122,18 +116,6 @@ function drawnPieces(state: HydratedYinshGameState): DrawnPiece[] {
                   }
               ])
     ])
-}
-
-function removedRings(state: HydratedYinshGameState): RemovedRings {
-    return Object.fromEntries(
-        state.players.map((player) => [
-            player.playerId,
-            Array.from({ length: player.ringsRemoved }, (_, index) => {
-                const id = player.removedRingIds?.[index]
-                return id === undefined ? `slot-${player.playerId}-${index}` : `ring-${id}`
-            })
-        ])
-    )
 }
 
 export class BoardAnimator {
@@ -322,7 +304,7 @@ export class BoardAnimator {
     ): AxialCoordinates | undefined {
         if (isRemoveRing(action)) return action.coords
         if (diff.movedRing) return diff.movedRing.from
-        if (action === undefined) return this.taken(from, to)?.coords
+        if (action === undefined) return ringTaken(from, to)?.coords
         return undefined
     }
 
@@ -346,9 +328,9 @@ export class BoardAnimator {
             return { ...ringAt(start, diff.movedRing.playerId), leaves }
         }
         if (action !== undefined) return undefined
-        const taken = this.taken(from, to)
+        const taken = ringTaken(from, to)
         if (taken) return ringAt(taken.coords, taken.playerId)
-        const returned = this.returned(from, to)
+        const returned = ringReturned(from, to)
         if (returned) {
             const index = to.getPlayerState(returned.playerId).ringsRemoved
             const slot = VIEW.project(this.slotOf(returned.playerId, index))
@@ -359,26 +341,6 @@ export class BoardAnimator {
             }
         }
         return undefined
-    }
-
-    // A ring gone from the board to its player's slots, read from the two states.
-    private taken(from: HydratedYinshGameState, to: HydratedYinshGameState) {
-        const gone = boardDiff(from.board, to.board).ringsGone
-        return gone.find(
-            (ring) =>
-                to.getPlayerState(ring.playerId).ringsRemoved >
-                from.getPlayerState(ring.playerId).ringsRemoved
-        )
-    }
-
-    // A ring back from its player's slots onto the board.
-    private returned(from: HydratedYinshGameState, to: HydratedYinshGameState) {
-        const come = boardDiff(from.board, to.board).ringsCome
-        return come.find(
-            (ring) =>
-                to.getPlayerState(ring.playerId).ringsRemoved <
-                from.getPlayerState(ring.playerId).ringsRemoved
-        )
     }
 
     // Undo and history steps carry no action: everything moves at once, quickly, read from the
@@ -393,8 +355,8 @@ export class BoardAnimator {
         if (diff.movedRing) {
             this.moveRing(diff.movedRing.from, diff.movedRing.to, diff, timeline, touched, 0, true)
         }
-        const taken = this.taken(from, to)
-        const returned = this.returned(from, to)
+        const taken = ringTaken(from, to)
+        const returned = ringReturned(from, to)
         if (taken) {
             const slot = this.slotOf(
                 taken.playerId,

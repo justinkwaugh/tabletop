@@ -69,3 +69,28 @@ export function boardDiff(from: HydratedYinshBoard, to: HydratedYinshBoard): Boa
         flipped
     }
 }
+
+// What the ring inference needs of a game state.
+export type Position = {
+    board: HydratedYinshBoard
+    getPlayerState(playerId: string): { ringsRemoved: number }
+}
+
+// A ring gone from the board to its player's slots, read from the two states: undo and history
+// steps carry no action to say so.
+export function ringTaken(from: Position, to: Position): PlacedPiece | undefined {
+    return boardDiff(from.board, to.board).ringsGone.find(
+        (ring) =>
+            to.getPlayerState(ring.playerId).ringsRemoved >
+            from.getPlayerState(ring.playerId).ringsRemoved
+    )
+}
+
+// A ring back from its player's slots onto the board.
+export function ringReturned(from: Position, to: Position): PlacedPiece | undefined {
+    return boardDiff(from.board, to.board).ringsCome.find(
+        (ring) =>
+            to.getPlayerState(ring.playerId).ringsRemoved <
+            from.getPlayerState(ring.playerId).ringsRemoved
+    )
+}

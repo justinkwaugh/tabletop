@@ -121,11 +121,9 @@ export class BoardView {
         )
         // Centred on the board. The ring spaces may reach a little past the sides, into the table:
         // on phones the board's width limits its size.
-        const halfWidth =
-            Math.max(...board.map((e) => Math.max(-e.left, e.right))) + FRAME_MARGIN
+        const halfWidth = Math.max(...board.map((e) => Math.max(-e.left, e.right))) + FRAME_MARGIN
         const halfHeight =
-            Math.max(...[...board, ...slots].map((e) => Math.max(-e.top, e.bottom))) +
-            FRAME_MARGIN
+            Math.max(...[...board, ...slots].map((e) => Math.max(-e.top, e.bottom))) + FRAME_MARGIN
         return {
             viewBox: `${-halfWidth} ${-halfHeight} ${halfWidth * 2} ${halfHeight * 2 + CONTROLS_ROOM}`,
             width: halfWidth * 2,

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { VIEW } from '$lib/board/geometry.js'
     import { RING_HEIGHT, RING_INNER, RING_OUTER } from '$lib/board/pieceGeometry.js'
+    import { ellipsePath } from '$lib/board/pieceShape.js'
     import type { Tone } from '$lib/board/pieceStyle.js'
     import PieceDefs from './PieceDefs.svelte'
     import RingShape from './RingShape.svelte'
@@ -15,6 +16,10 @@
     const reach = RING_OUTER + 1
     const top = RING_OUTER * VIEW.tilt + VIEW.height(RING_HEIGHT) + 1
     const bottom = RING_OUTER * VIEW.tilt + 1
+    // An empty space, painted like the board's own ring spaces with an edge to show on white.
+    const SPACE = [RING_OUTER, RING_INNER]
+        .map((r) => ellipsePath({ y: 0, rx: r, ry: r * VIEW.tilt }))
+        .join(' ')
     const prefix = $derived(`ring-icon-${seedKey}`)
 </script>
 
@@ -28,16 +33,14 @@
         <defs><PieceDefs {prefix} /></defs>
         <RingShape {tone} {seedKey} {prefix} />
     {:else}
-        <ellipse rx={RING_OUTER} ry={RING_OUTER * VIEW.tilt} class="slot"></ellipse>
-        <ellipse rx={RING_INNER} ry={RING_INNER * VIEW.tilt} class="slot"></ellipse>
+        <path d={SPACE} fill-rule="evenodd" class="space"></path>
     {/if}
 </svg>
 
 <style>
-    .slot {
-        fill: none;
-        stroke: #7d93b4;
-        stroke-width: 2.4;
-        stroke-dasharray: 5 4;
+    .space {
+        fill: var(--yinsh-play);
+        stroke: var(--yinsh-play-edge);
+        stroke-width: 1.2;
     }
 </style>

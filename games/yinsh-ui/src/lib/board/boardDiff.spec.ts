@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { emptyBoard, HydratedYinshBoard, pointFromName as p, pointName } from '@tabletop/yinsh'
-import { boardDiff } from './boardDiff.js'
+import { boardDiff, ringReturned, ringTaken, type Position } from './boardDiff.js'
 
 function board(rings: Record<string, string[]>, markers: Record<string, string[]> = {}) {
     const data = emptyBoard()
@@ -45,5 +45,41 @@ describe('boardDiff', () => {
         expect(diff.movedRing).toBeUndefined()
         expect(diff.ringsGone.map((r) => pointName(r.coords))).toEqual(['B2'])
         expect(diff.markersGone.map((m) => pointName(m.coords)).toSorted()).toEqual(['F5', 'F6'])
+    })
+})
+
+// A game state as the ring inference reads it: the board and each player's removed rings.
+function position(rings: HydratedYinshBoard, removed: Record<string, number>): Position {
+    return {
+        board: rings,
+        getPlayerState: (playerId) => ({ ringsRemoved: removed[playerId] ?? 0 })
+    }
+}
+
+describe('the ring inference undo and history use', () => {
+    const onBoard = position(after, { a: 0, b: 1 })
+    const taken = position(board({ a: ['F7'], b: ['K8'] }, { a: ['F3'] }), { a: 1, b: 1 })
+
+    it("finds the ring taken off to its player's spaces", () => {
+        expect(ringTaken(onBoard, taken)).toEqual({ coords: p('B2'), playerId: 'a' })
+        expect(ringReturned(onBoard, taken)).toBeUndefined()
+    })
+
+    it('finds the same ring coming back when the removal is undone', () => {
+        expect(ringReturned(taken, onBoard)).toEqual({ coords: p('B2'), playerId: 'a' })
+        expect(ringTaken(taken, onBoard)).toBeUndefined()
+    })
+
+    it('reads a move as neither', () => {
+        const moved = position(before, { a: 0, b: 1 })
+        expect(ringTaken(moved, onBoard)).toBeUndefined()
+        expect(ringReturned(onBoard, moved)).toBeUndefined()
+    })
+
+    it('reads a placement and its undo as neither', () => {
+        const placed = position(board({ a: ['F3', 'B2', 'C5'], b: ['K8'] }), { a: 0, b: 1 })
+        const empty = position(board({ a: ['F3', 'B2'], b: ['K8'] }), { a: 0, b: 1 })
+        expect(ringReturned(empty, placed)).toBeUndefined()
+        expect(ringTaken(placed, empty)).toBeUndefined()
     })
 })

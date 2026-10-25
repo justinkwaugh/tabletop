@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { HydratedYinshPlayerState } from '@tabletop/yinsh'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { removedRingSeed } from '$lib/board/ringSeeds.js'
     import RingIcon from './RingIcon.svelte'
 
     let { playerState }: { playerState: HydratedYinshPlayerState } = $props()
@@ -16,7 +17,8 @@
     const slots = $derived(
         Array.from({ length: session.gameState.ringsToWin }, (_, index) => ({
             index,
-            filled: index < playerState.ringsRemoved
+            filled: index < playerState.ringsRemoved,
+            seed: removedRingSeed(playerState, index)
         }))
     )
 </script>
@@ -35,12 +37,7 @@
     <div class="body">
         <div class="slots" title="Rings removed ({playerState.ringsRemoved} of {slots.length})">
             {#each slots as slot (slot.index)}
-                <RingIcon
-                    {tone}
-                    seedKey="tray-{playerState.playerId}-{slot.index}"
-                    size={40}
-                    filled={slot.filled}
-                />
+                <RingIcon {tone} seedKey={slot.seed} size={40} filled={slot.filled} />
             {/each}
         </div>
     </div>
