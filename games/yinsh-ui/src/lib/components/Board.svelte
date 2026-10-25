@@ -15,7 +15,8 @@
     import { BoardAnimator, pieceId, type DrawnPiece } from '$lib/animators/boardAnimator.svelte.js'
     import { dropIn } from '$lib/board/dropIn.js'
     import { ellipsePath, markerDrawing, ringDrawing } from '$lib/board/pieceShape.js'
-    import { BOARD_STORM, STORM_SIZE, stormImage } from '$lib/board/storm.js'
+    import { STORM_SIZE } from '$lib/board/storm.js'
+    import { BOARD_STORM_IMAGE } from '$lib/board/stormImages.js'
     import RingShape from './RingShape.svelte'
     import MarkerShape from './MarkerShape.svelte'
     import PieceDefs from './PieceDefs.svelte'
@@ -49,8 +50,6 @@
     })
 
     const animator = new BoardAnimator(session)
-
-    const boardStorm = $derived(session.clouds ? stormImage(BOARD_STORM) : undefined)
 
     // Back to front, so a nearer piece's side covers the one behind it.
     const pieces = $derived(
@@ -234,10 +233,10 @@
 
     <polygon points={outline} class="play-area"></polygon>
     <!-- Printed on the board, so it foreshortens with it about the board's middle. -->
-    {#if session.clouds && boardStorm}
+    {#if session.clouds}
         <g clip-path="url(#yinsh-play-clip)">
             <image
-                href={boardStorm}
+                href={BOARD_STORM_IMAGE}
                 x={-STORM_SIZE / 2}
                 y={-STORM_SIZE / 2}
                 width={STORM_SIZE}

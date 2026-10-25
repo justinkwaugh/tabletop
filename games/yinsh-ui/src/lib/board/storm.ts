@@ -2,12 +2,16 @@ import { seededRandom } from './random.js'
 
 // A storm of cloud wound around the middle of the board, as on the original printing: thousands
 // of faint streaks traced along a wind that circles an eye and draws in towards it, brightest in
-// a few spiral bands. Drawn once on a canvas, large enough to run on under the whole table, in
-// board units centred on the board; the board and the table both show it as a still image.
+// a few spiral bands. Large enough to run on under the whole table, in board units centred on the
+// board; the board and the table both show it as a still image.
+//
+// Tracing the streaks takes seconds, far too long to do as a game opens, so the images are
+// rendered ahead of time by scripts/render-storm.mjs into $lib/images and imported from
+// stormImages.ts. After changing anything here, run `pnpm run render-storm` in games/yinsh-ui.
 export const STORM_SIZE = 2400
-// Drawn at a lower resolution than board units: the streaks are soft, and it keeps the canvas
-// small.
-const RESOLUTION = 0.6
+// Rendered at a lower resolution than board units: the streaks are soft, and it keeps the
+// images small.
+export const STORM_RESOLUTION = 0.6
 
 const EYE = 40
 // The bands are strongest near the board and settle to a steady haze further out.
@@ -83,18 +87,9 @@ export type StormTone = { color: string; strength: number }
 export const TABLE_STORM: StormTone = { color: '232 238 246', strength: 0.375 }
 export const BOARD_STORM: StormTone = { color: '96 112 140', strength: 0.13 }
 
-const images = new Map<StormTone, string>()
-
-export function stormImage(tone: StormTone): string | undefined {
-    if (typeof document === 'undefined') return undefined
-    const cached = images.get(tone)
-    if (cached !== undefined) return cached
-    const canvas = document.createElement('canvas')
-    canvas.width = STORM_SIZE * RESOLUTION
-    canvas.height = STORM_SIZE * RESOLUTION
-    const context = canvas.getContext('2d')
-    if (context === null) return undefined
-    context.scale(RESOLUTION, RESOLUTION)
+// Draws the storm on a canvas STORM_SIZE × STORM_RESOLUTION pixels square.
+export function drawStorm(context: CanvasRenderingContext2D, tone: StormTone) {
+    context.scale(STORM_RESOLUTION, STORM_RESOLUTION)
     const random = seededRandom(5)
     const gust = makeGust(random)
     const eddies = makeEddies(random)
@@ -121,7 +116,4 @@ export function stormImage(tone: StormTone): string | undefined {
         }
         context.stroke()
     }
-    const url = canvas.toDataURL('image/png')
-    images.set(tone, url)
-    return url
 }
