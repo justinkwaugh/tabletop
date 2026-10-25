@@ -29,3 +29,9 @@
     <stop offset="0" stop-color="#34302f"></stop>
     <stop offset="1" stop-color="#232021"></stop>
 </radialGradient>
+<!-- Right under a piece, the board in its shadow, seen through the gap below it. -->
+<radialGradient id="{prefix}-contact">
+    <stop offset="0" stop-color="rgb(0 0 0 / 0.55)"></stop>
+    <stop offset="0.85" stop-color="rgb(0 0 0 / 0.45)"></stop>
+    <stop offset="1" stop-color="rgb(0 0 0 / 0)"></stop>
+</radialGradient>

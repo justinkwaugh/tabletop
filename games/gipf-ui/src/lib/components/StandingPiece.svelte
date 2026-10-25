@@ -32,6 +32,8 @@
         class="shadow"
         filter="url(#gipf-soft)"
     ></ellipse>
+    <ellipse rx={PIECE_RADIUS} ry={PIECE_RADIUS * VIEW.tilt} fill="url(#gipf-board-contact)"
+    ></ellipse>
 </g>
 <g {@attach body}>
     <PieceShape {color} {gipf} radius={PIECE_RADIUS} prefix="gipf-board" {parts} />

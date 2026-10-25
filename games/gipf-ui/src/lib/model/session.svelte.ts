@@ -1,21 +1,15 @@
-import {
-    GameSession,
-    type PresentedTransition,
-    type TitlePreferences
-} from '@tabletop/frontend-components'
+import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
 import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     isPushPiece,
     ALL_POINTS,
     FinishRemoving,
-    GipfPreferenceDefinition,
     MachineState,
     PushPiece,
     RemoveRow,
     type Entry,
     type GipfGameState,
-    type GipfPreferences,
     type HydratedGipfGameState,
     type Row
 } from '@tabletop/gipf'
@@ -48,15 +42,6 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     historyPush: PushPiece | undefined
 
     readonly notation: BoardNotation = NOTATION
-
-    readonly preferences: TitlePreferences<typeof GipfPreferences> =
-        this.createPreferences(GipfPreferenceDefinition)
-
-    lightBoard: boolean = $derived(this.preferences.values.lightBoard)
-
-    toggleLightBoard() {
-        this.preferences.set({ lightBoard: !this.lightBoard })
-    }
 
     canPush = $derived(this.canAct(ActionType.PushPiece))
     canRemove = $derived(this.canAct(ActionType.RemoveRow))

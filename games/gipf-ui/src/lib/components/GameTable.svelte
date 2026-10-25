@@ -16,7 +16,6 @@
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
-    import BoardModeToggle from '$lib/components/BoardModeToggle.svelte'
     import { GipfGameSession } from '$lib/model/session.svelte.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -24,8 +23,6 @@
         $props()
     assert(gameSession instanceof GipfGameSession, 'GIPF needs its own game session')
     setGameSession(gameSession)
-
-    const TOGGLE_ROOM = 40
 
     // The shared wrapper exposes full screen only as its dialog becoming modal.
     let expanded = $state(false)
@@ -53,7 +50,7 @@
     </div>
 {/snippet}
 
-<div class="gipf-table" class:gipf-light={gameSession.lightBoard}>
+<div class="gipf-table">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -103,16 +100,10 @@
                     controls="bottom-left"
                     maxScale={4}
                     maxFitScale={2.5}
-                    insetTop={TOGGLE_ROOM}
                     renderAtViewScale
                     expandable
                 >
                     <Board />
-                    {#snippet overlay()}
-                        <div class="pointer-events-auto absolute top-1 right-3 z-10">
-                            <BoardModeToggle />
-                        </div>
-                    {/snippet}
                     {#snippet toolbar()}
                         <!-- Full screen is a modal dialog, so the turn controls must come inside it. -->
                         <div {@attach watchExpansion}>

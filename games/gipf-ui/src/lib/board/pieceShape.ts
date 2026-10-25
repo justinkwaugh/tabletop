@@ -11,12 +11,13 @@ import type { BoardView } from './geometry.js'
 export type Tone = 'light' | 'dark'
 
 // All as fractions of the piece's radius.
-export const THICKNESS = 0.36
+export const THICKNESS = 0.2826
 const BASE_ROUND = THICKNESS * 0.25
 const RIM_ROUND = THICKNESS * 0.3
-// The upper disc of a GIPF-piece rests on its underside ring, a little above the lower disc, so a
-// dark crease shows between them: the lower disc's top, in the upper disc's shadow.
-const STACK_GAP = THICKNESS * 0.14
+// Each disc rests on its underside ring, a little above the disc below, so a dark crease shows
+// between them: the lower disc's top, in the upper disc's shadow. The bottom disc stands on its
+// ring as far above the board.
+const STACK_GAP = THICKNESS * 0.32
 const TROUGH_OUTER = 0.76
 const TROUGH_INNER = 0.57
 const TROUGH_DEPTH = THICKNESS * 0.3
@@ -74,7 +75,7 @@ function level(facing: number): number {
 
 // Where each disc of a stack stands, from the bottom up, as heights over the radius.
 function discBases(discs: number): number[] {
-    return Array.from({ length: discs }, (_, index) => index * (THICKNESS + STACK_GAP))
+    return Array.from({ length: discs }, (_, index) => STACK_GAP + index * (THICKNESS + STACK_GAP))
 }
 
 export function discsOf(gipf: boolean): number {

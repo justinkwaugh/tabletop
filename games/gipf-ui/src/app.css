@@ -40,28 +40,18 @@
 }
 
 :root {
-    --gipf-table: #16294a;
-    --gipf-table-deep: #0c1830;
+    /* A pale play area with black lines, on a muted blue table. */
+    --gipf-table: #5e7596;
+    --gipf-table-deep: #4d6282;
     --gipf-panel: rgb(9 19 38 / 0.9);
     --gipf-panel-edge: #34507a;
-    --gipf-play: #4f74a8;
-    --gipf-line: #a8bcd8;
-    --gipf-line-opacity: 0.75;
-    --gipf-label: #9fb0c8;
+    --gipf-play: #a8bcd8;
+    --gipf-line: #000000;
+    --gipf-line-opacity: 1;
+    --gipf-label: #0d1626;
     --gipf-ink: #eef2f8;
     --gipf-ink-quiet: #9fb0c8;
     --gipf-target: #f0b04a;
     --gipf-row: #f0644d;
     --gipf-keep: #5fd39a;
-}
-
-/* Light board: the play area takes the dark board's grid colour, on a muted blue table, with
-   black lines and dots. Panels keep the dark theme. */
-.gipf-light {
-    --gipf-table: #5e7596;
-    --gipf-table-deep: #4d6282;
-    --gipf-play: #a8bcd8;
-    --gipf-line: #000000;
-    --gipf-line-opacity: 1;
-    --gipf-label: #0d1626;
 }
