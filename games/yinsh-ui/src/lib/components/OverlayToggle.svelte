@@ -43,19 +43,14 @@
         letter-spacing: 0;
     }
 
-    /* On, the glyph fills in dark; off, it is a faint outline. */
+    /* On, the glyph's outline turns black and thickens, padded in so the glyph keeps its size. */
     .toggle[aria-pressed='true'] {
-        color: var(--yinsh-ink);
+        color: #000000;
     }
 
     .toggle[aria-pressed='true'] .glyph {
-        background: var(--yinsh-ink);
-        border-color: var(--yinsh-ink);
-        color: var(--yinsh-panel);
-    }
-
-    .toggle[aria-pressed='false'] .glyph {
-        opacity: 0.6;
+        border-width: 2px;
+        padding: 0 4px;
     }
 
     .toggle:hover {
