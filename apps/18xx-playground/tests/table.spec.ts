@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
+import type { Point } from '@tabletop/common'
 
 for (const title of ['TOP', '1889']) {
     test(`${title} table keeps the sidebar and actions above an unframed scaling map`, async ({
@@ -289,26 +290,43 @@ async function closeHistory(page: Page) {
         .click()
 }
 
+async function touchDown(page: Page, at: Point) {
+    const touch = await page.context().newCDPSession(page)
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at] })
+    let current = at
+    return {
+        async moveTo(to: Point, stepMs = 0) {
+            const from = current
+            for (let step = 1; step <= 10; step++) {
+                if (stepMs) await page.waitForTimeout(stepMs)
+                await touch.send('Input.dispatchTouchEvent', {
+                    type: 'touchMove',
+                    touchPoints: [
+                        {
+                            x: from.x + ((to.x - from.x) * step) / 10,
+                            y: from.y + ((to.y - from.y) * step) / 10
+                        }
+                    ]
+                })
+            }
+            current = to
+        },
+        lift: () => touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    }
+}
+
 test.describe('sidebar tabs on a phone', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 
     test('a sideways swipe on any sidebar tab moves the table', async ({ page }) => {
         await page.goto('/table')
         const scroller = page.locator('.table-scroller')
-        const touch = await page.context().newCDPSession(page)
         for (const tab of ['Players', 'History', 'Chat']) {
             await page.getByRole('tab', { name: tab, exact: true }).click()
             await scroller.evaluate((element) => element.scrollTo({ left: 0, behavior: 'instant' }))
-            await touch.send('Input.dispatchTouchEvent', {
-                type: 'touchStart',
-                touchPoints: [{ x: 250, y: 450 }]
-            })
-            for (let step = 1; step <= 10; step++)
-                await touch.send('Input.dispatchTouchEvent', {
-                    type: 'touchMove',
-                    touchPoints: [{ x: 250 - step * 15, y: 450 }]
-                })
-            await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+            const finger = await touchDown(page, { x: 250, y: 450 })
+            await finger.moveTo({ x: 100, y: 450 })
+            await finger.lift()
             await expect
                 .poll(() => scroller.evaluate((element) => element.scrollLeft), { message: tab })
                 .toBeGreaterThan(50)
@@ -359,6 +377,147 @@ test('History added to another pane of the pane layout opens at the newest entry
         .getByRole('button', { name: 'History', exact: true })
         .click()
     await expectHistoryAtNewest(page)
+})
+
+test.describe('sideways scrollers on a phone', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
+
+    async function showScroller(page: Page, scroller: Locator, left: number) {
+        const table = page.locator('.table-scroller')
+        await table.evaluate((element) =>
+            element.scrollTo({ left: element.scrollWidth, behavior: 'instant' })
+        )
+        await scroller.evaluate(
+            (element, left) => element.scrollTo({ left, behavior: 'instant' }),
+            left
+        )
+        const box = await scroller.boundingBox()
+        if (!box) throw new Error('Missing scroller')
+        const scrollLeft = (element: Locator) =>
+            element.evaluate((element) => Math.round(element.scrollLeft))
+        return {
+            scroller,
+            y: box.y + box.height / 2,
+            tableLeft: () => scrollLeft(table),
+            scrollerLeft: () => scrollLeft(scroller),
+            settled: () =>
+                page.evaluate(
+                    () =>
+                        new Promise<void>((resolve) => {
+                            let frames = 0
+                            const wait = () =>
+                                ++frames > 60 ? resolve() : requestAnimationFrame(wait)
+                            wait()
+                        })
+                )
+        }
+    }
+
+    async function openSheet(page: Page, left: number) {
+        await page.goto('/table')
+        await page.getByRole('tab', { name: 'Sheet', exact: true }).click()
+        const sheet = page.locator('.table-scroll', {
+            has: page.getByRole('table', { name: 'Company share ownership' })
+        })
+        return showScroller(page, sheet, left)
+    }
+
+    test('a swipe that starts inside the sheet stops at its edge, fling included', async ({
+        page
+    }) => {
+        const sheet = await openSheet(page, 60)
+        const tableStart = await sheet.tableLeft()
+        const finger = await touchDown(page, { x: 100, y: sheet.y })
+        await finger.moveTo({ x: 300, y: sheet.y })
+        await finger.lift()
+        await sheet.settled()
+        expect(await sheet.scrollerLeft()).toBe(0)
+        expect(await sheet.tableLeft()).toBe(tableStart)
+    })
+
+    test('a swipe that starts at the sheet edge moves the table both ways', async ({ page }) => {
+        const sheet = await openSheet(page, 0)
+        const tableStart = await sheet.tableLeft()
+        const finger = await touchDown(page, { x: 100, y: sheet.y })
+        await finger.moveTo({ x: 250, y: sheet.y })
+        const tableOut = await sheet.tableLeft()
+        expect(tableOut).toBeLessThan(tableStart - 100)
+        await finger.moveTo({ x: 150, y: sheet.y })
+        expect(await sheet.tableLeft()).toBe(tableOut + 100)
+        expect(await sheet.scrollerLeft()).toBe(0)
+        await finger.lift()
+    })
+
+    test('a swipe flings only when the finger lifts while moving', async ({ page }) => {
+        const sheet = await openSheet(page, 200)
+        const moving = await touchDown(page, { x: 100, y: sheet.y })
+        await moving.moveTo({ x: 150, y: sheet.y })
+        const movingLift = await sheet.scrollerLeft()
+        await moving.lift()
+        await sheet.settled()
+        expect(await sheet.scrollerLeft()).toBeLessThan(movingLift - 20)
+
+        await showScroller(page, sheet.scroller, 200)
+        const resting = await touchDown(page, { x: 100, y: sheet.y })
+        await resting.moveTo({ x: 150, y: sheet.y })
+        await page.waitForTimeout(200)
+        const restingLift = await sheet.scrollerLeft()
+        await resting.lift()
+        await sheet.settled()
+        expect(await sheet.scrollerLeft()).toBe(restingLift)
+    })
+
+    test('touching the table stops a fling handed to it', async ({ page }) => {
+        const sheet = await openSheet(page, 0)
+        const above = await page.getByRole('tab', { name: 'Sheet', exact: true }).boundingBox()
+        if (!above) throw new Error('Missing Sheet tab')
+        const swipe = await touchDown(page, { x: 100, y: sheet.y })
+        await swipe.moveTo({ x: 150, y: sheet.y }, 10)
+        const lifted = await sheet.tableLeft()
+        await swipe.lift()
+        await expect.poll(() => sheet.tableLeft()).toBeLessThan(lifted)
+        const hold = await touchDown(page, { x: 20, y: above.y + above.height + 8 })
+        const held = await sheet.tableLeft()
+        await sheet.settled()
+        expect(await sheet.tableLeft()).toBe(held)
+        await hold.lift()
+    })
+
+    test('the operating-order chips hand a swipe from their edge to the table', async ({
+        page
+    }) => {
+        await page.goto('/table')
+        const chips = page.getByRole('region', { name: 'Company order' }).locator('ol').first()
+        await expect(chips).toBeVisible()
+        const strip = await showScroller(page, chips, 40)
+        const tableStart = await strip.tableLeft()
+
+        const inside = await touchDown(page, { x: 100, y: strip.y })
+        await inside.moveTo({ x: 300, y: strip.y })
+        await inside.lift()
+        await strip.settled()
+        expect(await strip.scrollerLeft()).toBe(0)
+        expect(await strip.tableLeft()).toBe(tableStart)
+
+        const fromEdge = await touchDown(page, { x: 100, y: strip.y })
+        await fromEdge.moveTo({ x: 250, y: strip.y })
+        expect(await strip.tableLeft()).toBeLessThan(tableStart - 100)
+        await fromEdge.lift()
+    })
+
+    test('touch stays native over a scroller whose content fits', async ({ page }) => {
+        await page.goto('/table')
+        await page.getByRole('tab', { name: 'Sheet', exact: true }).click()
+        const sheet = page.locator('.table-scroll', {
+            has: page.getByRole('table', { name: 'Company share ownership' })
+        })
+        await expect(sheet).toHaveCSS('touch-action', 'pan-y pinch-zoom')
+        await page.setViewportSize({ width: 2200, height: 1000 })
+        const fits = page.locator('.table-scroll', {
+            has: page.getByRole('table', { name: 'Company share ownership' })
+        })
+        await expect(fits).toHaveCSS('touch-action', 'auto')
+    })
 })
 
 test.describe('player cards below the pane layout', () => {

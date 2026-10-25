@@ -2023,6 +2023,17 @@ content height, with no viewport-height cap or internal vertical scroll area, an
 no action content extends over the view tabs. On phone widths (below 640px) the game column has no
 horizontal padding and reaches the screen edge.
 
+On a phone the table scrolls sideways between the sidebar and the game column. A swipe
+over a sideways scroller inside it (the spreadsheet and operating history, the
+operating-order chips, the one-row company cards and their detail columns, the phase
+charts, a history round's operating order, the stock-round buy row, the pane tab strips) scrolls that scroller and stops at its edge,
+fling included; a swipe that starts with it at its edge moves the table instead, both
+ways, until the finger lifts (`chainSidewaysScroll`). This holds whenever its content is
+wider than it; content that fits leaves touch native. The operating-order chips'
+`overscroll-behavior-x: contain` still keeps trackpad and wheel scrolling inside them.
+Verification: `tests/table.spec.ts` in the 18xx playground (sheet tab on a phone); a
+real iPhone swipe is manual.
+
 Below 1024px the stacked view tabs and the sidebar tabs are the two panes of one
 `TabWorkspace`; the sidebar is its fixed pane. Neither pane splits or drags tabs,
 and the view tabs' pane cannot be deleted. The sidebar's menu deletes it: its tabs

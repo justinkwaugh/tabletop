@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
     import './playerTint.css'
@@ -803,6 +804,7 @@
         {:else}
             <div
                 class="table-scroll"
+                {@attach chainSidewaysScroll}
                 class:scrolled
                 class:pin-label-column={pinLabelColumn}
                 bind:clientWidth={scrollViewportWidth}

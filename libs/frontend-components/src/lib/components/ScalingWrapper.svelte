@@ -2,6 +2,12 @@
     import { onDestroy, onMount, untrack, type Snippet } from 'svelte'
     import type { RectangleDimensions } from '@tabletop/common'
     import { wheelDeltaUnit } from '../utils/wheelDelta.js'
+    import {
+        scrollAncestorsWithFinger,
+        scrollNearestAncestorWithFinger,
+        type ScrollAxis
+    } from '../utils/scrollChain.js'
+    import { fling, fingerVelocity, type Fling } from '../utils/touchFling.js'
 
     const DISCRETE_ZOOM_STEP = 0.15
     const OVERPAN_EASE_RELATIVE_ZOOM = 0.05
@@ -14,9 +20,6 @@
     const TRACKPAD_PINCH_ZOOM_SENSITIVITY = 0.006
     const PINCH_ZOOM_SENSITIVITY = 1
     const GESTURE_ZOOM_SENSITIVITY = 1.2
-    const TOUCH_INERTIA_DECAY_PER_FRAME = 0.92
-    const TOUCH_INERTIA_MIN_VELOCITY = 0.02
-    const TOUCH_INERTIA_MAX_VELOCITY = 2.5
 
     type FocusRect = {
         x: number
@@ -49,8 +52,6 @@
         x: number
         y: number
     }
-
-    type Axis = 'x' | 'y'
 
     type PlacedView = {
         size: RectangleDimensions
@@ -171,10 +172,12 @@
     let panLastTimestamp: number | null = null
     let panVelocityX = 0
     let panVelocityY = 0
-    let panInertiaFrame: number | undefined
+    let panFling: Fling | undefined
     let scrollVelocityX = 0
     let scrollVelocityY = 0
-    let scrollInertiaFrame: number | undefined
+    let scrollFling: Fling | undefined
+    // Reversing a drag that has scrolled the page keeps scrolling the page.
+    let handedOffAxes: Record<ScrollAxis, boolean> = { x: false, y: false }
     let gestureStartScale: number | null = null
     let mouseStartPoint: Point | null = null
     let mouseLastPoint: Point | null = null
@@ -412,7 +415,7 @@
         }
     }
 
-    function mayOverpanFreely(axis: Axis, source: ViewChangeSource) {
+    function mayOverpanFreely(axis: ScrollAxis, source: ViewChangeSource) {
         return (
             source === 'programmatic' ||
             overpan === 'both' ||
@@ -500,8 +503,8 @@
             mouseStartPoint !== null ||
             viewAnimationFrame !== undefined ||
             pinchAnimationFrame !== undefined ||
-            panInertiaFrame !== undefined ||
-            scrollInertiaFrame !== undefined ||
+            panFling?.running ||
+            scrollFling?.running ||
             performance.now() - lastWheelTimestamp < RENDER_SCALE_SETTLE_MS
         )
     }
@@ -555,60 +558,16 @@
         }
     }
 
-    const SCROLL_AXES = {
-        x: {
-            overflow: (style: CSSStyleDeclaration) => style.overflowX,
-            overflows: (element: HTMLElement) => element.scrollWidth > element.clientWidth,
-            position: 'scrollLeft',
-            windowPosition: () => window.scrollX,
-            windowScroll: (delta: number) => ({ left: delta })
-        },
-        y: {
-            overflow: (style: CSSStyleDeclaration) => style.overflowY,
-            overflows: (element: HTMLElement) => element.scrollHeight > element.clientHeight,
-            position: 'scrollTop',
-            windowPosition: () => window.scrollY,
-            windowScroll: (delta: number) => ({ top: delta })
-        }
-    } as const satisfies Record<Axis, unknown>
-
-    function findScrollableAncestor(element: HTMLElement | null, axis: Axis): HTMLElement | null {
-        const scrollAxis = SCROLL_AXES[axis]
-        let current = element?.parentElement ?? null
-        while (current) {
-            if (
-                /(auto|scroll|overlay)/.test(scrollAxis.overflow(getComputedStyle(current))) &&
-                scrollAxis.overflows(current)
-            ) {
-                return current
-            }
-            current = current.parentElement
-        }
-
-        return null
-    }
-
-    function scrollAncestorBy(deltaX: number, deltaY: number) {
+    function scrollAncestorBy(
+        deltaX: number,
+        deltaY: number,
+        scrollAlong = scrollAncestorsWithFinger
+    ) {
         if (isExpanded) return { movedX: 0, movedY: 0 }
         return {
-            movedX: scrollAncestorAlong('x', deltaX),
-            movedY: scrollAncestorAlong('y', deltaY)
+            movedX: scrollAlong(scroller, 'x', deltaX),
+            movedY: scrollAlong(scroller, 'y', deltaY)
         }
-    }
-
-    function scrollAncestorAlong(axis: Axis, delta: number) {
-        if (Math.abs(delta) <= EPSILON) return 0
-        const scrollAxis = SCROLL_AXES[axis]
-        const scrollAncestor = findScrollableAncestor(scroller, axis)
-        if (scrollAncestor) {
-            const start = scrollAncestor[scrollAxis.position]
-            scrollAncestor[scrollAxis.position] -= delta
-            return scrollAncestor[scrollAxis.position] - start
-        }
-
-        const start = scrollAxis.windowPosition()
-        window.scrollBy(scrollAxis.windowScroll(-delta))
-        return scrollAxis.windowPosition() - start
     }
 
     function getViewportCenterContentPoint(
@@ -693,120 +652,44 @@
     }
 
     function cancelPanInertia() {
-        if (panInertiaFrame) {
-            cancelAnimationFrame(panInertiaFrame)
-            panInertiaFrame = undefined
-        }
+        panFling?.stop()
     }
 
     function cancelScrollInertia() {
-        if (scrollInertiaFrame) {
-            cancelAnimationFrame(scrollInertiaFrame)
-            scrollInertiaFrame = undefined
-        }
+        scrollFling?.stop()
     }
 
-    function startPanInertia() {
+    function startPanInertia(stillMs: number) {
         cancelPanInertia()
-
-        if (
-            Math.abs(panVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
-            Math.abs(panVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
-        ) {
-            panVelocityX = 0
-            panVelocityY = 0
-            return
-        }
-
-        let lastTimestamp: number | null = null
-
-        const step = (timestamp: number) => {
-            if (lastTimestamp === null) {
-                lastTimestamp = timestamp
-                panInertiaFrame = requestAnimationFrame(step)
-                return
-            }
-
-            const deltaMs = Math.max(1, timestamp - lastTimestamp)
-            lastTimestamp = timestamp
-            const decay = Math.pow(TOUCH_INERTIA_DECAY_PER_FRAME, deltaMs / (1000 / 60))
+        panFling = fling({ x: panVelocityX, y: panVelocityY }, stillMs, (offset) => {
             const nextView = clampTranslation(
                 currentScale,
-                currentTranslateX + panVelocityX * deltaMs,
-                currentTranslateY + panVelocityY * deltaMs,
+                currentTranslateX + offset.x,
+                currentTranslateY + offset.y,
                 'gesture'
             )
-            const movedX = Math.abs(nextView.translateX - currentTranslateX) > EPSILON
-            const movedY = Math.abs(nextView.translateY - currentTranslateY) > EPSILON
-
-            if (movedX || movedY) {
+            const moved = {
+                x: nextView.translateX - currentTranslateX,
+                y: nextView.translateY - currentTranslateY
+            }
+            if (Math.abs(moved.x) > EPSILON || Math.abs(moved.y) > EPSILON) {
                 applyView(currentScale, nextView.translateX, nextView.translateY)
             }
-
-            panVelocityX = movedX ? panVelocityX * decay : 0
-            panVelocityY = movedY ? panVelocityY * decay : 0
-
-            if (
-                Math.abs(panVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
-                Math.abs(panVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
-            ) {
-                panVelocityX = 0
-                panVelocityY = 0
-                panInertiaFrame = undefined
-                return
-            }
-
-            panInertiaFrame = requestAnimationFrame(step)
-        }
-
-        panInertiaFrame = requestAnimationFrame(step)
+            return moved
+        })
     }
 
-    function startScrollInertia() {
+    function startScrollInertia(stillMs: number) {
         cancelScrollInertia()
-
-        if (
-            Math.abs(scrollVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
-            Math.abs(scrollVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
-        ) {
-            scrollVelocityX = 0
-            scrollVelocityY = 0
-            return
-        }
-
-        let lastTimestamp: number | null = null
-
-        const step = (timestamp: number) => {
-            if (lastTimestamp === null) {
-                lastTimestamp = timestamp
-                scrollInertiaFrame = requestAnimationFrame(step)
-                return
-            }
-
-            const deltaMs = Math.max(1, timestamp - lastTimestamp)
-            lastTimestamp = timestamp
-            const decay = Math.pow(TOUCH_INERTIA_DECAY_PER_FRAME, deltaMs / (1000 / 60))
-            const movement = scrollAncestorBy(scrollVelocityX * deltaMs, scrollVelocityY * deltaMs)
-            const movedX = Math.abs(movement.movedX) > EPSILON
-            const movedY = Math.abs(movement.movedY) > EPSILON
-
-            scrollVelocityX = movedX ? scrollVelocityX * decay : 0
-            scrollVelocityY = movedY ? scrollVelocityY * decay : 0
-
-            if (
-                Math.abs(scrollVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
-                Math.abs(scrollVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
-            ) {
-                scrollVelocityX = 0
-                scrollVelocityY = 0
-                scrollInertiaFrame = undefined
-                return
-            }
-
-            scrollInertiaFrame = requestAnimationFrame(step)
-        }
-
-        scrollInertiaFrame = requestAnimationFrame(step)
+        scrollFling = fling(
+            { x: scrollVelocityX, y: scrollVelocityY },
+            stillMs,
+            (offset) => {
+                const movement = scrollAncestorBy(offset.x, offset.y)
+                return { x: movement.movedX, y: movement.movedY }
+            },
+            window
+        )
     }
 
     function animateViewTo(targetScale: number, targetLeft: number, targetTop: number) {
@@ -1256,6 +1139,7 @@
             panVelocityY = 0
             scrollVelocityX = 0
             scrollVelocityY = 0
+            handedOffAxes = { x: false, y: false }
             const midpoint = getTouchMidpoint(event.touches)
             pinchDistance = getTouchDistance(event.touches)
             pinchStartDistance = pinchDistance
@@ -1279,6 +1163,7 @@
             panVelocityY = 0
             scrollVelocityX = 0
             scrollVelocityY = 0
+            handedOffAxes = { x: false, y: false }
         }
     }
 
@@ -1306,8 +1191,8 @@
         panLastTimestamp = event.timeStamp
         const nextView = clampTranslation(
             currentScale,
-            currentTranslateX + deltaX,
-            currentTranslateY + deltaY,
+            currentTranslateX + (handedOffAxes.x ? 0 : deltaX),
+            currentTranslateY + (handedOffAxes.y ? 0 : deltaY),
             'gesture'
         )
         const consumedPanDeltaX = nextView.translateX - currentTranslateX
@@ -1322,18 +1207,8 @@
             applyView(currentScale, nextView.translateX, nextView.translateY)
         }
 
-        const panVelocityCandidateX = clamp(
-            consumedPanDeltaX / deltaMs,
-            -TOUCH_INERTIA_MAX_VELOCITY,
-            TOUCH_INERTIA_MAX_VELOCITY
-        )
-        const panVelocityCandidateY = clamp(
-            consumedPanDeltaY / deltaMs,
-            -TOUCH_INERTIA_MAX_VELOCITY,
-            TOUCH_INERTIA_MAX_VELOCITY
-        )
-        panVelocityX = didPanX ? panVelocityX * 0.35 + panVelocityCandidateX * 0.65 : 0
-        panVelocityY = didPanY ? panVelocityY * 0.35 + panVelocityCandidateY * 0.65 : 0
+        panVelocityX = didPanX ? fingerVelocity(panVelocityX, consumedPanDeltaX, deltaMs) : 0
+        panVelocityY = didPanY ? fingerVelocity(panVelocityY, consumedPanDeltaY, deltaMs) : 0
 
         const residualScrollDeltaX = deltaX - consumedPanDeltaX
         const residualScrollDeltaY = deltaY - consumedPanDeltaY
@@ -1349,6 +1224,8 @@
         const movement = scrollAncestorBy(residualScrollDeltaX, residualScrollDeltaY)
         const didScrollX = Math.abs(movement.movedX) > EPSILON
         const didScrollY = Math.abs(movement.movedY) > EPSILON
+        if (didScrollX) handedOffAxes.x = true
+        if (didScrollY) handedOffAxes.y = true
 
         if (!didScrollX && !didScrollY) {
             scrollVelocityX = 0
@@ -1356,18 +1233,12 @@
             return
         }
 
-        const scrollVelocityCandidateX = clamp(
-            residualScrollDeltaX / deltaMs,
-            -TOUCH_INERTIA_MAX_VELOCITY,
-            TOUCH_INERTIA_MAX_VELOCITY
-        )
-        const scrollVelocityCandidateY = clamp(
-            residualScrollDeltaY / deltaMs,
-            -TOUCH_INERTIA_MAX_VELOCITY,
-            TOUCH_INERTIA_MAX_VELOCITY
-        )
-        scrollVelocityX = didScrollX ? scrollVelocityX * 0.35 + scrollVelocityCandidateX * 0.65 : 0
-        scrollVelocityY = didScrollY ? scrollVelocityY * 0.35 + scrollVelocityCandidateY * 0.65 : 0
+        scrollVelocityX = didScrollX
+            ? fingerVelocity(scrollVelocityX, residualScrollDeltaX, deltaMs)
+            : 0
+        scrollVelocityY = didScrollY
+            ? fingerVelocity(scrollVelocityY, residualScrollDeltaY, deltaMs)
+            : 0
     }
 
     function clearPinchState() {
@@ -1393,13 +1264,15 @@
             return
         }
 
-        if (panLastClientPoint) {
-            startPanInertia()
-        } else {
-            panVelocityX = 0
-            panVelocityY = 0
-        }
-        startScrollInertia()
+        const stillMs = event.timeStamp - (panLastTimestamp ?? event.timeStamp)
+        if (panLastClientPoint) startPanInertia(stillMs)
+        startScrollInertia(stillMs)
+        panLastClientPoint = null
+        panLastTimestamp = null
+    }
+
+    function handleTouchCancel() {
+        clearPinchState()
         panLastClientPoint = null
         panLastTimestamp = null
     }
@@ -1438,7 +1311,7 @@
                 notifyManualViewChange(currentScale, next.translateX, next.translateY)
                 applyView(currentScale, next.translateX, next.translateY, true)
                 if (Math.abs(residualX) > EPSILON || Math.abs(residualY) > EPSILON) {
-                    scrollAncestorBy(residualX, residualY)
+                    scrollAncestorBy(residualX, residualY, scrollNearestAncestorWithFinger)
                 }
                 return
             }
@@ -1526,6 +1399,7 @@
         const touchStartListener = (event: TouchEvent) => handleTouchStart(event)
         const touchMoveListener = (event: TouchEvent) => handleTouchMove(event)
         const touchEndListener = (event: TouchEvent) => handleTouchEnd(event)
+        const touchCancelListener = () => handleTouchCancel()
         const gestureStartListener = (event: Event) => handleGestureStart(event)
         const gestureChangeListener = (event: Event) => handleGestureChange(event)
         const gestureEndListener = () => handleGestureEnd()
@@ -1539,7 +1413,7 @@
         scroller.addEventListener('touchstart', touchStartListener, { passive: false })
         scroller.addEventListener('touchmove', touchMoveListener, { passive: false })
         scroller.addEventListener('touchend', touchEndListener, { passive: false })
-        scroller.addEventListener('touchcancel', touchEndListener, { passive: false })
+        scroller.addEventListener('touchcancel', touchCancelListener, { passive: false })
         scroller.addEventListener('gesturestart', gestureStartListener, { passive: false })
         scroller.addEventListener('gesturechange', gestureChangeListener, { passive: false })
         scroller.addEventListener('gestureend', gestureEndListener)
@@ -1554,7 +1428,7 @@
             scroller?.removeEventListener('touchstart', touchStartListener)
             scroller?.removeEventListener('touchmove', touchMoveListener)
             scroller?.removeEventListener('touchend', touchEndListener)
-            scroller?.removeEventListener('touchcancel', touchEndListener)
+            scroller?.removeEventListener('touchcancel', touchCancelListener)
             scroller?.removeEventListener('gesturestart', gestureStartListener)
             scroller?.removeEventListener('gesturechange', gestureChangeListener)
             scroller?.removeEventListener('gestureend', gestureEndListener)

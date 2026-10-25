@@ -8,6 +8,7 @@
         type InitialWorkspace
     } from './workspacePersistence.js'
     import { tick, untrack, type Snippet } from 'svelte'
+    import { chainSidewaysScroll } from '../utils/scrollChain.js'
     import {
         type WorkspaceInitialSplit,
         activateTab,
@@ -415,6 +416,7 @@
                 <div
                     class="tabs"
                     role="tablist"
+                    {@attach chainSidewaysScroll}
                     aria-label={item.pane.id === 'fixed'
                         ? `${fixedPane?.label} tabs`
                         : `${label} tabs ${layout.panes.indexOf(item) + 1}`}

@@ -225,11 +225,37 @@ Verification (automated in `tests/scalingWrapper.spec.ts`):
 
 - Inside a vertically scrolling body nested in a horizontally scrolling table, a touch drag on a
   fitted board scrolls the table sideways and the body vertically.
+- A touch drag on a zoomed board that has scrolled the table scrolls it back when it reverses,
+  leaving the board still.
 
-Movement the wrapper does not consume goes, on each axis, to the nearest ancestor that scrolls
-along that axis. A phone layout's vertical body therefore cannot swallow a sideways drag meant
-for the table, and a body that stops overscroll should do so only vertically
-(`overscroll-behavior-y`), so native sideways swipes over it also reach the table.
+Touch movement the wrapper does not consume goes, on each axis, to the ancestors that scroll
+along that axis, nearest first, each taking what it can before its edge, then the window
+(`scrollAncestorsWithFinger`). Wheel and trackpad movement it does not consume goes only to the
+nearest ancestor that scrolls along that axis, or the window when there is none
+(`scrollNearestAncestorWithFinger`). A phone layout's vertical body therefore cannot swallow a sideways drag meant for the table, and
+a body that stops overscroll should do so only vertically (`overscroll-behavior-y`), so native
+sideways swipes over it also reach the table.
+Once a touch drag has scrolled the scrollers around the board along an axis, the rest of that
+drag moves only them along that axis, even if the finger reverses, so the board does not pan
+back; the next touch starts afresh.
+
+A lifted finger flings the board, or the scrollers it handed off to, at its speed, slowing each
+frame (`fling` in `utils/touchFling.ts`). A finger that rested for more than 100ms before lifting
+does not fling, a cancelled touch never flings, and a new touch anywhere, or a wheel, stops a
+fling of the scrollers around the board.
+
+A native sideways scroller inside the table, such as a wide spreadsheet, takes the
+`chainSidewaysScroll` attachment, because native touch scrolling latches to the scroller a swipe
+starts in and iOS Safari does not chain it to the table. While the scroller's content is wider
+than its box, a mostly sideways swipe over it is scrolled by script and moves one scroller from
+start to lift, fling included: the scroller itself, unless the swipe starts with it at its edge in
+the swipe's direction, in which case the nearest scroller around it that can move that way. A
+swipe that reaches the scroller's edge therefore stops there, and one that starts at the edge
+keeps moving the table even if the finger reverses. The fling follows the same rules as the
+board's: none after a rest or a cancelled touch, and a touch or wheel on the flung scroller stops
+it. While the content fits, touch over it is entirely native; the check follows the scroller's
+size, its children's sizes and its DOM, so content that widens as a web font loads counts. Vertical swipes and pinches always stay native, and a nested scroller with the
+attachment handles the touch alone. `TabWorkspace`'s tab strips take it.
 The per-axis handoff is bundled rendering with no host-bridge change; every Game UI Artifact
 bundles `ScalingWrapper` (the 18xx titles through `@tabletop/18xx-ui`) and adopts it when next
 republished.
