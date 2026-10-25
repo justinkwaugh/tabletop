@@ -17,7 +17,7 @@ import {
 } from '@tabletop/yinsh'
 import type { YinshGameSession } from '$lib/model/session.svelte.js'
 import { boardDiff, type BoardDiff } from '$lib/board/boardDiff.js'
-import { coordsKey, pointCenter, ringSlots } from '$lib/board/geometry.js'
+import { coordsKey, flatCenter, VIEW } from '$lib/board/geometry.js'
 import { DROP } from '$lib/board/dropIn.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
@@ -44,7 +44,7 @@ export type DrawnPiece = {
     coords: AxialCoordinates
     playerId: string
     // A marker turning over shows this player's face once it has flipped. It turns along the
-    // ring's path, at `angle` degrees on screen.
+    // ring's path, at `angle` degrees on the board's plane.
     flip?: { toPlayerId: string; angle: number }
 }
 
@@ -96,7 +96,8 @@ export class BoardAnimator {
 
     private readonly nodes = new Map<string, SVGGElement>()
     private flierElement: SVGGElement | undefined
-    private markLayer: SVGGElement | undefined
+    // The marks fade with the move: the destination spots' layer and each piece's own marks.
+    private readonly markNodes = new Set<SVGGElement>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
 
     constructor(private readonly session: YinshGameSession) {}
@@ -140,9 +141,9 @@ export class BoardAnimator {
 
     marks(): Attachment<SVGGElement> {
         return (element) => {
-            this.markLayer = element
+            this.markNodes.add(element)
             return () => {
-                if (this.markLayer === element) this.markLayer = undefined
+                this.markNodes.delete(element)
             }
         }
     }
@@ -178,7 +179,7 @@ export class BoardAnimator {
             if (kind !== 'own-action') {
                 this.enter(pieceKey('marker', action.from), timeline, touched, DROP)
             }
-            this.flyRing(action.from, pointCenter(action.to), timeline, MOVE.start, MOVE.duration)
+            this.flyRing(action.from, VIEW.center(action.to), timeline, MOVE.start, MOVE.duration)
             const length = distanceAxial(action.from, action.to)
             for (const marker of diff.flipped) {
                 const passed = distanceAxial(action.from, marker.coords) / length
@@ -204,8 +205,8 @@ export class BoardAnimator {
         } else {
             this.fallback(diff, timeline, touched, fast)
         }
-        if (this.markLayer) {
-            timeline.to(this.markLayer, { opacity: 0, duration: fast ? FALLBACK : MARK_FADE }, 0)
+        for (const marks of this.markNodes) {
+            timeline.to(marks, { opacity: 0, duration: fast ? FALLBACK : MARK_FADE }, 0)
         }
 
         animationContext.afterAnimations(() => {
@@ -215,7 +216,7 @@ export class BoardAnimator {
             for (const node of touched) {
                 gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
             }
-            if (this.markLayer) gsap.set(this.markLayer, { opacity: 1 })
+            for (const marks of this.markNodes) gsap.set(marks, { opacity: 1 })
         })
     }
 
@@ -246,7 +247,7 @@ export class BoardAnimator {
     private fallback(diff: BoardDiff, timeline: Timeline, touched: SVGGElement[], fast: boolean) {
         const duration = fast ? FALLBACK : MOVE.duration
         if (diff.movedRing) {
-            this.flyRing(diff.movedRing.from, pointCenter(diff.movedRing.to), timeline, 0, duration)
+            this.flyRing(diff.movedRing.from, VIEW.center(diff.movedRing.to), timeline, 0, duration)
         }
         for (const marker of diff.flipped) {
             this.flip(marker.coords, timeline, 0, duration, touched)
@@ -366,7 +367,7 @@ export class BoardAnimator {
     ) {
         const node = this.flierElement
         if (node === undefined) return
-        const start = pointCenter(from)
+        const start = VIEW.center(from)
         gsap.set(node, { x: 0, y: 0, scale: 1 })
         timeline.to(
             node,
@@ -382,12 +383,13 @@ export class BoardAnimator {
 
     private slotOf(playerId: string, index: number): Point {
         const side = playerId === this.session.topPlayerId ? 'top' : 'bottom'
-        return ringSlots(side)[index]
+        return VIEW.ringSlots(side)[index]
     }
 }
 
+// On the board's plane: the marker turns over in a frame drawn flat on the board.
 function travelAngle(from: AxialCoordinates, to: AxialCoordinates): number {
-    const start = pointCenter(from)
-    const end = pointCenter(to)
+    const start = flatCenter(from)
+    const end = flatCenter(to)
     return (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI
 }

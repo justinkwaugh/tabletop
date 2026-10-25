@@ -3,41 +3,37 @@
     import { AXES, POINTS, pointName } from '@tabletop/yinsh'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import {
-        boardOutline,
-        coordsKey,
-        pointCenter,
-        ringSlots,
-        viewBox
-    } from '$lib/board/geometry.js'
+    import { coordsKey, flatCenter, VIEW } from '$lib/board/geometry.js'
     import { boardLabels } from '$lib/board/coordinates.js'
     import {
+        MARKER_HEIGHT,
         MARKER_RADIUS,
-        MARKER_SIDE,
+        RING_HEIGHT,
         RING_INNER,
-        RING_OUTER,
-        RING_SIDE
+        RING_OUTER
     } from '$lib/board/pieceGeometry.js'
     import { BoardAnimator, type DrawnPiece } from '$lib/animators/boardAnimator.svelte.js'
     import { dropIn } from '$lib/board/dropIn.js'
-    import { ringFace } from '$lib/board/pieceShapes.js'
+    import { ellipsePath, markerDrawing, ringDrawing } from '$lib/board/pieceShape.js'
     import { BOARD_STORM, STORM_SIZE, stormImage } from '$lib/board/storm.js'
     import RingShape from './RingShape.svelte'
     import MarkerShape from './MarkerShape.svelte'
+    import PieceDefs from './PieceDefs.svelte'
+    import PieceShadow from './PieceShadow.svelte'
+    import type { Tone } from '$lib/board/pieceStyle.js'
 
     const session = getGameSession()
 
-    const frame = viewBox()
-    const outline = boardOutline()
     const labels = boardLabels(POINTS)
+    const frame = VIEW.frame(labels.map((label) => label.at))
+    const outline = VIEW.playAreaOutline()
 
-    // Each line runs as far as consecutive points go.
     // Each line runs as far as consecutive points go, then a short whisker on past its end
     // points, out over the edge of the board as on the real one.
     const WHISKER = 0.15
     const beyond = (coords: AxialCoordinates, step: AxialCoordinates) => {
-        const from = pointCenter(coords)
-        const to = pointCenter(addAxial(coords, step))
+        const from = VIEW.center(coords)
+        const to = VIEW.center(addAxial(coords, step))
         return { x: from.x + (to.x - from.x) * WHISKER, y: from.y + (to.y - from.y) * WHISKER }
     }
     const lines = AXES.flatMap((axis) => {
@@ -57,14 +53,14 @@
 
     // Back to front, so a nearer piece's side covers the one behind it.
     const pieces = $derived(
-        animator.pieces.toSorted((a, b) => pointCenter(a.coords).y - pointCenter(b.coords).y)
+        animator.pieces.toSorted((a, b) => flatCenter(a.coords).y - flatCenter(b.coords).y)
     )
 
     const sides = $derived(
         session.gameState.players.map((player) => ({
             playerId: player.playerId,
             removed: animator.ringsRemoved[player.playerId] ?? 0,
-            slots: ringSlots(player.playerId === session.topPlayerId ? 'top' : 'bottom').slice(
+            slots: VIEW.ringSlots(player.playerId === session.topPlayerId ? 'top' : 'bottom').slice(
                 0,
                 session.gameState.ringsToWin
             )
@@ -90,14 +86,17 @@
         return undefined
     }
 
-    const marks = $derived(
-        POINTS.flatMap((coords) => {
-            const role = roleOf(coords)
-            return role ? [{ coords, role, center: pointCenter(coords) }] : []
-        })
+    const destinations = $derived(
+        session.destinations.map((move) => VIEW.center(move.to))
     )
 
-    const clickable = $derived(POINTS.filter((coords) => session.isClickable(coords)))
+    // Far first, so where a nearer ring's click area overlaps the one behind it, the nearer
+    // takes the click, as it stands in front.
+    const clickable = $derived(
+        POINTS.filter((coords) => session.isClickable(coords)).toSorted(
+            (a, b) => flatCenter(a).y - flatCenter(b).y
+        )
+    )
 
     function describe(coords: AxialCoordinates): string {
         const name = pointName(coords)
@@ -127,21 +126,49 @@
     }
 
     const RING_MARK = (RING_OUTER + RING_INNER) / 2
-    const SHADOW_SOFTNESS = 2.6
-    const DISC_SHADOW = MARKER_RADIUS + SHADOW_SOFTNESS
-    const RING_SHADOW = RING_OUTER + SHADOW_SOFTNESS
     const MARKER_MARK = MARKER_RADIUS * 0.62
+    // Where each piece's mark lies on screen: a ring's on its top, a marker's on its face, which
+    // sits down inside its lip.
+    const RING_FACE = -VIEW.height(RING_HEIGHT)
+    const MARKER_FACE_AT = markerDrawing(VIEW, MARKER_RADIUS, MARKER_HEIGHT).wall.bottom
+    // A ring's silhouette: the click area of every point, so the whole of a ring standing there
+    // takes the click.
+    const STANDING = ringDrawing(VIEW, RING_OUTER).outline
+    const lying = `scale(1 ${VIEW.tilt})`
+    // A removed ring's space, painted on the table where the ring will lie.
+    const SLOT = [RING_OUTER, RING_INNER]
+        .map((r) => ellipsePath({ y: 0, rx: r, ry: r * VIEW.tilt }))
+        .join(' ')
+    const ON_RING: ReadonlySet<Role> = new Set(['chosen', 'movable', 'remove'])
+    const ON_MARKER: ReadonlySet<Role> = new Set(['settle', 'anchor', 'row'])
+
+    function markOn(piece: DrawnPiece): Role | undefined {
+        const role = roleOf(piece.coords)
+        if (role === undefined) return undefined
+        return (piece.kind === 'ring' ? ON_RING : ON_MARKER).has(role) ? role : undefined
+    }
+    const PREFIX = 'yinsh-board'
 </script>
 
+{#snippet ring(tone: Tone, seedKey: string)}
+    <RingShape {tone} {seedKey} prefix={PREFIX} />
+{/snippet}
+
+{#snippet marker(tone: Tone, seedKey: string)}
+    <MarkerShape {tone} {seedKey} prefix={PREFIX} />
+{/snippet}
+
+{#snippet ringShadow()}
+    <PieceShadow kind="ring" prefix={PREFIX} />
+{/snippet}
+
 {#snippet drawn(piece: DrawnPiece)}
-    {@const center = pointCenter(piece.coords)}
+    {@const center = VIEW.center(piece.coords)}
+    {@const role = markOn(piece)}
     <g transform="translate({center.x} {center.y})" class="piece">
         <g {@attach animator.node(piece.key)}>
             {#if piece.kind === 'ring'}
-                <RingShape
-                    tone={session.toneOfPlayer(piece.playerId)}
-                    seedKey={coordsKey(piece.coords)}
-                />
+                {@render ring(session.toneOfPlayer(piece.playerId), coordsKey(piece.coords))}
             {:else if piece.flip}
                 {#each [{ face: 'front', playerId: piece.playerId }, { face: 'back', playerId: piece.flip.toPlayerId }] as side (side.face)}
                     <g
@@ -152,20 +179,50 @@
                         )}
                     >
                         <g transform="rotate({-piece.flip.angle})">
-                            <MarkerShape
-                                tone={session.toneOfPlayer(side.playerId)}
-                                seedKey={coordsKey(piece.coords)}
-                            />
+                            {@render marker(
+                                session.toneOfPlayer(side.playerId),
+                                coordsKey(piece.coords)
+                            )}
                         </g>
                     </g>
                 {/each}
             {:else}
-                <MarkerShape
-                    tone={session.toneOfPlayer(piece.playerId)}
-                    seedKey={coordsKey(piece.coords)}
-                />
+                {@render marker(session.toneOfPlayer(piece.playerId), coordsKey(piece.coords))}
             {/if}
         </g>
+        {#if piece.kind === 'ring' && session.chosenFrom && sameCoordinates(session.chosenFrom, piece.coords)}
+            <!-- Rule E2: the marker goes into the chosen ring before it moves. A staged preview, so
+                 a local transition; the animator owns the motion once the move is committed. -->
+            {#key coordsKey(session.chosenFrom)}
+                <g class="drop" in:dropIn|global>
+                    {@render marker(myTone, coordsKey(piece.coords))}
+                </g>
+                <!-- The marker sits down in the hole, behind the ring's near half. -->
+                <RingShape
+                    tone={session.toneOfPlayer(piece.playerId)}
+                    seedKey={coordsKey(piece.coords)}
+                    prefix={PREFIX}
+                    near
+                />
+            {/key}
+        {/if}
+        <!-- Each mark lies on its own piece, after it, so nearer pieces cover it as they cover
+             the piece. -->
+        {#if role}
+            {@const radius = piece.kind === 'ring' ? RING_MARK : MARKER_MARK}
+            {#key session.gameState}
+                <g class="ring role-{role}" {@attach animator.marks()}>
+                    {#each ['under', 'over'] as layer (layer)}
+                        <ellipse
+                            cy={piece.kind === 'ring' ? RING_FACE : MARKER_FACE_AT}
+                            rx={radius}
+                            ry={radius * VIEW.tilt}
+                            class={layer}
+                        ></ellipse>
+                    {/each}
+                </g>
+            {/key}
+        {/if}
     </g>
 {/snippet}
 
@@ -182,47 +239,23 @@
         <clipPath id="yinsh-play-clip">
             <polygon points={outline}></polygon>
         </clipPath>
-        <!-- Soft shadows as gradients rather than a blur filter: WebKit leaves the pixels of a
-             removed piece under a filter on screen until something else repaints there. -->
-        <radialGradient id="yinsh-shadow-disc">
-            <stop
-                offset={(MARKER_RADIUS - SHADOW_SOFTNESS) / DISC_SHADOW}
-                stop-color="#000"
-                stop-opacity="0.35"
-            ></stop>
-            <stop offset="1" stop-color="#000" stop-opacity="0"></stop>
-        </radialGradient>
-        <radialGradient id="yinsh-shadow-ring">
-            <stop
-                offset={(RING_INNER - SHADOW_SOFTNESS) / RING_SHADOW}
-                stop-color="#000"
-                stop-opacity="0"
-            ></stop>
-            <stop
-                offset={(RING_INNER + SHADOW_SOFTNESS) / RING_SHADOW}
-                stop-color="#000"
-                stop-opacity="0.35"
-            ></stop>
-            <stop
-                offset={(RING_OUTER - SHADOW_SOFTNESS) / RING_SHADOW}
-                stop-color="#000"
-                stop-opacity="0.35"
-            ></stop>
-            <stop offset="1" stop-color="#000" stop-opacity="0"></stop>
-        </radialGradient>
+        <PieceDefs prefix={PREFIX} />
     </defs>
 
     <polygon points={outline} class="play-area"></polygon>
+    <!-- Printed on the board, so it foreshortens with it about the board's middle. -->
     {#if session.clouds && boardStorm}
-        <image
-            href={boardStorm}
-            x={-STORM_SIZE / 2}
-            y={-STORM_SIZE / 2}
-            width={STORM_SIZE}
-            height={STORM_SIZE}
-            clip-path="url(#yinsh-play-clip)"
-            class="storm"
-        ></image>
+        <g clip-path="url(#yinsh-play-clip)">
+            <image
+                href={boardStorm}
+                x={-STORM_SIZE / 2}
+                y={-STORM_SIZE / 2}
+                width={STORM_SIZE}
+                height={STORM_SIZE}
+                transform={lying}
+                class="storm"
+            ></image>
+        </g>
     {/if}
 
     <g class="lines">
@@ -240,36 +273,42 @@
     {#each sides as side (side.playerId)}
         {#each side.slots as slot, index (index)}
             <g transform="translate({slot.x} {slot.y})">
-                <path d={ringFace(RING_OUTER, RING_INNER)} fill-rule="evenodd" class="slot"></path>
+                <path d={SLOT} fill-rule="evenodd" class="slot"></path>
                 {#if index < side.removed}
-                    <RingShape
-                        tone={session.toneOfPlayer(side.playerId)}
-                        seedKey="slot-{side.playerId}-{index}"
-                    />
+                    {@render ringShadow()}
+                    {@render ring(
+                        session.toneOfPlayer(side.playerId),
+                        `slot-${side.playerId}-${index}`
+                    )}
                 {/if}
             </g>
         {/each}
     {/each}
 
+    <!-- Destinations are empty points, so their spots lie on the board under every piece. -->
+    {#key session.gameState}
+        <g class="marks" {@attach animator.marks()}>
+            {#each destinations as center, index (index)}
+                <ellipse
+                    cx={center.x}
+                    cy={center.y}
+                    rx="5.5"
+                    ry={5.5 * VIEW.tilt}
+                    class="spot role-destination"
+                ></ellipse>
+            {/each}
+        </g>
+    {/key}
+
     <g class="shadows">
         {#each pieces as piece (piece.key)}
-            {@const center = pointCenter(piece.coords)}
+            {@const center = VIEW.center(piece.coords)}
             <g transform="translate({center.x} {center.y})">
                 <g {@attach animator.node(`${piece.key}:shadow`)}>
                     {#if piece.kind === 'ring'}
-                        <circle
-                            cx="1.5"
-                            cy={RING_SIDE + 2}
-                            r={RING_SHADOW}
-                            fill="url(#yinsh-shadow-ring)"
-                        ></circle>
+                        {@render ringShadow()}
                     {:else}
-                        <circle
-                            cx="1.2"
-                            cy={MARKER_SIDE + 1.6}
-                            r={DISC_SHADOW}
-                            fill="url(#yinsh-shadow-disc)"
-                        ></circle>
+                        <PieceShadow kind="marker" prefix={PREFIX} />
                     {/if}
                 </g>
             </g>
@@ -282,57 +321,15 @@
         {@render drawn(piece)}
     {/each}
 
-    <!-- Rule E2: the marker goes into the chosen ring before it moves. A staged preview, so a
-         local transition; the animator owns the motion once the move is committed. -->
-    {#if session.chosenFrom}
-        {@const center = pointCenter(session.chosenFrom)}
-        {#key coordsKey(session.chosenFrom)}
-            <g transform="translate({center.x} {center.y})" class="preview">
-                <g class="drop" in:dropIn|global>
-                    <MarkerShape tone={myTone} seedKey={coordsKey(session.chosenFrom)} />
-                </g>
-            </g>
-        {/key}
-    {/if}
-
-    {#key session.gameState}
-        <g class="marks" {@attach animator.marks()}>
-            {#each marks as mark (coordsKey(mark.coords))}
-                {#if mark.role === 'place'}
-                    <!-- Every vacant point takes a ring, so none is marked. -->
-                {:else if mark.role === 'destination'}
-                    <circle
-                        cx={mark.center.x}
-                        cy={mark.center.y}
-                        r="5.5"
-                        class="spot role-destination"
-                    ></circle>
-                {:else}
-                    {@const radius =
-                        mark.role === 'settle' || mark.role === 'anchor' || mark.role === 'row'
-                            ? MARKER_MARK
-                            : RING_MARK}
-                    <g class="ring role-{mark.role}">
-                        {#each ['under', 'over'] as layer (layer)}
-                            <circle cx={mark.center.x} cy={mark.center.y} r={radius} class={layer}
-                            ></circle>
-                        {/each}
-                    </g>
-                {/if}
-            {/each}
-        </g>
-    {/key}
-
     {#if animator.flier}
-        {@const center = pointCenter(animator.flier.at)}
+        {@const center = VIEW.center(animator.flier.at)}
         <g transform="translate({center.x} {center.y})" class="flier">
             <g {@attach animator.flierNode()}>
-                <circle cx="1.5" cy={RING_SIDE + 2} r={RING_SHADOW} fill="url(#yinsh-shadow-ring)"
-                ></circle>
-                <RingShape
-                    tone={session.toneOfPlayer(animator.flier.playerId)}
-                    seedKey={coordsKey(animator.flier.at)}
-                />
+                {@render ringShadow()}
+                {@render ring(
+                    session.toneOfPlayer(animator.flier.playerId),
+                    coordsKey(animator.flier.at)
+                )}
             </g>
         </g>
     {/if}
@@ -343,18 +340,17 @@
 
     <g class="targets">
         {#each clickable as coords (coordsKey(coords))}
-            {@const center = pointCenter(coords)}
-            <circle
-                cx={center.x}
-                cy={center.y}
-                r={RING_OUTER}
+            {@const center = VIEW.center(coords)}
+            <path
+                d={STANDING}
+                transform="translate({center.x} {center.y})"
                 class="target"
                 role="button"
                 tabindex="0"
                 aria-label={describe(coords)}
                 onclick={() => session.choosePoint(coords)}
                 onkeydown={(event) => onKey(event, () => session.choosePoint(coords))}
-            ></circle>
+            ></path>
         {/each}
     </g>
 </svg>
@@ -401,34 +397,33 @@
 
     .piece,
     .flier,
-    .preview,
     .marks {
         pointer-events: none;
     }
 
     /* Two-tone, a dark band under a bright core, so a mark reads on white and black alike. */
-    .ring circle {
+    .ring ellipse {
         fill: none;
     }
 
     .ring .under {
         stroke: rgb(0 0 0 / 0.8);
-        stroke-width: 4.6;
+        stroke-width: 3.4;
     }
 
     .ring .over {
         stroke: var(--yinsh-mark);
-        stroke-width: 2.4;
+        stroke-width: 1.8;
     }
 
     .ring.role-chosen .under,
     .ring.role-anchor .under {
-        stroke-width: 5.6;
+        stroke-width: 4.4;
     }
 
     .ring.role-chosen .over,
     .ring.role-anchor .over {
-        stroke-width: 3.4;
+        stroke-width: 2.6;
     }
 
     .ring.role-row .over,

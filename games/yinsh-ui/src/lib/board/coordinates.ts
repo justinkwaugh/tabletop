@@ -1,6 +1,6 @@
 import { addAxial, type AxialCoordinates, type Point } from '@tabletop/common'
 import { pointName } from '@tabletop/yinsh'
-import { pointCenter } from './geometry.js'
+import { VIEW } from './geometry.js'
 
 // BoardSpace style: each column's letter below its bottom point, and each line's number before
 // its first point on the left, where the line of that number starts.
@@ -10,7 +10,6 @@ export type CoordinateLabel = {
     at: Point
 }
 
-const LABEL_REACH = 0.6
 const BELOW: AxialCoordinates = { q: 0, r: 1 }
 // Numbers stay level along the lines that run down to the right, so a line starts at its left.
 const BEFORE_LINE: AxialCoordinates = { q: -1, r: 0 }
@@ -54,14 +53,5 @@ function labelBeside(
     point: AxialCoordinates,
     direction: AxialCoordinates
 ): CoordinateLabel {
-    const from = pointCenter(point)
-    const to = pointCenter(addAxial(point, direction))
-    return {
-        key,
-        text,
-        at: {
-            x: from.x + (to.x - from.x) * LABEL_REACH,
-            y: from.y + (to.y - from.y) * LABEL_REACH
-        }
-    }
+    return { key, text, at: VIEW.labelBeside(point, addAxial(point, direction)) }
 }

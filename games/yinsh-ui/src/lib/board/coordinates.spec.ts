@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { pointFromName, POINTS } from '@tabletop/yinsh'
-import { pointCenter } from './geometry.js'
+import { VIEW } from './geometry.js'
 import { boardLabels } from './coordinates.js'
 
 describe('boardLabels', () => {
@@ -15,7 +15,7 @@ describe('boardLabels', () => {
 
     it('puts each number up and to the left of the point its line starts at', () => {
         const two = labels.find((label) => label.text === '2')
-        const a2 = pointCenter(pointFromName('A2'))
+        const a2 = VIEW.center(pointFromName('A2'))
         expect(two?.at.x).toBeLessThan(a2.x)
         expect(two?.at.y).toBeLessThan(a2.y)
     })

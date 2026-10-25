@@ -1,6 +1,8 @@
 <script lang="ts">
-    import { RING_OUTER, RING_SIDE } from '$lib/board/pieceGeometry.js'
+    import { VIEW } from '$lib/board/geometry.js'
+    import { RING_HEIGHT, RING_INNER, RING_OUTER } from '$lib/board/pieceGeometry.js'
     import type { Tone } from '$lib/board/pieceStyle.js'
+    import PieceDefs from './PieceDefs.svelte'
     import RingShape from './RingShape.svelte'
 
     let {
@@ -11,19 +13,23 @@
     }: { tone: Tone; seedKey: string; size: number; filled?: boolean } = $props()
 
     const reach = RING_OUTER + 1
+    const top = RING_OUTER * VIEW.tilt + VIEW.height(RING_HEIGHT) + 1
+    const bottom = RING_OUTER * VIEW.tilt + 1
+    const prefix = $derived(`ring-icon-${seedKey}`)
 </script>
 
 <svg
     width={size}
-    height={size}
-    viewBox="{-reach} {-reach} {reach * 2} {reach * 2 + RING_SIDE}"
+    height={(size * (top + bottom)) / (reach * 2)}
+    viewBox="{-reach} {-top} {reach * 2} {top + bottom}"
     aria-hidden="true"
 >
     {#if filled}
-        <RingShape {tone} {seedKey} />
+        <defs><PieceDefs {prefix} /></defs>
+        <RingShape {tone} {seedKey} {prefix} />
     {:else}
-        <circle r={RING_OUTER} class="slot"></circle>
-        <circle r={RING_OUTER * 0.66} class="slot"></circle>
+        <ellipse rx={RING_OUTER} ry={RING_OUTER * VIEW.tilt} class="slot"></ellipse>
+        <ellipse rx={RING_INNER} ry={RING_INNER * VIEW.tilt} class="slot"></ellipse>
     {/if}
 </svg>
 

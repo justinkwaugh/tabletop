@@ -1,5 +1,7 @@
 <script lang="ts">
-    import { MARKER_RADIUS, MARKER_SIDE } from '$lib/board/pieceGeometry.js'
+    import { VIEW } from '$lib/board/geometry.js'
+    import { MARKER_HEIGHT, MARKER_RADIUS } from '$lib/board/pieceGeometry.js'
+    import PieceDefs from './PieceDefs.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import MarkerShape from './MarkerShape.svelte'
 
@@ -10,20 +12,22 @@
     // Two markers from the pool, a white one lying across a black one below and to its left.
     const OFFSET = MARKER_RADIUS * 0.45
     const reach = MARKER_RADIUS + OFFSET + 1
+    const lift = VIEW.height(MARKER_HEIGHT)
 </script>
 
 <div class="pool" title="Markers left in the pool">
     <svg
         width="26"
         height="26"
-        viewBox="{-reach} {-reach} {reach * 2} {reach * 2 + MARKER_SIDE}"
+        viewBox="{-reach} {-reach - lift} {reach * 2} {reach * 2 + lift}"
         aria-hidden="true"
     >
+        <defs><PieceDefs prefix="pool" /></defs>
         <g transform="translate({-OFFSET} {OFFSET})">
-            <MarkerShape tone="black" seedKey="pool-under" />
+            <MarkerShape tone="black" seedKey="pool-under" prefix="pool" />
         </g>
         <g transform="translate({OFFSET} {-OFFSET})">
-            <MarkerShape tone="white" seedKey="pool-top" />
+            <MarkerShape tone="white" seedKey="pool-top" prefix="pool" />
         </g>
     </svg>
     <strong>{count}</strong>
