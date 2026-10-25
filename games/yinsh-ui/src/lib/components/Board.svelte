@@ -181,7 +181,7 @@
                  a local transition; the animator owns the motion once the move is committed. -->
             <!-- A ring Undo put back already holds its marker, so it does not drop in again. -->
             {#key coordsKey(session.chosenFrom)}
-                <g class="drop" in:dropIn|global={{ instant: session.restaged }}>
+                <g class="drop" in:dropIn|global={{ instant: session.restaged, layer: 'under' }}>
                     {@render marker(myTone, coordsKey(piece.coords))}
                 </g>
                 <!-- The marker sits down in the hole, behind the ring's near half. -->
@@ -195,7 +195,11 @@
         {:else if piece.kind === 'ring' && session.lifting && sameCoordinates(session.lifting, piece.coords)}
             <!-- The ring was put down: its staged marker lifts back out of the hole. -->
             {#key session.lifting}
-                <g class="drop" in:liftOut|global onintroend={() => session.liftedOut()}>
+                <g
+                    class="drop"
+                    in:liftOut|global={{ layer: 'under' }}
+                    onintroend={() => session.liftedOut()}
+                >
                     {@render marker(myTone, coordsKey(piece.coords))}
                 </g>
                 <RingShape
@@ -220,6 +224,24 @@
                             class={layer}
                         ></ellipse>
                     {/each}
+                </g>
+            {/key}
+        {/if}
+        <!-- The moving marker's other copy, over the ring's near half and its mark: shown only
+             while the marker is above the ring, so hidden at rest. -->
+        {#if piece.kind === 'ring' && session.chosenFrom && sameCoordinates(session.chosenFrom, piece.coords)}
+            {#key coordsKey(session.chosenFrom)}
+                <g
+                    class="drop over"
+                    in:dropIn|global={{ instant: session.restaged, layer: 'over' }}
+                >
+                    {@render marker(myTone, coordsKey(piece.coords))}
+                </g>
+            {/key}
+        {:else if piece.kind === 'ring' && session.lifting && sameCoordinates(session.lifting, piece.coords)}
+            {#key session.lifting}
+                <g class="drop over" in:liftOut|global={{ layer: 'over' }}>
+                    {@render marker(myTone, coordsKey(piece.coords))}
                 </g>
             {/key}
         {/if}
@@ -452,6 +474,10 @@
     .drop {
         transform-box: fill-box;
         transform-origin: center;
+    }
+
+    .drop.over {
+        opacity: 0;
     }
 
     .target {
