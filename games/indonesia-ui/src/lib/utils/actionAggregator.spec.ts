@@ -470,4 +470,24 @@ describe('aggregateActions', () => {
             count: 0
         })
     })
+
+    it('keeps a called game out of the open group', () => {
+        const callGame: GameAction = {
+            id: 'call',
+            gameId: 'g1',
+            source: ActionSource.System,
+            type: 'callGame'
+        }
+        const aggregated = Array.from(
+            aggregateActions([
+                expandAction('e1', 'p1', 'A01'),
+                expandAction('e2', 'p1', 'A02'),
+                callGame
+            ])
+        )
+
+        expect(aggregated).toHaveLength(2)
+        expect(isAggregatedIndonesiaAction(aggregated[0])).toBe(true)
+        expect(aggregated[1]).toBe(callGame)
+    })
 })

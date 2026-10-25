@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { sameCoordinates } from '@tabletop/common'
+import {
+    ActionSource,
+    CALL_GAME_ACTION_TYPE,
+    GameCallKind,
+    sameCoordinates,
+    type CallGameAction
+} from '@tabletop/common'
 import { GameSession } from '@tabletop/frontend-components'
 import {
     ActionSpaceId,
@@ -266,6 +272,27 @@ describe('history', () => {
             space: ActionSpaceId.LayTrackII
         })
         expect(turn?.kind === 'turn' && turn.actions).toHaveLength(2)
+    })
+
+    it('shows a called game as its own entry, not as a step of the turn it cut short', () => {
+        const { actions } = playedRound()
+        const call: CallGameAction = {
+            id: 'call',
+            gameId: 'game',
+            source: ActionSource.System,
+            type: CALL_GAME_ACTION_TYPE,
+            index: actions.length,
+            call: {
+                kind: GameCallKind.Called,
+                initiatorPlayerId: 'p1',
+                declaredWinnerIds: [],
+                approvingPlayerIds: ['p1', 'p2'],
+                decliningPlayerIds: []
+            }
+        }
+        const entries = historyEntries([...actions, call])
+        expect(entries.at(-1)).toEqual({ kind: 'call', key: 'call', action: call })
+        expect(entries.at(-2)).toEqual(historyEntries(actions).at(-1))
     })
 
     it('jumps to an entry and withholds every move while viewing it', async () => {

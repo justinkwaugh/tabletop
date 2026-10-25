@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import { ActionSource, type GameAction } from './gameAction.js'
+import { isCallGameAction } from './callGame.js'
 
 export function getActionCascadeEndIndex(
     actions: readonly GameAction[],
@@ -7,8 +8,12 @@ export function getActionCascadeEndIndex(
 ): number {
     if (actionIndex < 0) return actionIndex
     let end = actionIndex
-    while (end + 1 < actions.length && actions[end + 1].source === ActionSource.System) end += 1
+    while (end + 1 < actions.length && isCascadedSystemAction(actions[end + 1])) end += 1
     return end
+}
+
+export function isCascadedSystemAction(action: Pick<GameAction, 'source' | 'type'>): boolean {
+    return action.source === ActionSource.System && !isCallGameAction(action)
 }
 
 function hasRequiredTrueLiteral(schema: Type.TSchema | undefined, key: string): boolean {

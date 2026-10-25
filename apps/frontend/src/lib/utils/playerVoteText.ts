@@ -1,5 +1,13 @@
 import { APIError } from '@tabletop/frontend-components'
-import type { UndoVotePreview } from '@tabletop/common'
+import {
+    nameList,
+    PlayerVoteKind,
+    requiredCallApprovals,
+    votingPlayers,
+    type Player,
+    type PlayerVote,
+    type UndoVotePreview
+} from '@tabletop/common'
 import { countOf } from './gameStats'
 
 export function undoneDetail(preview: UndoVotePreview): string {
@@ -15,4 +23,19 @@ export function voteErrorMessage(error: unknown): string {
     return typeof reason === 'string'
         ? `That didn't work: ${reason}.`
         : 'That did not work. Please try again.'
+}
+
+export function callWinnersDetail(winnerNames: readonly string[]): string {
+    if (winnerNames.length === 0) return 'with no winner'
+    return `with ${nameList(winnerNames)} as the ${winnerNames.length === 1 ? 'winner' : 'winners'}`
+}
+
+export function voteTally(
+    vote: PlayerVote,
+    players: readonly Pick<Player, 'id' | 'userId'>[]
+): string {
+    const approvals = vote.approvingPlayerIds.length
+    return vote.kind === PlayerVoteKind.Undo
+        ? `${approvals} of ${votingPlayers(players).length} agreed`
+        : `${approvals} of ${requiredCallApprovals(players)} needed`
 }

@@ -215,7 +215,10 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isTributing = $derived(this.gameState.machineState === MachineState.Tributing)
     isMetamorphosizing = $derived(this.gameState.machineState === MachineState.Metamorphosizing)
     isChaining = $derived(this.gameState.machineState === MachineState.Chaining)
-    isEndOfGame = $derived(this.gameState.machineState === MachineState.EndOfGame)
+    isEndOfGame = $derived(
+        this.gameState.result !== undefined ||
+            this.gameState.machineState === MachineState.EndOfGame
+    )
     canDeconstruct = $derived(this.validActionTypes.includes(ActionType.Deconstruct))
 
     acting = $derived(

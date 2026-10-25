@@ -1,5 +1,6 @@
 import * as Value from 'typebox/value'
 import { ActionSource, type GameAction } from './gameAction.js'
+import { isCascadedSystemAction } from './actionHistory.js'
 
 const VolatileKeys = ['id', 'index', 'undoPatch', 'forwardPatch', 'createdAt', 'updatedAt'] as const
 
@@ -29,7 +30,7 @@ export function sameRun(
 export function runs(actions: readonly GameAction[]): GameAction[][] {
     const result: GameAction[][] = []
     for (const action of actions) {
-        if (action.source === ActionSource.User || result.length === 0) result.push([action])
+        if (!isCascadedSystemAction(action) || result.length === 0) result.push([action])
         else result[result.length - 1].push(action)
     }
     return result

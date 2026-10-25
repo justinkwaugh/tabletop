@@ -2222,6 +2222,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             result: undefined,
             winningPlayerIds: [],
             finalScores: undefined,
+            call: undefined,
             everFinished: true
         }
     }

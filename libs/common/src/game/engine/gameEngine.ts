@@ -29,6 +29,8 @@ import { generateSeed } from '../../util/prng.js'
 import { assert, assertExists } from '../../util/assertions.js'
 import type { Perspective } from '../visibility/valueProjector.js'
 import { isRedactedAction, UnavailableProjectedActionError } from '../visibility/actionProjector.js'
+import { applyCallGame, isCallGameAction } from './callGame.js'
+import { calculateActionChecksum } from '../../util/checksum.js'
 
 export type ActionResult<T extends GameState = GameState> = {
     processedActions: GameAction[]
@@ -176,8 +178,9 @@ export class GameEngine<
         game = normalizeGame(game, this.runtime.configuration)
         const perspective = options.perspective
         if (
-            perspective !== undefined &&
-            (perspective.kind !== 'player' || perspective.playerId !== playerId)
+            state.result !== undefined ||
+            (perspective !== undefined &&
+                (perspective.kind !== 'player' || perspective.playerId !== playerId))
         ) {
             return []
         }
@@ -304,6 +307,8 @@ export class GameEngine<
         }
 
         if (canonical) this.validateCanonicalState(state)
+        assert(state.result === undefined, 'A Game State with a result accepts no further Actions')
+        if (isCallGameAction(action)) return this.executeCallGame(action, state, canonical)
 
         const processedActions: GameAction[] = []
         const transitions: CanonicalActionTransition<T>[] = []
@@ -402,6 +407,28 @@ export class GameEngine<
             indexOffset,
             before,
             transitions
+        }
+    }
+
+    private executeCallGame(action: GameAction, state: T, canonical: boolean): RuntimeExecution<T> {
+        assert(
+            action.index === undefined || action.index === state.actionCount,
+            `Action index is not valid, expected ${state.actionCount}, got ${action.index}`
+        )
+        const recorded = structuredClone(action)
+        recorded.index = state.actionCount
+        recorded.createdAt ??= new Date()
+        const updatedState = applyCallGame(state, recorded)
+        updatedState.actionCount = state.actionCount + 1
+        updatedState.actionChecksum = calculateActionChecksum(state.actionChecksum, [recorded])
+        if (canonical) this.validateCanonicalState(updatedState)
+        recorded.undoPatch = createPatch(updatedState, state)
+        return {
+            processedActions: [recorded],
+            updatedState,
+            indexOffset: 0,
+            before: state,
+            transitions: [{ action: recorded, after: updatedState }]
         }
     }
 

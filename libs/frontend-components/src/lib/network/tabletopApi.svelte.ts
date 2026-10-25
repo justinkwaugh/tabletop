@@ -814,6 +814,10 @@ export class TabletopApi {
         return this.postVote(game, 'undo/open', { actionIndex, targetActionId })
     }
 
+    async requestCall(game: Game, declaredWinnerIds: string[]): Promise<Game> {
+        return this.postVote(game, 'call', { declaredWinnerIds })
+    }
+
     async approveVote(game: Game, voteId: string): Promise<Game> {
         return this.postVote(game, 'approve', { voteId })
     }
@@ -829,7 +833,10 @@ export class TabletopApi {
     private async postVote(
         game: Game,
         route: VoteRoute,
-        body: { actionIndex: number; targetActionId: string } | { voteId: string }
+        body:
+            | { actionIndex: number; targetActionId: string }
+            | { declaredWinnerIds: string[] }
+            | { voteId: string }
     ): Promise<Game> {
         const response = await this.titleRequest(game.typeId)
             .post({ gameId: game.id, ...body }, `/game/${game.typeId}/vote/${route}`)
@@ -1169,7 +1176,7 @@ export class TabletopApi {
     }
 }
 
-type VoteRoute = 'undo/open' | 'approve' | 'decline' | 'withdraw'
+type VoteRoute = 'undo/open' | 'call' | 'approve' | 'decline' | 'withdraw'
 
 export type TabletopApiPublic = Pick<TabletopApi, keyof TabletopApi>
 

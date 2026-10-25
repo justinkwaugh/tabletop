@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { CalledGameEnding, PlayerName } from '@tabletop/frontend-components'
     import { coralValues } from '@tabletop/reef-encounter'
     import PolypChip from '$lib/components/PolypChip.svelte'
     import { scoreTable } from '$lib/utils/scoreTable.js'
@@ -17,71 +17,75 @@
     const midSentence = (playerId: string) => (playerId === myId ? 'lowercase' : 'capitalize')
 </script>
 
-<p class="prompt reef-display">
-    {#each winners as winner, index (winner.playerId)}
-        {#if index > 0}{index === winners.length - 1 ? ' and ' : ', '}{/if}<PlayerName
-            playerId={winner.playerId}
-            capitalization={index > 0 ? midSentence(winner.playerId) : 'capitalize'}
-        />
-    {/each}
-    {winners.length > 1 ? ' share the win' : soleWinnerIsMe ? ' win' : ' wins'} with {winners[0]
-        ?.total} points
-</p>
-
-{#if endReasonText(state.endReason)}
-    <p class="detail">{endReasonText(state.endReason)}</p>
-{/if}
-
-<div class="scroll">
-    <table>
-        <thead>
-            <tr>
-                <th scope="col" class="player">Player</th>
-                {#each table.rows[0]?.cells ?? [] as cell (cell.color)}
-                    <th scope="col" class="color">
-                        <span class="value">
-                            <PolypChip color={cell.color} count={1} />
-                            <span class="reef-display">×{values[cell.color]}</span>
-                        </span>
-                    </th>
-                {/each}
-                <th scope="col" class="total">Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            {#each table.rows as row (row.playerId)}
-                <tr class:winner={row.place === 1}>
-                    <th scope="row" class="player">
-                        <span class="place reef-display">{row.place}</span>
-                        <PlayerName playerId={row.playerId} />
-                    </th>
-                    {#each row.cells as cell (cell.color)}
-                        <td>
-                            {#if cell.polyps > 0}
-                                <span class="points reef-display">{cell.points}</span>
-                                <span class="count"
-                                    >{cell.polyps} polyp{cell.polyps === 1 ? '' : 's'}</span
-                                >
-                            {:else}
-                                <span class="none">–</span>
-                            {/if}
-                        </td>
-                    {/each}
-                    <td class="total reef-display">{row.total}</td>
-                </tr>
-            {/each}
-        </tbody>
-    </table>
-</div>
-
-{#each table.tieBreaks as tie (tie.behindId)}
-    <p class="detail">
-        <PlayerName playerId={tie.aheadId} />
-        {tie.aheadId === myId ? 'place' : 'places'} ahead of
-        <PlayerName playerId={tie.behindId} capitalization={midSentence(tie.behindId)} /> on
-        {tie.criterion}, {tie.ahead} to {tie.behind}.
+{#if gameSession.gameCall}
+    <CalledGameEnding class="prompt reef-display" />
+{:else}
+    <p class="prompt reef-display">
+        {#each winners as winner, index (winner.playerId)}
+            {#if index > 0}{index === winners.length - 1 ? ' and ' : ', '}{/if}<PlayerName
+                playerId={winner.playerId}
+                capitalization={index > 0 ? midSentence(winner.playerId) : 'capitalize'}
+            />
+        {/each}
+        {winners.length > 1 ? ' share the win' : soleWinnerIsMe ? ' win' : ' wins'} with {winners[0]
+            ?.total} points
     </p>
-{/each}
+
+    {#if endReasonText(state.endReason)}
+        <p class="detail">{endReasonText(state.endReason)}</p>
+    {/if}
+
+    <div class="scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col" class="player">Player</th>
+                    {#each table.rows[0]?.cells ?? [] as cell (cell.color)}
+                        <th scope="col" class="color">
+                            <span class="value">
+                                <PolypChip color={cell.color} count={1} />
+                                <span class="reef-display">×{values[cell.color]}</span>
+                            </span>
+                        </th>
+                    {/each}
+                    <th scope="col" class="total">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {#each table.rows as row (row.playerId)}
+                    <tr class:winner={row.place === 1}>
+                        <th scope="row" class="player">
+                            <span class="place reef-display">{row.place}</span>
+                            <PlayerName playerId={row.playerId} />
+                        </th>
+                        {#each row.cells as cell (cell.color)}
+                            <td>
+                                {#if cell.polyps > 0}
+                                    <span class="points reef-display">{cell.points}</span>
+                                    <span class="count"
+                                        >{cell.polyps} polyp{cell.polyps === 1 ? '' : 's'}</span
+                                    >
+                                {:else}
+                                    <span class="none">–</span>
+                                {/if}
+                            </td>
+                        {/each}
+                        <td class="total reef-display">{row.total}</td>
+                    </tr>
+                {/each}
+            </tbody>
+        </table>
+    </div>
+
+    {#each table.tieBreaks as tie (tie.behindId)}
+        <p class="detail">
+            <PlayerName playerId={tie.aheadId} />
+            {tie.aheadId === myId ? 'place' : 'places'} ahead of
+            <PlayerName playerId={tie.behindId} capitalization={midSentence(tie.behindId)} /> on
+            {tie.criterion}, {tie.ahead} to {tie.behind}.
+        </p>
+    {/each}
+{/if}
 
 <style>
     .scroll {

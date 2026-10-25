@@ -49,7 +49,8 @@
     }
 
     let showEndOfGameMarker = $derived(
-        gameSession.gameState.machineState === MachineState.EndOfGame
+        gameSession.gameState.result !== undefined ||
+            gameSession.gameState.machineState === MachineState.EndOfGame
     )
 
     let historyItems = $derived.by(() => {

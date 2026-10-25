@@ -229,6 +229,7 @@ export class EighteenXXSession<
         },
         get selectionsVisible() {
             return (
+                session.gameState.result === undefined &&
                 !session.updatingVisibleState &&
                 !session.isViewingHistory &&
                 !session.sharedActionsBlocked
@@ -236,6 +237,7 @@ export class EighteenXXSession<
         },
         get interactive() {
             return (
+                session.gameState.result === undefined &&
                 !session.busy &&
                 !session.updatingVisibleState &&
                 !session.isViewingHistory &&

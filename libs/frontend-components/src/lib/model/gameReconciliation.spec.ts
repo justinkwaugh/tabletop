@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
     ActionSource,
+    CALL_GAME_ACTION_TYPE,
+    GameCallKind,
     createPatch,
     type Game,
     type GameAction,
@@ -271,6 +273,91 @@ describe('GameReconciliation server updates', () => {
             'other-action',
             'undo'
         ])
+    })
+})
+
+describe('GameReconciliation delivery of a called game', () => {
+    function delivery() {
+        const game = { id: 'game', updatedAt: new Date('2026-10-25T12:00:00.000Z') } as Game
+        const executed: GameAction[] = []
+        const context = {
+            state: stateWith({ actionCount: 3 }),
+            game,
+            historyStartIndex: 0,
+            hasAction: () => false,
+            applyActionResults: vi.fn(),
+            updateGame: vi.fn(),
+            engine: {
+                executeAction: ({ action, state }: { action: GameAction; state: State }) => {
+                    executed.push(action)
+                    return {
+                        processedActions: [action],
+                        updatedState: { ...state, actionCount: state.actionCount + 1 }
+                    }
+                }
+            }
+        }
+        const remote = {
+            isPaused: () => false,
+            recover: vi.fn(),
+            acceptsPerspective: () => true,
+            present: vi.fn((_request: TransitionRequest, write: () => void) => write())
+        }
+        const reconciliation = new GameReconciliation(
+            context as unknown as Context,
+            remote as unknown as ConstructorParameters<
+                typeof GameReconciliation<State, HydratedGameState<State> & State>
+            >[1]
+        )
+        const call: GameAction & { call: unknown } = {
+            id: 'call',
+            gameId: 'game',
+            type: CALL_GAME_ACTION_TYPE,
+            source: ActionSource.System,
+            index: 3,
+            call: {
+                kind: GameCallKind.Conceded,
+                initiatorPlayerId: 'p1',
+                declaredWinnerIds: ['p2'],
+                approvingPlayerIds: ['p1'],
+                decliningPlayerIds: []
+            }
+        }
+        const cascaded: GameAction = {
+            id: 'cascade',
+            gameId: 'game',
+            type: 'Score',
+            source: ActionSource.System,
+            index: 3
+        }
+        return { context, reconciliation, executed, call, cascaded, game }
+    }
+
+    it('executes a pushed call, which no User Action of the client will cascade', async () => {
+        const { context, reconciliation, executed, call, game } = delivery()
+
+        await reconciliation.enqueue({
+            kind: 'actions',
+            actions: [call],
+            handling: ServerActionHandling.Execute,
+            game
+        })
+
+        expect(executed.map((action) => action.id)).toEqual(['call'])
+        expect(context.applyActionResults).toHaveBeenCalledOnce()
+    })
+
+    it('still leaves other System Actions to the cascade that produces them', async () => {
+        const { reconciliation, executed, cascaded, game } = delivery()
+
+        await reconciliation.enqueue({
+            kind: 'actions',
+            actions: [cascaded],
+            handling: ServerActionHandling.Execute,
+            game
+        })
+
+        expect(executed).toEqual([])
     })
 })
 

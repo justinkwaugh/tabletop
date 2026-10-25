@@ -1,6 +1,6 @@
 # Player Votes
 
-A Player Vote lets the Players of a Hosted Game decide a lifecycle question together (see the [game lifecycle glossary](contexts/game-lifecycle/CONTEXT.md)). Issue #86 records the agreed design. The Undo Vote is built; calling the game and conceding are not.
+A Player Vote lets the Players of a Hosted Game decide a lifecycle question together (see the [game lifecycle glossary](contexts/game-lifecycle/CONTEXT.md)). Issue #86 records the agreed design. Both kinds are built: the Undo Vote and the Call Request, which a two-Player Game presents as Concede.
 
 ## Undo Vote
 
@@ -10,6 +10,15 @@ A Player Vote lets the Players of a Hosted Game decide a lifecycle question toge
 - The other Players receive an Attention Notice through web push and Discord.
 - Hotseat and Tournament Games have no votes. Finished Games do, since an Authorized Undo may reopen one.
 - A passed vote runs the ordinary Undo path with the Player restrictions lifted. The unavailable-history check still applies. Undo restores the random-number position, so replaying draws the same dice and cards.
+
+## Call Request and Concede
+
+- A Joined Player of an In Progress Game asks from the account menu: **Concede…** in a two-Player Game, **Call the game…** otherwise. The menu shows the entry only when the title's loaded UI declares the `calledGames` client capability, the Game is eligible, and, for a call, no other vote is open.
+- A call names the winners or no winner. It passes on a strict majority of the Players with an account, the asker included, and fails once that majority is out of reach, a tie included. Declines are recorded, not final. The asker may withdraw it.
+- Concede needs no vote: the other Player is the winner and the Game ends at once.
+- On passing, the host appends the reserved `callGame` System Action (ADR 0012). The result is a Win for the declared winners, or Abandoned with none. No final scores are recorded. The Game records the call in `Game.call` (kind `called` or `conceded`, the asker, winners, approvals and declines), and the Action carries the same record for history.
+- Players cannot undo a Called Game and have no further votes on it; an administrator can undo it, which clears `Game.call`.
+- Hotseat and Tournament Games refuse it.
 
 The shared rule for what a Player's own Undo reaches lives in `libs/common/src/game/engine/playerUndo.ts`. The host uses it to decide whether a request needs a vote, and the Game Session uses it for the Undo button and for the history position it reports.
 
@@ -26,3 +35,11 @@ Three optional `GameSessionBridge` members come from the shared Game Client bund
 - `showLiveGame()`: leaves History View. The host calls it for the Player who asked once their vote passes and the Undo has reached the client.
 
 A UI Artifact gains them only through a new UI-only Publication. Until a title is republished, the host offers the request at every History View position, and the server answers "you can undo this yourself" where Undo already reaches. The host also hides View that point, and the Player who asked stays in History View after the vote passes.
+
+## Called games and UI Artifacts
+
+`callGame` runs in each UI Artifact's embedded engine, so a title can be called only after a UI-only Publication that includes it. Such an Artifact declares `clientCapabilities: ['calledGames']` in `UiDefinition.info`; the build copies it into the Artifact's `catalog.json`, and the backend refuses a call while the current Publication's catalog entry lacks it. The Site Frontend reads the same field from the loaded `UiDefinition` to show the menu entry. Every 18xx title also needs its Logic Artifact republished, because the 18xx state check that tied a result to GameOver lives in the title's logic.
+
+The shared Game Client exposes `gameCall` on the Game Session: the `Game.call` record while the displayed state shows the called result. Title end panels show the shared `CalledGameEnding` in place of their scoring, and history shows a `callGame` Action with `CalledGameDescription`. The harness Scenarios menu can copy the open game ended by a call to check a title's ending.
+
+`Game.call` and the call vote are new shapes on the Game. Site Frontend builds older than this change reject a Game that carries a call vote, so release the Site Frontend before the backend accepts calls.

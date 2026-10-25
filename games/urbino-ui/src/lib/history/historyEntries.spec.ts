@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    CALL_GAME_ACTION_TYPE,
+    GameCallKind,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import { ActionType, BuildingType } from '@tabletop/urbino'
 import { entryContaining, historyEntries } from './historyEntries.js'
 
@@ -73,6 +79,31 @@ describe('historyEntries', () => {
             { passed: true, complete: true },
             { conceded: true, complete: true }
         ])
+    })
+
+    it('gives a called game its own entry, apart from the open turn', () => {
+        const call: CallGameAction = {
+            id: 'call',
+            gameId: 'g',
+            source: ActionSource.System,
+            type: CALL_GAME_ACTION_TYPE,
+            call: {
+                kind: GameCallKind.Conceded,
+                initiatorPlayerId: 'p1',
+                declaredWinnerIds: ['p2'],
+                approvingPlayerIds: ['p1'],
+                decliningPlayerIds: []
+            }
+        }
+        const entries = historyEntries([
+            action(ActionType.RepositionArchitect, 'p1', { architectIndex: 0, position: 3 }),
+            call
+        ])
+        expect(entries).toMatchObject([
+            { kind: 'turn', playerId: 'p1', firstIndex: 0, lastIndex: 0, complete: false },
+            { kind: 'gameCall', actionIndex: 1, action: call }
+        ])
+        expect(entryContaining(entries, 1)).toBe(entries[1])
     })
 
     it('finds the entry holding an action', () => {

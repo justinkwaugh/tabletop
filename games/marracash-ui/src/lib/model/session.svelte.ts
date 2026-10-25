@@ -122,7 +122,9 @@ export class MarracashGameSession extends GameSession<
             : []
     )
 
-    readonly finalTurnPlayerId: string | undefined = $derived(this.gameState.finalTurnPlayerId())
+    readonly finalTurnPlayerId: string | undefined = $derived(
+        this.gameState.result === undefined ? this.gameState.finalTurnPlayerId() : undefined
+    )
 
     readonly outcomes: OutcomeReport[] = $derived(this.moneyReports.filter(isOutcomeReport))
 

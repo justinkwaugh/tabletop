@@ -24,11 +24,7 @@ export function eighteenSeventeenGameFacts(state: EighteenSeventeenState): Title
     if (state.selectionAuction && !state.selectionAuction.completed && seedMoney !== undefined)
         facts.push({ label: 'Seed money', value: money(seedMoney) })
     const ending = state.gameEnding
-    if (
-        ending?.finalOperatingSet &&
-        ending.finalOperatingRounds &&
-        state.machineState !== 'GameOver'
-    )
+    if (ending?.finalOperatingSet && ending.finalOperatingRounds && state.result === undefined)
         facts.push({
             label: 'Game ends',
             value: `after AR ${ending.finalOperatingSet}.${ending.finalOperatingRounds}`

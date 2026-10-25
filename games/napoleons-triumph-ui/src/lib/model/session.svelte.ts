@@ -1,5 +1,13 @@
 import { GameSession, type TitlePreferences } from '@tabletop/frontend-components'
-import { assert, assertExists, type Color, type Point } from '@tabletop/common'
+import {
+    assert,
+    assertExists,
+    gameCallDescription,
+    gameCallOf,
+    type Color,
+    type GameAction,
+    type Point
+} from '@tabletop/common'
 import {
     ActionType,
     Advance,
@@ -343,7 +351,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.myPlayerId === undefined || showsArmyOf(this.gameState, this.myPlayerId)
     )
 
-    canAct = $derived(this.isMyTurn && !this.isViewingHistory && this.armyInView)
+    canAct = $derived(
+        this.isMyTurn &&
+            !this.isViewingHistory &&
+            this.armyInView &&
+            this.gameState.result === undefined
+    )
 
     isCommanding = $derived(this.canAct && this.gameState.machineState === MachineState.Commanding)
 
@@ -643,12 +656,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
         })
     })
 
+    describe(action: GameAction): string {
+        const call = gameCallOf(action)
+        return call
+            ? `${gameCallDescription(call, (playerId) => this.getPlayerName(playerId))}.`
+            : describeAction(action, this.gameState)
+    }
+
     chapters: HistoryChapter[] = $derived(
         historyChapters(this.actions, {
             rounds: this.gameState.rounds.series,
             turns: this.gameState.turnManager.series,
             scenario: this.gameState.scenario,
-            describe: (action) => describeAction(action, this.gameState),
+            describe: (action) => this.describe(action),
             turnTitle: (playerId) => TURN_TITLES[this.gameState.sideOf(playerId)]
         })
     )

@@ -139,10 +139,13 @@
         session.presentation.phaseChartFor?.(session.gameState) ?? defaultPhaseChart
     )
     const operatingRules = $derived(session.operatingRules)
+    const gameOver = $derived(session.gameState.result !== undefined)
     const readOnlyPosition = $derived(
-        session.isViewingHistory || !session.myPlayer || !session.isMyTurn
+        session.isViewingHistory || gameOver || !session.myPlayer || !session.isMyTurn
     )
-    const auctionShownToAll = $derived(!session.isViewingHistory && session.privateAuctionActive)
+    const auctionShownToAll = $derived(
+        !session.isViewingHistory && !gameOver && session.privateAuctionActive
+    )
     const auctionTurnPlayerId = $derived(
         readOnlyPosition && auctionShownToAll ? session.turnPlayerId() : undefined
     )

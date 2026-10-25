@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    CALL_GAME_ACTION_TYPE,
+    GameCallKind,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import {
     ActionType,
     MarketColor,
@@ -7,7 +13,12 @@ import {
     type AuctionResult,
     type MoveResult
 } from '@tabletop/marracash'
-import { historyEntries, type HistoryTurn, type OpenAuction } from './historyTurns.js'
+import {
+    historyEntries,
+    type HistoryEntry,
+    type HistoryTurn,
+    type OpenAuction
+} from './historyTurns.js'
 
 const TurnOrder = ['amira', 'bashir', 'chadia']
 
@@ -49,6 +60,26 @@ const startAuction = (playerId: string, shopId: string) =>
 
 const resolveAuction = (metadata: AuctionResult) =>
     action(ActionType.ResolveAuction, { source: ActionSource.System, revealsInfo: true, metadata })
+
+const callGame = (): CallGameAction => ({
+    id: `action-${nextId++}`,
+    gameId: 'game',
+    type: CALL_GAME_ACTION_TYPE,
+    source: ActionSource.System,
+    call: {
+        kind: GameCallKind.Conceded,
+        initiatorPlayerId: 'amira',
+        approvingPlayerIds: ['amira'],
+        declaredWinnerIds: ['bashir'],
+        decliningPlayerIds: []
+    }
+})
+
+function entryLabel(entry: HistoryEntry): string {
+    if (entry.kind === 'round') return `round ${entry.round}`
+    if (entry.kind === 'call') return 'call'
+    return `${entry.playerId}:${entry.lines.length}`
+}
 
 function turns(entries: ReturnType<typeof historyEntries>): HistoryTurn[] {
     return entries.filter((entry): entry is HistoryTurn => entry.kind === 'turn')
@@ -161,13 +192,14 @@ describe('MarraCash history turns', () => {
         ]
         const entries = historyEntries(actions, TurnOrder, false)
 
-        expect(
-            entries.map((entry) =>
-                entry.kind === 'round'
-                    ? `round ${entry.round}`
-                    : `${entry.playerId}:${entry.lines.length}`
-            )
-        ).toEqual(['round 2', 'amira:1', 'round 1', 'chadia:0', 'bashir:1', 'amira:0'])
+        expect(entries.map(entryLabel)).toEqual([
+            'round 2',
+            'amira:1',
+            'round 1',
+            'chadia:0',
+            'bashir:1',
+            'amira:0'
+        ])
         expect(
             entries.flatMap((entry) =>
                 entry.kind === 'turn' ? [[entry.firstIndex, entry.lastIndex]] : []
@@ -207,5 +239,37 @@ describe('MarraCash history turns', () => {
         expect(turn.lines).toMatchObject([{ kind: 'antiqueSet', collectorId: 'chadia', rank: 0 }])
         expect(turn.moverNet).toBe(0)
         expect(turn.others).toEqual([{ playerId: 'chadia', amount: 400 }])
+    })
+
+    it('shows a called game on its own line, credited to no seat, after a turn it cut short', () => {
+        const actions = [
+            bring('amira', QueueEnd.Front, 1, [MarketColor.Red]),
+            endTurn(),
+            bring('bashir', QueueEnd.Back, 8, [MarketColor.Blue]),
+            callGame()
+        ]
+        const entries = historyEntries(actions, TurnOrder, false)
+
+        expect(entries.map(entryLabel)).toEqual(['call', 'round 1', 'bashir:1', 'amira:1'])
+        expect(turns(entries).map((turn) => [turn.firstIndex, turn.lastIndex, turn.ended])).toEqual(
+            [
+                [2, 2, false],
+                [0, 1, true]
+            ]
+        )
+    })
+
+    it('adds no empty turn for a game called between turns', () => {
+        const actions = [
+            bring('amira', QueueEnd.Front, 1, [MarketColor.Red]),
+            endTurn(),
+            callGame()
+        ]
+
+        expect(historyEntries(actions, TurnOrder, false).map(entryLabel)).toEqual([
+            'call',
+            'round 1',
+            'amira:1'
+        ])
     })
 })

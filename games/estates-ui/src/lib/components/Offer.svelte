@@ -11,7 +11,7 @@
     let { size } = useThrelte()
 
     let canPlace = $derived(
-        gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
+        gameSession.canTakeTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
     )
 
     let placeableCubes = $derived(gameSession.gameState.placeableCubes())

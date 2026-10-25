@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { type GameAction } from '@tabletop/common'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { isCallGameAction, type GameAction } from '@tabletop/common'
+    import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
     import {
         ActionCardType,
         getSquare,
@@ -461,6 +461,8 @@
     {:else}
         <span class="text-gray-500">(the round continues...)</span>
     {/if}
+{:else if isCallGameAction(action)}
+    <CalledGameDescription {action} />
 {:else}
     performed an action.
 {/if}

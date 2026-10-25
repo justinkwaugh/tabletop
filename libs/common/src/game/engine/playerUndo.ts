@@ -1,8 +1,10 @@
 import { assertExists } from '../../util/assertions.js'
 import { isOutOfTurnDeclaration } from './actionHistory.js'
 import { ActionSource, type GameAction } from './gameAction.js'
+import { isCallGameAction } from './callGame.js'
 
 export enum PlayerUndoRestriction {
+    CalledGame = 'calledGame',
     RevealsInformation = 'revealsInformation',
     OtherPlayersActions = 'otherPlayersActions'
 }
@@ -10,6 +12,7 @@ export enum PlayerUndoRestriction {
 type UndoAction = Pick<
     GameAction,
     | 'index'
+    | 'type'
     | 'source'
     | 'playerId'
     | 'revealsInfo'
@@ -35,6 +38,7 @@ export function playerUndoRestriction(
     playerId: string
 ): PlayerUndoRestriction | undefined {
     for (const action of undoneActions) {
+        if (isCallGameAction(action)) return PlayerUndoRestriction.CalledGame
         if (action.revealsInfo) return PlayerUndoRestriction.RevealsInformation
         if (
             isOtherPlayersUserAction(action, playerId) &&

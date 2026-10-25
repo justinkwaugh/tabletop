@@ -1,6 +1,5 @@
 <script lang="ts">
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import GameEnding from '../ending/GameEnding.svelte'
     import TrackBuilding from '../maps/TrackBuilding.svelte'
     import StationBuilding from '../maps/StationBuilding.svelte'
     import HomeStationChoice from '../maps/HomeStationChoice.svelte'
@@ -78,8 +77,7 @@
     {/if}
 {/snippet}
 
-{#if gameState.result}<GameEnding {session} />
-{:else if gameState.machineState === 'StockRound'}
+{#if gameState.machineState === 'StockRound'}
     {@render actionControls()}
 {:else}
     <section class="centered-panel" aria-label="Operating actions">

@@ -9,7 +9,7 @@ const user: User = { id: 'user-1', status: UserStatus.Active, roles: [Role.User]
 const definition = routeTestDefinition('vote-test', 'Tests player vote routes.')
 const game = { id: 'game-1' }
 
-async function createServer() {
+async function createServer({ callsSupported = true } = {}) {
     const server = Fastify()
     await server.register(fastifyAuth)
     Reflect.set(server, 'verifyUser', async (request: { user?: User }) => {
@@ -20,9 +20,15 @@ async function createServer() {
         openUndoVote: vi.fn(async () => game),
         approveVote: vi.fn(async () => game),
         declineVote: vi.fn(async () => game),
-        withdrawVote: vi.fn(async () => game)
+        withdrawVote: vi.fn(async () => game),
+        requestCall: vi.fn(async () => game)
     }
+    const publication = { gameId: 'vote-test', uiVersion: '1.0.0' }
     Reflect.set(server, 'gameService', gameService)
+    Reflect.set(server, 'libraryService', { getGeneration: () => ({ publication }) })
+    Reflect.set(server, 'catalogService', {
+        supportsCapability: vi.fn(async () => callsSupported)
+    })
     await server.register(voteRoutes.bind(undefined, () => definition))
     return { server, gameService }
 }
@@ -61,6 +67,32 @@ describe('player vote routes', () => {
         }
         expect(gameService.approveVote).toHaveBeenCalledWith(
             expect.objectContaining({ definition })
+        )
+    })
+
+    it('tells the game service whether the published UI supports called games', async () => {
+        const call = { gameId: 'game-1', declaredWinnerIds: ['p2'] }
+        const supported = await createServer()
+        servers.add(supported.server)
+        const accepted = await supported.server.inject({
+            method: 'POST',
+            url: '/vote/call',
+            payload: call
+        })
+        expect(accepted.statusCode).toBe(200)
+        expect(supported.gameService.requestCall).toHaveBeenCalledWith(
+            expect.objectContaining({ user, definition, ...call })
+        )
+
+        expect(supported.gameService.requestCall).toHaveBeenCalledWith(
+            expect.objectContaining({ publishedUiSupportsCalls: true })
+        )
+
+        const unsupported = await createServer({ callsSupported: false })
+        servers.add(unsupported.server)
+        await unsupported.server.inject({ method: 'POST', url: '/vote/call', payload: call })
+        expect(unsupported.gameService.requestCall).toHaveBeenCalledWith(
+            expect.objectContaining({ publishedUiSupportsCalls: false })
         )
     })
 })

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { ActionSource } from '@tabletop/common'
+import { ActionSource, GameCallKind, type CallGameAction } from '@tabletop/common'
 import type {
     AuctionAwardDetails,
     BuyAuctionLot,
@@ -257,4 +257,25 @@ it('names the company that discarded a train and where the train went', () => {
         text: 'R discarded a train',
         detail: 'To the open market'
     })
+})
+
+it('describes a called game by its call, not by an actor', () => {
+    const call: CallGameAction = {
+        id: 'call',
+        gameId: 'history',
+        source: ActionSource.System,
+        type: 'callGame',
+        call: {
+            kind: GameCallKind.Conceded,
+            initiatorPlayerId: 'alex',
+            declaredWinnerIds: ['blake'],
+            approvingPlayerIds: ['alex'],
+            decliningPlayerIds: []
+        }
+    }
+    expect(
+        historyDescription(call, historyStateFixture(), TestMarket, undefined, (id) =>
+            id.toUpperCase()
+        )
+    ).toEqual({ text: 'ALEX conceded; BLAKE wins', important: true })
 })

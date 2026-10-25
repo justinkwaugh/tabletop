@@ -34,6 +34,7 @@ export * from './game/model/gameState.js'
 export * from './game/model/gameResult.js'
 export * from './game/model/game.js'
 export * from './game/model/playerVote.js'
+export * from './game/model/gameCall.js'
 export * from './game/model/playerVoteEligibility.js'
 export * from './game/model/scenario.js'
 export * from './game/model/publicGamePreview.js'
@@ -106,6 +107,7 @@ export { RecordedHistory, type RecordedTransition } from './game/engine/recorded
 
 export * from './game/engine/actionHistory.js'
 export * from './game/engine/playerUndo.js'
+export * from './game/engine/callGame.js'
 export * from './game/engine/supersede.js'
 export * from './game/engine/commutation.js'
 
