@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { CallBallot } from './gameCall.js'
 import type { Player } from './player.js'
 
 export enum PlayerVoteKind {
@@ -23,14 +24,12 @@ export const UndoVote = Type.Object({
 })
 
 export type CallVote = Type.Static<typeof CallVote>
-export const CallVote = Type.Object({
-    id: Type.String(),
-    kind: Type.Literal(PlayerVoteKind.Call),
-    initiatorPlayerId: Type.String(),
-    declaredWinnerId: Type.Optional(Type.String()),
-    approvingPlayerIds: Type.Array(Type.String()),
-    decliningPlayerIds: Type.Array(Type.String())
-})
+export const CallVote = Type.Evaluate(
+    Type.Intersect([
+        Type.Object({ id: Type.String(), kind: Type.Literal(PlayerVoteKind.Call) }),
+        CallBallot
+    ])
+)
 
 export type PlayerVote = Type.Static<typeof PlayerVote>
 export const PlayerVote = Type.Union([UndoVote, CallVote])

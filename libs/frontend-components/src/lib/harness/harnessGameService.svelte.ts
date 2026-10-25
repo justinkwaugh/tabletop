@@ -182,7 +182,7 @@ export class HarnessGameService implements GameService {
         const approvers = [initiator, ...players.filter((player) => player !== initiator)]
         const action = createCallGameAction({
             gameId: game.id,
-            vote: {
+            ballot: {
                 initiatorPlayerId: initiator.id,
                 declaredWinnerId,
                 approvingPlayerIds: approvers

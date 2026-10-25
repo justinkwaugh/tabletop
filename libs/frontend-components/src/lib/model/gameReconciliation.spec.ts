@@ -311,7 +311,7 @@ describe('GameReconciliation delivery of a called game', () => {
             ...createCallGameAction({
                 gameId: 'game',
                 index: 3,
-                vote: {
+                ballot: {
                     initiatorPlayerId: 'p1',
                     declaredWinnerId: 'p2',
                     approvingPlayerIds: ['p1'],

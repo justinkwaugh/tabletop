@@ -1,4 +1,5 @@
 import { getActionCascadeEndIndex } from './actionHistory.js'
+import { gameCallOf } from './callGame.js'
 import { nanoid } from 'nanoid'
 import { assert, assertExists } from '../../util/assertions.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
@@ -87,6 +88,10 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
         delete fork.finishedAt
         delete fork.result
         delete fork.everFinished
+        delete fork.vote
+        const call = gameCallOf(inherited.at(-1))
+        if (call) fork.call = call
+        else delete fork.call
         fork.winningPlayerIds = []
         fork.activePlayerIds = [...state.activePlayerIds]
         fork.lastActionAt = inherited.at(-1)?.createdAt

@@ -331,6 +331,30 @@ describe('Call votes', () => {
         await expect(host.call(undefined, 'p3')).rejects.toBeInstanceOf(DisallowedPlayerVoteError)
     })
 
+    it('opens no call once the game has ended after the request read it', async () => {
+        const host = createCallHost()
+        const execute = GameEngine.prototype.executeCanonicalAction
+        vi.spyOn(GameEngine.prototype, 'executeCanonicalAction').mockImplementationOnce(function (
+            this: GameEngine,
+            input
+        ) {
+            const executed = execute.call(this, input)
+            executed.updatedState.result = GameResult.Abandoned
+            return executed
+        })
+        await host.apply(host.step('s1', 'p1'))
+        expect(host.game.status).toBe(GameStatus.Finished)
+
+        const find = vi.mocked(host.store.findGameById)
+        const current = find.getMockImplementation()
+        find.mockImplementationOnce(async (id, withState) => {
+            const found = await current?.(id, withState)
+            return found && { ...found, status: GameStatus.Started }
+        })
+        await expect(host.call(undefined, 'p1')).rejects.toBeInstanceOf(DisallowedPlayerVoteError)
+        expect(host.game.vote).toBeUndefined()
+    })
+
     it('refuses an approval from a player who declined', async () => {
         const host = createCallHost()
         await host.call(undefined, 'p1')

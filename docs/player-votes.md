@@ -17,7 +17,7 @@ A Player Vote lets the Players of a Hosted Game decide a lifecycle question toge
 - A call names one winner or no winner. It passes on a strict majority of the Players with an account, the asker included, and fails once that majority is out of reach, a tie included. Each Player answers once; a decline counts against the call but does not end it while a majority is still possible. The asker may withdraw it. If a passed call cannot be recorded, for instance because the Game ended first, the vote closes.
 - Concede needs no vote: the other Player is the winner and the Game ends at once.
 - On passing, the host appends the reserved `callGame` System Action (ADR 0012). The result is a Win for the declared winner, or Abandoned with none. No final scores are recorded. The Game records the call in `Game.call` (kind `called` or `conceded`, the asker, the declared winner if any, approvals and declines), and the Action carries the same record for history.
-- Players cannot undo a Called Game and have no further votes on it; an administrator can undo it, which clears `Game.call`.
+- Players cannot undo a Called Game and have no further votes on it; an administrator can undo it, which clears `Game.call`. A fork from before the call starts without it, and without any open vote.
 - Hotseat and Tournament Games refuse it.
 
 The shared rule for what a Player's own Undo reaches lives in `libs/common/src/game/engine/playerUndo.ts`. The host uses it to decide whether a request needs a vote, and the Game Session uses it for the Undo button and for the history position it reports.

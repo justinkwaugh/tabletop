@@ -1634,6 +1634,13 @@ export class GameService {
             game,
             fields: { vote },
             validator: (existingGame) => {
+                const ineligibility =
+                    vote.kind === PlayerVoteKind.Call
+                        ? callRequestIneligibility(existingGame)
+                        : playerVoteIneligibility(existingGame)
+                if (ineligibility) {
+                    throw new DisallowedPlayerVoteError({ gameId: game.id, reason: ineligibility })
+                }
                 if (existingGame.vote) {
                     throw new DisallowedPlayerVoteError({
                         gameId: game.id,
@@ -1857,7 +1864,7 @@ export class GameService {
         const action = createCallGameAction({
             gameId,
             index: state.actionCount,
-            vote,
+            ballot: vote,
             players: game.players
         })
         const actionResult = measureSync('engine.execute', () =>

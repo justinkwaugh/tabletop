@@ -10,7 +10,9 @@ import {
 } from './callGame.js'
 import { ActionSource } from './gameAction.js'
 import { undoRecordedAction } from './recordedHistory.js'
-import { createNoteGame, step } from './tests/noteGame.js'
+import { createGameFork } from './gameFork.js'
+import { createNoteGame, noteGameRuntime, step } from './tests/noteGame.js'
+import { PlayerVoteKind, type CallVote, type UndoVote } from '../model/playerVote.js'
 
 function withoutWinner(action: CallGameAction): CallGameAction {
     delete action.call.declaredWinnerId
@@ -125,16 +127,18 @@ describe('gameCallDescription', () => {
 })
 
 describe('createCallGameAction', () => {
-    const vote = { initiatorPlayerId: 'p1', approvingPlayerIds: ['p1'], decliningPlayerIds: [] }
+    const ballot = { initiatorPlayerId: 'p1', approvingPlayerIds: ['p1'], decliningPlayerIds: [] }
 
-    it('records a two-player call as a concession', () => {
-        const action = createCallGameAction({
-            gameId: 'g',
-            vote: { ...vote, declaredWinnerId: 'p2' },
-            players: ['p1', 'p2']
-        })
+    it('records a passed vote as a concession in a two-player game', () => {
+        const vote: CallVote = {
+            ...ballot,
+            id: 'v',
+            kind: PlayerVoteKind.Call,
+            declaredWinnerId: 'p2'
+        }
+        const action = createCallGameAction({ gameId: 'g', ballot: vote, players: ['p1', 'p2'] })
         expect(action.call).toEqual({
-            ...vote,
+            ...ballot,
             kind: GameCallKind.Conceded,
             declaredWinnerId: 'p2'
         })
@@ -145,11 +149,54 @@ describe('createCallGameAction', () => {
         const action = createCallGameAction({
             gameId: 'g',
             index: 4,
-            vote,
+            ballot,
             players: ['p1', 'p2', 'p3']
         })
         expect(action.index).toBe(4)
         expect(action.call.kind).toBe(GameCallKind.Called)
         expect('declaredWinnerId' in action.call).toBe(false)
+    })
+})
+
+describe('forking a called game', () => {
+    function calledGame() {
+        const { engine, game, state } = createNoteGame()
+        const stepped = engine.executeCanonicalAction({
+            action: step('s', game.id, 'p1'),
+            state,
+            game
+        })
+        const called = engine.executeCanonicalAction({
+            action: callGame(game.id),
+            state: stepped.updatedState,
+            game
+        })
+        const call = gameCallOf(called.processedActions[0])
+        const vote: UndoVote = {
+            id: 'v',
+            kind: PlayerVoteKind.Undo,
+            initiatorPlayerId: 'p1',
+            targetActionId: 's',
+            targetActionIndex: 0,
+            approvingPlayerIds: ['p1']
+        }
+        return {
+            game: { ...game, call, vote },
+            state: called.updatedState,
+            actions: [...stepped.processedActions, ...called.processedActions]
+        }
+    }
+
+    it('drops the call and any open vote from a fork before the call', () => {
+        const fork = createGameFork({ ...calledGame(), actionIndex: 0, runtime: noteGameRuntime })
+        expect(fork.game.call).toBeUndefined()
+        expect(fork.game.vote).toBeUndefined()
+        expect(fork.state.result).toBeUndefined()
+    })
+
+    it('keeps the call in a fork that retains it', () => {
+        const source = calledGame()
+        const fork = createGameFork({ ...source, actionIndex: 1, runtime: noteGameRuntime })
+        expect(fork.game.call).toEqual(source.game.call)
     })
 })

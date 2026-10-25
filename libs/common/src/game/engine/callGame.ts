@@ -1,10 +1,10 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { nanoid } from 'nanoid'
-import { GameCall, GameCallKind } from '../model/gameCall.js'
+import { type CallBallot, GameCall, GameCallKind } from '../model/gameCall.js'
 import { GameResult, validateGameResult } from '../model/gameResult.js'
 import type { GameState } from '../model/gameState.js'
-import { isTwoPlayerGame, type CallVote } from '../model/playerVote.js'
+import { isTwoPlayerGame } from '../model/playerVote.js'
 import { ActionSource, GameAction } from './gameAction.js'
 
 export const CALL_GAME_ACTION_TYPE = 'callGame'
@@ -27,38 +27,35 @@ export function isCallGameAction(action: GameAction): action is CallGameAction {
     return action.type === CALL_GAME_ACTION_TYPE && CallGameActionValidator.Check(action)
 }
 
-export function gameCallOf(action: GameAction): GameCall | undefined {
-    return isCallGameAction(action) ? action.call : undefined
+export function gameCallOf(action: GameAction | undefined): GameCall | undefined {
+    return action !== undefined && isCallGameAction(action) ? action.call : undefined
 }
 
 export function createCallGameAction({
     gameId,
     index,
-    vote,
+    ballot,
     players
 }: {
     gameId: string
     index?: number
-    vote: Pick<
-        CallVote,
-        'initiatorPlayerId' | 'declaredWinnerId' | 'approvingPlayerIds' | 'decliningPlayerIds'
-    >
+    ballot: CallBallot
     players: readonly unknown[]
 }): CallGameAction {
-    const call: GameCall = {
-        kind: isTwoPlayerGame(players) ? GameCallKind.Conceded : GameCallKind.Called,
-        initiatorPlayerId: vote.initiatorPlayerId,
-        approvingPlayerIds: vote.approvingPlayerIds,
-        decliningPlayerIds: vote.decliningPlayerIds
-    }
-    if (vote.declaredWinnerId !== undefined) call.declaredWinnerId = vote.declaredWinnerId
+    const { initiatorPlayerId, declaredWinnerId, approvingPlayerIds, decliningPlayerIds } = ballot
     return {
         id: nanoid(),
         gameId,
         type: CALL_GAME_ACTION_TYPE,
         source: ActionSource.System,
         ...(index === undefined ? {} : { index }),
-        call
+        call: {
+            kind: isTwoPlayerGame(players) ? GameCallKind.Conceded : GameCallKind.Called,
+            initiatorPlayerId,
+            ...(declaredWinnerId === undefined ? {} : { declaredWinnerId }),
+            approvingPlayerIds,
+            decliningPlayerIds
+        }
     }
 }
 
