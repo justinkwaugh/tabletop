@@ -156,7 +156,7 @@ test('reinforcement cavalry that is riding on takes its second command and press
     await newCommand.click()
     await threaten(page, 38, 52)
     await page.locator('button[aria-label="Choose this unit"]:not([disabled])').first().click()
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Defend', exact: true }).click()
 
     await page.getByRole('button', { name: 'Call it a feint' }).click()
     await expect(newCommand).toHaveAttribute('aria-pressed', 'true')
@@ -186,7 +186,7 @@ test('cavalry riding on stays in hand while a locale is aimed at, and the threat
     ).toBeVisible()
     await tap(page, `svg [data-threat="${AUSTERLITZ.approachBetween(38, 52).id}"]`)
     await page.locator('button[aria-label="Choose this unit"]:not([disabled])').first().click()
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Defend', exact: true }).click()
 
     await page.getByRole('button', { name: 'Call it a feint' }).click()
     await expect(rideSwitch.getByRole('button', { name: 'Riding on' })).toHaveAttribute(

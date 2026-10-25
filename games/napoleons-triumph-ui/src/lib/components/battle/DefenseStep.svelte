@@ -98,6 +98,11 @@
     >
         Defend
     </button>
+    {#if stage.withAll}
+        <button type="button" class="nt-plain-button" onclick={() => gameSession.defendWithAll()}>
+            Defend with all
+        </button>
+    {/if}
     {#if !stage.forced}
         <button type="button" class="nt-plain-button" onclick={() => gameSession.planRetreat()}
             >Retreat before combat</button

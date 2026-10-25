@@ -15,6 +15,7 @@ import {
     currentAttack,
     isNamedDefender,
     mayDefendAgainst,
+    eligibleReserveCommanders,
     eligibleReserveDefenders,
     finalResultWith,
     forcedDefendingCommanders,
@@ -30,6 +31,7 @@ import {
     whyIllegal,
     type Attack,
     type CommandKind,
+    type DeclareDefense,
     type HydratedNapoleonsTriumphGameState,
     type EndedAttack,
     type MoveOrder,
@@ -74,6 +76,7 @@ import { RideChoice } from './moveCommands.js'
 import { movableCommander, retreatPlan, strengthOf, type RetreatPlan } from './retreatPlan.js'
 import type { StagedSelection } from './stagedSelection.js'
 import { copyOf } from './stateCopy.js'
+import type { Identified } from './gameOrder.js'
 import { oddStepTakers } from './battleWaiting.js'
 
 export type VisibleAttack = Omit<Attack, 'defensePlan' | 'attackPlan'> & {
@@ -104,7 +107,10 @@ export interface DefenceStage extends Picking {
     defenders: string[]
     commanders: DefendingCommander[]
     problem?: string
+    withAll?: DefenceDeclaration
 }
+
+export type DefenceDeclaration = Required<Pick<DeclareDefense, 'unitIds' | 'commanderIds'>>
 
 export enum CommanderStatus {
     NoUnitPicked = 'NoUnitPicked',
@@ -238,8 +244,8 @@ export type BattleStage =
     | RegroupStage
     | AdvanceStage
 
-function idsOf(units: readonly ProjectedUnit[]): string[] {
-    return units.map((unit) => unit.id)
+function idsOf(pieces: readonly Identified[]): string[] {
+    return pieces.map((piece) => piece.id)
 }
 
 function rolesOf(
@@ -285,9 +291,31 @@ function defenceStage(
                 : whyIllegal(() =>
                       declareDefense(copyOf(state), defenders, namedCommanderIds({ commanders }))
                   ),
+        withAll: blockers ? undefined : defenceWithAll(state, candidates),
         pickableIds: blockers ? [] : candidateIds,
         roles: rolesOf(defenders, [], BattleRole.Defends)
     }
+}
+
+function defenceWithAll(
+    state: HydratedNapoleonsTriumphGameState,
+    candidates: readonly ProjectedUnit[]
+): DefenceDeclaration | undefined {
+    if (candidates.length < 2) {
+        return undefined
+    }
+    const eligibleCommanderIds = idsOf(eligibleReserveCommanders(state))
+    const declaration = {
+        unitIds: idsOf(candidates),
+        commanderIds: corpsCommanderIds(candidates).filter((commanderId) =>
+            eligibleCommanderIds.includes(commanderId)
+        )
+    }
+    return isLegal(() =>
+        declareDefense(copyOf(state), declaration.unitIds, declaration.commanderIds)
+    )
+        ? declaration
+        : undefined
 }
 
 function reserveCommanders(

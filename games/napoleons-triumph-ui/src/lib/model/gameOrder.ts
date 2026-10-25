@@ -1,6 +1,6 @@
 import type { MoveOrder } from '@tabletop/napoleons-triumph'
 
-interface Identified {
+export interface Identified {
     id: string
 }
 

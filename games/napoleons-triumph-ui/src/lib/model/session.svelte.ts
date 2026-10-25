@@ -145,7 +145,8 @@ import {
     nameDefendingCommander,
     sendRetreatTo,
     type BattleRole,
-    type BattleStage
+    type BattleStage,
+    type DefenceDeclaration
 } from './battleStage.js'
 import {
     blockMarkOf,
@@ -1457,13 +1458,27 @@ export class NapoleonsTriumphGameSession extends GameSession<
     async declareDefense() {
         const stage = this.battleStage
         if (stage?.kind === StageKind.Defence && stage.defenders.length > 0 && !stage.problem) {
-            await this.applyAction(
-                this.createPlayerAction(DeclareDefense, {
-                    unitIds: inGameOrder(this.gameState.units, stage.defenders),
-                    commanderIds: namedCommanderIds(stage)
-                })
-            )
+            await this.sendDefence({
+                unitIds: stage.defenders,
+                commanderIds: namedCommanderIds(stage)
+            })
         }
+    }
+
+    async defendWithAll() {
+        const stage = this.battleStage
+        if (stage?.kind === StageKind.Defence && stage.withAll) {
+            await this.sendDefence(stage.withAll)
+        }
+    }
+
+    private async sendDefence({ unitIds, commanderIds }: DefenceDeclaration) {
+        await this.applyAction(
+            this.createPlayerAction(DeclareDefense, {
+                unitIds: inGameOrder(this.gameState.units, unitIds),
+                commanderIds
+            })
+        )
     }
 
     async leadDefense() {
