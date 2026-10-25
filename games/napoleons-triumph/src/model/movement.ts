@@ -171,7 +171,7 @@ function reach(arrivals: readonly RoadArrival[]): number {
     return arrivals.some((arrival) => arrival.main) ? MAIN_ROAD_REACH : LOCAL_ROAD_REACH
 }
 
-/** Rule 11: cavalry is shown when its road move is over. Taking a locale shows it already; this catches a march begun before that rule. */
+/** Rule 11: cavalry is shown when its road move is over. */
 export function endRoadMarch(state: HydratedNapoleonsTriumphGameState) {
     const march = state.roadMarch
     if (!march) {

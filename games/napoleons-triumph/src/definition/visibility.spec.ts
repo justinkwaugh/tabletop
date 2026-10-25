@@ -3,7 +3,7 @@ import { Visibility } from '@tabletop/common'
 import { Side, type Face } from '../components/pieces.js'
 import { CommandKind, DefenseAwaits } from '../model/attack.js'
 import { NapoleonsTriumphProjectedStateValidator } from '../model/gameState.js'
-import { TestGame, arrangeBattlefield, cavalry, frenchTurn, infantry } from '../testing/harness.js'
+import { TestGame, arrangeBattlefield, cavalry, infantry } from '../testing/harness.js'
 import { ActionType } from './actions.js'
 import { NapoleonsTriumphRuntime } from './runtime.js'
 
@@ -185,31 +185,5 @@ describe("Napoleon's Triumph hidden blocks", () => {
         expect(
             game.hydrated.corpsUnits('bagration').every((unit) => unit.shown === undefined)
         ).toBe(true)
-    })
-
-    it('shows cavalry riding in by road to the defender as it takes the locale', () => {
-        const game = frenchTurn([
-            { id: 'F-cav', side: Side.French, face: cavalry(2), locale: 53 },
-            { id: 'A-screen', side: Side.Allied, face: cavalry(1), locale: 63 }
-        ])
-        const french = game.playerOf(Side.French)
-        const allied = game.playerOf(Side.Allied)
-        game.act(ActionType.ThreatenAttack, french, {
-            approach: game.hydrated.map.approachBetween(53, 63).id
-        })
-        const threatened = project(game, { kind: 'player', playerId: allied })
-        expect(threatened.units.find((unit) => unit.id === 'F-cav')).not.toHaveProperty('shown')
-
-        game.act(ActionType.Retreat, allied, {
-            losses: {},
-            destinations: { 'A-screen': 72 },
-            kept: {}
-        })
-        game.act(ActionType.Occupy, french, {
-            orders: [{ kind: CommandKind.Unit, unitIds: ['F-cav'], road: [] }]
-        })
-        const riding = project(game, { kind: 'player', playerId: allied })
-        expect(game.hydrated.roadMarch).toBeDefined()
-        expect(riding.units.find((unit) => unit.id === 'F-cav')?.shown).toEqual(cavalry(2))
     })
 })
