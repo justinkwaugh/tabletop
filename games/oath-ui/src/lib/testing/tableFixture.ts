@@ -219,6 +219,7 @@ export type TableName =
     | 'searchConspiracy'
     | 'searchConspiracyNoTake'
     | 'searchPlayTo'
+    | 'flipConspiracy'
     | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
     | 'heldAttack'
@@ -4181,8 +4182,35 @@ function flipConspiracyNoTakeTable(): PlayedTable {
     })
 }
 
+/** R-5.1.4.IV — this seat's two Hearth advisers, matching Rhys's one. */
+const TAKE_MATCH = ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return']
+
 /** R-5.1.4.IV: the Conspiracy drawn by a Search, with Rhys at this seat's site holding a relic. */
 function searchConspiracyTable(): PlayedTable {
+    return conspiracyTakeTable(MachineState.Searching, {
+        handIds: ['vision.conspiracy', 'denizen.arcane.tutor'],
+        advisers: TAKE_MATCH.map(faceup)
+    })
+}
+
+/** R-6.1, R-5.1.4.IV: the facedown Conspiracy turned faceup beside Rhys, holding a relic and a banner. */
+function flipConspiracyTable(): PlayedTable {
+    return conspiracyTakeTable(
+        MachineState.ActPhase,
+        { advisers: [...TAKE_MATCH.map(faceup), { cardId: 'vision.conspiracy', faceUp: false }] },
+        true
+    )
+}
+
+/**
+ * R-5.1.4.IV: the Conspiracy in this seat's play, with Rhys at its site holding a relic, and the
+ * People's Favor too when `rhysBanner`.
+ */
+function conspiracyTakeTable(
+    machineState: MachineState,
+    me: Partial<Seat>,
+    rhysBanner = false
+): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -4191,10 +4219,7 @@ function searchConspiracyTable(): PlayedTable {
                 color: Color.Red,
                 siteId: home,
                 secrets: 2,
-                handIds: ['vision.conspiracy', 'denizen.arcane.tutor'],
-                advisers: ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return'].map(
-                    (cardId) => ({ cardId, faceUp: true })
-                )
+                ...me
             }),
             testPlayer({
                 playerId: 'rhys',
@@ -4211,11 +4236,12 @@ function searchConspiracyTable(): PlayedTable {
             })
         ],
         {
-            machineState: MachineState.Searching,
+            machineState,
             chancellorPlayerId: 'ann',
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
-            denizensBySite: { [home]: [] }
+            denizensBySite: { [home]: [] },
+            banners: testBanners({ [Banner.PeoplesFavor]: rhysBanner ? 'rhys' : undefined })
         }
     )
     openTurn(state, 'me')
@@ -5559,6 +5585,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     searchConspiracy: searchConspiracyTable,
     searchConspiracyNoTake: searchConspiracyNoTakeTable,
     searchPlayTo: searchPlayToTable,
+    flipConspiracy: flipConspiracyTable,
     flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),
     heldAttack: () => heldAttackTable(),

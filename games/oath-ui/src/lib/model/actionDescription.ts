@@ -65,6 +65,7 @@ import {
     type CampaignPlacement,
     type CampaignResolveVictory,
     type CampaignTarget,
+    type ConspiracyPlay,
     type WarbandGroup,
     Suit,
     type LetPeek,
@@ -831,6 +832,7 @@ function describeActionCited(
             `kept ${shownCard(kept)} and ${describePlay(action.play)}` +
             (facedown ? ', facedown' : '') +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
+            conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +
             whenPlayedClause(meta?.whenPlayed, kept, action.playerId, names, viewerId)
         )
     }
@@ -927,6 +929,7 @@ function describeActionCited(
             (first ? `, discarding ${cardName(first)} first${inBrackets(rotated)}` : '') +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             cardsInBrackets(meta?.modifiers, new Set([...named, ...grew, ...rotated, ...horn])) +
+            conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +
             whenPlayedClause(
                 meta?.whenPlayed,
                 meta?.playedCardId,
@@ -1053,6 +1056,13 @@ function describeActionCited(
                     ? `${describePlay(answer.play)}, facedown`
                     : describePlay(answer.play)
             return `${cardName(meta.cardId)}: 1 warband on ${cardName(vision)} died; ${play}`
+        }
+        // Inquisitor — the Conspiracy it found, played faceup with a take: what it took, from the answer.
+        if (answer.kind === PowerQuestionKind.PlayOrDiscardConspiracy && answer.conspiracy) {
+            return (
+                `${cardName(meta.cardId)}: ${describePlay(SearchPlay.Conspiracy)}` +
+                conspiracyTakeClause(answer.conspiracy, action.playerId, names, viewerId)
+            )
         }
         const summary = meta.summary + heldAttackClause(meta.heldAttack)
         return `${cardName(meta.cardId)}: ${namedSummary(summary, meta.cardId, action.playerId, names, viewerId)}`
@@ -1413,6 +1423,25 @@ function unreplacedClause(count: number, returned: boolean): string {
     return returned
         ? `, returning ${plural(count, 'Imperial warband')} to the Chancellor’s bank`
         : `, with ${plural(count, 'warband')} left Imperial`
+}
+
+/**
+ * R-5.1.4.IV — what a Conspiracy took and from whom, as a taken relic and a seized banner read
+ * elsewhere; a take is public, so every viewer reads it. No take, no clause.
+ */
+function conspiracyTakeClause(
+    conspiracy: ConspiracyPlay | undefined,
+    actorId: string,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    if (!conspiracy) return ''
+    const { take, targetPlayerId } = conspiracy
+    const taken =
+        take.kind === 'relic'
+            ? `took ${cardName(take.cardId)}`
+            : `seized the ${bannerName(take.banner)}`
+    return `; ${namedNote(`${taken} from ${targetPlayerId}`, actorId, names, viewerId)}`
 }
 
 function describeAdviserPlay(play: SearchPlay, card: string): string {

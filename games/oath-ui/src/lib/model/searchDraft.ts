@@ -30,6 +30,7 @@ import { adviserRoom, toggledDiscard, type AdviserRoom } from './adviserDiscards
 import {
     NO_CONSPIRACY_PICK,
     conspiracyNoTake,
+    conspiracyPickComplete,
     conspiracyPlayOf,
     conspiracyPrizes,
     conspiracyTargets,
@@ -301,11 +302,11 @@ export class SearchDraft implements PanelDraft {
 
     /** The take is picked whole: nobody (no take, R-5.1.4.IV's "may"), or a player and a prize. */
     get conspiracyComplete(): boolean {
-        const target = this.conspiracyPick.targetPlayerId
+        const playerId = this.playerId
         return (
-            target === undefined ||
-            !this.conspiracyTargets.includes(target) ||
-            this.conspiracy !== undefined
+            !playerId ||
+            this.placement?.play !== SearchPlay.Conspiracy ||
+            conspiracyPickComplete(this.session.gameState, playerId, this.conspiracyPick)
         )
     }
 

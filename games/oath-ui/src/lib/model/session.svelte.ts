@@ -187,6 +187,7 @@ import { toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
     conspiracyNoTake,
+    conspiracyPickComplete,
     conspiracyPlayOf,
     conspiracyPrizes,
     conspiracyTargets,
@@ -1070,12 +1071,26 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.selection.value('whenPlayed') ?? emptyPicks()
     }
 
-    /** "Play" waits until every When Played choice has its picks, and a card to go first that the site needs. */
+    /**
+     * "Play" waits until every When Played choice has its picks, a card to go first that the site
+     * needs, and a Conspiracy take begun has its prize.
+     */
     get adviserPlayComplete(): boolean {
         return (
             picksComplete(this.adviserPlayChoices, this.adviserPlayPicks) &&
             !this.adviserFirstPending &&
-            !this.adviserDiscardPending
+            !this.adviserDiscardPending &&
+            !this.adviserTakePending
+        )
+    }
+
+    /** R-5.1.4.IV — a player picked for the Conspiracy's take, and no prize yet. */
+    private get adviserTakePending(): boolean {
+        const playerId = this.liveTurnSeatId
+        return (
+            playerId !== undefined &&
+            this.adviserPlay === SearchPlay.Conspiracy &&
+            !conspiracyPickComplete(this.gameState, playerId, this.adviserConspiracyPick)
         )
     }
 
@@ -1127,7 +1142,13 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     async confirmAdviserPlay(): Promise<void> {
         const cardId = this.adviserCardId
         const play = this.adviserPlay
-        if (!cardId || play === undefined || this.adviserPlayReason !== undefined) return
+        if (
+            !cardId ||
+            play === undefined ||
+            !this.adviserPlayComplete ||
+            this.adviserPlayReason !== undefined
+        )
+            return
         await this.playFacedownAdviser(
             cardId,
             play,

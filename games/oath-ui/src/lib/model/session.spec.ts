@@ -408,7 +408,8 @@ describe("R-6.1, R-5.1.4.I — Great Herd turned faceup to a site is not offered
 })
 
 describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup offers its take', () => {
-    it('waits for the take, then sends it with the play', async () => {
+    /** The facedown Conspiracy opened for its take: ann, at this seat's site, holds a relic. */
+    async function openTake() {
         const state = testState(
             [
                 testPlayer({
@@ -437,11 +438,16 @@ describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup offers its take', 
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         session.selection.set('action', ActionType.PlayFacedownAdviser)
         session.chooseAdviser('vision.conspiracy')
-
         await session.chooseAdviserPlay('vision.conspiracy', SearchPlay.Conspiracy)
+        return { session, sent }
+    }
+
+    it('waits for the take, then sends it with the play', async () => {
+        const { session, sent } = await openTake()
         expect(sent).not.toHaveBeenCalled()
         expect(session.adviserConspiracyTargets).toEqual(['ann'])
         session.setAdviserConspiracyPick({ targetPlayerId: 'ann', prizeIndex: 0 })
+        expect(session.adviserPlayComplete).toBe(true)
         await session.confirmAdviserPlay()
         const action = sent.mock.calls[0][0]
         assert(isPlayFacedownAdviser(action), 'the flip is sent')
@@ -449,6 +455,25 @@ describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup offers its take', 
             targetPlayerId: 'ann',
             take: { kind: 'relic', cardId: 'relic.cup-of-plenty' }
         })
+    })
+
+    it('Play is ready with nobody picked, not with a player alone, and again once the player is dropped', async () => {
+        const { session, sent } = await openTake()
+        expect(session.adviserPlayComplete).toBe(true)
+
+        session.setAdviserConspiracyPick({ targetPlayerId: 'ann' })
+        expect(session.adviserPlayComplete).toBe(false)
+        expect(session.adviserPlayReason).toBeUndefined()
+        await session.confirmAdviserPlay()
+        expect(sent).not.toHaveBeenCalled()
+
+        session.setAdviserConspiracyPick({})
+        expect(session.adviserPlayComplete).toBe(true)
+        await session.confirmAdviserPlay()
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the flip is sent')
+        expect(action.play).toBe(SearchPlay.Conspiracy)
+        expect(action.conspiracy).toBeUndefined()
     })
 })
 

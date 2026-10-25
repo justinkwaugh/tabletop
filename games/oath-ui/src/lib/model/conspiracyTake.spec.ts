@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { Banner, OathRevision } from '@tabletop/oath'
 import { testBanners, testPlayer, testState } from '@tabletop/oath/testing'
-import { conspiracyNoTake, conspiracyTargets, type ConspiracyNoTakeLine } from './conspiracyTake.js'
+import {
+    conspiracyNoTake,
+    conspiracyPickComplete,
+    conspiracyTargets,
+    type ConspiracyNoTakeLine,
+    type ConspiracyPick
+} from './conspiracyTake.js'
 import type { ReasonPart } from './names.js'
 
 type Seat = Partial<Parameters<typeof testPlayer>[0]>
@@ -209,5 +215,26 @@ describe('R-5.1.4.IV — why no one at the site can be taken from, one line per 
         expect(
             conspiracyTargets(scene({}, { advisers: faceup([ORDER_C, TONGUE]) }), 'dana')
         ).toEqual([])
+    })
+})
+
+describe('R-5.1.4.IV — a take is picked whole, or not begun', () => {
+    const complete = (pick: Omit<ConspiracyPick, 'confirmed'>) =>
+        conspiracyPickComplete(scene(), 'dana', { ...pick, confirmed: false })
+
+    it('nobody picked is a decline, and complete', () => {
+        expect(complete({})).toBe(true)
+    })
+
+    it('a player picked with no prize is a take begun, not complete', () => {
+        expect(complete({ targetPlayerId: 'rhys' })).toBe(false)
+    })
+
+    it('a player and a prize on offer are complete', () => {
+        expect(complete({ targetPlayerId: 'rhys', prizeIndex: 0 })).toBe(true)
+    })
+
+    it('a prize no longer on offer leaves the take begun', () => {
+        expect(complete({ targetPlayerId: 'rhys', prizeIndex: 1 })).toBe(false)
     })
 })
