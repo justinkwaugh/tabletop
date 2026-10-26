@@ -19,6 +19,31 @@ export function fingerVelocity(previous: number, delta: number, elapsedMs: numbe
     return previous * 0.35 + sample * 0.65
 }
 
+type FlingStop = { stopOn: Node | Window; stop: () => void }
+
+/** Running flings that a touch or wheel on their `stopOn` stops. */
+const stoppableFlings = new Set<FlingStop>()
+let listeningForStops = false
+
+function stopFlingsUnder(event: Event) {
+    const target = event.target
+    for (const { stopOn, stop } of stoppableFlings)
+        if (!(stopOn instanceof Node) || (target instanceof Node && stopOn.contains(target))) stop()
+}
+
+/**
+ * The listeners stay on the window for good: WebKit restyles the whole page whenever a touch or
+ * wheel listener is added or removed, which froze a phone for 50ms as each fling began and ended.
+ */
+function listenForFlingStops() {
+    if (listeningForStops || typeof window === 'undefined') return
+    listeningForStops = true
+    window.addEventListener('touchstart', stopFlingsUnder, { capture: true, passive: true })
+    window.addEventListener('wheel', stopFlingsUnder, { capture: true, passive: true })
+}
+
+listenForFlingStops()
+
 function isFlinging(velocity: Point) {
     return Math.abs(velocity.x) >= MIN_VELOCITY || Math.abs(velocity.y) >= MIN_VELOCITY
 }
@@ -32,7 +57,7 @@ export function fling(
     velocity: Point,
     stillMs: number,
     move: (offset: Point) => Point,
-    stopOn?: EventTarget
+    stopOn?: Node | Window
 ): Fling {
     let current = velocity
     let frame: number | undefined
@@ -40,27 +65,29 @@ export function fling(
     const stop = () => {
         if (frame !== undefined) cancelAnimationFrame(frame)
         frame = undefined
-        stopOn?.removeEventListener('touchstart', stop, true)
-        stopOn?.removeEventListener('wheel', stop, true)
+        if (stoppable) stoppableFlings.delete(stoppable)
     }
+    const stoppable: FlingStop | undefined = stopOn ? { stopOn, stop } : undefined
     const step = (timestamp: number) => {
         frame = undefined
-        if (lastTimestamp !== undefined) {
-            const elapsed = Math.max(1, timestamp - lastTimestamp)
-            const moved = move({ x: current.x * elapsed, y: current.y * elapsed })
-            const decay = Math.pow(DECAY_PER_FRAME, elapsed / FRAME_MS)
-            current = {
-                x: Math.abs(moved.x) > EPSILON ? current.x * decay : 0,
-                y: Math.abs(moved.y) > EPSILON ? current.y * decay : 0
-            }
-            if (!isFlinging(current)) return stop()
-        }
+        // The first frame moves a frame's worth too, or the content halts for a frame as the finger lifts.
+        const elapsed =
+            lastTimestamp === undefined ? FRAME_MS : Math.max(1, timestamp - lastTimestamp)
         lastTimestamp = timestamp
+        const moved = move({ x: current.x * elapsed, y: current.y * elapsed })
+        const decay = Math.pow(DECAY_PER_FRAME, elapsed / FRAME_MS)
+        current = {
+            x: Math.abs(moved.x) > EPSILON ? current.x * decay : 0,
+            y: Math.abs(moved.y) > EPSILON ? current.y * decay : 0
+        }
+        if (!isFlinging(current)) return stop()
         frame = requestAnimationFrame(step)
     }
     if (stillMs <= STILL_BEFORE_LIFT_MS && isFlinging(velocity)) {
-        stopOn?.addEventListener('touchstart', stop, { capture: true, passive: true })
-        stopOn?.addEventListener('wheel', stop, { capture: true, passive: true })
+        if (stoppable) {
+            listenForFlingStops()
+            stoppableFlings.add(stoppable)
+        }
         frame = requestAnimationFrame(step)
     }
     return {

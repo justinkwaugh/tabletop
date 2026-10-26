@@ -12,6 +12,7 @@ const SCROLL_AXES = {
     x: {
         overflow: (style: CSSStyleDeclaration) => style.overflowX,
         overflows: (element: HTMLElement) => element.scrollWidth > element.clientWidth,
+        range: (element: Element) => element.scrollWidth - element.clientWidth,
         position: 'scrollLeft',
         windowPosition: () => window.scrollX,
         windowScroll: (delta: number) => ({ left: delta })
@@ -19,6 +20,7 @@ const SCROLL_AXES = {
     y: {
         overflow: (style: CSSStyleDeclaration) => style.overflowY,
         overflows: (element: HTMLElement) => element.scrollHeight > element.clientHeight,
+        range: (element: Element) => element.scrollHeight - element.clientHeight,
         position: 'scrollTop',
         windowPosition: () => window.scrollY,
         windowScroll: (delta: number) => ({ top: delta })
@@ -31,6 +33,21 @@ function scrollsAlong(element: HTMLElement, axis: ScrollAxis) {
         /(auto|scroll|overlay)/.test(scrollAxis.overflow(getComputedStyle(element))) &&
         scrollAxis.overflows(element)
     )
+}
+
+function hasRoomFor(position: number, range: number, fingerDelta: number) {
+    return fingerDelta > 0 ? position > EDGE_SLACK : position < range - EDGE_SLACK
+}
+
+function canScrollWithFinger(element: HTMLElement, axis: ScrollAxis, fingerDelta: number) {
+    const scrollAxis = SCROLL_AXES[axis]
+    return hasRoomFor(element[scrollAxis.position], scrollAxis.range(element), fingerDelta)
+}
+
+function windowCanScrollWithFinger(axis: ScrollAxis, fingerDelta: number) {
+    const scrollAxis = SCROLL_AXES[axis]
+    const page = document.scrollingElement ?? document.documentElement
+    return hasRoomFor(scrollAxis.windowPosition(), scrollAxis.range(page), fingerDelta)
 }
 
 function scrollWithFinger(element: HTMLElement, axis: ScrollAxis, fingerDelta: number) {
@@ -52,18 +69,28 @@ function* scrollersAround(element: HTMLElement, axis: ScrollAxis) {
         if (scrollsAlong(ancestor, axis)) yield ancestor
 }
 
-/** A touch carries on into the next scroller out, and finally the window, as each reaches its edge. */
+/**
+ * A touch carries on into the next scroller out, and finally the window, as each reaches its edge.
+ * WebKit rounds scroll positions to whole pixels, so a scroller short of its edge keeps the
+ * shortfall. iOS lets a script push the page past its edges, where it bounces, so the window
+ * takes only what it has room for.
+ */
 export function scrollAncestorsWithFinger(
     element: HTMLElement,
     axis: ScrollAxis,
     fingerDelta: number
 ) {
+    if (Math.abs(fingerDelta) <= EPSILON) return 0
     let remaining = fingerDelta
+    const hasRemainder = () =>
+        Math.sign(remaining) === Math.sign(fingerDelta) && Math.abs(remaining) > EPSILON
     for (const ancestor of scrollersAround(element, axis)) {
-        if (Math.abs(remaining) <= EPSILON) break
         remaining -= scrollWithFinger(ancestor, axis, remaining)
+        if (!hasRemainder() || canScrollWithFinger(ancestor, axis, fingerDelta))
+            return fingerDelta - remaining
     }
-    if (Math.abs(remaining) > EPSILON) remaining -= scrollWindowWithFinger(axis, remaining)
+    if (hasRemainder() && windowCanScrollWithFinger(axis, fingerDelta))
+        remaining -= scrollWindowWithFinger(axis, remaining)
     return fingerDelta - remaining
 }
 
@@ -126,19 +153,13 @@ function watchSidewaysOverflow(element: HTMLElement, onChange: (overflows: boole
     }
 }
 
-function canScrollSidewaysWithFinger(element: HTMLElement, fingerDelta: number) {
-    return fingerDelta > 0
-        ? element.scrollLeft > EDGE_SLACK
-        : element.scrollLeft < element.scrollWidth - element.clientWidth - EDGE_SLACK
-}
-
 function sidewaysSwipeTarget(element: HTMLElement, fingerDelta: number) {
     for (
         let candidate: HTMLElement | null = element;
         candidate;
         candidate = candidate.parentElement
     )
-        if (scrollsAlong(candidate, 'x') && canScrollSidewaysWithFinger(candidate, fingerDelta))
+        if (scrollsAlong(candidate, 'x') && canScrollWithFinger(candidate, 'x', fingerDelta))
             return candidate
     return element
 }
