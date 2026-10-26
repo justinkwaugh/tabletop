@@ -163,9 +163,9 @@ async function whiteSession(opening = true) {
 const DOT = E9
 const TARGET = E8
 
-async function pushSingle(session: GipfGameSession) {
-    session.chooseGipf(false)
+async function pushOwn(session: GipfGameSession, gipf = false) {
     session.chooseDot(DOT)
+    if (gipf) session.toggleGipf()
     await settled(session.push(TARGET))
 }
 
@@ -181,7 +181,7 @@ async function settled(change: Promise<unknown>) {
 describe('Undo of your push', () => {
     it('takes the piece back out onto its dot, staged as you chose it', async () => {
         const session = await whiteSession()
-        await pushSingle(session)
+        await pushOwn(session)
         expect(session.selection).toEqual({})
 
         await settled(session.undo())
@@ -193,12 +193,13 @@ describe('Undo of your push', () => {
 
     it('then takes back one choice at a time, without undoing any action', async () => {
         const session = await whiteSession()
-        await pushSingle(session)
+        await pushOwn(session, true)
         await settled(session.undo())
+        expect(session.chosenGipf).toBe(true)
 
         await settled(session.undo())
-        expect(session.chosenDot).toBeUndefined()
-        expect(session.selection.gipf?.value).toBe(false)
+        expect(session.chosenDot).toEqual(DOT)
+        expect(session.chosenGipf).toBe(false)
 
         await settled(session.undo())
         expect(session.hasManualSelection()).toBe(false)
@@ -218,6 +219,30 @@ describe('Undo of your push', () => {
         await settled(session.undo())
         expect(session.hasManualSelection()).toBe(false)
         expect(session.gameState.actionCount).toBe(0)
+    })
+})
+
+describe('Choosing the piece type', () => {
+    it('drops a single piece, which choosing again makes a GIPF-piece, then single again', async () => {
+        const session = await whiteSession()
+        expect(session.choosesType).toBe(true)
+        expect(session.chosenGipf).toBe(false)
+
+        session.chooseDot(DOT)
+        expect(session.chosenGipf).toBe(false)
+        session.chooseDot(DOT)
+        expect(session.chosenGipf).toBe(true)
+        expect(session.chosenDot).toEqual(DOT)
+        session.toggleGipf()
+        expect(session.chosenGipf).toBe(false)
+        expect(session.chosenDot).toEqual(DOT)
+    })
+
+    it('takes the piece off its dot when there is no type to choose', async () => {
+        const session = await whiteSession(false)
+        session.chooseDot(DOT)
+        session.chooseDot(DOT)
+        expect(session.chosenDot).toBeUndefined()
     })
 })
 

@@ -10,6 +10,8 @@ export const DROP = {
     rise: -50,
     scale: 1.08,
     wobble: [-4, -1.5],
+    // A disc dropped onto a piece already standing, to make it a GIPF-piece, bounces on it.
+    bounce: [-9, -3.5],
     settle: 0.06,
     shadow: 0.55,
     stagger: 0.1
@@ -29,13 +31,20 @@ export function landing(gipf: boolean): number {
 }
 
 // The parts of a piece that move on their own as it drops: each disc, and the shadow of the top
-// disc on the one below.
+// disc on the one below. A disc taken off a piece that stays lifts off when lifts says so.
 export type PieceParts = {
     disc(index: number): Attachment<SVGGElement>
     crease: Attachment<SVGGElement>
+    lifts?: boolean
 }
 
-export function dropDisc(timeline: Timeline, node: SVGGElement, index: number, at = 0) {
+export function dropDisc(
+    timeline: Timeline,
+    node: SVGGElement,
+    index: number,
+    at = 0,
+    wobble = DROP.wobble
+) {
     const { fall, settle } = DROP
     const start = at + index * DROP.stagger
     timeline.fromTo(
@@ -45,7 +54,7 @@ export function dropDisc(timeline: Timeline, node: SVGGElement, index: number, a
         start
     )
     timeline.to(node, { scale: 1, y: 0, duration: fall, ease: 'power1.in' }, start)
-    DROP.wobble.forEach((height, bounce) => {
+    wobble.forEach((height, bounce) => {
         const up = start + fall + bounce * settle * 2
         timeline.to(node, { y: height, duration: settle, ease: 'power1.out' }, up)
         timeline.to(node, { y: 0, duration: settle, ease: 'power1.in' }, up + settle)
@@ -71,20 +80,42 @@ export function dropCrease(timeline: Timeline, node: SVGGElement, at = 0) {
 }
 
 // The piece you stage drops onto its dot by itself, as its parts are drawn: it shows a choice, not
-// a change to the game, so no game state change owns its motion.
+// a change to the game, so no game state change owns its motion. A disc added once it stands, to
+// make it a GIPF-piece, drops onto it on its own.
 export class StagedDrop {
     private readonly timeline = gsap.timeline()
+    private readonly added: Timeline[] = []
+    // The parts drawn with the piece, still to be attached.
+    private firstDiscs: number
+    private firstCrease: boolean
 
-    constructor(private readonly drops: boolean) {}
+    constructor(
+        private readonly drops: boolean,
+        discs: number
+    ) {
+        this.firstDiscs = discs
+        this.firstCrease = discs > 1
+    }
 
     readonly parts: PieceParts = {
         disc: (index) => (node) => {
             gsap.set(node, { svgOrigin: '0 0' })
-            if (this.drops) dropDisc(this.timeline, node, index)
+            if (this.firstDiscs > 0) {
+                this.firstDiscs -= 1
+                if (this.drops) dropDisc(this.timeline, node, index)
+            } else {
+                dropDisc(this.addition(), node, 0, 0, DROP.bounce)
+            }
         },
         crease: (node) => {
-            if (this.drops) dropCrease(this.timeline, node)
-        }
+            if (this.firstCrease) {
+                this.firstCrease = false
+                if (this.drops) dropCrease(this.timeline, node)
+            } else {
+                dropCrease(this.addition(), node, -DROP.stagger)
+            }
+        },
+        lifts: true
     }
 
     readonly shadow: Attachment<SVGGElement> = (node) => {
@@ -92,8 +123,18 @@ export class StagedDrop {
         if (this.drops) dropShadow(this.timeline, node)
     }
 
+    // A disc and its crease are attached one after the other, so they share a timeline.
+    private addition(): Timeline {
+        const last = this.added.at(-1)
+        if (last && last.time() === 0) return last
+        const timeline = gsap.timeline()
+        this.added.push(timeline)
+        return timeline
+    }
+
     stop() {
         this.timeline.kill()
+        for (const timeline of this.added) timeline.kill()
     }
 }
 
@@ -110,6 +151,18 @@ export function liftOffBody(_node: Element, { lifts }: LiftOff): TransitionConfi
             return `opacity: ${1 - u ** 3}; transform: translateY(${LIFT_OFF.rise * up}px) scale(${scale})`
         }
     }
+}
+
+// A disc taken off the piece below lifts off it, and its shadow on that piece goes with it.
+type DiscLiftOff = { parts?: PieceParts }
+
+export function liftOffDisc(node: Element, { parts }: DiscLiftOff): TransitionConfig {
+    return liftOffBody(node, { lifts: () => parts?.lifts === true })
+}
+
+export function liftOffCrease(_node: Element, { parts }: DiscLiftOff): TransitionConfig {
+    if (parts?.lifts !== true) return { duration: 0 }
+    return { duration: LIFT_OFF.duration * 1000, css: (t) => `opacity: ${t}` }
 }
 
 export function liftOffShadow(_node: Element, { lifts }: LiftOff): TransitionConfig {

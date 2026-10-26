@@ -8,10 +8,10 @@ import {
 } from './stagedSelection.js'
 
 describe('gipf staged selection', () => {
-    it('choosing the piece type clears a later dot', () => {
-        const withDot = setGipfSelection({}, 'dot', { q: 0, r: 4 })
-        expect(setGipfSelection(withDot, 'gipf', true)).toEqual({
-            gipf: { value: true, source: 'manual' }
+    it('choosing another dot clears the piece type', () => {
+        const typed = setGipfSelection(setGipfSelection({}, 'dot', { q: 0, r: 4 }), 'gipf', true)
+        expect(setGipfSelection(typed, 'dot', { q: 1, r: 4 })).toEqual({
+            dot: { value: { q: 1, r: 4 }, source: 'manual' }
         })
     })
 
@@ -35,15 +35,21 @@ describe('gipf staged selection', () => {
 
         it('stands on its dot as you chose it', () => {
             expect(restagedGipfSelection(push, true)).toEqual({
-                gipf: { value: true, source: 'manual' },
-                dot: { value: { q: 0, r: 4 }, source: 'manual' }
+                dot: { value: { q: 0, r: 4 }, source: 'manual' },
+                gipf: { value: true, source: 'manual' }
             })
         })
 
-        it('is taken off its dot by the next Undo, then its piece type by the one after', () => {
-            const offDot = popGipfSelection(restagedGipfSelection(push, true))
-            expect(offDot).toEqual({ gipf: { value: true, source: 'manual' } })
-            expect(hasManualGipfSelection(popGipfSelection(offDot))).toBe(false)
+        it('turns back into a single piece with the next Undo, then leaves its dot', () => {
+            const single = popGipfSelection(restagedGipfSelection(push, true))
+            expect(single).toEqual({ dot: { value: { q: 0, r: 4 }, source: 'manual' } })
+            expect(hasManualGipfSelection(popGipfSelection(single))).toBe(false)
+        })
+
+        it('stages only the dot for a single piece, which was not chosen', () => {
+            expect(restagedGipfSelection({ ...push, gipf: false }, true)).toEqual({
+                dot: { value: { q: 0, r: 4 }, source: 'manual' }
+            })
         })
 
         it('keeps no piece type when there was none to choose', () => {

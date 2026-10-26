@@ -4,7 +4,7 @@
     import { Color } from '@tabletop/common'
     import { VIEW } from '$lib/board/geometry.js'
     import { discsOf, pieceDrawing } from '$lib/board/pieceShape.js'
-    import type { PieceParts } from '$lib/animators/drop.js'
+    import { liftOffCrease, liftOffDisc, type PieceParts } from '$lib/animators/drop.js'
 
     // A piece standing on its point, seen from the near side of the table, or any stack of discs
     // (discs, for a tally). The gradients come from a PieceDefs with the same prefix in the same
@@ -32,7 +32,7 @@
 
 {#each drawing.bases as base, index (index)}
     <g transform="translate(0 {base})">
-        <g {@attach parts?.disc(index)}>
+        <g {@attach parts?.disc(index)} out:liftOffDisc={{ parts }}>
             {#each disc.slices as slice, sliceIndex (sliceIndex)}
                 <ellipse
                     cy={slice.y}
@@ -62,7 +62,7 @@
                 fill="url(#{prefix}-{tone}-face)"
             ></ellipse>
             {#if index < drawing.bases.length - 1}
-                <g {@attach parts?.crease}>
+                <g {@attach parts?.crease} out:liftOffCrease={{ parts }}>
                     <ellipse
                         cy={drawing.crease.y}
                         rx={drawing.crease.rx}

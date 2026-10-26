@@ -72,8 +72,8 @@
         if (incoming) {
             drawn.push({
                 kind: animator.entering ? 'entering' : 'preview',
-                // Another piece type chosen on the same dot drops in afresh.
-                key: `incoming-${coordsKey(incoming.dot)}-${incoming.gipf}`,
+                // Made a GIPF-piece on its dot, the piece stays and a disc drops onto it.
+                key: `incoming-${coordsKey(incoming.dot)}`,
                 coords: incoming.dot,
                 gipf: incoming.gipf,
                 playerId: incoming.playerId,
@@ -300,7 +300,18 @@
                 </g>
             </g>
         {:else}
-            <g transform="translate({center.x} {center.y})" class="entering">
+            <!-- While you may choose its type, choosing the piece again makes it a GIPF-piece. -->
+            <g
+                transform="translate({center.x} {center.y})"
+                class="entering"
+                class:staged={session.choosesType}
+                role="button"
+                tabindex={session.choosesType ? 0 : -1}
+                aria-disabled={!session.choosesType}
+                aria-label={drawn.gipf ? 'make it a single piece' : 'make it a GIPF-piece'}
+                onclick={() => session.toggleGipf()}
+                onkeydown={(event) => onKey(event, () => session.toggleGipf())}
+            >
                 <StagedPiece
                     color={colorOf(drawn.playerId)}
                     gipf={drawn.gipf}
@@ -469,6 +480,12 @@
 
     .entering {
         pointer-events: none;
+    }
+
+    .entering.staged {
+        pointer-events: auto;
+        cursor: pointer;
+        outline: none;
     }
 
     .target {

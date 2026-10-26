@@ -3,14 +3,10 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { historyEntries } from '$lib/history/historyEntries.js'
     import HistoryEntryLine from './HistoryEntryLine.svelte'
-    import PieceIcon from './PieceIcon.svelte'
 
     const session = getGameSession()
 
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
-    const myColor = $derived(
-        session.myPlayer ? session.gameState.getPlayerState(session.myPlayer.id).color : undefined
-    )
     const resolving = $derived(session.gameState.machineState === MachineState.ResolvingRows)
 
     const SELECT_FOR_REMOVAL = 'Leave GIPF-pieces, or mark them for removal, then'
@@ -25,8 +21,12 @@
             return session.rows.length > 1 ? 'Choose a row to take' : 'Take your row'
         }
         if (session.canPush) {
-            if (session.chosenGipf === undefined) return 'Bring in a'
-            if (session.chosenDot) return 'Choose the line to push along'
+            if (session.chosenDot) {
+                if (!session.choosesType) return 'Choose the line to push along'
+                return session.chosenGipf
+                    ? 'Tap again to make a single, or push'
+                    : 'Tap again to make a GIPF, or push'
+            }
             return session.rows.length > 0
                 ? 'Push from a dot, or tap your GIPF-pieces to take them'
                 : 'Choose a dot to push from'
@@ -51,21 +51,6 @@
             >
         {:else}
             <span>{prompt}</span>
-        {/if}
-        {#if session.pieceTypes.length > 1 && myColor}
-            {#each session.pieceTypes as gipf, index (gipf)}
-                {#if index > 0}<span>or</span>{/if}
-                <button
-                    type="button"
-                    class="choice"
-                    class:chosen={session.chosenGipf === gipf}
-                    aria-pressed={session.chosenGipf === gipf}
-                    onclick={() => session.chooseGipf(gipf)}
-                >
-                    <PieceIcon color={myColor} {gipf} size={20} />
-                    {gipf ? 'GIPF-piece' : 'single piece'}
-                </button>
-            {/each}
         {/if}
         {#if session.chosenRow}
             <button
@@ -128,11 +113,6 @@
 
     .choice:hover:not(:disabled) {
         background: rgb(255 255 255 / 0.08);
-    }
-
-    .choice.chosen {
-        border-color: var(--gipf-target);
-        background: rgb(240 176 74 / 0.14);
     }
 
     .choice.primary {

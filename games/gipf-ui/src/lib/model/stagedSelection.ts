@@ -16,9 +16,11 @@ export type GipfSelectionValues = {
 
 export type GipfSelection = StagedSelectionState<GipfSelectionValues>
 
+// The piece type follows the dot: the piece drops onto its dot as a single piece, and choosing it
+// again makes it a GIPF-piece.
 export const GipfStageOrder = [
-    'gipf',
     'dot',
+    'gipf',
     'row',
     'keep'
 ] as const satisfies readonly (keyof GipfSelectionValues)[]
@@ -54,12 +56,12 @@ export function popGipfSelection(selection: GipfSelection): GipfSelection {
     return popHighestManualStagedSelection<GipfSelectionValues>(selection, GipfStageOrder).nextState
 }
 
-// Your choices for a push taken back, as you made them: the piece type only if there was one to
-// choose, so each further Undo takes back one choice you made.
+// Your choices for a push taken back, as you made them: a GIPF-piece only if you made it one, so
+// each further Undo takes back one choice you made.
 export function restagedGipfSelection(
     push: { gipf: boolean; dot: AxialCoordinates },
     typeChosen: boolean
 ): GipfSelection {
-    const typed = typeChosen ? setGipfSelection({}, 'gipf', push.gipf) : {}
-    return setGipfSelection(typed, 'dot', push.dot)
+    const onDot = setGipfSelection({}, 'dot', push.dot)
+    return typeChosen && push.gipf ? setGipfSelection(onDot, 'gipf', true) : onDot
 }

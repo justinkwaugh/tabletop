@@ -57,10 +57,14 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         ]
     })
 
+    // Whether you may choose between a single piece and a GIPF-piece.
+    choosesType: boolean = $derived(this.pieceTypes.length > 1)
+
+    // A piece you may choose comes in single until you make it a GIPF-piece.
     chosenGipf: boolean | undefined = $derived.by(() => {
         const manual = this.selection.gipf?.value
         if (manual !== undefined && this.pieceTypes.includes(manual)) return manual
-        return this.pieceTypes.length === 1 ? this.pieceTypes[0] : undefined
+        return this.pieceTypes[0]
     })
 
     entries: Entry[] = $derived(
@@ -172,14 +176,20 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         return state.canPlaySingle(push.playerId) && state.canPlayGipf(push.playerId)
     }
 
-    chooseGipf(gipf: boolean) {
-        if (!this.pieceTypes.includes(gipf)) return
-        this.selection = setGipfSelection(this.selection, 'gipf', gipf)
+    // Choosing the piece on its dot again makes it a GIPF-piece, or single again.
+    toggleGipf() {
+        if (!this.choosesType || this.chosenDot === undefined) return
+        this.selection = setGipfSelection(
+            this.selection,
+            'gipf',
+            this.chosenGipf ? undefined : true
+        )
     }
 
     chooseDot(dot: AxialCoordinates) {
         if (!includesCoords(this.entryDots, dot)) return
         const same = this.chosenDot !== undefined && sameCoordinates(this.chosenDot, dot)
+        if (same && this.choosesType) return this.toggleGipf()
         this.selection = setGipfSelection(this.selection, 'dot', same ? undefined : dot)
     }
 
