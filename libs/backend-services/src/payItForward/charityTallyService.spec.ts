@@ -4,8 +4,8 @@ import { CharityTallyService } from './charityTallyService.js'
 import type { TiltifyCampaignTotal } from './tiltifyApi.js'
 
 const totals: Record<string, TiltifyCampaignTotal> = {
-    'f5513dae-a6f9-4eb5-942b-df33f2871f73': { amount: 820, currency: 'USD', retired: false },
-    '908648d6-4cfa-4d83-844d-538822d881c8': { amount: 330, currency: 'GBP', retired: true }
+    '1aa404bd-38e9-4955-9178-4f52b63085ac': { amount: 820, currency: 'USD', open: true },
+    '4f5b25b7-1a1a-4e50-a65b-c0831eeca686': { amount: 330, currency: 'GBP', open: false }
 }
 
 const passThroughCache = {
@@ -15,7 +15,7 @@ const passThroughCache = {
 describe('CharityTallyService', () => {
     it('totals both campaigns in dollars and keeps each in its own currency', async () => {
         const service = new CharityTallyService(
-            { getCampaignTotal: async (id) => totals[id] },
+            { getTeamCampaignTotal: async (id) => totals[id] },
             passThroughCache,
             async (currency) => (currency === 'GBP' ? 1.3348 : 1)
         )
@@ -43,8 +43,8 @@ describe('CharityTallyService', () => {
 
     it('serves the tally from the hourly cache', async () => {
         const cache = { cachingGet: vi.fn(async () => ({ totalUsd: 5, charities: [] })) }
-        const getCampaignTotal = vi.fn()
-        const service = new CharityTallyService({ getCampaignTotal }, cache, async () => 1)
+        const getTeamCampaignTotal = vi.fn()
+        const service = new CharityTallyService({ getTeamCampaignTotal }, cache, async () => 1)
 
         expect(await service.getTally()).toEqual({ totalUsd: 5, charities: [] })
         expect(cache.cachingGet).toHaveBeenCalledWith(
@@ -52,6 +52,6 @@ describe('CharityTallyService', () => {
             expect.any(Function),
             3600
         )
-        expect(getCampaignTotal).not.toHaveBeenCalled()
+        expect(getTeamCampaignTotal).not.toHaveBeenCalled()
     })
 })

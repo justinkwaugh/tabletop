@@ -11,14 +11,14 @@ type TallyCache = {
     cachingGet(key: string, produce: MissedValueProducer, forSeconds: number): Promise<unknown>
 }
 
-const TILTIFY_CAMPAIGNS: Record<Charity, string> = {
-    [Charity.GamersOutreach]: 'f5513dae-a6f9-4eb5-942b-df33f2871f73',
-    [Charity.SpecialEffect]: '908648d6-4cfa-4d83-844d-538822d881c8'
+const TILTIFY_TEAM_CAMPAIGNS: Record<Charity, string> = {
+    [Charity.GamersOutreach]: '1aa404bd-38e9-4955-9178-4f52b63085ac',
+    [Charity.SpecialEffect]: '4f5b25b7-1a1a-4e50-a65b-c0831eeca686'
 }
 
 export class CharityTallyService {
     constructor(
-        private readonly tiltify: Pick<TiltifyApi, 'getCampaignTotal'>,
+        private readonly tiltify: Pick<TiltifyApi, 'getTeamCampaignTotal'>,
         private readonly cache: TallyCache,
         private readonly usdPerUnit: (currency: string) => Promise<number> = fetchUsdPerUnit
     ) {}
@@ -47,12 +47,12 @@ export class CharityTallyService {
     }
 
     private async fetchRaised(charity: Charity): Promise<CharityRaised> {
-        const total = await this.tiltify.getCampaignTotal(TILTIFY_CAMPAIGNS[charity])
+        const total = await this.tiltify.getTeamCampaignTotal(TILTIFY_TEAM_CAMPAIGNS[charity])
         return {
             charity,
             amount: total.amount,
             currency: total.currency,
-            campaignOpen: !total.retired
+            campaignOpen: total.open
         }
     }
 }

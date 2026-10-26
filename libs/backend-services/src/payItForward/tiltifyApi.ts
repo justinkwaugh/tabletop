@@ -11,8 +11,9 @@ const TokenResponse = Type.Object({
     expires_in: Type.Number()
 })
 
-const CampaignResponse = Type.Object({
+const TeamCampaignResponse = Type.Object({
     data: Type.Object({
+        status: Type.String(),
         total_amount_raised: TiltifyMoney,
         retired_at: Type.Union([Type.String(), Type.Null()])
     })
@@ -21,7 +22,7 @@ const CampaignResponse = Type.Object({
 export type TiltifyCampaignTotal = {
     amount: number
     currency: string
-    retired: boolean
+    open: boolean
 }
 
 type AccessToken = { value: string; expiresAt: number }
@@ -35,14 +36,16 @@ export class TiltifyApi {
         private readonly now: () => number = Date.now
     ) {}
 
-    async getCampaignTotal(campaignId: string): Promise<TiltifyCampaignTotal> {
-        const response = await this.get(`/api/public/campaigns/${encodeURIComponent(campaignId)}`)
-        Value.Assert(CampaignResponse, response)
-        const { total_amount_raised: raised, retired_at: retiredAt } = response.data
+    async getTeamCampaignTotal(teamCampaignId: string): Promise<TiltifyCampaignTotal> {
+        const response = await this.get(
+            `/api/public/team_campaigns/${encodeURIComponent(teamCampaignId)}`
+        )
+        Value.Assert(TeamCampaignResponse, response)
+        const { status, total_amount_raised: raised, retired_at: retiredAt } = response.data
         return {
             amount: Number(raised.value),
             currency: raised.currency,
-            retired: retiredAt !== null
+            open: status === 'published' && retiredAt === null
         }
     }
 

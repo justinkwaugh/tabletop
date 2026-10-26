@@ -44,17 +44,18 @@ All are links to the page, at the visual weight of "About Us".
 
 ## The tally
 
-`GET /api/v1/pay-it-forward/tally` is public. `CharityTallyService` (libs/backend-services/src/payItForward) reads both Board Together campaigns from Tiltify's v5 public API, converts pounds to dollars at the day's ECB rate from api.frankfurter.dev (keyless), and caches the result in Redis for an hour. The route lets browsers cache it for ten minutes. The page asks once on load; the browser never polls.
+`GET /api/v1/pay-it-forward/tally` is public. `CharityTallyService` (libs/backend-services/src/payItForward) reads both Board Together team campaigns from Tiltify's v5 public API (`/api/public/team_campaigns/{id}`), converts pounds to dollars at the day's ECB rate from api.frankfurter.dev (keyless), and caches the result in Redis for an hour. The route lets browsers cache it for ten minutes. The page asks once on load; the browser never polls.
 
 | Charity | Campaign | Currency |
 |---|---|---|
-| Gamers Outreach | tiltify.com/@boardtogether/board-together-fundraiser-for-gamers-outreach-foundation (`f5513dae-a6f9-4eb5-942b-df33f2871f73`) | USD |
-| SpecialEffect | tiltify.com/@boardtogether/boardtogether-fundraiser-for-specialeffect (`908648d6-4cfa-4d83-844d-538822d881c8`) | GBP |
+| Gamers Outreach | tiltify.com/+boardtogether-community/fundraiser-for-gamers-outreach-foundation (team campaign `1aa404bd-38e9-4955-9178-4f52b63085ac`) | USD |
+| SpecialEffect | tiltify.com/+boardtogether-community/fundraiser-for-specialeffect (team campaign `4f5b25b7-1a1a-4e50-a65b-c0831eeca686`) | GBP |
 
 - Totals are `total_amount_raised`, which includes campaigns that support ours. The page says "raised", not "received", because platform totals can include unsettled gifts.
 - The headline is the dollar total; the detail line shows each charity in its own currency: "$1,260 raised by Board Together players · $820 for Gamers Outreach · £330 for SpecialEffect". Amounts are truncated to whole units.
 - The tally is hidden while nothing has been raised, and when the API is unavailable.
-- Tiltify retires a campaign after six months without a donation. A retired campaign's card links to the charity's own donation page instead (gamersoutreach.org/donate, specialeffect.org.uk/donate).
+- The campaigns belong to the BoardTogether Community team, so players can start their own campaigns in support of them; `total_amount_raised` counts those too. The first campaigns under the personal @boardtogether account are unpublished.
+- Tiltify retires a campaign after six months without a donation. A retired or unpublished campaign's card links to the charity's own donation page instead (gamersoutreach.org/donate, specialeffect.org.uk/donate).
 - Tiltify answers in HTML unless the request sends `Accept: application/json`.
 
 Credentials: a Tiltify application owned by the BoardTogether Tiltify account, client credentials flow, `public` scope, two-hour tokens refreshed a minute early. The client ID and secret are the Secret Manager secrets `TILTIFY_CLIENT_ID` and `TILTIFY_CLIENT_SECRET`; `backend` and `tabletop-investigate` can read them. The backend only builds the service when `TILTIFY_CLIENT_ID` is set, so local development without them gets a 404 and no tally.
@@ -65,7 +66,7 @@ To ship: attach both secrets to the `backend` Cloud Run service as environment v
 
 | Piece | Status |
 |---|---|
-| /pay-it-forward page | Built; cards link to the Board Together Tiltify campaigns (Gamers Outreach in USD, campaign f5513dae-a6f9-4eb5-942b-df33f2871f73; SpecialEffect in GBP, campaign 908648d6-4cfa-4d83-844d-538822d881c8) |
+| /pay-it-forward page | Built; cards link to the Board Together team campaigns on Tiltify |
 | Header link and phone menu entry | Built |
 | About card | Built (the principles list is shared with this page) |
 | Landing small print | Built |

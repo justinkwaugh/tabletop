@@ -27,7 +27,7 @@
             description:
                 'Builds medical-grade gaming carts and brings them to kids in hospital who can’t leave their rooms. Over 350 hospitals so far.',
             campaignUrl:
-                'https://tiltify.com/@boardtogether/board-together-fundraiser-for-gamers-outreach-foundation',
+                'https://tiltify.com/+boardtogether-community/fundraiser-for-gamers-outreach-foundation',
             donateUrl: 'https://gamersoutreach.org/donate',
             donateHost: 'gamersoutreach.org'
         },
@@ -39,7 +39,7 @@
             description:
                 'Occupational therapists and gaming specialists set up adapted controllers and eye control, so people with physical disabilities can play the games they love.',
             campaignUrl:
-                'https://tiltify.com/@boardtogether/boardtogether-fundraiser-for-specialeffect',
+                'https://tiltify.com/+boardtogether-community/fundraiser-for-specialeffect',
             donateUrl: 'https://www.specialeffect.org.uk/donate',
             donateHost: 'specialeffect.org.uk'
         }
