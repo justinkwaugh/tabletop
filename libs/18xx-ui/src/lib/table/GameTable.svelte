@@ -13,7 +13,8 @@
         saveTableWorkspace
     } from './tableWorkspace.js'
     import { historyMapFocus } from '../maps/historyMapFocus.js'
-    import { routeColor } from '../routes/routePresentation.js'
+    import { trainRouteOverlays } from '../routes/routePresentation.js'
+    import { LatestRouteSolver, type RouteWorker } from '../routes/latestRouteSolver.js'
     import TableNotices from './TableNotices.svelte'
     import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
@@ -56,7 +57,7 @@
     } from '@tabletop/frontend-components'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
-        isMapSelectionValid,
+        isMapRouteValid,
         mapSelectionRect,
         mapViewport,
         routeLocationIds,
@@ -101,7 +102,8 @@
         actions,
         historyDescription,
         historySetup,
-        privateOperationDescription
+        privateOperationDescription,
+        createRouteWorker
     }: {
         session: EighteenXXSessionView
         additionalStockActions?: readonly StockMenuOption[]
@@ -117,6 +119,7 @@
             privateCompanyId: string,
             companyId: string
         ) => string | undefined
+        createRouteWorker: () => RouteWorker
     } = $props()
     const money = $derived(session.presentation.money)
     const {
@@ -290,9 +293,9 @@
     })
     async function focusRoute(trainId: string) {
         session.closeHistoricalMap()
-        const route = session.routes.solved?.result.routes.find(
-            (route) => route.trainId === trainId
-        )
+        const route = (
+            session.routes.solved?.result ?? session.projectedRun.latest?.solution.result
+        )?.routes.find((route) => route.trainId === trainId)
         if (!route) return
         const restore = focusedRoute === trainId
         focusedRoute = restore ? undefined : trainId
@@ -608,21 +611,26 @@
     const mapRoutes = $derived.by((): MapRoute[] => {
         if (!historyMapSettled)
             return session.isViewingHistory
-                ? settledRoutes.filter((route) =>
-                      route.segments.every((segment) =>
-                          isMapSelectionValid(displayedScene, { kind: 'path', ...segment })
-                      )
-                  )
-                : []
+                ? settledRoutes.filter((route) => isMapRouteValid(displayedScene, route))
+                : session.projectedRun.overlays
         settledRoutes = historicalFocus
-            ? historicalFocus.routes.map((route, index) => ({
-                  id: route.trainId,
-                  color: routeColor(index),
-                  segments: route.paths
-              }))
-            : session.routes.overlays
+            ? trainRouteOverlays(historicalFocus.routes)
+            : session.routes.overlays.length
+              ? session.routes.overlays
+              : session.projectedRun.overlays
         return settledRoutes
     })
+    function projectRuns(_table: HTMLElement, request: typeof session.projectedRun.request) {
+        const solver = new LatestRouteSolver<NonNullable<typeof request>>(createRouteWorker, {
+            solved: (solved, solution) => session.projectedRun.setSolved(solved, solution),
+            failed: (failed) => session.projectedRun.setFailed(failed)
+        })
+        solver.solve(request)
+        return {
+            update: (next: typeof request) => solver.solve(next),
+            destroy: () => solver.destroy()
+        }
+    }
     const mapMask = $derived.by(
         ():
             | { legalLocationIds: readonly string[]; highlightedLocationIds: readonly string[] }
@@ -1073,6 +1081,7 @@
     use:frameRoutes={{ runningCompanyId, preview: routePreview }}
     use:frameStartCompany={session.stock.selectedStartCompany}
     use:frameHistory={settledHistoricalFocus}
+    use:projectRuns={session.projectedRun.request}
     use:framePresentation={publishedArtwork}
     style:--rail-table-background={boardArtwork?.backgroundColor}
     data-theme="dark"

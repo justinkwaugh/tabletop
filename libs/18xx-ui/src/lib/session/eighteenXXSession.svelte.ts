@@ -81,6 +81,7 @@ import {
 } from './privateActionsModule.svelte.js'
 import { PrivatesModule } from './privatesModule.svelte.js'
 import { RoutesModule } from './routesModule.svelte.js'
+import { ProjectedRunModule } from './projectedRunModule.svelte.js'
 import { SelectionAuctionModule } from './selectionAuctionModule.svelte.js'
 import { StationsModule } from './stationsModule.svelte.js'
 import { StockInstructionModule } from './stockInstructionModule.svelte.js'
@@ -339,6 +340,10 @@ export class EighteenXXSession<
         this.companyAuction,
         () => this.mapDisplayState
     )
+    readonly projectedRun = new ProjectedRunModule(this.moduleSession, this.map, () => {
+        const state: HydratedEighteenXXState = this.gameState
+        return state.dehydrate()
+    })
     readonly operating = new OperatingTurnModule(
         this.moduleSession,
         {

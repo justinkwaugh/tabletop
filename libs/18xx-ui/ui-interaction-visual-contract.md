@@ -524,6 +524,32 @@ style changes do not commit gameplay or consume staged choices.
 The Station placement example is prepared and uses fixture version 15. Desktop
 controls are provisional; no mobile layout work is part of this slice.
 
+### Projected run
+
+While the viewer can lay track or place a station for the operating company, the
+autorouter solves that company's run on the map as displayed: the board's tiles,
+including a previewed tile once it has landed or a title's staged private lays, with
+the stations a previewed lay moves or a previewed station. The request carries the
+company's runnable trains now; trains bought later in the turn are not counted.
+Spectators, other players and History View see no projection.
+The session's ProjectedRunModule owns the request, the latest solved run and its map
+overlays. The solved run survives previews, the company's own actions and their
+publishing, and is forgotten when the operating company changes (including between a
+company's turns). GameTable drives one solver worker from the title's
+`createRouteWorker`, whichever action panel the title draws, for as long as the table
+is shown: a request made while one is in flight replaces any waiting request, and only
+the newest is sent next. A solve that fails, or a worker that cannot load, clears the
+projection; a request waiting on a failed worker goes to a new one.
+
+The action panel shows a Projected run table below the track or station prompt,
+itemized like the run step's train income; its rows focus their route. Titles that
+draw their own construction panels (1846's station mode) place the exported
+`ProjectedRun` there. The map draws the projection as an ordinary route overlay, where
+no committed or edited routes are shown, including while a new state is presented.
+Until the newest preview is solved, the previous projection stays where all its paths
+still exist on the displayed map, so the run does not blink out between rotations.
+Projections never change Game State or Actions.
+
 ### Depot train purchases
 
 The Train purchases example enters BuyingTrains directly. The title's TrainRules

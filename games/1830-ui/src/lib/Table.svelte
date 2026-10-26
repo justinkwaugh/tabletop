@@ -40,7 +40,7 @@
     }
 </script>
 
-<GameTable {session} {privateOperationDescription}>
+<GameTable {session} {privateOperationDescription} {createRouteWorker}>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.gameState.pendingPar}
             <CompanyPar {session} />

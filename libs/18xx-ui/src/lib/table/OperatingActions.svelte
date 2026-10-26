@@ -6,6 +6,7 @@
     import HomeStationChoice from '../maps/HomeStationChoice.svelte'
     import PrivateStationChoice from '../maps/PrivateStationChoice.svelte'
     import AutomaticRoutes from '../routes/AutomaticRoutes.svelte'
+    import ProjectedRun from '../routes/ProjectedRun.svelte'
     import EarningsDistribution from '../earnings/EarningsDistribution.svelte'
     import StockRoundActions from './StockRoundActions.svelte'
     import TrainBuying from '../trains/TrainBuying.svelte'
@@ -54,11 +55,11 @@
                 {session}
                 showUndo={false}
                 mapControls
-            />
+            /><ProjectedRun {session} {onFocusRoute} />
         {:else if gameState.machineState === 'PlacingStation'}<StationBuilding
                 {session}
                 showUndo={false}
-            />
+            /><ProjectedRun {session} {onFocusRoute} />
         {:else if gameState.machineState === 'RunningTrains'}<AutomaticRoutes
                 {session}
                 {createRouteWorker}

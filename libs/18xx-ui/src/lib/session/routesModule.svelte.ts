@@ -8,7 +8,7 @@ import {
     type RevenueCenter,
     type RoutePath
 } from '@tabletop/18xx'
-import { routeColor } from '../routes/routePresentation.js'
+import { trainRouteOverlays } from '../routes/routePresentation.js'
 import type { MapSelection } from '../maps/mapDrawing.js'
 import { RouteEditor } from './routeEditor.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
@@ -69,11 +69,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         const routes = this.editorVisible
             ? (this.solved?.result.routes ?? this.editor.routes)
             : (this.session.state.routeStep?.result?.routes ?? [])
-        const overlays: RouteOverlay[] = routes.map((route, index) => ({
-            id: route.trainId,
-            color: routeColor(index),
-            segments: route.paths
-        }))
+        const overlays: RouteOverlay[] = trainRouteOverlays(routes)
         if (this.editorVisible && this.editor.route)
             overlays.push({ id: 'route-selection', color: '#d58400', segments: this.editor.paths })
         return overlays

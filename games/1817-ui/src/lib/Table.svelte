@@ -41,6 +41,7 @@
 <GameTable
     {session}
     {privateOperationDescription}
+    {createRouteWorker}
     {historyDescription}
     additionalStockActions={session.stockPanels.menuOptions}
 >

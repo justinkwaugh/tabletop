@@ -80,6 +80,7 @@
     auctionLotDescription={(id) => lotInfo(id).description}
     {session}
     {privateOperationDescription}
+    {createRouteWorker}
 >
     {#snippet actions(focusLocation, focusRoute)}
         {#if session.offers.model && !session.offers.model.auction.completed}

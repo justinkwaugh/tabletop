@@ -1294,6 +1294,12 @@ export function assertMapOverlays(
         for (const segment of route.segments) mapSelectionPoint(scene, { kind: 'path', ...segment })
 }
 
+export function isMapRouteValid(scene: MapDrawing, route: MapRoute): boolean {
+    return route.segments.every((segment) =>
+        isMapSelectionValid(scene, { kind: 'path', ...segment })
+    )
+}
+
 export function isMapSelectionValid(scene: MapDrawing, selection: MapSelection): boolean {
     const entry = scene.locations.find((entry) => entry.location.id === selection.locationId)
     if (!entry) return false
