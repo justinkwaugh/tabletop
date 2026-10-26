@@ -1,0 +1,773 @@
+{
+ "game": {
+  "id": "scenario-hops-over-tall-stacks",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "dvonn",
+  "deleted": false,
+  "name": "Hops over tall stacks",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "Alice",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Bob",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "version": "Standard",
+   "whitePlayer": "Random"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3909189367,
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "createdAt": "2026-10-26T05:51:22.284Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-10-26T05:51:22.284Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "nS9srzhfW2B6vOCaeNLv4",
+  "gameId": "scenario-hops-over-tall-stacks",
+  "seed": 3909189367,
+  "prng": {
+   "seed": 3909189367,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "seed": 2094918788,
+   "invocations": 0
+  },
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "white"
+   },
+   {
+    "playerId": "player-2",
+    "color": "black"
+   }
+  ],
+  "machineState": "MovingStacks",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 0,
+    "player-2": 0
+   }
+  },
+  "version": "Standard",
+  "board": {
+   "spaces": [
+    {
+     "coords": {
+      "q": -3,
+      "r": -2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": -2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": -2
+     },
+     "stack": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -3,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -2,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -1,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 0,
+        "r": -2
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": -2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": -2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": -2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": -2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": -2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 5,
+      "r": -2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": -1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": -1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": -1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": -1
+     },
+     "stack": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 1,
+        "r": -2
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": -1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": -1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": -1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": -1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": -1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 5,
+      "r": -1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -5,
+      "r": 0
+     },
+     "stack": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 2,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 3,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 4,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 5,
+        "r": -2
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": 0
+     },
+     "stack": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -4,
+        "r": -1
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 0
+     },
+     "stack": [
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -3,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -2,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -1,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 0,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 1,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 2,
+        "r": -1
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 0
+     },
+     "stack": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 3,
+        "r": -1
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 0
+     },
+     "stack": [
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 4,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 5,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -5,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -4,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -3,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -2,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -1,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 0,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 1,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 2,
+        "r": 0
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 0
+     },
+     "stack": [
+      {
+       "dvonn": true,
+       "placedAt": {
+        "q": 3,
+        "r": 0
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 0
+     },
+     "stack": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 4,
+        "r": 0
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 0
+     },
+     "stack": [
+      {
+       "dvonn": true,
+       "placedAt": {
+        "q": 5,
+        "r": 0
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": 0
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": 0
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 5,
+      "r": 0
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -5,
+      "r": 1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": 1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 1
+     },
+     "stack": [
+      {
+       "dvonn": true,
+       "placedAt": {
+        "q": -5,
+        "r": 1
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 1
+     },
+     "stack": [
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -4,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -3,
+        "r": 1
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 1
+     },
+     "stack": [
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -2,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -1,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 0,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 1,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 2,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 3,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 4,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -5,
+        "r": 2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -4,
+        "r": 2
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -3,
+        "r": 2
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": 1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 4,
+      "r": 1
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -5,
+      "r": 2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -4,
+      "r": 2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 2
+     },
+     "stack": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -2,
+        "r": 2
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 2
+     },
+     "stack": [
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -1,
+        "r": 2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 0,
+        "r": 2
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 2
+     },
+     "stack": []
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": 2
+     },
+     "stack": []
+    }
+   ]
+  }
+ },
+ "actions": []
+}

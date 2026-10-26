@@ -94,3 +94,10 @@ export function stackBounds(
         bottom: radius * TILT
     }
 }
+
+// How far above its space a piece's underside rests, relative to where it would stand on the
+// bare board, when it lies on a stack of `below` pieces drawn on their own.
+export function restingLift(below: number, radius: number, model: PieceModel = PIECE_MODEL): number {
+    if (below === 0) return 0
+    return topFaceY(below, radius, model) - (model.gap - model.rise) * radius * RISE
+}

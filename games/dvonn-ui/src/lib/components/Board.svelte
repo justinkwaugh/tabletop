@@ -6,7 +6,7 @@
     import { coordsKey, VIEW } from '$lib/board/geometry.js'
     import { PIECE_MODEL, stackDiscs, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
     import { markRing, outlinePath } from '$lib/board/pieceShape.js'
-    import { sandImage } from '$lib/board/sand.js'
+    import sand from '$lib/images/sand.webp'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
     import PieceDefs from './PieceDefs.svelte'
     import StackShape from './StackShape.svelte'
@@ -40,10 +40,6 @@
         })
     )
 
-    // The sand board, its grain drawn once across the whole frame.
-    const sand = $derived(
-        session.graphBoard ? undefined : sandImage(layout.frame.width, layout.frame.height)
-    )
     const imprintRadius = $derived(radius * 1.03)
 
     const animator = new BoardAnimator(session, () => layout)
@@ -56,6 +52,10 @@
             return pa.y - pb.y || pa.x - pb.x
         })
     )
+
+    function stackId(key: string): string {
+        return `dvonn-stack-${key.replace(',', '_')}`
+    }
 
     function heightAt(coords: AxialCoordinates): number {
         return session.gameState.board.stackAt(coords).length
@@ -125,12 +125,12 @@
 {#snippet drawn(stack: DrawnStack)}
     {@const center = layout.center(stack.coords)}
     {@const role = roleOf(stack.coords)}
-    <g transform="translate({center.x} {center.y})" class="piece">
-        <g {@attach animator.node(stack.key)}>
-            <g {@attach animator.node(`${stack.key}:shadow`)}>
+    <g id={stackId(stack.key)} transform="translate({center.x} {center.y})" class="piece">
+        <g {@attach animator.stack(stack.key, 'whole')}>
+            <g {@attach animator.stack(stack.key, 'shadow')}>
                 {@render shadow()}
             </g>
-            <g {@attach animator.node(`${stack.key}:body`)}>
+            <g {@attach animator.stack(stack.key, 'body')}>
                 <StackShape
                     tones={stack.pieces.map((piece) => session.toneOfPiece(piece))}
                     seedKeys={stack.pieces.map((piece) => coordsKey(piece.placedAt))}
@@ -195,17 +195,17 @@
         </g>
     {:else}
         <path d={layout.sandOutline} class="sand"></path>
-        {#if sand}
-            <image
-                href={sand}
-                x={layout.frame.x}
-                y={layout.frame.y}
-                width={layout.frame.width}
-                height={layout.frame.height}
-                clip-path="url(#dvonn-sand-clip)"
-                class="grain"
-            ></image>
-        {/if}
+        <!-- The grain, rendered once by scripts/render-sand.mjs, covering the whole frame. -->
+        <image
+            href={sand}
+            x={layout.frame.x}
+            y={layout.frame.y}
+            width={layout.frame.width}
+            height={layout.frame.height}
+            preserveAspectRatio="xMidYMid slice"
+            clip-path="url(#dvonn-sand-clip)"
+            class="grain"
+        ></image>
         <g class="imprints">
             {#each SPACES as coords (coordsKey(coords))}
                 {@const center = layout.center(coords)}
@@ -238,17 +238,30 @@
     {/each}
 
     {#if animator.flier}
-        {@const center = layout.center(animator.flier.coords)}
-        <g transform="translate({center.x} {center.y + animator.flier.startLift})" class="flier">
-            <g {@attach animator.flierNode()}>
-                {@render shadow()}
-                <StackShape
-                    tones={animator.flier.pieces.map((piece) => session.toneOfPiece(piece))}
-                    seedKeys={animator.flier.pieces.map((piece) => coordsKey(piece.placedAt))}
-                    {radius}
-                    prefix="dvonn-board"
-                />
+        {@const flier = animator.flier}
+        {@const center = layout.center(flier.coords)}
+        <g transform="translate({center.x} {center.y})" class="flier">
+            <g {@attach animator.flierNode('whole')}>
+                <g {@attach animator.flierNode('shadow')}>
+                    {@render shadow()}
+                </g>
+                <g {@attach animator.flierNode('body')}>
+                    <StackShape
+                        tones={flier.pieces.map((piece) => session.toneOfPiece(piece))}
+                        seedKeys={flier.pieces.map((piece) => coordsKey(piece.placedAt))}
+                        {radius}
+                        prefix="dvonn-board"
+                    />
+                </g>
             </g>
+        </g>
+        <!-- Each stack again over the flier, shown while it stands in front of it. -->
+        <g class="occluders" aria-hidden="true">
+            {#each stacks as stack (stack.key)}
+                {#if !flier.passes.includes(stack.key)}
+                    <use href="#{stackId(stack.key)}" {@attach animator.occluder(stack)}></use>
+                {/if}
+            {/each}
         </g>
     {/if}
 
@@ -312,7 +325,8 @@
     }
 
     .piece,
-    .flier {
+    .flier,
+    .occluders {
         pointer-events: none;
     }
 

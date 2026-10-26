@@ -11,6 +11,8 @@ export type StackMotion = {
     // they land.
     leftBelow: number
     landingOn: number
+    // A move played, rather than taken back.
+    forward: boolean
 }
 
 export type BoardDiff = {
@@ -37,43 +39,60 @@ function isHop(from: AxialCoordinates, to: AxialCoordinates, height: number): bo
     return DIRECTIONS.some((direction) => sameCoordinates(stepsFrom(from, direction, height), to))
 }
 
+// Whether the whole stack at `from` in `before` now tops the stack at `to` in `after`.
+function movedOnto(
+    before: PlacedStack[],
+    after: PlacedStack[],
+    from: AxialCoordinates,
+    to: AxialCoordinates
+): StackMotion | undefined {
+    const moving = stackAt(before, from)
+    const was = stackAt(before, to)
+    if (
+        moving.length === 0 ||
+        was.length === 0 ||
+        stackAt(after, from).length > 0 ||
+        !samePieces(stackAt(after, to), [...was, ...moving])
+    ) {
+        return undefined
+    }
+    return { from, to, pieces: moving, leftBelow: 0, landingOn: was.length, forward: true }
+}
+
 // A stack that left one space and now tops another as far away as it is tall, read forwards
 // (a move) or backwards (its undo), from the two boards alone.
 function findMove(before: PlacedStack[], after: PlacedStack[]): StackMotion | undefined {
     for (const origin of before) {
-        if (stackAt(after, origin.coords).length > 0) continue
         for (const target of after) {
-            const was = stackAt(before, target.coords)
-            if (
-                was.length > 0 &&
-                isHop(origin.coords, target.coords, origin.pieces.length) &&
-                target.pieces.length === was.length + origin.pieces.length &&
-                samePieces(target.pieces, [...was, ...origin.pieces])
-            ) {
-                return {
-                    from: origin.coords,
-                    to: target.coords,
-                    pieces: origin.pieces,
-                    leftBelow: 0,
-                    landingOn: was.length
-                }
-            }
+            if (!isHop(origin.coords, target.coords, origin.pieces.length)) continue
+            const move = movedOnto(before, after, origin.coords, target.coords)
+            if (move) return move
         }
     }
     return undefined
 }
 
-export function boardDiff(from: HydratedDvonnBoard, to: HydratedDvonnBoard): BoardDiff {
+// What changed between two boards. `known` is the move the session knows was played or taken
+// back, used when it turns one board into the other.
+export function boardDiff(
+    from: HydratedDvonnBoard,
+    to: HydratedDvonnBoard,
+    known?: { from: AxialCoordinates; to: AxialCoordinates }
+): BoardDiff {
     const before = stacks(from)
     const after = stacks(to)
-    const forward = findMove(before, after)
-    const backward = forward ? undefined : findMove(after, before)
+    const forward =
+        (known && movedOnto(before, after, known.from, known.to)) ?? findMove(before, after)
+    const backward = forward
+        ? undefined
+        : ((known && movedOnto(after, before, known.from, known.to)) ?? findMove(after, before))
     const moved: StackMotion | undefined = backward && {
         from: backward.to,
         to: backward.from,
         pieces: backward.pieces,
         leftBelow: backward.landingOn,
-        landingOn: 0
+        landingOn: 0,
+        forward: false
     }
     const motion = forward ?? moved
     const isMotionSpace = (coords: AxialCoordinates) =>
@@ -89,4 +108,18 @@ export function boardDiff(from: HydratedDvonnBoard, to: HydratedDvonnBoard): Boa
             (stack) => !isMotionSpace(stack.coords) && stackAt(after, stack.coords).length === 0
         )
     }
+}
+
+// The spaces a hop from `from` to `to` passes over, in order.
+export function spacesBetween(from: AxialCoordinates, to: AxialCoordinates): AxialCoordinates[] {
+    for (const direction of DIRECTIONS) {
+        for (let distance = 1; distance <= 10; distance++) {
+            if (sameCoordinates(stepsFrom(from, direction, distance), to)) {
+                return Array.from({ length: distance - 1 }, (_, index) =>
+                    stepsFrom(from, direction, index + 1)
+                )
+            }
+        }
+    }
+    return []
 }

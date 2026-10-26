@@ -6,7 +6,7 @@ import {
     spaceName,
     type Piece
 } from '@tabletop/dvonn'
-import { boardDiff } from './boardDiff.js'
+import { boardDiff, spacesBetween } from './boardDiff.js'
 
 const placedAt = { q: 0, r: 0 }
 const w: Piece = { playerId: 'w', placedAt }
@@ -46,5 +46,27 @@ describe('boardDiff', () => {
         const diff = boardDiff(board({}), board({ C1: [d] }))
         expect(diff.moved).toBeUndefined()
         expect(diff.appeared.map((stack) => spaceName(stack.coords))).toEqual(['C1'])
+    })
+
+    it('follows the move the session knows when it turns one board into the other', () => {
+        // Either piece could have moved onto A1 and cut the other off.
+        const from = board({ A1: [b], B1: [w], A2: [w] })
+        const to = board({ A1: [b, w] })
+        for (const name of ['B1', 'A2']) {
+            const known = { from: spaceFromName(name), to: spaceFromName('A1') }
+            expect(boardDiff(from, to, known).moved?.from).toEqual(known.from)
+            expect(boardDiff(to, from, known).moved).toMatchObject({ to: known.from, leftBelow: 1 })
+            expect(boardDiff(to, from, known).appeared).toHaveLength(1)
+        }
+        const elsewhere = { from: spaceFromName('E3'), to: spaceFromName('F3') }
+        expect(boardDiff(from, to, elsewhere).moved?.forward).toBe(true)
+    })
+})
+
+describe('spacesBetween', () => {
+    it('lists the spaces a hop passes over', () => {
+        const between = spacesBetween(spaceFromName('A1'), spaceFromName('D1'))
+        expect(between.map(spaceName)).toEqual(['B1', 'C1'])
+        expect(spacesBetween(spaceFromName('A1'), spaceFromName('B1'))).toEqual([])
     })
 })

@@ -1,7 +1,12 @@
-import { GameSession, type TitlePreferences } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import {
+    GameSession,
+    type PresentedTransition,
+    type TitlePreferences
+} from '@tabletop/frontend-components'
+import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
+    isMoveStack,
     MoveStack,
     PlacePiece,
     DvonnPreferenceDefinition,
@@ -25,6 +30,11 @@ export function includesCoords(list: readonly AxialCoordinates[], coords: AxialC
 
 export class DvonnGameSession extends GameSession<DvonnGameState, HydratedDvonnGameState> {
     selection: DvonnSelection = $state({})
+
+    // The move an Undo under way takes back, and the move history last stepped to: the board
+    // animator follows them where the two boards alone cannot say which stack moved.
+    undoingMove: MoveStack | undefined
+    historyMove: MoveStack | undefined
 
     readonly preferences: TitlePreferences<typeof DvonnPreferences> =
         this.createPreferences(DvonnPreferenceDefinition)
@@ -93,8 +103,19 @@ export class DvonnGameSession extends GameSession<DvonnGameState, HydratedDvonnG
         this.selection = {}
     }
 
-    override beforeNewState(): void {
-        this.resetAction()
+    override willUndo(action: GameAction): void {
+        this.undoingMove = isMoveStack(action) ? action : undefined
+    }
+
+    override onHistoryAction(action?: GameAction): void {
+        this.historyMove = isMoveStack(action) ? action : undefined
+    }
+
+    // Undoing a move hops the stack home and leaves it chosen; the next Undo puts it down.
+    override beforeNewState({ kind }: PresentedTransition): void {
+        const move = kind === 'undo' ? this.undoingMove : undefined
+        this.selection = move ? setDvonnSelection({}, 'from', coordsKey(move.from)) : {}
+        if (kind !== 'undo') this.undoingMove = undefined
     }
 
     isClickable(coords: AxialCoordinates): boolean {

@@ -7,11 +7,12 @@ import type {
     TransitionKind,
     TransitionStep
 } from '@tabletop/frontend-components'
-import type { HydratedDvonnGameState, Piece } from '@tabletop/dvonn'
+import { isMoveStack, type HydratedDvonnGameState, type Piece } from '@tabletop/dvonn'
 import type { DvonnGameSession } from '$lib/model/session.svelte.js'
-import { boardDiff, type StackMotion } from '$lib/board/boardDiff.js'
-import { coordsKey, flatCenter, SPACING, type BoardView } from '$lib/board/geometry.js'
-import { stackDiscs } from '$lib/board/pieceGeometry.js'
+import { boardDiff, spacesBetween, type StackMotion } from '$lib/board/boardDiff.js'
+import { coordsKey, type BoardView } from '$lib/board/geometry.js'
+import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE } from '$lib/board/hop.js'
+import { PIECE_MODEL, restingLift } from '$lib/board/pieceGeometry.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
@@ -22,29 +23,46 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'exploration'
 ])
 
-// A piece falls onto its space, gathering speed, and settles with a small bounce; its shadow
-// waits on the board, small and faint, and darkens as the piece comes down.
-const DROP = { fall: 0.26, rise: -48, scale: 1.12, bounce: -4, settle: 0.07, shadow: 0.55 }
-// Undoing a placement lifts the piece off the way it came, gathering speed as it rises.
-const LIFT_OFF = { lift: 0.3 }
-// The hop rises higher for a longer move.
-const HOP = { duration: 0.42, rise: 18, risePerSpace: 4 }
-const CUT_OFF = { duration: 0.28, rise: -12, scale: 1.08, stagger: 0.03 }
+// A placed piece falls onto its space, gathering speed, and settles with a small wobble; its
+// shadow waits on the space, small and faint, and darkens as the piece comes down.
+const DROP = { fall: 0.26, rise: -50, scale: 1.08, wobble: [-4, -1.5], settle: 0.06, shadow: 0.55 }
+// Undoing a placement lifts the piece off quickly, seen rising before it fades.
+const LIFT_OFF = { duration: 0.18, rise: -30, scale: 1.04 }
+// Landing on a stack bounces mostly up and down, with a little of the hop's momentum carrying
+// it along.
+const BOUNCE = {
+    lift: [
+        { y: -2.5, duration: 0.07, ease: 'power1.out' },
+        { y: 0, duration: 0.07, ease: 'power1.in' },
+        { y: -0.8, duration: 0.05, ease: 'power1.out' },
+        { y: 0, duration: 0.05, ease: 'power1.in' }
+    ],
+    along: [1, -0.4, 0],
+    step: 0.08
+}
+// Stacks cut off from the DVONN pieces float straight up as they fade, one after another, as the
+// moving stack lands; their shadows shrink where they stood.
+const CUT_OFF = { delay: 0.04, duration: 0.35, rise: -34, stagger: 0.03, shadow: 0.7 }
 const MARK_FADE = 0.2
-const FAST = 0.18
+// Undo and history play quickly, without the bounces.
+const QUICK = 0.18
 
 export type DrawnStack = { key: string; coords: AxialCoordinates; pieces: Piece[] }
 
-// The stack in flight, drawn above the board where it starts.
+// The stack in flight, drawn above the board from the space it leaves.
 export type Flier = {
     coords: AxialCoordinates
     pieces: Piece[]
-    // How far above its space it starts, sitting on the pieces it leaves behind.
-    startLift: number
+    // The spaces it leaves and lands on, whose stacks never hide it.
+    passes: string[]
 }
 
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedDvonnGameState, AnimationContext>
+// A stack's drawing: the whole of it, its body and its shadow on the board.
+type Parts = { whole?: SVGGElement; body?: SVGGElement; shadow?: SVGGElement }
+// A copy of a stack drawn over the flier: where it stands on screen, and how high its top is.
+type Occluder = { y: number; top: number }
 
 function drawnStacks(state: HydratedDvonnGameState): DrawnStack[] {
     return state.board.spaces
@@ -56,22 +74,16 @@ function drawnStacks(state: HydratedDvonnGameState): DrawnStack[] {
         }))
 }
 
-// How far the bottom of `moving` pieces sits above the space when `below` pieces are under it.
-export function liftOn(below: number, moving: number, radius: number): number {
-    if (below === 0) return 0
-    const discs = stackDiscs(below + moving, radius)
-    return discs[below].base - discs[0].base
-}
-
 export class BoardAnimator {
     // What the board draws. A replay plays several actions before the visible state catches
     // up, so each animated action leaves the board as it ended until that state lands.
     stacks: DrawnStack[] = $derived.by(() => drawnStacks(this.session.gameState))
     flier: Flier | undefined = $state()
 
-    private readonly nodes = new Map<string, SVGGElement>()
-    private flierElement: SVGGElement | undefined
+    private readonly stackParts = new Map<string, Parts>()
+    private flierParts: Parts = {}
     private readonly markNodes = new Set<SVGGElement>()
+    private readonly occluders = new Map<SVGUseElement, Occluder>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
 
     constructor(
@@ -84,22 +96,40 @@ export class BoardAnimator {
         return () => this.session.removeGameStateChangeListener(this.listener)
     }
 
-    node(key: string): Attachment<SVGGElement> {
-        return (element) => {
-            gsap.set(element, { svgOrigin: '0 0' })
-            this.nodes.set(key, element)
+    // The nodes of the stack drawn at `key`: its wrapper, and the body and shadow inside it.
+    stack(key: string, part: keyof Parts): Attachment<SVGGElement> {
+        return (node) => {
+            const parts = this.stackParts.get(key) ?? {}
+            parts[part] = node
+            this.stackParts.set(key, parts)
             return () => {
-                if (this.nodes.get(key) === element) this.nodes.delete(key)
+                const current = this.stackParts.get(key)
+                if (current?.[part] === node) delete current[part]
             }
         }
     }
 
-    flierNode(): Attachment<SVGGElement> {
-        return (element) => {
-            gsap.set(element, { svgOrigin: '0 0' })
-            this.flierElement = element
+    flierNode(part: keyof Parts): Attachment<SVGGElement> {
+        return (node) => {
+            this.flierParts[part] = node
             return () => {
-                if (this.flierElement === element) this.flierElement = undefined
+                if (this.flierParts[part] === node) delete this.flierParts[part]
+            }
+        }
+    }
+
+    // A copy of `stack` drawn over the flier while the flier is behind it. Hidden by `display`:
+    // a copy hidden by `visibility` still paints any part that sets its own visibility.
+    occluder(stack: DrawnStack): Attachment<SVGUseElement> {
+        return (node) => {
+            node.style.display = 'none'
+            const layout = this.layout()
+            this.occluders.set(node, {
+                y: layout.center(stack.coords).y,
+                top: restingLift(stack.pieces.length, layout.radius)
+            })
+            return () => {
+                this.occluders.delete(node)
             }
         }
     }
@@ -115,36 +145,44 @@ export class BoardAnimator {
         if (from === undefined || !ANIMATED_KINDS.has(kind)) {
             return
         }
-        const timeline = animationContext.actionTimeline
+        const quick = kind === 'undo' || kind === 'history'
         // Each space's drawing is reused for whatever stack next stands there, so every node a
         // move touches is put back once the move lands.
         const touched: SVGGElement[] = []
-        const diff = boardDiff(from.board, to.board)
-        const fast = action === undefined
+        const diff = boardDiff(from.board, to.board, this.knownMove(kind, action))
+        const moved = diff.moved
 
-        this.stacks = this.inBetween(from, to, diff.moved)
-        this.flier = diff.moved && {
-            coords: diff.moved.from,
-            pieces: diff.moved.pieces,
-            startLift: liftOn(diff.moved.leftBelow, diff.moved.pieces.length, this.layout().radius)
+        this.stacks = this.inBetween(from, to, moved)
+        this.flier = moved && {
+            coords: moved.from,
+            pieces: moved.pieces,
+            passes: [coordsKey(moved.from), coordsKey(moved.to)]
         }
+        const drawing = performance.now()
         await tick()
+        // The context's timelines run from the moment it is made, just before this listener, so
+        // the motion starts after the time taken to draw the flier rather than skipping it.
+        const timeline = gsap.timeline()
+        animationContext.actionTimeline.add(timeline, (performance.now() - drawing) / 1000)
 
-        const hopEnd = diff.moved ? this.hop(diff.moved, timeline, fast) : 0
-        for (const stack of diff.appeared) {
-            this.enter(coordsKey(stack.coords), timeline, touched, fast)
-        }
-        diff.vanished.forEach((stack, index) => {
+        if (moved) {
+            // Taking a move back drops the stacks it cut off back in first.
+            const enter = moved.forward ? 0 : this.dropBack(diff.appeared, timeline, touched)
+            const landed = this.hop(from, moved, timeline, quick, enter)
+            if (moved.forward) {
+                this.cutOff(diff.vanished, timeline, touched, landed, quick)
+            }
+        } else {
+            for (const stack of diff.appeared) {
+                this.drop(coordsKey(stack.coords), timeline, touched, quick)
+            }
             // Without a move, a piece leaves the board only when its placement is undone.
-            if (diff.moved) {
-                this.cutOff(coordsKey(stack.coords), timeline, touched, hopEnd, index, fast)
-            } else {
+            for (const stack of diff.vanished) {
                 this.liftOff(coordsKey(stack.coords), timeline, touched)
             }
-        })
-        const marks = [...this.markNodes]
-        if (marks.length > 0) {
-            timeline.to(marks, { opacity: 0, duration: fast ? FAST : MARK_FADE }, 0)
+        }
+        if (this.markNodes.size > 0) {
+            timeline.to([...this.markNodes], { opacity: 0, duration: quick ? QUICK : MARK_FADE }, 0)
         }
 
         animationContext.afterAnimations(() => {
@@ -155,6 +193,14 @@ export class BoardAnimator {
             }
             if (this.markNodes.size > 0) gsap.set([...this.markNodes], { opacity: 1 })
         })
+    }
+
+    // The move the session knows is being played, taken back or stepped to in history.
+    private knownMove(kind: TransitionKind, action: Step['action']) {
+        if (isMoveStack(action)) return action
+        if (kind === 'undo') return this.session.undoingMove
+        if (kind === 'history') return this.session.historyMove
+        return undefined
     }
 
     // The board partway: the stack in flight lifted off, the stack it lands on as it was, and
@@ -180,95 +226,222 @@ export class BoardAnimator {
         return [...kept, ...arriving]
     }
 
-    // The stack jumps in an arc from its space onto the stack it lands on.
-    private hop(moved: StackMotion, timeline: Timeline, fast: boolean): number {
-        const node = this.flierElement
-        if (node === undefined) return 0
+    // The stack hops in one arc from its space over every space between onto where it lands,
+    // starting `at`. Its node follows the board; its body rises and comes down; its shadow shows
+    // only while it stands on the board itself. Returns when it has landed.
+    private hop(
+        before: HydratedDvonnGameState,
+        moved: StackMotion,
+        timeline: Timeline,
+        quick: boolean,
+        at: number
+    ): number {
+        const { whole: node, body, shadow } = this.flierParts
+        if (node === undefined || body === undefined || shadow === undefined) return at
         const layout = this.layout()
+        const radius = layout.radius
+        const between = spacesBetween(moved.from, moved.to)
+        const plan = hopPlan({
+            spaces: between.length + 1,
+            startLift: restingLift(moved.leftBelow, radius),
+            endLift: restingLift(moved.landingOn, radius),
+            over: between.map((coords) => restingLift(before.board.stackAt(coords).length, radius)),
+            quick
+        })
         const start = layout.center(moved.from)
         const end = layout.center(moved.to)
-        const startLift = liftOn(moved.leftBelow, moved.pieces.length, layout.radius)
-        const endLift = liftOn(moved.landingOn, moved.pieces.length, layout.radius)
-        const dx = end.x - start.x
-        const dy = end.y + endLift - (start.y + startLift)
-        const flatStart = flatCenter(moved.from)
-        const flatEnd = flatCenter(moved.to)
-        const spaces = Math.round(
-            Math.hypot(flatEnd.x - flatStart.x, flatEnd.y - flatStart.y) / SPACING
-        )
-        const rise = HOP.rise + HOP.risePerSpace * spaces
-        const duration = fast ? FAST : HOP.duration
-        const peak = Math.min(0, dy) - rise
+        const offset = { x: end.x - start.x, y: end.y - start.y }
+        const half = plan.duration / 2
+
         gsap.set(node, { x: 0, y: 0 })
-        timeline.to(node, { x: dx, duration, ease: 'power1.inOut' }, 0)
-        timeline.to(node, { y: peak, duration: duration * 0.5, ease: 'power2.out' }, 0)
-        timeline.to(node, { y: dy, duration: duration * 0.5, ease: 'power2.in' }, duration * 0.5)
-        return duration
+        gsap.set(body, { y: plan.startLift, opacity: 1 })
+        gsap.set(shadow, { opacity: plan.startLift === 0 ? 1 : 0 })
+        timeline.to(
+            node,
+            {
+                x: offset.x,
+                y: offset.y,
+                duration: plan.groundEnd - plan.groundStart,
+                ease: GROUND_EASE
+            },
+            at + plan.groundStart
+        )
+        const { peakTime } = plan
+        timeline.to(body, { y: plan.peak, duration: peakTime, ease: RISE_EASE }, at)
+        timeline.to(
+            body,
+            { y: plan.endLift, duration: plan.duration - peakTime, ease: FALL_EASE },
+            at + peakTime
+        )
+        if (plan.startLift === 0) {
+            timeline.to(shadow, { opacity: 0, duration: half, ease: 'power1.out' }, at)
+        }
+        if (plan.endLift === 0) {
+            timeline.to(shadow, { opacity: 1, duration: half, ease: 'power1.in' }, at + half)
+        }
+
+        // The stacks nearer the viewer than the flier's place on the board stand in front of
+        // it, unless it is above them; once it has landed, that place no longer changes.
+        const occlude = () => {
+            const y = Number(gsap.getProperty(node, 'y'))
+            this.occlude(start.y + y, Number(gsap.getProperty(body, 'y')))
+        }
+        occlude()
+        const landed = at + plan.duration
+        timeline.to({}, { duration: plan.duration, onUpdate: occlude }, at)
+
+        // A stack grown past the full height is thinned the moment it lands, so it does not
+        // bounce: the board takes over the whole stack at once.
+        const thinned = moved.landingOn + moved.pieces.length > PIECE_MODEL.cap
+        if (thinned) {
+            timeline.call(() => this.land(before, moved), undefined, landed)
+        }
+        if (!quick && !thinned) this.bounce(node, body, offset, plan.endLift, timeline, landed)
+        return landed
     }
 
-    private enter(key: string, timeline: Timeline, touched: SVGGElement[], fast: boolean) {
-        const body = this.nodes.get(`${key}:body`)
-        const shadow = this.nodes.get(`${key}:shadow`)
+    // A nearer stack hides the flier only while the flier is lower than its top: above it, every
+    // line of sight from the flier to the viewer passes over it.
+    private occlude(groundY: number, lift: number) {
+        for (const [use, { y, top }] of this.occluders) {
+            use.style.display = y > groundY + 0.5 && lift > top ? '' : 'none'
+        }
+    }
+
+    // The landed stack drawn whole on its space.
+    private land(before: HydratedDvonnGameState, moved: StackMotion) {
+        const key = coordsKey(moved.to)
+        this.stacks = this.stacks.map((stack) =>
+            stack.key === key
+                ? { ...stack, pieces: [...before.board.stackAt(moved.to), ...moved.pieces] }
+                : stack
+        )
+        this.flier = undefined
+    }
+
+    // Up and down on the stack landed on, carried a little along the hop and back.
+    private bounce(
+        node: SVGGElement,
+        body: SVGGElement,
+        offset: { x: number; y: number },
+        lift: number,
+        timeline: Timeline,
+        at: number
+    ) {
+        let time = at
+        for (const { y, duration, ease } of BOUNCE.lift) {
+            timeline.to(body, { y: lift + y, duration, ease }, time)
+            time += duration
+        }
+        const length = Math.hypot(offset.x, offset.y) || 1
+        BOUNCE.along.forEach((past, index) => {
+            timeline.to(
+                node,
+                {
+                    x: offset.x + (offset.x / length) * past,
+                    y: offset.y + (offset.y / length) * past,
+                    duration: BOUNCE.step,
+                    ease: 'sine.inOut'
+                },
+                at + index * BOUNCE.step
+            )
+        })
+    }
+
+    // The stacks cut off float up and fade one after another as the moving stack lands.
+    private cutOff(
+        stacks: readonly { coords: AxialCoordinates }[],
+        timeline: Timeline,
+        touched: SVGGElement[],
+        landed: number,
+        quick: boolean
+    ) {
+        const duration = quick ? QUICK : CUT_OFF.duration
+        stacks.forEach((stack, index) => {
+            const { body, shadow } = this.stackParts.get(coordsKey(stack.coords)) ?? {}
+            if (body === undefined || shadow === undefined) return
+            touched.push(...scaledFromCentre(body, shadow))
+            const start = quick ? landed : landed + CUT_OFF.delay + index * CUT_OFF.stagger
+            timeline.to(body, { y: CUT_OFF.rise, opacity: 0, duration, ease: 'power1.out' }, start)
+            timeline.to(
+                shadow,
+                { scale: CUT_OFF.shadow, opacity: 0, duration, ease: 'power1.out' },
+                start
+            )
+        })
+    }
+
+    // The cut-off stacks come back down from where they vanished, appearing as they fall;
+    // returns when they are down.
+    private dropBack(
+        stacks: readonly { coords: AxialCoordinates }[],
+        timeline: Timeline,
+        touched: SVGGElement[]
+    ): number {
+        if (stacks.length === 0) return 0
+        for (const stack of stacks) {
+            const { body, shadow } = this.stackParts.get(coordsKey(stack.coords)) ?? {}
+            if (body === undefined || shadow === undefined) continue
+            touched.push(...scaledFromCentre(body, shadow))
+            timeline.fromTo(
+                body,
+                { y: CUT_OFF.rise, opacity: 0 },
+                { y: 0, opacity: 1, duration: QUICK, ease: 'power1.in', immediateRender: true },
+                0
+            )
+            timeline.fromTo(
+                shadow,
+                { scale: CUT_OFF.shadow, opacity: 0 },
+                { scale: 1, opacity: 1, duration: QUICK, ease: 'power1.in', immediateRender: true },
+                0
+            )
+        }
+        return QUICK
+    }
+
+    private drop(key: string, timeline: Timeline, touched: SVGGElement[], quick: boolean) {
+        const { body, shadow } = this.stackParts.get(key) ?? {}
         if (body === undefined || shadow === undefined) return
-        touched.push(body, shadow)
-        const fall = fast ? FAST : DROP.fall
+        touched.push(...scaledFromCentre(body, shadow))
+        const fall = quick ? QUICK : DROP.fall
         timeline.fromTo(
             body,
             { opacity: 0, scale: DROP.scale, y: DROP.rise },
             { opacity: 1, duration: fall * 0.25, ease: 'none', immediateRender: true },
             0
         )
-        timeline.to(body, { scale: 1, y: 0, duration: fall, ease: 'power2.in' }, 0)
+        timeline.to(body, { scale: 1, y: 0, duration: fall, ease: 'power1.in' }, 0)
         timeline.fromTo(
             shadow,
             { opacity: 0, scale: DROP.shadow },
-            { opacity: 1, scale: 1, duration: fall, ease: 'power2.in', immediateRender: true },
+            { opacity: 1, scale: 1, duration: fall, ease: 'power1.in', immediateRender: true },
             0
         )
-        if (fast) return
-        timeline.to(body, { y: DROP.bounce, duration: DROP.settle, ease: 'power1.out' }, fall)
-        timeline.to(body, { y: 0, duration: DROP.settle, ease: 'power1.in' }, fall + DROP.settle)
+        if (quick) return
+        DROP.wobble.forEach((height, bounce) => {
+            const up = fall + bounce * DROP.settle * 2
+            timeline.to(body, { y: height, duration: DROP.settle, ease: 'power1.out' }, up)
+            timeline.to(body, { y: 0, duration: DROP.settle, ease: 'power1.in' }, up + DROP.settle)
+        })
     }
 
-    // The drop in reverse: the piece rises off its space, gathering speed, and its shadow fades
-    // and shrinks under it.
+    // The drop in reverse: the piece is seen rising off its space before it fades, and its
+    // shadow shrinks under it.
     private liftOff(key: string, timeline: Timeline, touched: SVGGElement[]) {
-        const body = this.nodes.get(`${key}:body`)
-        const shadow = this.nodes.get(`${key}:shadow`)
+        const { body, shadow } = this.stackParts.get(key) ?? {}
         if (body === undefined || shadow === undefined) return
-        touched.push(body, shadow)
-        const { lift } = LIFT_OFF
-        timeline.to(body, { y: DROP.rise, scale: DROP.scale, duration: lift, ease: 'power1.in' }, 0)
-        timeline.to(body, { opacity: 0, duration: lift * 0.4, ease: 'none' }, lift * 0.6)
-        timeline.to(
-            shadow,
-            { opacity: 0, scale: DROP.shadow, duration: lift, ease: 'power1.in' },
-            0
-        )
+        touched.push(...scaledFromCentre(body, shadow))
+        const { duration, rise, scale } = LIFT_OFF
+        timeline.to(body, { y: rise, scale, duration, ease: 'power1.out' }, 0)
+        timeline.to(body, { opacity: 0, duration, ease: 'power2.in' }, 0)
+        timeline.to(shadow, { opacity: 0, scale: DROP.shadow, duration, ease: 'power1.out' }, 0)
     }
+}
 
-    // Stacks cut off from the DVONN pieces lift away once the moving stack lands.
-    private cutOff(
-        key: string,
-        timeline: Timeline,
-        touched: SVGGElement[],
-        at: number,
-        index: number,
-        fast: boolean
-    ) {
-        const node = this.nodes.get(key)
-        if (node === undefined) return
-        touched.push(node)
-        timeline.to(
-            node,
-            {
-                opacity: 0,
-                y: CUT_OFF.rise,
-                scale: CUT_OFF.scale,
-                duration: fast ? FAST : CUT_OFF.duration,
-                ease: 'power1.out'
-            },
-            fast ? 0 : at + index * CUT_OFF.stagger
-        )
-    }
+// Nodes about to grow or shrink, around their space's centre. Set only on the nodes a move
+// scales: GSAP measures each node's bounding box to place the origin, which for every stack on
+// the board took seconds as a game opened.
+function scaledFromCentre(...nodes: SVGGElement[]): SVGGElement[] {
+    gsap.set(nodes, { svgOrigin: '0 0' })
+    return nodes
 }

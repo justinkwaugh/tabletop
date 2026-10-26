@@ -1,25 +1,23 @@
+// The old edition's board: pale sand pressed with a ring where each piece sits, drawn as fine
+// grain over a few soft drifts. Only scripts/render-sand.mjs runs this, rendering it once to
+// src/lib/images/sand.webp; rerun after changing it: pnpm run render-sand
 import { seededRandom } from './random.js'
 
-// The old edition's board: pale sand pressed with a ring where each piece sits. Drawn once on a
-// canvas as fine grain over a few soft drifts, and shown as a still image under the spaces.
-const RESOLUTION = 1.5
+// In board units, a little larger than the board's frame (744 × 328), which the image covers.
+export const SAND_SIZE = { width: 760, height: 340 }
+export const SAND_RESOLUTION = 1.5
+// The sand itself, as --dvonn-sand: the grain is drawn on it, so the image is opaque and
+// compresses well.
+const SAND = '#d6d1c6'
 const GRAINS_PER_UNIT = 0.9
 const DRIFTS = 40
 
-let cached: { key: string; url: string } | undefined
-
-export function sandImage(width: number, height: number): string | undefined {
-    if (typeof document === 'undefined') return undefined
-    const key = `${width}x${height}`
-    if (cached?.key === key) return cached.url
-
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.round(width * RESOLUTION)
-    canvas.height = Math.round(height * RESOLUTION)
-    const context = canvas.getContext('2d')
-    if (!context) return undefined
+export function drawSand(context: CanvasRenderingContext2D) {
+    const { width, height } = SAND_SIZE
     const random = seededRandom(1889)
-    context.scale(RESOLUTION, RESOLUTION)
+    context.scale(SAND_RESOLUTION, SAND_RESOLUTION)
+    context.fillStyle = SAND
+    context.fillRect(0, 0, width, height)
 
     for (let index = 0; index < DRIFTS; index++) {
         const x = random() * width
@@ -42,7 +40,4 @@ export function sandImage(width: number, height: number): string | undefined {
         const size = 0.35 + random() ** 3 * 0.9
         context.fillRect(random() * width, random() * height, size, size)
     }
-
-    cached = { key, url: canvas.toDataURL('image/png') }
-    return cached.url
 }

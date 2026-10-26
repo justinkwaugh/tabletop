@@ -257,3 +257,28 @@ write(
         I3: 'b'
     })
 )
+
+// Alice's stacks hop over taller ones: the four-stack on E5 toward the viewer over the 10-stack
+// on E3 onto E1; the two-stack on G1 away over the 10-stack on G2 onto G3, behind it; the
+// four-stack on A3 along the row over the 6-stack on C3 onto E3, making a stack of 14.
+write(
+    'hops-over-tall-stacks',
+    'Hops over tall stacks',
+    position({
+        E5: 'bwbw',
+        E4: 'b',
+        E3: 'wbwbwbwbwb',
+        E2: 'wb',
+        E1: 'b',
+        G1: 'ww',
+        G2: 'wbwbwbwbwb',
+        G3: 'b',
+        A3: 'bwbw',
+        B3: 'b',
+        C3: 'wbwbwb',
+        D3: 'b',
+        F3: 'd',
+        D2: 'd',
+        H3: 'd'
+    })
+)
