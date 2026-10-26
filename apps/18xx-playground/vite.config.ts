@@ -36,6 +36,8 @@ const restartOnWorkspaceDistRebuild: Plugin = {
 export default defineProject(
     mergeConfig(VitestConfig, {
         plugins: [sveltekit(), restartOnWorkspaceDistRebuild],
+        // Vite 8 resolves an SSR-externalized CSS @import as a relative file (vitejs/vite#23096).
+        ssr: { noExternal: ['tailwindcss'] },
         server: { host: '0.0.0.0', port: 4188, fs: { allow: ['../..'] } }
     })
 )

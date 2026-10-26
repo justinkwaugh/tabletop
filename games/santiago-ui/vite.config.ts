@@ -5,16 +5,10 @@ import { VitestConfig } from '@tabletop/vitest-config'
 export default defineProject(
     mergeConfig(VitestConfig, {
         plugins: [sveltekit()],
+        // Vite 8 resolves an SSR-externalized CSS @import as a relative file (vitejs/vite#23096).
+        ssr: { noExternal: ['tailwindcss'] },
         optimizeDeps: {
             exclude: ['@tabletop/frontend-components', '@tabletop/santiago']
-        },
-        build: {
-            // Nothing ships from this harness build; Vite 7's bundled es-module-lexer misreads
-            // some minified chunks (#209).
-            minify: false,
-            commonjsOptions: {
-                include: [/node_modules/]
-            }
         },
         server: {
             host: true,

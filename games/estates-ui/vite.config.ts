@@ -5,15 +5,9 @@ import { VitestConfig } from '@tabletop/vitest-config'
 export default defineProject(
     mergeConfig(VitestConfig, {
         plugins: [sveltekit()],
+        // Vite 8 resolves an SSR-externalized CSS @import as a relative file (vitejs/vite#23096).
+        ssr: { noExternal: ['tailwindcss'] },
         assetsInclude: ['**/*.gltf', '**/*.bin'],
-        build: {
-            // Nothing ships from this harness build; Vite 7's bundled es-module-lexer misreads
-            // some minified chunks (#209).
-            minify: false,
-            commonjsOptions: {
-                include: [/node_modules/]
-            }
-        },
         server: {
             // Bind every interface rather than loopback alone. Without this vite listens
             // on [::1] only, so a container port forwarded over IPv4 - as VS Code's

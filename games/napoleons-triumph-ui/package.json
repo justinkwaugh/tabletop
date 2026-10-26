@@ -44,9 +44,9 @@
     "devDependencies": {
         "@playwright/test": "^1.42.1",
         "@sveltejs/adapter-static": "^3.0.10",
-        "@sveltejs/kit": "^2.48.4",
+        "@sveltejs/kit": "^2.70.3",
         "@sveltejs/package": "^2.5.7",
-        "@sveltejs/vite-plugin-svelte": "^6.2.4",
+        "@sveltejs/vite-plugin-svelte": "^7.3.1",
         "@tabletop/eslint-config": "workspace:*",
         "@tabletop/prettier-config": "workspace:*",
         "@tabletop/rollup-config": "workspace:*",
@@ -64,7 +64,7 @@
         "svelte-check": "^4.3.5",
         "tailwindcss": "^4.1.18",
         "typescript": "5.9.3",
-        "vite": "^7.3.1",
+        "vite": "^8.3.5",
         "vite-plugin-devtools-json": "^1.0.0"
     }
 }
