@@ -54,7 +54,7 @@ All are links to the page, at the visual weight of "About Us".
 - Totals are `total_amount_raised`, which includes campaigns that support ours. The page says "raised", not "received", because platform totals can include unsettled gifts.
 - The headline is the dollar total; the detail line shows each charity in its own currency: "$1,260 raised by Board Together players · $820 for Gamers Outreach · £330 for SpecialEffect". Amounts are truncated to whole units.
 - The tally is hidden while nothing has been raised, and when the API is unavailable.
-- The campaigns belong to the BoardTogether Community team, so players can start their own campaigns in support of them; `total_amount_raised` counts those too. The first campaigns under the personal @boardtogether account are unpublished.
+- The campaigns belong to the BoardTogether Community team, so players can start their own campaigns in support of them; `total_amount_raised` counts those too. The first campaigns, under the personal @boardtogether account, were removed.
 - Tiltify retires a campaign after six months without a donation. A retired or unpublished campaign's card links to the charity's own donation page instead (gamersoutreach.org/donate, specialeffect.org.uk/donate).
 - Tiltify answers in HTML unless the request sends `Accept: application/json`.
 
