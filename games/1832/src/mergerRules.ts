@@ -12,7 +12,8 @@ import {
     type CashPayment,
     type PlacedStation,
     type ShareSaleDetails,
-    type StockState
+    type StockState,
+    stateWith
 } from '@tabletop/18xx'
 import { coalFieldsOpen } from './coalAccess.js'
 import type { EighteenThirtyTwoState } from './state.js'
@@ -219,7 +220,7 @@ export function takeoverSales(
                 other.sales[0].companyId === companyId && other.sales[0].shares === shares - 1
         )
         if (smaller && smaller.proceeds >= shortfall) return false
-        const projected = { ...state, ...copyStockState(state) }
+        const projected = stateWith(state, copyStockState(state))
         applyShareSale(projected, sale)
         return fundable(projected, funding)
     })

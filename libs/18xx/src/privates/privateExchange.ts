@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import { companyShareCount } from '../company/companyCharters.js'
 import { isOperatingStep } from '../operating/operatingSteps.js'
 import { allPlayersPassed } from '../stock/stockRoundRules.js'
@@ -83,11 +84,10 @@ export function evaluatePrivateExchange(
             stockRules.ownershipLimit(state, target.id, owner) * shareCount
     )
         return { reason: 'The exchange exceeds the ownership limit.' }
-    const projected: StockState = {
-        ...state,
+    const projected: StockState = stateWith(state, {
         ...copyFinances(state),
         ownershipLimitExemptions: structuredClone(state.ownershipLimitExemptions)
-    }
+    })
     const presidency = applyPrivateShareExchange(
         projected,
         company.id,

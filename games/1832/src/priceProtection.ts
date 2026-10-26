@@ -28,7 +28,8 @@ import {
     type ShareSaleDetails,
     type ShareSaleSettlement,
     type StockMarket,
-    type StockState
+    type StockState,
+    stateWith
 } from '@tabletop/18xx'
 import {
     requireEighteenThirtyTwoState,
@@ -224,7 +225,7 @@ export function sellerLimitState<State extends StockState>(state: State, owner: 
         return state
     const stockMarket = copyStockState(state).stockMarket
     fallHeldSales(stockMarket, record.sales)
-    return { ...state, stockMarket }
+    return stateWith(state, { stockMarket })
 }
 
 /**

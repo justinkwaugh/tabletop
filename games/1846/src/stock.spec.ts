@@ -10,6 +10,7 @@ import {
 import { finishTurn, setInstruction } from '@tabletop/18xx/testing'
 import { stockGame } from '../test/testSupport.js'
 import { StockRules1846, Market1846 } from './stock.js'
+import { Runtime } from './definition/gameDefinition.js'
 
 describe('1846 first stock round', () => {
     it('launches immediately, pays incremental capital and the IC bonus, and places its home', () => {
@@ -179,6 +180,31 @@ describe('1846 first stock round', () => {
             playerId: second
         })
         expect(sharesOwned(table.state, 'IC', { kind: 'player', playerId: first })).toBe(2)
+    })
+    it('offers the acting player the same stock actions in their own view as in the full game', () => {
+        const table = stockGame()
+        assertExists(Runtime.visibility)
+        const expectSameActions = () => {
+            const playerId = table.state.activePlayerIds[0]
+            const perspective = { kind: 'player', playerId } as const
+            const view = Runtime.visibility!.state.project(table.state, perspective)
+            const full = table.engine.getValidActionTypesForPlayer(
+                table.game,
+                table.state,
+                playerId
+            )
+            expect(full).toContain('FinishStockTurn')
+            expect(
+                table.engine.getValidActionTypesForPlayer(table.game, view, playerId, {
+                    perspective
+                })
+            ).toEqual(full)
+        }
+        expectSameActions()
+        table.launch()
+        expectSameActions()
+        table.buy('IC')
+        expectSameActions()
     })
     it('replays and reverses the stock round including automatic flotation and completion', () => {
         const table = stockGame()

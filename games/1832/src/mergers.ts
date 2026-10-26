@@ -22,7 +22,8 @@ import {
     trainsCountingForLimit,
     RoundEnd,
     roundEnd,
-    type ValuationRules
+    type ValuationRules,
+    stateWith
 } from '@tabletop/18xx'
 import { Absorption, absorbCompany, discardSharedHome } from './absorption.js'
 import {
@@ -238,7 +239,7 @@ function phaseFor(final: boolean) {
 }
 
 function anyOptions(state: EighteenThirtyTwoState, final: boolean) {
-    const probe = { ...state, mergerPhase: phaseFor(final) }
+    const probe = stateWith(state, { mergerPhase: phaseFor(final) })
     return state.players.some((player) => hasMergerOptions(probe, player.playerId))
 }
 
