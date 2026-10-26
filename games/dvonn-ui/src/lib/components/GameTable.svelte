@@ -72,8 +72,8 @@
                 />
             </div>
             <DefaultTabs
-                activeTabClass="py-1 px-3 bg-[#f3ebdf] border-2 border-transparent rounded-lg text-[#2a0907]"
-                inactiveTabClass="text-(--dvonn-table-ink) py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#7d2a1f]"
+                activeTabClass="py-1 px-3 max-sm:[&_svg]:hidden bg-[#f3ebdf] border-2 border-transparent rounded-lg text-[#2a0907]"
+                inactiveTabClass="text-(--dvonn-table-ink) py-1 px-3 max-sm:[&_svg]:hidden rounded-lg border-2 border-transparent hover:border-[#7d2a1f]"
             >
                 {#snippet playersPanel()}
                     <PlayersPanel />
@@ -149,6 +149,20 @@
         );
         background-attachment: fixed;
         color: var(--dvonn-ink);
+    }
+
+    /* DefaultTableLayout leaves a tenth of a phone screen showing the sidebar's edge.
+       The history controls sit above the table there, so the board takes all but a
+       sliver of the narrower player cards; the tabs drop their icons to fit. */
+    @media (width < 40rem) {
+        .dvonn-table :global(.game-column.game-column) {
+            min-width: calc(100vw - 20px);
+        }
+
+        .dvonn-table :global(div:has(+ .game-column)) {
+            width: 260px;
+            min-width: 260px;
+        }
     }
 
     .action-card {

@@ -3,7 +3,7 @@
     import { isSpace, SPACES, spaceName } from '@tabletop/dvonn'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import { coordsKey, VIEW } from '$lib/board/geometry.js'
+    import { coordsKey, GRAPH_VIEW, VIEW } from '$lib/board/geometry.js'
     import { PIECE_MODEL, stackDiscs, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
     import { markRing, outlinePath } from '$lib/board/pieceShape.js'
     import sand from '$lib/images/sand.webp'
@@ -13,8 +13,8 @@
 
     const session = getGameSession()
 
-    const layout = VIEW
-    const radius = layout.radius
+    const layout = $derived(session.graphBoard ? GRAPH_VIEW : VIEW)
+    const radius = VIEW.radius
 
     // The graph board: lines along the three directions through every space, running a short
     // whisker on past the outer spaces, as on the printed board.
@@ -23,7 +23,7 @@
         { q: 0, r: 1 },
         { q: -1, r: 1 }
     ]
-    const WHISKER = 0.15
+    const WHISKER = 0.225
     const beyond = (coords: AxialCoordinates, step: AxialCoordinates) => {
         const from = layout.center(coords)
         const to = layout.center(addAxial(coords, step))

@@ -28,11 +28,11 @@ const CORNER_SPACES: readonly AxialCoordinates[] = [
 
 // The sand board runs this far past the outer spaces, rounded at its corners.
 export const SAND_MARGIN = SPACING * 0.62
-// Beyond the sand's edge, on screen, to the centre of a coordinate label.
-const LABEL_GAP = SPACING * 0.25
+// Beyond the board's edge, on screen, to the centre of a coordinate label.
+const LABEL_GAP = SPACING * 0.2
 // Half a label's size, for the frame.
 const LABEL_HALF = { x: 5, y: 8 }
-// From the sand's edge and the outermost labels to the frame's edge.
+// From the board's edge and the outermost labels to the frame's edge.
 const FRAME_MARGIN = SPACING * 0.15
 // Room below the bottom labels for the zoom controls, which sit in the bottom-left corner.
 const CONTROLS_ROOM = SPACING * 0.4
@@ -44,6 +44,7 @@ export function flatCenter(coords: AxialCoordinates): Point {
 
 // Where everything on the board is drawn, in board units. The board is seen from the near side
 // of the table: depth shrinks to `tilt` of its length, and heights show at `rise` of theirs.
+// The board's edge lies `edge` past the outer spaces; the labels and the frame keep clear of it.
 export class BoardView {
     readonly radius = PIECE_RADIUS
     readonly rise: number
@@ -53,7 +54,10 @@ export class BoardView {
     readonly frame: { x: number; y: number; width: number; height: number }
     private readonly flatCorners: readonly Point[]
 
-    constructor(readonly tilt: number) {
+    constructor(
+        readonly tilt: number,
+        private readonly edge: number
+    ) {
         this.rise = Math.sqrt(1 - tilt ** 2)
         this.flatCorners = CORNER_SPACES.map(flatCenter)
         this.hull = this.flatCorners
@@ -63,11 +67,11 @@ export class BoardView {
         this.sandOutline = roundedOutline(this.flatCorners, SAND_MARGIN, tilt)
         this.labels = boardLabels(SPACES, (coords, toward) => this.labelBeside(coords, toward))
 
-        // The sand, the labels, and a full-height stack standing in the top row.
-        const sand = this.flatCorners.flatMap((corner) =>
+        // The board's edge, the labels, and a full-height stack standing in the top row.
+        const board = this.flatCorners.flatMap((corner) =>
             [
-                { x: corner.x - SAND_MARGIN, y: corner.y - SAND_MARGIN },
-                { x: corner.x + SAND_MARGIN, y: corner.y + SAND_MARGIN }
+                { x: corner.x - edge, y: corner.y - edge },
+                { x: corner.x + edge, y: corner.y + edge }
             ].map((point) => this.project(point))
         )
         const labelCorners = this.labels.flatMap(({ at }) => [
@@ -76,14 +80,15 @@ export class BoardView {
         ])
         const topRow = Math.min(...SPACES.map((coords) => this.center(coords).y))
         const tallest = { x: 0, y: topRow + stackBounds(PIECE_MODEL.cap, this.radius).top }
-        const extent = [...sand, ...labelCorners, tallest]
-        const halfWidth = Math.max(...extent.map((point) => Math.abs(point.x))) + FRAME_MARGIN
+        const extent = [...board, ...labelCorners, tallest]
+        const left = Math.min(...extent.map((point) => point.x)) - FRAME_MARGIN
+        const right = Math.max(...extent.map((point) => point.x)) + FRAME_MARGIN
         const top = Math.min(...extent.map((point) => point.y)) - FRAME_MARGIN
         const bottom = Math.max(...extent.map((point) => point.y)) + FRAME_MARGIN
         this.frame = {
-            x: -halfWidth,
+            x: left,
             y: top,
-            width: halfWidth * 2,
+            width: right - left,
             height: bottom - top + CONTROLS_ROOM
         }
     }
@@ -104,8 +109,8 @@ export class BoardView {
     }
 
     // A label beside an outer space, toward a neighbour it does not have, a gap beyond the
-    // sand's edge on screen. The sand reaches past any stack on an outer space. Labels on the
-    // same side all reach as far as the farthest of them, so they stay in line.
+    // board's edge on screen. Labels on the same side all reach as far as the farthest of them,
+    // so they stay in line.
     private labelBeside(coords: AxialCoordinates, toward: AxialCoordinates): Point {
         const step = { q: toward.q - coords.q, r: toward.r - coords.r }
         const from = flatCenter(coords)
@@ -114,7 +119,7 @@ export class BoardView {
         const along = { x: (to.x - from.x) / length, y: (to.y - from.y) / length }
         const reach = Math.max(
             ...SPACES.filter((space) => !isSpace(addAxial(space, step))).map((space) =>
-                sandReach(this.flatCorners, flatCenter(space), along)
+                edgeReach(this.flatCorners, this.edge, flatCenter(space), along)
             )
         )
         const edge = this.project({ x: from.x + along.x * reach, y: from.y + along.y * reach })
@@ -132,18 +137,20 @@ export class BoardView {
     }
 }
 
-// The house angle, shared with the other GIPF project titles.
-export const VIEW = new BoardView(TILT)
+// The house angle, shared with the other GIPF project titles. The sand reaches past any stack on
+// an outer space; the graph board ends where those stacks do.
+export const VIEW = new BoardView(TILT, SAND_MARGIN)
+export const GRAPH_VIEW = new BoardView(TILT, PIECE_RADIUS)
 
-// How far from a point on the board, along a direction on the board's plane, the sand's edge is:
-// where the point's distance from the corner spaces' hull reaches the sand's margin.
-function sandReach(corners: readonly Point[], from: Point, along: Point): number {
+// How far from a point on the board, along a direction on the board's plane, an edge `margin` out
+// is: where the point's distance from the corner spaces' hull reaches the margin.
+function edgeReach(corners: readonly Point[], margin: number, from: Point, along: Point): number {
     let low = 0
-    let high = SAND_MARGIN * 4
+    let high = margin * 4
     for (let step = 0; step < 40; step++) {
         const middle = (low + high) / 2
         const point = { x: from.x + along.x * middle, y: from.y + along.y * middle }
-        if (distanceOutside(corners, point) < SAND_MARGIN) low = middle
+        if (distanceOutside(corners, point) < margin) low = middle
         else high = middle
     }
     return low
