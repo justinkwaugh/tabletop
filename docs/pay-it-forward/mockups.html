@@ -143,7 +143,9 @@
   .gp.phone .charities{grid-template-columns:1fr}
   .gp.phone h1{font-size:26px}
   .gp.phone .lead{font-size:19px}
-  .phone{width:100%;max-width:336px;margin:0 auto}
+  .gp .other{margin-top:18px}
+  .gp .charity .where{display:inline-block;vertical-align:3px;margin-left:10px;padding:1px 8px;border:1px solid #4b5563;border-radius:999px;font:500 12px/1.5 Inter,system-ui,sans-serif;letter-spacing:0;color:#d1d5dc}
+  .phone{width:100%;max-width:336px;margin:0 auto;box-sizing:border-box}
 
   /* chips */
   .chips{display:grid;gap:8px;grid-template-columns:1fr;margin:10px 0 0}
@@ -162,10 +164,10 @@
 <body>
 <div class="page">
 
-<p class="lede">Updated with your decisions. Label is <b style="color:var(--foreground)">Pay it forward</b>, the "no" line is <b style="color:var(--foreground)">We don't take personal donations. The bills are ours</b> (sponsorship stays possible; players never pay), the charities are Board Games for the Better and Gamers Outreach. Tally planned, no "I gave" button. Finished-game line is a maybe, milestone card parked.</p>
+<p class="lede">Updated with your decisions. Label is <b style="color:var(--foreground)">Pay it forward</b>, the "no" line is <b style="color:var(--foreground)">We don't take personal donations. The bills are ours</b> (sponsorship stays possible; players never pay), the charities are Gamers Outreach and SpecialEffect. Tally planned, no "I gave" button. Finished-game line is a maybe, milestone card parked.</p>
 <div class="chips" style="grid-template-columns:repeat(2,1fr)">
   <div class="chip"><div class="nm">Gamers Outreach <span class="rec">chosen</span></div><div class="why">Gaming carts for kids in children's hospitals. Based in Saline, Michigan. Fundraises on Tiltify and GoFundMe Pro.</div></div>
-  <div class="chip"><div class="nm">Board Games for the Better <span class="rec">chosen</span></div><div class="why">New York 501(c)(3) gifting games to people in hard times. Takes donations through Givebutter.</div></div>
+  <div class="chip"><div class="nm">SpecialEffect <span class="rec">chosen</span></div><div class="why">UK charity that sets up adapted controls so people with physical disabilities can play. Fundraises on Tiltify and JustGiving.</div></div>
 </div>
 
 <h2>1. Where it lives: quiet, always there<small>Same visual weight as "About Us". Never a coloured button, never a modal.</small></h2>
@@ -269,20 +271,21 @@
     <p class="stmt blue">We don't take personal donations.</p>
     <p class="body wide">The bills are ours, and nothing you give from this page comes to us.</p>
     <p class="stmt">Pass it on instead.</p>
-    <p class="body wide">If the games here have been worth something to you, help put games in front of people who need them. Few charities are built around board games, so we've picked one that is, and one that brings play of any kind to children in hospitals.</p>
+    <p class="body wide">If the games here have been worth something to you, help put games in front of people who need them. Few board game charities work at scale and meet the bar we set, so we picked these two. They bring play to people who can't easily get to it: kids stuck in hospital rooms, and players who need adapted controls.</p>
     <div class="charities">
-      <div class="group">        <div class="card charity"><div class="name">Board Games for the Better</div><div class="who">Board games for people in hard times</div><p>Gifts board games, card games and puzzles to people going through difficult situations: families in foster care, children in long-term psychiatric care, survivors of abuse. $36 puts twelve games in someone's hands.</p><a class="lnk" href="#">Give through Givebutter ↗</a><div class="fine">Opens their Board Together campaign page on givebutter.com.</div></div>
+      <div class="group">        <div class="card charity"><div class="name">Gamers Outreach<span class="where">US charity</span></div><div class="who">Play for kids in hospitals</div><p>Builds medical-grade gaming carts and brings them to kids in hospital who can't leave their rooms. Over 350 hospitals so far.</p><a class="lnk" href="#">Give through Tiltify ↗</a><div class="fine">Opens the Board Together campaign on tiltify.com.</div></div>
       </div>
-      <div class="group">        <div class="card charity"><div class="name">Gamers Outreach</div><div class="who">Play for kids in hospitals</div><p>Builds medical-grade gaming carts and brings them to kids in hospital who can't leave their rooms. Over 350 hospitals so far.</p><a class="lnk" href="#">Give through Tiltify ↗</a><div class="fine">Opens the Board Together campaign on tiltify.com.</div></div>
+      <div class="group">        <div class="card charity"><div class="name">SpecialEffect<span class="where">UK charity</span></div><div class="who">Play for people with disabilities</div><p>Occupational therapists and gaming specialists set up adapted controllers and eye control, so people with physical disabilities can play the games they love.</p><a class="lnk" href="#">Give through Tiltify ↗</a><div class="fine">Opens the Board Together campaign on tiltify.com.</div></div>
       </div>
     </div>
+    <p class="body wide other">If these two aren't for you, give to your favorite charity instead. It's paying it forward all the same.</p>
     <div class="trust"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Board Together gets nothing from these links: no referral fee, no cut, no data back to us.</span></div>
-    <div class="later" style="border-style:solid"><div><div class="n">$12,480</div><div class="l">given by Board Together players · $8,120 Gamers Outreach · $4,360 Board Games for the Better</div></div><span class="badge" style="color:#4ade80;border-color:#4ade8066">planned · see below</span></div>
+    <div class="later" style="border-style:solid"><div><div class="n">$12,480</div><div class="l">given by Board Together players · $8,120 Gamers Outreach · $4,360 SpecialEffect</div></div><span class="badge" style="color:#4ade80;border-color:#4ade8066">planned · see below</span></div>
   </div>
 <div class="row side" style="margin-top:16px">
   <div>
     <p class="cap" style="margin-top:0"><b>Phone width.</b> Same page, principles dropped, one card per row.</p>
-    <p class="cap" style="margin-top:14px"><b>Page notes.</b> The headline repeats the link text so the click lands where it expected. The blue statement is the "no"; "Pass it on instead." answers it in the same face. The three principles echo the About page, with the new third line. Each card's subtitle does the clarifying: one is literally board games, the other is play in hospitals. Child's Play would be a third card with a matching subtitle, no copy change. Both links land on a page that belongs to Board Together on the charity's platform, which is what makes the tally countable.</p>
+    <p class="cap" style="margin-top:14px"><b>Page notes.</b> The headline repeats the link text so the click lands where it expected. The blue statement is the "no"; "Pass it on instead." answers it in the same face. The three principles echo the About page, with the new third line. Each card's subtitle says who the play reaches: kids in hospitals, people with disabilities. Both links land on a page that belongs to Board Together on the charity's platform, which is what makes the tally countable.</p>
       </div>
   <div><div class="mock gp phone">
       <h1>Pay it forward.</h1>
@@ -292,15 +295,16 @@
           <p class="stmt blue">We don't take personal donations.</p>
           <p class="body">The bills are ours, and nothing you give from this page comes to us.</p>
           <p class="stmt">Pass it on instead.</p>
-          <p class="body">If the games here have been worth something to you, help put games in front of people who need them. Few charities are built around board games, so we've picked one that is, and one that brings play to children in hospitals.</p>
+          <p class="body">If the games here have been worth something to you, help put games in front of people who need them. Few board game charities work at scale and meet the bar we set, so we picked these two.</p>
         </div>
       </div>
       <div class="charities">
-        <div class="group">          <div class="card charity"><div class="name">Board Games for the Better</div><div class="who">Board games for people in hard times</div><p>Gifts games and puzzles to people going through difficult situations.</p><a class="lnk" href="#">Give through Givebutter ↗</a></div>
+        <div class="group">          <div class="card charity"><div class="name">Gamers Outreach<span class="where">US charity</span></div><div class="who">Play for kids in hospitals</div><p>Gaming carts for kids in hospital who can't leave their rooms.</p><a class="lnk" href="#">Give through Tiltify ↗</a></div>
         </div>
-        <div class="group">          <div class="card charity"><div class="name">Gamers Outreach</div><div class="who">Play for kids in hospitals</div><p>Gaming carts for kids in hospital who can't leave their rooms.</p><a class="lnk" href="#">Give through Tiltify ↗</a></div>
+        <div class="group">          <div class="card charity"><div class="name">SpecialEffect<span class="where">UK charity</span></div><div class="who">Play for people with disabilities</div><p>Adapted controllers and eye control so everyone can play.</p><a class="lnk" href="#">Give through Tiltify ↗</a></div>
         </div>
       </div>
+      <p class="body other">If these two aren't for you, give to your favorite charity instead. It's paying it forward all the same.</p>
       <div class="trust"><span>Nothing comes to us: no referral fee, no cut, no data.</span></div>
     </div></div>
 </div>
@@ -309,9 +313,9 @@
 <table>
   <tr><th>Charity</th><th>Platform</th><th>What it exposes</th><th>Set-up needed</th></tr>
   <tr><td>Gamers Outreach</td><td>Tiltify (and GoFundMe Pro)</td><td>Tiltify's public API returns a campaign's amount raised, goal and donate link. It needs an application token from a free Tiltify account; tokens last two hours, so the nightly fetch requests one each run.</td><td>Create a Board Together campaign under their Tiltify cause (tiltify.com/gamersoutreach). Tiltify retires a campaign after six months without a donation, so the fetch should notice retired status. If the in-person conversation yields a GoFundMe Pro page with read access instead, use that.</td></tr>
-  <tr><td>Board Games for the Better</td><td>Givebutter</td><td>API needs their account's key. Their widgets (goal bar with amount raised) need their account ID and a campaign code. Campaigns, teams and members each report raised.</td><td>Ask them for a Board Together campaign or team page. Then either their goal-bar widget on our page, or a restricted API key for the nightly fetch.</td></tr>
+  <tr><td>SpecialEffect</td><td>Tiltify (and JustGiving)</td><td>Same Tiltify API and the same application token as Gamers Outreach.</td><td>Create a Board Together campaign under their Tiltify cause (tiltify.com/specialeffect, the link on their own fundraising page). Same six-month retirement rule.</td></tr>
 </table>
-<p class="cap"><b>Caveats.</b> Platform totals can include pledges or unsettled gifts, so the number should say "raised" not "received". The Givebutter half is not under your control until Board Games for the Better create the page.</p>
+<p class="cap"><b>Caveats.</b> Platform totals can include pledges or unsettled gifts, so the number should say "raised" not "received". Both campaigns are yours to create, so the tally needs no charity's cooperation. A SpecialEffect campaign may raise in pounds; if so, the tally converts to one currency or shows each in its own.</p>
 
 <h2>5. First version<small>What gets built if you say go.</small></h2>
 <table>

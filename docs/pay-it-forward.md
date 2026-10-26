@@ -10,7 +10,8 @@ Mockups: [`pay-it-forward/mockups.html`](pay-it-forward/mockups.html) (open in a
 
 - The label everywhere is **Pay it forward**. "Donate" and "Support us" never appear on our own pages; both read as asking for ourselves.
 - The "no" is **We don't take personal donations.** The word *personal* matters: corporate sponsorship of the site stays possible, players never pay. It is followed by **The bills are ours, and nothing you give from this page comes to us.**
-- The charities are **Board Games for the Better** (board games for people in hard times) and **Gamers Outreach** (gaming carts for kids in hospitals). Gamers Outreach was chosen over Extra Life.
+- The charities are **Gamers Outreach** (US; gaming carts for kids in hospitals) and **SpecialEffect** (UK; adapted controls so people with physical disabilities can play). Gamers Outreach was chosen over Extra Life. Board Games for the Better was the first board-game pick but could not be reached. Players are worldwide, so one US and one UK charity is a feature, and each card says which country it is in.
+- The page admits the choice plainly: few board game charities work at scale and meet our bar, so these two were picked. It also tells players to give to their favorite charity instead if these two aren't for them.
 - A running **tally** of what Board Together players have raised is wanted. An "I gave" self-report button is not.
 - No modals, banners or coloured buttons for the ask. No eyebrow labels in the page typography.
 - The finished-game line ("Good game? Pass it on.") is a maybe. The milestone card is parked for a later revisit. Neither is in the first version.
@@ -23,10 +24,11 @@ Public, in the About page's visual language.
 2. Header row: the lead "**Board**Together is free, and we plan to keep it that way." with the wordmark (bold blue Board, light Together), and the principles column: *Always* free to play. *Fully* open source. *Never* funded by its players.
 3. Full width below the header:
    - **We don't take personal donations.** as a blue statement, with its one body line.
-   - **Pass it on instead.** as a white statement in the same face, with "If the games here have been worth something to you, help put games in front of people who need them. Few charities are built around board games, so we've picked one that is, and one that brings play of any kind to children in hospitals."
-4. One card per charity: name, a brighter subtitle saying what it does, a short description, a "Give through …" link to a Board Together page on the charity's platform, and a line saying where it opens.
-5. "Board Together gets nothing from these links: no referral fee, no cut, no data back to us."
-6. The tally: total raised by Board Together players, with the split per charity.
+   - **Pass it on instead.** as a white statement in the same face, with "If the games here have been worth something to you, help put games in front of people who need them. Few board game charities work at scale and meet the bar we set, so we picked these two. They bring play to people who can't easily get to it: kids stuck in hospital rooms, and players who need adapted controls." On phones the paragraph stops after "these two."
+4. One card per charity: name with an outlined country tag ("US charity", "UK charity"), a brighter subtitle saying what it does, a short description, a "Give through …" link to a Board Together page on the charity's platform, and a line saying where it opens.
+5. "If these two aren't for you, give to your favorite charity instead. It's paying it forward all the same."
+6. "Board Together gets nothing from these links: no referral fee, no cut, no data back to us."
+7. The tally: total raised by Board Together players, with the split per charity.
 
 On phones the principles column drops and the cards stack.
 
@@ -47,15 +49,15 @@ A backend job fetches each charity's total once a night and caches it. The brows
 | Charity | Platform | What it exposes | Set-up needed |
 |---|---|---|---|
 | Gamers Outreach | Tiltify, and GoFundMe Pro for direct giving | Tiltify v5 public API: a campaign's `amount_raised`, `goal`, `donate_url`, `url`. Needs an application token from a free Tiltify account (client credentials, `POST https://v5api.tiltify.com/oauth/token`, two-hour lifetime). Unauthenticated requests get 401. | A Board Together campaign under their cause, tiltify.com/gamersoutreach. Tiltify retires a campaign after six months without a donation, so the job must notice retired status and fall back to a plain donate link. The user may visit them in person and could get a GoFundMe Pro page with read access instead. |
-| Board Games for the Better | Givebutter | The API needs the charity's own key. Their goal-bar widget shows amount raised but needs their account ID and a campaign code. | The user is contacting them. Ask for a Board Together campaign or team page, then either a restricted API key for the nightly job or their goal-bar widget on our page. |
+| SpecialEffect | Tiltify, and JustGiving | The same Tiltify API and the same application token. | A Board Together campaign under their cause, tiltify.com/specialeffect (the Tiltify link on their own fundraising page). Same six-month retirement rule. A campaign there may raise in pounds; if so, the tally converts to one currency or shows each in its own. |
 
-Platform totals can include pledges or unsettled gifts, so the page says "raised", not "received". Until a charity's page exists, its card links to the charity's general donate page and it is left out of the tally.
+Both campaigns are ours to create, so the tally needs no charity's cooperation. Platform totals can include pledges or unsettled gifts, so the page says "raised", not "received". Until a charity's page exists, its card links to the charity's general donate page and it is left out of the tally.
 
 ## First version
 
 | Piece | Status |
 |---|---|
-| /pay-it-forward page | Build, tally wired to the Gamers Outreach Tiltify campaign first |
+| /pay-it-forward page | Build, tally wired to both Tiltify campaigns |
 | Header link and phone menu entry | Build |
 | About card and third principle | Build |
 | Landing small print | Build |
@@ -66,10 +68,13 @@ Platform totals can include pledges or unsettled gifts, so the page says "raised
 
 ## Other charities considered
 
-Board-game-specific charities are rare and mostly small. Checked on 2026-10-21:
+Board-game-specific charities are rare and mostly small. Checked on 2026-10-21 and 2026-10-26:
 
 - **Extra Life** (Children's Miracle Network Hospitals, DonorDrive): keyless public API. Dropped in favour of Gamers Outreach.
-- **Child's Play** (games for children's hospitals): no API of its own; fundraisers run on Tiltify (tiltify.com/child-s-play), so it would take the same route as Gamers Outreach.
+- **Board Games for the Better** (New York, board games for people in hard times, Givebutter): the first pick, dropped because they could not be reached.
+- **AbleGamers** (US, accessibility, Tiltify): rejected after the May 2025 IGN report of former employees' allegations of abuse and financial mismanagement against founder Mark Barlet, which he denies.
+- **Child's Play** (games for children's hospitals): no API of its own; fundraisers run on Tiltify (tiltify.com/child-s-play). Clean record, but overlaps Gamers Outreach.
+- **Take This** (mental health in the games industry, Tiltify or Streamlabs): furthest from the pitch.
 - **Jack Vasel Memorial Fund** (hardship grants to gamers, EIN 45-1583593): PayPal button only, no totals.
 - **Meeples for Peeples** (St. Louis, games for families and educators): Give Lively, which has no public API, only an iframe widget and member-side Zapier.
 - **Board Game Buddies** (Chicago), **Board Game Blast** (Los Angeles), **The Bodhana Group** (York, PA): small, no machine-readable totals found.
