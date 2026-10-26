@@ -34,12 +34,14 @@
         height: 30px;
         border-radius: 999px;
         background: var(--dvonn-panel);
-        box-shadow: inset 0 0 0 1px var(--dvonn-panel-edge);
+        box-shadow:
+            inset 0 0 0 1px var(--dvonn-panel-edge),
+            var(--dvonn-panel-shadow);
         color: var(--dvonn-ink);
     }
 
     .toggle:hover {
-        background: rgb(40 50 70 / 0.95);
+        background: var(--dvonn-panel-hover);
     }
 
     path,

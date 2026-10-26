@@ -93,23 +93,21 @@
 </div>
 
 <style>
-    /* Light enough for black pieces to stand out as well as white ones. */
+    /* Sand like the action card, light enough for black pieces to stand out as well as white ones. */
     .tray {
-        --ring: 1px;
         border-radius: 12px;
-        background: #d8d3c6;
+        background: var(--dvonn-panel);
         box-shadow:
-            inset 0 0 0 var(--ring) #a69f8e,
-            0 3px 8px rgb(0 0 0 / 0.3);
-        color: #1d1a14;
+            inset 0 0 0 1px var(--dvonn-panel-edge),
+            var(--dvonn-panel-shadow);
+        color: var(--dvonn-ink);
         overflow: hidden;
     }
 
     .tray.active {
-        --ring: 2px;
         box-shadow:
-            inset 0 0 0 var(--ring) var(--dvonn-target),
-            0 3px 8px rgb(0 0 0 / 0.35);
+            inset 0 0 0 2px var(--dvonn-target),
+            var(--dvonn-panel-shadow);
     }
 
     .body {
@@ -133,6 +131,6 @@
     .caption {
         font-size: 13px;
         letter-spacing: 0.08em;
-        color: #5b5446;
+        color: var(--dvonn-ink-quiet);
     }
 </style>

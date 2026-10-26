@@ -44,16 +44,22 @@
     --dvonn-table-glow: #e8772f;
     --dvonn-table: #cf4128;
     --dvonn-table-deep: #a11e17;
-    --dvonn-panel: rgb(38 8 6 / 0.88);
-    --dvonn-panel-edge: #7d2a1f;
+    /* Controls and cards sit on sand like the old board's, lifted by a soft shadow. */
+    --dvonn-panel: #e3ddd0;
+    --dvonn-panel-edge: rgb(60 40 20 / 0.18);
+    --dvonn-panel-shadow: 0 2px 8px rgb(70 10 4 / 0.3);
+    --dvonn-panel-hover: color-mix(in srgb, var(--dvonn-panel), #3a2410 7%);
+    --dvonn-panel-inset: color-mix(in srgb, var(--dvonn-panel), #ffffff 45%);
+    --dvonn-panel-rule: color-mix(in srgb, var(--dvonn-panel), #3a2410 22%);
     /* The old edition's pale sand, and the graph board's pale play area. */
     --dvonn-sand: #d6d1c6;
     --dvonn-sand-edge: #b2ab9c;
     --dvonn-play: #dfe2e6;
     --dvonn-line: #000000;
     --dvonn-label: #fbf3ea;
-    --dvonn-ink: #f7eee6;
-    --dvonn-ink-quiet: #d9b3a5;
+    --dvonn-ink: #1f140c;
+    --dvonn-ink-quiet: #6b5a48;
+    --dvonn-control-off: color-mix(in srgb, var(--dvonn-panel), #3a2410 30%);
     /* Text standing straight on the table rather than on a dark panel. */
     --dvonn-table-ink: #fbf3ea;
     --dvonn-table-ink-quiet: #f0cdbd;

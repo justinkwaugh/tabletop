@@ -55,25 +55,26 @@
 <div class="dvonn-table">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
+            <!-- Faded controls in a colour that still shows on the panels. -->
             <HistoryControls
-                enabledColor="text-[#f7eee6]"
-                disabledColor="text-[#a3685a]"
-                borderClass="border-[#7d2a1f] border-b-2"
-                bgClass="bg-[#2a0907]"
+                enabledColor="text-(--dvonn-ink)"
+                disabledColor="text-(--dvonn-control-off)"
+                borderClass="border-b border-(--dvonn-panel-edge)"
+                bgClass="bg-(--dvonn-panel) shadow-(--dvonn-panel-shadow)"
             />
         {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
                 <HistoryControls
-                    enabledColor="text-[#f7eee6]"
-                    disabledColor="text-[#a3685a]"
-                    borderClass="rounded-lg border-2 border-[#7d2a1f]"
-                    bgClass="rounded-lg bg-[#2a0907]"
+                    enabledColor="text-(--dvonn-ink)"
+                    disabledColor="text-(--dvonn-control-off)"
+                    borderClass="rounded-lg border border-(--dvonn-panel-edge)"
+                    bgClass="rounded-lg bg-(--dvonn-panel) shadow-(--dvonn-panel-shadow)"
                 />
             </div>
             <DefaultTabs
-                activeTabClass="py-1 px-3 max-sm:[&_svg]:hidden bg-[#f3ebdf] border-2 border-transparent rounded-lg text-[#2a0907]"
-                inactiveTabClass="text-(--dvonn-table-ink) py-1 px-3 max-sm:[&_svg]:hidden rounded-lg border-2 border-transparent hover:border-[#7d2a1f]"
+                activeTabClass="py-1 px-3 max-sm:[&_svg]:hidden bg-(--dvonn-panel) shadow-(--dvonn-panel-shadow) border-2 border-transparent rounded-lg text-(--dvonn-ink)"
+                inactiveTabClass="text-(--dvonn-table-ink) py-1 px-3 max-sm:[&_svg]:hidden rounded-lg border-2 border-transparent hover:border-[rgb(255_255_255/0.5)]"
             >
                 {#snippet playersPanel()}
                     <PlayersPanel />
@@ -83,11 +84,14 @@
                 {/snippet}
                 {#snippet chat()}
                     <GameChat
-                        timeColor="text-gray-400"
-                        bgColor="bg-[#2a0907]"
-                        inputBgColor="bg-[#2a0907]"
-                        inputBorderColor="border-[#7d2a1f]"
-                        borderColor="border-[#7d2a1f]"
+                        timeColor="text-(--dvonn-ink-quiet)"
+                        messageTextColor="text-(--dvonn-ink)"
+                        composerTextColor="text-(--dvonn-ink)"
+                        messageHoverColor="hover:bg-(--dvonn-panel-hover)"
+                        bgColor="bg-(--dvonn-panel) shadow-(--dvonn-panel-shadow)"
+                        inputBgColor="bg-(--dvonn-panel-inset)"
+                        inputBorderColor="border-(--dvonn-panel-rule)"
+                        borderColor="border-(--dvonn-panel-edge)"
                     />
                 {/snippet}
             </DefaultTabs>
@@ -148,7 +152,7 @@
             var(--dvonn-table-deep) 100%
         );
         background-attachment: fixed;
-        color: var(--dvonn-ink);
+        color: var(--dvonn-table-ink);
     }
 
     /* DefaultTableLayout leaves a tenth of a phone screen showing the sidebar's edge.
@@ -169,7 +173,9 @@
         margin: 0 8px;
         border-radius: 12px;
         background: var(--dvonn-panel);
-        box-shadow: inset 0 0 0 1px var(--dvonn-panel-edge);
+        box-shadow:
+            inset 0 0 0 1px var(--dvonn-panel-edge),
+            var(--dvonn-panel-shadow);
     }
 
     .fullscreen-backdrop {

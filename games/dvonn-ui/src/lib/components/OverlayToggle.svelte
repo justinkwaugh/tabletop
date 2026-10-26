@@ -28,7 +28,9 @@
         padding: 3px 4px;
         border-radius: 999px;
         background: var(--dvonn-panel);
-        box-shadow: inset 0 0 0 1px var(--dvonn-panel-edge);
+        box-shadow:
+            inset 0 0 0 1px var(--dvonn-panel-edge),
+            var(--dvonn-panel-shadow);
         color: var(--dvonn-ink-quiet);
         font-size: 11px;
     }
@@ -41,12 +43,22 @@
         letter-spacing: 0;
     }
 
+    /* On, the glyph fills in dark; off, it is a faint outline. */
     .toggle[aria-pressed='true'] {
         color: var(--dvonn-ink);
-        box-shadow: inset 0 0 0 1px var(--dvonn-mark);
+    }
+
+    .toggle[aria-pressed='true'] .glyph {
+        background: var(--dvonn-ink);
+        border-color: var(--dvonn-ink);
+        color: var(--dvonn-panel);
+    }
+
+    .toggle[aria-pressed='false'] .glyph {
+        opacity: 0.6;
     }
 
     .toggle:hover {
-        background: rgb(255 255 255 / 0.08);
+        background: var(--dvonn-panel-hover);
     }
 </style>

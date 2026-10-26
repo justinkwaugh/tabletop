@@ -51,11 +51,13 @@
 </div>
 
 <style>
-    /* Light like the player panels, so black pieces show as well as the rest. */
+    /* Sand like the player panels, so black pieces show as well as the rest. */
     .history {
-        background: #e3ddd0;
-        color: #1d1a14;
-        box-shadow: inset 0 0 0 1px #a69f8e;
+        background: var(--dvonn-panel);
+        color: var(--dvonn-ink);
+        box-shadow:
+            inset 0 0 0 1px var(--dvonn-panel-edge),
+            var(--dvonn-panel-shadow);
     }
 
     .entry {
@@ -67,7 +69,7 @@
     }
 
     .entry:hover {
-        background: rgb(29 26 20 / 0.07);
+        background: var(--dvonn-panel-hover);
     }
 
     .entry.replaying {
@@ -82,7 +84,7 @@
         font-size: 11px;
         letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: #5b5446;
+        color: var(--dvonn-ink-quiet);
     }
 
     .divider::before,
@@ -90,6 +92,6 @@
         content: '';
         flex: 1;
         height: 1px;
-        background: #a69f8e;
+        background: var(--dvonn-panel-rule);
     }
 </style>
