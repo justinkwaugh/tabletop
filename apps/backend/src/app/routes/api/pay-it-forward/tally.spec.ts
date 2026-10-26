@@ -34,10 +34,11 @@ describe('GET /tally', () => {
         expect(response.json()).toEqual({ status: 'ok', payload: tally })
     })
 
-    it('is not found before the first refresh', async () => {
+    it('is not found before the first refresh, and never cached', async () => {
         const server = await createServer(undefined)
         servers.push(server)
         const response = await server.inject({ method: 'GET', url: '/tally' })
         expect(response.statusCode).toBe(404)
+        expect(response.headers['cache-control']).toBe('no-store')
     })
 })
