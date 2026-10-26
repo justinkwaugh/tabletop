@@ -2,6 +2,7 @@ import {
     type EighteenFortySixProjectedState,
     type HydratedEighteenFortySixState,
     BuyOpeningCompany,
+    isBlank,
     PassOpeningPurchase,
     openingPurchaseChoices,
     unboughtOpeningCompanies,
@@ -479,6 +480,17 @@ export class EighteenFortySixSession extends BaseSession {
             `${this.gameState.id}:${this.gameState.actionCount}:${this.myPlayer?.id}`,
         publishing: () => this.updatingVisibleState
     })
+    protected override get draftedCompanies() {
+        const draft = this.gameState.draft
+        const playerId = this.myPlayer?.id
+        if (draft?.kind !== 'hidden' || !playerId || !this.packetGate.visible) return []
+        const selections =
+            draft.participants.find((participant) => participant.playerId === playerId)
+                ?.selections ?? []
+        return selections
+            .filter((selection) => !isBlank(selection.cardId))
+            .map((selection) => ({ companyId: selection.cardId, price: selection.price }))
+    }
     readonly draftChoices = $derived(
         this.myPlayer ? choicesFor(this.gameState, this.myPlayer.id) : []
     )

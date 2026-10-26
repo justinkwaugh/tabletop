@@ -27,6 +27,8 @@ export {
 export { revenueBadgeHalfWidth } from './tiles/revenueBadge.js'
 export { default as Portfolio } from './finance/Portfolio.svelte'
 export { default as FinanceInspector } from './finance/FinanceInspector.svelte'
+export { ownerPortfolio } from './finance/ownerPortfolio.js'
+export { withDraftedCompanies, type DraftedCompany } from './finance/draftedCompanies.js'
 
 export * from './session/eighteenXXSession.svelte.js'
 export type { PrivateTrackPower, TitlePrivatePower } from './session/privateActionsModule.svelte.js'

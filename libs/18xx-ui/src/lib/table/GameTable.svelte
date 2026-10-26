@@ -33,7 +33,6 @@
         type OperatingRules,
         type CertificatePool
     } from '@tabletop/18xx'
-    import type { ValuationRules } from '@tabletop/18xx'
     import OperatingSteps from './OperatingSteps.svelte'
     import StockActionStrip from './StockActionStrip.svelte'
     import type { StockMenuOption } from '../stock/stockActionSelection.js'
@@ -139,7 +138,6 @@
         session.presentation.phaseChartFor?.(session.gameState) ?? defaultPhaseChart
     )
     const operatingRules = $derived(session.operatingRules)
-    const valuationRules = $derived(session.valuationRules)
     const readOnlyPosition = $derived(
         session.isViewingHistory || !session.myPlayer || !session.isMyTurn
     )
@@ -822,7 +820,6 @@
 
 {#snippet playerCards()}<PlayersPanel
         {session}
-        {valuationRules}
         {auctionLotDescription}
         {numberedShareNames}
         {numberedShareLocation}
@@ -1389,7 +1386,6 @@
                                 companyOrder={displayedCompanyOrder}
                                 onPreviewMap={previewHistoryMap}
                                 {trainColors}
-                                {valuationRules}
                                 {session}
                                 {numberedShareNames}
                                 {includedCompanyIds}

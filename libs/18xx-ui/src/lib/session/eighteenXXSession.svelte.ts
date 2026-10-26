@@ -8,6 +8,7 @@ import {
     isPrivateTileLay,
     priorityOrder,
     shareSaleValue,
+    sharesOwned,
     stockCertificateCount,
     titleComponents,
     TileUpgrades,
@@ -37,6 +38,13 @@ import {
     type TokenTiles
 } from '../maps/stationPresentation.js'
 import { createTileDrawing } from '../tiles/tileDrawing.js'
+import { ownerPortfolio } from '../finance/ownerPortfolio.js'
+import {
+    draftedCertificates,
+    draftedCost,
+    withDraftedCompanies,
+    type DraftedCompany
+} from '../finance/draftedCompanies.js'
 import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import { terrainIconAppearance } from '../maps/terrainIcons.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
@@ -657,8 +665,45 @@ export class EighteenXXSession<
         assert(typeof cash === 'number', 'Player liquidity requires finite cash')
         const auction = this.waterfall.model
         const uncommittedCash =
-            auction && !auction.auction.completed ? auction.availableCash(playerId) : cash
+            (auction && !auction.auction.completed ? auction.availableCash(playerId) : cash) -
+            draftedCost(this.#draftedBy(playerId))
         return uncommittedCash + shareSaleValue(this.gameState, owner, this.rules.stockRules)
+    }
+    /** The companies this viewer has drafted but not yet paid for; a hidden draft's title supplies them. */
+    protected get draftedCompanies(): readonly DraftedCompany[] {
+        return []
+    }
+    #draftedBy(playerId: string): readonly DraftedCompany[] {
+        return playerId === this.myPlayer?.id ? this.draftedCompanies : []
+    }
+    drafterOf(companyId: string): string | undefined {
+        const playerId = this.myPlayer?.id
+        return playerId && this.draftedCompanies.some((company) => company.companyId === companyId)
+            ? playerId
+            : undefined
+    }
+    portfolio(owner: Owner, minorsAsPrivates = false) {
+        const portfolio = ownerPortfolio(
+            this.gameState,
+            owner,
+            this.valuationRules,
+            this.charters,
+            minorsAsPrivates
+        )
+        return withDraftedCompanies(
+            portfolio,
+            this.gameState,
+            owner.kind === 'player' ? this.#draftedBy(owner.playerId) : [],
+            this.valuationRules,
+            this.charters,
+            minorsAsPrivates
+        )
+    }
+    playerShares(companyId: string, playerId: string): number {
+        const owned = sharesOwned(this.gameState, companyId, { kind: 'player', playerId })
+        return this.drafterOf(companyId) === playerId
+            ? owned + sharesOwned(this.gameState, companyId, { kind: 'bank' })
+            : owned
     }
     companyRequiresTrain(companyId: string): boolean {
         return (
@@ -781,8 +826,14 @@ export class EighteenXXSession<
         this.rules.stockRules.certificateWeight(this.gameState, certificate)
     playerCertificates(playerId: string) {
         const owner = { kind: 'player', playerId } as const
+        const drafted = this.#draftedBy(playerId).flatMap(({ companyId }) =>
+            draftedCertificates(this.gameState, companyId)
+        )
         return {
-            count: stockCertificateCount(this.gameState, owner, this.rules.stockRules),
+            count: drafted.reduce(
+                (sum, certificate) => sum + this.certificateWeight(certificate),
+                stockCertificateCount(this.gameState, owner, this.rules.stockRules)
+            ),
             limit: this.rules.stockRules.certificateLimit(this.gameState, owner)
         }
     }
