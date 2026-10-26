@@ -4,6 +4,7 @@ import {
     AblyTransport,
     BugReportService,
     CatalogService,
+    CharityTallyRefresher,
     CharityTallyService,
     ChatService,
     CloudTasksTaskService,
@@ -15,6 +16,7 @@ import {
     EmailService,
     EnvSecretsService,
     EnvService,
+    FirestoreCharityTallyStore,
     FirestoreChatStore,
     FirestoreGameStore,
     FirestoreNotificationStore,
@@ -88,7 +90,8 @@ declare module 'fastify' {
         siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
         realtimeTokenIssuer: RealtimeTokenIssuer | undefined
-        charityTallyService: CharityTallyService | undefined
+        charityTallyService: CharityTallyService
+        charityTallyRefresher: CharityTallyRefresher | undefined
     }
 }
 
@@ -276,14 +279,20 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     fastify.decorate('discordService', discordService)
     fastify.decorate('chatService', chatService)
     fastify.decorate('cacheService', redisCacheService)
+    const charityTallyStore = new FirestoreCharityTallyStore(fastify.firestore)
     fastify.decorate(
         'charityTallyService',
+        new CharityTallyService(charityTallyStore, redisCacheService)
+    )
+    fastify.decorate(
+        'charityTallyRefresher',
         useCharityTally
-            ? new CharityTallyService(
+            ? new CharityTallyRefresher(
                   new TiltifyApi(
                       await secretsService.getSecret('TILTIFY_CLIENT_ID'),
                       await secretsService.getSecret('TILTIFY_CLIENT_SECRET')
                   ),
+                  charityTallyStore,
                   redisCacheService
               )
             : undefined

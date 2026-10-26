@@ -1,6 +1,6 @@
 import { Charity, type CharityTally } from '@tabletop/common'
 import Fastify from 'fastify'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import tallyRoute from './tally.js'
 
 const tally: CharityTally = {
@@ -10,10 +10,9 @@ const tally: CharityTally = {
     ]
 }
 
-async function createServer(withService: boolean) {
+async function createServer(stored: CharityTally | undefined) {
     const server = Fastify()
-    const getTally = vi.fn(async () => tally)
-    Reflect.set(server, 'charityTallyService', withService ? { getTally } : undefined)
+    Reflect.set(server, 'charityTallyService', { getTally: async () => stored })
     await server.register(tallyRoute)
     return server
 }
@@ -27,7 +26,7 @@ describe('GET /tally', () => {
     })
 
     it('returns the tally for anyone, cacheable by browsers', async () => {
-        const server = await createServer(true)
+        const server = await createServer(tally)
         servers.push(server)
         const response = await server.inject({ method: 'GET', url: '/tally' })
         expect(response.statusCode).toBe(200)
@@ -35,8 +34,8 @@ describe('GET /tally', () => {
         expect(response.json()).toEqual({ status: 'ok', payload: tally })
     })
 
-    it('is not found when Tiltify is not configured', async () => {
-        const server = await createServer(false)
+    it('is not found before the first refresh', async () => {
+        const server = await createServer(undefined)
         servers.push(server)
         const response = await server.inject({ method: 'GET', url: '/tally' })
         expect(response.statusCode).toBe(404)
