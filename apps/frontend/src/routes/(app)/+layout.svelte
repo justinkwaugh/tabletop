@@ -16,7 +16,8 @@
         Toggle,
         Heading,
         Alert,
-        DropdownGroup
+        DropdownGroup,
+        Tooltip
     } from 'flowbite-svelte'
     import darkLogo from '$lib/components/images/dark-logo.png'
     import { afterNavigate, goto, onNavigate } from '$app/navigation'
@@ -45,7 +46,7 @@
     } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
-    import { BellSolid, DownloadOutline, RefreshOutline } from 'flowbite-svelte-icons'
+    import { BellSolid, DownloadOutline, HeartOutline, RefreshOutline } from 'flowbite-svelte-icons'
     import {
         isInstalledApp,
         pwaInstallPrompt,
@@ -256,6 +257,10 @@
         await goto('/about')
     }
 
+    async function gotoPayItForward() {
+        await goto('/pay-it-forward')
+    }
+
     async function installPwa() {
         await pwaInstallPrompt.prompt()
     }
@@ -417,6 +422,17 @@
                         >
                             About Us
                         </a>
+                        <a
+                            id="pay-it-forward-link"
+                            href="/pay-it-forward"
+                            class="hidden md:inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                        >
+                            <HeartOutline class="h-4 w-4" />
+                            Pay it forward
+                        </a>
+                        <Tooltip triggeredBy="#pay-it-forward-link" placement="bottom" class="z-50">
+                            Help charities put games on more tables. Nothing goes to us.
+                        </Tooltip>
                         <div class="flex items-center gap-3">
                             <a
                                 href="https://github.com/justinkwaugh/tabletop"
@@ -604,6 +620,11 @@
                                 <DropdownDivider />
                                 <DropdownItem onclick={gotoAbout} class="md:hidden w-full text-left"
                                     >About us</DropdownItem
+                                >
+                                <DropdownItem
+                                    onclick={gotoPayItForward}
+                                    class="md:hidden w-full text-left whitespace-nowrap"
+                                    >Pay it forward</DropdownItem
                                 >
 
                                 <DropdownDivider class="md:hidden" />

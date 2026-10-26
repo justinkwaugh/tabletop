@@ -40,7 +40,7 @@ All are links to the page, at the visual weight of "About Us".
 - Phone account menu entry beside "About us".
 - About page: a third principle, *Never* funded by its players, and a third card, "Pay it forward", whose first sentence is "We don't take personal donations."
 - Landing small print: "*Always* free to play. Fully open source. No tip jar, but you can pay it forward →".
-- One-line footer on signed-in pages: "Free to play, always. Board Together takes no personal donations. Pay it forward →".
+- One-line footer at the end of the signed-in library's game list (the library and dashboard fit the viewport and scroll inside, so a page footer would always be on screen): "Free to play, always. Board Together takes no personal donations. Pay it forward →".
 
 ## The tally
 
@@ -57,11 +57,12 @@ Both campaigns are ours to create, so the tally needs no charity's cooperation. 
 
 | Piece | Status |
 |---|---|
-| /pay-it-forward page | Build, tally wired to both Tiltify campaigns |
-| Header link and phone menu entry | Build |
-| About card and third principle | Build |
-| Landing small print | Build |
-| Signed-in footer line | Build |
+| /pay-it-forward page | Built; cards link to gamersoutreach.org/donate and specialeffect.org.uk/donate |
+| Header link and phone menu entry | Built |
+| About card and third principle | Built (the principles list is shared with this page) |
+| Landing small print | Built |
+| Signed-in footer line | Built, at the end of the library's game list |
+| Tally | Waiting on the Board Together campaigns and a Tiltify application; then a backend fetch, cached, and the campaign links replace the donate pages |
 | Finished-game line | Maybe, not in v1 |
 | Milestone card | Revisit later |
 | "I gave" button | Dropped |
