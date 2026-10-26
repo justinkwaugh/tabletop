@@ -53,8 +53,8 @@ The frontend follows the same model with `release-frontend (--major | --minor | 
 
 Firebase Hosting serves the site files, so a frontend deploy, `rollback --frontend` and
 `switch --frontend` need `hosting.channel` in the deploy config (or `TABLETOP_HOSTING_CHANNEL`;
-production uses `"hosting": { "channel": "live" }`) and backend 1.23.0 or later, and refuse to
-start without them. They back up the manifest, copy `frontend/<version>` from the bucket to a
+production uses `"hosting": { "channel": "live" }`) and a backend later than 1.43.0, and refuse
+to start without them (1.36.0 to 1.43.0 report a new frontend version only after a restart). They back up the manifest, copy `frontend/<version>` from the bucket to a
 Hosting staging channel, `frontend-<version>` (expiring after a day), copy that release to the
 configured channel, check the channel serves the build, and only then publish the manifest and
 invalidate the backend cache. The backend reports the manifest's frontend version on its next
