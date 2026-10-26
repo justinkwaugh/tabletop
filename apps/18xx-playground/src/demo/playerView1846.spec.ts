@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { assertExists } from '@tabletop/common'
+import { ownViewActions } from '@tabletop/18xx/testing'
 import { finishedGame } from './finishedGame.js'
 
 it('offers every 1846 player the same actions in their own view as in the full game', async () => {
@@ -8,25 +8,23 @@ it('offers every 1846 player the same actions in their own view as in the full g
         'Finished game',
         '1846'
     )
-    const visibility = engine.runtime.visibility
-    assertExists(visibility)
     const mismatches: string[] = []
     let state = initialState
     for (const action of actions) {
         state = engine.applyProcessedAction({ game, state, action })
         for (const { playerId } of state.players) {
-            const perspective = { kind: 'player', playerId } as const
-            const view = visibility.state.project(state, perspective)
-            const full = engine.getValidActionTypesForPlayer(game, state, playerId)
-            let own: string[] | string
+            let ownViewOutcome: string
+            let full: string[] = []
             try {
-                own = engine.getValidActionTypesForPlayer(game, view, playerId, { perspective })
+                const result = ownViewActions(engine, game, state, playerId)
+                ownViewOutcome = JSON.stringify(result.own)
+                full = result.full
             } catch (error) {
-                own = String(error)
+                ownViewOutcome = String(error)
             }
-            if (JSON.stringify(own) !== JSON.stringify(full))
+            if (ownViewOutcome !== JSON.stringify(full))
                 mismatches.push(
-                    `${action.id} ${state.machineState} ${playerId}: ${JSON.stringify(own)} vs ${JSON.stringify(full)}`
+                    `${action.id} ${state.machineState} ${playerId}: ${ownViewOutcome} vs ${JSON.stringify(full)}`
                 )
         }
     }

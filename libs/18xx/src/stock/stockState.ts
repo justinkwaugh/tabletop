@@ -12,7 +12,6 @@ export type StockState = StockCompanyState &
         bankruptPlayerIds?: string[]
     }
 
-/** Copies of the members a stock trade changes, for a what-if copy of a fuller state. */
 export function stockStateCopies(state: StockState) {
     return {
         ...copyFinances(state),

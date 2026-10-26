@@ -1,9 +1,6 @@
 /**
- * A what-if copy of the state for evaluating a move: the changed members are held on the copy and
- * every other member is read from the state when asked for. Spreading the state would list all
- * its members, which in a player's browser throws on the hidden ones; the copy lists members only
- * as far as the state itself can be listed. Nested objects are shared with the state, so copy a
- * branch before changing it.
+ * A what-if copy of the state. Never spread the state for one: in a player's browser, listing its
+ * members throws on the hidden ones.
  */
 export function stateWith<State extends object, Key extends keyof State>(
     state: State,

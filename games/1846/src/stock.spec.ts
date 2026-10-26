@@ -7,10 +7,9 @@ import {
     sharesOwned,
     treasuryPoolId
 } from '@tabletop/18xx'
-import { finishTurn, setInstruction } from '@tabletop/18xx/testing'
+import { finishTurn, ownViewActions, setInstruction } from '@tabletop/18xx/testing'
 import { stockGame } from '../test/testSupport.js'
 import { StockRules1846, Market1846 } from './stock.js'
-import { Runtime } from './definition/gameDefinition.js'
 
 describe('1846 first stock round', () => {
     it('launches immediately, pays incremental capital and the IC bonus, and places its home', () => {
@@ -183,23 +182,15 @@ describe('1846 first stock round', () => {
     })
     it('offers the acting player the same stock actions in their own view as in the full game', () => {
         const table = stockGame()
-        const visibility = Runtime.visibility
-        assertExists(visibility)
         const expectSameActions = () => {
-            const playerId = table.state.activePlayerIds[0]
-            const perspective = { kind: 'player', playerId } as const
-            const view = visibility.state.project(table.state, perspective)
-            const full = table.engine.getValidActionTypesForPlayer(
+            const { own, full } = ownViewActions(
+                table.engine,
                 table.game,
                 table.state,
-                playerId
+                table.state.activePlayerIds[0]
             )
             expect(full).toContain('FinishStockTurn')
-            expect(
-                table.engine.getValidActionTypesForPlayer(table.game, view, playerId, {
-                    perspective
-                })
-            ).toEqual(full)
+            expect(own).toEqual(full)
         }
         expectSameActions()
         table.launch()
