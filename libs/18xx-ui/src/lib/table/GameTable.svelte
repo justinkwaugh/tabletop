@@ -596,8 +596,7 @@
 
     const historicalFocus = $derived.by(() => {
         if (!session.isViewingHistory) return undefined
-        const context = session.history.visibleContext
-        return historyMapFocus(context.state, context.actions.at(-1))
+        return historyMapFocus(session.gameState, session.actions.at(-1))
     })
     const historyMapSettled = $derived(
         !session.updatingVisibleState &&
