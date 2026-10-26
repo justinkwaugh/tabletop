@@ -2632,14 +2632,6 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:133",
-   "gameId": "1817-15528",
-   "source": "user",
-   "playerId": "3370",
-   "type": "FinishTrack",
-   "companyId": "BESS"
-  },
-  {
    "id": "recorded:134",
    "gameId": "1817-15528",
    "source": "user",
@@ -4951,14 +4943,6 @@
    "rotation": 1,
    "nodeMapping": {},
    "expectedCost": 0
-  },
-  {
-   "id": "recorded:334",
-   "gameId": "1817-15528",
-   "source": "user",
-   "playerId": "3370",
-   "type": "FinishTrack",
-   "companyId": "BESS"
   },
   {
    "id": "recorded:335",

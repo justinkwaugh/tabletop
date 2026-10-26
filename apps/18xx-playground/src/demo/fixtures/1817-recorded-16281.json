@@ -2495,14 +2495,6 @@
    "expectedCost": 20
   },
   {
-   "id": "recorded:114",
-   "gameId": "1817-16281",
-   "source": "user",
-   "playerId": "289",
-   "type": "FinishTrack",
-   "companyId": "NYOW"
-  },
-  {
    "id": "recorded:115",
    "gameId": "1817-16281",
    "source": "user",
@@ -2854,14 +2846,6 @@
    "companyId": "R"
   },
   {
-   "id": "recorded:149",
-   "gameId": "1817-16281",
-   "source": "user",
-   "playerId": "524",
-   "type": "FinishTrack",
-   "companyId": "R"
-  },
-  {
    "id": "recorded:150",
    "gameId": "1817-16281",
    "source": "user",
@@ -2932,14 +2916,6 @@
    "rotation": 1,
    "nodeMapping": {},
    "expectedCost": 20
-  },
-  {
-   "id": "recorded:157",
-   "gameId": "1817-16281",
-   "source": "user",
-   "playerId": "524",
-   "type": "FinishTrack",
-   "companyId": "UR"
   },
   {
    "id": "recorded:158",
@@ -3285,14 +3261,6 @@
    "rotation": 4,
    "nodeMapping": {},
    "expectedCost": 35
-  },
-  {
-   "id": "recorded:189",
-   "gameId": "1817-16281",
-   "source": "user",
-   "playerId": "289",
-   "type": "FinishTrack",
-   "companyId": "NYOW"
   },
   {
    "id": "recorded:190",
@@ -3771,14 +3739,6 @@
    "expectedCost": 20
   },
   {
-   "id": "recorded:222",
-   "gameId": "1817-16281",
-   "source": "user",
-   "playerId": "524",
-   "type": "FinishTrack",
-   "companyId": "R"
-  },
-  {
    "id": "recorded:223",
    "gameId": "1817-16281",
    "source": "user",
@@ -3825,14 +3785,6 @@
    "playerId": "524",
    "type": "FinishTrains",
    "companyId": "R"
-  },
-  {
-   "id": "recorded:226",
-   "gameId": "1817-16281",
-   "source": "user",
-   "playerId": "524",
-   "type": "FinishTrack",
-   "companyId": "UR"
   },
   {
    "id": "recorded:227",
@@ -4119,14 +4071,6 @@
    "rotation": 0,
    "nodeMapping": {},
    "expectedCost": 20
-  },
-  {
-   "id": "recorded:255",
-   "gameId": "1817-16281",
-   "source": "user",
-   "playerId": "524",
-   "type": "FinishTrack",
-   "companyId": "R"
   },
   {
    "id": "recorded:256",
@@ -4527,14 +4471,6 @@
     "city": "city"
    },
    "expectedCost": 0
-  },
-  {
-   "id": "recorded:279",
-   "gameId": "1817-16281",
-   "source": "user",
-   "playerId": "289",
-   "type": "FinishTrack",
-   "companyId": "NYOW"
   },
   {
    "id": "recorded:280",

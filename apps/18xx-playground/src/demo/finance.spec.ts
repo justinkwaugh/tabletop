@@ -105,6 +105,7 @@ it.each([Top, Shikoku])(
                 'BuyShares',
                 'SellShares',
                 'SetStockInstruction',
+                'SetStockInstructionStops',
                 'StopStockInstruction',
                 'FinishStockTurn',
                 'StartCompany',

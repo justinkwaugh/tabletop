@@ -3566,14 +3566,6 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:214",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "12235",
-   "type": "FinishTrack",
-   "companyId": "BESS"
-  },
-  {
    "id": "recorded:215",
    "gameId": "1817-1817_game_end_bankrupt",
    "source": "user",
@@ -4187,14 +4179,6 @@
    "expectedCost": 20
   },
   {
-   "id": "recorded:260",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "18003",
-   "type": "FinishTrack",
-   "companyId": "PSNR"
-  },
-  {
    "id": "recorded:261",
    "gameId": "1817-1817_game_end_bankrupt",
    "source": "user",
@@ -4436,14 +4420,6 @@
    "rotation": 2,
    "nodeMapping": {},
    "expectedCost": 10
-  },
-  {
-   "id": "recorded:277",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "12235",
-   "type": "FinishTrack",
-   "companyId": "BESS"
   },
   {
    "id": "recorded:278",
@@ -5582,14 +5558,6 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:378",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "18003",
-   "type": "FinishTrack",
-   "companyId": "PSNR"
-  },
-  {
    "id": "recorded:379",
    "gameId": "1817-1817_game_end_bankrupt",
    "source": "user",
@@ -5701,14 +5669,6 @@
     "city": "city"
    },
    "expectedCost": 20
-  },
-  {
-   "id": "recorded:385",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "10573",
-   "type": "FinishTrack",
-   "companyId": "NYOW"
   },
   {
    "id": "recorded:386",
@@ -5885,14 +5845,6 @@
     "city": "city"
    },
    "expectedCost": 0
-  },
-  {
-   "id": "recorded:395",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "12235",
-   "type": "FinishTrack",
-   "companyId": "BESS"
   },
   {
    "id": "recorded:396",
