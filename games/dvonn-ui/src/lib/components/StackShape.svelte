@@ -130,8 +130,9 @@
             ? `M ${-radius * 3} ${-radius * 6} H ${radius * 3} V ${radius * 3} H ${-radius * 3} Z ${hole.through}`
             : undefined
     )
-    // The count sits in the top piece's hole, light on dark so it reads on every color.
-    const countSize = $derived(radius * (tones.length >= 10 ? 0.74 : 0.88))
+    // The count sits in the top piece's hole, light on dark so it reads on every color; sized to
+    // read on a phone without crowding the hole.
+    const countSize = $derived(radius * (tones.length >= 10 ? 0.64 : 0.76))
 
     function speckAt(x: number, y: number) {
         const distance = Math.hypot(x, y)
