@@ -17,12 +17,12 @@ describe('controlledTally', () => {
         const letters = tally.map((stack) =>
             stack.map((piece) => ('dvonn' in piece ? 'd' : piece.playerId)).join('')
         )
-        expect(letters).toEqual(['wwwwwwww', 'wdbbb'])
+        expect(letters).toEqual(['wwwwwwwwwd', 'bbb'])
     })
 
     it('leaves the last stack short', () => {
-        expect(inStacks(Array.from({ length: 17 }, (_, i) => i)).map((s) => s.length)).toEqual([
-            8, 8, 1
+        expect(inStacks(Array.from({ length: 21 }, (_, i) => i)).map((s) => s.length)).toEqual([
+            10, 10, 1
         ])
     })
 })

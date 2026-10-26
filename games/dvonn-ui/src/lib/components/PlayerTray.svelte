@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { MachineState, PIECES_PER_PLAYER, type HydratedDvonnPlayerState } from '@tabletop/dvonn'
+    import {
+        DVONN_PIECES,
+        MachineState,
+        PIECES_PER_PLAYER,
+        type HydratedDvonnPlayerState
+    } from '@tabletop/dvonn'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PIECE_RADIUS, stackBounds, TILT } from '$lib/board/pieceGeometry.js'
     import { coordsKey } from '$lib/board/geometry.js'
@@ -47,9 +52,14 @@
 
     const prefix = $derived(`dvonn-card-${playerState.playerId}`)
     const RADIUS = PIECE_RADIUS
-    const PITCH = RADIUS * 2 + 7
+    const PITCH = RADIUS * 2 + 5
     const bounds = stackBounds(TALLY_HEIGHT, RADIUS)
     const tallyHeight = bounds.bottom - bounds.top + 2
+    // Room for every piece in the game, laid out right-aligned, so a tally is drawn at the same size
+    // on both cards whatever it holds, and the largest still fits beside the count.
+    const MOST_STACKS = Math.ceil((PIECES_PER_PLAYER * 2 + DVONN_PIECES) / TALLY_HEIGHT)
+    const tallyWidth = (MOST_STACKS - 1) * PITCH + RADIUS * 2 + 2
+    const tallyLeft = $derived((tally.length - MOST_STACKS) * PITCH - RADIUS - 1)
 </script>
 
 <div class="tray" class:active={isActive}>
@@ -69,8 +79,8 @@
         {#if tally.length > 0}
             <svg
                 class="tally"
-                height="44"
-                viewBox="{-RADIUS - 1} {bounds.top - 1} {tally.length * PITCH} {tallyHeight}"
+                viewBox="{tallyLeft} {bounds.top - 1} {tallyWidth} {tallyHeight}"
+                preserveAspectRatio="xMaxYMid meet"
                 aria-hidden="true"
             >
                 <defs><PieceDefs {prefix} /></defs>
@@ -113,19 +123,22 @@
     .body {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         padding: 6px 12px;
     }
 
+    /* Two digits wide, so both cards' captions line up. */
     .body strong {
+        min-width: 2ch;
         font-size: 22px;
+        text-align: end;
         font-variant-numeric: tabular-nums;
     }
 
     .tally {
-        margin-inline-start: auto;
-        width: auto;
-        max-width: 60%;
+        flex: 1;
+        min-width: 0;
+        max-height: 56px;
     }
 
     .caption {

@@ -1,6 +1,6 @@
 import { isDvonnPiece, stackOwner, type Piece, type Space } from '@tabletop/dvonn'
 
-export const TALLY_HEIGHT = 8
+export const TALLY_HEIGHT = 10
 
 // The pieces in the stacks a player controls, their own color first, then DVONN pieces, then
 // the other color, laid out as stacks of at most TALLY_HEIGHT.
