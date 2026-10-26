@@ -427,7 +427,7 @@
                             href="/pay-it-forward"
                             class="hidden md:inline-flex items-center gap-1.5 text-sm font-medium text-amber-800 hover:text-amber-900 dark:text-[#f2dfae] dark:hover:text-[#fbefcf]"
                         >
-                            <HeartOutline class="h-4 w-4" />
+                            <HeartOutline class="h-5 w-5" />
                             Pay it forward
                         </a>
                         <Tooltip triggeredBy="#pay-it-forward-link" placement="bottom" class="z-50">
@@ -435,10 +435,17 @@
                         </Tooltip>
                         <div class="flex items-center gap-3">
                             <a
+                                href="/pay-it-forward"
+                                class="pay-it-forward-icon inline-flex md:hidden items-center leading-none text-amber-600 hover:text-amber-700 dark:text-[#f2dfae] dark:hover:text-[#fbefcf]"
+                            >
+                                <span class="sr-only">Pay it forward</span>
+                                <HeartOutline class="h-6 w-6" />
+                            </a>
+                            <a
                                 href="https://github.com/justinkwaugh/tabletop"
                                 target="_blank"
                                 rel="noreferrer"
-                                class="community-link inline-flex items-center leading-none"
+                                class="community-link hidden md:inline-flex items-center leading-none"
                             >
                                 <span class="sr-only">GitHub</span>
                                 <svg
@@ -868,7 +875,8 @@
         .game-session-header .competitions-link {
             display: none;
         }
-        .mobile-game-header .bug-report-button {
+        .mobile-game-header .bug-report-button,
+        .mobile-game-header .pay-it-forward-icon {
             justify-content: center;
             width: 40px;
             height: 40px;
