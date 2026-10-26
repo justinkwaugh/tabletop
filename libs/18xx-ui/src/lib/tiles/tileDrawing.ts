@@ -110,11 +110,14 @@ export function createTileDrawing(
     )
     const angle =
         ((rotation * 60 + (orientation === HexOrientation.Pointy ? 30 : 0)) * Math.PI) / 180
+    // Four slots form a square, which a hex turn would tilt, so it stays upright, filled from
+    // the top left.
     const citySlots = (node: Extract<TileNode, { kind: 'city' }>, center: Point) =>
         stationPositions(
             node.stationSlots,
             center,
-            angle + ((layout.slotRowTurns?.[node.id] ?? 0) * Math.PI) / 180,
+            (node.stationSlots === 4 ? -Math.PI / 4 : angle) +
+                ((layout.slotRowTurns?.[node.id] ?? 0) * Math.PI) / 180,
             citySlotRadius
         )
     const centers = new Map<string, Point>()
