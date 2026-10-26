@@ -2,7 +2,7 @@
     import { onDestroy, tick } from 'svelte'
     import { fade } from 'svelte/transition'
     import { quartIn } from 'svelte/easing'
-    import { CalledGameDescription, createTimeAgo } from '@tabletop/frontend-components'
+    import { createTimeAgo } from '@tabletop/frontend-components'
     import HistoryTurnCard from '$lib/components/HistoryTurnCard.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { historyEntries, type HistoryEntry, type HistoryTurn } from '$lib/utils/historyTurns.js'
@@ -68,10 +68,6 @@
                 >
                     {entry.final ? 'Final round' : `Round ${entry.round}`}
                 </div>
-            {:else if entry.kind === 'call'}
-                <p class="call-line mb-2" in:fade={{ duration: 200, easing: quartIn }}>
-                    <CalledGameDescription action={entry.action} />
-                </p>
             {:else}
                 <div class="mb-2" in:fade={{ duration: 200, easing: quartIn }}>
                     <HistoryTurnCard
@@ -91,16 +87,6 @@
     .history-panel {
         background: var(--night);
         box-shadow: inset 0 0 0 1px var(--trim);
-    }
-
-    .call-line {
-        border-radius: 8px;
-        padding: 6px 9px;
-        background: #e4ddd0;
-        color: #2e2a24;
-        box-shadow: 0 2px 0 rgb(0 0 0 / 0.35);
-        text-align: left;
-        font-size: 14px;
     }
 
     .divider {

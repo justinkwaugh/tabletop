@@ -1,4 +1,4 @@
-import { isCallGameAction, type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import {
     getFountain,
     getShop,
@@ -94,9 +94,7 @@ export type HistoryTurn = {
 
 export type HistoryRound = { kind: 'round'; id: string; round: number; final: boolean }
 
-export type HistoryCall = { kind: 'call'; id: string; action: GameAction }
-
-export type HistoryEntry = HistoryTurn | HistoryRound | HistoryCall
+export type HistoryEntry = HistoryTurn | HistoryRound
 
 // Every turn ends with an EndTurn, and seats take turns in a fixed order, so a turn's player and
 // round follow from how many turns came before it. Rounds come newest first, each above its turns.
@@ -109,7 +107,6 @@ export function historyEntries(
 ): HistoryEntry[] {
     const turns: HistoryTurn[] = []
     let pending: GameAction[] = []
-    let call: HistoryCall | undefined
     const close = (lastIndex: number, ended: boolean) => {
         const index = turns.length
         turns.push(
@@ -125,18 +122,13 @@ export function historyEntries(
         pending = []
     }
     for (const [index, action] of actions.entries()) {
-        if (isCallGameAction(action)) {
-            if (pending.length > 0) close(index - 1, false)
-            call = { kind: 'call', id: action.id, action }
-            continue
-        }
         pending.push(action)
         if (isEndTurn(action)) close(index, true)
     }
     if (pending.length > 0) close(actions.length - 1, false)
 
     const lastRound = turns.at(-1)?.round ?? 0
-    const entries: HistoryEntry[] = call ? [call] : []
+    const entries: HistoryEntry[] = []
     let round: number | undefined
     for (const turn of turns.toReversed()) {
         if (turn.round !== round) entries.push(roundMarker(turn.round))

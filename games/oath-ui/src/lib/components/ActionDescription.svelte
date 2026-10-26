@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { isCallGameAction, type GameAction } from '@tabletop/common'
-    import { CalledGameDescription } from '@tabletop/frontend-components'
+    import { type GameAction } from '@tabletop/common'
     import ShownCards from '$lib/components/ShownCards.svelte'
     import TokenText from '$lib/components/TokenText.svelte'
     import { describeAction, drawsSkulls } from '$lib/model/actionDescription.js'
@@ -22,11 +21,7 @@
     let skulls = $derived(drawsSkulls(action))
 </script>
 
-{#if isCallGameAction(action)}
-    <span><CalledGameDescription {action} /></span>
-{:else}
-    <span><TokenText {text} {warbandColor} {seats} {skulls} /></span>
-    {#if seen.length > 0}
-        <span class="mt-1 block"><ShownCards cardIds={seen} height={48} /></span>
-    {/if}
+<span><TokenText {text} {warbandColor} {seats} {skulls} /></span>
+{#if seen.length > 0}
+    <span class="mt-1 block"><ShownCards cardIds={seen} height={48} /></span>
 {/if}

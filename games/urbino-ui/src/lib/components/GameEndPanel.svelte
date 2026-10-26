@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { CalledGameEnding } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { BuildingStyle, BuildingType } from '@tabletop/urbino'
     import PieceIcon from './PieceIcon.svelte'
@@ -25,27 +24,23 @@
 <div
     class="urbino-plank flex flex-wrap items-center gap-x-6 gap-y-2 border-b-2 border-(--maple-edge) px-4 py-3 shadow-[0_4px_10px_rgb(0_0_0/0.25)]"
 >
-    {#if session.gameCall}
-        <CalledGameEnding class="text-[17px]" />
-    {:else}
-        <div class="urbino-display text-[22px] tracking-[0.1em]">{verdict}</div>
-        <div class="flex flex-wrap gap-4">
-            {#each standings as player (player.playerId)}
-                {@const winner = state.winningPlayerIds.includes(player.playerId)}
-                <div class="flex items-center gap-2">
-                    <PieceIcon
-                        buildingType={BuildingType.Tower}
-                        color={session.colors.getPlayerUiColor(player.playerId)}
-                        buildingStyle={BuildingStyle.TowerRoofs}
-                        size={20}
-                    />
-                    <span class="text-[17px]" class:font-semibold={winner}
-                        >{nameOf(player.playerId)}</span
-                    >
-                    <span class="urbino-display text-[20px]">{player.score}</span>
-                    {#if winner}<span class="text-(--gold-deep)">★</span>{/if}
-                </div>
-            {/each}
-        </div>
-    {/if}
+    <div class="urbino-display text-[22px] tracking-[0.1em]">{verdict}</div>
+    <div class="flex flex-wrap gap-4">
+        {#each standings as player (player.playerId)}
+            {@const winner = state.winningPlayerIds.includes(player.playerId)}
+            <div class="flex items-center gap-2">
+                <PieceIcon
+                    buildingType={BuildingType.Tower}
+                    color={session.colors.getPlayerUiColor(player.playerId)}
+                    buildingStyle={BuildingStyle.TowerRoofs}
+                    size={20}
+                />
+                <span class="text-[17px]" class:font-semibold={winner}
+                    >{nameOf(player.playerId)}</span
+                >
+                <span class="urbino-display text-[20px]">{player.score}</span>
+                {#if winner}<span class="text-(--gold-deep)">★</span>{/if}
+            </div>
+        {/each}
+    </div>
 </div>

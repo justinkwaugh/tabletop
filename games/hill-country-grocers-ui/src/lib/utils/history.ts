@@ -1,4 +1,4 @@
-import { isCallGameAction, type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import {
     isChooseAction,
     isPassBid,
@@ -30,13 +30,7 @@ export type HistoryDividend = {
     action: GameAction
 }
 
-export type HistoryCall = {
-    kind: 'call'
-    key: string
-    action: GameAction
-}
-
-export type HistoryEntry = HistoryTurn | HistoryAuction | HistoryDividend | HistoryCall
+export type HistoryEntry = HistoryTurn | HistoryAuction | HistoryDividend
 
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
@@ -45,11 +39,6 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     for (const action of actions) {
         if (isPayDividends(action)) {
             entries.push({ kind: 'dividend', key: action.id, action })
-            open = undefined
-            continue
-        }
-        if (isCallGameAction(action)) {
-            entries.push({ kind: 'call', key: action.id, action })
             open = undefined
             continue
         }
@@ -87,5 +76,5 @@ function isBid(action: GameAction): boolean {
 }
 
 export function entryActions(entry: HistoryEntry): GameAction[] {
-    return entry.kind === 'dividend' || entry.kind === 'call' ? [entry.action] : entry.actions
+    return entry.kind === 'dividend' ? [entry.action] : entry.actions
 }

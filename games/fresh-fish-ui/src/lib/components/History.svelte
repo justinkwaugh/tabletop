@@ -122,9 +122,7 @@
                             {#if action.playerId}
                                 <PlayerName playerId={action.playerId} {...PLAIN_PLAYER_NAME} />
                             {/if}
-                            {getDescriptionForAction(action, (playerId) =>
-                                gameSession.getPlayerName(playerId)
-                            )}
+                            {getDescriptionForAction(action)}
                         {/if}
                     </div>
                 </div>

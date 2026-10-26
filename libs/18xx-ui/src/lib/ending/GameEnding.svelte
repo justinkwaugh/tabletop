@@ -1,13 +1,12 @@
 <script lang="ts">
     import type { EighteenXXState } from '@tabletop/18xx'
-    import { CalledGameEnding } from '@tabletop/frontend-components'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     type EndingPosition = Pick<EighteenXXState, 'gameEnding' | 'finalWealth' | 'winningPlayerIds'>
     let {
         session,
         position
     }: {
-        session: Pick<EighteenXXSessionView, 'gameCall' | 'getPlayerName'> & {
+        session: Pick<EighteenXXSessionView, 'getPlayerName'> & {
             gameState: EndingPosition
             presentation: Pick<EighteenXXSessionView['presentation'], 'money'>
         }
@@ -21,14 +20,7 @@
     )
 </script>
 
-{#if session.gameCall}
-    <section aria-label="Game ending">
-        <div class="results">
-            <header><p class="eyebrow">Game over</p></header>
-            <CalledGameEnding />
-        </div>
-    </section>
-{:else if gameState.gameEnding}
+{#if gameState.gameEnding}
     <section aria-label="Game ending">
         <div class="results">
             <header>

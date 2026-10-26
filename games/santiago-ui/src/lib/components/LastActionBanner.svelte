@@ -1,16 +1,22 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
     import { quartIn } from 'svelte/easing'
-    import { isCallGameAction } from '@tabletop/common'
-    import { CalledGameDescription } from '@tabletop/frontend-components'
+    import { ActionSource, type GameAction } from '@tabletop/common'
+    import { isEndRoundEvent } from '@tabletop/santiago'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
-    import { getDescriptionSegments, isShownInHistory } from '$lib/utils/actionDescriptions.js'
+    import { getDescriptionSegments } from '$lib/utils/actionDescriptions.js'
     import SproutIcon from './SproutIcon.svelte'
     import PlayerNameChip from './PlayerNameChip.svelte'
 
     const session = getGameSession()
 
-    const lastAction = $derived(session.actions.findLast(isShownInHistory))
+    // Same filtering as History.svelte, so this always mirrors that list's top entry.
+    const lastAction = $derived.by(() => {
+        const filtered = session.actions
+            .filter((a: GameAction) => a.source !== ActionSource.System || isEndRoundEvent(a))
+            .filter((a: GameAction) => !!a.playerId || isEndRoundEvent(a))
+        return filtered.at(-1)
+    })
 
     // Segments (not the flattened, dash-joined form History.svelte uses) — Justin wants
     // multi-part entries (e.g. end of round) stacked as separate lines here instead of run
@@ -35,11 +41,7 @@
                     class="flex flex-col items-center"
                     in:fade={{ duration: 200, easing: quartIn }}
                 >
-                    {#if lastAction && isCallGameAction(lastAction)}
-                        <p class="text-[16px] text-amber-200 truncate">
-                            <CalledGameDescription action={lastAction} />
-                        </p>
-                    {:else if lastAction}
+                    {#if lastAction}
                         {#each descriptionSegments as segment, i (i)}
                             <p class="text-[16px] text-amber-200 truncate">
                                 {#if i === 0 && lastAction.playerId}

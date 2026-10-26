@@ -44,36 +44,28 @@
         {#if index === firstTurnIndex + 1 && firstTurnIndex >= 0}
             <div class="divider urbino-display">Setup</div>
         {/if}
-        {#if entry.kind === 'gameCall'}
-            <div class="entry" in:fade={{ duration: 200 }}>
-                <span class="text-left text-[16px] leading-snug">
-                    <HistoryEntryLine {entry} viewerId={session.myPlayer?.id} />
-                </span>
-            </div>
-        {:else}
-            <button
-                type="button"
-                class="entry"
-                class:replaying={replaying?.entryId === entry.id}
-                class:light-entry={isDarkColor(session.colors.getPlayerUiColor(entry.playerId))}
-                disabled={!replayable(entry)}
-                title={replayable(entry) ? 'Replay on the board' : undefined}
-                onclick={() => replay(entry)}
-                in:fade={{ duration: 200 }}
-            >
-                <span class="mt-0.5">
-                    <PieceIcon
-                        buildingType={BuildingType.Tower}
-                        color={session.colors.getPlayerUiColor(entry.playerId)}
-                        buildingStyle={BuildingStyle.TowerRoofs}
-                        size={18}
-                    />
-                </span>
-                <span class="text-left text-[16px] leading-snug">
-                    <HistoryEntryLine {entry} viewerId={session.myPlayer?.id} />
-                </span>
-            </button>
-        {/if}
+        <button
+            type="button"
+            class="entry"
+            class:replaying={replaying?.entryId === entry.id}
+            class:light-entry={isDarkColor(session.colors.getPlayerUiColor(entry.playerId))}
+            disabled={!replayable(entry)}
+            title={replayable(entry) ? 'Replay on the board' : undefined}
+            onclick={() => replay(entry)}
+            in:fade={{ duration: 200 }}
+        >
+            <span class="mt-0.5">
+                <PieceIcon
+                    buildingType={BuildingType.Tower}
+                    color={session.colors.getPlayerUiColor(entry.playerId)}
+                    buildingStyle={BuildingStyle.TowerRoofs}
+                    size={18}
+                />
+            </span>
+            <span class="text-left text-[16px] leading-snug">
+                <HistoryEntryLine {entry} viewerId={session.myPlayer?.id} />
+            </span>
+        </button>
     {:else}
         <div class="p-3 text-center italic text-(--cream-quiet)">No moves yet</div>
     {/each}

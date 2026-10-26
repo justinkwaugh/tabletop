@@ -8,4 +8,4 @@ We rejected a per-title concede Action (Urbino's pattern), which repeats the fea
 
 - The backend executes `callGame` with the engine from its own build of the shared code, but every UI Artifact embeds its own copy, so a title can be called only once its published UI declares the `calledGames` client capability. The backend reads that from the UI Artifact's catalog entry and refuses calls before it.
 - Code that groups System Actions into the cascade of the User Action before them must treat `callGame` as its own run: replay, cascade ends, Fork positions, live delivery and visibility projection all do.
-- Shared code that ties a result to a title's terminal machine state no longer holds; the 18xx family now ties only final wealth to GameOver.
+- Shared code that ties a result to a title's terminal machine state no longer holds for a title that opts in; such a title must accept a result reached without its own ending, as the 18xx family will by tying only final wealth to GameOver.

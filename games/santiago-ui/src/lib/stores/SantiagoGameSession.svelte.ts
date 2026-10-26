@@ -43,7 +43,6 @@ import {
     canRevealTiles,
     isNeutralPlacementTurn,
     isOverseerDecisionPhase,
-    isPlantTurn,
     isSpringPlacementTurn,
     projectedOverseerId,
     rejectPenalty,
@@ -242,7 +241,8 @@ export class SantiagoGameSession extends GameSession<
             this.selectedTileIndex >= 0 ? state.revealedTiles[this.selectedTileIndex] : undefined
         const myId = this.myPlayer?.id
         if (!tile || !myId) return new Map()
-        if (!isPlantTurn(state, myId)) return new Map()
+        if (state.machineState !== MachineState.PlantingPhase) return new Map()
+        if (state.plantersOrder[state.planterIndex] !== myId) return new Map()
 
         const connected = connectedSpringIntersections(state.board)
         const result = new Map<string, boolean>()

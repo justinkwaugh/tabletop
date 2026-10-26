@@ -22,9 +22,7 @@
                 <AuctionResults action={lastAction} goodsType={auctionedGoods.get(lastAction.id)} />
             {:else if lastAction}
                 <ActorLine playerId={lastAction.playerId}>
-                    {getDescriptionForAction(lastAction, (playerId) =>
-                        gameSession.getPlayerName(playerId)
-                    )}
+                    {getDescriptionForAction(lastAction)}
                 </ActorLine>
             {/if}
         </div>

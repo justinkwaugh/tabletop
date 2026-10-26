@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { isCallGameAction, type GameAction } from '@tabletop/common'
-    import { CalledGameDescription } from '@tabletop/frontend-components'
+    import type { GameAction } from '@tabletop/common'
     import DirhamAmount from '$lib/components/DirhamAmount.svelte'
     import PlayerTag from '$lib/components/PlayerTag.svelte'
     import {
@@ -99,8 +98,6 @@
     {/if}
     from the <b>{action.end === QueueEnd.Front ? 'front' : 'back'}</b> to the
     <b>{entranceGate(action.entranceId)}</b> gate.
-{:else if isCallGameAction(action)}
-    <CalledGameDescription {action} />
 {/if}
 
 <style>

@@ -29,43 +29,41 @@
     })
 </script>
 
-{#if gameSession.gameState.result}
+{#if gameSession.gameState.machineState === MachineState.Auctioning && gameSession.isPlayable}
+    <HTML position.y={$viewport.height / 2 - 0.6} center>
+        <div
+            class:hud-hidden={gameSession.shouldHideHud}
+            class="flex flex-col justify-start items-center gap-y-4 hud-fade"
+        >
+            <div class="w-[340px] flex flex-row justify-between items-center">
+                <HighBid />
+                {#if gameSession.isMyTurn}
+                    <BidControls />
+                {/if}
+            </div>
+        </div>
+    </HTML>
+    <HTML position.y={$viewport.height / 2 - 1.4} center>
+        {#if gameSession.isMyTurn}
+            <BidButtons hidden={gameSession.shouldHideHud} />
+        {/if}
+    </HTML>
+{/if}
+
+{#if gameSession.isMyTurn && gameSession.isPlayable}
+    {#if gameSession.gameState.machineState !== MachineState.Auctioning}
+        <HTML position.y={instructionY} center>
+            <Instructions hidden={gameSession.shouldHideHud} />
+        </HTML>
+    {/if}
+{:else if gameSession.gameState.result}
     <HTML position.y={$viewport.height / 2 - 1} distanceFactor={5} center transform>
         <GameEndPanel hidden={gameSession.shouldHideHud} />
     </HTML>
-{:else}
-    {#if gameSession.gameState.machineState === MachineState.Auctioning && gameSession.isPlayable}
-        <HTML position.y={$viewport.height / 2 - 0.6} center>
-            <div
-                class:hud-hidden={gameSession.shouldHideHud}
-                class="flex flex-col justify-start items-center gap-y-4 hud-fade"
-            >
-                <div class="w-[340px] flex flex-row justify-between items-center">
-                    <HighBid />
-                    {#if gameSession.isMyTurn}
-                        <BidControls />
-                    {/if}
-                </div>
-            </div>
-        </HTML>
-        <HTML position.y={$viewport.height / 2 - 1.4} center>
-            {#if gameSession.isMyTurn}
-                <BidButtons hidden={gameSession.shouldHideHud} />
-            {/if}
-        </HTML>
-    {/if}
-
-    {#if gameSession.isMyTurn && gameSession.isPlayable}
-        {#if gameSession.gameState.machineState !== MachineState.Auctioning}
-            <HTML position.y={instructionY} center>
-                <Instructions hidden={gameSession.shouldHideHud} />
-            </HTML>
-        {/if}
-    {:else if gameSession.isPlayable}
-        <HTML position.y={instructionY} distanceFactor={5} center transform>
-            <WaitingInstructions hidden={gameSession.shouldHideHud} />
-        </HTML>
-    {/if}
+{:else if gameSession.isPlayable}
+    <HTML position.y={instructionY} distanceFactor={5} center transform>
+        <WaitingInstructions hidden={gameSession.shouldHideHud} />
+    </HTML>
 {/if}
 
 <AuctionPreview hidden={gameSession.shouldHideHud} position={[0, $viewport.height / 2 - 0.6, 0]} />

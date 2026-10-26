@@ -24,7 +24,7 @@ import {
 import type { ModuleSession } from './moduleSession.js'
 
 type InstructionState = Parameters<typeof stockPositionChange>[0] &
-    Pick<EighteenXXState, 'machineState' | 'result'>
+    Pick<EighteenXXState, 'machineState'>
 
 export type StockInstructionSession = ModuleSession<
     InstructionState,
@@ -44,7 +44,6 @@ export class StockInstructionModule {
 
     private open = $derived.by(
         () =>
-            this.session.state.result === undefined &&
             this.session.state.machineState === 'StockRound' &&
             !this.session.state.stockRound.completed
     )

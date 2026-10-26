@@ -14,11 +14,11 @@
         isScoreIsland,
         PassReason
     } from '@tabletop/kaivai'
-    import { isCallGameAction, type GameAction } from '@tabletop/common'
+    import type { GameAction } from '@tabletop/common'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { CalledGameDescription, createTimeAgo, PlayerName } from '@tabletop/frontend-components'
+    import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import { getHistoryDescriptionForAction } from '$lib/utils/historyDescriptions'
     import FishingResults from './FishingResults.svelte'
     import IslandScoringResults from './IslandScoringResults.svelte'
@@ -98,12 +98,10 @@
         {#if action.playerId}
             <PlayerName playerId={action.playerId} />
         {/if}
-        {#if isCallGameAction(action)}<CalledGameDescription
-                {action}
-            />{:else}{getHistoryDescriptionForAction(
-                action,
-                action.playerId === gameSession.myPlayer?.id
-            )}{/if}{#if isMove(action) && action.metadata?.playerSunk}
+        {getHistoryDescriptionForAction(
+            action,
+            action.playerId === gameSession.myPlayer?.id
+        )}{#if isMove(action) && action.metadata?.playerSunk}
             sunk <PlayerName playerId={action.metadata.playerSunk} possessive={true} /> boat for a loss
             of {action.metadata.gloryLost} glory
         {/if}{#if isDeliver(action) && (action.metadata?.numSold ?? 0) > 0}, selling {action

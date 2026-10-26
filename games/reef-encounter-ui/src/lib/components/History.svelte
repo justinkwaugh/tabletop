@@ -1,7 +1,7 @@
 <script lang="ts">
     import { tick } from 'svelte'
-    import { isCallGameAction, type GameAction } from '@tabletop/common'
-    import { CalledGameDescription, createTimeAgo, PlayerName } from '@tabletop/frontend-components'
+    import type { GameAction } from '@tabletop/common'
+    import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import {
         finalTurnEntries,
         historyEntries,
@@ -120,9 +120,6 @@
                     </header>
                 {/if}
                 <ul>
-                    {#if isCallGameAction(entry.actions[0])}
-                        <li><CalledGameDescription action={entry.actions[0]} /></li>
-                    {/if}
                     {#each describeActions( entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their', gameSession.possessiveName, (boardId) => boardName(gameSession.gameState.reefs, boardId) ) as phrase, index (index)}
                         <li><PhraseLine {phrase} capitalise /></li>
                     {/each}

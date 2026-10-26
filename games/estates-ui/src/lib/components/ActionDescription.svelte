@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { isCallGameAction, type GameAction, range } from '@tabletop/common'
-    import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
+    import { type GameAction, range } from '@tabletop/common'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import {
@@ -121,8 +121,6 @@
         BarrierDirection.Lengthen
             ? 'lengthening'
             : 'shortening'} the row
-    {:else if isCallGameAction(action)}
-        <CalledGameDescription {action} />
     {:else}
         {getDescriptionForAction(action)}
     {/if}

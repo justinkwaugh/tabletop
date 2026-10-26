@@ -2,7 +2,7 @@
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import { GameResult } from '@tabletop/common'
     import { fade } from 'svelte/transition'
-    import { CalledGameEnding, PlayerName } from '@tabletop/frontend-components'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession() as BridgesGameSession
@@ -17,30 +17,25 @@
     <div class="flex flex-col justify-center items-center mx-4 w-full">
         <h1 class="text-3xl mb-2">Game Over</h1>
 
-        {#if gameSession.gameCall}
-            <CalledGameEnding class="text-md sm:text-lg" />
-        {:else}
-            <div class="flex flex-row justify-center items-center mb-2">
-                {#if isWin}
-                    <h1 class="text-md sm:text-lg">
+        <div class="flex flex-row justify-center items-center mb-2">
+            {#if isWin}
+                <h1 class="text-md sm:text-lg">
+                    <PlayerName playerId={winner} />
+                    won with a score of {gameSession.gameState.getPlayerState(winner ?? 'anyone')
+                        ?.score}
+                </h1>
+            {:else}
+                <h1 class="text-lg">
+                    {#each gameSession.gameState.winningPlayerIds as winner, i (winner)}
+                        {#if i > 0}
+                            and
+                        {/if}
                         <PlayerName playerId={winner} />
-                        won with a score of {gameSession.gameState.getPlayerState(
-                            winner ?? 'anyone'
-                        )?.score}
-                    </h1>
-                {:else}
-                    <h1 class="text-lg">
-                        {#each gameSession.gameState.winningPlayerIds as winner, i (winner)}
-                            {#if i > 0}
-                                and
-                            {/if}
-                            <PlayerName playerId={winner} />
-                        {/each} tied with a score of {gameSession.gameState.getPlayerState(
-                            gameSession.gameState.winningPlayerIds[0]
-                        )?.score}
-                    </h1>
-                {/if}
-            </div>
-        {/if}
+                    {/each} tied with a score of {gameSession.gameState.getPlayerState(
+                        gameSession.gameState.winningPlayerIds[0]
+                    )?.score}
+                </h1>
+            {/if}
+        </div>
     </div>
 </div>

@@ -1,7 +1,6 @@
 <script lang="ts">
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { GameResult } from '@tabletop/common'
-    import { CalledGameEnding } from '@tabletop/frontend-components'
     import Header from './Header.svelte'
     import Ship from './Ship.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
@@ -23,22 +22,18 @@
 <div class="flex flex-col mb-2 sol-font-bold text-[#ad9c80] gap-y-2 uppercase">
     <Header />
 
-    {#if gameSession.gameCall}
-        <CalledGameEnding class="pt-2 pb-2 normal-case tracking-wide" />
-    {:else}
-        <div class="pt-2 pb-0 flex flex-row flex-wrap justify-center items-center gap-x-4">
-            <h1 class="text-lg mb-2">
-                {number} CIVILIZATION{plural}
-                {plural ? 'HAVE' : 'HAS'} SURVIVED
-            </h1>
-        </div>
+    <div class="pt-2 pb-0 flex flex-row flex-wrap justify-center items-center gap-x-4">
+        <h1 class="text-lg mb-2">
+            {number} CIVILIZATION{plural}
+            {plural ? 'HAVE' : 'HAS'} SURVIVED
+        </h1>
+    </div>
 
-        <div class="pt-0 pb-2 flex flex-row justify-center items-center gap-x-4">
-            {#each gameSession.gameState.winningPlayerIds as winnerId (winnerId)}
-                <div class="shrink-0">
-                    <Ship playerId={winnerId} width={40} height={80} />
-                </div>
-            {/each}
-        </div>
-    {/if}
+    <div class="pt-0 pb-2 flex flex-row justify-center items-center gap-x-4">
+        {#each gameSession.gameState.winningPlayerIds as winnerId (winnerId)}
+            <div class="shrink-0">
+                <Ship playerId={winnerId} width={40} height={80} />
+            </div>
+        {/each}
+    </div>
 </div>

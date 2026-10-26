@@ -209,9 +209,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     // docs/ui-interaction-visual-contract.md — every draft reads as empty while a send or a new state is under way.
     get liveSeatId(): string | undefined {
         const settled = !this.processingActions && !this.updatingVisibleState
-        const live =
-            this.isPlayable && !this.isViewingHistory && this.gameState.result === undefined
-        return live && settled ? this.myPlayer?.id : undefined
+        return this.isPlayable && !this.isViewingHistory && settled ? this.myPlayer?.id : undefined
     }
 
     get liveTurnSeatId(): string | undefined {

@@ -1,7 +1,4 @@
-import {
-    gameClientCapabilities,
-    type GameUiDefinition
-} from '@tabletop/frontend-components/definition/gameUiDefinition'
+import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { MagnaGreciaInfo } from '@tabletop/magna-grecia'
 import type {
     HydratedMagnaGreciaGameState,
@@ -15,8 +12,7 @@ export const UiDefinition: GameUiDefinition<
 > = {
     info: {
         ...MagnaGreciaInfo,
-        thumbnailUrl: coverImg,
-        clientCapabilities: gameClientCapabilities()
+        thumbnailUrl: coverImg
     },
     runtime: async () => {
         return (await import('./runtime.js')).MagnaGreciaUiRuntime

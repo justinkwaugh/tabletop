@@ -1,7 +1,6 @@
 import { MachineState, type HydratedSantiagoGameState } from '@tabletop/santiago'
 import {
     canRevealTiles,
-    isGameOver,
     isNeutralPlacementTurn,
     isOverseerDecisionPhase,
     isPlantTurn,
@@ -48,7 +47,7 @@ export function actionBarView(
     state: HydratedSantiagoGameState,
     viewer: ActionBarViewer
 ): ActionBarView {
-    if (viewer.isViewingHistory || isGameOver(state)) return NONE
+    if (viewer.isViewingHistory) return NONE
     const { playerId, isMyTurn } = viewer
     if (isSpringPlacementTurn(state, playerId)) return { kind: 'placeSpring' }
     if (state.machineState === MachineState.Bidding) return biddingView(state, isMyTurn)

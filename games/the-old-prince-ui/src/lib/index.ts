@@ -1,17 +1,10 @@
-import {
-    gameClientCapabilities,
-    type GameUiDefinition
-} from '@tabletop/frontend-components/definition/gameUiDefinition'
+import type { GameUiDefinition } from '@tabletop/frontend-components'
 import type { HydratedTheOldPrinceState, TheOldPrinceState } from '@tabletop/the-old-prince'
 import { TheOldPrinceInfo } from '@tabletop/the-old-prince'
 import coverImg from './images/top-cover.jpg'
 
 export const UiDefinition: GameUiDefinition<TheOldPrinceState, HydratedTheOldPrinceState> = {
-    info: {
-        ...TheOldPrinceInfo,
-        thumbnailUrl: coverImg,
-        clientCapabilities: gameClientCapabilities()
-    },
+    info: { ...TheOldPrinceInfo, thumbnailUrl: coverImg },
     runtime: async () => (await import('./runtime.js')).UiRuntime
 }
 

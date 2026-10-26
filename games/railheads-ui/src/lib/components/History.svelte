@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { GameAction } from '@tabletop/common'
-    import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         SPACE_NAMES,
@@ -45,7 +45,7 @@
 </script>
 
 <div class="history">
-    {#if gameSession.gameState.result && !gameSession.gameCall && gameSession.gameState.winningPlayerIds.length > 0}
+    {#if gameSession.gameState.result && gameSession.gameState.winningPlayerIds.length > 0}
         <div class="milestone">
             Game over:
             {#each gameSession.gameState.winningPlayerIds as playerId, index (playerId)}
@@ -61,9 +61,7 @@
         </div>
     {/if}
     {#each entries as entry (entry.key)}
-        {#if entry.kind === 'call'}
-            <div class="milestone"><CalledGameDescription action={entry.action} /></div>
-        {:else if entry.kind === 'payout'}
+        {#if entry.kind === 'payout'}
             <div
                 class="milestone jump"
                 role="button"

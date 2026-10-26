@@ -3,7 +3,6 @@
         ScalingWrapper,
         DefaultSideContent,
         DefaultTableLayout,
-        CalledGameEnding,
         GameSession
     } from '@tabletop/frontend-components'
 
@@ -37,9 +36,7 @@
         {#snippet gameContent()}
             <!--  Top part is not allowed to shrink -->
             <div class="shrink-0">
-                {#if gameSession.gameCall}
-                    <CalledGameEnding class="mb-2 rounded-lg bg-black p-2 text-[#ad9c80]" />
-                {:else if gameSession.gameState.result}
+                {#if gameSession.gameState.result}
                     <!-- <GameEndPanel /> -->
                 {:else}
                     <!-- <InformationPanel /> -->

@@ -3,8 +3,7 @@
     import OpeningAuction from './OpeningAuction.svelte'
     import BranchSplitPreview from './BranchSplitPreview.svelte'
     import { requireTheOldPrinceSession } from './session.svelte.js'
-    import { setGameSession, type GameSession } from '@tabletop/frontend-components'
-    import { untrack } from 'svelte'
+    import type { GameSession } from '@tabletop/frontend-components'
     import type { TheOldPrinceState, HydratedTheOldPrinceState } from '@tabletop/the-old-prince'
     import {
         GameEnding,
@@ -23,7 +22,6 @@
     }: { gameSession: GameSession<TheOldPrinceState, HydratedTheOldPrinceState> } = $props()
     const session = $derived(requireTheOldPrinceSession(gameSession))
     const gameState = $derived(gameSession.gameState)
-    setGameSession(untrack(() => session))
     setPlaceLinks({
         name: (locationId) => session.placeName(locationId),
         reveal: (locationId) => session.map.inspect({ kind: 'hex', locationId })

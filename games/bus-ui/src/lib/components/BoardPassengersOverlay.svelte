@@ -131,11 +131,7 @@
     })
 
     const highlightedBuildingSiteIds: BuildingSiteId[] = $derived.by(() => {
-        if (
-            gameSession.isViewingHistory ||
-            !gameSession.isMyTurn ||
-            !gameSession.validActionTypes.includes(ActionType.PlaceBuilding)
-        ) {
+        if (gameSession.isViewingHistory || !gameSession.isMyTurn) {
             return []
         }
 

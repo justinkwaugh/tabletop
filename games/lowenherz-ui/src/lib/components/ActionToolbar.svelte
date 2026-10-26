@@ -123,9 +123,7 @@
     id="lowenherz-action-bar"
     class="shrink-0 mb-2 px-3 h-[44px] border-b-2 border-black/20 flex items-center gap-2 text-black"
 >
-    {#if gameSession.gameCall}
-        <span class="font-bold">The game is over.</span>
-    {:else if isEndOfGame}
+    {#if isEndOfGame}
         <!-- The game's own line for this, rather than a bare "GAME OVER" - it names the
              card that ended it (The King is Dead), which is what a player actually saw
              happen. Used to live in the deck column via ActionCardArea; here it lands in

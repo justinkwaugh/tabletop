@@ -1,4 +1,4 @@
-import { gameCallDescription, gameCallOf, type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import {
     isDrawTile,
     isEndAuction,
@@ -13,11 +13,7 @@ import {
 import { getTileName } from './tileNames.js'
 import { getGoodsName } from './goodsNames.js'
 
-export function getDescriptionForAction(action: GameAction, nameOf: (playerId: string) => string) {
-    const call = gameCallOf(action)
-    if (call) {
-        return gameCallDescription(call, nameOf)
-    }
+export function getDescriptionForAction(action: GameAction) {
     switch (true) {
         case isDrawTile(action): {
             const tile = action.metadata?.chosenTile

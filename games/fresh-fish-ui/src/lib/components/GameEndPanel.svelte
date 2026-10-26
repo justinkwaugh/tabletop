@@ -5,7 +5,7 @@
     import Disk from '$lib/components/Disk.svelte'
     import { Scorer } from '@tabletop/fresh-fish'
     import { getGoodsName } from '$lib/utils/goodsNames.js'
-    import { CalledGameEnding, PlayerName } from '@tabletop/frontend-components'
+    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession()
@@ -38,82 +38,68 @@
 >
     <div class="flex flex-col items-center gap-0.5">
         <h1 class="title">Game over</h1>
-        {#if gameSession.gameCall}
-            <CalledGameEnding class="text-[1.05rem] max-sm:text-[0.9rem]" />
-        {:else}
-            <p class="result">
-                {#each gameSession.gameState.winningPlayerIds as winner, i (winner)}
-                    {#if i > 0}<span>and</span>{/if}
-                    <Disk color={gameSession.colors.getPlayerUiColor(winner)} size={22} />
-                    <PlayerName
-                        playerId={winner}
-                        capitalization={i > 0 && winner === myPlayerId ? 'none' : 'capitalize'}
-                        {...PLAIN_PLAYER_NAME}
-                    />
-                {/each}
-                <span>{verb} with {winningScore}</span>
-            </p>
-        {/if}
+        <p class="result">
+            {#each gameSession.gameState.winningPlayerIds as winner, i (winner)}
+                {#if i > 0}<span>and</span>{/if}
+                <Disk color={gameSession.colors.getPlayerUiColor(winner)} size={22} />
+                <PlayerName
+                    playerId={winner}
+                    capitalization={i > 0 && winner === myPlayerId ? 'none' : 'capitalize'}
+                    {...PLAIN_PLAYER_NAME}
+                />
+            {/each}
+            <span>{verb} with {winningScore}</span>
+        </p>
     </div>
 
-    {#if !gameSession.gameCall}
-        <div class="w-full overflow-x-auto">
-            <table class="sheet m-auto">
-                <thead>
-                    <tr>
-                        <th></th>
-                        {#each goodsTypes as goodsType (goodsType)}
-                            <th title={getGoodsName(goodsType)}>
-                                <svg
-                                    viewBox="0 0 20 20"
-                                    width="26"
-                                    height="26"
-                                    class="inline-block"
-                                >
-                                    <GoodsIcon {goodsType} color="#d1d5db" painted />
-                                </svg>
-                            </th>
-                        {/each}
-                        <th class="head">Money</th>
-                        <th class="head">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {#each ranked as player (player.playerId)}
-                        <tr class={winners.has(player.playerId) ? 'winner' : ''}>
-                            <td class="who"
-                                ><span class="who-inner">
-                                    <Disk
-                                        color={gameSession.colors.getPlayerUiColor(player.playerId)}
-                                        size={22}
-                                    />
-                                    <span>{gameSession.getPlayerName(player.playerId)}</span>
-                                    {#if winners.has(player.playerId)}<span class="star"
-                                            >&#x2605;</span
-                                        >{/if}
-                                </span></td
-                            >
-                            {#each goodsTypes as goodsType (goodsType)}
-                                {@const stall = player.stalls.find(
-                                    (s) => s.goodsType === goodsType
-                                )}
-                                <td
-                                    class="num"
-                                    title={stall?.distance
-                                        ? `${stall.distance} steps from its truck`
-                                        : 'Never placed'}
-                                >
-                                    &minus;{penalty(stall?.distance)}
-                                </td>
-                            {/each}
-                            <td class="num">+{player.money}</td>
-                            <td class="num total">{player.score}</td>
-                        </tr>
+    <div class="w-full overflow-x-auto">
+        <table class="sheet m-auto">
+            <thead>
+                <tr>
+                    <th></th>
+                    {#each goodsTypes as goodsType (goodsType)}
+                        <th title={getGoodsName(goodsType)}>
+                            <svg viewBox="0 0 20 20" width="26" height="26" class="inline-block">
+                                <GoodsIcon {goodsType} color="#d1d5db" painted />
+                            </svg>
+                        </th>
                     {/each}
-                </tbody>
-            </table>
-        </div>
-    {/if}
+                    <th class="head">Money</th>
+                    <th class="head">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {#each ranked as player (player.playerId)}
+                    <tr class={winners.has(player.playerId) ? 'winner' : ''}>
+                        <td class="who"
+                            ><span class="who-inner">
+                                <Disk
+                                    color={gameSession.colors.getPlayerUiColor(player.playerId)}
+                                    size={22}
+                                />
+                                <span>{gameSession.getPlayerName(player.playerId)}</span>
+                                {#if winners.has(player.playerId)}<span class="star">&#x2605;</span
+                                    >{/if}
+                            </span></td
+                        >
+                        {#each goodsTypes as goodsType (goodsType)}
+                            {@const stall = player.stalls.find((s) => s.goodsType === goodsType)}
+                            <td
+                                class="num"
+                                title={stall?.distance
+                                    ? `${stall.distance} steps from its truck`
+                                    : 'Never placed'}
+                            >
+                                &minus;{penalty(stall?.distance)}
+                            </td>
+                        {/each}
+                        <td class="num">+{player.money}</td>
+                        <td class="num total">{player.score}</td>
+                    </tr>
+                {/each}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <style>

@@ -14,7 +14,7 @@
 </script>
 
 <section class="card" class:settling={gameSession.busy} aria-label="Actions">
-    {#if gameSession.gameState.machineState === MachineState.FinalTurns && !gameSession.gameState.result}
+    {#if gameSession.gameState.machineState === MachineState.FinalTurns}
         <FinalTurnsBanner />
     {/if}
     {#if gameSession.isViewingHistory}

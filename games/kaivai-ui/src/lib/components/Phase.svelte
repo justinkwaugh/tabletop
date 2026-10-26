@@ -1,15 +1,11 @@
 <script lang="ts">
     import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
-    import { PhaseName } from '@tabletop/kaivai'
+    import { MachineState, PhaseName } from '@tabletop/kaivai'
     import { flip } from 'svelte/animate'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     let gameSession = getGameSession() as KaivaiGameSession
-    const isGameOver = $derived(gameSession.gameState.result !== undefined)
-    const phaseName = $derived(
-        gameSession.gameCall ? undefined : gameSession.gameState.phases.currentPhase?.name
-    )
     const phase = $derived.by(() => {
-        switch (phaseName) {
+        switch (gameSession.gameState.phases.currentPhase?.name) {
             case PhaseName.Bidding:
                 return 'Bidding'
 
@@ -31,7 +27,7 @@
     })
 
     const smallPhase = $derived.by(() => {
-        switch (phaseName) {
+        switch (gameSession.gameState.phases.currentPhase?.name) {
             case PhaseName.Bidding:
                 return 'Bidding'
 
@@ -67,7 +63,7 @@
 >
     <div class="flex flex-row justify-center items-center">
         <div>
-            {#if isGameOver}
+            {#if gameSession.gameState.machineState === MachineState.EndOfGame}
                 <span class="font-bold me-4 uppercase text-3xl text-[#f5e397] text-nowrap"
                     >Game Over</span
                 >

@@ -17,9 +17,7 @@
                 {#if gameSession.currentAction.playerId}
                     <PlayerName playerId={gameSession.currentAction.playerId} />
                 {/if}
-                {getDescriptionForAction(gameSession.currentAction, (playerId) =>
-                    gameSession.getPlayerName(playerId)
-                )}
+                {getDescriptionForAction(gameSession.currentAction)}
             </h1>
         </div>
 

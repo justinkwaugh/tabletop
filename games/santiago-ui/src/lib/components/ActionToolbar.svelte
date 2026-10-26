@@ -2,7 +2,6 @@
     import { MachineState, tilesPerRound } from '@tabletop/santiago'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
-    import { isGameOver } from '$lib/model/turnRules.js'
     import CoinIcon from './CoinIcon.svelte'
     import SproutIcon from './SproutIcon.svelte'
     import DropIcon from './DropIcon.svelte'
@@ -58,7 +57,7 @@
 <div
     class="status-bar font-ui paper-texture shrink-0 px-3 h-[44px] bg-amber-950/40 border-2 border-amber-800 rounded-lg flex items-center gap-2 text-base uppercase tracking-wider"
 >
-    {#if isGameOver(state)}
+    {#if ms === MachineState.EndOfGame}
         <span class="text-sm text-amber-300 uppercase tracking-wider">Game over</span>
     {:else if activePlayerId}
         {@const Icon = phaseIcon(ms)}

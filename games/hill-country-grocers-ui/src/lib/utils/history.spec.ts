@@ -53,19 +53,4 @@ describe('history entries', () => {
         expect(entries[0].kind === 'turn' && entries[0].actions).toHaveLength(3)
         expect(entries[2]).toMatchObject({ playerId: 'p2', space: ActionSpace.DevelopTowns })
     })
-
-    it('closes the open turn with a called game entry of its own', () => {
-        const entries = historyEntries([
-            action(ActionType.ChooseAction, { space: ActionSpace.AuctionShare }),
-            action(ActionType.OpenAuction, { companyId: CompanyId.Verbena, amount: 1 }),
-            {
-                id: 'call',
-                gameId: 'g',
-                source: ActionSource.System,
-                type: 'callGame'
-            }
-        ])
-        expect(entries.map((entry) => entry.kind)).toEqual(['turn', 'call'])
-        expect(entries[0].kind === 'turn' && entries[0].actions).toHaveLength(2)
-    })
 })

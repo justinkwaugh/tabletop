@@ -1,4 +1,4 @@
-import { isCallGameAction, type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import {
     isChooseFirstPlayer,
     isConcede,
@@ -39,14 +39,7 @@ export type TurnEntry = {
     complete: boolean
 }
 
-export type GameCallEntry = {
-    kind: 'gameCall'
-    id: string
-    actionIndex: number
-    action: GameAction
-}
-
-export type HistoryEntry = ArchitectPlacementEntry | FirstPlayerEntry | TurnEntry | GameCallEntry
+export type HistoryEntry = ArchitectPlacementEntry | FirstPlayerEntry | TurnEntry
 
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
@@ -113,9 +106,6 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
             const turn = turnFor(action, index)
             turn.conceded = true
             closeTurn(turn)
-        } else if (isCallGameAction(action)) {
-            openTurn = undefined
-            entries.push({ kind: 'gameCall', id: action.id, actionIndex: index, action })
         }
     })
 
