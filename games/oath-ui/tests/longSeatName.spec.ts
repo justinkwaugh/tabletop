@@ -17,6 +17,9 @@ async function openTable(page: Page, name: TableFixture.TableName) {
 const NAME_64 = 'Ottolinewinterbournecastellanmacgillivrayfennimoreashcombebrooke'
 const NAME_64_SPACED = 'Ottoline Winterbourne Castellan Macgillivray Fennimore Ashworthy'
 const NAME_28 = 'Rosalindwhitcombebarrowfield'
+/** One-word names short enough to stand whole on a phone's seat heading. */
+const NAME_14 = 'Bartholomewson'
+const NAME_19 = 'Maximilianfairbanks'
 
 /** The title word never draws narrower than this: an Exile word is 75 px at full size. */
 const WORD_FLOOR = 72
@@ -144,6 +147,63 @@ for (const viewport of [
             }
             await expect(page.locator('.seat .pill').filter({ hasText: /^Dana$/ })).toHaveCount(1)
         })
+
+        for (const [table, own, other] of [
+            ['longSeatOneWord', NAME_14, NAME_19],
+            ['longSeatOneWordExile', NAME_19, NAME_14]
+        ] as const) {
+            test(`${table}: a one-word name that fits stays whole on one line of its seat heading, inside its row`, async ({
+                page
+            }) => {
+                await openTable(page, table)
+                for (const [name, you] of [
+                    [own, true],
+                    [other, false]
+                ] as const) {
+                    await page
+                        .locator('.seat .pill')
+                        .filter({ has: page.locator('.name', { hasText: name }) })
+                        .click()
+                    const seat = page.getByRole('dialog', { name: `${name}'s seat` })
+                    await expect(seat).toBeVisible()
+                    const heading = seat.getByRole('heading', { level: 2 })
+                    await expect(heading).toHaveText(you ? `${name} · you` : name)
+                    const fit = await heading.evaluate((element, name) => {
+                        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+                        let text: Text | null = null
+                        while (walker.nextNode()) {
+                            const node = walker.currentNode as Text
+                            if (node.data.includes(name)) text = node
+                        }
+                        const range = document.createRange()
+                        const start = text!.data.indexOf(name)
+                        range.setStart(text!, start)
+                        range.setEnd(text!, start + name.length)
+                        const tops = new Set(
+                            [...range.getClientRects()].map((line) => Math.round(line.top))
+                        )
+                        const row = element.parentElement!.getBoundingClientRect()
+                        const box = element.getBoundingClientRect()
+                        return {
+                            nameLines: tops.size,
+                            inRow: box.left >= row.left - 0.5 && box.right <= row.right + 0.5,
+                            clipped: element.scrollWidth > element.clientWidth
+                        }
+                    }, name)
+                    expect(fit, `${name}'s seat heading`).toEqual({
+                        nameLines: 1,
+                        inRow: true,
+                        clipped: false
+                    })
+                    expect(
+                        await seat.evaluate((element) => element.scrollWidth - element.clientWidth)
+                    ).toBe(0)
+                    expect(await pageOverflow(page)).toBe(0)
+                    await seat.getByRole('button', { name: 'Close' }).click()
+                    await expect(seat).toBeHidden()
+                }
+            })
+        }
 
         test('a tap on a cut name opens the seat, whose heading wraps the whole name inside its row', async ({
             page

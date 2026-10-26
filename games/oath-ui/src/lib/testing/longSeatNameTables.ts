@@ -19,6 +19,9 @@ export const NAME_64 = 'Ottolinewinterbournecastellanmacgillivrayfennimoreashcom
 /** A name as long as the platform allows (64), with spaces. */
 export const NAME_64_SPACED = 'Ottoline Winterbourne Castellan Macgillivray Fennimore Ashworthy'
 export const NAME_28 = 'Rosalindwhitcombebarrowfield'
+/** One-word names that fit whole on a phone's seat heading. */
+export const NAME_14 = 'Bartholomewson'
+export const NAME_19 = 'Maximilianfairbanks'
 
 /**
  * Three seats in round 3, every pawn at the Tribunal, in the Act Phase of the seat on screen. The
@@ -30,8 +33,11 @@ export const NAME_28 = 'Rosalindwhitcombebarrowfield'
  * - `typical`: as `letters`, with everyday names: Marguerite the Chancellor on screen, Rhys the Exile.
  * - `citizen`: Marguerite the Chancellor; the 64-letter seat is a Citizen, on screen, and shares 2 deals with
  *   the Chancellor; Dana has none.
+ * - `oneWord`: as `letters`, with one-word names: the 14-letter Chancellor on screen, the 19-letter Exile.
+ * - `oneWordExile`: as `oneWord`, with the 19-letter Exile on screen.
  */
-export type LongSeatNameScene = 'letters' | 'spaces' | 'typical' | 'citizen'
+export type LongSeatNameScene =
+    'letters' | 'spaces' | 'typical' | 'citizen' | 'oneWord' | 'oneWordExile'
 
 function deal(id: string, proposer: string, counterparty: string, round: number): OpenDeal {
     return {
@@ -49,10 +55,21 @@ function deal(id: string, proposer: string, counterparty: string, round: number)
  */
 export function longSeatNameTable(scene: LongSeatNameScene): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
+    const oneWord = scene === 'oneWord' || scene === 'oneWordExile'
     const chancellorId =
-        scene === 'letters' ? NAME_64 : scene === 'spaces' ? NAME_64_SPACED : 'Marguerite'
-    const secondId = scene === 'typical' ? 'Rhys' : scene === 'citizen' ? NAME_64 : NAME_28
-    const onScreen = scene === 'spaces' || scene === 'citizen' ? secondId : chancellorId
+        scene === 'letters'
+            ? NAME_64
+            : scene === 'spaces'
+              ? NAME_64_SPACED
+              : oneWord
+                ? NAME_14
+                : 'Marguerite'
+    const secondId =
+        scene === 'typical' ? 'Rhys' : scene === 'citizen' ? NAME_64 : oneWord ? NAME_19 : NAME_28
+    const onScreen =
+        scene === 'spaces' || scene === 'citizen' || scene === 'oneWordExile'
+            ? secondId
+            : chancellorId
     const citizen = scene === 'citizen'
     const state = testState(
         [

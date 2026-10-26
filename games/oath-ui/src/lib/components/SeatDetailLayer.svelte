@@ -312,7 +312,10 @@
         margin: 0;
         overflow-wrap: anywhere;
     }
+    /* From no width of its own, the status takes the room the name leaves and wraps down to its
+       longest word before the name gives up any: a name that fits is never split. */
     .status {
+        flex: 1 1 0;
         color: #a8a29e;
         font-size: 13px;
     }

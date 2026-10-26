@@ -274,6 +274,8 @@ export type TableName =
     | 'longSeatSpaces'
     | 'longSeatTypical'
     | 'longSeatCitizen'
+    | 'longSeatOneWord'
+    | 'longSeatOneWordExile'
     | 'woodTraveller'
     | 'woodRuler'
     | 'woodRulerToll'
@@ -5615,6 +5617,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     longSeatSpaces: () => longSeatNameTable('spaces'),
     longSeatTypical: () => longSeatNameTable('typical'),
     longSeatCitizen: () => longSeatNameTable('citizen'),
+    longSeatOneWord: () => longSeatNameTable('oneWord'),
+    longSeatOneWordExile: () => longSeatNameTable('oneWordExile'),
     woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),
     woodRuler: woodRulerTable,
     woodRulerToll: woodRulerTollTable,
