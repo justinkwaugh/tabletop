@@ -67,7 +67,7 @@
                 ? [`${formatMoney(raised.amount, raised.currency)} for ${charity.name}`]
                 : []
         })
-        return ['raised by Board Together players', ...perCharity].join(' · ')
+        return ['raised by BoardTogether players', ...perCharity].join(' · ')
     }
 
     function formatMoney(amount: number, currency: string): string {
@@ -84,7 +84,7 @@
     <title>Pay it forward — Board Together</title>
     <meta
         name="description"
-        content="Board Together is free and takes no personal donations. If you've enjoyed playing, help bring games to people who need them through Gamers Outreach or SpecialEffect."
+        content="BoardTogether is free and takes no personal donations. If you've enjoyed playing, help bring games to people who need them through Gamers Outreach or SpecialEffect."
     />
 </svelte:head>
 
@@ -142,7 +142,7 @@
                 </a>
                 <p class="destination">
                     {campaignOpen
-                        ? 'Opens the Board Together campaign on tiltify.com.'
+                        ? 'Opens the BoardTogether campaign on tiltify.com.'
                         : `Opens their donation page on ${charity.donateHost}.`}
                 </p>
             </li>
@@ -163,7 +163,7 @@
 
     <p class="trust">
         <ShieldCheckOutline class="h-4 w-4 shrink-0" />
-        Board Together gets nothing from these links: no referral fee, no cut, no data back to us.
+        BoardTogether gets nothing from these links: no referral fee, no cut, no data back to us.
     </p>
 </main>
 
