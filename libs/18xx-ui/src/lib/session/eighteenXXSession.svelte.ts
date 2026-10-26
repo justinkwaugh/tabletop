@@ -184,13 +184,12 @@ export class EighteenXXSession<
         }
     }
     operatingIncomeHistory() {
-        return operatingHistory(this.history.visibleContext.actions)
+        return operatingHistory(this.actions)
     }
     playerWealthHistory() {
-        const { actions, state } = this.history.visibleContext
-        return wealthHistory(actions, state, {
+        return wealthHistory(this.actions, this.gameState, {
             startingCash: this.rules.startingCash({
-                playerCount: state.players.length,
+                playerCount: this.gameState.players.length,
                 config: this.game.config
             }),
             openingRound: this.presentation.openingRound,
@@ -741,6 +740,9 @@ export class EighteenXXSession<
     get passing() {
         return this.rules.stockRules.round.passing
     }
+    // The published state as stored, for replaying recorded history: a replay copies its state,
+    // and the hydrated state carries functions a copy cannot take.
+    private recordedState: EighteenXXState<Schema> = $derived(this.gameState.dehydrate())
     private readonly historicalMaps: HistoricalMaps<EighteenXXState<Schema>>
     // A new object whenever the visible state changes or starts/stops updating. A preview map is
     // only shown for the visible state it was opened on.
@@ -763,10 +765,9 @@ export class EighteenXXSession<
             this.historicalMapPreview = undefined
             return
         }
-        const context = this.history.visibleContext
         this.historicalMapPreview = {
             visibleState: this.visibleStateKey,
-            map: this.historicalMaps.preview(context.state, context.actions, action)
+            map: this.historicalMaps.preview(this.recordedState, this.actions, action)
         }
     }
     closeHistoricalMap() {

@@ -40,18 +40,19 @@
         if (!jumpDisabled) void session.history.goToActionIndex(index, { exact: true })
     }
     const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
-    const context = $derived(session.history.visibleContext)
-    const gameState = $derived(context.state)
-    const states = $derived(historyStates(context.actions, gameState, session.endingRules))
-    const orderChanges = $derived(historyOperatingOrder(context.actions, states))
+    const actions = $derived(session.actions)
+    // Stored form: the history is replayed from a copy, which the hydrated state's functions prevent.
+    const gameState = $derived(session.gameState.dehydrate())
+    const states = $derived(historyStates(actions, gameState, session.endingRules))
+    const orderChanges = $derived(historyOperatingOrder(actions, states))
     const cash = $derived(historyCash(states))
-    const entryOrders = $derived(entryOrderChanges(context.actions, orderChanges))
+    const entryOrders = $derived(entryOrderChanges(actions, orderChanges))
     const bankBreaks = $derived(historyBankBreaks(states))
-    const companyChanges = $derived(historyCompanyChanges(context.actions))
+    const companyChanges = $derived(historyCompanyChanges(actions))
     const titleNames = $derived({ companyName, place: session.placeName })
     // A system action the title describes is one of its own events, unless it is routine.
     const rounds = $derived(
-        historyRounds(context.actions, gameState, states, orderChanges, cash, {
+        historyRounds(actions, gameState, states, orderChanges, cash, {
             isEvent: (action) => {
                 if (action.source !== ActionSource.System) return false
                 const description = describeAction?.(action, titleNames, () =>
@@ -114,7 +115,7 @@
     phaseColors={session.presentation.phaseColors}
     {newestFirst}
     {setup}
-    historyComplete={context.hasCompleteHistory}
+    historyComplete={session.hasCompleteHistory}
     onOrderChange={(first) =>
         session.preferences.set({ historyOrder: first ? 'newestFirst' : 'newestLast' }, 'family')}
 >

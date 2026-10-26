@@ -59,6 +59,8 @@
     const money = $derived(session.presentation.money)
     const gameState = $derived(session.gameState)
     const actions = $derived(session.actions)
+    // Stored form: callouts replay the step from a copy, which the hydrated state's functions prevent.
+    const recordedState = $derived(session.gameState.dehydrate())
     const company = $derived(
         gameState.companies.find((company) => company.id === nextOperatingCompany(gameState))
     )
@@ -171,10 +173,9 @@
     ) {
         // Only the step's own actions are undone to find where the bank broke, from the plain
         // displayed state; an action without its reversal data has no state before it to compare.
-        const context = session.history.visibleContext
         const states = historyStates(
-            context.actions.slice(context.actions.indexOf(action)),
-            context.state,
+            actions.slice(actions.indexOf(action)),
+            recordedState,
             session.endingRules
         )
         const bankBreak = [...historyBankBreaks(states)].find(([id]) => states.get(id)?.before)?.[1]
