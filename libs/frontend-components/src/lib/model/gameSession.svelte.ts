@@ -650,6 +650,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             output: {
                 publish: (state, transition, actions) =>
                     this.publishState(state, transition, actions),
+                publishActions: (actions) => {
+                    this.actions = actions
+                },
                 setPending: (pending) => this.setPendingPresentation(pending)
             },
             createAnimationContext: () => new AnimationContext(),
@@ -919,7 +922,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (this.disposed || !pending.isCurrent()) return
         if (!this.gameContext.hydrateHistory(pending.context)) {
             void this.checkSync(true)
+            return
         }
+        this.presenter.historyLoaded()
     }
 
     async retrySynchronization(): Promise<void> {

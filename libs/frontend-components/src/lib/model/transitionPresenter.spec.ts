@@ -56,6 +56,7 @@ function fixture() {
     const published: HydratedPrivateHandState[] = []
     const transitions: PresentedTransition[] = []
     const publishedActions: GameAction[][] = []
+    const loadedHistory: GameAction[][] = []
     const pendingLog: boolean[] = []
     const errors: unknown[] = []
     const steps: TransitionStep<HydratedPrivateHandState, AnimationTimeline>[] = []
@@ -68,6 +69,9 @@ function fixture() {
             published.push(state)
             transitions.push(transition)
             publishedActions.push(actions)
+        },
+        publishActions: (actions: GameAction[]) => {
+            loadedHistory.push(actions)
         },
         setPending: (pending: boolean) => {
             pendingLog.push(pending)
@@ -110,6 +114,7 @@ function fixture() {
         published,
         transitions,
         publishedActions,
+        loadedHistory,
         pendingLog,
         errors,
         steps,
@@ -152,6 +157,41 @@ describe('TransitionPresenter', () => {
 
         expect(f.published.at(-1)?.actionCount).toBe(1)
         expect(f.publishedActions.at(-1)?.map((action) => action.id)).toEqual([played.id])
+    })
+
+    // A hosted game opens with only its latest actions; the earlier ones are loaded afterwards
+    function partialHistory(f: ReturnType<typeof fixture>) {
+        f.play('p1', 'r1')
+        f.play('p2', 'r2')
+        const full = [...f.context.actions]
+        f.context.actions = full.slice(1)
+        return full
+    }
+
+    it('adds earlier history to the shown actions without presenting the unchanged state', async () => {
+        const f = fixture()
+        const full = partialHistory(f)
+        await f.start()
+        expect(f.publishedActions.at(-1)?.map((action) => action.id)).toEqual([full[1].id])
+
+        f.context.actions = full
+        f.presenter.historyLoaded()
+
+        expect(f.loadedHistory.at(-1)?.map((action) => action.id)).toEqual(full.map((a) => a.id))
+        expect(f.published).toHaveLength(1)
+    })
+
+    it('adds history loaded during an animation to the state it then shows', async () => {
+        const f = fixture()
+        const full = partialHistory(f)
+        await f.start()
+
+        f.presenter.present({ kind: 'own-action' }, () => f.draw('p1'))
+        f.context.actions = [full[0], ...f.context.actions]
+        f.presenter.historyLoaded()
+        await f.animations.release()
+
+        expect(f.publishedActions.at(-1)?.map((action) => action.index)).toEqual([0, 1, 2])
     })
 
     it('animates the actions between the displayed and the new state in order', async () => {

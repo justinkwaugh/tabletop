@@ -59,6 +59,8 @@ export interface PresentableContext<T extends GameState, U extends HydratedGameS
 export interface DisplayedStateOutput<U> {
     /** `actions` are the ones that led to `state`, read from the same context at the same time. */
     publish(state: U, transition: PresentedTransition, actions: GameAction[]): void
+    /** Earlier history arrived for the state on screen, which itself did not change. */
+    publishActions(actions: GameAction[]): void
     setPending(pending: boolean): void
 }
 
@@ -99,6 +101,20 @@ const DEFAULT_INTENT: Record<TransitionKind, TransitionIntent> = {
 
 const QUIETNESS: Record<TransitionIntent, number> = { silent: 0, state: 1, actions: 2 }
 
+// Loading earlier history only adds actions before a context's loaded window, never replaces
+// any, so actions read before the load are completed from the context's current list.
+function withEarlierHistory<T extends GameState, U extends HydratedGameState<T> & T>(
+    actions: GameAction[],
+    state: GameState,
+    context: PresentableContext<T, U>
+): GameAction[] {
+    const firstIndex = actions[0]?.index ?? state.actionCount
+    const earlier = context.actions.filter(
+        (action) => action.index !== undefined && action.index < firstIndex
+    )
+    return earlier.length === 0 ? actions : [...earlier, ...actions]
+}
+
 export class TransitionPresenter<
     T extends GameState,
     U extends HydratedGameState<T> & T,
@@ -107,6 +123,7 @@ export class TransitionPresenter<
     private readonly listeners = new Set<TransitionListener<U, A>>()
     private displayed?: U
     private displayedContext?: PresentableContext<T, U>
+    private displayedActions: GameAction[] = []
     private incomingState?: U
     private running = false
     private pending?: PendingChange<T, U>
@@ -291,9 +308,25 @@ export class TransitionPresenter<
         actions: GameAction[],
         transition: PresentedTransition
     ) {
-        this.deps.output.publish(state, transition, actions)
+        const shown = withEarlierHistory(actions, state, context)
+        this.deps.output.publish(state, transition, shown)
         this.displayed = state
         this.displayedContext = context
+        this.displayedActions = shown
+    }
+
+    /**
+     * The context on screen gained the history before its loaded window. The state is unchanged,
+     * so nothing is presented: the shown actions gain the earlier ones, and a change still waiting
+     * or animating gains them when it is shown.
+     */
+    historyLoaded(): void {
+        const context = this.deps.source()
+        if (this.displayed === undefined || context !== this.displayedContext) return
+        const shown = withEarlierHistory(this.displayedActions, this.displayed, context)
+        if (shown === this.displayedActions) return
+        this.displayedActions = shown
+        this.deps.output.publishActions(shown)
     }
 
     private actionsBetween(
