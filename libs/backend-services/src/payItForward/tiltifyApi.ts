@@ -1,10 +1,14 @@
+import { CurrencyCode } from '@tabletop/common'
 import { Type } from 'typebox'
 import * as Value from 'typebox/value'
 
 const API_ENDPOINT = 'https://v5api.tiltify.com'
 const TOKEN_REFRESH_MARGIN_MS = 60_000
 
-const TiltifyMoney = Type.Object({ value: Type.String(), currency: Type.String() })
+const TiltifyMoney = Type.Object({
+    value: Type.String({ pattern: '^\\d+(\\.\\d+)?$' }),
+    currency: CurrencyCode
+})
 
 const TokenResponse = Type.Object({
     access_token: Type.String(),
@@ -21,7 +25,7 @@ const TeamCampaignResponse = Type.Object({
 
 export type TiltifyCampaignTotal = {
     amount: number
-    currency: string
+    currency: CurrencyCode
     open: boolean
 }
 

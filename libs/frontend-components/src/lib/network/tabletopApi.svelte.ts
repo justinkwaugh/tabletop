@@ -191,8 +191,12 @@ export class TabletopApi {
         return response.payload
     }
 
-    async getCharityTally(): Promise<CharityTally> {
-        const response = await this.wretch.get('/pay-it-forward/tally').json<unknown>()
+    async getCharityTally(): Promise<CharityTally | undefined> {
+        const response = await this.wretch
+            .get('/pay-it-forward/tally')
+            .notFound(() => undefined)
+            .json<unknown>()
+        if (response === undefined) return undefined
         Value.Assert(Type.Object({ payload: CharityTally }), response)
         return response.payload
     }

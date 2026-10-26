@@ -4,12 +4,20 @@
     import ProjectPrinciples from '$lib/components/project/ProjectPrinciples.svelte'
     import Wordmark from '$lib/components/project/Wordmark.svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { Charity, type CharityRaised, type CharityTally } from '@tabletop/common'
+    import {
+        Charity,
+        type CharityRaised,
+        type CharityTally,
+        type CurrencyCode
+    } from '@tabletop/common'
     import { onMount } from 'svelte'
+    import gamersOutreachLogo from '$lib/components/images/charities/gamers-outreach.png'
+    import specialEffectLogo from '$lib/components/images/charities/specialeffect.png'
 
     type CharityCard = {
         id: Charity
         name: string
+        logo: string
         country: string
         purpose: string
         description: string
@@ -22,10 +30,11 @@
         {
             id: Charity.GamersOutreach,
             name: 'Gamers Outreach',
+            logo: gamersOutreachLogo,
             country: 'US',
             purpose: 'Play for kids in hospitals',
             description:
-                'Builds medical-grade gaming carts and brings them to kids in hospital who can’t leave their rooms. Over 350 hospitals so far.',
+                'Builds medical-grade gaming carts and brings them to kids in hospitals who can’t leave their rooms. Over 350 hospitals so far.',
             campaignUrl:
                 'https://tiltify.com/+boardtogether-community/fundraiser-for-gamers-outreach-foundation',
             donateUrl: 'https://gamersoutreach.org/donate',
@@ -34,6 +43,7 @@
         {
             id: Charity.SpecialEffect,
             name: 'SpecialEffect',
+            logo: specialEffectLogo,
             country: 'UK',
             purpose: 'Play for people with disabilities',
             description:
@@ -70,13 +80,12 @@
         return ['raised by BoardTogether players', ...perCharity].join(' · ')
     }
 
-    function formatMoney(amount: number, currency: string): string {
+    function formatMoney(amount: number, currency: CurrencyCode): string {
         return new Intl.NumberFormat('en', {
             style: 'currency',
             currency,
-            maximumFractionDigits: 0,
-            roundingMode: 'trunc'
-        }).format(amount)
+            maximumFractionDigits: 0
+        }).format(Math.floor(amount))
     }
 </script>
 
@@ -84,7 +93,7 @@
     <title>Pay it forward — Board Together</title>
     <meta
         name="description"
-        content="BoardTogether is free and takes no personal donations. If you've enjoyed playing, help bring games to people who need them through Gamers Outreach or SpecialEffect."
+        content="BoardTogether is free and doesn't want personal donations. If you've enjoyed playing, help bring games to people who need them through Gamers Outreach or SpecialEffect."
     />
 </svelte:head>
 
@@ -103,7 +112,7 @@
 
     <section aria-labelledby="no-donations-heading">
         <h2 id="no-donations-heading" class="statement refusal">
-            We don’t take personal donations.
+            We don’t want personal donations.
         </h2>
         <p class="body">The bills are ours, and nothing you give from this page comes to us.</p>
     </section>
@@ -112,11 +121,11 @@
         <h2 id="pass-it-on-heading" class="statement">Pass it on instead.</h2>
         <p class="body">
             If the games here have been worth something to you, help put games in front of people
-            who need them. Few board game charities work at scale and meet the bar we set, so we
-            picked these two.
+            who need them. Board game charities are few and mostly small, so we’ve looked to our big
+            brother, video games.
             <span class="wide-only"
-                >They bring play to people who can’t easily get to it: kids stuck in hospital rooms,
-                and players who need adapted controls.</span
+                >These two well-established charities bring games to people who can’t easily get to
+                them: kids stuck in hospital rooms, and players who need adapted controls.</span
             >
         </p>
     </section>
@@ -125,9 +134,10 @@
         {#each charities as charity (charity.id)}
             {@const campaignOpen = raisedFor(charity.id)?.campaignOpen ?? true}
             <li class="charity">
-                <h3 class="charity-name">
-                    {charity.name}<span class="country">{charity.country} charity</span>
-                </h3>
+                <div class="charity-heading">
+                    <h3><img class="logo" src={charity.logo} alt={charity.name} /></h3>
+                    <span class="country">{charity.country} charity</span>
+                </div>
                 <p class="purpose">{charity.purpose}</p>
                 <p class="description">{charity.description}</p>
                 <a
@@ -163,7 +173,7 @@
 
     <p class="trust">
         <ShieldCheckOutline class="h-4 w-4 shrink-0" />
-        BoardTogether gets nothing from these links: no referral fee, no cut, no data back to us.
+        BoardTogether receives nothing from these links.
     </p>
 </main>
 
@@ -227,17 +237,19 @@
         border: 1px solid color-mix(in srgb, var(--color-gray-700) 60%, transparent);
         border-radius: 12px;
     }
-    .charity-name {
+    .charity-heading {
         display: flex;
         align-items: center;
-        flex-wrap: wrap;
-        gap: 6px 12px;
-        font-family: 'Source Sans 3', sans-serif;
-        font-size: 26px;
-        font-weight: 600;
-        line-height: 1.2;
-        letter-spacing: -0.015em;
-        color: var(--color-gray-100);
+        justify-content: space-between;
+        gap: 16px;
+        align-self: stretch;
+        min-height: 64px;
+        margin-bottom: 20px;
+    }
+    .logo {
+        display: block;
+        width: 168px;
+        height: auto;
     }
     .country {
         padding: 1px 10px;
@@ -348,9 +360,6 @@
             grid-template-columns: 1fr;
             gap: 16px;
             margin-top: 24px;
-        }
-        .charity-name {
-            font-size: 24px;
         }
         .description {
             margin-top: 12px;

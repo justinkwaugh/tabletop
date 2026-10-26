@@ -1,4 +1,4 @@
-import { Charity, type CharityRaised, type CharityTally } from '@tabletop/common'
+import { Charity, type CharityRaised, type CharityTally, type CurrencyCode } from '@tabletop/common'
 import type { RedisCacheService } from '../cache/cacheService.js'
 import type { CharityTallyStore } from '../persistence/stores/charityTallyStore.js'
 import { CHARITY_TALLY_CACHE_KEY } from './charityTallyService.js'
@@ -15,7 +15,7 @@ export class CharityTallyRefresher {
         private readonly tiltify: Pick<TiltifyApi, 'getTeamCampaignTotal'>,
         private readonly store: Pick<CharityTallyStore, 'saveTally'>,
         private readonly cache: Pick<RedisCacheService, 'set'>,
-        private readonly usdPerUnit: (currency: string) => Promise<number> = fetchUsdPerUnit,
+        private readonly usdPerUnit: (currency: CurrencyCode) => Promise<number> = fetchUsdPerUnit,
         private readonly now: () => Date = () => new Date()
     ) {}
 
@@ -45,7 +45,7 @@ export class CharityTallyRefresher {
         }
     }
 
-    private async fetchUsdRates(charities: CharityRaised[]): Promise<Record<string, number>> {
+    private async fetchUsdRates(charities: CharityRaised[]): Promise<Record<CurrencyCode, number>> {
         const currencies = [...new Set(charities.map(({ currency }) => currency))]
         const rates = await Promise.all(currencies.map((currency) => this.usdPerUnit(currency)))
         return Object.fromEntries(currencies.map((currency, index) => [currency, rates[index]]))

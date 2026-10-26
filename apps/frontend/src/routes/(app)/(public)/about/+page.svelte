@@ -86,7 +86,7 @@
                 <h2 id="pay-it-forward-heading">Pay it forward</h2>
             </div>
             <p>
-                We don’t take personal donations. If playing here has been worth something to you,
+                We don’t want personal donations. If playing here has been worth something to you,
                 help bring games to people who need them.
             </p>
             <a class="community-link" href="/pay-it-forward">

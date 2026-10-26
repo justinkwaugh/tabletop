@@ -1,18 +1,14 @@
 import { CharityTally } from '@tabletop/common'
 import * as Value from 'typebox/value'
-import type { MissedValueProducer } from '../cache/cacheService.js'
+import type { CachingReader } from '../cache/cacheService.js'
 import type { CharityTallyStore } from '../persistence/stores/charityTallyStore.js'
 
 export const CHARITY_TALLY_CACHE_KEY = 'pay-it-forward-tally'
 
-type TallyCache = {
-    cachingGet(key: string, produce: MissedValueProducer): Promise<unknown>
-}
-
 export class CharityTallyService {
     constructor(
         private readonly store: Pick<CharityTallyStore, 'findTally'>,
-        private readonly cache: TallyCache
+        private readonly cache: CachingReader
     ) {}
 
     async getTally(): Promise<CharityTally | undefined> {

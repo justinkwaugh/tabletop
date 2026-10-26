@@ -63,7 +63,7 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('getGameCatalog')
     }
 
-    async getCharityTally(): Promise<CharityTally> {
+    async getCharityTally(): Promise<CharityTally | undefined> {
         return this.fail('getCharityTally')
     }
 

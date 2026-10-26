@@ -82,6 +82,29 @@ describe('TiltifyApi', () => {
         expect(tokenRequests()).toBe(2)
     })
 
+    it('rejects an amount that is not a decimal number', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi
+                .fn<typeof globalThis.fetch>()
+                .mockResolvedValueOnce(tokenResponse())
+                .mockResolvedValueOnce(
+                    new Response(
+                        JSON.stringify({
+                            data: {
+                                status: 'published',
+                                total_amount_raised: { value: 'NaN', currency: 'USD' },
+                                retired_at: null
+                            }
+                        })
+                    )
+                )
+        )
+        await expect(
+            new TiltifyApi('id', 'secret').getTeamCampaignTotal('campaign-1')
+        ).rejects.toThrow()
+    })
+
     it('fails when Tiltify answers with an error', async () => {
         vi.stubGlobal(
             'fetch',

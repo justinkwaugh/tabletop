@@ -3,7 +3,7 @@
 </script>
 
 <footer class="pay-it-forward-footer">
-    <span>Free to play, always. Board Together takes no personal donations.</span>
+    <span>Free to play, always.</span>
     <a href="/pay-it-forward">Pay it forward <ArrowRightOutline class="h-3.5 w-3.5" /></a>
 </footer>
 
