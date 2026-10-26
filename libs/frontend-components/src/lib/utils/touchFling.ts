@@ -21,9 +21,7 @@ export function fingerVelocity(previous: number, delta: number, elapsedMs: numbe
 
 type FlingStop = { stopOn: Node | Window; stop: () => void }
 
-/** Running flings that a touch or wheel on their `stopOn` stops. */
 const stoppableFlings = new Set<FlingStop>()
-let listeningForStops = false
 
 function stopFlingsUnder(event: Event) {
     const target = event.target
@@ -31,18 +29,12 @@ function stopFlingsUnder(event: Event) {
         if (!(stopOn instanceof Node) || (target instanceof Node && stopOn.contains(target))) stop()
 }
 
-/**
- * The listeners stay on the window for good: WebKit restyles the whole page whenever a touch or
- * wheel listener is added or removed, which froze a phone for 50ms as each fling began and ended.
- */
-function listenForFlingStops() {
-    if (listeningForStops || typeof window === 'undefined') return
-    listeningForStops = true
+// Added once, as the page loads: WebKit restyles the whole page whenever a touch or wheel listener
+// is added or removed, which froze a phone for 50ms as each fling began and ended.
+if (typeof window !== 'undefined') {
     window.addEventListener('touchstart', stopFlingsUnder, { capture: true, passive: true })
     window.addEventListener('wheel', stopFlingsUnder, { capture: true, passive: true })
 }
-
-listenForFlingStops()
 
 function isFlinging(velocity: Point) {
     return Math.abs(velocity.x) >= MIN_VELOCITY || Math.abs(velocity.y) >= MIN_VELOCITY
@@ -62,15 +54,14 @@ export function fling(
     let current = velocity
     let frame: number | undefined
     let lastTimestamp: number | undefined
-    const stop = () => {
+    const stoppable: FlingStop | undefined = stopOn ? { stopOn, stop } : undefined
+    function stop() {
         if (frame !== undefined) cancelAnimationFrame(frame)
         frame = undefined
         if (stoppable) stoppableFlings.delete(stoppable)
     }
-    const stoppable: FlingStop | undefined = stopOn ? { stopOn, stop } : undefined
     const step = (timestamp: number) => {
         frame = undefined
-        // The first frame moves a frame's worth too, or the content halts for a frame as the finger lifts.
         const elapsed =
             lastTimestamp === undefined ? FRAME_MS : Math.max(1, timestamp - lastTimestamp)
         lastTimestamp = timestamp
@@ -84,10 +75,7 @@ export function fling(
         frame = requestAnimationFrame(step)
     }
     if (stillMs <= STILL_BEFORE_LIFT_MS && isFlinging(velocity)) {
-        if (stoppable) {
-            listenForFlingStops()
-            stoppableFlings.add(stoppable)
-        }
+        if (stoppable) stoppableFlings.add(stoppable)
         frame = requestAnimationFrame(step)
     }
     return {

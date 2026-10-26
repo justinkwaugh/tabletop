@@ -35,19 +35,12 @@ function scrollsAlong(element: HTMLElement, axis: ScrollAxis) {
     )
 }
 
-function hasRoomFor(position: number, range: number, fingerDelta: number) {
-    return fingerDelta > 0 ? position > EDGE_SLACK : position < range - EDGE_SLACK
-}
-
 function canScrollWithFinger(element: HTMLElement, axis: ScrollAxis, fingerDelta: number) {
     const scrollAxis = SCROLL_AXES[axis]
-    return hasRoomFor(element[scrollAxis.position], scrollAxis.range(element), fingerDelta)
-}
-
-function windowCanScrollWithFinger(axis: ScrollAxis, fingerDelta: number) {
-    const scrollAxis = SCROLL_AXES[axis]
-    const page = document.scrollingElement ?? document.documentElement
-    return hasRoomFor(scrollAxis.windowPosition(), scrollAxis.range(page), fingerDelta)
+    const position = element[scrollAxis.position]
+    return fingerDelta > 0
+        ? position > EDGE_SLACK
+        : position < scrollAxis.range(element) - EDGE_SLACK
 }
 
 function scrollWithFinger(element: HTMLElement, axis: ScrollAxis, fingerDelta: number) {
@@ -57,10 +50,15 @@ function scrollWithFinger(element: HTMLElement, axis: ScrollAxis, fingerDelta: n
     return start - element[position]
 }
 
+/** iOS lets a script push the page past its edges, where it bounces. */
 function scrollWindowWithFinger(axis: ScrollAxis, fingerDelta: number) {
     const scrollAxis = SCROLL_AXES[axis]
     const start = scrollAxis.windowPosition()
-    window.scrollBy(scrollAxis.windowScroll(-fingerDelta))
+    const page = document.scrollingElement ?? document.documentElement
+    const room = Math.max(0, fingerDelta > 0 ? start : scrollAxis.range(page) - start)
+    const delta = Math.sign(fingerDelta) * Math.min(Math.abs(fingerDelta), room)
+    if (Math.abs(delta) <= EPSILON) return 0
+    window.scrollBy(scrollAxis.windowScroll(-delta))
     return start - scrollAxis.windowPosition()
 }
 
@@ -69,29 +67,24 @@ function* scrollersAround(element: HTMLElement, axis: ScrollAxis) {
         if (scrollsAlong(ancestor, axis)) yield ancestor
 }
 
-/**
- * A touch carries on into the next scroller out, and finally the window, as each reaches its edge.
- * WebKit rounds scroll positions to whole pixels, so a scroller short of its edge keeps the
- * shortfall. iOS lets a script push the page past its edges, where it bounces, so the window
- * takes only what it has room for.
- */
+/** WebKit rounds scroll positions to whole pixels, so falling short by less than one is not an edge. */
+function stoppedAtEdge(unscrolled: number, fingerDelta: number) {
+    return Math.sign(unscrolled) === Math.sign(fingerDelta) && Math.abs(unscrolled) >= 1
+}
+
+/** A touch carries on into the next scroller out, and finally the window, as each reaches its edge. */
 export function scrollAncestorsWithFinger(
     element: HTMLElement,
     axis: ScrollAxis,
     fingerDelta: number
 ) {
     if (Math.abs(fingerDelta) <= EPSILON) return 0
-    let remaining = fingerDelta
-    const hasRemainder = () =>
-        Math.sign(remaining) === Math.sign(fingerDelta) && Math.abs(remaining) > EPSILON
+    let unscrolled = fingerDelta
     for (const ancestor of scrollersAround(element, axis)) {
-        remaining -= scrollWithFinger(ancestor, axis, remaining)
-        if (!hasRemainder() || canScrollWithFinger(ancestor, axis, fingerDelta))
-            return fingerDelta - remaining
+        unscrolled -= scrollWithFinger(ancestor, axis, unscrolled)
+        if (!stoppedAtEdge(unscrolled, fingerDelta)) return fingerDelta - unscrolled
     }
-    if (hasRemainder() && windowCanScrollWithFinger(axis, fingerDelta))
-        remaining -= scrollWindowWithFinger(axis, remaining)
-    return fingerDelta - remaining
+    return fingerDelta - unscrolled + scrollWindowWithFinger(axis, unscrolled)
 }
 
 /** A wheel pan stops at the nearest scroller's edge; with none, it scrolls the window. */

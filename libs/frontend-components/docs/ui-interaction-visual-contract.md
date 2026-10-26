@@ -230,7 +230,9 @@ Verification (automated in `tests/scalingWrapper.spec.ts`):
 
 Touch movement the wrapper does not consume goes, on each axis, to the ancestors that scroll
 along that axis, nearest first, each taking what it can before its edge, then the window
-(`scrollAncestorsWithFinger`). Wheel and trackpad movement it does not consume goes only to the
+(`scrollAncestorsWithFinger`). A scroller that falls short by less than a pixel has not reached
+its edge, since WebKit rounds scroll positions to whole pixels, and the window takes only what it
+has room for, since iOS lets a script push the page past its edges. Wheel and trackpad movement it does not consume goes only to the
 nearest ancestor that scrolls along that axis, or the window when there is none
 (`scrollNearestAncestorWithFinger`). A phone layout's vertical body therefore cannot swallow a sideways drag meant for the table, and
 a body that stops overscroll should do so only vertically (`overscroll-behavior-y`), so native
