@@ -1,9 +1,16 @@
 <script lang="ts">
+    import { MediaQuery } from 'svelte/reactivity'
     import { addAxial, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import { isSpace, SPACES, spaceName } from '@tabletop/dvonn'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import { coordsKey, GRAPH_VIEW, VIEW } from '$lib/board/geometry.js'
+    import {
+        coordsKey,
+        GRAPH_VIEW,
+        UNLABELLED_GRAPH_VIEW,
+        UNLABELLED_VIEW,
+        VIEW
+    } from '$lib/board/geometry.js'
     import { PIECE_MODEL, stackDiscs, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
     import { markRing, outlinePath } from '$lib/board/pieceShape.js'
     import sand from '$lib/images/sand.webp'
@@ -13,7 +20,13 @@
 
     const session = getGameSession()
 
-    const layout = $derived(session.graphBoard ? GRAPH_VIEW : VIEW)
+    // On a phone the board grows into the labels' room while they are hidden.
+    const phone = new MediaQuery('width < 40rem')
+    const layout = $derived.by(() => {
+        const labelled = session.showCoordinates || !phone.current
+        if (session.graphBoard) return labelled ? GRAPH_VIEW : UNLABELLED_GRAPH_VIEW
+        return labelled ? VIEW : UNLABELLED_VIEW
+    })
     const radius = VIEW.radius
 
     // The graph board: lines along the three directions through every space, running a short

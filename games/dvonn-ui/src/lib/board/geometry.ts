@@ -45,6 +45,7 @@ export function flatCenter(coords: AxialCoordinates): Point {
 // Where everything on the board is drawn, in board units. The board is seen from the near side
 // of the table: depth shrinks to `tilt` of its length, and heights show at `rise` of theirs.
 // The board's edge lies `edge` past the outer spaces; the labels and the frame keep clear of it.
+// An unlabelled view's frame leaves no room for the labels.
 export class BoardView {
     readonly radius = PIECE_RADIUS
     readonly rise: number
@@ -56,7 +57,8 @@ export class BoardView {
 
     constructor(
         readonly tilt: number,
-        private readonly edge: number
+        private readonly edge: number,
+        labelled = true
     ) {
         this.rise = Math.sqrt(1 - tilt ** 2)
         this.flatCorners = CORNER_SPACES.map(flatCenter)
@@ -80,7 +82,7 @@ export class BoardView {
         ])
         const topRow = Math.min(...SPACES.map((coords) => this.center(coords).y))
         const tallest = { x: 0, y: topRow + stackBounds(PIECE_MODEL.cap, this.radius).top }
-        const extent = [...board, ...labelCorners, tallest]
+        const extent = [...board, ...(labelled ? labelCorners : []), tallest]
         const left = Math.min(...extent.map((point) => point.x)) - FRAME_MARGIN
         const right = Math.max(...extent.map((point) => point.x)) + FRAME_MARGIN
         const top = Math.min(...extent.map((point) => point.y)) - FRAME_MARGIN
@@ -141,6 +143,8 @@ export class BoardView {
 // an outer space; the graph board ends where those stacks do.
 export const VIEW = new BoardView(TILT, SAND_MARGIN)
 export const GRAPH_VIEW = new BoardView(TILT, PIECE_RADIUS)
+export const UNLABELLED_VIEW = new BoardView(TILT, SAND_MARGIN, false)
+export const UNLABELLED_GRAPH_VIEW = new BoardView(TILT, PIECE_RADIUS, false)
 
 // How far from a point on the board, along a direction on the board's plane, an edge `margin` out
 // is: where the point's distance from the corner spaces' hull reaches the margin.
