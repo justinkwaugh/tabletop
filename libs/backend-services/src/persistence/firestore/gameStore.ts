@@ -859,6 +859,11 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         }
     }
 
+    // Every Game in play: a Game nobody has moved in has no lastActionAt to query a range on.
+    async findStartedGames(): Promise<Game[]> {
+        return this.readGames(this.games.where('status', '==', GameStatus.Started), 'started')
+    }
+
     async findFinishedGames(afterGameId: string | undefined, limit: number): Promise<Game[]> {
         let query = this.games
             .where('status', '==', GameStatus.Finished)

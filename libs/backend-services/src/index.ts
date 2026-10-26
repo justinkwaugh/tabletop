@@ -61,6 +61,7 @@ export { LeagueTask, LeagueReminderTask, LeagueEmailTask } from './competitions/
 
 export { TournamentTask, TournamentResultsEmailTask } from './competitions/tournamentTasks.js'
 export { GameAutoStartTask } from './games/gameAutoStart.js'
+export { StalledGames, StalledGameTask } from './games/stalledGames.js'
 export { TurnReminderTask } from './games/turnReminders.js'
 export { FinalScoresBackfillTask } from './games/finalScoresBackfill.js'
 

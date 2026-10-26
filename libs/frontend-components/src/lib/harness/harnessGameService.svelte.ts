@@ -13,6 +13,8 @@ import {
     GameCategory,
     assertExists,
     createCallGameAction,
+    createStalledGameAction,
+    type CallGameAction,
     isTwoPlayerGame,
     requiredCallApprovals,
     type ScenarioData
@@ -192,6 +194,18 @@ export class HarnessGameService implements GameService {
             },
             players
         })
+        return this.endedCopy({ game, state, actions }, action)
+    }
+
+    async stalledCopy(gameId: string): Promise<ScenarioData> {
+        const scenario = await this.scenarioOf(gameId)
+        return this.endedCopy(scenario, createStalledGameAction({ gameId: scenario.game.id }))
+    }
+
+    private async endedCopy(
+        { game, state, actions }: ScenarioData,
+        action: CallGameAction
+    ): Promise<ScenarioData> {
         const definition = this.libraryService.getTitle(game.typeId)
         assertExists(definition, `Game definition not found for typeId ${game.typeId}`)
         const engine = new GameEngine(await definition.runtime())

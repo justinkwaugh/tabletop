@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { nanoid } from 'nanoid'
 import { type CallBallot, GameCall, GameCallKind } from '../model/gameCall.js'
+import { STALLED_GAME_END_DAYS } from '../model/gameStall.js'
 import { GameResult, validateGameResult } from '../model/gameResult.js'
 import type { Game } from '../model/game.js'
 import type { GameState } from '../model/gameState.js'
@@ -55,23 +56,40 @@ export function createCallGameAction({
     players: readonly unknown[]
 }): CallGameAction {
     const { initiatorPlayerId, declaredWinnerId, approvingPlayerIds, decliningPlayerIds } = ballot
+    return callGameAction(gameId, index, {
+        kind: isTwoPlayerGame(players) ? GameCallKind.Conceded : GameCallKind.Called,
+        initiatorPlayerId,
+        ...(declaredWinnerId === undefined ? {} : { declaredWinnerId }),
+        approvingPlayerIds,
+        decliningPlayerIds
+    })
+}
+
+export function createStalledGameAction({
+    gameId,
+    index
+}: {
+    gameId: string
+    index?: number
+}): CallGameAction {
+    return callGameAction(gameId, index, { kind: GameCallKind.Stalled })
+}
+
+function callGameAction(gameId: string, index: number | undefined, call: GameCall): CallGameAction {
     return {
         id: nanoid(),
         gameId,
         type: CALL_GAME_ACTION_TYPE,
         source: ActionSource.System,
         ...(index === undefined ? {} : { index }),
-        call: {
-            kind: isTwoPlayerGame(players) ? GameCallKind.Conceded : GameCallKind.Called,
-            initiatorPlayerId,
-            ...(declaredWinnerId === undefined ? {} : { declaredWinnerId }),
-            approvingPlayerIds,
-            decliningPlayerIds
-        }
+        call
     }
 }
 
 export function gameCallDescription(call: GameCall, nameOf: (playerId: string) => string): string {
+    if (call.kind === GameCallKind.Stalled) {
+        return `The game ended with no move in ${STALLED_GAME_END_DAYS} days`
+    }
     const winnerId = call.declaredWinnerId
     const outcome = winnerId === undefined ? ' with no winner' : `; ${nameOf(winnerId)} wins`
     return call.kind === GameCallKind.Conceded
@@ -79,8 +97,12 @@ export function gameCallDescription(call: GameCall, nameOf: (playerId: string) =
         : `The game was called${outcome}`
 }
 
-export function callGameResult(call: Pick<GameCall, 'declaredWinnerId'>): GameResult {
-    return call.declaredWinnerId === undefined ? GameResult.Abandoned : GameResult.Win
+export function callGameResult(call: GameCall): GameResult {
+    return calledWinnerId(call) === undefined ? GameResult.Abandoned : GameResult.Win
+}
+
+function calledWinnerId(call: GameCall): string | undefined {
+    return call.kind === GameCallKind.Stalled ? undefined : call.declaredWinnerId
 }
 
 export function applyCallGame<T extends GameState>(state: T, action: GameAction): T {
@@ -89,8 +111,8 @@ export function applyCallGame<T extends GameState>(state: T, action: GameAction)
     }
     const called = structuredClone(state)
     called.result = callGameResult(action.call)
-    called.winningPlayerIds =
-        action.call.declaredWinnerId === undefined ? [] : [action.call.declaredWinnerId]
+    const winnerId = calledWinnerId(action.call)
+    called.winningPlayerIds = winnerId === undefined ? [] : [winnerId]
     called.activePlayerIds = []
     validateGameResult(called)
     return called

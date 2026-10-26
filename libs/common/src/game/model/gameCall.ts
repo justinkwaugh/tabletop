@@ -2,7 +2,8 @@ import * as Type from 'typebox'
 
 export enum GameCallKind {
     Called = 'called',
-    Conceded = 'conceded'
+    Conceded = 'conceded',
+    Stalled = 'stalled'
 }
 
 // Who asked to end the game, for which winner, and who agreed or declined: shared by the open
@@ -15,7 +16,25 @@ export const CallBallot = Type.Object({
     decliningPlayerIds: Type.Array(Type.String())
 })
 
-export type GameCall = Type.Static<typeof GameCall>
-export const GameCall = Type.Evaluate(
-    Type.Intersect([CallBallot, Type.Object({ kind: Type.Enum(GameCallKind) })])
+export type PlayerCall = Type.Static<typeof PlayerCall>
+export const PlayerCall = Type.Evaluate(
+    Type.Intersect([
+        CallBallot,
+        Type.Object({
+            kind: Type.Union([
+                Type.Literal(GameCallKind.Called),
+                Type.Literal(GameCallKind.Conceded)
+            ])
+        })
+    ])
 )
+
+export type StalledCall = Type.Static<typeof StalledCall>
+export const StalledCall = Type.Object({ kind: Type.Literal(GameCallKind.Stalled) })
+
+export type GameCall = Type.Static<typeof GameCall>
+export const GameCall = Type.Union([PlayerCall, StalledCall])
+
+export function isPlayerCall(call: GameCall): call is PlayerCall {
+    return call.kind !== GameCallKind.Stalled
+}

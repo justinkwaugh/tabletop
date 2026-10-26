@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { GameCallKind } from '@tabletop/common'
+    import { GameCallKind, isPlayerCall, STALLED_GAME_END_DAYS } from '@tabletop/common'
     import { getGameSession } from '$lib/model/gameSessionContext.js'
     import { nameListSeparator, winVerb } from '$lib/utils/gameCallText.js'
     import PlayerName from './PlayerName.svelte'
@@ -8,9 +8,12 @@
 
     const gameSession = getGameSession()
     const call = $derived(gameSession.gameCall)
-    const winnerId = $derived(call?.declaredWinnerId)
+    const playerCall = $derived(call && isPlayerCall(call) ? call : undefined)
+    const winnerId = $derived(playerCall?.declaredWinnerId)
     const otherApprovers = $derived(
-        call?.approvingPlayerIds.filter((playerId) => playerId !== call.initiatorPlayerId) ?? []
+        playerCall?.approvingPlayerIds.filter(
+            (playerId) => playerId !== playerCall.initiatorPlayerId
+        ) ?? []
     )
 </script>
 
@@ -21,10 +24,15 @@
         )}{/each}
 {/snippet}
 
-{#if call}
+{#if call?.kind === GameCallKind.Stalled}
     <div class="flex flex-col items-center gap-1 text-center {className}">
-        {#if call.kind === GameCallKind.Conceded}
-            <p>{@render names([call.initiatorPlayerId])} conceded.</p>
+        <p>The game ended with no winner.</p>
+        <p class="text-sm opacity-80">Nobody moved for {STALLED_GAME_END_DAYS} days.</p>
+    </div>
+{:else if playerCall}
+    <div class="flex flex-col items-center gap-1 text-center {className}">
+        {#if playerCall.kind === GameCallKind.Conceded}
+            <p>{@render names([playerCall.initiatorPlayerId])} conceded.</p>
         {:else if winnerId === undefined}
             <p>The game was called with no winner.</p>
         {:else}
@@ -36,10 +44,11 @@
                 {winVerb(winnerId, gameSession.myPlayer?.id)}.
             </p>
         {/if}
-        {#if call.kind === GameCallKind.Called}
+        {#if playerCall.kind === GameCallKind.Called}
             <p class="text-sm opacity-80">
-                Asked by {@render names([call.initiatorPlayerId])}{#if otherApprovers.length > 0},
-                    agreed by {@render names(otherApprovers)}{/if}.
+                Asked by {@render names([
+                    playerCall.initiatorPlayerId
+                ])}{#if otherApprovers.length > 0}, agreed by {@render names(otherApprovers)}{/if}.
             </p>
         {/if}
     </div>

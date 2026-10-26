@@ -19,6 +19,10 @@ import {
     isSameSimultaneousGroup,
     type CallVote,
     createCallGameAction,
+    createStalledGameAction,
+    type CallGameAction,
+    gameStallLevel,
+    GameStallLevel,
     isTwoPlayerGame,
     PlayerVote,
     PlayerVoteKind,
@@ -1346,6 +1350,29 @@ export class GameService {
             })
         )
 
+        await this.publishActionResultsToPlayers({
+            definition,
+            updatedGame,
+            actionResult,
+            storedActions,
+            priorState
+        })
+        return representation
+    }
+
+    private async publishActionResultsToPlayers({
+        definition,
+        updatedGame,
+        actionResult,
+        storedActions,
+        priorState
+    }: {
+        definition: GameDefinition
+        updatedGame: Game
+        actionResult: ActionCascadeResult
+        storedActions: GameAction[]
+        priorState: GameState
+    }): Promise<void> {
         await measure('projection.publish.action', () =>
             publishActionResults({
                 game: updatedGame,
@@ -1361,8 +1388,7 @@ export class GameService {
                 }
             })
         )
-        await this.notifyGamePlayers(GameNotificationAction.Update, { game: representation.game })
-        return representation
+        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
     }
 
     private async reconcileRace({
@@ -1867,51 +1893,105 @@ export class GameService {
             ballot: vote,
             players: game.players
         })
+        const ended = await this.appendCall({
+            definition,
+            game,
+            state,
+            action,
+            validate: (existingGame) => {
+                if (existingGame.status !== GameStatus.Started) {
+                    throw gameOver
+                }
+                if (!isTwoPlayerGame(existingGame.players) && existingGame.vote?.id !== vote.id) {
+                    throw new DisallowedPlayerVoteError({ gameId, reason: 'the vote is closed' })
+                }
+                return UpdateValidationResult.Proceed
+            }
+        })
+        const representation = await this.announceActionResults({ definition, user, ...ended })
+        await this.sendGameEndEmail(representation.game)
+        return representation.game
+    }
+
+    /**
+     * Ends a Stalled Game as abandoned. Returns false, changing nothing, when its title cannot
+     * offer calls yet or the Game has moved or ended since it was found stalled.
+     */
+    @Retryable({
+        maxAttempts: 3,
+        value: [GameUpdateCollisionError]
+    })
+    async endStalledGame({
+        gameId,
+        supportsCalls,
+        now = new Date()
+    }: {
+        gameId: string
+        supportsCalls: (titleId: string) => Promise<boolean>
+        now?: Date
+    }): Promise<boolean> {
+        const game = await this.getGame({ gameId, withState: true })
+        const state = game?.state
+        const due = (candidate: Game) => gameStallLevel(candidate, now) === GameStallLevel.Due
+        if (!game || !state || state.result !== undefined || !due(game)) return false
+        if (!(await supportsCalls(game.typeId))) return false
+
+        const definition = this.getRequiredTitle(game)
+        const ended = await this.appendCall({
+            definition,
+            game,
+            state,
+            action: createStalledGameAction({ gameId, index: state.actionCount }),
+            validate: (existingGame, existingState) =>
+                due(existingGame) && existingState.result === undefined
+                    ? UpdateValidationResult.Proceed
+                    : UpdateValidationResult.Cancel
+        })
+        if (ended.storedActions.length === 0) return false
+
+        await this.publishActionResultsToPlayers({ definition, ...ended })
+        await this.sendGameEndEmail(ended.updatedGame)
+        return true
+    }
+
+    // Appends a callGame Action at the state it was built on, recording its call on the Game.
+    private async appendCall({
+        definition,
+        game,
+        state,
+        action,
+        validate
+    }: {
+        definition: GameDefinition
+        game: Game
+        state: GameState
+        action: CallGameAction
+        validate: (existingGame: Game, existingState: GameState) => UpdateValidationResult
+    }) {
         const actionResult = measureSync('engine.execute', () =>
             new GameEngine(definition.runtime).executeCanonicalAction({ action, state, game })
         )
-        const { storedActions, updatedGame, relatedActions, priorState } =
-            await this.gameStore.addActionsToGame({
-                game,
-                actions: actionResult.processedActions,
-                state: actionResult.updatedState,
-                validator: async (existingGame, existingState, newState, _actions, gameUpdates) => {
-                    if (existingGame.status !== GameStatus.Started) {
-                        throw gameOver
-                    }
-                    if (
-                        !isTwoPlayerGame(existingGame.players) &&
-                        existingGame.vote?.id !== vote.id
-                    ) {
-                        throw new DisallowedPlayerVoteError({
-                            gameId,
-                            reason: 'the vote is closed'
-                        })
-                    }
-                    if (
-                        existingState.actionCount !== state.actionCount ||
-                        existingState.actionChecksum !== state.actionChecksum
-                    ) {
-                        throw new GameUpdateCollisionError({ id: gameId })
-                    }
-                    gameUpdates.activePlayerIds = newState.activePlayerIds
-                    gameUpdates.vote = undefined
-                    gameUpdates.call = action.call
-                    return UpdateValidationResult.Proceed
+        const stored = await this.gameStore.addActionsToGame({
+            game,
+            actions: actionResult.processedActions,
+            state: actionResult.updatedState,
+            validator: async (existingGame, existingState, newState, _actions, gameUpdates) => {
+                if (validate(existingGame, existingState) === UpdateValidationResult.Cancel) {
+                    return UpdateValidationResult.Cancel
                 }
-            })
-
-        const representation = await this.announceActionResults({
-            definition,
-            user,
-            updatedGame,
-            actionResult,
-            storedActions,
-            relatedActions,
-            priorState
+                if (
+                    existingState.actionCount !== state.actionCount ||
+                    existingState.actionChecksum !== state.actionChecksum
+                ) {
+                    throw new GameUpdateCollisionError({ id: game.id })
+                }
+                gameUpdates.activePlayerIds = newState.activePlayerIds
+                gameUpdates.vote = undefined
+                gameUpdates.call = action.call
+                return UpdateValidationResult.Proceed
+            }
         })
-        await this.sendGameEndEmail(representation.game)
-        return representation.game
+        return { actionResult, ...stored }
     }
 
     private async closeVote(game: Game, voteId: string): Promise<Game> {

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { GameCallKind, type GameCall } from '../model/gameCall.js'
+import { GameCallKind, type GameCall, type PlayerCall } from '../model/gameCall.js'
 import { GameResult } from '../model/gameResult.js'
 import {
     CALL_GAME_ACTION_TYPE,
     createCallGameAction,
+    createStalledGameAction,
     gameCallDescription,
     gameCallOf,
     type CallGameAction
@@ -22,12 +23,14 @@ import { GameEngine } from './gameEngine.js'
 import type { MachineContext } from './machineContext.js'
 import { PlayerVoteKind, type CallVote, type UndoVote } from '../model/playerVote.js'
 
-function withoutWinner(action: CallGameAction): CallGameAction {
+type PlayerCallAction = CallGameAction & { call: PlayerCall }
+
+function withoutWinner(action: PlayerCallAction): PlayerCallAction {
     delete action.call.declaredWinnerId
     return action
 }
 
-function callGame(gameId: string, call: Partial<GameCall> = {}): CallGameAction {
+function callGame(gameId: string, call: Partial<PlayerCall> = {}): PlayerCallAction {
     return {
         id: 'call',
         gameId,
@@ -71,6 +74,19 @@ describe('callGame', () => {
         })
         expect(updatedState.result).toBe(GameResult.Abandoned)
         expect(updatedState.winningPlayerIds).toEqual([])
+    })
+
+    it('abandons a stalled game with no winner', () => {
+        const { engine, game, state } = createNoteGame()
+        const { processedActions, updatedState } = engine.executeCanonicalAction({
+            action: createStalledGameAction({ gameId: game.id, index: state.actionCount }),
+            state,
+            game
+        })
+        expect(updatedState.result).toBe(GameResult.Abandoned)
+        expect(updatedState.winningPlayerIds).toEqual([])
+        expect(updatedState.activePlayerIds).toEqual([])
+        expect(gameCallOf(processedActions[0])).toEqual({ kind: GameCallKind.Stalled })
     })
 
     it('refuses a winner who is not a player and Actions from a player', () => {
@@ -136,7 +152,7 @@ describe('the result invariant', () => {
 
 describe('gameCallDescription', () => {
     const nameOf = (playerId: string) => playerId.toUpperCase()
-    const call = (overrides: Partial<GameCall>, winner = true): GameCall => {
+    const call = (overrides: Partial<PlayerCall>, winner = true): GameCall => {
         const built = callGame('g', overrides)
         const action = gameCallOf(winner ? built : withoutWinner(built))
         if (!action) throw Error('Expected a call')
@@ -155,6 +171,12 @@ describe('gameCallDescription', () => {
         )
         expect(gameCallDescription(call({}, false), nameOf)).toBe(
             'The game was called with no winner'
+        )
+    })
+
+    it('describes a game the host ended as stalled', () => {
+        expect(gameCallDescription({ kind: GameCallKind.Stalled }, nameOf)).toBe(
+            'The game ended with no move in 30 days'
         )
     })
 })

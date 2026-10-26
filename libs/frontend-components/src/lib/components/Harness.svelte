@@ -201,6 +201,14 @@
         )
     }
 
+    async function endAsStalled() {
+        const session = gameSession
+        assertExists(session, 'Ending as stalled is offered with a game open')
+        await attemptScenario('The game could not be ended as stalled', async () =>
+            openScenario(await gameService.stalledCopy(session.primaryGame.id))
+        )
+    }
+
     async function openScenario(scenario: ScenarioData) {
         const game = await gameService.loadScenario(scenario)
         await loadGame(game.id)
@@ -347,6 +355,9 @@
                                         </div></DropdownItem
                                     >
                                 {/if}
+                                <DropdownItem class="w-full px-2" onclick={endAsStalled}
+                                    ><div class="ms-2">Copy ended as stalled</div></DropdownItem
+                                >
                             {/if}
                         {/if}
                         <DropdownItem class="w-full px-2" onclick={chooseScenarioFile}

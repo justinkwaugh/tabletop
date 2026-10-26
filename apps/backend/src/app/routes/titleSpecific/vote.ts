@@ -2,6 +2,7 @@ import type { TitleResolver } from '../../lib/titleDefinition.js'
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { GameClientCapability } from '@tabletop/common'
+import { publishedUiSupports } from '../../lib/publishedUi.js'
 
 type UndoVoteTarget = Static<typeof UndoVoteTarget>
 const UndoVoteTarget = Type.Object(
@@ -85,15 +86,11 @@ export default async function (title: TitleResolver, fastify: FastifyInstance) {
             if (!request.user) {
                 throw Error('No user found for calling a game')
             }
-            const publication = fastify.libraryService.getGeneration(
-                definition.info.id
-            )?.publication
-            const publishedUiSupportsCalls =
-                publication !== undefined &&
-                (await fastify.catalogService.supportsCapability(
-                    publication,
-                    GameClientCapability.CalledGames
-                ))
+            const publishedUiSupportsCalls = await publishedUiSupports(
+                fastify,
+                definition.info.id,
+                GameClientCapability.CalledGames
+            )
             const game = await fastify.gameService.requestCall({
                 user: request.user,
                 definition,
