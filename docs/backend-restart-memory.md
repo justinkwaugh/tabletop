@@ -84,9 +84,12 @@ work, and a frontend rollback goes through `rollback --frontend`. The deploy too
 `X-Tabletop-Version` as the served frontend version.
 
 Game versions follow the same rule through the served manifest, which since ADR 0011 is the
-manifest whose titles the worker has activated: it trails the bucket manifest only while an
-activation is in progress, and a UI-only release reaches clients as soon as the worker has
-taken the new publication record.
+latest manifest with the titles the worker has activated: its games trail the bucket manifest
+only while an activation is in progress, and a UI-only release reaches clients as soon as the
+worker has taken the new publication record. The rest of it, the frontend version included,
+follows the bucket manifest without waiting for an activation, since a frontend-only release
+starts none; before that, a running worker kept the frontend version it started with, and pages
+on the new build took the older header for a rollback and reloaded in a loop.
 `/api/v1/manifest`, `/api/v1/catalog`, `X-TABLETOP-GAME-UI-VERSION`,
 `X-Tabletop-Version` and the game names and thumbnails in Discord notifications
 all come from the served manifest, so clients never load a UI whose logic the backend

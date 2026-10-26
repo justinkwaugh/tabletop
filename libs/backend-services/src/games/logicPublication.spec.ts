@@ -77,6 +77,33 @@ describe('Collectible title generations', () => {
         expect((await library.getServedManifest()).games[0].logicVersion).toBe('1.1.0')
     })
 
+    it('serves a new frontend version at once, while the titles trail an activation', async () => {
+        const f = await fixture()
+        const gate = Promise.withResolvers<void>()
+        const library = new LibraryService(RedisCacheService.prototype, {
+            ...f.options,
+            prepare: async (generation) => {
+                if (generation.publication.logicVersion === '1.1.0') await gate.promise
+            }
+        })
+        await library.getTitlesMap()
+        const frontendOnly = f.manifest('1.0.0')
+        frontendOnly.frontend.version = '2.0.0'
+        await f.publish(frontendOnly)
+        await library.refreshManifest()
+        expect((await library.getServedManifest()).frontend.version).toBe('2.0.0')
+        const both = f.manifest('1.1.0')
+        both.frontend.version = '3.0.0'
+        await f.publish(both)
+        await library.refreshManifest()
+        const served = await library.getServedManifest()
+        expect(served.frontend.version).toBe('3.0.0')
+        expect(served.games[0].logicVersion).toBe('1.0.0')
+        gate.resolve()
+        await library.activation()
+        expect((await library.getServedManifest()).games[0].logicVersion).toBe('1.1.0')
+    })
+
     it('leaves the serving generation intact when preparation fails, and retries after a pause', async () => {
         const f = await fixture()
         let attempts = 0

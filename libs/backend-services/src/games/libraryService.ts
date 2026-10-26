@@ -177,13 +177,17 @@ export class LibraryService {
         return this.refreshManifest()
     }
 
-    // The manifest whose titles this instance runs; it trails the bucket manifest only while an
-    // activation is in progress.
+    // The latest manifest with the titles this instance runs: its games trail the bucket manifest
+    // while an activation is in progress, and the rest, such as the frontend version, does not
+    // wait for one.
     async getServedManifest(): Promise<SiteManifest> {
         if (!this.loadedManifest) {
             throw new Error('Game titles have not been loaded; there is no served manifest')
         }
-        return this.loadedManifest
+        return {
+            ...(this.manifestSnapshot ?? this.loadedManifest),
+            games: this.loadedManifest.games
+        }
     }
 
     createScope(): TitleScope {
