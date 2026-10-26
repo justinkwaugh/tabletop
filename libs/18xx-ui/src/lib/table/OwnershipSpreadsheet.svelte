@@ -647,7 +647,7 @@
     <span class="company-trains">
         {#each trainsOwnedBy(session.gameState, { kind: 'company', companyId }) as train (train.id)}
             <TrainBadge
-                name={session.trainShortLabel(train.definitionId)}
+                name={session.trainDepot.trainDefinition(train.definitionId).name}
                 color={trainColors[train.definitionId]}
                 obsolete={isObsoleteTrain(train)}
             />
