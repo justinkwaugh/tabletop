@@ -223,7 +223,7 @@ export function sellerLimitState<State extends StockState>(state: State, owner: 
         owner.playerId !== record.sellerPlayerId
     )
         return state
-    const stockMarket = copyStockState(state).stockMarket
+    const stockMarket = structuredClone(state.stockMarket)
     fallHeldSales(stockMarket, record.sales)
     return stateWith(state, { stockMarket })
 }

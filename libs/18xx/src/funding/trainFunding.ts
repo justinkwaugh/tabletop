@@ -1,5 +1,6 @@
 import { settleCashPayments } from '../finance/cashPayments.js'
-import { copyStockState } from '../stock/stockState.js'
+import { stockStateCopies } from '../stock/stockState.js'
+import { stateWith } from '../game/stateWith.js'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {
@@ -135,14 +136,13 @@ export class EmergencyTrainFunding {
                 : !this.trains.requiresTrain(this.state, companyId)
         )
             return []
-        const projected = {
-            ...this.state,
+        const projected = stateWith(this.state, {
             cash: this.state.cash.map((cash) =>
                 sameOwner(cash.owner, { kind: 'company', companyId })
                     ? { ...cash, amount: 'unlimited' as const }
                     : cash
             )
-        }
+        })
         const purchase = new TrainPurchase(projected, this.trains)
         const offers = [
             ...purchase
@@ -168,16 +168,15 @@ export class EmergencyTrainFunding {
         return fundable.filter((offer) => offer.price > treasury)
     }
     preview(purchase: TrainPurchaseDetails) {
-        const state: FundingState = {
-            ...this.state,
-            ...copyStockState(this.state),
+        const state: FundingState = stateWith(this.state, {
+            ...stockStateCopies(this.state),
             operatingSet: this.state.operatingSet
                 ? structuredClone(this.state.operatingSet)
                 : undefined,
             trainFunding: this.state.trainFunding
                 ? structuredClone(this.state.trainFunding)
                 : this.begin(purchase)
-        }
+        })
         const funding = new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains)
         const contributions: { owner: Owner; amount: number }[] = []
         let treasuryProceeds = 0
@@ -323,7 +322,7 @@ export class EmergencyTrainFunding {
                 )
                     continue
                 if (required) {
-                    const projected = { ...this.state, ...copyStockState(this.state) }
+                    const projected = stateWith(this.state, stockStateCopies(this.state))
                     applyShareSale(projected, result.details)
                     if (this.rules.requiredSaleShares(projected, owner, company.id)) continue
                 }

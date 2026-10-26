@@ -12,8 +12,9 @@ export type StockState = StockCompanyState &
         bankruptPlayerIds?: string[]
     }
 
-export function copyStockState(state: StockState): StockState {
-    return stateWith(state, {
+/** Copies of the members a stock trade changes, for a what-if copy of a fuller state. */
+export function stockStateCopies(state: StockState) {
+    return {
         ...copyFinances(state),
         stockMarket: {
             stacks: state.stockMarket.stacks.map((stack) => ({
@@ -21,5 +22,9 @@ export function copyStockState(state: StockState): StockState {
                 companyIds: [...stack.companyIds]
             }))
         }
-    })
+    }
+}
+
+export function copyStockState(state: StockState): StockState {
+    return stateWith(state, stockStateCopies(state))
 }

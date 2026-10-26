@@ -183,11 +183,12 @@ describe('1846 first stock round', () => {
     })
     it('offers the acting player the same stock actions in their own view as in the full game', () => {
         const table = stockGame()
-        assertExists(Runtime.visibility)
+        const visibility = Runtime.visibility
+        assertExists(visibility)
         const expectSameActions = () => {
             const playerId = table.state.activePlayerIds[0]
             const perspective = { kind: 'player', playerId } as const
-            const view = Runtime.visibility!.state.project(table.state, perspective)
+            const view = visibility.state.project(table.state, perspective)
             const full = table.engine.getValidActionTypesForPlayer(
                 table.game,
                 table.state,
