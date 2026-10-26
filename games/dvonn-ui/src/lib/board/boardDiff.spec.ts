@@ -55,6 +55,7 @@ describe('boardDiff', () => {
         for (const name of ['B1', 'A2']) {
             const known = { from: spaceFromName(name), to: spaceFromName('A1') }
             expect(boardDiff(from, to, known).moved?.from).toEqual(known.from)
+            expect(boardDiff(from, to, known).vanished).toHaveLength(1)
             expect(boardDiff(to, from, known).moved).toMatchObject({ to: known.from, leftBelow: 1 })
             expect(boardDiff(to, from, known).appeared).toHaveLength(1)
         }
