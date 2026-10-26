@@ -4,6 +4,7 @@ import { ActionSource, GameAction, HydratableAction, assert, assertExists } from
 import {
     BetweenCompaniesState,
     CashPayment,
+    CertificateLimitChange,
     CompanyClosure,
     closeShareCompany,
     endOperatingTurn,
@@ -23,6 +24,8 @@ import type {
     HydratedEighteenThirtyTwoState
 } from './state.js'
 import { isClosingSpace, EighteenThirtyTwoMarket } from './stockMarket.js'
+import { RevenueToken } from './titleState.js'
+import { measuringCertificateLimit } from './stockRules.js'
 
 /**
  * The next company whose price has entered the black area (§5.1.1). A sale a president may
@@ -46,6 +49,9 @@ const Fields = Type.Object({
             {
                 ...CompanyClosure.properties,
                 forfeit: Type.Optional(CashPayment),
+                returnedCoalRights: Type.Optional(Type.Literal(true)),
+                removedRevenueTokens: Type.Optional(Type.Array(RevenueToken)),
+                certificateLimit: Type.Optional(CertificateLimitChange),
                 endedTurn: Type.Boolean(),
                 roundEnd: Type.Optional(RoundEnd)
             },
@@ -67,8 +73,10 @@ export function isCloseCompany(action: GameAction): action is CloseCompany {
 
 /**
  * A closed company leaves play: its tokens, certificates and money go, its trains go to the open
- * market, and its rights and private tokens with them. Closing while funding its train, its
- * president's money is lost too; closing on its own turn ends that turn (§5.1.1, §10.6.2).
+ * market, its WVCF token goes back to the supply and its Port, Cotton or Key West token leaves
+ * the map. Fewer companies can lower every player's certificate limit (§5.1.1). Closing while
+ * funding its train, its president's money is lost too; closing on its own turn ends that turn
+ * (§5.1.1, §10.6.2).
  */
 export class HydratedCloseCompany
     extends HydratableAction<typeof CloseCompany>
@@ -92,8 +100,14 @@ export class HydratedCloseCompany
         const ownTurn =
             (isOperatingStep(state.machineState) || state.machineState === 'FundingTrain') &&
             nextOperatingCompany(state) === this.companyId
-        const closure = closeShareCompany(state, this.companyId, 'market')
+        const { result: closure, certificateLimit } = measuringCertificateLimit(state, () =>
+            closeShareCompany(state, this.companyId, 'market')
+        )
+        const returnedCoalRights = state.coalRights.includes(this.companyId)
         state.coalRights = state.coalRights.filter((companyId) => companyId !== this.companyId)
+        const removedRevenueTokens = state.revenueTokens.filter(
+            (token) => token.companyId === this.companyId
+        )
         state.revenueTokens = state.revenueTokens.filter(
             (token) => token.companyId !== this.companyId
         )
@@ -116,6 +130,11 @@ export class HydratedCloseCompany
         this.metadata = {
             ...closure,
             ...(forfeit ? { forfeit } : {}),
+            ...(returnedCoalRights ? { returnedCoalRights: true as const } : {}),
+            ...(removedRevenueTokens.length
+                ? { removedRevenueTokens: structuredClone(removedRevenueTokens) }
+                : {}),
+            ...(certificateLimit ? { certificateLimit } : {}),
             endedTurn: ownTurn,
             ...(ended ? { roundEnd: ended } : {})
         }

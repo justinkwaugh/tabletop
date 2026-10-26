@@ -37,3 +37,25 @@ test('catalog generation preserves resolved metadata without loading runtime or 
         await rm(directory, { recursive: true, force: true })
     }
 })
+
+test('catalog generation carries the client capabilities the UI declares', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'catalog-build-'))
+    try {
+        await writeFile(path.join(directory, 'package.json'), '{"type":"module"}')
+        await writeFile(
+            path.join(directory, 'index.js'),
+            `export const UiDefinition = {
+                info: { id: 'example', metadata: { name: 'Example' }, thumbnailUrl: '/cover.jpg',
+                    clientCapabilities: ['calledGames'] }
+            }`
+        )
+        await writeGameCatalog(directory)
+        assert.deepEqual(
+            JSON.parse(await readFile(path.join(directory, 'catalog.json'), 'utf8'))
+                .clientCapabilities,
+            ['calledGames']
+        )
+    } finally {
+        await rm(directory, { recursive: true, force: true })
+    }
+})

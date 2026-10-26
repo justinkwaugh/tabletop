@@ -11,9 +11,7 @@
     const companyId = $derived(auction.selectedCompanyId)
     const home = $derived(auction.selectedHome)
     const amount = $derived(auction.openingAmount)
-    const homeName = $derived(
-        home ? (session.mapView.map.location(home.locationId).name ?? home.locationId) : undefined
-    )
+    const homeName = $derived(home ? session.placeName(home.locationId) : undefined)
     const allowed = (value: number) => auction.canOpen && !auction.openingReason(value)
 </script>
 

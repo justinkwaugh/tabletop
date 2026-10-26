@@ -22,7 +22,8 @@
         type MapDrawing,
         type MapSelection,
         type MapToken,
-        type MapRoute
+        type MapRoute,
+        CaptionFontSize
     } from './mapDrawing.js'
 
     let {
@@ -364,7 +365,7 @@
                             {@const labelWidth = widths.cost}
                             <g
                                 data-map-terrain
-                                transform={`translate(${-(iconWidth + labelWidth) / 2} ${entry.terrainY})`}
+                                transform={`translate(${entry.terrainPosition.x - (iconWidth + labelWidth) / 2} ${entry.terrainPosition.y})`}
                             >
                                 {#each terrain.kinds as kind, index (kind)}
                                     <g transform={`translate(${index * 19} 0)`} stroke="none">
@@ -381,8 +382,13 @@
                                                 stroke-linecap="round"
                                             ></path>
                                         {:else if kind === 'lake'}
-                                            <ellipse cx="9" cy="0" rx="8" ry="4.5" fill="#287fab"
-                                            ></ellipse>
+                                            <path
+                                                d="M5.5 -3.2 H13.5 M1.5 0 H17.5 M5.5 3.2 H13.5"
+                                                fill="none"
+                                                stroke="#287fab"
+                                                stroke-width="1.8"
+                                                stroke-linecap="round"
+                                            ></path>
                                         {:else}
                                             <text x="8" y="4" font-size="11" font-weight="700"
                                                 >{kind}</text
@@ -481,6 +487,16 @@
                                         fill={appearance.paper}>{annotation.label}</text
                                     >
                                 </g>
+                            {:else if annotation.kind === 'caption'}
+                                <text
+                                    data-map-revenue-caption={annotation.markerId}
+                                    x={annotation.x}
+                                    y={annotation.y}
+                                    dominant-baseline="central"
+                                    font-size={CaptionFontSize}
+                                    font-weight="700"
+                                    ><title>{annotation.label}</title>{annotation.caption}</text
+                                >
                             {:else if annotation.kind === 'token'}
                                 <image
                                     data-map-placed-token={annotation.markerId}

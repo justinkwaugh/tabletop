@@ -195,6 +195,22 @@ describe('tile drawing geometry', () => {
         }
     })
 
+    it('keeps a four-slot city an upright square filled from the top left at every rotation', () => {
+        const face = createCityTileFace('brown', [0, 1, 2, 3, 4, 5], 60, 4, ['A'])
+        for (const orientation of [HexOrientation.Flat, HexOrientation.Pointy]) {
+            for (const rotation of rotations) {
+                const { center, slots } = createTileDrawing(face, orientation, rotation).nodes[0]
+                const [topLeft, topRight, bottomRight, bottomLeft] = slots
+                expect(topLeft.x).toBeLessThan(center.x)
+                expect(topLeft.y).toBeLessThan(center.y)
+                expect(topRight.y).toBeCloseTo(topLeft.y)
+                expect(bottomRight.x).toBeCloseTo(topRight.x)
+                expect(bottomLeft.y).toBeCloseTo(bottomRight.y)
+                expect(bottomLeft.x).toBeCloseTo(topLeft.x)
+            }
+        }
+    })
+
     it('stretches a fixed revenue badge into a pill only for three digits or more', () => {
         expect(revenueBadgeHalfWidth(90, 8.1, 10)).toBe(8.1)
         const hundred = revenueBadgeHalfWidth(100, 8.1, 10)

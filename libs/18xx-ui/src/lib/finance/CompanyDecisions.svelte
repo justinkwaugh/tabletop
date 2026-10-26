@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
+    import { getCompany, isCompanyPurchaseOffer, placeReference } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import { privateMarkerLabel } from '../maps/mapDrawing.js'
     import CompanyBuying from './CompanyBuying.svelte'
@@ -9,6 +9,7 @@
     import { placedTileLayout } from '../tiles/standardTileLayouts.js'
     import PrivateTrainBuying from '../trains/PrivateTrainBuying.svelte'
     import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
+    import PlaceText from '../places/PlaceText.svelte'
     let {
         session,
         trainColors,
@@ -54,7 +55,11 @@
     >
         <CompanyToken appearance={session.mapView.stations[request.companyId]} size={24} />
         <strong>{session.companyName(request.companyId)}</strong>
-        <span>requests permission to lay track at {request.locationId}</span>
+        <span
+            ><PlaceText
+                text={`requests permission to lay track at ${placeReference(request.locationId)}`}
+            /></span
+        >
         {#if definition}
             <Tile
                 face={definition.face}

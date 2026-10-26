@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import type { RevenueCenter } from '../routes/route.js'
 import { actsFor } from '../finance/receivership.js'
 import * as Type from 'typebox'
@@ -181,11 +182,10 @@ export class StationPlacement {
         return free.length > reserved ? free : []
     }
     homePlacements(): StationPlacementDetails[] {
-        const planned = {
-            ...this.state,
+        const planned = stateWith(this.state, {
             stations: [...this.state.stations],
             stationReservations: [...this.state.stationReservations]
-        }
+        })
         const placements: StationPlacementDetails[] = []
         for (const home of this.rules.pendingHomes(this.state)) {
             const station = planned.stations.find((station) => station.id === home.stationId)

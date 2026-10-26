@@ -3,6 +3,7 @@
     import { cashText, optionalMoney } from '../presentation/money.js'
     import { marketSpaceColor, marketZone } from '../stock/marketColors.js'
     import { assertExists } from '@tabletop/common'
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import { cashOwnedBy, getCompany, sharesOwned, sameOwner, type Owner } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
@@ -154,6 +155,7 @@
                 class="choices"
                 class:buy-choices={menu === 'buy'}
                 class:exchange-list={menu === 'exchange'}
+                {@attach chainSidewaysScroll}
             >
                 {#if menu === 'buy'}
                     {#each purchaseCompanies as company (company.id)}

@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import { companyShareCount, type CompanyCharters } from './companyCharters.js'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
@@ -52,7 +53,7 @@ export function flotationAfterPurchase(
     purchase: SharePurchaseDetails,
     rules: CompanyRules
 ): CompanyFlotationDetails | undefined {
-    const projected: FormationState = { ...state, ...copyFinances(state) }
+    const projected: FormationState = stateWith(state, copyFinances(state))
     const certificate = projected.certificates.find((item) => item.id === purchase.certificateId)
     assert(certificate, 'Missing purchased certificate')
     certificate.owner = purchase.buyer

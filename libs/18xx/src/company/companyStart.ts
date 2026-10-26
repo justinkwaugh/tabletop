@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import * as Type from 'typebox'
 import { copyFinances, getCompany, type President } from '../finance/finance.js'
 import { SharePurchaseDetails, evaluateShareAcquisition } from '../stock/sharePurchase.js'
@@ -50,11 +51,10 @@ export function evaluateCompanyStart(
         return { reason: 'A company cannot be started after this turn’s purchase.' }
     const terms = rules.startTerms(state, company.id, request.buyer, space.id)
     if (typeof terms === 'string') return { reason: terms }
-    const projected: FormationState = {
-        ...state,
+    const projected: FormationState = stateWith(state, {
         ...copyFinances(state),
         stockMarket: structuredClone(state.stockMarket)
-    }
+    })
     startCompanyAtPar(projected, stockRules.market, company.id, space.id, request.buyer)
     const result = evaluateShareAcquisition(
         projected,

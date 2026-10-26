@@ -1,5 +1,11 @@
 import { assert, assertExists } from '@tabletop/common'
-import { RailwayMapState, TrackNetwork, type EighteenXXState, type TileFace } from '@tabletop/18xx'
+import {
+    RailwayMapState,
+    TrackNetwork,
+    type EighteenXXState,
+    type StationState,
+    type TileFace
+} from '@tabletop/18xx'
 import { createMapDrawing, isMapSelectionValid, type MapSelection } from '../maps/mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from '../maps/stationPresentation.js'
 import type { ModuleSession } from './moduleSession.js'
@@ -96,27 +102,32 @@ export class MapModule {
     scene = $derived.by(() => this.draw(this.tileInventory))
     tokens = $derived.by(() => stationMapTokens(this.displayState(), this.view().stations))
     tileCounts = $derived.by(() => this.view().tileSet.counts(this.session.state.tileInventory))
-    displayedScene = $derived.by(() => {
-        const preview = this.track.displayedPreview
-        return preview && !this.track.tileInFlight
-            ? this.draw(this.track.construction.inventoryAfter(preview))
-            : this.scene
-    })
+    private landedLay = $derived.by(() =>
+        this.track.tileInFlight ? undefined : this.track.displayedPreview
+    )
+    private landedLayStations = $derived.by(() =>
+        this.track.tileInFlight ? undefined : this.track.displayedStations
+    )
+    private previewTileInventory = $derived.by(() =>
+        this.landedLay ? this.track.construction.inventoryAfter(this.landedLay) : undefined
+    )
+    displayedTileInventory = $derived.by(() => this.previewTileInventory ?? this.tileInventory)
+    displayedStationState = $derived.by(
+        (): StationState => this.landedLayStations ?? this.stations.displayState
+    )
+    displayedScene = $derived.by(() =>
+        this.previewTileInventory ? this.draw(this.previewTileInventory) : this.scene
+    )
     displayedTokens = $derived.by(() => {
-        const preview = this.track.displayedStations
-        if (preview && !this.track.tileInFlight)
-            return stationMapTokens(preview, this.view().stations)
+        if (this.landedLayStations)
+            return stationMapTokens(this.landedLayStations, this.view().stations)
         return this.stations.preview
             ? stationMapTokens(this.stations.displayState, this.view().stations)
             : this.tokens
     })
-    // Reservations move with a previewed lay's tile, so they wait for it to land like tokens.
-    displayedReservations = $derived.by(() => {
-        const preview = this.track.displayedStations
-        return this.stations.openReservations(
-            preview && !this.track.tileInFlight ? preview : this.stations.displayState
-        )
-    })
+    displayedReservations = $derived.by(() =>
+        this.stations.openReservations(this.displayedStationState)
+    )
     style = $derived.by((): MapStyle =>
         this.session.playerId
             ? (this.styles[this.session.playerId] ?? DefaultMapStyle)

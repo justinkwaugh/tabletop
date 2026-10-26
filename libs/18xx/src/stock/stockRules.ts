@@ -1,3 +1,4 @@
+import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import {
     certificatesInPool,
@@ -18,6 +19,13 @@ import type { StockRoundRules } from './stockRoundRules.js'
 import type { ShareSaleDetails, ShareSaleSettlement } from './shareSale.js'
 import type { StockState } from './stockState.js'
 import type { MultipleBuyRules } from './turnPurchases.js'
+
+/** A change to every player's certificate limit, such as a company closing lowers it to. */
+export const CertificateLimitChange = Type.Object(
+    { from: Type.Integer({ minimum: 0 }), to: Type.Integer({ minimum: 0 }) },
+    { additionalProperties: false }
+)
+export type CertificateLimitChange = Type.Static<typeof CertificateLimitChange>
 
 export type ShareSaleTerms = {
     payer: Owner

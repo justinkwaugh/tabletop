@@ -116,11 +116,27 @@ An approved Undo that reverses the affected Processed Actions, reapplies eligibl
 A Game Owner has no elevated Undo authority. An administrator may bypass Player ownership and information-revelation restrictions, but still targets a User Action.
 
 **Player Vote**:
-A request by a Joined Player of a Hosted Game that every Player decide a lifecycle question together. It is recorded on the Game Instance, not in Game State. At most one is open at a time, and it stays open until it passes, fails, or the Player who asked withdraws it. Hotseat and Tournament Games have none.
+A request by a Joined Player of a Hosted Game that the Players decide a lifecycle question together. It is recorded on the Game Instance, not in Game State. At most one is open at a time, and it stays open until it passes, fails, or the Player who asked withdraws it. Hotseat and Tournament Games have none, and neither does a Called Game.
 
 **Undo Vote**:
 A Player Vote for an Authorized Undo that the asking Player's own Undo cannot reach, because it would cross an Action that revealed information or another Player's Action. It passes when every Player with an account agrees and fails when any Player declines. Play continues while it is open; Actions taken meanwhile are undone with the rest. It lifts the same restrictions an administrator may bypass.
 _Avoid_: Undo request vote, rollback vote
+
+**Call Request**:
+A Player Vote to end an In Progress Game before its rules end it, naming one winner or no winner. It passes when a strict majority of Players with an account agree and fails once that majority is out of reach. Play continues while it is open.
+_Avoid_: Forfeit vote, end-game vote
+
+**Concede**:
+A Player's ending of a two-Player Game in the other Player's favour. It is a Call Request that passes on the conceding Player's own agreement.
+_Avoid_: Resign, forfeit, surrender
+
+**Called Game**:
+A Finished Game ended by a Call Request or a Concede rather than by its rules. Its result is a Win for the declared winner, or Abandoned when none was named, and it carries no final scores. Players cannot undo it; an administrator can.
+_Avoid_: Forfeited game, aborted game
+
+**Stalled Game**:
+An In Progress Hosted Game that nobody has moved in for a week, counted from its start when nobody has moved at all. The dashboard shows it as at risk after a week and with its end date after two. After thirty days the host ends it as an Abandoned Called Game. Hotseat and Tournament Games never stall.
+_Avoid_: Inactive game, expired game, timed-out game
 
 **Fork**:
 A new Game Instance derived from a selected position in another Game Instance’s Canonical Action History. It has its own identity, Owner, history, and lifecycle while retaining the source Game Title and Game Configuration. A Fork of a Tournament Game does not inherit its Tournament participation.

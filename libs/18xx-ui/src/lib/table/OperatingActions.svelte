@@ -1,11 +1,11 @@
 <script lang="ts">
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import GameEnding from '../ending/GameEnding.svelte'
     import TrackBuilding from '../maps/TrackBuilding.svelte'
     import StationBuilding from '../maps/StationBuilding.svelte'
     import HomeStationChoice from '../maps/HomeStationChoice.svelte'
     import PrivateStationChoice from '../maps/PrivateStationChoice.svelte'
     import AutomaticRoutes from '../routes/AutomaticRoutes.svelte'
+    import ProjectedRun from '../routes/ProjectedRun.svelte'
     import EarningsDistribution from '../earnings/EarningsDistribution.svelte'
     import StockRoundActions from './StockRoundActions.svelte'
     import TrainBuying from '../trains/TrainBuying.svelte'
@@ -54,11 +54,11 @@
                 {session}
                 showUndo={false}
                 mapControls
-            />
+            /><ProjectedRun {session} {onFocusRoute} />
         {:else if gameState.machineState === 'PlacingStation'}<StationBuilding
                 {session}
                 showUndo={false}
-            />
+            /><ProjectedRun {session} {onFocusRoute} />
         {:else if gameState.machineState === 'RunningTrains'}<AutomaticRoutes
                 {session}
                 {createRouteWorker}
@@ -78,8 +78,7 @@
     {/if}
 {/snippet}
 
-{#if gameState.result}<GameEnding {session} />
-{:else if gameState.machineState === 'StockRound'}
+{#if gameState.machineState === 'StockRound'}
     {@render actionControls()}
 {:else}
     <section class="centered-panel" aria-label="Operating actions">

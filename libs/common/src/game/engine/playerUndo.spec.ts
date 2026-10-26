@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource } from './gameAction.js'
+import { CALL_GAME_ACTION_TYPE } from './callGame.js'
 import {
     latestPlayerUndoTarget,
     playerUndoReach,
@@ -8,6 +9,7 @@ import {
 } from './playerUndo.js'
 
 type TestAction = {
+    type?: string
     playerId?: string
     source?: ActionSource
     revealsInfo?: boolean
@@ -18,12 +20,14 @@ type TestAction = {
 function history(...actions: TestAction[]) {
     return actions.map((action, index) => ({
         index,
+        type: action.type ?? 'move',
         source: action.source ?? ActionSource.User,
         ...action
     }))
 }
 
 const system = { source: ActionSource.System }
+const call = { ...system, type: CALL_GAME_ACTION_TYPE }
 
 describe('playerUndoReach', () => {
     it('reaches the earliest of the player’s own actions', () => {
@@ -82,6 +86,13 @@ describe('playerUndoRestriction', () => {
         const actions = history({ playerId: 'a' }, { playerId: 'b' })
         expect(playerUndoRestriction(actions, actions[0], 'a')).toBe(
             PlayerUndoRestriction.OtherPlayersActions
+        )
+    })
+
+    it('names a call that ended the game', () => {
+        const actions = history({ playerId: 'a' }, call)
+        expect(playerUndoRestriction(actions, actions[0], 'a')).toBe(
+            PlayerUndoRestriction.CalledGame
         )
     })
 })

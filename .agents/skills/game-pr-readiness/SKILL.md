@@ -152,7 +152,7 @@ Every title's UI package carries its own dev harness, even when a shared playgro
 
 Player Identity is the player ID ([player relationships](../../../docs/DESIGN.md#player-relationships)): changing player colors leaves attribution, rules, scoring, action availability, replay, and undo unchanged. Color may be a rule fact, such as the color of a player's pieces, when relationships are stored against player IDs. Record this item explicitly, reporting each rule where color stands in for a player ID.
 
-Assign untrusted-code violations to gate 1, thumbnail violations to gate 3, forbidden-construct violations to gate 4, animation violations to gates 5 or 6, changed-path violations to gate 7, UI entry weight violations to gate 9, metadata and stored-game compatibility violations to gate 10, tournament setup violations to gate 11, hidden-information violations to gate 12, and State shape violations, including a State field that refers to a Player by anything but its ID, to gate 14. Report their architectural impact in those gates without duplicating them in gate 8. This gate is complete only when every applicable design verification item is recorded as passing, failing, or not applicable with a concrete reason.
+Assign untrusted-code violations to gate 1, thumbnail violations to gate 3, forbidden-construct violations to gate 4, animation violations to gates 5 or 6, changed-path violations to gate 7, UI entry weight violations to gate 9, metadata and stored-game compatibility violations to gate 10, tournament setup violations to gate 11, hidden-information violations to gate 12, State shape violations, including a State field that refers to a Player by anything but its ID, to gate 14, and UI that shows anything but the Displayed Game State to gate 15. Report their architectural impact in those gates without duplicating them in gate 8. This gate is complete only when every applicable design verification item is recorded as passing, failing, or not applicable with a concrete reason.
 
 ### 9. Metadata-only UI entry
 
@@ -228,6 +228,20 @@ For a new title, the scope is the whole canonical State: start from the schema b
 
 `state_shape.object_schemas` maps every TypeBox object schema in the logic package and its logic family libraries. `state_shape.constant_tables` lists the title's constant tables made mostly of literal values, and its JSON files: a starting point for rule data, not a complete list. Trace what initialization and each Action write into State, and open `state_shape.unparsed_files` manually.
 
+### 15. Displayed Game State (whole-title)
+
+The authority is the [transition presentation](../../../docs/game-session-refactor.md#completed-transition-presentation) design and item 32 of the [coding policy](../../../docs/agent-coding-policy.md): the session publishes `gameState` and the `actions` that led to it together, after the change's animation, and `currentAction` and `currentActionIndex` follow that pair. Every state and Action the title shows comes from that pair, never from a Game Context, which already holds the change while it animates. The Game record (`game`, `primaryGame`) is not presented and may be read.
+
+Trace every `production_hits.game_context_read` hit, and every `family_library_hits.game_context_read` hit for the shared libraries, to what it feeds; read the files they lead to for routes the search misses, such as a context passed to a helper. Fail each of these:
+
+- `history.visibleContext` feeding anything shown, inside History View or out; its state, `actions`, and `hasCompleteHistory` come from `gameState`, `actions`, and the session's `hasCompleteHistory`. A read that only compares it with `gameState`, such as checking whether a history step has settled, passes;
+- `history.currentAction` or `history.actionIndex` feeding anything shown; they move with the step, and `currentAction` and `currentActionIndex` replace them;
+- a Game Context from `explorationContext`, `explorations.getCurrentExploration()`, `history.createExplorationSource()`, `history.capturePosition()`, or one the title builds or clones, feeding anything shown;
+- `incomingGameState`, which only a session subclass reaches, outside the state-change listeners, the animators they drive, and `beforeNewState`, which prepare the transition to it;
+- a listener's incoming state or Actions kept for display after its transition, in place of the published pair.
+
+A `GameContext` type reference passes on its own; judge the value it types. A family library's violation counts against every title that ships it, with the fix in the library.
+
 ## Report
 
 Return a self-contained Markdown report with:
@@ -236,7 +250,7 @@ Return a self-contained Markdown report with:
 2. a gate summary, one row per gate, with `PASS`, `FAIL`, or `NOT RUN` and violation count;
 3. every violation, grouped by gate, with a stable ID such as `IMG-001`, `CAST-002`, `HIDDEN-001`, or `THREAT-001`;
 4. for each violation: file and line or asset path, observed evidence, violated rule, user-visible or deployment impact, and a concrete remediation;
-5. verification details for passing gates, including the searches/files examined, image/title dimensions, the UI entry's static graph files and bytes, the CSS scan's scoped-rule count, the exempt harness cast, the declared catalog visibility, the hidden-information decision, the State fields gate 14 recorded, and the reason for every passing `untrusted_code` hit;
+5. verification details for passing gates, including the searches/files examined, image/title dimensions, the UI entry's static graph files and bytes, the CSS scan's scoped-rule count, the exempt harness cast, the declared catalog visibility, the hidden-information decision, the State fields gate 14 recorded, and the reason for every passing `untrusted_code` and `game_context_read` hit;
 6. strong recommendations in a separate non-blocking section, excluded from gate violation counts and the readiness verdict;
 7. an uncertainty section. Any unresolved uncertainty that prevents proving a gate passes makes that gate fail.
 

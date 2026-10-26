@@ -2,8 +2,16 @@ import { describe, expect, it } from 'vitest'
 import { Visibility } from '@tabletop/common'
 import { Side, type Face } from '../components/pieces.js'
 import { CommandKind, DefenseAwaits } from '../model/attack.js'
+import { FeintEnd } from '../model/attackDeclaration.js'
 import { NapoleonsTriumphProjectedStateValidator } from '../model/gameState.js'
-import { TestGame, arrangeBattlefield, cavalry, infantry } from '../testing/harness.js'
+import {
+    TestGame,
+    arrangeBattlefield,
+    cavalry,
+    defendWith,
+    frenchTurn,
+    infantry
+} from '../testing/harness.js'
 import { ActionType } from './actions.js'
 import { NapoleonsTriumphRuntime } from './runtime.js'
 
@@ -185,5 +193,44 @@ describe("Napoleon's Triumph hidden blocks", () => {
         expect(
             game.hydrated.corpsUnits('bagration').every((unit) => unit.shown === undefined)
         ).toBe(true)
+    })
+
+    it('keeps cavalry riding on by road hidden from the defender until its move is over', () => {
+        const game = frenchTurn([
+            { id: 'F-cav', side: Side.French, face: cavalry(2), locale: 53 },
+            { id: 'A-screen', side: Side.Allied, face: cavalry(1), locale: 63 },
+            { id: 'A-line', side: Side.Allied, face: infantry(2), locale: 64 }
+        ])
+        const french = game.playerOf(Side.French)
+        const allied = game.playerOf(Side.Allied)
+        const rider = { kind: CommandKind.Unit, unitIds: ['F-cav'] }
+        const seenByAllies = () =>
+            project(game, { kind: 'player', playerId: allied }).units.find(
+                (unit) => unit.id === 'F-cav'
+            )?.shown
+        game.act(ActionType.ThreatenAttack, french, {
+            approach: game.hydrated.map.approachBetween(53, 63).id
+        })
+        game.act(ActionType.Retreat, allied, {
+            losses: {},
+            destinations: { 'A-screen': 72 },
+            kept: {}
+        })
+        game.act(ActionType.Occupy, french, { orders: [{ ...rider, road: [] }] })
+        expect(game.hydrated.roadMarch).toBeDefined()
+        expect(seenByAllies()).toBeUndefined()
+
+        game.act(ActionType.ThreatenAttack, french, {
+            approach: game.hydrated.map.approachBetween(63, 64).id
+        })
+        expect(seenByAllies()).toBeUndefined()
+
+        defendWith(game, allied, ['A-line'])
+        game.act(ActionType.DeclareFeint, french, {
+            orders: [{ ...rider, road: [], continues: true }],
+            end: FeintEnd.Approach
+        })
+        expect(game.hydrated.roadMarch).toBeUndefined()
+        expect(seenByAllies()).toEqual(cavalry(2))
     })
 })

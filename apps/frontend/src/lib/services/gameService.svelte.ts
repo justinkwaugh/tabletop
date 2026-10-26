@@ -463,6 +463,12 @@ export class GameService implements GameServiceInterface {
         return updatedGame
     }
 
+    async requestCall(game: Game, declaredWinnerId?: string): Promise<Game> {
+        const updatedGame = await this.api.requestCall(game, declaredWinnerId)
+        this.upsertCachedGame(updatedGame)
+        return updatedGame
+    }
+
     async approveVote(game: Game, voteId: string): Promise<Game> {
         const updatedGame = await this.api.approveVote(game, voteId)
         this.upsertCachedGame(updatedGame)

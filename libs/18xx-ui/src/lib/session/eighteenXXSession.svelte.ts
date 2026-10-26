@@ -8,6 +8,7 @@ import {
     isPrivateTileLay,
     priorityOrder,
     shareSaleValue,
+    sharesOwned,
     stockCertificateCount,
     titleComponents,
     TileUpgrades,
@@ -37,6 +38,13 @@ import {
     type TokenTiles
 } from '../maps/stationPresentation.js'
 import { createTileDrawing } from '../tiles/tileDrawing.js'
+import { ownerPortfolio } from '../finance/ownerPortfolio.js'
+import {
+    draftedCertificates,
+    draftedCost,
+    withDraftedCompanies,
+    type DraftedCompany
+} from '../finance/draftedCompanies.js'
 import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import { terrainIconAppearance } from '../maps/terrainIcons.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
@@ -73,6 +81,7 @@ import {
 } from './privateActionsModule.svelte.js'
 import { PrivatesModule } from './privatesModule.svelte.js'
 import { RoutesModule } from './routesModule.svelte.js'
+import { ProjectedRunModule } from './projectedRunModule.svelte.js'
 import { SelectionAuctionModule } from './selectionAuctionModule.svelte.js'
 import { StationsModule } from './stationsModule.svelte.js'
 import { StockInstructionModule } from './stockInstructionModule.svelte.js'
@@ -175,13 +184,12 @@ export class EighteenXXSession<
         }
     }
     operatingIncomeHistory() {
-        return operatingHistory(this.history.visibleContext.actions)
+        return operatingHistory(this.actions)
     }
     playerWealthHistory() {
-        const { actions, state } = this.history.visibleContext
-        return wealthHistory(actions, state, {
+        return wealthHistory(this.actions, this.gameState, {
             startingCash: this.rules.startingCash({
-                playerCount: state.players.length,
+                playerCount: this.gameState.players.length,
                 config: this.game.config
             }),
             openingRound: this.presentation.openingRound,
@@ -221,6 +229,7 @@ export class EighteenXXSession<
         },
         get selectionsVisible() {
             return (
+                session.gameState.result === undefined &&
                 !session.updatingVisibleState &&
                 !session.isViewingHistory &&
                 !session.sharedActionsBlocked
@@ -228,6 +237,7 @@ export class EighteenXXSession<
         },
         get interactive() {
             return (
+                session.gameState.result === undefined &&
                 !session.busy &&
                 !session.updatingVisibleState &&
                 !session.isViewingHistory &&
@@ -331,6 +341,10 @@ export class EighteenXXSession<
         this.companyAuction,
         () => this.mapDisplayState
     )
+    readonly projectedRun = new ProjectedRunModule(this.moduleSession, this.map, () => {
+        const state: HydratedEighteenXXState = this.gameState
+        return state.dehydrate()
+    })
     readonly operating = new OperatingTurnModule(
         this.moduleSession,
         {
@@ -513,12 +527,8 @@ export class EighteenXXSession<
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
     }
     private noticeText(action: GameAction): string | undefined {
-        if (isPrivateTileLay(action)) {
-            const location = this.mapView.map.definition.locations.find(
-                (item) => item.id === action.locationId
-            )
-            return `${this.getPlayerName(action.playerId)} used ${this.companyName(action.privateCompanyId)} at ${location?.name ?? action.locationId}`
-        }
+        if (isPrivateTileLay(action))
+            return `${this.getPlayerName(action.playerId)} used ${this.companyName(action.privateCompanyId)} at ${this.placeName(action.locationId)}`
         if (!isPrivateExchangeAction(action)) return undefined
         const company = this.privates.exchangeCompany(action.certificateId)
         const article = /^[AEIOU]/i.test(this.companyName(company.id)) ? 'an' : 'a'
@@ -661,8 +671,45 @@ export class EighteenXXSession<
         assert(typeof cash === 'number', 'Player liquidity requires finite cash')
         const auction = this.waterfall.model
         const uncommittedCash =
-            auction && !auction.auction.completed ? auction.availableCash(playerId) : cash
+            (auction && !auction.auction.completed ? auction.availableCash(playerId) : cash) -
+            draftedCost(this.#draftedBy(playerId))
         return uncommittedCash + shareSaleValue(this.gameState, owner, this.rules.stockRules)
+    }
+    /** The companies this viewer has drafted but not yet paid for; a hidden draft's title supplies them. */
+    protected get draftedCompanies(): readonly DraftedCompany[] {
+        return []
+    }
+    #draftedBy(playerId: string): readonly DraftedCompany[] {
+        return playerId === this.myPlayer?.id ? this.draftedCompanies : []
+    }
+    drafterOf(companyId: string): string | undefined {
+        const playerId = this.myPlayer?.id
+        return playerId && this.draftedCompanies.some((company) => company.companyId === companyId)
+            ? playerId
+            : undefined
+    }
+    portfolio(owner: Owner, minorsAsPrivates = false) {
+        const portfolio = ownerPortfolio(
+            this.gameState,
+            owner,
+            this.valuationRules,
+            this.charters,
+            minorsAsPrivates
+        )
+        return withDraftedCompanies(
+            portfolio,
+            this.gameState,
+            owner.kind === 'player' ? this.#draftedBy(owner.playerId) : [],
+            this.valuationRules,
+            this.charters,
+            minorsAsPrivates
+        )
+    }
+    playerShares(companyId: string, playerId: string): number {
+        const owned = sharesOwned(this.gameState, companyId, { kind: 'player', playerId })
+        return this.drafterOf(companyId) === playerId
+            ? owned + sharesOwned(this.gameState, companyId, { kind: 'bank' })
+            : owned
     }
     companyRequiresTrain(companyId: string): boolean {
         return (
@@ -672,12 +719,6 @@ export class EighteenXXSession<
     }
     get trainDepot() {
         return this.rules.trainRules.depot
-    }
-    trainShortLabel(definitionId: string): string {
-        return (
-            this.presentation.trainShortLabels?.[definitionId] ??
-            this.trainDepot.trainDefinition(definitionId).name
-        )
     }
     get phases() {
         return this.rules.phases
@@ -701,6 +742,9 @@ export class EighteenXXSession<
     get passing() {
         return this.rules.stockRules.round.passing
     }
+    // The published state as stored, for replaying recorded history: a replay copies its state,
+    // and the hydrated state carries functions a copy cannot take.
+    private recordedState: EighteenXXState<Schema> = $derived(this.gameState.dehydrate())
     private readonly historicalMaps: HistoricalMaps<EighteenXXState<Schema>>
     // A new object whenever the visible state changes or starts/stops updating. A preview map is
     // only shown for the visible state it was opened on.
@@ -723,10 +767,9 @@ export class EighteenXXSession<
             this.historicalMapPreview = undefined
             return
         }
-        const context = this.history.visibleContext
         this.historicalMapPreview = {
             visibleState: this.visibleStateKey,
-            map: this.historicalMaps.preview(context.state, context.actions, action)
+            map: this.historicalMaps.preview(this.recordedState, this.actions, action)
         }
     }
     closeHistoricalMap() {
@@ -755,6 +798,7 @@ export class EighteenXXSession<
         assertExists(names, `Company ${companyId} requires its names`)
         return names
     }
+    readonly placeName = (locationId: string): string => this.mapView.map.placeName(locationId)
     lotName(lot: Pick<AuctionLot, 'id' | 'name'>) {
         return this.presentation.companyNames[lot.id]?.short ?? lot.name
     }
@@ -784,8 +828,14 @@ export class EighteenXXSession<
         this.rules.stockRules.certificateWeight(this.gameState, certificate)
     playerCertificates(playerId: string) {
         const owner = { kind: 'player', playerId } as const
+        const drafted = this.#draftedBy(playerId).flatMap(({ companyId }) =>
+            draftedCertificates(this.gameState, companyId)
+        )
         return {
-            count: stockCertificateCount(this.gameState, owner, this.rules.stockRules),
+            count: drafted.reduce(
+                (sum, certificate) => sum + this.certificateWeight(certificate),
+                stockCertificateCount(this.gameState, owner, this.rules.stockRules)
+            ),
             limit: this.rules.stockRules.certificateLimit(this.gameState, owner)
         }
     }

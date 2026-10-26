@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction, type Round, type Turn } from '@tabletop/common'
+import {
+    ActionSource,
+    CALL_GAME_ACTION_TYPE,
+    GameCallKind,
+    type CallGameAction,
+    type GameAction,
+    type Round,
+    type Turn
+} from '@tabletop/common'
 import { ActionType, Scenario, Side } from '@tabletop/napoleons-triumph'
 import { TestGame } from '@tabletop/napoleons-triumph/testing'
 import { chaptersInOrder, historyChapters, type HistoryChapter } from './historyChapters.js'
@@ -92,6 +100,40 @@ describe('history chapters', () => {
 
     it('drops actions that have nothing to tell outside a turn', () => {
         expect(chaptersOf(actions.slice(0, 2), [], [], () => '')).toEqual([])
+    })
+
+    it('tells a called game on its own, under no turn, and heads no turn in play after it', () => {
+        const call: CallGameAction = {
+            id: 'a6',
+            gameId: 'g',
+            source: ActionSource.System,
+            type: CALL_GAME_ACTION_TYPE,
+            index: 6,
+            call: {
+                kind: GameCallKind.Conceded,
+                initiatorPlayerId: 'p0',
+                declaredWinnerId: 'p1',
+                approvingPlayerIds: ['p0'],
+                decliningPlayerIds: []
+            }
+        }
+        const chapters = chaptersOf([...actions, call], rounds, turns)
+        expect(chapters.at(-1)?.turns.map((turn) => [turn.title, turn.entries])).toEqual([
+            ['Allied turn', [expect.objectContaining({ index: 5 })]],
+            [
+                undefined,
+                [
+                    {
+                        actionId: 'a6',
+                        index: 6,
+                        playerId: undefined,
+                        text: 'callGame 6',
+                        pictured: false,
+                        steps: []
+                    }
+                ]
+            ]
+        ])
     })
 })
 

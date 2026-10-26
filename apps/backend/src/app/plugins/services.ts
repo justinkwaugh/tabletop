@@ -43,6 +43,7 @@ import {
     RedisService,
     ResendEmailService,
     SecretsService,
+    StalledGames,
     STATIC_ROOT,
     TaskService,
     TokenService,
@@ -53,7 +54,9 @@ import {
     UserService,
     WebPushTransport
 } from '@tabletop/backend-services'
+import { GameClientCapability } from '@tabletop/common'
 import { TitleValidation } from '../../runtime/titleValidation.js'
+import { publishedUiSupports } from '../lib/publishedUi.js'
 
 import { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
@@ -78,6 +81,7 @@ declare module 'fastify' {
         catalogService: CatalogService
         tournamentService: TournamentService
         tournamentStallAlerts: TournamentStallAlerts
+        stalledGames: StalledGames
         leagueService: LeagueService
         siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
@@ -217,6 +221,16 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         taskService
     )
     fastify.decorate('tournamentService', tournamentService)
+    fastify.decorate(
+        'stalledGames',
+        new StalledGames(gameStore, gameService, taskService, (titleId) =>
+            publishedUiSupports(
+                { libraryService, catalogService },
+                titleId,
+                GameClientCapability.CalledGames
+            )
+        )
+    )
     fastify.decorate(
         'tournamentStallAlerts',
         new TournamentStallAlerts(

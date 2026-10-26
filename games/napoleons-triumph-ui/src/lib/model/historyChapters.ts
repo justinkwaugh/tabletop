@@ -1,4 +1,4 @@
-import type { GameAction, Round, Turn } from '@tabletop/common'
+import { isCallGameAction, type GameAction, type Round, type Turn } from '@tabletop/common'
 import {
     ActionType,
     ROUNDS,
@@ -125,7 +125,8 @@ export function historyChapters(
             attack = undefined
         }
         const index = action.index ?? position
-        const turn = spanOf(turns, index)
+        const called = isCallGameAction(action)
+        const turn = called ? undefined : spanOf(turns, index)
         const text = isEndTurn(action) ? '' : describe(action)
         // A turn is headed even when nothing in it is told, so that its end shows.
         if (text === '' && turn === undefined) {
@@ -140,7 +141,7 @@ export function historyChapters(
             index,
             playerId: action.playerId,
             text,
-            pictured: !OFF_THE_MAP.includes(action.type)
+            pictured: !called && !OFF_THE_MAP.includes(action.type)
         }
         if (continuesAttack && attack) {
             attack.steps.push(line)
@@ -153,7 +154,7 @@ export function historyChapters(
 
     // The turn in play is headed before anything is done in it: its first action is the End turn that closed the turn before.
     const turnInPlay = turns.find((turn) => turn.end === undefined)
-    if (turnInPlay) {
+    if (turnInPlay && !actions.some(isCallGameAction)) {
         sectionOf(
             rounds.find((round) => round.end === undefined),
             turnInPlay

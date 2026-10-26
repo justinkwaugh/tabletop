@@ -70,6 +70,7 @@ export interface GameStore {
     findOpenGamesForTitle(titleId: string): Promise<Game[]>
     findActiveGamesForTitle(titleId: string): Promise<Game[]>
     findFinishedGames(afterGameId: string | undefined, limit: number): Promise<Game[]>
+    findStartedGames(): Promise<Game[]>
     readStateFromStorage(gameId: string): Promise<GameState | undefined>
     recordFinalScores({
         gameId,

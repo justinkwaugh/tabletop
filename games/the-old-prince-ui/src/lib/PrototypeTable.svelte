@@ -3,7 +3,8 @@
     import OpeningAuction from './OpeningAuction.svelte'
     import BranchSplitPreview from './BranchSplitPreview.svelte'
     import { requireTheOldPrinceSession } from './session.svelte.js'
-    import type { GameSession } from '@tabletop/frontend-components'
+    import { setGameSession, type GameSession } from '@tabletop/frontend-components'
+    import { untrack } from 'svelte'
     import type { TheOldPrinceState, HydratedTheOldPrinceState } from '@tabletop/the-old-prince'
     import {
         GameEnding,
@@ -13,7 +14,8 @@
         PrivateCompanies,
         CompanyDecisions,
         StockTrading,
-        StockMarket
+        StockMarket,
+        setPlaceLinks
     } from '@tabletop/18xx-ui'
     import { peirShares, peirPresident } from '@tabletop/the-old-prince'
     let {
@@ -21,6 +23,11 @@
     }: { gameSession: GameSession<TheOldPrinceState, HydratedTheOldPrinceState> } = $props()
     const session = $derived(requireTheOldPrinceSession(gameSession))
     const gameState = $derived(gameSession.gameState)
+    setGameSession(untrack(() => session))
+    setPlaceLinks({
+        name: (locationId) => session.placeName(locationId),
+        reveal: (locationId) => session.map.inspect({ kind: 'hex', locationId })
+    })
 </script>
 
 <GameEnding {session} />

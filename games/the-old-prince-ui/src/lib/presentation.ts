@@ -111,7 +111,6 @@ import {
 
 export const TheOldPrincePresentation: TitlePresentation = {
     money: moneyFormat('$'),
-    trainShortLabels: { D: 'D' },
     phaseChart: TheOldPrincePhaseChart,
     trainColors: TheOldPrinceTrainColors,
     phaseColors: TheOldPrinceTrainColors,

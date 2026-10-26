@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
     import './playerTint.css'
@@ -23,12 +24,10 @@
         type Company,
         type Owner,
         type PurchaseRequest,
-        type ValuationRules,
         isObsoleteTrain
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { NumberedShareNames } from './companyPresentation.js'
-    import { ownerPortfolio } from '../finance/ownerPortfolio.js'
     import PlayerName from './PlayerName.svelte'
     import OperatingHistory from './OperatingHistory.svelte'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
@@ -58,7 +57,6 @@
         marketPoolId,
         ipoPoolId,
         exchangePoolId,
-        valuationRules,
         trainColors,
         numberedShareNames = {},
         includedCompanyIds = [],
@@ -74,7 +72,6 @@
         ipoPoolId?: string
         exchangePoolId?: string
         trainColors: Readonly<Record<string, string>>
-        valuationRules: ValuationRules
         numberedShareNames?: NumberedShareNames
         includedCompanyIds?: readonly string[]
         portfolioCompanyIds?: readonly string[]
@@ -280,12 +277,7 @@
         certs?: { count: number; limit: number }
     }
     function ownerStatisticsFor(owner: Owner, certs?: OwnerStatistics['certs']): OwnerStatistics {
-        const { cash, netWorth, shares } = ownerPortfolio(
-            session.gameState,
-            owner,
-            valuationRules,
-            session.charters
-        )
+        const { cash, netWorth, shares } = session.portfolio(owner)
         return { cash, shares, netWorth, certs }
     }
     function firstSortDirection(column: SpreadsheetSortColumn<never>): SpreadsheetSortDirection {
@@ -364,8 +356,7 @@
                 {
                     id: `player:${playerId}`,
                     name: session.getPlayerName(playerId),
-                    count: (companyId: string) =>
-                        sharesOwned(session.gameState, companyId, { kind: 'player', playerId })
+                    count: (companyId: string) => session.playerShares(companyId, playerId)
                 },
                 ...portfolioOwners.filter((owner) => owner.controllerId === playerId)
             ]),
@@ -455,12 +446,13 @@
             ),
             cash: cashOwnedBy(session.gameState, { kind: 'company', companyId: company.id }),
             lastRun: companyLastRun(session.actions, session.gameState.actionCount, company.id),
-            presidentId:
-                company.president?.kind === 'player'
-                    ? `player:${company.president.playerId}`
-                    : company.president?.kind === 'company'
-                      ? `company:${company.president.companyId}`
-                      : undefined,
+            presidentId: session.drafterOf(company.id)
+                ? `player:${session.drafterOf(company.id)}`
+                : company.president?.kind === 'player'
+                  ? `player:${company.president.playerId}`
+                  : company.president?.kind === 'company'
+                    ? `company:${company.president.companyId}`
+                    : undefined,
             shares: owners.map((owner) => owner.count(company.id)),
             shareNumbers: owners.map((owner) => playerShareNumbers(owner.id, company.id))
         }))
@@ -655,7 +647,7 @@
     <span class="company-trains">
         {#each trainsOwnedBy(session.gameState, { kind: 'company', companyId }) as train (train.id)}
             <TrainBadge
-                name={session.trainShortLabel(train.definitionId)}
+                name={session.trainDepot.trainDefinition(train.definitionId).name}
                 color={trainColors[train.definitionId]}
                 obsolete={isObsoleteTrain(train)}
             />
@@ -803,6 +795,7 @@
         {:else}
             <div
                 class="table-scroll"
+                {@attach chainSidewaysScroll}
                 class:scrolled
                 class:pin-label-column={pinLabelColumn}
                 bind:clientWidth={scrollViewportWidth}

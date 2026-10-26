@@ -1,4 +1,4 @@
-import { PrivateCatalog } from '@tabletop/18xx'
+import { PrivateCatalog, placeReference as place } from '@tabletop/18xx'
 import { EighteenThirtyPhases } from './trains.js'
 
 export const EighteenThirtyPrivateCatalog = new PrivateCatalog(
@@ -11,7 +11,7 @@ export const EighteenThirtyPrivateCatalog = new PrivateCatalog(
                 faceValue: 20,
                 revenue: 5,
                 blocks: { locationIds: ['G15'], until: 'company-owned' },
-                description: 'Blocks G15 while player-owned. Closes at phase 5.'
+                description: `Blocks ${place('G15')} while player-owned. Closes at phase 5.`
             },
             {
                 id: 'CS',
@@ -19,8 +19,7 @@ export const EighteenThirtyPrivateCatalog = new PrivateCatalog(
                 faceValue: 40,
                 revenue: 10,
                 blocks: { locationIds: ['B20'], until: 'company-owned' },
-                description:
-                    'The owning company may lay tile 3, 4 or 58 on Burlington (B20) without a connection, besides its ordinary lay. Blocks B20 while player-owned. Closes at phase 5.'
+                description: `The owning company may lay tile 3, 4 or 58 on ${place('B20')} without a connection, besides its ordinary lay. Blocks ${place('B20')} while player-owned. Closes at phase 5.`
             },
             {
                 id: 'DH',
@@ -28,8 +27,7 @@ export const EighteenThirtyPrivateCatalog = new PrivateCatalog(
                 faceValue: 70,
                 revenue: 15,
                 blocks: { locationIds: ['F16'], until: 'company-owned' },
-                description:
-                    'The owning company may lay tile 57 on Scranton (F16) as its tile lay, paying $120, then place a free station there without a connection. Blocks F16 while player-owned. Closes at phase 5.'
+                description: `The owning company may lay tile 57 on ${place('F16')} as its tile lay, paying $120, then place a free station there without a connection. Blocks ${place('F16')} while player-owned. Closes at phase 5.`
             },
             {
                 id: 'MH',
@@ -37,8 +35,7 @@ export const EighteenThirtyPrivateCatalog = new PrivateCatalog(
                 faceValue: 110,
                 revenue: 20,
                 blocks: { locationIds: ['D18'], until: 'company-owned' },
-                description:
-                    'The owner may exchange it at any time for a 10% NYC share from the IPO or market. Blocks D18 while player-owned. Closes at phase 5.'
+                description: `The owner may exchange it at any time for a 10% NYC share from the IPO or market. Blocks ${place('D18')} while player-owned. Closes at phase 5.`
             },
             {
                 id: 'CA',
@@ -46,8 +43,7 @@ export const EighteenThirtyPrivateCatalog = new PrivateCatalog(
                 faceValue: 160,
                 revenue: 25,
                 blocks: { locationIds: ['H18'], until: 'company-owned' },
-                description:
-                    'Whoever buys it in the opening auction also receives a 10% PRR share. Blocks Philadelphia & Trenton (H18) while player-owned. Closes at phase 5.'
+                description: `Whoever buys it in the opening auction also receives a 10% PRR share. Blocks ${place('H18')} while player-owned. Closes at phase 5.`
             },
             {
                 id: 'BOP',
@@ -56,8 +52,7 @@ export const EighteenThirtyPrivateCatalog = new PrivateCatalog(
                 revenue: 30,
                 blocks: { locationIds: ['I13', 'I15'], until: 'company-owned' },
                 sale: 'never',
-                description:
-                    'Whoever buys it in the opening auction also receives the B&O president’s certificate and sets the B&O’s par. Closes when the B&O buys a train. Blocks I13 and Baltimore (I15) while player-owned. Cannot be sold to a company. Closes at phase 5.'
+                description: `Whoever buys it in the opening auction also receives the B&O president’s certificate and sets the B&O’s par. Closes when the B&O buys a train. Blocks ${place('I13')} and ${place('I15')} while player-owned. Cannot be sold to a company. Closes at phase 5.`
             }
         ]
     },

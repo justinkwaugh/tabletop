@@ -14,12 +14,11 @@
         readOnly?: boolean
     } = $props()
     const money = $derived(session.presentation.money)
-    const context = $derived(session.history.visibleContext)
-    const gameState = $derived(readOnly ? context.state : session.gameState)
+    const gameState = $derived(session.gameState)
     const titleSteps = $derived(session.presentation.operatingSteps)
     const currentStep = $derived.by(() => {
         if (titleSteps) {
-            const action = session.isViewingHistory ? context.actions.at(-1) : undefined
+            const action = session.isViewingHistory ? session.actions.at(-1) : undefined
             const index = titleSteps.findIndex(
                 (step) => action && step.actions.includes(action.type)
             )
@@ -30,7 +29,7 @@
             return current >= 0 ? current : undefined
         }
         return session.isViewingHistory
-            ? historicalOperatingStepIndex(context.actions.at(-1), gameState.machineState)
+            ? historicalOperatingStepIndex(session.actions.at(-1), gameState.machineState)
             : operatingStepIndex(gameState.machineState)
     })
     const steps = $derived(
@@ -44,12 +43,9 @@
         ]
     )
     const statuses = $derived.by(() => {
-        const actions = readOnly
-            ? context.actions
-            : session.actions.slice(0, session.gameState.actionCount)
-        const summaries = operatingStepStatuses(gameState, actions, money)
+        const summaries = operatingStepStatuses(gameState, session.actions, money)
         return titleSteps
-            ? titleSteps.map((step) => step.status?.(gameState, actions, summaries))
+            ? titleSteps.map((step) => step.status?.(gameState, session.actions, summaries))
             : Object.values(summaries)
     })
 </script>
@@ -104,7 +100,7 @@
     }
     .steps {
         display: flex;
-        flex: 1;
+        flex: 1 1 100%;
         min-width: 0;
         justify-content: center;
     }
@@ -154,22 +150,15 @@
     }
     .privates {
         display: flex;
-        flex: none;
+        flex: 0 0 100%;
         align-items: center;
+        justify-content: center;
+        border-top: 1px solid var(--rail-border, #cbbcad);
+        background: var(--rail-surface-raised, #e8ded4);
     }
-    .privates:empty {
+    /* Its two components leave a space between them even when both render nothing. */
+    .privates:not(:has(*)) {
         display: none;
-    }
-    @container (max-width: 480px) {
-        .steps,
-        .privates {
-            flex-basis: 100%;
-        }
-        .privates {
-            justify-content: center;
-            border-top: 1px solid var(--rail-border, #cbbcad);
-            background: var(--rail-surface-raised, #e8ded4);
-        }
     }
     @container (max-width: 420px) {
         button {

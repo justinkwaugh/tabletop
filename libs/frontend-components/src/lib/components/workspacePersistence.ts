@@ -15,12 +15,21 @@ export interface SavedWorkspace {
     sidebar: string[]
     main: SavedPane
     closed?: string[]
+    sidebarDeleted?: true
 }
-export type InitialWorkspace = Pick<SavedWorkspace, 'main' | 'closed'>
+export type InitialWorkspace = Pick<SavedWorkspace, 'main' | 'closed'> &
+    Partial<Pick<SavedWorkspace, 'sidebar'>>
+
+export function initialSidebarTabs(
+    sidebar: readonly string[],
+    initialLayout?: InitialWorkspace
+): readonly string[] {
+    return initialLayout?.sidebar ?? sidebar
+}
 
 export function saveWorkspace(
     root: WorkspaceNode,
-    fixed: WorkspacePane,
+    fixed: WorkspacePane | undefined,
     closableTabs: readonly string[] = []
 ): SavedWorkspace {
     function encode(node: WorkspaceNode): SavedPane {
@@ -34,14 +43,15 @@ export function saveWorkspace(
               ]
     }
     const present = new Set([
-        ...fixed.tabs,
+        ...(fixed?.tabs ?? []),
         ...workspaceLayout(root).panes.flatMap((item) => item.pane.tabs)
     ])
     const closed = closableTabs.filter((id) => !present.has(id))
     return {
         ...(closed.length ? { closed } : {}),
+        ...(fixed ? {} : { sidebarDeleted: true as const }),
         v: 1,
-        sidebar: [...fixed.tabs],
+        sidebar: [...(fixed?.tabs ?? [])],
         main: encode(root)
     }
 }
@@ -72,7 +82,7 @@ export function restoreWorkspace(
     optionalTabs: readonly string[] = [],
     closableTabs: readonly string[] = [],
     initialLayout?: InitialWorkspace
-): { root: WorkspaceNode; fixed: WorkspacePane } {
+): { root: WorkspaceNode; fixed: WorkspacePane; fixedPaneDeleted: boolean } {
     const fallback = () =>
         initialLayout
             ? restoreWorkspace(
@@ -94,7 +104,8 @@ export function restoreWorkspace(
                       id: 'fixed',
                       tabs: [...sidebar],
                       active: sidebar[0]
-                  }
+                  },
+                  fixedPaneDeleted: false
               }
     if (
         !value ||
@@ -119,8 +130,11 @@ export function restoreWorkspace(
             return true
         })
     }
+    const fixedPaneDeleted = 'sidebarDeleted' in value && value.sidebarDeleted === true
     const fixedTabs = clean(
-        'sidebar' in value && Array.isArray(value.sidebar) ? value.sidebar : [],
+        !fixedPaneDeleted && 'sidebar' in value && Array.isArray(value.sidebar)
+            ? value.sidebar
+            : [],
         sidebar
     )
     function decode(node: unknown, depth: number): WorkspaceNode {
@@ -149,15 +163,17 @@ export function restoreWorkspace(
     try {
         const root = decode(value.main, 0)
         const first = workspaceLayout(root).panes[0].pane
+        const sidebarHome = fixedPaneDeleted ? [] : initialSidebarTabs(sidebar, initialLayout)
         for (const id of tabs) {
             if (seen.has(id) || optionalTabs.includes(id) || closed.has(id)) continue
-            if (sidebar.includes(id)) fixedTabs.push(id)
+            if (sidebarHome.includes(id)) fixedTabs.push(id)
             else first.tabs.push(id)
         }
         first.active ??= first.tabs[0]
         return {
             root,
-            fixed: { kind: 'pane' as const, id: 'fixed', tabs: fixedTabs, active: fixedTabs[0] }
+            fixed: { kind: 'pane' as const, id: 'fixed', tabs: fixedTabs, active: fixedTabs[0] },
+            fixedPaneDeleted
         }
     } catch {
         return fallback()

@@ -10,6 +10,7 @@
         GameTable,
         OperatingActions,
         StationBuilding,
+        ProjectedRun,
         CompanyDecisions,
         SlidingToggle
     } from '@tabletop/18xx-ui'
@@ -106,6 +107,7 @@
 <GameTable
     {session}
     {privateOperationDescription}
+    {createRouteWorker}
     historyDescription={describe1846Action}
     additionalStockActions={session.stockPanels.menuOptions}
 >
@@ -159,6 +161,7 @@
                                         canSkip={session.canChooseAction}
                                         onSkip={() => session.finishConstruction()}
                                     />
+                                    <ProjectedRun {session} onFocusRoute={focusRoute} />
                                 {/if}
                             {/if}
                         </div>

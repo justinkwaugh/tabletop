@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { CalledGameEnding, PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { endingParts, recordedWinner } from '$lib/model/endings.js'
     import { endingRule } from '$lib/model/majorEvents.js'
@@ -18,10 +18,14 @@
 >
     <h1 class="text-2xl tracking-[0.2em] uppercase text-oath-heading mb-1">The game is over</h1>
 
-    <p class="text-lg">
-        <PlayerName playerId={winner} /> won
-        {#if wonBy}
-            <span class="text-oath-text-muted">{endingParts(wonBy).how}</span>
-        {/if}
-    </p>
+    {#if gameSession.gameCall}
+        <CalledGameEnding class="text-lg" />
+    {:else}
+        <p class="text-lg">
+            <PlayerName playerId={winner} /> won
+            {#if wonBy}
+                <span class="text-oath-text-muted">{endingParts(wonBy).how}</span>
+            {/if}
+        </p>
+    {/if}
 </div>

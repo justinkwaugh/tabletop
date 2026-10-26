@@ -75,11 +75,36 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
     }
 
-    async countUsersCreatedIn(window: TimeWindow): Promise<number> {
-        return this.countQuery(
-            this.users.where('createdAt', '>=', window.start).where('createdAt', '<', window.end),
-            'created'
-        )
+    async countUsersActivatedIn(window: TimeWindow): Promise<number> {
+        const [activated, legacy] = await Promise.all([
+            this.countQuery(
+                this.users
+                    .where('activatedAt', '>=', window.start)
+                    .where('activatedAt', '<', window.end),
+                'activated'
+            ),
+            this.countLegacyActivationsIn(window)
+        ])
+        return activated + legacy
+    }
+
+    // Accounts activated before activatedAt existed count on the day they were created
+    private async countLegacyActivationsIn(window: TimeWindow): Promise<number> {
+        try {
+            const snapshot = await this.users
+                .where('createdAt', '>=', window.start)
+                .where('createdAt', '<', window.end)
+                .select('status', 'activatedAt')
+                .get()
+            this.recordRead(snapshot.size)
+            return snapshot.docs.filter((doc) => {
+                const { status, activatedAt } = doc.data()
+                return status === UserStatus.Active && !activatedAt
+            }).length
+        } catch (error) {
+            this.handleError(error, 'activated')
+            throw Error('unreachable')
+        }
     }
 
     async countUsersWithStatus(status: UserStatus): Promise<number> {
@@ -430,6 +455,20 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 updatedUser.updatedAt = fieldsToUpdate.updatedAt
                 updatedFields.push('updatedAt')
 
+                // An account active before activatedAt existed takes its creation time, as the stats count it
+                const activatedAt =
+                    existingUser.activatedAt ??
+                    (existingUser.status === UserStatus.Active
+                        ? existingUser.createdAt
+                        : undefined) ??
+                    (updatedUser.status === UserStatus.Active
+                        ? fieldsToUpdate.updatedAt
+                        : undefined)
+                if (activatedAt && !existingUser.activatedAt) {
+                    fieldsToUpdate.activatedAt = activatedAt
+                    updatedUser.activatedAt = activatedAt
+                }
+
                 transaction.update(this.users.doc(updatedUser.id), fieldsToUpdate)
             }
 
@@ -635,9 +674,9 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         return value.trim().toLowerCase()
     }
 
-    private recordRead() {
+    private recordRead(count?: number) {
         try {
-            this.cacheService.incrementValue('db-read-user').catch((error) => {
+            this.cacheService.incrementValue('db-read-user', count).catch((error) => {
                 console.error('Failed to increment user reads', error)
             })
         } catch (error) {
@@ -657,10 +696,15 @@ const userConverter = {
     fromFirestore(snapshot: QueryDocumentSnapshot): StoredUser {
         const data = snapshot.data() as StoredUser
         // Convert back to dates
-        data.createdAt = data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined
-        data.updatedAt = data.updatedAt ? (data.updatedAt as Timestamp).toDate() : undefined
-        data.deletedAt = data.deletedAt ? (data.deletedAt as Timestamp).toDate() : undefined
+        data.createdAt = toDate(data.createdAt)
+        data.updatedAt = toDate(data.updatedAt)
+        data.deletedAt = toDate(data.deletedAt)
+        data.activatedAt = toDate(data.activatedAt)
 
         return data
     }
+}
+
+function toDate(value: unknown): Date | undefined {
+    return value instanceof Timestamp ? value.toDate() : undefined
 }

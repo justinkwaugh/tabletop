@@ -100,6 +100,11 @@ export type MapMarkerArt =
      */
     | { revenueSymbol: TileSymbolName }
     /**
+     * A value in front of the hex's staged values, boxed as if printed there, with a caption
+     * above it, such as a value that holds only until an event.
+     */
+    | { revenueLead: { amount: number; caption: string } }
+    /**
      * A token placed during play, drawn whole: in the clear corner farthest from the hex's
      * revenue, in its centre, or over a symbol the hex shows (in a corner where it shows none).
      */
@@ -122,8 +127,10 @@ export type RevenueAnnotation = { markerId: string; label: string; x: number; y:
     | { kind: 'badge'; width: number; height: number; arrows: boolean }
     | { kind: 'symbol'; symbol: TileSymbolName; radius: number }
     | { kind: 'token'; imageUrl: string; radius: number }
+    | { kind: 'caption'; caption: string }
 )
 type RevenueBadge = Extract<RevenueAnnotation, { kind: 'badge' }>
+type RevenueCaption = Extract<RevenueAnnotation, { kind: 'caption' }>
 const RevenueRadius = 8.7
 const TokenRadius = 10.5
 // Between a station circle and the baseline of the name curved over it.
@@ -175,8 +182,8 @@ export type MapDrawnLocation = {
      * radians. ``radius`` is the text's baseline.
      */
     nameArcs: readonly NameArc[]
-    /** Height of the printed terrain cost row: centred below the hex's stops, or mid-hex. */
-    terrainY: number
+    /** Centre of the printed terrain cost row: below the hex's stops, or mid-hex. */
+    terrainPosition: Point
     /** Height of a local line drawn ``above``: over the hex's stops and any name curved on them. */
     localLineAboveY?: number
 }
@@ -277,8 +284,7 @@ export function privateMarkerLabel(
     kind: string,
     locationId: string
 ): string {
-    const location = view.map.location(locationId)
-    return `${locationMarkerName(view, kind).toLowerCase()} on ${location.name ?? location.id}`
+    return `${locationMarkerName(view, kind).toLowerCase()} on ${view.map.placeName(locationId)}`
 }
 
 export function createMapDrawing(
@@ -303,7 +309,7 @@ export function createMapDrawing(
         namesBelow = [],
         symbolPositions = {},
         nameLines = {},
-        terrainHeights = {}
+        terrainPositions = {}
     }: Pick<
         MapViewDefinition,
         | 'layouts'
@@ -320,7 +326,7 @@ export function createMapDrawing(
         | 'namesBelow'
         | 'symbolPositions'
         | 'nameLines'
-        | 'terrainHeights'
+        | 'terrainPositions'
     > = {}
 ): MapDrawing {
     const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
@@ -339,9 +345,13 @@ export function createMapDrawing(
         const tile = mapState?.tile(location.id)
         const placement = tile?.placement
         const relocation = placement ? undefined : placements[location.id]
-        const face = relocation?.edges
-            ? remapFaceEdges(tile?.face ?? location.preprintedTile, relocation.edges)
-            : (tile?.face ?? location.preprintedTile)
+        const leads = revenueLeads(location.markers ?? [], markerArt)
+        const face = withRevenueLeads(
+            relocation?.edges
+                ? remapFaceEdges(tile?.face ?? location.preprintedTile, relocation.edges)
+                : (tile?.face ?? location.preprintedTile),
+            leads
+        )
         const rotation = tile?.rotation ?? 0
         const layout = placement
             ? placedTileLayout(layouts, placement.definitionId)
@@ -384,8 +394,11 @@ export function createMapDrawing(
                 tileLayout,
                 locationStyle
             ))
-        const terrainRowOf = (tileDrawing: TileDrawing) =>
-            terrainHeights[location.id] ?? terrainY(tileDrawing, face, map.definition.orientation)
+        const terrainRowOf = (tileDrawing: TileDrawing): Point =>
+            terrainPositions[location.id] ?? {
+                x: 0,
+                y: terrainY(tileDrawing, face, map.definition.orientation)
+            }
         const [loneNode, ...otherNodes] = face.nodes
         const ownCityNames = cityNames[location.id]
         const arcAround = (text: string, center: Point, obstacles: readonly Point[] = []) =>
@@ -421,7 +434,7 @@ export function createMapDrawing(
         })
             ? aboveStops(
                   stopDrawing(),
-                  !placement && location.terrain ? terrainRowOf(stopDrawing()) : undefined,
+                  !placement && location.terrain ? terrainRowOf(stopDrawing()).y : undefined,
                   nameArcs,
                   nameShown && !curvedName ? { baseline: nameBaseline, rows: nameRows } : undefined
               )
@@ -491,6 +504,7 @@ export function createMapDrawing(
             !placement && tileLayout.revenueAlign === 'middle'
         )
         const terrainRow = terrainRowOf(drawing)
+        const captions = revenueCaptions(drawing, leads)
         const hexVertices = geometry.vertices.map((point) => ({
             x: point.x - geometry.center.x,
             y: point.y - geometry.center.y
@@ -519,10 +533,11 @@ export function createMapDrawing(
                 !!namePositions[location.id] &&
                 !face.nodes.some((node) => node.kind === 'offboard'),
             nameArcs,
-            terrainY: terrainRow,
+            terrainPosition: terrainRow,
             localLineAboveY,
             revenueAnnotations: [
                 ...badges,
+                ...captions,
                 ...clearSpaceMarks(
                     drawing,
                     markers,
@@ -536,6 +551,13 @@ export function createMapDrawing(
                                 badge,
                                 (badge.width + (badge.arrows ? badge.height : 0)) / 2,
                                 badge.height / 2
+                            )
+                        ),
+                        ...captions.map((caption) =>
+                            box(
+                                caption,
+                                (caption.caption.length * CaptionCharacterWidth) / 2,
+                                CaptionFontSize / 2
                             )
                         ),
                         ...(face.labels.length
@@ -631,6 +653,62 @@ function centreRevenue(
     }
 }
 
+type RevenueLead = { markerId: string; label: string; amount: number; caption: string }
+
+function revenueLeads(
+    markers: NonNullable<MapLocation['markers']>,
+    markerArt: Readonly<Record<string, MapMarkerArt>>
+): RevenueLead[] {
+    return markers.flatMap((marker) => {
+        const art = markerArt[marker.id]
+        return art && 'revenueLead' in art
+            ? [{ markerId: marker.id, label: marker.label, ...art.revenueLead }]
+            : []
+    })
+}
+
+// A lead is drawn as one more staged value, keyed by its marker, so it shares the printed
+// values' layout.
+function withRevenueLeads(face: TileFace, leads: readonly RevenueLead[]): TileFace {
+    if (!leads.length) return face
+    const values = leads.map(({ markerId, amount }) => ({ stage: markerId, amount }))
+    return {
+        ...face,
+        nodes: face.nodes.map((node) =>
+            node.kind !== 'junction' && node.revenue.kind === 'staged'
+                ? {
+                      ...node,
+                      revenue: { ...node.revenue, values: [...values, ...node.revenue.values] }
+                  }
+                : node
+        )
+    }
+}
+
+export const CaptionFontSize = 5
+const CaptionCharacterWidth = 3.4
+// From the top of a lead's box to the middle of its caption.
+const CaptionRise = 3
+
+function revenueCaptions(drawing: TileDrawing, leads: readonly RevenueLead[]): RevenueCaption[] {
+    const cells = drawing.nodes.flatMap(({ revenueCells }) => revenueCells)
+    return leads.flatMap(({ markerId, label, caption }) => {
+        const cell = cells.find((candidate) => candidate.stage === markerId)
+        return cell
+            ? [
+                  {
+                      kind: 'caption' as const,
+                      markerId,
+                      label,
+                      caption,
+                      x: cell.x,
+                      y: cell.y - cell.height / 2 - CaptionRise
+                  }
+              ]
+            : []
+    })
+}
+
 // Badges stack beneath the first shown revenue, centred on it.
 function revenueBadges(
     drawing: TileDrawing,
@@ -703,10 +781,10 @@ export function terrainRowWidths(kindCount: number, cost: string) {
 function terrainBox(
     terrain: NonNullable<MapLocation['terrain']>,
     costPrefix: string,
-    row: number
+    row: Point
 ): Obstacle {
     const widths = terrainRowWidths(terrain.kinds.length, `${costPrefix}${terrain.cost}`)
-    return box({ x: 0, y: row }, (widths.icons + widths.cost) / 2, 6)
+    return box(row, (widths.icons + widths.cost) / 2, 6)
 }
 
 // Long names split at the space nearest their middle.
@@ -1214,6 +1292,12 @@ export function assertMapOverlays(
     }
     for (const route of routes)
         for (const segment of route.segments) mapSelectionPoint(scene, { kind: 'path', ...segment })
+}
+
+export function isMapRouteValid(scene: MapDrawing, route: MapRoute): boolean {
+    return route.segments.every((segment) =>
+        isMapSelectionValid(scene, { kind: 'path', ...segment })
+    )
 }
 
 export function isMapSelectionValid(scene: MapDrawing, selection: MapSelection): boolean {

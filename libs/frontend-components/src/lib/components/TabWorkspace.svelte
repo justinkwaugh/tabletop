@@ -1,21 +1,30 @@
 <script lang="ts">
     import type { WorkspaceTab, WorkspaceFixedPane } from './workspaceTypes.js'
     import {
+        initialSidebarTabs,
         restoreWorkspaceTabs,
         saveWorkspace,
         type SavedWorkspace,
         type InitialWorkspace
     } from './workspacePersistence.js'
     import { tick, untrack, type Snippet } from 'svelte'
+    import { chainSidewaysScroll } from '../utils/scrollChain.js'
     import {
         type WorkspaceInitialSplit,
         activateTab,
         closeTab,
         addTab,
         deletePane,
+        mergeTabs,
         maxSplitRatio,
         minSplitRatio,
         moveTab,
+        moveTabToIndex,
+        orderPaneTabs,
+        tabDragIndex,
+        tabDragShift,
+        withdrawTabs,
+        type TabDrag,
         resizeSplit,
         splitPane,
         swapSplit,
@@ -36,7 +45,8 @@
         fixedPane,
         tabTitle,
         savedLayout,
-        onLayoutChange
+        onLayoutChange,
+        fixedPaneDeleted = $bindable(false)
     }: {
         tabs: readonly WorkspaceTab[]
         children: Snippet<[string, boolean]>
@@ -49,6 +59,7 @@
         splittable?: boolean
         initialSplit?: WorkspaceInitialSplit
         initialLayout?: InitialWorkspace
+        fixedPaneDeleted?: boolean
     } = $props()
     const instanceId = $props.id()
     const closableTabs = $derived(tabs.filter((tab) => tab.closable !== false).map((tab) => tab.id))
@@ -60,21 +71,31 @@
     )
     let root: WorkspaceNode = $state(initial.root)
     let fixed: WorkspacePane = $state(initial.fixed)
+    fixedPaneDeleted = untrack(() => initial.fixedPaneDeleted && !!fixedPane?.deletable)
     let lastLayout = JSON.stringify(
-        saveWorkspace(initial.root, initial.fixed, recordedClosableTabs)
+        saveWorkspace(
+            initial.root,
+            fixedPaneDeleted ? undefined : initial.fixed,
+            recordedClosableTabs
+        )
     )
     $effect(() => {
         if (resize) return
-        const value = saveWorkspace(root, fixed, recordedClosableTabs)
+        const value = saveWorkspace(
+            root,
+            fixedPaneDeleted ? undefined : fixed,
+            recordedClosableTabs
+        )
         const serialized = JSON.stringify(value)
         if (serialized === lastLayout) return
         lastLayout = serialized
         untrack(() => onLayoutChange?.(value))
     })
     const mainLayout = $derived(workspaceLayout(root))
+    const shownFixedPane = $derived(fixedPaneDeleted ? undefined : fixedPane)
     const layout = $derived({
         ...mainLayout,
-        panes: fixedPane
+        panes: shownFixedPane
             ? [
                   ...mainLayout.panes,
                   { pane: fixed, x: 0, y: 0, width: 100, height: 100, available: [] }
@@ -88,8 +109,10 @@
     }
     function mountPane(node: HTMLElement, target: HTMLElement | undefined) {
         const home = node.parentNode
+        // Re-inserting a panel resets every scroll position inside it.
         function move(next: HTMLElement | undefined) {
-            ;(next ?? home)?.appendChild(node)
+            const parent = next ?? home
+            if (parent && node.parentNode !== parent) parent.appendChild(node)
         }
         move(target)
         return {
@@ -182,6 +205,62 @@
         void tick().then(() =>
             document.getElementById(`${instanceId}-tab-${encodeURIComponent(tab)}`)?.focus()
         )
+    }
+    function deleteFixedPane() {
+        root = mergeTabs(root, fixed)
+        fixed = { ...fixed, tabs: [], active: undefined }
+        fixedPaneDeleted = true
+    }
+    function restoreFixedPane(pane: WorkspaceFixedPane) {
+        const returning = withdrawTabs(
+            root,
+            initialSidebarTabs(pane.tabs, initialLayout).filter((tab) => accepts(tab, 'fixed'))
+        )
+        root = returning.root
+        fixed = { ...fixed, tabs: returning.withdrawn, active: returning.withdrawn[0] }
+        fixedPaneDeleted = false
+    }
+    let drag: (TabDrag & { pane: string; startY: number }) | undefined = $state()
+    function dragShift(pane: string, tab: string) {
+        return drag?.pane === pane ? tabDragShift(drag, tab) : 0
+    }
+    function orderTabs(pane: string, order: readonly string[]) {
+        if (pane === 'fixed') fixed = { ...fixed, tabs: [...order] }
+        else root = orderPaneTabs(root, pane, order)
+    }
+    function startDrag(event: PointerEvent, pane: WorkspacePane, tab: string) {
+        const grip = event.currentTarget
+        const row = grip instanceof HTMLElement ? grip.parentElement : null
+        if (!(grip instanceof HTMLElement) || !row || event.button !== 0) return
+        event.preventDefault()
+        grip.setPointerCapture(event.pointerId)
+        drag = {
+            pane: pane.id,
+            tab,
+            tabs: pane.tabs,
+            startY: event.clientY,
+            rowHeight: row.getBoundingClientRect().height,
+            offset: 0
+        }
+    }
+    function moveDrag(event: PointerEvent) {
+        if (drag) drag = { ...drag, offset: event.clientY - drag.startY }
+    }
+    function dropDrag() {
+        if (!drag) return
+        const index = tabDragIndex(drag)
+        if (index !== drag.tabs.indexOf(drag.tab))
+            orderTabs(drag.pane, moveTabToIndex(drag.tabs, drag.tab, index))
+        drag = undefined
+    }
+    function reorderKeys(event: KeyboardEvent, pane: WorkspacePane, tab: string) {
+        const step = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0
+        const index = pane.tabs.indexOf(tab) + step
+        if (!step || index < 0 || index >= pane.tabs.length) return
+        event.preventDefault()
+        const grip = event.currentTarget
+        orderTabs(pane.id, moveTabToIndex(pane.tabs, tab, index))
+        if (grip instanceof HTMLElement) void tick().then(() => grip.focus())
     }
     function removeTab(tab: string) {
         if (!closableTabs.includes(tab)) return
@@ -314,6 +393,12 @@
 <div class="workspace" aria-label={label} bind:this={element}>
     {#snippet paneHeader(item: PaneLayout)}
         {@const menuId = `${instanceId}-menu-${item.pane.id}`}
+        {@const paneSplits = splittable && item.pane.id !== 'fixed'}
+        {@const restorableFixedPane =
+            fixedPaneDeleted && item.pane.id !== 'fixed' ? fixedPane : undefined}
+        {@const deletableFixedPane =
+            item.pane.id === 'fixed' && fixedPane?.deletable ? fixedPane : undefined}
+        {@const paneActions = paneSplits || !!restorableFixedPane}
         <section
             class="pane"
             class:fixed={item.pane.id === 'fixed'}
@@ -331,6 +416,7 @@
                 <div
                     class="tabs"
                     role="tablist"
+                    {@attach chainSidewaysScroll}
                     aria-label={item.pane.id === 'fixed'
                         ? `${fixedPane?.label} tabs`
                         : `${label} tabs ${layout.panes.indexOf(item) + 1}`}
@@ -368,7 +454,7 @@
                         </button>
                     {/each}
                 </div>
-                {#if splittable && (item.pane.id !== 'fixed' || item.pane.tabs.length || availableTabs(item.pane.id).length)}<div
+                {#if paneActions || deletableFixedPane || item.pane.tabs.length || availableTabs(item.pane.id).length}<div
                         class="split-controls"
                     >
                         <button
@@ -395,10 +481,35 @@
                             style:right={menuPosition.right}
                             style:max-height={menuPosition.maxHeight}
                             ontoggle={(event) => {
-                                if (event.newState === 'closed') menuButton = undefined
+                                if (event.newState !== 'closed') return
+                                menuButton = undefined
+                                drag = undefined
                             }}
                         >
-                            {#if item.pane.id !== 'fixed'}
+                            {#if restorableFixedPane}
+                                <div class="pane-actions">
+                                    <!-- Adding unmounts this button before popovertargetaction would run, so close the menu first. -->
+                                    <button
+                                        aria-label={`Add ${restorableFixedPane.label} pane`}
+                                        title="Split left / right"
+                                        onclick={(event) => {
+                                            event.currentTarget
+                                                .closest<HTMLElement>('[popover]')
+                                                ?.hidePopover()
+                                            restoreFixedPane(restorableFixedPane)
+                                        }}
+                                    >
+                                        <svg
+                                            viewBox="0 0 20 20"
+                                            width="18"
+                                            height="18"
+                                            aria-hidden="true"
+                                            ><rect x="2" y="3" width="16" height="14" rx="1"
+                                            ></rect><path d="M10 3v14"></path></svg
+                                        >
+                                    </button>
+                                </div>
+                            {:else if paneSplits}
                                 <div class="pane-actions">
                                     {#each ['horizontal', 'vertical'] as const as axis (axis)}
                                         <button
@@ -427,11 +538,42 @@
                                     {/each}
                                 </div>
                             {/if}
-                            {#if item.pane.tabs.length}{#if item.pane.id !== 'fixed'}<hr />{/if}
+                            {#if item.pane.tabs.length}{#if paneActions}<hr />{/if}
                                 <strong>Current tabs</strong>
                                 {#each item.pane.tabs as id (id)}
-                                    <div class="existing-tab">
-                                        <span>{tabs.find((tab) => tab.id === id)?.label}</span>
+                                    {@const tabLabel = tabs.find((tab) => tab.id === id)?.label}
+                                    <div
+                                        class="existing-tab"
+                                        class:dragging={drag?.pane === item.pane.id &&
+                                            drag.tab === id}
+                                        class:reordering={drag?.pane === item.pane.id}
+                                        style:transform={drag?.pane === item.pane.id
+                                            ? `translateY(${dragShift(item.pane.id, id)}px)`
+                                            : undefined}
+                                    >
+                                        {#if !splittable && item.pane.tabs.length > 1}<button
+                                                class="reorder-tab"
+                                                aria-label={`Move ${tabLabel} tab`}
+                                                title="Drag to reorder; Arrow Up/Down moves"
+                                                onpointerdown={(event) =>
+                                                    startDrag(event, item.pane, id)}
+                                                onpointermove={moveDrag}
+                                                onpointerup={dropDrag}
+                                                onpointercancel={() => (drag = undefined)}
+                                                onlostpointercapture={() => (drag = undefined)}
+                                                onkeydown={(event) =>
+                                                    reorderKeys(event, item.pane, id)}
+                                                ><svg
+                                                    viewBox="0 0 20 20"
+                                                    width="14"
+                                                    height="14"
+                                                    aria-hidden="true"
+                                                    ><path
+                                                        d="M7 5h.01M13 5h.01M7 10h.01M13 10h.01M7 15h.01M13 15h.01"
+                                                    ></path></svg
+                                                ></button
+                                            >{/if}
+                                        <span class="tab-label">{tabLabel}</span>
                                         {#if closableTabs.includes(id)}<button
                                                 class="close-tab"
                                                 aria-label={`Close ${id} tab`}
@@ -448,7 +590,7 @@
                                     </div>
                                 {/each}
                             {/if}
-                            {#if availableTabs(item.pane.id).length}{#if item.pane.id !== 'fixed' || item.pane.tabs.length}<hr
+                            {#if availableTabs(item.pane.id).length}{#if paneActions || item.pane.tabs.length}<hr
                                     />{/if}
                                 <strong>Add tabs</strong>
                                 {#each availableTabs(item.pane.id) as tab (tab.id)}
@@ -466,7 +608,17 @@
                                     </button>
                                 {/each}
                             {/if}
-                            {#if item.pane.id !== 'fixed' && mainLayout.panes.length > 1}<hr />
+                            {#if deletableFixedPane}{#if item.pane.tabs.length || availableTabs(item.pane.id).length}<hr
+                                    />{/if}
+                                <button
+                                    class="delete-pane"
+                                    aria-label={`Delete ${deletableFixedPane.label} pane`}
+                                    onclick={deleteFixedPane}
+                                >
+                                    Delete pane
+                                </button>
+                            {/if}
+                            {#if paneSplits && mainLayout.panes.length > 1}<hr />
                                 <button
                                     class="delete-pane"
                                     aria-label={`Delete pane ${layout.panes.indexOf(item) + 1}`}
@@ -481,11 +633,13 @@
                         </div>
                     </div>{/if}
             </header>
-            {#if !item.pane.tabs.length}<div class="empty">Drag a tab here</div>{/if}
+            {#if !item.pane.tabs.length}<div class="empty">
+                    {splittable ? 'Drag a tab here' : 'Add a tab from the pane menu'}
+                </div>{/if}
         </section>
     {/snippet}
     {#each mainLayout.panes as item (item.pane.id)}{@render paneHeader(item)}{/each}
-    {#if fixedPane}{@render paneHeader({
+    {#if shownFixedPane}{@render paneHeader({
             pane: fixed,
             x: 0,
             y: 0,
@@ -578,7 +732,6 @@
 
 <style>
     .workspace {
-        --workspace-header-height: 35px;
         position: relative;
         flex: 1;
         min-width: 0;
@@ -586,8 +739,10 @@
         height: 100%;
         color: var(--workspace-text, #374151);
     }
+    /* Fixed-pane parts mount outside .workspace, so they carry the header height themselves. */
     .pane,
     .panel {
+        --workspace-header-height: 35px;
         position: absolute;
         box-sizing: border-box;
         min-width: 0;
@@ -710,13 +865,44 @@
         color: var(--workspace-text, #374151);
     }
     .existing-tab {
+        position: relative;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 20px;
+        gap: 4px;
         min-height: 26px;
         font-size: 12px;
         padding-left: 4px;
+        border-radius: 3px;
+        background: var(--workspace-surface, #ffffff);
+    }
+    .existing-tab .tab-label {
+        flex: 1;
+    }
+    .existing-tab.reordering:not(.dragging) {
+        transition: transform 120ms ease;
+    }
+    .existing-tab.dragging {
+        z-index: 1;
+        box-shadow: 0 2px 8px #00000040;
+    }
+    .widget-menu .reorder-tab {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        margin-left: -4px;
+        padding: 0;
+        border: 0;
+        color: var(--workspace-muted, #6b7280);
+        cursor: grab;
+        touch-action: none;
+    }
+    .reorder-tab svg {
+        stroke-width: 2.6;
+        stroke-linecap: round;
+    }
+    .existing-tab.dragging .reorder-tab {
+        cursor: grabbing;
     }
     .widget-menu .close-tab {
         width: 24px;
@@ -836,6 +1022,10 @@
     }
     .short-label {
         display: none;
+    }
+    .fixed .tabs {
+        gap: 16px;
+        padding-inline: 8px;
     }
     @media (width < 640px) {
         .has-short {

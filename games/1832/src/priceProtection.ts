@@ -28,7 +28,8 @@ import {
     type ShareSaleDetails,
     type ShareSaleSettlement,
     type StockMarket,
-    type StockState
+    type StockState,
+    stateWith
 } from '@tabletop/18xx'
 import {
     requireEighteenThirtyTwoState,
@@ -204,7 +205,7 @@ function fallHeldSales(market: StockMarket, sales: readonly ProtectableSale[]): 
 
 /** Where a held sale's price falls if its president declines to protect it (§5.8.2). */
 export function declinedMarketSpaceId(state: StockState, sale: ProtectableSale): string {
-    const stockMarket = copyStockState(state).stockMarket
+    const stockMarket = structuredClone(state.stockMarket)
     const [move] = fallHeldSales(stockMarket, [sale])
     return move.toMarketSpaceId
 }
@@ -222,9 +223,9 @@ export function sellerLimitState<State extends StockState>(state: State, owner: 
         owner.playerId !== record.sellerPlayerId
     )
         return state
-    const stockMarket = copyStockState(state).stockMarket
+    const stockMarket = structuredClone(state.stockMarket)
     fallHeldSales(stockMarket, record.sales)
-    return { ...state, stockMarket }
+    return stateWith(state, { stockMarket })
 }
 
 /**

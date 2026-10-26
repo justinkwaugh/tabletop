@@ -1,4 +1,7 @@
-import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
+import {
+    gameClientCapabilities,
+    type GameUiDefinition
+} from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { ReefEncounterInfo } from '@tabletop/reef-encounter'
 import type {
     ReefEncounterProjectedState,
@@ -12,7 +15,8 @@ export const UiDefinition: GameUiDefinition<
 > = {
     info: {
         ...ReefEncounterInfo,
-        thumbnailUrl: coverImg
+        thumbnailUrl: coverImg,
+        clientCapabilities: gameClientCapabilities()
     },
     runtime: async () => {
         return (await import('./runtime.js')).ReefEncounterUiRuntime

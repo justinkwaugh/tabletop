@@ -24,11 +24,7 @@ export function eighteenSeventeenGameFacts(state: EighteenSeventeenState): Title
     if (state.selectionAuction && !state.selectionAuction.completed && seedMoney !== undefined)
         facts.push({ label: 'Seed money', value: money(seedMoney) })
     const ending = state.gameEnding
-    if (
-        ending?.finalOperatingSet &&
-        ending.finalOperatingRounds &&
-        state.machineState !== 'GameOver'
-    )
+    if (ending?.finalOperatingSet && ending.finalOperatingRounds && state.result === undefined)
         facts.push({
             label: 'Game ends',
             value: `after AR ${ending.finalOperatingSet}.${ending.finalOperatingRounds}`
@@ -96,18 +92,25 @@ export const EighteenSeventeenMarketZones: readonly MarketZone[] = [
     {
         color: MarketZoneColors.liquidation,
         name: 'Liquidation',
-        description: 'The company does not operate, and the bank sells it in the acquisition round.'
+        description:
+            'The company does not operate, and the bank sells it in the acquisition round.',
+        fill: { kind: 'solid', color: '#c4433a', ink: '#fff8f0' },
+        label: 'Liquidation'
     },
     {
         color: MarketZoneColors.acquisition,
         name: 'Acquisition',
         description:
-            'The company is auctioned from $10 in the acquisition round, and may not buy another.'
+            'The company is auctioned from $10 in the acquisition round, and may not buy another.',
+        fill: { kind: 'solid', color: '#a9aeb2' },
+        banner: { label: 'Acquisition', shape: 'span' },
+        setApart: true
     },
     {
         color: MarketZoneColors.par,
         name: 'Par',
-        description: 'A price a company may start at.'
+        description: 'A price a company may start at.',
+        banner: { label: 'Par values', shape: 'span' }
     },
     {
         color: MarketZoneColors.safe,

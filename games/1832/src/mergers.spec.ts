@@ -10,6 +10,7 @@ import {
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
     EighteenThirtyTwoTileSet,
+    isAnswerMerger,
     isCompleteMergerPhase,
     mergerDecision,
     EighteenThirtyTwoStationRules,
@@ -19,7 +20,7 @@ import {
     takeoverSales,
     type EighteenThirtyTwoState
 } from './index.js'
-import { EighteenThirtyTwoScenarios } from './scenarios/index.js'
+import { addUnstartedRailroads, EighteenThirtyTwoScenarios } from './scenarios/index.js'
 
 type Play = ExamplePlay<EighteenThirtyTwoState>
 const player = (playerId: string) => ({ kind: 'player' as const, playerId })
@@ -155,7 +156,9 @@ describe('merger phase', () => {
     })
 
     it('lets the buyer take over the partner, paying its holders', () => {
-        const play = mergerPhase()
+        const play = mergerPhase((state) => {
+            addUnstartedRailroads(state)
+        })
         while (proposer(play) !== 'alex') play.act('PassMerger', {}, proposer(play))
         expect(
             takeoverPayments(play.state, 'ACL', 'CG').reduce(
@@ -171,6 +174,11 @@ describe('merger phase', () => {
         play.act('AnswerMerger', { accept: true }, 'blair')
         expect(getCompany(play.state, 'CG').closed).toBe(true)
         expect(play.state.takeoverBuyerIds).toEqual(['ACL'])
+        // Nine of the ten railroads remain, lowering three players' limit (Table 2).
+        expect(play.processed.find(isAnswerMerger)?.metadata?.outcome?.certificateLimit).toEqual({
+            from: 20,
+            to: 17
+        })
         // ACL paid $1000 from its $600 and Alex's $400 and took CG's $600 treasury and the
         // coal fields private, whose $15 it collects as the operating set begins.
         expect(cashOwnedBy(play.state, { kind: 'company', companyId: 'ACL' })).toBe(615)
