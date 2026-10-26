@@ -21,7 +21,7 @@ Mockups: [`pay-it-forward/mockups.html`](pay-it-forward/mockups.html) (open in a
 Public, in the About page's visual language.
 
 1. Title **Pay it forward.** with a link back to the library.
-2. Header row: the lead "**Board**Together is free, and we plan to keep it that way." with the wordmark (bold blue Board, light Together), and the principles column: *Always* free to play. *Fully* open source. *Never* funded by its players.
+2. Header row: the lead "**Board**Together is free, and we plan to keep it that way." with the wordmark (bold blue Board, light Together), and the principles column shared with About: *Always* free to play. *Fully* open source. (A third, *Never* funded by its players, was dropped as a restatement of "free".)
 3. Full width below the header:
    - **We don't take personal donations.** as a blue statement, with its one body line.
    - **Pass it on instead.** as a white statement in the same face, with "If the games here have been worth something to you, help put games in front of people who need them. Few board game charities work at scale and meet the bar we set, so we picked these two. They bring play to people who can't easily get to it: kids stuck in hospital rooms, and players who need adapted controls." On phones the paragraph stops after "these two."
@@ -38,31 +38,39 @@ All are links to the page, at the visual weight of "About Us".
 
 - Header text link with a heart icon. Its tooltip says "Help charities put games on more tables. Nothing goes to us."
 - Phone account menu entry beside "About us".
-- About page: a third principle, *Never* funded by its players, and a third card, "Pay it forward", whose first sentence is "We don't take personal donations."
+- About page: a third card, "Pay it forward", whose first sentence is "We don't take personal donations."
 - Landing small print: "*Always* free to play. Fully open source. No tip jar, but you can pay it forward →".
 - One-line footer at the end of the signed-in library's game list (the library and dashboard fit the viewport and scroll inside, so a page footer would always be on screen): "Free to play, always. Board Together takes no personal donations. Pay it forward →".
 
 ## The tally
 
-A backend job fetches each charity's total once a night and caches it. The browser never polls.
+`GET /api/v1/pay-it-forward/tally` is public. `CharityTallyService` (libs/backend-services/src/payItForward) reads both Board Together campaigns from Tiltify's v5 public API, converts pounds to dollars at the day's ECB rate from api.frankfurter.dev (keyless), and caches the result in Redis for an hour. The route lets browsers cache it for ten minutes. The page asks once on load; the browser never polls.
 
-| Charity | Platform | What it exposes | Set-up needed |
-|---|---|---|---|
-| Gamers Outreach | Tiltify, and GoFundMe Pro for direct giving | Tiltify v5 public API: a campaign's `amount_raised`, `goal`, `donate_url`, `url`. Needs an application token from a free Tiltify account (client credentials, `POST https://v5api.tiltify.com/oauth/token`, two-hour lifetime). Unauthenticated requests get 401. | A Board Together campaign under their cause, tiltify.com/gamersoutreach. Tiltify retires a campaign after six months without a donation, so the job must notice retired status and fall back to a plain donate link. The user may visit them in person and could get a GoFundMe Pro page with read access instead. |
-| SpecialEffect | Tiltify, and JustGiving | The same Tiltify API and the same application token. | A Board Together campaign under their cause, tiltify.com/specialeffect (the Tiltify link on their own fundraising page). Same six-month retirement rule. A campaign there may raise in pounds; if so, the tally converts to one currency or shows each in its own. |
+| Charity | Campaign | Currency |
+|---|---|---|
+| Gamers Outreach | tiltify.com/@boardtogether/board-together-fundraiser-for-gamers-outreach-foundation (`f5513dae-a6f9-4eb5-942b-df33f2871f73`) | USD |
+| SpecialEffect | tiltify.com/@boardtogether/boardtogether-fundraiser-for-specialeffect (`908648d6-4cfa-4d83-844d-538822d881c8`) | GBP |
 
-Both campaigns are ours to create, so the tally needs no charity's cooperation. Platform totals can include pledges or unsettled gifts, so the page says "raised", not "received". Until a charity's page exists, its card links to the charity's general donate page and it is left out of the tally.
+- Totals are `total_amount_raised`, which includes campaigns that support ours. The page says "raised", not "received", because platform totals can include unsettled gifts.
+- The headline is the dollar total; the detail line shows each charity in its own currency: "$1,260 raised by Board Together players · $820 for Gamers Outreach · £330 for SpecialEffect". Amounts are truncated to whole units.
+- The tally is hidden while nothing has been raised, and when the API is unavailable.
+- Tiltify retires a campaign after six months without a donation. A retired campaign's card links to the charity's own donation page instead (gamersoutreach.org/donate, specialeffect.org.uk/donate).
+- Tiltify answers in HTML unless the request sends `Accept: application/json`.
+
+Credentials: a Tiltify application owned by the BoardTogether Tiltify account, client credentials flow, `public` scope, two-hour tokens refreshed a minute early. The client ID and secret are the Secret Manager secrets `TILTIFY_CLIENT_ID` and `TILTIFY_CLIENT_SECRET`; `backend` and `tabletop-investigate` can read them. The backend only builds the service when `TILTIFY_CLIENT_ID` is set, so local development without them gets a 404 and no tally.
+
+To ship: attach both secrets to the `backend` Cloud Run service as environment variables of the same names, then release the backend before the frontend.
 
 ## First version
 
 | Piece | Status |
 |---|---|
-| /pay-it-forward page | Built; cards link to gamersoutreach.org/donate and specialeffect.org.uk/donate |
+| /pay-it-forward page | Built; cards link to the Board Together Tiltify campaigns (Gamers Outreach in USD, campaign f5513dae-a6f9-4eb5-942b-df33f2871f73; SpecialEffect in GBP, campaign 908648d6-4cfa-4d83-844d-538822d881c8) |
 | Header link and phone menu entry | Built |
-| About card and third principle | Built (the principles list is shared with this page) |
+| About card | Built (the principles list is shared with this page) |
 | Landing small print | Built |
 | Signed-in footer line | Built, at the end of the library's game list |
-| Tally | Waiting on the Board Together campaigns and a Tiltify application; then a backend fetch, cached, and the campaign links replace the donate pages |
+| Tally | Built: dollar headline, each charity in its own currency, hourly backend cache |
 | Finished-game line | Maybe, not in v1 |
 | Milestone card | Revisit later |
 | "I gave" button | Dropped |

@@ -4,6 +4,7 @@ import {
     AblyTransport,
     BugReportService,
     CatalogService,
+    CharityTallyService,
     ChatService,
     CloudTasksTaskService,
     createLocalManifest,
@@ -46,6 +47,7 @@ import {
     StalledGames,
     STATIC_ROOT,
     TaskService,
+    TiltifyApi,
     TokenService,
     TournamentService,
     TournamentStallAlerts,
@@ -86,6 +88,7 @@ declare module 'fastify' {
         siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
         realtimeTokenIssuer: RealtimeTokenIssuer | undefined
+        charityTallyService: CharityTallyService | undefined
     }
 }
 
@@ -97,6 +100,7 @@ const SITE_MANIFEST_PATH =
 const useAbly = !!process.env['ABLY_API_KEY']
 const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
+const useCharityTally = !!process.env['TILTIFY_CLIENT_ID']
 
 type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle'>
 
@@ -272,6 +276,18 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     fastify.decorate('discordService', discordService)
     fastify.decorate('chatService', chatService)
     fastify.decorate('cacheService', redisCacheService)
+    fastify.decorate(
+        'charityTallyService',
+        useCharityTally
+            ? new CharityTallyService(
+                  new TiltifyApi(
+                      await secretsService.getSecret('TILTIFY_CLIENT_ID'),
+                      await secretsService.getSecret('TILTIFY_CLIENT_SECRET')
+                  ),
+                  redisCacheService
+              )
+            : undefined
+    )
     fastify.decorate(
         'bugReportService',
         discordBotApi && BUG_REPORT_CHANNEL_ID

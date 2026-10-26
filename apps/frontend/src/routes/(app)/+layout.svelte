@@ -425,7 +425,7 @@
                         <a
                             id="pay-it-forward-link"
                             href="/pay-it-forward"
-                            class="hidden md:inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                            class="hidden md:inline-flex items-center gap-1.5 text-sm font-medium text-amber-800 hover:text-amber-900 dark:text-[#f2dfae] dark:hover:text-[#fbefcf]"
                         >
                             <HeartOutline class="h-4 w-4" />
                             Pay it forward
@@ -623,7 +623,7 @@
                                 >
                                 <DropdownItem
                                     onclick={gotoPayItForward}
-                                    class="md:hidden w-full text-left whitespace-nowrap"
+                                    class="md:hidden w-full text-left whitespace-nowrap dark:text-[#f2dfae]"
                                     >Pay it forward</DropdownItem
                                 >
 

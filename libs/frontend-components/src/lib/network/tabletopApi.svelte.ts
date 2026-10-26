@@ -26,6 +26,7 @@ import {
     GameHistoryPage,
     UserGameStats,
     SiteStatsNow,
+    CharityTally,
     SiteStatsReport,
     type UtcDayRange,
     User,
@@ -187,6 +188,12 @@ export class TabletopApi {
 
     async getGameCatalog(): Promise<GameCatalogEntry[]> {
         const response = await this.wretch.get('/catalog').json<{ payload: GameCatalogEntry[] }>()
+        return response.payload
+    }
+
+    async getCharityTally(): Promise<CharityTally> {
+        const response = await this.wretch.get('/pay-it-forward/tally').json<unknown>()
+        Value.Assert(Type.Object({ payload: CharityTally }), response)
         return response.payload
     }
 

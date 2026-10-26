@@ -71,6 +71,8 @@ export * from './persistence/firestore/siteStatsStore.js'
 export * from './stats/siteStatsRollup.js'
 export * from './stats/siteStatsService.js'
 export * from './stats/hyperLogLog.js'
+export * from './payItForward/charityTallyService.js'
+export * from './payItForward/tiltifyApi.js'
 export * from './persistence/model/storedSiteStatsMonth.js'
 
 export * from './games/titleLookup.js'

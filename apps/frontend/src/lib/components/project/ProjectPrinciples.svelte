@@ -1,7 +1,6 @@
 <ul class="principles" aria-label="The project">
     <li><strong>Always</strong> free to play.</li>
     <li><strong>Fully</strong> open source.</li>
-    <li><strong>Never</strong> funded by its players.</li>
 </ul>
 
 <style>

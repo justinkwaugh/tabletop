@@ -3,36 +3,81 @@
     import LibraryLink from '$lib/components/project/LibraryLink.svelte'
     import ProjectPrinciples from '$lib/components/project/ProjectPrinciples.svelte'
     import Wordmark from '$lib/components/project/Wordmark.svelte'
+    import { getAppContext } from '$lib/stores/appContext.svelte'
+    import { Charity, type CharityRaised, type CharityTally } from '@tabletop/common'
+    import { onMount } from 'svelte'
 
-    type Charity = {
+    type CharityCard = {
+        id: Charity
         name: string
         country: string
         purpose: string
         description: string
+        campaignUrl: string
         donateUrl: string
         donateHost: string
     }
 
-    const charities: Charity[] = [
+    const charities: CharityCard[] = [
         {
+            id: Charity.GamersOutreach,
             name: 'Gamers Outreach',
             country: 'US',
             purpose: 'Play for kids in hospitals',
             description:
                 'Builds medical-grade gaming carts and brings them to kids in hospital who can’t leave their rooms. Over 350 hospitals so far.',
+            campaignUrl:
+                'https://tiltify.com/@boardtogether/board-together-fundraiser-for-gamers-outreach-foundation',
             donateUrl: 'https://gamersoutreach.org/donate',
             donateHost: 'gamersoutreach.org'
         },
         {
+            id: Charity.SpecialEffect,
             name: 'SpecialEffect',
             country: 'UK',
             purpose: 'Play for people with disabilities',
             description:
                 'Occupational therapists and gaming specialists set up adapted controllers and eye control, so people with physical disabilities can play the games they love.',
+            campaignUrl:
+                'https://tiltify.com/@boardtogether/boardtogether-fundraiser-for-specialeffect',
             donateUrl: 'https://www.specialeffect.org.uk/donate',
             donateHost: 'specialeffect.org.uk'
         }
     ]
+
+    const { api } = getAppContext()
+    let tally: CharityTally | undefined = $state()
+
+    onMount(async () => {
+        try {
+            tally = await api.getCharityTally()
+        } catch (error) {
+            console.error('Could not load the charity tally', error)
+        }
+    })
+
+    function raisedFor(charity: Charity): CharityRaised | undefined {
+        return tally?.charities.find((raised) => raised.charity === charity)
+    }
+
+    function tallyDetail(): string {
+        const perCharity = charities.flatMap((charity) => {
+            const raised = raisedFor(charity.id)
+            return raised
+                ? [`${formatMoney(raised.amount, raised.currency)} for ${charity.name}`]
+                : []
+        })
+        return ['raised by Board Together players', ...perCharity].join(' · ')
+    }
+
+    function formatMoney(amount: number, currency: string): string {
+        return new Intl.NumberFormat('en', {
+            style: 'currency',
+            currency,
+            maximumFractionDigits: 0,
+            roundingMode: 'trunc'
+        }).format(amount)
+    }
 </script>
 
 <svelte:head>
@@ -77,22 +122,39 @@
     </section>
 
     <ul class="charities" aria-label="Charities">
-        {#each charities as charity (charity.name)}
+        {#each charities as charity (charity.id)}
+            {@const campaignOpen = raisedFor(charity.id)?.campaignOpen ?? true}
             <li class="charity">
                 <h3 class="charity-name">
                     {charity.name}<span class="country">{charity.country} charity</span>
                 </h3>
                 <p class="purpose">{charity.purpose}</p>
                 <p class="description">{charity.description}</p>
-                <a class="give-link" href={charity.donateUrl} target="_blank" rel="noreferrer">
+                <a
+                    class="give-link"
+                    href={campaignOpen ? charity.campaignUrl : charity.donateUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                >
                     Give to {charity.name}
                     <ArrowUpRightFromSquareOutline class="h-4 w-4" />
                     <span class="sr-only">(opens in a new tab)</span>
                 </a>
-                <p class="destination">Opens their donation page on {charity.donateHost}.</p>
+                <p class="destination">
+                    {campaignOpen
+                        ? 'Opens the Board Together campaign on tiltify.com.'
+                        : `Opens their donation page on ${charity.donateHost}.`}
+                </p>
             </li>
         {/each}
     </ul>
+
+    {#if tally && tally.totalUsd > 0}
+        <section class="tally" aria-label="Raised so far">
+            <p class="tally-total">{formatMoney(tally.totalUsd, 'USD')}</p>
+            <p class="tally-detail">{tallyDetail()}</p>
+        </section>
+    {/if}
 
     <p class="body other-charities">
         If these two aren’t for you, give to your favorite charity instead. It’s paying it forward
@@ -154,9 +216,11 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 24px;
         margin-top: 28px;
-        align-items: start;
     }
     .charity {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
         min-width: 0;
         padding: 28px;
         background: color-mix(in srgb, var(--color-gray-800) 50%, transparent);
@@ -193,6 +257,7 @@
         font-weight: 500;
     }
     .description {
+        flex: 1;
         margin-top: 16px;
         color: var(--color-gray-400);
         font-size: 15px;
@@ -210,6 +275,25 @@
         margin-top: 8px;
         color: var(--color-gray-500);
         font-size: 13px;
+    }
+    .tally {
+        margin-top: 24px;
+        padding: 20px 28px;
+        border: 1px solid color-mix(in srgb, var(--color-gray-700) 60%, transparent);
+        border-radius: 12px;
+    }
+    .tally-total {
+        font-family: 'Source Sans 3', sans-serif;
+        font-size: 32px;
+        font-weight: 600;
+        line-height: 1.1;
+        letter-spacing: -0.015em;
+        color: var(--color-gray-100);
+    }
+    .tally-detail {
+        margin-top: 4px;
+        color: var(--color-gray-400);
+        font-size: 14px;
     }
     .other-charities {
         margin-top: 28px;
