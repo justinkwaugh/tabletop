@@ -4,6 +4,7 @@
     import {
         antiqueSetPayout,
         AntiquesPerPlayer,
+        MachineState,
         MaxShopsPerPlayer,
         paidAntiques,
         type HydratedMarracashPlayerState
@@ -25,8 +26,8 @@
 
     let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(player.id))
     let isMe = $derived(player.id === gameSession.myPlayer?.id)
-    // Once the game is over every hand is shown, so all can see what each other held.
-    let handShown = $derived(isMe || gameSession.gameState.result !== undefined)
+    // Once the game is played out every hand is shown, so all can see what each other held.
+    let handShown = $derived(isMe || gameSession.gameState.machineState === MachineState.EndOfGame)
     let shopCount = $derived(gameSession.gameState.ownedShopCount(player.id))
     let money = $derived(gameSession.visibleMoney(player.id))
     let revealRank = $derived(gameSession.gameState.antiqueRevealOrder.indexOf(player.id))

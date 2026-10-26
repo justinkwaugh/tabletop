@@ -33,11 +33,19 @@ export function projectedOverseerId(state: HydratedSantiagoGameState): string | 
     return zeroBidders[0]?.playerId
 }
 
+export function isGameOver(state: HydratedSantiagoGameState): boolean {
+    return state.result !== undefined
+}
+
 export function isSpringPlacementTurn(
     state: HydratedSantiagoGameState,
     playerId: string | undefined
 ): boolean {
-    return state.machineState === MachineState.SpringPlacement && playerId === state.seatOrder[0]
+    return (
+        !isGameOver(state) &&
+        state.machineState === MachineState.SpringPlacement &&
+        playerId === state.seatOrder[0]
+    )
 }
 
 export function isPlantTurn(
@@ -45,6 +53,7 @@ export function isPlantTurn(
     playerId: string | undefined
 ): boolean {
     return (
+        !isGameOver(state) &&
         state.machineState === MachineState.PlantingPhase &&
         state.plantersOrder[state.planterIndex] === playerId
     )
@@ -52,6 +61,7 @@ export function isPlantTurn(
 
 export function isNeutralPlacementStage(state: HydratedSantiagoGameState): boolean {
     return (
+        !isGameOver(state) &&
         state.machineState === MachineState.PlantingPhase &&
         state.planterIndex >= state.plantersOrder.length &&
         state.players.length === 3 &&

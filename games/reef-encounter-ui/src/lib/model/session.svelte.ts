@@ -100,7 +100,12 @@ export class ReefEncounterGameSession extends GameSession<
 
     private selection: ReefSelection = $state({})
     readonly hasManualSelection = $derived(hasManualReefSelection(this.selection))
-    private readonly canAct = $derived(this.isPlayable && !this.isViewingHistory && this.isMyTurn)
+    private readonly canAct = $derived(
+        this.isPlayable &&
+            !this.isViewingHistory &&
+            this.isMyTurn &&
+            this.gameState.result === undefined
+    )
     readonly canUndo = $derived(
         this.isPlayable &&
             !this.isViewingHistory &&

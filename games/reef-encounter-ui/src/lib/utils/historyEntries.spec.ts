@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    CALL_GAME_ACTION_TYPE,
+    GameCallKind,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import { ActionType } from '@tabletop/reef-encounter'
 import {
     finalTurnEntries,
@@ -57,6 +63,31 @@ describe('history entries', () => {
             action(ActionType.EndGame)
         ])
         expect(entries.map((entry) => entry.playerId)).toEqual(['a', undefined])
+    })
+
+    it('sets a called game apart from the turn it cut short', () => {
+        const call: CallGameAction = {
+            id: 'call',
+            gameId: 'game',
+            type: CALL_GAME_ACTION_TYPE,
+            source: ActionSource.System,
+            call: {
+                kind: GameCallKind.Conceded,
+                initiatorPlayerId: 'a',
+                declaredWinnerId: 'b',
+                approvingPlayerIds: ['a'],
+                decliningPlayerIds: []
+            }
+        }
+        const entries = historyEntries([
+            action(ActionType.PlayLarvaCube, 'a'),
+            action(ActionType.PlacePolyp, 'a'),
+            call
+        ])
+        expect(entries.map((entry) => [entry.playerId, entry.actions.length])).toEqual([
+            ['a', 2],
+            [undefined, 1]
+        ])
     })
 
     it('replays only entries that move pieces on the table', () => {

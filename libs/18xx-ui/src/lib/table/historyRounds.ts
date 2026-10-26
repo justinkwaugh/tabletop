@@ -23,6 +23,7 @@ import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import { historyOperatingOrder, type HistoryOperatingOrder } from './historyOperatingOrder.js'
 import { historyCash, changedCompanyCash, type HistoryCash } from './historyCash.js'
 import { auctionHistory, type ActionHistoryEntry } from './auctionHistory.js'
+import { isGameEndAction } from './historyNavigation.js'
 import type { TitleRound } from '../session/titlePresentation.js'
 import {
     AuctionHeading,
@@ -136,7 +137,7 @@ export function historyRounds(
                       action.metadata?.marketMoves.some(
                           (move) => move.fromMarketSpaceId !== move.toMarketSpaceId
                       )) ||
-                  isEndGame(action) ||
+                  isGameEndAction(action) ||
                   isExportTrains(action) ||
                   isPayInterest(action) ||
                   !!title.isEvent?.(action) ||

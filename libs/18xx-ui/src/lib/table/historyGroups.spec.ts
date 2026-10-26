@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, GameCallKind, type CallGameAction, type GameAction } from '@tabletop/common'
 import { historyGroups } from './historyGroups.js'
 
 const action = (id: string, type: string, companyId: string, source: ActionSource) =>
@@ -24,5 +24,36 @@ it('keeps a consequence in the operation it happened in', () => {
     expect('actions' in groups[0] && groups[0].actions.map((entry) => entry.id)).toEqual([
         'lay',
         'close'
+    ])
+})
+
+it('groups a called game as its own event after the last turn', () => {
+    const turn: GameAction = {
+        id: 'turn',
+        gameId: 'history',
+        source: ActionSource.User,
+        playerId: 'alex',
+        type: 'SellShares'
+    }
+    const call: CallGameAction = {
+        id: 'call',
+        gameId: 'history',
+        source: ActionSource.System,
+        type: 'callGame',
+        call: {
+            kind: GameCallKind.Called,
+            initiatorPlayerId: 'alex',
+            approvingPlayerIds: ['alex', 'blake'],
+            decliningPlayerIds: []
+        }
+    }
+    const entries = [call, turn].map((action) => ({
+        kind: 'action' as const,
+        id: action.id,
+        action
+    }))
+    expect(historyGroups(entries, false)).toEqual([
+        { kind: 'event', id: 'call', playerId: undefined, companyId: undefined, actions: [call] },
+        { kind: 'turn', id: 'turn', playerId: 'alex', companyId: undefined, actions: [turn] }
     ])
 })
