@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { CalledGameEnding, PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import MarketIcon from './icons/MarketIcon.svelte'
     import OracleIcon from './icons/OracleIcon.svelte'
@@ -16,45 +16,49 @@
 </script>
 
 <div class="flex flex-col items-center gap-2 px-4 pt-3 pb-2 text-[#4a2c12]">
-    <h1 class="heading inline-flex flex-wrap items-center justify-center gap-x-2">
-        {#if winners.length > 1}
-            <span>The oracles are divided between</span>
-        {:else}
-            <span>Magna Grecia honours</span>
-        {/if}
-        {#each winners as winnerId, index (winnerId)}
-            {#if index > 0}<span>and</span>{/if}
-            <PlayerName playerId={winnerId} />
-        {/each}
-    </h1>
-    <table class="scores">
-        <thead>
-            <tr>
-                <th></th>
-                <th title="Points to spend">
-                    <PointsIcon size={20} /><span class="sr-only">Points</span>
-                </th>
-                <th title="Points from markets">
-                    <MarketIcon size={22} /><span class="sr-only">Markets</span>
-                </th>
-                <th title="Points from oracles">
-                    <OracleIcon size={22} /><span class="sr-only">Oracles</span>
-                </th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            {#each rows as row (row.playerId)}
-                <tr class:winner={winners.includes(row.playerId)}>
-                    <td class="name"><PlayerName playerId={row.playerId} /></td>
-                    <td>{row.points}</td>
-                    <td>{row.markets}</td>
-                    <td>{row.oracles}</td>
-                    <td class="total">{row.total}</td>
-                </tr>
+    {#if gameSession.gameCall}
+        <CalledGameEnding class="font-['Libre_Baskerville',Georgia,serif] text-[17px]" />
+    {:else}
+        <h1 class="heading inline-flex flex-wrap items-center justify-center gap-x-2">
+            {#if winners.length > 1}
+                <span>The oracles are divided between</span>
+            {:else}
+                <span>Magna Grecia honours</span>
+            {/if}
+            {#each winners as winnerId, index (winnerId)}
+                {#if index > 0}<span>and</span>{/if}
+                <PlayerName playerId={winnerId} />
             {/each}
-        </tbody>
-    </table>
+        </h1>
+        <table class="scores">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th title="Points to spend">
+                        <PointsIcon size={20} /><span class="sr-only">Points</span>
+                    </th>
+                    <th title="Points from markets">
+                        <MarketIcon size={22} /><span class="sr-only">Markets</span>
+                    </th>
+                    <th title="Points from oracles">
+                        <OracleIcon size={22} /><span class="sr-only">Oracles</span>
+                    </th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {#each rows as row (row.playerId)}
+                    <tr class:winner={winners.includes(row.playerId)}>
+                        <td class="name"><PlayerName playerId={row.playerId} /></td>
+                        <td>{row.points}</td>
+                        <td>{row.markets}</td>
+                        <td>{row.oracles}</td>
+                        <td class="total">{row.total}</td>
+                    </tr>
+                {/each}
+            </tbody>
+        </table>
+    {/if}
 </div>
 
 <style>

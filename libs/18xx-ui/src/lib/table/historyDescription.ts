@@ -79,7 +79,7 @@ import {
 import type { HistoryCompanyChanges } from './historyCompanyChanges.js'
 import { trainCount } from './awaitedDecision.js'
 import { counted } from '../presentation/count.js'
-import { assertExists, type GameAction } from '@tabletop/common'
+import { assertExists, gameCallDescription, gameCallOf, type GameAction } from '@tabletop/common'
 
 export type HistoryDescription = {
     text: string
@@ -774,6 +774,8 @@ function describeShared(
         }
     }
     if (isEndGame(action)) return { text: 'Game ended', important: true }
+    const call = gameCallOf(action)
+    if (call) return { text: gameCallDescription(call, playerName), important: true }
     if (isOfferPurchase(action) || isRespondToPurchaseOffer(action)) {
         assertExists(action.metadata, 'Recorded purchase offer requires its terms')
         const { offer, accepted } = action.metadata

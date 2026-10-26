@@ -1,4 +1,4 @@
-import type { GameAction } from '@tabletop/common'
+import { ActionSource, isCallGameAction, type GameAction } from '@tabletop/common'
 import {
     isRevealTiles,
     isPlaceBid,
@@ -17,6 +17,14 @@ import type { OverseerDecision, PlaceBid, ProposeCanal } from '@tabletop/santiag
 
 export type ActionDescriptionContext = {
     allActions?: GameAction[]
+}
+
+export function isShownInHistory(action: GameAction): boolean {
+    return (
+        isEndRoundEvent(action) ||
+        isCallGameAction(action) ||
+        (action.source !== ActionSource.System && !!action.playerId)
+    )
 }
 
 // A description is a sequence of plain-text fragments and player references — callers
