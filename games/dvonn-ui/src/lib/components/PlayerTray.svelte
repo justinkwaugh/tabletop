@@ -31,7 +31,9 @@
             ? PIECES_PER_PLAYER - session.gameState.board.piecesOf(playerState.playerId)
             : session.gameState.score(playerState.playerId)
     )
-    const caption = $derived(placing ? 'to place' : 'high')
+    const caption = $derived(placing ? 'left' : 'high')
+    // Both captions take the wider one's room, so the tally keeps its size when placing ends.
+    const CAPTIONS = ['left', 'high']
 
     // The same pieces as stacks: the pieces in hand, or each controlled piece itself.
     const tally = $derived(
@@ -75,7 +77,11 @@
     </div>
     <div class="body">
         <strong>{count}</strong>
-        <span class="caption">{caption}</span>
+        <span class="caption">
+            {#each CAPTIONS as word (word)}
+                <span class:unseen={word !== caption} aria-hidden={word !== caption}>{word}</span>
+            {/each}
+        </span>
         {#if tally.length > 0}
             <svg
                 class="tally"
@@ -142,8 +148,17 @@
     }
 
     .caption {
+        display: inline-grid;
         font-size: 13px;
         letter-spacing: 0.08em;
         color: var(--dvonn-ink-quiet);
+    }
+
+    .caption > span {
+        grid-area: 1 / 1;
+    }
+
+    .caption .unseen {
+        visibility: hidden;
     }
 </style>
