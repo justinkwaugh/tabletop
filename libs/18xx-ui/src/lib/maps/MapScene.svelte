@@ -22,7 +22,8 @@
         type MapDrawing,
         type MapSelection,
         type MapToken,
-        type MapRoute
+        type MapRoute,
+        CaptionFontSize
     } from './mapDrawing.js'
 
     let {
@@ -486,6 +487,16 @@
                                         fill={appearance.paper}>{annotation.label}</text
                                     >
                                 </g>
+                            {:else if annotation.kind === 'caption'}
+                                <text
+                                    data-map-revenue-caption={annotation.markerId}
+                                    x={annotation.x}
+                                    y={annotation.y}
+                                    dominant-baseline="central"
+                                    font-size={CaptionFontSize}
+                                    font-weight="700"
+                                    ><title>{annotation.label}</title>{annotation.caption}</text
+                                >
                             {:else if annotation.kind === 'token'}
                                 <image
                                     data-map-placed-token={annotation.markerId}

@@ -100,6 +100,11 @@ export type MapMarkerArt =
      */
     | { revenueSymbol: TileSymbolName }
     /**
+     * A value in front of the hex's staged values, boxed as if printed there, with a caption
+     * above it, such as a value that holds only until an event.
+     */
+    | { revenueLead: { amount: number; caption: string } }
+    /**
      * A token placed during play, drawn whole: in the clear corner farthest from the hex's
      * revenue, in its centre, or over a symbol the hex shows (in a corner where it shows none).
      */
@@ -122,8 +127,10 @@ export type RevenueAnnotation = { markerId: string; label: string; x: number; y:
     | { kind: 'badge'; width: number; height: number; arrows: boolean }
     | { kind: 'symbol'; symbol: TileSymbolName; radius: number }
     | { kind: 'token'; imageUrl: string; radius: number }
+    | { kind: 'caption'; caption: string }
 )
 type RevenueBadge = Extract<RevenueAnnotation, { kind: 'badge' }>
+type RevenueCaption = Extract<RevenueAnnotation, { kind: 'caption' }>
 const RevenueRadius = 8.7
 const TokenRadius = 10.5
 // Between a station circle and the baseline of the name curved over it.
@@ -338,9 +345,13 @@ export function createMapDrawing(
         const tile = mapState?.tile(location.id)
         const placement = tile?.placement
         const relocation = placement ? undefined : placements[location.id]
-        const face = relocation?.edges
-            ? remapFaceEdges(tile?.face ?? location.preprintedTile, relocation.edges)
-            : (tile?.face ?? location.preprintedTile)
+        const leads = revenueLeads(location.markers ?? [], markerArt)
+        const face = withRevenueLeads(
+            relocation?.edges
+                ? remapFaceEdges(tile?.face ?? location.preprintedTile, relocation.edges)
+                : (tile?.face ?? location.preprintedTile),
+            leads
+        )
         const rotation = tile?.rotation ?? 0
         const layout = placement
             ? placedTileLayout(layouts, placement.definitionId)
@@ -493,6 +504,7 @@ export function createMapDrawing(
             !placement && tileLayout.revenueAlign === 'middle'
         )
         const terrainRow = terrainRowOf(drawing)
+        const captions = revenueCaptions(drawing, leads)
         const hexVertices = geometry.vertices.map((point) => ({
             x: point.x - geometry.center.x,
             y: point.y - geometry.center.y
@@ -525,6 +537,7 @@ export function createMapDrawing(
             localLineAboveY,
             revenueAnnotations: [
                 ...badges,
+                ...captions,
                 ...clearSpaceMarks(
                     drawing,
                     markers,
@@ -538,6 +551,13 @@ export function createMapDrawing(
                                 badge,
                                 (badge.width + (badge.arrows ? badge.height : 0)) / 2,
                                 badge.height / 2
+                            )
+                        ),
+                        ...captions.map((caption) =>
+                            box(
+                                caption,
+                                (caption.caption.length * CaptionCharacterWidth) / 2,
+                                CaptionFontSize / 2
                             )
                         ),
                         ...(face.labels.length
@@ -631,6 +651,62 @@ function centreRevenue(
         drawing: liftRevenue(drawing, -shift),
         badges: badges.map((badge) => ({ ...badge, y: badge.y + shift }))
     }
+}
+
+type RevenueLead = { markerId: string; label: string; amount: number; caption: string }
+
+function revenueLeads(
+    markers: NonNullable<MapLocation['markers']>,
+    markerArt: Readonly<Record<string, MapMarkerArt>>
+): RevenueLead[] {
+    return markers.flatMap((marker) => {
+        const art = markerArt[marker.id]
+        return art && 'revenueLead' in art
+            ? [{ markerId: marker.id, label: marker.label, ...art.revenueLead }]
+            : []
+    })
+}
+
+// A lead is drawn as one more staged value, keyed by its marker, so it shares the printed
+// values' layout.
+function withRevenueLeads(face: TileFace, leads: readonly RevenueLead[]): TileFace {
+    if (!leads.length) return face
+    const values = leads.map(({ markerId, amount }) => ({ stage: markerId, amount }))
+    return {
+        ...face,
+        nodes: face.nodes.map((node) =>
+            node.kind !== 'junction' && node.revenue.kind === 'staged'
+                ? {
+                      ...node,
+                      revenue: { ...node.revenue, values: [...values, ...node.revenue.values] }
+                  }
+                : node
+        )
+    }
+}
+
+export const CaptionFontSize = 5
+const CaptionCharacterWidth = 3.4
+// From the top of a lead's box to the middle of its caption.
+const CaptionRise = 3
+
+function revenueCaptions(drawing: TileDrawing, leads: readonly RevenueLead[]): RevenueCaption[] {
+    const cells = drawing.nodes.flatMap(({ revenueCells }) => revenueCells)
+    return leads.flatMap(({ markerId, label, caption }) => {
+        const cell = cells.find((candidate) => candidate.stage === markerId)
+        return cell
+            ? [
+                  {
+                      kind: 'caption' as const,
+                      markerId,
+                      label,
+                      caption,
+                      x: cell.x,
+                      y: cell.y - cell.height / 2 - CaptionRise
+                  }
+              ]
+            : []
+    })
 }
 
 // Badges stack beneath the first shown revenue, centred on it.

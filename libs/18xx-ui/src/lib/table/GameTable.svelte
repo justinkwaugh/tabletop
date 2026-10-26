@@ -86,6 +86,7 @@
     import PhaseChartContent from '../phases/PhaseChartContent.svelte'
     import WealthChart from './WealthChart.svelte'
     import { seatOrderFrom } from './spreadsheetSort.js'
+    import { LabelStacking } from './labelStacking.svelte.js'
     import type { PhaseChartData } from '../phases/phaseChart.js'
     const MapHexDiameter = 140
     const FocusRadius = 220
@@ -310,6 +311,8 @@
     }
     const displayedScene = $derived(session.map.displayedScene)
     const paneLayout = new MediaQuery('(min-width: 64rem)')
+    const paneStripStacking = new LabelStacking()
+    const actionStripStacking = new LabelStacking()
     const phoneLayout = new MediaQuery('(width < 40rem)')
     const companyCardsWrapKey = $derived(
         paneLayout.current ? 'companyCardsWrap' : 'companyCardsWrapTabbed'
@@ -977,12 +980,16 @@
     />
 {/snippet}
 
-{#snippet gameInformationStrip()}
+{#snippet gameInformationStrip(stacking: LabelStacking)}
     <button
         class="game-information"
         onclick={() => (showPhaseChart = true)}
         aria-haspopup="dialog"
         aria-label="Open phase chart"
+        {@attach (row) => {
+            session.gameState
+            return stacking.attach(row)
+        }}
     >
         <span class="game-information-item">
             <span class="information-label">Phase</span>
@@ -992,7 +999,11 @@
             />
         </span>
         <span class="game-information-item">
-            <span class="information-label train-limit-label">Train limit</span>
+            <span
+                class="information-label train-limit-label"
+                class:stacked={stacking.stacked}
+                data-stacking-label><span>Train</span> <span>limit</span></span
+            >
             <span class="train-limit-value"
                 >{phaseChart.phases.find((phase) => phase.id === session.gameState.phaseId)
                     ?.trainLimit}</span
@@ -1007,7 +1018,7 @@
                 )}
                 <span class="depot-type"
                     ><TrainBadge
-                        name={session.trainShortLabel(currentDepotId)}
+                        name={session.trainDepot.trainDefinition(currentDepotId).name}
                         color={trainColors[currentDepotId]}
                     />
                     <span class="depot-count"
@@ -1038,7 +1049,7 @@
     </button>
 {/snippet}
 {#snippet sidebarInformation()}
-    {#if paneLayout.current}{@render gameInformationStrip()}{/if}
+    {#if paneLayout.current}{@render gameInformationStrip(paneStripStacking)}{/if}
     {#if gameInformation}{@render gameInformation()}{/if}
 {/snippet}
 {#snippet chatPanel()}
@@ -1181,7 +1192,7 @@
                 {#snippet actionContent()}
                     <div class="action-body">
                         <div class="action-information">
-                            {@render gameInformationStrip()}
+                            {@render gameInformationStrip(actionStripStacking)}
                         </div>
                         <TableNotices notices={session.notices} />
                         <OperatingSteps
@@ -1744,8 +1755,13 @@
         font-variant-numeric: tabular-nums;
     }
     .train-limit-label {
-        text-align: center;
+        display: inline-flex;
+        column-gap: 0.3em;
         line-height: 10px;
+    }
+    .train-limit-label.stacked {
+        flex-direction: column;
+        align-items: center;
     }
     .train-limit-value,
     .information-value {
