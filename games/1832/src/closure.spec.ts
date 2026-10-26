@@ -3,7 +3,7 @@ import { assertExists } from '@tabletop/common'
 import { isStartOperatingRound, placeStockMarker, recordedRoundEnd } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenThirtyTwoMarket, isCloseCompany } from './index.js'
-import { EighteenThirtyTwoScenarios } from './scenarios/index.js'
+import { addUnstartedRailroads, EighteenThirtyTwoScenarios } from './scenarios/index.js'
 
 function closingOnItsTurn(last: boolean) {
     return playExample(EighteenThirtyTwoScenarios, 'construction', 3, (state) => {
@@ -49,5 +49,26 @@ describe('closure on a company’s own turn', () => {
         assertExists(closure, 'CG closes')
         expect(closure.metadata?.endedTurn).toBe(true)
         expect(recordedRoundEnd(closure)).toBeUndefined()
+    })
+})
+
+describe('closure lowering the certificate limit', () => {
+    it('records each company’s own step when two prices reach the black area together', () => {
+        const play = playExample(EighteenThirtyTwoScenarios, 'trading', 3, (state) => {
+            addUnstartedRailroads(state)
+            const black = EighteenThirtyTwoMarket.spaces.filter((space) => space.color === 'black')
+            placeStockMarker(state.stockMarket, 'ACL', black[0].id)
+            placeStockMarker(state.stockMarket, 'CG', black[1].id)
+        })
+        play.act('FinishStockTurn')
+        // Three players: ten railroads allow 20 certificates, nine 17, eight 15 (Table 2).
+        expect(
+            play.processed
+                .filter(isCloseCompany)
+                .map((closure) => closure.metadata?.certificateLimit)
+        ).toEqual([
+            { from: 20, to: 17 },
+            { from: 17, to: 15 }
+        ])
     })
 })

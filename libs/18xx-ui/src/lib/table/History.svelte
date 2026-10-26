@@ -122,7 +122,11 @@
         <OperatingOrderHistory {order} stations={session.mapView.stations} {companyName} />
     {/snippet}
     {#snippet children(round)}
-        {@const groups = historyGroups(round.entries, round.label.startsWith('OR '))}
+        {@const groups = historyGroups(
+            round.entries,
+            round.label.startsWith('OR '),
+            (action) => !!describe(action).consequence
+        )}
         <ol aria-label={`${round.label} actions`}>
             {#each newestFirst ? groups : groups.toReversed() as entry (entry.id)}
                 {#if entry.kind === 'auction'}

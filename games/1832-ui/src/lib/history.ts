@@ -11,6 +11,7 @@ import {
     isBuyCoalRights,
     isCapitalizeCompany,
     isCloseCompany,
+    type CloseCompany,
     isCompletePriceProtection,
     isDeclineProtection,
     isProtectShares,
@@ -24,7 +25,7 @@ import {
     EighteenThirtyTwoMarket
 } from '@tabletop/1832'
 import type { StockMarketMove } from '@tabletop/18xx'
-import type { GameAction } from '@tabletop/common'
+import { assertExists, type GameAction } from '@tabletop/common'
 import type {
     HistoryDescription,
     HistoryMapPlacement,
@@ -32,6 +33,7 @@ import type {
     MoneyFormat,
     TitleHistoryNames
 } from '@tabletop/18xx-ui'
+import { companyClosureDetails, ownerName } from '@tabletop/18xx-ui'
 import { redemptionHolderName } from './companyShareFacts.js'
 
 const TokenNames = { port: 'Port', cotton: 'Cotton', 'key-west': 'Key West' } as const
@@ -68,6 +70,24 @@ function marketMoveDetail(
             )
             .join(' · ') || undefined
     )
+}
+
+/** 1832 adds its revenue and coal tokens and a funding president's lost cash to a closure. */
+function closureDetail(
+    closure: NonNullable<CloseCompany['metadata']>,
+    names: HistoryNames,
+    money: MoneyFormat
+): string {
+    return [
+        ...companyClosureDetails(closure, names.companyName),
+        ...(closure.removedRevenueTokens ?? []).map(
+            (token) => `${TokenNames[token.kind]} token removed`
+        ),
+        ...(closure.returnedCoalRights ? ['Coal token back to the supply'] : []),
+        ...(closure.forfeit
+            ? [`${ownerName(closure.forfeit.from, names)} lost ${money(closure.forfeit.amount)}`]
+            : [])
+    ].join(' · ')
 }
 
 /** 1832's own actions, as history rows. */
@@ -141,6 +161,7 @@ export function describe1832Action(
         return {
             text: `${first} took over ${second}`,
             value: money(paid),
+            ...(outcome.certificateLimit ? { certificateLimit: outcome.certificateLimit } : {}),
             omitActor: true,
             important: true
         }
@@ -174,15 +195,21 @@ export function describe1832Action(
             ...(action.metadata ? { value: money(action.metadata.proceeds) } : {})
         }
     if (isDiscardMergedTrain(action)) return { text: 'discarded a train after the takeover' }
-    if (isCloseCompany(action))
+    if (isCloseCompany(action)) {
+        assertExists(action.metadata, 'A recorded closure carries its effects')
+        const detail = closureDetail(action.metadata, names, money)
         return {
-            text: `${companyName(action.companyId)} closed, its price in the black area`,
-            ...(action.metadata?.forfeit
-                ? { detail: `Its president lost ${money(action.metadata.forfeit.amount)}` }
+            text: `${companyName(action.companyId)} closed`,
+            companyToken: action.companyId,
+            consequence: true,
+            ...(detail ? { detail } : {}),
+            ...(action.metadata.certificateLimit
+                ? { certificateLimit: action.metadata.certificateLimit }
                 : {}),
             omitActor: true,
             important: true
         }
+    }
     if (isProtectShares(action))
         return {
             text: action.metadata

@@ -10,12 +10,7 @@ import {
 import { StationReservation, type StationState } from '../map/station.js'
 import { closePrivate, privateOwningCompany } from '../privates/privateCompany.js'
 import { companyMarketSpaceId, removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
-import {
-    trainsOwnedBy,
-    releaseTrains,
-    type TrainDestination,
-    type TrainState
-} from '../trains/train.js'
+import { trainsOwnedBy, releaseTrains, TrainDestination, type TrainState } from '../trains/train.js'
 
 export const CompanyClosure = Type.Object(
     {
@@ -27,6 +22,13 @@ export const CompanyClosure = Type.Object(
         removedReservations: Type.Array(StationReservation),
         removedStationIds: Type.Array(Type.String()),
         removedTrainIds: Type.Array(Type.String()),
+        /** Where the removed trains went, and their types in `removedTrainIds` order. */
+        trainRelease: Type.Optional(
+            Type.Object(
+                { destination: TrainDestination, definitionIds: Type.Array(Type.String()) },
+                { additionalProperties: false }
+            )
+        ),
         removedMarketSpaceId: Type.Optional(Type.String())
     },
     { additionalProperties: false }
@@ -65,7 +67,8 @@ export function closeShareCompany(
     const removedStationIds = state.stations
         .filter((station) => station.companyId === companyId && station.status !== 'removed')
         .map((station) => station.id)
-    const removedTrainIds = trainsOwnedBy(state, owner).map((train) => train.id)
+    const removedTrains = trainsOwnedBy(state, owner)
+    const removedTrainIds = removedTrains.map((train) => train.id)
     const details: CompanyClosure = {
         companyId,
         ...(company.president ? { president: structuredClone(company.president) } : {}),
@@ -74,6 +77,10 @@ export function closeShareCompany(
         retiredCertificateIds,
         removedStationIds,
         removedTrainIds,
+        trainRelease: {
+            destination: trainDestination,
+            definitionIds: removedTrains.map((train) => train.definitionId)
+        },
         removedReservations: structuredClone(
             state.stationReservations.filter((reservation) => reservation.companyId === companyId)
         ),

@@ -7,6 +7,7 @@ import {
     type PhaseChangeState,
     type TrainRules
 } from '@tabletop/18xx'
+import { counted } from '../presentation/count.js'
 import type { MoneyFormat } from '../presentation/money.js'
 import { pendingDiscard } from '../session/discardModule.svelte.js'
 
@@ -27,7 +28,7 @@ export type AwaitedDecisionState = PhaseChangeState &
     Pick<EighteenXXState, 'machineState' | 'trackConsent' | 'purchaseOffer'>
 
 export function trainCount(count: number): string {
-    return count === 1 ? '1 train' : `${count} trains`
+    return counted(count, 'train')
 }
 
 export function awaitedDecision(

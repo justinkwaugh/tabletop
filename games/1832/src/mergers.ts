@@ -12,6 +12,7 @@ import {
 } from '@tabletop/common'
 import {
     CashPayment,
+    CertificateLimitChange,
     DeparturePayments,
     ShareSaleDetails,
     SystemActionFirstHandler,
@@ -42,7 +43,7 @@ import type {
     EighteenThirtyTwoStateHandler,
     HydratedEighteenThirtyTwoState
 } from './state.js'
-import { EighteenThirtyTwoStockRules } from './stockRules.js'
+import { EighteenThirtyTwoStockRules, measuringCertificateLimit } from './stockRules.js'
 import { SystemFormation, formSystem } from './systems.js'
 import { MergerKind, MergingState, type MergerProposal } from './titleState.js'
 import { EighteenThirtyTwoPhases, EighteenThirtyTwoTrainRules } from './trains.js'
@@ -108,7 +109,8 @@ export const MergerOutcome = Type.Object(
         system: Type.Optional(SystemFormation),
         payments: Type.Optional(Type.Array(CashPayment)),
         absorption: Type.Optional(Absorption),
-        discardedHomeStationId: Type.Optional(Id)
+        discardedHomeStationId: Type.Optional(Id),
+        certificateLimit: Type.Optional(CertificateLimitChange)
     },
     { additionalProperties: false }
 )
@@ -151,7 +153,9 @@ function completeTakeover(
     ]
     settleCashPayments(state, settled)
     const discardedHomeStationId = discardSharedHome(state, buyerId, targetId)
-    const absorption = absorbCompany(state, targetId, buyerId, 'takeover')
+    const { result: absorption, certificateLimit } = measuringCertificateLimit(state, () =>
+        absorbCompany(state, targetId, buyerId, 'takeover')
+    )
     state.takeoverBuyerIds = [...state.takeoverBuyerIds, buyerId]
     const phase = state.mergerPhase
     assertExists(phase, 'A takeover happens in a merger phase')
@@ -163,7 +167,8 @@ function completeTakeover(
         survivorId: buyerId,
         payments: settled,
         absorption,
-        ...(discardedHomeStationId ? { discardedHomeStationId } : {})
+        ...(discardedHomeStationId ? { discardedHomeStationId } : {}),
+        ...(certificateLimit ? { certificateLimit } : {})
     }
 }
 

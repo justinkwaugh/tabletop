@@ -1,4 +1,9 @@
-import type { AuctionAwardDetails, RouteBonus } from '@tabletop/18xx'
+import type {
+    AuctionAwardDetails,
+    CertificateLimitChange,
+    CompanyClosure,
+    RouteBonus
+} from '@tabletop/18xx'
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
 import {
     isLayTile,
@@ -72,6 +77,8 @@ import {
     type StockMarketChart
 } from '@tabletop/18xx'
 import type { HistoryCompanyChanges } from './historyCompanyChanges.js'
+import { trainCount } from './awaitedDecision.js'
+import { counted } from '../presentation/count.js'
 import { assertExists, type GameAction } from '@tabletop/common'
 
 export type HistoryDescription = {
@@ -85,6 +92,15 @@ export type HistoryDescription = {
     detail?: string
     routine?: boolean
     important?: boolean
+    /** A company whose token leads the row, such as one that floated or closed. */
+    companyToken?: string
+    /** A change to every player's certificate limit, called out below the row. */
+    certificateLimit?: CertificateLimitChange
+    /**
+     * A system action that stays in the operation or turn it happened in, as a company closing
+     * while another operates, rather than opening its own.
+     */
+    consequence?: boolean
 }
 
 /** What the bank paid as trains departed, as an action records it. */
@@ -119,7 +135,33 @@ export function ownerName(owner: Owner, names: HistoryNames): string {
 }
 
 function shareCount(shares: number): string {
-    return `${shares} ${shares === 1 ? 'share' : 'shares'}`
+    return counted(shares, 'share')
+}
+
+/**
+ * What a company's closure took off the table, as detail lines: its stations and reservations,
+ * its trains and where they went, and the privates it owned. Its own cash is left to the
+ * operating ledger, which shows it leaving.
+ */
+export function companyClosureDetails(
+    closure: CompanyClosure,
+    companyName: (id: string) => string
+): string[] {
+    const { removedStationIds, removedReservations, removedTrainIds, trainRelease } = closure
+    // Closures recorded before their trains' types say only how many left.
+    const trains = trainRelease
+        ? `${trainRelease.definitionIds.join(', ')} ${trainRelease.definitionIds.length === 1 ? 'train' : 'trains'} ${trainRelease.destination === 'market' ? 'to the market' : 'removed'}`
+        : `${trainCount(removedTrainIds.length)} left the company`
+    return [
+        ...(removedStationIds.length
+            ? [`${counted(removedStationIds.length, 'station')} removed`]
+            : []),
+        ...(removedReservations.length
+            ? [`${counted(removedReservations.length, 'reservation')} removed`]
+            : []),
+        ...(removedTrainIds.length ? [trains] : []),
+        ...closure.closedPrivateIds.map((id) => `${companyName(id)} closed`)
+    ]
 }
 
 export function companyLabels(
@@ -659,6 +701,7 @@ function describeShared(
             .reduce((sum, payment) => sum + payment.amount, 0)
         return {
             text: `${companyName(action.companyId)} floated`,
+            companyToken: action.companyId,
             detail:
                 [
                     ...(capital ? [`${money(capital)} capital`] : []),

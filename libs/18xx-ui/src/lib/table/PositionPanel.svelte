@@ -43,6 +43,9 @@
     import TrainCardStrip from '../trains/TrainCardStrip.svelte'
     import { shareSign } from './shareCards.js'
     import PlaceText from '../places/PlaceText.svelte'
+    import HistoryCallout from './HistoryCallout.svelte'
+    import { bankBreakCallout, certificateLimitCallout } from './historyCallouts.js'
+    import { historyBankBreaks, historyStates } from './historyStates.js'
 
     let {
         session,
@@ -160,6 +163,28 @@
             ? session.auctionLotsFor(gameState).find((lot) => lot.id === lotAction.lotId)
             : undefined
     }
+    /** The table-wide events the step caused: limit changes, then the bank breaking. */
+    function stepCallouts(
+        action: GameAction,
+        description: HistoryDescription,
+        consequences: readonly GameAction[]
+    ) {
+        // Only the step's own actions are undone to find where the bank broke, from the plain
+        // displayed state; an action without its reversal data has no state before it to compare.
+        const context = session.history.visibleContext
+        const states = historyStates(
+            context.actions.slice(context.actions.indexOf(action)),
+            context.state,
+            session.endingRules
+        )
+        const bankBreak = [...historyBankBreaks(states)].find(([id]) => states.get(id)?.before)?.[1]
+        return [
+            ...[description, ...consequences.map(describe)].flatMap((entry) =>
+                entry.certificateLimit ? [certificateLimitCallout(entry.certificateLimit)] : []
+            ),
+            ...(bankBreak ? [bankBreakCallout(bankBreak)] : [])
+        ]
+    }
     const latest = $derived.by(() => {
         const [action, ...consequences] = step
         if (!action) return
@@ -200,6 +225,7 @@
             shareCards: session.shareCards(action),
             shareSign: shareSign(action),
             trainCards,
+            callouts: stepCallouts(action, description, consequences),
             consequences: consequences.map((consequence) => {
                 const consequenceDescription = describe(consequence)
                 const phase = historyPhaseChange(consequence, session.phaseChangePalette)
@@ -341,6 +367,7 @@
                     </div>
                 {/if}
             </div>
+            {#each latest.callouts as callout, index (index)}<HistoryCallout {callout} />{/each}
         {/if}
     </section>
 {/if}

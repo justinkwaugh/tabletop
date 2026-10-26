@@ -21,9 +21,14 @@ export type HistoryGroup = {
 }
 export type GroupedHistoryEntry = Extract<ActionHistoryEntry, { kind: 'auction' }> | HistoryGroup
 
+/**
+ * Groups a round's entries into operations and turns. A phase change, a flotation, or an action
+ * `isConsequence` names, such as a company closing, joins the group it happened in.
+ */
 export function historyGroups(
     entries: readonly ActionHistoryEntry[],
-    operating: boolean
+    operating: boolean,
+    isConsequence: (action: GameAction) => boolean = () => false
 ): GroupedHistoryEntry[] {
     const groups: GroupedHistoryEntry[] = []
     let current: HistoryGroup | undefined
@@ -52,7 +57,7 @@ export function historyGroups(
             isStartOperatingRound(action) ||
             isCompleteStockRound(action)
         if (isEndGame(action) || roundEvent) current = undefined
-        const consequence = phase || isFloatCompany(action)
+        const consequence = phase || isFloatCompany(action) || isConsequence(action)
         const compatible =
             current &&
             (consequence ||
