@@ -23,6 +23,7 @@
         PIECE_STYLES,
         seedOf,
         sideSpecks,
+        wallSpecks,
         type Tone
     } from '$lib/board/pieceStyle.js'
 
@@ -69,7 +70,8 @@
                 ...disc,
                 tone,
                 style: PIECE_STYLES[tone],
-                sideSpecks: disc.full ? sideSpecks(tone, seed) : [],
+                seed,
+                sideSpecks: sideSpecks(tone, seed, model.thickness),
                 specks: top ? faceSpecks(tone, seed, model.hole) : [],
                 top,
                 catch: catchLight > 0 && tone === 'black' && tones[index + 1] === 'black'
@@ -85,14 +87,33 @@
     const hole = $derived.by(() => {
         if (!top) return undefined
         const pitch = drawing.height + model.gap * radius * RISE
-        const walls = pieces.toReversed().map((piece, index) => {
-            const base = top.base + index * pitch
-            return {
-                band: wallBand(shift(drawing.opening, base), shift(drawing.bottomOpening, base)),
-                color: piece.style.wall
-            }
-        })
         const opening = shift(drawing.opening, top.base)
+        // Walls whose top lies below the opening's near edge are out of sight.
+        const walls = pieces
+            .toReversed()
+            .map((piece, index) => {
+                const upper = shift(drawing.opening, top.base + index * pitch)
+                const lower = shift(drawing.bottomOpening, top.base + index * pitch)
+                const depth = lower.y - upper.y
+                return {
+                    band: wallBand(upper, lower),
+                    style: piece.style,
+                    seen: upper.y - upper.ry < opening.y + opening.ry,
+                    specks: wallSpecks(piece.tone, piece.seed, model.hole, model.thickness).map(
+                        (speck) => {
+                            const turn = Math.PI * speck.turn
+                            return {
+                                x: -upper.rx * Math.cos(turn),
+                                y: upper.y - upper.ry * Math.sin(turn) + speck.v * depth,
+                                rx: speck.r * radius * speck.stretch * Math.sin(turn),
+                                ry: Math.min(speck.r * radius, depth * 0.2),
+                                alt: speck.alt
+                            }
+                        }
+                    )
+                }
+            })
+            .filter((wall) => wall.seen)
         const bottom = shift(drawing.bottomOpening, top.base + (pieces.length - 1) * pitch)
         return {
             opening,
@@ -181,6 +202,18 @@
                 stroke={creaseColor(piece.tone)}
                 stroke-width={Math.min(0.6, piece.side * 0.3)}
             ></path>
+            {#each piece.sideSpecks as speck, s (s)}
+                <ellipse
+                    cx={speck.x * radius}
+                    cy={piece.base -
+                        piece.side * (1 - speck.v) +
+                        radius * TILT * Math.sqrt(1 - speck.x * speck.x)}
+                    rx={speck.r * radius * speck.stretch * Math.sqrt(1 - speck.x * speck.x)}
+                    ry={Math.min(speck.r * radius, piece.side * 0.35)}
+                    fill={speck.alt ? piece.style.speckAlt : piece.style.speck}
+                    class="speck"
+                ></ellipse>
+            {/each}
         {/if}
     {/each}
 </g>
@@ -191,7 +224,17 @@
     <g clip-path="url(#{openingId})">
         <path d={hole.shadow} class="hole-shadow"></path>
         {#each hole.walls as wall, index (index)}
-            <path d={wall.band} fill={wall.color}></path>
+            <path d={wall.band} fill={wall.style.wall}></path>
+            {#each wall.specks as speck, s (s)}
+                <ellipse
+                    cx={speck.x}
+                    cy={speck.y}
+                    rx={speck.rx}
+                    ry={speck.ry}
+                    fill={speck.alt ? wall.style.speckAlt : wall.style.speck}
+                    class="speck wall-speck"
+                ></ellipse>
+            {/each}
         {/each}
     </g>
     {#each top.specks as speck, s (s)}
@@ -212,6 +255,11 @@
 <style>
     .speck {
         opacity: 0.9;
+    }
+
+    /* Inside the hole, in shadow. */
+    .wall-speck {
+        opacity: 0.75;
     }
 
     .catch {

@@ -69,13 +69,27 @@ export type SideSpeck = {
     angle: number
     alt: boolean
 }
+// A speck on the far half of the hole's wall: `turn` around it from one side (0) to the other
+// (1), v down it.
+export type WallSpeck = {
+    turn: number
+    v: number
+    r: number
+    stretch: number
+    angle: number
+    alt: boolean
+}
 
-// Black flecks on white read as sparser than white flecks on black, so white carries more.
-const FACE_SPECKS: Record<Tone, number> = { white: 70, black: 45, red: 45 }
-const SIDE_SPECKS = 10
+// Flecks per unit of area (the piece's radius squared), the same on every surface. Black flecks
+// on white read as sparser than white flecks on black, so white carries more.
+const SPECK_DENSITY: Record<Tone, number> = { white: 29.7, black: 19.1, red: 19.1 }
 
 // The share of a piece's flecks in its second color.
 const ALT_SHARE: Record<Tone, number> = { white: 0, black: 0, red: 0.45 }
+
+function speckCount(tone: Tone, area: number): number {
+    return Math.round(SPECK_DENSITY[tone] * area)
+}
 
 function speckShape(random: () => number, tone: Tone) {
     return {
@@ -88,9 +102,9 @@ function speckShape(random: () => number, tone: Tone) {
 
 export function faceSpecks(tone: Tone, seed: number, holeRatio: number): Speck[] {
     const random = seededRandom(seed)
-    const inner = holeRatio + 0.05
+    const inner = holeRatio + 0.01
     const outer = 0.95
-    return Array.from({ length: FACE_SPECKS[tone] }, () => {
+    return Array.from({ length: speckCount(tone, Math.PI * (outer ** 2 - inner ** 2)) }, () => {
         const angle = random() * Math.PI * 2
         const distance = Math.sqrt(inner ** 2 + (outer ** 2 - inner ** 2) * random())
         return {
@@ -101,10 +115,26 @@ export function faceSpecks(tone: Tone, seed: number, holeRatio: number): Speck[]
     })
 }
 
-export function sideSpecks(tone: Tone, seed: number): SideSpeck[] {
+// The near half of the outer side, `thickness` of the radius tall.
+export function sideSpecks(tone: Tone, seed: number, thickness: number): SideSpeck[] {
     const random = seededRandom(seed ^ 0x5f3759df)
-    return Array.from({ length: SIDE_SPECKS }, () => ({
+    return Array.from({ length: speckCount(tone, Math.PI * thickness) }, () => ({
         x: (random() * 2 - 1) * 0.94,
+        v: 0.2 + random() * 0.6,
+        ...speckShape(random, tone)
+    }))
+}
+
+// The far half of the hole's wall, the only half seen from above.
+export function wallSpecks(
+    tone: Tone,
+    seed: number,
+    holeRatio: number,
+    thickness: number
+): WallSpeck[] {
+    const random = seededRandom(seed ^ 0x2545f491)
+    return Array.from({ length: speckCount(tone, Math.PI * holeRatio * thickness) }, () => ({
+        turn: 0.06 + random() * 0.88,
         v: 0.2 + random() * 0.6,
         ...speckShape(random, tone)
     }))
