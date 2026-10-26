@@ -1,9 +1,10 @@
 <script lang="ts">
     import { MachineState, PIECES_PER_PLAYER, type HydratedDvonnPlayerState } from '@tabletop/dvonn'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { PIECE_RADIUS, stackBounds } from '$lib/board/pieceGeometry.js'
+    import { PIECE_RADIUS, stackBounds, TILT } from '$lib/board/pieceGeometry.js'
     import { coordsKey } from '$lib/board/geometry.js'
     import { controlledTally, inStacks, TALLY_HEIGHT } from '$lib/board/tally.js'
+    import PieceDefs from './PieceDefs.svelte'
     import StackShape from './StackShape.svelte'
 
     let { playerState }: { playerState: HydratedDvonnPlayerState } = $props()
@@ -44,6 +45,7 @@
               )
     )
 
+    const prefix = $derived(`dvonn-card-${playerState.playerId}`)
     const RADIUS = PIECE_RADIUS
     const PITCH = RADIUS * 2 + 7
     const bounds = stackBounds(TALLY_HEIGHT, RADIUS)
@@ -71,9 +73,13 @@
                 viewBox="{-RADIUS - 1} {bounds.top - 1} {tally.length * PITCH} {tallyHeight}"
                 aria-hidden="true"
             >
+                <defs><PieceDefs {prefix} /></defs>
                 {#each tally as stack, index (index)}
                     <g transform="translate({index * PITCH} 0)">
+                        <ellipse rx={RADIUS} ry={RADIUS * TILT} fill="url(#{prefix}-contact)"
+                        ></ellipse>
                         <StackShape
+                            {prefix}
                             tones={stack.map((piece) => piece.tone)}
                             seedKeys={stack.map((piece) => piece.seedKey)}
                             radius={RADIUS}

@@ -1,7 +1,23 @@
 <svelte:options namespace="svg" />
 
 <script lang="ts">
-    import { HOLE_RATIO, SIDE, stackDiscs, TILT } from '$lib/board/pieceGeometry.js'
+    import {
+        PIECE_MODEL,
+        RISE,
+        stackDiscs,
+        TILT,
+        type PieceModel
+    } from '$lib/board/pieceGeometry.js'
+    import {
+        bandPath,
+        creaseColor,
+        ellipsePath,
+        lens,
+        pieceDrawing,
+        SHADE_LEVELS,
+        wallBand,
+        type Ellipse
+    } from '$lib/board/pieceShape.js'
     import {
         faceSpecks,
         PIECE_STYLES,
@@ -10,152 +26,186 @@
         type Tone
     } from '$lib/board/pieceStyle.js'
 
+    // A stack standing on its space, seen from the near side of the table, bottom piece first.
+    // The gradients come from a PieceDefs with the same prefix in the same SVG.
     let {
         tones,
         seedKeys,
         radius,
-        showCount = true
+        prefix,
+        showCount = true,
+        catchLight = 0,
+        model = PIECE_MODEL
     }: {
         // Bottom to top, one per piece; each piece's specks are seeded by its key, so they go
         // with it as it moves.
         tones: readonly Tone[]
         seedKeys: readonly string[]
         radius: number
+        prefix: string
         showCount?: boolean
+        // How bright a black piece's top edge shows under another black piece; 0 for none.
+        catchLight?: number
+        model?: PieceModel
     } = $props()
 
     const uid = $props.id()
-    const clipId = `dvonn-hole-${uid}`
-    const ry = $derived(radius * TILT)
-    const hole = $derived(radius * HOLE_RATIO)
-    const holeRy = $derived(hole * TILT)
-    const discs = $derived(
+    const throughId = `dvonn-through-${uid}`
+    const openingId = `dvonn-opening-${uid}`
+    const MID_LEVEL = (SHADE_LEVELS - 1) / 2
+
+    const drawing = $derived(pieceDrawing(radius, model))
+    const pieces = $derived(
         stackDiscs(
             tones.length,
             radius,
-            tones.map((tone) => tone === 'red')
+            tones.map((tone) => tone === 'red'),
+            model
         ).map((disc, index) => {
             const tone = tones[index]
             const seed = seedOf(`${seedKeys[index]}:${tone}`)
+            const top = index === tones.length - 1
             return {
                 ...disc,
                 tone,
                 style: PIECE_STYLES[tone],
-                sideSpecks: sideSpecks(seed),
-                specks: index === tones.length - 1 ? faceSpecks(tone, seed, HOLE_RATIO) : []
+                sideSpecks: disc.full ? sideSpecks(tone, seed) : [],
+                specks: top ? faceSpecks(tone, seed, model.hole) : [],
+                top,
+                catch: catchLight > 0 && tone === 'black' && tones[index + 1] === 'black'
             }
         })
     )
-    const top = $derived(discs.at(-1))
-    // The count sits in the top piece's hole, light on dark so it reads on every color.
-    const countSize = $derived(radius * (tones.length >= 10 ? 0.74 : 0.88))
+    const top = $derived(pieces.at(-1))
 
-    // The side band below a face: the lower half of the face ellipse, then the same half one
-    // side lower.
-    function sidePath(faceY: number, side: number): string {
-        const r = radius
-        return `M ${-r} ${faceY} L ${-r} ${faceY + side} A ${r} ${ry} 0 0 0 ${r} ${faceY + side} L ${r} ${faceY} A ${r} ${ry} 0 0 1 ${-r} ${faceY} Z`
-    }
+    const shift = (ellipse: Ellipse, by: number): Ellipse => ({ ...ellipse, y: ellipse.y + by })
 
     // Down the hole every piece shows its true thickness, even where the stack's bands are
     // thinned, so a tall stack shows only pieces there and a short one the board below.
-    const walls = $derived.by(() => {
-        const depth = radius * SIDE
-        const faceY = top?.faceY ?? 0
-        return discs.toReversed().map((disc, index) => ({
-            faceY: faceY + index * depth,
-            depth,
-            color: disc.style.wall,
-            seam: disc.style.seam
-        }))
+    const hole = $derived.by(() => {
+        if (!top) return undefined
+        const pitch = drawing.height + model.gap * radius * RISE
+        const walls = pieces.toReversed().map((piece, index) => {
+            const base = top.base + index * pitch
+            return {
+                band: wallBand(shift(drawing.opening, base), shift(drawing.bottomOpening, base)),
+                color: piece.style.wall
+            }
+        })
+        const opening = shift(drawing.opening, top.base)
+        const bottom = shift(drawing.bottomOpening, top.base + (pieces.length - 1) * pitch)
+        return {
+            opening,
+            // The far walls and the creases between them, all the way down.
+            shadow: wallBand(opening, bottom),
+            walls,
+            through: lens(opening, bottom)
+        }
     })
 
-    // Looking down the hole: each disc's inner wall shows between its top opening and the opening
-    // one disc lower; below the last one the board shows through.
-    function wallBand(faceY: number, depth: number): string {
-        const rx = hole
-        const r = holeRy
-        if (depth >= 2 * r) {
-            return `M ${-rx} ${faceY} a ${rx} ${r} 0 1 0 ${2 * rx} 0 a ${rx} ${r} 0 1 0 ${-2 * rx} 0 Z`
-        }
-        const x = rx * Math.sqrt(1 - (depth / (2 * r)) ** 2)
-        const y = faceY + depth / 2
-        return `M ${-x} ${y} A ${rx} ${r} 0 1 1 ${x} ${y} A ${rx} ${r} 0 0 0 ${-x} ${y} Z`
-    }
+    // Everything but where the board shows through the hole.
+    const outside = $derived(
+        hole?.through
+            ? `M ${-radius * 3} ${-radius * 6} H ${radius * 3} V ${radius * 3} H ${-radius * 3} Z ${hole.through}`
+            : undefined
+    )
+    // The count sits in the top piece's hole, light on dark so it reads on every color.
+    const countSize = $derived(radius * (tones.length >= 10 ? 0.74 : 0.88))
 
-    function ringFace(faceY: number): string {
-        const r = radius
-        const h = hole
-        const hy = h * TILT
-        return `M ${-r} ${faceY} a ${r} ${ry} 0 1 0 ${2 * r} 0 a ${r} ${ry} 0 1 0 ${-2 * r} 0 Z M ${-h} ${faceY} a ${h} ${hy} 0 1 0 ${2 * h} 0 a ${h} ${hy} 0 1 0 ${-2 * h} 0 Z`
+    function speckAt(x: number, y: number) {
+        const distance = Math.hypot(x, y)
+        return { x: x * radius, y: drawing.surface(distance) + y * radius * TILT }
     }
 </script>
 
-{#each discs as disc, index (index)}
-    <path
-        d={sidePath(disc.faceY, disc.side)}
-        fill={disc.style.side}
-        stroke={disc.style.edge}
-        stroke-width={Math.min(0.8, disc.side * 0.25)}
-    ></path>
-    {#if disc.tone === 'black' && discs[index + 1]?.tone === 'black'}
-        <!-- A black piece under another black one catches a little light along its top edge, so
-             the two part; a change of color parts pieces already. -->
-        <path
-            d="M {-radius} {disc.faceY + 0.8} A {radius} {ry} 0 0 0 {radius} {disc.faceY + 0.8}"
-            class="catch"
-            stroke-width={Math.min(0.9, disc.side * 0.3)}
-        ></path>
-    {/if}
-    {#if disc.side > radius * 0.12}
-        {#each disc.sideSpecks as speck, s (s)}
-            <ellipse
-                cx={speck.x * radius}
-                cy={disc.faceY + ry * Math.sqrt(1 - speck.x * speck.x) + speck.v * disc.side}
-                rx={speck.r * radius * speck.stretch}
-                ry={Math.min(speck.r * radius, disc.side * 0.3)}
-                fill={disc.style.speck}
-                class="speck"
-            ></ellipse>
-        {/each}
-    {/if}
-{/each}
-{#if top}
-    <clipPath id={clipId}>
-        <ellipse rx={hole} ry={holeRy} cy={top.faceY}></ellipse>
+{#if outside}
+    <clipPath id={throughId}>
+        <path d={outside} clip-rule="evenodd"></path>
     </clipPath>
-    <g clip-path="url(#{clipId})">
-        {#each walls as wall, index (index)}
+{/if}
+<g clip-path={outside ? `url(#${throughId})` : undefined}>
+    {#each pieces as piece, index (index)}
+        {#if piece.full}
+            <g transform="translate(0 {piece.base})">
+                {#each drawing.side as slice, s (s)}
+                    <ellipse
+                        cy={slice.y}
+                        rx={slice.rx}
+                        ry={slice.ry}
+                        fill="url(#{prefix}-{piece.tone}-side-{slice.level})"
+                    ></ellipse>
+                {/each}
+                {#each piece.sideSpecks as speck, s (s)}
+                    <ellipse
+                        cx={speck.x * radius}
+                        cy={-drawing.height * (1 - speck.v) +
+                            radius * TILT * Math.sqrt(1 - speck.x * speck.x)}
+                        rx={speck.r * radius * speck.stretch * Math.sqrt(1 - speck.x * speck.x)}
+                        ry={Math.min(speck.r * radius, drawing.height * 0.2)}
+                        fill={speck.alt ? piece.style.speckAlt : piece.style.speck}
+                        class="speck"
+                    ></ellipse>
+                {/each}
+                {#if piece.top}
+                    {#each drawing.top as slice, s (s)}
+                        <ellipse
+                            cy={slice.y}
+                            rx={slice.rx}
+                            ry={slice.ry}
+                            fill="url(#{prefix}-{piece.tone}-top-{slice.level})"
+                        ></ellipse>
+                    {/each}
+                {:else}
+                    <!-- The top in the shadow of the piece resting on it: the crease between
+                         them. -->
+                    <ellipse
+                        cy={drawing.rim.y}
+                        rx={drawing.rim.rx}
+                        ry={drawing.rim.ry}
+                        fill={creaseColor(piece.tone)}
+                    ></ellipse>
+                    {#if piece.catch}
+                        <path
+                            d="M {-radius} {drawing.rim.y + radius * 0.04} A {radius} {radius *
+                                TILT} 0 0 0 {radius} {drawing.rim.y + radius * 0.04}"
+                            class="catch"
+                            stroke-opacity={catchLight}
+                        ></path>
+                    {/if}
+                {/if}
+            </g>
+        {:else}
             <path
-                d={wallBand(wall.faceY, wall.depth)}
-                fill={wall.color}
-                stroke={wall.seam}
-                class="wall"
+                d={bandPath(piece.base, piece.side, radius)}
+                fill="url(#{prefix}-{piece.tone}-side-{MID_LEVEL})"
+                stroke={creaseColor(piece.tone)}
+                stroke-width={Math.min(0.6, piece.side * 0.3)}
             ></path>
+        {/if}
+    {/each}
+</g>
+{#if top && hole}
+    <clipPath id={openingId}>
+        <path d={ellipsePath(hole.opening)}></path>
+    </clipPath>
+    <g clip-path="url(#{openingId})">
+        <path d={hole.shadow} class="hole-shadow"></path>
+        {#each hole.walls as wall, index (index)}
+            <path d={wall.band} fill={wall.color}></path>
         {/each}
     </g>
-    <path
-        d={ringFace(top.faceY)}
-        fill={top.style.face}
-        fill-rule="evenodd"
-        stroke={top.style.edge}
-        stroke-width="0.8"
-    ></path>
-    <!-- The moulded rim the pieces nest by. -->
-    <ellipse rx={radius * 0.72} ry={ry * 0.72} cy={top.faceY} stroke={top.style.edge} class="rim"
-    ></ellipse>
     {#each top.specks as speck, s (s)}
+        {@const at = speckAt(speck.x, speck.y)}
         <ellipse
-            transform="translate({speck.x * radius} {top.faceY +
-                speck.y * ry}) scale(1 {TILT}) rotate({speck.angle})"
+            transform="translate({at.x} {top.base + at.y}) scale(1 {TILT}) rotate({speck.angle})"
             rx={speck.r * radius * speck.stretch}
             ry={speck.r * radius}
-            fill={top.style.speck}
+            fill={speck.alt ? top.style.speckAlt : top.style.speck}
             class="speck"
         ></ellipse>
     {/each}
     {#if showCount && tones.length > 1}
-        <text y={top.faceY} font-size={countSize} class="count">{tones.length}</text>
+        <text y={hole.opening.y} font-size={countSize} class="count">{tones.length}</text>
     {/if}
 {/if}
 
@@ -166,19 +216,12 @@
 
     .catch {
         fill: none;
-        stroke: rgb(255 255 255 / 0.32);
+        stroke: #ffffff;
+        stroke-width: 0.8;
     }
 
-    /* The seam between two pieces seen down the hole. */
-    .wall {
-        stroke-width: 0.7;
-        stroke-opacity: 0.8;
-    }
-
-    .rim {
-        fill: none;
-        stroke-width: 0.6;
-        opacity: 0.35;
+    .hole-shadow {
+        fill: rgb(0 0 0 / 0.85);
     }
 
     .count {

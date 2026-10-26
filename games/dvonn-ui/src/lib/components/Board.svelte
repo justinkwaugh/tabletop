@@ -3,15 +3,17 @@
     import { isSpace, SPACES, spaceName } from '@tabletop/dvonn'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import { coordsKey, LAYOUT } from '$lib/board/geometry.js'
-    import { HOLE_RATIO, SIDE, stackBounds, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
+    import { coordsKey, VIEW } from '$lib/board/geometry.js'
+    import { PIECE_MODEL, stackDiscs, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
+    import { markRing, outlinePath } from '$lib/board/pieceShape.js'
     import { sandImage } from '$lib/board/sand.js'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
+    import PieceDefs from './PieceDefs.svelte'
     import StackShape from './StackShape.svelte'
 
     const session = getGameSession()
 
-    const layout = LAYOUT
+    const layout = VIEW
     const radius = layout.radius
 
     // The graph board: lines along the three directions through every space, running a short
@@ -42,8 +44,6 @@
     const sand = $derived(
         session.graphBoard ? undefined : sandImage(layout.frame.width, layout.frame.height)
     )
-    // Each imprint sits where a single piece's base rests.
-    const imprintY = $derived((radius * SIDE) / 2)
     const imprintRadius = $derived(radius * 1.03)
 
     const animator = new BoardAnimator(session, () => layout)
@@ -70,12 +70,20 @@
         return undefined
     }
 
-    const clickable = $derived(SPACES.filter((coords) => session.isClickable(coords)))
+    // Far first, so where a nearer stack's outline overlaps one behind, the nearer one takes the tap.
+    const clickable = $derived(
+        SPACES.filter((coords) => session.isClickable(coords)).toSorted((a, b) => {
+            const pa = layout.center(a)
+            const pb = layout.center(b)
+            return pa.y - pb.y || pa.x - pb.x
+        })
+    )
 
-    function target(coords: AxialCoordinates) {
-        const center = layout.center(coords)
-        const { top, bottom } = stackBounds(Math.max(heightAt(coords), 1), radius)
-        return { x: center.x, y: center.y + (top + bottom) / 2, ry: (bottom - top) / 2 }
+    // The outline of the stack standing there, or of a single piece on an empty space.
+    function target(coords: AxialCoordinates): string {
+        const height = Math.max(heightAt(coords), 1)
+        const base = stackDiscs(1, radius)[0].base
+        return outlinePath(base, topFaceY(height, radius), radius)
     }
 
     function describe(coords: AxialCoordinates): string {
@@ -99,42 +107,46 @@
     }
 
     const shadowRx = $derived(radius + 3)
-    const RIM = 0.72
+    // A mark recolors a ring just inside the rim of the stack's top piece.
+    function markOn(height: number) {
+        const ring = markRing(radius)
+        const base = stackDiscs(Math.max(height, 1), radius).at(-1)?.base ?? 0
+        return { ...ring, y: ring.y + base }
+    }
 </script>
+
+<!-- A stack's shadow on the board, and right under it the board in its shade, which shows through
+     the gap under the bottom piece. -->
+{#snippet shadow()}
+    <ellipse cx="1.5" cy="2" rx={shadowRx} ry={shadowRx * TILT} fill="url(#dvonn-shadow)"></ellipse>
+    <ellipse rx={radius} ry={radius * TILT} fill="url(#dvonn-board-contact)"></ellipse>
+{/snippet}
 
 {#snippet drawn(stack: DrawnStack)}
     {@const center = layout.center(stack.coords)}
     {@const role = roleOf(stack.coords)}
     <g transform="translate({center.x} {center.y})" class="piece">
         <g {@attach animator.node(stack.key)}>
-            <ellipse
-                cx="1.5"
-                cy={imprintY + 2}
-                rx={shadowRx}
-                ry={shadowRx * TILT}
-                fill="url(#dvonn-shadow)"
-                {@attach animator.node(`${stack.key}:shadow`)}
-            ></ellipse>
+            <g {@attach animator.node(`${stack.key}:shadow`)}>
+                {@render shadow()}
+            </g>
             <g {@attach animator.node(`${stack.key}:body`)}>
                 <StackShape
                     tones={stack.pieces.map((piece) => session.toneOfPiece(piece))}
                     seedKeys={stack.pieces.map((piece) => coordsKey(piece.placedAt))}
                     {radius}
+                    prefix="dvonn-board"
                 />
             </g>
         </g>
-        <!-- A mark recolors the moulded rim on top of the stack. It is drawn with its stack, so
+        <!-- A mark recolors a ring on top of the stack. It is drawn with its stack, so
              nearer stacks cover it as they cover the pieces, but outside the stack's moving
              group: it fades with the move rather than travelling with the stack. -->
         {#if role}
+            {@const ring = markOn(stack.pieces.length)}
             <g class="rim role-{role}" {@attach animator.mark()}>
                 {#each ['under', 'over'] as layer (layer)}
-                    <ellipse
-                        cy={topFaceY(stack.pieces.length, radius)}
-                        rx={radius * RIM}
-                        ry={radius * RIM * TILT}
-                        class={layer}
-                    ></ellipse>
+                    <ellipse cy={ring.y} rx={ring.rx} ry={ring.ry} class={layer}></ellipse>
                 {/each}
             </g>
         {/if}
@@ -152,6 +164,7 @@
     {@attach animator.attach}
 >
     <defs>
+        <PieceDefs prefix="dvonn-board" />
         <clipPath id="dvonn-sand-clip">
             <path d={layout.sandOutline}></path>
         </clipPath>
@@ -196,7 +209,7 @@
         <g class="imprints">
             {#each SPACES as coords (coordsKey(coords))}
                 {@const center = layout.center(coords)}
-                <g transform="translate({center.x} {center.y + imprintY})">
+                <g transform="translate({center.x} {center.y})">
                     <ellipse
                         rx={imprintRadius}
                         ry={imprintRadius * TILT}
@@ -204,8 +217,8 @@
                         class="imprint"
                     ></ellipse>
                     <ellipse
-                        rx={imprintRadius * HOLE_RATIO}
-                        ry={imprintRadius * HOLE_RATIO * TILT}
+                        rx={imprintRadius * PIECE_MODEL.hole}
+                        ry={imprintRadius * PIECE_MODEL.hole * TILT}
                         stroke="url(#dvonn-imprint-hole)"
                         class="imprint"
                     ></ellipse>
@@ -228,17 +241,12 @@
         {@const center = layout.center(animator.flier.coords)}
         <g transform="translate({center.x} {center.y + animator.flier.startLift})" class="flier">
             <g {@attach animator.flierNode()}>
-                <ellipse
-                    cx="1.5"
-                    cy={imprintY + 2}
-                    rx={shadowRx}
-                    ry={shadowRx * TILT}
-                    fill="url(#dvonn-shadow)"
-                ></ellipse>
+                {@render shadow()}
                 <StackShape
                     tones={animator.flier.pieces.map((piece) => session.toneOfPiece(piece))}
                     seedKeys={animator.flier.pieces.map((piece) => coordsKey(piece.placedAt))}
                     {radius}
+                    prefix="dvonn-board"
                 />
             </g>
         </g>
@@ -246,19 +254,17 @@
 
     <g class="targets">
         {#each clickable as coords (coordsKey(coords))}
-            {@const area = target(coords)}
-            <ellipse
-                cx={area.x}
-                cy={area.y}
-                rx={radius}
-                ry={area.ry}
+            {@const center = layout.center(coords)}
+            <path
+                d={target(coords)}
+                transform="translate({center.x} {center.y})"
                 class="target"
                 role="button"
                 tabindex="0"
                 aria-label={describe(coords)}
                 onclick={() => session.chooseSpace(coords)}
                 onkeydown={(event) => onKey(event, () => session.chooseSpace(coords))}
-            ></ellipse>
+            ></path>
         {/each}
     </g>
 </svg>

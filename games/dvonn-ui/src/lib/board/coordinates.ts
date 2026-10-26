@@ -9,15 +9,14 @@ export type CoordinateLabel = {
     at: Point
 }
 
-// Beyond the sand's edge, on the table.
-const LABEL_REACH = 0.98
 const BELOW: AxialCoordinates = { q: 0, r: 1 }
 // Numbers stay level along each row, so a row starts at its left.
 const BEFORE_LINE: AxialCoordinates = { q: -1, r: 0 }
 
 export function boardLabels(
     positions: readonly AxialCoordinates[],
-    center: (coords: AxialCoordinates) => Point
+    // Where a label goes beside an outer space, toward a neighbour it does not have.
+    beside: (coords: AxialCoordinates, toward: AxialCoordinates) => Point
 ): CoordinateLabel[] {
     const extreme = (
         group: (coords: AxialCoordinates) => number,
@@ -41,31 +40,18 @@ export function boardLabels(
         (c) => c.q,
         Math.min
     )
+    const label = (
+        key: string,
+        text: string,
+        coords: AxialCoordinates,
+        direction: AxialCoordinates
+    ): CoordinateLabel => ({ key, text, at: beside(coords, addAxial(coords, direction)) })
     return [
         ...columnBottoms.map((coords) =>
-            labelBeside(`column-${coords.q}`, spaceName(coords).slice(0, 1), coords, BELOW, center)
+            label(`column-${coords.q}`, spaceName(coords).slice(0, 1), coords, BELOW)
         ),
         ...lineStarts.map((coords) =>
-            labelBeside(`line-${coords.r}`, spaceName(coords).slice(1), coords, BEFORE_LINE, center)
+            label(`line-${coords.r}`, spaceName(coords).slice(1), coords, BEFORE_LINE)
         )
     ]
-}
-
-function labelBeside(
-    key: string,
-    text: string,
-    point: AxialCoordinates,
-    direction: AxialCoordinates,
-    center: (coords: AxialCoordinates) => Point
-): CoordinateLabel {
-    const from = center(point)
-    const to = center(addAxial(point, direction))
-    return {
-        key,
-        text,
-        at: {
-            x: from.x + (to.x - from.x) * LABEL_REACH,
-            y: from.y + (to.y - from.y) * LABEL_REACH
-        }
-    }
 }

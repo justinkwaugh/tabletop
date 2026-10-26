@@ -10,7 +10,7 @@ import type {
 import type { HydratedDvonnGameState, Piece } from '@tabletop/dvonn'
 import type { DvonnGameSession } from '$lib/model/session.svelte.js'
 import { boardDiff, type StackMotion } from '$lib/board/boardDiff.js'
-import { coordsKey, SPACING, type BoardLayout } from '$lib/board/geometry.js'
+import { coordsKey, flatCenter, SPACING, type BoardView } from '$lib/board/geometry.js'
 import { stackDiscs } from '$lib/board/pieceGeometry.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
@@ -60,7 +60,7 @@ function drawnStacks(state: HydratedDvonnGameState): DrawnStack[] {
 export function liftOn(below: number, moving: number, radius: number): number {
     if (below === 0) return 0
     const discs = stackDiscs(below + moving, radius)
-    return discs[below].faceY - discs[0].faceY
+    return discs[below].base - discs[0].base
 }
 
 export class BoardAnimator {
@@ -76,7 +76,7 @@ export class BoardAnimator {
 
     constructor(
         private readonly session: DvonnGameSession,
-        private readonly layout: () => BoardLayout
+        private readonly layout: () => BoardView
     ) {}
 
     readonly attach: Attachment = () => {
@@ -191,7 +191,11 @@ export class BoardAnimator {
         const endLift = liftOn(moved.landingOn, moved.pieces.length, layout.radius)
         const dx = end.x - start.x
         const dy = end.y + endLift - (start.y + startLift)
-        const spaces = Math.round(Math.hypot(end.x - start.x, end.y - start.y) / SPACING)
+        const flatStart = flatCenter(moved.from)
+        const flatEnd = flatCenter(moved.to)
+        const spaces = Math.round(
+            Math.hypot(flatEnd.x - flatStart.x, flatEnd.y - flatStart.y) / SPACING
+        )
         const rise = HOP.rise + HOP.risePerSpace * spaces
         const duration = fast ? FAST : HOP.duration
         const peak = Math.min(0, dy) - rise

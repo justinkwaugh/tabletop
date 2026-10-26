@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { AxialCoordinates } from '@tabletop/common'
-import { spaceFromName, SPACES } from '@tabletop/dvonn'
-import { LAYOUT } from './geometry.js'
-import { boardLabels } from './coordinates.js'
+import { spaceFromName } from '@tabletop/dvonn'
+import { VIEW } from './geometry.js'
 
 describe('boardLabels', () => {
-    const spaceCenter = (coords: AxialCoordinates) => LAYOUT.center(coords)
-    const labels = boardLabels(SPACES, spaceCenter)
+    const spaceCenter = (coords: AxialCoordinates) => VIEW.center(coords)
+    const labels = VIEW.labels
 
     it('letters each diagonal column and numbers each row, as BoardSpace does', () => {
         expect(labels.map((label) => label.text)).toEqual([
@@ -26,5 +25,15 @@ describe('boardLabels', () => {
         const k = labels.find((label) => label.text === 'K')
         const k3 = spaceCenter(spaceFromName('K3'))
         expect(k?.at.y).toBeGreaterThan(k3.y)
+    })
+
+    it('keeps the letters along the bottom in line, and each number as far from its row', () => {
+        const at = (text: string) => labels.find((label) => label.text === text)?.at
+        const bottom = 'ABCDEFGHI'.split('').map((text) => at(text)?.y ?? NaN)
+        const before = ['A1', 'A2', 'A3', 'B4', 'C5'].map(
+            (name) => spaceCenter(spaceFromName(name)).x - (at(name.slice(1))?.x ?? NaN)
+        )
+        for (const y of bottom) expect(y).toBeCloseTo(bottom[0])
+        for (const distance of before) expect(distance).toBeCloseTo(before[0])
     })
 })
