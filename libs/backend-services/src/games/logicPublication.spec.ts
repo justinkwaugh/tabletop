@@ -25,6 +25,19 @@ async function fixture() {
     return { ...fixture, options }
 }
 
+// A library whose activation of logic 1.1.0 waits until the gate opens.
+async function gatedLibrary(f: Awaited<ReturnType<typeof fixture>>) {
+    const gate = Promise.withResolvers<void>()
+    const library = new LibraryService(RedisCacheService.prototype, {
+        ...f.options,
+        prepare: async (generation) => {
+            if (generation.publication.logicVersion === '1.1.0') await gate.promise
+        }
+    })
+    await library.getTitlesMap()
+    return { library, gate }
+}
+
 const titleLoads = (log: MockInstance<typeof console.log>) =>
     log.mock.calls
         .map(([line]) =>
@@ -56,14 +69,7 @@ describe('Collectible title generations', () => {
 
     it('keeps serving the loaded titles until a queued activation completes', async () => {
         const f = await fixture()
-        const gate = Promise.withResolvers<void>()
-        const library = new LibraryService(RedisCacheService.prototype, {
-            ...f.options,
-            prepare: async (generation) => {
-                if (generation.publication.logicVersion === '1.1.0') await gate.promise
-            }
-        })
-        await library.getTitlesMap()
+        const { library, gate } = await gatedLibrary(f)
         await f.publish(f.manifest('1.1.0'))
         const manifest = await library.refreshManifest()
         expect(manifest.games[0].logicVersion).toBe('1.1.0')
@@ -74,6 +80,26 @@ describe('Collectible title generations', () => {
         gate.resolve()
         await library.activation()
         expect(version(library, f.titleId)).toBe('1.1.0')
+        expect((await library.getServedManifest()).games[0].logicVersion).toBe('1.1.0')
+    })
+
+    it('serves a new frontend version at once, while the titles trail an activation', async () => {
+        const f = await fixture()
+        const { library, gate } = await gatedLibrary(f)
+        const frontendOnly = f.manifest('1.0.0')
+        frontendOnly.frontend.version = '2.0.0'
+        await f.publish(frontendOnly)
+        await library.refreshManifest()
+        expect((await library.getServedManifest()).frontend.version).toBe('2.0.0')
+        const both = f.manifest('1.1.0')
+        both.frontend.version = '3.0.0'
+        await f.publish(both)
+        await library.refreshManifest()
+        const served = await library.getServedManifest()
+        expect(served.frontend.version).toBe('3.0.0')
+        expect(served.games[0].logicVersion).toBe('1.0.0')
+        gate.resolve()
+        await library.activation()
         expect((await library.getServedManifest()).games[0].logicVersion).toBe('1.1.0')
     })
 
