@@ -12,6 +12,9 @@ import {
     GameStorage,
     GameCategory,
     assertExists,
+    createCallGameAction,
+    isTwoPlayerGame,
+    requiredCallApprovals,
     type ScenarioData
 } from '@tabletop/common'
 import { SvelteMap } from 'svelte/reactivity'
@@ -167,6 +170,48 @@ export class HarnessGameService implements GameService {
     /** The game as it stands, with every action behind it, ready to be saved as a scenario file. */
     async scenarioOf(gameId: string): Promise<ScenarioData> {
         return this.forkOf(gameId, 'latest')
+    }
+
+    async calledCopy(gameId: string, declaredWinnerId?: string): Promise<ScenarioData> {
+        const { game, state, actions } = await this.scenarioOf(gameId)
+        const players = game.players
+        const initiator = isTwoPlayerGame(players)
+            ? players.find((player) => player.id !== declaredWinnerId)
+            : players[0]
+        assertExists(initiator, 'A concession needs a player who does not win')
+        const approvers = [initiator, ...players.filter((player) => player !== initiator)]
+        const action = createCallGameAction({
+            gameId: game.id,
+            ballot: {
+                initiatorPlayerId: initiator.id,
+                declaredWinnerId,
+                approvingPlayerIds: approvers
+                    .slice(0, requiredCallApprovals(players))
+                    .map((player) => player.id),
+                decliningPlayerIds: []
+            },
+            players
+        })
+        const definition = this.libraryService.getTitle(game.typeId)
+        assertExists(definition, `Game definition not found for typeId ${game.typeId}`)
+        const engine = new GameEngine(await definition.runtime())
+        const { processedActions, updatedState } = engine.executeCanonicalAction({
+            action,
+            state,
+            game
+        })
+        return {
+            game: {
+                ...game,
+                call: action.call,
+                status: GameStatus.Finished,
+                finishedAt: new Date(),
+                result: updatedState.result,
+                winningPlayerIds: updatedState.winningPlayerIds
+            },
+            state: updatedState,
+            actions: [...actions, ...processedActions]
+        }
     }
 
     private async forkOf(gameId: string, at: number | 'latest', name?: string) {

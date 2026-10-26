@@ -23,6 +23,9 @@
     import LoginPanel, { loginViewTitles, type LoginView } from '$lib/components/LoginPanel.svelte'
     import AuthModal from '$lib/components/AuthModal.svelte'
     import BugReportModal from '$lib/components/BugReportModal.svelte'
+    import CallGameModal from '$lib/components/CallGameModal.svelte'
+    import { callGameOffer } from '$lib/utils/callGameOffer'
+    import { getAppContext as getSiteContext } from '$lib/stores/appContext.svelte'
     import PreferencesPanel from '$lib/components/PreferencesPanel.svelte'
     import AccountAvatar from '$lib/components/AccountAvatar.svelte'
     import { setLoginModal } from '$lib/stores/loginModal'
@@ -90,7 +93,19 @@
             ? gameService.currentGameSession
             : undefined
     )
+    const siteGameService = getSiteContext().gameService
+    let callOffer = $derived.by(() => {
+        const session = gameService.currentGameSession
+        if (!session || !sessionUser) return undefined
+        const game = siteGameService.cachedGame(session.primaryGame.id)
+        return callGameOffer(
+            game ?? session.primaryGame,
+            sessionUser.id,
+            titlesById[session.primaryGame.typeId]?.info.clientCapabilities ?? []
+        )
+    })
     let accountMenuOpen = $state(false)
+    let showCallGame = $state(false)
     let showBugReport = $state(false)
     let showPreferences = $state(false)
     let showCreateGameModel = $state(false)
@@ -110,6 +125,7 @@
 
     afterNavigate(() => {
         showLoginModal = false
+        showCallGame = false
         showBugReport = false
         showPreferences = false
     })
@@ -563,6 +579,14 @@
                                     </DropdownItem>
                                     <DropdownDivider class="mt-0" />
                                 {/if}
+                                {#if callOffer}
+                                    <DropdownItem
+                                        class="w-full text-left"
+                                        onclick={() => (showCallGame = true)}
+                                        >{callOffer.label}…</DropdownItem
+                                    >
+                                    <DropdownDivider />
+                                {/if}
                                 <DropdownItem class="w-full text-left" onclick={gotoProfile}
                                     >Profile</DropdownItem
                                 >
@@ -665,6 +689,13 @@
 {/if}
 {#if bugReportSession}
     <BugReportModal bind:open={showBugReport} session={bugReportSession} />
+{/if}
+{#if callOffer && gameService.currentGameSession}
+    <CallGameModal
+        bind:open={showCallGame}
+        session={gameService.currentGameSession}
+        concession={callOffer.concession}
+    />
 {/if}
 {#if sessionUser}
     <Modal bind:open={showPreferences} title="Preferences" size="sm" outsideclose autoclose={false}>

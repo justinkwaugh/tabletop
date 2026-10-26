@@ -17,13 +17,18 @@ import {
     findLast,
     isOutOfTurnDeclaration,
     isSameSimultaneousGroup,
-    isPlayerVoteApproved,
+    type CallVote,
+    createCallGameAction,
+    isTwoPlayerGame,
     PlayerVote,
     PlayerVoteKind,
+    PlayerVoteOutcome,
+    playerVoteOutcome,
     PlayerVoteRequestedNotification,
     UndoVote,
     UndoVotePreview,
     playerVoteIneligibility,
+    callRequestIneligibility,
     playerUndoRestriction,
     PlayerUndoRestriction,
     isSequencedActionType,
@@ -40,6 +45,7 @@ import {
     GameAction,
     GameDefinition,
     GameEngine,
+    type ActionCascadeResult,
     GameNotificationAction,
     type GameNotificationData,
     GameStartedNotification,
@@ -1247,6 +1253,9 @@ export class GameService {
                     if (lastPlayerAction) {
                         gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
                     }
+                    if (newState.result && existingGame.vote?.kind === PlayerVoteKind.Call) {
+                        gameUpdates.vote = undefined
+                    }
                     if (
                         !existingState.result &&
                         newState.result &&
@@ -1271,6 +1280,59 @@ export class GameService {
         }
         await this.startStallCheck(updatedGame)
 
+        const representation = await this.announceActionResults({
+            definition,
+            user,
+            updatedGame,
+            actionResult,
+            storedActions,
+            relatedActions,
+            priorState
+        })
+
+        const newlyActivePlayerIds = updatedState.activePlayerIds.filter(
+            (playerId) => !priorState.activePlayerIds.includes(playerId)
+        )
+        await this.scheduleTurnNotifications(
+            representation.game,
+            newlyActivePlayerIds,
+            FIRST_TURN_REMINDER_INDEX
+        )
+        const actingPlayerKeepsTurn =
+            priorState.activePlayerIds.includes(player.id) &&
+            updatedState.activePlayerIds.includes(player.id)
+        if (actingPlayerKeepsTurn) {
+            await this.scheduleTurnNotifications(
+                representation.game,
+                [player.id],
+                DEFERRED_TURN_REMINDER_INDEX
+            )
+        }
+
+        if (!game.result && representation.game.result) {
+            await this.sendGameEndEmail(representation.game)
+        }
+
+        return representation
+    }
+
+    private async announceActionResults({
+        definition,
+        user,
+        updatedGame,
+        actionResult,
+        storedActions,
+        relatedActions,
+        priorState
+    }: {
+        definition: GameDefinition
+        user: User
+        updatedGame: Game
+        actionResult: ActionCascadeResult
+        storedActions: GameAction[]
+        relatedActions: GameAction[]
+        priorState: GameState
+    }): Promise<ActionResultsRepresentation> {
         const representation = measureSync('projection.response.action', () =>
             createActionResultsRepresentation({
                 game: updatedGame,
@@ -1300,30 +1362,6 @@ export class GameService {
             })
         )
         await this.notifyGamePlayers(GameNotificationAction.Update, { game: representation.game })
-
-        const newlyActivePlayerIds = updatedState.activePlayerIds.filter(
-            (playerId) => !priorState.activePlayerIds.includes(playerId)
-        )
-        await this.scheduleTurnNotifications(
-            representation.game,
-            newlyActivePlayerIds,
-            FIRST_TURN_REMINDER_INDEX
-        )
-        const actingPlayerKeepsTurn =
-            priorState.activePlayerIds.includes(player.id) &&
-            updatedState.activePlayerIds.includes(player.id)
-        if (actingPlayerKeepsTurn) {
-            await this.scheduleTurnNotifications(
-                representation.game,
-                [player.id],
-                DEFERRED_TURN_REMINDER_INDEX
-            )
-        }
-
-        if (!game.result && representation.game.result) {
-            await this.sendGameEndEmail(representation.game)
-        }
-
         return representation
     }
 
@@ -1522,20 +1560,92 @@ export class GameService {
             throw new DisallowedPlayerVoteError({ gameId, reason: 'you can undo this yourself' })
         }
 
-        const vote: UndoVote = {
+        return this.openVote(game, player, {
             id: nanoid(),
             kind: PlayerVoteKind.Undo,
             initiatorPlayerId: player.id,
             targetActionId,
             targetActionIndex: actionIndex,
             approvingPlayerIds: [player.id]
+        })
+    }
+
+    @Timed('game.requestCall')
+    async requestCall({
+        user,
+        definition,
+        gameId,
+        declaredWinnerId,
+        publishedUiSupportsCalls
+    }: {
+        user: User
+        definition: GameDefinition
+        gameId: string
+        declaredWinnerId?: string
+        publishedUiSupportsCalls: boolean
+    }): Promise<Game> {
+        if (!publishedUiSupportsCalls) {
+            throw new DisallowedPlayerVoteError({
+                gameId,
+                reason: 'this game cannot be called until its next update'
+            })
         }
+        const game = await this.requireGame(gameId)
+        this.assertGameTitle(game, definition)
+        const player = this.findVotingPlayer({ user, game })
+        const ineligibility = callRequestIneligibility(game)
+        if (ineligibility) {
+            throw new DisallowedPlayerVoteError({ gameId, reason: ineligibility })
+        }
+        this.validateDeclaredWinner(game, player, declaredWinnerId)
+        const vote: CallVote = {
+            id: nanoid(),
+            kind: PlayerVoteKind.Call,
+            initiatorPlayerId: player.id,
+            approvingPlayerIds: [player.id],
+            decliningPlayerIds: []
+        }
+        if (declaredWinnerId !== undefined) vote.declaredWinnerId = declaredWinnerId
+        if (playerVoteOutcome(vote, game.players) === PlayerVoteOutcome.Passed) {
+            return this.passCall({ user, definition, game, vote })
+        }
+        return this.openVote(game, player, vote)
+    }
+
+    private validateDeclaredWinner(game: Game, player: Player, declaredWinnerId?: string) {
+        const disallowed = (reason: string) =>
+            new DisallowedPlayerVoteError({ gameId: game.id, reason })
+        if (
+            declaredWinnerId !== undefined &&
+            !game.players.some((other) => other.id === declaredWinnerId)
+        ) {
+            throw disallowed('the winner is not a player in this game')
+        }
+        if (isTwoPlayerGame(game.players)) {
+            const opponent = game.players.find((other) => other.id !== player.id)
+            if (declaredWinnerId === undefined || declaredWinnerId !== opponent?.id) {
+                throw disallowed('conceding makes the other player the winner')
+            }
+        }
+    }
+
+    private async openVote(game: Game, player: Player, vote: PlayerVote): Promise<Game> {
         const [updatedGame] = await this.gameStore.updateGame({
             game,
             fields: { vote },
             validator: (existingGame) => {
+                const ineligibility =
+                    vote.kind === PlayerVoteKind.Call
+                        ? callRequestIneligibility(existingGame)
+                        : playerVoteIneligibility(existingGame)
+                if (ineligibility) {
+                    throw new DisallowedPlayerVoteError({ gameId: game.id, reason: ineligibility })
+                }
                 if (existingGame.vote) {
-                    throw new DisallowedPlayerVoteError({ gameId, reason: 'a vote is open' })
+                    throw new DisallowedPlayerVoteError({
+                        gameId: game.id,
+                        reason: 'a vote is open'
+                    })
                 }
                 return UpdateValidationResult.Proceed
             }
@@ -1571,6 +1681,12 @@ export class GameService {
                 if (vote.approvingPlayerIds.includes(player.id)) {
                     return UpdateValidationResult.Cancel
                 }
+                if (
+                    vote.kind === PlayerVoteKind.Call &&
+                    vote.decliningPlayerIds.includes(player.id)
+                ) {
+                    throw new DisallowedPlayerVoteError({ gameId, reason: 'you declined' })
+                }
                 fields.vote = {
                     ...vote,
                     approvingPlayerIds: [...vote.approvingPlayerIds, player.id]
@@ -1583,10 +1699,15 @@ export class GameService {
         }
 
         const vote = updatedGame.vote
-        if (vote?.id === voteId && isPlayerVoteApproved(vote, updatedGame.players)) {
-            return this.resolveUndoVote({ user, definition, gameId, vote })
+        if (
+            vote?.id !== voteId ||
+            playerVoteOutcome(vote, updatedGame.players) !== PlayerVoteOutcome.Passed
+        ) {
+            return updatedGame
         }
-        return updatedGame
+        return vote.kind === PlayerVoteKind.Undo
+            ? this.resolveUndoVote({ user, definition, gameId, vote })
+            : this.passCall({ user, definition, game: updatedGame, vote })
     }
 
     @Timed('game.declineVote')
@@ -1600,8 +1721,39 @@ export class GameService {
         voteId: string
     }): Promise<Game> {
         const game = await this.requireGame(gameId)
-        this.findVotingPlayer({ user, game })
-        return this.closeVote(game, voteId)
+        const player = this.findVotingPlayer({ user, game })
+        if (game.vote?.kind !== PlayerVoteKind.Call) {
+            return this.closeVote(game, voteId)
+        }
+        const [updatedGame, updatedFields] = await this.gameStore.updateGame({
+            game,
+            fields: {},
+            validator: (existingGame, fields) => {
+                const vote = existingGame.vote
+                if (vote?.id !== voteId || vote.kind !== PlayerVoteKind.Call) {
+                    throw new DisallowedPlayerVoteError({ gameId, reason: 'the vote is closed' })
+                }
+                if (
+                    vote.approvingPlayerIds.includes(player.id) ||
+                    vote.decliningPlayerIds.includes(player.id)
+                ) {
+                    return UpdateValidationResult.Cancel
+                }
+                const declined = {
+                    ...vote,
+                    decliningPlayerIds: [...vote.decliningPlayerIds, player.id]
+                }
+                fields.vote =
+                    playerVoteOutcome(declined, existingGame.players) === PlayerVoteOutcome.Failed
+                        ? undefined
+                        : declined
+                return UpdateValidationResult.Proceed
+            }
+        })
+        if (updatedFields.length > 0) {
+            await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
+        }
+        return updatedGame
     }
 
     @Timed('game.withdrawVote')
@@ -1662,6 +1814,103 @@ export class GameService {
             plan,
             resolvingVoteId: vote.id
         })
+        return representation.game
+    }
+
+    private async passCall({
+        user,
+        definition,
+        game,
+        vote
+    }: {
+        user: User
+        definition: GameDefinition
+        game: Game
+        vote: CallVote
+    }): Promise<Game> {
+        try {
+            return await this.endGameByCall({ user, definition, gameId: game.id, vote })
+        } catch (error) {
+            // Nobody is left to vote on a passed call, so a call that cannot be appended closes.
+            await this.closeVote(game, vote.id)
+            throw error
+        }
+    }
+
+    @Retryable({
+        maxAttempts: 3,
+        value: [GameUpdateCollisionError]
+    })
+    private async endGameByCall({
+        user,
+        definition,
+        gameId,
+        vote
+    }: {
+        user: User
+        definition: GameDefinition
+        gameId: string
+        vote: CallVote
+    }): Promise<Game> {
+        const game = await this.getGame({ gameId, withState: true })
+        const state = game?.state
+        if (!game || !state) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+        const gameOver = new DisallowedPlayerVoteError({ gameId, reason: 'the game is over' })
+        if (game.status !== GameStatus.Started || state.result !== undefined) {
+            throw gameOver
+        }
+        const action = createCallGameAction({
+            gameId,
+            index: state.actionCount,
+            ballot: vote,
+            players: game.players
+        })
+        const actionResult = measureSync('engine.execute', () =>
+            new GameEngine(definition.runtime).executeCanonicalAction({ action, state, game })
+        )
+        const { storedActions, updatedGame, relatedActions, priorState } =
+            await this.gameStore.addActionsToGame({
+                game,
+                actions: actionResult.processedActions,
+                state: actionResult.updatedState,
+                validator: async (existingGame, existingState, newState, _actions, gameUpdates) => {
+                    if (existingGame.status !== GameStatus.Started) {
+                        throw gameOver
+                    }
+                    if (
+                        !isTwoPlayerGame(existingGame.players) &&
+                        existingGame.vote?.id !== vote.id
+                    ) {
+                        throw new DisallowedPlayerVoteError({
+                            gameId,
+                            reason: 'the vote is closed'
+                        })
+                    }
+                    if (
+                        existingState.actionCount !== state.actionCount ||
+                        existingState.actionChecksum !== state.actionChecksum
+                    ) {
+                        throw new GameUpdateCollisionError({ id: gameId })
+                    }
+                    gameUpdates.activePlayerIds = newState.activePlayerIds
+                    gameUpdates.vote = undefined
+                    gameUpdates.call = action.call
+                    return UpdateValidationResult.Proceed
+                }
+            })
+
+        const representation = await this.announceActionResults({
+            definition,
+            user,
+            updatedGame,
+            actionResult,
+            storedActions,
+            relatedActions,
+            priorState
+        })
+        await this.sendGameEndEmail(representation.game)
         return representation.game
     }
 
@@ -1733,6 +1982,8 @@ export class GameService {
 
     private undoRestrictionReason(restriction: PlayerUndoRestriction): string {
         switch (restriction) {
+            case PlayerUndoRestriction.CalledGame:
+                return `Cannot undo a game that was called`
             case PlayerUndoRestriction.RevealsInformation:
                 return `Cannot undo action that reveals information`
             case PlayerUndoRestriction.OtherPlayersActions:
@@ -1975,7 +2226,8 @@ export class GameService {
                 if (
                     existingGame.vote &&
                     (existingGame.vote.id === resolvingVoteId ||
-                        existingGame.vote.targetActionIndex >= undoneFromIndex)
+                        (existingGame.vote.kind === PlayerVoteKind.Undo &&
+                            existingGame.vote.targetActionIndex >= undoneFromIndex))
                 ) {
                     gameUpdates.vote = undefined
                 }

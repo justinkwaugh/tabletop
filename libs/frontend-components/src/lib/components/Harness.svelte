@@ -3,6 +3,7 @@
     import { onMount, onDestroy, untrack, type Snippet } from 'svelte'
     import {
         assertExists,
+        isTwoPlayerGame,
         scenarioJson,
         type Game,
         type ScenarioData,
@@ -192,6 +193,14 @@
         )
     }
 
+    async function endByCall(declaredWinnerId?: string) {
+        const session = gameSession
+        assertExists(session, 'Ending by call is offered with a game open')
+        await attemptScenario('The game could not be ended by a call', async () =>
+            openScenario(await gameService.calledCopy(session.primaryGame.id, declaredWinnerId))
+        )
+    }
+
     async function openScenario(scenario: ScenarioData) {
         const game = await gameService.loadScenario(scenario)
         await loadGame(game.id)
@@ -314,6 +323,31 @@
                             <DropdownItem class="w-full px-2" onclick={saveAsScenario}
                                 ><div class="ms-2">Save as scenario</div></DropdownItem
                             >
+                            {#if gameSession.gameState.result === undefined}
+                                {@const [first, second] = gameSession.game.players}
+                                {#if isTwoPlayerGame(gameSession.game.players)}
+                                    <DropdownItem
+                                        class="w-full px-2"
+                                        onclick={() => endByCall(first.id)}
+                                        ><div class="ms-2">
+                                            Copy with {second.name} conceding
+                                        </div></DropdownItem
+                                    >
+                                {:else}
+                                    <DropdownItem
+                                        class="w-full px-2"
+                                        onclick={() => endByCall(first.id)}
+                                        ><div class="ms-2">
+                                            Copy called, {first.name} wins
+                                        </div></DropdownItem
+                                    >
+                                    <DropdownItem class="w-full px-2" onclick={() => endByCall()}
+                                        ><div class="ms-2">
+                                            Copy called, no winner
+                                        </div></DropdownItem
+                                    >
+                                {/if}
+                            {/if}
                         {/if}
                         <DropdownItem class="w-full px-2" onclick={chooseScenarioFile}
                             ><div class="ms-2">Load from file…</div></DropdownItem

@@ -3,12 +3,12 @@ import jsonpatch from 'fast-json-patch'
 import { deriveGameSeeds, generateMasterSeed } from '../../util/gameSeeds.js'
 import { generateSeed } from '../../util/prng.js'
 import { assert, assertExists } from '../../util/assertions.js'
-import { ActionSource, type GameAction, type Patch } from './gameAction.js'
+import { type GameAction, type Patch } from './gameAction.js'
 import type { GameEngine } from './gameEngine.js'
 import type { Game } from '../model/game.js'
 import type { ExplorationState, GameState, HydratedGameState } from '../model/gameState.js'
 import { isRedactedAction } from '../visibility/actionProjector.js'
-import { isOutOfTurnDeclaration } from './actionHistory.js'
+import { isCascadedSystemAction, isOutOfTurnDeclaration } from './actionHistory.js'
 import { isSameSimultaneousGroup } from './playerUndo.js'
 
 export class ExplorationHistory<T extends GameState, U extends HydratedGameState<T>> {
@@ -187,7 +187,7 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
         for (let index = actions.length - 1; index >= 0; index--) {
             const action = actions[index]
             unsafe ||= isRedactedAction(action)
-            if (action.source !== ActionSource.User) continue
+            if (isCascadedSystemAction(action)) continue
             if (unsafe) return groupEnd
             try {
                 let before = structuredClone(after)

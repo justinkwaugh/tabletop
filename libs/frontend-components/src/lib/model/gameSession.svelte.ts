@@ -11,6 +11,10 @@ import {
     isOutOfTurnActionType,
     isOutOfTurnDeclaration,
     latestPlayerUndoTarget,
+    gameCallOf,
+    isCallGameAction,
+    isCascadedSystemAction,
+    type GameCall,
     Game,
     GameAction,
     GameEngine,
@@ -193,6 +197,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return this.actions.at(-1)
     })
 
+    // How the game was called, when the state on screen is the call's result
+    gameCall: GameCall | undefined = $derived.by(() => gameCallOf(this.currentAction))
+
     currentActionIndex = $derived.by(() => {
         return this.gameState.actionCount - 1
     })
@@ -267,7 +274,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             if (
                 action.undoPatch === undefined ||
                 (undoLimit !== undefined && start - 1 < undoLimit) ||
-                (stopAtReveal && action.revealsInfo)
+                (stopAtReveal && (action.revealsInfo || isCallGameAction(action)))
             ) {
                 break
             }
@@ -1326,7 +1333,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     public shouldAutoStepAction(action: GameAction, _next?: GameAction) {
-        return action.source === ActionSource.System
+        return isCascadedSystemAction(action)
     }
 
     willUndo(_action: GameAction) {}

@@ -338,6 +338,10 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('openUndoVote')
     }
 
+    async requestCall(_game: Game, _declaredWinnerId?: string): Promise<Game> {
+        return this.fail('requestCall')
+    }
+
     async approveVote(_game: Game, _voteId: string): Promise<Game> {
         return this.fail('approveVote')
     }
