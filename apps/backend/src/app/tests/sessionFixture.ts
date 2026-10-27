@@ -1,4 +1,5 @@
 import Auth from '@fastify/auth'
+import Sensible from '@fastify/sensible'
 import SecureSession from '@fastify/secure-session'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { LightMyRequestResponse } from 'fastify'
@@ -15,6 +16,7 @@ export async function sessionServer(): Promise<FastifyInstance> {
         cookie: { path: '/', httpOnly: true }
     })
     await server.register(Auth)
+    await server.register(Sensible)
     return server
 }
 

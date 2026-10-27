@@ -22,12 +22,12 @@ function account(status: UserStatus): User {
 async function createServer(status: UserStatus) {
     const server = await sessionServer()
     const user = account(status)
-    Reflect.set(server, 'userService', {
+    server.decorate('userService', {
         getUserByUsernameAndPassword: async (username: string, password: string) =>
             username === 'Person' && password === 'correct-horse-battery' ? user : undefined,
-        getUser: async (id: string) => (id === user.id ? user : undefined)
+        getUserForAuthorization: async (id: string) => (id === user.id ? user : undefined)
     })
-    Reflect.set(server, 'tokenService', {
+    server.decorate('tokenService', {
         getData: async ({ token, expectedType }: { token: string; expectedType: TokenType }) =>
             token === 'challenge' && expectedType === TokenType.Authentication
                 ? { userId: user.id, email: user.email }

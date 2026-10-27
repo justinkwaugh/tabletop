@@ -1,7 +1,6 @@
-import { createClient, type RedisClientType } from 'redis'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Role, UserStatus, type User } from '@tabletop/common'
-import { cacheFixture } from '../../cache/tests/cacheFixture.js'
+import { cacheFixture, cacheTestClient } from '../../cache/tests/cacheFixture.js'
 import { isolatedFirestore } from './tests/isolatedFirestore.js'
 import { FirestoreUserStore } from './userStore.js'
 
@@ -11,9 +10,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
     () => {
         const run = `status-${Date.now()}`
         const firestore = isolatedFirestore()
-        const client: RedisClientType = createClient({
-            socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
-        })
+        const client = cacheTestClient()
         const { cache } = cacheFixture(client)
         const store = new FirestoreUserStore(cache, firestore)
         let sequence = 0
