@@ -146,6 +146,54 @@ describe('AuthorizationService Admin Mode', () => {
         expect(service.actAsAdmin).toBe(false)
     })
 
+    it('gives an Administrator without the Developer role developer tools only while in Admin Mode', async () => {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'activateAdminMode').mockResolvedValue(new Date('2026-10-27T12:15:00.000Z'))
+        const service = adminService(api)
+        service.debugViewEnabled = true
+        expect(service.canUseDeveloperTools).toBe(false)
+        expect(service.showDebug).toBe(false)
+
+        await service.requestAdminMode()
+        expect(service.canUseDeveloperTools).toBe(true)
+        expect(service.showDebug).toBe(true)
+
+        vi.advanceTimersByTime(15 * 60 * 1000)
+        expect(service.actAsAdmin).toBe(false)
+        expect(service.canUseDeveloperTools).toBe(false)
+        expect(service.showDebug).toBe(false)
+    })
+
+    it('withdraws developer tools from an Administrator when the server confirms deactivation', async () => {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'activateAdminMode').mockResolvedValue(new Date('2026-10-27T12:15:00.000Z'))
+        vi.spyOn(api, 'deactivateAdminMode').mockResolvedValue(undefined)
+        const service = adminService(api)
+        service.debugViewEnabled = true
+        await service.requestAdminMode()
+        expect(service.showDebug).toBe(true)
+
+        await service.deactivateAdminMode()
+        expect(service.canUseDeveloperTools).toBe(false)
+        expect(service.showDebug).toBe(false)
+    })
+
+    it('keeps developer tools for the Developer role whatever Admin Mode does', async () => {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'activateAdminMode').mockResolvedValue(new Date('2026-10-27T12:15:00.000Z'))
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
+        service.setSessionUser(createUser([Role.User, Role.Admin, Role.Developer]))
+        service.debugViewEnabled = true
+        expect(service.canUseDeveloperTools).toBe(true)
+        expect(service.showDebug).toBe(true)
+
+        await service.requestAdminMode()
+        vi.advanceTimersByTime(15 * 60 * 1000)
+        expect(service.actAsAdmin).toBe(false)
+        expect(service.canUseDeveloperTools).toBe(true)
+        expect(service.showDebug).toBe(true)
+    })
+
     it('never activates on its own when the person reauthenticates for something else', async () => {
         const api = new TabletopApi()
         const activate = vi.spyOn(api, 'activateAdminMode')

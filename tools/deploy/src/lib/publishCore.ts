@@ -104,7 +104,9 @@ export const invalidateBackendManifest = (context: PublishContext) =>
         async () =>
             context.log(
                 `invalidate-manifest: ${describeReplacement(
-                    await invalidateBackendManifestCache(context.deployConfig)
+                    await invalidateBackendManifestCache(context.deployConfig, {
+                        warn: (message) => context.log(`invalidate-manifest: WARNING ${message}`)
+                    })
                 )}`
             )
     )

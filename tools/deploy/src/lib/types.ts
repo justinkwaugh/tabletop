@@ -46,7 +46,6 @@ export type BackendManifest = SiteManifest & {
 
 export type BackendAdminConfig = {
     url?: string
-    token?: string
     username?: string
     password?: string
     cookie?: string

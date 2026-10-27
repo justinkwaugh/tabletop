@@ -1,5 +1,5 @@
 import { isObject } from './json.js'
-import { BackendManifest, DeployConfig } from './types.js'
+import { BackendAdminConfig, BackendManifest, DeployConfig } from './types.js'
 
 export type BackendManifestResult = {
     manifest?: BackendManifest
@@ -93,23 +93,28 @@ const extractCookieHeader = (setCookieHeaders: string[]): string | null => {
     return cookies.join('; ')
 }
 
-const loginWithToken = async (apiRoot: string, token: string, signal?: AbortSignal) => {
-    const url = new URL('/api/v1/auth/token/login', apiRoot)
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({ token }),
-        signal
-    })
-    if (!response.ok) {
-        throw new Error(`backend token login ${response.status} ${response.statusText}`)
+const JSON_HEADERS = { 'content-type': 'application/json', accept: 'application/json' }
+
+type BackendRefusal = { status: number; statusText: string; name?: string; message?: string }
+
+const readRefusal = async (response: Response): Promise<BackendRefusal> => {
+    const refusal = { status: response.status, statusText: response.statusText }
+    try {
+        const body: unknown = await response.json()
+        if (!isObject(body) || !isObject(body.error)) return refusal
+        return {
+            ...refusal,
+            name: typeof body.error.name === 'string' ? body.error.name : undefined,
+            message: typeof body.error.message === 'string' ? body.error.message : undefined
+        }
+    } catch {
+        return refusal
     }
-    const cookie = extractCookieHeader(getSetCookieHeaders(response))
-    if (!cookie) {
-        throw new Error('backend token login missing session cookie')
-    }
-    return cookie
 }
+
+const describeRefusal = (step: string, refusal: BackendRefusal) =>
+    `backend ${step} ${refusal.status} ${refusal.statusText}` +
+    (refusal.message ? ` (${refusal.message})` : '')
 
 const loginWithCredentials = async (
     apiRoot: string,
@@ -120,12 +125,12 @@ const loginWithCredentials = async (
     const url = new URL('/api/v1/auth/login', apiRoot)
     const response = await fetch(url, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        headers: JSON_HEADERS,
         body: JSON.stringify({ username, password }),
         signal
     })
     if (!response.ok) {
-        throw new Error(`backend login ${response.status} ${response.statusText}`)
+        throw new Error(describeRefusal('login', await readRefusal(response)))
     }
     const cookie = extractCookieHeader(getSetCookieHeaders(response))
     if (!cookie) {
@@ -134,55 +139,114 @@ const loginWithCredentials = async (
     return cookie
 }
 
+const logout = async (apiRoot: string, cookie: string, signal?: AbortSignal) => {
+    const url = new URL('/api/v1/auth/logout', apiRoot)
+    const response = await fetch(url, { headers: { accept: 'application/json', cookie }, signal })
+    if (!response.ok) {
+        throw new Error(describeRefusal('logout', await readRefusal(response)))
+    }
+}
+
+// Manifest invalidation is administrative, so the backend requires the session to be in Admin
+// Mode, which it enters only with Recent Authentication: a sign-in by the tool, or a provided
+// cookie whose session signed in within the last 15 minutes.
+type AdminSession = { cookie: string; origin: 'cookie' | 'login'; release: () => Promise<void> }
+
+const openAdminSession = async (
+    apiRoot: string,
+    backendAdmin: BackendAdminConfig | undefined,
+    signal?: AbortSignal
+): Promise<AdminSession> => {
+    if (backendAdmin?.cookie) {
+        return { cookie: backendAdmin.cookie, origin: 'cookie', release: async () => {} }
+    }
+    if (backendAdmin?.username && backendAdmin?.password) {
+        const cookie = await loginWithCredentials(
+            apiRoot,
+            backendAdmin.username,
+            backendAdmin.password,
+            signal
+        )
+        return { cookie, origin: 'login', release: () => logout(apiRoot, cookie, signal) }
+    }
+    throw new Error(
+        'Missing backend admin credentials for cache invalidation: configure backendAdmin.username and password, or backendAdmin.cookie'
+    )
+}
+
+const describeActivationRefusal = (refusal: BackendRefusal, origin: AdminSession['origin']) => {
+    const detail = describeRefusal('admin-mode activation', refusal)
+    if (refusal.status === 404) {
+        return `${detail}: this backend predates server-held Admin Mode; release the backend from this checkout before releasing anything else with it`
+    }
+    if (refusal.name === 'RecentAuthenticationRequiredError') {
+        return origin === 'cookie'
+            ? `${detail}: the session behind backendAdmin.cookie did not sign in within the last 15 minutes; use a fresher cookie, or configure backendAdmin.username and password so the tool signs in itself`
+            : `${detail}: the sign-in did not count as Recent Authentication`
+    }
+    if (refusal.status === 403) {
+        return `${detail}: the account is not an Administrator`
+    }
+    if (refusal.status === 401) {
+        return `${detail}: the session is not live`
+    }
+    return detail
+}
+
+const activateAdminMode = async (apiRoot: string, session: AdminSession, signal?: AbortSignal) => {
+    const url = new URL('/api/v1/auth/admin-mode/activate', apiRoot)
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { accept: 'application/json', cookie: session.cookie },
+        signal
+    })
+    if (!response.ok) {
+        throw new Error(describeActivationRefusal(await readRefusal(response), session.origin))
+    }
+}
+
 const BackendReplacements = ['none', 'activated', 'superseded', 'replacement-failed'] as const
 export type BackendReplacement = (typeof BackendReplacements)[number]
 
 const isBackendReplacement = (value: unknown): value is BackendReplacement =>
     BackendReplacements.some((replacement) => replacement === value)
 
+export type InvalidationOptions = { signal?: AbortSignal; warn?: (message: string) => void }
+
 export const invalidateBackendManifestCache = async (
     config: DeployConfig,
-    options?: { signal?: AbortSignal }
+    options?: InvalidationOptions
 ) => {
     const adminUrl = resolveAdminInvalidateUrl(config)
     if (!adminUrl) {
         throw new Error('Missing backend admin URL for manifest invalidation')
     }
     const apiRoot = resolveApiRoot(config)
-    const backendAdmin = config.backendAdmin
-    const authCookie = backendAdmin?.cookie
-    let cookie = authCookie ?? null
-
-    if (!cookie && backendAdmin?.token) {
-        if (!apiRoot) {
-            throw new Error('Missing backend API base for token login')
-        }
-        cookie = await loginWithToken(apiRoot, backendAdmin.token, options?.signal)
+    if (!apiRoot) {
+        throw new Error('Missing backend API base for admin sign-in')
     }
-
-    if (!cookie && backendAdmin?.username && backendAdmin?.password) {
-        if (!apiRoot) {
-            throw new Error('Missing backend API base for login')
-        }
-        cookie = await loginWithCredentials(
-            apiRoot,
-            backendAdmin.username,
-            backendAdmin.password,
-            options?.signal
-        )
+    const session = await openAdminSession(apiRoot, config.backendAdmin, options?.signal)
+    try {
+        await activateAdminMode(apiRoot, session, options?.signal)
+        return await requestInvalidation(adminUrl, session.cookie, options?.signal)
+    } finally {
+        await session.release().catch((error: unknown) => {
+            const warn = options?.warn ?? console.warn
+            warn(
+                `backend sign-out failed (${error instanceof Error ? error.message : String(error)}); the session and its Admin Mode end on their own within 15 minutes`
+            )
+        })
     }
+}
 
-    if (!cookie) {
-        throw new Error('Missing backend admin credentials for cache invalidation')
-    }
-
+const requestInvalidation = async (adminUrl: string, cookie: string, signal?: AbortSignal) => {
     const response = await fetch(adminUrl, {
         method: 'POST',
         headers: { accept: 'application/json', cookie },
-        signal: options?.signal
+        signal
     })
     if (!response.ok) {
-        throw new Error(`manifest invalidate ${response.status} ${response.statusText}`)
+        throw new Error(describeRefusal('manifest invalidate', await readRefusal(response)))
     }
     const body: unknown = await response.json()
     if (

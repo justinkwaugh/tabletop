@@ -133,7 +133,6 @@ Environment:
   TABLETOP_BACKEND_ADMIN_URL    Backend admin invalidate URL
   TABLETOP_BACKEND_ADMIN_USER   Backend admin username
   TABLETOP_BACKEND_ADMIN_PASSWORD Backend admin password
-  TABLETOP_BACKEND_ADMIN_TOKEN  Backend admin auth token
   TABLETOP_BACKEND_ADMIN_COOKIE Backend admin session cookie
   CLOUDSDK_PYTHON               Python runtime for Cloud SDK commands
   TABLETOP_GCS_ACCESS_TOKEN     Access token used for GCS placeholder creation

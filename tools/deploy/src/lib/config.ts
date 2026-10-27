@@ -32,7 +32,6 @@ const coerceDeployConfig = (config: unknown): DeployConfig => {
         backendAdmin: isObject(backendAdmin)
             ? {
                   url: typeof backendAdmin.url === 'string' ? backendAdmin.url : undefined,
-                  token: typeof backendAdmin.token === 'string' ? backendAdmin.token : undefined,
                   username:
                       typeof backendAdmin.username === 'string' ? backendAdmin.username : undefined,
                   password:
@@ -76,7 +75,6 @@ export const mergeEnvConfig = (config: DeployConfig): DeployConfig => {
     }
     const backendAdmin = {
         url: process.env.TABLETOP_BACKEND_ADMIN_URL ?? config.backendAdmin?.url,
-        token: process.env.TABLETOP_BACKEND_ADMIN_TOKEN ?? config.backendAdmin?.token,
         username: process.env.TABLETOP_BACKEND_ADMIN_USER ?? config.backendAdmin?.username,
         password: process.env.TABLETOP_BACKEND_ADMIN_PASSWORD ?? config.backendAdmin?.password,
         cookie: process.env.TABLETOP_BACKEND_ADMIN_COOKIE ?? config.backendAdmin?.cookie

@@ -1,4 +1,11 @@
-import { canHoldAuthenticatedSession, Role, User, UserStatus } from '@tabletop/common'
+import {
+    canHoldAuthenticatedSession,
+    hasDeveloperAccess,
+    Role,
+    User,
+    UserStatus,
+    type Principal
+} from '@tabletop/common'
 import { goto, invalidateAll } from '$app/navigation'
 import { redirect } from '@sveltejs/kit'
 import { AuthorizationCategory, type TabletopApi } from '@tabletop/frontend-components'
@@ -45,15 +52,18 @@ export class AuthorizationService {
 
     isAdmin: boolean = $derived(Boolean(this.sessionUser?.roles.includes(Role.Admin)))
     isDeveloper: boolean = $derived(Boolean(this.sessionUser?.roles.includes(Role.Developer)))
-    canUseDeveloperTools: boolean = $derived(this.isAdmin || this.isDeveloper)
     debugViewEnabled: boolean = $state(false)
     adminCapabilitiesEnabled: boolean = $derived(
         this.adminModeExpiresAt !== undefined &&
             this.adminModeExpiresAt.getTime() > this.adminModeClock
     )
 
-    showDebug: boolean = $derived(this.canUseDeveloperTools && this.debugViewEnabled)
     actAsAdmin: boolean = $derived(this.isAdmin && this.adminCapabilitiesEnabled)
+    private principal: Principal | undefined = $derived(
+        this.sessionUser ? { user: this.sessionUser, adminMode: this.actAsAdmin } : undefined
+    )
+    canUseDeveloperTools: boolean = $derived(hasDeveloperAccess(this.principal))
+    showDebug: boolean = $derived(this.canUseDeveloperTools && this.debugViewEnabled)
 
     constructor(
         private api: TabletopApi,

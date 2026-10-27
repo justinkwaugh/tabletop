@@ -2,16 +2,25 @@ import type {
     AuthorizationCategory,
     AuthorizationService
 } from '$lib/services/authorizationService.js'
-import { Role, UserStatus, type User } from '@tabletop/common'
+import { hasDeveloperAccess, Role, UserStatus, type User } from '@tabletop/common'
 
 export class HarnessAuthorizationService implements AuthorizationService {
-    public isAdmin: boolean = true
-    public isDeveloper: boolean = true
-    public canUseDeveloperTools: boolean = true
+    public sessionUser: User = $state({
+        id: 'harness-user',
+        username: 'Developer',
+        roles: [Role.User, Role.Developer, Role.Admin],
+        status: UserStatus.Active,
+        externalIds: []
+    })
+    public isAdmin: boolean = $derived(this.sessionUser.roles.includes(Role.Admin))
+    public isDeveloper: boolean = $derived(this.sessionUser.roles.includes(Role.Developer))
     public debugViewEnabled: boolean = $state(false)
     public adminCapabilitiesEnabled: boolean = $state(false)
-    public showDebug: boolean = $derived(this.canUseDeveloperTools && this.debugViewEnabled)
     public actAsAdmin: boolean = $derived(this.isAdmin && this.adminCapabilitiesEnabled)
+    public canUseDeveloperTools: boolean = $derived(
+        hasDeveloperAccess({ user: this.sessionUser, adminMode: this.actAsAdmin })
+    )
+    public showDebug: boolean = $derived(this.canUseDeveloperTools && this.debugViewEnabled)
 
     async initialize() {}
 
@@ -31,15 +40,11 @@ export class HarnessAuthorizationService implements AuthorizationService {
     }
 
     getSessionUser(): User | undefined {
-        return {
-            id: 'harness-user',
-            username: 'Developer',
-            roles: [Role.User, Role.Developer, Role.Admin],
-            status: UserStatus.Active,
-            externalIds: []
-        }
+        return this.sessionUser
     }
-    setSessionUser(_user: User) {}
+    setSessionUser(user: User) {
+        this.sessionUser = user
+    }
     clearSessionUser() {}
     async onLogin(_user: User) {}
     async onLogout() {}

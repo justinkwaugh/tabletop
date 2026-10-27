@@ -362,7 +362,6 @@ Environment overrides:
 - `TABLETOP_BACKEND_ADMIN_URL`
 - `TABLETOP_BACKEND_ADMIN_USER`
 - `TABLETOP_BACKEND_ADMIN_PASSWORD`
-- `TABLETOP_BACKEND_ADMIN_TOKEN`
 - `TABLETOP_BACKEND_ADMIN_COOKIE`
 - `TABLETOP_BACKEND_IMAGE`
 - `TABLETOP_BACKEND_SERVICE`
@@ -375,7 +374,8 @@ Environment overrides:
 Notes:
 
 - `backend.image` is required for backend deploys; the release version becomes its tag.
-- `backendAdmin` is required to invalidate the manifest cache after deploys; provide a cookie, token, or username/password.
+- `backendAdmin` is required to invalidate the manifest cache after deploys. Give the `username` and `password` of an Administrator account: the tool signs in, enters Admin Mode on that session, invalidates, and signs out. A `cookie` of an existing session is accepted instead, but the backend enters Admin Mode only for a session that signed in within the last 15 minutes, so an older browser cookie is refused with a message saying so; the tool leaves a provided session as it found it, in Admin Mode until the mode ends on its own. A refusal at any step stops the tool before the invalidation, and the deploy reports it. The earlier `token` setting and `TABLETOP_BACKEND_ADMIN_TOKEN` are no longer credentials, because the backend no longer signs in by token.
+- Rollout: the backend requires Admin Mode for the invalidation from the release that introduced it, and the tool from the same change asks for the mode before invalidating. Release the backend before any other release from such a checkout: against an older backend the activation is refused (404) and the tool stops; an older tool cannot invalidate against the newer backend (403) and the checkout must be updated.
 - When `CLOUDSDK_PYTHON` is unset, deploy commands automatically pick the first supported local Python (`python3.12`, `python3.11`, `python3.10`, then `python3`) and use it for `gcloud`/`gsutil`.
 
 ## Notes

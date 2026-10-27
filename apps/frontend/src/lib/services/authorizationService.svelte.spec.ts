@@ -24,9 +24,10 @@ function createUser(roles: Role[]): User {
 describe('AuthorizationService developer tools', () => {
     it.each([
         { roles: [Role.Developer], expected: true },
-        { roles: [Role.Admin], expected: true },
+        { roles: [Role.Admin, Role.Developer], expected: true },
+        { roles: [Role.Admin], expected: false },
         { roles: [Role.User], expected: false }
-    ])('allows developer tools for $roles', ({ roles, expected }) => {
+    ])('allows developer tools outside Admin Mode for $roles', ({ roles, expected }) => {
         const service = new AuthorizationService(new TabletopApi(), vi.fn(), vi.fn())
         service.setSessionUser(createUser(roles))
 
