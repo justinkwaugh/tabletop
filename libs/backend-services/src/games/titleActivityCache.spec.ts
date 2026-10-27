@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
-import { createClient, type RedisClientType } from 'redis'
-import { GameResult, GameStatus, PlayerStatus, type Game } from '@tabletop/common'
+import { createClient, TimeoutError, type RedisClientType } from 'redis'
+import { assertExists, GameResult, GameStatus, PlayerStatus, type Game } from '@tabletop/common'
 import {
     RECENTLY_FINISHED_LIMIT,
     TitleActivityCache,
@@ -9,6 +9,8 @@ import {
     type TitleActivitySource
 } from './titleActivityCache.js'
 import { GameCacheKeys } from '../persistence/firestore/gameCacheKeys.js'
+import { RedisProxy } from '../cache/tests/redisProxy.js'
+import { RedisService } from '../redis/redisService.js'
 
 const MINUTE = 60_000
 
@@ -109,8 +111,8 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
         }
     }
 
-    async function names() {
-        const activity = await cache.read(titleId, source)
+    async function names(reader = cache) {
+        const activity = await reader.read(titleId, source)
         return {
             inProgress: activity.inProgress.map((game) => game.name),
             recentlyFinished: activity.recentlyFinished.map((game) => game.name)
@@ -401,5 +403,118 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
         )
         await expect(unavailable.applyChange(undefined, game('g'))).resolves.toBeUndefined()
         expect(source.queries).toBe(0)
+    })
+
+    describe('over a production client whose connection fails', () => {
+        const timeoutMs = 300
+        let proxy: RedisProxy
+        let flaky: RedisClientType
+
+        async function unavailableCause(reading: Promise<unknown>): Promise<unknown> {
+            const error: unknown = await reading.then(
+                () => undefined,
+                (rejection: unknown) => rejection
+            )
+            expect(error).toBeInstanceOf(TitleActivityUnavailableError)
+            return error instanceof Error ? error.cause : undefined
+        }
+
+        beforeEach(async () => {
+            assertExists(process.env.CACHE_TEST_REDIS_HOST)
+            proxy = new RedisProxy(process.env.CACHE_TEST_REDIS_HOST)
+            await proxy.open()
+            vi.stubEnv('REDIS_HOST', '127.0.0.1')
+            vi.stubEnv('REDIS_PORT', String(proxy.port))
+            flaky = await RedisService.createClient({ getSecret: async () => '' })
+            flaky.on('error', () => {})
+            await flaky.connect()
+            vi.spyOn(console, 'warn').mockImplementation(() => {})
+            vi.spyOn(console, 'error').mockImplementation(() => {})
+        })
+
+        afterEach(async () => {
+            vi.unstubAllEnvs()
+            if (flaky.isOpen) flaky.destroy()
+            await proxy.close()
+        })
+
+        it('reports unavailable at once while reconnecting, drops changes, and serves again after', async () => {
+            const reader = new TitleActivityCache(flaky, { commandTimeoutMs: 10_000 })
+            source.games = [game('g')]
+            expect((await names(reader)).inProgress).toEqual(['g'])
+
+            await proxy.cut()
+            await vi.waitFor(() => expect(flaky.isReady).toBe(false))
+            const started = Date.now()
+            await expect(reader.read(titleId, source)).rejects.toBeInstanceOf(
+                TitleActivityUnavailableError
+            )
+            await reader.applyChange(undefined, game('while-offline'))
+            expect(Date.now() - started).toBeLessThan(1000)
+            expect(source.queries).toBe(2)
+
+            await proxy.open()
+            await vi.waitFor(() => expect(flaky.isReady).toBe(true), { timeout: 10_000 })
+            expect((await names(reader)).inProgress).toEqual(['g'])
+            await reader.applyChange(undefined, game('after-recovery'))
+            expect((await names(reader)).inProgress).toEqual(['after-recovery', 'g'])
+            expect(source.queries).toBe(2)
+        }, 20_000)
+
+        it('drops a command a disconnect queued after the readiness check', async () => {
+            const reader = new TitleActivityCache(flaky, { commandTimeoutMs: timeoutMs })
+            await names(reader)
+            await proxy.cut()
+            await vi.waitFor(() => expect(flaky.isReady).toBe(false))
+            const readinessPassed = vi.spyOn(flaky, 'isReady', 'get').mockReturnValue(true)
+
+            expect(await unavailableCause(reader.read(titleId, source))).toBeInstanceOf(
+                TimeoutError
+            )
+            await reader.applyChange(undefined, game('queued'))
+
+            readinessPassed.mockRestore()
+            await proxy.open()
+            await vi.waitFor(() => expect(flaky.isReady).toBe(true), { timeout: 10_000 })
+            expect((await names(reader)).inProgress).toEqual([])
+        }, 20_000)
+
+        it('bounds a command Redis never answers, then recovers', async () => {
+            const reader = new TitleActivityCache(flaky, { commandTimeoutMs: timeoutMs })
+            source.games = [game('g')]
+            await names(reader)
+
+            proxy.stall()
+            const started = Date.now()
+            expect(await unavailableCause(reader.read(titleId, source))).toBeInstanceOf(
+                TimeoutError
+            )
+            await reader.applyChange(undefined, game('while-stalled'))
+            expect(Date.now() - started).toBeLessThan(4 * timeoutMs)
+            expect(flaky.isReady).toBe(true)
+
+            proxy.resume()
+            expect((await names(reader)).inProgress).toEqual(['g', 'while-stalled'])
+            expect(source.queries).toBe(2)
+        })
+
+        it('reports a stalled rebuild without waiting for its cleanup', async () => {
+            const reader = new TitleActivityCache(flaky, { commandTimeoutMs: timeoutMs })
+            source.games = [game('g')]
+            let release = () => {}
+            source.hold = new Promise((resolve) => (release = resolve))
+            const rebuilding = unavailableCause(reader.read(titleId, source))
+            await vi.waitFor(() => expect(source.queries).toBe(2))
+
+            proxy.stall()
+            const started = Date.now()
+            release()
+            expect(await rebuilding).toBeInstanceOf(TimeoutError)
+            expect(Date.now() - started).toBeLessThan(1.5 * timeoutMs)
+
+            proxy.resume()
+            expect((await names(reader)).inProgress).toEqual(['g'])
+            expect(source.queries).toBe(2)
+        })
     })
 })

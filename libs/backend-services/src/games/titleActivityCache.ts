@@ -1,5 +1,5 @@
 import { setTimeout as delay } from 'node:timers/promises'
-import type { RedisClientType } from 'redis'
+import { ClientOfflineError, TimeoutError, type RedisClientType } from 'redis'
 import { nanoid } from 'nanoid'
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
@@ -23,6 +23,7 @@ const BUILD_SECONDS = 30
 const MIN_FINISHED_PAGE = 10
 const FIRST_WAIT_MS = 50
 const LONGEST_WAIT_MS = 500
+const COMMAND_TIMEOUT_MS = 2000
 const FinishedRanks = Type.Array(Type.String())
 
 /** The Firestore queries a rebuild reads; candidates may still include Unlisted Games. */
@@ -133,8 +134,16 @@ return 1
 
 export class TitleActivityCache {
     private readonly builds = new Map<string, Promise<TitleActivity | undefined>>()
+    private readonly boundedClient: RedisClientType
+    private readonly commandTimeoutMs: number
 
-    constructor(private readonly client: RedisClientType) {}
+    constructor(
+        private readonly client: RedisClientType,
+        { commandTimeoutMs = COMMAND_TIMEOUT_MS }: { commandTimeoutMs?: number } = {}
+    ) {
+        this.commandTimeoutMs = commandTimeoutMs
+        this.boundedClient = client.withCommandOptions({ timeout: commandTimeoutMs })
+    }
 
     async read(titleId: string, source: TitleActivitySource): Promise<TitleActivity> {
         try {
@@ -154,17 +163,19 @@ export class TitleActivityCache {
         if (placement === 'none' && this.placement(before) === 'none') return
         try {
             await measure('titleActivity.applyChange', () =>
-                this.client.eval(APPLY_CHANGE, {
-                    keys: [GameCacheKeys.titleActivity(game.typeId)],
-                    arguments: [
-                        String(RECENTLY_FINISHED_LIMIT),
-                        ...this.entry(
-                            after ?? game,
-                            placement,
-                            after ? this.version(after) : Number.MAX_SAFE_INTEGER
-                        )
-                    ]
-                })
+                this.command((client) =>
+                    client.eval(APPLY_CHANGE, {
+                        keys: [GameCacheKeys.titleActivity(game.typeId)],
+                        arguments: [
+                            String(RECENTLY_FINISHED_LIMIT),
+                            ...this.entry(
+                                after ?? game,
+                                placement,
+                                after ? this.version(after) : Number.MAX_SAFE_INTEGER
+                            )
+                        ]
+                    })
+                )
             )
         } catch (error) {
             console.error('Title activity update failed', {
@@ -180,7 +191,7 @@ export class TitleActivityCache {
         let wait = FIRST_WAIT_MS
         const deadline = Date.now() + BUILD_SECONDS * 1000
         for (;;) {
-            const fields = await this.client.hGetAll(key)
+            const fields = await this.command((client) => client.hGetAll(key))
             if (fields.meta === 'ready') return this.activity(fields)
             if (fields.meta === undefined) {
                 const built = await this.buildOnce(titleId, source)
@@ -208,12 +219,11 @@ export class TitleActivityCache {
     ): Promise<TitleActivity | undefined> {
         const key = GameCacheKeys.titleActivity(titleId)
         const meta = `building:${nanoid()}`
-        const claimed: unknown = await this.client.eval(BEGIN_BUILD, {
-            keys: [key],
-            arguments: [meta, String(BUILD_SECONDS)]
-        })
-        if (claimed !== meta) return undefined
         try {
+            const claimed: unknown = await this.command((client) =>
+                client.eval(BEGIN_BUILD, { keys: [key], arguments: [meta, String(BUILD_SECONDS)] })
+            )
+            if (claimed !== meta) return undefined
             const [inProgress, recentlyFinished] = await measure('titleActivity.build', () =>
                 Promise.all([
                     source.findInProgressCandidates(titleId),
@@ -223,33 +233,56 @@ export class TitleActivityCache {
             const listedInProgress = inProgress.filter(
                 (game) => this.placement(game) === 'inProgress'
             )
-            const completed: unknown = await this.client.eval(COMPLETE_BUILD, {
-                keys: [key],
-                arguments: [
-                    meta,
-                    String(READY_SECONDS),
-                    String(RECENTLY_FINISHED_LIMIT),
-                    ...[...listedInProgress, ...recentlyFinished].flatMap((game) =>
-                        this.entry(game, this.placement(game), this.version(game))
-                    )
-                ]
-            })
-            if (completed === 1) return this.activity(await this.client.hGetAll(key))
+            const completed: unknown = await this.command((client) =>
+                client.eval(COMPLETE_BUILD, {
+                    keys: [key],
+                    arguments: [
+                        meta,
+                        String(READY_SECONDS),
+                        String(RECENTLY_FINISHED_LIMIT),
+                        ...[...listedInProgress, ...recentlyFinished].flatMap((game) =>
+                            this.entry(game, this.placement(game), this.version(game))
+                        )
+                    ]
+                })
+            )
+            if (completed === 1)
+                return this.activity(await this.command((client) => client.hGetAll(key)))
             console.warn('Title activity rebuild outlived its claim', { titleId })
             return {
                 inProgress: listedInProgress.toSorted((a, b) => this.compareInProgress(a, b)),
                 recentlyFinished
             }
         } catch (error) {
-            await this.client
-                .eval(ABANDON_BUILD, { keys: [key], arguments: [meta] })
-                .catch((abandonError: unknown) => {
-                    console.error('Title activity rebuild claim not released', {
-                        titleId,
-                        abandonError
-                    })
-                })
+            this.abandonBuild(titleId, key, meta)
             throw error
+        }
+    }
+
+    /** Not awaited, so a stalled Redis cannot hold back the rebuild's own failure. */
+    private abandonBuild(titleId: string, key: string, meta: string): void {
+        this.command((client) =>
+            client.eval(ABANDON_BUILD, { keys: [key], arguments: [meta] })
+        ).catch((abandonError: unknown) => {
+            console.error('Title activity rebuild claim not released', { titleId, abandonError })
+        })
+    }
+
+    // Fails at once while the client reconnects instead of joining its offline queue. node-redis
+    // drops a timed-out command only before writing it; a written command waits for its reply as
+    // long as the socket lives, so the race bounds that too.
+    private async command<T>(send: (client: RedisClientType) => Promise<T>): Promise<T> {
+        if (!this.client.isReady) throw new ClientOfflineError()
+        const settled = new AbortController()
+        try {
+            return await Promise.race([
+                send(this.boundedClient),
+                delay(this.commandTimeoutMs, undefined, { signal: settled.signal }).then(() => {
+                    throw new TimeoutError()
+                })
+            ])
+        } finally {
+            settled.abort()
         }
     }
 
