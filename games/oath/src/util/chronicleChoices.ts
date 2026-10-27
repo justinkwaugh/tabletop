@@ -423,9 +423,10 @@ export function normalizedStory(text: string): string {
     return text.replace(/\r\n?/g, '\n').trim()
 }
 
-/** Every control character but the line break. */
-// eslint-disable-next-line no-control-regex
-const CONTROL = /[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/
+/** A control character (U+0000-U+001F, U+007F-U+009F) other than the line break. */
+function isControl(ch: string): boolean {
+    return ch !== '\n' && /\p{Cc}/u.test(ch)
+}
 
 export function reasonCannotWriteChronicleStory(
     state: HydratedOathGameState,
@@ -450,6 +451,6 @@ export function reasonCannotWriteChronicleStory(
     if ([...story].length > CHRONICLE_STORY_LIMIT) {
         return `the story is longer than ${CHRONICLE_STORY_LIMIT} characters`
     }
-    if (CONTROL.test(story)) return 'the story holds a character that is not plain text'
+    if ([...story].some(isControl)) return 'the story holds a character that is not plain text'
     return undefined
 }

@@ -571,7 +571,7 @@ describe('R-8.3.1 — build or repair, a Chancellor or Citizen winner only', () 
         ])
     })
 
-    it('builds Sprawling Rampart at the Plains in Longbows’ place; Longbows goes to the world deck', () => {
+    it('builds Sprawling Rampart at the Plains in Longbows’ place; Longbows waits, public, for the world deck’s rebuild', () => {
         const { final, actions } = run(building(), build(ANN, { siteId: PLAINS, cardId: LONGBOWS }))
         expect(final.denizensBySite[PLAINS]).toEqual([SPRAWLING_RAMPART, WOLVES])
         expect(final.chronicle?.returnedDenizenId).toBe(LONGBOWS)
@@ -622,6 +622,16 @@ describe('R-8.3.1 — build or repair, a Chancellor or Citizen winner only', () 
             repaired: true
         })
         expect(final.chronicle?.returnedDenizenId).toBeUndefined()
+    })
+
+    it('an intact edifice at a site the winner rules is not offered for repair', () => {
+        const table = gameTwo()
+        placeEdifice(table, STEPPE, GREAT_SPIRE)
+        const state = building(table)
+        expect(edificeChoices(hydrated(state)).map((choice) => choice.siteId)).not.toContain(STEPPE)
+        expect(refusal(state, build(ANN, { siteId: STEPPE, cardId: GREAT_SPIRE }))).toBe(
+            'Great Spire is not a ruin'
+        )
     })
 
     it('an edifice ruined at a site the winner does not rule is not in the Archive', () => {
