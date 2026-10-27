@@ -30,10 +30,12 @@ export enum OathRevision {
     EngineFixes22 = 26,
     EngineFixes23 = 27,
     EngineFixes24 = 28,
-    EngineFixes25 = 29
+    EngineFixes25 = 29,
+    /** R-8 — a won game writes its chronicle before the result (R-3, R-8). */
+    Chronicle = 30
 }
 
-export const CURRENT_OATH_REVISION = OathRevision.EngineFixes25
+export const CURRENT_OATH_REVISION = OathRevision.Chronicle
 
 export function isAtLeastOathRevision(
     state: Pick<OathGameState, 'oathRevision'>,

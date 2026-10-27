@@ -4,6 +4,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedRollEndDie, isRollEndDie } from '../actions/rollEndDie.js'
 import { isPlayerActionOfType } from './handlerSupport.js'
+import { stateAfterWin } from '../util/chronicle.js'
 
 /** R-3.3 — the round has ended with the Empire holding the title; the Chancellor rolls. */
 export class EndOfRoundStateHandler implements MachineStateHandler<
@@ -35,7 +36,7 @@ export class EndOfRoundStateHandler implements MachineStateHandler<
             // R-1.7 — a round that goes on starts with the Chancellor's Wake. Squalid District's
             // question, when asked, reads the roll and names where play goes once it is answered.
             return context.gameState.winningPlayerIds.length > 0
-                ? MachineState.EndOfGame
+                ? stateAfterWin(context.gameState)
                 : MachineState.WakePhase
         }
         throw Error(`Unhandled action type: ${action.type}`)

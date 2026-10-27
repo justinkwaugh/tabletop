@@ -4,6 +4,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedResolveWake, ResolveWake, isResolveWake } from '../actions/resolveWake.js'
 import { isPlayerActionOfType } from './handlerSupport.js'
+import { stateAfterWin } from '../util/chronicle.js'
 
 /** R-4.1, R-X.1 — R-4.1.1's favor placement and R-4.1.4's site power are the player's decisions. */
 export class WakePhaseStateHandler implements MachineStateHandler<
@@ -48,7 +49,7 @@ export class WakePhaseStateHandler implements MachineStateHandler<
         if (isResolveWake(action)) {
             // R-4.1.2 may have ended the game before R-4.1.3 or R-4.1.4 ran.
             if (context.gameState.winningPlayerIds.length > 0) {
-                return MachineState.EndOfGame
+                return stateAfterWin(context.gameState)
             }
             return MachineState.ActPhase
         }

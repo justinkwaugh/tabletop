@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { Color, type GameAction } from '@tabletop/common'
+import { describe, expect, it, vi } from 'vitest'
+import { Color, GameResult, assertExists, type GameAction } from '@tabletop/common'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
 import { EndActPhase } from '../actions/endActPhase.js'
 import { RollEndDie, isRollEndDie } from '../actions/rollEndDie.js'
@@ -10,6 +10,8 @@ import { HydratedOathGameState, type OathProjectedState } from '../model/gameSta
 import { Banner, OathType, PlayerStatus } from '../model/oathEnums.js'
 import { PowerQuestionKind, type ExchangeTerms } from '../model/question.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { ChronicleStep } from '../model/chronicle.js'
+import { CHRONICLE_STEPS } from '../util/chronicle.js'
 import { buildAction } from '../testing/actions.js'
 import {
     DANA,
@@ -200,6 +202,12 @@ function roundEnd({
             denizensBySite: { c1: [], c2: [], p1: [] },
             round,
             oathRevision: CURRENT_OATH_REVISION,
+            // A game started at this revision carries its table record, which R-8's record reads.
+            table: {
+                name: 'Thursday table',
+                date: '2026-10-22',
+                seatNames: { [DANA]: 'Dana', [RHYS]: 'Rhys' }
+            },
             prng: { seed, invocations: 0 },
             ...state
         }
@@ -302,6 +310,31 @@ describe('Squalid District — its ruler may raise or lower the end die by one, 
         })
         expect(answered.updatedState.machineState).toBe(MachineState.EndOfGame)
         expect(answered.updatedState.winningPlayerIds).toEqual([DANA])
+    })
+
+    it('the win its answer makes is chronicled before the result (R-8)', () => {
+        const options = { round: 6 }
+        const rolled = roll(roundEnd({ ...options, seed: seedRolling(4, options) }))
+        const ended = adjust(rolled.updatedState, 1).updatedState
+        expect(ended.result).toBe(GameResult.Win)
+        expect(ended.canContinue).toBe(true)
+        expect(ended.chronicleRecord?.map((entry) => [entry.rule, entry.winner])).toEqual([
+            ['R-3.3', { name: 'Dana', color: Color.Purple }]
+        ])
+
+        // With a step waiting, the answer leaves the game in the Chronicle phase, and says so.
+        const vow = CHRONICLE_STEPS.find((rule) => rule.step === ChronicleStep.Vow)
+        assertExists(vow, 'the Vow is a step')
+        const waits = vi.spyOn(vow, 'applies').mockReturnValue(true)
+        const answered = adjust(rolled.updatedState, 1)
+        waits.mockRestore()
+        expect(answered.updatedState.machineState).toBe(MachineState.Chronicle)
+        expect(answered.updatedState.pendingQuestions).toBeUndefined()
+        expect(answered.updatedState.activePlayerIds).toEqual([DANA])
+        expect(answered.updatedState.result).toBeUndefined()
+        expect(answered.processedActions.find(isAnswerQuestion)?.metadata?.resumeMachineState).toBe(
+            MachineState.Chronicle
+        )
     })
 
     it('a 6 raised in round five still ends the game (its Q&A)', () => {

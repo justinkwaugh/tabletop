@@ -6,6 +6,7 @@ import { CompleteRest, HydratedCompleteRest, isCompleteRest } from '../actions/c
 import { HydratedUseRestPower, isUseRestPower } from '../actions/useRestPower.js'
 import { refreshSupply, returnFavorFromCards, returnSecretsToBoard } from '../util/rest.js'
 import { isPlayerActionOfType } from './handlerSupport.js'
+import { stateAfterWin } from '../util/chronicle.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 // R-4.3 — `enter()` resolves R-4.3.1 to R-4.3.4, which hold no choice; R-4.3.5's Rest powers are actions.
@@ -72,7 +73,7 @@ export class RestPhaseStateHandler implements MachineStateHandler<
         if (isCompleteRest(action)) {
             // R-3.3 or R-3.4 may have ended the game at the round boundary.
             if (context.gameState.winningPlayerIds.length > 0) {
-                return MachineState.EndOfGame
+                return stateAfterWin(context.gameState)
             }
             return action.metadata?.awaitsEndDie ? MachineState.EndOfRound : MachineState.WakePhase
         }

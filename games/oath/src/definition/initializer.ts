@@ -36,6 +36,7 @@ import { teachReliquaryToScepterHolder } from '../util/hiddenInputs.js'
 import { bySuit } from '../data/typedData.js'
 import { SetupVariant } from '../model/oathEnums.js'
 import { CURRENT_OATH_REVISION } from '../util/revision.js'
+import { tableRecordOf } from '../util/chronicle.js'
 
 const OathGameConfigValidator = Compile(OathGameConfig)
 
@@ -124,6 +125,8 @@ export class OathGameInitializer
         )
         teachReliquaryToScepterHolder(initial)
         initial.oathRevision = CURRENT_OATH_REVISION
+        // R-8 — the chronicle's record names the table as it started.
+        initial.table = tableRecordOf(game)
         return initial
     }
 

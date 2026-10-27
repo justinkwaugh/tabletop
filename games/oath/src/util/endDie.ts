@@ -2,6 +2,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import type { OpenDeal } from '../model/question.js'
 import { dropOpenDealsAtGameEnd } from './deals.js'
 import { stableRegimeWinner } from './victory.js'
+import { recordWin } from './chronicle.js'
 
 /**
  * R-3.3, R-3.3.1 — the end die read: the game ends and the Empire wins, dropping the Tribunal deals
@@ -13,7 +14,7 @@ export function settleEndDie(
 ): { wonBy?: string; openDealsDropped?: OpenDeal[] } {
     const outcome = stableRegimeWinner(state, roll)
     if (outcome) {
-        state.winningPlayerIds = [outcome.winnerPlayerId]
+        recordWin(state, outcome)
         return { wonBy: outcome.rule, ...dropOpenDealsAtGameEnd(state) }
     }
     state.round += 1

@@ -6,6 +6,7 @@ import {
     assert
 } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 /** R-3 — the ending action recorded the winner; R-3.3's die is never rolled again (R-X.3). */
 export class EndOfGameStateHandler implements MachineStateHandler<
@@ -34,6 +35,15 @@ export class EndOfGameStateHandler implements MachineStateHandler<
             'R-3 — the action that ended the game records its one winner'
         )
         gameState.result = GameResult.Win
+        // R-8 — from the chronicle revision the result comes once the chronicle is written, and
+        // with it the next game may continue this one.
+        if (isAtLeastOathRevision(gameState, OathRevision.Chronicle)) {
+            assert(
+                gameState.chronicle !== undefined && gameState.chronicle.step === undefined,
+                'R-8 — the result waits on the last step of the chronicle'
+            )
+            gameState.canContinue = true
+        }
         gameState.activePlayerIds = []
     }
 

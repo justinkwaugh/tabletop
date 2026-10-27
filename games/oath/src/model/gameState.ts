@@ -26,6 +26,7 @@ import { MAX_OPEN_DEALS, OpenDeal, PendingQuestions } from './question.js'
 import { PendingConsent } from './consent.js'
 import { OathVaultSchema, type OathVault } from './vault.js'
 import { kindOf, suitOf } from '../data/cardRegistry.js'
+import { Chronicle, ChronicleEntry, TableRecord } from './chronicle.js'
 
 /** R-2.8.2 — actions target the slot; `cardId` fills in once the identity is public (R-9.4). */
 export type RelicSlot = Type.Static<typeof RelicSlot>
@@ -154,7 +155,13 @@ export const OathGameState = Type.Object({
     siteCapacityOverrides: Type.Record(Type.String(), Type.Number()),
     chancellorPlayerId: Type.Optional(Type.String()),
     /** R-2.9 — edifices showing their ruined side; absent until one is ruined. */
-    ruinedEdificeIds: Type.Optional(Type.Array(Type.String(), { maxItems: 6 }))
+    ruinedEdificeIds: Type.Optional(Type.Array(Type.String(), { maxItems: 6 })),
+    /** From the chronicle revision: the table as it started, read by the record. */
+    table: Type.Optional(TableRecord),
+    /** R-8 — from the chronicle revision, present once the game is won. */
+    chronicle: Type.Optional(Chronicle),
+    /** R-8 — one entry per game, oldest first; absent until the first chronicle ends. */
+    chronicleRecord: Type.Optional(Type.Array(ChronicleEntry))
 })
 
 export const OathGameStateValidator = Compile(OathGameState)
@@ -228,6 +235,9 @@ export class HydratedOathGameState
     declare siteCapacityOverrides: Record<string, number>
     declare chancellorPlayerId?: string
     declare ruinedEdificeIds?: string[]
+    declare table?: TableRecord
+    declare chronicle?: Chronicle
+    declare chronicleRecord?: ChronicleEntry[]
     declare vault?: OathProjectedState['vault']
 
     constructor(data: OathProjectedState) {
