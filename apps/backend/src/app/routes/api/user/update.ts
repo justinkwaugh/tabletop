@@ -55,6 +55,9 @@ export default async function (fastify: FastifyInstance) {
                     proof: currentPassword ? 'authentication-method' : 'challenge',
                     sessions: fastify.sessionService
                 })
+                // Every other session died with the Session Generation; their realtime
+                // connections end too, and this one reconnects with a fresh token
+                await fastify.realtimeControl.revokeAccount(updatedUser.id)
             }
             console.log(`Updated user ${JSON.stringify(updatedUser)}`)
             return { status: 'ok', payload: { user: updatedUser } }

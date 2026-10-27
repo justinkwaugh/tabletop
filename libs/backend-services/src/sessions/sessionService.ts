@@ -15,6 +15,8 @@ import {
     SessionNotLiveError
 } from './recentAuthentication.js'
 import { adminModeExpiry, AdministratorRequiredError, hasAdminMode } from './adminMode.js'
+import { RELAY_STATS_TOPIC } from '../notifications/topics.js'
+import type { RealtimeControl } from '../realtime/realtimeControl.js'
 
 export const SESSION_LIFETIME_SECONDS = 30 * 24 * 60 * 60
 
@@ -27,10 +29,17 @@ const sessionId = customAlphabet(
 export type AuthorizedSession = { session: AuthenticatedSession; user: User }
 export type AccountLookup = (userId: string) => Promise<User | undefined>
 
+export type SessionServiceOptions = {
+    lifetimeSeconds?: number
+    now?: () => Date
+    // Told when a session's administrative grants on the realtime relay must end
+    realtime?: RealtimeControl
+}
+
 export class SessionService {
     constructor(
         private readonly sessionStore: SessionStore,
-        private readonly options: { lifetimeSeconds?: number; now?: () => Date } = {}
+        private readonly options: SessionServiceOptions = {}
     ) {}
 
     async establish(user: User, proof: AuthenticationProof): Promise<AuthenticatedSession> {
@@ -118,14 +127,30 @@ export class SessionService {
 
     async deactivateAdminMode(session: AuthenticatedSession): Promise<void> {
         await this.sessionStore.setAdminMode(session.id, undefined)
+        await this.endAdminGrants(session.userId)
     }
 
+    // Ends the session. A session that held Admin Mode also loses its administrative grants
+    // on the relay, which the relay bounds by the mode's end in any case.
     async revoke(id: string): Promise<void> {
+        const session = await this.sessionStore.find(id)
         await this.sessionStore.delete(id)
+        if (session && session.adminModeExpiresAt && session.adminModeExpiresAt > this.now()) {
+            await this.endAdminGrants(session.userId)
+        }
     }
 
+    // Ends every session of the Account; every realtime connection of the Account closes and
+    // the clients of the sessions that remain, if any, reconnect with fresh tokens.
     async revokeAll(userId: string, options: { except?: string } = {}): Promise<void> {
         await this.sessionStore.deleteForUser(userId, options)
+        await this.options.realtime?.revokeAccount(userId)
+    }
+
+    // Relay grants that only Admin Mode confers; the relay keeps the Account's connections
+    // and their ordinary Topics.
+    async endAdminGrants(userId: string): Promise<void> {
+        await this.options.realtime?.revokeTopics(userId, [RELAY_STATS_TOPIC])
     }
 
     private now(): Date {

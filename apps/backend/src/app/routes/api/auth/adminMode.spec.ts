@@ -1,5 +1,16 @@
-import { Role, UserStatus, sessionGenerationOf, type User } from '@tabletop/common'
-import { RECENT_AUTHENTICATION_SECONDS, SESSION_LIFETIME_SECONDS } from '@tabletop/backend-services'
+import { randomBytes } from 'node:crypto'
+import { Role, UserStatus, type User } from '@tabletop/common'
+import {
+    LibraryService,
+    type ManifestCache,
+    type MessagePublisher,
+    RECENT_AUTHENTICATION_SECONDS,
+    RealtimeControl,
+    type RealtimeRevocation,
+    RealtimeTokenIssuer,
+    SESSION_LIFETIME_SECONDS,
+    UserService
+} from '@tabletop/backend-services'
 import Sensible from '@fastify/sensible'
 import type { FastifyInstance } from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -13,7 +24,12 @@ import logout from './logout.js'
 import invalidate from '../admin/manifest/invalidate.js'
 import roles from '../admin/users/roles.js'
 import realtimeToken from '../realtime/token.js'
-import { apiErrorShape } from '../../../tests/accountFixture.js'
+import {
+    apiErrorShape,
+    memoryChallenges,
+    memoryUserStore,
+    recordingTasks
+} from '../../../tests/accountFixture.js'
 import {
     memorySessions,
     sessionCookieHeader,
@@ -26,31 +42,69 @@ function administrator(): User {
     return {
         id: 'admin-1',
         username: 'Admin',
+        email: 'admin@example.test',
+        emailVerified: true,
         status: UserStatus.Active,
         roles: [Role.User, Role.Admin],
         externalIds: []
     }
 }
 
+// The library never reaches the cache here: the manifest routes are stubbed on the instance
+class MemoryManifestCache implements ManifestCache {
+    async cachingGet<T>(): Promise<T | undefined> {
+        return undefined
+    }
+
+    async delete(): Promise<void> {}
+}
+
+type TokenClaims = { topics: string[]; until?: Record<string, number>; iat: number; exp: number }
+
+function claimsOf(token: string): TokenClaims {
+    return JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8'))
+}
+
 async function createServer(initial: User = administrator()) {
     let now = new Date('2026-10-27T12:00:00.000Z')
-    const { sessionService, sessionStore } = memorySessions({ now: () => now })
+    const revocations: RealtimeRevocation[] = []
+    const relay: MessagePublisher = {
+        publishMessage: async ({ message }) => {
+            revocations.push(JSON.parse(message))
+        }
+    }
+    const { sessionService, sessionStore } = memorySessions({
+        now: () => now,
+        realtime: new RealtimeControl(relay, () => now)
+    })
     const server = await sessionServer(sessionService)
     await server.register(Sensible)
     apiErrorShape(server)
-    let current = initial
-    const assignRoles = vi.fn(async () => current)
-    const invalidateManifestCache = vi.fn(async () => {})
-    const refreshAndActivate = vi.fn(async () => {})
-    const issue = vi.fn(({ topics }: { userId: string; topics: string[] }) => topics.join(','))
-    Reflect.set(server, 'userService', {
-        getUser: async (id: string) => (id === current.id ? current : undefined),
-        getUserByUsernameAndPassword: async (username: string, password: string) =>
-            username === current.username && password === PASSWORD ? current : undefined,
-        assignRoles
+    const { store, account } = memoryUserStore(initial, PASSWORD)
+    const userService = new UserService(
+        store,
+        memoryChallenges({ now: () => now }).challengeService,
+        recordingTasks().tasks
+    )
+    const assignRoles = vi.spyOn(userService, 'assignRoles')
+    const library = new LibraryService(new MemoryManifestCache(), { useCache: false })
+    const invalidateManifestCache = vi
+        .spyOn(library, 'invalidateManifestCache')
+        .mockResolvedValue(undefined)
+    vi.spyOn(library, 'refreshAndActivate').mockResolvedValue({
+        frontend: { version: '0.0.0' },
+        games: []
     })
-    Reflect.set(server, 'libraryService', { invalidateManifestCache, refreshAndActivate })
-    Reflect.set(server, 'realtimeTokenIssuer', { issue })
+    server.decorate('userService', userService)
+    server.decorate('libraryService', library)
+    server.decorate(
+        'realtimeTokenIssuer',
+        new RealtimeTokenIssuer(
+            { kid: 'spec', key: randomBytes(32) },
+            () => now.getTime(),
+            () => 'token-id'
+        )
+    )
     await server.register(authorization)
     await server.register(adminMode, { prefix: '/auth' })
     await server.register(reauthenticate, { prefix: '/auth' })
@@ -61,7 +115,7 @@ async function createServer(initial: User = administrator()) {
     server.post('/session', async (request) => {
         await authSession({
             session: request.session,
-            user: current,
+            user: account(),
             proof: 'authentication-method',
             sessions: sessionService
         })
@@ -82,24 +136,30 @@ async function createServer(initial: User = administrator()) {
         sessionStore,
         cookie,
         login,
+        revocations,
         assignRoles,
         invalidateManifestCache,
         advance: (seconds: number) => (now = new Date(now.getTime() + seconds * 1000)),
-        setAccount: (changes: Partial<User>) => {
-            current = { ...current, ...changes }
-        },
-        advanceSessionGeneration: () => {
-            current = { ...current, sessionGeneration: sessionGenerationOf(current) + 1 }
-        },
+        demote: () => store.updateUser({ userId: initial.id, fields: { roles: [Role.User] } }),
+        deactivateAccount: () =>
+            store.updateUser({ userId: initial.id, fields: { status: UserStatus.Inactive } }),
+        advanceSessionGeneration: () =>
+            store.updatePassword(initial.id, 'another password entirely'),
         status: (withCookie = cookie) => inject('GET', '/auth/admin-mode', undefined, withCookie),
         activate: (withCookie = cookie) =>
             inject('POST', '/auth/admin-mode/activate', undefined, withCookie),
         deactivate: () => inject('POST', '/auth/admin-mode/deactivate'),
         reauthenticate: () => inject('POST', '/auth/reauthenticate', { password: PASSWORD }),
+        logout: (withCookie = cookie) => inject('GET', '/auth/logout', undefined, withCookie),
         invalidate: (payload?: object, withCookie = cookie) =>
             inject('POST', '/admin/manifest/invalidate', payload, withCookie),
-        assign: () => inject('POST', '/admin/users/user-2/roles', { roles: [Role.Developer] }),
-        relayToken: () => inject('GET', '/realtime/token?relayStats=true')
+        assign: () =>
+            inject('POST', `/admin/users/${initial.id}/roles`, { roles: [Role.Developer] }),
+        relayToken: async () => {
+            const response = await inject('GET', '/realtime/token?relayStats=true')
+            expect(response.statusCode).toBe(200)
+            return claimsOf(response.json().payload.token)
+        }
     }
 }
 
@@ -119,6 +179,12 @@ describe('Admin Mode', () => {
 
     const errorName = (response: { json: () => { error?: { name?: string } } }) =>
         response.json().error?.name
+
+    const statsRevocation = (at: number): RealtimeRevocation => ({
+        revoke: 'admin-1',
+        topics: ['relay-stats'],
+        at
+    })
 
     it('is off for a freshly signed-in Administrator, so administrative routes refuse them', async () => {
         const { status, invalidate, assign, assignRoles, invalidateManifestCache } = await fixture()
@@ -154,7 +220,8 @@ describe('Admin Mode', () => {
     })
 
     it('activates with Recent Authentication and then authorizes administrative routes and grants', async () => {
-        const { activate, status, invalidate, assign, relayToken, sessionStore } = await fixture()
+        const { activate, status, invalidate, assign, assignRoles, relayToken, sessionStore } =
+            await fixture()
         const activated = await activate()
         expect(activated.statusCode).toBe(200)
         const expiresAt = '2026-10-27T12:15:00.000Z'
@@ -165,8 +232,27 @@ describe('Admin Mode', () => {
         })
         expect((await invalidate()).statusCode).toBe(200)
         expect((await assign()).statusCode).toBe(200)
-        expect((await relayToken()).json().payload.token).toContain('relay-stats')
+        expect(assignRoles).toHaveBeenCalledWith('admin-1', [Role.Developer])
+        expect((await relayToken()).topics).toContain('relay-stats')
         expect(sessionStore.size).toBe(1)
+    })
+
+    it('grants the relay-stats topic only up to the end of the mode, whatever the token lifetime', async () => {
+        const { activate, advance, relayToken } = await fixture()
+        expect((await activate()).statusCode).toBe(200)
+        const modeEnd = Date.parse('2026-10-27T12:15:00.000Z') / 1000
+        const fresh = await relayToken()
+        expect(fresh.until).toEqual({ 'relay-stats': modeEnd })
+        expect(fresh.exp - fresh.iat).toBe(60)
+        advance(RECENT_AUTHENTICATION_SECONDS - 1)
+        const late = await relayToken()
+        expect(late.topics).toContain('relay-stats')
+        expect(late.until).toEqual({ 'relay-stats': modeEnd })
+        expect(late.exp).toBeGreaterThan(modeEnd)
+        advance(1)
+        const lapsed = await relayToken()
+        expect(lapsed.topics).not.toContain('relay-stats')
+        expect(lapsed).not.toHaveProperty('until')
     })
 
     it('expires with the Recent Authentication window and is not revived by reauthentication', async () => {
@@ -178,7 +264,7 @@ describe('Admin Mode', () => {
         advance(1)
         expect((await invalidate()).statusCode).toBe(403)
         expect((await status()).json()).toEqual({ status: 'ok', payload: {} })
-        expect((await relayToken()).json().payload.token).not.toContain('relay-stats')
+        expect((await relayToken()).topics).not.toContain('relay-stats')
         expect((await reauthenticate()).statusCode).toBe(200)
         expect((await invalidate()).statusCode).toBe(403)
         expect((await status()).json()).toEqual({ status: 'ok', payload: {} })
@@ -188,10 +274,13 @@ describe('Admin Mode', () => {
         expect((await invalidate()).statusCode).toBe(200)
     })
 
-    it('ends on deactivation', async () => {
-        const { activate, deactivate, invalidate, status } = await fixture()
+    it('ends on deactivation and tells the relay to end the stats grant', async () => {
+        const { activate, deactivate, invalidate, status, revocations, advance } = await fixture()
         expect((await activate()).statusCode).toBe(200)
+        expect(revocations).toEqual([])
+        advance(20)
         expect((await deactivate()).statusCode).toBe(200)
+        expect(revocations).toEqual([statsRevocation(Date.parse('2026-10-27T12:00:20Z') / 1000)])
         expect((await status()).json()).toEqual({ status: 'ok', payload: {} })
         expect((await invalidate()).statusCode).toBe(403)
     })
@@ -207,28 +296,35 @@ describe('Admin Mode', () => {
     it('ends with the session: logout, Session Generation change, lost role or lost Active status', async () => {
         const regenerated = await fixture()
         expect((await regenerated.activate()).statusCode).toBe(200)
-        regenerated.advanceSessionGeneration()
+        await regenerated.advanceSessionGeneration()
         expect((await regenerated.invalidate()).statusCode).toBe(401)
         expect((await regenerated.status()).statusCode).toBe(401)
         expect((await regenerated.activate()).statusCode).toBe(401)
         const demoted = await fixture()
         expect((await demoted.activate()).statusCode).toBe(200)
-        demoted.setAccount({ roles: [Role.User] })
+        await demoted.demote()
         expect((await demoted.invalidate()).statusCode).toBe(403)
         expect((await demoted.activate()).statusCode).toBe(403)
         const inactive = await fixture()
         expect((await inactive.activate()).statusCode).toBe(200)
-        inactive.setAccount({ status: UserStatus.Inactive })
+        await inactive.deactivateAccount()
         expect((await inactive.invalidate()).statusCode).toBe(401)
         expect((await inactive.activate()).statusCode).toBe(401)
         const loggedOut = await fixture()
         expect((await loggedOut.activate()).statusCode).toBe(200)
-        const logoutResponse = await loggedOut.server.inject({
-            url: '/auth/logout',
-            headers: { cookie: loggedOut.cookie }
-        })
-        expect(logoutResponse.statusCode).toBe(200)
+        expect((await loggedOut.logout()).statusCode).toBe(200)
         expect((await loggedOut.invalidate()).statusCode).toBe(401)
+        expect(loggedOut.revocations).toEqual([
+            statsRevocation(Date.parse('2026-10-27T12:00:00Z') / 1000)
+        ])
+    })
+
+    it('tells the relay nothing when a session outside the mode logs out', async () => {
+        const { logout, login, activate, revocations } = await fixture()
+        const other = await login()
+        expect((await activate()).statusCode).toBe(200)
+        expect((await logout(other)).statusCode).toBe(200)
+        expect(revocations).toEqual([])
     })
 
     it('cannot be entered by an Account without the Admin role, whatever it sends', async () => {
@@ -251,12 +347,15 @@ describe('Admin Mode', () => {
     })
 
     it('is bounded by the session lifetime', async () => {
-        const { activate, advance, reauthenticate, invalidate } = await fixture()
+        const { activate, advance, reauthenticate, invalidate, relayToken } = await fixture()
         advance(SESSION_LIFETIME_SECONDS - 30)
         expect((await reauthenticate()).statusCode).toBe(200)
         const late = await activate()
         expect(late.statusCode).toBe(200)
         expect(late.json().payload.adminMode.expiresAt).toBe('2026-11-26T12:00:00.000Z')
+        expect((await relayToken()).until).toEqual({
+            'relay-stats': Date.parse('2026-11-26T12:00:00.000Z') / 1000
+        })
         advance(30)
         expect((await invalidate()).statusCode).toBe(401)
     })

@@ -3,6 +3,7 @@ package hub
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"time"
 )
 
 type Conn struct {
@@ -12,6 +13,7 @@ type Conn struct {
 	closed  chan struct{}
 
 	topics    map[string]bool
+	until     map[string]time.Time // the end of each bounded grant the connection carries
 	awaiting  map[string]struct{}
 	announced bool
 	dropped   bool
@@ -25,6 +27,7 @@ func newConn(account string, buffer int) *Conn {
 		frames:   make(chan []byte, buffer),
 		closed:   make(chan struct{}),
 		topics:   map[string]bool{},
+		until:    map[string]time.Time{},
 		awaiting: map[string]struct{}{},
 	}
 }

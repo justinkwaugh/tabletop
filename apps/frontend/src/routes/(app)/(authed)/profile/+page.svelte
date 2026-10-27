@@ -18,6 +18,7 @@
     import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
     import { broadcastLogout } from '$lib/utils/logoutChannel'
     import { challengeExpiryText } from '$lib/utils/challengeExpiry'
+    import { reauthentication } from '$lib/stores/reauthentication.svelte'
 
     let { authorizationService, api } = getAppContext()
 
@@ -90,8 +91,13 @@
     }
 
     async function unlink(externalId: string) {
-        const newUser = await api.unlinkExternalAccount(externalId)
-        authorizationService.setSessionUser(newUser)
+        await reauthentication.run({
+            description: 'Unlinking a sign-in method',
+            retry: async () => {
+                const newUser = await api.unlinkExternalAccount(externalId)
+                authorizationService.setSessionUser(newUser)
+            }
+        })
     }
 
     async function submit(event: SubmitEvent) {

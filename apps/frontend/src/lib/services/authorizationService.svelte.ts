@@ -41,6 +41,7 @@ export class AuthorizationService {
     private adminModeExpiresAt: Date | undefined = $state(undefined)
     private adminModeClock: number = $state(0)
     private adminModeExpiryTimer: ReturnType<typeof setTimeout> | undefined
+    private adminModeRequests = 0
 
     isAdmin: boolean = $derived(Boolean(this.sessionUser?.roles.includes(Role.Admin)))
     isDeveloper: boolean = $derived(Boolean(this.sessionUser?.roles.includes(Role.Developer)))
@@ -136,21 +137,45 @@ export class AuthorizationService {
         }
         await reauthentication.run({
             description: 'Entering Admin Mode',
-            retry: async () => this.adoptAdminMode(await this.api.activateAdminMode())
+            retry: () => this.confirmAdminMode(() => this.api.activateAdminMode())
         })
     }
 
+    // The mode shown is the one the server last confirmed. A deactivation the server did not
+    // confirm leaves it on, and the server is asked again so that the two agree.
     public async deactivateAdminMode(): Promise<void> {
-        this.adoptAdminMode(undefined)
-        await this.api.deactivateAdminMode()
+        try {
+            await this.confirmAdminMode(async () => {
+                await this.api.deactivateAdminMode()
+                return undefined
+            })
+        } catch (error) {
+            await this.refreshAdminMode()
+            throw error
+        }
     }
 
     private async refreshAdminMode(): Promise<void> {
         try {
-            this.adoptAdminMode(await this.api.getAdminMode())
+            await this.confirmAdminMode(() => this.api.getAdminMode())
         } catch (error) {
             console.error('Could not read Admin Mode', error)
         }
+    }
+
+    // Only the newest request's answer is adopted, so an older answer still in flight cannot
+    // reinstate a mode that a later request ended.
+    private async confirmAdminMode(ask: () => Promise<Date | undefined>): Promise<void> {
+        const request = ++this.adminModeRequests
+        const expiresAt = await ask()
+        if (request === this.adminModeRequests) {
+            this.adoptAdminMode(expiresAt)
+        }
+    }
+
+    private forgetAdminMode() {
+        this.adminModeRequests++
+        this.adoptAdminMode(undefined)
     }
 
     private adoptAdminMode(expiresAt: Date | undefined) {
@@ -182,7 +207,7 @@ export class AuthorizationService {
 
     public clearSessionUser() {
         this.sessionUser = undefined
-        this.adoptAdminMode(undefined)
+        this.forgetAdminMode()
         removeStoredValue(AuthorizationService.storageKey)
         this.onSessionUserCleared()
     }
@@ -226,7 +251,7 @@ export class AuthorizationService {
         if (user.roles.includes(Role.Admin)) {
             void this.refreshAdminMode()
         } else {
-            this.adoptAdminMode(undefined)
+            this.forgetAdminMode()
         }
     }
 

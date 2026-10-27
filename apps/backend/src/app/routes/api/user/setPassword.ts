@@ -26,6 +26,8 @@ export default async function (fastify: FastifyInstance) {
                 throw new InvalidChallengeError('format')
             }
             await fastify.userService.setPassword({ ...presented, password: request.body.password })
+            // Every session died with the Session Generation; their realtime connections end too
+            await fastify.realtimeControl.revokeAccount(presented.userId)
             return { status: 'ok', payload: {} }
         }
     )

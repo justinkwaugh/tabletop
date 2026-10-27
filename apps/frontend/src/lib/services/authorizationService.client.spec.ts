@@ -65,7 +65,7 @@ describe('AuthorizationService Admin Mode', () => {
         expect(status).not.toHaveBeenCalled()
     })
 
-    it('ends on deactivation before the server answers', async () => {
+    it('ends once the server confirms the deactivation, not before', async () => {
         const api = new TabletopApi()
         vi.spyOn(api, 'activateAdminMode').mockResolvedValue(new Date('2026-10-27T12:15:00.000Z'))
         let settle: () => void = () => {}
@@ -78,10 +78,82 @@ describe('AuthorizationService Admin Mode', () => {
         await service.requestAdminMode()
 
         const pending = service.deactivateAdminMode()
-        expect(service.actAsAdmin).toBe(false)
+        expect(service.actAsAdmin).toBe(true)
         settle()
         await pending
         expect(deactivate).toHaveBeenCalledTimes(1)
+        expect(service.actAsAdmin).toBe(false)
+    })
+
+    it('keeps the mode the server last confirmed when a deactivation never reaches it, and asks again', async () => {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'activateAdminMode').mockResolvedValue(new Date('2026-10-27T12:15:00.000Z'))
+        vi.spyOn(api, 'deactivateAdminMode').mockRejectedValue(
+            new Error('request never reached the server')
+        )
+        const status = vi
+            .spyOn(api, 'getAdminMode')
+            .mockResolvedValue(new Date('2026-10-27T12:15:00.000Z'))
+        const service = adminService(api)
+        await service.requestAdminMode()
+
+        await expect(service.deactivateAdminMode()).rejects.toThrow(
+            'request never reached the server'
+        )
+        expect(status).toHaveBeenCalledTimes(1)
+        expect(service.actAsAdmin).toBe(true)
+
+        status.mockResolvedValue(undefined)
+        await expect(service.deactivateAdminMode()).rejects.toThrow()
+        expect(service.actAsAdmin).toBe(false)
+    })
+
+    it('keeps the last confirmed mode when neither the deactivation nor the check reaches the server', async () => {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'activateAdminMode').mockResolvedValue(new Date('2026-10-27T12:15:00.000Z'))
+        vi.spyOn(api, 'deactivateAdminMode').mockRejectedValue(new Error('offline'))
+        vi.spyOn(api, 'getAdminMode').mockRejectedValue(new Error('offline'))
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+        const service = adminService(api)
+        await service.requestAdminMode()
+
+        await expect(service.deactivateAdminMode()).rejects.toThrow('offline')
+        expect(service.actAsAdmin).toBe(true)
+    })
+
+    it('ignores an older status answer that arrives after a later request ended the mode', async () => {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'getSelf').mockResolvedValue(createUser([Role.User, Role.Admin]))
+        let answerStatus: (expiresAt: Date | undefined) => void = () => {}
+        vi.spyOn(api, 'getAdminMode').mockReturnValue(
+            new Promise((resolve) => {
+                answerStatus = resolve
+            })
+        )
+        vi.spyOn(api, 'activateAdminMode').mockResolvedValue(new Date('2026-10-27T12:15:00.000Z'))
+        vi.spyOn(api, 'deactivateAdminMode').mockResolvedValue(undefined)
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
+        await service.initialize()
+        expect(service.actAsAdmin).toBe(false)
+
+        await service.requestAdminMode()
+        expect(service.actAsAdmin).toBe(true)
+        await service.deactivateAdminMode()
+        expect(service.actAsAdmin).toBe(false)
+
+        answerStatus(new Date('2026-10-27T12:14:00.000Z'))
+        await vi.advanceTimersByTimeAsync(0)
+        expect(service.actAsAdmin).toBe(false)
+    })
+
+    it('never activates on its own when the person reauthenticates for something else', async () => {
+        const api = new TabletopApi()
+        const activate = vi.spyOn(api, 'activateAdminMode')
+        vi.spyOn(api, 'reauthenticateWithPassword').mockResolvedValue(undefined)
+        const service = adminService(api)
+        await api.reauthenticateWithPassword('password')
+        expect(activate).not.toHaveBeenCalled()
+        expect(service.actAsAdmin).toBe(false)
     })
 
     it('mirrors the mode the server holds when the session is restored', async () => {

@@ -10,6 +10,7 @@ import {
     SessionNotLiveError
 } from './recentAuthentication.js'
 import { AdministratorRequiredError } from './adminMode.js'
+import { RealtimeControl, REALTIME_CONTROL_CHANNEL } from '../realtime/realtimeControl.js'
 
 function account(status: UserStatus, id = 'account-1', sessionGeneration?: number): User {
     return { id, status, roles: [Role.User], externalIds: [], sessionGeneration }
@@ -18,7 +19,17 @@ function account(status: UserStatus, id = 'account-1', sessionGeneration?: numbe
 function fixture(start = new Date('2026-10-27T12:00:00.000Z')) {
     let now = start
     const store = new MemorySessionStore()
-    const sessions = new SessionService(store, { now: () => now })
+    const revocations: { revoke: string; topics?: string[]; at: number }[] = []
+    const realtime = new RealtimeControl(
+        {
+            publishMessage: async ({ topic, message }) => {
+                expect(topic).toBe(REALTIME_CONTROL_CHANNEL)
+                revocations.push(JSON.parse(message))
+            }
+        },
+        () => now
+    )
+    const sessions = new SessionService(store, { now: () => now, realtime })
     const accounts = new Map<string, User>()
     const register = (user: User) => {
         accounts.set(user.id, user)
@@ -30,6 +41,7 @@ function fixture(start = new Date('2026-10-27T12:00:00.000Z')) {
     return {
         store,
         sessions,
+        revocations,
         authorize,
         register,
         forget: (id: string) => accounts.delete(id),
@@ -347,5 +359,42 @@ describe('Admin Mode on an Authenticated Session', () => {
         const reproved = await sessions.recordAuthentication(activated)
         const lateActivation = await sessions.activateAdminMode(reproved, administrator())
         expect(lateActivation.adminModeExpiresAt).toEqual(session.expiresAt)
+    })
+
+    it('tells the relay to end the stats grant when the mode is deactivated', async () => {
+        const { sessions, revocations, advance } = fixture()
+        const session = await sessions.establish(administrator(), 'authentication-method')
+        const activated = await sessions.activateAdminMode(session, administrator())
+        expect(revocations).toEqual([])
+        advance(30)
+        await sessions.deactivateAdminMode(activated)
+        expect(revocations).toEqual([
+            { revoke: 'account-1', topics: ['relay-stats'], at: 1793102430 }
+        ])
+    })
+
+    it('tells the relay to end the stats grant when a session in the mode is revoked, and nothing for an ordinary one', async () => {
+        const { sessions, revocations, advance } = fixture()
+        const session = await sessions.establish(administrator(), 'authentication-method')
+        const ordinary = await sessions.establish(administrator(), 'authentication-method')
+        await sessions.activateAdminMode(session, administrator())
+        await sessions.revoke(ordinary.id)
+        expect(revocations).toEqual([])
+        await sessions.revoke(session.id)
+        expect(revocations).toEqual([
+            { revoke: 'account-1', topics: ['relay-stats'], at: 1793102400 }
+        ])
+        const lapsed = await sessions.establish(administrator(), 'authentication-method')
+        await sessions.activateAdminMode(lapsed, administrator())
+        advance(RECENT_AUTHENTICATION_SECONDS)
+        await sessions.revoke(lapsed.id)
+        expect(revocations).toHaveLength(1)
+    })
+
+    it('tells the relay to close every connection of an Account whose sessions are all revoked', async () => {
+        const { sessions, revocations } = fixture()
+        await sessions.establish(administrator(), 'authentication-method')
+        await sessions.revokeAll('account-1')
+        expect(revocations).toEqual([{ revoke: 'account-1', at: 1793102400 }])
     })
 })

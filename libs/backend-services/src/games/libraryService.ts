@@ -3,12 +3,15 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { access, readFile, stat } from 'node:fs/promises'
 import { GameDefinition } from '@tabletop/common'
 import type { SiteManifest, SiteManifestGame } from '@tabletop/games-config'
-import { RedisCacheService } from '../cache/cacheService.js'
+import type { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
 import { STATIC_ROOT } from '../env/staticRoot.js'
 import { evaluateLogicDefinition, importLogicModule } from './logicFactory.js'
 
 const DEFAULT_CACHE_KEY = 'site-manifest'
+
+// What the library needs of the cache: the shared manifest entry, read through and dropped
+export type ManifestCache = Pick<RedisCacheService, 'cachingGet' | 'delete'>
 
 const DEFAULT_GAMES_ROOT = path.join(STATIC_ROOT, 'games')
 export const LOCAL_WORKSPACE_ROOT = path.join(process.cwd(), '../..')
@@ -61,7 +64,7 @@ export type LibraryServiceOptions = {
 }
 
 export class LibraryService {
-    private readonly cacheService: RedisCacheService
+    private readonly cacheService: ManifestCache
     private readonly manifestPath: string
     private readonly manifestCacheKey: string
     private readonly useCache: boolean
@@ -78,7 +81,7 @@ export class LibraryService {
     private generations = new Map<string, TitleGeneration>()
     private loadedManifest?: SiteManifest
 
-    constructor(cacheService: RedisCacheService, options: LibraryServiceOptions = {}) {
+    constructor(cacheService: ManifestCache, options: LibraryServiceOptions = {}) {
         this.cacheService = cacheService
         this.manifestPath = options.manifestPath ?? MANIFEST_PATH
         this.manifestCacheKey = options.cacheKey ?? DEFAULT_CACHE_KEY

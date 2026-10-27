@@ -413,6 +413,7 @@ export class TabletopApi {
         const response = await this.wretch
             .post({ externalId }, '/user/unlinkExternalAccount')
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 

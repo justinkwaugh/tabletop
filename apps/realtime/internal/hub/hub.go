@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"slices"
 	"time"
 
@@ -54,6 +55,7 @@ type Hub struct {
 	connsByID        map[string]*Conn
 	usedTokens       map[string]time.Time
 	revocations      map[string]time.Time
+	topicRevocations map[string]map[string]time.Time
 	statsWatchers    map[*Conn]struct{}
 	statsSent        relayCounts
 	statsDirty       bool
@@ -62,16 +64,17 @@ type Hub struct {
 
 func New(config Config, subscriptions Subscriptions) *Hub {
 	return &Hub{
-		config:        config,
-		subscriptions: subscriptions,
-		requests:      make(chan func(), 1024),
-		stopped:       make(chan struct{}),
-		topics:        map[string]*topicState{},
-		accounts:      map[string][]*Conn{},
-		connsByID:     map[string]*Conn{},
-		usedTokens:    map[string]time.Time{},
-		revocations:   map[string]time.Time{},
-		statsWatchers: map[*Conn]struct{}{},
+		config:           config,
+		subscriptions:    subscriptions,
+		requests:         make(chan func(), 1024),
+		stopped:          make(chan struct{}),
+		topics:           map[string]*topicState{},
+		accounts:         map[string][]*Conn{},
+		connsByID:        map[string]*Conn{},
+		usedTokens:       map[string]time.Time{},
+		revocations:      map[string]time.Time{},
+		topicRevocations: map[string]map[string]time.Time{},
+		statsWatchers:    map[*Conn]struct{}{},
 	}
 }
 
@@ -189,7 +192,7 @@ func (h *Hub) open(registration token.Registration) (*Conn, error) {
 	conn := newConn(registration.Account, h.config.ConnectionBuffer)
 	h.accounts[conn.account] = append(h.accounts[conn.account], conn)
 	h.connsByID[conn.id] = conn
-	h.applyTopics(conn, registration.Topics)
+	h.applyTopics(conn, registration)
 	return conn, nil
 }
 
@@ -205,7 +208,7 @@ func (h *Hub) changeTopics(connID string, registration token.Registration) error
 		return err
 	}
 	h.spend(registration)
-	h.applyTopics(conn, registration.Topics)
+	h.applyTopics(conn, registration)
 	return nil
 }
 
@@ -219,6 +222,11 @@ func (h *Hub) admit(registration token.Registration) error {
 	if revokedAt, revoked := h.revocations[registration.Account]; revoked && !registration.IssuedAt.After(revokedAt) {
 		return fmt.Errorf("%w: issued before the account was revoked", ErrRejected)
 	}
+	for topic, revokedAt := range h.topicRevocations[registration.Account] {
+		if slices.Contains(registration.Topics, topic) && !registration.IssuedAt.After(revokedAt) {
+			return fmt.Errorf("%w: grants %s from before it was revoked", ErrRejected, topic)
+		}
+	}
 	if _, used := h.usedTokens[registration.ID]; used {
 		return fmt.Errorf("%w: already used", ErrRejected)
 	}
@@ -229,19 +237,62 @@ func (h *Hub) spend(registration token.Registration) {
 	h.usedTokens[registration.ID] = registration.ExpiresAt.Add(token.ClockLeeway)
 }
 
-func (h *Hub) applyTopics(conn *Conn, topics []string) {
+// applyTopics brings the connection to the registration's Topics. A bounded grant that has
+// already ended is not joined; one still running is carried with its end, and retired then.
+func (h *Hub) applyTopics(conn *Conn, registration token.Registration) {
+	now := h.config.Now()
+	granted := make([]string, 0, len(registration.Topics))
+	for _, topic := range registration.Topics {
+		if end, bounded := registration.Until[topic]; !bounded || end.After(now) {
+			granted = append(granted, topic)
+		}
+	}
 	for topic := range conn.topics {
-		if !slices.Contains(topics, topic) {
+		if !slices.Contains(granted, topic) {
 			h.leave(conn, topic)
 		}
 	}
-	for _, topic := range topics {
+	for _, topic := range granted {
+		if end, bounded := registration.Until[topic]; bounded {
+			conn.until[topic] = end
+		} else {
+			delete(conn.until, topic)
+		}
 		if _, carried := conn.topics[topic]; !carried {
 			h.join(conn, topic)
 		}
 	}
 	if len(conn.awaiting) == 0 {
 		h.markReady(conn)
+	}
+}
+
+// retire leaves every bounded grant on the connection that has ended, so nothing on that
+// Topic is delivered after its end, and tells the connection its remaining Topics.
+func (h *Hub) retire(conn *Conn, now time.Time) {
+	retired := false
+	for topic, end := range conn.until {
+		if !end.After(now) {
+			h.leave(conn, topic)
+			retired = true
+		}
+	}
+	if retired && len(conn.awaiting) == 0 && conn.announced {
+		h.announce(conn)
+	}
+}
+
+// withdraw ends the named Topics on the connection at once, whatever their grant said.
+func (h *Hub) withdraw(conn *Conn, topics []string) {
+	withdrawn := false
+	for _, topic := range topics {
+		if _, carried := conn.topics[topic]; carried {
+			h.leave(conn, topic)
+			withdrawn = true
+		}
+	}
+	if withdrawn && len(conn.awaiting) == 0 && conn.announced {
+		h.announce(conn)
 	}
 }
 
@@ -268,6 +319,7 @@ func (h *Hub) join(conn *Conn, topic string) {
 
 func (h *Hub) leave(conn *Conn, topic string) {
 	delete(conn.topics, topic)
+	delete(conn.until, topic)
 	delete(conn.awaiting, topic)
 	if topic == token.StatsTopic {
 		delete(h.statsWatchers, conn)
@@ -322,25 +374,40 @@ func (h *Hub) acknowledged(topic string, kind subscriptionKind) {
 }
 
 func (h *Hub) markReady(conn *Conn) {
+	now := h.config.Now()
+	for topic, end := range conn.until {
+		if !end.After(now) {
+			h.leave(conn, topic)
+		}
+	}
 	active, carried := conn.topics[token.StatsTopic]
 	startsWatching := carried && !active
 	for topic := range conn.topics {
 		conn.topics[topic] = true
 	}
-	frame, err := readyFrame(conn)
-	if err != nil {
-		slog.Error("unencodable ready event", "error", err)
-		h.drop(conn)
+	if !h.announce(conn) {
 		return
 	}
-	conn.announced = true
-	h.send(conn, frame)
 	if startsWatching && !conn.dropped {
 		if frame, err := h.statsFrame(h.currentStats()); err == nil {
 			h.send(conn, frame)
 			h.statsDirty = true
 		}
 	}
+}
+
+// announce tells the connection the Topics it now carries. It reports false when the
+// connection had to be dropped instead.
+func (h *Hub) announce(conn *Conn) bool {
+	frame, err := readyFrame(conn)
+	if err != nil {
+		slog.Error("unencodable ready event", "error", err)
+		h.drop(conn)
+		return false
+	}
+	conn.announced = true
+	h.send(conn, frame)
+	return !conn.dropped
 }
 
 type relayCounts struct {
@@ -378,7 +445,9 @@ func (h *Hub) broadcastStats() {
 	}
 	h.statsSent = current
 	h.statsDirty = false
+	now := h.config.Now()
 	for conn := range h.statsWatchers {
+		h.retire(conn, now)
 		if conn.topics[token.StatsTopic] {
 			h.send(conn, frame)
 		}
@@ -399,7 +468,9 @@ func (h *Hub) published(topic, payload string) {
 		slog.Error("unforwardable message", "topic", topic, "error", err)
 		return
 	}
+	now := h.config.Now()
 	for conn := range state.conns {
+		h.retire(conn, now)
 		if conn.topics[topic] {
 			h.send(conn, frame)
 		}
@@ -425,9 +496,30 @@ func (h *Hub) control(payload string) {
 	if message.At > 0 {
 		revokedAt = time.Unix(0, int64(message.At*float64(time.Second)))
 	}
+	if len(message.Topics) > 0 {
+		h.revokeTopics(message.Revoke, message.Topics, revokedAt)
+		return
+	}
 	h.revocations[message.Revoke] = revokedAt
 	for _, conn := range slices.Clone(h.accounts[message.Revoke]) {
 		h.drop(conn)
+	}
+}
+
+// revokeTopics ends the account's grants of the Topics on every open connection, keeping the
+// connections and their other Topics, and rejects the account's tokens granting them that
+// were issued before the revocation.
+func (h *Hub) revokeTopics(account string, topics []string, revokedAt time.Time) {
+	revoked, remembered := h.topicRevocations[account]
+	if !remembered {
+		revoked = map[string]time.Time{}
+		h.topicRevocations[account] = revoked
+	}
+	for _, topic := range topics {
+		revoked[topic] = revokedAt
+	}
+	for _, conn := range slices.Clone(h.accounts[account]) {
+		h.withdraw(conn, topics)
 	}
 }
 
@@ -472,11 +564,27 @@ func (h *Hub) sweep() {
 			delete(h.revocations, account)
 		}
 	}
+	for account, revoked := range h.topicRevocations {
+		for topic, revokedAt := range revoked {
+			if now.Sub(revokedAt) > h.config.RevocationMemory {
+				delete(revoked, topic)
+			}
+		}
+		if len(revoked) == 0 {
+			delete(h.topicRevocations, account)
+		}
+	}
+	for _, conn := range h.connsByID {
+		if len(conn.until) > 0 {
+			h.retire(conn, now)
+		}
+	}
 }
 
 type controlMessage struct {
-	Revoke string  `json:"revoke"`
-	At     float64 `json:"at"`
+	Revoke string   `json:"revoke"`
+	Topics []string `json:"topics"`
+	At     float64  `json:"at"`
 }
 
 type subscriptionKind string
@@ -508,14 +616,9 @@ type readyEvent struct {
 var evictedFrame = []byte("event: evicted\ndata: {}\n\n")
 
 func readyFrame(conn *Conn) ([]byte, error) {
-	event := readyEvent{
-		Topics: slices.Sorted(func(yield func(string) bool) {
-			for topic := range conn.topics {
-				if !yield(topic) {
-					return
-				}
-			}
-		}),
+	event := readyEvent{Topics: slices.Sorted(maps.Keys(conn.topics))}
+	if event.Topics == nil {
+		event.Topics = []string{}
 	}
 	if !conn.announced {
 		event.Connection = conn.id

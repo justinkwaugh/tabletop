@@ -26,19 +26,29 @@ export default async function (fastify: FastifyInstance) {
                 throw new Error('No principal found for token request')
             }
 
-            const grantsRelayStats = request.query.relayStats === true && principal.adminMode
+            // The relay's own counts are administrative sight: granted only in Admin Mode and
+            // only until the mode ends, whatever the connection's lifetime.
+            const adminModeEnd = principal.adminMode
+                ? request.authenticatedSession?.adminModeExpiresAt
+                : undefined
+            const relayStats =
+                request.query.relayStats === true && adminModeEnd
+                    ? { [RELAY_STATS_TOPIC]: adminModeEnd }
+                    : undefined
             const gameIds = [...new Set(request.query.game)]
             const topics = [
                 userTopic(principal.user.id),
                 GLOBAL_TOPIC,
                 ...gameIds.map(gameTopic),
-                ...(grantsRelayStats ? [RELAY_STATS_TOPIC] : [])
+                ...(relayStats ? [RELAY_STATS_TOPIC] : [])
             ]
 
             reply.header('Cache-Control', 'no-store')
             return {
                 status: 'ok',
-                payload: { token: issuer.issue({ userId: principal.user.id, topics }) }
+                payload: {
+                    token: issuer.issue({ userId: principal.user.id, topics, until: relayStats })
+                }
             }
         }
     )

@@ -57,6 +57,25 @@ func TestVerifyAcceptsAValidToken(t *testing.T) {
 	}
 }
 
+func TestVerifyAcceptsABoundedGrant(t *testing.T) {
+	claims := validClaims()
+	claims["topics"] = []string{"global", StatsTopic}
+	claims["until"] = map[string]int64{StatsTopic: now.Add(10 * time.Minute).Unix()}
+	registration, err := verifier().Verify(sign(t, jwt.SigningMethodHS256, "k1", claims, testKey))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"global", StatsTopic}; !equal(registration.Topics, want) {
+		t.Fatalf("topics %v, want %v", registration.Topics, want)
+	}
+	if end, bounded := registration.Until[StatsTopic]; !bounded || !end.Equal(now.Add(10*time.Minute)) {
+		t.Fatalf("grant end %v, want %v", registration.Until, now.Add(10*time.Minute))
+	}
+	if _, bounded := registration.Until["global"]; bounded {
+		t.Fatal("an ordinary topic has no grant end")
+	}
+}
+
 func TestVerifyRejects(t *testing.T) {
 	without := func(name string) jwt.MapClaims {
 		claims := validClaims()
@@ -88,6 +107,14 @@ func TestVerifyRejects(t *testing.T) {
 			with("topics", []string{"global", ControlChannel}), testKey),
 		"a lifetime over a minute": sign(t, jwt.SigningMethodHS256, "k1",
 			with("exp", now.Add(time.Minute+time.Second).Unix()), testKey),
+		"the stats topic without an end": sign(t, jwt.SigningMethodHS256, "k1",
+			with("topics", []string{"global", StatsTopic}), testKey),
+		"an end for a topic it does not grant": sign(t, jwt.SigningMethodHS256, "k1",
+			with("until", map[string]int64{StatsTopic: now.Add(time.Minute).Unix()}), testKey),
+		"a grant that ended at issue": sign(t, jwt.SigningMethodHS256, "k1",
+			withGrant(with("topics", []string{"global", StatsTopic}), now.Unix()), testKey),
+		"a grant over fifteen minutes": sign(t, jwt.SigningMethodHS256, "k1",
+			withGrant(with("topics", []string{"global", StatsTopic}), now.Add(MaxGrantLifetime+time.Second).Unix()), testKey),
 		"garbage": "not.a.token",
 	}
 	for name, raw := range cases {
@@ -97,6 +124,11 @@ func TestVerifyRejects(t *testing.T) {
 			}
 		})
 	}
+}
+
+func withGrant(claims jwt.MapClaims, until int64) jwt.MapClaims {
+	claims["until"] = map[string]int64{StatsTopic: until}
+	return claims
 }
 
 func equal(a, b []string) bool {
