@@ -3,6 +3,12 @@ import { createClient, type RedisClientType } from 'redis'
 import { RedisCacheService } from '../cacheService.js'
 import { RedisService } from '../../redis/redisService.js'
 
+export function cacheTestClient(): RedisClientType {
+    return createClient({
+        socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
+    })
+}
+
 export function cacheFixture(client: RedisClientType = createClient()) {
     const pool = client.createPool({ minimum: 1, maximum: 1 })
     const guardPool = client.createPool({ minimum: 1, maximum: 1 })
