@@ -14,9 +14,9 @@ export default async function (fastify: FastifyInstance) {
                 throw Error('No user found for create request')
             }
 
-            await fastify.userService.sendVerificationEmail(request.user)
+            const { expiresAt } = await fastify.userService.sendVerificationEmail(request.user)
 
-            return { status: 'ok', payload: {} }
+            return { status: 'ok', payload: { expiresAt } }
         }
     )
 }

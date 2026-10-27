@@ -39,6 +39,16 @@ export const DiscordAuthorizationStart = Type.Object({
     authorizationUrl: Type.String()
 })
 
+export type ChallengeIssuedResponse = Static<typeof ChallengeIssuedResponse>
+export const ChallengeIssuedResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({
+            payload: Type.Object({ expiresAt: Type.String() })
+        })
+    ])
+)
+
 export type DiscordAuthorizationStartResponse = Static<typeof DiscordAuthorizationStartResponse>
 export const DiscordAuthorizationStartResponse = Type.Evaluate(
     Type.Intersect([

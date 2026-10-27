@@ -1,16 +1,5 @@
-import { Role, sessionGenerationOf, UserStatus, type User } from '@tabletop/common'
-import {
-    MemorySessionStore,
-    SessionService,
-    TokenService,
-    TokenType,
-    UserService,
-    type DataToken,
-    type StoredUser,
-    type TaskService,
-    type TokenStore,
-    type UserStore
-} from '@tabletop/backend-services'
+import { Role, UserStatus, type User } from '@tabletop/common'
+import { MemorySessionStore, SessionService, UserService } from '@tabletop/backend-services'
 import type { FastifyInstance } from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -21,75 +10,19 @@ import logout from '../auth/logout.js'
 import setPassword from './setPassword.js'
 import update from './update.js'
 import { sessionCookieHeader, sessionServer } from '../../../tests/sessionFixture.js'
+import {
+    memoryChallenges,
+    memoryUserStore,
+    ORIGINAL_PASSWORD,
+    recordingTasks
+} from '../../../tests/accountFixture.js'
 
-const ORIGINAL_PASSWORD = 'original-password-value'
 const NEW_PASSWORD = 'replacement-password-value'
-
-function memoryUserStore(initial: User) {
-    let password = ORIGINAL_PASSWORD
-    let current = initial
-    let credentialGate = { reached: () => {}, held: Promise.resolve() }
-    const stored = (): StoredUser => ({ ...current, createdAt: undefined, updatedAt: undefined })
-    const replaceCredential = (candidate: string) => {
-        password = candidate
-        current = { ...current, sessionGeneration: sessionGenerationOf(current) + 1 }
-        return current
-    }
-    const store: UserStore = Object.create(null)
-    store.findById = async (id) => (id === current.id ? current : undefined)
-    store.findByUsernameAndPassword = async (username, candidate) => {
-        const holder = username === current.username && candidate === password ? current : undefined
-        credentialGate.reached()
-        await credentialGate.held
-        return holder
-    }
-    store.updatePassword = async (_userId, candidate) => replaceCredential(candidate)
-    store.updateUser = async ({ fields, password: candidate, currentPassword, validator }) => {
-        validator?.(stored(), fields)
-        if (currentPassword !== undefined && currentPassword !== password) {
-            throw new Error('wrong current password')
-        }
-        const original = current
-        const updatedFields = Object.entries(fields)
-            .filter(([, value]) => value !== undefined)
-            .map(([field]) => field)
-        if (candidate) {
-            replaceCredential(candidate)
-            updatedFields.push('password')
-        }
-        return [current, updatedFields, original]
-    }
-    return {
-        store,
-        holdLoginsAfterCredentialCheck: () => {
-            let release = () => {}
-            let reached = () => {}
-            const held = new Promise<void>((resolve) => (release = resolve))
-            const firstArrival = new Promise<void>((resolve) => (reached = resolve))
-            credentialGate = { reached, held }
-            return { release, loginReachedGate: firstArrival }
-        }
-    }
-}
 
 class UndeletableSessionStore extends MemorySessionStore {
     override async deleteForUser(): Promise<void> {
         throw new Error('synthetic revocation failure')
     }
-}
-
-function memoryTokenStore() {
-    const tokens = new Map<string, DataToken>()
-    const store: TokenStore = Object.create(null)
-    store.find = async (id) => tokens.get(id)
-    store.create = async (token) => {
-        tokens.set(token.id, token)
-        return token
-    }
-    store.delete = async (id) => {
-        tokens.delete(id)
-    }
-    return store
 }
 
 async function createServer() {
@@ -104,14 +37,12 @@ async function createServer() {
     }
     const sessionStore = new UndeletableSessionStore()
     const sessionService = new SessionService(sessionStore)
-    const tokenService = new TokenService(memoryTokenStore())
-    const tasks: TaskService = Object.create(null)
-    tasks.sendAccountChangeNotificationEmail = async () => {}
-    const { store, holdLoginsAfterCredentialCheck } = memoryUserStore(user)
-    const userService = new UserService(store, tokenService, tasks)
+    const { challengeService } = memoryChallenges()
+    const { tasks, lastMail } = recordingTasks()
+    const { store, holdLoginsAfterCredentialCheck } = memoryUserStore(user, ORIGINAL_PASSWORD)
+    const userService = new UserService(store, challengeService, tasks)
     const server = await sessionServer(sessionService)
     Reflect.set(server, 'userService', userService)
-    Reflect.set(server, 'tokenService', tokenService)
     await server.register(authorization)
     await server.register(login, { prefix: '/auth' })
     await server.register(logout, { prefix: '/auth' })
@@ -134,11 +65,10 @@ async function createServer() {
     }
     const active = async (cookie: string | undefined) =>
         (await server.inject({ url: '/active', headers: { cookie } })).statusCode
-    const resetChallenge = () =>
-        tokenService.createToken({
-            type: TokenType.Authentication,
-            data: { userId: user.id, email: user.email }
-        })
+    const resetChallenge = async () => {
+        await userService.sendPasswordResetEmail(user)
+        return lastMail('reset').token
+    }
     return {
         server,
         sessionStore,
@@ -164,7 +94,7 @@ describe('sessions across a Password Credential change', () => {
         return created
     }
 
-    it('revokes a copied session when the password is set through a challenge', async () => {
+    it('ends every session when the password is set through a Set Password Challenge and establishes none', async () => {
         const { server, sessionStore, signIn, active, resetChallenge } = await fixture()
         const copied = await signIn()
         const victim = await signIn()
@@ -173,18 +103,14 @@ describe('sessions across a Password Credential change', () => {
         const reset = await server.inject({
             method: 'POST',
             url: '/user/setPassword',
-            headers: { cookie: victim },
-            payload: { password: NEW_PASSWORD, token: await resetChallenge() }
+            payload: { password: NEW_PASSWORD, challenge: await resetChallenge() }
         })
         expect(reset.statusCode).toBe(200)
-        const renewed = sessionCookieHeader(reset)
-        expect(renewed).toBeDefined()
-        expect(renewed).not.toBe(victim)
+        expect(sessionCookieHeader(reset)).toBeUndefined()
 
         expect(await active(copied)).toBe(401)
         expect(await active(victim)).toBe(401)
-        expect(await active(renewed)).toBe(200)
-        expect(sessionStore.size).toBe(1)
+        expect(sessionStore.size).toBe(0)
         expect(await signIn(NEW_PASSWORD)).toBeDefined()
     })
 

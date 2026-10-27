@@ -1,17 +1,14 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
-import { TokenType, AuthenticationTokenData } from '@tabletop/backend-services'
-import { authSession } from '../../../lib/session.js'
+import { InvalidChallengeError, parseSetPasswordChallenge } from '@tabletop/backend-services'
 
-// While this could be combined into an update user api, for the purposes of resetting
-// a password, we cannot require the old password to be provided. Instead we require the
-// reset token to be provided along with the new password.
-
+// Set Password is authorized by the emailed Set Password Challenge alone: the person holds no
+// session, and completing it establishes none.
 type SetPasswordRequest = Static<typeof SetPasswordRequest>
 const SetPasswordRequest = Type.Object(
     {
         password: Type.String(),
-        token: Type.String()
+        challenge: Type.String()
     },
     { additionalProperties: false }
 )
@@ -20,44 +17,15 @@ export default async function (fastify: FastifyInstance) {
     fastify.post<{ Body: SetPasswordRequest }>(
         '/setPassword',
         {
-            schema: { body: SetPasswordRequest },
-            onRequest: fastify.auth([fastify.verifyUser])
+            config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+            schema: { body: SetPasswordRequest }
         },
-        async function (request, reply) {
-            if (request.user === null || request.user === undefined) {
-                throw Error('No user found for create request')
+        async function (request, _reply) {
+            const presented = parseSetPasswordChallenge(request.body.challenge)
+            if (!presented) {
+                throw new InvalidChallengeError('format')
             }
-
-            const { password, token } = request.body
-
-            const tokenData = await fastify.tokenService.getData<AuthenticationTokenData>({
-                token,
-                expectedType: TokenType.Authentication
-            })
-            if (!tokenData) {
-                await reply.code(401).send()
-                return
-            }
-
-            if (tokenData.userId !== request.user.id) {
-                await reply.code(401).send()
-                return
-            }
-
-            const updatedUser = await fastify.userService.updatePassword(request.user.id, password)
-            await authSession({
-                session: request.session,
-                user: updatedUser,
-                proof: 'challenge',
-                sessions: fastify.sessionService
-            })
-
-            try {
-                await fastify.tokenService.invalidateToken(token)
-            } catch {
-                fastify.log.error(`Failed to invalidate token ${token}`)
-            }
-
+            await fastify.userService.setPassword({ ...presented, password: request.body.password })
             return { status: 'ok', payload: {} }
         }
     )

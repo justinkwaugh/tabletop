@@ -17,8 +17,6 @@ export interface CreateTokenOptions<T> {
 }
 
 export enum TokenType {
-    EmailVerification = 'emailVerification',
-    Authentication = 'authentication',
     GameInvitation = 'gameInvitation',
     SSEAuthorization = 'sseAuthorization'
 }

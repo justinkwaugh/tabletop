@@ -290,7 +290,10 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
     async updatePassword(
         userId: string,
         password: string,
-        { participant }: { participant?: TransactionParticipant } = {}
+        {
+            validator,
+            participant
+        }: { validator?: UpdateValidator<StoredUser>; participant?: TransactionParticipant } = {}
     ): Promise<User> {
         try {
             const passwordHash = await this.hashPassword(password)
@@ -302,6 +305,9 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                         this.recordRead()
                         if (!existingUser) {
                             throw new NotFoundError({ type: 'User', id: userId })
+                        }
+                        if (validator?.(existingUser, {}) === UpdateValidationResult.Cancel) {
+                            return existingUser
                         }
                         await participant?.(transaction, locks)
                         const credentialFields = {

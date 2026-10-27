@@ -2,7 +2,13 @@ import { nanoid } from 'nanoid'
 
 import { Resend } from 'resend'
 import { SecretsService } from '../secrets/secretsService'
-import { Game, GameDefinition, TournamentDetail, User } from '@tabletop/common'
+import {
+    AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS,
+    Game,
+    GameDefinition,
+    TournamentDetail,
+    User
+} from '@tabletop/common'
 import {
     AccountChangeType,
     EmailService,
@@ -11,6 +17,8 @@ import {
     type LeagueSignUpEmail
 } from './emailService.js'
 import { NullEmailService } from './nullEmailService.js'
+
+const CHALLENGE_LIFETIME_MINUTES = AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS / 60
 
 type EmailRendering = {
     render: (typeof import('@react-email/components'))['render']
@@ -56,13 +64,17 @@ export class ResendEmailService implements EmailService {
 
     async sendVerificationEmail(token: string, toEmail: string): Promise<void> {
         const { render, templates } = await this.loadRendering()
-        const emailHTML = await render(templates.EmailVerification({ token }))
+        const emailHTML = await render(
+            templates.EmailVerification({ token, expiresInMinutes: CHALLENGE_LIFETIME_MINUTES })
+        )
         await this.send(toEmail, 'Verify your email address', emailHTML)
     }
 
     async sendPasswordResetEmail(token: string, url: string, toEmail: string): Promise<void> {
         const { render, templates } = await this.loadRendering()
-        const emailHTML = await render(templates.PasswordReset({ url }))
+        const emailHTML = await render(
+            templates.PasswordReset({ url, expiresInMinutes: CHALLENGE_LIFETIME_MINUTES })
+        )
         await this.send(toEmail, 'Reset your password', emailHTML)
     }
 

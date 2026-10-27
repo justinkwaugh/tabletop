@@ -25,6 +25,8 @@ vi.mock('@tabletop/backend-services', async () => {
                 'DiscordOAuthClient',
                 'FirestoreOAuthStateStore',
                 'OAuthStateService',
+                'FirestoreAuthenticationChallengeStore',
+                'AuthenticationChallengeService',
                 'FirestoreCharityTallyStore',
                 'FirestoreChatStore',
                 'FirestoreGameStore',

@@ -6,18 +6,6 @@ export const GameInvitationTokenData = Type.Object({
     userId: Type.String()
 })
 
-export type AuthenticationTokenData = Static<typeof AuthenticationTokenData>
-export const AuthenticationTokenData = Type.Object({
-    userId: Type.String(),
-    email: Type.String()
-})
-
-export type VerificationTokenData = Static<typeof VerificationTokenData>
-export const VerificationTokenData = Type.Object({
-    userId: Type.String(),
-    email: Type.String()
-})
-
 export type SSEAuthorizationTokenData = Static<typeof SSEAuthorizationTokenData>
 export const SSEAuthorizationTokenData = Type.Object({
     userId: Type.String()

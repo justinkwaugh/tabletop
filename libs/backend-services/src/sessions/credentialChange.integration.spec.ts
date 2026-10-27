@@ -7,7 +7,8 @@ import { FirestoreUserStore } from '../persistence/firestore/userStore.js'
 import { FirestoreSessionStore } from '../persistence/firestore/sessionStore.js'
 import type { TransactionParticipant } from '../persistence/stores/transaction.js'
 import type { TaskService } from '../tasks/taskService.js'
-import { TokenService } from '../tokens/tokenService.js'
+import { AuthenticationChallengeService } from '../challenges/authenticationChallengeService.js'
+import { FirestoreAuthenticationChallengeStore } from '../persistence/firestore/authenticationChallengeStore.js'
 import { UserService } from '../users/userService.js'
 import { SessionService } from './sessionService.js'
 
@@ -35,7 +36,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         const sessions = new SessionService(sessionStore)
         const tasks: TaskService = Object.create(null)
         tasks.sendAccountChangeNotificationEmail = async () => {}
-        const users = new UserService(userStore, TokenService.prototype, tasks)
+        const challenges = new AuthenticationChallengeService(
+            new FirestoreAuthenticationChallengeStore(firestore)
+        )
+        const users = new UserService(userStore, challenges, tasks)
         const findAccount = (id: string) => users.getUser(id)
         const authorize = (sessionId: string) => sessions.authorize(sessionId, findAccount)
         let sequence = 0
@@ -98,6 +102,15 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             return sessions.establish(await holderOf(username, password), 'authentication-method')
         }
 
+        async function setPassword(account: { id: string; email: string }, password: string) {
+            const { secret } = await challenges.issue({
+                purpose: 'set-password',
+                userId: account.id,
+                email: account.email
+            })
+            return users.setPassword({ userId: account.id, secret, password })
+        }
+
         async function storedGeneration(id: string) {
             return (await firestore.collection('users').doc(id).get()).get('sessionGeneration')
         }
@@ -149,7 +162,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const copied = await login(account.username, ORIGINAL_PASSWORD)
             await expectEveryOldSessionEnded(
                 account,
-                () => users.updatePassword(account.id, NEW_PASSWORD),
+                () => setPassword(account, NEW_PASSWORD),
                 copied
             )
         })
@@ -167,7 +180,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         it('refuses a session established by a login that read the Account before the change', async () => {
             const account = await createAccount()
             const readBeforeChange = await holderOf(account.username, ORIGINAL_PASSWORD)
-            await users.updatePassword(account.id, NEW_PASSWORD)
+            await setPassword(account, NEW_PASSWORD)
             const raced = await sessions.establish(readBeforeChange, 'authentication-method')
             await expect(authorize(raced.id)).resolves.toBeUndefined()
             expect(await sessionsStored(account.id)).toBe(0)
@@ -296,7 +309,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const account = await createAccount()
             const bystander = await createAccount()
             const bystanderSession = await login(bystander.username, ORIGINAL_PASSWORD)
-            await users.updatePassword(account.id, NEW_PASSWORD)
+            await setPassword(account, NEW_PASSWORD)
             await expect(authorize(bystanderSession.id)).resolves.toMatchObject({
                 session: bystanderSession
             })

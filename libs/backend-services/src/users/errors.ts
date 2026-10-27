@@ -3,7 +3,6 @@ import { BaseError, UserStatus } from '@tabletop/common'
 enum UserServiceError {
     AccountUnavailable = 'AccountUnavailableError',
     InvalidPassword = 'InvalidPasswordError',
-    InvalidToken = 'InvalidTokenError',
     EmailVerification = 'EmailVerificationError',
     UnauthenticatedUpdate = 'UnauthenticatedUpdateError',
     InvalidTimeZone = 'InvalidTimeZoneError'
@@ -26,15 +25,6 @@ export class InvalidPasswordError extends BaseError {
         super({
             name: UserServiceError.InvalidPassword,
             message: 'Password must be at least 12 characters'
-        })
-    }
-}
-
-export class InvalidTokenError extends BaseError {
-    constructor() {
-        super({
-            name: UserServiceError.InvalidToken,
-            message: 'Invalid or expired token'
         })
     }
 }

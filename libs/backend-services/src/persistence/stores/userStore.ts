@@ -16,7 +16,7 @@ export interface UserStore {
     updatePassword(
         userId: string,
         password: string,
-        options?: { participant?: TransactionParticipant }
+        options?: { validator?: UpdateValidator<StoredUser>; participant?: TransactionParticipant }
     ): Promise<User>
 
     updateUser({
