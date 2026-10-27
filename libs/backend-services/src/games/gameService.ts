@@ -12,9 +12,12 @@ import {
     ActionSource,
     GameResult,
     calculateActionChecksum,
+    canForkHostedGame,
     createGameFork,
     linkGameContinuation,
     GameForkError,
+    ProtectedGameForkError,
+    hasDeveloperAccess,
     findLast,
     isOutOfTurnDeclaration,
     isSameSimultaneousGroup,
@@ -449,6 +452,9 @@ export class GameService {
         const { game, actions } = data
         if (!game.state || game.typeId !== definition.info.id) {
             throw new GameForkError(gameId, actionIndex)
+        }
+        if (!canForkHostedGame(game, owner)) {
+            throw new ProtectedGameForkError(gameId)
         }
         const fork = createGameFork({
             game,
@@ -2426,7 +2432,7 @@ export class GameService {
     }
 
     private hasDeveloperAccess(user: User): boolean {
-        return user.roles.includes(Role.Admin) || user.roles.includes(Role.Developer)
+        return hasDeveloperAccess(user)
     }
 
     // A title route may only act on that title's games: another title's game is not found there.

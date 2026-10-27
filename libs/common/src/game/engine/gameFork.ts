@@ -7,6 +7,7 @@ import { BaseError } from '../../util/errors.js'
 import type { GameRuntime } from '../definition/gameDefinition.js'
 import { GameStatus, type Game } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
+import { hasDeveloperAccess, type User } from '../../site/user.js'
 import { type GameAction, type Patch } from './gameAction.js'
 import { GameEngine } from './gameEngine.js'
 import { getGameVisibility } from '../visibility/gameVisibility.js'
@@ -19,6 +20,24 @@ export class GameForkError extends BaseError {
             metadata: { gameId, actionIndex }
         })
     }
+}
+
+export class ProtectedGameForkError extends BaseError {
+    constructor(gameId: string) {
+        super({
+            name: 'ProtectedGameForkError',
+            message: 'This game has hidden information, so it cannot be forked.',
+            metadata: { gameId }
+        })
+    }
+}
+
+/** A Hosted Fork copies canonical state, so protected information is forked only by Users who may already read it through Host View. */
+export function canForkHostedGame(
+    game: Pick<Game, 'protectedInformation'>,
+    user: Pick<User, 'roles'> | undefined
+): boolean {
+    return game.protectedInformation !== true || hasDeveloperAccess(user)
 }
 
 export function createGameFork<T extends GameState, U extends HydratedGameState<T>>({

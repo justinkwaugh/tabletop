@@ -72,13 +72,16 @@ export const uiRuntime = {
 } satisfies GameUIRuntime<SharedState, HydratedPrivateHandState>
 
 class Authorization extends HarnessAuthorizationService {
-    constructor(private readonly perspective: Visibility.Perspective) {
+    constructor(
+        private readonly perspective: Visibility.Perspective,
+        private readonly roles: Role[] = [Role.User]
+    ) {
         super()
     }
     getSessionUser() {
         return {
             id: this.perspective.kind === 'player' ? this.perspective.playerId : 'spectator',
-            roles: [Role.User],
+            roles: this.roles,
             status: UserStatus.Active,
             externalIds: []
         }
@@ -175,10 +178,12 @@ function client(
         pendingSync?: Promise<void>
         failHistory?: boolean
         modernNotifications?: boolean
+        roles?: Role[]
+        storage?: GameStorage
     } = {}
 ) {
-    host.game.storage = GameStorage.Remote
-    const authorization = new Authorization(perspective)
+    host.game.storage = options.storage ?? GameStorage.Remote
+    const authorization = new Authorization(perspective, options.roles)
     const library = new HarnessLibraryService({
         info: { ...info, thumbnailUrl: '' },
         runtime: async () => ({ ...uiRuntime, ...host.engine.runtime, sessionClass: GameSession })
@@ -562,6 +567,61 @@ export async function runPrivateHandHostView() {
     } finally {
         c.dispose()
     }
+}
+
+export async function runPrivateHandForkEntitlement() {
+    const results: Record<string, boolean> = {}
+    const cases = [
+        { name: 'playerDenied', perspective: p1, roles: [Role.User], expected: false },
+        { name: 'spectatorDenied', perspective: spectator, roles: [Role.User], expected: false },
+        {
+            name: 'developerAllowed',
+            perspective: p1,
+            roles: [Role.User, Role.Developer],
+            expected: true
+        },
+        { name: 'adminAllowed', perspective: p1, roles: [Role.User, Role.Admin], expected: true }
+    ]
+    for (const { name, perspective, roles, expected } of cases) {
+        const c = client(new PrivateHandHost(), perspective, undefined, { roles })
+        try {
+            await settle(c.session)
+            results[name] = c.session.canFork === expected
+        } finally {
+            c.dispose()
+        }
+    }
+    const developer = client(new PrivateHandHost(), p1, undefined, {
+        roles: [Role.User, Role.Developer]
+    })
+    try {
+        await settle(developer.session)
+        await developer.session.startExploring()
+        await settle(developer.session)
+        results.exploringDenied = developer.session.isExploring && !developer.session.canFork
+    } finally {
+        developer.dispose()
+    }
+    const local = client(new PrivateHandHost(), p1, undefined, { storage: GameStorage.Local })
+    try {
+        await settle(local.session)
+        results.hotseatAllowed = local.session.canFork
+    } finally {
+        local.dispose()
+    }
+    return results
+}
+
+export async function mountForkControl(roles: Role[]) {
+    const { mount } = await import('svelte')
+    const { default: Fixture } =
+        await import('../../components/tests/HistoryControls.fixture.svelte')
+    const c = client(new PrivateHandHost(), p1, undefined, { roles })
+    await settle(c.session)
+    mount(Fixture, {
+        target: document.body,
+        props: { session: c.session, complete: () => {} }
+    })
 }
 
 export async function runPrivateHandProtectedFallback() {

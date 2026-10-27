@@ -23,6 +23,7 @@ import {
     type HydratedGameState,
     PlayerAction,
     GameStorage,
+    canForkHostedGame,
     assertExists,
     createAction,
     type User,
@@ -1316,11 +1317,24 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    get canFork(): boolean {
+        return (
+            !this.isExploring &&
+            (this.primaryGame.storage === GameStorage.Local ||
+                canForkHostedGame(this.primaryGame, this.sessionUserStore.current))
+        )
+    }
+
     async forkGame(newGameName: string): Promise<void> {
+        if (!this.canFork) return
         try {
             await this.gameService.forkGame(this.primaryGame, this.currentActionIndex, newGameName)
-        } catch {
-            toast.error('This game cannot be forked from that position.')
+        } catch (error) {
+            toast.error(
+                error instanceof Error && error.name === 'ProtectedGameForkError'
+                    ? error.message
+                    : 'This game cannot be forked from that position.'
+            )
         }
     }
 
