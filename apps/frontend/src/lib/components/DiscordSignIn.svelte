@@ -7,21 +7,15 @@
 <script lang="ts">
     import { toast } from 'svelte-sonner'
     import { getAppContext } from '@tabletop/frontend-components'
-    import {
-        openDiscordAuthorization,
-        type DiscordAuthorizationResult
-    } from '$lib/utils/discordAuthorization'
-    import {
-        reauthentication,
-        requiresRecentAuthentication
-    } from '$lib/stores/reauthentication.svelte'
+    import type { DiscordAuthorizationSuccess } from '$lib/utils/discordAuthorization'
+    import { signInWithDiscord } from '$lib/utils/discordSignIn'
 
     let {
         mode = 'login',
         oncomplete
     }: {
         mode?: DiscordSignInMode
-        oncomplete?: (result: DiscordAuthorizationResult) => void
+        oncomplete?: (result: DiscordAuthorizationSuccess) => void
     } = $props()
 
     const { api } = getAppContext()
@@ -40,31 +34,12 @@
         )
     }
 
-    async function authorize(purpose: 'login' | 'link' | 'reauthenticate') {
-        try {
-            const result = await openDiscordAuthorization({ purpose, api })
-            if (result.outcome === 'error') {
-                toast.error(result.message)
-            }
-            oncomplete?.(result)
-        } catch (error) {
-            if (purpose === 'link' && requiresRecentAuthentication(error)) {
-                reauthentication.request({
-                    description: 'link your Discord account',
-                    retry: () => authorize(purpose)
-                })
-                return
-            }
-            toast.error(error instanceof Error ? error.message : 'Discord authorization failed')
-        }
-    }
-
     function onclick() {
         if (mode === 'bot') {
             addBot()
             return
         }
-        void authorize(mode)
+        void signInWithDiscord({ purpose: mode, api, oncomplete, report: toast.error })
     }
 </script>
 

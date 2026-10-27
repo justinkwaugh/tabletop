@@ -317,7 +317,7 @@ export class RedisCacheService {
                     keyFamilies: this.keyFamilies(scope.keys),
                     writerOutcome: 'completed',
                     cacheCoherence: 'unconfirmed',
-                    error
+                    failure: this.failureSummary(error)
                 })
                 return result
             }
@@ -345,7 +345,7 @@ export class RedisCacheService {
                 keyFamilies: this.keyFamilies(scope.keys),
                 writerOutcome: 'completed',
                 cacheCoherence: 'unconfirmed',
-                error
+                failure: this.failureSummary(error)
             })
         }
         return result

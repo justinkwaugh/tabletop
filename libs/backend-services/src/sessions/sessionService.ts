@@ -1,13 +1,7 @@
 import { customAlphabet } from 'nanoid'
-import {
-    assertExists,
-    canHoldAuthenticatedSession,
-    isAdministrator,
-    sessionGenerationOf,
-    User
-} from '@tabletop/common'
+import { assertExists, isAdministrator, sessionGenerationOf, User } from '@tabletop/common'
 import type { SessionStore } from '../persistence/stores/sessionStore.js'
-import { AccountUnavailableError } from '../users/errors.js'
+import { requireSessionEligibleAccount } from '../users/accountEligibility.js'
 import type { AuthenticatedSession, AuthenticationProof } from './authenticatedSession.js'
 import {
     hasRecentAuthentication,
@@ -43,9 +37,7 @@ export class SessionService {
     ) {}
 
     async establish(user: User, proof: AuthenticationProof): Promise<AuthenticatedSession> {
-        if (!canHoldAuthenticatedSession(user)) {
-            throw new AccountUnavailableError(user.status)
-        }
+        requireSessionEligibleAccount(user)
         const createdAt = this.now()
         const session: AuthenticatedSession = {
             id: sessionId(),

@@ -59,11 +59,11 @@ export class OAuthStateService {
         }
     }
 
-    private now(): Date {
-        return this.options.now?.() ?? new Date()
+    lifetimeSeconds(): number {
+        return this.options.lifetimeSeconds ?? OAUTH_STATE_LIFETIME_SECONDS
     }
 
-    private lifetimeSeconds(): number {
-        return this.options.lifetimeSeconds ?? OAUTH_STATE_LIFETIME_SECONDS
+    private now(): Date {
+        return this.options.now?.() ?? new Date()
     }
 }

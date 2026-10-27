@@ -11,7 +11,6 @@ import {
     SESSION_LIFETIME_SECONDS,
     UserService
 } from '@tabletop/backend-services'
-import Sensible from '@fastify/sensible'
 import type { FastifyInstance } from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -78,7 +77,6 @@ async function createServer(initial: User = administrator()) {
         realtime: new RealtimeControl(relay, () => now)
     })
     const server = await sessionServer(sessionService)
-    await server.register(Sensible)
     apiErrorShape(server)
     const { store, account } = memoryUserStore(initial, PASSWORD)
     const userService = new UserService(

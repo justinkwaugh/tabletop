@@ -48,7 +48,7 @@ async function createServer() {
     const { store, holdLoginsAfterCredentialCheck } = memoryUserStore(user, ORIGINAL_PASSWORD)
     const userService = new UserService(store, challengeService, tasks)
     const server = await sessionServer(sessionService)
-    Reflect.set(server, 'userService', userService)
+    server.decorate('userService', userService)
     const revocations: RealtimeRevocation[] = []
     server.decorate(
         'realtimeControl',

@@ -182,7 +182,10 @@ describe('cache write locking', () => {
         expect(writer).toHaveBeenCalledTimes(1)
         expect(report).toHaveBeenCalledWith(
             'Cache cleanup failed after the writer completed',
-            expect.objectContaining({ writerOutcome: 'completed', error: failure })
+            expect.objectContaining({
+                writerOutcome: 'completed',
+                failure: { name: failure.name }
+            })
         )
     })
 
@@ -306,7 +309,10 @@ describe('cache write locking', () => {
         expect(exec).toHaveBeenCalledTimes(1)
         expect(report).toHaveBeenCalledWith(
             'Cache write protection failed despite a completed writer',
-            expect.objectContaining({ writerOutcome: 'completed', error: failure })
+            expect.objectContaining({
+                writerOutcome: 'completed',
+                failure: { name: failure.name }
+            })
         )
     })
 
@@ -982,6 +988,42 @@ describe('cache diagnostics', () => {
         expect(reportedBy(report)).toContain("failure: { name: 'Error', code: 5 }")
         expect(reportedBy(report)).not.toContain(SESSION_ID)
         expect(reportedBy(report)).not.toContain('NOT_FOUND')
+    })
+
+    it('conceals a lost lock key when the writer completed before acquisition failed', async () => {
+        const { cache, client } = fixture()
+        const report = vi.spyOn(console, 'error').mockImplementation(() => {})
+        vi.mocked(client.mGet).mockResolvedValueOnce(['V:old']).mockResolvedValueOnce([null, null])
+
+        await expect(
+            cache.lockWhileWriting([`session-${SESSION_ID}`], async (locks) => {
+                void locks.addKeys(['user-account'])
+                return 'already committed'
+            })
+        ).resolves.toBe('already committed')
+
+        expect(reportedBy(report)).toContain(
+            'Cache write protection failed despite a completed writer'
+        )
+        expect(reportedBy(report)).toContain("failure: { name: 'Error' }")
+        expect(reportedBy(report)).not.toContain(SESSION_ID)
+        expect(reportedBy(report)).not.toContain('Cache write protection lost for key')
+    })
+
+    it('conceals a cleanup failure without misreporting a completed write', async () => {
+        const { cache, exec } = fixture()
+        const report = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const failure = new Error(`Cleanup refused for session-${SESSION_ID}`)
+        exec.mockResolvedValueOnce([]).mockRejectedValueOnce(failure)
+
+        await expect(
+            cache.lockWhileWriting([`session-${SESSION_ID}`], async () => 'already committed')
+        ).resolves.toBe('already committed')
+
+        expect(reportedBy(report)).toContain('Cache cleanup failed after the writer completed')
+        expect(reportedBy(report)).toContain("failure: { name: 'Error' }")
+        expect(reportedBy(report)).not.toContain(SESSION_ID)
+        expect(reportedBy(report)).not.toContain('Cleanup refused')
     })
 
     it('report an unparseable cached value by key family and failure kind, never by content', async () => {

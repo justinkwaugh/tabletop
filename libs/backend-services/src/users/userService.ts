@@ -14,12 +14,12 @@ import {
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import {
-    AccountUnavailableError,
     EmailVerificationError,
     InvalidPasswordError,
     InvalidTimeZoneError,
     UnauthenticatedUpdateError
 } from './errors.js'
+import { requireSessionEligibleAccount } from './accountEligibility.js'
 import { AccountChangeType } from '../email/emailService.js'
 import { nanoid } from 'nanoid'
 import { AuthenticationChallengeService } from '../challenges/authenticationChallengeService.js'
@@ -96,6 +96,10 @@ export class UserService {
 
     async getUser(userId: string): Promise<User | undefined> {
         return this.userStore.findById(userId)
+    }
+
+    async getUserForAuthorization(userId: string): Promise<User | undefined> {
+        return this.userStore.findByIdUncached(userId)
     }
 
     async getUsers(userIds: string[]): Promise<(User | undefined)[]> {
@@ -223,7 +227,7 @@ export class UserService {
         if (updatedFields.includes('email') && updatedUser.email) {
             await this.sendVerificationEmail(updatedUser)
             if (originalUser.email) {
-                await this.taskService.sendAccountChangeNotificationEmail({
+                await this.notifyAccountChange(userId, {
                     email: originalUser.email,
                     changeType: AccountChangeType.Email,
                     timestamp: updateTimestamp
@@ -231,7 +235,7 @@ export class UserService {
             }
         }
         if (updatedFields.includes('password') && originalUser.email) {
-            await this.taskService.sendAccountChangeNotificationEmail({
+            await this.notifyAccountChange(userId, {
                 email: originalUser.email,
                 changeType: AccountChangeType.Password,
                 timestamp: updateTimestamp
@@ -320,12 +324,29 @@ export class UserService {
             validator: this.requireChallengeAccount(claim),
             participant: this.challenges.consumption(secret, claim)
         })
-        await this.taskService.sendAccountChangeNotificationEmail({
+        await this.notifyAccountChange(userId, {
             email: claim.email,
             changeType: AccountChangeType.Password,
             timestamp: updatedUser.updatedAt ?? new Date()
         })
         return updatedUser
+    }
+
+    // The Account change has committed by the time its Attention Notice is dispatched; the notice
+    // is best effort (Notification Delivery), so a failed dispatch is reported, not the operation.
+    private async notifyAccountChange(
+        userId: string,
+        notification: { email: string; changeType: AccountChangeType; timestamp: Date }
+    ): Promise<void> {
+        try {
+            await this.taskService.sendAccountChangeNotificationEmail(notification)
+        } catch (error) {
+            console.error('Account change notification was not dispatched', {
+                userId,
+                changeType: notification.changeType,
+                error: error instanceof Error ? error.name : typeof error
+            })
+        }
     }
 
     private requireChallengeAccount(
@@ -352,7 +373,7 @@ export class UserService {
     }): Promise<User> {
         const linkedUser = await this.userStore.findByExternalId(externalId, service)
         if (linkedUser) {
-            this.requireSessionEligibleAccount(linkedUser)
+            requireSessionEligibleAccount(linkedUser)
             return linkedUser
         }
 
@@ -360,7 +381,7 @@ export class UserService {
             console.log('No user found by external_id, trying by email')
             const userByEmail = await this.userStore.findByEmail(email)
             if (userByEmail && emailVerified && userByEmail.emailVerified) {
-                this.requireSessionEligibleAccount(userByEmail)
+                requireSessionEligibleAccount(userByEmail)
                 console.log('Found user by email... linking external_id to user')
                 return await this.userStore.addExternalId({
                     userId: userByEmail.id,
@@ -378,12 +399,6 @@ export class UserService {
             roles: [Role.User],
             externalIds: [`${service}:${externalId}`]
         })
-    }
-
-    private requireSessionEligibleAccount(user: User): void {
-        if (!canHoldAuthenticatedSession(user)) {
-            throw new AccountUnavailableError(user.status)
-        }
     }
 
     async verifyEmail(user: User, code: string): Promise<User> {
@@ -430,7 +445,7 @@ export class UserService {
             userId: user.id,
             token: formatSetPasswordChallenge({ userId: user.id, secret: issued.secret })
         })
-        await this.taskService.sendAccountChangeNotificationEmail({
+        await this.notifyAccountChange(user.id, {
             email: user.email,
             changeType: AccountChangeType.PasswordReset,
             timestamp: new Date()

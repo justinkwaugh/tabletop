@@ -147,6 +147,52 @@ const logout = async (apiRoot: string, cookie: string, signal?: AbortSignal) => 
     }
 }
 
+export type BackendAdminCredentials =
+    | { method: 'cookie'; cookie: string }
+    | { method: 'password'; username: string; password: string }
+
+const BACKEND_ADMIN_MIGRATION =
+    'The backend no longer accepts token login (security audit S06). Sign the deploy tool in with ' +
+    'backendAdmin.username and backendAdmin.password (TABLETOP_BACKEND_ADMIN_USER and ' +
+    'TABLETOP_BACKEND_ADMIN_PASSWORD) or an existing session cookie (backendAdmin.cookie or ' +
+    'TABLETOP_BACKEND_ADMIN_COOKIE), and remove the token setting.'
+
+// Resolved before any publication starts, so a missing or unsupported credential is found
+// before anything is uploaded.
+export const resolveBackendAdminCredentials = (
+    backendAdmin: BackendAdminConfig | undefined
+): BackendAdminCredentials => {
+    if (backendAdmin?.cookie) {
+        return { method: 'cookie', cookie: backendAdmin.cookie }
+    }
+    if (backendAdmin?.username && backendAdmin?.password) {
+        return {
+            method: 'password',
+            username: backendAdmin.username,
+            password: backendAdmin.password
+        }
+    }
+    const unsupported = backendAdmin?.unsupportedSettings ?? []
+    if (unsupported.length > 0) {
+        throw new Error(
+            `Backend admin credentials are given only as ${unsupported.join(' and ')}, which the ` +
+                `deploy tool no longer supports. ${BACKEND_ADMIN_MIGRATION}`
+        )
+    }
+    throw new Error(
+        'Missing backend admin credentials for cache invalidation: configure backendAdmin.username and password, or backendAdmin.cookie ' +
+            '(TABLETOP_BACKEND_ADMIN_USER and TABLETOP_BACKEND_ADMIN_PASSWORD, or TABLETOP_BACKEND_ADMIN_COOKIE)'
+    )
+}
+
+export const describeIgnoredBackendAdminSettings = (
+    backendAdmin: BackendAdminConfig | undefined
+): string | undefined => {
+    const unsupported = backendAdmin?.unsupportedSettings ?? []
+    if (unsupported.length === 0) return undefined
+    return `${unsupported.join(' and ')} ${unsupported.length === 1 ? 'is' : 'are'} ignored: ${BACKEND_ADMIN_MIGRATION}`
+}
+
 // Manifest invalidation is administrative, so the backend requires the session to be in Admin
 // Mode, which it enters only with Recent Authentication: a sign-in by the tool, or a provided
 // cookie whose session signed in within the last 15 minutes.
@@ -154,24 +200,19 @@ type AdminSession = { cookie: string; origin: 'cookie' | 'login'; release: () =>
 
 const openAdminSession = async (
     apiRoot: string,
-    backendAdmin: BackendAdminConfig | undefined,
+    credentials: BackendAdminCredentials,
     signal?: AbortSignal
 ): Promise<AdminSession> => {
-    if (backendAdmin?.cookie) {
-        return { cookie: backendAdmin.cookie, origin: 'cookie', release: async () => {} }
+    if (credentials.method === 'cookie') {
+        return { cookie: credentials.cookie, origin: 'cookie', release: async () => {} }
     }
-    if (backendAdmin?.username && backendAdmin?.password) {
-        const cookie = await loginWithCredentials(
-            apiRoot,
-            backendAdmin.username,
-            backendAdmin.password,
-            signal
-        )
-        return { cookie, origin: 'login', release: () => logout(apiRoot, cookie, signal) }
-    }
-    throw new Error(
-        'Missing backend admin credentials for cache invalidation: configure backendAdmin.username and password, or backendAdmin.cookie'
+    const cookie = await loginWithCredentials(
+        apiRoot,
+        credentials.username,
+        credentials.password,
+        signal
     )
+    return { cookie, origin: 'login', release: () => logout(apiRoot, cookie, signal) }
 }
 
 const describeActivationRefusal = (refusal: BackendRefusal, origin: AdminSession['origin']) => {
@@ -221,11 +262,12 @@ export const invalidateBackendManifestCache = async (
     if (!adminUrl) {
         throw new Error('Missing backend admin URL for manifest invalidation')
     }
+    const credentials = resolveBackendAdminCredentials(config.backendAdmin)
     const apiRoot = resolveApiRoot(config)
     if (!apiRoot) {
         throw new Error('Missing backend API base for admin sign-in')
     }
-    const session = await openAdminSession(apiRoot, config.backendAdmin, options?.signal)
+    const session = await openAdminSession(apiRoot, credentials, options?.signal)
     try {
         await activateAdminMode(apiRoot, session, options?.signal)
         return await requestInvalidation(adminUrl, session.cookie, options?.signal)

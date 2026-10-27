@@ -1,6 +1,5 @@
 import { Role, UserStatus, type User } from '@tabletop/common'
 import { RECENT_AUTHENTICATION_SECONDS, UserService } from '@tabletop/backend-services'
-import Sensible from '@fastify/sensible'
 import type { FastifyInstance } from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -34,7 +33,6 @@ async function createServer() {
     let now = new Date('2026-10-27T12:00:00.000Z')
     const { sessionService } = memorySessions({ now: () => now })
     const server = await sessionServer(sessionService)
-    await server.register(Sensible)
     apiErrorShape(server)
     const userService = new UserService(
         memoryUserStore(user).store,

@@ -232,16 +232,18 @@ test('a legacy token setting is no longer a credential', async () => {
             url: undefined,
             username: undefined,
             password: undefined,
-            cookie: undefined
+            cookie: undefined,
+            unsupportedSettings: ['backendAdmin.token']
         })
         process.env.TABLETOP_BACKEND_ADMIN_TOKEN = 'legacy-token'
         try {
             const merged = mergeEnvConfig(fromFile)
             assert.ok(!('token' in merged.backendAdmin))
+            assert.ok(!JSON.stringify(merged).includes('legacy-token'))
             const requests = fakeBackend()
             await assert.rejects(
                 invalidateBackendManifestCache(merged),
-                /Missing backend admin credentials/
+                /given only as TABLETOP_BACKEND_ADMIN_TOKEN and backendAdmin\.token.*no longer supports/
             )
             assert.deepEqual(requests, [])
         } finally {

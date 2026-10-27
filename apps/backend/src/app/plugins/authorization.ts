@@ -1,18 +1,11 @@
 import { measure } from '@tabletop/backend-services/diagnostics'
 import fp from 'fastify-plugin'
+import { User, Role, UserStatus, isAdministrator, type Principal } from '@tabletop/common'
 import {
-    User,
-    Role,
-    UserStatus,
-    canHoldAuthenticatedSession,
-    isAdministrator,
-    type Principal
-} from '@tabletop/common'
-import {
-    AccountUnavailableError,
     AdminModeRequiredError,
     AuthenticatedSession,
-    RecentAuthenticationRequiredError
+    RecentAuthenticationRequiredError,
+    requireSessionEligibleAccount
 } from '@tabletop/backend-services'
 import { FastifyAuthFunction } from '@fastify/auth'
 import { FastifyInstance, FastifyRequest } from 'fastify'
@@ -67,15 +60,13 @@ export default fp(async function (fastify: FastifyInstance) {
 
         const authorized = await measure('auth.session', () =>
             fastify.sessionService.authorize(sessionId, (userId) =>
-                measure('auth.user', () => fastify.userService.getUser(userId))
+                measure('auth.user', () => fastify.userService.getUserForAuthorization(userId))
             )
         )
         if (!authorized) {
             throw new Error('Session is not live')
         }
-        if (!canHoldAuthenticatedSession(authorized.user)) {
-            throw new AccountUnavailableError(authorized.user.status)
-        }
+        requireSessionEligibleAccount(authorized.user)
         request.authenticatedSession = authorized.session
         request.principal = {
             user: authorized.user,
