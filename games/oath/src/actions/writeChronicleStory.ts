@@ -1,0 +1,54 @@
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { HydratedOathGameState } from '../model/gameState.js'
+import { ActionType } from '../definition/actions.js'
+import {
+    chronicleOf,
+    normalizedStory,
+    reasonCannotWriteChronicleStory
+} from '../util/chronicleChoices.js'
+
+/** The winner's story of the game: plain text, stored once in the record and never edited. */
+export type WriteChronicleStory = Type.Static<typeof WriteChronicleStory>
+export const WriteChronicleStory = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.WriteChronicleStory),
+            playerId: Type.String(),
+            text: Type.String()
+        })
+    ])
+)
+
+export const WriteChronicleStoryValidator = Compile(WriteChronicleStory)
+
+export function isWriteChronicleStory(action?: GameAction): action is WriteChronicleStory {
+    return action?.type === ActionType.WriteChronicleStory
+}
+
+export class HydratedWriteChronicleStory
+    extends HydratableAction<typeof WriteChronicleStory>
+    implements WriteChronicleStory
+{
+    declare type: ActionType.WriteChronicleStory
+    declare playerId: string
+    declare text: string
+
+    constructor(data: WriteChronicleStory) {
+        super(data, WriteChronicleStoryValidator)
+    }
+
+    apply(state: HydratedOathGameState, _context?: MachineContext) {
+        const reason = reasonCannotWriteChronicleStory(state, this.playerId, this.text)
+        if (reason) throw Error(reason)
+        this.revealsInfo = false
+        // Held until the record's entry, written in this same action, takes it.
+        chronicleOf(state).story = normalizedStory(this.text)
+    }
+
+    static canDoWriteChronicleStory(state: HydratedOathGameState, playerId: string): boolean {
+        return reasonCannotWriteChronicleStory(state, playerId) === undefined
+    }
+}

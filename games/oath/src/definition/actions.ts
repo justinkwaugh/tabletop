@@ -63,5 +63,21 @@ export enum ActionType {
     TransferOathkeeper = 'transferOathkeeper',
 
     /** R-1.23.1–R-1.23.3 */
-    SetupChoice = 'setupChoice'
+    SetupChoice = 'setupChoice',
+
+    /** R-8.1 — the winner vows the next game's Oath. */
+    ChooseOath = 'chooseOath',
+    /** R-8.2 — an Exile winner's offers, made together. */
+    OfferChronicleCitizenship = 'offerChronicleCitizenship',
+    /** R-8.2, R-X.1 — each offered Exile's own answer. */
+    AnswerChronicleCitizenship = 'answerChronicleCitizenship',
+    /** R-8.3.1 */
+    BuildOrRepairEdifice = 'buildOrRepairEdifice',
+    /** R-8.4 — among the tied suits. */
+    ChooseChronicleSuit = 'chooseChronicleSuit',
+    /** R-8.4.a-H1 — among the tied Dispossessed stacks. */
+    ChooseHealStack = 'chooseHealStack',
+    /** The winner's story, written once into the record. */
+    WriteChronicleStory = 'writeChronicleStory',
+    SkipChronicleStory = 'skipChronicleStory'
 }

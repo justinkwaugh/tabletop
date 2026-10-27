@@ -14,11 +14,27 @@ import { visionsMetBy } from './oathkeeper.js'
 import { isImperialPlayer } from './rule.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import type { GameOutcome } from './victory.js'
+import {
+    chronicleOf,
+    chronicleSuitLeaders,
+    chronicleWinnerOf,
+    citizenshipEligible,
+    edificeChoices,
+    flipCitizenBoards,
+    forcedVowOf,
+    isExileWinner,
+    isImperialWinner,
+    seatNameOf,
+    unansweredOffers
+} from './chronicleChoices.js'
 
 /** A step the winner, or the players it names, decide; the phase waits on them. */
 export interface ChronicleChoice {
     readonly step: ChronicleStep
     readonly kind: 'choice'
+    /** What the rules settle on reaching the step, before anyone is asked. */
+    reach?(state: HydratedOathGameState): void
+    /** Whether the step waits on a choice; a step with one possible outcome does not. */
     applies(state: HydratedOathGameState): boolean
     choosers(state: HydratedOathGameState): string[]
 }
@@ -33,37 +49,92 @@ export interface ChronicleSystemStep {
 
 export type ChronicleStepRule = ChronicleChoice | ChronicleSystemStep
 
-/** Law 8 — "the winner performs these steps in order". */
-function winnerOf(state: HydratedOathGameState): string {
-    const chronicle = state.chronicle
-    assertExists(chronicle, 'R-8 — the chronicle is written only after a win')
-    return chronicle.ending.winnerPlayerId
-}
-
-/** Not yet built: a choice that never waits. */
-function choiceToCome(step: ChronicleStep): ChronicleChoice {
-    return { step, kind: 'choice', applies: () => false, choosers: (state) => [winnerOf(state)] }
-}
-
 /** Not yet built: a system step that changes nothing. */
 function systemStepToCome(step: ChronicleStep): ChronicleSystemStep {
     return { step, kind: 'system', applies: () => true, run: () => {} }
 }
 
+/** Law 8 — "the winner performs these steps in order". */
+const theWinner = (state: HydratedOathGameState) => [chronicleWinnerOf(state)]
+
+/** R-8.1 — a win with a Vision alone has its Oath already; any other win chooses. */
+const VOW: ChronicleChoice = {
+    step: ChronicleStep.Vow,
+    kind: 'choice',
+    reach(state) {
+        const forced = forcedVowOf(state)
+        if (!forced) return
+        const chronicle = chronicleOf(state)
+        chronicle.vowedOath = forced.oathType
+        chronicle.vowedByVisionId = forced.visionId
+    },
+    applies: (state) => forcedVowOf(state) === undefined,
+    choosers: theWinner
+}
+
+/** R-8.2 — an Exile winner flips the Citizen boards, then may offer any other Exile. */
+const CITIZENSHIP: ChronicleChoice = {
+    step: ChronicleStep.Citizenship,
+    kind: 'choice',
+    reach(state) {
+        if (isExileWinner(state)) flipCitizenBoards(state)
+    },
+    applies: (state) => isExileWinner(state) && citizenshipEligible(state).length > 0,
+    // R-8.2-H1 — the winner offers, then every offered Exile answers, in any order.
+    choosers: (state) =>
+        state.chronicle?.citizenship?.offers ? unansweredOffers(state) : theWinner(state)
+}
+
+/** R-8.3.1 — the Chancellor or a Citizen may build or repair one edifice. */
+const BUILD_OR_REPAIR: ChronicleChoice = {
+    step: ChronicleStep.BuildOrRepair,
+    kind: 'choice',
+    applies: (state) => isImperialWinner(state) && edificeChoices(state).length > 0,
+    choosers: theWinner
+}
+
+/** R-8.4 — the winner chooses only among tied suits. */
+const SUIT: ChronicleChoice = {
+    step: ChronicleStep.Suit,
+    kind: 'choice',
+    reach(state) {
+        const leaders = chronicleSuitLeaders(state)
+        if (leaders.length === 1) chronicleOf(state).suit = leaders[0]
+    },
+    applies: (state) => chronicleSuitLeaders(state).length > 1,
+    choosers: theWinner
+}
+
+/** R-8.4.a-H1 — only once the tie for the largest Dispossessed stack is published. */
+const HEAL_STACK: ChronicleChoice = {
+    step: ChronicleStep.HealStack,
+    kind: 'choice',
+    applies: (state) => state.chronicle?.healTie !== undefined,
+    choosers: theWinner
+}
+
+/** The winner writes the story of the game, or skips it. */
+const STORY: ChronicleChoice = {
+    step: ChronicleStep.Story,
+    kind: 'choice',
+    applies: () => true,
+    choosers: theWinner
+}
+
 /** R-8.1 to R-8.8 and the winner's entry, in the Law's order. */
 export const CHRONICLE_STEPS: readonly ChronicleStepRule[] = [
-    choiceToCome(ChronicleStep.Vow),
-    choiceToCome(ChronicleStep.Citizenship),
-    choiceToCome(ChronicleStep.BuildOrRepair),
+    VOW,
+    CITIZENSHIP,
+    BUILD_OR_REPAIR,
     systemStepToCome(ChronicleStep.Map),
-    choiceToCome(ChronicleStep.Suit),
+    SUIT,
     systemStepToCome(ChronicleStep.AddSix),
-    choiceToCome(ChronicleStep.HealStack),
+    HEAL_STACK,
     systemStepToCome(ChronicleStep.Dispossess),
     systemStepToCome(ChronicleStep.Relics),
     systemStepToCome(ChronicleStep.Save),
     systemStepToCome(ChronicleStep.Rebuild),
-    choiceToCome(ChronicleStep.Story)
+    STORY
 ]
 
 /** R-3 — the one winner, and from the chronicle revision the ending R-8 reads. */
@@ -117,25 +188,30 @@ export function stateAfterWin(state: HydratedOathGameState): MachineState {
             state.pendingConsent === undefined,
         'R-8 — the chronicle starts with nothing of the game left open'
     )
-    chronicle.step = CHRONICLE_STEPS[0].step
-    return advanceChronicle(state)
+    return writeChronicleFrom(state, 0)
+}
+
+/** R-8 — the step being written is done: write on from the next one. */
+export function completeChronicleStep(state: HydratedOathGameState): MachineState {
+    const step = state.chronicle?.step
+    assertExists(step, 'R-8 — the chronicle is being written')
+    return writeChronicleFrom(state, CHRONICLE_STEPS.findIndex((rule) => rule.step === step) + 1)
 }
 
 /**
- * R-8 — from the step the cursor names, run each system step until a choice waits; once the last
- * step is done, write the record's entry and go to the result.
+ * R-8 — from step `from`, run each system step and settle what the rules decide alone, until a
+ * choice waits; once the last step is done, write the record's entry and go to the result.
  */
-export function advanceChronicle(state: HydratedOathGameState): MachineState {
-    const chronicle = state.chronicle
-    assertExists(chronicle?.step, 'R-8 — the chronicle is being written')
-    const from = CHRONICLE_STEPS.findIndex((rule) => rule.step === chronicle.step)
+function writeChronicleFrom(state: HydratedOathGameState, from: number): MachineState {
+    const chronicle = chronicleOf(state)
     for (const rule of CHRONICLE_STEPS.slice(from)) {
-        if (!rule.applies(state)) continue
-        if (rule.kind === 'choice') {
-            chronicle.step = rule.step
-            return MachineState.Chronicle
+        chronicle.step = rule.step
+        if (rule.kind === 'system') {
+            if (rule.applies(state)) rule.run(state)
+            continue
         }
-        rule.run(state)
+        rule.reach?.(state)
+        if (rule.applies(state)) return MachineState.Chronicle
     }
     chronicle.step = undefined
     appendChronicleEntry(state)
@@ -152,11 +228,18 @@ export function chroniclersOf(state: HydratedOathGameState): string[] {
 
 /** Written once, when the Chronicle phase ends; a later game copies it and adds its own. */
 function appendChronicleEntry(state: HydratedOathGameState): void {
-    const ending = state.chronicle?.ending
-    assertExists(ending, 'R-3 — the action that won stored its ending')
+    const chronicle = chronicleOf(state)
+    const ending = chronicle.ending
     const table = state.table
     assertExists(table, 'A game from the chronicle revision starts with its table record')
     const earlier = state.chronicleRecord ?? []
+    // R-8.2 — the Exiles who accepted, by name and the colour they played.
+    const citizens = (chronicle.citizenship?.offers ?? [])
+        .filter((offer) => offer.accepted === true)
+        .map((offer) => seatOf(state, offer.playerId))
+    // The story is kept once, in the entry.
+    const story = chronicle.story
+    delete chronicle.story
     state.chronicleRecord = [
         ...earlier,
         {
@@ -167,16 +250,18 @@ function appendChronicleEntry(state: HydratedOathGameState): void {
             mark: ending.mark,
             kind: ending.kind,
             rule: ending.rule,
-            winner: seatOf(state, table, ending.winnerPlayerId)
+            winner: seatOf(state, ending.winnerPlayerId),
+            ...(chronicle.vowedOath !== undefined ? { nextOath: chronicle.vowedOath } : {}),
+            ...(citizens.length > 0 ? { citizens } : {}),
+            ...(chronicle.built ? { built: { ...chronicle.built } } : {}),
+            ...(story !== undefined ? { story } : {})
         }
     ]
 }
 
 /** A name and this game's colour: player ids change between games. */
-function seatOf(state: HydratedOathGameState, table: TableRecord, playerId: string): ChronicleSeat {
-    const name = table.seatNames[playerId]
-    assertExists(name, `The table record names every seat, not ${playerId}`)
-    return { name, color: state.getPlayerState(playerId).color }
+function seatOf(state: HydratedOathGameState, playerId: string): ChronicleSeat {
+    return { name: seatNameOf(state, playerId), color: state.getPlayerState(playerId).color }
 }
 
 /** The game's name, the day it started (UTC) and each seat's name, as the platform holds them. */

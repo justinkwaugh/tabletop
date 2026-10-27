@@ -57,6 +57,29 @@ import {
     HydratedLeaveDealUnconfirmed,
     isLeaveDealUnconfirmed
 } from '../actions/leaveDealUnconfirmed.js'
+import { HydratedChooseOath, isChooseOath } from '../actions/chooseOath.js'
+import {
+    HydratedOfferChronicleCitizenship,
+    isOfferChronicleCitizenship
+} from '../actions/offerChronicleCitizenship.js'
+import {
+    HydratedAnswerChronicleCitizenship,
+    isAnswerChronicleCitizenship
+} from '../actions/answerChronicleCitizenship.js'
+import {
+    HydratedBuildOrRepairEdifice,
+    isBuildOrRepairEdifice
+} from '../actions/buildOrRepairEdifice.js'
+import {
+    HydratedChooseChronicleSuit,
+    isChooseChronicleSuit
+} from '../actions/chooseChronicleSuit.js'
+import { HydratedChooseHealStack, isChooseHealStack } from '../actions/chooseHealStack.js'
+import {
+    HydratedWriteChronicleStory,
+    isWriteChronicleStory
+} from '../actions/writeChronicleStory.js'
+import { HydratedSkipChronicleStory, isSkipChronicleStory } from '../actions/skipChronicleStory.js'
 
 export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOathGameState> {
     hydrateAction(data: GameAction): HydratedAction {
@@ -168,6 +191,30 @@ export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOa
             }
             case isLeaveDealUnconfirmed(data): {
                 return new HydratedLeaveDealUnconfirmed(data)
+            }
+            case isChooseOath(data): {
+                return new HydratedChooseOath(data)
+            }
+            case isOfferChronicleCitizenship(data): {
+                return new HydratedOfferChronicleCitizenship(data)
+            }
+            case isAnswerChronicleCitizenship(data): {
+                return new HydratedAnswerChronicleCitizenship(data)
+            }
+            case isBuildOrRepairEdifice(data): {
+                return new HydratedBuildOrRepairEdifice(data)
+            }
+            case isChooseChronicleSuit(data): {
+                return new HydratedChooseChronicleSuit(data)
+            }
+            case isChooseHealStack(data): {
+                return new HydratedChooseHealStack(data)
+            }
+            case isWriteChronicleStory(data): {
+                return new HydratedWriteChronicleStory(data)
+            }
+            case isSkipChronicleStory(data): {
+                return new HydratedSkipChronicleStory(data)
             }
 
             default: {

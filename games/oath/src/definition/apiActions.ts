@@ -36,6 +36,14 @@ import { ExileCitizen } from '../actions/exileCitizen.js'
 import { SelfExile } from '../actions/selfExile.js'
 import { ClaimDealKept } from '../actions/claimDealKept.js'
 import { LeaveDealUnconfirmed } from '../actions/leaveDealUnconfirmed.js'
+import { ChooseOath } from '../actions/chooseOath.js'
+import { OfferChronicleCitizenship } from '../actions/offerChronicleCitizenship.js'
+import { AnswerChronicleCitizenship } from '../actions/answerChronicleCitizenship.js'
+import { BuildOrRepairEdifice } from '../actions/buildOrRepairEdifice.js'
+import { ChooseChronicleSuit } from '../actions/chooseChronicleSuit.js'
+import { ChooseHealStack } from '../actions/chooseHealStack.js'
+import { WriteChronicleStory } from '../actions/writeChronicleStory.js'
+import { SkipChronicleStory } from '../actions/skipChronicleStory.js'
 
 // The backend generates a validated endpoint for each entry.
 export const OathApiActions = {
@@ -75,5 +83,14 @@ export const OathApiActions = {
     [ActionType.CompleteRest]: CompleteRest,
     [ActionType.RollEndDie]: RollEndDie,
     [ActionType.ResolveOathkeeper]: ResolveOathkeeper,
-    [ActionType.TransferOathkeeper]: TransferOathkeeper
+    [ActionType.TransferOathkeeper]: TransferOathkeeper,
+
+    [ActionType.ChooseOath]: ChooseOath,
+    [ActionType.OfferChronicleCitizenship]: OfferChronicleCitizenship,
+    [ActionType.AnswerChronicleCitizenship]: AnswerChronicleCitizenship,
+    [ActionType.BuildOrRepairEdifice]: BuildOrRepairEdifice,
+    [ActionType.ChooseChronicleSuit]: ChooseChronicleSuit,
+    [ActionType.ChooseHealStack]: ChooseHealStack,
+    [ActionType.WriteChronicleStory]: WriteChronicleStory,
+    [ActionType.SkipChronicleStory]: SkipChronicleStory
 }

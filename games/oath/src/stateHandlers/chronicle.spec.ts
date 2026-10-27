@@ -32,6 +32,8 @@ import { Travel } from '../actions/travel.js'
 import { TransferOathkeeper } from '../actions/transferOathkeeper.js'
 import { CHRONICLE_STEPS, stateAfterWin, tableRecordOf } from '../util/chronicle.js'
 import { OathRevision } from '../util/revision.js'
+import { writeChronicleThrough } from '../testing/chronicle.js'
+import { ActionType } from '../definition/actions.js'
 
 /** The revision before the chronicle: a game recorded under it ends exactly as it always has. */
 const BEFORE = OathRevision.EngineFixes25
@@ -101,6 +103,12 @@ function play(game: Game, state: OathProjectedState, steps: GameAction[]): Playe
         current = result.updatedState
     }
     return { game, final: current, actions }
+}
+
+/** The won game played on through each waiting step's plainest answer, to the result. */
+function written(played: Played): Played {
+    const { final, actions } = writeChronicleThrough(played.game, played.final)
+    return { game: played.game, final, actions: [...played.actions, ...actions] }
 }
 
 /** R-3.1 — Rhys wakes as the Usurper of Devotion, holding the Darkest Secret their revealed Faith asks for too. */
@@ -235,9 +243,19 @@ describe('the chronicle gate: a game below the chronicle revision ends as it alw
 
 describe('R-8 — at the chronicle revision a win writes its chronicle before the result', () => {
     for (const [name, ending] of Object.entries(ENDINGS)) {
-        it(`${name}: runs every step in the winning action, then sets the result and the continuation together`, () => {
+        it(`${name}: waits on the winner's choices, then sets the result and the continuation together`, () => {
             const before = ending(BEFORE)
-            const { final, actions } = ending(AT)
+            const won = ending(AT)
+            expect(won.final.machineState).toBe(MachineState.Chronicle)
+            expect(won.final.result).toBeUndefined()
+            expect(won.final.canContinue).toBeUndefined()
+            // The winning action is recorded alike: the chronicle's choices come after it.
+            expect(
+                won.actions.map((action) => [action.type, action.source, action.revealsInfo])
+            ).toEqual(
+                before.actions.map((action) => [action.type, action.source, action.revealsInfo])
+            )
+            const { final } = written(won)
             expect(final.machineState).toBe(MachineState.EndOfGame)
             expect(final.result).toBe(GameResult.Win)
             expect(final.canContinue).toBe(true)
@@ -245,20 +263,16 @@ describe('R-8 — at the chronicle revision a win writes its chronicle before th
             expect(final.winningPlayerIds).toEqual(before.final.winningPlayerIds)
             expect(final.chronicle?.step).toBeUndefined()
             expect(final.chronicleRecord).toHaveLength(1)
-            // The same actions, recorded alike: the chronicle adds nothing to the History yet.
-            expect(
-                actions.map((action) => [action.type, action.source, action.revealsInfo])
-            ).toEqual(
-                before.actions.map((action) => [action.type, action.source, action.revealsInfo])
-            )
         })
     }
 
-    it('consults all twelve steps, in the Law’s order, inside the winning action', () => {
+    it('consults all twelve steps once each, in the Law’s order', () => {
         expect(CHRONICLE_STEPS.map((rule) => rule.step)).toEqual(Object.values(ChronicleStep))
         const consulted = CHRONICLE_STEPS.map((rule) => vi.spyOn(rule, 'applies'))
-        warExhaustion(AT)
+        written(warExhaustion(AT))
         expect(consulted.map((spy) => spy.mock.calls.length)).toEqual(CHRONICLE_STEPS.map(() => 1))
+        const order = consulted.map((spy) => spy.mock.invocationCallOrder[0])
+        expect(order).toEqual([...order].sort((a, b) => a - b))
     })
 
     it('R-3.1 with a revealed Vision met: the ending records both ways (R-8.1 reads every way)', () => {
@@ -304,7 +318,7 @@ describe('R-8 — at the chronicle revision a win writes its chronicle before th
 
 describe('the chronicle record', () => {
     it('one entry for the first game: its table, its Oath, how it was won and the winner by name and colour', () => {
-        expect(stableRegimeSuccessor(AT, WINNING_SEED).final.chronicleRecord).toEqual([
+        expect(written(stableRegimeSuccessor(AT, WINNING_SEED)).final.chronicleRecord).toEqual([
             {
                 gameNumber: 1,
                 sessionName: 'Thursday table',
@@ -313,14 +327,15 @@ describe('the chronicle record', () => {
                 mark: ChronicleMark.Successor,
                 kind: WinKind.Successor,
                 rule: 'R-3.3.1',
-                winner: { name: 'Ann', color: Color.Blue }
+                winner: { name: 'Ann', color: Color.Blue },
+                nextOath: OathType.Supremacy
             }
         ])
     })
 
     it('holds no player id: ids change between games', () => {
         for (const ending of Object.values(ENDINGS)) {
-            const { final } = ending(AT)
+            const { final } = written(ending(AT))
             const ids = final.players.map((player) => player.playerId)
             const strings = stringsIn(final.chronicleRecord)
             expect(strings.length).toBeGreaterThan(0)
@@ -341,7 +356,7 @@ describe('the chronicle record', () => {
             nextOath: OathType.Devotion,
             story: 'The Hidden Place fell.'
         }
-        const { final } = usurperWake(AT, { chronicleRecord: [earlier] })
+        const { final } = written(usurperWake(AT, { chronicleRecord: [earlier] }))
         expect(final.chronicleRecord?.map((entry) => entry.gameNumber)).toEqual([1, 2])
         expect(final.chronicleRecord?.[0]).toEqual(earlier)
         expect(final.chronicleRecord?.[1]).toMatchObject({
@@ -422,11 +437,13 @@ describe('the Chronicle phase while a step waits', () => {
         expect(final.chronicleRecord).toBeUndefined()
     })
 
-    it('offers nothing on any seat’s own view: the losers never act', () => {
+    it('offers the winner the step’s choice on their own view, and the losers nothing', () => {
         const { game, final } = waiting()
         for (const player of final.players) {
             const own = served(final, { kind: 'player', playerId: player.playerId })
-            expect(engine.getValidActionTypesForPlayer(game, own, player.playerId)).toEqual([])
+            expect(engine.getValidActionTypesForPlayer(game, own, player.playerId)).toEqual(
+                player.playerId === 'p2' ? [ActionType.ChooseOath] : []
+            )
         }
     })
 

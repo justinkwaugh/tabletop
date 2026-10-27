@@ -1,4 +1,5 @@
 import {
+    Color,
     GameResult,
     GameState,
     HydratableGameState,
@@ -161,7 +162,9 @@ export const OathGameState = Type.Object({
     /** R-8 — from the chronicle revision, present once the game is won. */
     chronicle: Type.Optional(Chronicle),
     /** R-8 — one entry per game, oldest first; absent until the first chronicle ends. */
-    chronicleRecord: Type.Optional(Type.Array(ChronicleEntry))
+    chronicleRecord: Type.Optional(Type.Array(ChronicleEntry)),
+    /** R-8.2 — the colours whose boards are in the box on their Citizen side; absent when none are. */
+    boxedCitizenColors: Type.Optional(Type.Array(Type.Enum(Color)))
 })
 
 export const OathGameStateValidator = Compile(OathGameState)
@@ -238,6 +241,7 @@ export class HydratedOathGameState
     declare table?: TableRecord
     declare chronicle?: Chronicle
     declare chronicleRecord?: ChronicleEntry[]
+    declare boxedCitizenColors?: Color[]
     declare vault?: OathProjectedState['vault']
 
     constructor(data: OathProjectedState) {

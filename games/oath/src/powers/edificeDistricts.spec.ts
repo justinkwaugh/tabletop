@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { Color, GameResult, assertExists, type GameAction } from '@tabletop/common'
+import { describe, expect, it } from 'vitest'
+import { Color, GameResult, type GameAction } from '@tabletop/common'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
 import { EndActPhase } from '../actions/endActPhase.js'
 import { RollEndDie, isRollEndDie } from '../actions/rollEndDie.js'
@@ -11,7 +11,7 @@ import { Banner, OathType, PlayerStatus } from '../model/oathEnums.js'
 import { PowerQuestionKind, type ExchangeTerms } from '../model/question.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { ChronicleStep } from '../model/chronicle.js'
-import { CHRONICLE_STEPS } from '../util/chronicle.js'
+import { writeChronicleThrough } from '../testing/chronicle.js'
 import { buildAction } from '../testing/actions.js'
 import {
     DANA,
@@ -308,27 +308,25 @@ describe('Squalid District — its ruler may raise or lower the end die by one, 
             threshold: 5,
             wonBy: 'R-3.3'
         })
-        expect(answered.updatedState.machineState).toBe(MachineState.EndOfGame)
+        // R-8 — the game is won; the chronicle is written before the result.
+        expect(answered.updatedState.machineState).toBe(MachineState.Chronicle)
         expect(answered.updatedState.winningPlayerIds).toEqual([DANA])
     })
 
     it('the win its answer makes is chronicled before the result (R-8)', () => {
         const options = { round: 6 }
         const rolled = roll(roundEnd({ ...options, seed: seedRolling(4, options) }))
-        const ended = adjust(rolled.updatedState, 1).updatedState
+        const answered = adjust(rolled.updatedState, 1)
+        const ended = writeChronicleThrough(game, answered.updatedState).final
         expect(ended.result).toBe(GameResult.Win)
         expect(ended.canContinue).toBe(true)
         expect(ended.chronicleRecord?.map((entry) => [entry.rule, entry.winner])).toEqual([
             ['R-3.3', { name: 'Dana', color: Color.Purple }]
         ])
 
-        // With a step waiting, the answer leaves the game in the Chronicle phase, and says so.
-        const vow = CHRONICLE_STEPS.find((rule) => rule.step === ChronicleStep.Vow)
-        assertExists(vow, 'the Vow is a step')
-        const waits = vi.spyOn(vow, 'applies').mockReturnValue(true)
-        const answered = adjust(rolled.updatedState, 1)
-        waits.mockRestore()
+        // The answer leaves the game in the Chronicle phase, the Vow waiting, and says so.
         expect(answered.updatedState.machineState).toBe(MachineState.Chronicle)
+        expect(answered.updatedState.chronicle?.step).toBe(ChronicleStep.Vow)
         expect(answered.updatedState.pendingQuestions).toBeUndefined()
         expect(answered.updatedState.activePlayerIds).toEqual([DANA])
         expect(answered.updatedState.result).toBeUndefined()

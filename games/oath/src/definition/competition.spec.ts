@@ -26,6 +26,7 @@ import { ResolveWake, type WakeFavorStep } from '../actions/resolveWake.js'
 import { EndActPhase } from '../actions/endActPhase.js'
 import { CompleteRest } from '../actions/completeRest.js'
 import { RollEndDie } from '../actions/rollEndDie.js'
+import { writeChronicleThrough } from '../testing/chronicle.js'
 import { TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import {
     applyPeoplesFavorStep,
@@ -160,6 +161,10 @@ function peoplesFavorSteps(state: OathProjectedState, playerId: string): WakeFav
 /** R-4.1 to R-4.3 — the active seat's Wake, a turn of no actions, and its Rest; a Wake that wins ends there. R-3.3 — the Chancellor's end die between rounds. */
 function playTurn(game: Game, state: OathProjectedState): OathProjectedState {
     const [playerId] = state.activePlayerIds
+    // R-8 — a won game's chronicle is written before the result.
+    if (state.machineState === MachineState.Chronicle) {
+        return writeChronicleThrough(game, state).final
+    }
     if (state.machineState === MachineState.EndOfRound) {
         return engine.runNext(buildAction(RollEndDie, { playerId }), state, game).updatedState
     }
@@ -174,7 +179,7 @@ function playTurn(game: Game, state: OathProjectedState): OathProjectedState {
             game
         ).updatedState
     }
-    if (next.machineState === MachineState.EndOfGame) return next
+    if (next.winningPlayerIds.length > 0) return next
     next = engine.runNext(buildAction(EndActPhase, { playerId }), next, game).updatedState
     // R-4.3.5 — the Rest waits on the seat only while it holds a Rest power it can use.
     return next.machineState === MachineState.RestPhase
