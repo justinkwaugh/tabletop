@@ -38,7 +38,6 @@ function memoryUserStore(initial: User) {
     const read = async (id: string) => (id === current.id ? current : undefined)
     const store: UserStore = Object.create(null)
     store.findById = read
-    store.findByIdUncached = read
     store.findByUsernameAndPassword = async (username, candidate) => {
         const holder = username === current.username && candidate === password ? current : undefined
         credentialGate.reached()
