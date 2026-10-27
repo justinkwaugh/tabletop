@@ -1,6 +1,8 @@
 import {
+    describeIgnoredBackendAdminSettings,
     fetchBackendManifest,
     invalidateBackendManifestCache,
+    resolveBackendAdminCredentials,
     type BackendReplacement
 } from './backend.js'
 import {
@@ -101,12 +103,15 @@ export const invalidateBackendManifest = (context: PublishContext) =>
     runStep(
         context,
         { label: 'invalidate-manifest', logPath: '/tmp/manifest-invalidate.log' },
-        async () =>
+        async () => {
+            const ignored = describeIgnoredBackendAdminSettings(context.deployConfig.backendAdmin)
+            if (ignored) context.log(`invalidate-manifest: ${ignored}`)
             context.log(
                 `invalidate-manifest: ${describeReplacement(
                     await invalidateBackendManifestCache(context.deployConfig)
                 )}`
             )
+        }
     )
 
 const describeReplacement = (replacement: BackendReplacement | undefined) => {
@@ -175,6 +180,7 @@ export const assertDeployConfig = (deployConfig: DeployConfig): string => {
                 '(set TABLETOP_BACKEND_ADMIN_URL or deploy config)'
         )
     }
+    resolveBackendAdminCredentials(deployConfig.backendAdmin)
     return deployConfig.gcsBucket
 }
 
