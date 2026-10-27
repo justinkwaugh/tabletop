@@ -1,5 +1,5 @@
 import { isBuiltin } from 'node:module'
-import { rollup } from 'rollup'
+import { rolldown } from 'rolldown'
 
 // The backend evaluates a logic factory with only Node's builtins available to it.
 export const collectibleChunkProblem = (chunk) => {
@@ -23,9 +23,14 @@ export const collectibleLogic = () => ({
 // Converts a published ESM logic bundle into the CommonJS factory the backend evaluates, for
 // artifacts published before the build emitted one.
 export async function buildLogicFactorySource(esmFilename) {
-    const build = await rollup({ input: esmFilename, external: isBuiltin, logLevel: 'silent' })
+    const build = await rolldown({
+        input: esmFilename,
+        platform: 'node',
+        external: isBuiltin,
+        logLevel: 'silent'
+    })
     try {
-        const { output } = await build.generate({ format: 'cjs', inlineDynamicImports: true })
+        const { output } = await build.generate({ format: 'cjs', codeSplitting: false })
         const chunk = output.find((item) => item.type === 'chunk' && item.isEntry)
         const problem = chunk ? collectibleChunkProblem(chunk) : 'Logic bundle has no entry chunk'
         if (problem) throw new Error(problem)

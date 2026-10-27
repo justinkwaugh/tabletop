@@ -1,4 +1,4 @@
-import type { Plugin } from 'rollup'
+import type { Plugin } from 'rolldown'
 
 export function collectibleChunkProblem(chunk: {
     imports: readonly string[]

@@ -6,13 +6,9 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import svelte from 'rollup-plugin-svelte'
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
-import resolve from '@rollup/plugin-node-resolve'
-import typescript from '@rollup/plugin-typescript'
-import commonjs from '@rollup/plugin-commonjs'
+import { svelteComponents } from './svelte.js'
+import { transformSync, TsconfigCache } from 'rolldown/utils'
 import url from '@rollup/plugin-url'
-import terser from '@rollup/plugin-terser'
 import brotli from 'rollup-plugin-brotli'
 import postcss from 'rollup-plugin-postcss'
 
@@ -31,6 +27,14 @@ const assetExtensions = [
     '**/*.otf',
     '**/*.eot'
 ]
+
+// Plugins turn these into JavaScript; Rolldown would otherwise type the result by extension.
+const compiledToJs = Object.fromEntries(
+    ['.css', ...modelAssetExtensions, ...assetExtensions].map((pattern) => [
+        pattern.replace('**/*', ''),
+        'js'
+    ])
+)
 
 const toPath = (value) => (value instanceof URL ? fileURLToPath(value) : value)
 
@@ -66,6 +70,8 @@ const createResolveJsExtensions = (packageRoot) => ({
     name: 'resolve-js-extensions',
     resolveId(source, importer) {
         if (source.startsWith('\0')) return null
+        // A dependency's own imports go to Rolldown's resolver, which applies its browser field.
+        if (importer?.includes(`${path.sep}node_modules${path.sep}`)) return null
 
         const normalizedSource = source.split('?')[0]
         const isJs = normalizedSource.endsWith('.js')
@@ -112,6 +118,28 @@ const createResolveJsExtensions = (packageRoot) => ({
     }
 })
 
+// Runs before the Svelte plugin, which compiles .svelte.ts modules and expects JavaScript.
+const stripTypeScript = (packageRoot) => {
+    const tsconfig = path.join(packageRoot, 'tsconfig.json')
+    const tsconfigCache = new TsconfigCache(tsconfig)
+    return {
+        name: 'strip-typescript',
+        transform: {
+            filter: { id: /\.ts$/ },
+            handler(code, id) {
+                const result = transformSync(
+                    id,
+                    code,
+                    { lang: 'ts', sourcemap: true, tsconfig },
+                    tsconfigCache
+                )
+                if (result.errors.length) this.error(result.errors[0].message)
+                return { code: result.code, map: result.map, moduleType: 'js' }
+            }
+        }
+    }
+}
+
 const createLibAlias = (packageRoot) => ({
     name: 'lib-alias',
     resolveId(source) {
@@ -151,18 +179,32 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
     const publicAssetsPath = `/games/${gameId}/ui/${uiVersion}/assets/`
     const assetsDirectory = path.join(packageRoot, 'bundle/assets')
     const analyze = process.env.ROLLUP_ANALYZE === '1'
-    const minify = process.env.ROLLUP_TERSER !== '0'
-    const terserWorkers = process.env.ROLLUP_TERSER_WORKERS
-    const terserOptions = terserWorkers ? { maxWorkers: Number(terserWorkers) } : {}
+    const minify = process.env.ROLLUP_MINIFY !== '0'
 
     return {
         input: path.join(packageRoot, 'src/lib/index.ts'),
         output: {
             dir: path.join(packageRoot, 'bundle'),
             format: 'es',
-            sourcemap: true
+            sourcemap: true,
+            minify
         },
-        // The host loads the artifact as plain ES modules, so a bare import Rollup can't resolve
+        platform: 'browser',
+        // SvelteKit's generated tsconfig maps $app/* to its runtime, which a game UI must not bundle.
+        tsconfig: false,
+        resolve: {
+            conditionNames: ['svelte', 'browser', 'import', 'module', 'default'],
+            mainFields: ['svelte', 'browser', 'module', 'main'],
+            extensions: ['.ts', '.js', '.mjs', '.svelte']
+        },
+        moduleTypes: compiledToJs,
+        transform: { define: { 'process.env.NODE_ENV': JSON.stringify('production') } },
+        // TypeBox declares no sideEffects field but registers nothing across modules, so the
+        // schemas a title's info and options import don't pull the rest of TypeBox in up front.
+        treeshake: {
+            moduleSideEffects: [{ test: /[\\/]node_modules[\\/]typebox[\\/]/, sideEffects: false }]
+        },
+        // The host loads the artifact as plain ES modules, so a bare import Rolldown can't resolve
         // (such as a SvelteKit $app/* module) would stop the game UI from loading at all.
         onwarn: (warning, handler) => {
             if (warning.code === 'UNRESOLVED_IMPORT') throw new Error(warning.message)
@@ -172,26 +214,9 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
             createResolveJsExtensions(packageRoot),
             createLibAlias(packageRoot),
             moduleWorkers(),
-            typescript({ tsconfig: path.join(packageRoot, 'tsconfig.rollup.json') }),
-            commonjs(),
-            svelte({
-                extensions: ['.svelte.ts', '.svelte'],
-                emitCss: false,
-                preprocess: vitePreprocess({ script: true }),
-                onwarn: (warning, handler) => {
-                    if (warning.code === 'a11y-distracting-elements') return
-                    handler(warning)
-                },
-                compilerOptions: {
-                    generate: 'client',
-                    cssHash: ({ css, hash }) => `svelte-${packageNameSlug}-${hash(css)}`
-                }
-            }),
-            resolve({
-                browser: true,
-                dedupe: ['svelte'],
-                exportConditions: ['svelte'],
-                extensions: ['.ts', '.js', '.mjs', '.svelte']
+            stripTypeScript(packageRoot),
+            svelteComponents({
+                cssHash: ({ css, hash }) => `svelte-${packageNameSlug}-${hash(css)}`
             }),
             postcss({
                 inject: true,
@@ -217,7 +242,6 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
                 limit: 0
             }),
             analyzeBundle(analyze),
-            ...(minify ? [terser(terserOptions)] : []),
             brotli(),
             {
                 name: 'game-catalog',
@@ -246,17 +270,18 @@ export const createGameLogicRollupConfig = ({ packageRootUrl }) => {
             file: path.join(outputDir, format === 'es' ? 'index.js' : 'index.cjs'),
             format,
             sourcemap: true,
-            inlineDynamicImports: true
+            codeSplitting: false
         })),
+        platform: 'node',
+        tsconfig: false,
+        resolve: {
+            conditionNames: ['node', 'import', 'module', 'default'],
+            mainFields: ['module', 'main'],
+            extensions: ['.ts', '.js', '.mjs']
+        },
         plugins: [
             createResolveJsExtensions(packageRoot),
-            typescript({ tsconfig: path.join(packageRoot, 'tsconfig.rollup.json') }),
-            resolve({
-                preferBuiltins: true,
-                exportConditions: ['node'],
-                extensions: ['.ts', '.js', '.mjs']
-            }),
-            commonjs(),
+            stripTypeScript(packageRoot),
             collectibleLogic()
         ]
     }
