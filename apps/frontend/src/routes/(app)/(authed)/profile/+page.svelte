@@ -163,8 +163,17 @@
         errors = {}
     }
 
+    let logoutEverywhereFailed = $state(false)
+
     async function logoutEverywhere() {
-        await api.logoutAll()
+        logoutEverywhereFailed = false
+        try {
+            await api.logoutAll()
+        } catch (e) {
+            console.log(e)
+            logoutEverywhereFailed = true
+            return
+        }
         broadcastLogout()
         await authorizationService.onLogout()
     }
@@ -360,5 +369,11 @@
                 >Sign out everywhere</Button
             >
         </div>
+        {#if logoutEverywhereFailed}
+            <Alert class="dark:bg-red-200 dark:text-red-700 mt-4">
+                <span class="font-bold text-lg">Sign out everywhere failed</span><br />
+                Your sessions are unchanged. Please try again.
+            </Alert>
+        {/if}
     </Card>
 </div>
