@@ -53,11 +53,12 @@ const UnlimitedDepot = new TrainDepot({
     ]
 })
 
-function trainlessRailway(
-    depot: TrainDepot = VariantDepot,
-    availableDefinitions: string[] = ['2', '3'],
-    marketTrainIds: string[] = []
-) {
+function trainlessRailway({
+    depot = VariantDepot,
+    availableDefinitions = ['2', '3'],
+    marketTrainIds = []
+}: { depot?: TrainDepot; availableDefinitions?: string[]; marketTrainIds?: string[] } = {}) {
+    const inventory = depot.createInventory()
     const president = { kind: 'player' as const, playerId: TestPlayerId }
     const railway = { kind: 'company' as const, companyId: TestCompanyId }
     const base = minimalPlayState()
@@ -78,12 +79,14 @@ function trainlessRailway(
                 owner: president
             }
         ],
-        trainInventory: (() => {
-            const inventory = depot.createInventory()
-            for (const train of inventory.trains)
-                if (marketTrainIds.includes(train.id)) Object.assign(train, { status: 'market' })
-            return inventory
-        })(),
+        trainInventory: {
+            ...inventory,
+            trains: inventory.trains.map((train) =>
+                marketTrainIds.includes(train.id)
+                    ? { id: train.id, definitionId: train.definitionId, status: 'market' }
+                    : train
+            )
+        },
         trainPurchaseStep: { companyId: TestCompanyId, purchasedTrainIds: [] },
         operatingSet: {
             number: 1,
@@ -134,7 +137,11 @@ describe('TrainFundingModule', () => {
 
     it('sorts funded purchases by source, an unbought unlimited train to the depot', () => {
         const [two] = UnlimitedDepot.createInventory().trains
-        const { module } = trainlessRailway(UnlimitedDepot, ['12'], [two.id])
+        const { module } = trainlessRailway({
+            depot: UnlimitedDepot,
+            availableDefinitions: ['12'],
+            marketTrainIds: [two.id]
+        })
         expect(module.purchases.map((purchase) => purchase.definitionId)).toEqual(['12', '2'])
         expect(module.depotPurchases.map((purchase) => purchase.definitionId)).toEqual(['12'])
         expect(module.marketPurchases.map((purchase) => purchase.definitionId)).toEqual(['2'])

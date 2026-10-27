@@ -161,7 +161,7 @@
                                 count,
                                 details,
                                 true,
-                                session.trainFunding.purchases.some(
+                                session.trainFunding.marketPurchases.some(
                                     (purchase) => purchase.trainId === details.trainId
                                 )
                             )}

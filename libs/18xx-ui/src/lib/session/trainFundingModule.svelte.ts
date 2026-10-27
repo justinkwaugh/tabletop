@@ -42,11 +42,10 @@ export class TrainFundingModule {
     purchases = $derived.by(() =>
         this.session.state.machineState === 'BuyingTrains' ? (this.model?.purchases() ?? []) : []
     )
-    /** Funded purchases of market trains; the rest come from the depot. */
     marketPurchases = $derived.by(() =>
         this.purchases.filter((purchase) => this.fromMarket(purchase))
     )
-    // A depot train may have no stored record yet, as an unlimited supply records only bought trains.
+    /** A depot train may have no stored record yet: an unlimited supply records only bought trains. */
     depotPurchases = $derived.by(() =>
         this.purchases.filter((purchase) => !this.fromMarket(purchase))
     )
