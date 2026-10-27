@@ -1,3 +1,5 @@
+import { zstdDecompressSync } from 'node:zlib'
+
 const REDACTED_KEYS =
     /^(auth|p256dh|keys|password|passwordHash|token|tokens|secret|secrets|privateKey|accessToken|refreshToken|sessionSecret|apiKey)$/i
 
@@ -5,6 +7,11 @@ export function redact(value, key = '') {
     if (REDACTED_KEYS.test(key)) return '<REDACTED>'
     if (key === 'endpoint' && typeof value === 'string') return endpointHost(value)
     if (Array.isArray(value)) return value.map((item) => redact(item))
+    // The game store may write a State (`dataZstd`) or action chunk (`actionsZstd`) zstd-compressed.
+    if (value instanceof Uint8Array) {
+        if (!key.endsWith('Zstd')) return `<${value.byteLength} bytes>`
+        return redact(zstdDecompressSync(value).toString('utf8'), key === 'dataZstd' ? 'data' : key)
+    }
     if (value && typeof value === 'object') {
         if (typeof value.toDate === 'function') return value.toDate().toISOString()
         if (value instanceof Date) return value.toISOString()
@@ -50,6 +57,18 @@ export function parseJsonOr(text, fallback) {
     } catch {
         return fallback
     }
+}
+
+// Reads a game store payload kept as JSON text or as zstd-compressed bytes beside it.
+export function parseStoredJsonOr(text, compressed, fallback) {
+    if (compressed instanceof Uint8Array) {
+        try {
+            return JSON.parse(zstdDecompressSync(compressed).toString('utf8'))
+        } catch {
+            return fallback
+        }
+    }
+    return parseJsonOr(text ?? '', fallback)
 }
 
 const DURATION = /^(\d+)([smhd])$/

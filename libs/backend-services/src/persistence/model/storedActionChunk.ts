@@ -18,7 +18,9 @@ export const StoredActionChunk = Type.Evaluate(
         Type.Omit(ActionChunk, ['actions']),
         Type.Object({
             actions: Type.Optional(Type.Array(GameAction)),
-            actionsData: Type.String(), // JSON stringified array of GameAction
+            // The actions as JSON text, or zstd-compressed (see storedJson.ts); a chunk holds one
+            actionsData: Type.Optional(Type.String()),
+            actionsZstd: Type.Optional(Type.Unsafe<Uint8Array>({})),
             actionIds: Type.Array(Type.String())
         })
     ])

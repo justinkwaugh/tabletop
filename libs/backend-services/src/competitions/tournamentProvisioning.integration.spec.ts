@@ -73,7 +73,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
         })
         const { cache, pool, guardPool } = cacheFixture(client)
-        const store = new FirestoreGameStore(cache, db, prefix)
+        const store = new FirestoreGameStore(cache, db, { tournamentCachePrefix: prefix })
         const tournaments = new FirestoreTournamentStore(cache, db, prefix)
         const users: User[] = Array.from({ length: 8 }, (_, index) => ({
             id: `${prefix}-user-${index}`,

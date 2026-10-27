@@ -18,6 +18,7 @@ import {
     FieldPath,
     DocumentData,
     type DocumentSnapshot,
+    type FirestoreDataConverter,
     type ReadOnlyTransactionOptions,
     type ReadWriteTransactionOptions
 } from '@google-cloud/firestore'
@@ -83,6 +84,7 @@ import { GameCacheKeys } from './gameCacheKeys.js'
 import { gameChatBookmarks } from './gameChatDocuments.js'
 import { nanoid } from 'nanoid'
 import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
+import { decodeStoredJson, encodeStoredJson, type StoredJsonEncoding } from './storedJson.js'
 import * as Value from 'typebox/value'
 import {
     assertUndoActionStorageSupported,
@@ -120,14 +122,22 @@ const LEGACY_EARLIER_ACTIONS = 20
 export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
     readonly games: CollectionReference<Game>
     private readonly tournamentCacheKeys: TournamentCacheKeys
+    private readonly stateConverter: FirestoreDataConverter<GameState, StoredState>
+    private readonly actionChunkConverter: FirestoreDataConverter<ActionChunk, StoredActionChunk>
 
     constructor(
         private readonly cacheService: RedisCacheService,
         private firestore: Firestore,
-        tournamentCachePrefix = 'tournaments:v1'
+        {
+            tournamentCachePrefix = 'tournaments:v1',
+            // States and action chunks are written in this encoding; both are always read.
+            encoding = 'json'
+        }: { tournamentCachePrefix?: string; encoding?: StoredJsonEncoding } = {}
     ) {
         this.games = firestore.collection('games').withConverter(gameConverter)
         this.tournamentCacheKeys = new TournamentCacheKeys(tournamentCachePrefix)
+        this.stateConverter = stateConverter(encoding)
+        this.actionChunkConverter = actionChunkConverter(encoding)
     }
 
     async createGame(game: Game, initialization?: GameInitialization): Promise<Game> {
@@ -2189,7 +2199,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             .collection('games')
             .doc(gameId)
             .collection('actionChunks')
-            .withConverter(actionChunkConverter)
+            .withConverter(this.actionChunkConverter)
     }
 
     private getStateCollection(gameId: string): CollectionReference<GameState> {
@@ -2197,7 +2207,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             .collection('games')
             .doc(gameId)
             .collection('states')
-            .withConverter(stateConverter)
+            .withConverter(this.stateConverter)
     }
 
     private handleError(error: unknown, id: string) {
@@ -2317,16 +2327,19 @@ const gameConverter = {
     }
 }
 
-const stateConverter = {
-    toFirestore(gameState: GameState): PartialWithFieldValue<StoredState> {
-        return { data: JSON.stringify(gameState) }
+const stateConverter = (
+    encoding: StoredJsonEncoding
+): FirestoreDataConverter<GameState, StoredState> => ({
+    toFirestore(gameState: GameState): StoredState {
+        const stored = encodeStoredJson(gameState, encoding, 'store.state')
+        return typeof stored === 'string' ? { data: stored } : { dataZstd: stored }
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): GameState {
         const docData = snapshot.data() as StoredState
-        const state = JSON.parse(docData.data) as GameState
+        const state = decodeStoredJson(docData.data, docData.dataZstd, 'store.state') as GameState
         return migrateFromSeedToPrng(state)
     }
-}
+})
 
 const migrateFromSeedToPrng = (state: GameState): GameState => {
     if (!state.prng) {
@@ -2356,25 +2369,28 @@ const actionConverter = {
     }
 }
 
-const actionChunkConverter = {
-    toFirestore(chunk: ActionChunk): PartialWithFieldValue<StoredActionChunk> {
-        const docData = structuredClone(chunk) as unknown as StoredActionChunk
-        docData.actionsData = JSON.stringify(chunk.actions)
-        docData.actionIds = chunk.actions.map((action) => action.id)
-
-        delete docData.actions
-        return docData
+const actionChunkConverter = (
+    encoding: StoredJsonEncoding
+): FirestoreDataConverter<ActionChunk, StoredActionChunk> => ({
+    toFirestore(chunk: ActionChunk): StoredActionChunk {
+        const { actions, ...docData } = chunk
+        const stored = encodeStoredJson(actions, encoding, 'store.actionChunk')
+        return {
+            ...structuredClone(docData),
+            ...(typeof stored === 'string' ? { actionsData: stored } : { actionsZstd: stored }),
+            actionIds: actions.map((action) => action.id)
+        }
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): ActionChunk {
         const data = snapshot.data() as Partial<StoredActionChunk>
-        if (typeof data.actionsData == 'string') {
-            data.actions = JSON.parse(data.actionsData)
-        }
+        const actions = decodeStoredJson(data.actionsData, data.actionsZstd, 'store.actionChunk')
+        if (actions !== undefined) data.actions = actions as GameAction[]
         delete data.actionsData
+        delete data.actionsZstd
         delete data.actionIds
 
         data.createdAt = data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined
         data.updatedAt = data.updatedAt ? (data.updatedAt as Timestamp).toDate() : undefined
         return data as ActionChunk
     }
-}
+})
