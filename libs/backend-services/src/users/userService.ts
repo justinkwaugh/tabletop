@@ -98,10 +98,6 @@ export class UserService {
         return this.userStore.findById(userId)
     }
 
-    async getUserForAuthorization(userId: string): Promise<User | undefined> {
-        return this.userStore.findByIdUncached(userId)
-    }
-
     async getUsers(userIds: string[]): Promise<(User | undefined)[]> {
         return this.userStore.findByIds(userIds)
     }

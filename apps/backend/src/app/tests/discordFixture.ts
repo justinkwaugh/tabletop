@@ -93,7 +93,7 @@ export async function discordFixture() {
     server.decorate('oauthStateService', oauthStateService)
     server.decorate('discordOAuth', discordOAuth)
     Reflect.set(server, 'userService', {
-        getUserForAuthorization: async (id: string) => users.get(id),
+        getUser: async (id: string) => users.get(id),
         getUserByUsernameAndPassword: async (username: string, password: string) =>
             password === PASSWORD ? users.get(username) : undefined,
         linkExternalAccount,
