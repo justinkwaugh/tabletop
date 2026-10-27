@@ -19,7 +19,13 @@ import {
     type ExchangeTerms,
     type OpenDeal
 } from '@tabletop/oath'
-import { openTurn, testPlayer, testState, testVaultWithRelics } from '@tabletop/oath/testing'
+import {
+    openTurn,
+    plainestChronicleAnswer,
+    testPlayer,
+    testState,
+    testVaultWithRelics
+} from '@tabletop/oath/testing'
 import { played, tableOf, type PlayedTable } from './sessionHarness.js'
 
 /**
@@ -226,7 +232,7 @@ export function tribunalDealsTable(scene: TribunalDealsScene, long = false): Pla
         ])
     }
     if (ending) {
-        return played(table, [
+        let won = played(table, [
             createAction(ResolveWake, {
                 ...envelope,
                 type: ActionType.ResolveWake,
@@ -234,6 +240,11 @@ export function tribunalDealsTable(scene: TribunalDealsScene, long = false): Pla
                 favorSteps: []
             })
         ])
+        // R-8 — the game shows its end once Rhys has written the chronicle, as plainly as it can be.
+        while (won.state.machineState === MachineState.Chronicle) {
+            won = played(won, [plainestChronicleAnswer(won.state)])
+        }
+        return won
     }
     return table
 }

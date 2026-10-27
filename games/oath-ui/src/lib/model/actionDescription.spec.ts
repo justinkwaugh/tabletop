@@ -63,8 +63,18 @@ function action(
 // A registered card: a sentence names the card an action was taken on.
 const CARD = 'denizen.beast.errand-boy'
 
-/** Great Spire's swap step: built in the engine, its History sentence not drawn yet. */
-const AWAITING_SENTENCE: readonly string[] = [ActionType.SearchSwap]
+/** Great Spire's swap step and the chronicle's choices: built in the engine, their History sentences not drawn yet. */
+const AWAITING_SENTENCE: readonly string[] = [
+    ActionType.SearchSwap,
+    ActionType.ChooseOath,
+    ActionType.OfferChronicleCitizenship,
+    ActionType.AnswerChronicleCitizenship,
+    ActionType.BuildOrRepairEdifice,
+    ActionType.ChooseChronicleSuit,
+    ActionType.ChooseHealStack,
+    ActionType.WriteChronicleStory,
+    ActionType.SkipChronicleStory
+]
 
 /** Only each schema's required fields, so every sentence must survive missing metadata. */
 const MINIMAL: Record<string, Record<string, unknown>> = {
@@ -107,7 +117,15 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.ResolveOathkeeper]: { chosenPlayerId: 'p2' },
     [ActionType.TransferOathkeeper]: { source: 'system', fromPlayerId: 'p2', toPlayerId: 'p1' },
     [ActionType.ClaimDealKept]: { dealId: 'd1' },
-    [ActionType.LeaveDealUnconfirmed]: { dealId: 'd1' }
+    [ActionType.LeaveDealUnconfirmed]: { dealId: 'd1' },
+    [ActionType.ChooseOath]: { oathType: 'protection' },
+    [ActionType.OfferChronicleCitizenship]: { exilePlayerIds: [] },
+    [ActionType.AnswerChronicleCitizenship]: { accept: true },
+    [ActionType.BuildOrRepairEdifice]: {},
+    [ActionType.ChooseChronicleSuit]: { suit: 'order' },
+    [ActionType.ChooseHealStack]: { suit: 'beast' },
+    [ActionType.WriteChronicleStory]: { text: 'The Usurper held.' },
+    [ActionType.SkipChronicleStory]: {}
 }
 
 describe('a history line names a site by its printed name', () => {
@@ -184,10 +202,10 @@ describe('a history line names a site by its printed name', () => {
 })
 
 describe('the history tab describes every action', () => {
-    it('has a sentence for all 36 action types, and reaches no fallback but the ones awaiting theirs', () => {
+    it('has a sentence for all 44 action types, and reaches no fallback but the ones awaiting theirs', () => {
         const types = Object.values(ActionType)
         // Pinned rather than read off the enum, so adding an action type fails here.
-        expect(types).toHaveLength(36)
+        expect(types).toHaveLength(44)
 
         for (const type of types) {
             const fields = MINIMAL[type]
