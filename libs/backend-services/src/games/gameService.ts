@@ -13,6 +13,8 @@ import {
     GameResult,
     calculateActionChecksum,
     createGameFork,
+    captureGameContinuation,
+    GameContinuation,
     GameForkError,
     findLast,
     isOutOfTurnDeclaration,
@@ -221,8 +223,15 @@ export class GameService {
         game.ownerId = owner.id // Don't trust client
         game.storage = GameStorage.Remote // Has to be remote here on the backend
 
+        const sourceGameId = options?.continueFromGameId
+        const continuation =
+            sourceGameId === undefined
+                ? undefined
+                : await this.captureContinuation(definition, sourceGameId, owner)
+
         const newGame = definition.runtime.initializer.initializeGame(game, definition)
         delete newGame.protectedInformation
+        if (sourceGameId !== undefined) newGame.continuedFromGameId = sourceGameId
         // Titles bundle their own initializer, which may predate unlisted games.
         if (game.unlisted) newGame.unlisted = true
         else delete newGame.unlisted
@@ -256,10 +265,10 @@ export class GameService {
             }
         }
 
-        const createdGame = await this.gameStore.createGame(
-            newGame,
-            masterSeed === undefined ? undefined : { masterSeed }
-        )
+        const createdGame = await this.gameStore.createGame(newGame, {
+            ...(masterSeed === undefined ? {} : { masterSeed }),
+            ...(continuation === undefined ? {} : { continuation })
+        })
 
         // Send invites
         for (const user of Object.values(usersByPlayerId)) {
@@ -274,6 +283,20 @@ export class GameService {
         await this.notifyGameAudience(GameNotificationAction.Create, { game: createdGame })
 
         return createdGame
+    }
+
+    private async captureContinuation(
+        definition: GameDefinition,
+        sourceGameId: string,
+        user: User
+    ): Promise<GameContinuation> {
+        const source = await this.getGame({ gameId: sourceGameId, withState: true })
+        if (!source) throw new GameNotFoundError({ id: sourceGameId })
+        if (!findPlayerForUserId(source, user.id) && !user.roles.includes(Role.Admin)) {
+            throw new UnauthorizedAccessError({ user, gameId: sourceGameId })
+        }
+        assertExists(source.state, 'A finished game has a state')
+        return captureGameContinuation(source, source.state, definition)
     }
 
     async provisionTournamentGame(
@@ -1088,9 +1111,12 @@ export class GameService {
                 definition.runtime.randomnessVersion === 1
                     ? await this.gameStore.getMasterSeed(game.id)
                     : undefined
+            const continuation = game.continuedFromGameId
+                ? await this.gameStore.getContinuation(game.id)
+                : undefined
             const { startedGame: initializedGame, initialState } = new GameEngine(
                 definition.runtime
-            ).startGame(game, masterSeed)
+            ).startGame(game, { masterSeed, continuation })
             ;[startedGame] = await this.gameStore.updateGame({
                 game,
                 fields: {

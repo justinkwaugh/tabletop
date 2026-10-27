@@ -59,6 +59,7 @@
 
     let {
         game,
+        continueFrom,
         title,
         hotseatOnly = false,
         showHeading = true,
@@ -66,6 +67,7 @@
         onsave
     }: {
         game?: Game
+        continueFrom?: Game
         title?: GameUiDefinition<GameState, HydratedGameState>
         hotseatOnly?: boolean
         showHeading?: boolean
@@ -80,8 +82,9 @@
     let mode = game ? EditMode.Edit : EditMode.Create
     let gameTitle = $derived.by(() => {
         let gameTitle = title
-        if (!gameTitle && game) {
-            gameTitle = titlesById[game.typeId]
+        const existingGame = game ?? continueFrom
+        if (!gameTitle && existingGame) {
+            gameTitle = titlesById[existingGame.typeId]
         }
         assertExists(gameTitle, 'No title found for the game being edited')
         return gameTitle
@@ -89,16 +92,18 @@
 
     let editedGame: EditableGame = game
         ? $state.snapshot(game)
-        : <EditableGame>{
-              id: nanoid(),
-              typeId: '',
-              name: '',
-              players: [ownerPlayer()],
-              isPublic: false,
-              hotseat: false,
-              ownerId: sessionUser?.id,
-              config: {}
-          }
+        : continueFrom
+          ? continuationGame(continueFrom)
+          : <EditableGame>{
+                id: nanoid(),
+                typeId: '',
+                name: '',
+                players: [ownerPlayer()],
+                isPublic: false,
+                hotseat: false,
+                ownerId: sessionUser?.id,
+                config: {}
+            }
 
     // State
     let unexpectedError = $state(false)
@@ -109,7 +114,7 @@
     )
     let seed = $state('')
     let numPlayers = $state(
-        mode === EditMode.Edit
+        mode === EditMode.Edit || continueFrom
             ? editedGame.players.length
             : (gameTitle.info.metadata.defaultPlayerCount ?? 1)
     )
@@ -128,7 +133,7 @@
             !isHotseat &&
             !isUnlisted
     )
-    let showHotseatToggle = $derived(!hotseatOnly && !publicGame && includeOwner)
+    let showHotseatToggle = $derived(!hotseatOnly && !continueFrom && !publicGame && includeOwner)
     let reclaimableOwnerSeat = $derived.by(() => {
         const ownNameSeat = players.findIndex((player) => player.name === sessionUser?.username)
         return ownNameSeat !== -1
@@ -177,6 +182,37 @@
             isHuman: true,
             name: sessionUser.username,
             status: PlayerStatus.Joined
+        }
+    }
+
+    function continuationGame(source: Game): EditableGame {
+        assertExists(sessionUser, 'Continuing a game requires a signed-in user')
+        return {
+            id: nanoid(),
+            typeId: source.typeId,
+            name: source.name,
+            players: source.players.map((player) =>
+                isSessionUserSeat(source, player) ? ownerPlayer() : continuedPlayer(player)
+            ),
+            isPublic: source.isPublic,
+            hotseat: source.hotseat,
+            ownerId: sessionUser.id,
+            config: structuredClone(source.config)
+        }
+    }
+
+    function isSessionUserSeat(source: Game, player: Player) {
+        return source.hotseat
+            ? player.name === sessionUser?.username
+            : player.userId === sessionUser?.id
+    }
+
+    function continuedPlayer(player: Player): Player {
+        return {
+            id: nanoid(),
+            isHuman: player.isHuman,
+            name: player.name,
+            status: player.name ? PlayerStatus.Reserved : PlayerStatus.Open
         }
     }
 
@@ -259,7 +295,9 @@
             config: mergedConfig
         }
 
-        let options: GameCreationOptions | undefined
+        let options: GameCreationOptions | undefined = continueFrom
+            ? { continueFromGameId: continueFrom.id }
+            : undefined
         if (mode === EditMode.Create) {
             gameData.typeId = gameTitle.info.id
             if (seed.trim().length > 0) {
@@ -270,7 +308,7 @@
                             errors['seed'] = ['Reload the site to use reproduction seeds']
                             return
                         }
-                        options = { masterSeed: normalizeMasterSeed(seed) }
+                        options = { ...options, masterSeed: normalizeMasterSeed(seed) }
                     } else {
                         const numericSeed = Number(seed)
                         if (!Number.isInteger(numericSeed)) throw Error('Invalid numeric seed')
@@ -398,6 +436,11 @@
     <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-200 mb-4">
         {gameTitle.info.metadata.name}
     </h1>
+{/if}
+{#if continueFrom}
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        Continues from {continueFrom.name}
+    </p>
 {/if}
 {#if unexpectedError}
     <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">

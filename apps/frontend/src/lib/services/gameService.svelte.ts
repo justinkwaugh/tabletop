@@ -26,6 +26,10 @@ import {
     type HydratedGameState,
     GameEngine,
     createGameFork,
+    captureGameContinuation,
+    assertExists,
+    type GameContinuation,
+    type GameDefinition,
     GameForkError,
     GameStorage,
     GameCategory,
@@ -294,6 +298,15 @@ export class GameService implements GameServiceInterface {
         return { game, actions, historyComplete }
     }
 
+    private async captureLocalContinuation(
+        sourceGameId: string,
+        definition: GameDefinition
+    ): Promise<GameContinuation> {
+        const { game: source } = await this.localGameStore.loadGameData(sourceGameId)
+        assertExists(source?.state, 'The game being continued was not found')
+        return captureGameContinuation(source, source.state, definition)
+    }
+
     getExplorations(gameId: string): Game[] {
         return Array.from(this.localGamesById.values()).filter(
             (game) => game.parentId === gameId && game.category === GameCategory.Exploration
@@ -320,12 +333,18 @@ export class GameService implements GameServiceInterface {
             const runtime = await definition.runtime()
             const gameDefinition = { info: definition.info, runtime }
             const initializedGame = runtime.initializer.initializeGame(game, gameDefinition)
+            const sourceGameId = options?.continueFromGameId
+            const continuation =
+                sourceGameId === undefined
+                    ? undefined
+                    : await this.captureLocalContinuation(sourceGameId, gameDefinition)
+            if (sourceGameId !== undefined) initializedGame.continuedFromGameId = sourceGameId
 
             const engine = new GameEngine(runtime)
-            const { startedGame, initialState } = engine.startGame(
-                initializedGame,
-                options?.masterSeed
-            )
+            const { startedGame, initialState } = engine.startGame(initializedGame, {
+                masterSeed: options?.masterSeed,
+                continuation
+            })
 
             startedGame.activePlayerIds = initialState.activePlayerIds
 

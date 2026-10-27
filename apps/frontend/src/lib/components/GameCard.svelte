@@ -72,6 +72,7 @@
     let loading = $derived(libraryService.loading)
 
     let editing = $state(false)
+    let continuing = $state(false)
     let openingGame = $state(false)
     let canToggle = $derived(expanded !== 'always')
     let isExpanded = $derived(expanded ? true : false)
@@ -129,6 +130,7 @@
     let canPlay = $derived(isMine && game.status === GameStatus.Started)
     let canWatch = $derived(!isMine && game.status === GameStatus.Started)
     let canRevisit = $derived(game.status === GameStatus.Finished)
+    let canContinue = $derived(!loading && isMine && game.canContinue === true)
     let canDelete = $derived(
         !game.tournament &&
             (authorizationService.isAdmin || (isOwnedByMe && ownerMayDeleteGame(game)))
@@ -226,6 +228,16 @@
             return
         }
         editing = true
+    }
+
+    function continueGame(event: Event) {
+        event.stopPropagation()
+        continuing = true
+    }
+
+    async function onContinued(next: Game) {
+        continuing = false
+        if (next.status === GameStatus.Started) await goto(`/game/${next.id}`)
     }
 
     async function deleteGame(event: Event) {
@@ -422,6 +434,13 @@
                                             color="blue"
                                             class="h-[20px]"
                                             onclick={editGame}>Edit</Button
+                                        >
+                                    {:else if canContinue}
+                                        <Button
+                                            size="xs"
+                                            color="blue"
+                                            class="h-[20px]"
+                                            onclick={continueGame}>Continue</Button
                                         >
                                     {:else if canPlay || canWatch}
                                         {@render gameEntryButton(
@@ -620,7 +639,7 @@
                         </div>
                     {/if}
 
-                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canRevisit || canDelete}
+                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canContinue || canRevisit || canDelete}
                         <Hr class="mt-1 mb-1" />
                         <div class="pt-4 pb-0 flex flex-row justify-center items-middle text-white">
                             {#if canDecline}
@@ -658,6 +677,11 @@
                                     isMyTurn ? 'yellow' : 'primary',
                                     'mx-2'
                                 )}
+                            {/if}
+                            {#if canContinue}
+                                <Button size="xs" color="blue" class="mx-2" onclick={continueGame}
+                                    >Continue</Button
+                                >
                             {/if}
                             {#if canRevisit}
                                 {@render gameEntryButton(
@@ -751,6 +775,24 @@
             {game}
             oncancel={() => (editing = false)}
             onsave={(game) => (editing = false)}
+        />
+    </Modal>
+{/if}
+
+{#if continuing}
+    <Modal
+        bind:open={continuing}
+        size="xs"
+        autoclose={false}
+        class="w-full"
+        outsideclose
+        dismissable={false}
+        onclick={(e) => e.stopPropagation()}
+    >
+        <GameEditForm
+            continueFrom={game}
+            oncancel={() => (continuing = false)}
+            onsave={onContinued}
         />
     </Modal>
 {/if}

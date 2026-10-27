@@ -132,6 +132,7 @@ export class IndexedDbGameStore implements GameStore {
     }): Promise<void> {
         const gameData: Game = structuredClone(game)
         gameData.updatedAt = new Date()
+        gameData.canContinue = state.canContinue
         delete gameData.state
 
         const db = await this.getDatabase()
