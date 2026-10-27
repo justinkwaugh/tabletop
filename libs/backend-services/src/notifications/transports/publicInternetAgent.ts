@@ -1,4 +1,5 @@
 import dns from 'node:dns'
+import http from 'node:http'
 import https from 'node:https'
 import net from 'node:net'
 import type { Duplex } from 'node:stream'
@@ -64,23 +65,35 @@ export type AddressResolver = (
     callback: (error: NodeJS.ErrnoException | null, addresses: dns.LookupAddress[]) => void
 ) => void
 
-export const DEFAULT_CONNECTION_DEADLINE_MS = 30_000
+export const DEFAULT_REQUEST_DEADLINE_MS = 30_000
 
 export type PublicInternetAgentOptions = https.AgentOptions & {
     resolve?: AddressResolver
-    connectionDeadlineMs?: number
+    requestDeadlineMs?: number
+}
+
+// Node's HTTP client hands every request to its agent through addRequest, which @types/node leaves undeclared
+declare module 'http' {
+    interface Agent {
+        addRequest(request: http.ClientRequest, options: http.RequestOptions): void
+    }
 }
 
 export class PublicInternetHttpsAgent extends https.Agent {
-    private readonly connectionDeadlineMs: number
+    private readonly requestDeadlineMs: number
 
     constructor({
         resolve = dns.lookup,
-        connectionDeadlineMs = DEFAULT_CONNECTION_DEADLINE_MS,
+        requestDeadlineMs = DEFAULT_REQUEST_DEADLINE_MS,
         ...agentOptions
     }: PublicInternetAgentOptions = {}) {
         super({ ...agentOptions, lookup: PublicInternetHttpsAgent.publicAddressLookup(resolve) })
-        this.connectionDeadlineMs = connectionDeadlineMs
+        this.requestDeadlineMs = requestDeadlineMs
+    }
+
+    override addRequest(request: http.ClientRequest, options: http.RequestOptions): void {
+        this.endRequestAfterDeadline(request)
+        super.addRequest(request, options)
     }
 
     override createConnection(
@@ -93,11 +106,7 @@ export class PublicInternetHttpsAgent extends https.Agent {
                 new BlockedDestinationError({ hostname, addresses: [hostname] })
             )
         }
-        const socket = super.createConnection(options, callback)
-        if (socket) {
-            this.destroyAfterDeadline(socket, hostname)
-        }
-        return socket
+        return super.createConnection(options, callback)
     }
 
     private refusedSocket(error: Error): Duplex {
@@ -106,13 +115,22 @@ export class PublicInternetHttpsAgent extends https.Agent {
         return socket
     }
 
-    private destroyAfterDeadline(socket: Duplex, hostname: string) {
-        const deadlineMs = this.connectionDeadlineMs
-        const timer = setTimeout(() => {
-            socket.destroy(new DestinationDeadlineError({ hostname, deadlineMs }))
-        }, deadlineMs)
-        timer.unref()
-        socket.once('close', () => clearTimeout(timer))
+    private endRequestAfterDeadline(request: http.ClientRequest) {
+        const deadlineMs = this.requestDeadlineMs
+        let timer: NodeJS.Timeout | undefined
+        const armOnceActive = () => {
+            timer = setTimeout(() => {
+                request.destroy(
+                    new DestinationDeadlineError({ hostname: request.host, deadlineMs })
+                )
+            }, deadlineMs)
+            timer.unref()
+        }
+        request.once('socket', armOnceActive)
+        request.once('close', () => {
+            request.off('socket', armOnceActive)
+            clearTimeout(timer)
+        })
     }
 
     private static publicAddressLookup(resolve: AddressResolver): net.LookupFunction {

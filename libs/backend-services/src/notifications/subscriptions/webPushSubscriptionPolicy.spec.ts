@@ -5,6 +5,7 @@ import {
     CHROME_CANARY_ENDPOINT,
     FCM_ENDPOINT,
     MOZILLA_ENDPOINT,
+    OFF_CURVE_P256DH,
     WNS_ENDPOINT,
     webPushClientData,
     webPushKeys
@@ -121,6 +122,31 @@ describe('web push subscription policy', () => {
                 keys: { ...keys, auth: Buffer.alloc(15).toString('base64url') }
             })
         ).toBe('auth secret is too short')
+        expect(
+            webPushSubscriptionRejection({
+                endpoint: FCM_ENDPOINT,
+                keys: { ...keys, auth: Buffer.alloc(32).toString('base64url') }
+            })
+        ).toBeUndefined()
+    })
+
+    it('rejects a well-formed p256dh key whose coordinates are not on the P-256 curve', () => {
+        const keys = webPushKeys()
+        expect(
+            webPushSubscriptionRejection({
+                endpoint: FCM_ENDPOINT,
+                keys: { ...keys, p256dh: OFF_CURVE_P256DH }
+            })
+        ).toBe('p256dh key is not a point on the P-256 curve')
+        const offByOne = Buffer.from(keys.p256dh, 'base64url')
+        offByOne[64] ^= 0x01
+        expect(
+            webPushSubscriptionRejection({
+                endpoint: FCM_ENDPOINT,
+                keys: { ...keys, p256dh: offByOne.toString('base64url') }
+            })
+        ).toBe('p256dh key is not a point on the P-256 curve')
+        expect(webPushSubscriptionRejection({ endpoint: FCM_ENDPOINT, keys })).toBeUndefined()
     })
 
     it('matches push service hosts on whole labels only', () => {

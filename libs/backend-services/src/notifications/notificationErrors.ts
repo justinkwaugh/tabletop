@@ -34,7 +34,7 @@ export class DestinationDeadlineError extends BaseError {
     constructor({ hostname, deadlineMs }: { hostname: string; deadlineMs: number }) {
         super({
             name: 'DestinationDeadlineError',
-            message: `Connection to ${hostname} exceeded its ${deadlineMs} ms deadline`,
+            message: `Request to ${hostname} exceeded its ${deadlineMs} ms deadline`,
             metadata: { hostname, deadlineMs }
         })
     }

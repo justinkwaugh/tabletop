@@ -8,6 +8,11 @@ export const APPLE_ENDPOINT = 'https://web.push.apple.com/QFakeAppleToken'
 export const WNS_ENDPOINT = 'https://wns2-db5p.notify.windows.com/w/?token=AwYAAAFakeWnsToken'
 export const CHROME_CANARY_ENDPOINT = 'https://jmt17.google.com/fcm/send/eFakeCanaryToken'
 
+// 0x04 followed by the affine coordinates (0, 0), which do not satisfy the P-256 curve equation
+export const OFF_CURVE_P256DH = Buffer.concat([Buffer.from([0x04]), Buffer.alloc(64)]).toString(
+    'base64url'
+)
+
 export function webPushKeys(): WebPushSubscriptionClientData['keys'] {
     const ecdh = createECDH('prime256v1')
     ecdh.generateKeys()

@@ -1,3 +1,4 @@
+import { ECDH } from 'node:crypto'
 import { UnsupportedWebPushSubscriptionError } from '../notificationErrors.js'
 import {
     WEB_PUSH_ENDPOINT_MAX_LENGTH,
@@ -15,6 +16,7 @@ export const SUPPORTED_PUSH_SERVICE_HOSTS = [
 ] as const
 export const SUPPORTED_PUSH_SERVICE_DOMAINS = ['notify.windows.com'] as const
 
+const P256_CURVE = 'prime256v1'
 const P256DH_UNCOMPRESSED_POINT_BYTES = 65
 const P256DH_UNCOMPRESSED_POINT_PREFIX = 0x04
 const AUTH_SECRET_MIN_BYTES = 16
@@ -28,6 +30,15 @@ export function isSupportedPushServiceHost(hostname: string): boolean {
         SUPPORTED_PUSH_SERVICE_HOSTS.some((host) => host === hostname) ||
         supportedPushServiceSubdomains.some((pattern) => pattern.test(hostname))
     )
+}
+
+function isPointOnP256(point: Buffer): boolean {
+    try {
+        ECDH.convertKey(point, P256_CURVE)
+        return true
+    } catch {
+        return false
+    }
 }
 
 export function webPushSubscriptionRejection({
@@ -59,6 +70,9 @@ export function webPushSubscriptionRejection({
         p256dh[0] !== P256DH_UNCOMPRESSED_POINT_PREFIX
     ) {
         return 'p256dh key is not an uncompressed P-256 point'
+    }
+    if (!isPointOnP256(p256dh)) {
+        return 'p256dh key is not a point on the P-256 curve'
     }
     if (Buffer.from(keys.auth, 'base64url').length < AUTH_SECRET_MIN_BYTES) {
         return 'auth secret is too short'

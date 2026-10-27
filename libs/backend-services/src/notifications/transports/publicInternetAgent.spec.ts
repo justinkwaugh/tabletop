@@ -1,8 +1,9 @@
+import http from 'node:http'
 import https from 'node:https'
 import net from 'node:net'
-import type { Duplex } from 'node:stream'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BlockedDestinationError, DestinationDeadlineError } from '../notificationErrors.js'
+import { closeServer, listenOnLoopback, type LoopbackService } from '../tests/loopbackService.js'
 import {
     type AddressResolver,
     isPublicInternetAddress,
@@ -27,6 +28,49 @@ function requestError(options: https.RequestOptions): Promise<Error> {
     return new Promise((resolve, reject) => {
         const request = https.request(options, () => reject(new Error('request succeeded')))
         request.on('error', resolve)
+        request.end()
+    })
+}
+
+// Reads whatever arrives and never writes a byte back
+function startSilentService(): Promise<LoopbackService<net.Server>> {
+    return listenOnLoopback(net.createServer((socket) => socket.resume()))
+}
+
+// Answers every request with 201 after a delay, keeping the connection open for the next one
+function startSlowService(responseDelayMs: number): Promise<LoopbackService<http.Server>> {
+    return listenOnLoopback(
+        http.createServer((request, response) => {
+            request.resume()
+            request.on('end', () => {
+                setTimeout(() => {
+                    response.statusCode = 201
+                    response.end()
+                }, responseDelayMs)
+            })
+        })
+    )
+}
+
+// The agent's TLS connection is replaced by a plain TCP connection to the local service, so the
+// request, socket and response are still Node's own
+function connectThroughPlainTcpTo(port: number): void {
+    vi.spyOn(https.Agent.prototype, 'createConnection').mockImplementation(() =>
+        net.createConnection({ host: '127.0.0.1', port })
+    )
+}
+
+function requestOutcome(
+    options: https.RequestOptions
+): Promise<{ statusCode: number | undefined; socket: net.Socket | null }> {
+    return new Promise((resolve, reject) => {
+        const request = https.request(options, (response) => {
+            response.resume()
+            response.on('end', () =>
+                resolve({ statusCode: response.statusCode, socket: request.socket })
+            )
+        })
+        request.on('error', reject)
         request.end()
     })
 }
@@ -153,32 +197,69 @@ describe('public internet https agent', () => {
         expect(resolve).not.toHaveBeenCalled()
     })
 
-    it('destroys a connection that outlives its deadline', async () => {
-        vi.useFakeTimers()
-        const sockets: Duplex[] = []
-        vi.spyOn(https.Agent.prototype, 'createConnection').mockImplementation(() => {
-            const socket = new net.Socket()
-            sockets.push(socket)
-            return socket
-        })
+    it('ends a request whose name resolution never answers at the deadline', async () => {
+        const stalledResolver = vi.fn<AddressResolver>()
         const agent = new PublicInternetHttpsAgent({
-            resolve: resolvingTo(['142.250.72.206']),
-            connectionDeadlineMs: 5_000
+            resolve: stalledResolver,
+            requestDeadlineMs: 100
         })
-        const expired = agent.createConnection({ host: 'fcm.googleapis.com', port: 443 })
-        const closed = agent.createConnection({ host: 'web.push.apple.com', port: 443 })
-        expect(sockets).toEqual([expired, closed])
-        const failures: Error[] = []
-        const expiredFailure = new Promise<Error>((resolve) => expired?.once('error', resolve))
-        for (const socket of sockets) socket.on('error', (error) => failures.push(error))
-        closed?.destroy()
-        vi.advanceTimersByTime(4_999)
-        expect(expired?.destroyed).toBe(false)
-        vi.advanceTimersByTime(1)
-        expect(expired?.destroyed).toBe(true)
-        const failure = await expiredFailure
-        expect(failure).toBeInstanceOf(DestinationDeadlineError)
-        expect(failure.message).toContain('fcm.googleapis.com')
-        expect(failures).toEqual([failure])
+        const error = await requestError({
+            hostname: 'fcm.googleapis.com',
+            path: '/fcm/send/token',
+            method: 'POST',
+            agent
+        })
+        expect(error).toBeInstanceOf(DestinationDeadlineError)
+        expect(error.message).toBe('Request to fcm.googleapis.com exceeded its 100 ms deadline')
+        expect(stalledResolver).toHaveBeenCalledOnce()
+    })
+
+    it('ends a request the push service never answers at the deadline', async () => {
+        const service = await startSilentService()
+        try {
+            connectThroughPlainTcpTo(service.port)
+            const agent = new PublicInternetHttpsAgent({
+                resolve: resolvingTo(['142.250.72.206']),
+                requestDeadlineMs: 100
+            })
+            const error = await requestError({
+                hostname: 'fcm.googleapis.com',
+                path: '/fcm/send/token',
+                method: 'POST',
+                agent
+            })
+            expect(error).toBeInstanceOf(DestinationDeadlineError)
+            await vi.waitFor(() => expect(service.connections[0]?.destroyed).toBe(true))
+        } finally {
+            await closeServer(service.server)
+        }
+    })
+
+    it('arms a fresh deadline for each request a reused socket carries', async () => {
+        const service = await startSlowService(400)
+        try {
+            connectThroughPlainTcpTo(service.port)
+            const agent = new PublicInternetHttpsAgent({
+                resolve: resolvingTo(['142.250.72.206']),
+                maxSockets: 1,
+                requestDeadlineMs: 600
+            })
+            const options: https.RequestOptions = {
+                hostname: 'fcm.googleapis.com',
+                path: '/fcm/send/token',
+                method: 'POST',
+                agent
+            }
+            const [first, second] = await Promise.all([
+                requestOutcome(options),
+                requestOutcome(options)
+            ])
+            expect(first.statusCode).toBe(201)
+            expect(second.statusCode).toBe(201)
+            expect(second.socket).toBe(first.socket)
+            expect(service.connections).toHaveLength(1)
+        } finally {
+            await closeServer(service.server)
+        }
     })
 })

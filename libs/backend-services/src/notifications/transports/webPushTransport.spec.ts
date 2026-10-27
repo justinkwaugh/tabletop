@@ -7,7 +7,8 @@ import {
     BlockedDestinationError,
     UnsupportedWebPushSubscriptionError
 } from '../notificationErrors.js'
-import { FCM_ENDPOINT, webPushClientData } from '../tests/webPushFixtures.js'
+import { closeServer, listenOnLoopback, type LoopbackService } from '../tests/loopbackService.js'
+import { FCM_ENDPOINT, OFF_CURVE_P256DH, webPushClientData } from '../tests/webPushFixtures.js'
 import type { WebPushSubscription } from '../subscriptions/webPushSubscription.js'
 import { TransportType } from './notificationTransport.js'
 import { PublicInternetHttpsAgent } from './publicInternetAgent.js'
@@ -27,20 +28,16 @@ function isResponseListener(value: unknown): value is (response: http.IncomingMe
 }
 
 // A plain HTTP server standing in for the push service, accepting every request with 201
-async function startPushServiceStandIn(): Promise<{ server: http.Server; port: number }> {
-    const server = http.createServer((request, response) => {
-        request.resume()
-        request.on('end', () => {
-            response.statusCode = 201
-            response.end()
+function startPushServiceStandIn(): Promise<LoopbackService<http.Server>> {
+    return listenOnLoopback(
+        http.createServer((request, response) => {
+            request.resume()
+            request.on('end', () => {
+                response.statusCode = 201
+                response.end()
+            })
         })
-    })
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
-    const address = server.address()
-    if (typeof address !== 'object' || address === null) {
-        throw new Error('push service stand-in did not bind a TCP port')
-    }
-    return { server, port: address.port }
+    )
 }
 
 // Every https.request the real web-push library issues is recorded with its original options and
@@ -71,16 +68,14 @@ function storedSubscription(endpoint: string): WebPushSubscription {
 }
 
 describe('web push transport', () => {
-    let pushService: { server: http.Server; port: number }
+    let pushService: LoopbackService<http.Server>
 
     beforeAll(async () => {
         pushService = await startPushServiceStandIn()
     })
 
     afterAll(async () => {
-        await new Promise<void>((resolve, reject) =>
-            pushService.server.close((error) => (error ? reject(error) : resolve()))
-        )
+        await closeServer(pushService.server)
     })
 
     afterEach(() => {
@@ -116,6 +111,19 @@ describe('web push transport', () => {
         const transport = new WebPushTransport()
         const result = await transport.sendNotification(
             storedSubscription('https://127.0.0.1:8443/internal'),
+            notification
+        )
+        expect(result).toEqual({ success: false, unregister: true })
+        expect(observed).toHaveLength(0)
+    })
+
+    it('purges a previously stored subscription whose key is not on the P-256 curve without connecting', async () => {
+        const observed = forwardRequestsTo(pushService.port)
+        vi.spyOn(console, 'log').mockImplementation(() => {})
+        const transport = new WebPushTransport()
+        const stored = storedSubscription(FCM_ENDPOINT)
+        const result = await transport.sendNotification(
+            { ...stored, keys: { ...stored.keys, p256dh: OFF_CURVE_P256DH } },
             notification
         )
         expect(result).toEqual({ success: false, unregister: true })

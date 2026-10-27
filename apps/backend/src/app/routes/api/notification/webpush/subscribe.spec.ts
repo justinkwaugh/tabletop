@@ -96,6 +96,26 @@ describe('web push subscribe route', () => {
         expect(register).not.toHaveBeenCalled()
     })
 
+    it('refuses a key that is not a point on the P-256 curve', async () => {
+        const { server, register } = await createServer()
+        servers.add(server)
+        const subscription = browserSubscription(FCM_ENDPOINT)
+        const offCurve = Buffer.concat([Buffer.from([0x04]), Buffer.alloc(64)]).toString(
+            'base64url'
+        )
+        const response = await server.inject({
+            method: 'POST',
+            url: '/subscribe',
+            payload: {
+                subscription: { ...subscription, keys: { ...subscription.keys, p256dh: offCurve } }
+            }
+        })
+        expect(response.statusCode).toBe(400)
+        expect(response.json().error.name).toBe('UnsupportedWebPushSubscriptionError')
+        expect(response.json().error.message).toContain('P-256 curve')
+        expect(register).not.toHaveBeenCalled()
+    })
+
     it('refuses an oversized endpoint at the schema', async () => {
         const { server, register } = await createServer()
         servers.add(server)
