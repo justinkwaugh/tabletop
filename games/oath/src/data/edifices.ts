@@ -41,6 +41,11 @@ export function edificeRecord(cardId: string): EdificeRecord | undefined {
     return EDIFICE_RECORDS.find((rec) => rec.id === cardId)
 }
 
+/** R-2.9 — "cannot be used to Muster or Trade". */
+export function reasonRuinCannotBeUsed(cardId: string, action: 'Muster' | 'Trade'): string {
+    return `${edificeName(cardId, true)} is a ruin, and a ruin cannot be used to ${action}`
+}
+
 /** R-2.9 — the name on the side that is up. */
 export function edificeName(cardId: string, ruined: boolean): string {
     const rec = edificeRecord(cardId)

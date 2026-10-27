@@ -13,7 +13,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { siteRecoverCost, suitOf, type RecoverCost } from '../data/cardRegistry.js'
+import { siteRecoverCost, type RecoverCost } from '../data/cardRegistry.js'
 import { redistributeFavor } from '../data/favorBanks.js'
 import {
     foldNumber,
@@ -224,11 +224,11 @@ export class HydratedRecover extends HydratableAction<typeof Recover> implements
         const adviserSuits = new Set(
             holder
                 .faceupAdviserIds()
-                .map((cardId) => suitOf(cardId))
+                .map((cardId) => state.suitInPlay(cardId))
                 .filter((suit): suit is Suit => suit !== undefined)
         )
         return state.denizensAt(pawnSiteId(state, holderId)).some((cardId) => {
-            const suit = suitOf(cardId)
+            const suit = state.suitInPlay(cardId)
             return suit !== undefined && !adviserSuits.has(suit)
         })
     }

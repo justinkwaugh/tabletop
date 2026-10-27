@@ -5,6 +5,7 @@ import {
     HydratedTurnManager,
     PrngState,
     Visibility,
+    assert,
     assertExists
 } from '@tabletop/common'
 import {
@@ -24,6 +25,7 @@ import { PendingCampaign } from './pendingCampaign.js'
 import { MAX_OPEN_DEALS, OpenDeal, PendingQuestions } from './question.js'
 import { PendingConsent } from './consent.js'
 import { OathVaultSchema, type OathVault } from './vault.js'
+import { kindOf, suitOf } from '../data/cardRegistry.js'
 
 /** R-2.8.2 — actions target the slot; `cardId` fills in once the identity is public (R-9.4). */
 export type RelicSlot = Type.Static<typeof RelicSlot>
@@ -150,7 +152,9 @@ export const OathGameState = Type.Object({
     heldTurn: Type.Optional(PendingQuestions),
     /** Salt the Earth (R-2.8.1). */
     siteCapacityOverrides: Type.Record(Type.String(), Type.Number()),
-    chancellorPlayerId: Type.Optional(Type.String())
+    chancellorPlayerId: Type.Optional(Type.String()),
+    /** R-2.9 — edifices showing their ruined side; absent until one is ruined. */
+    ruinedEdificeIds: Type.Optional(Type.Array(Type.String(), { maxItems: 6 }))
 })
 
 export const OathGameStateValidator = Compile(OathGameState)
@@ -223,6 +227,7 @@ export class HydratedOathGameState
     declare heldTurn?: OathProjectedState['heldTurn']
     declare siteCapacityOverrides: Record<string, number>
     declare chancellorPlayerId?: string
+    declare ruinedEdificeIds?: string[]
     declare vault?: OathProjectedState['vault']
 
     constructor(data: OathProjectedState) {
@@ -304,9 +309,37 @@ export class HydratedOathGameState
         return this.denizensBySite[siteId] ?? []
     }
 
-    /** R-5.2.1, R-5.3.2 — a denizen at the site; not a relic. */
+    /** R-5.2.1, R-5.3.2 — a denizen or intact edifice at the site; not a relic or a ruin (R-2.9). */
     isMusterableCard(siteId: string, cardId: string): boolean {
-        return this.denizensAt(siteId).includes(cardId)
+        return this.denizensAt(siteId).includes(cardId) && !this.isRuined(cardId)
+    }
+
+    /** R-2.9 */
+    isEdifice(cardId: string): boolean {
+        return kindOf(cardId) === CardKind.Edifice
+    }
+
+    /** R-2.9 */
+    isRuined(cardId: string): boolean {
+        return this.ruinedEdificeIds?.includes(cardId) ?? false
+    }
+
+    /** R-2.9, R-10.14 — the printed suit, except that a ruined edifice shows none. */
+    suitInPlay(cardId: string): Suit | undefined {
+        return this.isRuined(cardId) ? undefined : suitOf(cardId)
+    }
+
+    /** R-2.9 — flips an edifice at a site to the side named. */
+    setEdificeRuined(cardId: string, ruined: boolean): void {
+        assert(this.isEdifice(cardId), `${cardId} is not an edifice`)
+        assert(
+            Object.values(this.denizensBySite).some((cards) => cards.includes(cardId)),
+            `${cardId} is not at a site`
+        )
+        const others = (this.ruinedEdificeIds ?? []).filter((id) => id !== cardId)
+        const next = ruined ? [...others, cardId] : others
+        if (next.length > 0) this.ruinedEdificeIds = next
+        else delete this.ruinedEdificeIds
     }
 
     /** R-2.8.2 */

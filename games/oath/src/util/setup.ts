@@ -46,6 +46,8 @@ export const EXILE_WARBANDS = 14
 export const CHANCELLOR_BOARD_WARBANDS = 3
 /** R-1.12 */
 export const TOP_CRADLE_WARBANDS = 2
+/** R-1.12 */
+export const SITE_GARRISON_WARBANDS = 1
 /** R-1.15 */
 export const EXILE_BOARD_WARBANDS = 3
 /** R-1.11 */
@@ -206,8 +208,16 @@ export function buildInitialPublicState(
     return state
 }
 
-/** R-1.12 — 3 on the board and 2 on the topmost faceup Cradle site; setup deals no denizen, so no other site is occupied. */
-function placeChancellorWarbands(
+/** R-1.12 — a faceup site holding a denizen or an intact edifice. */
+export function takesSetupGarrison(state: HydratedOathGameState, slotId: string): boolean {
+    return (
+        state.isSiteFaceup(slotId) &&
+        state.denizensAt(slotId).some((cardId) => !state.isRuined(cardId))
+    )
+}
+
+/** R-1.12 — 3 on the board, 2 on the topmost faceup Cradle site and 1 on each other garrisoned site. */
+export function placeChancellorWarbands(
     state: HydratedOathGameState,
     chancellor: HydratedOathPlayerState
 ): void {
@@ -226,6 +236,15 @@ function placeChancellorWarbands(
         IMPERIAL_WARBANDS,
         takeWarbandsFromBank(state, IMPERIAL_WARBANDS, TOP_CRADLE_WARBANDS)
     )
+    for (const slotId of state.faceupSiteIds()) {
+        if (slotId === topCradle || !takesSetupGarrison(state, slotId)) continue
+        addWarbandsToSite(
+            state,
+            slotId,
+            IMPERIAL_WARBANDS,
+            takeWarbandsFromBank(state, IMPERIAL_WARBANDS, SITE_GARRISON_WARBANDS)
+        )
+    }
 }
 
 /** R-1.16 — "if there is not enough favor, the Chancellor chooses how to place it": the favor then waits for their setup choice. */

@@ -1,7 +1,6 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { BattlePlanSide, type CardPower, type PowerCost } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import type { CampaignParties } from './campaign.js'
 import { areEnemies, rulersOfSite, rulesSite, type ImperialScope } from './rule.js'
 import { persistentsOfCard, relicPersistentsHeldBy } from './heldPersistents.js'
@@ -315,7 +314,7 @@ export function advisersOfSuit(
     state: HydratedOathGameState,
     holderId: string,
     suit: Suit,
-    suitIn: (cardId: string) => Suit | undefined = suitOf
+    suitIn: (cardId: string) => Suit | undefined = (cardId) => state.suitInPlay(cardId)
 ): number {
     const faceup = state
         .getPlayerState(holderId)

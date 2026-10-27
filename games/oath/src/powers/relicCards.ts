@@ -1,6 +1,5 @@
 import { assertExists } from '@tabletop/common'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { Banner } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { giveFavor, usableFavor } from '../util/favor.js'
@@ -82,7 +81,7 @@ registerModifier('relic.cup-of-plenty', powerIndexOf('relic.cup-of-plenty', Powe
     hooks: {
         condition: (ctx) => {
             const cardId = ctx.particulars?.cardId
-            const suit = cardId ? suitOf(cardId) : undefined
+            const suit = cardId ? ctx.state.suitInPlay(cardId) : undefined
             // R-7.4-H1 — from revision 23, the advisers the Trade acts with (Master of Disguise).
             const holder = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes19)
                 ? (ctx.particulars?.advisersOf ?? ctx.playerId)

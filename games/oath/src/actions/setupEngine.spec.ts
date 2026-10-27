@@ -113,6 +113,15 @@ describe('setup through GameEngine.run() (R-1.19–R-1.23.3)', () => {
         expect(engine.getValidActionTypesForPlayer(game, state, exile)).toEqual([])
     })
 
+    it('R-2.9 — a first game holds no edifice: no ruin key and no edifice id, before or after setup', () => {
+        const before = startGame().state
+        const after = runSetup().state
+        for (const state of [before, after]) {
+            expect('ruinedEdificeIds' in state).toBe(false)
+            expect(JSON.stringify(state)).not.toContain('edifice.')
+        }
+    })
+
     it('R-1.23 — every pawn is placed and the machine hands over to the Wake Phase', () => {
         const { state, chancellorId } = runSetup()
         const after = new HydratedOathGameState(state)

@@ -1,6 +1,5 @@
 import { pawnSiteId } from './pawn.js'
 import { cardPowers } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PlayerStatus, type Suit } from '../model/oathEnums.js'
 import { type ImperialScope, banditsRuleSite, rulesSite } from './rule.js'
@@ -224,5 +223,5 @@ export function accessibleCardIds(
 export function denizensOnMap(state: HydratedOathGameState, suit?: Suit): string[] {
     return Object.values(state.denizensBySite)
         .flat()
-        .filter((id) => suit === undefined || suitOf(id) === suit)
+        .filter((id) => suit === undefined || state.suitInPlay(id) === suit)
 }
