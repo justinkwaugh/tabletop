@@ -282,10 +282,11 @@ Unless stated otherwise, every open item below is documented but not implemented
 
 ### Request throttling trusted a client-settable address header
 
-- **Classification**: Security defect; fixed
-- **Observed**: Anonymous requests were throttled by `Fastly-Client-IP` whenever the header was present, and the supervisor gateway replaced the forwarded address chain with its own peer. A direct caller of the Cloud Run URL renewed its quota on every request by changing the header, weakening the login, registration and reset-email limits. Login attempts and reset emails were bounded per address only.
-- **Evidence**: `apps/backend/src/runtime/clientAddress.ts:31`; `apps/backend/src/runtime/backendGateway.ts:27`; `apps/backend/src/app/lib/operationBudget.ts:21`; `docs/client-address.md`
-- **Invariant**: The client address is derived only from the documented trusted proxy chain: the loopback gateway, the Cloud Run ingress, and Firebase Hosting's verified `Fastly-Client-IP` when the request arrived from a Google service address. Password login is additionally bounded per Username and reset emails per Email Address, independent of the requester's address.
+- **Classification**: Security defect; mitigated, with a recorded trust limitation
+- **Observed**: Anonymous requests were throttled by `Fastly-Client-IP` whenever the header was present, and the supervisor gateway replaced the forwarded address chain with its own peer. A direct caller of the Cloud Run URL renewed its quota on every request by changing the header, weakening the login, registration and reset-email limits. Login attempts and reset emails were bounded per address only, and every budget was counted per instance.
+- **Evidence**: `apps/backend/src/runtime/clientAddress.ts:41`; `apps/backend/src/app/plugins/rateLimit.ts:76`; `apps/backend/src/app/lib/operationBudget.ts:13`; `libs/backend-services/src/cache/windowCounter.ts:66`; `docs/client-address.md`
+- **Invariant**: The address a request is attributed to comes only from the documented proxy chain: the loopback gateway and, on Cloud Run, the ingress behind it. A forwarded `Fastly-Client-IP` is accepted as an attribution hint only from a Google service address and is never treated as authentication; every budget keyed by it is also bounded per ingress peer, which only the connection can set. Password login is bounded per Username and reset emails per Email Address regardless of address, and all budgets are counted in the shared cache across instances and worker restarts, narrowing to one instance only while the cache is unreachable.
+- **Limitation**: A Google-hosted caller shares Hosting's address ranges and can spend up to three client budgets per route from each Google egress address by forging the hint. Cloud Run appending the connecting address to `X-Forwarded-For` is relied on but not verified on this service. No verifiable Hosting-only ingress exists with Firebase Hosting rewrites; see `docs/client-address.md`.
 
 ### Admin authority is always active on the backend
 

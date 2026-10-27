@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Regenerates apps/backend/src/runtime/googleServiceRanges.ts from Google's published
 // address lists: the ranges in goog.json that cloud.json does not hand to Cloud customers.
-// Firebase Hosting forwards rewritten requests to Cloud Run from these ranges, so the backend
-// treats them as the Hosting hop of its trusted proxy chain (docs/client-address.md).
+// Firebase Hosting forwards rewritten requests to Cloud Run from these ranges, as does any other
+// Google-hosted caller, so the backend accepts Fastly-Client-IP from them only as an attribution
+// hint inside a per-peer bound (docs/client-address.md).
 import { writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { isIPv4 } from 'node:net'

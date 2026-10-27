@@ -1,6 +1,6 @@
 import Fastify from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { clientAddress, trustedProxyChain } from './clientAddress.js'
+import { clientIdentity, trustedProxyChain } from './clientAddress.js'
 
 const CLOUD_RUN_INGRESS = '169.254.169.126'
 const HOSTING_PROXY = '74.125.209.35'
@@ -34,10 +34,7 @@ describe('client address derivation', () => {
             }
         }
         const server = Fastify({ trustProxy: trustedProxyChain(service), loggerInstance })
-        server.get('/whoami', async (request) => ({
-            ingressPeer: request.ip,
-            client: clientAddress(request)
-        }))
+        server.get('/whoami', async (request) => clientIdentity(request))
         await server.ready()
         servers.add(server)
         return server
@@ -56,17 +53,21 @@ describe('client address derivation', () => {
         if (fastlyClientIp !== undefined) headers['fastly-client-ip'] = fastlyClientIp
         const response = await server.inject({ url: '/whoami', remoteAddress: socketPeer, headers })
         expect(response.statusCode).toBe(200)
-        return response.json<{ ingressPeer: string; client: string }>()
+        return response.json<{ ingressPeer: string; client: string; attribution: string }>()
     }
 
     describe('behind Cloud Run', () => {
-        it('attributes Firebase Hosting traffic to the address Hosting verified', async () => {
+        it('attributes traffic from a Google service address to the forwarded hint', async () => {
             const server = await createServer('backend')
             const result = await whoami(server, {
                 forwardedFor: `${BROWSER}, ${HOSTING_PROXY}, ${CLOUD_RUN_INGRESS}`,
                 fastlyClientIp: BROWSER
             })
-            expect(result).toEqual({ ingressPeer: HOSTING_PROXY, client: BROWSER })
+            expect(result).toEqual({
+                ingressPeer: HOSTING_PROXY,
+                client: BROWSER,
+                attribution: 'hosting-hint'
+            })
             expect(warn).not.toHaveBeenCalled()
         })
 
@@ -85,7 +86,11 @@ describe('client address derivation', () => {
                 forwardedFor: `${DIRECT_CALLER}, ${CLOUD_RUN_INGRESS}`,
                 fastlyClientIp: BROWSER
             })
-            expect(result).toEqual({ ingressPeer: DIRECT_CALLER, client: DIRECT_CALLER })
+            expect(result).toEqual({
+                ingressPeer: DIRECT_CALLER,
+                client: DIRECT_CALLER,
+                attribution: 'ingress-peer'
+            })
             expect(warn).toHaveBeenCalledWith(
                 { ingressPeer: DIRECT_CALLER, claimed: BROWSER },
                 expect.stringContaining('Ignoring Fastly-Client-IP')
@@ -106,16 +111,24 @@ describe('client address derivation', () => {
             const result = await whoami(server, {
                 forwardedFor: `${DIRECT_CALLER}, ${CLOUD_RUN_INGRESS}`
             })
-            expect(result).toEqual({ ingressPeer: DIRECT_CALLER, client: DIRECT_CALLER })
+            expect(result).toEqual({
+                ingressPeer: DIRECT_CALLER,
+                client: DIRECT_CALLER,
+                attribution: 'ingress-peer'
+            })
             expect(warn).not.toHaveBeenCalled()
         })
 
-        it('falls back to the Hosting proxy when Hosting sent no client address', async () => {
+        it('keys a Google service peer by itself when it sent no client address', async () => {
             const server = await createServer('backend')
             const result = await whoami(server, {
                 forwardedFor: `${HOSTING_PROXY}, ${CLOUD_RUN_INGRESS}`
             })
-            expect(result.client).toBe(HOSTING_PROXY)
+            expect(result).toEqual({
+                ingressPeer: HOSTING_PROXY,
+                client: HOSTING_PROXY,
+                attribution: 'ingress-peer'
+            })
         })
 
         it('rejects a claim that is not an address', async () => {
@@ -128,7 +141,7 @@ describe('client address derivation', () => {
             expect(warn).toHaveBeenCalledOnce()
         })
 
-        it('recognises a Hosting proxy on an IPv6 Google service address', async () => {
+        it('recognises an IPv6 Google service address', async () => {
             const server = await createServer('backend')
             const result = await whoami(server, {
                 forwardedFor: `${BROWSER}, ${HOSTING_PROXY_V6}, ${CLOUD_RUN_INGRESS}`,
@@ -143,14 +156,19 @@ describe('client address derivation', () => {
                 forwardedFor: `${BROWSER}, 10.0.0.9`,
                 fastlyClientIp: BROWSER
             })
-            expect(result).toEqual({ ingressPeer: '10.0.0.9', client: '10.0.0.9' })
+            expect(result).toEqual({
+                ingressPeer: '10.0.0.9',
+                client: '10.0.0.9',
+                attribution: 'ingress-peer'
+            })
         })
 
         it('keys the supervisor health probe by the loopback socket', async () => {
             const server = await createServer('backend')
             expect(await whoami(server, {})).toEqual({
                 ingressPeer: '127.0.0.1',
-                client: '127.0.0.1'
+                client: '127.0.0.1',
+                attribution: 'ingress-peer'
             })
         })
 
@@ -168,7 +186,11 @@ describe('client address derivation', () => {
         it('keys a direct local client by the address the gateway saw', async () => {
             const server = await createServer('local')
             const result = await whoami(server, { forwardedFor: BROWSER })
-            expect(result).toEqual({ ingressPeer: BROWSER, client: BROWSER })
+            expect(result).toEqual({
+                ingressPeer: BROWSER,
+                client: BROWSER,
+                attribution: 'ingress-peer'
+            })
         })
 
         it('ignores a forged Hosting header on a direct local request', async () => {

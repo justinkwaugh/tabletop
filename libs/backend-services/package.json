@@ -11,6 +11,10 @@
             "import": "./esm/diagnostics/requestTimings.js",
             "types": "./src/diagnostics/requestTimings.ts"
         },
+        "./window-counter": {
+            "import": "./esm/cache/windowCounter.js",
+            "types": "./src/cache/windowCounter.ts"
+        },
         "./discord-commands": {
             "import": "./esm/discord/commands.js",
             "types": "./src/discord/commands.ts"

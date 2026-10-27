@@ -60,8 +60,6 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         return newPayload
     })
 
-    await fastify.register(RateLimitPlugin, { service })
-
     fastify.setErrorHandler(async function (error, req, rep) {
         if (!rep.statusCode || rep.statusCode < 400) {
             void rep.code(errorStatusCode(error))
@@ -128,6 +126,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin, { projectId: GCLOUD_PROJECT })
     await fastify.register(ServicesPlugin, { whileLoadingTitle: opts.whileLoadingTitle })
+    await fastify.register(RateLimitPlugin, { service, counter: fastify.windowCounter })
     installTitleScope(fastify)
 
     if (service !== 'local') installManifestRefresh(fastify, [API_PREFIX, TASKS_PREFIX])

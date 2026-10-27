@@ -19,12 +19,12 @@ describe('POST /sendPasswordReset', () => {
 
     async function createServer() {
         const server = Fastify({ trustProxy: trustedProxyChain('backend') })
-        await server.register(RateLimitPlugin, { service: 'backend' })
         await server.register(SecureSession, {
             sessionName: 'session',
             cookieName: '__session',
             key: Buffer.alloc(32, 7)
         })
+        await server.register(RateLimitPlugin, { service: 'backend' })
         const sendPasswordResetEmail = vi.fn(async () => undefined)
         Reflect.set(server, 'userService', {
             getUserByEmail: async (email: string) =>

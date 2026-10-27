@@ -1,13 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest, RouteGenericInterface } from 'fastify'
-
-export class OperationBudgetExceededError extends Error {
-    readonly statusCode = 429
-
-    constructor(operation: string, retryAfterSeconds: number) {
-        super(`Too many ${operation} attempts, retry in ${retryAfterSeconds} seconds`)
-        this.name = 'OperationBudgetExceededError'
-    }
-}
+import { rejectWhenExceeded } from './budgetExceeded.js'
 
 export interface OperationBudget<Route extends RouteGenericInterface> {
     operation: string
@@ -30,9 +22,6 @@ export function operationBudget<Route extends RouteGenericInterface>(
     })
     return async (request: FastifyRequest<Route>, reply: FastifyReply) => {
         subjects.set(request, budget.subject(request))
-        const outcome = await consume(request)
-        if (outcome.isAllowed || !outcome.isExceeded) return
-        void reply.header('retry-after', outcome.ttlInSeconds)
-        throw new OperationBudgetExceededError(budget.operation, outcome.ttlInSeconds)
+        rejectWhenExceeded(reply, await consume(request), `${budget.operation} attempts`)
     }
 }

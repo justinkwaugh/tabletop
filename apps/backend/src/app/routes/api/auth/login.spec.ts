@@ -18,12 +18,12 @@ describe('POST /login', () => {
 
     async function createServer() {
         const server = Fastify({ trustProxy: trustedProxyChain('backend') })
-        await server.register(RateLimitPlugin, { service: 'backend' })
         await server.register(SecureSession, {
             sessionName: 'session',
             cookieName: '__session',
             key: Buffer.alloc(32, 7)
         })
+        await server.register(RateLimitPlugin, { service: 'backend' })
         const getUserByUsernameAndPassword = vi.fn(async () => null)
         Reflect.set(server, 'userService', { getUserByUsernameAndPassword })
         await server.register(loginRoute)
