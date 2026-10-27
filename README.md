@@ -70,7 +70,7 @@ The container comes with Claude Code, Codex, and T3 Code installed. Sign in once
 1. Open a terminal in VSCode
 1. To work on one hosted game, run `tools/scripts/local-hosted-game.mjs <game>` (for example, `tools/scripts/local-hosted-game.mjs fresh-fish`). This builds and stages the game selected by the local manifest, checks Firestore and Redis, and starts the frontend and backend.
 1. To stage every game instead, run `pnpm turbo stage-ui`, then run `pnpm watch` to start the frontend and backend. (Avoid an unfiltered `turbo watch dev`: it starts every game's dev server too and exceeds turbo's default concurrency.)
-1. If all has gone well, you can now go to http://localhost:5173 to view the site. The backend API will be running at http://localhost:3000. Run `pnpm turbo watch dev --filter=@tabletop/email` separately if you need the email preview site at http://localhost:3001.
+1. If all has gone well, you can now go to http://localhost:5173 to view the site. The backend API will be running at http://localhost:3000.
 
 The focused hosted-game command intentionally does not watch game source. Stop and rerun it after changing the game logic, game UI, or shared client code so the logic and staged UI are rebuilt together.
 

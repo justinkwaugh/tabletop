@@ -51,7 +51,7 @@
         "@tabletop/prettier-config": "workspace:*",
         "@tabletop/vitest-config": "workspace:*",
         "@tailwindcss/postcss": "^4.1.18",
-        "@types/node": "^25.0.9",
+        "@types/node": "^24.3.1",
         "rimraf": "^6.1.0",
         "svelte": "^5.0.0",
         "svelte-check": "^4.3.5",
