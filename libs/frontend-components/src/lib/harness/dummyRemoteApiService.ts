@@ -1,6 +1,7 @@
 import type Ably from 'ably'
 import type {
     BugReportRequest,
+    AccountStatusTransition,
     AdminAssignableRole,
     Bookmark,
     GameCatalogEntry,
@@ -444,6 +445,13 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async assignUserRoles(_userId: string, _roles: AdminAssignableRole[]): Promise<User> {
         return this.fail('assignUserRoles')
+    }
+
+    async transitionUserAccountStatus(
+        _userId: string,
+        _transition: AccountStatusTransition
+    ): Promise<User> {
+        return this.fail('transitionUserAccountStatus')
     }
 
     async getActiveGamesForTitle(_titleId: string): Promise<Game[]> {

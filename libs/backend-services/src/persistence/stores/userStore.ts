@@ -1,4 +1,4 @@
-import { ExternalAuthService, User } from '@tabletop/common'
+import { AccountStatusTransition, ExternalAuthService, User } from '@tabletop/common'
 import { StoredUser } from '../model/storedUser'
 import { UpdateValidator } from './validator'
 import { TransactionParticipant } from './transaction'
@@ -34,6 +34,12 @@ export interface UserStore {
         validator?: UpdateValidator<StoredUser>
         participant?: TransactionParticipant
     }): Promise<[User, string[], User]>
+
+    transitionAccountStatus(
+        userId: string,
+        transition: AccountStatusTransition,
+        options?: { participant?: TransactionParticipant }
+    ): Promise<User>
 
     addExternalId({
         userId,

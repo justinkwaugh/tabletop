@@ -1,4 +1,4 @@
-import { BaseError } from '@tabletop/common'
+import { BaseError, type AccountStatusTransition, type UserStatus } from '@tabletop/common'
 
 enum StorageError {
     AlreadyExists = 'AlreadyExistsError',
@@ -7,6 +7,7 @@ enum StorageError {
     NotFound = 'NotFoundError',
     AuthenticationVerificationFailed = 'AuthenticationVerificationFailedError',
     UpdateCollision = 'UpdateCollisionError',
+    AccountStatusTransition = 'AccountStatusTransitionError',
     Unknown = 'UnknownStorageError'
 }
 
@@ -57,6 +58,22 @@ export class InvalidIdError extends BaseError {
             name: StorageError.InvalidId,
             message: `Object of type ${type} has an invalid id ${id}`,
             metadata: { type, id }
+        })
+    }
+}
+
+export class AccountStatusTransitionError extends BaseError {
+    constructor({
+        status,
+        transition
+    }: {
+        status: UserStatus
+        transition: AccountStatusTransition
+    }) {
+        super({
+            name: StorageError.AccountStatusTransition,
+            message: `A ${status} Account cannot ${transition}`,
+            metadata: { status, transition }
         })
     }
 }

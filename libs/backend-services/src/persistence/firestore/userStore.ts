@@ -1,6 +1,8 @@
 import { Timed, measure } from '../../diagnostics/requestTimings.js'
 import {
     accountStatusAfterCompletionCheck,
+    accountStatusAfterTransition,
+    type AccountStatusTransition,
     BaseError,
     ExternalAuthService,
     Role,
@@ -22,6 +24,7 @@ import {
 import { StoredUser } from '../model/storedUser.js'
 import bcrypt from 'bcrypt'
 import {
+    AccountStatusTransitionError,
     AlreadyExistsError,
     AuthenticationVerificationFailedError,
     InvalidIdError,
@@ -329,7 +332,82 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         existingUser: StoredUser,
         passwordHash: string
     ): Required<Pick<StoredUser, 'passwordHash' | 'sessionGeneration'>> {
-        return { passwordHash, sessionGeneration: sessionGenerationOf(existingUser) + 1 }
+        return { passwordHash, ...this.advancedSessionGenerationFields(existingUser) }
+    }
+
+    private advancedSessionGenerationFields(
+        existingUser: StoredUser
+    ): Required<Pick<StoredUser, 'sessionGeneration'>> {
+        return { sessionGeneration: sessionGenerationOf(existingUser) + 1 }
+    }
+
+    // Deactivation advances the Session Generation in the same write as the status, so every
+    // session established before it, including one established concurrently from the old
+    // Account, stops authorizing when this commits and stays unusable after a reactivation.
+    async transitionAccountStatus(
+        userId: string,
+        transition: AccountStatusTransition,
+        { participant }: { participant?: TransactionParticipant } = {}
+    ): Promise<User> {
+        try {
+            const updatedUser = await this.cacheService.lockWhileWriting(
+                [this.makeUserCacheKey(userId)],
+                async (locks) =>
+                    this.users.firestore.runTransaction(async (transaction) => {
+                        const existingUser = (await transaction.get(this.users.doc(userId))).data()
+                        this.recordRead()
+                        if (!existingUser) {
+                            throw new NotFoundError({ type: 'User', id: userId })
+                        }
+                        const status = accountStatusAfterTransition(
+                            existingUser.status,
+                            transition,
+                            this.satisfiesAccountCompletion(existingUser)
+                        )
+                        if (status === undefined) {
+                            throw new AccountStatusTransitionError({
+                                status: existingUser.status,
+                                transition
+                            })
+                        }
+                        await participant?.(transaction, locks)
+                        if (status === existingUser.status) {
+                            return existingUser
+                        }
+                        const updatedAt = new Date()
+                        const activatedAt = this.activatedAtAfter(existingUser, status, updatedAt)
+                        const statusFields = {
+                            status,
+                            updatedAt,
+                            ...(status === UserStatus.Inactive
+                                ? this.advancedSessionGenerationFields(existingUser)
+                                : {}),
+                            ...(activatedAt ? { activatedAt } : {})
+                        }
+                        transaction.update(this.users.doc(userId), statusFields)
+                        return { ...existingUser, ...statusFields }
+                    })
+            )
+            return this.sanitize(updatedUser)
+        } catch (error) {
+            this.handleError(error, userId)
+            throw Error('unreachable')
+        }
+    }
+
+    // An account active before activatedAt existed takes its creation time, as the stats count it
+    private activatedAtAfter(
+        existingUser: StoredUser,
+        status: UserStatus,
+        at: Date
+    ): Date | undefined {
+        if (existingUser.activatedAt) {
+            return undefined
+        }
+        return (
+            (existingUser.status === UserStatus.Active ? existingUser.createdAt : undefined) ??
+            (status === UserStatus.Active ? at : undefined)
+        )
     }
 
     async updateUser({
@@ -488,16 +566,12 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 updatedUser.updatedAt = fieldsToUpdate.updatedAt
                 updatedFields.push('updatedAt')
 
-                // An account active before activatedAt existed takes its creation time, as the stats count it
-                const activatedAt =
-                    existingUser.activatedAt ??
-                    (existingUser.status === UserStatus.Active
-                        ? existingUser.createdAt
-                        : undefined) ??
-                    (updatedUser.status === UserStatus.Active
-                        ? fieldsToUpdate.updatedAt
-                        : undefined)
-                if (activatedAt && !existingUser.activatedAt) {
+                const activatedAt = this.activatedAtAfter(
+                    existingUser,
+                    updatedUser.status,
+                    fieldsToUpdate.updatedAt
+                )
+                if (activatedAt) {
                     fieldsToUpdate.activatedAt = activatedAt
                     updatedUser.activatedAt = activatedAt
                 }

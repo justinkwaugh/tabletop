@@ -9,6 +9,7 @@ import {
     type PreferenceResponse,
     type GameCreationOptions,
     type GameCatalogEntry,
+    type AccountStatusTransition,
     type AdminAssignableRole,
     assertExists,
     Bookmark,
@@ -1091,6 +1092,20 @@ export class TabletopApi {
     async assignUserRoles(userId: string, roles: AdminAssignableRole[]): Promise<User> {
         const response = await this.wretch
             .post({ roles }, `/admin/users/${encodeURIComponent(userId)}/roles`)
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+
+        return response.payload.user
+    }
+
+    async transitionUserAccountStatus(
+        userId: string,
+        transition: AccountStatusTransition
+    ): Promise<User> {
+        const response = await this.wretch
+            .post({ transition }, `/admin/users/${encodeURIComponent(userId)}/status`)
             .unauthorized(this.on401)
             .forbidden(this.handleError)
             .badRequest(this.handleError)
