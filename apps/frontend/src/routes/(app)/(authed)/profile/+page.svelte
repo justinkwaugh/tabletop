@@ -19,11 +19,12 @@
 
     let { authorizationService, api } = getAppContext()
 
-    const enum ReauthType {
-        None = 'none',
-        Password = 'password',
-        Token = 'token'
-    }
+    const ReauthType = {
+        None: 'none',
+        Password: 'password',
+        Token: 'token'
+    } as const
+    type ReauthType = (typeof ReauthType)[keyof typeof ReauthType]
 
     const imageForLinkType = new Map<string, string>([
         ['google', googleLogo],
