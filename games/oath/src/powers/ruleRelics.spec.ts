@@ -10,7 +10,7 @@ import {
 import { HydratedMoveWarbands, MoveWarbands } from '../actions/moveWarbands.js'
 import { WarbandMoveKind } from '../model/warbandMove.js'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
-import { type CampaignTarget } from '../model/campaign.js'
+import type { CampaignTarget } from '../model/campaign.js'
 import { OathType, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { cardPowers, PowerTiming, BattlePlanSide, powerIndexOf } from '../data/cardPowers.js'
 import { defenseShieldsFromFaces } from '../data/dice.js'

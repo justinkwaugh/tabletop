@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type ShareSaleDetails } from '@tabletop/18xx'
+    import type { ShareSaleDetails } from '@tabletop/18xx'
     import { nextSystemId } from '@tabletop/1832'
     import {
         CompanyActionCard,

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Rect } from '$lib/utils/boardGeometry.js'
+    import type { Rect } from '$lib/utils/boardGeometry.js'
 
     const GlowReach = 16
 

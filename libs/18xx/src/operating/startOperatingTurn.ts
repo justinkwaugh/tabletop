@@ -16,7 +16,7 @@ import {
     isPlaceHomeStations,
     type HydratedPlaceHomeStations
 } from '../stations/placeHomeStations.js'
-import { type StationRules, type StationPlacementState } from '../stations/stationPlacement.js'
+import type { StationRules, StationPlacementState } from '../stations/stationPlacement.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {

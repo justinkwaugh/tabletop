@@ -37,7 +37,7 @@ importers:
         version: 2.11.10
       vitest:
         specifier: ^4.0.17
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   apps/18xx-playground:
     dependencies:
@@ -113,13 +113,13 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -154,11 +154,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@25.9.9)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@25.9.9)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   apps/backend:
     dependencies:
@@ -337,13 +337,13 @@ importers:
         version: 2.1.5(rollup@4.64.12)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -402,11 +402,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   apps/realtime: {}
 
@@ -455,50 +455,35 @@ importers:
         specifier: ^3.4.1
         version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
 
-  config/config-rollup:
+  config/config-rolldown:
     dependencies:
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.64.12)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.64.12)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.64.12)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.1(rollup@4.64.12)(tslib@2.8.1)(typescript@5.9.3)
       '@rollup/plugin-url':
         specifier: 8.0.2
         version: 8.0.2(rollup@4.64.12)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/games-config':
         specifier: workspace:*
         version: link:../config-games
-      rollup:
-        specifier: ^4.59.0
-        version: 4.64.12
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       rollup-plugin-brotli:
         specifier: 3.1.0
         version: 3.1.0
       rollup-plugin-postcss:
         specifier: ^4.0.2
         version: 4.0.2(postcss@8.5.31)(ts-node@10.9.2(@types/node@26.6.5)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.64.12)(svelte@5.49.0)
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
+      svelte:
+        specifier: ^5.0.0
+        version: 5.49.0
 
   config/config-vitest:
     dependencies:
       vitest:
         specifier: ^4.0.17
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/1817:
     dependencies:
@@ -515,9 +500,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -527,9 +512,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -538,7 +523,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/1817-ui:
     dependencies:
@@ -562,41 +547,44 @@ importers:
         version: link:../../libs/frontend-components
     devDependencies:
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -610,8 +598,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   games/1830:
     dependencies:
@@ -625,9 +613,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -637,9 +625,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -648,7 +636,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/1830-ui:
     dependencies:
@@ -672,41 +660,44 @@ importers:
         version: link:../../libs/frontend-components
     devDependencies:
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -720,8 +711,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   games/1832:
     dependencies:
@@ -738,9 +729,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -753,9 +744,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -764,7 +755,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@25.9.9)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@25.9.9)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/1832-ui:
     dependencies:
@@ -788,23 +779,23 @@ importers:
         version: link:../../libs/frontend-components
     devDependencies:
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -813,19 +804,19 @@ importers:
         version: 4.3.3
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -839,8 +830,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   games/1846:
     dependencies:
@@ -854,9 +845,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -866,9 +857,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -877,7 +868,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/1846-ui:
     dependencies:
@@ -901,23 +892,23 @@ importers:
         version: link:../../libs/frontend-components
     devDependencies:
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -926,19 +917,19 @@ importers:
         version: 4.3.3
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -952,8 +943,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   games/bridges-of-shangri-la:
     dependencies:
@@ -967,9 +958,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -979,9 +970,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1003,25 +994,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1033,10 +1024,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -1046,9 +1037,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1062,8 +1053,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   games/bus:
     dependencies:
@@ -1077,9 +1068,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1089,9 +1080,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1116,25 +1107,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1146,10 +1137,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -1159,9 +1150,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1175,11 +1166,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/container:
     dependencies:
@@ -1207,7 +1198,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/container-ui:
     dependencies:
@@ -1229,25 +1220,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1259,10 +1250,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -1272,9 +1263,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1288,11 +1279,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/estates:
     dependencies:
@@ -1306,9 +1297,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1318,9 +1309,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1360,25 +1351,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1390,10 +1381,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -1406,9 +1397,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1422,8 +1413,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   games/fresh-fish:
     dependencies:
@@ -1446,9 +1437,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1461,9 +1452,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1485,25 +1476,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1515,10 +1506,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -1528,9 +1519,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1547,8 +1538,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   games/hill-country-grocers:
     dependencies:
@@ -1562,9 +1553,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1574,15 +1565,15 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/hill-country-grocers-ui:
     dependencies:
@@ -1601,25 +1592,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1631,19 +1622,19 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
       postcss:
         specifier: ^8.4.38
         version: 8.5.31
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1657,11 +1648,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/indonesia:
     dependencies:
@@ -1675,9 +1666,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1687,9 +1678,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1717,25 +1708,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1747,10 +1738,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -1760,9 +1751,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1776,11 +1767,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/kaivai:
     dependencies:
@@ -1794,9 +1785,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1806,9 +1797,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1833,25 +1824,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1863,10 +1854,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -1876,9 +1867,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1892,8 +1883,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   games/lowenherz:
     dependencies:
@@ -1907,9 +1898,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1919,9 +1910,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1946,25 +1937,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1976,10 +1967,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -1989,9 +1980,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2005,11 +1996,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/magna-grecia:
     dependencies:
@@ -2023,9 +2014,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2035,15 +2026,15 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/magna-grecia-ui:
     dependencies:
@@ -2062,25 +2053,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2092,10 +2083,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -2105,9 +2096,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2121,11 +2112,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/marracash:
     dependencies:
@@ -2139,9 +2130,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2151,9 +2142,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2178,25 +2169,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2208,10 +2199,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -2221,9 +2212,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2237,11 +2228,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/napoleons-triumph:
     dependencies:
@@ -2255,9 +2246,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2267,15 +2258,15 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/napoleons-triumph-ui:
     dependencies:
@@ -2294,25 +2285,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2324,10 +2315,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -2337,9 +2328,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       sharp:
         specifier: ^0.35.5
         version: 0.35.5(@types/node@26.6.5)
@@ -2356,11 +2347,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/oath:
     dependencies:
@@ -2374,9 +2365,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2386,9 +2377,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2410,25 +2401,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2440,10 +2431,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -2453,9 +2444,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2469,11 +2460,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/railheads:
     dependencies:
@@ -2487,9 +2478,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2499,15 +2490,15 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/railheads-ui:
     dependencies:
@@ -2526,25 +2517,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2556,19 +2547,19 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
       postcss:
         specifier: ^8.4.38
         version: 8.5.31
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2582,11 +2573,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/reef-encounter:
     dependencies:
@@ -2600,9 +2591,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2612,9 +2603,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2639,25 +2630,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2669,10 +2660,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -2682,9 +2673,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2698,11 +2689,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/sample:
     dependencies:
@@ -2750,9 +2741,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2762,9 +2753,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2789,25 +2780,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2819,10 +2810,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -2835,9 +2826,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2851,8 +2842,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   games/shikoku-1889:
     dependencies:
@@ -2869,9 +2860,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2881,9 +2872,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -2892,7 +2883,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/shikoku-1889-ui:
     dependencies:
@@ -2916,41 +2907,44 @@ importers:
         version: link:../shikoku-1889
     devDependencies:
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2964,8 +2958,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   games/sol:
     dependencies:
@@ -2979,9 +2973,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2991,9 +2985,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3021,25 +3015,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3051,10 +3045,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -3064,9 +3058,9 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -3080,11 +3074,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/the-old-prince:
     dependencies:
@@ -3104,9 +3098,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3116,15 +3110,15 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/the-old-prince-ui:
     dependencies:
@@ -3148,41 +3142,44 @@ importers:
         version: link:../the-old-prince
     devDependencies:
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -3196,8 +3193,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   games/urbino:
     dependencies:
@@ -3211,9 +3208,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3223,9 +3220,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3250,25 +3247,25 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3280,10 +3277,10 @@ importers:
         version: 9.39.5(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
@@ -3293,9 +3290,9 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -3309,11 +3306,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   libs/18xx:
     dependencies:
@@ -3341,7 +3338,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   libs/18xx-autorouter:
     dependencies:
@@ -3372,7 +3369,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   libs/18xx-ui:
     dependencies:
@@ -3402,14 +3399,14 @@ importers:
         version: link:../frontend-components
     devDependencies:
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -3432,11 +3429,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   libs/backend-services:
     dependencies:
@@ -3573,7 +3570,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@25.9.9)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@25.9.9)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   libs/email:
     dependencies:
@@ -3652,7 +3649,7 @@ importers:
         version: 5.1.6
       runed:
         specifier: ^0.37.1
-        version: 0.37.1(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(zod@4.6.7)
+        version: 0.37.1(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(zod@4.6.7)
       svelte-sonner:
         specifier: ^0.3.27
         version: 0.3.28(svelte@5.49.0)
@@ -3668,13 +3665,13 @@ importers:
         version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -3733,8 +3730,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   libs/tools:
     dependencies:
@@ -3811,9 +3808,9 @@ importers:
       '@tabletop/games-config':
         specifier: workspace:*
         version: link:../../config/config-games
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
@@ -5728,6 +5725,9 @@ packages:
     resolution: {integrity: sha512-R5R9tb2AXs2IRLNKLBJDynhkfmx7mX0vi8NkhZb3gUkPWHn6HXk5J8iQ/dql0U3ApfWym4kXXmBDRGO+oeOfjg==}
     engines: {node: '>=14'}
 
+  '@oxc-project/types@0.155.0':
+    resolution: {integrity: sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q==}
+
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
 
@@ -6003,14 +6003,104 @@ packages:
     peerDependencies:
       '@redis/client': ^5.10.0
 
-  '@rollup/plugin-commonjs@29.0.3':
-    resolution: {integrity: sha512-ZaOxZceP7SOUW7Lqw5IRVweSQYWaeIPnXIGLiB690EBA3FGJTO40EEr2L5yZplJWsgTCogILRSpcAe7+U0Otdg==}
-    engines: {node: '>=16.0.0 || 14 >= 14.17'}
-    peerDependencies:
-      rollup: ^2.68.0||^3.0.0||^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
+  '@rolldown/binding-android-arm-eabi@1.2.15':
+    resolution: {integrity: sha512-aLcgK9gIJ3YRvrrtfSBbRa27F5WrpiTaPulnFpsHPxpUHgFlSgnU4854MHwoRGEBhfRJDWCS2WQ7lIjskE9Olw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm]
+    os: [android]
+
+  '@rolldown/binding-android-arm64@1.2.15':
+    resolution: {integrity: sha512-xD7DdZCrbThKuxNg7ooQmvp07ys4J/pnSEMTG3/OdOWl6daC67m/Q4fL78sRHMxTH/N4fGUbYhcPM0MF5WFHkg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [android]
+
+  '@rolldown/binding-darwin-arm64@1.2.15':
+    resolution: {integrity: sha512-m2WuQ6r0B4OTYxyPpNLtXaMRbRDUbG8YQV2Q3KTdSSK8Th6KHCnC8jVCJt8bvYeSB5WivkkNbc85mKadaSdOxA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@rolldown/binding-darwin-x64@1.2.15':
+    resolution: {integrity: sha512-5RtnsHM36nodM9WbMy+zip0LGS/G+y5wro5RHrpOlr4ac24+1zSi9kiV2MP1myZeZ/ifEHfulQcWjnAXzc2C2A==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [darwin]
+
+  '@rolldown/binding-freebsd-x64@1.2.15':
+    resolution: {integrity: sha512-g3l09pyFqhu+135JKkbkwiKGQmwU5hUMUPJ4VdBADvuqR8d33L6H578rh8m7rtxbdp+VmX/+nzI7nvhSZlzpUQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [freebsd]
+
+  '@rolldown/binding-linux-arm-gnueabihf@1.2.15':
+    resolution: {integrity: sha512-nIe3VugI97nGQtspPxDqA4sXMUpeiocKIP/CqpY/u/vgbT+alX+cVxu1C/oVBPKg4feNTmYovE91v4DgXvXNwQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm]
+    os: [linux]
+
+  '@rolldown/binding-linux-arm64-gnu@1.2.15':
+    resolution: {integrity: sha512-iTBjXx+B5QSvgI89lJfmqh4wTh8NabR1YZIIN3hNx4zSG0EVfVqkOvLulNpG4251pbd6/IAmZ/LefVk1Y4rPhw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@rolldown/binding-linux-arm64-musl@1.2.15':
+    resolution: {integrity: sha512-uN26XOnVR7rqQupG3V9oAG2EGGatWjcJHOeDOHUFCh4TBWmP2tHTFoVN13aYbwfm0aHqJAEmcwhAu6sooIjfqQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@rolldown/binding-linux-ppc64-gnu@1.2.15':
+    resolution: {integrity: sha512-9nWkcdd+H+XhaA3fQIwpHnKIrfx/PQ6rO0pivr78Og07tXlUlctBBJoEYLPfhTmCR/QxEVdn6uPjHV5SymPhdw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [ppc64]
+    os: [linux]
+    libc: [glibc]
+
+  '@rolldown/binding-linux-s390x-gnu@1.2.15':
+    resolution: {integrity: sha512-Ggh0ciFjLwIusLSLz7LZYEaGdxOAUJXI+Qu5JCbhPJJHEt8vP+IjRATTJheiJsdzzTYgUiHUiw3X1Ea3ZpMBdA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [s390x]
+    os: [linux]
+    libc: [glibc]
+
+  '@rolldown/binding-linux-x64-gnu@1.2.15':
+    resolution: {integrity: sha512-FHg60rS6DBePAYZ9X9F67x+JObFdmgn6tupA1C/a3B+CufFmTD4mX+e8M75tCiAO3foR/6xwVBI0KQiI7sn/rw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@rolldown/binding-linux-x64-musl@1.2.15':
+    resolution: {integrity: sha512-/cvV/7v5VGz/moiz0XKRj2dE8DzsKyhIu1KpOvJGPjRywg3yscON889UGvAe8zfiJLHup7VLjBduoGWi3HusWQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@rolldown/binding-openharmony-arm64@1.2.15':
+    resolution: {integrity: sha512-MyzC5Hrv/sm+Z7TSGKP/j8001RO2xQm1zOpCNVL4j0cY/VhBZviludA2YFQ7i4lH6ZAXxQm0lcMdBzM+99mE7w==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [openharmony]
+
+  '@rolldown/binding-win32-arm64-msvc@1.2.15':
+    resolution: {integrity: sha512-+PgYiS+AH5omy6L45ZLxybasauJaj3M8buoT83D+nzPmCayXlxUV9hydhciCKVyIg0B/v0BtXPDE1uGqNwCPpg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [win32]
+
+  '@rolldown/binding-win32-x64-msvc@1.2.15':
+    resolution: {integrity: sha512-HFZd2QNQYn1JbIi+Hpd7H+r/lkWxcfIu28nirZ6eCn2LafuvmExMlb/P96Sfx5tf7pPArw39IdhmCF8vmV+NhQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [win32]
+
+  '@rolldown/pluginutils@1.0.1':
+    resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
   '@rollup/plugin-dynamic-import-vars@2.1.5':
     resolution: {integrity: sha512-Mymi24fd9hlRifdZV/jYIFj1dn99F34imiYu3KzlAcgBcRi3i9SucgW/VRo5SQ9K4NuQ7dCep6pFWgNyhRdFHQ==}
@@ -6030,37 +6120,6 @@ packages:
       rollup:
         optional: true
 
-  '@rollup/plugin-node-resolve@16.0.3':
-    resolution: {integrity: sha512-lUYM3UBGuM93CnMPG1YocWu7X802BrNF3jW2zny5gQyLQgRFJhV1Sq0Zi74+dh/6NBx1DxFC4b4GXg9wUCG5Qg==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      rollup: ^2.78.0||^3.0.0||^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup/plugin-terser@0.4.4':
-    resolution: {integrity: sha512-XHeJC5Bgvs8LfukDwWZp7yeqin6ns8RTl2B9avbejt6tZqsqvVoWI7ZTQrcNsfKEDWBTnTxM8nMDkO2IFFbd0A==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      rollup: ^2.0.0||^3.0.0||^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup/plugin-typescript@12.3.1':
-    resolution: {integrity: sha512-+dT5iMCxLNOCdaCGvGQpLhBpWdnKlPNMU/hvVLKgQgHuBlRFABi1Y6YxXg7ajqnsHRA53Tkdm3Vu1P+qn9HQ7Q==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      rollup: ^2.14.0||^3.0.0||^4.0.0
-      tslib: '*'
-      typescript: '>=3.7.0'
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-      tslib:
-        optional: true
-
   '@rollup/plugin-url@8.0.2':
     resolution: {integrity: sha512-5yW2LP5NBEgkvIRSSEdJkmxe5cUNZKG3eenKtfJvSkxVm/xTTu7w+ayBtNwhozl1ZnTUCU0xFaRQR+cBl2H7TQ==}
     engines: {node: '>=14.0.0'}
@@ -6069,10 +6128,6 @@ packages:
     peerDependenciesMeta:
       rollup:
         optional: true
-
-  '@rollup/pluginutils@4.2.1':
-    resolution: {integrity: sha512-iKnFXr7NkdZAIHiIWE+BX5ULi/ucVFYWD6TbAV+rZctiRTY2PL6tsIKhoIOaoskiWAkgu+VsbXgUVDNLHf+InQ==}
-    engines: {node: '>= 8.0.0'}
 
   '@rollup/pluginutils@5.5.1':
     resolution: {integrity: sha512-P9ZvnfouRu4MSC+ilERaw6FmZs8zqKhpHxEs4aGDGWQAMzQGXnhvCSvoNwokfNvdt7t3Y5Y4p6gStQgezeIqug==}
@@ -6083,19 +6138,9 @@ packages:
       rollup:
         optional: true
 
-  '@rollup/rollup-android-arm-eabi@4.55.2':
-    resolution: {integrity: sha512-21J6xzayjy3O6NdnlO6aXi/urvSRjm6nCI6+nF6ra2YofKruGixN9kfT+dt55HVNwfDmpDHJcaS3JuP/boNnlA==}
-    cpu: [arm]
-    os: [android]
-
   '@rollup/rollup-android-arm-eabi@4.64.12':
     resolution: {integrity: sha512-Z8lz+5UOiCJLonjeqwJlhUtHA/Sr6R1AidkccQxdWF0nigNzP81aLoU+udgOaGfL5s1uzFXzcux/pCwGAMu0lw==}
     cpu: [arm]
-    os: [android]
-
-  '@rollup/rollup-android-arm64@4.55.2':
-    resolution: {integrity: sha512-eXBg7ibkNUZ+sTwbFiDKou0BAckeV6kIigK7y5Ko4mB/5A1KLhuzEKovsmfvsL8mQorkoincMFGnQuIT92SKqA==}
-    cpu: [arm64]
     os: [android]
 
   '@rollup/rollup-android-arm64@4.64.12':
@@ -6103,19 +6148,9 @@ packages:
     cpu: [arm64]
     os: [android]
 
-  '@rollup/rollup-darwin-arm64@4.55.2':
-    resolution: {integrity: sha512-UCbaTklREjrc5U47ypLulAgg4njaqfOVLU18VrCrI+6E5MQjuG0lSWaqLlAJwsD7NpFV249XgB0Bi37Zh5Sz4g==}
-    cpu: [arm64]
-    os: [darwin]
-
   '@rollup/rollup-darwin-arm64@4.64.12':
     resolution: {integrity: sha512-iiripdfvyRBugV55/Dk7GplNXQtN/PG85OcKeveU1z2UkTg0MofbBF1qk//qgPWiqJbVvQcXAVCfE56oDGO4EQ==}
     cpu: [arm64]
-    os: [darwin]
-
-  '@rollup/rollup-darwin-x64@4.55.2':
-    resolution: {integrity: sha512-dP67MA0cCMHFT2g5XyjtpVOtp7y4UyUxN3dhLdt11at5cPKnSm4lY+EhwNvDXIMzAMIo2KU+mc9wxaAQJTn7sQ==}
-    cpu: [x64]
     os: [darwin]
 
   '@rollup/rollup-darwin-x64@4.64.12':
@@ -6123,19 +6158,9 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@rollup/rollup-freebsd-arm64@4.55.2':
-    resolution: {integrity: sha512-WDUPLUwfYV9G1yxNRJdXcvISW15mpvod1Wv3ok+Ws93w1HjIVmCIFxsG2DquO+3usMNCpJQ0wqO+3GhFdl6Fow==}
-    cpu: [arm64]
-    os: [freebsd]
-
   '@rollup/rollup-freebsd-arm64@4.64.12':
     resolution: {integrity: sha512-GzrO0CiUq8vcAI/hYJuIcp6wNm3T3YhOpumYtf9Z3Fz+cfN1VESCVfy7EPcM3/m2K8l+Gn2U+4XtNZjwhUXctQ==}
     cpu: [arm64]
-    os: [freebsd]
-
-  '@rollup/rollup-freebsd-x64@4.55.2':
-    resolution: {integrity: sha512-Ng95wtHVEulRwn7R0tMrlUuiLVL/HXA8Lt/MYVpy88+s5ikpntzZba1qEulTuPnPIZuOPcW9wNEiqvZxZmgmqQ==}
-    cpu: [x64]
     os: [freebsd]
 
   '@rollup/rollup-freebsd-x64@4.64.12':
@@ -6143,23 +6168,11 @@ packages:
     cpu: [x64]
     os: [freebsd]
 
-  '@rollup/rollup-linux-arm-gnueabihf@4.55.2':
-    resolution: {integrity: sha512-AEXMESUDWWGqD6LwO/HkqCZgUE1VCJ1OhbvYGsfqX2Y6w5quSXuyoy/Fg3nRqiwro+cJYFxiw5v4kB2ZDLhxrw==}
-    cpu: [arm]
-    os: [linux]
-    libc: [glibc]
-
   '@rollup/rollup-linux-arm-gnueabihf@4.64.12':
     resolution: {integrity: sha512-YpeDwQ5uFaogRvytNC8RK0keDO65kI5wNEhGSs+4GiJc3KHhxj4j5cnQh2nCu9ybJj6RP0/ycB6bkN0yFJ9I+w==}
     cpu: [arm]
     os: [linux]
     libc: [glibc]
-
-  '@rollup/rollup-linux-arm-musleabihf@4.55.2':
-    resolution: {integrity: sha512-ZV7EljjBDwBBBSv570VWj0hiNTdHt9uGznDtznBB4Caj3ch5rgD4I2K1GQrtbvJ/QiB+663lLgOdcADMNVC29Q==}
-    cpu: [arm]
-    os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-arm-musleabihf@4.64.12':
     resolution: {integrity: sha512-LQrB3/sImIr1ycrlEyaApOLH1rAy8JV4/dH4eoK817aWATdcs4fESXz53/w72NwDnwPM5zEUpoL7socH4ZDnwA==}
@@ -6167,23 +6180,11 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@rollup/rollup-linux-arm64-gnu@4.55.2':
-    resolution: {integrity: sha512-uvjwc8NtQVPAJtq4Tt7Q49FOodjfbf6NpqXyW/rjXoV+iZ3EJAHLNAnKT5UJBc6ffQVgmXTUL2ifYiLABlGFqA==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
   '@rollup/rollup-linux-arm64-gnu@4.64.12':
     resolution: {integrity: sha512-iAF2iYu9S4SBfNsb4k0ewNBjO83WxHEltIuKQBGMzEKFgrYfmJn+gatBDXR2t/0zJN0UW0kzR4rfvQ1UHzkZ1A==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
-
-  '@rollup/rollup-linux-arm64-musl@4.55.2':
-    resolution: {integrity: sha512-s3KoWVNnye9mm/2WpOZ3JeUiediUVw6AvY/H7jNA6qgKA2V2aM25lMkVarTDfiicn/DLq3O0a81jncXszoyCFA==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-arm64-musl@4.64.12':
     resolution: {integrity: sha512-0MQdRtdbirJCXPIVeW/hd/LXLR8Qz96pc+2EBptuuV5q/zSGOzND7SZt8gBTE58NC9cUG/8UxcUXQiKRZ2WzzA==}
@@ -6191,23 +6192,11 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@rollup/rollup-linux-loong64-gnu@4.55.2':
-    resolution: {integrity: sha512-gi21faacK+J8aVSyAUptML9VQN26JRxe484IbF+h3hpG+sNVoMXPduhREz2CcYr5my0NE3MjVvQ5bMKX71pfVA==}
-    cpu: [loong64]
-    os: [linux]
-    libc: [glibc]
-
   '@rollup/rollup-linux-loong64-gnu@4.64.12':
     resolution: {integrity: sha512-yGDEwn0AGnrY/KCz2oY8R9KKNiQnTcwNuCWXeSXF0VLxXzlqoCgaS5QHsf1lbQvKWwPuN2Czkjk1wXRCBONTOQ==}
     cpu: [loong64]
     os: [linux]
     libc: [glibc]
-
-  '@rollup/rollup-linux-loong64-musl@4.55.2':
-    resolution: {integrity: sha512-qSlWiXnVaS/ceqXNfnoFZh4IiCA0EwvCivivTGbEu1qv2o+WTHpn1zNmCTAoOG5QaVr2/yhCoLScQtc/7RxshA==}
-    cpu: [loong64]
-    os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-loong64-musl@4.64.12':
     resolution: {integrity: sha512-AjlbD0efZEhHaJ3bsNjxSFDoguNq6VZvC+FKGJGBCA+ZN7BrZq2TuuSWFa6AI8IpOeuvhp2LoYcP7jiZwmtU0Q==}
@@ -6215,23 +6204,11 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@rollup/rollup-linux-ppc64-gnu@4.55.2':
-    resolution: {integrity: sha512-rPyuLFNoF1B0+wolH277E780NUKf+KoEDb3OyoLbAO18BbeKi++YN6gC/zuJoPPDlQRL3fIxHxCxVEWiem2yXw==}
-    cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
   '@rollup/rollup-linux-ppc64-gnu@4.64.12':
     resolution: {integrity: sha512-sDW0CiPoUCEEUV25uBG5sJ2gKe75DJqLpj91m1eK1vKffywyY7v4i6q1450ZuR6QW4NArXg7JpbMGgKU8di3HQ==}
     cpu: [ppc64]
     os: [linux]
     libc: [glibc]
-
-  '@rollup/rollup-linux-ppc64-musl@4.55.2':
-    resolution: {integrity: sha512-g+0ZLMook31iWV4PvqKU0i9E78gaZgYpSrYPed/4Bu+nGTgfOPtfs1h11tSSRPXSjC5EzLTjV/1A7L2Vr8pJoQ==}
-    cpu: [ppc64]
-    os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-ppc64-musl@4.64.12':
     resolution: {integrity: sha512-VTQYUhMjl8kv999VuYqScgv7P9cR9KuxI/6bkUsEa3bsswqG0+otFjuLZmJ1U+ffEP4IAz0jxOeV0DX6NRBhjg==}
@@ -6239,23 +6216,11 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@rollup/rollup-linux-riscv64-gnu@4.55.2':
-    resolution: {integrity: sha512-i+sGeRGsjKZcQRh3BRfpLsM3LX3bi4AoEVqmGDyc50L6KfYsN45wVCSz70iQMwPWr3E5opSiLOwsC9WB4/1pqg==}
-    cpu: [riscv64]
-    os: [linux]
-    libc: [glibc]
-
   '@rollup/rollup-linux-riscv64-gnu@4.64.12':
     resolution: {integrity: sha512-ppsKwpSjNrzJ8hge3Z3uiCcoRgAAQk2tU7auy3MFF348ffWRldFPnWIT/a/enK7huijlTfnwn4DYpDoapEb45A==}
     cpu: [riscv64]
     os: [linux]
     libc: [glibc]
-
-  '@rollup/rollup-linux-riscv64-musl@4.55.2':
-    resolution: {integrity: sha512-C1vLcKc4MfFV6I0aWsC7B2Y9QcsiEcvKkfxprwkPfLaN8hQf0/fKHwSF2lcYzA9g4imqnhic729VB9Fo70HO3Q==}
-    cpu: [riscv64]
-    os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-riscv64-musl@4.64.12':
     resolution: {integrity: sha512-Gc3cVRC1trFH+GFWWTsJz6YuD4u75fzr/q99jqQGimonN/zvN6Wecck5WGzllOHj+XYXHcq0Ibor0tanGjfI6A==}
@@ -6263,21 +6228,9 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@rollup/rollup-linux-s390x-gnu@4.55.2':
-    resolution: {integrity: sha512-68gHUK/howpQjh7g7hlD9DvTTt4sNLp1Bb+Yzw2Ki0xvscm2cOdCLZNJNhd2jW8lsTPrHAHuF751BygifW4bkQ==}
-    cpu: [s390x]
-    os: [linux]
-    libc: [glibc]
-
   '@rollup/rollup-linux-s390x-gnu@4.64.12':
     resolution: {integrity: sha512-pjmDTFStvwFE3shTeUDvSDiSp8/qAf5bQXejcEUDDavWz4jEhTIpCdpS06G0PEwSCSNK0Lngjz2v9l4hk3Z74A==}
     cpu: [s390x]
-    os: [linux]
-    libc: [glibc]
-
-  '@rollup/rollup-linux-x64-gnu@4.55.2':
-    resolution: {integrity: sha512-1e30XAuaBP1MAizaOBApsgeGZge2/Byd6wV4a8oa6jPdHELbRHBiw7wvo4dp7Ie2PE8TZT4pj9RLGZv9N4qwlw==}
-    cpu: [x64]
     os: [linux]
     libc: [glibc]
 
@@ -6287,51 +6240,25 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@rollup/rollup-linux-x64-musl@4.55.2':
-    resolution: {integrity: sha512-4BJucJBGbuGnH6q7kpPqGJGzZnYrpAzRd60HQSt3OpX/6/YVgSsJnNzR8Ot74io50SeVT4CtCWe/RYIAymFPwA==}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
   '@rollup/rollup-linux-x64-musl@4.64.12':
     resolution: {integrity: sha512-vIeut2LkuVc3gcsawLJPahNAzvzBcFRhu2O+yVb//BuQKz7PIItMF0piXRbN/lIDO3d68TSDd368Vg6YwgTybw==}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@rollup/rollup-openbsd-x64@4.55.2':
-    resolution: {integrity: sha512-cT2MmXySMo58ENv8p6/O6wI/h/gLnD3D6JoajwXFZH6X9jz4hARqUhWpGuQhOgLNXscfZYRQMJvZDtWNzMAIDw==}
-    cpu: [x64]
-    os: [openbsd]
-
   '@rollup/rollup-openbsd-x64@4.64.12':
     resolution: {integrity: sha512-3Sx+D3r9oPkTdNUcPrIRM2Am+vzEV6VGWoImHG4ZVK2jJeOW+eDjLeTm6nvu/z/m0fiX2YmGLXIypblc336MXg==}
     cpu: [x64]
     os: [openbsd]
-
-  '@rollup/rollup-openharmony-arm64@4.55.2':
-    resolution: {integrity: sha512-sZnyUgGkuzIXaK3jNMPmUIyJrxu/PjmATQrocpGA1WbCPX8H5tfGgRSuYtqBYAvLuIGp8SPRb1O4d1Fkb5fXaQ==}
-    cpu: [arm64]
-    os: [openharmony]
 
   '@rollup/rollup-openharmony-arm64@4.64.12':
     resolution: {integrity: sha512-Nn2xh0teFnl71EiiUrKvECWcdGXtWF8q0uGclYwXGVw6QClGAcME0/bJSGdK+xIvd6MLEKYmjkTUvCBV+7m5Kw==}
     cpu: [arm64]
     os: [openharmony]
 
-  '@rollup/rollup-win32-arm64-msvc@4.55.2':
-    resolution: {integrity: sha512-sDpFbenhmWjNcEbBcoTV0PWvW5rPJFvu+P7XoTY0YLGRupgLbFY0XPfwIbJOObzO7QgkRDANh65RjhPmgSaAjQ==}
-    cpu: [arm64]
-    os: [win32]
-
   '@rollup/rollup-win32-arm64-msvc@4.64.12':
     resolution: {integrity: sha512-n1/0H9TS+kBa4xp6n9aV7yiynBNfmerjkj2nAMIfY0ZHv1zShWRXnsAuAPAH0sfEK4ZSMK+z24q2RjAPFLCN1w==}
     cpu: [arm64]
-    os: [win32]
-
-  '@rollup/rollup-win32-ia32-msvc@4.55.2':
-    resolution: {integrity: sha512-GvJ03TqqaweWCigtKQVBErw2bEhu1tyfNQbarwr94wCGnczA9HF8wqEe3U/Lfu6EdeNP0p6R+APeHVwEqVxpUQ==}
-    cpu: [ia32]
     os: [win32]
 
   '@rollup/rollup-win32-ia32-msvc@4.64.12':
@@ -6339,18 +6266,8 @@ packages:
     cpu: [ia32]
     os: [win32]
 
-  '@rollup/rollup-win32-x64-gnu@4.55.2':
-    resolution: {integrity: sha512-KvXsBvp13oZz9JGe5NYS7FNizLe99Ny+W8ETsuCyjXiKdiGrcz2/J/N8qxZ/RSwivqjQguug07NLHqrIHrqfYw==}
-    cpu: [x64]
-    os: [win32]
-
   '@rollup/rollup-win32-x64-gnu@4.64.12':
     resolution: {integrity: sha512-u5SSUJBHod51UamjkigSr+JPre6xMy5vaWTTV2K0SnFG4RuKyYpf66dTSLFKX2cwaldpwyBurXPUCxq8riQMEg==}
-    cpu: [x64]
-    os: [win32]
-
-  '@rollup/rollup-win32-x64-msvc@4.55.2':
-    resolution: {integrity: sha512-xNO+fksQhsAckRtDSPWaMeT1uIM+JrDRXlerpnWNXhn1TdB3YZ6uKBMBTKP0eX9XtYEP978hHk1f8332i2AW8Q==}
     cpu: [x64]
     os: [win32]
 
@@ -6393,6 +6310,11 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
+  '@sveltejs/acorn-typescript@1.0.13':
+    resolution: {integrity: sha512-wgKggnhZVL9Bfx1OaKKTrYY9BFRk6C8UAkQNUcIv1+llzYrIqy+RZm5HPKzn0NpEBvTVhTqB4kQyllZywsRBRQ==}
+    peerDependencies:
+      acorn: ^8.9.0
+
   '@sveltejs/acorn-typescript@1.0.8':
     resolution: {integrity: sha512-esgN+54+q0NjB0Y/4BomT9samII7jGwNy/2a3wNZbT2A2RpmXsXwUt24LvLhx6jUq2gVk4cWEvcRO6MFQbOfNA==}
     peerDependencies:
@@ -6403,16 +6325,16 @@ packages:
     peerDependencies:
       '@sveltejs/kit': ^2.0.0
 
-  '@sveltejs/kit@2.50.1':
-    resolution: {integrity: sha512-XRHD2i3zC4ukhz2iCQzO4mbsts081PAZnnMAQ7LNpWeYgeBmwMsalf0FGSwhFXBbtr2XViPKnFJBDCckWqrsLw==}
+  '@sveltejs/kit@2.70.3':
+    resolution: {integrity: sha512-UDvEYuZqAMbfB/oXIoqKvbKcb7YczK5zYrzmsGV1zRJk03jntwp8dXiYoIJotxAndsKvcPFtx9H1GRSKFdSHgg==}
     engines: {node: '>=18.13'}
     hasBin: true
     peerDependencies:
       '@opentelemetry/api': ^1.0.0
-      '@sveltejs/vite-plugin-svelte': ^3.0.0 || ^4.0.0-next.1 || ^5.0.0 || ^6.0.0-next.0
+      '@sveltejs/vite-plugin-svelte': ^3.0.0 || ^4.0.0-next.1 || ^5.0.0 || ^6.0.0-next.0 || ^7.0.0
       svelte: ^4.0.0 || ^5.0.0-next.0
-      typescript: ^5.3.3
-      vite: ^5.0.3 || ^6.0.0 || ^7.0.0-beta.0
+      typescript: ^5.3.3 || ^6.0.0
+      vite: ^5.0.3 || ^6.0.0 || ^7.0.0-beta.0 || ^8.0.0
     peerDependenciesMeta:
       '@opentelemetry/api':
         optional: true
@@ -6430,20 +6352,12 @@ packages:
     peerDependencies:
       svelte: ^3.44.0 || ^4.0.0 || ^5.0.0-next.1
 
-  '@sveltejs/vite-plugin-svelte-inspector@5.0.2':
-    resolution: {integrity: sha512-TZzRTcEtZffICSAoZGkPSl6Etsj2torOVrx6Uw0KpXxrec9Gg6jFWQ60Q3+LmNGfZSxHRCZL7vXVZIWmuV50Ig==}
+  '@sveltejs/vite-plugin-svelte@7.3.1':
+    resolution: {integrity: sha512-ZPsLN8B1e/En+Ak5s4V7srFDT532oS0qieLsQwu63NGKsS+iAjoO2Js1BochlHlglcU+Pt7WAO3C5Ee+4f6gVA==}
     engines: {node: ^20.19 || ^22.12 || >=24}
     peerDependencies:
-      '@sveltejs/vite-plugin-svelte': ^6.0.0-next.0
-      svelte: ^5.0.0
-      vite: ^6.3.0 || ^7.0.0
-
-  '@sveltejs/vite-plugin-svelte@6.2.4':
-    resolution: {integrity: sha512-ou/d51QSdTyN26D7h6dSpusAKaZkAiGM55/AKYi+9AGZw7q85hElbjK3kEyzXHhLSnRISHOYzVge6x0jRZ7DXA==}
-    engines: {node: ^20.19 || ^22.12 || >=24}
-    peerDependencies:
-      svelte: ^5.0.0
-      vite: ^6.3.0 || ^7.0.0
+      svelte: ^5.46.4
+      vite: ^8.0.0-beta.7 || ^8.0.0
 
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
@@ -7518,9 +7432,6 @@ packages:
     resolution: {integrity: sha512-QrWXB+ZQSVPmIWIhtEO9H+gwHaMGYiF5ChvoJ+K9ZGHG/sVsa6yiesAD1GC/x46sET00Xlwo1u49RVVVzvcSkw==}
     engines: {node: '>= 10'}
 
-  commondir@1.0.1:
-    resolution: {integrity: sha512-W9pAhw0ja1Edb5GVdIF1mjZw/ASI0AlShXM83UUGe2DVr5TdAPEA1OA8m/g8zWp9x6On7gqufY+FatDbC3MDQg==}
-
   compare-versions@6.1.1:
     resolution: {integrity: sha512-4hm4VPpIecmlg59CHXnRDnqGplJFrbLG4aFEl5vl6cK1u76ws3LLvX7ikFnTDl5vo39sjWD6AaDPYodJp/NNHg==}
 
@@ -7815,6 +7726,9 @@ packages:
 
   devalue@5.6.2:
     resolution: {integrity: sha512-nPRkjWzzDQlsejL1WVifk5rvcFi/y1onBRxjaFMjZeR9mFpqu2gmAZ9xUB9/IEanEP/vBtGeGganC/GO1fmufg==}
+
+  devalue@5.9.4:
+    resolution: {integrity: sha512-sPAT4pztbu6586/hrhOnMKS17IJrvg12mXiSPSS3W5qDeN2RGgvZ0diZCm31dBbnevfVmujNO3IM2wrS4Y2Rhg==}
 
   diet-sprite@0.0.1:
     resolution: {integrity: sha512-zSHI2WDAn1wJqJYxcmjWfJv3Iw8oL9reQIbEyx2x2/EZ4/qmUTIo8/5qOCurnAcq61EwtJJaZ0XTy2NRYqpB5A==}
@@ -8904,9 +8818,6 @@ packages:
   is-promise@4.0.0:
     resolution: {integrity: sha512-hvpoI6korhJMnej285dSg6nu1+e6uxs7zG3BYAm5byqDsgJNWwxzM6z6iZiAgQR4TJ30JmBTOwqZUw3WlyH3AQ==}
 
-  is-reference@1.2.1:
-    resolution: {integrity: sha512-U82MsXXiFIrjCK4otLT+o2NA2Cd2g5MLoOVXUZjIOhLurrRxpEXzI8O0KZHr3IjLvlAH1kTPYSuqer5T9ZVBKQ==}
-
   is-reference@3.0.3:
     resolution: {integrity: sha512-ixkJoqQvAP88E6wLydLGGqCJsrFUnqoH6HnaczB8XmDH1oaWU+xxdptvikTgaEhtZ53Ky6YXiBuUI2WXLMCwjw==}
 
@@ -9156,8 +9067,20 @@ packages:
     cpu: [arm64]
     os: [android]
 
+  lightningcss-android-arm64@1.33.0:
+    resolution: {integrity: sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==}
+    engines: {node: '>= 12.0.0'}
+    cpu: [arm64]
+    os: [android]
+
   lightningcss-darwin-arm64@1.32.0:
     resolution: {integrity: sha512-RzeG9Ju5bag2Bv1/lwlVJvBE3q6TtXskdZLLCyfg5pt+HLz9BqlICO7LZM7VHNTTn/5PRhHFBSjk5lc4cmscPQ==}
+    engines: {node: '>= 12.0.0'}
+    cpu: [arm64]
+    os: [darwin]
+
+  lightningcss-darwin-arm64@1.33.0:
+    resolution: {integrity: sha512-Sciaz8eenNTKn9b3t7+xr0ipTp9YxKQY4npwQ3mrRuL0BAVHBLyZxofhaKBAVtzmtRZ/zTyo0/to4B1uWG/Djg==}
     engines: {node: '>= 12.0.0'}
     cpu: [arm64]
     os: [darwin]
@@ -9168,8 +9091,20 @@ packages:
     cpu: [x64]
     os: [darwin]
 
+  lightningcss-darwin-x64@1.33.0:
+    resolution: {integrity: sha512-Z5UPAxzrjlWNNyGy6i65cJzzvgJ5D3T6wMvs+gWpY9d7qRhANrxqAp6LhxIgZhWEw18RfJTGcRxjuLIBr+m8XQ==}
+    engines: {node: '>= 12.0.0'}
+    cpu: [x64]
+    os: [darwin]
+
   lightningcss-freebsd-x64@1.32.0:
     resolution: {integrity: sha512-JCTigedEksZk3tHTTthnMdVfGf61Fky8Ji2E4YjUTEQX14xiy/lTzXnu1vwiZe3bYe0q+SpsSH/CTeDXK6WHig==}
+    engines: {node: '>= 12.0.0'}
+    cpu: [x64]
+    os: [freebsd]
+
+  lightningcss-freebsd-x64@1.33.0:
+    resolution: {integrity: sha512-QQM/Ti/hQajJwCY+RiWuCZ9sdtI/XQk7nDK5vC8kkdwixezOlDgvDx7+RT+QjK6FcFT4MpsuoBnHIo/O3StRRg==}
     engines: {node: '>= 12.0.0'}
     cpu: [x64]
     os: [freebsd]
@@ -9180,8 +9115,21 @@ packages:
     cpu: [arm]
     os: [linux]
 
+  lightningcss-linux-arm-gnueabihf@1.33.0:
+    resolution: {integrity: sha512-N7FVBe6iS24MlM6R/4RBTxGhQheZGs7tiQ9U32UtF75NzP5Q7xWPRqLBCKxlRQRk3rY1jCIPLzx7WzOhuUIRLQ==}
+    engines: {node: '>= 12.0.0'}
+    cpu: [arm]
+    os: [linux]
+
   lightningcss-linux-arm64-gnu@1.32.0:
     resolution: {integrity: sha512-0nnMyoyOLRJXfbMOilaSRcLH3Jw5z9HDNGfT/gwCPgaDjnx0i8w7vBzFLFR1f6CMLKF8gVbebmkUN3fa/kQJpQ==}
+    engines: {node: '>= 12.0.0'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  lightningcss-linux-arm64-gnu@1.33.0:
+    resolution: {integrity: sha512-j2v/itmy4HlNxlc6voKXYgBqNi0Ng2LShg4z7GufpEgs05P+2suBVyi9I6YHq5uoVFx9ETin3eCEhLVyXGQnKg==}
     engines: {node: '>= 12.0.0'}
     cpu: [arm64]
     os: [linux]
@@ -9194,8 +9142,22 @@ packages:
     os: [linux]
     libc: [musl]
 
+  lightningcss-linux-arm64-musl@1.33.0:
+    resolution: {integrity: sha512-yiO5ROMuYQgXbC60yjZU5CYSFZGKXL0HFATXt9mHJn1+zW55oCtMI9NfcVhYLMFDL7gV7oBPon/EmMMGg2OvtQ==}
+    engines: {node: '>= 12.0.0'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
   lightningcss-linux-x64-gnu@1.32.0:
     resolution: {integrity: sha512-V7Qr52IhZmdKPVr+Vtw8o+WLsQJYCTd8loIfpDaMRWGUZfBOYEJeyJIkqGIDMZPwPx24pUMfwSxxI8phr/MbOA==}
+    engines: {node: '>= 12.0.0'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  lightningcss-linux-x64-gnu@1.33.0:
+    resolution: {integrity: sha512-ar+Ju7LmcN0Jo4FpL4hpFybwNG9/3A/Br5KW2n2jyODg3MEZXaDYADdemoNS+BDNfMgKvylJLj4S5tyRActuAg==}
     engines: {node: '>= 12.0.0'}
     cpu: [x64]
     os: [linux]
@@ -9208,8 +9170,21 @@ packages:
     os: [linux]
     libc: [musl]
 
+  lightningcss-linux-x64-musl@1.33.0:
+    resolution: {integrity: sha512-RYiYbkokw0trfKqqzfF55lginwEPrD3OJDfTuJzFs1MK6iFnDenaz1fqLLtX4ITG3OktJQXOeTaw1awrBAlZPw==}
+    engines: {node: '>= 12.0.0'}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
   lightningcss-win32-arm64-msvc@1.32.0:
     resolution: {integrity: sha512-8SbC8BR40pS6baCM8sbtYDSwEVQd4JlFTOlaD3gWGHfThTcABnNDBda6eTZeqbofalIJhFx0qKzgHJmcPTnGdw==}
+    engines: {node: '>= 12.0.0'}
+    cpu: [arm64]
+    os: [win32]
+
+  lightningcss-win32-arm64-msvc@1.33.0:
+    resolution: {integrity: sha512-1K+MPfLSFVpphzpdbfkhlWk6wBrTObBzS2T6db10PNOZgR9GoVsAWzwNyuhUYYbTp23j+4RrncfujZ4uAzXvwA==}
     engines: {node: '>= 12.0.0'}
     cpu: [arm64]
     os: [win32]
@@ -9220,8 +9195,18 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  lightningcss-win32-x64-msvc@1.33.0:
+    resolution: {integrity: sha512-OlEICDx/Xl0FqSp4bry8zFnCvGpig3Gl4gCquvYwHuqJKEC1+n9NgDniFvqHGmMv1ZkqDJrDqKKSykTDX+ehuA==}
+    engines: {node: '>= 12.0.0'}
+    cpu: [x64]
+    os: [win32]
+
   lightningcss@1.32.0:
     resolution: {integrity: sha512-NXYBzinNrblfraPGyrbPoD19C1h9lfI/1mzgWYvXUTe414Gz/X1FD2XBZSZM7rRTrMA8JL3OtAaGifrIKhQ5yQ==}
+    engines: {node: '>= 12.0.0'}
+
+  lightningcss@1.33.0:
+    resolution: {integrity: sha512-WkUDrojuJs0xkgGf2udWxa3yGBRxPtxUkB79i6aCZLRgc7PM8fZe9TosfPDcvEpQZbuFASnHYmRLBLUbmLOIIA==}
     engines: {node: '>= 12.0.0'}
 
   lilconfig@2.1.0:
@@ -9346,6 +9331,9 @@ packages:
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
+
+  magic-string@1.4.4:
+    resolution: {integrity: sha512-jQz9sVhrZuphH4NrAIHSgkDJCluQO7Ioi4KGRLa7aTUjAODQ13hENX0YIytqYE/rIkO485gQG2LeBxJaW53kkQ==}
 
   make-dir@3.1.0:
     resolution: {integrity: sha512-g3FeP20LNwhALb/6Cz6Dd4F2ngze0jz7tbzrD2wAV+o9FeNHe4rL+yK2md0J/fiSf1sa1ADhXqi5+oVwOM/eGw==}
@@ -10294,9 +10282,6 @@ packages:
     resolution: {integrity: sha512-80WNmd9DA0tmZrw9qQa62GPPWfuXJknrmVmLcxvq4uZBdYqb1wYoKTmnlGUchvVWe0XiLupYkBoXVOxz3C8DYQ==}
     engines: {node: '>=0.12'}
 
-  randombytes@2.1.0:
-    resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
-
   range-parser@1.2.1:
     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
     engines: {node: '>= 0.6'}
@@ -10437,10 +10422,6 @@ packages:
     resolution: {integrity: sha512-qYg9KP24dD5qka9J47d0aVky0N+b4fTU89LN9iDnjB5waksiC49rvMB0PrUJQGoTmH50XPiqOvAjDfaijGxYZw==}
     engines: {node: '>=8'}
 
-  resolve.exports@2.0.4:
-    resolution: {integrity: sha512-zepuGL0ulf+nt+XaFrlKeaiTJeyPFPLLY62+ncq1/VTHBdt3HsfXOH60priZ6tnXQozdGcDeIF5JVTanvIcYWQ==}
-    engines: {node: '>=10'}
-
   resolve@1.22.13:
     resolution: {integrity: sha512-Dj/cW9zBV2aRj6XzCxuGIs3ESZKv02jixne3q6jFZYZ3/Tg09gHHviSMDL4kObh9pqSahdRHEnDoaP2gn8YLhA==}
     engines: {node: '>= 0.4'}
@@ -10493,6 +10474,11 @@ packages:
     engines: {node: 20 || >=22}
     hasBin: true
 
+  rolldown@1.2.15:
+    resolution: {integrity: sha512-6odND+fel5zVw3I4Yc2e69gvguDnX0CAAGiNDZSq4ik5WUcaLrkD2GLuog0XcODbor31hZ5ayEMgVDno+KPV5g==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+
   rollup-plugin-brotli@3.1.0:
     resolution: {integrity: sha512-vXRPVd9B1x+aaXeBdmLKNNsai9AH3o0Qikf4u0m1icKqgi3qVA4UhOfwGaPYoAHML1GLMUnR//PDhiMHXN/M6g==}
     engines: {node: '>=11.7.0'}
@@ -10503,20 +10489,8 @@ packages:
     peerDependencies:
       postcss: 8.x
 
-  rollup-plugin-svelte@7.2.3:
-    resolution: {integrity: sha512-LlniP+h00DfM+E4eav/Kk8uGjgPUjGIBfrAS/IxQvsuFdqSM0Y2sXf31AdxuIGSW9GsmocDqOfaxR5QNno/Tgw==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      rollup: '>=2.0.0'
-      svelte: '>=3.5.0'
-
   rollup-pluginutils@2.8.2:
     resolution: {integrity: sha512-EEp9NhnUkwY8aif6bxgovPHMoMoNr2FulJziTndpt5H9RdwC47GSGuII9XxpSdzVGM0GWrNPHV6ie1LTNJPaLQ==}
-
-  rollup@4.55.2:
-    resolution: {integrity: sha512-PggGy4dhwx5qaW+CKBilA/98Ql9keyfnb7lh4SR6shQ91QQQi1ORJ1v4UinkdP2i87OBs9AQFooQylcrrRfIcg==}
-    engines: {node: '>=18.0.0', npm: '>=8.0.0'}
-    hasBin: true
 
   rollup@4.64.12:
     resolution: {integrity: sha512-GhAu8ZglZ61VWSX/ZW3K/qkazgURBIQL0/Yy51QsS8DPyebR5Cf/Z2PANJFpTU0aVZ9byJcyqR6xvBbkXhdGYQ==}
@@ -10618,9 +10592,6 @@ packages:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
     engines: {node: '>= 18'}
 
-  serialize-javascript@6.0.2:
-    resolution: {integrity: sha512-Saa1xPByTTq2gdeFZYLLo+RFE35NHZkAbqZeWNd3BpzppeVisAqpDjcp8dyf6uIvEqJRd46jemmyA4iFIeVk8g==}
-
   serve-static@1.16.3:
     resolution: {integrity: sha512-x0RTqQel6g5SY7Lg6ZreMmsOzncHFU7nhnRWkKgWuMTu5NN0DR5oruckMqRvacAN9d5w6ARnRBXl9xhDCgfMeA==}
     engines: {node: '>= 0.8.0'}
@@ -10628,9 +10599,6 @@ packages:
   serve-static@2.2.1:
     resolution: {integrity: sha512-xRXBn0pPqQTVQiC8wyQrKs2MOlX24zQ0POGaj0kultvoOCstBQM5yvOhAVSUwOMjQtTvsPWoNCHfPGwaaQJhTw==}
     engines: {node: '>= 18'}
-
-  set-cookie-parser@2.7.2:
-    resolution: {integrity: sha512-oeM1lpU/UvhTxw+g3cIfxXHyJRc/uidd3yK1P242gzHds0udQBYzs3y8j4gCCW+ZJ7ad0yctld8RYO+bdurlvw==}
 
   set-cookie-parser@3.2.1:
     resolution: {integrity: sha512-Npd1Pt+4zb3BrSZDPd2qFwRpS6b1EUEasRrO8xS0zMJi0fApXXK5YuzP0minyJnxwnFHoVoJwA55q0A0cu63gQ==}
@@ -10715,10 +10683,6 @@ packages:
   slice-ansi@4.0.0:
     resolution: {integrity: sha512-qMCMfhY040cVHT43K9BFygqYbUPFZKHOg7K73mtTWJRb8pyP3fzf4Ixd5SzdEJQ6MRUg/WBnOLxghZtKKurENQ==}
     engines: {node: '>=10'}
-
-  smob@1.6.2:
-    resolution: {integrity: sha512-RQsvleCbF8cVHEv+xuDGaA4pOizFqJ0GgjtMSRo6oP8pnN7WsigHgVGey6aILRBKv4W2YOMHLqbKdnB6hpB9fw==}
-    engines: {node: '>=20.0.0'}
 
   socket.io-adapter@2.5.8:
     resolution: {integrity: sha512-6Oy52pbg+kvdCVvjcN+FnY7BvxZ7cIHNScbvztT/It5d0vbwoJoVZmF2gjJmnV0/4WlXRfG15zc45ySk9Ah8bw==}
@@ -11348,15 +11312,16 @@ packages:
     peerDependencies:
       vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
 
-  vite@7.3.7:
-    resolution: {integrity: sha512-AHEzTORMbi7/7aXp7w7KZ5+DCUdSeLsJz0grY8xHpc9DHdYb0vQu6DqJfm2tOw3gDExNgPgnJTXxM6syYFHaCA==}
+  vite@8.3.5:
+    resolution: {integrity: sha512-z1YpjieJ9g0ebTmQpLBv/oq9E3F9EIlOe+7LahW8SrE3LTiG3udBRUXQOlYXP9b+IC2q2phHeVxj9xGlw34OEQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
       '@types/node': ^20.19.0 || >=22.12.0
+      '@vitejs/devtools': ^0.7.1 || ^0.8.0
+      esbuild: ^0.27.0 || ^0.28.0
       jiti: '>=1.21.0'
       less: ^4.0.0
-      lightningcss: ^1.21.0
       sass: ^1.70.0
       sass-embedded: ^1.70.0
       stylus: '>=0.54.8'
@@ -11367,11 +11332,13 @@ packages:
     peerDependenciesMeta:
       '@types/node':
         optional: true
+      '@vitejs/devtools':
+        optional: true
+      esbuild:
+        optional: true
       jiti:
         optional: true
       less:
-        optional: true
-      lightningcss:
         optional: true
       sass:
         optional: true
@@ -13466,6 +13433,7 @@ snapshots:
     dependencies:
       '@jridgewell/gen-mapping': 0.3.13
       '@jridgewell/trace-mapping': 0.3.31
+    optional: true
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
@@ -13569,6 +13537,8 @@ snapshots:
   '@opentelemetry/semantic-conventions@1.28.0': {}
 
   '@opentelemetry/semantic-conventions@1.39.0': {}
+
+  '@oxc-project/types@0.155.0': {}
 
   '@pinojs/redact@0.4.0': {}
 
@@ -13782,17 +13752,52 @@ snapshots:
     dependencies:
       '@redis/client': 5.10.0
 
-  '@rollup/plugin-commonjs@29.0.3(rollup@4.64.12)':
-    dependencies:
-      '@rollup/pluginutils': 5.5.1(rollup@4.64.12)
-      commondir: 1.0.1
-      estree-walker: 2.0.2
-      fdir: 6.5.0(picomatch@4.0.7)
-      is-reference: 1.2.1
-      magic-string: 0.30.21
-      picomatch: 4.0.7
-    optionalDependencies:
-      rollup: 4.64.12
+  '@rolldown/binding-android-arm-eabi@1.2.15':
+    optional: true
+
+  '@rolldown/binding-android-arm64@1.2.15':
+    optional: true
+
+  '@rolldown/binding-darwin-arm64@1.2.15':
+    optional: true
+
+  '@rolldown/binding-darwin-x64@1.2.15':
+    optional: true
+
+  '@rolldown/binding-freebsd-x64@1.2.15':
+    optional: true
+
+  '@rolldown/binding-linux-arm-gnueabihf@1.2.15':
+    optional: true
+
+  '@rolldown/binding-linux-arm64-gnu@1.2.15':
+    optional: true
+
+  '@rolldown/binding-linux-arm64-musl@1.2.15':
+    optional: true
+
+  '@rolldown/binding-linux-ppc64-gnu@1.2.15':
+    optional: true
+
+  '@rolldown/binding-linux-s390x-gnu@1.2.15':
+    optional: true
+
+  '@rolldown/binding-linux-x64-gnu@1.2.15':
+    optional: true
+
+  '@rolldown/binding-linux-x64-musl@1.2.15':
+    optional: true
+
+  '@rolldown/binding-openharmony-arm64@1.2.15':
+    optional: true
+
+  '@rolldown/binding-win32-arm64-msvc@1.2.15':
+    optional: true
+
+  '@rolldown/binding-win32-x64-msvc@1.2.15':
+    optional: true
+
+  '@rolldown/pluginutils@1.0.1': {}
 
   '@rollup/plugin-dynamic-import-vars@2.1.5(rollup@4.64.12)':
     dependencies:
@@ -13804,16 +13809,6 @@ snapshots:
     optionalDependencies:
       rollup: 4.64.12
 
-  '@rollup/plugin-node-resolve@15.3.1(rollup@4.55.2)':
-    dependencies:
-      '@rollup/pluginutils': 5.5.1(rollup@4.55.2)
-      '@types/resolve': 1.20.2
-      deepmerge: 4.3.1
-      is-module: 1.0.0
-      resolve: 1.22.13
-    optionalDependencies:
-      rollup: 4.55.2
-
   '@rollup/plugin-node-resolve@15.3.1(rollup@4.64.12)':
     dependencies:
       '@rollup/pluginutils': 5.5.1(rollup@4.64.12)
@@ -13824,33 +13819,6 @@ snapshots:
     optionalDependencies:
       rollup: 4.64.12
 
-  '@rollup/plugin-node-resolve@16.0.3(rollup@4.64.12)':
-    dependencies:
-      '@rollup/pluginutils': 5.5.1(rollup@4.64.12)
-      '@types/resolve': 1.20.2
-      deepmerge: 4.3.1
-      is-module: 1.0.0
-      resolve: 1.22.13
-    optionalDependencies:
-      rollup: 4.64.12
-
-  '@rollup/plugin-terser@0.4.4(rollup@4.64.12)':
-    dependencies:
-      serialize-javascript: 6.0.2
-      smob: 1.6.2
-      terser: 5.51.2
-    optionalDependencies:
-      rollup: 4.64.12
-
-  '@rollup/plugin-typescript@12.3.1(rollup@4.64.12)(tslib@2.8.1)(typescript@5.9.3)':
-    dependencies:
-      '@rollup/pluginutils': 5.5.1(rollup@4.64.12)
-      resolve: 1.22.13
-      typescript: 5.9.3
-    optionalDependencies:
-      rollup: 4.64.12
-      tslib: 2.8.1
-
   '@rollup/plugin-url@8.0.2(rollup@4.64.12)':
     dependencies:
       '@rollup/pluginutils': 5.5.1(rollup@4.64.12)
@@ -13858,19 +13826,6 @@ snapshots:
       mime: 3.0.0
     optionalDependencies:
       rollup: 4.64.12
-
-  '@rollup/pluginutils@4.2.1':
-    dependencies:
-      estree-walker: 2.0.2
-      picomatch: 2.3.2
-
-  '@rollup/pluginutils@5.5.1(rollup@4.55.2)':
-    dependencies:
-      '@types/estree': 1.0.9
-      estree-walker: 2.0.2
-      picomatch: 4.0.7
-    optionalDependencies:
-      rollup: 4.55.2
 
   '@rollup/pluginutils@5.5.1(rollup@4.64.12)':
     dependencies:
@@ -13880,151 +13835,76 @@ snapshots:
     optionalDependencies:
       rollup: 4.64.12
 
-  '@rollup/rollup-android-arm-eabi@4.55.2':
-    optional: true
-
   '@rollup/rollup-android-arm-eabi@4.64.12':
-    optional: true
-
-  '@rollup/rollup-android-arm64@4.55.2':
     optional: true
 
   '@rollup/rollup-android-arm64@4.64.12':
     optional: true
 
-  '@rollup/rollup-darwin-arm64@4.55.2':
-    optional: true
-
   '@rollup/rollup-darwin-arm64@4.64.12':
-    optional: true
-
-  '@rollup/rollup-darwin-x64@4.55.2':
     optional: true
 
   '@rollup/rollup-darwin-x64@4.64.12':
     optional: true
 
-  '@rollup/rollup-freebsd-arm64@4.55.2':
-    optional: true
-
   '@rollup/rollup-freebsd-arm64@4.64.12':
-    optional: true
-
-  '@rollup/rollup-freebsd-x64@4.55.2':
     optional: true
 
   '@rollup/rollup-freebsd-x64@4.64.12':
     optional: true
 
-  '@rollup/rollup-linux-arm-gnueabihf@4.55.2':
-    optional: true
-
   '@rollup/rollup-linux-arm-gnueabihf@4.64.12':
-    optional: true
-
-  '@rollup/rollup-linux-arm-musleabihf@4.55.2':
     optional: true
 
   '@rollup/rollup-linux-arm-musleabihf@4.64.12':
     optional: true
 
-  '@rollup/rollup-linux-arm64-gnu@4.55.2':
-    optional: true
-
   '@rollup/rollup-linux-arm64-gnu@4.64.12':
-    optional: true
-
-  '@rollup/rollup-linux-arm64-musl@4.55.2':
     optional: true
 
   '@rollup/rollup-linux-arm64-musl@4.64.12':
     optional: true
 
-  '@rollup/rollup-linux-loong64-gnu@4.55.2':
-    optional: true
-
   '@rollup/rollup-linux-loong64-gnu@4.64.12':
-    optional: true
-
-  '@rollup/rollup-linux-loong64-musl@4.55.2':
     optional: true
 
   '@rollup/rollup-linux-loong64-musl@4.64.12':
     optional: true
 
-  '@rollup/rollup-linux-ppc64-gnu@4.55.2':
-    optional: true
-
   '@rollup/rollup-linux-ppc64-gnu@4.64.12':
-    optional: true
-
-  '@rollup/rollup-linux-ppc64-musl@4.55.2':
     optional: true
 
   '@rollup/rollup-linux-ppc64-musl@4.64.12':
     optional: true
 
-  '@rollup/rollup-linux-riscv64-gnu@4.55.2':
-    optional: true
-
   '@rollup/rollup-linux-riscv64-gnu@4.64.12':
-    optional: true
-
-  '@rollup/rollup-linux-riscv64-musl@4.55.2':
     optional: true
 
   '@rollup/rollup-linux-riscv64-musl@4.64.12':
     optional: true
 
-  '@rollup/rollup-linux-s390x-gnu@4.55.2':
-    optional: true
-
   '@rollup/rollup-linux-s390x-gnu@4.64.12':
-    optional: true
-
-  '@rollup/rollup-linux-x64-gnu@4.55.2':
     optional: true
 
   '@rollup/rollup-linux-x64-gnu@4.64.12':
     optional: true
 
-  '@rollup/rollup-linux-x64-musl@4.55.2':
-    optional: true
-
   '@rollup/rollup-linux-x64-musl@4.64.12':
-    optional: true
-
-  '@rollup/rollup-openbsd-x64@4.55.2':
     optional: true
 
   '@rollup/rollup-openbsd-x64@4.64.12':
     optional: true
 
-  '@rollup/rollup-openharmony-arm64@4.55.2':
-    optional: true
-
   '@rollup/rollup-openharmony-arm64@4.64.12':
-    optional: true
-
-  '@rollup/rollup-win32-arm64-msvc@4.55.2':
     optional: true
 
   '@rollup/rollup-win32-arm64-msvc@4.64.12':
     optional: true
 
-  '@rollup/rollup-win32-ia32-msvc@4.55.2':
-    optional: true
-
   '@rollup/rollup-win32-ia32-msvc@4.64.12':
     optional: true
 
-  '@rollup/rollup-win32-x64-gnu@4.55.2':
-    optional: true
-
   '@rollup/rollup-win32-x64-gnu@4.64.12':
-    optional: true
-
-  '@rollup/rollup-win32-x64-msvc@4.55.2':
     optional: true
 
   '@rollup/rollup-win32-x64-msvc@4.64.12':
@@ -14059,58 +13939,60 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
+  '@sveltejs/acorn-typescript@1.0.13(acorn@8.19.0)':
+    dependencies:
+      acorn: 8.19.0
+
   '@sveltejs/acorn-typescript@1.0.8(acorn@8.15.0)':
     dependencies:
       acorn: 8.15.0
 
-  '@sveltejs/adapter-static@3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))':
+  '@sveltejs/adapter-static@3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))':
     dependencies:
-      '@sveltejs/kit': 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@sveltejs/kit': 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
-  '@sveltejs/adapter-static@3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))':
+  '@sveltejs/adapter-static@3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))':
     dependencies:
-      '@sveltejs/kit': 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@sveltejs/kit': 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
-  '@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
+  '@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
       '@standard-schema/spec': 1.1.0
-      '@sveltejs/acorn-typescript': 1.0.8(acorn@8.15.0)
-      '@sveltejs/vite-plugin-svelte': 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@sveltejs/acorn-typescript': 1.0.13(acorn@8.19.0)
+      '@sveltejs/vite-plugin-svelte': 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@types/cookie': 0.6.0
-      acorn: 8.15.0
+      acorn: 8.19.0
       cookie: 0.6.0
-      devalue: 5.6.2
+      devalue: 5.9.4
       esm-env: 1.2.2
       kleur: 4.1.5
       magic-string: 0.30.21
       mrmime: 2.0.1
-      sade: 1.8.1
-      set-cookie-parser: 2.7.2
+      set-cookie-parser: 3.2.1
       sirv: 3.0.2
       svelte: 5.49.0
-      vite: 7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
     optionalDependencies:
       '@opentelemetry/api': 1.10.0
       typescript: 5.9.3
 
-  '@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
+  '@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
       '@standard-schema/spec': 1.1.0
-      '@sveltejs/acorn-typescript': 1.0.8(acorn@8.15.0)
-      '@sveltejs/vite-plugin-svelte': 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@sveltejs/acorn-typescript': 1.0.13(acorn@8.19.0)
+      '@sveltejs/vite-plugin-svelte': 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@types/cookie': 0.6.0
-      acorn: 8.15.0
+      acorn: 8.19.0
       cookie: 0.6.0
-      devalue: 5.6.2
+      devalue: 5.9.4
       esm-env: 1.2.2
       kleur: 4.1.5
       magic-string: 0.30.21
       mrmime: 2.0.1
-      sade: 1.8.1
-      set-cookie-parser: 2.7.2
+      set-cookie-parser: 3.2.1
       sirv: 3.0.2
       svelte: 5.49.0
-      vite: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
     optionalDependencies:
       '@opentelemetry/api': 1.10.0
       typescript: 5.9.3
@@ -14128,39 +14010,23 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@sveltejs/vite-plugin-svelte-inspector@5.0.2(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
+  '@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
-      '@sveltejs/vite-plugin-svelte': 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
-      obug: 2.2.1
-      svelte: 5.49.0
-      vite: 7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
-
-  '@sveltejs/vite-plugin-svelte-inspector@5.0.2(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
-    dependencies:
-      '@sveltejs/vite-plugin-svelte': 6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
-      obug: 2.2.1
-      svelte: 5.49.0
-      vite: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
-
-  '@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
-    dependencies:
-      '@sveltejs/vite-plugin-svelte-inspector': 5.0.2(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       deepmerge: 4.3.1
-      magic-string: 0.30.21
+      magic-string: 1.4.4
       obug: 2.2.1
       svelte: 5.49.0
-      vite: 7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
-      vitefu: 1.1.3(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      vite: 8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vitefu: 1.1.3(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
-  '@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
+  '@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
-      '@sveltejs/vite-plugin-svelte-inspector': 5.0.2(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       deepmerge: 4.3.1
-      magic-string: 0.30.21
+      magic-string: 1.4.4
       obug: 2.2.1
       svelte: 5.49.0
-      vite: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
-      vitefu: 1.1.3(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      vite: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vitefu: 1.1.3(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   '@swc/helpers@0.5.15':
     dependencies:
@@ -14579,21 +14445,21 @@ snapshots:
       chai: 6.3.0
       tinyrainbow: 3.2.0
 
-  '@vitest/mocker@4.1.12(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
+  '@vitest/mocker@4.1.12(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
       '@vitest/spy': 4.1.12
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
-  '@vitest/mocker@4.1.12(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
+  '@vitest/mocker@4.1.12(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
       '@vitest/spy': 4.1.12
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
   '@vitest/pretty-format@4.1.12':
     dependencies:
@@ -15052,7 +14918,8 @@ snapshots:
 
   buffer-equal-constant-time@1.0.1: {}
 
-  buffer-from@1.1.2: {}
+  buffer-from@1.1.2:
+    optional: true
 
   buffer@5.7.1:
     dependencies:
@@ -15258,8 +15125,6 @@ snapshots:
   commander@5.1.0: {}
 
   commander@7.2.0: {}
-
-  commondir@1.0.1: {}
 
   compare-versions@6.1.1: {}
 
@@ -15567,6 +15432,8 @@ snapshots:
   detect-libc@2.1.2: {}
 
   devalue@5.6.2: {}
+
+  devalue@5.9.4: {}
 
   diet-sprite@0.0.1: {}
 
@@ -16448,13 +16315,6 @@ snapshots:
 
   flatted@3.4.4: {}
 
-  flowbite-datepicker@1.3.2(rollup@4.55.2):
-    dependencies:
-      '@rollup/plugin-node-resolve': 15.3.1(rollup@4.55.2)
-      flowbite: 2.5.2(rollup@4.55.2)
-    transitivePeerDependencies:
-      - rollup
-
   flowbite-datepicker@1.3.2(rollup@4.64.12):
     dependencies:
       '@rollup/plugin-node-resolve': 15.3.1(rollup@4.64.12)
@@ -16467,22 +16327,6 @@ snapshots:
       clsx: 2.1.1
       svelte: 5.49.0
       tailwind-merge: 3.7.0
-
-  flowbite-svelte@1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3):
-    dependencies:
-      '@floating-ui/dom': 1.8.0
-      '@floating-ui/utils': 0.2.12
-      apexcharts: 5.16.0
-      clsx: 2.1.1
-      date-fns: 4.4.0
-      esm-env: 1.2.2
-      flowbite: 3.1.2(rollup@4.55.2)
-      svelte: 5.49.0
-      tailwind-merge: 3.7.0
-      tailwind-variants: 3.3.1(tailwind-merge@3.7.0)(tailwindcss@4.3.3)
-      tailwindcss: 4.3.3
-    transitivePeerDependencies:
-      - rollup
 
   flowbite-svelte@1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3):
     dependencies:
@@ -16500,28 +16344,11 @@ snapshots:
     transitivePeerDependencies:
       - rollup
 
-  flowbite@2.5.2(rollup@4.55.2):
-    dependencies:
-      '@popperjs/core': 2.11.8
-      flowbite-datepicker: 1.3.2(rollup@4.55.2)
-      mini-svg-data-uri: 1.4.4
-    transitivePeerDependencies:
-      - rollup
-
   flowbite@2.5.2(rollup@4.64.12):
     dependencies:
       '@popperjs/core': 2.11.8
       flowbite-datepicker: 1.3.2(rollup@4.64.12)
       mini-svg-data-uri: 1.4.4
-    transitivePeerDependencies:
-      - rollup
-
-  flowbite@3.1.2(rollup@4.55.2):
-    dependencies:
-      '@popperjs/core': 2.11.8
-      flowbite-datepicker: 1.3.2(rollup@4.55.2)
-      mini-svg-data-uri: 1.4.4
-      postcss: 8.5.31
     transitivePeerDependencies:
       - rollup
 
@@ -17187,10 +17014,6 @@ snapshots:
 
   is-promise@4.0.0: {}
 
-  is-reference@1.2.1:
-    dependencies:
-      '@types/estree': 1.0.9
-
   is-reference@3.0.3:
     dependencies:
       '@types/estree': 1.0.8
@@ -17447,34 +17270,67 @@ snapshots:
   lightningcss-android-arm64@1.32.0:
     optional: true
 
+  lightningcss-android-arm64@1.33.0:
+    optional: true
+
   lightningcss-darwin-arm64@1.32.0:
+    optional: true
+
+  lightningcss-darwin-arm64@1.33.0:
     optional: true
 
   lightningcss-darwin-x64@1.32.0:
     optional: true
 
+  lightningcss-darwin-x64@1.33.0:
+    optional: true
+
   lightningcss-freebsd-x64@1.32.0:
+    optional: true
+
+  lightningcss-freebsd-x64@1.33.0:
     optional: true
 
   lightningcss-linux-arm-gnueabihf@1.32.0:
     optional: true
 
+  lightningcss-linux-arm-gnueabihf@1.33.0:
+    optional: true
+
   lightningcss-linux-arm64-gnu@1.32.0:
+    optional: true
+
+  lightningcss-linux-arm64-gnu@1.33.0:
     optional: true
 
   lightningcss-linux-arm64-musl@1.32.0:
     optional: true
 
+  lightningcss-linux-arm64-musl@1.33.0:
+    optional: true
+
   lightningcss-linux-x64-gnu@1.32.0:
+    optional: true
+
+  lightningcss-linux-x64-gnu@1.33.0:
     optional: true
 
   lightningcss-linux-x64-musl@1.32.0:
     optional: true
 
+  lightningcss-linux-x64-musl@1.33.0:
+    optional: true
+
   lightningcss-win32-arm64-msvc@1.32.0:
     optional: true
 
+  lightningcss-win32-arm64-msvc@1.33.0:
+    optional: true
+
   lightningcss-win32-x64-msvc@1.32.0:
+    optional: true
+
+  lightningcss-win32-x64-msvc@1.33.0:
     optional: true
 
   lightningcss@1.32.0:
@@ -17492,6 +17348,22 @@ snapshots:
       lightningcss-linux-x64-musl: 1.32.0
       lightningcss-win32-arm64-msvc: 1.32.0
       lightningcss-win32-x64-msvc: 1.32.0
+
+  lightningcss@1.33.0:
+    dependencies:
+      detect-libc: 2.1.2
+    optionalDependencies:
+      lightningcss-android-arm64: 1.33.0
+      lightningcss-darwin-arm64: 1.33.0
+      lightningcss-darwin-x64: 1.33.0
+      lightningcss-freebsd-x64: 1.33.0
+      lightningcss-linux-arm-gnueabihf: 1.33.0
+      lightningcss-linux-arm64-gnu: 1.33.0
+      lightningcss-linux-arm64-musl: 1.33.0
+      lightningcss-linux-x64-gnu: 1.33.0
+      lightningcss-linux-x64-musl: 1.33.0
+      lightningcss-win32-arm64-msvc: 1.33.0
+      lightningcss-win32-x64-msvc: 1.33.0
 
   lilconfig@2.1.0: {}
 
@@ -17594,6 +17466,10 @@ snapshots:
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  magic-string@1.4.4:
+    dependencies:
+      '@jridgewell/sourcemap-codec': 1.6.0
 
   make-dir@3.1.0:
     dependencies:
@@ -18473,10 +18349,6 @@ snapshots:
       discontinuous-range: 1.0.0
       ret: 0.1.15
 
-  randombytes@2.1.0:
-    dependencies:
-      safe-buffer: 5.2.1
-
   range-parser@1.2.1: {}
 
   range-parser@1.3.0: {}
@@ -18660,8 +18532,6 @@ snapshots:
 
   resolve-from@5.0.0: {}
 
-  resolve.exports@2.0.4: {}
-
   resolve@1.22.13:
     dependencies:
       es-errors: 1.3.0
@@ -18718,6 +18588,27 @@ snapshots:
       glob: 13.0.6
       package-json-from-dist: 1.0.1
 
+  rolldown@1.2.15:
+    dependencies:
+      '@oxc-project/types': 0.155.0
+      '@rolldown/pluginutils': 1.0.1
+    optionalDependencies:
+      '@rolldown/binding-android-arm-eabi': 1.2.15
+      '@rolldown/binding-android-arm64': 1.2.15
+      '@rolldown/binding-darwin-arm64': 1.2.15
+      '@rolldown/binding-darwin-x64': 1.2.15
+      '@rolldown/binding-freebsd-x64': 1.2.15
+      '@rolldown/binding-linux-arm-gnueabihf': 1.2.15
+      '@rolldown/binding-linux-arm64-gnu': 1.2.15
+      '@rolldown/binding-linux-arm64-musl': 1.2.15
+      '@rolldown/binding-linux-ppc64-gnu': 1.2.15
+      '@rolldown/binding-linux-s390x-gnu': 1.2.15
+      '@rolldown/binding-linux-x64-gnu': 1.2.15
+      '@rolldown/binding-linux-x64-musl': 1.2.15
+      '@rolldown/binding-openharmony-arm64': 1.2.15
+      '@rolldown/binding-win32-arm64-msvc': 1.2.15
+      '@rolldown/binding-win32-x64-msvc': 1.2.15
+
   rollup-plugin-brotli@3.1.0: {}
 
   rollup-plugin-postcss@4.0.2(postcss@8.5.31)(ts-node@10.9.2(@types/node@26.6.5)(typescript@5.9.3)):
@@ -18739,47 +18630,9 @@ snapshots:
     transitivePeerDependencies:
       - ts-node
 
-  rollup-plugin-svelte@7.2.3(rollup@4.64.12)(svelte@5.49.0):
-    dependencies:
-      '@rollup/pluginutils': 4.2.1
-      resolve.exports: 2.0.4
-      rollup: 4.64.12
-      svelte: 5.49.0
-
   rollup-pluginutils@2.8.2:
     dependencies:
       estree-walker: 0.6.1
-
-  rollup@4.55.2:
-    dependencies:
-      '@types/estree': 1.0.8
-    optionalDependencies:
-      '@rollup/rollup-android-arm-eabi': 4.55.2
-      '@rollup/rollup-android-arm64': 4.55.2
-      '@rollup/rollup-darwin-arm64': 4.55.2
-      '@rollup/rollup-darwin-x64': 4.55.2
-      '@rollup/rollup-freebsd-arm64': 4.55.2
-      '@rollup/rollup-freebsd-x64': 4.55.2
-      '@rollup/rollup-linux-arm-gnueabihf': 4.55.2
-      '@rollup/rollup-linux-arm-musleabihf': 4.55.2
-      '@rollup/rollup-linux-arm64-gnu': 4.55.2
-      '@rollup/rollup-linux-arm64-musl': 4.55.2
-      '@rollup/rollup-linux-loong64-gnu': 4.55.2
-      '@rollup/rollup-linux-loong64-musl': 4.55.2
-      '@rollup/rollup-linux-ppc64-gnu': 4.55.2
-      '@rollup/rollup-linux-ppc64-musl': 4.55.2
-      '@rollup/rollup-linux-riscv64-gnu': 4.55.2
-      '@rollup/rollup-linux-riscv64-musl': 4.55.2
-      '@rollup/rollup-linux-s390x-gnu': 4.55.2
-      '@rollup/rollup-linux-x64-gnu': 4.55.2
-      '@rollup/rollup-linux-x64-musl': 4.55.2
-      '@rollup/rollup-openbsd-x64': 4.55.2
-      '@rollup/rollup-openharmony-arm64': 4.55.2
-      '@rollup/rollup-win32-arm64-msvc': 4.55.2
-      '@rollup/rollup-win32-ia32-msvc': 4.55.2
-      '@rollup/rollup-win32-x64-gnu': 4.55.2
-      '@rollup/rollup-win32-x64-msvc': 4.55.2
-      fsevents: 2.3.3
 
   rollup@4.64.12:
     dependencies:
@@ -18812,6 +18665,7 @@ snapshots:
       '@rollup/rollup-win32-x64-gnu': 4.64.12
       '@rollup/rollup-win32-x64-msvc': 4.64.12
       fsevents: 2.3.3
+    optional: true
 
   router@2.2.0:
     dependencies:
@@ -18827,14 +18681,14 @@ snapshots:
     dependencies:
       queue-microtask: 1.2.3
 
-  runed@0.37.1(@sveltejs/kit@2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(zod@4.6.7):
+  runed@0.37.1(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(zod@4.6.7):
     dependencies:
       dequal: 2.0.3
       esm-env: 1.2.2
       lz-string: 1.5.0
       svelte: 5.49.0
     optionalDependencies:
-      '@sveltejs/kit': 2.50.1(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@sveltejs/kit': 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       zod: 4.6.7
 
   sade@1.8.1:
@@ -18930,10 +18784,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  serialize-javascript@6.0.2:
-    dependencies:
-      randombytes: 2.1.0
-
   serve-static@1.16.3:
     dependencies:
       encodeurl: 2.0.0
@@ -18951,8 +18801,6 @@ snapshots:
       send: 1.2.1
     transitivePeerDependencies:
       - supports-color
-
-  set-cookie-parser@2.7.2: {}
 
   set-cookie-parser@3.2.1: {}
 
@@ -19107,8 +18955,6 @@ snapshots:
       astral-regex: 2.0.0
       is-fullwidth-code-point: 3.0.0
 
-  smob@1.6.2: {}
-
   socket.io-adapter@2.5.8:
     dependencies:
       debug: 4.4.3(supports-color@5.5.0)
@@ -19160,6 +19006,7 @@ snapshots:
     dependencies:
       buffer-from: 1.1.2
       source-map: 0.6.1
+    optional: true
 
   source-map@0.6.1: {}
 
@@ -19492,6 +19339,7 @@ snapshots:
       acorn: 8.19.0
       commander: 2.20.3
       source-map-support: 0.5.21
+    optional: true
 
   text-decoder@1.2.7:
     dependencies:
@@ -19809,57 +19657,55 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite-plugin-devtools-json@1.1.2(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)):
+  vite-plugin-devtools-json@1.1.2(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       uuid: 14.0.3
-      vite: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
-  vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1):
+  vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1):
     dependencies:
-      esbuild: 0.28.2
-      fdir: 6.5.0(picomatch@4.0.7)
+      lightningcss: 1.33.0
       picomatch: 4.0.7
       postcss: 8.5.31
-      rollup: 4.64.12
+      rolldown: 1.2.15
       tinyglobby: 0.2.17
     optionalDependencies:
       '@types/node': 25.9.9
+      esbuild: 0.28.2
       fsevents: 2.3.3
       jiti: 2.7.0
-      lightningcss: 1.32.0
       terser: 5.51.2
       tsx: 4.23.15
       yaml: 2.9.1
 
-  vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1):
+  vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1):
     dependencies:
-      esbuild: 0.28.2
-      fdir: 6.5.0(picomatch@4.0.7)
+      lightningcss: 1.33.0
       picomatch: 4.0.7
       postcss: 8.5.31
-      rollup: 4.64.12
+      rolldown: 1.2.15
       tinyglobby: 0.2.17
     optionalDependencies:
       '@types/node': 26.6.5
+      esbuild: 0.28.2
       fsevents: 2.3.3
       jiti: 2.7.0
-      lightningcss: 1.32.0
       terser: 5.51.2
       tsx: 4.23.15
       yaml: 2.9.1
 
-  vitefu@1.1.3(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)):
+  vitefu@1.1.3(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)):
     optionalDependencies:
-      vite: 7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
-  vitefu@1.1.3(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)):
+  vitefu@1.1.3(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)):
     optionalDependencies:
-      vite: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
-  vitest@4.1.12(@opentelemetry/api@1.10.0)(@types/node@25.9.9)(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)):
+  vitest@4.1.12(@opentelemetry/api@1.10.0)(@types/node@25.9.9)(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@vitest/expect': 4.1.12
-      '@vitest/mocker': 4.1.12(vite@7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@vitest/mocker': 4.1.12(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@vitest/pretty-format': 4.1.12
       '@vitest/runner': 4.1.12
       '@vitest/snapshot': 4.1.12
@@ -19876,7 +19722,7 @@ snapshots:
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
       tinyrainbow: 3.2.0
-      vite: 7.3.7(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@opentelemetry/api': 1.10.0
@@ -19884,10 +19730,10 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  vitest@4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)):
+  vitest@4.1.12(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@vitest/expect': 4.1.12
-      '@vitest/mocker': 4.1.12(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@vitest/mocker': 4.1.12(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@vitest/pretty-format': 4.1.12
       '@vitest/runner': 4.1.12
       '@vitest/snapshot': 4.1.12
@@ -19904,7 +19750,7 @@ snapshots:
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
       tinyrainbow: 3.2.0
-      vite: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@opentelemetry/api': 1.10.0

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { gsap } from 'gsap'
-    import { type Player } from '@tabletop/common'
+    import type { Player } from '@tabletop/common'
     import {
         LowenherzProjectedPlayerState,
         MachineState,

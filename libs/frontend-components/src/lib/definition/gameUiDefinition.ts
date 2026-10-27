@@ -12,7 +12,7 @@ import type {
     HydratedGameState,
     Visibility
 } from '@tabletop/common'
-import { type Component } from 'svelte'
+import type { Component } from 'svelte'
 import type { GameColorizer } from './gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
