@@ -560,7 +560,7 @@
                             data-map-node={node.node.id}
                             cx={node.center.x}
                             cy={node.center.y}
-                            r="9"
+                            r={Math.max(9, node.dotRadius)}
                             fill="transparent"
                             role="button"
                             tabindex={available ? 0 : -1}

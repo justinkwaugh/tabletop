@@ -83,6 +83,18 @@ describe('tile drawing geometry', () => {
         expect(dot.dotRadius).toBeGreaterThan(bar.dotRadius)
     })
 
+    it('draws a city without station spaces as a dot the size of a station', () => {
+        const [city] = createTileDrawing(
+            createCityTileFace('gray', [0, 4, 5], 20, 0),
+            HexOrientation.Flat,
+            0,
+            undefined,
+            { citySlotRadius: 14.4 }
+        ).nodes
+        expect(city.slots).toEqual([])
+        expect(city.dotRadius).toBe(14.4)
+    })
+
     it('draws a continuous curve through a town with matching tangents', () => {
         const drawing = createTileDrawing(StandardTileCatalog.get('18xx:3').face)
         const [a, b] = drawing.paths
