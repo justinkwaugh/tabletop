@@ -33,7 +33,6 @@
     },
     "devDependencies": {
         "@playwright/test": "^1.42.1",
-        "@rollup/plugin-dynamic-import-vars": "^2.1.5",
         "@sveltejs/adapter-static": "^3.0.10",
         "@sveltejs/kit": "^2.70.3",
         "@sveltejs/vite-plugin-svelte": "^7.3.1",
