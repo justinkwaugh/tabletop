@@ -116,6 +116,7 @@ import { heldAttackTable } from './heldAttackTable.js'
 import { kinshipDissentTable, kinshipPlagueTable, kinshipWakeTable } from './kinshipTables.js'
 import { RecordedStory } from './recordedStory.js'
 import { tribunalAnswerTable, tribunalDealsTable, tribunalOfferTable } from './tribunalTables.js'
+import { longSeatNameTable } from './longSeatNameTables.js'
 
 export type TableName =
     | 'setup'
@@ -270,6 +271,12 @@ export type TableName =
     | 'tribunalDealsLong'
     | 'tribunalDealAskedLong'
     | 'tribunalDealsEndedLong'
+    | 'longSeatLetters'
+    | 'longSeatSpaces'
+    | 'longSeatTypical'
+    | 'longSeatCitizen'
+    | 'longSeatOneWord'
+    | 'longSeatOneWordExile'
     | 'woodTraveller'
     | 'woodRuler'
     | 'woodRulerToll'
@@ -5633,6 +5640,12 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     tribunalDealsLong: () => tribunalDealsTable('resolve', true),
     tribunalDealAskedLong: () => tribunalDealsTable('asked', true),
     tribunalDealsEndedLong: () => tribunalDealsTable('ended', true),
+    longSeatLetters: () => longSeatNameTable('letters'),
+    longSeatSpaces: () => longSeatNameTable('spaces'),
+    longSeatTypical: () => longSeatNameTable('typical'),
+    longSeatCitizen: () => longSeatNameTable('citizen'),
+    longSeatOneWord: () => longSeatNameTable('oneWord'),
+    longSeatOneWordExile: () => longSeatNameTable('oneWordExile'),
     woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),
     woodRuler: woodRulerTable,
     woodRulerToll: woodRulerTollTable,
