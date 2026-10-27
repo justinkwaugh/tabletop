@@ -1,4 +1,4 @@
-import { type HydratedAction, type MachineContext } from '@tabletop/common'
+import type { HydratedAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { canAttachAUnit } from '../model/attach.js'

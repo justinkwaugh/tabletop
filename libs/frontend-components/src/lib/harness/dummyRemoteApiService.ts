@@ -4,6 +4,7 @@ import type {
     AdminAssignableRole,
     Bookmark,
     GameCatalogEntry,
+    CharityTally,
     GameHistoryPage,
     UserGameStats,
     CanonicalActionReplay,
@@ -60,6 +61,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async getGameCatalog(): Promise<GameCatalogEntry[]> {
         return this.fail('getGameCatalog')
+    }
+
+    async getCharityTally(): Promise<CharityTally | undefined> {
+        return this.fail('getCharityTally')
     }
 
     async getMyGameHistory(): Promise<GameHistoryPage> {

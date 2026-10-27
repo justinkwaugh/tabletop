@@ -26,6 +26,7 @@ import {
     type HydratedGameState,
     GameEngine,
     createGameFork,
+    linkGameContinuation,
     GameForkError,
     GameStorage,
     GameCategory,
@@ -320,12 +321,18 @@ export class GameService implements GameServiceInterface {
             const runtime = await definition.runtime()
             const gameDefinition = { info: definition.info, runtime }
             const initializedGame = runtime.initializer.initializeGame(game, gameDefinition)
+            const continuation = await linkGameContinuation(
+                initializedGame,
+                options?.continueFromGameId,
+                gameDefinition,
+                async (sourceGameId) => (await this.localGameStore.loadGameData(sourceGameId)).game
+            )
 
             const engine = new GameEngine(runtime)
-            const { startedGame, initialState } = engine.startGame(
-                initializedGame,
-                options?.masterSeed
-            )
+            const { startedGame, initialState } = engine.startGame(initializedGame, {
+                masterSeed: options?.masterSeed,
+                continuation
+            })
 
             startedGame.activePlayerIds = initialState.activePlayerIds
 
@@ -399,6 +406,7 @@ export class GameService implements GameServiceInterface {
         const actionsData = actions.map((action) => structuredClone(action))
 
         gameData.activePlayerIds = stateData.activePlayerIds
+        gameData.canContinue = stateData.canContinue
 
         if (game.storage !== GameStorage.Local) {
             throw new Error('Can only save local games locally')

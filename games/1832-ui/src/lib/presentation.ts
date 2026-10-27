@@ -24,6 +24,8 @@ export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoS
     marketPoolId: 'open-market',
     ipoPoolId: 'initial-offering',
     companyNames: EighteenThirtyTwoCompanyNames,
+    // Redemption and reissue price from par after the initial offering sells out (§5.11).
+    companyPricePresentation: { showPar: true, parWithoutIpoShares: true, label: 'Value' },
     privatePurchaseHeading: 'Available privates',
     historyMapPlacement: eighteenThirtyTwoMapPlacement,
     privateTokens: {

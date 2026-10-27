@@ -16,7 +16,7 @@ import {
 } from '../data/cardPowers.js'
 import { banditRuledCardIds, denizensOnMap } from './access.js'
 import { isFacedownAdviserOf, rulesCard } from './access.js'
-import { type ImperialScope } from './rule.js'
+import type { ImperialScope } from './rule.js'
 import {
     addCosts,
     favorNeeded,

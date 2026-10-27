@@ -142,6 +142,10 @@ _Avoid_: Inactive game, expired game, timed-out game
 A new Game Instance derived from a selected position in another Game Instance’s Canonical Action History. It has its own identity, Owner, history, and lifecycle while retaining the source Game Title and Game Configuration. A Fork of a Tournament Game does not inherit its Tournament participation.
 _Avoid_: Exploration
 
+**Continuation**:
+A new Game Instance whose initial Game State is built from the final Game State of a Finished Game, for Game Titles whose play carries over from one game to the next. Any Player of the Finished Game may start one when its Game State offers continuation. It is created like any other Game Instance: the source's Game Title is fixed, while its Players, Game Configuration and name start as the source's and can be changed. One Finished Game may have many Continuations. Its setup is captured when it is created, so later Undo or deletion of the source cannot change it.
+_Avoid_: Fork, resumed game, sequel
+
 ## Stats
 
 **Counted Game**:

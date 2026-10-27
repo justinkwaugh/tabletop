@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type GameUiDefinition } from '@tabletop/frontend-components'
+    import type { GameUiDefinition } from '@tabletop/frontend-components'
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import { UiDefinition } from '../lib/definition/gameUiDefinition.js'
     import { Harness } from '@tabletop/frontend-components'

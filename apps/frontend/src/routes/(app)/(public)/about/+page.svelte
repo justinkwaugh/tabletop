@@ -1,9 +1,8 @@
 <script lang="ts">
-    import { ArrowRightOutline, DiscordSolid, GithubSolid } from 'flowbite-svelte-icons'
-    import { getAppContext } from '$lib/stores/appContext.svelte'
-
-    const { authorizationService } = getAppContext()
-    const libraryUrl = $derived(authorizationService.getSessionUser() ? '/library' : '/#games')
+    import { ArrowRightOutline, DiscordSolid, GithubSolid, HeartSolid } from 'flowbite-svelte-icons'
+    import LibraryLink from '$lib/components/project/LibraryLink.svelte'
+    import ProjectPrinciples from '$lib/components/project/ProjectPrinciples.svelte'
+    import Wordmark from '$lib/components/project/Wordmark.svelte'
 </script>
 
 <svelte:head>
@@ -17,19 +16,13 @@
 <main class="about-page collection-page">
     <header class="page-heading collection-header">
         <h1 class="collection-heading">About us</h1>
-        <a class="library-link" href={libraryUrl}>
-            Go to the library <ArrowRightOutline class="h-4 w-4" />
-        </a>
+        <LibraryLink label="Go to the library" />
     </header>
 
     <div class="introduction">
         <div class="intro-copy">
             <p class="lead">
-                <span class="whitespace-nowrap font-sans tracking-normal"
-                    ><span class="font-bold text-[#427ac7]">Board</span><span
-                        class="font-light text-gray-300">Together</span
-                    ></span
-                >
+                <Wordmark />
                 is a place to play board games online with friends.
             </p>
             <p class="welcome">
@@ -37,10 +30,7 @@
                 hear it.
             </p>
         </div>
-        <ul class="principles" aria-label="The project">
-            <li><strong>Always</strong> free to play.</li>
-            <li><strong>Fully</strong> open source.</li>
-        </ul>
+        <ProjectPrinciples />
     </div>
 
     <div class="community">
@@ -89,6 +79,20 @@
                 <span class="sr-only">(opens in a new tab)</span>
             </a>
         </section>
+
+        <section class="community-card" aria-labelledby="pay-it-forward-heading">
+            <div class="card-heading">
+                <HeartSolid class="h-7 w-7 shrink-0" />
+                <h2 id="pay-it-forward-heading">Pay it forward</h2>
+            </div>
+            <p>
+                We don’t want personal donations. If playing here has been worth something to you,
+                help bring games to people who need them.
+            </p>
+            <a class="community-link" href="/pay-it-forward">
+                See the charities <ArrowRightOutline class="h-4 w-4" />
+            </a>
+        </section>
     </div>
 </main>
 
@@ -103,13 +107,6 @@
         justify-content: space-between;
         flex-wrap: wrap;
         gap: 12px 24px;
-    }
-    .library-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        color: var(--color-blue-300);
-        font-size: 14px;
     }
     .introduction {
         display: grid;
@@ -133,21 +130,9 @@
         font-size: 15px;
         line-height: 1.7;
     }
-    .principles {
-        display: grid;
-        gap: 12px;
-        padding-left: 28px;
-        border-left: 2px solid var(--color-highlight-border);
-        font-family: 'Source Sans 3', sans-serif;
-        font-size: 21px;
-        line-height: 1.4;
-    }
-    .principles strong {
-        font-weight: 600;
-    }
     .community {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 24px;
         margin-top: 32px;
         align-items: start;
@@ -207,16 +192,21 @@
         outline-offset: 5px;
         border-radius: 3px;
     }
+    @media (900px < width <= 1100px) {
+        .contributions {
+            grid-template-columns: 1fr;
+        }
+    }
     @media (max-width: 900px) {
         .introduction {
             gap: 32px;
             grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
         }
+        .community {
+            grid-template-columns: 1fr;
+        }
         .community-card {
             padding: 24px;
-        }
-        .contributions {
-            grid-template-columns: 1fr;
         }
     }
     @media (max-width: 700px) {
@@ -230,11 +220,6 @@
         }
         .lead {
             font-size: 24px;
-        }
-        .principles {
-            font-size: 18px;
-            padding-left: 16px;
-            gap: 6px;
         }
         .community {
             grid-template-columns: 1fr;

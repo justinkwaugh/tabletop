@@ -1,8 +1,8 @@
-import {
-    type HydratedAction,
-    type HydratedGameState,
-    type MachineContext,
-    type MachineStateHandler
+import type {
+    HydratedAction,
+    HydratedGameState,
+    MachineContext,
+    MachineStateHandler
 } from '@tabletop/common'
 import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
@@ -18,7 +18,7 @@ import {
     HydratedRespondToPurchaseOffer
 } from '../transfers/offerPurchase.js'
 import { purchaseOfferActions } from '../transfers/purchaseOffersHandler.js'
-import { type TransferRules } from '../transfers/purchaseOffer.js'
+import type { TransferRules } from '../transfers/purchaseOffer.js'
 import { HydratedBuyPrivateTrain, privateTrainPurchase } from './buyPrivateTrain.js'
 import {
     pendingCompanyDecision,

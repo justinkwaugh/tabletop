@@ -7,7 +7,7 @@ import { BaseError } from '../../util/errors.js'
 import type { GameRuntime } from '../definition/gameDefinition.js'
 import { GameStatus, type Game } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
-import { type GameAction, type Patch } from './gameAction.js'
+import type { GameAction, Patch } from './gameAction.js'
 import { GameEngine } from './gameEngine.js'
 import { getGameVisibility } from '../visibility/gameVisibility.js'
 
@@ -87,6 +87,8 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
         delete fork.state
         delete fork.finishedAt
         delete fork.result
+        delete fork.canContinue
+        delete fork.continuedFromGameId
         delete fork.everFinished
         resetCopiedGameVoting(fork, inherited)
         fork.winningPlayerIds = []

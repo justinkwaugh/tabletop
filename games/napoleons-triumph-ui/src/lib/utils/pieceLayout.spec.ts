@@ -312,6 +312,60 @@ describe('a corps in reserve', () => {
     })
 })
 
+describe('a reserve of several groups in a locale long across the screen', () => {
+    const NARROW = 93
+
+    function crowded() {
+        const game = new TestGame()
+        game.deployBoth()
+        const map = game.hydrated.map
+        const beyond = (approach: number) => map.approach(approach).neighbour
+        const allied = (id: string, face: Face, facing?: number, commanderId?: string) => ({
+            id,
+            side: Side.Allied,
+            face,
+            locale: NARROW,
+            facing,
+            commanderId
+        })
+        arrangeBattlefield(game, [
+            allied('blocking-322', infantry(2), beyond(322)),
+            allied('blocking-283', infantry(2), beyond(283)),
+            allied('blocking-321', infantry(2), beyond(321)),
+            allied('langeron-0', infantry(2), undefined, 'langeron'),
+            allied('liechtenstein-0', infantry(1), undefined, 'liechtenstein'),
+            allied('liechtenstein-1', infantry(1), undefined, 'liechtenstein'),
+            allied('detached', cavalry(2))
+        ])
+        return layoutPieces(game.hydrated, { rotation: viewRotation(BoardView.Allied) })
+    }
+
+    function reserve() {
+        return crowded().filter((sprite) => sprite.group.position.approach === undefined)
+    }
+
+    it('keeps every block of it inside its locale', () => {
+        const { outline } = LOCALE_GEOMETRY[NARROW]
+        const blocks = reserve().flatMap((sprite) => sprite.blocks)
+        expect(blocks).toHaveLength(4)
+        for (const block of blocks) {
+            expect(insidePolygon(block.centre, outline)).toBe(true)
+        }
+    })
+
+    it('stands its groups side by side where one column would not fit', () => {
+        const rotation = viewRotation(BoardView.Allied)
+        const across = (commanderId: string) => {
+            const sprite = reserve().find((sprite) => sprite.group.commander?.id === commanderId)
+            assertExists(sprite, `${commanderId} stands in reserve`)
+            return toView(sprite.centre, rotation).x
+        }
+        expect(Math.abs(across('langeron') - across('liechtenstein'))).toBeGreaterThanOrEqual(
+            BLOCK_LENGTH
+        )
+    })
+})
+
 describe('stacks short of room', () => {
     const SMALL = 110
     const ROOMY = 94

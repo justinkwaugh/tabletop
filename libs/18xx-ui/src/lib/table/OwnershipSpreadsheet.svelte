@@ -433,12 +433,13 @@
                 session.gameState.stockMarket,
                 company.id
             ),
-            // Par is the IPO purchase price, so it only matters while the IPO is selling.
+            // Par is the IPO purchase price, so it only matters while the IPO is selling,
+            // unless the title still prices company actions from it.
             par:
                 ipoPoolId &&
                 company.started &&
                 !company.closed &&
-                poolShares(ipoPoolId, company.id) > 0
+                (pricePresentation.parWithoutIpoShares || poolShares(ipoPoolId, company.id) > 0)
                     ? company.parPrice
                     : undefined,
             stations: session.gameState.stations.filter(

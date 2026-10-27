@@ -65,7 +65,10 @@ export type TileDrawnNode = {
     /** Station circle radius: the style's size, reduced so neighbouring cities on the tile stay apart. */
     slotRadius: number
     townAngle?: number
-    /** Radius of a town, or a city without station spaces, drawn as a dot: larger where three or more tracks meet. */
+    /**
+     * Radius of a node drawn as a dot: a town's is larger where three or more tracks meet, and a
+     * city without station spaces fills a station circle, since it is still a city.
+     */
     dotRadius: number
 }
 
@@ -322,7 +325,13 @@ export function createTileDrawing(
                 others.map((other) => Math.hypot(point.x - other.x, point.y - other.y))
             )
         )
-        return { ...drawn, slotRadius: Math.min(citySlotRadius, nearest / 2 - 0.75) }
+        const slotRadius = Math.min(citySlotRadius, nearest / 2 - 0.75)
+        return {
+            ...drawn,
+            slotRadius,
+            dotRadius:
+                drawn.node.kind === 'city' && !drawn.slots.length ? slotRadius : drawn.dotRadius
+        }
     })
     const labelPosition = layout.labelPosition
         ? orientPoint(layout.labelPosition, angle)
