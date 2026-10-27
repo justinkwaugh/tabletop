@@ -16,7 +16,10 @@ const ably = vi.hoisted(() => {
         state = 'initialized'
         subscribe = vi.fn(async () => {})
         attach = vi.fn(async () => {})
+        detach = vi.fn(async () => {})
+        unsubscribe = vi.fn()
         on = vi.fn()
+        off = vi.fn()
         constructor(readonly name: string) {}
     }
     class FakeRealtime {
@@ -98,6 +101,25 @@ async function connectionWithTwoChannels() {
 }
 
 const game = (id: string) => new ChannelIdentifier(NotificationChannel.GameInstance, id)
+
+class Gate<T = void> {
+    readonly promise: Promise<T>
+    open: (value: T) => void = () => {}
+    constructor() {
+        this.promise = new Promise<T>((resolve) => {
+            this.open = resolve
+        })
+    }
+}
+
+async function connectedWithGame(gameId: string) {
+    const { api, connection, realtime } = await connectionWithTwoChannels()
+    await connection.addChannel(game(gameId))
+    await realtime.connected()
+    const gameChannel = realtime.channels.get(`game-${gameId}`)
+    expect(gameChannel.subscribe).toHaveBeenCalledOnce()
+    return { api, connection, realtime, gameChannel }
+}
 
 describe('requesting realtime grants', () => {
     it('asks for a token covering the game channels it holds', async () => {
@@ -206,5 +228,101 @@ describe('resubscribing channels when the realtime feed connects', () => {
             failure
         )
         expect(global.subscribe).toHaveBeenCalledOnce()
+    })
+})
+
+describe('removing a channel while it is still being authorized or detached', () => {
+    it('does not subscribe a channel removed while its grants are being authorized', async () => {
+        const { api, connection, realtime } = await connectionWithTwoChannels()
+        await realtime.connected()
+        const token = new Gate<AblyTokenRequest>()
+        api.getAblyToken.mockReturnValueOnce(token.promise)
+        const gameChannel = realtime.channels.get('game-g1')
+
+        const adding = connection.addChannel(game('g1'))
+        await settled()
+        expect(api.getAblyToken).toHaveBeenLastCalledWith(['g1'])
+        const removing = connection.removeChannel(game('g1'))
+        token.open(tokenRequest(['g1']))
+        await Promise.all([adding, removing])
+
+        expect(gameChannel.subscribe).not.toHaveBeenCalled()
+        expect(gameChannel.attach).not.toHaveBeenCalled()
+        expect(gameChannel.off).toHaveBeenCalledOnce()
+        expect(gameChannel.unsubscribe).toHaveBeenCalledOnce()
+        expect(gameChannel.detach).toHaveBeenCalledOnce()
+    })
+
+    it('does not resubscribe on reconnect a channel whose removal is still detaching', async () => {
+        const { api, connection, realtime } = await connectionWithTwoChannels()
+        await realtime.requestToken()
+        await connection.addChannel(game('g1'))
+        const gameChannel = realtime.channels.get('game-g1')
+        const detached = new Gate()
+        gameChannel.detach.mockReturnValueOnce(detached.promise)
+        const token = new Gate<AblyTokenRequest>()
+        api.getAblyToken.mockReturnValueOnce(token.promise)
+        realtime.connection.state = 'connected'
+
+        realtime.emitConnected()
+        await settled()
+        expect(api.getAblyToken).toHaveBeenLastCalledWith(['g1'])
+        const removing = connection.removeChannel(game('g1'))
+        token.open(tokenRequest(['g1']))
+        await settled()
+        detached.open()
+        await removing
+
+        expect(gameChannel.subscribe).not.toHaveBeenCalled()
+        expect(gameChannel.attach).not.toHaveBeenCalled()
+        expect(realtime.channels.get('user-user').subscribe).toHaveBeenCalledOnce()
+        expect(realtime.channels.get('global').subscribe).toHaveBeenCalledOnce()
+    })
+
+    it('subscribes a channel added again once its pending removal has detached', async () => {
+        const { api, connection, realtime, gameChannel } = await connectedWithGame('g1')
+        const detached = new Gate()
+        gameChannel.detach.mockReturnValueOnce(detached.promise)
+
+        const removing = connection.removeChannel(game('g1'))
+        const adding = connection.addChannel(game('g1'))
+        await settled()
+        expect(gameChannel.subscribe).toHaveBeenCalledOnce()
+        detached.open()
+        await Promise.all([removing, adding])
+
+        expect(gameChannel.subscribe).toHaveBeenCalledTimes(2)
+        expect(gameChannel.unsubscribe.mock.invocationCallOrder[0]).toBeLessThan(
+            gameChannel.subscribe.mock.invocationCallOrder[1]
+        )
+        expect(realtime.auth.authorize).not.toHaveBeenCalled()
+        expect(api.getAblyToken).toHaveBeenCalledOnce()
+
+        await connection.removeChannel(game('g1'))
+        expect(gameChannel.detach).toHaveBeenCalledTimes(2)
+    })
+
+    it('keeps a channel re-added while an earlier addition is still being authorized', async () => {
+        const { api, connection, realtime } = await connectionWithTwoChannels()
+        await realtime.connected()
+        const token = new Gate<AblyTokenRequest>()
+        api.getAblyToken.mockReturnValueOnce(token.promise)
+        const gameChannel = realtime.channels.get('game-g1')
+
+        const adding = connection.addChannel(game('g1'))
+        await settled()
+        await connection.removeChannel(game('g1'))
+        const addingAgain = connection.addChannel(game('g1'))
+        await settled()
+        token.open(tokenRequest(['g1']))
+        await Promise.all([adding, addingAgain])
+
+        expect(gameChannel.subscribe).toHaveBeenCalledOnce()
+        expect(gameChannel.unsubscribe.mock.invocationCallOrder[0]).toBeLessThan(
+            gameChannel.subscribe.mock.invocationCallOrder[0]
+        )
+
+        await connection.removeChannel(game('g1'))
+        expect(gameChannel.detach).toHaveBeenCalledTimes(2)
     })
 })
