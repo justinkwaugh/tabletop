@@ -55,16 +55,32 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         async function createAccount() {
             const index = sequence++
             const username = `Person-${run}-${index}`
+            const email = `person-${run}-${index}@example.test`
             const account: User = {
                 id: `${run}-${index}`,
                 status: UserStatus.Active,
                 username,
-                email: `person-${run}-${index}@example.test`,
+                email,
                 emailVerified: true,
                 roles: [Role.User],
                 externalIds: []
             }
-            return { ...(await userStore.createUser(account, ORIGINAL_PASSWORD)), username }
+            return { ...(await userStore.createUser(account, ORIGINAL_PASSWORD)), username, email }
+        }
+
+        function replacementIdentity(account: { id: string }) {
+            return {
+                username: `Renamed-${account.id}`,
+                email: `renamed-${account.id}@example.test`
+            }
+        }
+
+        async function uniquenessEntries(identity: { username: string; email: string }) {
+            const [username, email] = await Promise.all([
+                firestore.collection('userUsernames').doc(identity.username.toLowerCase()).get(),
+                firestore.collection('userEmails').doc(identity.email).get()
+            ])
+            return { username: username.exists, email: email.exists }
         }
 
         async function holderOf(username: string, password: string): Promise<User> {
@@ -205,6 +221,74 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(await storedGeneration(account.id)).toBe(2)
             expect((await challenges.doc(`${account.id}-set`).get()).get('consumed')).toBe(true)
             expect((await challenges.doc(`${account.id}-update`).get()).get('consumed')).toBe(true)
+            await expect(login(account.username, ORIGINAL_PASSWORD)).resolves.toBeDefined()
+        })
+
+        it('commits a new username and email, the new credential and a reading participant together', async () => {
+            const account = await createAccount()
+            const replacement = replacementIdentity(account)
+            const copied = await login(account.username, ORIGINAL_PASSWORD)
+            const challenge = firestore.collection('challenges').doc(`${account.id}-combined`)
+            await challenge.set({ consumed: false })
+            const consume: TransactionParticipant = async (transaction) => {
+                expect((await transaction.get(challenge)).get('consumed')).toBe(false)
+                transaction.update(challenge, { consumed: true })
+            }
+
+            const [updated, updatedFields] = await userStore.updateUser({
+                userId: account.id,
+                fields: replacement,
+                password: NEW_PASSWORD,
+                currentPassword: ORIGINAL_PASSWORD,
+                participant: consume
+            })
+
+            expect(updatedFields).toEqual(expect.arrayContaining(['username', 'email', 'password']))
+            expect(updated).toMatchObject({ ...replacement, sessionGeneration: 1 })
+            expect(await storedGeneration(account.id)).toBe(1)
+            expect(await uniquenessEntries(account)).toEqual({ username: false, email: false })
+            expect(await uniquenessEntries(replacement)).toEqual({ username: true, email: true })
+            expect((await challenge.get()).get('consumed')).toBe(true)
+            await expect(authorize(copied.id)).resolves.toBeUndefined()
+            await expect(tryLogin(account.username, NEW_PASSWORD)).resolves.toBeUndefined()
+            await expect(tryLogin(replacement.username, ORIGINAL_PASSWORD)).resolves.toBeUndefined()
+            await expect(login(replacement.username, NEW_PASSWORD)).resolves.toBeDefined()
+        })
+
+        it('leaves the Account, its uniqueness entries and its sessions unchanged when the participant refuses a combined update', async () => {
+            const account = await createAccount()
+            const replacement = replacementIdentity(account)
+            const copied = await login(account.username, ORIGINAL_PASSWORD)
+            const challenge = firestore.collection('challenges').doc(`${account.id}-consumed`)
+            await challenge.set({ consumed: true })
+            const consumeOnce: TransactionParticipant = async (transaction) => {
+                if ((await transaction.get(challenge)).get('consumed')) {
+                    throw new Error('synthetic challenge already consumed')
+                }
+                transaction.update(challenge, { consumed: true })
+            }
+
+            await expect(
+                userStore.updateUser({
+                    userId: account.id,
+                    fields: replacement,
+                    password: NEW_PASSWORD,
+                    currentPassword: ORIGINAL_PASSWORD,
+                    participant: consumeOnce
+                })
+            ).rejects.toThrow()
+
+            const stored = await userStore.findById(account.id)
+            expect(stored).toMatchObject({
+                username: account.username,
+                email: account.email,
+                status: UserStatus.Active
+            })
+            expect(stored?.sessionGeneration).toBeUndefined()
+            expect(await uniquenessEntries(account)).toEqual({ username: true, email: true })
+            expect(await uniquenessEntries(replacement)).toEqual({ username: false, email: false })
+            await expect(authorize(copied.id)).resolves.toMatchObject({ session: copied })
+            await expect(tryLogin(replacement.username, NEW_PASSWORD)).resolves.toBeUndefined()
             await expect(login(account.username, ORIGINAL_PASSWORD)).resolves.toBeDefined()
         })
 
