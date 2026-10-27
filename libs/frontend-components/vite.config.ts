@@ -7,7 +7,9 @@ export default defineProject(
         plugins: [sveltekit()],
         // Vite 8 resolves an SSR-externalized CSS @import as a relative file (vitejs/vite#23096).
         ssr: { noExternal: ['tailwindcss'] },
-        optimizeDeps: { entries: ['src/lib/model/tests/*.fixture.ts'] },
+        optimizeDeps: {
+            entries: ['src/lib/**/tests/*.fixture.ts', 'src/lib/**/tests/*.fixture.svelte.ts']
+        },
         server: {
             port: 5174
         }
