@@ -24,6 +24,7 @@ import {
     GameSyncStatus,
     GameValidator,
     GameHistoryPage,
+    TitleActivity,
     UserGameStats,
     SiteStatsNow,
     CharityTally,
@@ -439,6 +440,22 @@ export class TabletopApi {
             .json<GamesResponse>()
 
         return response.payload.games.map((game) => this.validateGame(game))
+    }
+
+    async getTitleActivity(titleId: string): Promise<TitleActivity> {
+        const response = await this.wretch
+            .get(`/games/activity/${encodeURIComponent(titleId)}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .error(503, this.handleError)
+            .json<unknown>()
+        Value.Assert(Type.Object({ payload: Type.Object({ activity: Type.Unknown() }) }), response)
+        const activity = Value.Default(
+            TitleActivity,
+            Value.Convert(TitleActivity, response.payload.activity)
+        )
+        Value.Assert(TitleActivity, activity)
+        return activity
     }
 
     listTournaments(query: TournamentListQuery) {

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import type { Game, Tournament, User } from '@tabletop/common'
-import { GameStatus, PlayerStatus, UserStatus, Role } from '@tabletop/common'
+import { GameResult, GameStatus, PlayerStatus, UserStatus, Role } from '@tabletop/common'
 import { mockLibrary } from './fixtures/library'
 
 const player: User = {
@@ -73,6 +73,11 @@ test.beforeEach(async ({ page }) => {
     )
     await page.route('**/api/v1/games/open/*', (route) =>
         route.fulfill({ json: { payload: { games: [] } } })
+    )
+    await page.route('**/api/v1/games/activity/*', (route) =>
+        route.fulfill({
+            json: { status: 'ok', payload: { activity: { inProgress: [], recentlyFinished: [] } } }
+        })
     )
     await page.route('**/api/v1/tournaments/**', (route) =>
         route.fulfill({ json: { status: 'ok', payload: { tournaments: [] } } })
@@ -355,6 +360,126 @@ test('each activity section can recover from a request failure', async ({ page }
     await section.getByRole('button', { name: 'Try again' }).click()
     await expect(section.getByText('Recovered game')).toBeVisible()
     expect(attempts).toBe(2)
+})
+
+function publicGame(id: string, status: GameStatus.Started | GameStatus.Finished): Game {
+    return {
+        ...game(id, `Public ${id}`, false),
+        status,
+        players: [
+            {
+                id: 'seat-1',
+                isHuman: true,
+                userId: 'other-player',
+                name: 'Other player',
+                status: PlayerStatus.Joined
+            },
+            {
+                id: 'seat-2',
+                isHuman: true,
+                userId: 'third-player',
+                name: 'Third player',
+                status: PlayerStatus.Joined
+            }
+        ],
+        ...(status === GameStatus.Finished
+            ? {
+                  result: GameResult.Win,
+                  winningPlayerIds: ['seat-1'],
+                  finishedAt: new Date('2026-09-02')
+              }
+            : { activePlayerIds: ['seat-1'] })
+    }
+}
+
+test('the game page lists public games in progress and recently finished', async ({ page }) => {
+    const inProgress = Array.from({ length: 13 }, (_, index) =>
+        publicGame(`playing-${index}`, GameStatus.Started)
+    )
+    const recentlyFinished = Array.from({ length: 4 }, (_, index) =>
+        publicGame(`finished-${index}`, GameStatus.Finished)
+    )
+    let requests = 0
+    await page.route('**/api/v1/games/activity/landing-0', (route) => {
+        requests++
+        return route.fulfill({
+            json: { status: 'ok', payload: { activity: { inProgress, recentlyFinished } } }
+        })
+    })
+    await page.goto('/library/landing-0')
+    const playing = page.getByRole('region', { name: 'In progress' })
+    const finished = page.getByRole('region', { name: 'Recently finished' })
+
+    await expect(playing.getByText('13', { exact: true })).toBeVisible()
+    await expect(playing.getByRole('button', { name: 'Watch', exact: true })).toHaveCount(10)
+    await expect(playing.getByText('Public playing-9', { exact: true })).toBeVisible()
+    await expect(playing.getByText('Public playing-10', { exact: true })).toHaveCount(0)
+    await playing.getByRole('button', { name: 'Show 3 more' }).click()
+    await expect(playing.getByRole('button', { name: 'Watch', exact: true })).toHaveCount(13)
+    await expect(playing.getByRole('button', { name: /Show \d+ more/ })).toHaveCount(0)
+
+    await expect(finished.getByRole('button', { name: 'Revisit', exact: true })).toHaveCount(4)
+    await expect(finished.getByRole('button', { name: /Show \d+ more/ })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Open games' })).toContainText(
+        'No open tables right now.'
+    )
+    for (const width of [320, 390, 768, 1440]) {
+        await page.setViewportSize({ width, height: 900 })
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width)
+    }
+    const [playingBox, finishedBox] = await Promise.all([
+        playing.boundingBox(),
+        finished.boundingBox()
+    ])
+    expect(playingBox?.y).toBe(finishedBox?.y)
+    await page.setViewportSize({ width: 390, height: 900 })
+    expect((await finished.boundingBox())?.y).toBeGreaterThan((await playing.boundingBox())?.y ?? 0)
+    expect(requests).toBe(1)
+})
+
+test('public activity failures leave the other sections working', async ({ page }) => {
+    let attempts = 0
+    await page.route('**/api/v1/games/activity/landing-0', (route) => {
+        attempts++
+        if (attempts === 1)
+            return route.fulfill({
+                status: 503,
+                json: {
+                    status: 'error',
+                    error: { name: 'TitleActivityUnavailable', message: 'Unavailable' }
+                }
+            })
+        if (attempts === 2) return route.fulfill({ status: 500, json: {} })
+        return route.fulfill({
+            json: {
+                status: 'ok',
+                payload: {
+                    activity: {
+                        inProgress: [publicGame('recovered', GameStatus.Started)],
+                        recentlyFinished: []
+                    }
+                }
+            }
+        })
+    })
+    await page.route('**/api/v1/games/open/landing-0', (route) =>
+        route.fulfill({ json: { payload: { games: [game('open', 'Everyone welcome', false)] } } })
+    )
+    await page.goto('/library/landing-0')
+    const playing = page.getByRole('region', { name: 'In progress' })
+    const finished = page.getByRole('region', { name: 'Recently finished' })
+
+    await expect(playing).toContainText('temporarily unavailable')
+    await expect(finished).toContainText('temporarily unavailable')
+    await expect(page.getByRole('region', { name: 'Open games' })).toContainText('Everyone welcome')
+    await expect(page.getByText('No tournaments to show for this game right now.')).toBeVisible()
+
+    await playing.getByRole('button', { name: 'Try again' }).click()
+    await expect(playing.getByRole('alert')).toContainText('couldn’t load')
+    await finished.getByRole('button', { name: 'Try again' }).click()
+    await expect(playing.getByText('Public recovered', { exact: true })).toBeVisible()
+    await expect(finished).toContainText('No public games of this title have finished yet.')
+    expect(attempts).toBe(3)
 })
 
 test('unavailable and hidden beta titles do not open a game page', async ({ page }) => {
