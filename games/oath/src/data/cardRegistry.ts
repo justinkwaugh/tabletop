@@ -8,6 +8,7 @@ import order from './denizens.order.data.js'
 import { SITE_DEFINITIONS } from './sites.js'
 import { RELIC_DEFINITIONS } from './relics.js'
 import { VISION_DEFINITIONS } from './visions.js'
+import { EDIFICE_DEFINITIONS } from './edifices.js'
 import { type CardPlacement, SUIT_BY_NAME } from './typedData.js'
 import type { PowerRecord } from './cardPowers.js'
 
@@ -69,7 +70,12 @@ for (const shard of [arcane, beast, discord, hearth, nomad, order]) {
     }
 }
 
-for (const definition of [...VISION_DEFINITIONS, ...SITE_DEFINITIONS, ...RELIC_DEFINITIONS]) {
+for (const definition of [
+    ...VISION_DEFINITIONS,
+    ...SITE_DEFINITIONS,
+    ...RELIC_DEFINITIONS,
+    ...EDIFICE_DEFINITIONS
+]) {
     byId.set(definition.id, definition)
 }
 
