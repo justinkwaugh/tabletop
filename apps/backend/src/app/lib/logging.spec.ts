@@ -1,9 +1,15 @@
 import Fastify, { type FastifyInstance } from 'fastify'
 import { BaseError } from '@tabletop/common'
-import { afterEach, describe, expect, it } from 'vitest'
-import { concealUrlQuery, loggableUrl, loggerOptions } from './logging.js'
+import { concealedCause, secretReference } from '@tabletop/backend-services'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+vi.hoisted(() => {
+    vi.stubEnv('GCLOUD_PROJECT', 'demo-tabletop')
+})
+import { LoggingBoundary } from './logging.js'
 
 const SSE_TOKEN = 'SYNTHETIC-SSE-TOKEN-7f3a'
+const SHORT_CODE = 'AbC456'
 const CODE = 'SYNTHETIC-PROVIDER-CODE'
 const STATE = 'login.SYNTHETIC-STATE-NONCE'
 const SESSION_ID = 'SYNTHETIC-SESSION-ID-9c1d'
@@ -15,11 +21,12 @@ afterEach(async () => {
     servers.clear()
 })
 
-export function capturingServer() {
+function capturingServer() {
     const lines: string[] = []
+    const logging = new LoggingBoundary()
     const server = Fastify({
         logger: {
-            ...loggerOptions,
+            ...logging.loggerOptions,
             stream: {
                 write: (line: string) => {
                     lines.push(line)
@@ -27,31 +34,31 @@ export function capturingServer() {
             }
         }
     })
+    logging.observeRoutes(server)
+    server.get('/api/v1/sse/user/:token', async () => ({}))
+    server.get('/api/v1/sse/game/:gameId/:token', async () => ({}))
+    server.get('/api/v1/invitation/token/:token', async () => ({}))
+    server.get('/api/v1/auth/discord/callback', async () => ({}))
+    server.get('/api/v1/games/mine', async () => ({}))
     servers.add(server)
-    return { server, logged: () => lines.join('') }
+    return { server, logging, logged: () => lines.join('') }
 }
 
 describe('request log lines', () => {
-    it('mask credential path and query parameters and keep the rest of the URL', async () => {
+    it('mask credential path and query parameters of matched requests', async () => {
         const { server, logged } = capturingServer()
-        server.get<{ Params: { token: string } }>('/sse/user/:token', async () => ({}))
-        server.get<{ Params: { gameId: string; token: string } }>(
-            '/sse/game/:gameId/:token',
-            async () => ({})
-        )
-        server.get('/oauth/callback', async () => ({}))
 
-        await server.inject({ method: 'GET', url: `/sse/user/${SSE_TOKEN}` })
-        await server.inject({ method: 'GET', url: `/sse/game/game-42/${SSE_TOKEN}` })
+        await server.inject({ method: 'GET', url: `/api/v1/sse/user/${SSE_TOKEN}` })
+        await server.inject({ method: 'GET', url: `/api/v1/sse/game/game-42/${SSE_TOKEN}` })
         await server.inject({
             method: 'GET',
-            url: `/oauth/callback?code=${CODE}&state=${STATE}&game=game-42`
+            url: `/api/v1/auth/discord/callback?code=${CODE}&state=${STATE}&game=game-42`
         })
 
-        expect(logged()).toContain('"url":"/sse/user/[redacted]"')
-        expect(logged()).toContain('"url":"/sse/game/game-42/[redacted]"')
+        expect(logged()).toContain('"url":"/api/v1/sse/user/[redacted]"')
+        expect(logged()).toContain('"url":"/api/v1/sse/game/game-42/[redacted]"')
         expect(logged()).toContain(
-            '"url":"/oauth/callback?code=[redacted]&state=[redacted]&game=game-42"'
+            '"url":"/api/v1/auth/discord/callback?code=[redacted]&state=[redacted]&game=game-42"'
         )
         expect(logged()).toContain('"statusCode":200')
         expect(logged()).not.toContain(SSE_TOKEN)
@@ -59,25 +66,69 @@ describe('request log lines', () => {
         expect(logged()).not.toContain(STATE)
     })
 
-    it('mask a credential path parameter the route declared under any credential name', () => {
-        expect(
-            loggableUrl({
-                url: `/api/v1/invitation/token/${SSE_TOKEN}?x=1`,
-                params: { token: SSE_TOKEN }
-            })
-        ).toBe('/api/v1/invitation/token/[redacted]?x=1')
-        expect(
-            loggableUrl({
-                url: `/email/passwordReset/account-1.${SSE_TOKEN}`,
-                params: { challenge: `account-1.${SSE_TOKEN}` }
-            })
-        ).toBe('/email/passwordReset/[redacted]')
-        expect(loggableUrl({ url: '/api/v1/games/mine?page=2', params: {} })).toBe(
-            '/api/v1/games/mine?page=2'
+    it('mask a credential path of a rejected request in the request line and the 404 message', async () => {
+        const { server, logged } = capturingServer()
+
+        const wrongMethod = await server.inject({
+            method: 'POST',
+            url: `/api/v1/sse/user/${SHORT_CODE}`
+        })
+        await server.inject({
+            method: 'DELETE',
+            url: `/api/v1/sse/game/game-42/${SHORT_CODE}?state=${STATE}&page=2`
+        })
+        await server.inject({ method: 'POST', url: `/api/v1/invitation/token/${SHORT_CODE}` })
+        await server.inject({ method: 'POST', url: '/api/v1/games/mine?page=2' })
+
+        expect(wrongMethod.statusCode).toBe(404)
+        expect(logged()).toContain('"url":"/api/v1/sse/user/[redacted]"')
+        expect(logged()).toContain('Route POST:/api/v1/sse/user/[redacted] not found')
+        expect(logged()).toContain(
+            'Route DELETE:/api/v1/sse/game/game-42/[redacted]?state=[redacted]&page=2 not found'
         )
-        expect(concealUrlQuery(`https://site.test/oauth/discord?code=${CODE}&state=${STATE}`)).toBe(
-            'https://site.test/oauth/discord?code=[redacted]&state=[redacted]'
+        expect(logged()).toContain('Route POST:/api/v1/invitation/token/[redacted] not found')
+        expect(logged()).toContain('Route POST:/api/v1/games/mine?page=2 not found')
+        expect(logged()).toContain('"statusCode":404')
+        expect(logged()).not.toContain(SHORT_CODE)
+        expect(logged()).not.toContain(STATE)
+    })
+
+    it('mask structured URL fields the way the rate limiter logs them', () => {
+        const { server, logged } = capturingServer()
+
+        server.log.warn(
+            { key: 'client:10.0.0.1', url: `/api/v1/sse/user/${SHORT_CODE}` },
+            'Request limit exceeded'
         )
+        server.log.warn(
+            { ingressPeer: '10.0.0.2', url: `/api/v1/sse/game/game-42/${SHORT_CODE}?code=${CODE}` },
+            'Hosting peer request limit exceeded'
+        )
+
+        expect(logged()).toContain('"key":"client:10.0.0.1"')
+        expect(logged()).toContain('"url":"/api/v1/sse/user/[redacted]"')
+        expect(logged()).toContain('"url":"/api/v1/sse/game/game-42/[redacted]?code=[redacted]"')
+        expect(logged()).not.toContain(SHORT_CODE)
+        expect(logged()).not.toContain(CODE)
+    })
+
+    it('mask credential paths and parameters inside message text and interpolated arguments', () => {
+        const { server, logged } = capturingServer()
+
+        server.log.info(
+            'redirecting to https://site.test/api/v1/invitation/token/%s after %s',
+            SHORT_CODE,
+            `https://site.test/oauth?state=${STATE}`
+        )
+        server.log.info(`presented Bearer ${SSE_TOKEN} for /api/v1/games/mine`)
+
+        expect(logged()).toContain(
+            'redirecting to https://site.test/api/v1/invitation/token/[redacted] after https://site.test/oauth?state=[redacted]'
+        )
+        expect(logged()).toContain('presented Bearer [redacted] for /api/v1/games/mine')
+        expect(logged()).not.toContain(SHORT_CODE)
+        expect(logged()).not.toContain(STATE)
+        expect(logged()).not.toContain(SSE_TOKEN)
     })
 })
 
@@ -137,5 +188,48 @@ describe('logged objects and errors', () => {
         expect(logged()).toContain('"token":"[redacted]"')
         expect(logged()).not.toContain(SESSION_ID)
         expect(logged()).not.toContain(SSE_TOKEN)
+    })
+
+    it('conceal a provider error quoting a short code in a custom response class without digesting it', () => {
+        const { server, logged } = capturingServer()
+        class ProviderResponse {
+            constructor(
+                readonly details: string,
+                readonly headers: Map<string, string>
+            ) {}
+        }
+        const provider = Object.assign(
+            new Error(
+                `Resend rejected https://api.test/send?token=${SHORT_CODE} for ${SHORT_CODE}`
+            ),
+            {
+                response: new ProviderResponse(
+                    `provider quoted ${SHORT_CODE}`,
+                    new Map([['x-request-id', 'req-1']])
+                ),
+                cause: new Error(`socket closed while sending ${SHORT_CODE}`)
+            }
+        )
+        const delivery = new BaseError({
+            name: 'EmailDeliveryError',
+            message: 'The password-reset email could not be delivered',
+            metadata: { kind: 'password-reset' },
+            cause: concealedCause(provider, [SHORT_CODE])
+        })
+
+        server.log.error({ err: concealedCause(provider, [SHORT_CODE]) }, 'Delivery failed')
+        server.log.error({ err: delivery }, 'Request failed')
+
+        expect(logged()).toContain('"kind":"password-reset"')
+        expect(logged()).toContain('"details":"provider quoted [redacted]"')
+        expect(logged()).toContain(
+            'Resend rejected https://api.test/send?token=[redacted] for [redacted]'
+        )
+        expect(logged()).toContain('socket closed while sending [redacted]')
+        expect(logged()).not.toContain(SHORT_CODE)
+        expect(logged()).not.toContain(secretReference(SHORT_CODE))
+        expect(provider.message).toContain(SHORT_CODE)
+        expect(provider.response.details).toContain(SHORT_CODE)
+        expect(provider.cause.message).toContain(SHORT_CODE)
     })
 })

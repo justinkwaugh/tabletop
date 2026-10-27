@@ -1,6 +1,7 @@
 import { RequestTimings } from '../diagnostics/requestTimings.js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
+import { inspect } from 'node:util'
 import { setTimeout as delay } from 'node:timers/promises'
 import { Firestore } from '@google-cloud/firestore'
 import {
@@ -165,7 +166,7 @@ describe('cache write locking', () => {
         expect(exec).toHaveBeenCalledTimes(1)
         expect(report).toHaveBeenCalledWith(
             'Cache write outcome is uncertain; retaining protection until expiry',
-            expect.objectContaining({ writerOutcome: 'unknown', error: failure })
+            expect.objectContaining({ writerOutcome: 'unknown', failure: { name: 'Error' } })
         )
     })
 
@@ -954,5 +955,47 @@ describe('cache misses', () => {
             })
         ).rejects.toBe(failure)
         expect(exec).not.toHaveBeenCalled()
+    })
+})
+
+describe('cache diagnostics', () => {
+    const SESSION_ID = 'SYNTHETIC-SESSION-ID-0123456789'
+    const reportedBy = (report: { mock: { calls: unknown[][] } }) =>
+        report.mock.calls.map((call) => inspect(call, { depth: 20 })).join('\n')
+
+    it('report a failed writer by key family and failure kind, never by key or message', async () => {
+        const { cache } = fixture()
+        const report = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const failure = Object.assign(
+            new Error(`5 NOT_FOUND: No document to update: sessions/${SESSION_ID}`),
+            { code: 5 }
+        )
+
+        await expect(
+            cache.lockWhileWriting([`session-${SESSION_ID}`], async () => {
+                throw failure
+            })
+        ).rejects.toBe(failure)
+
+        expect(reportedBy(report)).toContain('Cache write outcome is uncertain')
+        expect(reportedBy(report)).toContain("keyFamilies: [ 'session' ]")
+        expect(reportedBy(report)).toContain("failure: { name: 'Error', code: 5 }")
+        expect(reportedBy(report)).not.toContain(SESSION_ID)
+        expect(reportedBy(report)).not.toContain('NOT_FOUND')
+    })
+
+    it('report an unparseable cached value by key family and failure kind, never by content', async () => {
+        const { cache, client } = fixture()
+        const report = vi.spyOn(console, 'log').mockImplementation(() => {})
+        vi.spyOn(client, 'get').mockResolvedValue(`V:{"id":"${SESSION_ID}"`)
+
+        await expect(cache.cacheGet(`session-${SESSION_ID}`)).resolves.toMatchObject({
+            cached: false
+        })
+
+        expect(reportedBy(report)).toContain('unable to parse cache value')
+        expect(reportedBy(report)).toContain("keyFamily: 'session'")
+        expect(reportedBy(report)).toContain("name: 'SyntaxError'")
+        expect(reportedBy(report)).not.toContain(SESSION_ID)
     })
 })

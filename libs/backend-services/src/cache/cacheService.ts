@@ -165,7 +165,7 @@ export class RedisCacheService {
 
         // Update cache
         this.cacheSet(key, newValue, lockValue, forSeconds).catch((error) => {
-            console.log('unable to update cache', key, error)
+            console.log('unable to update cache', { keyFamilies: this.keyFamilies([key]), error })
         })
 
         return newValue as T
@@ -227,7 +227,7 @@ export class RedisCacheService {
     public async cacheGet(key: string): Promise<CacheResult> {
         const result = await this.readOrMiss(
             async () =>
-                this.readCacheResult(await measure('redis.get', () => this.client.get(key))),
+                this.readCacheResult(await measure('redis.get', () => this.client.get(key)), key),
             {
                 value: null,
                 cached: false
@@ -246,8 +246,8 @@ export class RedisCacheService {
 
         const results = await this.readOrMiss(
             async () =>
-                (await measure('redis.mGet', () => this.client.mGet(keys))).map((value) =>
-                    this.readCacheResult(value)
+                (await measure('redis.mGet', () => this.client.mGet(keys))).map((value, index) =>
+                    this.readCacheResult(value, keys[index])
                 ),
             keys.map(() => ({ value: null, cached: false }))
         )
@@ -314,7 +314,7 @@ export class RedisCacheService {
                 await scope.close()
             } catch (error) {
                 console.error('Cache write protection failed despite a completed writer', {
-                    keys: scope.keys,
+                    keyFamilies: this.keyFamilies(scope.keys),
                     writerOutcome: 'completed',
                     cacheCoherence: 'unconfirmed',
                     error
@@ -324,15 +324,15 @@ export class RedisCacheService {
         } catch (error) {
             await scope.close().catch(() => {})
             console.error('Cache write outcome is uncertain; retaining protection until expiry', {
-                keys: scope.keys,
+                keyFamilies: this.keyFamilies(scope.keys),
                 writerOutcome: 'unknown',
-                error
+                failure: this.failureSummary(error)
             })
             throw error
         } finally {
             if (performance.now() - startedAt >= WRITE_LOCK_SECONDS * 1000) {
                 console.error('Cache write exceeded its protection lifetime', {
-                    keys: scope.keys,
+                    keyFamilies: this.keyFamilies(scope.keys),
                     writeLockSeconds: WRITE_LOCK_SECONDS
                 })
             }
@@ -342,7 +342,7 @@ export class RedisCacheService {
             await this.unlockWrite(scope.keys, lockId)
         } catch (error) {
             console.error('Cache cleanup failed after the writer completed', {
-                keys: scope.keys,
+                keyFamilies: this.keyFamilies(scope.keys),
                 writerOutcome: 'completed',
                 cacheCoherence: 'unconfirmed',
                 error
@@ -410,7 +410,10 @@ export class RedisCacheService {
 
                 const pipeline = isolatedClient.multi()
                 for (const [index, currentValue] of currentValues.entries()) {
-                    if (this.isLocked(currentValue) || this.readCacheResult(currentValue).cached) {
+                    if (
+                        this.isLocked(currentValue) ||
+                        this.readCacheResult(currentValue, keys[index]).cached
+                    ) {
                         lockValues.push(undefined)
                     } else {
                         const lockValue = READ_LOCK_PREFIX + nanoid()
@@ -423,11 +426,14 @@ export class RedisCacheService {
             })
         } catch (error) {
             if (error instanceof WatchError) {
-                console.log('Watched keys changed before read lock could be acquired', keys)
+                console.log(
+                    'Watched keys changed before read lock could be acquired',
+                    this.keyFamilies(keys)
+                )
             } else if (isCacheUnavailable(error)) {
                 console.warn('Cache read protection unavailable; skipping cache fill', error)
             } else {
-                console.log('Error acquiring read lock for keys', keys, error)
+                console.log('Error acquiring read lock for keys', this.keyFamilies(keys), error)
                 throw error
             }
         }
@@ -492,7 +498,7 @@ export class RedisCacheService {
             }
             if (missingOwners.length) {
                 console.error('Cache write marker missing during cleanup', {
-                    keys: missingOwners,
+                    keyFamilies: this.keyFamilies(missingOwners),
                     cacheCoherence: 'unconfirmed'
                 })
             }
@@ -564,7 +570,7 @@ export class RedisCacheService {
             : ''
     }
 
-    private readCacheResult(value: string | null): CacheResult {
+    private readCacheResult(value: string | null, key: string): CacheResult {
         if (value === NONE_PREFIX) {
             return { value: undefined, cached: true }
         }
@@ -573,10 +579,35 @@ export class RedisCacheService {
                 const parsedData: unknown = JSON.parse(value.slice(VALUE_PREFIX.length))
                 return { value: parsedData, cached: true }
             } catch (error) {
-                console.log('unable to parse cache value', error)
+                console.log('unable to parse cache value', {
+                    keyFamily: this.keyFamily(key),
+                    valueLength: value.length,
+                    failure: this.failureSummary(error)
+                })
             }
         }
         return { value, cached: false }
+    }
+
+    // A key may embed a bearer value (the session key carries the Session ID), and a writer's
+    // error or an unparseable value may quote one, so diagnostics name key families and failure
+    // kinds; the caller receives the writer's error itself.
+    private keyFamilies(keys: string[]): string[] {
+        return [...new Set(keys.map((key) => this.keyFamily(key)))]
+    }
+
+    private keyFamily(key: string): string {
+        return key.split(/[-:]/, 1)[0]
+    }
+
+    private failureSummary(error: unknown): { name: string; code?: string | number } {
+        if (!(error instanceof Error)) {
+            return { name: typeof error }
+        }
+        const code = 'code' in error ? error.code : undefined
+        return typeof code === 'string' || typeof code === 'number'
+            ? { name: error.name, code }
+            : { name: error.name }
     }
 
     private async readOrMiss<T>(read: () => Promise<T>, miss: T): Promise<T> {

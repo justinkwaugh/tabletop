@@ -7,7 +7,7 @@ vi.hoisted(() => {
     vi.stubEnv('GCLOUD_PROJECT', 'demo-tabletop')
     vi.stubEnv('FRONTEND_HOST', 'https://site.test')
 })
-import { loggerOptions } from '../../../lib/logging.js'
+import { LoggingBoundary } from '../../../lib/logging.js'
 import {
     apiErrorShape,
     memoryChallenges,
@@ -76,7 +76,7 @@ async function taskServer() {
     })
     const server = Fastify({
         logger: {
-            ...loggerOptions,
+            ...new LoggingBoundary().loggerOptions,
             stream: {
                 write: (line: string) => {
                     lines.push(line)

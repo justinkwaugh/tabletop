@@ -8,7 +8,7 @@ import {
     verifyGoogleCredential,
     type GoogleCredentialVerifier
 } from './googleCredential.js'
-import { loggerOptions } from './logging.js'
+import { LoggingBoundary } from './logging.js'
 
 const CREDENTIAL = 'SYNTHETIC.GOOGLE.CREDENTIAL'
 
@@ -22,7 +22,7 @@ function serializedByTheLogger(error: unknown): string {
     const lines: string[] = []
     const server = Fastify({
         logger: {
-            ...loggerOptions,
+            ...new LoggingBoundary().loggerOptions,
             stream: {
                 write: (line: string) => {
                     lines.push(line)

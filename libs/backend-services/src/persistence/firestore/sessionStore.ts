@@ -17,10 +17,10 @@ import { isFirestoreError } from './errors.js'
 
 const CACHE_SECONDS = 60 * 60
 
-// The Session ID is a bearer secret, so the cache key, which the cache service names in its
-// diagnostics, carries only its reference.
+// Every serving revision must derive the same key, or a revocation on one revision leaves the
+// other's cached session live; the cache service keeps keys out of its diagnostics instead.
 export function sessionCacheKey(id: string): string {
-    return `session-${secretReference(id)}`
+    return `session-${id}`
 }
 
 export class FirestoreSessionStore implements SessionStore {

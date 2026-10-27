@@ -86,10 +86,10 @@ Ongoing authorization associated with a User Account, recorded server-side under
 _Avoid_: Login cookie, stateless session
 
 **Session ID**:
-The unguessable identifier of one Authenticated Session. It is the only authorization the session cookie carries and is never derived from Account data. It is a bearer secret: logs, error reports and cache keys carry its Secret Reference instead.
+The unguessable identifier of one Authenticated Session. It is the only authorization the session cookie carries and is never derived from Account data. It is a bearer secret: logs and error reports carry its Secret Reference instead, and the cache service keeps its cache key, which embeds the Session ID, out of its diagnostics.
 
 **Secret Reference**:
-A one-way digest of a bearer value such as a Session ID, an Authorization State or a data token, stable for the same value and useless for presenting it. Application logs, error reports and cache keys name a bearer value only through its Secret Reference; the secrets and codes of Authentication Challenges, passwords and provider credentials appear in none of them.
+A one-way digest of a bearer value with enough entropy to defeat enumeration: a Session ID, an Authorization State or a data token. It is stable for the same value and useless for presenting it, and application logs and error reports name such a value only through it. The secrets and codes of Authentication Challenges, passwords, provider credentials and any other supplied secret are redacted outright, never digested, because a digest of a short code is an offline verifier for it.
 _Avoid_: Masked token, session hash
 
 **Session Generation**:

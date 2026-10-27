@@ -1,7 +1,7 @@
 import Fastify from 'fastify'
 import rawBody from 'fastify-raw-body'
 import { app } from './app/app.js'
-import { loggerOptions } from './app/lib/logging.js'
+import { LoggingBoundary } from './app/lib/logging.js'
 import { installHandlerDrain } from './runtime/handlerDrain.js'
 import { ajvOptions } from './runtime/ajvOptions.js'
 import { lazyValidatorCompiler } from './runtime/lazyValidation.js'
@@ -25,14 +25,16 @@ async function whileLoadingTitle<T>(load: () => Promise<T>): Promise<T> {
     }
 }
 
+const logging = new LoggingBoundary()
 const server = Fastify({
-    logger: loggerOptions,
+    logger: logging.loggerOptions,
     trustProxy: '127.0.0.1',
     ajv: ajvOptions,
     // The supervisor bounds startup; a replacement starting beside a serving child on a
     // throttled CPU can take far longer than a fresh instance.
     pluginTimeout: 0
 })
+logging.observeRoutes(server)
 server.setValidatorCompiler(lazyValidatorCompiler(() => server.getSchemas(), ajvOptions))
 installHandlerDrain(server)
 server.get('/__health/ready', () => ({ status: 'ready' }))
