@@ -49,9 +49,7 @@ export default fp(async function (fastify: FastifyInstance) {
             throw new Error('No user id in session')
         }
 
-        const user = await measure('auth.user', () =>
-            fastify.userService.getUserForAuthorization(userId)
-        )
+        const user = await measure('auth.user', () => fastify.userService.getUser(userId))
         if (!user) {
             throw new Error('No user found for id ' + userId)
         }
