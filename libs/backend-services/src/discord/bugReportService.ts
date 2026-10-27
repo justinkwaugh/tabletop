@@ -1,12 +1,11 @@
 import {
     ExternalAuthService,
-    Role,
     scenarioFromGame,
     type BugReportRequest,
     type BugReportScreenshot,
     type Game,
     type GameAction,
-    type User
+    type Principal
 } from '@tabletop/common'
 import { Type } from 'typebox'
 import { Compile } from 'typebox/compile'
@@ -41,13 +40,20 @@ export class BugReportService {
         private readonly destination: BugReportDestination
     ) {}
 
-    async reportBug({ user, report }: { user: User; report: BugReportRequest }): Promise<void> {
+    async reportBug({
+        principal,
+        report
+    }: {
+        principal: Principal
+        report: BugReportRequest
+    }): Promise<void> {
         const data = await this.gameService.getGameData(report.gameId)
         if (!data) {
             throw new GameNotFoundError({ id: report.gameId })
         }
         const { game, actions } = data
-        if (!user.roles.includes(Role.Admin)) {
+        const user = principal.user
+        if (!principal.adminMode) {
             this.gameService.findValidPlayerForUser({ user, game })
         }
 

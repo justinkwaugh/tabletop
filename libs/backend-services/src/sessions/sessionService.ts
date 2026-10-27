@@ -1,9 +1,20 @@
 import { customAlphabet } from 'nanoid'
-import { canHoldAuthenticatedSession, sessionGenerationOf, User } from '@tabletop/common'
+import {
+    assertExists,
+    canHoldAuthenticatedSession,
+    isAdministrator,
+    sessionGenerationOf,
+    User
+} from '@tabletop/common'
 import type { SessionStore } from '../persistence/stores/sessionStore.js'
 import { AccountUnavailableError } from '../users/errors.js'
 import type { AuthenticatedSession, AuthenticationProof } from './authenticatedSession.js'
-import { hasRecentAuthentication, SessionNotLiveError } from './recentAuthentication.js'
+import {
+    hasRecentAuthentication,
+    RecentAuthenticationRequiredError,
+    SessionNotLiveError
+} from './recentAuthentication.js'
+import { adminModeExpiry, AdministratorRequiredError, hasAdminMode } from './adminMode.js'
 
 export const SESSION_LIFETIME_SECONDS = 30 * 24 * 60 * 60
 
@@ -76,6 +87,37 @@ export class SessionService {
             throw new SessionNotLiveError()
         }
         return refreshed
+    }
+
+    isInAdminMode(session: AuthenticatedSession): boolean {
+        return hasAdminMode(session, this.now())
+    }
+
+    async activateAdminMode(
+        session: AuthenticatedSession,
+        account: User
+    ): Promise<AuthenticatedSession> {
+        const now = this.now()
+        if (session.expiresAt <= now || session.userId !== account.id) {
+            throw new SessionNotLiveError()
+        }
+        if (!isAdministrator(account)) {
+            throw new AdministratorRequiredError()
+        }
+        if (!hasRecentAuthentication(session, now)) {
+            throw new RecentAuthenticationRequiredError()
+        }
+        const expiresAt = adminModeExpiry(session)
+        assertExists(expiresAt, 'Recent Authentication implies an authentication time')
+        const activated = await this.sessionStore.setAdminMode(session.id, expiresAt)
+        if (!activated) {
+            throw new SessionNotLiveError()
+        }
+        return activated
+    }
+
+    async deactivateAdminMode(session: AuthenticatedSession): Promise<void> {
+        await this.sessionStore.setAdminMode(session.id, undefined)
     }
 
     async revoke(id: string): Promise<void> {

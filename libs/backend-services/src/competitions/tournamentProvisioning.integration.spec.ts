@@ -16,7 +16,9 @@ import {
     type GameState,
     type Tournament,
     type TournamentDraft,
-    type User
+    type Principal,
+    type User,
+    ordinaryPrincipal
 } from '@tabletop/common'
 import { cacheFixture } from '../cache/tests/cacheFixture.js'
 import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
@@ -90,6 +92,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             roles: [Role.Admin],
             externalIds: []
         }
+        const administering: Principal = { user: admin, adminMode: true }
         const userService: UserService = Object.create(UserService.prototype)
         const notifications: DefaultNotificationService = Object.create(
             DefaultNotificationService.prototype
@@ -1468,7 +1471,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect((await tournaments.read(request.tournamentId))?.status).toBe('inProgress')
             expect(tasks.sendGameInvitationEmail).not.toHaveBeenCalled()
             expect(JSON.stringify(notify.mock.calls)).not.toContain('masterSeed')
-            const spectator = await games.getGameForUser({ gameId, user: admin })
+            const spectator = await games.getGameForUser({
+                gameId,
+                principal: ordinaryPrincipal(admin)
+            })
             expect(JSON.stringify(spectator)).not.toContain('hidden-one')
             expect(JSON.stringify(spectator)).not.toContain('masterSeed')
             assertExists(spectator)
@@ -1645,9 +1651,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const { request, gameId } = await fixture()
             const game = await service.provisionTable(request)
             assertExists(game.state)
-            for (const user of [users[0], admin]) {
+            for (const principal of [ordinaryPrincipal(users[0]), administering]) {
+                const user = principal.user
                 await expect(
-                    games.updateGame({ gameId, fields: { name: 'Changed' }, user })
+                    games.updateGame({ gameId, fields: { name: 'Changed' }, principal })
                 ).rejects.toThrow('managed by the tournament')
                 await expect(games.joinGame({ gameId, user })).rejects.toThrow(
                     'managed by the tournament'
@@ -1655,21 +1662,25 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 await expect(games.declineGame({ gameId, user })).rejects.toThrow(
                     'managed by the tournament'
                 )
-                await expect(games.deleteGame(user, gameId)).rejects.toThrow(
+                await expect(games.deleteGame(principal, gameId)).rejects.toThrow(
                     'managed by the tournament'
                 )
-                await expect(games.startGame({ definition, gameId, user })).rejects.toThrow(
+                await expect(games.startGame({ definition, gameId, principal })).rejects.toThrow(
                     'managed by the tournament'
                 )
             }
             await expect(games.setGameState(game.state)).rejects.toThrow(
                 'managed by the tournament'
             )
-            await expect(games.createGame({ definition, game, owner: admin })).rejects.toThrow(
-                'membership cannot be supplied'
-            )
             await expect(
-                games.updateGame({ gameId, fields: { tournament: undefined }, user: admin })
+                games.createGame({ definition, game, owner: administering })
+            ).rejects.toThrow('membership cannot be supplied')
+            await expect(
+                games.updateGame({
+                    gameId,
+                    fields: { tournament: undefined },
+                    principal: administering
+                })
             ).rejects.toThrow('membership cannot be changed')
             const fork = createGameFork({
                 game,
@@ -1698,9 +1709,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                     undoWindow: async () => undefined
                 })
             )
-            for (const user of [users[0], admin])
+            for (const principal of [ordinaryPrincipal(users[0]), administering])
                 await expect(
-                    games.undoAction({ definition, gameId, actionId: 'last', user })
+                    games.undoAction({ definition, gameId, actionId: 'last', principal })
                 ).rejects.toThrow('final')
             read.mockRestore()
         })

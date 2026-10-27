@@ -49,6 +49,18 @@ export const ChallengeIssuedResponse = Type.Evaluate(
     ])
 )
 
+export type AdminModeResponse = Static<typeof AdminModeResponse>
+export const AdminModeResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({
+            payload: Type.Object({
+                adminMode: Type.Optional(Type.Object({ expiresAt: Type.String() }))
+            })
+        })
+    ])
+)
+
 export type DiscordAuthorizationStartResponse = Static<typeof DiscordAuthorizationStartResponse>
 export const DiscordAuthorizationStartResponse = Type.Evaluate(
     Type.Intersect([

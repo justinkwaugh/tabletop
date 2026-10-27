@@ -33,9 +33,9 @@ export default async function (title: TitleResolver, fastify: FastifyInstance) {
             if (!actionSchema || !validator) {
                 throw Object.assign(new Error('Not Found'), { statusCode: 404 })
             }
-            const user = request.user
-            if (!user) {
-                throw Error('No user found for create request')
+            const principal = request.principal
+            if (!principal) {
+                throw Error('No principal found for action request')
             }
 
             // The wire form carries dates as strings; the Action the title executes has Dates.
@@ -66,7 +66,7 @@ export default async function (title: TitleResolver, fastify: FastifyInstance) {
             const representation = await fastify.gameService.applyActionToGame({
                 definition,
                 action,
-                user
+                principal
             })
 
             return {

@@ -1,7 +1,16 @@
 import fastifyAuth from '@fastify/auth'
 import { setTimeout as delay } from 'node:timers/promises'
 import { EnvService } from '@tabletop/backend-services'
-import { Role, type User, UserStatus, Visibility } from '@tabletop/common'
+import {
+    Role,
+    type Principal,
+    type User,
+    UserStatus,
+    Visibility,
+    hasDeveloperAccess,
+    ordinaryPrincipal
+} from '@tabletop/common'
+import { authorizedAs } from '../../../tests/principalFixture.js'
 import Fastify from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import getGameRoute from './get.js'
@@ -18,13 +27,13 @@ const user: User = {
     externalIds: []
 }
 
-type GameRepresentationRequest = { gameId: string; hostView: boolean; user: User }
+type GameRepresentationRequest = { gameId: string; hostView: boolean; principal: Principal }
 
 const playerPerspective: Visibility.Perspective = { kind: 'player', playerId: 'player-1' }
 
 async function createServer(
     perspective: Visibility.Perspective | undefined,
-    requestUser: User = user
+    requestPrincipal: Principal = ordinaryPrincipal(user)
 ) {
     const logs: Record<string, unknown>[] = []
     const server = Fastify({
@@ -39,9 +48,7 @@ async function createServer(
     await server.register(requestTimings, { enabled: true })
     await server.register(fastifyAuth)
 
-    Reflect.set(server, 'verifyActiveUser', async (request: { user?: User }) => {
-        request.user = requestUser
-    })
+    Reflect.set(server, 'verifyActiveUser', authorizedAs(requestPrincipal))
     Reflect.set(server, 'verifyRoleUser', async () => undefined)
 
     const getGameEtagForUser = vi.fn(async ({ hostView }: GameRepresentationRequest) =>
@@ -52,10 +59,7 @@ async function createServer(
         actions: [],
         perspective: hostView ? undefined : perspective
     }))
-    const canAccessHostView = vi.fn(
-        (candidate: User) =>
-            candidate.roles.includes(Role.Admin) || candidate.roles.includes(Role.Developer)
-    )
+    const canAccessHostView = vi.fn((candidate: Principal) => hasDeveloperAccess(candidate))
     Reflect.set(server, 'gameService', {
         canAccessHostView,
         getGameEtagForUser,
@@ -111,7 +115,7 @@ describe('GET /get/:gameId', () => {
         expect(getGameForUser).toHaveBeenCalledWith({
             gameId: 'game-1',
             hostView: false,
-            user,
+            principal: ordinaryPrincipal(user),
             includeActions: false
         })
         const cached = await server.inject({
@@ -212,7 +216,7 @@ describe('GET /get/:gameId', () => {
             includeActions: true,
             gameId: 'game-1',
             hostView: false,
-            user
+            principal: ordinaryPrincipal(user)
         })
     })
 
@@ -233,7 +237,7 @@ describe('GET /get/:gameId', () => {
         expect(getGameEtagForUser).toHaveBeenCalledWith({
             gameId: 'game-1',
             hostView: false,
-            user
+            principal: ordinaryPrincipal(user)
         })
         expect(getGameForUser).not.toHaveBeenCalled()
     })
@@ -254,7 +258,7 @@ describe('GET /get/:gameId', () => {
         expect(getGameEtagForUser).toHaveBeenCalledWith({
             gameId: 'game-1',
             hostView: false,
-            user
+            principal: ordinaryPrincipal(user)
         })
         expect(getGameForUser).not.toHaveBeenCalled()
     })
@@ -274,13 +278,21 @@ describe('GET /get/:gameId', () => {
         expect(response.headers['cache-control']).toBe('private, no-cache')
     })
 
-    it.each([Role.Admin, Role.Developer])(
-        'returns the canonical Host View for an authorized %s request',
-        async (role) => {
-            const privilegedUser = { ...user, roles: [Role.User, role] }
+    it.each([
+        {
+            name: 'Admin Mode',
+            principal: { user: { ...user, roles: [Role.User, Role.Admin] }, adminMode: true }
+        },
+        {
+            name: 'Developer',
+            principal: ordinaryPrincipal({ ...user, roles: [Role.User, Role.Developer] })
+        }
+    ])(
+        'returns the canonical Host View for an authorized $name request',
+        async ({ principal: privilegedPrincipal }) => {
             const { server, getGameEtagForUser, getGameForUser } = await createServer(
                 playerPerspective,
-                privilegedUser
+                privilegedPrincipal
             )
             servers.add(server)
 
@@ -294,13 +306,13 @@ describe('GET /get/:gameId', () => {
             expect(getGameEtagForUser).toHaveBeenCalledWith({
                 gameId: 'game-1',
                 hostView: true,
-                user: privilegedUser
+                principal: privilegedPrincipal
             })
             expect(getGameForUser).toHaveBeenCalledWith({
                 includeActions: true,
                 gameId: 'game-1',
                 hostView: true,
-                user: privilegedUser
+                principal: privilegedPrincipal
             })
         }
     )
@@ -316,13 +328,28 @@ describe('GET /get/:gameId', () => {
         })
 
         expect(response.statusCode).toBe(403)
-        expect(canAccessHostView).toHaveBeenCalledWith(user)
+        expect(canAccessHostView).toHaveBeenCalledWith(ordinaryPrincipal(user))
+        expect(getGameEtagForUser).not.toHaveBeenCalled()
+        expect(getGameForUser).not.toHaveBeenCalled()
+    })
+
+    it('rejects a Host View request from an administrator outside Admin Mode', async () => {
+        const admin = ordinaryPrincipal({ ...user, roles: [Role.User, Role.Admin] })
+        const { server, getGameEtagForUser, getGameForUser } = await createServer(
+            playerPerspective,
+            admin
+        )
+        servers.add(server)
+
+        const response = await server.inject({ method: 'GET', url: '/get/game-1?view=host' })
+
+        expect(response.statusCode).toBe(403)
         expect(getGameEtagForUser).not.toHaveBeenCalled()
         expect(getGameForUser).not.toHaveBeenCalled()
     })
 
     it('keeps an administrator on the projected representation unless Host View is explicit', async () => {
-        const admin = { ...user, roles: [Role.User, Role.Admin] }
+        const admin = { user: { ...user, roles: [Role.User, Role.Admin] }, adminMode: true }
         const { server, getGameEtagForUser } = await createServer(playerPerspective, admin)
         servers.add(server)
 
@@ -336,7 +363,7 @@ describe('GET /get/:gameId', () => {
         expect(getGameEtagForUser).toHaveBeenCalledWith({
             gameId: 'game-1',
             hostView: false,
-            user: admin
+            principal: admin
         })
     })
 })

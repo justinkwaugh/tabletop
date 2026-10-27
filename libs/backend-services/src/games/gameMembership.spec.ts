@@ -7,7 +7,15 @@ import {
     type DocumentReference,
     type DocumentSnapshot
 } from '@google-cloud/firestore'
-import { GameStatus, PlayerStatus, Role, UserStatus, type Game, type User } from '@tabletop/common'
+import {
+    GameStatus,
+    PlayerStatus,
+    Role,
+    UserStatus,
+    ordinaryPrincipal,
+    type Game,
+    type User
+} from '@tabletop/common'
 import { GameService } from './gameService.js'
 import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
 import { RedisCacheService } from '../cache/cacheService.js'
@@ -248,7 +256,11 @@ describe('game auto-start', () => {
 
     it('cancels the countdown when the owner makes the game invite-only', async () => {
         const { service, read } = await fillLobby()
-        await service.updateGame({ gameId: 'lobby', user: users[0], fields: { isPublic: false } })
+        await service.updateGame({
+            gameId: 'lobby',
+            principal: ordinaryPrincipal(users[0]),
+            fields: { isPublic: false }
+        })
         expect(read().autoStartAt).toBeUndefined()
     })
 
@@ -315,7 +327,7 @@ describe('game auto-start', () => {
                 service.startGame({
                     definition: SyntheticDefinition,
                     gameId: 'lobby',
-                    user: users[0]
+                    principal: ordinaryPrincipal(users[0])
                 })
         ],
         ['its countdown ends', (service) => service.autoStartGame({ gameId: 'lobby', autoStartAt })]
@@ -359,7 +371,7 @@ describe('game auto-start', () => {
         await service.startGame({
             definition: SyntheticDefinition,
             gameId: 'lobby',
-            user: users[0]
+            principal: ordinaryPrincipal(users[0])
         })
         const write = vi.spyOn(store, 'updateGame')
         await service.autoStartGame({ gameId: 'lobby', autoStartAt })

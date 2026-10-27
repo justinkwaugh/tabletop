@@ -66,8 +66,10 @@ import {
     PlayerDeclinedNotification,
     PlayerJoinedNotification,
     PlayerStatus,
-    Role,
     User,
+    type Principal,
+    hasDeveloperAccess,
+    ordinaryPrincipal,
     UserNotification,
     UserNotificationAction,
     UserStatus,
@@ -196,18 +198,19 @@ export class GameService {
     async createGame({
         definition,
         game,
-        owner,
+        owner: creator,
         options
     }: {
         definition: GameDefinition
         game: Partial<Game>
-        owner: User
+        owner: Principal
         options?: GameCreationOptions
     }): Promise<Game> {
         if (Object.hasOwn(game, 'tournament'))
             throw new TournamentGameError('Tournament membership cannot be supplied by clients')
         assertExists(game.id, 'Game id is required')
-        if (options?.masterSeed !== undefined && !owner.roles.includes(Role.Admin)) {
+        const owner = creator.user
+        if (options?.masterSeed !== undefined && !creator.adminMode) {
             throw new UnauthorizedAccessError({ user: owner, gameId: game.id })
         }
         assert(
@@ -228,7 +231,7 @@ export class GameService {
             newGame,
             options?.continueFromGameId,
             definition,
-            (sourceGameId) => this.findContinuationSource(sourceGameId, owner)
+            (sourceGameId) => this.findContinuationSource(sourceGameId, creator)
         )
         // Titles bundle their own initializer, which may predate unlisted games.
         if (game.unlisted) newGame.unlisted = true
@@ -241,10 +244,10 @@ export class GameService {
 
         this.validatePlayerCount(newGame.id, newGame.players, definition)
 
-        this.assertOwnerSeatedUnlessDeveloper(newGame, owner)
+        this.assertOwnerSeatedUnlessDeveloper(newGame, creator)
 
         if (newGame.unlisted) {
-            if (!this.hasDeveloperAccess(owner))
+            if (!hasDeveloperAccess(creator))
                 throw new UnauthorizedAccessError({ user: owner, gameId: newGame.id })
             if (!newGame.isPublic) throw new UnlistedGameNotPublicError({ id: newGame.id })
         }
@@ -285,11 +288,11 @@ export class GameService {
 
     private async findContinuationSource(
         sourceGameId: string,
-        user: User
+        principal: Principal
     ): Promise<Game | undefined> {
         const source = await this.getGame({ gameId: sourceGameId, withState: true })
-        if (source && !findPlayerForUserId(source, user.id) && !user.roles.includes(Role.Admin)) {
-            throw new UnauthorizedAccessError({ user, gameId: sourceGameId })
+        if (source && !findPlayerForUserId(source, principal.user.id) && !principal.adminMode) {
+            throw new UnauthorizedAccessError({ user: principal.user, gameId: sourceGameId })
         }
         return source
     }
@@ -409,16 +412,16 @@ export class GameService {
             await this.scheduleTurnNotifications(updated, [seat.id], FIRST_TURN_REMINDER_INDEX)
     }
 
-    async deleteGame(user: User, gameId: string): Promise<void> {
+    async deleteGame(principal: Principal, gameId: string): Promise<void> {
         const game = await this.getGame({ gameId })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
         assertOrdinaryGame(game)
 
-        const isAdmin = user.roles.includes(Role.Admin)
-        if (game.ownerId !== user.id && !isAdmin) {
-            throw new UnauthorizedAccessError({ user, gameId })
+        const isAdmin = principal.adminMode
+        if (game.ownerId !== principal.user.id && !isAdmin) {
+            throw new UnauthorizedAccessError({ user: principal.user, gameId })
         }
 
         await this.gameStore.deleteGame(game, (existingGame) => {
@@ -440,7 +443,7 @@ export class GameService {
         gameId: string
         actionIndex: number
         name?: string
-        owner: User
+        owner: Principal
     }): Promise<Game> {
         const data = await this.gameStore.loadGameData(gameId)
         if (!data) {
@@ -458,12 +461,13 @@ export class GameService {
             runtime: definition.runtime,
             name
         })
-        fork.game.ownerId = owner.id
+        fork.game.ownerId = owner.user.id
         fork.game.storage = GameStorage.Remote
         fork.game.status = GameStatus.WaitingForPlayers
         fork.game.lastActionAt = undefined
         for (const player of fork.game.players) {
-            player.status = player.userId === owner.id ? PlayerStatus.Joined : PlayerStatus.Reserved
+            player.status =
+                player.userId === owner.user.id ? PlayerStatus.Joined : PlayerStatus.Reserved
         }
         const { storedGame } = await this.gameStore.writeFullGameData(
             fork.game,
@@ -474,8 +478,8 @@ export class GameService {
         return storedGame
     }
 
-    canAccessHostView(user: User): boolean {
-        return this.hasDeveloperAccess(user)
+    canAccessHostView(principal: Principal): boolean {
+        return hasDeveloperAccess(principal)
     }
 
     async getGameEtag(gameId: string): Promise<string> {
@@ -487,13 +491,14 @@ export class GameService {
     async getGameEtagForUser({
         gameId,
         hostView = false,
-        user
+        principal
     }: {
         gameId: string
         hostView?: boolean
-        user: User
+        principal: Principal
     }): Promise<string | undefined> {
-        this.assertHostViewAccess({ gameId, hostView, user })
+        this.assertHostViewAccess({ gameId, hostView, principal })
+        const user = principal.user
 
         const game = await this.getGame({ gameId })
         if (game === undefined) {
@@ -532,14 +537,15 @@ export class GameService {
         gameId,
         hostView = false,
         includeActions = true,
-        user
+        principal
     }: {
         gameId: string
         hostView?: boolean
         includeActions?: boolean
-        user: User
+        principal: Principal
     }): Promise<GameRepresentation | undefined> {
-        this.assertHostViewAccess({ gameId, hostView, user })
+        this.assertHostViewAccess({ gameId, hostView, principal })
+        const user = principal.user
 
         const data = await this.gameStore.readGameData(gameId, async (reader) => ({
             game: reader.game,
@@ -733,12 +739,13 @@ export class GameService {
     async updateGame({
         gameId,
         fields,
-        user
+        principal
     }: {
         gameId: string
         fields: Partial<Game>
-        user: User
+        principal: Principal
     }): Promise<Game> {
+        const user = principal.user
         if (Object.hasOwn(fields, 'tournament'))
             throw new TournamentGameError('Tournament membership cannot be changed')
         assert(!Object.hasOwn(fields, 'protectedInformation'), 'Game protection cannot be changed')
@@ -748,10 +755,12 @@ export class GameService {
         }
         assertOrdinaryGame(game)
 
-        if (game.ownerId !== user.id && !user.roles.includes(Role.Admin)) {
+        if (game.ownerId !== user.id && !principal.adminMode) {
             throw new UnauthorizedAccessError({ user, gameId })
         }
         const owner = user.id === game.ownerId ? user : await this.userService.getUser(game.ownerId)
+        const ownerPrincipal =
+            owner === user ? principal : owner ? ordinaryPrincipal(owner) : undefined
 
         if (fields.name !== undefined) {
             fields.name = fields.name.trim()
@@ -828,7 +837,7 @@ export class GameService {
 
                     this.assertOwnerSeatedUnlessDeveloper(
                         { ...existingGame, players: fieldsToUpdate.players },
-                        owner
+                        ownerPrincipal
                     )
                 }
 
@@ -1017,12 +1026,13 @@ export class GameService {
     async startGame({
         definition,
         gameId,
-        user
+        principal
     }: {
         definition: GameDefinition
         gameId: string
-        user: User
+        principal: Principal
     }): Promise<Game> {
+        const user = principal.user
         const game = await this.getGame({ gameId })
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
@@ -1030,7 +1040,7 @@ export class GameService {
         this.assertGameTitle(game, definition)
         assertOrdinaryGame(game)
 
-        if (game.ownerId !== user.id && !user.roles.includes(Role.Admin)) {
+        if (game.ownerId !== user.id && !principal.adminMode) {
             throw new UnauthorizedAccessError({ user, gameId })
         }
 
@@ -1149,12 +1159,13 @@ export class GameService {
     async applyActionToGame({
         definition,
         action,
-        user
+        principal
     }: {
         definition: GameDefinition
         action: GameAction
-        user: User
+        principal: Principal
     }): Promise<ActionResultsRepresentation> {
+        const user = principal.user
         countTiming('game.action.attempts')
         const gameId = action.gameId
         let game = await this.getGame({ gameId, withState: true })
@@ -1177,7 +1188,7 @@ export class GameService {
             throw new InvalidPlayerIdError({ playerId: action.playerId, gameId })
         }
 
-        if (!game.hotseat && !user.roles.includes(Role.Admin)) {
+        if (!game.hotseat && !principal.adminMode) {
             this.verifyUserIsActionPlayer(action, game, user)
         }
 
@@ -1524,20 +1535,21 @@ export class GameService {
 
     @Timed('game.undoAction')
     async undoAction({
-        user,
+        principal,
         definition,
         gameId,
         actionId
     }: {
-        user: User
+        principal: Principal
         definition: GameDefinition
         gameId: string
         actionId: string
     }): Promise<UndoResultsRepresentation> {
+        const user = principal.user
         const { game, undoWindow } = await this.readUndoWindow(gameId, { actionId })
         this.assertGameTitle(game, definition)
         assertTournamentUndoAllowed(game)
-        const userPlayer = user.roles.includes(Role.Admin)
+        const userPlayer = principal.adminMode
             ? undefined
             : this.findValidPlayerForUser({ user, game })
 
@@ -2405,28 +2417,24 @@ export class GameService {
     private assertHostViewAccess({
         gameId,
         hostView,
-        user
+        principal
     }: {
         gameId: string
         hostView: boolean
-        user: User
+        principal: Principal
     }): void {
-        if (hostView && !this.canAccessHostView(user)) {
-            throw new UnauthorizedAccessError({ user, gameId })
+        if (hostView && !this.canAccessHostView(principal)) {
+            throw new UnauthorizedAccessError({ user: principal.user, gameId })
         }
     }
 
     private assertOwnerSeatedUnlessDeveloper(
         game: Pick<Game, 'id' | 'ownerId' | 'players'>,
-        owner: User | undefined
+        owner: Principal | undefined
     ): void {
         if (findPlayerForUserId(game, game.ownerId)) return
-        if (owner && this.hasDeveloperAccess(owner)) return
+        if (hasDeveloperAccess(owner)) return
         throw new OwnerNotPlayingError({ id: game.id })
-    }
-
-    private hasDeveloperAccess(user: User): boolean {
-        return user.roles.includes(Role.Admin) || user.roles.includes(Role.Developer)
     }
 
     // A title route may only act on that title's games: another title's game is not found there.

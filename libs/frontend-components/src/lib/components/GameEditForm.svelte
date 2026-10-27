@@ -602,7 +602,7 @@
             {/each}
         </div>
     {/if}
-    {#if authorizationService.isAdmin && mode === EditMode.Create}
+    {#if authorizationService.actAsAdmin && mode === EditMode.Create}
         <Label class="mb-2">Reproduction seed</Label>
         <Input type="text" name="seed" bind:value={seed} placeholder="optional reproduction seed" />
         {#each errors['seed'] ?? [] as error, i (i)}

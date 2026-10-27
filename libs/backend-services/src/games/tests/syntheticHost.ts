@@ -7,6 +7,7 @@ import {
     PlayerStatus,
     Role,
     UserStatus,
+    ordinaryPrincipal,
     type GameAction,
     type GameState,
     type User
@@ -250,14 +251,14 @@ export function createSyntheticHost({ activeSeats = 1, playerIds = ['p1', 'p2', 
         service.applyActionToGame({
             definition: Definition,
             action,
-            user: syntheticUser(action.playerId!)
+            principal: ordinaryPrincipal(syntheticUser(action.playerId!))
         })
     const undo = (actionId: string, by: string) =>
         service.undoAction({
             definition: Definition,
             gameId: game.id,
             actionId,
-            user: syntheticUser(by)
+            principal: ordinaryPrincipal(syntheticUser(by))
         })
     const summary = () => actions.map((action) => `${action.index}:${action.id}`)
     return {

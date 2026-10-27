@@ -1,5 +1,4 @@
 import { GLOBAL_TOPIC, RELAY_STATS_TOPIC, gameTopic, userTopic } from '@tabletop/backend-services'
-import { Role } from '@tabletop/common'
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 
@@ -22,15 +21,15 @@ export default async function (fastify: FastifyInstance) {
             if (!issuer) {
                 return reply.code(404).send()
             }
-            if (!request.user) {
-                throw new Error('No user found for token request')
+            const principal = request.principal
+            if (!principal) {
+                throw new Error('No principal found for token request')
             }
 
-            const grantsRelayStats =
-                request.query.relayStats === true && request.user.roles.includes(Role.Admin)
+            const grantsRelayStats = request.query.relayStats === true && principal.adminMode
             const gameIds = [...new Set(request.query.game)]
             const topics = [
-                userTopic(request.user.id),
+                userTopic(principal.user.id),
                 GLOBAL_TOPIC,
                 ...gameIds.map(gameTopic),
                 ...(grantsRelayStats ? [RELAY_STATS_TOPIC] : [])
@@ -39,7 +38,7 @@ export default async function (fastify: FastifyInstance) {
             reply.header('Cache-Control', 'no-store')
             return {
                 status: 'ok',
-                payload: { token: issuer.issue({ userId: request.user.id, topics }) }
+                payload: { token: issuer.issue({ userId: principal.user.id, topics }) }
             }
         }
     )

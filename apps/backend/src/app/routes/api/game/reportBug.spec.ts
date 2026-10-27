@@ -6,8 +6,10 @@ import {
     Role,
     type BugReportRequest,
     type User,
-    UserStatus
+    UserStatus,
+    ordinaryPrincipal
 } from '@tabletop/common'
+import { authorizedAs } from '../../../tests/principalFixture.js'
 import Fastify from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import reportBugRoute from './reportBug.js'
@@ -33,9 +35,7 @@ async function createServer({ configured }: { configured: boolean }) {
     const server = Fastify()
     await server.register(fastifyAuth)
 
-    Reflect.set(server, 'verifyActiveUser', async (request: { user?: User }) => {
-        request.user = user
-    })
+    Reflect.set(server, 'verifyActiveUser', authorizedAs(ordinaryPrincipal(user)))
     Reflect.set(server, 'verifyRoleUser', async () => undefined)
 
     const reportBug = vi.fn(async () => undefined)
@@ -61,7 +61,7 @@ describe('POST /reportBug', () => {
 
         expect(response.statusCode).toBe(200)
         expect(response.json()).toEqual({ status: 'ok' })
-        expect(reportBug).toHaveBeenCalledWith({ user, report })
+        expect(reportBug).toHaveBeenCalledWith({ principal: ordinaryPrincipal(user), report })
     })
 
     it('rejects a description over the length limit', async () => {
@@ -93,7 +93,10 @@ describe('POST /reportBug', () => {
         })
 
         expect(response.statusCode).toBe(200)
-        expect(reportBug).toHaveBeenCalledWith({ user, report: { ...report, screenshots } })
+        expect(reportBug).toHaveBeenCalledWith({
+            principal: ordinaryPrincipal(user),
+            report: { ...report, screenshots }
+        })
     })
 
     it('rejects more screenshots than a report may carry', async () => {

@@ -222,6 +222,18 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('reauthenticateGoogle')
     }
 
+    async getAdminMode(): Promise<Date | undefined> {
+        return this.fail('getAdminMode')
+    }
+
+    async activateAdminMode(): Promise<Date> {
+        return this.fail('activateAdminMode')
+    }
+
+    async deactivateAdminMode(): Promise<void> {
+        return this.fail('deactivateAdminMode')
+    }
+
     async logout(): Promise<void> {
         return this.fail('logout')
     }

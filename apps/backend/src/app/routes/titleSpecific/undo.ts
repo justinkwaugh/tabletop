@@ -18,13 +18,13 @@ export default async function (title: TitleResolver, fastify: FastifyInstance) {
         },
         async function (request, _reply) {
             const definition = title(request)
-            if (!request.user) {
-                throw Error('No user found for create request')
+            if (!request.principal) {
+                throw Error('No principal found for undo request')
             }
 
             const { gameId, actionId } = request.body
             const representation = await fastify.gameService.undoAction({
-                user: request.user,
+                principal: request.principal,
                 definition,
                 gameId,
                 actionId

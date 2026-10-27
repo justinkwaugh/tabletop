@@ -12,7 +12,7 @@ export default async function (fastify: FastifyInstance) {
         '/finalScoresBackfill',
         {
             schema: { body: FinalScoresBackfillRequest },
-            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleAdmin], {
+            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyAdminMode], {
                 relation: 'and'
             })
         },

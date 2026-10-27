@@ -1,8 +1,16 @@
 import { measure } from '@tabletop/backend-services/diagnostics'
 import fp from 'fastify-plugin'
-import { User, Role, UserStatus, canHoldAuthenticatedSession } from '@tabletop/common'
+import {
+    User,
+    Role,
+    UserStatus,
+    canHoldAuthenticatedSession,
+    isAdministrator,
+    type Principal
+} from '@tabletop/common'
 import {
     AccountUnavailableError,
+    AdminModeRequiredError,
     AuthenticatedSession,
     RecentAuthenticationRequiredError
 } from '@tabletop/backend-services'
@@ -16,12 +24,14 @@ declare module 'fastify' {
         verifyActiveUser: FastifyAuthFunction
         verifyRoleUser: FastifyAuthFunction
         verifyRoleAdmin: FastifyAuthFunction
+        verifyAdminMode: FastifyAuthFunction
         verifyRecentAuthentication: FastifyAuthFunction
     }
 
     interface FastifyRequest {
         user?: User
         authenticatedSession?: AuthenticatedSession
+        principal?: Principal
     }
 }
 
@@ -67,7 +77,20 @@ export default fp(async function (fastify: FastifyInstance) {
             throw new AccountUnavailableError(authorized.user.status)
         }
         request.authenticatedSession = authorized.session
+        request.principal = {
+            user: authorized.user,
+            adminMode:
+                isAdministrator(authorized.user) &&
+                fastify.sessionService.isInAdminMode(authorized.session)
+        }
         return authorized.user
+    }
+
+    async function verifyAdminMode(request: FastifyRequest) {
+        verifyRole(request, Role.Admin)
+        if (!request.principal?.adminMode) {
+            throw new AdminModeRequiredError()
+        }
     }
 
     async function verifyRecentAuthentication(request: FastifyRequest) {
@@ -104,5 +127,6 @@ export default fp(async function (fastify: FastifyInstance) {
     fastify.decorate('verifyIncompleteUser', verifyIncompleteUser)
     fastify.decorate('verifyRoleUser', verifyRoleUser)
     fastify.decorate('verifyRoleAdmin', verifyRoleAdmin)
+    fastify.decorate('verifyAdminMode', verifyAdminMode)
     fastify.decorate('verifyRecentAuthentication', verifyRecentAuthentication)
 })

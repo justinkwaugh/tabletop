@@ -5,17 +5,22 @@ import {
     GameChatMessage,
     GameNotificationAction,
     GameNotificationChatData,
-    Role,
+    type Principal,
     User
 } from '@tabletop/common'
 import { ChatStore } from '../persistence/stores/chatStore.js'
-import { GameService } from '../games/gameService.js'
+import type { GameService } from '../games/gameService.js'
 import { AddMessageError, InvalidChatMemberError } from './errors.js'
 import { GameNotFoundError, UserIsNotAllowedPlayerError } from '../games/errors.js'
 
+export type ChatGameService = Pick<
+    GameService,
+    'getGame' | 'findValidPlayerForUser' | 'notifyGameInstance'
+>
+
 export class ChatService {
     constructor(
-        private readonly gameService: GameService,
+        private readonly gameService: ChatGameService,
         private readonly chatStore: ChatStore
     ) {}
 
@@ -25,7 +30,7 @@ export class ChatService {
     }
 
     async addGameChatMessage(
-        user: User,
+        principal: Principal,
         message: GameChatMessage,
         gameId: string
     ): Promise<GameChat> {
@@ -33,7 +38,7 @@ export class ChatService {
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
-        const attributedMessage = this.attributeMessage(user, game, message)
+        const attributedMessage = this.attributeMessage(principal, game, message)
 
         const chat = await this.chatStore.addGameChatMessage(attributedMessage, gameId)
         const updatedMessage = chat.messages.find((m) => m.id === message.id)
@@ -63,20 +68,21 @@ export class ChatService {
         return chat
     }
 
-    private attributeMessage(user: User, game: Game, message: GameChatMessage): GameChatMessage {
-        const isAdmin = user.roles.includes(Role.Admin)
+    private attributeMessage(
+        principal: Principal,
+        game: Game,
+        message: GameChatMessage
+    ): GameChatMessage {
+        const { user } = principal
         if (message.playerId === undefined) {
-            if (!isAdmin) {
+            if (!principal.adminMode) {
                 throw new UserIsNotAllowedPlayerError({ user, gameId: game.id })
             }
             return { ...message, admin: true }
         }
-
-        if (!isAdmin) {
-            const player = this.gameService.findValidPlayerForUser({ user, game })
-            if (player.id !== message.playerId) {
-                throw new InvalidChatMemberError({ playerId: player.id, gameId: game.id })
-            }
+        const player = this.gameService.findValidPlayerForUser({ user, game })
+        if (player.id !== message.playerId) {
+            throw new InvalidChatMemberError({ playerId: player.id, gameId: game.id })
         }
         const playerMessage = { ...message }
         delete playerMessage.admin

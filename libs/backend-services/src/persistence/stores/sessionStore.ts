@@ -7,6 +7,10 @@ export interface SessionStore {
         id: string,
         authenticatedAt: Date
     ): Promise<AuthenticatedSession | undefined>
+    setAdminMode(
+        id: string,
+        adminModeExpiresAt: Date | undefined
+    ): Promise<AuthenticatedSession | undefined>
     delete(id: string): Promise<void>
     deleteForUser(userId: string, options?: { except?: string }): Promise<void>
 }

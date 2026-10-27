@@ -22,8 +22,8 @@ export default async function (fastify: FastifyInstance) {
             onRequest: fastify.auth([fastify.verifyUser], { relation: 'and' })
         },
         async function (request, _reply) {
-            if (!request.user) {
-                throw Error('No user found for create request')
+            if (!request.principal) {
+                throw Error('No principal found for update request')
             }
 
             const {
@@ -39,7 +39,7 @@ export default async function (fastify: FastifyInstance) {
             const updatedGame = await fastify.gameService.updateGame({
                 gameId: id,
                 fields: updates,
-                user: request.user
+                principal: request.principal
             })
 
             console.log(`Updated this game ${JSON.stringify(updatedGame)}`)

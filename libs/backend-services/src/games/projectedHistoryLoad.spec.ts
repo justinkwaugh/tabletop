@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import type { Firestore } from '@google-cloud/firestore'
 import { createClient, type RedisClientType } from 'redis'
-import { UserStatus, type GameAction, type User } from '@tabletop/common'
+import { UserStatus, ordinaryPrincipal, type GameAction, type User } from '@tabletop/common'
 import {
     PrivateHandHost,
     info,
@@ -114,7 +114,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
         async function load(user = users.p1) {
             const timings = new RequestTimings()
             const representation = await timings.run(() =>
-                service.getGameForUser({ gameId: host.game.id, user })
+                service.getGameForUser({ gameId: host.game.id, principal: ordinaryPrincipal(user) })
             )
             const { counters } = timings.finish()
             return {

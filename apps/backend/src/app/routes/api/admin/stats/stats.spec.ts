@@ -15,7 +15,7 @@ async function setup(isAdmin = true) {
     servers.push(server)
     await server.register(fastifyAuth)
     Reflect.set(server, 'verifyActiveUser', async () => undefined)
-    Reflect.set(server, 'verifyRoleAdmin', async () => {
+    Reflect.set(server, 'verifyAdminMode', async () => {
         if (!isAdmin) throw new Error('Administrator required')
     })
     const siteStatsService = {

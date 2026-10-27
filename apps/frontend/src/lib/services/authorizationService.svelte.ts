@@ -9,6 +9,7 @@ import {
 } from '$lib/utils/loginContinuation'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils/storedValue'
 import { browserTimeZone } from '$lib/utils/timeZones'
+import { reauthentication } from '$lib/stores/reauthentication.svelte'
 
 /**
  *
@@ -35,11 +36,20 @@ export class AuthorizationService {
     private verification: Promise<boolean> = Promise.resolve(false)
     private static readonly storageKey = 'sessionUser'
 
+    // Admin Mode is held by the server on the Authenticated Session; the client only mirrors
+    // the expiry it was told and asks again after it has passed.
+    private adminModeExpiresAt: Date | undefined = $state(undefined)
+    private adminModeClock: number = $state(0)
+    private adminModeExpiryTimer: ReturnType<typeof setTimeout> | undefined
+
     isAdmin: boolean = $derived(Boolean(this.sessionUser?.roles.includes(Role.Admin)))
     isDeveloper: boolean = $derived(Boolean(this.sessionUser?.roles.includes(Role.Developer)))
     canUseDeveloperTools: boolean = $derived(this.isAdmin || this.isDeveloper)
     debugViewEnabled: boolean = $state(false)
-    adminCapabilitiesEnabled: boolean = $state(false)
+    adminCapabilitiesEnabled: boolean = $derived(
+        this.adminModeExpiresAt !== undefined &&
+            this.adminModeExpiresAt.getTime() > this.adminModeClock
+    )
 
     showDebug: boolean = $derived(this.canUseDeveloperTools && this.debugViewEnabled)
     actAsAdmin: boolean = $derived(this.isAdmin && this.adminCapabilitiesEnabled)
@@ -120,6 +130,46 @@ export class AuthorizationService {
         await this.verification
     }
 
+    public async requestAdminMode(): Promise<void> {
+        if (!this.isAdmin) {
+            return
+        }
+        await reauthentication.run({
+            description: 'Entering Admin Mode',
+            retry: async () => this.adoptAdminMode(await this.api.activateAdminMode())
+        })
+    }
+
+    public async deactivateAdminMode(): Promise<void> {
+        this.adoptAdminMode(undefined)
+        await this.api.deactivateAdminMode()
+    }
+
+    private async refreshAdminMode(): Promise<void> {
+        try {
+            this.adoptAdminMode(await this.api.getAdminMode())
+        } catch (error) {
+            console.error('Could not read Admin Mode', error)
+        }
+    }
+
+    private adoptAdminMode(expiresAt: Date | undefined) {
+        clearTimeout(this.adminModeExpiryTimer)
+        this.adminModeExpiryTimer = undefined
+        this.adminModeClock = Date.now()
+        this.adminModeExpiresAt = expiresAt
+        if (expiresAt === undefined) {
+            return
+        }
+        const remaining = expiresAt.getTime() - this.adminModeClock
+        if (remaining <= 0) {
+            return
+        }
+        this.adminModeExpiryTimer = setTimeout(() => {
+            this.adminModeClock = Date.now()
+        }, remaining)
+    }
+
     public getSessionUser(): User | undefined {
         return this.sessionUser
     }
@@ -132,6 +182,7 @@ export class AuthorizationService {
 
     public clearSessionUser() {
         this.sessionUser = undefined
+        this.adoptAdminMode(undefined)
         removeStoredValue(AuthorizationService.storageKey)
         this.onSessionUserCleared()
     }
@@ -172,6 +223,11 @@ export class AuthorizationService {
     private adoptSessionUser(user: User) {
         this.setSessionUser(user)
         void this.fillMissingTimeZone(user)
+        if (user.roles.includes(Role.Admin)) {
+            void this.refreshAdminMode()
+        } else {
+            this.adoptAdminMode(undefined)
+        }
     }
 
     private async fillMissingTimeZone(user: User) {

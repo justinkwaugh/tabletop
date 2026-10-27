@@ -15,7 +15,7 @@ import {
     type UserStore
 } from '@tabletop/backend-services'
 
-import { errorStatusCode } from '../lib/errorStatusCode.js'
+import { replyStatusCode } from '../lib/errorStatusCode.js'
 
 export const ORIGINAL_PASSWORD = 'original-password-value'
 
@@ -23,9 +23,7 @@ export const ORIGINAL_PASSWORD = 'original-password-value'
 // read error names and what a failure writes to the log
 export function apiErrorShape(server: FastifyInstance): void {
     server.setErrorHandler(async (error: Error, request, reply) => {
-        if (reply.statusCode < 400) {
-            void reply.code(errorStatusCode(error))
-        }
+        void reply.code(replyStatusCode(error, reply.statusCode))
         if (reply.statusCode >= 500) {
             request.log.error({ err: error }, 'Request failed')
         }

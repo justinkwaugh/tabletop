@@ -7,8 +7,10 @@ import {
     Role,
     UserStatus,
     type GameDefinition,
-    type User
+    type User,
+    ordinaryPrincipal
 } from '@tabletop/common'
+import { authorizedAs } from '../app/tests/principalFixture.js'
 import { LibraryService } from '../../../../libs/backend-services/src/games/libraryService.js'
 import { RedisCacheService } from '../../../../libs/backend-services/src/cache/cacheService.js'
 import { logicPublicationFixture } from '../../../../libs/backend-services/src/games/tests/logicPublicationFixture.js'
@@ -50,9 +52,7 @@ it('changes actions and AJV schemas without rebuilding routes, while pinning in-
         status: UserStatus.Active,
         externalIds: []
     }
-    Reflect.set(server, 'verifyActiveUser', async (request: { user?: User }) => {
-        request.user = user
-    })
+    Reflect.set(server, 'verifyActiveUser', authorizedAs(ordinaryPrincipal(user)))
     Reflect.set(server, 'verifyRoleUser', async () => {})
     Reflect.set(server, 'verifyUser', async () => {})
     const entered = Promise.withResolvers<void>()

@@ -98,7 +98,7 @@
 
         if (event.currentTarget.checked) {
             gameSession.bridge.setChosenAdminPlayerId(undefined)
-            authorizationService.adminCapabilitiesEnabled = false
+            void authorizationService.deactivateAdminMode()
         }
         gameSession.setViewingAsNonActivePlayer(event.currentTarget.checked)
     }
@@ -110,7 +110,9 @@
 
         const enabled = event.currentTarget.checked
         gameSession?.bridge.setChosenAdminPlayerId(undefined)
-        authorizationService.adminCapabilitiesEnabled = enabled
+        void (enabled
+            ? authorizationService.requestAdminMode()
+            : authorizationService.deactivateAdminMode())
         if (enabled) {
             gameSession?.setViewingAsNonActivePlayer(false)
         }

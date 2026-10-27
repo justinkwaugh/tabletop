@@ -1,0 +1,111 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { Role, UserStatus, type User } from '@tabletop/common'
+import { TabletopApi } from '@tabletop/frontend-components'
+import { AuthorizationService } from './authorizationService.svelte.js'
+import { stubLocalStorage } from '$lib/test/localStorageStub'
+
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }))
+
+beforeEach(() => {
+    stubLocalStorage()
+})
+
+function createUser(roles: Role[]): User {
+    return {
+        id: 'user-id',
+        status: UserStatus.Active,
+        roles,
+        externalIds: []
+    }
+}
+
+describe('AuthorizationService Admin Mode', () => {
+    beforeEach(() => {
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2026-10-27T12:00:00.000Z'))
+    })
+    afterEach(() => {
+        vi.useRealTimers()
+    })
+
+    function adminService(api = new TabletopApi()) {
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
+        service.setSessionUser(createUser([Role.User, Role.Admin]))
+        return service
+    }
+
+    it('is off for an Administrator until the server confirms activation', async () => {
+        const api = new TabletopApi()
+        const expiresAt = new Date('2026-10-27T12:15:00.000Z')
+        const activate = vi.spyOn(api, 'activateAdminMode').mockResolvedValue(expiresAt)
+        const service = adminService(api)
+        expect(service.isAdmin).toBe(true)
+        expect(service.adminCapabilitiesEnabled).toBe(false)
+        expect(service.actAsAdmin).toBe(false)
+
+        await service.requestAdminMode()
+
+        expect(activate).toHaveBeenCalledTimes(1)
+        expect(service.adminCapabilitiesEnabled).toBe(true)
+        expect(service.actAsAdmin).toBe(true)
+    })
+
+    it('ends when the server-reported expiry passes, without asking the server again', async () => {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'activateAdminMode').mockResolvedValue(new Date('2026-10-27T12:15:00.000Z'))
+        const status = vi.spyOn(api, 'getAdminMode')
+        const service = adminService(api)
+        await service.requestAdminMode()
+        expect(service.actAsAdmin).toBe(true)
+
+        vi.advanceTimersByTime(15 * 60 * 1000 - 1)
+        expect(service.actAsAdmin).toBe(true)
+        vi.advanceTimersByTime(1)
+        expect(service.actAsAdmin).toBe(false)
+        expect(status).not.toHaveBeenCalled()
+    })
+
+    it('ends on deactivation before the server answers', async () => {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'activateAdminMode').mockResolvedValue(new Date('2026-10-27T12:15:00.000Z'))
+        let settle: () => void = () => {}
+        const deactivate = vi.spyOn(api, 'deactivateAdminMode').mockReturnValue(
+            new Promise((resolve) => {
+                settle = resolve
+            })
+        )
+        const service = adminService(api)
+        await service.requestAdminMode()
+
+        const pending = service.deactivateAdminMode()
+        expect(service.actAsAdmin).toBe(false)
+        settle()
+        await pending
+        expect(deactivate).toHaveBeenCalledTimes(1)
+    })
+
+    it('mirrors the mode the server holds when the session is restored', async () => {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'getSelf').mockResolvedValue(createUser([Role.User, Role.Admin]))
+        const status = vi
+            .spyOn(api, 'getAdminMode')
+            .mockResolvedValue(new Date('2026-10-27T12:10:00.000Z'))
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
+        await service.initialize()
+        await vi.waitFor(() => expect(service.actAsAdmin).toBe(true))
+        expect(status).toHaveBeenCalledTimes(1)
+
+        service.clearSessionUser()
+        expect(service.actAsAdmin).toBe(false)
+    })
+
+    it('does not consult the server for an ordinary restored session', async () => {
+        const api = new TabletopApi()
+        vi.spyOn(api, 'getSelf').mockResolvedValue(createUser([Role.User]))
+        const status = vi.spyOn(api, 'getAdminMode')
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
+        await service.initialize()
+        expect(status).not.toHaveBeenCalled()
+        expect(service.actAsAdmin).toBe(false)
+    })
+})

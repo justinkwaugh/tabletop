@@ -17,7 +17,7 @@ async function createServer() {
     Reflect.set(server, 'verifyActiveUser', async (request: { user?: User }) => {
         request.user = admin
     })
-    Reflect.set(server, 'verifyRoleAdmin', async () => undefined)
+    Reflect.set(server, 'verifyAdminMode', async () => undefined)
     const assignRoles = vi.fn(async (userId: string, roles: Role[]) => ({
         id: userId,
         status: UserStatus.Active,

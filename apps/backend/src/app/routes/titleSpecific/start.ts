@@ -19,15 +19,15 @@ export default async function (title: TitleResolver, fastify: FastifyInstance) {
         },
         async function (request, _reply) {
             const definition = title(request)
-            if (!request.user) {
-                throw Error('No user found for create request')
+            if (!request.principal) {
+                throw Error('No principal found for start request')
             }
 
             const { gameId } = request.body
             const startedGame = await fastify.gameService.startGame({
                 definition,
                 gameId,
-                user: request.user
+                principal: request.principal
             })
 
             return { status: 'ok', payload: { game: omitGameState(startedGame) } }

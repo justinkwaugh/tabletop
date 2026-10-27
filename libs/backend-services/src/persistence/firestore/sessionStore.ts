@@ -1,10 +1,12 @@
 import { measure } from '../../diagnostics/requestTimings.js'
 import {
     CollectionReference,
+    FieldValue,
     Firestore,
     PartialWithFieldValue,
     QueryDocumentSnapshot,
-    Timestamp
+    Timestamp,
+    type UpdateData
 } from '@google-cloud/firestore'
 import { Value } from 'typebox/value'
 import { BaseError } from '@tabletop/common'
@@ -69,6 +71,32 @@ export class FirestoreSessionStore implements SessionStore {
         id: string,
         authenticatedAt: Date
     ): Promise<AuthenticatedSession | undefined> {
+        return this.updateLiveRecord(id, (session) => ({ ...session, authenticatedAt }), {
+            authenticatedAt
+        })
+    }
+
+    async setAdminMode(
+        id: string,
+        adminModeExpiresAt: Date | undefined
+    ): Promise<AuthenticatedSession | undefined> {
+        if (adminModeExpiresAt === undefined) {
+            return this.updateLiveRecord(
+                id,
+                ({ adminModeExpiresAt: _cleared, ...session }) => session,
+                { adminModeExpiresAt: FieldValue.delete() }
+            )
+        }
+        return this.updateLiveRecord(id, (session) => ({ ...session, adminModeExpiresAt }), {
+            adminModeExpiresAt
+        })
+    }
+
+    private async updateLiveRecord(
+        id: string,
+        apply: (session: AuthenticatedSession) => AuthenticatedSession,
+        update: UpdateData<AuthenticatedSession>
+    ): Promise<AuthenticatedSession | undefined> {
         if (!this.isValidId(id)) {
             return undefined
         }
@@ -81,8 +109,8 @@ export class FirestoreSessionStore implements SessionStore {
                     if (!session) {
                         return undefined
                     }
-                    transaction.update(reference, { authenticatedAt })
-                    return { ...session, authenticatedAt }
+                    transaction.update(reference, update)
+                    return apply(session)
                 })
             )
         } catch (error) {
@@ -174,11 +202,14 @@ const sessionConverter = {
         return session
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): AuthenticatedSession {
-        const { authenticatedAt, ...data } = snapshot.data()
+        const { authenticatedAt, adminModeExpiresAt, ...data } = snapshot.data()
         const session = Value.Convert(AuthenticatedSession, {
             ...data,
             createdAt: toDate(data.createdAt),
             ...(authenticatedAt === undefined ? {} : { authenticatedAt: toDate(authenticatedAt) }),
+            ...(adminModeExpiresAt === undefined
+                ? {}
+                : { adminModeExpiresAt: toDate(adminModeExpiresAt) }),
             expiresAt: toDate(data.expiresAt)
         })
         if (!Value.Check(AuthenticatedSession, session)) {

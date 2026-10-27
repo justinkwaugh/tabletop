@@ -74,6 +74,7 @@ import type {
     UndoVotePreviewResponse,
     UsernameSearchResponse,
     UserResponse,
+    AdminModeResponse,
     ChallengeIssuedResponse,
     DiscordAuthorizationPurpose,
     DiscordAuthorizationStart,
@@ -312,6 +313,40 @@ export class TabletopApi {
             .unauthorized(this.handleError)
             .badRequest(this.handleError)
             .json()
+    }
+
+    async getAdminMode(): Promise<Date | undefined> {
+        const response = await this.wretch
+            .get('/auth/admin-mode')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .json<AdminModeResponse>()
+        return this.adminModeExpiry(response)
+    }
+
+    async activateAdminMode(): Promise<Date> {
+        const response = await this.wretch
+            .post(undefined, '/auth/admin-mode/activate')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json<AdminModeResponse>()
+        const expiresAt = this.adminModeExpiry(response)
+        assertExists(expiresAt, 'Admin Mode activation reports its expiry')
+        return expiresAt
+    }
+
+    async deactivateAdminMode(): Promise<void> {
+        await this.wretch
+            .post(undefined, '/auth/admin-mode/deactivate')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .json<AdminModeResponse>()
+    }
+
+    private adminModeExpiry(response: AdminModeResponse): Date | undefined {
+        const expiresAt = response.payload.adminMode?.expiresAt
+        return expiresAt === undefined ? undefined : new Date(expiresAt)
     }
 
     async logout() {
@@ -1045,6 +1080,7 @@ export class TabletopApi {
         const response = await this.wretch
             .get(`/admin/users/search?query=${encodeURIComponent(query.trim())}`)
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<UsersResponse>()
 
@@ -1055,6 +1091,7 @@ export class TabletopApi {
         const response = await this.wretch
             .post({ roles }, `/admin/users/${encodeURIComponent(userId)}/roles`)
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
@@ -1065,6 +1102,7 @@ export class TabletopApi {
         const response = await this.wretch
             .get(`/admin/games/active?titleId=${encodeURIComponent(titleId)}`)
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<GamesResponse>()
 
@@ -1077,6 +1115,7 @@ export class TabletopApi {
                 `/admin/stats/report?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`
             )
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<unknown>()
         Value.Assert(Type.Object({ payload: SiteStatsReport }), response)
@@ -1087,6 +1126,7 @@ export class TabletopApi {
         const response = await this.wretch
             .get('/admin/stats/now')
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<unknown>()
         Value.Assert(Type.Object({ payload: SiteStatsNow }), response)
@@ -1097,6 +1137,7 @@ export class TabletopApi {
         const response = await this.wretch
             .post({}, '/admin/stats/rollup')
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<unknown>()
         Value.Assert(Type.Object({ payload: Type.Object({ runId: Type.String() }) }), response)
@@ -1107,6 +1148,7 @@ export class TabletopApi {
         await this.wretch
             .post({ state }, '/admin/setGameState')
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<void>()
     }

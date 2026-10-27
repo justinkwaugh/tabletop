@@ -15,6 +15,14 @@ export class HarnessAuthorizationService implements AuthorizationService {
 
     async initialize() {}
 
+    async requestAdminMode() {
+        this.adminCapabilitiesEnabled = true
+    }
+
+    async deactivateAdminMode() {
+        this.adminCapabilitiesEnabled = false
+    }
+
     async authorizeRoute(_args: {
         category: AuthorizationCategory
         intendedUrl: URL

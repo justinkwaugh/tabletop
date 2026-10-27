@@ -26,8 +26,8 @@ export default async function (title: TitleResolver, fastify: FastifyInstance) {
         },
         async function (request, _reply) {
             const definition = title(request)
-            if (!request.user) {
-                throw Error('No user found for create request')
+            if (!request.principal) {
+                throw Error('No principal found for create request')
             }
 
             const body = request.body as CreateGameRequest
@@ -39,7 +39,7 @@ export default async function (title: TitleResolver, fastify: FastifyInstance) {
             const newGame = await fastify.gameService.createGame({
                 definition,
                 game,
-                owner: request.user,
+                owner: request.principal,
                 options: body.options
             })
             return { status: 'ok', payload: { game: newGame } }

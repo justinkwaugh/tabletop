@@ -1,8 +1,9 @@
 import fastifyAuth from '@fastify/auth'
-import { Role, type User, UserStatus } from '@tabletop/common'
+import { Role, type Principal, type User, UserStatus, ordinaryPrincipal } from '@tabletop/common'
 import Fastify from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import tokenRoute from './token.js'
+import { authorizedAs } from '../../../tests/principalFixture.js'
 
 vi.mock('@tabletop/backend-services', () => ({
     GLOBAL_TOPIC: 'global',
@@ -20,13 +21,11 @@ const user: User = {
 
 async function createServer({
     withIssuer = true,
-    roles = [Role.User]
-}: { withIssuer?: boolean; roles?: Role[] } = {}) {
+    principal = ordinaryPrincipal(user)
+}: { withIssuer?: boolean; principal?: Principal } = {}) {
     const server = Fastify()
     await server.register(fastifyAuth)
-    Reflect.set(server, 'verifyActiveUser', async (request: { user?: User }) => {
-        request.user = { ...user, roles }
-    })
+    Reflect.set(server, 'verifyActiveUser', authorizedAs(principal))
     Reflect.set(server, 'verifyRoleUser', async () => undefined)
     const issue = vi.fn(({ topics }: { userId: string; topics: string[] }) => topics.join(','))
     Reflect.set(server, 'realtimeTokenIssuer', withIssuer ? { issue } : undefined)
@@ -52,11 +51,23 @@ describe('GET /token', () => {
         expect(issue).toHaveBeenCalledWith({ userId: 'u1', topics: ['user-u1', 'global'] })
     })
 
-    it('adds the relay stats topic for an admin who asks for it', async () => {
-        const { server } = await createServer({ roles: [Role.User, Role.Admin] })
+    it('adds the relay stats topic for an admin in Admin Mode who asks for it', async () => {
+        const { server } = await createServer({
+            principal: { user: { ...user, roles: [Role.User, Role.Admin] }, adminMode: true }
+        })
         servers.push(server)
         const response = await server.inject({ method: 'GET', url: '/token?relayStats=true' })
         expect(response.json().payload.token).toBe('user-u1,global,relay-stats')
+    })
+
+    it('leaves the relay stats topic out for an admin outside Admin Mode', async () => {
+        const { server } = await createServer({
+            principal: ordinaryPrincipal({ ...user, roles: [Role.User, Role.Admin] })
+        })
+        servers.push(server)
+        const response = await server.inject({ method: 'GET', url: '/token?relayStats=true' })
+        expect(response.statusCode).toBe(200)
+        expect(response.json().payload.token).toBe('user-u1,global')
     })
 
     it('leaves the relay stats topic out for anyone who is not an admin', async () => {

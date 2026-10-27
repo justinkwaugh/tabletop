@@ -6,8 +6,10 @@ import {
     Role,
     type Game,
     type User,
-    UserStatus
+    UserStatus,
+    ordinaryPrincipal
 } from '@tabletop/common'
+import { authorizedAs } from '../../tests/principalFixture.js'
 import Fastify from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import startGameRoute from './start.js'
@@ -65,9 +67,7 @@ async function createServer() {
     const server = Fastify()
     await server.register(fastifyAuth)
 
-    Reflect.set(server, 'verifyActiveUser', async (request: { user?: User }) => {
-        request.user = user
-    })
+    Reflect.set(server, 'verifyActiveUser', authorizedAs(ordinaryPrincipal(user)))
     Reflect.set(server, 'verifyRoleUser', async () => undefined)
 
     const startedGame = createStartedGame()
@@ -102,7 +102,7 @@ describe('POST /start', () => {
         expect(startGame).toHaveBeenCalledWith({
             definition,
             gameId: startedGame.id,
-            user
+            principal: ordinaryPrincipal(user)
         })
     })
 })

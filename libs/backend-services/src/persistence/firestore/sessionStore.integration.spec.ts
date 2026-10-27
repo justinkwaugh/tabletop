@@ -166,6 +166,34 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             })
         })
 
+        it('stores, reads back and clears Admin Mode on a live session, through the cache and after a restart', async () => {
+            const session = newSession(`${run}-admin-mode`)
+            await store.create(session)
+            await expect(store.find(session.id)).resolves.toEqual(session)
+            expect(await cachedAfterFill(session.id)).toBe(true)
+            const until = new Date('2026-10-27T12:15:00.000Z')
+            const activated = { ...session, adminModeExpiresAt: until }
+            await expect(store.setAdminMode(session.id, until)).resolves.toEqual(activated)
+            await expect(store.find(session.id)).resolves.toEqual(activated)
+            const restarted = new FirestoreSessionStore(cache, firestore)
+            await expect(restarted.find(session.id)).resolves.toEqual(activated)
+            await expect(store.setAdminMode(session.id, undefined)).resolves.toEqual(session)
+            await expect(store.find(session.id)).resolves.toEqual(session)
+            await expect(restarted.find(session.id)).resolves.toEqual(session)
+            const stored = (await firestore.collection('sessions').doc(session.id).get()).data()
+            expect(stored).not.toHaveProperty('adminModeExpiresAt')
+        })
+
+        it('keeps Admin Mode out of a session that no longer exists', async () => {
+            const session = newSession(`${run}-admin-gone`)
+            await store.create(session)
+            await store.delete(session.id)
+            await expect(
+                store.setAdminMode(session.id, new Date('2026-10-27T12:15:00.000Z'))
+            ).resolves.toBeUndefined()
+            await expect(store.find(session.id)).resolves.toBeUndefined()
+        })
+
         it('does not record proof on a session that no longer exists', async () => {
             const session = newSession(`${run}-gone`)
             await store.create(session)

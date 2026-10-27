@@ -10,7 +10,8 @@ import {
     UserStatus,
     type Game,
     type Player,
-    type User
+    type User,
+    ordinaryPrincipal
 } from '@tabletop/common'
 import { SyntheticDefinition } from './tests/syntheticGame.js'
 import { GameService } from './gameService.js'
@@ -136,7 +137,7 @@ describe('games whose owner is not a player', () => {
         const created = await service.createGame({
             definition: SyntheticDefinition,
             game: inviteesOnly(),
-            owner: developer
+            owner: ordinaryPrincipal(developer)
         })
         expect(write).toHaveBeenCalled()
         expect(created.ownerId).toBe(developer.id)
@@ -152,7 +153,7 @@ describe('games whose owner is not a player', () => {
             service.createGame({
                 definition: SyntheticDefinition,
                 game: inviteesOnly(),
-                owner: regular
+                owner: ordinaryPrincipal(regular)
             })
         ).rejects.toThrow('must be one of its players')
         expect(write).not.toHaveBeenCalled()
@@ -169,7 +170,7 @@ describe('games whose owner is not a player', () => {
         const created = await service.createGame({
             definition: SyntheticDefinition,
             game: { ...inviteesOnly(), isPublic: true, players: openSeats },
-            owner: developer
+            owner: ordinaryPrincipal(developer)
         })
         expect(write).toHaveBeenCalled()
         expect(created.ownerId).toBe(developer.id)
@@ -182,7 +183,7 @@ describe('games whose owner is not a player', () => {
             service.createGame({
                 definition: SyntheticDefinition,
                 game: { ...inviteesOnly(), isPublic: true },
-                owner: regular
+                owner: ordinaryPrincipal(regular)
             })
         ).rejects.toThrow('must be one of its players')
         expect(write).not.toHaveBeenCalled()
@@ -196,7 +197,7 @@ describe('games whose owner is not a player', () => {
             service.updateGame({
                 gameId: existing.id,
                 fields: { players: [...existing.players.slice(1), seat('d')] },
-                user: regular
+                principal: ordinaryPrincipal(regular)
             })
         ).rejects.toThrow('must be one of its players')
     })
@@ -209,7 +210,7 @@ describe('games whose owner is not a player', () => {
             service.updateGame({
                 gameId: existing.id,
                 fields: { players: [...existing.players.slice(1), seat('d')] },
-                user: admin
+                principal: { user: admin, adminMode: true }
             })
         ).rejects.toThrow('must be one of its players')
     })
@@ -222,7 +223,7 @@ describe('games whose owner is not a player', () => {
             service.updateGame({
                 gameId: existing.id,
                 fields: { players: [...existing.players.slice(1), seat('d')] },
-                user: developer
+                principal: ordinaryPrincipal(developer)
             })
         ).rejects.toThrow('is not authorized')
     })
@@ -234,7 +235,7 @@ describe('games whose owner is not a player', () => {
         const updated = await service.updateGame({
             gameId: existing.id,
             fields: { name: 'Renamed' },
-            user: regular
+            principal: ordinaryPrincipal(regular)
         })
         expect(updated.name).toBe('Renamed')
     })
@@ -246,7 +247,7 @@ describe('games whose owner is not a player', () => {
         const updated = await service.updateGame({
             gameId: existing.id,
             fields: { players: [...existing.players.slice(1), seat(developer.id)] },
-            user: developer
+            principal: ordinaryPrincipal(developer)
         })
         expect(findPlayerForUserId(updated, developer.id)?.status).toBe(PlayerStatus.Joined)
         expect(vi.mocked(tasks.sendGameInvitationEmail)).not.toHaveBeenCalledWith(
@@ -291,7 +292,7 @@ describe('unlisted games', () => {
         const created = await service.createGame({
             definition: SyntheticDefinition,
             game: { ...inviteesOnly(), isPublic: true, unlisted: true, players: openSeats },
-            owner: developer
+            owner: ordinaryPrincipal(developer)
         })
         expect(write).toHaveBeenCalled()
         expect(created).toMatchObject({ isPublic: true, unlisted: true })
@@ -309,7 +310,7 @@ describe('unlisted games', () => {
         const created = await service.createGame({
             definition: SyntheticDefinition,
             game: { ...inviteesOnly(), isPublic: true, unlisted: true, players: openSeats },
-            owner: developer
+            owner: ordinaryPrincipal(developer)
         })
         expect(created.unlisted).toBe(true)
         expect(sentTopics(notifications)).toEqual([['user-developer']])
@@ -324,7 +325,7 @@ describe('unlisted games', () => {
             service.updateGame({
                 gameId: existing.id,
                 fields: { isPublic: false },
-                user: developer
+                principal: ordinaryPrincipal(developer)
             })
         ).rejects.toThrow('must be public')
     })
@@ -340,7 +341,7 @@ describe('unlisted games', () => {
                     unlisted: true,
                     players: [seat(regular.id), ...openSeats.slice(1)]
                 },
-                owner: regular
+                owner: ordinaryPrincipal(regular)
             })
         ).rejects.toThrow('is not authorized')
         expect(write).not.toHaveBeenCalled()
@@ -352,7 +353,7 @@ describe('unlisted games', () => {
             service.createGame({
                 definition: SyntheticDefinition,
                 game: { ...inviteesOnly(), unlisted: true },
-                owner: developer
+                owner: ordinaryPrincipal(developer)
             })
         ).rejects.toThrow('must be public')
         expect(write).not.toHaveBeenCalled()

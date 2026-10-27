@@ -9,7 +9,8 @@ import {
     type Game,
     type GameAction,
     type GameState,
-    type User
+    type User,
+    ordinaryPrincipal
 } from '@tabletop/common'
 import { BugReportService } from './bugReportService.js'
 import { DiscordBotApi, type DiscordFile } from './discordBotApi.js'
@@ -115,7 +116,7 @@ describe('BugReportService', () => {
     })
 
     it('opens a thread in the configured forum for a player in the game', async () => {
-        await service.reportBug({ user: reporter, report })
+        await service.reportBug({ principal: ordinaryPrincipal(reporter), report })
 
         expect(gameService.getGameData).toHaveBeenCalledWith('game-1')
         expect(discordBotApi.post).toHaveBeenCalledWith(
@@ -133,7 +134,7 @@ describe('BugReportService', () => {
             actions: [action]
         })
 
-        await service.reportBug({ user: reporter, report })
+        await service.reportBug({ principal: ordinaryPrincipal(reporter), report })
 
         expect(discordBotApi.post).not.toHaveBeenCalled()
         const [path, post, files] = vi.mocked(discordBotApi.postWithFiles).mock.calls[0]
@@ -161,7 +162,7 @@ describe('BugReportService', () => {
         const screenshots = [Buffer.from([0xff, 0xd8, 0xff, 1]), Buffer.from([0xff, 0xd8, 0xff, 2])]
 
         await service.reportBug({
-            user: reporter,
+            principal: ordinaryPrincipal(reporter),
             report: { ...report, screenshots: screenshots.map((bytes) => bytes.toString('base64')) }
         })
 
@@ -187,7 +188,7 @@ describe('BugReportService', () => {
 
     it('attaches pasted screenshots to a report with no scenario', async () => {
         await service.reportBug({
-            user: reporter,
+            principal: ordinaryPrincipal(reporter),
             report: { ...report, screenshots: [Buffer.from([0xff, 0xd8, 0xff]).toString('base64')] }
         })
 
@@ -216,7 +217,7 @@ describe('BugReportService', () => {
         const screenshot = Buffer.alloc(400_000, 0xff).toString('base64')
 
         await service.reportBug({
-            user: reporter,
+            principal: ordinaryPrincipal(reporter),
             report: { ...report, screenshots: [screenshot, screenshot] }
         })
 
@@ -251,7 +252,7 @@ describe('BugReportService', () => {
             ]
         })
 
-        await service.reportBug({ user: reporter, report })
+        await service.reportBug({ principal: ordinaryPrincipal(reporter), report })
 
         expect(discordBotApi.postWithFiles).not.toHaveBeenCalled()
         const [, post] = vi.mocked(discordBotApi.post).mock.calls[0]
@@ -272,8 +273,8 @@ describe('BugReportService', () => {
     })
 
     it('looks up the Open tag once', async () => {
-        await service.reportBug({ user: reporter, report })
-        await service.reportBug({ user: reporter, report })
+        await service.reportBug({ principal: ordinaryPrincipal(reporter), report })
+        await service.reportBug({ principal: ordinaryPrincipal(reporter), report })
 
         expect(discordBotApi.get).toHaveBeenCalledTimes(1)
         expect(discordBotApi.get).toHaveBeenCalledWith('/channels/forum-1')
@@ -282,7 +283,7 @@ describe('BugReportService', () => {
     it('posts untagged when the forum has no Open tag', async () => {
         vi.mocked(discordBotApi.get).mockImplementation(async () => forumWithTags(['Fixed']))
 
-        await service.reportBug({ user: reporter, report })
+        await service.reportBug({ principal: ordinaryPrincipal(reporter), report })
 
         expect(discordBotApi.post).toHaveBeenCalledWith(
             '/channels/forum-1/threads',
@@ -293,7 +294,7 @@ describe('BugReportService', () => {
     it('posts untagged when the forum tags cannot be read', async () => {
         vi.mocked(discordBotApi.get).mockResolvedValue(new Response('', { status: 403 }))
 
-        await service.reportBug({ user: reporter, report })
+        await service.reportBug({ principal: ordinaryPrincipal(reporter), report })
 
         expect(discordBotApi.post).toHaveBeenCalledWith(
             '/channels/forum-1/threads',
@@ -303,13 +304,26 @@ describe('BugReportService', () => {
 
     it('refuses a user who is not a player in the game', async () => {
         await expect(
-            service.reportBug({ user: { ...reporter, id: 'u-9' }, report })
+            service.reportBug({ principal: ordinaryPrincipal({ ...reporter, id: 'u-9' }), report })
         ).rejects.toBeInstanceOf(UserIsNotAllowedPlayerError)
         expect(discordBotApi.post).not.toHaveBeenCalled()
     })
 
-    it('accepts a report from an admin who is not a player in the game', async () => {
-        await service.reportBug({ user: { ...reporter, id: 'u-9', roles: [Role.Admin] }, report })
+    it('refuses an admin outside Admin Mode who is not a player in the game', async () => {
+        await expect(
+            service.reportBug({
+                principal: ordinaryPrincipal({ ...reporter, id: 'u-9', roles: [Role.Admin] }),
+                report
+            })
+        ).rejects.toBeInstanceOf(UserIsNotAllowedPlayerError)
+        expect(discordBotApi.post).not.toHaveBeenCalled()
+    })
+
+    it('accepts a report from an admin in Admin Mode who is not a player in the game', async () => {
+        await service.reportBug({
+            principal: { user: { ...reporter, id: 'u-9', roles: [Role.Admin] }, adminMode: true },
+            report
+        })
 
         expect(discordBotApi.post).toHaveBeenCalledWith(
             '/channels/forum-1/threads',
@@ -320,9 +334,9 @@ describe('BugReportService', () => {
     it('refuses a game that does not exist', async () => {
         vi.mocked(gameService.getGameData).mockResolvedValue(undefined)
 
-        await expect(service.reportBug({ user: reporter, report })).rejects.toBeInstanceOf(
-            GameNotFoundError
-        )
+        await expect(
+            service.reportBug({ principal: ordinaryPrincipal(reporter), report })
+        ).rejects.toBeInstanceOf(GameNotFoundError)
         expect(discordBotApi.post).not.toHaveBeenCalled()
     })
 
@@ -331,8 +345,8 @@ describe('BugReportService', () => {
             new Response('Missing Permissions', { status: 403 })
         )
 
-        await expect(service.reportBug({ user: reporter, report })).rejects.toThrow(
-            'Discord rejected the bug report with 403: Missing Permissions'
-        )
+        await expect(
+            service.reportBug({ principal: ordinaryPrincipal(reporter), report })
+        ).rejects.toThrow('Discord rejected the bug report with 403: Missing Permissions')
     })
 })

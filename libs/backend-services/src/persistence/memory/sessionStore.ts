@@ -29,6 +29,21 @@ export class MemorySessionStore implements SessionStore {
         return structuredClone(refreshed)
     }
 
+    async setAdminMode(
+        id: string,
+        adminModeExpiresAt: Date | undefined
+    ): Promise<AuthenticatedSession | undefined> {
+        const session = this.sessions.get(id)
+        if (!session) {
+            return undefined
+        }
+        const { adminModeExpiresAt: _cleared, ...cleared } = session
+        const updated =
+            adminModeExpiresAt === undefined ? cleared : { ...cleared, adminModeExpiresAt }
+        this.sessions.set(id, updated)
+        return structuredClone(updated)
+    }
+
     async delete(id: string): Promise<void> {
         this.sessions.delete(id)
     }

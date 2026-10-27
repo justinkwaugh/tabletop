@@ -1,5 +1,14 @@
 import fastifyAuth from '@fastify/auth'
-import { ActionSource, GameAction, Role, type User, UserStatus, Visibility } from '@tabletop/common'
+import {
+    ActionSource,
+    GameAction,
+    Role,
+    type User,
+    UserStatus,
+    Visibility,
+    ordinaryPrincipal
+} from '@tabletop/common'
+import { authorizedAs } from '../../tests/principalFixture.js'
 import Fastify from 'fastify'
 import { Type, type TSchema } from 'typebox'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -50,9 +59,7 @@ async function createServer(actionSchema: TSchema = TestAction) {
     )
     await server.register(fastifyAuth)
 
-    Reflect.set(server, 'verifyActiveUser', async (request: { user?: User }) => {
-        request.user = user
-    })
+    Reflect.set(server, 'verifyActiveUser', authorizedAs(ordinaryPrincipal(user)))
     Reflect.set(server, 'verifyRoleUser', async () => undefined)
 
     const perspective: Visibility.Perspective = {
@@ -140,7 +147,7 @@ describe('POST /action/:actionType', () => {
                 source: ActionSource.User,
                 type: 'test-action'
             }),
-            user
+            principal: ordinaryPrincipal(user)
         })
     })
 
