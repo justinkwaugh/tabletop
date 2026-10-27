@@ -36,7 +36,8 @@ export type DiscordAuthorizationPurpose = (typeof DISCORD_AUTHORIZATION_PURPOSES
 export type DiscordAuthorizationStart = Static<typeof DiscordAuthorizationStart>
 export const DiscordAuthorizationStart = Type.Object({
     state: Type.String(),
-    authorizationUrl: Type.String()
+    authorizationUrl: Type.String(),
+    expiresInSeconds: Type.Integer({ minimum: 1 })
 })
 
 export type DiscordAuthorizationStartResponse = Static<typeof DiscordAuthorizationStartResponse>

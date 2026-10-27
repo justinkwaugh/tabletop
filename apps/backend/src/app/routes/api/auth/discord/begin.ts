@@ -49,7 +49,14 @@ export default async function (fastify: FastifyInstance) {
                     redirectUri,
                     state
                 })
-                return { status: 'ok', payload: { state, authorizationUrl } }
+                return {
+                    status: 'ok',
+                    payload: {
+                        state,
+                        authorizationUrl,
+                        expiresInSeconds: fastify.oauthStateService.lifetimeSeconds()
+                    }
+                }
             }
         )
     }

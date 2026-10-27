@@ -5,14 +5,13 @@
 
 <script lang="ts">
     import { onMount } from 'svelte'
+    import { toast } from 'svelte-sonner'
     import { isLibraryLoaded, markLibraryLoaded } from '$lib/stores/libraryLoaded.svelte'
     import { getAppContext } from '@tabletop/frontend-components'
-    import { reauthentication } from '$lib/stores/reauthentication.svelte'
+    import { signInWithGoogle, type GoogleSignInMode } from '$lib/utils/googleSignIn'
 
-    let {
-        mode = 'login',
-        oncomplete
-    }: { mode: 'link' | 'login' | 'reauthenticate'; oncomplete?: () => void } = $props()
+    let { mode = 'login', oncomplete }: { mode: GoogleSignInMode; oncomplete?: () => void } =
+        $props()
 
     let { authorizationService, api } = getAppContext()
 
@@ -28,27 +27,15 @@
             return
         }
         initialized = true
-        const handleCredentialResponse = async (response: any) => {
-            if (!response.credential) {
-                return
-            }
-            const credential: string = response.credential
-            if (mode === 'login') {
-                const user = await api.loginGoogle(credential)
-                await authorizationService.onLogin(user)
-            } else if (mode === 'link') {
-                await reauthentication.run({
-                    description: 'link your Google account',
-                    retry: async () => {
-                        const user = await api.linkGoogle(credential)
-                        authorizationService.setSessionUser(user)
-                        oncomplete?.()
-                    }
-                })
-            } else {
-                await api.reauthenticateGoogle(credential)
-                oncomplete?.()
-            }
+        const handleCredentialResponse = (response: google.accounts.id.CredentialResponse) => {
+            void signInWithGoogle({
+                credential: response.credential,
+                mode,
+                api,
+                session: authorizationService,
+                oncomplete,
+                report: toast.error
+            })
         }
 
         google.accounts.id.initialize({

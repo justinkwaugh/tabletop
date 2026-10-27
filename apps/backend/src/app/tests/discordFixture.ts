@@ -90,10 +90,10 @@ export async function discordFixture() {
             register(account(`created-${externalId}`, [`${service}:${externalId}`]))
     )
     const server = await sessionServer(sessionService)
-    Reflect.set(server, 'oauthStateService', oauthStateService)
-    Reflect.set(server, 'discordOAuth', discordOAuth)
+    server.decorate('oauthStateService', oauthStateService)
+    server.decorate('discordOAuth', discordOAuth)
     Reflect.set(server, 'userService', {
-        getUser: async (id: string) => users.get(id),
+        getUserForAuthorization: async (id: string) => users.get(id),
         getUserByUsernameAndPassword: async (username: string, password: string) =>
             password === PASSWORD ? users.get(username) : undefined,
         linkExternalAccount,
