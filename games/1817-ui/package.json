@@ -46,9 +46,9 @@
         "@tabletop/1817": "workspace:*"
     },
     "devDependencies": {
-        "@sveltejs/kit": "^2.48.4",
+        "@sveltejs/kit": "^2.70.3",
         "@sveltejs/package": "^2.5.7",
-        "@sveltejs/vite-plugin-svelte": "^6.2.4",
+        "@sveltejs/vite-plugin-svelte": "^7.3.1",
         "@tailwindcss/postcss": "^4.1.18",
         "flowbite": "^3.1.2",
         "flowbite-svelte": "^1.31.0",
@@ -58,10 +58,11 @@
         "svelte-check": "^4.3.5",
         "tailwindcss": "^4.1.18",
         "typescript": "5.9.3",
-        "vite": "^7.3.1",
+        "vite": "^8.3.5",
         "@tabletop/rollup-config": "workspace:*",
         "rollup": "4.55.2",
         "@tabletop/eslint-config": "workspace:*",
-        "@tabletop/prettier-config": "workspace:*"
+        "@tabletop/prettier-config": "workspace:*",
+        "@tabletop/vitest-config": "workspace:*"
     }
 }
