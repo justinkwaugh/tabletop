@@ -1,8 +1,14 @@
 import { Notification } from '@tabletop/common'
-import { WebPushSubscription } from '../subscriptions/webPushSubscription.js'
+import https from 'node:https'
+import {
+    WebPushSubscription,
+    WebPushSubscriptionClientData
+} from '../subscriptions/webPushSubscription.js'
+import {
+    assertSupportedWebPushSubscription,
+    webPushSubscriptionRejection
+} from '../subscriptions/webPushSubscriptionPolicy.js'
 import { SecretsService } from '../../secrets/secretsService.js'
-import { Type, type Static } from 'typebox'
-import * as Value from 'typebox/value'
 import webpush, { WebPushError } from 'web-push'
 import crypto from 'crypto'
 
@@ -12,16 +18,20 @@ import {
     TransportType
 } from './notificationTransport.js'
 import { NotificationSubscriptionIdentifier } from '../subscriptions/notificationSubscriptionIdentifier.js'
+import { PublicInternetHttpsAgent } from './publicInternetAgent.js'
 
-export type WebPushSubscriptionClientData = Static<typeof WebPushSubscriptionClientData>
-export const WebPushSubscriptionClientData = Type.Pick(WebPushSubscription, [
-    'endpoint',
-    'expirationTime',
-    'keys'
-])
+export const WEB_PUSH_SOCKET_TIMEOUT_MS = 10_000
+export const WEB_PUSH_MAX_CONCURRENT_REQUESTS = 64
 
 export class WebPushTransport implements NotificationTransport {
     type = TransportType.WebPush
+
+    constructor(
+        readonly agent: https.Agent = new PublicInternetHttpsAgent({
+            maxSockets: WEB_PUSH_MAX_CONCURRENT_REQUESTS,
+            maxTotalSockets: WEB_PUSH_MAX_CONCURRENT_REQUESTS
+        })
+    ) {}
 
     static async createWebPushTransport(secretsService: SecretsService): Promise<WebPushTransport> {
         const transport = new WebPushTransport()
@@ -44,10 +54,13 @@ export class WebPushTransport implements NotificationTransport {
     static webPushSubscriptionFromClientData(
         data: WebPushSubscriptionClientData
     ): WebPushSubscription {
+        assertSupportedWebPushSubscription(data)
         return {
             id: this.hashString(data.endpoint),
             transport: TransportType.WebPush,
-            ...data
+            endpoint: data.endpoint,
+            expirationTime: data.expirationTime,
+            keys: { p256dh: data.keys.p256dh, auth: data.keys.auth }
         }
     }
 
@@ -70,12 +83,25 @@ export class WebPushTransport implements NotificationTransport {
         subscription: WebPushSubscription,
         notification: Notification
     ): Promise<NotificationResult> {
+        const clientData: WebPushSubscriptionClientData = {
+            endpoint: subscription.endpoint,
+            expirationTime: subscription.expirationTime,
+            keys: subscription.keys
+        }
+        const rejection = webPushSubscriptionRejection(clientData)
+        if (rejection !== undefined) {
+            console.log(
+                'Removing web push subscription with an unsupported destination:',
+                rejection
+            )
+            return { success: false, unregister: true }
+        }
+
         try {
-            const clientData = Value.Clean(
-                WebPushSubscriptionClientData,
-                subscription
-            ) as WebPushSubscriptionClientData
-            await webpush.sendNotification(clientData, JSON.stringify(notification))
+            await webpush.sendNotification(clientData, JSON.stringify(notification), {
+                agent: this.agent,
+                timeout: WEB_PUSH_SOCKET_TIMEOUT_MS
+            })
             return {
                 success: true,
                 unregister: false
