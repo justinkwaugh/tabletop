@@ -482,6 +482,40 @@ test('public activity failures leave the other sections working', async ({ page 
     expect(attempts).toBe(3)
 })
 
+test('an unanswered public activity request becomes unavailable and can be retried', async ({
+    page
+}) => {
+    let attempts = 0
+    await page.route('**/api/v1/games/activity/landing-0', (route) => {
+        attempts++
+        if (attempts === 1) return
+        return route.fulfill({
+            json: {
+                status: 'ok',
+                payload: {
+                    activity: {
+                        inProgress: [publicGame('recovered', GameStatus.Started)],
+                        recentlyFinished: []
+                    }
+                }
+            }
+        })
+    })
+    await page.goto('/library/landing-0')
+    const playing = page.getByRole('region', { name: 'In progress' })
+    const finished = page.getByRole('region', { name: 'Recently finished' })
+    await expect(playing).toContainText('Loading games')
+    await expect(page.getByRole('region', { name: 'Open games' })).toContainText(
+        'No open tables right now.'
+    )
+    await expect(playing).toContainText('temporarily unavailable', { timeout: 15_000 })
+    await expect(finished).toContainText('temporarily unavailable')
+    expect(attempts).toBe(1)
+    await playing.getByRole('button', { name: 'Try again' }).click()
+    await expect(playing.getByText('Public recovered', { exact: true })).toBeVisible()
+    expect(attempts).toBe(2)
+})
+
 test('unavailable and hidden beta titles do not open a game page', async ({ page }) => {
     for (const id of ['missing', 'landing-12']) {
         await page.goto(`/library/${id}`)
