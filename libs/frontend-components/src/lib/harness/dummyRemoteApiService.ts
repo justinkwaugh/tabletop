@@ -37,7 +37,11 @@ import type {
     RealtimeTokenOptions
 } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
-import type { GameChatMessageResponsePayload } from '$lib/network/responseTypes.js'
+import type {
+    DiscordAuthorizationPurpose,
+    DiscordAuthorizationStart,
+    GameChatMessageResponsePayload
+} from '$lib/network/responseTypes.js'
 import type { VersionChange } from '$lib/network/versionChecker.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 
@@ -191,12 +195,30 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('linkGoogle')
     }
 
-    async loginDiscord(_code: string): Promise<User> {
+    async beginDiscordAuthorization(
+        _purpose: DiscordAuthorizationPurpose
+    ): Promise<DiscordAuthorizationStart> {
+        return this.fail('beginDiscordAuthorization')
+    }
+
+    async loginDiscord(_code: string, _state: string): Promise<User> {
         return this.fail('loginDiscord')
     }
 
-    async linkDiscord(_code: string): Promise<User> {
+    async linkDiscord(_code: string, _state: string): Promise<User> {
         return this.fail('linkDiscord')
+    }
+
+    async reauthenticateDiscord(_code: string, _state: string): Promise<void> {
+        return this.fail('reauthenticateDiscord')
+    }
+
+    async reauthenticateWithPassword(_password: string): Promise<void> {
+        return this.fail('reauthenticateWithPassword')
+    }
+
+    async reauthenticateGoogle(_credential: string): Promise<void> {
+        return this.fail('reauthenticateGoogle')
     }
 
     async loginToken(_token: string): Promise<User> {

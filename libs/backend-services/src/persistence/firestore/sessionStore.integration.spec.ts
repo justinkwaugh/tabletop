@@ -108,6 +108,37 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(store.find(kept.id)).resolves.toBeUndefined()
         })
 
+        it('stores a session without Recent Authentication and records proof later', async () => {
+            const { authenticatedAt: _unproved, ...session } = newSession(`${run}-challenge`)
+            await store.create(session)
+            await expect(store.find(session.id)).resolves.toEqual(session)
+            expect(await cachedAfterFill(session.id)).toBe(true)
+            const proved = new Date('2026-10-27T13:00:00.000Z')
+            await expect(store.recordAuthentication(session.id, proved)).resolves.toEqual({
+                ...session,
+                authenticatedAt: proved
+            })
+            await expect(store.find(session.id)).resolves.toEqual({
+                ...session,
+                authenticatedAt: proved
+            })
+            const restarted = new FirestoreSessionStore(cache, firestore)
+            await expect(restarted.find(session.id)).resolves.toEqual({
+                ...session,
+                authenticatedAt: proved
+            })
+        })
+
+        it('does not record proof on a session that no longer exists', async () => {
+            const session = newSession(`${run}-gone`)
+            await store.create(session)
+            await store.delete(session.id)
+            await expect(
+                store.recordAuthentication(session.id, new Date('2026-10-27T13:00:00.000Z'))
+            ).resolves.toBeUndefined()
+            await expect(store.find(session.id)).resolves.toBeUndefined()
+        })
+
         it('treats an invalid id as an unknown session', async () => {
             await expect(store.find('../escape')).resolves.toBeUndefined()
         })

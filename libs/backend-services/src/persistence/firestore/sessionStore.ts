@@ -52,6 +52,31 @@ export class FirestoreSessionStore implements SessionStore {
         return Value.Check(AuthenticatedSession, session) ? session : undefined
     }
 
+    async recordAuthentication(
+        id: string,
+        authenticatedAt: Date
+    ): Promise<AuthenticatedSession | undefined> {
+        if (!this.isValidId(id)) {
+            return undefined
+        }
+        try {
+            return await this.cacheService.lockWhileWriting([this.cacheKey(id)], () =>
+                this.sessions.firestore.runTransaction(async (transaction) => {
+                    const reference = this.sessions.doc(id)
+                    const session = (await transaction.get(reference)).data()
+                    this.recordRead()
+                    if (!session) {
+                        return undefined
+                    }
+                    transaction.update(reference, { authenticatedAt })
+                    return { ...session, authenticatedAt }
+                })
+            )
+        } catch (error) {
+            this.handleError(error, id)
+        }
+    }
+
     async delete(id: string): Promise<void> {
         try {
             await this.cacheService.lockWhileWriting([this.cacheKey(id)], () =>
@@ -137,11 +162,11 @@ const sessionConverter = {
         return session
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): AuthenticatedSession {
-        const data = snapshot.data()
+        const { authenticatedAt, ...data } = snapshot.data()
         const session = Value.Convert(AuthenticatedSession, {
             ...data,
             createdAt: toDate(data.createdAt),
-            authenticatedAt: toDate(data.authenticatedAt),
+            ...(authenticatedAt === undefined ? {} : { authenticatedAt: toDate(authenticatedAt) }),
             expiresAt: toDate(data.expiresAt)
         })
         if (!Value.Check(AuthenticatedSession, session)) {

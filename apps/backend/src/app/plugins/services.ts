@@ -48,6 +48,10 @@ import {
     ResendEmailService,
     SecretsService,
     SessionService,
+    OAuthStateService,
+    FirestoreOAuthStateStore,
+    DiscordOAuth,
+    DiscordOAuthClient,
     StalledGames,
     STATIC_ROOT,
     TaskService,
@@ -72,6 +76,8 @@ declare module 'fastify' {
         taskService: TaskService
         tokenService: TokenService
         sessionService: SessionService
+        oauthStateService: OAuthStateService
+        discordOAuth: DiscordOAuth
         userService: UserService
         preferenceService: PreferenceService
         emailService: EmailService
@@ -147,6 +153,11 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         new FirestoreSessionStore(redisCacheService, fastify.firestore)
     )
     const userService = new UserService(userStore, tokenService, taskService)
+    const oauthStateService = new OAuthStateService(new FirestoreOAuthStateStore(fastify.firestore))
+    const discordOAuth = new DiscordOAuthClient({
+        clientId: process.env['DISCORD_CLIENT_ID'] ?? '',
+        clientSecret: () => secretsService.getSecret('DISCORD_SECRET')
+    })
 
     let pubSubService: PubSubService = new NullPubSubService()
     if (!useAbly) {
@@ -271,6 +282,8 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     })
     fastify.decorate('tokenService', tokenService)
     fastify.decorate('sessionService', sessionService)
+    fastify.decorate('oauthStateService', oauthStateService)
+    fastify.decorate('discordOAuth', discordOAuth)
     fastify.decorate('userService', userService)
     fastify.decorate(
         'preferenceService',

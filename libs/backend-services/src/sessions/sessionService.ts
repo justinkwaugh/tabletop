@@ -2,7 +2,8 @@ import { customAlphabet } from 'nanoid'
 import { canHoldAuthenticatedSession, sessionGenerationOf, User } from '@tabletop/common'
 import type { SessionStore } from '../persistence/stores/sessionStore.js'
 import { AccountUnavailableError } from '../users/errors.js'
-import type { AuthenticatedSession } from './authenticatedSession.js'
+import type { AuthenticatedSession, AuthenticationProof } from './authenticatedSession.js'
+import { hasRecentAuthentication, SessionNotLiveError } from './recentAuthentication.js'
 
 export const SESSION_LIFETIME_SECONDS = 30 * 24 * 60 * 60
 
@@ -21,7 +22,7 @@ export class SessionService {
         private readonly options: { lifetimeSeconds?: number; now?: () => Date } = {}
     ) {}
 
-    async establish(user: User): Promise<AuthenticatedSession> {
+    async establish(user: User, proof: AuthenticationProof): Promise<AuthenticatedSession> {
         if (!canHoldAuthenticatedSession(user)) {
             throw new AccountUnavailableError(user.status)
         }
@@ -31,7 +32,7 @@ export class SessionService {
             userId: user.id,
             generation: sessionGenerationOf(user),
             createdAt,
-            authenticatedAt: createdAt,
+            ...(proof === 'authentication-method' ? { authenticatedAt: createdAt } : {}),
             expiresAt: new Date(createdAt.getTime() + this.lifetimeSeconds() * 1000)
         }
         await this.sessionStore.create(session)
@@ -59,6 +60,22 @@ export class SessionService {
             return undefined
         }
         return { session, user }
+    }
+
+    isRecentlyAuthenticated(session: AuthenticatedSession): boolean {
+        return hasRecentAuthentication(session, this.now())
+    }
+
+    async recordAuthentication(session: AuthenticatedSession): Promise<AuthenticatedSession> {
+        const now = this.now()
+        if (session.expiresAt <= now) {
+            throw new SessionNotLiveError(session.id)
+        }
+        const refreshed = await this.sessionStore.recordAuthentication(session.id, now)
+        if (!refreshed) {
+            throw new SessionNotLiveError(session.id)
+        }
+        return refreshed
     }
 
     async revoke(id: string): Promise<void> {

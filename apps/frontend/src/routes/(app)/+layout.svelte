@@ -31,6 +31,8 @@
     import AccountAvatar from '$lib/components/AccountAvatar.svelte'
     import { setLoginModal } from '$lib/stores/loginModal'
     import { broadcastLogout, onLogoutBroadcast } from '$lib/utils/logoutChannel'
+    import { onDiscordAuthorizationResult } from '$lib/utils/discordAuthorization'
+    import ReauthenticationPrompt from '$lib/components/ReauthenticationPrompt.svelte'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
     import {
@@ -293,18 +295,16 @@
         notificationService.showPrompt()
     }
 
-    const loginChannel = new BroadcastChannel('login')
-    loginChannel.onmessage = async function (e) {
-        if (e.data.status === 'success' && e.data.user) {
-            await authorizationService.onLogin(e.data.user)
+    onDiscordAuthorizationResult((result) => {
+        if (result.outcome !== 'success') {
+            return
         }
-    }
-
-    const userUpdateChannel = new BroadcastChannel('userUpdated')
-    userUpdateChannel.onmessage = function (e) {
-        const user = e.data.user
-        authorizationService.setSessionUser(user)
-    }
+        if (result.purpose === 'login') {
+            void authorizationService.onLogin(result.user)
+        } else if (result.purpose === 'link') {
+            authorizationService.setSessionUser(result.user)
+        }
+    })
 
     async function requestNotificationPermission() {
         notificationService.hidePrompt()
@@ -708,7 +708,9 @@
         </div>
     </Navbar>
 </div>
-{#if !sessionUser}
+{#if sessionUser}
+    <ReauthenticationPrompt />
+{:else}
     <AuthModal
         bind:open={showLoginModal}
         title={loginViewTitles[loginView]}

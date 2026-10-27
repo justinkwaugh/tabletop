@@ -1,43 +1,84 @@
 <script module lang="ts">
     import { PUBLIC_ENABLE_DISCORD_LOGIN } from '$env/static/public'
     export const isEnabled: boolean = !!PUBLIC_ENABLE_DISCORD_LOGIN
+    export type DiscordSignInMode = 'login' | 'link' | 'reauthenticate' | 'bot'
 </script>
 
 <script lang="ts">
-    let { mode = 'login' }: { mode: 'link' | 'login' | 'bot' } = $props()
+    import { toast } from 'svelte-sonner'
+    import { getAppContext } from '@tabletop/frontend-components'
+    import {
+        openDiscordAuthorization,
+        type DiscordAuthorizationResult
+    } from '$lib/utils/discordAuthorization'
+    import {
+        reauthentication,
+        requiresRecentAuthentication
+    } from '$lib/stores/reauthentication.svelte'
 
-    function discordLogin() {
-        const width = 550
-        const height = 700
-        const left = (screen.width - width) / 2
-        const top = (screen.height - height) / 2
-        const FRONTEND_HOST = window.location.origin
-        const encodedHost = encodeURIComponent(FRONTEND_HOST ?? '')
-        let url = ''
-        if (mode === 'bot') {
-            url = `https://discord.com/oauth2/authorize?client_id=1260059992589865133&integration_type=1&scope=applications.commands`
-        } else {
-            url = `https://discord.com/oauth2/authorize?client_id=1260059992589865133&response_type=code&redirect_uri=${encodedHost}%2Foauth%2Fdiscord${mode === 'login' ? '' : '%2Flink'}&scope=identify+email`
-        }
+    let {
+        mode = 'login',
+        oncomplete
+    }: {
+        mode?: DiscordSignInMode
+        oncomplete?: (result: DiscordAuthorizationResult) => void
+    } = $props()
+
+    const { api } = getAppContext()
+    const labels: Record<DiscordSignInMode, string> = {
+        login: 'Login with Discord',
+        link: 'Link',
+        reauthenticate: 'Continue with Discord',
+        bot: 'Add Bot'
+    }
+
+    function addBot() {
         window.open(
-            url,
+            'https://discord.com/oauth2/authorize?client_id=1260059992589865133&integration_type=1&scope=applications.commands',
             'Discord Authorization',
-            `popup=true,resizable=no, width=${width},height=${height},top=${top},left=${left}`
+            'popup=true,resizable=no,width=550,height=700'
         )
+    }
+
+    async function authorize(purpose: 'login' | 'link' | 'reauthenticate') {
+        try {
+            const result = await openDiscordAuthorization({ purpose, api })
+            if (result.outcome === 'error') {
+                toast.error(result.message)
+            }
+            oncomplete?.(result)
+        } catch (error) {
+            if (purpose === 'link' && requiresRecentAuthentication(error)) {
+                reauthentication.request({
+                    description: 'link your Discord account',
+                    retry: () => authorize(purpose)
+                })
+                return
+            }
+            toast.error(error instanceof Error ? error.message : 'Discord authorization failed')
+        }
+    }
+
+    function onclick() {
+        if (mode === 'bot') {
+            addBot()
+            return
+        }
+        void authorize(mode)
     }
 </script>
 
 <button
     type="button"
     class="flex items-center justify-center rounded-full bg-[#5865F2] hover:bg-[#4752C4] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#99AAFF] {mode ===
-    'login'
+        'login' || mode === 'reauthenticate'
         ? 'px-6'
-        : 'px-2'} py-2 text-sm font-medium text-white {mode === 'login'
+        : 'px-2'} py-2 text-sm font-medium text-white {mode === 'login' || mode === 'reauthenticate'
         ? 'w-full'
         : mode === 'link'
           ? 'w-[100px]'
           : 'w-[110px]'} {mode === 'link' || mode === 'bot' ? 'h-[30px]' : ''}"
-    onclick={discordLogin}
+    {onclick}
 >
     <svg
         class="h-6 w-6 mr-2"
@@ -58,5 +99,5 @@
             </path>
         </g>
     </svg>
-    <span>{mode === 'login' ? 'Login with Discord' : mode === 'link' ? 'Link' : 'Add Bot'}</span>
+    <span>{labels[mode]}</span>
 </button>

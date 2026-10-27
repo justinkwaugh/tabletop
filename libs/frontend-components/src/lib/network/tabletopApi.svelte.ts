@@ -73,6 +73,9 @@ import type {
     UndoVotePreviewResponse,
     UsernameSearchResponse,
     UserResponse,
+    DiscordAuthorizationPurpose,
+    DiscordAuthorizationStart,
+    DiscordAuthorizationStartResponse,
     UsersResponse
 } from './responseTypes.js'
 import { APIError } from './errors.js'
@@ -244,30 +247,69 @@ export class TabletopApi {
         const response = await this.wretch
             .post({ credential }, '/auth/google/link')
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
         return response.payload.user as User
     }
 
-    async loginDiscord(code: string) {
+    async beginDiscordAuthorization(
+        purpose: DiscordAuthorizationPurpose
+    ): Promise<DiscordAuthorizationStart> {
         const response = await this.wretch
-            .post({ code }, '/auth/discord/login')
+            .post(undefined, `/auth/discord/begin/${purpose}`)
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
-            .json<UserResponse>()
+            .json<DiscordAuthorizationStartResponse>()
 
-        return response.payload.user as User
+        return response.payload
     }
 
-    async linkDiscord(code: string) {
+    async loginDiscord(code: string, state: string): Promise<User> {
         const response = await this.wretch
-            .post({ code }, '/auth/discord/link')
-            .unauthorized(this.on401)
+            .post({ code, state }, '/auth/discord/login')
+            .unauthorized(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
-        return response.payload.user as User
+        return response.payload.user
+    }
+
+    async linkDiscord(code: string, state: string): Promise<User> {
+        const response = await this.wretch
+            .post({ code, state }, '/auth/discord/link')
+            .unauthorized(this.handleError)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+
+        return response.payload.user
+    }
+
+    async reauthenticateDiscord(code: string, state: string): Promise<void> {
+        await this.wretch
+            .post({ code, state }, '/auth/discord/reauthenticate')
+            .unauthorized(this.handleError)
+            .badRequest(this.handleError)
+            .json()
+    }
+
+    async reauthenticateWithPassword(password: string): Promise<void> {
+        await this.wretch
+            .post({ password }, '/auth/reauthenticate')
+            .unauthorized(this.handleError)
+            .badRequest(this.handleError)
+            .json()
+    }
+
+    async reauthenticateGoogle(credential: string): Promise<void> {
+        await this.wretch
+            .post({ credential }, '/auth/google/reauthenticate')
+            .unauthorized(this.handleError)
+            .badRequest(this.handleError)
+            .json()
     }
 
     async loginToken(token: string) {

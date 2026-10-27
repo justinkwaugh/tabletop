@@ -3,6 +3,11 @@ import { Role, UserStatus, type User } from '@tabletop/common'
 import { SessionService, SESSION_LIFETIME_SECONDS } from './sessionService.js'
 import { MemorySessionStore } from '../persistence/memory/sessionStore.js'
 import { AccountUnavailableError } from '../users/errors.js'
+import {
+    hasRecentAuthentication,
+    RECENT_AUTHENTICATION_SECONDS,
+    SessionNotLiveError
+} from './recentAuthentication.js'
 
 function account(status: UserStatus, id = 'account-1', sessionGeneration?: number): User {
     return { id, status, roles: [Role.User], externalIds: [], sessionGeneration }
@@ -35,7 +40,7 @@ describe('Authenticated Session lifecycle', () => {
         const { sessions, store, authorize, register } = fixture()
         for (const status of [UserStatus.Active, UserStatus.Incomplete]) {
             const user = register(account(status))
-            const session = await sessions.establish(user)
+            const session = await sessions.establish(user, 'authentication-method')
             expect(session.id).toMatch(/^[0-9A-Za-z]{32}$/)
             expect(session.userId).toBe('account-1')
             expect(session.generation).toBe(0)
@@ -51,9 +56,9 @@ describe('Authenticated Session lifecycle', () => {
     it('refuses an Inactive or Deleted Account a session', async () => {
         const { sessions, store } = fixture()
         for (const status of [UserStatus.Inactive, UserStatus.Deleted]) {
-            await expect(sessions.establish(account(status))).rejects.toThrow(
-                AccountUnavailableError
-            )
+            await expect(
+                sessions.establish(account(status), 'authentication-method')
+            ).rejects.toThrow(AccountUnavailableError)
         }
         expect(store.size).toBe(0)
     })
@@ -65,22 +70,28 @@ describe('Authenticated Session lifecycle', () => {
 
     it('does not authorize a session whose Account no longer exists', async () => {
         const { sessions, authorize, forget } = fixture()
-        const session = await sessions.establish(account(UserStatus.Active))
+        const session = await sessions.establish(
+            account(UserStatus.Active),
+            'authentication-method'
+        )
         forget('account-1')
         await expect(authorize(session.id)).resolves.toBeUndefined()
     })
 
     it('stops authorizing a session once it is revoked', async () => {
         const { sessions, authorize } = fixture()
-        const session = await sessions.establish(account(UserStatus.Active))
+        const session = await sessions.establish(
+            account(UserStatus.Active),
+            'authentication-method'
+        )
         await sessions.revoke(session.id)
         await expect(authorize(session.id)).resolves.toBeUndefined()
     })
 
     it('keeps concurrent sessions independent', async () => {
         const { sessions, authorize } = fixture()
-        const first = await sessions.establish(account(UserStatus.Active))
-        const second = await sessions.establish(account(UserStatus.Active))
+        const first = await sessions.establish(account(UserStatus.Active), 'authentication-method')
+        const second = await sessions.establish(account(UserStatus.Active), 'authentication-method')
         expect(first.id).not.toBe(second.id)
         await sessions.revoke(first.id)
         await expect(authorize(second.id)).resolves.toMatchObject({ session: second })
@@ -88,7 +99,10 @@ describe('Authenticated Session lifecycle', () => {
 
     it('expires a session thirty days after it was established, with no sliding extension', async () => {
         const { sessions, authorize, advance, store } = fixture()
-        const session = await sessions.establish(account(UserStatus.Active))
+        const session = await sessions.establish(
+            account(UserStatus.Active),
+            'authentication-method'
+        )
         advance(SESSION_LIFETIME_SECONDS - 1)
         await expect(authorize(session.id)).resolves.toMatchObject({ session })
         advance(1)
@@ -99,9 +113,12 @@ describe('Authenticated Session lifecycle', () => {
     it('revokes every session of one Account, optionally sparing one', async () => {
         const { sessions, authorize, register } = fixture()
         register(account(UserStatus.Active, 'account-2'))
-        const kept = await sessions.establish(account(UserStatus.Active))
-        const other = await sessions.establish(account(UserStatus.Active))
-        const someoneElse = await sessions.establish(account(UserStatus.Active, 'account-2'))
+        const kept = await sessions.establish(account(UserStatus.Active), 'authentication-method')
+        const other = await sessions.establish(account(UserStatus.Active), 'authentication-method')
+        const someoneElse = await sessions.establish(
+            account(UserStatus.Active, 'account-2'),
+            'authentication-method'
+        )
         await sessions.revokeAll('account-1', { except: kept.id })
         await expect(authorize(kept.id)).resolves.toMatchObject({ session: kept })
         await expect(authorize(other.id)).resolves.toBeUndefined()
@@ -116,7 +133,7 @@ describe('Session Generation', () => {
     it('records the Account generation at establishment and authorizes while it matches', async () => {
         const { sessions, authorize, register } = fixture()
         const user = register(account(UserStatus.Active, 'account-1', 3))
-        const session = await sessions.establish(user)
+        const session = await sessions.establish(user, 'authentication-method')
         expect(session.generation).toBe(3)
         await expect(authorize(session.id)).resolves.toEqual({ session, user })
     })
@@ -124,8 +141,8 @@ describe('Session Generation', () => {
     it('stops authorizing every session once the Account generation advances, without any revocation call', async () => {
         const { sessions, authorize, register, store } = fixture()
         const before = account(UserStatus.Active)
-        const copied = await sessions.establish(before)
-        const own = await sessions.establish(before)
+        const copied = await sessions.establish(before, 'authentication-method')
+        const own = await sessions.establish(before, 'authentication-method')
         register(account(UserStatus.Active, 'account-1', 1))
         await expect(authorize(copied.id)).resolves.toBeUndefined()
         await expect(authorize(own.id)).resolves.toBeUndefined()
@@ -136,9 +153,73 @@ describe('Session Generation', () => {
         const { sessions, authorize, register } = fixture()
         const staleRead = account(UserStatus.Active)
         const current = register(account(UserStatus.Active, 'account-1', 1))
-        const raced = await sessions.establish(staleRead)
-        const fresh = await sessions.establish(current)
+        const raced = await sessions.establish(staleRead, 'authentication-method')
+        const fresh = await sessions.establish(current, 'authentication-method')
         await expect(authorize(raced.id)).resolves.toBeUndefined()
         await expect(authorize(fresh.id)).resolves.toEqual({ session: fresh, user: current })
+    })
+})
+
+describe('Recent Authentication on an Authenticated Session', () => {
+    it('records proof through an Authentication Method at establishment but not a challenge', async () => {
+        const { sessions } = fixture()
+        const now = new Date('2026-10-27T12:00:00.000Z')
+        const proved = await sessions.establish(account(UserStatus.Active), 'authentication-method')
+        expect(proved.authenticatedAt).toEqual(proved.createdAt)
+        expect(hasRecentAuthentication(proved, now)).toBe(true)
+        const challenged = await sessions.establish(account(UserStatus.Active), 'challenge')
+        expect(challenged.authenticatedAt).toBeUndefined()
+        expect(hasRecentAuthentication(challenged, now)).toBe(false)
+    })
+
+    it('lasts fifteen minutes and is not refreshed by ordinary authorization', async () => {
+        const { sessions, authorize, advance } = fixture()
+        const session = await sessions.establish(
+            account(UserStatus.Active),
+            'authentication-method'
+        )
+        const almost = advance(RECENT_AUTHENTICATION_SECONDS - 1)
+        const authorized = await authorize(session.id)
+        expect(authorized && hasRecentAuthentication(authorized.session, almost)).toBe(true)
+        const lapsed = advance(1)
+        const again = await authorize(session.id)
+        expect(again && hasRecentAuthentication(again.session, lapsed)).toBe(false)
+    })
+
+    it('refreshes only authenticatedAt when proof is recorded again', async () => {
+        const { sessions, store, advance } = fixture()
+        const session = await sessions.establish(account(UserStatus.Active), 'challenge')
+        const later = advance(60 * 60)
+        const refreshed = await sessions.recordAuthentication(session)
+        expect(refreshed.authenticatedAt).toEqual(later)
+        expect(refreshed.expiresAt).toEqual(session.expiresAt)
+        expect(refreshed.createdAt).toEqual(session.createdAt)
+        expect(refreshed.generation).toBe(session.generation)
+        await expect(store.find(session.id)).resolves.toEqual(refreshed)
+        expect(hasRecentAuthentication(refreshed, later)).toBe(true)
+    })
+
+    it('never resurrects a revoked or expired session through reauthentication', async () => {
+        const { sessions, store, advance } = fixture()
+        const revoked = await sessions.establish(
+            account(UserStatus.Active),
+            'authentication-method'
+        )
+        await sessions.revoke(revoked.id)
+        await expect(sessions.recordAuthentication(revoked)).rejects.toBeInstanceOf(
+            SessionNotLiveError
+        )
+        expect(store.size).toBe(0)
+        const expired = await sessions.establish(
+            account(UserStatus.Active),
+            'authentication-method'
+        )
+        advance(SESSION_LIFETIME_SECONDS)
+        await expect(sessions.recordAuthentication(expired)).rejects.toBeInstanceOf(
+            SessionNotLiveError
+        )
+        await expect(store.find(expired.id)).resolves.toMatchObject({
+            authenticatedAt: expired.createdAt
+        })
     })
 })

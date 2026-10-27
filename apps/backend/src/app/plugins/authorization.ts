@@ -1,7 +1,11 @@
 import { measure } from '@tabletop/backend-services/diagnostics'
 import fp from 'fastify-plugin'
 import { User, Role, UserStatus, canHoldAuthenticatedSession } from '@tabletop/common'
-import { AccountUnavailableError, AuthenticatedSession } from '@tabletop/backend-services'
+import {
+    AccountUnavailableError,
+    AuthenticatedSession,
+    RecentAuthenticationRequiredError
+} from '@tabletop/backend-services'
 import { FastifyAuthFunction } from '@fastify/auth'
 import { FastifyInstance, FastifyRequest } from 'fastify'
 
@@ -12,6 +16,7 @@ declare module 'fastify' {
         verifyActiveUser: FastifyAuthFunction
         verifyRoleUser: FastifyAuthFunction
         verifyRoleAdmin: FastifyAuthFunction
+        verifyRecentAuthentication: FastifyAuthFunction
     }
 
     interface FastifyRequest {
@@ -65,6 +70,16 @@ export default fp(async function (fastify: FastifyInstance) {
         return authorized.user
     }
 
+    async function verifyRecentAuthentication(request: FastifyRequest) {
+        const session = request.authenticatedSession
+        if (!session) {
+            throw fastify.httpErrors.unauthorized('No session found')
+        }
+        if (!fastify.sessionService.isRecentlyAuthenticated(session)) {
+            throw new RecentAuthenticationRequiredError()
+        }
+    }
+
     async function verifyRoleUser(request: FastifyRequest) {
         verifyRole(request, Role.User)
     }
@@ -89,4 +104,5 @@ export default fp(async function (fastify: FastifyInstance) {
     fastify.decorate('verifyIncompleteUser', verifyIncompleteUser)
     fastify.decorate('verifyRoleUser', verifyRoleUser)
     fastify.decorate('verifyRoleAdmin', verifyRoleAdmin)
+    fastify.decorate('verifyRecentAuthentication', verifyRecentAuthentication)
 })
