@@ -92,12 +92,12 @@ export class ChronicleStateHandler implements MachineStateHandler<
         if (isOfferChronicleCitizenship(action)) {
             return action.exilePlayerIds.length > 0
                 ? MachineState.Chronicle
-                : completeChronicleStep(state)
+                : completeChronicleStep(state, action)
         }
         if (isAnswerChronicleCitizenship(action)) {
             return unansweredOffers(state).length > 0
                 ? MachineState.Chronicle
-                : completeChronicleStep(state)
+                : completeChronicleStep(state, action)
         }
         if (
             isChooseOath(action) ||
@@ -107,7 +107,7 @@ export class ChronicleStateHandler implements MachineStateHandler<
             isWriteChronicleStory(action) ||
             isSkipChronicleStory(action)
         ) {
-            return completeChronicleStep(state)
+            return completeChronicleStep(state, action)
         }
         throw Error(CHRONICLE_BEING_WRITTEN)
     }

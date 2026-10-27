@@ -73,7 +73,7 @@ export class RestPhaseStateHandler implements MachineStateHandler<
         if (isCompleteRest(action)) {
             // R-3.3 or R-3.4 may have ended the game at the round boundary.
             if (context.gameState.winningPlayerIds.length > 0) {
-                return stateAfterWin(context.gameState)
+                return stateAfterWin(context.gameState, action)
             }
             return action.metadata?.awaitsEndDie ? MachineState.EndOfRound : MachineState.WakePhase
         }

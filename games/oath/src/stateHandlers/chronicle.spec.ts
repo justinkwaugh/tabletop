@@ -12,13 +12,14 @@ import {
     type GameAction
 } from '@tabletop/common'
 import { engine } from '../testing/engine.js'
+import { wholeWorld } from '../testing/chronicleWorld.js'
 import { buildAction, machineContext } from '../testing/actions.js'
 import { testBanners, testPlayer, testState } from '../testing/fixture.js'
 import { testGame } from '../testing/game.js'
 import { served, spectator } from '../testing/projection.js'
 import { MachineState } from '../definition/states.js'
 import { OathStateHandlers } from '../definition/stateHandlers.js'
-import { Banner, OathType, PlayerStatus } from '../model/oathEnums.js'
+import { Banner, OathType, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import type { OathPlayerState } from '../model/playerState.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
@@ -73,13 +74,15 @@ function table(
     turnOf: string,
     overrides: Partial<OathProjectedState>
 ): OathProjectedState {
-    const state = testState(players, {
+    const fixture = testState(players, {
         chancellorPlayerId: 'p1',
         warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } },
         oathRevision: revision,
         ...(revision >= AT ? { table: TABLE } : {}),
         ...overrides
-    }).dehydrate()
+    })
+    // From the chronicle revision a win runs R-8's steps, which deal with every card of the game.
+    const state = (revision >= AT ? wholeWorld(fixture) : fixture).dehydrate()
     const turnOrder = players.map((player) => player.playerId)
     state.turnManager = {
         series: [{ type: 'turn', playerId: turnOf, start: 0 }],
@@ -328,7 +331,9 @@ describe('the chronicle record', () => {
                 kind: WinKind.Successor,
                 rule: 'R-3.3.1',
                 winner: { name: 'Ann', color: Color.Blue },
-                nextOath: OathType.Supremacy
+                nextOath: OathType.Supremacy,
+                // R-8.4 — Ann has no advisers, so the plainest answer's suit is the first.
+                added: { suits: [Suit.Discord, Suit.Arcane, Suit.Order] }
             }
         ])
     })
@@ -489,7 +494,7 @@ describe('the Chronicle phase while a step waits', () => {
             candidates: ['p2'],
             resumeMachineState: MachineState.WakePhase
         }
-        expect(() => stateAfterWin(state)).toThrow(/nothing of the game left open/)
+        expect(() => stateAfterWin(state, {})).toThrow(/nothing of the game left open/)
     })
 })
 

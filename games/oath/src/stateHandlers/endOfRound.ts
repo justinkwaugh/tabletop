@@ -36,7 +36,7 @@ export class EndOfRoundStateHandler implements MachineStateHandler<
             // R-1.7 — a round that goes on starts with the Chancellor's Wake. Squalid District's
             // question, when asked, reads the roll and names where play goes once it is answered.
             return context.gameState.winningPlayerIds.length > 0
-                ? stateAfterWin(context.gameState)
+                ? stateAfterWin(context.gameState, action)
                 : MachineState.WakePhase
         }
         throw Error(`Unhandled action type: ${action.type}`)

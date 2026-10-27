@@ -21,7 +21,7 @@ import { engine } from './engine.js'
  */
 export function wonTable(state: HydratedOathGameState, outcome: GameOutcome): OathProjectedState {
     recordWin(state, outcome)
-    state.machineState = stateAfterWin(state)
+    state.machineState = stateAfterWin(state, {})
     OathStateHandlers[state.machineState].enter(machineContext(state))
     return state.dehydrate()
 }

@@ -1,4 +1,4 @@
-import { assert, assertExists, type Game } from '@tabletop/common'
+import { assert, assertExists, type Game, type GameAction } from '@tabletop/common'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { WinKind } from '../model/ending.js'
@@ -27,6 +27,14 @@ import {
     seatNameOf,
     unansweredOffers
 } from './chronicleChoices.js'
+import { assertSavedMap, cleanUpMap } from './chronicleMap.js'
+import {
+    addSixOrHeal,
+    dispossess,
+    healFromChosenStack,
+    rebuildWorldDeck
+} from './chronicleCards.js'
+import { cleanUpRelics } from './chronicleRelics.js'
 
 /** A step the winner, or the players it names, decide; the phase waits on them. */
 export interface ChronicleChoice {
@@ -37,21 +45,32 @@ export interface ChronicleChoice {
     /** Whether the step waits on a choice; a step with one possible outcome does not. */
     applies(state: HydratedOathGameState): boolean
     choosers(state: HydratedOathGameState): string[]
+    /** A draw the answer settles, made as the step completes; it reveals information (R-X.3). */
+    drawAfterAnswer?(state: HydratedOathGameState): void
 }
 
 /** A step the rules settle alone; it runs inside the action that reaches it. */
 export interface ChronicleSystemStep {
     readonly step: ChronicleStep
     readonly kind: 'system'
+    /** R-X.3 — it draws or shows hidden cards, so the action that runs it cannot be undone. */
+    readonly revealsInfo: boolean
     applies(state: HydratedOathGameState): boolean
     run(state: HydratedOathGameState): void
 }
 
+/** The action a step runs inside; it reveals information once a step does (R-X.3). */
+type ChronicleAction = Pick<GameAction, 'revealsInfo'>
+
 export type ChronicleStepRule = ChronicleChoice | ChronicleSystemStep
 
-/** Not yet built: a system step that changes nothing. */
-function systemStepToCome(step: ChronicleStep): ChronicleSystemStep {
-    return { step, kind: 'system', applies: () => true, run: () => {} }
+/** A step every chronicle runs, settled by the rules alone. */
+function systemStep(
+    step: ChronicleStep,
+    revealsInfo: boolean,
+    run: (state: HydratedOathGameState) => void
+): ChronicleSystemStep {
+    return { step, kind: 'system', revealsInfo, applies: () => true, run }
 }
 
 /** Law 8 — "the winner performs these steps in order". */
@@ -110,7 +129,8 @@ const HEAL_STACK: ChronicleChoice = {
     step: ChronicleStep.HealStack,
     kind: 'choice',
     applies: (state) => state.chronicle?.healTie !== undefined,
-    choosers: theWinner
+    choosers: theWinner,
+    drawAfterAnswer: healFromChosenStack
 }
 
 /** The winner writes the story of the game, or skips it. */
@@ -126,14 +146,26 @@ export const CHRONICLE_STEPS: readonly ChronicleStepRule[] = [
     VOW,
     CITIZENSHIP,
     BUILD_OR_REPAIR,
-    systemStepToCome(ChronicleStep.Map),
+    // R-8.3.2 to R-8.3.5
+    systemStep(ChronicleStep.Map, true, (state) => {
+        chronicleOf(state).map = cleanUpMap(state)
+    }),
     SUIT,
-    systemStepToCome(ChronicleStep.AddSix),
+    // R-8.4, R-8.4.a — a tie for the largest stack shows the stacks' sizes.
+    systemStep(ChronicleStep.AddSix, true, addSixOrHeal),
     HEAL_STACK,
-    systemStepToCome(ChronicleStep.Dispossess),
-    systemStepToCome(ChronicleStep.Relics),
-    systemStepToCome(ChronicleStep.Save),
-    systemStepToCome(ChronicleStep.Rebuild),
+    // R-8.5
+    systemStep(ChronicleStep.Dispossess, true, (state) => {
+        chronicleOf(state).dispossessed = dispossess(state)
+    }),
+    // R-8.6
+    systemStep(ChronicleStep.Relics, true, (state) => {
+        chronicleOf(state).relics = cleanUpRelics(state)
+    }),
+    // R-8.7 — the map is already the saved stack and the boards keep their sides: nothing moves.
+    systemStep(ChronicleStep.Save, false, assertSavedMap),
+    // R-8.8
+    systemStep(ChronicleStep.Rebuild, true, rebuildWorldDeck),
     STORY
 ]
 
@@ -177,7 +209,7 @@ function waysMetBy(state: HydratedOathGameState, playerId: string): ChronicleWay
 }
 
 /** R-3, R-8 — where the action that won goes: the result, or from its revision the chronicle. */
-export function stateAfterWin(state: HydratedOathGameState): MachineState {
+export function stateAfterWin(state: HydratedOathGameState, action: ChronicleAction): MachineState {
     if (!isAtLeastOathRevision(state, OathRevision.Chronicle)) return MachineState.EndOfGame
     const chronicle = state.chronicle
     assertExists(chronicle, 'R-3 — the action that won stored its ending')
@@ -188,26 +220,41 @@ export function stateAfterWin(state: HydratedOathGameState): MachineState {
             state.pendingConsent === undefined,
         'R-8 — the chronicle starts with nothing of the game left open'
     )
-    return writeChronicleFrom(state, 0)
+    return writeChronicleFrom(state, 0, action)
 }
 
-/** R-8 — the step being written is done: write on from the next one. */
-export function completeChronicleStep(state: HydratedOathGameState): MachineState {
+/** R-8 — the step being written is done: settle its draw, if any, then write on from the next one. */
+export function completeChronicleStep(
+    state: HydratedOathGameState,
+    action: ChronicleAction
+): MachineState {
     const step = state.chronicle?.step
     assertExists(step, 'R-8 — the chronicle is being written')
-    return writeChronicleFrom(state, CHRONICLE_STEPS.findIndex((rule) => rule.step === step) + 1)
+    const at = CHRONICLE_STEPS.findIndex((rule) => rule.step === step)
+    const rule = CHRONICLE_STEPS[at]
+    if (rule.kind === 'choice' && rule.drawAfterAnswer) {
+        rule.drawAfterAnswer(state)
+        action.revealsInfo = true
+    }
+    return writeChronicleFrom(state, at + 1, action)
 }
 
 /**
  * R-8 — from step `from`, run each system step and settle what the rules decide alone, until a
  * choice waits; once the last step is done, write the record's entry and go to the result.
  */
-function writeChronicleFrom(state: HydratedOathGameState, from: number): MachineState {
+function writeChronicleFrom(
+    state: HydratedOathGameState,
+    from: number,
+    action: ChronicleAction
+): MachineState {
     const chronicle = chronicleOf(state)
     for (const rule of CHRONICLE_STEPS.slice(from)) {
         chronicle.step = rule.step
         if (rule.kind === 'system') {
-            if (rule.applies(state)) rule.run(state)
+            if (!rule.applies(state)) continue
+            rule.run(state)
+            if (rule.revealsInfo) action.revealsInfo = true
             continue
         }
         rule.reach?.(state)
@@ -237,6 +284,8 @@ function appendChronicleEntry(state: HydratedOathGameState): void {
     const citizens = (chronicle.citizenship?.offers ?? [])
         .filter((offer) => offer.accepted === true)
         .map((offer) => seatOf(state, offer.playerId))
+    // R-8.3.3 — the edifices flipped to their ruined side.
+    const ruined = (chronicle.map?.ruins ?? []).map((ruin) => ruin.edificeId)
     // The story is kept once, in the entry.
     const story = chronicle.story
     delete chronicle.story
@@ -252,8 +301,10 @@ function appendChronicleEntry(state: HydratedOathGameState): void {
             rule: ending.rule,
             winner: seatOf(state, ending.winnerPlayerId),
             ...(chronicle.vowedOath !== undefined ? { nextOath: chronicle.vowedOath } : {}),
+            ...(chronicle.added ? { added: structuredClone(chronicle.added) } : {}),
             ...(citizens.length > 0 ? { citizens } : {}),
             ...(chronicle.built ? { built: { ...chronicle.built } } : {}),
+            ...(ruined.length > 0 ? { ruined } : {}),
             ...(story !== undefined ? { story } : {})
         }
     ]

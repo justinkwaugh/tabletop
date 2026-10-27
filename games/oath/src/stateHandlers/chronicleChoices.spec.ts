@@ -21,6 +21,8 @@ import {
     GREAT_SPIRE
 } from '../testing/edifices.js'
 import { wonTable } from '../testing/chronicle.js'
+import { chronicleCensus, wholeWorld } from '../testing/chronicleWorld.js'
+import { PRINTED_DENIZENS_BY_SUIT } from '../data/cardRegistry.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { OathStateHandlers } from '../definition/stateHandlers.js'
@@ -91,6 +93,8 @@ const LAND_WARDEN = 'denizen.hearth.land-warden'
 const MARRIAGE = 'denizen.hearth.marriage'
 const WOLVES = 'denizen.beast.wolves'
 const BRACKEN = 'denizen.beast.bracken'
+const RANGERS = 'denizen.beast.rangers'
+const BIRDSONG = 'denizen.beast.birdsong'
 const ALCHEMIST = 'denizen.arcane.alchemist'
 const CHARLATAN = 'denizen.discord.charlatan'
 const GREAT_HERD = 'denizen.nomad.great-herd'
@@ -111,14 +115,19 @@ function seat(
     return testPlayer({ playerId, color, status, siteId: PLAINS, ...overrides })
 }
 
-/** A table at the chronicle revision, started with its table record. */
+/**
+ * A table at the chronicle revision, started with its table record, and every card of the game
+ * somewhere: R-8's steps deal with all of them.
+ */
 function tableOf(players: OathPlayerState[], overrides: Partial<OathProjectedState> = {}) {
-    return testState(players, {
-        oathRevision: OathRevision.Chronicle,
-        table: TABLE,
-        siteCards: SITES,
-        ...overrides
-    })
+    return wholeWorld(
+        testState(players, {
+            oathRevision: OathRevision.Chronicle,
+            table: TABLE,
+            siteCards: SITES,
+            ...overrides
+        })
+    )
 }
 
 /**
@@ -434,9 +443,16 @@ describe('R-8.2 — Citizenship, an Exile winner only', () => {
         ])
     })
 
+    /** Ann and Bea offered: the phase waits on Bea, so Ann's answer is seen before R-8.3.4 clears the map. */
+    function offeredWithBea(over: Partial<Record<string, Partial<OathPlayerState>>> = {}) {
+        return run(
+            vowed(gameOne({ [BEA]: { status: PlayerStatus.Exile }, ...over })),
+            offer([ANN, BEA])
+        ).final
+    }
+
     it('an accepter flips to Citizen; one of the winner’s warbands replaces all of theirs at each site they rule', () => {
-        const offered = run(vowed(), offer([ANN])).final
-        const { final, actions } = run(offered, answer(ANN, true))
+        const { final, actions } = run(offeredWithBea(), answer(ANN, true))
         const ann = final.players.find((player) => player.playerId === ANN)
         expect(ann?.status).toBe(PlayerStatus.Citizen)
         expect(final.warbandsBySite[ANCIENT_CITY]).toEqual({ [ANN]: 0, [DANA]: 1 })
@@ -451,8 +467,7 @@ describe('R-8.2 — Citizenship, an Exile winner only', () => {
     })
 
     it('an accepter holding the Bandit Crown: a warband even at the empty sites the bandits hold for them', () => {
-        const table = gameOne({ [ANN]: { relicIds: [BANDIT_CROWN] } })
-        const offered = run(vowed(table), offer([ANN])).final
+        const offered = offeredWithBea({ [ANN]: { relicIds: [BANDIT_CROWN] } })
         const { final, actions } = run(offered, answer(ANN, true))
         // Wastes and Mountain hold no warbands, so the Crown's bandits serve Ann there (R-7.6.5-H1).
         expect(actions.find(isAnswerChronicleCitizenship)?.metadata).toEqual({
@@ -464,7 +479,7 @@ describe('R-8.2 — Citizenship, an Exile winner only', () => {
     })
 
     it('a refusal changes nothing; only the offered answer, each once', () => {
-        const offered = run(vowed(), offer([ANN])).final
+        const offered = offeredWithBea()
         expect(refusal(offered, answer(DANA, true))).toBe('no offer is open to Dana')
         expect(refusal(offered, answer(RHYS, true))).toBe('no offer is open to Rhys')
         const { final } = run(offered, answer(ANN, false))
@@ -585,7 +600,8 @@ describe('R-8.3.1 — build or repair, a Chancellor or Citizen winner only', () 
             repaired: false,
             returnedDenizenId: LONGBOWS
         })
-        expect(actions[0].revealsInfo).toBe(false)
+        // R-8.3.2 to R-8.3.5 run inside the build's action, and they draw (R-X.3).
+        expect(actions[0].revealsInfo).toBe(true)
         const ended = run(final, suit(ANN, Suit.Order), skip(ANN)).final
         expect(ended.chronicleRecord?.at(-1)?.built).toEqual({
             edificeId: SPRAWLING_RAMPART,
@@ -689,9 +705,9 @@ describe('R-8.3.1 — build or repair, a Chancellor or Citizen winner only', () 
 })
 
 describe('R-8.4 — the suit', () => {
-    function toSuit(over: Partial<OathPlayerState>) {
+    function toSuit(over: Partial<OathPlayerState>, state: Partial<OathProjectedState> = {}) {
         return run(
-            wonTable(gameTwo({ [ANN]: over }), SUCCESSOR),
+            wonTable(gameTwo({ [ANN]: over }, state), SUCCESSOR),
             vow(ANN, OathType.Devotion),
             build(ANN)
         ).final
@@ -699,7 +715,7 @@ describe('R-8.4 — the suit', () => {
 
     it('a single leader does not stop: it is recorded; a facedown adviser has no suit (R-10.14)', () => {
         const state = toSuit({
-            advisers: [faceup(KNIGHTS_ERRANT), facedown(WOLVES), facedown(BRACKEN)]
+            advisers: [faceup(KNIGHTS_ERRANT), facedown(RANGERS), facedown(BIRDSONG)]
         })
         expect(state.chronicle?.suit).toBe(Suit.Order)
         expect(state.chronicle?.step).toBe(ChronicleStep.Story)
@@ -720,7 +736,7 @@ describe('R-8.4 — the suit', () => {
     })
 
     it('no faceup advisers: all six suits tie', () => {
-        const state = toSuit({ advisers: [facedown(WOLVES)] })
+        const state = toSuit({ advisers: [facedown(RANGERS)] })
         expect(chronicleSuitLeaders(hydrated(state))).toEqual([
             Suit.Discord,
             Suit.Arcane,
@@ -732,7 +748,17 @@ describe('R-8.4 — the suit', () => {
     })
 
     it('Marriage counts as two Hearth advisers (R-2.2.2-H1)', () => {
-        const state = toSuit({ advisers: [faceup(KNIGHTS_ERRANT), faceup(MARRIAGE)] })
+        // Marriage is Ann's, so it is not at Ancient City too.
+        const state = toSuit(
+            { advisers: [faceup(KNIGHTS_ERRANT), faceup(MARRIAGE)] },
+            {
+                denizensBySite: {
+                    [PLAINS]: [LONGBOWS, WOLVES],
+                    [RIVER]: [TOLL_ROADS],
+                    [DEEP_WOODS]: [BRACKEN]
+                }
+            }
+        )
         expect(state.chronicle?.suit).toBe(Suit.Hearth)
     })
 
@@ -747,34 +773,40 @@ describe('R-8.4 — the suit', () => {
 })
 
 describe('R-8.4.a-H1 — the heal stack, once a tie is published', () => {
-    /** C3 publishes the tie; here a fixture sits at the step with it. */
+    /**
+     * Game 2 with the Archive short of Order: Ann picks Order, so R-8.4 cannot add its three, and
+     * the Dispossessed's Order and Beast stacks tie at five.
+     */
     function healing() {
-        const state = hydrated(
-            run(
-                wonTable(gameTwo(), SUCCESSOR),
-                vow(ANN, OathType.Devotion),
-                build(ANN),
-                suit(ANN, Suit.Order)
-            ).final
-        )
-        const chronicle = state.chronicle
-        assertExists(chronicle, 'the game is won')
-        chronicle.step = ChronicleStep.HealStack
-        chronicle.healTie = { suits: [Suit.Beast, Suit.Order], count: 5 }
-        state.machineState = MachineState.Chronicle
-        OathStateHandlers[MachineState.Chronicle].enter(machineContext(state))
-        return state.dehydrate()
+        const table = gameTwo()
+        const vault = table.requireVault()
+        const inGame = new Set([LONGBOWS, TOLL_ROADS, KNIGHTS_ERRANT, WOLVES, BRACKEN])
+        const order = PRINTED_DENIZENS_BY_SUIT[Suit.Order].filter((id) => !inGame.has(id))
+        const beast = PRINTED_DENIZENS_BY_SUIT[Suit.Beast].filter((id) => !inGame.has(id))
+        vault.dispossessed = [...order.slice(0, 5), ...beast.slice(0, 5)]
+        table.dispossessedCount = 10
+        // Two Order cards stay in the Archive.
+        vault.worldDeck.push(...order.slice(5, -2))
+        return run(
+            wonTable(table, SUCCESSOR),
+            vow(ANN, OathType.Devotion),
+            build(ANN),
+            suit(ANN, Suit.Order)
+        ).final
     }
     const heal = (chosen: Suit) =>
         buildAction(ChooseHealStack, { id: 'heal', playerId: ANN, suit: chosen })
 
     it('the winner chooses among the tied stacks only', () => {
         const state = healing()
+        expect(state.chronicle?.step).toBe(ChronicleStep.HealStack)
+        expect(state.chronicle?.healTie).toEqual({ suits: [Suit.Order, Suit.Beast], count: 5 })
         expect(refusal(state, heal(Suit.Arcane))).toBe(
             'Arcane is not among the largest Dispossessed stacks'
         )
         const { final } = run(state, heal(Suit.Beast))
         expect(final.chronicle?.healSuit).toBe(Suit.Beast)
+        expect(final.chronicle?.added).toEqual({ heal: { suit: Suit.Beast, count: 5 } })
         expect(final.chronicle?.step).toBe(ChronicleStep.Story)
     })
 
@@ -877,10 +909,12 @@ describe('two games of a chronicle', () => {
                 rule: 'R-3.1',
                 winner: { name: 'Dana', color: Color.Red },
                 nextOath: OathType.Protection,
+                added: { suits: [Suit.Beast, Suit.Nomad, Suit.Discord] },
                 citizens: [{ name: 'Ann', color: Color.Blue }],
                 story: 'Dana held the Plains to the end.'
             }
         ])
+        expect(chronicleCensus(hydrated(final))).toEqual([])
     })
 
     it('game 2: Ann vows Devotion, builds Sprawling Rampart at the Plains, ties Order and Hearth, picks Order, skips', () => {
@@ -902,8 +936,10 @@ describe('two games of a chronicle', () => {
             rule: 'R-3.3.1',
             winner: { name: 'Ann', color: Color.Blue },
             nextOath: OathType.Devotion,
+            added: { suits: [Suit.Order, Suit.Hearth, Suit.Beast] },
             built: { edificeId: SPRAWLING_RAMPART, siteId: PLAINS, repaired: false }
         })
+        expect(chronicleCensus(hydrated(final))).toEqual([])
     })
 
     it('Dana, the Chancellor, builds Sprawling Rampart at the Mountain in Toll Roads’ place, and picks Hearth', () => {
@@ -927,7 +963,12 @@ describe('two games of a chronicle', () => {
             suit(DANA, Suit.Hearth),
             skip(DANA)
         )
-        expect(final.denizensBySite[MOUNTAIN]).toEqual([SPRAWLING_RAMPART])
+        // The only site kept, R-8.3.5 moved the Mountain to the top Cradle slot, with its edifice.
+        const mountainNow = Object.keys(final.siteCards).find(
+            (slotId) => final.siteCards[slotId] === SITES[MOUNTAIN]
+        )
+        expect(mountainNow).toBe(PLAINS)
+        expect(final.denizensBySite[PLAINS]).toEqual([SPRAWLING_RAMPART])
         expect(final.chronicle?.suit).toBe(Suit.Hearth)
         expect(final.chronicleRecord?.at(-1)).toMatchObject({
             nextOath: OathType.ThePeople,
@@ -936,7 +977,7 @@ describe('two games of a chronicle', () => {
     })
 })
 
-describe('R-X.3 — every choice here reveals nothing, so its chooser may undo it', () => {
+describe('R-X.3 — a choice that reveals nothing is its chooser’s to undo, until a step draws', () => {
     /** The player's undo target, which must be an action of `type`. */
     function undoTarget(actions: GameAction[], playerId: string, type: ActionType) {
         const target = latestPlayerUndoTarget(actions, playerId)
@@ -964,28 +1005,28 @@ describe('R-X.3 — every choice here reveals nothing, so its chooser may undo i
         expect(before.activePlayerIds).toEqual([DANA])
     })
 
-    it('an offer, until an Exile answers it; the answer is the Exile’s own to undo', () => {
-        const vowed = run(wonTable(gameOne(), USURPER), vow(DANA, OathType.Protection)).final
-        const offered = run(vowed, offer([ANN]))
+    it('an offer, until an Exile answers it; an answer the phase still waits after is the Exile’s own to undo', () => {
+        const table = gameOne({ [BEA]: { status: PlayerStatus.Exile } })
+        const vowed = run(wonTable(table, USURPER), vow(DANA, OathType.Protection)).final
+        const offered = run(vowed, offer([ANN, BEA]))
         const target = undoTarget(offered.actions, DANA, ActionType.OfferChronicleCitizenship)
         expect(undone(offered, target).chronicle?.citizenship?.offers).toBeUndefined()
         const answered = run(offered.final, answer(ANN, true))
         const all = [...offered.actions, ...answered.actions]
         expect(latestPlayerUndoTarget(all, DANA)).toBeUndefined()
         undoTarget(all, ANN, ActionType.AnswerChronicleCitizenship)
+        // The last answer runs R-8.3.2's shuffle and the steps after it: no one undoes past it.
+        const last = run(answered.final, answer(BEA, false))
+        expect(last.actions[0].revealsInfo).toBe(true)
+        expect(latestPlayerUndoTarget([...all, ...last.actions], BEA)).toBeUndefined()
+        expect(latestPlayerUndoTarget([...all, ...last.actions], ANN)).toBeUndefined()
     })
 
-    it('a build: the edifice leaves, the denizen is back in its place', () => {
+    it('a build runs the map step with it, which draws: no undo', () => {
         const building = run(wonTable(gameTwo(), SUCCESSOR), vow(ANN, OathType.Devotion)).final
         const played = run(building, build(ANN, { siteId: PLAINS, cardId: LONGBOWS }))
-        expect(played.actions.every((action) => !action.revealsInfo)).toBe(true)
-        const before = undone(
-            played,
-            undoTarget(played.actions, ANN, ActionType.BuildOrRepairEdifice)
-        )
-        expect(before.denizensBySite[PLAINS]).toEqual([LONGBOWS, WOLVES])
-        expect(before.chronicle?.returnedDenizenId).toBeUndefined()
-        expect(before.chronicle?.step).toBe(ChronicleStep.BuildOrRepair)
+        expect(played.actions[0].revealsInfo).toBe(true)
+        expect(latestPlayerUndoTarget(played.actions, ANN)).toBeUndefined()
     })
 
     it('undoing the winning action from the chronicle puts the game back in play, with no chronicle', () => {

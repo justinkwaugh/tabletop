@@ -49,7 +49,7 @@ export class WakePhaseStateHandler implements MachineStateHandler<
         if (isResolveWake(action)) {
             // R-4.1.2 may have ended the game before R-4.1.3 or R-4.1.4 ran.
             if (context.gameState.winningPlayerIds.length > 0) {
-                return stateAfterWin(context.gameState)
+                return stateAfterWin(context.gameState, action)
             }
             return MachineState.ActPhase
         }

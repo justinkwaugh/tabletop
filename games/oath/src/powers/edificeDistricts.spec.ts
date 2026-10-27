@@ -33,6 +33,7 @@ import { endDieAdjuster } from '../util/persistent.js'
 import { rulersOfSite } from '../util/rule.js'
 import { CURRENT_OATH_REVISION } from '../util/revision.js'
 import './index.js'
+import { wholeWorld } from '../testing/chronicleWorld.js'
 
 const INTACT = 0
 const TENTS = 'denizen.nomad.tents'
@@ -175,42 +176,45 @@ function roundEnd({
     warbands,
     state = {}
 }: RoundOptions = {}): OathProjectedState {
-    const s = testState(
-        [
-            testPlayer({
-                playerId: DANA,
-                color: Color.Purple,
-                status: PlayerStatus.Chancellor,
-                siteId: 'c1',
-                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 }
-            }),
-            testPlayer({
-                playerId: RHYS,
-                color: Color.Red,
-                status: PlayerStatus.Exile,
-                siteId: 'c2',
-                warbandsInPersonalBank: { [RHYS]: 4 },
-                ...rhys
-            })
-        ],
-        {
-            machineState: MachineState.ActPhase,
-            chancellorPlayerId: DANA,
-            oathType: OathType.Supremacy,
-            oathkeeperPlayerId: DANA,
-            warbandsBySite: warbands ?? { c1: { [IMPERIAL_WARBANDS]: 1 }, c2: { [RHYS]: 1 } },
-            denizensBySite: { c1: [], c2: [], p1: [] },
-            round,
-            oathRevision: CURRENT_OATH_REVISION,
-            // A game started at this revision carries its table record, which R-8's record reads.
-            table: {
-                name: 'Thursday table',
-                date: '2026-10-22',
-                seatNames: { [DANA]: 'Dana', [RHYS]: 'Rhys' }
-            },
-            prng: { seed, invocations: 0 },
-            ...state
-        }
+    // A win here runs R-8's steps, which deal with every card of the game.
+    const s = wholeWorld(
+        testState(
+            [
+                testPlayer({
+                    playerId: DANA,
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'c1',
+                    warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 }
+                }),
+                testPlayer({
+                    playerId: RHYS,
+                    color: Color.Red,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c2',
+                    warbandsInPersonalBank: { [RHYS]: 4 },
+                    ...rhys
+                })
+            ],
+            {
+                machineState: MachineState.ActPhase,
+                chancellorPlayerId: DANA,
+                oathType: OathType.Supremacy,
+                oathkeeperPlayerId: DANA,
+                warbandsBySite: warbands ?? { c1: { [IMPERIAL_WARBANDS]: 1 }, c2: { [RHYS]: 1 } },
+                denizensBySite: { c1: [], c2: [], p1: [] },
+                round,
+                oathRevision: CURRENT_OATH_REVISION,
+                // A game started at this revision carries its table record, which R-8's record reads.
+                table: {
+                    name: 'Thursday table',
+                    date: '2026-10-22',
+                    seatNames: { [DANA]: 'Dana', [RHYS]: 'Rhys' }
+                },
+                prng: { seed, invocations: 0 },
+                ...state
+            }
+        )
     )
     placeEdifice(s, at, FESTIVAL_DISTRICT, { ruined })
     const raw = s.dehydrate()

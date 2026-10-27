@@ -117,6 +117,64 @@ export const ChronicleHealTie = Type.Object({
     count: Type.Number()
 })
 
+/** A site card in a map slot. */
+export type ChronicleSiteAt = Type.Static<typeof ChronicleSiteAt>
+export const ChronicleSiteAt = Type.Object({
+    slotId: Type.String(),
+    siteCardId: Type.String()
+})
+
+/** R-8.3.3 — an edifice flipped to its ruined side, and the denizens discarded at its site. */
+export type ChronicleRuin = Type.Static<typeof ChronicleRuin>
+export const ChronicleRuin = Type.Object({
+    edificeId: Type.String(),
+    siteCardId: Type.String(),
+    denizensDiscarded: Type.Number()
+})
+
+/** R-8.3.5 — a site that changed slot, with its cards. */
+export type ChronicleMove = Type.Static<typeof ChronicleMove>
+export const ChronicleMove = Type.Object({
+    siteCardId: Type.String(),
+    from: Type.String(),
+    to: Type.String()
+})
+
+/**
+ * R-8.3.2 to R-8.3.5 — the map step as the table saw it: faceup sites by card, facedown ones
+ * counted (R-9.4).
+ */
+export type ChronicleMapRecord = Type.Static<typeof ChronicleMapRecord>
+export const ChronicleMapRecord = Type.Object({
+    /** R-8.3.2 — the sites kept, in deal order; every one is faceup. */
+    kept: Type.Array(Type.String()),
+    /** R-8.3.2 — the faceup sites shuffled into the site deck. */
+    discarded: Type.Array(Type.String()),
+    /** R-8.3.2 — the facedown sites shuffled into the site deck. */
+    discardedFacedown: Type.Number(),
+    /** R-8.3.2 — the denizens at the discarded sites. */
+    denizensDiscarded: Type.Number(),
+    /** R-8.3.3 */
+    ruins: Type.Array(ChronicleRuin),
+    /** R-8.3.5 steps 1 to 5 */
+    moved: Type.Array(ChronicleMove),
+    /** R-8.3.5 step 6 — the slots dealt a facedown site. */
+    dealt: Type.Array(Type.String()),
+    /** R-8.3.5 step 7 */
+    flipped: Type.Array(ChronicleSiteAt)
+})
+
+/** R-8.6 — the relics as the table saw them move: counts, never which (R-9.4). */
+export type ChronicleRelicsRecord = Type.Static<typeof ChronicleRelicsRecord>
+export const ChronicleRelicsRecord = Type.Object({
+    /** R-8.6.1 — each losing player's relics returned to the relic deck. */
+    returned: Type.Array(Type.Object({ playerId: Type.String(), count: Type.Number() })),
+    /** R-8.6.2 — each faceup site given facedown relics. */
+    placed: Type.Array(Type.Object({ slotId: Type.String(), count: Type.Number() })),
+    /** R-8.6.3 — the winner's relics and the Reliquary's stacked on top of the relic deck. */
+    stacked: Type.Object({ winner: Type.Number(), reliquary: Type.Number() })
+})
+
 /** R-8 — present from the win; `step` is the step being written, absent once the last is done. */
 export type Chronicle = Type.Static<typeof Chronicle>
 export const Chronicle = Type.Object({
@@ -142,6 +200,16 @@ export const Chronicle = Type.Object({
     healTie: Type.Optional(ChronicleHealTie),
     /** R-8.4.a-H1 — the tied stack the winner chose. */
     healSuit: Type.Optional(Type.Enum(Suit)),
+    /** R-8.3.2 to R-8.3.5, once done. */
+    map: Type.Optional(ChronicleMapRecord),
+    /** R-8.4, R-8.4.a, once done. */
+    added: Type.Optional(ChronicleAdded),
+    /** R-8.5 — how many cards went to the Dispossessed, once done. */
+    dispossessed: Type.Optional(Type.Number()),
+    /** R-8.6, once done. */
+    relics: Type.Optional(ChronicleRelicsRecord),
+    /** R-8.8, once done. */
+    rebuilt: Type.Optional(Type.Literal(true)),
     /** The winner's story, held only inside the action that writes it, until the record's entry takes it. */
     story: Type.Optional(Type.String())
 })

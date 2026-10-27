@@ -93,7 +93,7 @@ export class PowerQuestionStateHandler implements MachineStateHandler<
             }
             // Squalid District — an end die read as its ruler left it may have won the game.
             if (action.metadata.resumeMachineState === MachineState.EndOfGame) {
-                action.metadata.resumeMachineState = stateAfterWin(gameState)
+                action.metadata.resumeMachineState = stateAfterWin(gameState, action)
             }
             return action.metadata.resumeMachineState
         }

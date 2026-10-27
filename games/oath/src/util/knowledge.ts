@@ -680,3 +680,63 @@ function hasPeekedAt(player: HydratedOathPlayerState, relicCardId: string): bool
     assertExists(player.peekedRelics, 'This operation requires known peeks')
     return Object.values(player.peekedRelics).includes(relicCardId)
 }
+
+/** R-8.3.5, R-8.6.1 — relic slots renamed as their sites move: every record follows the relic. */
+export function renameRelicSlots(
+    state: HydratedOathGameState,
+    renames: ReadonlyMap<string, string>
+): void {
+    const rename = (slotId: string) => renames.get(slotId) ?? slotId
+    const renamed = (slots: Record<string, string>) =>
+        Object.fromEntries(Object.entries(slots).map(([slotId, id]) => [rename(slotId), id]))
+    const vault = state.requireVault()
+    vault.relicFacedown = renamed(vault.relicFacedown)
+    state.seenRelics = renamed(state.seenRelics)
+    for (const player of state.players) {
+        player.peekedRelicSlotIds = player.peekedRelicSlotIds.map(rename)
+        assertExists(player.peekedRelics, 'This operation requires known peeks')
+        player.peekedRelics = renamed(player.peekedRelics)
+    }
+}
+
+/** R-8.3.2, R-8.6 — relic slots that are gone: no record keeps them. */
+export function forgetRelicSlots(state: HydratedOathGameState, slotIds: readonly string[]): void {
+    const gone = new Set(slotIds)
+    const kept = (slots: Record<string, string>) =>
+        Object.fromEntries(Object.entries(slots).filter(([slotId]) => !gone.has(slotId)))
+    state.seenRelics = kept(state.seenRelics)
+    for (const player of state.players) {
+        player.peekedRelicSlotIds = player.peekedRelicSlotIds.filter((id) => !gone.has(id))
+        assertExists(player.peekedRelics, 'This operation requires known peeks')
+        player.peekedRelics = kept(player.peekedRelics)
+    }
+}
+
+/** R-8.3.2 — every facedown site went back to the site deck, so no peek at one still holds. */
+export function forgetSitePeeks(state: HydratedOathGameState): void {
+    for (const player of state.players) {
+        player.peekedSiteSlotIds = []
+        player.peekedSites = {}
+    }
+}
+
+/** R-8.6.1 — the relic deck was shuffled: no one knows its bottom. */
+export function forgetRelicDeckOrder(state: HydratedOathGameState): void {
+    state.seenRelicDeckBottom = []
+    for (const player of state.players) player.knownRelicDeckBottom = []
+}
+
+/** R-8.5 — the discard piles were shuffled together: no one knows a place in them. */
+export function forgetDiscardPiles(state: HydratedOathGameState): void {
+    state.seenDiscardPiles = noKnownDiscardPiles()
+    for (const player of state.players) player.knownDiscardPiles = noKnownDiscardPiles()
+}
+
+/** R-8.8 — the world deck was rebuilt and shuffled: no one knows a place in it. */
+export function forgetWorldDeckOrder(state: HydratedOathGameState): void {
+    state.seenWorldDeckBottom = []
+    for (const player of state.players) {
+        player.knownWorldDeckTop = []
+        player.knownWorldDeckBottom = []
+    }
+}

@@ -79,6 +79,22 @@ for (const definition of [
     byId.set(definition.id, definition)
 }
 
+/**
+ * R-8.4, R-8.4.a — the printed denizens, by the suit they print: the Archive and the Dispossessed
+ * are sorted by it, outside play. Read from the six shards, so a card a spec registers is never one.
+ */
+export const PRINTED_DENIZENS_BY_SUIT: Readonly<Record<Suit, readonly string[]>> = Object.freeze({
+    [Suit.Arcane]: arcane.map((rec) => rec.id),
+    [Suit.Beast]: beast.map((rec) => rec.id),
+    [Suit.Discord]: discord.map((rec) => rec.id),
+    [Suit.Hearth]: hearth.map((rec) => rec.id),
+    [Suit.Nomad]: nomad.map((rec) => rec.id),
+    [Suit.Order]: order.map((rec) => rec.id)
+})
+
+/** R-8 — every printed denizen, once. */
+export const PRINTED_DENIZEN_IDS: readonly string[] = Object.values(PRINTED_DENIZENS_BY_SUIT).flat()
+
 export { CONSPIRACY_ID } from './visions.js'
 
 export {
