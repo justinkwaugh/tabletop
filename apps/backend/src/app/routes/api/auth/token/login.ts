@@ -28,7 +28,7 @@ export default async function (fastify: FastifyInstance) {
                 return
             }
 
-            const user = await fastify.userService.getUser(tokenData.userId)
+            const user = await fastify.userService.getUserForAuthorization(tokenData.userId)
             if (!user || user.email !== tokenData.email) {
                 await reply.code(401).send()
                 return

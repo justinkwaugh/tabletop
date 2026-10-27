@@ -8,6 +8,7 @@ export interface UserStore {
     findByEmail(email: string): Promise<User | undefined>
     findByExternalId(externalId: string, service: ExternalAuthService): Promise<User | undefined>
     findById(id: string): Promise<User | undefined>
+    findByIdUncached(id: string): Promise<User | undefined>
     findByIds(ids: string[]): Promise<(User | undefined)[]>
     findByUsernameAndPassword(username: string, password: string): Promise<User | undefined>
     findAllUsernames(): Promise<string[]>

@@ -1,7 +1,6 @@
 import { UserStore } from '../persistence/stores/userStore.js'
 import {
     type AdminAssignableRole,
-    canHoldAuthenticatedSession,
     ExternalAuthService,
     remove,
     Role,
@@ -13,13 +12,13 @@ import {
 import { TokenType, TokenService } from '../tokens/tokenService.js'
 import { TaskService } from '../tasks/taskService.js'
 import {
-    AccountUnavailableError,
     EmailVerificationError,
     InvalidPasswordError,
     InvalidTimeZoneError,
     InvalidTokenError,
     UnauthenticatedUpdateError
 } from './errors.js'
+import { requireSessionEligibleAccount } from './accountEligibility.js'
 import { AccountChangeType } from '../email/emailService.js'
 import { nanoid } from 'nanoid'
 import { AuthenticationTokenData, VerificationTokenData } from '../tokens/tokenData.js'
@@ -86,6 +85,10 @@ export class UserService {
 
     async getUser(userId: string): Promise<User | undefined> {
         return this.userStore.findById(userId)
+    }
+
+    async getUserForAuthorization(userId: string): Promise<User | undefined> {
+        return this.userStore.findByIdUncached(userId)
     }
 
     async getUsers(userIds: string[]): Promise<(User | undefined)[]> {
@@ -298,7 +301,7 @@ export class UserService {
     }): Promise<User> {
         const linkedUser = await this.userStore.findByExternalId(externalId, service)
         if (linkedUser) {
-            this.requireSessionEligibleAccount(linkedUser)
+            requireSessionEligibleAccount(linkedUser)
             return linkedUser
         }
 
@@ -306,7 +309,7 @@ export class UserService {
             console.log('No user found by external_id, trying by email')
             const userByEmail = await this.userStore.findByEmail(email)
             if (userByEmail && emailVerified && userByEmail.emailVerified) {
-                this.requireSessionEligibleAccount(userByEmail)
+                requireSessionEligibleAccount(userByEmail)
                 console.log('Found user by email... linking external_id to user')
                 return await this.userStore.addExternalId({
                     userId: userByEmail.id,
@@ -324,12 +327,6 @@ export class UserService {
             roles: [Role.User],
             externalIds: [`${service}:${externalId}`]
         })
-    }
-
-    private requireSessionEligibleAccount(user: User): void {
-        if (!canHoldAuthenticatedSession(user)) {
-            throw new AccountUnavailableError(user.status)
-        }
     }
 
     async verifyEmail(token: string): Promise<User> {

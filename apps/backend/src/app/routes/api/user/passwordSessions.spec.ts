@@ -35,8 +35,10 @@ function memoryUserStore(initial: User) {
         current = { ...current, sessionGeneration: sessionGenerationOf(current) + 1 }
         return current
     }
+    const read = async (id: string) => (id === current.id ? current : undefined)
     const store: UserStore = Object.create(null)
-    store.findById = async (id) => (id === current.id ? current : undefined)
+    store.findById = read
+    store.findByIdUncached = read
     store.findByUsernameAndPassword = async (username, candidate) => {
         const holder = username === current.username && candidate === password ? current : undefined
         credentialGate.reached()
@@ -110,8 +112,8 @@ async function createServer() {
     const { store, holdLoginsAfterCredentialCheck } = memoryUserStore(user)
     const userService = new UserService(store, tokenService, tasks)
     const server = await sessionServer(sessionService)
-    Reflect.set(server, 'userService', userService)
-    Reflect.set(server, 'tokenService', tokenService)
+    server.decorate('userService', userService)
+    server.decorate('tokenService', tokenService)
     await server.register(authorization)
     await server.register(login, { prefix: '/auth' })
     await server.register(logout, { prefix: '/auth' })
