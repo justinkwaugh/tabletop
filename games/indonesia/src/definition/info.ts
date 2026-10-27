@@ -5,6 +5,8 @@ export const IndonesiaInfo: GameInfo = {
     id: 'indonesia',
     metadata: {
         name: 'Indonesia',
+        bggId: 19777,
+        hasScores: true,
         designer: 'Jeroen Doumen and Joris Wiersinga',
         description:
             'Indonesia is a game in which three to five players build up an economy, trying to acquire the most money. Players acquire production companies and shipping companies and compete to deliver to and grow cities.',
