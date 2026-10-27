@@ -74,9 +74,15 @@
     })
 
     const createUserSchema = zfd.formData({
-        username: zfd.text(),
-        password: zfd.text(z.string().min(12).optional()),
-        email: zfd.text(z.string().email())
+        username: zfd.text(z.string('Required')),
+        password: zfd.text(
+            z.string().min(12, 'String must contain at least 12 character(s)').optional()
+        ),
+        email: zfd.text(
+            z.email({
+                error: (issue) => (issue.input === undefined ? 'Required' : 'Invalid email')
+            })
+        )
     })
 
     function togglePassword() {
@@ -100,7 +106,7 @@
         const formData = new FormData(form)
         const result = createUserSchema.safeParse(formData)
         if (!result.success) {
-            errors = result.error.flatten().fieldErrors
+            errors = z.flattenError(result.error).fieldErrors
             return
         }
 

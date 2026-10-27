@@ -17,9 +17,9 @@
     let email = $state('')
 
     const createUserSchema = z.object({
-        username: z.string().trim().min(1),
-        password: z.string().trim().min(12),
-        email: z.string().trim().email()
+        username: z.string().trim().min(1, 'String must contain at least 1 character(s)'),
+        password: z.string().trim().min(12, 'String must contain at least 12 character(s)'),
+        email: z.string().trim().pipe(z.email('Invalid email'))
     })
 
     async function submit(event: SubmitEvent) {
@@ -29,7 +29,7 @@
         errors = {}
         const result = createUserSchema.safeParse({ username, password, email })
         if (!result.success) {
-            errors = result.error.flatten().fieldErrors
+            errors = z.flattenError(result.error).fieldErrors
             return
         }
         submitting = true
