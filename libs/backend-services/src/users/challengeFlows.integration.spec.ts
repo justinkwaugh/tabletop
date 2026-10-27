@@ -1,6 +1,6 @@
 import type { Transaction } from '@google-cloud/firestore'
 import { createClient, type RedisClientType } from 'redis'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Role, UserStatus, type User } from '@tabletop/common'
 import { cacheFixture } from '../cache/tests/cacheFixture.js'
 import {
@@ -55,6 +55,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         const challenges = new AuthenticationChallengeService(challengeStore, { now: () => now })
         const mails: { kind: string; userId: string; token: string }[] = []
         const notifications: { email: string; changeType: string }[] = []
+        let noticeQueueRejects = false
         const tasks: TaskService = Object.create(null)
         tasks.sendPasswordResetEmail = async (mail) => {
             mails.push({ kind: 'reset', ...mail })
@@ -66,6 +67,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             mails.push({ kind: 'sensitive', ...mail })
         }
         tasks.sendAccountChangeNotificationEmail = async ({ email, changeType }) => {
+            if (noticeQueueRejects) {
+                throw new Error(`synthetic queue rejection for ${email}`)
+            }
             notifications.push({ email, changeType })
         }
         const users = new UserService(userStore, challenges, tasks)
@@ -161,6 +165,42 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 })
                 await expect(authorize(copied!.id)).resolves.toBeUndefined()
                 await expect(login(account.username, ORIGINAL_PASSWORD)).resolves.toBeUndefined()
+                await expect(login(account.username, NEW_PASSWORD)).resolves.toBeDefined()
+            })
+
+            it('commits the reset and ends the copied session even when the change notice is not queued', async () => {
+                const account = await createAccount()
+                const copied = await login(account.username, ORIGINAL_PASSWORD)
+                await users.sendPasswordResetEmail(account)
+                const presented = lastResetSecret()
+                const noticesBefore = notifications.length
+                const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+                noticeQueueRejects = true
+                let diagnostics = ''
+                try {
+                    const updated = await users.setPassword({
+                        ...presented,
+                        password: NEW_PASSWORD
+                    })
+                    expect(updated.sessionGeneration).toBe(1)
+                    expect(logged).toHaveBeenCalledOnce()
+                    diagnostics = JSON.stringify(logged.mock.calls)
+                } finally {
+                    noticeQueueRejects = false
+                    logged.mockRestore()
+                }
+                expect(notifications).toHaveLength(noticesBefore)
+                expect(diagnostics).toContain(account.id)
+                expect(diagnostics).not.toContain(account.email)
+                expect(diagnostics).not.toContain(presented.secret)
+                expect((await stored(account.id))?.sessionGeneration).toBe(1)
+                expect(await challengeDocuments(account.id)).toEqual([])
+                await expect(authorize(copied!.id)).resolves.toBeUndefined()
+                await expect(login(account.username, ORIGINAL_PASSWORD)).resolves.toBeUndefined()
+                await expect(login(account.username, NEW_PASSWORD)).resolves.toBeDefined()
+                await expect(
+                    users.setPassword({ ...presented, password: 'yet-another-password-value' })
+                ).rejects.toThrow(InvalidChallengeError)
                 await expect(login(account.username, NEW_PASSWORD)).resolves.toBeDefined()
             })
 

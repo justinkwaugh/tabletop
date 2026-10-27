@@ -199,8 +199,39 @@ describe('Password Credential changes', () => {
             })
             return issued.secret
         }
-        return { service, updatePassword, issueReset, notifications, resetMails }
+        return { service, updatePassword, issueReset, notifications, resetMails, tasks }
     }
+
+    it('reports a committed reset even when its change notice cannot be queued', async () => {
+        const { service, updatePassword, issueReset, notifications, tasks } = passwordFixture()
+        tasks.sendAccountChangeNotificationEmail = async ({ email }) => {
+            throw new Error(`synthetic queue rejection for ${email}`)
+        }
+        const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+        try {
+            const secret = await issueReset()
+            await expect(
+                service.setPassword({ userId: 'a', secret, password: 'a-new-password-value' })
+            ).resolves.toEqual(expect.objectContaining({ id: 'a', sessionGeneration: 1 }))
+            expect(updatePassword).toHaveBeenCalledOnce()
+            await expect(
+                service.setPassword({ userId: 'a', secret, password: 'a-new-password-value' })
+            ).rejects.toThrow(InvalidChallengeError)
+            await expect(
+                service.updateUser('a', {}, 'a-new-password-value', 'the-current-password')
+            ).resolves.toEqual(expect.objectContaining({ id: 'a', sessionGeneration: 1 }))
+            expect(notifications).toEqual([])
+            expect(logged).toHaveBeenCalledTimes(2)
+            const diagnostics = JSON.stringify(logged.mock.calls)
+            expect(diagnostics).toContain('"changeType":"password"')
+            expect(diagnostics).toContain('"userId":"a"')
+            expect(diagnostics).not.toContain('a@example.test')
+            expect(diagnostics).not.toContain(secret)
+            expect(diagnostics).not.toContain('a-new-password-value')
+        } finally {
+            logged.mockRestore()
+        }
+    })
 
     it('returns the Account as the store committed it, Session Generation included', async () => {
         const { service, updatePassword, issueReset, notifications } = passwordFixture()

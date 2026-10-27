@@ -223,7 +223,7 @@ export class UserService {
         if (updatedFields.includes('email') && updatedUser.email) {
             await this.sendVerificationEmail(updatedUser)
             if (originalUser.email) {
-                await this.taskService.sendAccountChangeNotificationEmail({
+                await this.notifyAccountChange(userId, {
                     email: originalUser.email,
                     changeType: AccountChangeType.Email,
                     timestamp: updateTimestamp
@@ -231,7 +231,7 @@ export class UserService {
             }
         }
         if (updatedFields.includes('password') && originalUser.email) {
-            await this.taskService.sendAccountChangeNotificationEmail({
+            await this.notifyAccountChange(userId, {
                 email: originalUser.email,
                 changeType: AccountChangeType.Password,
                 timestamp: updateTimestamp
@@ -320,12 +320,29 @@ export class UserService {
             validator: this.requireChallengeAccount(claim),
             participant: this.challenges.consumption(secret, claim)
         })
-        await this.taskService.sendAccountChangeNotificationEmail({
+        await this.notifyAccountChange(userId, {
             email: claim.email,
             changeType: AccountChangeType.Password,
             timestamp: updatedUser.updatedAt ?? new Date()
         })
         return updatedUser
+    }
+
+    // The Account change has committed by the time its Attention Notice is dispatched; the notice
+    // is best effort (Notification Delivery), so a failed dispatch is reported, not the operation.
+    private async notifyAccountChange(
+        userId: string,
+        notification: { email: string; changeType: AccountChangeType; timestamp: Date }
+    ): Promise<void> {
+        try {
+            await this.taskService.sendAccountChangeNotificationEmail(notification)
+        } catch (error) {
+            console.error('Account change notification was not dispatched', {
+                userId,
+                changeType: notification.changeType,
+                error: error instanceof Error ? error.name : typeof error
+            })
+        }
     }
 
     private requireChallengeAccount(
@@ -430,7 +447,7 @@ export class UserService {
             userId: user.id,
             token: formatSetPasswordChallenge({ userId: user.id, secret: issued.secret })
         })
-        await this.taskService.sendAccountChangeNotificationEmail({
+        await this.notifyAccountChange(user.id, {
             email: user.email,
             changeType: AccountChangeType.PasswordReset,
             timestamp: new Date()
