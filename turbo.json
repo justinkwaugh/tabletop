@@ -53,6 +53,7 @@
                 "K_REVISION",
                 "LOCAL_GAME_HISTORY_DELAY_MS",
                 "REQUEST_TIMINGS_ENABLED",
+                "SITE_MANIFEST_GCS_URI",
                 "SITE_MANIFEST_PATH",
                 "VAPID_ADMIN_EMAIL"
             ]
@@ -74,6 +75,7 @@
                 "K_REVISION",
                 "LOCAL_GAME_HISTORY_DELAY_MS",
                 "REQUEST_TIMINGS_ENABLED",
+                "SITE_MANIFEST_GCS_URI",
                 "SITE_MANIFEST_PATH",
                 "VAPID_ADMIN_EMAIL"
             ]
