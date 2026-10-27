@@ -6,7 +6,8 @@ import { burnFavor } from '../util/burn.js'
 import {
     afterRelicsTakenPersistent,
     afterBannerRecoveredPersistent,
-    reasonPersistentForbidsBannerTake
+    reasonPersistentForbidsBannerTake,
+    recoverFlipsPeoplesFavorToMob
 } from '../util/persistent.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
@@ -50,7 +51,9 @@ export const RecoverMetadata = Type.Object({
     /** R-5.4.4 — in order. */
     favorRedistributedTo: Type.Optional(Type.Array(Type.Enum(Suit))),
     /** R-5.4.4 */
-    secretsToPreviousHolder: Type.Optional(Type.Number())
+    secretsToPreviousHolder: Type.Optional(Type.Number()),
+    /** Hall of Mockery — the People's Favor was left on its Mob side. */
+    flippedToMob: Type.Optional(Type.Boolean())
 })
 
 export type RecoverTarget = Type.Static<typeof RecoverTarget>
@@ -174,7 +177,9 @@ export class HydratedRecover extends HydratableAction<typeof Recover> implements
             // R-5.4.4
             spendFavor(state, this.playerId, paid)
             bannerState.value = paid
-            bannerState.mobSide = false
+            // Hall of Mockery — "always flips it to the Mob side".
+            const toMob = recoverFlipsPeoplesFavorToMob(state)
+            bannerState.mobSide = toMob
 
             assertExists(
                 this.redistributeFrom,
@@ -188,7 +193,8 @@ export class HydratedRecover extends HydratableAction<typeof Recover> implements
             this.metadata = {
                 supplySpent: RECOVER_SUPPLY_COST,
                 amountPaid: paid,
-                favorRedistributedTo: banks
+                favorRedistributedTo: banks,
+                ...(toMob ? { flippedToMob: true } : {})
             }
             return
         }

@@ -16,8 +16,10 @@ import type { CampaignDefender } from '../actions/campaign.js'
 import {
     persistentPawnDefenseBonus,
     persistentRelicDefenseBonus,
+    persistentSiteDefenseBonus,
     reasonPersistentForbidsBannerTake,
     reasonPersistentForbidsCampaign,
+    reasonPersistentForbidsCampaignTarget,
     reasonPersistentForbidsRelicTake,
     reasonPersistentForbidsTargets
 } from './persistent.js'
@@ -282,7 +284,8 @@ export function targetDefenseDice(state: HydratedOathGameState, parties: Campaig
     for (const target of parties.targets) {
         switch (target.kind) {
             case CampaignTargetKind.Site:
-                dice += 1
+                // Sprawling Rampart — "adds one more [defense die] when targeted".
+                dice += 1 + persistentSiteDefenseBonus(state, target.siteId, parties)
                 break
             case CampaignTargetKind.Relic: {
                 const printed = relicDefenseDice(target.cardId)
@@ -595,14 +598,16 @@ function reasonCannotTarget(
             if (bannerHolder(state, target.banner) !== defender.playerId) {
                 return `the defender does not hold the ${target.banner}`
             }
-            // R-7.1.4 — Tome Guardians, Lost Tongue.
-            return reasonPersistentForbidsBannerTake(
-                state,
-                parties.attackerPlayerId,
-                target.banner,
-                'seize',
-                defender.playerId,
-                parties
+            // R-7.1.4 — Tome Guardians, Lost Tongue; Hall of Debate (R-5.4.1-H1).
+            return (
+                reasonPersistentForbidsBannerTake(
+                    state,
+                    parties.attackerPlayerId,
+                    target.banner,
+                    'seize',
+                    defender.playerId,
+                    parties
+                ) ?? reasonPersistentForbidsCampaignTarget(state, parties, target)
             )
         case CampaignTargetKind.PawnAndFavor:
             return undefined

@@ -2,6 +2,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { BattlePlanSide, type CardPower, type PowerCost } from '../data/cardPowers.js'
 import type { CampaignParties } from './campaign.js'
+import type { CampaignTarget } from '../model/campaign.js'
 import { areEnemies, rulersOfSite, rulesSite, type ImperialScope } from './rule.js'
 import { persistentsOfCard, relicPersistentsHeldBy } from './heldPersistents.js'
 import type { PersistentHooks } from '../powers/registry.js'
@@ -267,6 +268,19 @@ export function reasonPersistentForbidsTargets(
     )
 }
 
+/** Hall of Debate — asked of each target a Campaign declares. */
+export function reasonPersistentForbidsCampaignTarget(
+    state: HydratedOathGameState,
+    parties: CampaignParties,
+    target: CampaignTarget
+) {
+    return firstPersistentReason(
+        state,
+        (h, ctx) => h.forbidsCampaignTarget?.(ctx, parties, target),
+        parties
+    )
+}
+
 /** Gleaming Armor, Insect Swarm */
 export function extraBattlePlanCost(
     state: HydratedOathGameState,
@@ -293,6 +307,14 @@ export function persistentRelicDefenseBonus(
     parties?: ScopedParties
 ): number {
     return sumPersistent(state, (h, ctx) => h.relicDefenseBonus?.(ctx, holderId), parties)
+}
+/** Sprawling Rampart — judged in the Campaign's scope (R-5.5.1.a-H2). */
+export function persistentSiteDefenseBonus(
+    state: HydratedOathGameState,
+    siteId: string,
+    parties?: ScopedParties
+): number {
+    return sumPersistent(state, (h, ctx) => h.siteDefenseBonus?.(ctx, siteId), parties)
 }
 export function persistentPawnDefenseBonus(
     state: HydratedOathGameState,
@@ -321,6 +343,13 @@ export function advisersOfSuit(
         .faceupAdviserIds()
         .filter((cardId) => suitIn(cardId) === suit).length
     return faceup + persistentMatchingAdvisers(state, holderId, suit)
+}
+
+/** Hall of Mockery — whoever rules it, and whoever recovers. */
+export function recoverFlipsPeoplesFavorToMob(state: HydratedOathGameState): boolean {
+    return persistentsInPlay(state).some(
+        ({ hooks }) => hooks.recoverFlipsPeoplesFavorToMob === true
+    )
 }
 
 export function afterTravelPersistent(

@@ -17,12 +17,10 @@ const DOORWAY_TIMINGS: readonly PowerTiming[] = [PowerTiming.Action, PowerTiming
  */
 const MINOR_ACTIONS = [powerKey(GRAND_SCEPTER_ID, 1), powerKey(GRAND_SCEPTER_ID, 2)]
 
-/** R-2.9 — the edifice sides whose Actions are not built yet. */
+/** R-2.9 — the edifice sides whose Actions are not built yet: Fallen Spire's and Festival District's. */
 const UNBUILT_EDIFICE_ACTIONS = [
     powerKey('edifice.arcane.great-spire', 1),
-    powerKey('edifice.discord.festival-district', 0),
-    powerKey('edifice.nomad.ancient-forge', 0),
-    powerKey('edifice.nomad.ancient-forge', 1)
+    powerKey('edifice.discord.festival-district', 0)
 ]
 
 describe('the doorway offers no card power it cannot resolve', () => {

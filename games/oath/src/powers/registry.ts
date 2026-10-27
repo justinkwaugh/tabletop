@@ -11,7 +11,12 @@ import {
 } from '../data/cardPowers.js'
 import type { CampaignParties, DiceDelta, DicePools } from '../util/campaign.js'
 import type { ImperialScope } from '../util/rule.js'
-import type { CampaignKillPath, RollRules, WarbandGroup } from '../model/campaign.js'
+import type {
+    CampaignKillPath,
+    CampaignTarget,
+    RollRules,
+    WarbandGroup
+} from '../model/campaign.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import type { DiscardTarget } from '../util/discard.js'
@@ -345,6 +350,12 @@ export interface PersistentHooks {
         parties: CampaignParties,
         targetDice: number
     ) => string | undefined
+    /** Hall of Debate — a Campaign's target only, not a Recover or the Conspiracy's take. */
+    forbidsCampaignTarget?: (
+        ctx: PersistentContext,
+        parties: CampaignParties,
+        target: CampaignTarget
+    ) => string | undefined
     /** Gleaming Armor, Insect Swarm */
     battlePlanExtraCost?: (
         ctx: PersistentContext,
@@ -354,6 +365,8 @@ export interface PersistentHooks {
     ) => Partial<PowerCost> | undefined
     /** Sealing Ward — beyond the relic's printed dice. */
     relicDefenseBonus?: (ctx: PersistentContext, holderId: string) => number | undefined
+    /** Sprawling Rampart — beyond R-2.8.3's one die for a targeted site. */
+    siteDefenseBonus?: (ctx: PersistentContext, siteId: string) => number | undefined
     /** Marriage */
     extraMatchingAdvisers?: (
         ctx: PersistentContext,
@@ -384,6 +397,8 @@ export interface PersistentHooks {
     locksSiteFor?: (ctx: PersistentContext, actorId: string, siteId: string) => boolean
     /** Circlet of Command — beyond R-5.5.2's two. */
     pawnDefenseBonus?: (ctx: PersistentContext, holderId: string) => number | undefined
+    /** Hall of Mockery — R-5.4.4's Recover of the People's Favor leaves it on its Mob side. */
+    recoverFlipsPeoplesFavorToMob?: boolean
     /** Vow of Renewal */
     takesBurnedFavor?: (ctx: PersistentContext) => string | undefined
     /** Vow of Union */

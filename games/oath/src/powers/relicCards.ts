@@ -22,6 +22,7 @@ import {
     registerModifier,
     registerPersistent,
     chosen,
+    type EffectDefinition,
     type PlayerPlanContext
 } from './registry.js'
 import {
@@ -105,25 +106,37 @@ registerContinuous(
 
 // "Action: Draw a relic. Take it or put it on the bottom of the relic deck." Cost: burn 2 favor, place 1 secret.
 const DOWSING_STICKS = 'relic.dowsing-sticks'
-registerEffect(DOWSING_STICKS, powerIndexOf(DOWSING_STICKS, PowerTiming.Action), {
-    choices: [],
-    hidden: () => ({ kind: 'relicDraw', count: 1 }),
-    resolve: (ctx) => {
-        const drawn = ctx.reveal?.kind === 'relics' ? ctx.reveal.relicCardIds[0] : undefined
-        if (!drawn) return { summary: 'Dowsing Sticks: no relic was drawn' }
-        askQuestion(ctx.state, ctx.playerId, {
-            kind: PowerQuestionKind.KeepOrBottomRelic,
-            cardId: DOWSING_STICKS,
-            askedPlayerId: ctx.playerId,
-            ...knownDraw(ctx.reveal),
-            relicCardId: drawn
-        })
-        return {
-            summary: 'Dowsing Sticks: drew a relic — take it, or put it on the bottom',
-            peeked: [drawn]
+registerEffect(
+    DOWSING_STICKS,
+    powerIndexOf(DOWSING_STICKS, PowerTiming.Action),
+    drawRelicToKeepOrBottom(DOWSING_STICKS, 'Dowsing Sticks')
+)
+
+/**
+ * "Draw a relic. Take it or put it on the bottom of the relic deck." (Dowsing Sticks, Ancient Forge):
+ * the drawer alone sees it until it is taken (R-X.3), and an empty relic deck draws nothing.
+ */
+export function drawRelicToKeepOrBottom(cardId: string, name: string): EffectDefinition {
+    return {
+        choices: [],
+        hidden: () => ({ kind: 'relicDraw', count: 1 }),
+        resolve: (ctx) => {
+            const drawn = ctx.reveal?.kind === 'relics' ? ctx.reveal.relicCardIds[0] : undefined
+            if (!drawn) return { summary: `${name}: no relic was drawn` }
+            askQuestion(ctx.state, ctx.playerId, {
+                kind: PowerQuestionKind.KeepOrBottomRelic,
+                cardId,
+                askedPlayerId: ctx.playerId,
+                ...knownDraw(ctx.reveal),
+                relicCardId: drawn
+            })
+            return {
+                summary: `${name}: drew a relic — take it, or put it on the bottom`,
+                peeked: [drawn]
+            }
         }
     }
-})
+}
 
 // "Action: Swap one of your faceup advisers with a card at your site." Cost: place 1 secret.
 const HORNED_MASK = 'relic.horned-mask'
