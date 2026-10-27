@@ -9,16 +9,16 @@
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
     import ConspiracyNoTake from '$lib/components/ConspiracyNoTake.svelte'
+    import PlayToSites from '$lib/components/PlayToSites.svelte'
     import SiteGain from '$lib/components/SiteGain.svelte'
     import { ActionType, SearchPlay } from '@tabletop/oath'
     import { actionName } from '$lib/model/actionCatalogue.js'
-    import { siteName, cardName } from '$lib/model/names.js'
+    import { cardName } from '$lib/model/names.js'
     import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { withSiteGain } from '$lib/model/siteGain.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
-    let gameState = $derived(gameSession.gameState)
     let search = $derived(gameSession.search)
     let busy = $derived(gameSession.busy)
 
@@ -67,21 +67,10 @@
             {/each}
         </div>
     {:else if !search.placement}
-        {#if search.otherSites.length > 0}
-            <label class="mb-2 flex items-center gap-2 text-xs">
-                <span class="text-oath-text-muted">Play to:</span>
-                <select
-                    disabled={busy}
-                    class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
-                    value={search.toSite ?? ''}
-                    onchange={(e) => search.setToSite(e.currentTarget.value || undefined)}
-                >
-                    <option value="">your site</option>
-                    {#each search.otherSites as siteId (siteId)}
-                        <option value={siteId}>{siteName(gameState, siteId)}</option>
-                    {/each}
-                </select>
-            </label>
+        {#if gameSession.playTo}
+            <div class="mb-2">
+                <PlayToSites playTo={gameSession.playTo} />
+            </div>
         {/if}
         {#if search.secondAllowed && search.drawn.length > 1}
             {@const second = search.second}

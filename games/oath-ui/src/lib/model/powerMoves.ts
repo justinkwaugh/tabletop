@@ -34,6 +34,8 @@ export interface PowerMoves {
     whole: WholeMove[]
     /** None once the power's moves are all used. */
     open?: OpenMove
+    /** The power needs a move: its first is not a "may" (Messenger's is; Warning Signals' is not). */
+    needed: boolean
 }
 
 /**
@@ -92,8 +94,8 @@ function destinationsOf(from: MoveFrom, sites: readonly PowerChoice[]): MoveTo[]
 /**
  * The moves as the panel shows them: each read with the engine's options on the state the moves
  * before it leave. A pick with one option is made (the first move's From too: "Use" waits for a
- * whole move, even where the card's moves are all a "may", as Warning Signals' are); a later move's
- * From starts empty, as a further move may be made or not.
+ * whole move while one can be made, even where the card's moves are all a "may", as Warning
+ * Signals' are); a later move's From starts empty, as a further move may be made or not.
  */
 export function powerMoves(
     state: HydratedOathGameState,
@@ -104,13 +106,14 @@ export function powerMoves(
     const whole: WholeMove[] = []
     for (;;) {
         const legal = legalChoices(state, playerId, power, moveChoices(whole))
+        const needed = legal[0] !== undefined && legal[0].spec.min > 0
         const warbands = legal[whole.length * 2]
         const sites = legal[whole.length * 2 + 1]
-        if (!warbands || !sites) return { whole }
+        if (!warbands || !sites) return { whole, needed }
         const first = whole.length === 0
         const open = openMove(warbands, sites, picks[whole.length] ?? {}, first)
         const { from, count, to } = open
-        if (!from || count === undefined || !to) return { whole, open }
+        if (!from || count === undefined || !to) return { whole, open, needed }
         whole.push({ from, count, to })
     }
 }
@@ -150,9 +153,18 @@ function only<T>(options: readonly T[]): T | undefined {
     return options.length === 1 ? options[0] : undefined
 }
 
-/** "Use" waits for a whole move and none half-built. */
+/**
+ * "Use" waits for a whole move and none half-built; a power whose moves are all a "may" (Warning
+ * Signals) with no warband it can move is used moving nothing.
+ */
 export function powerMovesComplete(moves: PowerMoves): boolean {
-    return moves.whole.length > 0 && moves.open?.from === undefined
+    if (moves.open?.from !== undefined) return false
+    return moves.whole.length > 0 || (!moves.needed && moves.open?.sources.length === 0)
+}
+
+/** Something for the picker to draw: a whole move, or a From to pick. */
+export function movesShown(moves: PowerMoves): boolean {
+    return moves.whole.length > 0 || (moves.open?.sources.length ?? 0) > 0
 }
 
 /** A tap on a From: picks it, or clears the move when it is the one picked. */

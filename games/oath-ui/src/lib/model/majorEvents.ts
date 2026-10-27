@@ -28,14 +28,16 @@ import {
     type Campaign,
     type HydratedOathGameState,
     type OathType,
+    type OpenDeal,
     type WinRule
 } from '@tabletop/oath'
 import type { GameAction } from '@tabletop/common'
-import { bannerName, cardName, goalText, oathName, type NameOf } from '$lib/model/names.js'
+import { goalText, oathName, type NameOf } from '$lib/model/names.js'
 import { searchStoppedOnVision } from '$lib/model/actionDescription.js'
 import { endingParts, isWinRule } from '$lib/model/endings.js'
 import { endDieRollWords } from '$lib/model/endOfRound.js'
 import { worldDeckPrice } from '$lib/model/searchCost.js'
+import { campaignStepsTo } from '$lib/model/campaignLedger.js'
 
 export enum MajorEventKind {
     VisionDrawn = 'visionDrawn',
@@ -71,7 +73,6 @@ export interface MajorEventContext {
     viewerId: string | undefined
     nameOf: NameOf
     oathType: OathType
-    campaign?: Campaign
     /** Each seat will be its `PlayerName` chip, which reads "you" for the viewer: name every seat by its id. */
     seatsById?: boolean
 }
@@ -92,12 +93,6 @@ function capitalized(text: string): string {
 function startingWith(playerId: string, context: MajorEventContext): string {
     const named = seat(playerId, context)
     return context.seatsById ? named : capitalized(named)
-}
-
-function opponentOf(context: MajorEventContext): string | undefined {
-    const defender = context.campaign?.defender
-    if (!defender) return undefined
-    return defender.kind === 'bandits' ? 'the bandits' : seat(defender.playerId, context)
 }
 
 /** R-2.1.6, R-3.2 — the world deck's cost steps at the first and third Vision, the third opening Vision wins. */
@@ -236,36 +231,27 @@ export function majorEventOf(
             consequence: `${startingWith(exiled, context)} ${isViewer ? 'are' : 'is'} an Exile again`
         }
     }
+    // R-5.5 — who fought whom and what changed hands is the card's ledger (`campaignLedger`).
     if (isCampaignResolveVictory(action)) {
         const meta = action.metadata
         const relics = meta?.relicsTaken ?? []
         const banners = meta?.bannersSeized ?? []
-        const opponent = opponentOf(context)
-        const gained = [...relics.map(cardName), ...banners.map((b) => `the ${bannerName(b)}`)]
         return {
             kind: MajorEventKind.CampaignWon,
             heading: 'Campaign won',
-            aside: opponent ? `against ${opponent}` : undefined,
             tone: 'heading',
             pictures: [
                 ...relics.map((cardId): EventPicture => ({ kind: 'card', cardId })),
                 ...banners.map((banner): EventPicture => ({ kind: 'banner', banner }))
-            ],
-            consequence:
-                gained.length === 0
-                    ? undefined
-                    : `${opponent ? `From ${opponent}` : 'Taken'}: ${gained.join(', ')}`
+            ]
         }
     }
     if (isCampaignSacrifice(action) && action.metadata?.attackerVictorious === false) {
-        const opponent = opponentOf(context)
         return {
             kind: MajorEventKind.CampaignLost,
             heading: 'Campaign lost',
-            aside: opponent ? `against ${opponent}` : undefined,
             tone: 'danger',
-            pictures: [],
-            consequence: 'Nothing changed hands'
+            pictures: []
         }
     }
     if (isRollEndDie(action) && action.metadata) {
@@ -293,31 +279,61 @@ export function campaignsBefore(actions: readonly GameAction[]): (Campaign | und
 export interface HistoryRow {
     action: GameAction
     event?: MajorEvent
+    /** The Campaign the row's step belongs to, for a step row to name its attacker. */
+    campaign?: Campaign
+    /** The steps of the Campaign this row's card closes, for its ledger. */
+    campaignSteps?: readonly GameAction[]
 }
+
+const CAMPAIGN_CLOSED: ReadonlySet<MajorEventKind> = new Set([
+    MajorEventKind.CampaignWon,
+    MajorEventKind.CampaignLost
+])
 
 export function historyRows(
     actions: readonly GameAction[],
-    context: Omit<MajorEventContext, 'campaign'>
+    context: MajorEventContext
 ): HistoryRow[] {
     const campaigns = campaignsBefore(actions)
     return actions
-        .map((action, i) => ({
-            action,
-            event: majorEventOf(action, { ...context, campaign: campaigns[i] })
-        }))
+        .map((action, i) => {
+            const event = majorEventOf(action, context)
+            return {
+                action,
+                event,
+                campaign: campaigns[i],
+                campaignSteps:
+                    event && CAMPAIGN_CLOSED.has(event.kind) && campaigns[i]
+                        ? campaignStepsTo(actions, i)
+                        : undefined
+            }
+        })
         .toReversed()
 }
 
-/** R-3 — the ending action's rule: the one action that recorded a win. */
-export function endingRule(actions: readonly GameAction[]): WinRule | undefined {
+/**
+ * R-3 — the ending action's record: the one action that recorded a win, with its rule and the
+ * Tribunal deals still open, which it dropped (R-7.6.3-H1).
+ */
+export function endingRecord(
+    actions: readonly GameAction[]
+): { rule: WinRule; openDealsDropped: OpenDeal[] } | undefined {
     for (const action of actions.toReversed()) {
-        const wonBy =
+        const metadata =
             isResolveWake(action) || isCompleteRest(action) || isRollEndDie(action)
-                ? action.metadata?.wonBy
+                ? action.metadata
                 : undefined
-        if (wonBy !== undefined && isWinRule(wonBy)) return wonBy
+        const wonBy = metadata?.wonBy
+        if (wonBy !== undefined && isWinRule(wonBy)) {
+            return { rule: wonBy, openDealsDropped: metadata?.openDealsDropped ?? [] }
+        }
     }
     return undefined
+}
+
+/** R-3 — the ending action's rule. */
+export function endingRule(actions: readonly GameAction[]): WinRule | undefined {
+    return endingRecord(actions)?.rule
 }
 
 const VISION_ENDINGS: ReadonlySet<WinRule> = new Set(['R-3.2', 'R-3.4.3'])

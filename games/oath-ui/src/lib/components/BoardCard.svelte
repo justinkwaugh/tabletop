@@ -1,14 +1,17 @@
 <script lang="ts">
     import type { CardKind } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
+    import UseBadge from '$lib/components/UseBadge.svelte'
     import type { CardPreview } from '$lib/model/cardPreview.svelte.js'
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
     import { boardZoom } from '$lib/model/boardZoom.js'
 
     // Rule 1 — a card on the board is for looking: a press enlarges it and never chooses it,
     // except a lit site where the map is the menu (`onpick`): Setup's start site, a Travel
-    // destination, the spoils' banish, and on a desktop the Shrouded Wood ruler's pick. That
-    // pick is a button laid over the card, so the keyboard reaches it and Enter or Space picks.
+    // destination, the spoils' banish, on a phone a Campaign's site target, and on a desktop the
+    // Shrouded Wood ruler's pick. That pick is a button laid over the card, so the keyboard
+    // reaches it and Enter or Space picks.
+    // A card whose power Use a power lists wears the "Use" badge, its own button at the foot.
     let {
         cardId,
         back,
@@ -22,7 +25,8 @@
         picked = false,
         previewSlotId,
         onpick,
-        pickLabel
+        pickLabel,
+        useBadge = false
     }: {
         cardId?: string
         back?: CardKind
@@ -41,6 +45,8 @@
         onpick?: () => void
         /** The pick's accessible name: the site and its chip ("Great Slum, 2 Supply"). */
         pickLabel?: string
+        /** R-6.2 — Use a power lists the card's power: the "Use" badge opens it. */
+        useBadge?: boolean
     } = $props()
 
     let preview = $derived<CardPreview>({
@@ -80,6 +86,9 @@
                 onpick()
             }}
         ></button>
+    {/if}
+    {#if useBadge && cardId}
+        <UseBadge {cardId} board />
     {/if}
 </div>
 
