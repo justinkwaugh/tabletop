@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { zstdDecompressSync } from 'node:zlib'
-import { StoredJson, storedJsonEncoding } from './storedJson.js'
+import { StoredJson } from './storedJson.js'
 
 describe('stored JSON payloads', () => {
     const payload = new StoredJson<{ gameId: string; note: string }>('data', 'dataZstd', 'test')
@@ -21,13 +21,5 @@ describe('stored JSON payloads', () => {
         const compressed = payload.encode(value, 'zstd')
         expect(payload.decode({ data: '{"stale":true}', ...compressed })).toEqual(value)
         expect(() => payload.decode({})).toThrow('test document has no data')
-    })
-
-    it('parses the configured encoding, defaulting to JSON', () => {
-        expect(storedJsonEncoding(undefined)).toBe('json')
-        expect(storedJsonEncoding('')).toBe('json')
-        expect(storedJsonEncoding('json')).toBe('json')
-        expect(storedJsonEncoding('zstd')).toBe('zstd')
-        expect(() => storedJsonEncoding('gzip')).toThrow('Unknown stored JSON encoding')
     })
 })

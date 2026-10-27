@@ -83,7 +83,12 @@ import { GameCacheKeys } from './gameCacheKeys.js'
 import { gameChatBookmarks } from './gameChatDocuments.js'
 import { nanoid } from 'nanoid'
 import { ActionChunk } from '../model/storedActionChunk.js'
-import { storedActions, storedState, type StoredJsonEncoding } from './storedJson.js'
+import {
+    GAME_STORAGE_ENCODING,
+    storedActions,
+    storedState,
+    type StoredJsonEncoding
+} from './storedJson.js'
 import * as Value from 'typebox/value'
 import {
     assertUndoActionStorageSupported,
@@ -129,7 +134,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         private firestore: Firestore,
         {
             tournamentCachePrefix = 'tournaments:v1',
-            encoding = 'json'
+            encoding = GAME_STORAGE_ENCODING
         }: { tournamentCachePrefix?: string; encoding?: StoredJsonEncoding } = {}
     ) {
         this.games = firestore.collection('games').withConverter(gameConverter)

@@ -5,11 +5,9 @@ import { countTiming, measureSync } from '../../diagnostics/requestTimings.js'
 
 export type StoredJsonEncoding = 'json' | 'zstd'
 
-export function storedJsonEncoding(value: string | undefined): StoredJsonEncoding {
-    if (value === undefined || value === '' || value === 'json') return 'json'
-    if (value === 'zstd') return 'zstd'
-    throw new Error(`Unknown stored JSON encoding: ${value}`)
-}
+// Switch to 'zstd' only in a release after one that reads zstd is serving on every service, so
+// no running backend, and no rollback target, meets a document it cannot read (#115).
+export const GAME_STORAGE_ENCODING: StoredJsonEncoding = 'json'
 
 // A document keeps its payload in one of two fields. Readers accept both so the write encoding
 // can change either way; backends from before the zstd field cannot read it.

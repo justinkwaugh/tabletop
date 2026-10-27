@@ -19,7 +19,6 @@ import {
     FirestoreCharityTallyStore,
     FirestoreChatStore,
     FirestoreGameStore,
-    storedJsonEncoding,
     FirestoreNotificationStore,
     FirestorePreferenceStore,
     FirestoreTokenStore,
@@ -105,7 +104,6 @@ const useAbly = !!process.env['ABLY_API_KEY']
 const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
 const useCharityTally = !!process.env['TILTIFY_CLIENT_ID']
-const GAME_STORAGE_ENCODING = storedJsonEncoding(process.env['GAME_STORAGE_ENCODING'])
 
 type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle'>
 
@@ -157,9 +155,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         pubSubService
     )
 
-    const gameStore = new FirestoreGameStore(redisCacheService, fastify.firestore, {
-        encoding: GAME_STORAGE_ENCODING
-    })
+    const gameStore = new FirestoreGameStore(redisCacheService, fastify.firestore)
     const gameService = new GameService(
         gameStore,
         userService,
