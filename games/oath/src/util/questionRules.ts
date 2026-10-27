@@ -38,6 +38,7 @@ import {
 } from './relics.js'
 import { askQuestion } from './questions.js'
 import type { QuestionRules } from './questionAnswers.js'
+import { settleEndDie } from './endDie.js'
 import {
     discardAdvisersToMeetLimit,
     reasonAdviserLimitDiscardsInvalid,
@@ -1027,7 +1028,32 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         // R-7.6.3-H1 — the asked party's word closes the deal, or leaves it open.
         apply: (state, _playerId, matched) =>
             answerDealKept(state, matched.question, matched.answer.kept)
+    },
+    [PowerQuestionKind.AdjustEndDie]: {
+        reasonCannotAnswer: () => undefined,
+        // Squalid District — the roll read as the ruler left it: a 6 raised to 7 still ends the game
+        // (its Q&A), a 1 lowered to 0 ends nothing.
+        apply: (state, _playerId, matched) => {
+            const { roll: rolled, round, threshold } = matched.question
+            const roll = rolled + matched.answer.by
+            const settled = settleEndDie(state, roll)
+            return {
+                summary: endDieAnswerWords(matched.answer.by, roll),
+                endDie: { rolled, roll, round, threshold, ...settled },
+                resumeMachineState:
+                    state.winningPlayerIds.length > 0
+                        ? MachineState.EndOfGame
+                        : MachineState.WakePhase
+            }
+        }
     }
+}
+
+/** Squalid District — "lowered the end die to 4", "raised …", "left the end die at 5". */
+function endDieAnswerWords(by: number, roll: number): string {
+    if (by < 0) return `lowered the end die to ${roll}`
+    if (by > 0) return `raised the end die to ${roll}`
+    return `left the end die at ${roll}`
 }
 
 /** R-11.13-H2 — the History names each flipped secret: "a secret", "2 secrets". */

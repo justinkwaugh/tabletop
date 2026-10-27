@@ -176,6 +176,8 @@ export interface ModifierHooks {
     setsDrawCount?: number
     /** Truthful Harp — the kept card too. */
     revealsDraw?: boolean
+    /** Great Spire — once, after the draw: drawn denizens swap with random cards from the Dispossessed. */
+    swapsWithDispossessed?: boolean
     /** R-7.1.2.a */
     relaxOccupancy?: (ctx: EffectContext) => boolean
     /** R-6.6.2.a — a mandatory modifier's "you cannot …". */
@@ -399,6 +401,16 @@ export interface PersistentHooks {
     pawnDefenseBonus?: (ctx: PersistentContext, holderId: string) => number | undefined
     /** Hall of Mockery — R-5.4.4's Recover of the People's Favor leaves it on its Mob side. */
     recoverFlipsPeoplesFavorToMob?: boolean
+    /** Ruined Temple — a "cannot play … faceup" on the card played (R-5.1.4, R-6.1). */
+    forbidsFaceupPlay?: (
+        ctx: PersistentContext,
+        actorId: string,
+        cardId: string
+    ) => string | undefined
+    /** Forest Temple — R-8.3.2's site discard does not take this site. */
+    keepsSiteInChronicle?: (ctx: PersistentContext, siteId: string) => boolean
+    /** Squalid District — the player who may raise or lower the end die after it is rolled (R-3.3). */
+    endDieAdjuster?: (ctx: PersistentContext) => string | undefined
     /** Vow of Renewal */
     takesBurnedFavor?: (ctx: PersistentContext) => string | undefined
     /** Vow of Union */

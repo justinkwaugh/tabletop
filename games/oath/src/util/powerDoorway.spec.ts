@@ -17,14 +17,8 @@ const DOORWAY_TIMINGS: readonly PowerTiming[] = [PowerTiming.Action, PowerTiming
  */
 const MINOR_ACTIONS = [powerKey(GRAND_SCEPTER_ID, 1), powerKey(GRAND_SCEPTER_ID, 2)]
 
-/** R-2.9 — the edifice sides whose Actions are not built yet: Fallen Spire's and Festival District's. */
-const UNBUILT_EDIFICE_ACTIONS = [
-    powerKey('edifice.arcane.great-spire', 1),
-    powerKey('edifice.discord.festival-district', 0)
-]
-
 describe('the doorway offers no card power it cannot resolve', () => {
-    it('every Action and Rest power in the card data has an effect, but the Grand Scepter’s minor actions and the edifice sides not built yet', () => {
+    it('every Action and Rest power in the card data has an effect, but the Grand Scepter’s minor actions', () => {
         const walked = cardDefinitions().flatMap((card) =>
             cardPowers(card.id).filter((power) => DOORWAY_TIMINGS.includes(power.timing))
         )
@@ -33,9 +27,7 @@ describe('the doorway offers no card power it cannot resolve', () => {
             .map((power) => powerKey(power.cardId, power.powerIndex))
 
         expect(walked.length).toBeGreaterThan(MINOR_ACTIONS.length)
-        expect([...withoutEffect].sort()).toEqual(
-            [...MINOR_ACTIONS, ...UNBUILT_EDIFICE_ACTIONS].sort()
-        )
+        expect([...withoutEffect].sort()).toEqual([...MINOR_ACTIONS].sort())
     })
 
     it('the Grand Scepter’s holder is never offered them, and a use named by hand is refused in plain words', () => {

@@ -45,6 +45,7 @@ import {
     advisersOfSuit,
     afterCardPlayedPersistent,
     reasonPersistentForbidsFacedownAdviser,
+    reasonPersistentForbidsFaceupPlay,
     reasonPersistentForbidsFaceupVision,
     reasonPersistentForbidsSecretCost,
     reasonPersistentForbidsBannerTake,
@@ -732,6 +733,9 @@ export function reasonCannotPlaceCard(
             if (definition?.placement === 'adviser') {
                 return `${cardId} can only be played to your advisers`
             }
+            // R-7.1.4 — Ruined Temple: enemies of its ruler cannot play beast cards faceup.
+            const barred = reasonPersistentForbidsFaceupPlay(state, playerId, cardId)
+            if (barred) return barred
             const target = options.toSiteId ?? here
             // R-5.1.4.I — the People's Favor's holder may play to any site in their region;
             // New Growth to another site when a carried modifier allows it for this card.
@@ -806,6 +810,9 @@ export function reasonCannotPlaceCard(
                 if (definition?.placement === 'site') {
                     return `${cardId} can only be played to a site`
                 }
+                // R-7.1.4 — Ruined Temple: enemies of its ruler cannot play beast cards faceup.
+                const barred = reasonPersistentForbidsFaceupPlay(state, playerId, cardId)
+                if (barred) return barred
             } else if (kind !== CardKind.Denizen && kind !== CardKind.Vision) {
                 return 'only denizens and Visions can be advisers'
             } else {

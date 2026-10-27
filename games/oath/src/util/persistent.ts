@@ -155,6 +155,36 @@ export function reasonPersistentForbidsFacedownAdviser(
 ) {
     return firstPersistentReason(state, (h, ctx) => h.forbidsFacedownAdviser?.(ctx, actorId))
 }
+/** Ruined Temple */
+export function reasonPersistentForbidsFaceupPlay(
+    state: HydratedOathGameState,
+    actorId: string,
+    cardId: string
+) {
+    return firstPersistentReason(state, (h, ctx) => h.forbidsFaceupPlay?.(ctx, actorId, cardId))
+}
+
+/**
+ * Forest Temple — "In the Chronicle, do not discard sites with any [beast] cards": whether R-8.3.2's
+ * site discard leaves this site, on the state as given.
+ */
+export function forestTempleKeepsSite(state: HydratedOathGameState, siteId: string): boolean {
+    return persistentsInPlay(state).some(
+        ({ ctx, hooks }) => hooks.keepsSiteInChronicle?.(ctx, siteId) === true
+    )
+}
+
+/** Squalid District — who is asked to raise, lower or leave the end die, and the card that asks. */
+export function endDieAdjuster(
+    state: HydratedOathGameState
+): { cardId: string; playerId: string } | undefined {
+    for (const { ctx, hooks } of persistentsInPlay(state)) {
+        const playerId = hooks.endDieAdjuster?.(ctx)
+        if (playerId !== undefined) return { cardId: ctx.cardId, playerId }
+    }
+    return undefined
+}
+
 export function reasonPersistentForbidsFaceupVision(
     state: HydratedOathGameState,
     actorId: string,

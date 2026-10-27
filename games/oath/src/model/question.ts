@@ -253,7 +253,12 @@ export enum PowerQuestionKind {
      * The Tribunal (revision 28) — one party to an open deal says it was kept; the other confirms it,
      * which closes it, or says it was not, which leaves it open (R-7.6.3-H1).
      */
-    DealKept = 'dealKept'
+    DealKept = 'dealKept',
+    /**
+     * Squalid District — the end die just rolled to end the game: its ruler raises or lowers it by
+     * one, or leaves it, before it is read (its Q&A: after the roll).
+     */
+    AdjustEndDie = 'adjustEndDie'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -272,7 +277,7 @@ export const ExchangeTransfer = Type.Object({
     relicCardIds: Type.Optional(Type.Array(Type.String(), { maxItems: 16 })),
     /** Deed Writer only. */
     sites: Type.Optional(Type.Array(SiteTransfer, { maxItems: 8 })),
-    /** The Gathering only — rows of the giver's public adviser list, so a facedown card is never named (R-9.4). */
+    /** The Gathering and Festival District — rows of the giver's public adviser list, so a facedown card is never named (R-9.4). */
     adviserRows: Type.Optional(
         Type.Array(Type.Integer({ minimum: 0, maximum: 15 }), { maxItems: 8 })
     )
@@ -317,6 +322,18 @@ export const OpenDeal = Type.Object({
 
 /** R-7.6.3-H1 — the deals still open when the game ended, listed on the ending action and dropped. */
 export const OpenDealsDropped = Type.Array(OpenDeal, { maxItems: MAX_OPEN_DEALS })
+
+/** R-3.3, Squalid District — the end die as rolled, as its ruler's answer left it, and what it decided. */
+export type EndDieAdjusted = Type.Static<typeof EndDieAdjusted>
+export const EndDieAdjusted = Type.Object({
+    rolled: Type.Number(),
+    roll: Type.Number(),
+    round: Type.Number(),
+    threshold: Type.Number(),
+    wonBy: Type.Optional(Type.String()),
+    /** R-7.6.3-H1 — the Tribunal deals still open when this roll ended the game, now dropped. */
+    openDealsDropped: Type.Optional(OpenDealsDropped)
+})
 
 export type ExchangeTerms = Type.Static<typeof ExchangeTerms>
 export const ExchangeTerms = Type.Object({
@@ -690,6 +707,18 @@ export const PowerQuestion = Type.Union([
         claimantPlayerId: Type.String(),
         /** The deal, public in `openDeals`, where its promises are read. */
         dealId: Type.String()
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.AdjustEndDie),
+        /** Squalid District. */
+        cardId: Type.String(),
+        /** Its ruler, never a Citizen ("Citizens cannot use this power"). */
+        askedPlayerId: Type.String(),
+        /** R-3.3 — the end die as the Chancellor rolled it. */
+        roll: Type.Integer({ minimum: 1, maximum: 6 }),
+        round: Type.Integer({ minimum: 5, maximum: 7 }),
+        /** R-3.3.1 — the least roll that ends the game this round. */
+        threshold: Type.Integer({ minimum: 1, maximum: 6 })
     })
 ])
 
@@ -814,7 +843,12 @@ export const QuestionAnswer = Type.Union([
     /** The bank Gambling Hall takes from: one of the question's `banks`. */
     Type.Object({ kind: Type.Literal(PowerQuestionKind.GamblingHallBank), suit: Type.Enum(Suit) }),
     /** "Not kept" leaves the deal open, for either party to claim on a later turn. */
-    Type.Object({ kind: Type.Literal(PowerQuestionKind.DealKept), kept: Type.Boolean() })
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.DealKept), kept: Type.Boolean() }),
+    /** One lower, one higher, or 0 to leave the roll as it is. */
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.AdjustEndDie),
+        by: Type.Integer({ minimum: -1, maximum: 1 })
+    })
 ])
 
 export type QuestionOf<K extends PowerQuestionKind> = Extract<PowerQuestion, { kind: K }>

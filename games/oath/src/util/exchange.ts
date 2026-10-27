@@ -34,6 +34,8 @@ import type { AdvisersMoved } from './adviserLimit.js'
 export const TINKERS_FAIR_ALLOWS: ExchangeAllowance = { relics: true }
 export const DEED_WRITER_ALLOWS: ExchangeAllowance = { sites: true }
 export const GATHERING_ALLOWS: ExchangeAllowance = { relics: true, advisers: true }
+/** Festival District — favor, secrets and advisers. */
+export const FESTIVAL_DISTRICT_ALLOWS: ExchangeAllowance = { advisers: true }
 /** R-11.9 — favor and secrets, and the promises the players write (R-7.6.3-H1). */
 export const TRIBUNAL_ALLOWS: ExchangeAllowance = { promises: true }
 

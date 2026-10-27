@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { assertExists, shuffle, type RandomFunction } from '@tabletop/common'
+import { assert, assertExists, shuffle, type RandomFunction } from '@tabletop/common'
 import { CardKind, Region } from './oathEnums.js'
 import { kindOf } from '../data/cardRegistry.js'
 
@@ -172,6 +172,25 @@ export function exchangeWithDispossessed(
     vault.dispossessed.push(...cardIds)
     shuffle(vault.dispossessed, random)
     return vault.dispossessed.splice(0, cardIds.length)
+}
+
+/**
+ * Great Spire, Fallen Spire — R-10.25: each card trades places with a random card from the
+ * Dispossessed. The random cards are taken before the swapped ones go in, so none comes straight back.
+ */
+export function swapWithDispossessed(
+    vault: OathVault,
+    cardIds: readonly string[],
+    random: RandomFunction
+): string[] {
+    assert(
+        cardIds.length <= vault.dispossessed.length,
+        `${cardIds.length} cards cannot swap with a Dispossessed of ${vault.dispossessed.length}`
+    )
+    shuffle(vault.dispossessed, random)
+    const taken = vault.dispossessed.splice(0, cardIds.length)
+    vault.dispossessed.push(...cardIds)
+    return taken
 }
 
 /** R-1.1, R-8.3.5.6 */

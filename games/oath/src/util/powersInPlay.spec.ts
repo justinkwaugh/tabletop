@@ -126,19 +126,18 @@ describe('R-7.1.1 — the doorway sees only the side showing', () => {
         )
     })
 
-    it('a side with no effect yet is never offered and is refused last, as any unbuilt power', () => {
+    it('every side of every edifice has an effect, and Festival District is offered with its side up', () => {
+        const sides = cardIdsOfKind(CardKind.Edifice).flatMap((cardId) => cardPowers(cardId))
+        expect(sides).toHaveLength(12)
+        expect(sides.filter((power) => !hasEffect(power))).toEqual([])
         const state = edificeTable({ [DANA]: { siteId: STONES_SLOT } })
         state.setEdificeRuined(ANCIENT_FORGE, false)
         state.denizensBySite[STONES_SLOT] = []
         placeEdifice(state, STONES_SLOT, FESTIVAL_DISTRICT)
-        expect(hasEffect(cardPowers(FESTIVAL_DISTRICT)[0])).toBe(false)
         expect(
             legalPowers(state, DANA, PowerTiming.Action).filter(
                 (use) => use.cardId === FESTIVAL_DISTRICT
             )
-        ).toEqual([])
-        expect(reasonCannotUsePower(state, DANA, FESTIVAL_DISTRICT, 0, PowerTiming.Action)).toBe(
-            `${FESTIVAL_DISTRICT}'s power 0 cannot be used as an "Action:" power`
-        )
+        ).toHaveLength(1)
     })
 })

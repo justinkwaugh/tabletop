@@ -36,19 +36,17 @@ function listedPower(power: CardPower, powers: readonly PowerUseKey[]): boolean 
 }
 
 describe('every built card is in reach by every route', () => {
-    it('walks the edifices, both sides of each built one', () => {
+    it('walks the edifices, both sides of each', () => {
         const sides = CARDS.flatMap((cardId) =>
             cardPowers(cardId).filter((p) => p.face !== undefined && hasEffect(p))
         )
-        expect(sides.map((p) => [p.cardId, p.face])).toEqual(
-            expect.arrayContaining([
-                ['edifice.hearth.hall-of-debate', EdificeFace.Intact],
-                ['edifice.hearth.hall-of-debate', EdificeFace.Ruined],
-                ['edifice.nomad.ancient-forge', EdificeFace.Intact],
-                ['edifice.nomad.ancient-forge', EdificeFace.Ruined],
-                ['edifice.order.sprawling-rampart', EdificeFace.Intact],
-                ['edifice.order.sprawling-rampart', EdificeFace.Ruined]
-            ])
+        expect(sides.map((p) => [p.cardId, p.face]).sort()).toEqual(
+            cardIdsOfKind(CardKind.Edifice)
+                .flatMap((cardId) => [
+                    [cardId, EdificeFace.Intact],
+                    [cardId, EdificeFace.Ruined]
+                ])
+                .sort()
         )
     })
 

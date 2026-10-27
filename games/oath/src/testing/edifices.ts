@@ -16,6 +16,15 @@ export const ANCIENT_FORGE = 'edifice.nomad.ancient-forge'
 
 export const WOLVES = 'denizen.beast.wolves'
 
+/**
+ * R-8.5 — the Dispossessed, filled only by the Chronicle: its cards in the vault, its count public.
+ * The vault is shuffled before each draw from it, so the order given here is no promise.
+ */
+export function fillDispossessed(state: HydratedOathGameState, cardIds: readonly string[]): void {
+    state.requireVault().dispossessed = [...cardIds]
+    state.dispossessedCount = cardIds.length
+}
+
 /** R-2.8.1, R-2.9 — first in the site's row, in a space of its own, one edifice per site. */
 export function placeEdifice(
     state: HydratedOathGameState,
@@ -39,13 +48,15 @@ export const STONES_SLOT = 'p1'
 export const STONES_RELIC = 'relic.book-of-records'
 
 /**
- * Dana (the Chancellor) and Rhys (an Exile) at the Plains, which holds Hall of Debate and Wolves with
- * 2 Imperial warbands; Standing Stones holds a ruined Ancient Forge (Broken Forge) and a facedown relic,
- * with no warbands, so the bandits rule it (R-10.21). Dana's turn in the Act Phase.
+ * Dana (the Chancellor) and Rhys (an Exile) at the Plains, which holds Hall of Debate (or `plains`, on
+ * the side `ruined` names) and Wolves with 2 Imperial warbands; Standing Stones holds a ruined Ancient
+ * Forge (Broken Forge) and a facedown relic, with no warbands, so the bandits rule it (R-10.21). Dana's
+ * turn in the Act Phase.
  */
 export function edificeTable(
     over: Record<string, Record<string, unknown>> = {},
-    state: Partial<OathProjectedState> = {}
+    state: Partial<OathProjectedState> = {},
+    { plains = HALL_OF_DEBATE, ruined = false }: { plains?: string; ruined?: boolean } = {}
 ): HydratedOathGameState {
     const relicSlot = `${STONES_SLOT}.relic.0`
     const s = testState(
@@ -85,7 +96,7 @@ export function edificeTable(
             ...state
         }
     )
-    placeEdifice(s, PLAINS_SLOT, HALL_OF_DEBATE)
+    placeEdifice(s, PLAINS_SLOT, plains, { ruined })
     placeEdifice(s, STONES_SLOT, ANCIENT_FORGE, { ruined: true })
     openTurn(s, DANA)
     return s

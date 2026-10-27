@@ -5,6 +5,7 @@ import { Muster } from '../actions/muster.js'
 import { Trade } from '../actions/trade.js'
 import { Search } from '../actions/search.js'
 import { SearchResolve } from '../actions/searchResolve.js'
+import { SearchSwap } from '../actions/searchSwap.js'
 import { Recover } from '../actions/recover.js'
 import { Campaign } from '../actions/campaign.js'
 import { CampaignDefend } from '../actions/campaignDefend.js'
@@ -58,6 +59,7 @@ export const OathApiActions = {
     [ActionType.Trade]: Trade,
     [ActionType.Search]: Search,
     [ActionType.SearchResolve]: SearchResolve,
+    [ActionType.SearchSwap]: SearchSwap,
     [ActionType.Recover]: Recover,
     [ActionType.Campaign]: Campaign,
     [ActionType.CampaignAttackPlans]: CampaignAttackPlans,

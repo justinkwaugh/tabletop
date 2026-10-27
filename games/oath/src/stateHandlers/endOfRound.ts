@@ -32,7 +32,8 @@ export class EndOfRoundStateHandler implements MachineStateHandler<
 
     onAction(action: HydratedAction, context: MachineContext<HydratedOathGameState>): MachineState {
         if (isRollEndDie(action)) {
-            // R-1.7 — a round that goes on starts with the Chancellor's Wake.
+            // R-1.7 — a round that goes on starts with the Chancellor's Wake. Squalid District's
+            // question, when asked, reads the roll and names where play goes once it is answered.
             return context.gameState.winningPlayerIds.length > 0
                 ? MachineState.EndOfGame
                 : MachineState.WakePhase

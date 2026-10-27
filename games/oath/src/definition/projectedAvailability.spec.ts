@@ -16,7 +16,7 @@ import {
 } from '../data/cardPowers.js'
 import { edificeName } from '../data/edifices.js'
 import { powersInPlay } from '../util/powersInPlay.js'
-import { CardKind, PlayerStatus } from '../model/oathEnums.js'
+import { CardKind, PlayerStatus, Region } from '../model/oathEnums.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { CURRENT_OATH_REVISION } from '../util/revision.js'
 import { hasEffect } from '../powers/registry.js'
@@ -31,6 +31,7 @@ import { ActionType } from './actions.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { reasonExchangeInvalid } from '../util/exchange.js'
 import { Campaign, HydratedCampaign } from '../actions/campaign.js'
+import { Search, SearchSource } from '../actions/search.js'
 import { HydratedCampaignDefend } from '../actions/campaignDefend.js'
 import { buildAction } from '../testing/actions.js'
 import { siteTarget } from '../testing/choices.js'
@@ -163,6 +164,26 @@ const WALKED: Walked[] = [
     }))
 ]
 
+/**
+ * R-8.5 — the Dispossessed filled, as the Chronicle leaves it, and the Cradle's discard pile (the
+ * Plains, my site) holding a Vision over two denizens: what the Spires swap with, host-only but for
+ * the public counts.
+ */
+function withSwapsToMake(d: ReturnType<typeof table>): void {
+    d.vault = {
+        ...required(d.vault, 'the table holds a vault'),
+        dispossessed: ['denizen.nomad.elders', 'denizen.discord.naysayers'],
+        discardPiles: {
+            [Region.Cradle]: ['vision.faith', 'denizen.order.wrestlers', 'denizen.beast.rangers'],
+            [Region.Provinces]: [],
+            [Region.Hinterland]: []
+        }
+    }
+    d.dispossessedCount = 2
+    d.discardPileCounts = { ...d.discardPileCounts, [Region.Cradle]: 3 }
+    d.discardTopBackType = { ...d.discardTopBackType, [Region.Cradle]: CardKind.Vision }
+}
+
 // The table asks for each seat's actions on that seat's own view, where host-only values and others'
 // hidden values cannot be read; an availability check that reads one empties the seat's whole list.
 describe("every Action and Rest power leaves each seat's offer the same on its own view as on the server", () => {
@@ -173,13 +194,16 @@ describe("every Action and Rest power leaves each seat's offer the same on its o
         )
     })
 
-    it('walks both sides of Ancient Forge, each with its side up', () => {
+    it('walks both sides of Ancient Forge, Fallen Spire and Festival District, each with its side up', () => {
         expect(EDIFICE_SIDES).toEqual(
             expect.arrayContaining([
                 { cardId: 'edifice.nomad.ancient-forge', ruined: false },
-                { cardId: 'edifice.nomad.ancient-forge', ruined: true }
+                { cardId: 'edifice.nomad.ancient-forge', ruined: true },
+                { cardId: 'edifice.arcane.great-spire', ruined: true },
+                { cardId: 'edifice.discord.festival-district', ruined: false }
             ])
         )
+        expect(EDIFICE_SIDES).toHaveLength(4)
     })
 
     for (const { cardId, name, at, ruined } of WALKED) {
@@ -187,6 +211,7 @@ describe("every Action and Rest power leaves each seat's offer the same on its o
             for (const phase of [MachineState.ActPhase, MachineState.RestPhase]) {
                 const state = table(phase, cardId, at)
                 if (ruined) state.ruinedEdificeIds = [cardId]
+                if (cardIdsOfKind(CardKind.Edifice).includes(cardId)) withSwapsToMake(state)
                 const hydrated = new HydratedOathGameState(state)
                 // A power the server skips (unaffordable, out of reach) never runs its checks,
                 // so each must be offered there before the views are compared.
@@ -540,6 +565,64 @@ describe("a Tribunal deal's claim, its leaving and its answer are offered the sa
                 HydratedAnswerQuestion.reasonCannotAnswer(s, 'foe', answer)
             expect(reason(server)).toBeUndefined()
             expect(reason(ownView(asked, 'foe'))).toBe(reason(server))
+        }
+    })
+})
+
+// R-9.4 — the Spires' offers read only the public counts: Fallen Spire's count from the pile's and the
+// Dispossessed's, Great Spire's swap step from the hand's count and the carried declaration.
+describe("the Spires are offered the same on each seat's own view as on the server", () => {
+    const SPIRE = 'edifice.arcane.great-spire'
+
+    it("Fallen Spire's counts", () => {
+        const state = table(MachineState.ActPhase, SPIRE, 'site')
+        state.ruinedEdificeIds = [SPIRE]
+        withSwapsToMake(state)
+        const offer = (s: HydratedOathGameState) =>
+            legalPowers(s, 'me', PowerTiming.Action).find((use) => use.cardId === SPIRE)
+        const server = offer(new HydratedOathGameState(state))
+        expect(server?.choices[0].options).toEqual([
+            { kind: PowerChoiceKind.Count, n: 1 },
+            { kind: PowerChoiceKind.Count, n: 2 }
+        ])
+        const view: Visibility.Perspective = { kind: 'player', playerId: 'me' }
+        expect(offer(new HydratedOathGameState(served(state, view)))).toEqual(server)
+    })
+
+    it("Great Spire's swap step, once its Search has drawn", () => {
+        const state = table(MachineState.ActPhase, SPIRE, 'site')
+        withSwapsToMake(state)
+        state.vault = {
+            ...required(state.vault, 'the table holds a vault'),
+            worldDeck: [
+                'denizen.nomad.a-fast-steed',
+                'denizen.order.scouts',
+                'denizen.hearth.herald'
+            ]
+        }
+        const searched = engine.runNext(
+            buildAction(Search, {
+                playerId: 'me',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true,
+                modifiers: [{ cardId: SPIRE, powerIndex: 0 }]
+            }),
+            state,
+            game
+        ).updatedState
+        expect(searched.machineState).toBe(MachineState.Searching)
+        expect(engine.getValidActionTypesForPlayer(game, searched, 'me')).toEqual([
+            ActionType.SearchResolve,
+            ActionType.SearchSwap
+        ])
+        for (const playerId of SEATS) {
+            const seat: Visibility.Perspective = { kind: 'player', playerId }
+            expect(
+                engine.getValidActionTypesForPlayer(game, served(searched, seat), playerId, {
+                    perspective: seat
+                }),
+                playerId
+            ).toEqual(engine.getValidActionTypesForPlayer(game, searched, playerId))
         }
     })
 })

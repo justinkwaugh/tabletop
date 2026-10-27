@@ -177,7 +177,9 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
             : undefined
     },
     // R-7.6.3-H1 — a claim names an open deal; one closed meanwhile is not asked about.
-    [PowerQuestionKind.DealKept]: (state, question) => reasonDealKeptInvalid(state, question)
+    [PowerQuestionKind.DealKept]: (state, question) => reasonDealKeptInvalid(state, question),
+    // Squalid District — its ruler is always asked: each of the three answers is theirs to give.
+    [PowerQuestionKind.AdjustEndDie]: () => undefined
 }
 
 /** Second Wind out of turn — asked for the next action, so judged as that action will be: free. */

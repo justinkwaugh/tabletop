@@ -6,6 +6,7 @@ import { HydratedMuster, isMuster } from '../actions/muster.js'
 import { HydratedTrade, isTrade } from '../actions/trade.js'
 import { HydratedSearch, isSearch } from '../actions/search.js'
 import { HydratedSearchResolve, isSearchResolve } from '../actions/searchResolve.js'
+import { HydratedSearchSwap, isSearchSwap } from '../actions/searchSwap.js'
 import { HydratedRecover, isRecover } from '../actions/recover.js'
 import { HydratedCampaign, isCampaign } from '../actions/campaign.js'
 import { HydratedCampaignSacrifice, isCampaignSacrifice } from '../actions/campaignSacrifice.js'
@@ -77,6 +78,9 @@ export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOa
             }
             case isSearchResolve(data): {
                 return new HydratedSearchResolve(data)
+            }
+            case isSearchSwap(data): {
+                return new HydratedSearchSwap(data)
             }
             case isRecover(data): {
                 return new HydratedRecover(data)

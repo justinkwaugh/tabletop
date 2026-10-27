@@ -4,6 +4,8 @@ export enum ActionType {
     Trade = 'trade',
     Search = 'search',
     SearchResolve = 'searchResolve',
+    /** Great Spire — after the draw and before the discard (R-5.1.2, R-5.1.3). */
+    SearchSwap = 'searchSwap',
     Recover = 'recover',
     Campaign = 'campaign',
     /** R-5.5.3 — after the Citizens asked to join the defence have answered. */

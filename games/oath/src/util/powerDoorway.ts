@@ -67,8 +67,7 @@ export function reasonCannotUsePower(
     if (badChoice) return badChoice
 
     // A power with no effect refuses last, after every rules check. `legalPowers` never offers one:
-    // the Grand Scepter's, its holder's minor actions (R-6.4, R-6.6.1, R-6.7), and the edifice sides
-    // not built yet (R-2.9).
+    // the Grand Scepter's, its holder's minor actions (R-6.4, R-6.6.1, R-6.7).
     const effect = effectFor(power)
     if (!effect) {
         return `${cardId}'s power ${powerIndex} cannot be used as ${article} ${label} power`

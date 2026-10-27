@@ -171,7 +171,10 @@ export const OathStateHandlers = everyStateCarryingFreeActions({
     [MachineState.WakePhase]: withContinuousTitle(new WakePhaseStateHandler()),
     [MachineState.ActPhase]: withContinuousTitle(withPowerQuestions(new ActPhaseStateHandler())),
     [MachineState.RestPhase]: withContinuousTitle(new RestPhaseStateHandler()),
-    [MachineState.EndOfRound]: withContinuousTitle(new EndOfRoundStateHandler()),
+    // Wrapped: Squalid District's ruler may raise or lower the end die once it is rolled.
+    [MachineState.EndOfRound]: withContinuousTitle(
+        withPowerQuestions(new EndOfRoundStateHandler())
+    ),
     [MachineState.Searching]: withContinuousTitle(withPowerQuestions(new SearchingStateHandler())),
     [MachineState.CampaignPlans]: withContinuousTitle(
         withPowerQuestions(new CampaignPlansStateHandler())
