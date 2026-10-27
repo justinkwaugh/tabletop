@@ -1,6 +1,8 @@
 import {
+    describeIgnoredBackendAdminSettings,
     fetchBackendManifest,
     invalidateBackendManifestCache,
+    resolveBackendAdminCredentials,
     type BackendReplacement
 } from './backend.js'
 import {
@@ -101,12 +103,15 @@ export const invalidateBackendManifest = (context: PublishContext) =>
     runStep(
         context,
         { label: 'invalidate-manifest', logPath: '/tmp/manifest-invalidate.log' },
-        async () =>
+        async () => {
+            const ignored = describeIgnoredBackendAdminSettings(context.deployConfig.backendAdmin)
+            if (ignored) context.log(`invalidate-manifest: ${ignored}`)
             context.log(
                 `invalidate-manifest: ${describeReplacement(
                     await invalidateBackendManifestCache(context.deployConfig)
                 )}`
             )
+        }
     )
 
 const describeReplacement = (replacement: BackendReplacement | undefined) => {
@@ -165,17 +170,25 @@ export const publishManifest = async (
     await publication.invalidateBackend()
 }
 
-export const assertDeployConfig = (deployConfig: DeployConfig): string => {
+export const assertArtifactBucket = (deployConfig: DeployConfig): string => {
     if (!deployConfig.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
+    return deployConfig.gcsBucket
+}
+
+// Every publication ends by invalidating the backend's manifest cache, so it refuses to start
+// unless that call can be made and signed in; artifact-only work needs just the bucket.
+export const assertDeployConfig = (deployConfig: DeployConfig): string => {
+    const bucket = assertArtifactBucket(deployConfig)
     if (!deployConfig.backendAdmin?.url && !deployConfig.backendManifestUrl) {
         throw new Error(
             'Missing backend admin URL for manifest invalidation ' +
                 '(set TABLETOP_BACKEND_ADMIN_URL or deploy config)'
         )
     }
-    return deployConfig.gcsBucket
+    resolveBackendAdminCredentials(deployConfig.backendAdmin)
+    return bucket
 }
 
 // A version's artifact is immutable, but a deploy can fail after uploading it. Because the

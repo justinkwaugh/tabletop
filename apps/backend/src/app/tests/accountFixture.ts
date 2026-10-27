@@ -57,6 +57,7 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
     }
     const store: UserStore = Object.create(null)
     store.findById = async (id) => (id === current.id ? current : undefined)
+    store.findByIdUncached = store.findById
     store.findByEmail = async (email) =>
         current.email === normalizeEmailAddress(email) ? current : undefined
     store.findByUsernameAndPassword = async (username, candidate) => {
