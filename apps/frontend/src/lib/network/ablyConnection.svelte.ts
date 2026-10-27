@@ -99,7 +99,8 @@ export class AblyConnection implements RealtimeTransport {
     }
 
     private async syncHeldChannel(channelData: ChannelData) {
-        if (!this.holds(channelData)) {
+        await this.removals.get(channelData.identifier.channelName)
+        if (!this.holds(channelData) || this.ably.connection.state !== 'connected') {
             return
         }
         if (!channelData.subscribed) {
@@ -142,10 +143,6 @@ export class AblyConnection implements RealtimeTransport {
         const channelData: ChannelData = { identifier, ablyChannel, subscribed: false }
         this.channels.set(channelName, channelData)
 
-        await this.removals.get(channelName)
-        if (!this.holds(channelData) || this.ably.connection.state !== 'connected') {
-            return
-        }
         await this.ensureGrants()
         await this.syncHeldChannel(channelData)
     }
@@ -177,7 +174,8 @@ export class AblyConnection implements RealtimeTransport {
         }
 
         this.channels.delete(channelName)
-        const removal = this.detachChannel(channelData).finally(() => {
+        const earlierRemoval = this.removals.get(channelName)
+        const removal = this.detachChannel(channelData, earlierRemoval).finally(() => {
             if (this.removals.get(channelName) === removal) {
                 this.removals.delete(channelName)
             }
@@ -186,9 +184,10 @@ export class AblyConnection implements RealtimeTransport {
         await removal
     }
 
-    private async detachChannel(channelData: ChannelData) {
+    private async detachChannel(channelData: ChannelData, earlierRemoval?: Promise<void>) {
         channelData.ablyChannel.off()
         channelData.ablyChannel.unsubscribe()
+        await earlierRemoval
         try {
             await channelData.ablyChannel.detach()
         } catch {

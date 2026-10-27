@@ -14,7 +14,9 @@ const ably = vi.hoisted(() => {
     const settled = () => new Promise((resolve) => setTimeout(resolve, 0))
     class FakeChannel {
         state = 'initialized'
-        subscribe = vi.fn(async () => {})
+        subscribe = vi.fn(async () => {
+            this.state = 'attaching'
+        })
         attach = vi.fn(async () => {})
         detach = vi.fn(async () => {})
         unsubscribe = vi.fn()
@@ -324,5 +326,51 @@ describe('removing a channel while it is still being authorized or detached', ()
 
         await connection.removeChannel(game('g1'))
         expect(gameChannel.detach).toHaveBeenCalledTimes(2)
+    })
+
+    it('waits on reconnect for the pending removal before subscribing a channel added again', async () => {
+        const { api, connection, realtime, gameChannel } = await connectedWithGame('g1')
+        const detached = new Gate()
+        gameChannel.detach.mockReturnValueOnce(detached.promise)
+
+        const removing = connection.removeChannel(game('g1'))
+        const adding = connection.addChannel(game('g1'))
+        realtime.emitConnected()
+        await settled()
+        expect(gameChannel.subscribe).toHaveBeenCalledOnce()
+        detached.open()
+        await Promise.all([removing, adding])
+
+        expect(gameChannel.subscribe).toHaveBeenCalledTimes(2)
+        expect(gameChannel.attach).not.toHaveBeenCalled()
+        expect(gameChannel.unsubscribe.mock.invocationCallOrder[0]).toBeLessThan(
+            gameChannel.subscribe.mock.invocationCallOrder[1]
+        )
+        expect(realtime.auth.authorize).not.toHaveBeenCalled()
+        expect(api.getAblyToken).toHaveBeenCalledOnce()
+        expect(realtime.channels.get('user-user').subscribe).toHaveBeenCalledTimes(1)
+        expect(realtime.channels.get('global').subscribe).toHaveBeenCalledTimes(1)
+    })
+
+    it('detaches a channel removed again only after its earlier removal has detached', async () => {
+        const { connection, realtime, gameChannel } = await connectedWithGame('g1')
+        const detached = new Gate()
+        gameChannel.detach.mockReturnValueOnce(detached.promise)
+
+        const removing = connection.removeChannel(game('g1'))
+        const adding = connection.addChannel(game('g1'))
+        const removingAgain = connection.removeChannel(game('g1'))
+        realtime.emitConnected()
+        await settled()
+        expect(gameChannel.detach).toHaveBeenCalledOnce()
+        expect(gameChannel.off).toHaveBeenCalledTimes(2)
+        detached.open()
+        await Promise.all([removing, adding, removingAgain])
+
+        expect(gameChannel.detach).toHaveBeenCalledTimes(2)
+        expect(gameChannel.subscribe).toHaveBeenCalledOnce()
+
+        await connection.addChannel(game('g1'))
+        expect(gameChannel.subscribe).toHaveBeenCalledTimes(2)
     })
 })
