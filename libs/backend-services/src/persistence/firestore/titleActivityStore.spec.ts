@@ -249,6 +249,83 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(reads.queries).toBe(1)
         })
 
+        it('adds no Firestore reads to committed writes compared with a store that lists no activity', async () => {
+            async function writeLifecycle(
+                writer: FirestoreGameStore,
+                title: string,
+                listed: (expected: ReturnType<typeof names>) => Promise<void>
+            ) {
+                const inTitle = (id: string, fields: Partial<Game> = {}) =>
+                    game(id, { id: `${title}-${id}`, typeId: title, ...fields })
+                const forked = inTitle('playing', { status: GameStatus.WaitingForPlayers })
+                await writer.writeFullGameData(forked, state(forked.id), [])
+                const waiting = inTitle('waiting', { status: GameStatus.WaitingForPlayers })
+                await writer.createGame(waiting)
+                const start = (toStart: Game, minutesAgo: number) =>
+                    writer.updateGame({
+                        game: toStart,
+                        fields: {
+                            status: GameStatus.Started,
+                            startedAt: new Date(Date.now() - minutesAgo * 60_000)
+                        }
+                    })
+                const [playing] = await start(forked, 1)
+                const [started] = await start(waiting, 2)
+                await listed({ inProgress: ['playing', 'waiting'], recentlyFinished: [] })
+
+                const action: GameAction = {
+                    id: 'final',
+                    gameId: playing.id,
+                    source: ActionSource.User,
+                    type: 'synthetic',
+                    index: 0
+                }
+                const { updatedGame: finished } = await writer.addActionsToGame({
+                    game: playing,
+                    actions: [action],
+                    state: state(playing.id, {
+                        actionCount: 1,
+                        result: GameResult.Win,
+                        winningPlayerIds: ['p1']
+                    }),
+                    validator: async () => UpdateValidationResult.Proceed
+                })
+                assertExists(finished.finishedAt)
+                await writer.recordFinalScores({
+                    gameId: playing.id,
+                    finishedAt: finished.finishedAt,
+                    finalScores: { p1: 10 }
+                })
+                await listed({ inProgress: ['waiting'], recentlyFinished: ['playing'] })
+
+                await writer.undoActionsFromGame({
+                    gameId: playing.id,
+                    actions: [action],
+                    redoneActions: [],
+                    state: state(playing.id),
+                    validator: async () => UpdateValidationResult.Proceed
+                })
+                await writer.updateGame({ game: started, fields: { unlisted: true } })
+                await listed({ inProgress: ['playing'], recentlyFinished: [] })
+                await writer.deleteGame(playing, () => {})
+                await listed({ inProgress: [], recentlyFinished: [] })
+            }
+            const control = new FirestoreGameStore(live.cache, db)
+            expect(names(await store.findTitleActivity(titleId))).toEqual({
+                inProgress: [],
+                recentlyFinished: []
+            })
+            countReads()
+
+            await writeLifecycle(control, `${titleId}-control`, async () => {})
+            const withoutActivity = reads
+            reads = { queries: 0, documents: 0 }
+            await writeLifecycle(store, titleId, eventually)
+
+            expect(withoutActivity.documents).toBeGreaterThan(0)
+            expect(reads).toEqual(withoutActivity)
+        })
+
         it('lists nothing and keeps writes working while Redis is unreachable', async () => {
             const offline: RedisClientType = createClient({
                 socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
