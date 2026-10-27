@@ -10,11 +10,18 @@ import { Value } from 'typebox/value'
 import { BaseError } from '@tabletop/common'
 import { AuthenticatedSession } from '../../sessions/authenticatedSession.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
+import { concealedCause, secretReference } from '../../security/secretReference.js'
 import type { SessionStore } from '../stores/sessionStore.js'
 import { AlreadyExistsError, InvalidIdError, UnknownStorageError } from '../stores/errors.js'
 import { isFirestoreError } from './errors.js'
 
 const CACHE_SECONDS = 60 * 60
+
+// The Session ID is a bearer secret, so the cache key, which the cache service names in its
+// diagnostics, carries only its reference.
+export function sessionCacheKey(id: string): string {
+    return `session-${secretReference(id)}`
+}
 
 export class FirestoreSessionStore implements SessionStore {
     readonly sessions: CollectionReference<AuthenticatedSession>
@@ -28,20 +35,26 @@ export class FirestoreSessionStore implements SessionStore {
 
     async create(session: AuthenticatedSession): Promise<void> {
         if (!this.isValidId(session.id)) {
-            throw new InvalidIdError({ type: 'AuthenticatedSession', id: session.id })
+            throw new InvalidIdError({
+                type: 'AuthenticatedSession',
+                id: secretReference(session.id)
+            })
         }
         try {
-            await this.cacheService.lockWhileWriting([this.cacheKey(session.id)], () =>
+            await this.cacheService.lockWhileWriting([sessionCacheKey(session.id)], () =>
                 this.sessions.doc(session.id).create(session)
             )
         } catch (error) {
-            this.handleError(error, session.id)
+            this.handleError(error, {
+                reference: secretReference(session.id),
+                secrets: [session.id]
+            })
         }
     }
 
     async find(id: string): Promise<AuthenticatedSession | undefined> {
         const cached = await this.cacheService.cachingGet(
-            this.cacheKey(id),
+            sessionCacheKey(id),
             () => this.read(id),
             CACHE_SECONDS
         )
@@ -60,7 +73,7 @@ export class FirestoreSessionStore implements SessionStore {
             return undefined
         }
         try {
-            return await this.cacheService.lockWhileWriting([this.cacheKey(id)], () =>
+            return await this.cacheService.lockWhileWriting([sessionCacheKey(id)], () =>
                 this.sessions.firestore.runTransaction(async (transaction) => {
                     const reference = this.sessions.doc(id)
                     const session = (await transaction.get(reference)).data()
@@ -73,21 +86,22 @@ export class FirestoreSessionStore implements SessionStore {
                 })
             )
         } catch (error) {
-            this.handleError(error, id)
+            this.handleError(error, { reference: secretReference(id), secrets: [id] })
         }
     }
 
     async delete(id: string): Promise<void> {
         try {
-            await this.cacheService.lockWhileWriting([this.cacheKey(id)], () =>
+            await this.cacheService.lockWhileWriting([sessionCacheKey(id)], () =>
                 this.sessions.doc(id).delete()
             )
         } catch (error) {
-            this.handleError(error, id)
+            this.handleError(error, { reference: secretReference(id), secrets: [id] })
         }
     }
 
     async deleteForUser(userId: string, { except }: { except?: string } = {}): Promise<void> {
+        let ids: string[] = []
         try {
             await this.cacheService.lockWhileWriting([], (locks) =>
                 this.sessions.firestore.runTransaction(async (transaction) => {
@@ -95,15 +109,18 @@ export class FirestoreSessionStore implements SessionStore {
                         this.sessions.where('userId', '==', userId)
                     )
                     this.recordRead(snapshot.size)
-                    const ids = snapshot.docs.map((doc) => doc.id).filter((id) => id !== except)
-                    await locks.addKeys(ids.map((id) => this.cacheKey(id)))
+                    ids = snapshot.docs.map((doc) => doc.id).filter((id) => id !== except)
+                    await locks.addKeys(ids.map(sessionCacheKey))
                     for (const id of ids) {
                         transaction.delete(this.sessions.doc(id))
                     }
                 })
             )
         } catch (error) {
-            this.handleError(error, userId)
+            this.handleError(error, {
+                reference: userId,
+                secrets: [...ids, ...(except ? [except] : [])]
+            })
         }
     }
 
@@ -118,17 +135,12 @@ export class FirestoreSessionStore implements SessionStore {
             this.recordRead()
             return snapshot.data()
         } catch (error) {
-            this.handleError(error, id)
-            throw Error('unreachable')
+            this.handleError(error, { reference: secretReference(id), secrets: [id] })
         }
     }
 
     private isValidId(id: string): boolean {
         return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
-    }
-
-    private cacheKey(id: string): string {
-        return `session-${id}`
     }
 
     private recordRead(count?: number) {
@@ -137,23 +149,23 @@ export class FirestoreSessionStore implements SessionStore {
         })
     }
 
-    private handleError(error: unknown, id: string): never {
+    private handleError(
+        error: unknown,
+        { reference, secrets }: { reference: string; secrets: string[] }
+    ): never {
         if (error instanceof BaseError) {
             throw error
         }
+        const cause = concealedCause(error, secrets)
         if (isFirestoreError(error) && error.code === 6) {
             throw new AlreadyExistsError({
                 type: 'AuthenticatedSession',
-                id,
+                id: reference,
                 field: 'id',
-                cause: error instanceof Error ? error : undefined
+                cause
             })
         }
-        throw new UnknownStorageError({
-            type: 'AuthenticatedSession',
-            id,
-            cause: error instanceof Error ? error : undefined
-        })
+        throw new UnknownStorageError({ type: 'AuthenticatedSession', id: reference, cause })
     }
 }
 
@@ -170,7 +182,7 @@ const sessionConverter = {
             expiresAt: toDate(data.expiresAt)
         })
         if (!Value.Check(AuthenticatedSession, session)) {
-            throw new Error(`Stored session ${snapshot.id} is malformed`)
+            throw new Error(`Stored session ${secretReference(snapshot.id)} is malformed`)
         }
         return session
     }

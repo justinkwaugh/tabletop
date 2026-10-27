@@ -2,6 +2,8 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { ExternalAuthService } from '@tabletop/common'
 import { isolatedFirestore } from './tests/isolatedFirestore.js'
 import { FirestoreOAuthStateStore } from './oauthStateStore.js'
+import { secretReference } from '../../security/secretReference.js'
+import { errorText } from './tests/errorText.js'
 import type { OAuthStateRecord } from '../../oauth/oauthState.js'
 
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
@@ -45,10 +47,15 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
             expect(outcomes.filter((outcome) => outcome !== undefined)).toHaveLength(1)
         })
 
-        it('refuses to issue the same state twice', async () => {
+        it('refuses to issue the same state twice and reports it only by reference', async () => {
             const record = newRecord()
             await store.create(record)
-            await expect(store.create(record)).rejects.toThrow()
+            const failure = await store.create(record).catch((error: unknown) => error)
+            expect(failure).toBeInstanceOf(Error)
+            if (!(failure instanceof Error)) throw new Error('unexpected')
+            expect(failure.name).toBe('AlreadyExistsError')
+            expect(errorText(failure)).toContain(secretReference(record.state))
+            expect(errorText(failure)).not.toContain(record.state)
         })
 
         it('treats an unknown or invalid state as nothing to consume', async () => {

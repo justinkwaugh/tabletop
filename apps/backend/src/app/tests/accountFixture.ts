@@ -19,11 +19,15 @@ import { errorStatusCode } from '../lib/errorStatusCode.js'
 
 export const ORIGINAL_PASSWORD = 'original-password-value'
 
-// The same error shape the application error handler sends, so specs can read error names
+// The same error shape and failure log line as the application error handler, so specs can
+// read error names and what a failure writes to the log
 export function apiErrorShape(server: FastifyInstance): void {
-    server.setErrorHandler(async (error: Error, _request, reply) => {
+    server.setErrorHandler(async (error: Error, request, reply) => {
         if (reply.statusCode < 400) {
             void reply.code(errorStatusCode(error))
+        }
+        if (reply.statusCode >= 500) {
+            request.log.error({ err: error }, 'Request failed')
         }
         return { status: 'error', error: { name: error.name, message: error.message } }
     })

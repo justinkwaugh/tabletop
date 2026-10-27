@@ -8,6 +8,7 @@ import {
 import { Value } from 'typebox/value'
 import { BaseError } from '@tabletop/common'
 import { OAuthStateRecord } from '../../oauth/oauthState.js'
+import { concealedCause, secretReference } from '../../security/secretReference.js'
 import type { OAuthStateStore } from '../stores/oauthStateStore.js'
 import { AlreadyExistsError, InvalidIdError, UnknownStorageError } from '../stores/errors.js'
 import { isFirestoreError } from './errors.js'
@@ -21,7 +22,10 @@ export class FirestoreOAuthStateStore implements OAuthStateStore {
 
     async create(record: OAuthStateRecord): Promise<void> {
         if (!this.isValidId(record.state)) {
-            throw new InvalidIdError({ type: 'OAuthStateRecord', id: record.state })
+            throw new InvalidIdError({
+                type: 'OAuthStateRecord',
+                id: secretReference(record.state)
+            })
         }
         try {
             await this.states.doc(record.state).create(record)
@@ -52,23 +56,16 @@ export class FirestoreOAuthStateStore implements OAuthStateStore {
         return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
     }
 
-    private handleError(error: unknown, id: string): never {
+    private handleError(error: unknown, state: string): never {
         if (error instanceof BaseError) {
             throw error
         }
+        const id = secretReference(state)
+        const cause = concealedCause(error, [state])
         if (isFirestoreError(error) && error.code === 6) {
-            throw new AlreadyExistsError({
-                type: 'OAuthStateRecord',
-                id,
-                field: 'state',
-                cause: error instanceof Error ? error : undefined
-            })
+            throw new AlreadyExistsError({ type: 'OAuthStateRecord', id, field: 'state', cause })
         }
-        throw new UnknownStorageError({
-            type: 'OAuthStateRecord',
-            id,
-            cause: error instanceof Error ? error : undefined
-        })
+        throw new UnknownStorageError({ type: 'OAuthStateRecord', id, cause })
     }
 }
 
@@ -83,7 +80,7 @@ const stateConverter = {
             expiresAt: data.expiresAt instanceof Timestamp ? data.expiresAt.toDate() : undefined
         })
         if (!Value.Check(OAuthStateRecord, record)) {
-            throw new Error(`Stored OAuth state ${snapshot.id} is malformed`)
+            throw new Error(`Stored OAuth state ${secretReference(snapshot.id)} is malformed`)
         }
         return record
     }

@@ -69,11 +69,11 @@ export class SessionService {
     async recordAuthentication(session: AuthenticatedSession): Promise<AuthenticatedSession> {
         const now = this.now()
         if (session.expiresAt <= now) {
-            throw new SessionNotLiveError(session.id)
+            throw new SessionNotLiveError()
         }
         const refreshed = await this.sessionStore.recordAuthentication(session.id, now)
         if (!refreshed) {
-            throw new SessionNotLiveError(session.id)
+            throw new SessionNotLiveError()
         }
         return refreshed
     }

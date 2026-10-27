@@ -24,7 +24,7 @@ export function requireLinkedIdentity(
 export async function reauthenticatedResponse(fastify: FastifyInstance, request: FastifyRequest) {
     const session = request.authenticatedSession
     if (!session) {
-        throw new SessionNotLiveError('')
+        throw new SessionNotLiveError()
     }
     const refreshed = await fastify.sessionService.recordAuthentication(session)
     return { status: 'ok', payload: { authenticatedAt: refreshed.authenticatedAt } }

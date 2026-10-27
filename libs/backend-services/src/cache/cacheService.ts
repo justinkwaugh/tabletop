@@ -573,7 +573,7 @@ export class RedisCacheService {
                 const parsedData: unknown = JSON.parse(value.slice(VALUE_PREFIX.length))
                 return { value: parsedData, cached: true }
             } catch (error) {
-                console.log('unable to parse cache value', value, error)
+                console.log('unable to parse cache value', error)
             }
         }
         return { value, cached: false }
