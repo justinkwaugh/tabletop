@@ -125,7 +125,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             })
             await client.connect()
             live = cacheFixture(client)
-            json = new FirestoreGameStore(live.cache, db)
+            json = new FirestoreGameStore(live.cache, db, { encoding: 'json' })
             zstd = new FirestoreGameStore(live.cache, db, { encoding: 'zstd' })
         })
 

@@ -5,9 +5,8 @@ import { countTiming, measureSync } from '../../diagnostics/requestTimings.js'
 
 export type StoredJsonEncoding = 'json' | 'zstd'
 
-// Switch to 'zstd' only in a release after one that reads zstd is serving on every service, so
-// no running backend, and no rollback target, meets a document it cannot read (#115).
-export const GAME_STORAGE_ENCODING: StoredJsonEncoding = 'json'
+// Backend 1.47.0 is the oldest release that reads 'zstd'. Never route traffic to an older one (#115).
+export const GAME_STORAGE_ENCODING: StoredJsonEncoding = 'zstd'
 
 // A document keeps its payload in one of two fields. Readers accept both so the write encoding
 // can change either way; backends from before the zstd field cannot read it.
