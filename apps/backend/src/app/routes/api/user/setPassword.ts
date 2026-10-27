@@ -44,10 +44,10 @@ export default async function (fastify: FastifyInstance) {
                 return
             }
 
-            await fastify.userService.updatePassword(request.user.id, password)
+            const updatedUser = await fastify.userService.updatePassword(request.user.id, password)
             await authSession({
                 session: request.session,
-                user: request.user,
+                user: updatedUser,
                 sessions: fastify.sessionService
             })
 

@@ -1,0 +1,224 @@
+import { createClient, type RedisClientType } from 'redis'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { Role, UserStatus, type User } from '@tabletop/common'
+import { cacheFixture } from '../cache/tests/cacheFixture.js'
+import { isolatedFirestore } from '../persistence/firestore/tests/isolatedFirestore.js'
+import { FirestoreUserStore } from '../persistence/firestore/userStore.js'
+import { FirestoreSessionStore } from '../persistence/firestore/sessionStore.js'
+import type { TransactionParticipant } from '../persistence/stores/transaction.js'
+import type { TaskService } from '../tasks/taskService.js'
+import { TokenService } from '../tokens/tokenService.js'
+import { UserService } from '../users/userService.js'
+import { SessionService } from './sessionService.js'
+
+const ORIGINAL_PASSWORD = 'original-password-value'
+const NEW_PASSWORD = 'replacement-password-value'
+
+class UndeletableSessionStore extends FirestoreSessionStore {
+    override async deleteForUser(): Promise<void> {
+        throw new Error('synthetic revocation failure')
+    }
+}
+
+describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_REDIS_HOST)(
+    'Password Credential changes and Authenticated Sessions in Firestore and Redis',
+    { timeout: 20_000 },
+    () => {
+        const run = `credential-${Date.now()}`
+        const firestore = isolatedFirestore()
+        const client: RedisClientType = createClient({
+            socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
+        })
+        const { cache } = cacheFixture(client)
+        const userStore = new FirestoreUserStore(cache, firestore)
+        const sessionStore = new UndeletableSessionStore(cache, firestore)
+        const sessions = new SessionService(sessionStore)
+        const tasks: TaskService = Object.create(null)
+        tasks.sendAccountChangeNotificationEmail = async () => {}
+        const users = new UserService(userStore, TokenService.prototype, tasks)
+        const findAccount = (id: string) => users.getUser(id)
+        const authorize = (sessionId: string) => sessions.authorize(sessionId, findAccount)
+        let sequence = 0
+
+        beforeAll(async () => {
+            await client.connect()
+        })
+        afterAll(async () => {
+            cache.destroy()
+            for await (const keys of client.scanIterator({ MATCH: `*${run}-*`, COUNT: 100 })) {
+                if (keys.length) await client.del(keys)
+            }
+            client.destroy()
+            await firestore.terminate()
+        })
+
+        async function createAccount() {
+            const index = sequence++
+            const username = `Person-${run}-${index}`
+            const account: User = {
+                id: `${run}-${index}`,
+                status: UserStatus.Active,
+                username,
+                email: `person-${run}-${index}@example.test`,
+                emailVerified: true,
+                roles: [Role.User],
+                externalIds: []
+            }
+            return { ...(await userStore.createUser(account, ORIGINAL_PASSWORD)), username }
+        }
+
+        async function holderOf(username: string, password: string): Promise<User> {
+            const user = await userStore.findByUsernameAndPassword(username, password)
+            if (!user) throw new Error(`${username} cannot sign in with that password`)
+            return user
+        }
+
+        async function tryLogin(username: string, password: string) {
+            const user = await userStore.findByUsernameAndPassword(username, password)
+            return user ? sessions.establish(user) : undefined
+        }
+
+        async function login(username: string, password: string) {
+            return sessions.establish(await holderOf(username, password))
+        }
+
+        async function storedGeneration(id: string) {
+            return (await firestore.collection('users').doc(id).get()).get('sessionGeneration')
+        }
+
+        async function sessionsStored(userId: string) {
+            const snapshot = await firestore
+                .collection('sessions')
+                .where('userId', '==', userId)
+                .get()
+            return snapshot.size
+        }
+
+        async function cachedUser(id: string) {
+            for (let attempt = 0; attempt < 40; attempt++) {
+                if ((await cache.cacheGet(`user-${id}`)).cached) return true
+                await new Promise((resolve) => setTimeout(resolve, 50))
+            }
+            return false
+        }
+
+        async function expectEveryOldSessionEnded(
+            account: User & { username: string },
+            change: () => Promise<User>,
+            copied: { id: string }
+        ) {
+            const own = await login(account.username, ORIGINAL_PASSWORD)
+            await expect(authorize(copied.id)).resolves.toMatchObject({ session: copied })
+            await users.getUser(account.id)
+            expect(await cachedUser(account.id)).toBe(true)
+
+            const changed = await change()
+            expect(changed.sessionGeneration).toBe(1)
+            expect(await storedGeneration(account.id)).toBe(1)
+
+            await expect(authorize(copied.id)).resolves.toBeUndefined()
+            await expect(authorize(own.id)).resolves.toBeUndefined()
+            expect(await sessionsStored(account.id)).toBe(0)
+            await expect(tryLogin(account.username, ORIGINAL_PASSWORD)).resolves.toBeUndefined()
+
+            const renewed = await sessions.establish(changed)
+            await expect(authorize(renewed.id)).resolves.toMatchObject({ session: renewed })
+            const fresh = await login(account.username, NEW_PASSWORD)
+            await expect(authorize(fresh.id)).resolves.toMatchObject({ session: fresh })
+            await expect(authorize(renewed.id)).resolves.toMatchObject({ session: renewed })
+        }
+
+        it('ends every session when Set Password commits, even though the store cannot delete them', async () => {
+            const account = await createAccount()
+            const copied = await login(account.username, ORIGINAL_PASSWORD)
+            await expectEveryOldSessionEnded(
+                account,
+                () => users.updatePassword(account.id, NEW_PASSWORD),
+                copied
+            )
+        })
+
+        it('ends every session when the password changes through a profile update', async () => {
+            const account = await createAccount()
+            const copied = await login(account.username, ORIGINAL_PASSWORD)
+            await expectEveryOldSessionEnded(
+                account,
+                () => users.updateUser(account.id, {}, NEW_PASSWORD, ORIGINAL_PASSWORD),
+                copied
+            )
+        })
+
+        it('refuses a session established by a login that read the Account before the change', async () => {
+            const account = await createAccount()
+            const readBeforeChange = await holderOf(account.username, ORIGINAL_PASSWORD)
+            await users.updatePassword(account.id, NEW_PASSWORD)
+            const raced = await sessions.establish(readBeforeChange)
+            await expect(authorize(raced.id)).resolves.toBeUndefined()
+            expect(await sessionsStored(account.id)).toBe(0)
+        })
+
+        it('keeps the old credential and its sessions when a transaction participant fails', async () => {
+            const account = await createAccount()
+            const copied = await login(account.username, ORIGINAL_PASSWORD)
+            const failing: TransactionParticipant = async () => {
+                throw new Error('synthetic participant failure')
+            }
+            await expect(
+                userStore.updatePassword(account.id, NEW_PASSWORD, { participant: failing })
+            ).rejects.toThrow()
+            await expect(
+                userStore.updateUser({
+                    userId: account.id,
+                    fields: {},
+                    password: NEW_PASSWORD,
+                    currentPassword: ORIGINAL_PASSWORD,
+                    participant: failing
+                })
+            ).rejects.toThrow()
+            expect(await storedGeneration(account.id)).toBeUndefined()
+            await expect(tryLogin(account.username, NEW_PASSWORD)).resolves.toBeUndefined()
+            await expect(authorize(copied.id)).resolves.toMatchObject({ session: copied })
+        })
+
+        it('commits a transaction participant together with the new credential', async () => {
+            const account = await createAccount()
+            const challenges = firestore.collection('challenges')
+            await challenges.doc(`${account.id}-set`).set({ consumed: false })
+            await challenges.doc(`${account.id}-update`).set({ consumed: false })
+            const consume =
+                (challengeId: string): TransactionParticipant =>
+                async (transaction) => {
+                    const challenge = await transaction.get(challenges.doc(challengeId))
+                    expect(challenge.get('consumed')).toBe(false)
+                    transaction.update(challenges.doc(challengeId), { consumed: true })
+                }
+            await userStore.updatePassword(account.id, NEW_PASSWORD, {
+                participant: consume(`${account.id}-set`)
+            })
+            await userStore.updateUser({
+                userId: account.id,
+                fields: {},
+                password: ORIGINAL_PASSWORD,
+                currentPassword: NEW_PASSWORD,
+                participant: consume(`${account.id}-update`)
+            })
+            expect(await storedGeneration(account.id)).toBe(2)
+            expect((await challenges.doc(`${account.id}-set`).get()).get('consumed')).toBe(true)
+            expect((await challenges.doc(`${account.id}-update`).get()).get('consumed')).toBe(true)
+            await expect(login(account.username, ORIGINAL_PASSWORD)).resolves.toBeDefined()
+        })
+
+        it('leaves sessions of other Accounts and Logout All untouched', async () => {
+            const account = await createAccount()
+            const bystander = await createAccount()
+            const bystanderSession = await login(bystander.username, ORIGINAL_PASSWORD)
+            await users.updatePassword(account.id, NEW_PASSWORD)
+            await expect(authorize(bystanderSession.id)).resolves.toMatchObject({
+                session: bystanderSession
+            })
+            const plainStore = new FirestoreSessionStore(cache, firestore)
+            await plainStore.deleteForUser(bystander.id)
+            await expect(authorize(bystanderSession.id)).resolves.toBeUndefined()
+        })
+    }
+)

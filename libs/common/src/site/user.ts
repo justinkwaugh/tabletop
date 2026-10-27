@@ -80,8 +80,13 @@ export const User = Type.Object({
     createdAt: Type.Optional(DateType()),
     updatedAt: Type.Optional(DateType()),
     // Accounts activated before this field existed lack it until their next update
-    activatedAt: Type.Optional(DateType())
+    activatedAt: Type.Optional(DateType()),
+    sessionGeneration: Type.Optional(Type.Integer({ minimum: 0 }))
 })
+
+export function sessionGenerationOf(user: Pick<User, 'sessionGeneration'>): number {
+    return user.sessionGeneration ?? 0
+}
 
 export function canHoldAuthenticatedSession(user: Pick<User, 'status'>): boolean {
     return user.status === UserStatus.Active || user.status === UserStatus.Incomplete

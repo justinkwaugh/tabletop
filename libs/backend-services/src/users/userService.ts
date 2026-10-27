@@ -12,7 +12,6 @@ import {
 } from '@tabletop/common'
 import { TokenType, TokenService } from '../tokens/tokenService.js'
 import { TaskService } from '../tasks/taskService.js'
-import { SessionService } from '../sessions/sessionService.js'
 import {
     AccountUnavailableError,
     EmailVerificationError,
@@ -36,8 +35,7 @@ export class UserService {
     constructor(
         private readonly userStore: UserStore,
         private readonly tokenService: TokenService,
-        private readonly taskService: TaskService,
-        private readonly sessionService: SessionService
+        private readonly taskService: TaskService
     ) {
         const cmp = new Intl.Collator('en').compare
         const typeAheadSort = (info: uFuzzy.Info, haystack: string[]) => {
@@ -222,10 +220,6 @@ export class UserService {
             }
         })
 
-        if (updatedFields.includes('password')) {
-            await this.sessionService.revokeAll(userId)
-        }
-
         if (token) {
             await this.tokenService.invalidateToken(token)
         }
@@ -282,14 +276,13 @@ export class UserService {
         return await this.userStore.removeExternalId(userId, cleanExternalId)
     }
 
-    async updatePassword(userId: string, password: string): Promise<void> {
+    async updatePassword(userId: string, password: string): Promise<User> {
         const cleanPassword = password.trim()
         if (cleanPassword.length < 12) {
             throw new InvalidPasswordError()
         }
 
-        await this.userStore.updatePassword(userId, cleanPassword)
-        await this.sessionService.revokeAll(userId)
+        return await this.userStore.updatePassword(userId, cleanPassword)
     }
 
     async handleExternalAuth({

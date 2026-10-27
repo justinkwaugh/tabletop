@@ -1,5 +1,5 @@
 import { customAlphabet } from 'nanoid'
-import { canHoldAuthenticatedSession, User } from '@tabletop/common'
+import { canHoldAuthenticatedSession, sessionGenerationOf, User } from '@tabletop/common'
 import type { SessionStore } from '../persistence/stores/sessionStore.js'
 import { AccountUnavailableError } from '../users/errors.js'
 import type { AuthenticatedSession } from './authenticatedSession.js'
@@ -11,6 +11,9 @@ const sessionId = customAlphabet(
     '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
     SESSION_ID_LENGTH
 )
+
+export type AuthorizedSession = { session: AuthenticatedSession; user: User }
+export type AccountLookup = (userId: string) => Promise<User | undefined>
 
 export class SessionService {
     constructor(
@@ -26,6 +29,7 @@ export class SessionService {
         const session: AuthenticatedSession = {
             id: sessionId(),
             userId: user.id,
+            generation: sessionGenerationOf(user),
             createdAt,
             authenticatedAt: createdAt,
             expiresAt: new Date(createdAt.getTime() + this.lifetimeSeconds() * 1000)
@@ -34,7 +38,10 @@ export class SessionService {
         return session
     }
 
-    async authorize(id: string): Promise<AuthenticatedSession | undefined> {
+    async authorize(
+        id: string,
+        findAccount: AccountLookup
+    ): Promise<AuthorizedSession | undefined> {
         const session = await this.sessionStore.find(id)
         if (!session) {
             return undefined
@@ -43,7 +50,15 @@ export class SessionService {
             await this.sessionStore.delete(id)
             return undefined
         }
-        return session
+        const user = await findAccount(session.userId)
+        if (!user) {
+            return undefined
+        }
+        if (session.generation !== sessionGenerationOf(user)) {
+            await this.sessionStore.delete(id)
+            return undefined
+        }
+        return { session, user }
     }
 
     async revoke(id: string): Promise<void> {

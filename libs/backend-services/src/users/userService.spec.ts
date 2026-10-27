@@ -1,15 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ExternalAuthService, Role, UserStatus, type User } from '@tabletop/common'
 import { UserService } from './userService.js'
-import { AccountUnavailableError, InvalidTimeZoneError } from './errors.js'
+import { AccountUnavailableError, InvalidPasswordError, InvalidTimeZoneError } from './errors.js'
 import type { UserStore } from '../persistence/stores/userStore.js'
 import type { TaskService } from '../tasks/taskService.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import type { StoredUser } from '../persistence/model/storedUser.js'
 import { TokenService } from '../tokens/tokenService.js'
 import { LocalTaskService } from '../tasks/localTasksService.js'
-import { SessionService } from '../sessions/sessionService.js'
-import { MemorySessionStore } from '../persistence/memory/sessionStore.js'
 
 const user: User = {
     id: 'a',
@@ -32,12 +30,7 @@ function fixture(existing: User = user) {
     })
     const store: UserStore = Object.create(null)
     store.updateUser = updateUser
-    const service = new UserService(
-        store,
-        TokenService.prototype,
-        LocalTaskService.prototype,
-        SessionService.prototype
-    )
+    const service = new UserService(store, TokenService.prototype, LocalTaskService.prototype)
     return { service, updateUser }
 }
 
@@ -89,12 +82,7 @@ describe('external provider authentication', () => {
         store.findByEmail = async () => byEmail
         store.addExternalId = addExternalId
         store.createUser = createUser
-        const service = new UserService(
-            store,
-            TokenService.prototype,
-            LocalTaskService.prototype,
-            SessionService.prototype
-        )
+        const service = new UserService(store, TokenService.prototype, LocalTaskService.prototype)
         return { service, addExternalId, createUser }
     }
 
@@ -153,42 +141,39 @@ describe('external provider authentication', () => {
     })
 })
 
-describe('sessions after a Password Credential change', () => {
+describe('Password Credential changes', () => {
     function passwordFixture() {
-        const sessionStore = new MemorySessionStore()
-        const sessions = new SessionService(sessionStore)
+        const updatePassword = vi.fn<UserStore['updatePassword']>(async () => ({
+            ...user,
+            sessionGeneration: 1
+        }))
         const store: UserStore = Object.create(null)
+        store.updatePassword = updatePassword
         store.updateUser = async ({ fields, password }) => {
             const stored: StoredUser = { ...user, createdAt: undefined, updatedAt: undefined }
             const updatedFields = [...Object.keys(fields), ...(password ? ['password'] : [])]
-            return [{ ...user, ...fields }, updatedFields, stored]
+            return [{ ...user, ...fields, sessionGeneration: 1 }, updatedFields, stored]
         }
-        store.updatePassword = async () => {}
         const tasks: TaskService = Object.create(null)
         tasks.sendAccountChangeNotificationEmail = async () => {}
-        const service = new UserService(store, TokenService.prototype, tasks, sessions)
-        return { service, sessions, sessionStore }
+        const service = new UserService(store, TokenService.prototype, tasks)
+        return { service, updatePassword }
     }
 
-    it('revokes every session when the password is changed through an update', async () => {
-        const { service, sessions, sessionStore } = passwordFixture()
-        await sessions.establish(user)
-        await sessions.establish(user)
-        await service.updateUser('a', {}, 'a-new-password-value', 'the-current-password')
-        expect(sessionStore.size).toBe(0)
+    it('returns the Account as the store committed it, Session Generation included', async () => {
+        const { service, updatePassword } = passwordFixture()
+        await expect(service.updatePassword('a', '  a-new-password-value  ')).resolves.toEqual(
+            expect.objectContaining({ id: 'a', sessionGeneration: 1 })
+        )
+        expect(updatePassword).toHaveBeenCalledExactlyOnceWith('a', 'a-new-password-value')
+        await expect(
+            service.updateUser('a', {}, 'a-new-password-value', 'the-current-password')
+        ).resolves.toEqual(expect.objectContaining({ id: 'a', sessionGeneration: 1 }))
     })
 
-    it('revokes every session when the password is set', async () => {
-        const { service, sessions, sessionStore } = passwordFixture()
-        await sessions.establish(user)
-        await service.updatePassword('a', 'a-new-password-value')
-        expect(sessionStore.size).toBe(0)
-    })
-
-    it('keeps sessions through an update that leaves the password alone', async () => {
-        const { service, sessions, sessionStore } = passwordFixture()
-        await sessions.establish(user)
-        await service.updateUser('a', { username: 'Renamed' })
-        expect(sessionStore.size).toBe(1)
+    it('refuses a short password before reaching the store', async () => {
+        const { service, updatePassword } = passwordFixture()
+        await expect(service.updatePassword('a', 'short')).rejects.toThrow(InvalidPasswordError)
+        expect(updatePassword).not.toHaveBeenCalled()
     })
 })

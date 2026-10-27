@@ -146,7 +146,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     const sessionService = new SessionService(
         new FirestoreSessionStore(redisCacheService, fastify.firestore)
     )
-    const userService = new UserService(userStore, tokenService, taskService, sessionService)
+    const userService = new UserService(userStore, tokenService, taskService)
 
     let pubSubService: PubSubService = new NullPubSubService()
     if (!useAbly) {

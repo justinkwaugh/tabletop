@@ -65,7 +65,7 @@ _Avoid_: Social account, provider email
 A provider whose verified-email assertion is accepted as proof of email control for Account linking. Google and Discord are currently trusted; additional providers require an explicit trust decision.
 
 **Set Password**:
-The operation that establishes a new Password Credential, replacing any existing one. It terminates every Authenticated Session of the Account.
+The operation that establishes a new Password Credential, replacing any existing one. It advances the Account's Session Generation in the same commit, which terminates every Authenticated Session of the Account.
 _Avoid_: Password Recovery
 
 **Authentication Challenge**:
@@ -87,6 +87,9 @@ _Avoid_: Login cookie, stateless session
 
 **Session ID**:
 The unguessable identifier of one Authenticated Session. It is the only authorization the session cookie carries and is never derived from Account data.
+
+**Session Generation**:
+A counter on the User Account that every Authenticated Session records when it is established. A session authorizes only while its recorded generation equals the Account's. A Password Credential change advances the generation in the same commit as the new credential, so no session established from the old credential survives it, including one established concurrently.
 
 **Recent Authentication**:
 Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session. Ordinary activity does not refresh it.

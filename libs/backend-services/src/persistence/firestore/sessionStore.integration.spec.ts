@@ -38,6 +38,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             return {
                 id: `${run}-${sequence++}`,
                 userId,
+                generation: 0,
                 createdAt,
                 authenticatedAt: createdAt,
                 expiresAt: new Date('2026-11-26T12:00:00.000Z')

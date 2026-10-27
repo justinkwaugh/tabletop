@@ -1,4 +1,4 @@
-import { Role, UserStatus, type User } from '@tabletop/common'
+import { Role, sessionGenerationOf, UserStatus, type User } from '@tabletop/common'
 import { SESSION_LIFETIME_SECONDS } from '@tabletop/backend-services'
 import type { FastifyInstance } from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -63,7 +63,10 @@ async function createServer(initialStatus: UserStatus) {
         login,
         advance: (seconds: number) => (now = new Date(now.getTime() + seconds * 1000)),
         setStatus: (status: UserStatus) => {
-            current = account(status)
+            current = { ...current, status }
+        },
+        advanceSessionGeneration: () => {
+            current = { ...current, sessionGeneration: sessionGenerationOf(current) + 1 }
         },
         get: (url: string, withCookie = cookie) =>
             server.inject({ url, headers: { cookie: withCookie } }),
@@ -187,6 +190,18 @@ describe('revocable Authenticated Sessions', () => {
         )
         expect((await post('/auth/logoutAll')).statusCode).toBe(200)
         expect((await post('/auth/logoutAll')).statusCode).toBe(401)
+    })
+
+    it('stops honouring every session once the Account Session Generation advances', async () => {
+        const { get, login, sessionStore, advanceSessionGeneration } = await fixture()
+        const other = await login()
+        expect((await get('/any')).statusCode).toBe(200)
+        advanceSessionGeneration()
+        expect((await get('/any')).statusCode).toBe(401)
+        expect((await get('/any', other)).statusCode).toBe(401)
+        expect(sessionStore.size).toBe(0)
+        const renewed = await login()
+        expect((await get('/any', renewed)).statusCode).toBe(200)
     })
 
     it('refuses a legacy cookie that names a user without a durable session', async () => {

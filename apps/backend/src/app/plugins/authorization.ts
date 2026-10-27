@@ -50,24 +50,19 @@ export default fp(async function (fastify: FastifyInstance) {
             throw new Error('No session id in cookie')
         }
 
-        const authenticated = await measure('auth.session', () =>
-            fastify.sessionService.authorize(sessionId)
+        const authorized = await measure('auth.session', () =>
+            fastify.sessionService.authorize(sessionId, (userId) =>
+                measure('auth.user', () => fastify.userService.getUser(userId))
+            )
         )
-        if (!authenticated) {
+        if (!authorized) {
             throw new Error('Session is not live')
         }
-
-        const user = await measure('auth.user', () =>
-            fastify.userService.getUser(authenticated.userId)
-        )
-        if (!user) {
-            throw new Error('No user found for id ' + authenticated.userId)
+        if (!canHoldAuthenticatedSession(authorized.user)) {
+            throw new AccountUnavailableError(authorized.user.status)
         }
-        if (!canHoldAuthenticatedSession(user)) {
-            throw new AccountUnavailableError(user.status)
-        }
-        request.authenticatedSession = authenticated
-        return user
+        request.authenticatedSession = authorized.session
+        return authorized.user
     }
 
     async function verifyRoleUser(request: FastifyRequest) {
