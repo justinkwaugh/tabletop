@@ -210,6 +210,11 @@ export function exchangeComplete(picks: ExchangePicks): boolean {
     return namesAnything(picks.terms) && picks.uncountedSiteIds.length === 0
 }
 
+/** Anything picked in the terms: something they move, or a site still waiting for its count. */
+export function exchangePicked(picks: ExchangePicks): boolean {
+    return namesAnything(picks.terms) || picks.uncountedSiteIds.length > 0
+}
+
 export function toggled<T>(list: readonly T[] | undefined, item: T, on: boolean): T[] {
     const set = new Set(list)
     if (on) set.add(item)

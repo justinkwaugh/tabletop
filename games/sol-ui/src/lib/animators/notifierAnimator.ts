@@ -19,7 +19,7 @@ import {
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
-import { type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import type { AnimationContext } from '@tabletop/frontend-components'
 
 // Only used to put notifications in the action panel... no visual animation here

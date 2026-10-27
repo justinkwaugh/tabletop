@@ -10,7 +10,7 @@ describe('the cost chip on a site the Shrouded Wood’s ruler may pick (R-11.7)'
     })
 
     it('a site where Toll Roads will ask the traveller reads its number and the favor (R-7.1.4)', () => {
-        expect(woodChip(2, true)).toEqual({ ways: [{ cost: 2, favor: 1, secret: false }] })
+        expect(woodChip(2, true)).toEqual({ ways: [{ cost: 2, favor: 1, secrets: 0 }] })
     })
 })
 
@@ -26,28 +26,28 @@ describe('the cost chip on a lit site (Choose a Travel destination)', () => {
     it('one way to pay in Supply alone reads in words; a way with a toll reads as its number and the favor', () => {
         expect(travelChip([way(2)])).toEqual({ words: '2 Supply' })
         expect(travelChip([way(1, { tolls: ['denizen.nomad.way-station'] })])).toEqual({
-            ways: [{ cost: 1, favor: 1, secret: false }]
+            ways: [{ cost: 1, favor: 1, secrets: 0 }]
         })
     })
 
     it('two ways read as numbers and symbols with "or" between them, in the engine’s order (R-11.12)', () => {
         expect(travelChip([way(2), way(0, { flipSecret: true })])).toEqual({
             ways: [
-                { cost: 2, favor: 0, secret: false },
-                { cost: 0, favor: 0, secret: true }
+                { cost: 2, favor: 0, secrets: 0 },
+                { cost: 0, favor: 0, secrets: 1 }
             ]
         })
         expect(travelChip([way(1), way(0, { tolls: ['denizen.nomad.way-station'] })])).toEqual({
             ways: [
-                { cost: 1, favor: 0, secret: false },
-                { cost: 0, favor: 1, secret: false }
+                { cost: 1, favor: 0, secrets: 0 },
+                { cost: 0, favor: 1, secrets: 0 }
             ]
         })
     })
 
     it('one way that flips a secret reads as its number and the secret, not in words', () => {
         expect(travelChip([way(0, { flipSecret: true })])).toEqual({
-            ways: [{ cost: 0, favor: 0, secret: true }]
+            ways: [{ cost: 0, favor: 0, secrets: 1 }]
         })
     })
 

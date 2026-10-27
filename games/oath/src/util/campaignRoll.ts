@@ -2,16 +2,16 @@ import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import type { HeldAttackRoll } from '../actions/answerQuestion.js'
 import type { PileDeposit } from '../model/hidden.js'
-import {
-    type CampaignKillPath,
-    type CampaignState,
-    type HeldForHospital,
-    type KillRedirect,
-    type LossSource,
-    type RolledAttackFace,
-    type RolledDefenseFace,
-    type WarbandGroup,
-    type WarbandLocation
+import type {
+    CampaignKillPath,
+    CampaignState,
+    HeldForHospital,
+    KillRedirect,
+    LossSource,
+    RolledAttackFace,
+    RolledDefenseFace,
+    WarbandGroup,
+    WarbandLocation
 } from '../model/campaign.js'
 import {
     attackFromFaces,
@@ -62,6 +62,18 @@ export function partiesOf(state: HydratedOathGameState, campaign: CampaignState)
         forceSiteIds: campaign.forceSiteIds,
         asIfSiteId: campaign.asIfSiteId
     }
+}
+
+/**
+ * R-X.3, R-5.5.5.b-H1 — whether the Campaign step just taken reveals information: the dice it
+ * rolled, or the roll a later step will make. A Campaign a plan decided ("you're victorious now")
+ * rolls no dice, so once no defending plans are left to wait on, the step that settled it reveals
+ * nothing and stays undoable. Before revision 17 every such step revealed (R-X.4).
+ */
+export function campaignStepRevealsInfo(state: HydratedOathGameState): boolean {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes13)) return true
+    const campaign = state.campaign
+    return campaign?.decidedVictor === undefined || campaign.pendingDefenderPlans !== undefined
 }
 
 export function rollCampaign(

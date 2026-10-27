@@ -2385,14 +2385,6 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:105",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "512",
-   "type": "FinishTrack",
-   "companyId": "AS"
-  },
-  {
    "id": "recorded:106",
    "gameId": "1817-16852",
    "source": "user",
@@ -2605,14 +2597,6 @@
    "source": "user",
    "playerId": "512",
    "type": "TakeLoan",
-   "companyId": "NYOW"
-  },
-  {
-   "id": "recorded:127",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "512",
-   "type": "FinishTrack",
    "companyId": "NYOW"
   },
   {
@@ -3206,14 +3190,6 @@
    "locationId": "H9"
   },
   {
-   "id": "recorded:189",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "512",
-   "type": "FinishTrack",
-   "companyId": "AS"
-  },
-  {
    "id": "recorded:190",
    "gameId": "1817-16852",
    "source": "user",
@@ -3464,14 +3440,6 @@
    "rotation": 2,
    "nodeMapping": {},
    "expectedCost": 0
-  },
-  {
-   "id": "recorded:203",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "512",
-   "type": "FinishTrack",
-   "companyId": "NYOW"
   },
   {
    "id": "recorded:204",
@@ -5057,14 +5025,6 @@
     "city": "city"
    },
    "expectedCost": 0
-  },
-  {
-   "id": "recorded:319",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "512",
-   "type": "FinishTrack",
-   "companyId": "NYOW"
   },
   {
    "id": "recorded:320",
@@ -9757,14 +9717,6 @@
    "rotation": 0,
    "nodeMapping": {},
    "expectedCost": 0
-  },
-  {
-   "id": "recorded:678",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "512",
-   "type": "FinishTrack",
-   "companyId": "NYOW"
   },
   {
    "id": "recorded:679",

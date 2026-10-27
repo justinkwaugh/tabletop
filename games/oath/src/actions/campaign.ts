@@ -56,7 +56,11 @@ import {
     defendingPlayerIds,
     plansTargetSiteRelics
 } from '../util/battlePlans.js'
-import { reasonLossOrderOutsideForce, rollCampaign } from '../util/campaignRoll.js'
+import {
+    campaignStepRevealsInfo,
+    reasonLossOrderOutsideForce,
+    rollCampaign
+} from '../util/campaignRoll.js'
 import {
     attackingSiteOf,
     forceSitesOf,
@@ -246,21 +250,20 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             allyPlayerIds: [...parties.allyPlayerIds]
         }
 
-        // R-X.3 — the PRNG moves now, or at the roll this has committed to.
-        this.revealsInfo = true
-
         if (toAsk.length > 0) {
             state.pendingCampaign = { declaration, toAsk }
             HydratedCampaign.askToJoinDefence(state)
+            // R-X.3 — the roll this has committed to, once the Citizens have answered.
+            this.revealsInfo = true
             this.metadata = { supplySpent: supplyCost, freeActionOf, awaitingAllies: true }
             return
         }
 
-        this.metadata = {
-            supplySpent: supplyCost,
-            freeActionOf,
-            battle: HydratedCampaign.muster(state, declaration)
-        }
+        const battle = HydratedCampaign.muster(state, declaration)
+        // R-X.3 — the PRNG moves now, or at the roll this has committed to; R-5.5.5.b-H1 — unless
+        // a plan decided the Campaign.
+        this.revealsInfo = campaignStepRevealsInfo(state)
+        this.metadata = { supplySpent: supplyCost, freeActionOf, battle }
     }
 
     /** R-5.5.2.a — the sides as declared, with the Citizens who joined. */

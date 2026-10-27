@@ -42,12 +42,16 @@ export function addCosts(a: PowerCost, b: PowerCost): PowerCost {
     }
 }
 
-/** `parties`: a battle plan's Campaign, whose scope Spell Breaker is judged in (R-5.5.1.a-H2). */
+/**
+ * `parties`: a battle plan's Campaign, whose scope Spell Breaker is judged in (R-5.5.1.a-H2).
+ * `advisersOf`: whose Vow of Kinship a Trade modifier's favor follows (`favorHomeBankOf`).
+ */
 export function reasonCannotPayPowerCost(
     state: HydratedOathGameState,
     playerId: string,
     power: CardPower,
-    parties?: ScopedParties
+    parties?: ScopedParties,
+    advisersOf?: string
 ): string | undefined {
     const player = state.getPlayerState(playerId)
 
@@ -56,7 +60,7 @@ export function reasonCannotPayPowerCost(
 
     // R-7.1.2.a — facedown secrets cannot pay; `player.secrets` counts faceup ones only.
     const favor = favorNeeded(cost)
-    const usable = usableFavor(state, playerId)
+    const usable = usableFavor(state, playerId, advisersOf)
     if (usable < favor) {
         return `costs ${favor} favor, player has ${usable}`
     }
@@ -87,25 +91,33 @@ export function reasonCannotPayPowerCost(
     return reasonCannotPlaceOn(state, power.cardId)
 }
 
-/** R-7.1.2, R-7.1.2.a, R-10.4. Throws: paying half a cost would leave the board wrong. */
+/**
+ * R-7.1.2, R-7.1.2.a, R-10.4. Throws: paying half a cost would leave the board wrong.
+ * `advisersOf` as for `reasonCannotPayPowerCost`.
+ */
 export function payPowerCost(
     state: HydratedOathGameState,
     playerId: string,
-    power: CardPower
+    power: CardPower,
+    advisersOf?: string
 ): void {
-    const reason = reasonCannotPayPowerCost(state, playerId, power)
+    const reason = reasonCannotPayPowerCost(state, playerId, power, undefined, advisersOf)
     if (reason) {
         throw Error(`Cannot pay power cost: ${reason}`)
     }
-    payCostOnCard(state, playerId, power.cardId, power.cost)
+    payCostOnCard(state, playerId, power.cardId, power.cost, advisersOf)
 }
 
-/** R-7.1.2, R-7.1.2.a, R-10.4 — onto the card on your turn; out of turn, to its bank and your board. */
+/**
+ * R-7.1.2, R-7.1.2.a, R-10.4 — onto the card on your turn; out of turn, to its bank and your board.
+ * `advisersOf` as for `reasonCannotPayPowerCost`.
+ */
 export function payCostOnCard(
     state: HydratedOathGameState,
     playerId: string,
     cardId: string,
-    cost: PowerCost
+    cost: PowerCost,
+    advisersOf?: string
 ): void {
     if (isFree(cost)) return
 
@@ -113,7 +125,7 @@ export function payCostOnCard(
     const outOfTurn = !holdsTheTurn(state, playerId)
 
     // R-10.4, R-9.3 — burned favor returns to the shared bank; a burned secret leaves play.
-    spendFavor(state, playerId, favorNeeded(cost))
+    spendFavor(state, playerId, favorNeeded(cost), advisersOf)
     player.secrets -= secretsNeeded(cost)
     burnFavor(state, cost.burnFavor)
 

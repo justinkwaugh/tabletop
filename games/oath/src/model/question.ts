@@ -7,6 +7,7 @@ import { Region, SearchPlay, Suit } from './oathEnums.js'
 import { ConspiracyPlay } from './conspiracy.js'
 import { WarbandOwner } from './warbandCounts.js'
 import { PowerMoveKind } from './powerMoveToll.js'
+import { RolledDefenseFace } from './campaign.js'
 
 export const AskedPlayerPolicy = 'oath.askedPlayer'
 
@@ -90,7 +91,10 @@ export const OathVisibilityPolicies = {
 /** Jinx — "after you roll … for any reason": the roll, and what waits on it. */
 export enum RerolledRollKind {
     Campaign = 'campaign',
+    /** Before revision 21: the bank named at the use waits with the roll. */
     GamblingHall = 'gamblingHall',
+    /** From revision 21: the faces and their total; the bank is asked once the roll stands (R-7.1.3-H2). */
+    GamblingHallDice = 'gamblingHallDice',
     RelicThief = 'relicThief'
 }
 
@@ -104,6 +108,11 @@ export const RerolledRoll = Type.Union([
         kind: Type.Literal(RerolledRollKind.GamblingHall),
         bank: Type.Enum(Suit),
         shields: Type.Number()
+    }),
+    Type.Object({
+        kind: Type.Literal(RerolledRollKind.GamblingHallDice),
+        shields: Type.Number(),
+        faces: Type.Array(RolledDefenseFace, { maxItems: 4 })
     }),
     Type.Object({
         kind: Type.Literal(RerolledRollKind.RelicThief),
@@ -187,7 +196,18 @@ export enum PowerQuestionKind {
      * bank; once the ruler's pick has landed the asked player, two or more banks match: they choose
      * the one they gain from (R-11.7-H2).
      */
-    HospitalityBank = 'hospitalityBank'
+    HospitalityBank = 'hospitalityBank',
+    /**
+     * Vow of Kinship (revision 18) — Plague Engines or Dissent has every player place favor, and the
+     * asked player's board did not hold all they owe: they may pay the rest from the bank that keeps
+     * their favor, or not, since its Q&A never forces that favor (R-10.10-H1).
+     */
+    PayFromHomeBank = 'payFromHomeBank',
+    /**
+     * Gambling Hall (revision 21) — the roll stands, after any Jinx reroll, and two or more banks
+     * hold favor: the roller chooses the one they take the total from (R-7.1.3-H2).
+     */
+    GamblingHallBank = 'gamblingHallBank'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -465,8 +485,11 @@ export const PowerQuestion = Type.Union([
         travel: Type.Optional(ShroudedWoodTravel),
         /** R-11.7-H1 — the power whose move the Shrouded Wood's ruler redirected. */
         power: Type.Optional(ShroudedWoodPower),
-        /** R-11.13-H1 — the secret the asked player chose to flip, flipped once the toll is paid. */
-        flipSecret: Type.Optional(Type.Boolean())
+        /**
+         * R-11.13-H1 — the secret the asked player chose to flip (`true`), or two (`2`, R-11.13-H2),
+         * flipped once the toll is paid.
+         */
+        flipSecret: Type.Optional(Type.Union([Type.Boolean(), Type.Literal(2)]))
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.FreeActionOutOfTurn),
@@ -490,7 +513,12 @@ export const PowerQuestion = Type.Union([
         powerCardId: Type.Optional(Type.String()),
         moverPlayerId: Type.String(),
         fromSiteId: Type.String(),
-        siteId: Type.String()
+        siteId: Type.String(),
+        /**
+         * R-11.13-H2 (revision 20) — two secrets, one for each site's power: from the Buried Giant
+         * past a Narrow Pass into The Hidden Place. Absent, one.
+         */
+        flips: Type.Optional(Type.Literal(2))
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.WayStationFavor),
@@ -522,6 +550,16 @@ export const PowerQuestion = Type.Union([
         endsActPhase: Type.Optional(Type.Literal(true))
     }),
     Type.Object({
+        kind: Type.Literal(PowerQuestionKind.PayFromHomeBank),
+        /** Plague Engines or Dissent. */
+        cardId: Type.String(),
+        askedPlayerId: Type.String(),
+        /** What their board left unpaid. */
+        owed: Type.Integer({ minimum: 1, maximum: 99 }),
+        /** Where the favor goes: this bank (Plague Engines), or, absent, onto the card (Dissent). */
+        toBank: Type.Optional(Type.Enum(Suit))
+    }),
+    Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** The power that moved the advisers. */
         cardId: Type.String(),
@@ -536,11 +574,30 @@ export const PowerQuestion = Type.Union([
         receivedFacedownCardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 8 }), {
             policy: AskedPlayerPolicy
         })
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.GamblingHallBank),
+        /** Gambling Hall. */
+        cardId: Type.String(),
+        /** The roller. */
+        askedPlayerId: Type.String(),
+        /** The total, 2x faces multiplied (the card's Q&A). */
+        shields: Type.Integer({ minimum: 0, maximum: 64 }),
+        faces: Type.Array(RolledDefenseFace, { maxItems: 4 }),
+        /** The banks that held favor when the roll stood. */
+        banks: Type.Array(Type.Enum(Suit), { maxItems: 6 })
     })
 ])
 
 /** A question as the host and its asked player see it, every protected field present. */
 export const PowerQuestionValidator = Compile(PowerQuestion)
+
+/** R-10.13-H1 — so many of the Obsidian Cage's Imperial warbands to a player's board. */
+export type CagePlacement = Type.Static<typeof CagePlacement>
+export const CagePlacement = Type.Array(
+    Type.Object({ playerId: Type.String(), count: Type.Integer({ minimum: 1, maximum: 999 }) }),
+    { maxItems: 8 }
+)
 
 export type QuestionAnswer = Type.Static<typeof QuestionAnswer>
 export const QuestionAnswer = Type.Union([
@@ -561,7 +618,12 @@ export const QuestionAnswer = Type.Union([
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.BottomRelic),
         /** A relic held before the draw; absent, the drawn relic goes, unnamed. */
-        heldRelicCardId: Type.Optional(Type.String())
+        heldRelicCardId: Type.Optional(Type.String()),
+        /**
+         * R-10.13-H1 — the Obsidian Cage sent down: where its Imperial warbands go, when two or
+         * more Imperial boards may take them. Absent in every other answer.
+         */
+        cagePlacement: Type.Optional(CagePlacement)
     }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.RelicThiefRoll), roll: Type.Boolean() }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.TakeOrLeaveRelic), take: Type.Boolean() }),
@@ -580,8 +642,11 @@ export const QuestionAnswer = Type.Union([
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.TravelFreeTo),
         siteId: Type.String(),
-        /** R-11.13-H1 — a faceup secret flipped facedown, for a site that asks for one. */
-        flipSecret: Type.Optional(Type.Boolean())
+        /**
+         * R-11.13-H1 — a faceup secret flipped facedown (`true`), for a site that asks for one; two
+         * (`2`) where each site's power takes its own (R-11.13-H2).
+         */
+        flipSecret: Type.Optional(Type.Union([Type.Boolean(), Type.Literal(2)]))
     }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.RerollDice), reroll: Type.Boolean() }),
     Type.Object({
@@ -630,13 +695,20 @@ export const QuestionAnswer = Type.Union([
     Type.Object({ kind: Type.Literal(PowerQuestionKind.WayStationFavor), give: Type.Boolean() }),
     /** The bank Hospitality gains from: one of the question's `banks`. */
     Type.Object({ kind: Type.Literal(PowerQuestionKind.HospitalityBank), suit: Type.Enum(Suit) }),
+    /** How many favor to pay from the bank, 0 for none. */
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.PayFromHomeBank),
+        favor: Type.Integer({ minimum: 0, maximum: 99 })
+    }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** R-10.5 — in the order they go down, the last on top; a facedown one is named to its holder alone. */
         discardedAdviserCardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 8 }), {
             policy: Visibility.Policy.Actor
         })
-    })
+    }),
+    /** The bank Gambling Hall takes from: one of the question's `banks`. */
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.GamblingHallBank), suit: Type.Enum(Suit) })
 ])
 
 export type QuestionOf<K extends PowerQuestionKind> = Extract<PowerQuestion, { kind: K }>

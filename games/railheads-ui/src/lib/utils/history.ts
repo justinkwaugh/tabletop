@@ -1,4 +1,4 @@
-import type { GameAction } from '@tabletop/common'
+import { isCallGameAction, type GameAction } from '@tabletop/common'
 import {
     isChooseAction,
     isConsolidate,
@@ -30,7 +30,13 @@ export type HistoryPayout = {
     action: GameAction
 }
 
-export type HistoryEntry = HistoryTurn | HistoryOffering | HistoryPayout
+export type HistoryCall = {
+    kind: 'call'
+    key: string
+    action: GameAction
+}
+
+export type HistoryEntry = HistoryTurn | HistoryOffering | HistoryPayout | HistoryCall
 
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
@@ -39,6 +45,11 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     for (const action of actions) {
         if (isEndRound(action) || isScoreGame(action)) {
             entries.push({ kind: 'payout', key: action.id, action })
+            open = undefined
+            continue
+        }
+        if (isCallGameAction(action)) {
+            entries.push({ kind: 'call', key: action.id, action })
             open = undefined
             continue
         }
@@ -74,5 +85,5 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
 }
 
 export function entryActions(entry: HistoryEntry): GameAction[] {
-    return entry.kind === 'payout' ? [entry.action] : entry.actions
+    return entry.kind === 'payout' || entry.kind === 'call' ? [entry.action] : entry.actions
 }

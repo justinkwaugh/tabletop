@@ -6,11 +6,6 @@ import { VitestConfig } from '@tabletop/vitest-config'
 export default defineProject(
     mergeConfig(VitestConfig, {
         plugins: [sveltekit(), devtoolsJson()],
-        build: {
-            commonjsOptions: {
-                include: [/node_modules/]
-            }
-        },
         server: {
             // Bind every interface rather than loopback alone. Without this vite listens
             // on [::1] only, so a container port forwarded over IPv4 - as VS Code's

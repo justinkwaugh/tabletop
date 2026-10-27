@@ -1,4 +1,4 @@
-import { PrivateCatalog } from '@tabletop/18xx'
+import { PrivateCatalog, placeReference as place } from '@tabletop/18xx'
 import { Shikoku1889Phases } from './trains.js'
 
 export const Shikoku1889PrivateCatalog = new PrivateCatalog(
@@ -27,8 +27,7 @@ export const Shikoku1889PrivateCatalog = new PrivateCatalog(
                 faceValue: 40,
                 revenue: 10,
                 blocks: { locationIds: ['C4'], until: 'company-owned' },
-                description:
-                    'Blocks Ohzu while player-owned. On sale to a railway, the seller may immediately upgrade Ohzu in addition to ordinary construction. Closes at phase 5.'
+                description: `Blocks ${place('C4')} while player-owned. On sale to a railway, the seller may immediately upgrade ${place('C4')} in addition to ordinary construction. Closes at phase 5.`
             },
             {
                 id: 'SRR',

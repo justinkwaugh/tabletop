@@ -10,6 +10,7 @@
         GameTable,
         OperatingActions,
         StationBuilding,
+        ProjectedRun,
         CompanyDecisions,
         SlidingToggle
     } from '@tabletop/18xx-ui'
@@ -18,6 +19,7 @@
     import { EighteenFortySixSession } from './session.svelte.js'
     import OpeningCompanies from './OpeningCompanies.svelte'
     import Draft from './Draft.svelte'
+    import SetupHistoryEntry from './SetupHistoryEntry.svelte'
     import RevenueMarkerPrompt from './RevenueMarkerPrompt.svelte'
     import NothingToBuild from './NothingToBuild.svelte'
     import SteamboatAssignment from './SteamboatAssignment.svelte'
@@ -105,9 +107,11 @@
 <GameTable
     {session}
     {privateOperationDescription}
+    {createRouteWorker}
     historyDescription={describe1846Action}
     additionalStockActions={session.stockPanels.menuOptions}
 >
+    {#snippet historySetup()}<SetupHistoryEntry {session} />{/snippet}
     {#snippet actions(_focusLocation, focusRoute)}
         <div class="midwest-actions">
             {#if showOperatingModes}
@@ -157,6 +161,7 @@
                                         canSkip={session.canChooseAction}
                                         onSkip={() => session.finishConstruction()}
                                     />
+                                    <ProjectedRun {session} onFocusRoute={focusRoute} />
                                 {/if}
                             {/if}
                         </div>

@@ -2,6 +2,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { totalWarbands } from './warbands.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-1.10 — eight Supply spaces, 7 down to 0. */
 export const MAX_SUPPLY = 7
@@ -82,12 +83,13 @@ function isCardWithSecretsAtRest(cardId: string): boolean {
     return kind === 'denizen' || kind === 'relic'
 }
 
-// R-4.3.4-H1 — `supplyAtTurnStart` is credited too, so a spent gain costs no saving.
+/** R-4.3.4-H1 — the marker stops at the leftmost space; the excess is lost. */
 export function gainSupply(state: HydratedOathGameState, playerId: string, amount: number): number {
     const player = state.getPlayerState(playerId)
     const credited = Math.min(amount, MAX_SUPPLY - player.supply)
     player.supply += credited
-    player.supplyAtTurnStart += credited
+    // R-X.4 — before revision 24 the Rest read the turn's ledger, which a gain credits so it saves.
+    if (!savesTheMarker(state)) player.supplyAtTurnStart += credited
     return credited
 }
 
@@ -95,8 +97,12 @@ export function gainSupply(state: HydratedOathGameState, playerId: string, amoun
 export function refreshSupply(state: HydratedOathGameState, playerId: string): number {
     const player = state.getPlayerState(playerId)
 
-    // R-4.3.4 — the ledger, not the marker, which R-6.6.2, R-6.7 and R-6.8 refresh mid-turn.
-    const unspent = Math.max(0, player.supplyAtTurnStart - player.supplySpentThisTurn)
+    // R-4.3.4 — "Supply not spent" is the marker as it stands, after any refresh to full this turn
+    // (R-6.6.2, R-6.7, R-6.8). Before revision 24 (R-X.4) it was the turn's ledger, which such a
+    // refresh leaves alone.
+    const unspent = savesTheMarker(state)
+        ? player.supply
+        : Math.max(0, player.supplyAtTurnStart - player.supplySpentThisTurn)
 
     // The Chancellor's and an Exile's printed Supply tracks differ, so never the raw count.
     const base =
@@ -111,10 +117,16 @@ export function refreshSupply(state: HydratedOathGameState, playerId: string): n
 
     // R-4.3.4 — "you cannot refresh beyond its leftmost space."
     player.supply = Math.min(MAX_SUPPLY, base + unspent)
+    // The ledger is kept at every revision, so the stored state has one shape; set here as well as
+    // at Wake, so a Rest stands on its own.
     player.supplySpentThisTurn = 0
-    // Set here as well as at Wake, so a Rest stands on its own.
     player.supplyAtTurnStart = player.supply
     return player.supply
+}
+
+/** R-4.3.4, R-X.4 — from revision 24 the Rest saves what the marker shows, as on the board. */
+function savesTheMarker(state: HydratedOathGameState): boolean {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes20)
 }
 
 /** R-4.3.3's Citizen coupling. */

@@ -16,36 +16,81 @@ function seenAllAlike(units: readonly ProjectedUnit[]): boolean {
     )
 }
 
-/**
- * Both players re-arrange their blocks out of sight at the end of every turn (rule 7): units
- * standing together in the same corps, or together and detached, become indistinguishable again.
- * A block standing alone stays whatever the opponent has seen it to be, and so do blocks the
- * opponent has seen all alike, since swapping them hides nothing.
- */
-function shuffleBlocks(state: HydratedNapoleonsTriumphGameState) {
+function standingGroups(units: readonly ProjectedUnit[]): Map<string, ProjectedUnit[]> {
     const groups = new Map<string, ProjectedUnit[]>()
-    for (const unit of state.units) {
+    for (const unit of units) {
         if (unit.fixed) {
             continue
         }
         const key = standingGroupKey(unit)
         groups.set(key, [...(groups.get(key) ?? []), unit])
     }
-    const random = state.getProtectedPrng().random
-    for (const units of groups.values()) {
-        if (units.length < 2) {
-            continue
-        }
-        const seenAlike = seenAllAlike(units)
-        const faces: (Face | undefined)[] = units.map((unit) => unit.face)
-        shuffle(faces, random)
-        units.forEach((unit, index) => {
-            unit.face = faces[index]
-            if (!seenAlike) {
-                unit.shown = undefined
-            }
-        })
+    return groups
+}
+
+function shuffleGroup(units: readonly ProjectedUnit[], random: () => number) {
+    if (units.length < 2) {
+        return
     }
+    const seenAlike = seenAllAlike(units)
+    const faces: (Face | undefined)[] = units.map((unit) => unit.face)
+    shuffle(faces, random)
+    units.forEach((unit, index) => {
+        unit.face = faces[index]
+        if (!seenAlike) {
+            unit.shown = undefined
+        }
+    })
+}
+
+/**
+ * Both players re-arrange their blocks out of sight at the end of every turn (rule 7): units
+ * standing together in the same corps, or together and detached, become indistinguishable again.
+ * A block standing alone stays whatever the opponent has seen it to be, and so do blocks the
+ * opponent has seen all alike, since swapping them hides nothing.
+ */
+function shuffleBlocks(state: HydratedNapoleonsTriumphGameState, keptOnShow: readonly string[]) {
+    const random = state.getProtectedPrng().random
+    for (const [key, units] of standingGroups(state.units)) {
+        if (!keptOnShow.includes(key)) {
+            shuffleGroup(units, random)
+        }
+    }
+}
+
+/**
+ * Rule 11: cavalry still riding when its turn ends is shown then. Where the shuffle would hide it
+ * at once, its stack is kept as it is until the opponent has seen it.
+ */
+function stacksHidingRiders(
+    state: HydratedNapoleonsTriumphGameState,
+    riderIds: readonly string[]
+): string[] {
+    return [...standingGroups(state.units)]
+        .filter(
+            ([, units]) =>
+                units.length > 1 &&
+                units.some((unit) => riderIds.includes(unit.id)) &&
+                !seenAllAlike(units)
+        )
+        .map(([key]) => key)
+}
+
+/** The opponent has seen the cavalry that was still riding when the last turn ended: its stack is shuffled now. */
+export function hideRevealedRide(state: HydratedNapoleonsTriumphGameState) {
+    const ride = state.revealedRide
+    if (!ride) {
+        return
+    }
+    const riders = ride.unitIds.flatMap((id) => state.findUnit(id) ?? [])
+    const keys = new Set(riders.map(standingGroupKey))
+    const random = state.getProtectedPrng().random
+    for (const [key, units] of standingGroups(state.units)) {
+        if (keys.has(key)) {
+            shuffleGroup(units, random)
+        }
+    }
+    state.revealedRide = undefined
 }
 
 function clearTurnState(state: HydratedNapoleonsTriumphGameState) {
@@ -94,8 +139,15 @@ export function beginRound(state: HydratedNapoleonsTriumphGameState) {
 
 export function finishTurn(state: HydratedNapoleonsTriumphGameState): boolean {
     const playerId = state.turnPlayerId
+    const riderIds = state.roadMarch?.unitIds ?? []
     endRoadMarch(state)
-    shuffleBlocks(state)
+    const continues =
+        state.sideOf(playerId) === Side.Allied || !isLastRound(state.scenario, state.round)
+    const keptOnShow = continues ? stacksHidingRiders(state, riderIds) : []
+    shuffleBlocks(state, keptOnShow)
+    if (keptOnShow.length > 0) {
+        state.revealedRide = { unitIds: riderIds.filter((id) => state.findUnit(id)) }
+    }
     clearTurnState(state)
     state.turnManager.endTurn(state.actionCount)
     if (state.sideOf(playerId) === Side.Allied) {

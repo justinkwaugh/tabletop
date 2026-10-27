@@ -12,8 +12,14 @@ import { burnHalfTheirFavor } from './burn.js'
 import { usableFavor } from './favor.js'
 import { pawnSiteId } from './pawn.js'
 import { reasonPersistentForbidsGivingSecrets } from './persistent.js'
-import { powerTravelNeedsFlip, travelByPower } from './powerTravel.js'
-import { flipOfferedForTravel, flipSecretFacedown } from './siteTravel.js'
+import { powerTravelFlipsNeeded, powerTravelNeedsFlip, travelByPower } from './powerTravel.js'
+import {
+    flipOfferedForTravel,
+    flipSecretFacedown,
+    secretsFlipped,
+    travelFlipOf,
+    type TravelFlip
+} from './siteTravel.js'
 import type { SiteFlip } from './hiddenInputs.js'
 import { askQuestion } from './questions.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
@@ -34,8 +40,11 @@ export interface PowerMove {
     travel?: ShroudedWoodTravel
     /** R-11.7-H1 — the Shrouded Wood's ruler picked for the Whistle's or the Brass Horse's move. */
     power?: ShroudedWoodPower
-    /** R-11.13-H1 — the moved player chose to flip a secret, flipped once the move is certain. */
-    flipSecret?: boolean
+    /**
+     * R-11.13-H1 — the moved player chose to flip a secret (`true`), or two (`2`, R-11.13-H2),
+     * flipped once the move is certain.
+     */
+    flipSecret?: TravelFlip
 }
 
 /** What a power's move waits on: the moved player's flip, or Toll Roads' favor. */
@@ -72,6 +81,8 @@ function askPowerMoveFlip(state: HydratedOathGameState, move: PowerMove, askingP
         flipOfferedForTravel(state, fromSiteId, move.toSiteId) === 'demanded'
             ? move.toSiteId
             : fromSiteId
+    // R-11.13-H2 — from the Buried Giant past a Narrow Pass into The Hidden Place, two.
+    const flips = powerTravelFlipsNeeded(state, move.movedPlayerId, move.toSiteId)
     const forced = askQuestion(state, askingPlayerId, {
         kind: PowerQuestionKind.FlipToTravel,
         cardId: move.powerCardId ?? state.siteCardAt(asking) ?? asking,
@@ -80,7 +91,8 @@ function askPowerMoveFlip(state: HydratedOathGameState, move: PowerMove, askingP
         powerCardId: move.powerCardId,
         moverPlayerId: move.moverPlayerId,
         fromSiteId,
-        siteId: move.toSiteId
+        siteId: move.toSiteId,
+        ...(flips === 2 ? { flips } : {})
     })
     assert(forced === undefined, 'The flip is asked only of a player who can make it')
 }
@@ -100,11 +112,13 @@ export function settlePowerMoveFlip(
         moverPlayerId: question.moverPlayerId,
         movedPlayerId: question.askedPlayerId,
         toSiteId: question.siteId,
-        flipSecret: true
+        flipSecret: travelFlipOf(question.flips ?? 1)
     }
     const toll = powerMoveToll(state, move.movedPlayerId, move.toSiteId)
     if (toll) return { tollMove: askPowerMoveToll(state, move, toll, askingPlayerId, true) }
-    return { arrived: completePowerMove(state, question, question.askedPlayerId, true) }
+    return {
+        arrived: completePowerMove(state, question, question.askedPlayerId, question.flips ?? 1)
+    }
 }
 
 export interface PowerMoveArrival {
@@ -122,16 +136,16 @@ interface SettledMove {
 }
 
 /**
- * The move happens: the secret the moved player chose to flip (R-11.13-H1), Palanquin's own pawn
+ * The move happens: the secrets the moved player chose to flip (R-11.13-H1), Palanquin's own pawn
  * ("Put your pawn on a site"), the travel and its after-travel powers, then the Whistle's secret.
  */
 function completePowerMove(
     state: HydratedOathGameState,
     move: SettledMove,
     movedPlayerId: string,
-    flipSecret: boolean
+    flips: number
 ): PowerMoveArrival {
-    if (flipSecret) flipSecretFacedown(state, movedPlayerId)
+    if (flips > 0) flipSecretFacedown(state, movedPlayerId, flips)
     if (move.move === PowerMoveKind.Palanquin) {
         state.getPlayerState(move.moverPlayerId).siteId = move.siteId
     }
@@ -238,7 +252,7 @@ export function settlePowerMoveToll(
             state,
             question,
             moved,
-            question.flipSecret === true
+            secretsFlipped(question.flipSecret)
         )
         assert(
             revealed === undefined,

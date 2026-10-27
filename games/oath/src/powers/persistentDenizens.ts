@@ -1,5 +1,5 @@
 import { bannerHolder } from '../util/oathkeeper.js'
-import { spendFavor, usableFavor } from '../util/favor.js'
+import { askRestFromHomeBanks, payOwedFavor } from '../util/homeBankPayment.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
@@ -414,6 +414,7 @@ registerEffect(DISSENT, powerIndexOf(DISSENT, PowerTiming.WhenPlayed), {
     resolve: (ctx) => {
         const holder = bannerHolder(ctx.state, Banner.PeoplesFavor)
         let placed = 0
+        const unpaid = new Map<string, number>()
         for (const p of ctx.state.players) {
             if (p.playerId === holder) continue
             const suits = new Set(
@@ -421,11 +422,13 @@ registerEffect(DISSENT, powerIndexOf(DISSENT, PowerTiming.WhenPlayed), {
                     .map((id) => suitOf(id))
                     .filter((s) => s !== undefined)
             )
-            const pay = Math.min(suits.size, usableFavor(ctx.state, p.playerId))
-            spendFavor(ctx.state, p.playerId, pay)
+            const pay = payOwedFavor(ctx.state, p.playerId, suits.size)
             placed += pay
+            unpaid.set(p.playerId, suits.size - pay)
         }
         ctx.state.addTokensOn(DISSENT, { favor: placed })
+        // Vow of Kinship — the rest from its bank only as its holder chooses (R-10.10-H1).
+        askRestFromHomeBanks(ctx.state, ctx.playerId, DISSENT, unpaid)
         return { summary: `Dissent: ${placed} favor placed on it, one per suit each player rules` }
     }
 })

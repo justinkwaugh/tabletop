@@ -51,6 +51,7 @@
                     onclick={() => toggle(power)}
                 >
                     {#snippet line()}<CardLine
+                            lender={gameSession.modifiers.lenderOf(power)}
                             gives={actionCardLine(power.cardId)}
                             cost={answerCostText(power.cost)}
                             consequence={ACTION_CARD_CONSEQUENCES[power.cardId]}

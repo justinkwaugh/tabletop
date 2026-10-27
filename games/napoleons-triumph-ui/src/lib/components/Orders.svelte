@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PlaceText from './PlaceText.svelte'
     import { ActionType, CommandKind, commanderDefinition } from '@tabletop/napoleons-triumph'
     import { corpsName, standingGroupName } from '$lib/utils/groupNames.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -76,6 +77,22 @@
             : 'More than one road leads there. Tap the locale to march through: a corps closes the reserves it marches into to other units this turn.'
     })
 
+    // Rule 11: a threat starts from the enemy's locale, and nothing on the board marks the ones that can be aimed at until one is tapped.
+    const mayAim = $derived(gameSession.aimableLocales.length > 0)
+
+    const idlePrompt = $derived(
+        `Choose ${mayAim ? 'a corps, unit, or enemy locale' : 'a corps or unit'} on the map${reinforcements.length > 0 ? ', bring on' : ''}`
+    )
+
+    const howToAim = $derived.by(() => {
+        const stuck = options.length === 0 && !ridingOn
+        const onAnotherStep = wayToChoose !== undefined || attaching || stuck
+        return !onAnotherStep && mayAim ? 'Tap an enemy locale to threaten an attack.' : undefined
+    })
+
+    // The anchor stands as tall as the idle line last stood, however it wrapped, so choosing never resizes the board.
+    let idleLineHeight = $state(18)
+
     const aside = $derived.by(() => {
         if (!group || ridingOn) {
             return undefined
@@ -117,7 +134,7 @@
 {/snippet}
 
 {#snippet drawer(sheet: Snippet, note: Snippet, marks: TargetMark[] | undefined)}
-    <div class="nt-orders-anchor">
+    <div class="nt-orders-anchor" style:height="{idleLineHeight}px">
         <div class="nt-orders-drawer" bind:clientHeight={drawerHeight}>
             <div class="nt-orders-sheet">
                 {@render sheet()}
@@ -136,7 +153,7 @@
 {/snippet}
 
 {#snippet guardSheet()}
-    <span>{threatSentence}</span>
+    <span><PlaceText text={threatSentence ?? ''} /></span>
     <span>To announce a Guard Attack, choose the Guard unit to show:</span>
     <div class="nt-orders-row">
         <div class="nt-orders-actions nt-orders-guards">
@@ -151,7 +168,7 @@
                         label="Show this Guard unit: {standsWith}"
                         onclick={() => gameSession.toggleGuardUnit(unitId)}
                     />
-                    <span class="nt-orders-small-text">{standsWith}</span>
+                    <span class="nt-orders-small-text"><PlaceText text={standsWith} /></span>
                 </div>
             {/each}
         </div>
@@ -181,8 +198,9 @@
 
 {#snippet aimNote()}
     <span
-        >Tap an arrow to threaten an attack across that approach. The attacking pieces are named
-        next.</span
+        >Tap an arrow to threaten an attack across that approach. {group
+            ? 'The pieces you chose will join the attack where they can.'
+            : 'You choose the attacking pieces next.'}</span
     >
 {/snippet}
 
@@ -260,18 +278,17 @@
     {:else if aside}
         <span>{aside}</span>
     {/if}
+    {#if howToAim}
+        <span>{howToAim}</span>
+    {/if}
 {/snippet}
 
 <div class="nt-orders" role={title ? 'group' : undefined} aria-label={title}>
     <div class="nt-orders-lead">
         {#if title}
-            <span class="nt-orders-name">{title}</span>
+            <span class="nt-orders-name"><PlaceText text={title} /></span>
         {:else}
-            <span
-                >Choose a corps or unit on the map{reinforcements.length > 0
-                    ? ', bring on'
-                    : ''}</span
-            >
+            <span>{idlePrompt}</span>
             {@render turnActions(true)}
         {/if}
     </div>
@@ -286,7 +303,7 @@
             problem ? undefined : marksOn(gameSession.targets, gameSession.closedReserves)
         )}
     {:else}
-        <div class="nt-orders-note nt-orders-rest">
+        <div class="nt-orders-note nt-orders-rest" bind:clientHeight={idleLineHeight}>
             <span class="nt-orders-faint">{stillToCommand}</span>
         </div>
     {/if}
@@ -338,7 +355,6 @@
 
     .nt-orders-anchor {
         position: relative;
-        height: 18px;
     }
 
     .nt-orders-drawer {

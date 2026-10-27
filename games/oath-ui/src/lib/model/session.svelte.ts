@@ -95,7 +95,8 @@ import {
     DefeatDraft,
     DefenceDraft,
     SkullLossesDraft,
-    VictoryDraft
+    VictoryDraft,
+    type RelicBottoms
 } from './battleDrafts.js'
 import {
     ActionPowersDraft,
@@ -208,7 +209,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     // docs/ui-interaction-visual-contract.md — every draft reads as empty while a send or a new state is under way.
     get liveSeatId(): string | undefined {
         const settled = !this.processingActions && !this.updatingVisibleState
-        return this.isPlayable && !this.isViewingHistory && settled ? this.myPlayer?.id : undefined
+        const live =
+            this.isPlayable && !this.isViewingHistory && this.gameState.result === undefined
+        return live && settled ? this.myPlayer?.id : undefined
     }
 
     get liveTurnSeatId(): string | undefined {
@@ -506,7 +509,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     async resolveCampaignVictory(
         placements: CampaignPlacement[],
         burnFavor: boolean,
-        bottomRelicSlotIds: string[],
+        { bottomRelicSlotIds, bottomRelicIds, cagePlacement }: RelicBottoms,
         banishToSiteId?: string,
         banish?: boolean
     ): Promise<void> {
@@ -517,7 +520,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 burnFavor,
                 ...(banishToSiteId ? { banishToSiteId } : {}),
                 ...(banish ? { banish } : {}),
-                ...(bottomRelicSlotIds.length > 0 ? { bottomRelicSlotIds } : {})
+                ...(bottomRelicSlotIds.length > 0 ? { bottomRelicSlotIds } : {}),
+                ...(bottomRelicIds.length > 0 ? { bottomRelicIds } : {}),
+                ...(cagePlacement && cagePlacement.length > 0 ? { cagePlacement } : {})
             })
         )
     }

@@ -523,8 +523,8 @@ describe('in a Campaign', () => {
             attack(armored, 'other', { plans: [battlePlanUse(SCOUTS)] }).apply(armored)
         ).toThrow(/Spell Breaker/)
         const s = board({}, { ruler: [BREAKER] })
-        expect(reasonFlipInvalid(s, 'other', true, true)).toMatch(/Spell Breaker/)
-        expect(reasonFlipInvalid(s, 'ruler', true, true)).toBeUndefined()
+        expect(reasonFlipInvalid(s, 'other', 1, 1)).toMatch(/Spell Breaker/)
+        expect(reasonFlipInvalid(s, 'ruler', 1, 1)).toBeUndefined()
         const conspiring = board(
             {},
             {

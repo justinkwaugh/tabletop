@@ -7,7 +7,7 @@ import {
     buildLogFilter,
     formatLogEntry,
     parseCount,
-    parseJsonOr,
+    parseStoredJsonOr,
     parseTime,
     parseWhere,
     permissionHint,
@@ -286,7 +286,7 @@ async function latestChunkedActions(gameRef, count, chunkSize) {
         .limit(Math.ceil(count / chunkSize) + 1)
         .get()
     return chunks.docs
-        .flatMap((doc) => parseJsonOr(doc.data().actionsData ?? '[]', []))
+        .flatMap((doc) => parseStoredJsonOr(doc.data().actionsData, doc.data().actionsZstd, []))
         .sort((a, b) => (b.index ?? 0) - (a.index ?? 0))
         .slice(0, count)
 }
@@ -302,7 +302,7 @@ function summarizeAction(action) {
 }
 
 function summarizeState(doc) {
-    const state = parseJsonOr(doc.data().data ?? '', {})
+    const state = parseStoredJsonOr(doc.data().data, doc.data().dataZstd, {})
     const summary = { docId: doc.id }
     for (const field of STATE_SUMMARY_FIELDS) summary[field] = state[field]
     return summary

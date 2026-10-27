@@ -26,7 +26,7 @@ const STAGES = {
         lead: "Good news: we can make the bug you hit happen on our end too, so we know what's going on and a fix is on the way.",
         closing: 'Thanks for bearing with us!',
         // The forum hears what was reproduced, written for its readers rather than the reporter.
-        forumNeeds: 'finding'
+        finding: 'saying what was reproduced'
     },
     fixed: {
         ...BUG_REPORT,
@@ -57,6 +57,8 @@ const STAGES = {
         heading: "Here's what's going on",
         needs: 'note',
         review: true,
+        // The forum hears why the game works this way, for players who wonder the same.
+        finding: 'saying why the game works this way',
         lead: 'Thanks for telling us about this. We can see why it seemed off, so we took a close look.',
         closing:
             "If something still doesn't seem right, send us another report from the game and we'll happily take another look."
@@ -90,11 +92,13 @@ export function checkStageInputs(status, { note, version, approved }) {
 
 export function checkForumInputs(status, { finding }) {
     const stage = STAGES[status]
-    if (stage?.forumNeeds === 'finding' && !finding) {
-        throw new Error(`${status} needs --finding saying what was reproduced, for the forum`)
+    if (stage?.finding && !finding) {
+        throw new Error(`${status} needs --finding ${stage.finding}, for the forum`)
     }
-    if (finding && stage?.forumNeeds !== 'finding') {
-        throw new Error(`--finding says what was reproduced, so it does not go with ${status}`)
+    if (finding && !stage?.finding) {
+        throw new Error(
+            `--finding is for reproduced and not a bug, so it does not go with ${status}`
+        )
     }
 }
 
@@ -131,8 +135,8 @@ export function reporterMessage(status, report, note, postUrl) {
     return { ...message, text }
 }
 
-// The post is public, so its record names the status, and for a reproduced bug the finding;
-// the note is for the reporter.
+// The post is public, so its record names the status, and for a reproduced bug or not a bug
+// the finding; the note is for the reporter.
 export function forumRecord(status, { version, finding } = {}) {
     const line = `**${STAGES[status].label}${version ? ` in ${version}` : ''}.**`
     return finding ? `${line}\n\n${finding.trim()}` : line

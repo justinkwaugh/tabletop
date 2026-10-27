@@ -13,12 +13,13 @@ import {
 import {
     StageKind,
     emptyBattleSelections,
+    nameAttackers,
     setAttackRide,
     type BattleSelections
 } from './battleSelection.js'
 import { battleStageOf } from './battleStage.js'
 import { RideChoice } from './moveCommands.js'
-import { TargetKind, moveTargets } from './targets.js'
+import { TargetKind, moveTargets, threatsOn } from './targets.js'
 
 const NEAR = 53
 const TAKEN = 63
@@ -155,21 +156,27 @@ describe('cavalry riding on', () => {
         ).toBe(true)
     })
 
-    it('may threaten the next locale on its road and carries out the threat at no command', () => {
+    it('may threaten the next locale on its road, aimed at from that locale, and carries out the threat at no command', () => {
         const game = ridden([
             { id: 'A-line', side: Side.Allied, face: infantry(2), locale: BEYOND }
         ])
         const french = game.playerOf(Side.French)
         const facing = game.hydrated.map.approachBetween(TAKEN, BEYOND).id
-        const threats = moveTargets(game.hydrated, french, ridingOn).filter(
-            (target) => target.kind === TargetKind.Attack
-        )
-        expect(threats.map((target) => target.position)).toEqual(
+        expect(
+            moveTargets(game.hydrated, french, ridingOn).some(
+                (target) => target.kind === TargetKind.Attack
+            )
+        ).toBe(false)
+        expect(threatsOn(game.hydrated, french, BEYOND).map((target) => target.position)).toEqual(
             expect.arrayContaining([{ locale: TAKEN, approach: facing }])
         )
-        game.act(ActionType.ThreatenAttack, french, { approach: facing, plan: rider })
+        game.act(ActionType.ThreatenAttack, french, { approach: facing })
         defendWith(game, game.playerOf(Side.Allied), ['A-line'])
-        expect(stageOf(game)).toMatchObject({
+        const named = {
+            ...emptyBattleSelections(),
+            attackers: nameAttackers(emptyBattleSelections().attackers, ['F-cav'])
+        }
+        expect(stageOf(game, named)).toMatchObject({
             kind: StageKind.Feint,
             attackers: ['F-cav'],
             orders: [{ ...ridingOn, road: [] }],
@@ -219,7 +226,6 @@ describe('cavalry reinforcements riding on in their turn of entry', () => {
                 .filter((target) => target.kind === TargetKind.Reserve)
                 .map((target) => target.position.locale)
         expect(reached(anew).length).toBeGreaterThan(reached(riding).length)
-        expect(anew.some((target) => target.kind === TargetKind.Attack)).toBe(true)
     })
 
     it('follows up a retreat riding on unless a new command was meant, and may be switched', () => {

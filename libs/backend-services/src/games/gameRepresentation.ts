@@ -1,5 +1,5 @@
 import {
-    ActionSource,
+    isCascadedSystemAction,
     assert,
     assertExists,
     findPlayerForUserId,
@@ -409,7 +409,7 @@ function createLegacyCompatibleReplay(actionReplay: ProcessedActionReplay): Cano
         startIndex: actionReplay.startIndex,
         actions: actionReplay.actions,
         userActions: actionReplay.actions
-            .filter((action) => action.source === ActionSource.User)
+            .filter((action) => !isCascadedSystemAction(action))
             .map((action) => {
                 const legacyAction = structuredClone(action)
                 delete legacyAction.undoPatch

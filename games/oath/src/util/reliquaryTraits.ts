@@ -126,7 +126,7 @@ function gainOneFavor(ctx: EffectContext): string | undefined {
         ctx.particulars?.advisersOf
     )
     if (withheld) return `Careless: ${withheld}`
-    const gained = gainFavorFromBank(ctx.state, ctx.playerId, suit, 1)
+    const gained = gainFavorFromBank(ctx.state, ctx.playerId, suit, 1, ctx.particulars?.advisersOf)
     return gained > 0 ? 'Careless: gained 1 favor' : 'Careless: the bank had no favor to give'
 }
 

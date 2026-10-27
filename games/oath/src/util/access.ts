@@ -98,6 +98,28 @@ export function hasAccessToCard(
     cardId: string,
     scope?: ImperialScope
 ): boolean {
+    return accessFrom(state, playerId, cardId, () => pawnSiteId(state, playerId), scope)
+}
+
+/** R-7.1.1 with the pawn read as at `siteId`: Small Friends' "act as if your pawn is at" that site. */
+export function hasAccessAt(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    siteId: string,
+    scope?: ImperialScope
+): boolean {
+    return accessFrom(state, playerId, cardId, () => siteId, scope)
+}
+
+/** `at` is read last: a card ruled or held needs no pawn on the map. */
+function accessFrom(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    at: () => string,
+    scope?: ImperialScope
+): boolean {
     if (rulesCard(state, playerId, cardId, scope)) {
         return true
     }
@@ -111,10 +133,10 @@ export function hasAccessToCard(
     // R-11.9 — a site's own Action: whoever rules the site or stands there.
     const siteId = siteOfSiteCard(state, cardId)
     if (siteId !== undefined) {
-        return siteId === pawnSiteId(state, playerId) || rulesSite(state, playerId, siteId, scope)
+        return siteId === at() || rulesSite(state, playerId, siteId, scope)
     }
 
-    return siteHolding(state, cardId) === pawnSiteId(state, playerId)
+    return siteHolding(state, cardId) === at()
 }
 
 function siteOfSiteCard(state: HydratedOathGameState, cardId: string): string | undefined {

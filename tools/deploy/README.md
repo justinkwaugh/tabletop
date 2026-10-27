@@ -53,8 +53,8 @@ The frontend follows the same model with `release-frontend (--major | --minor | 
 
 Firebase Hosting serves the site files, so a frontend deploy, `rollback --frontend` and
 `switch --frontend` need `hosting.channel` in the deploy config (or `TABLETOP_HOSTING_CHANNEL`;
-production uses `"hosting": { "channel": "live" }`) and backend 1.23.0 or later, and refuse to
-start without them. They back up the manifest, copy `frontend/<version>` from the bucket to a
+production uses `"hosting": { "channel": "live" }`) and a backend later than 1.43.0, and refuse
+to start without them (1.36.0 to 1.43.0 report a new frontend version only after a restart). They back up the manifest, copy `frontend/<version>` from the bucket to a
 Hosting staging channel, `frontend-<version>` (expiring after a day), copy that release to the
 configured channel, check the channel serves the build, and only then publish the manifest and
 invalidate the backend cache. The backend reports the manifest's frontend version on its next
@@ -203,9 +203,9 @@ release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]
                              Bump versions, commit, tag, push, then deploy
 deploy-game --game=<id> [--logic]
                              Build and deploy a tagged HEAD, publish the manifest, invalidate cache
-build-ui <gameId>            Build a game UI bundle (rollup)
+build-ui <gameId>            Build a game UI bundle (rolldown)
 deploy-ui <gameId>           deploy-game for the UI only, with the same guards
-build-logic <gameId>         Build a game logic bundle (rollup)
+build-logic <gameId>         Build a game logic bundle (rolldown)
 deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
 release-frontend (--major | --minor | --patch) [--no-deploy]
                              Bump the frontend version, commit, tag, push, then deploy
@@ -277,7 +277,7 @@ is selected. Do not roll out the new frontend before the initial catalog publica
 Subsequent game publications update discovery through the normal manifest publication and cache
 invalidation flow; no Site Frontend deployment is needed. Browser caching can delay visibility by
 up to 60 seconds. For local artifacts already staged before this change, generate just the missing
-JSON with `node config/config-rollup/write-game-catalog.mjs <staged-ui-version-directory>`.
+JSON with `node config/config-rolldown/write-game-catalog.mjs <staged-ui-version-directory>`.
 
 ### Deployment settings
 

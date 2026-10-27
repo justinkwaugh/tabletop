@@ -103,6 +103,7 @@ export const Corporations = [
     { id: 'GT', name: 'Grand Trunk', home: 'B16', tokens: 3 },
     { id: 'IC', name: 'Illinois Central', home: 'K3', tokens: 4 }
 ] as const
+export type Corporation = (typeof Corporations)[number]
 export function draftCompany(id: string): DraftCompany {
     const company = DraftCompanies.find((company) => company.id === id)
     assertExists(company, `Unknown draft company ${id}`)

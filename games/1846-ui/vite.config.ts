@@ -1,6 +1,9 @@
 import { sveltekit } from '@sveltejs/kit/vite'
-import { defineConfig } from 'vite'
-export default defineConfig({
-    plugins: [sveltekit()],
-    server: { host: '0.0.0.0', port: 4193, strictPort: true }
-})
+import { defineProject, mergeConfig } from 'vitest/config'
+import { VitestConfig } from '@tabletop/vitest-config'
+export default defineProject(
+    mergeConfig(VitestConfig, {
+        plugins: [sveltekit()],
+        server: { host: '0.0.0.0', port: 4193, strictPort: true }
+    })
+)

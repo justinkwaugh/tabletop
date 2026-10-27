@@ -11,12 +11,26 @@ physical board artwork is claimed for 1846.
 
 ## Visual intents
 
-- **Hidden draft.** During the draft the action area shows the private packet behind
-  **Show my cards**. Showing or hiding is local presentation. Choosing a card is one
-  immediate Action. The public final-company offer stays visible while personal
-  commitments are covered. Opponents and spectators never see packets or commitments.
+- **Hidden draft.** During the draft the action area shows the private packet. In local
+  hotseat play, where players pass one device, it waits behind **Show my cards**; online
+  and in the developer harness the seat's own cards show at once, with no cover. Showing
+  or hiding is local presentation. Choosing a card is one immediate Action. A seat that is
+  not choosing sees whom the draft is waiting for. The public final-company offer stays
+  visible while personal commitments are covered. Opponents and spectators never see
+  packets or commitments.
 - **Two-player opening.** Opening purchases are public company cards showing price,
   income or independent capitalization and debt, with the actions available now.
+- **Companies in this game.** The hidden draft and the two-player opening both carry a
+  **Companies in this game** link for every seat, whether choosing, waiting or covered.
+  It opens a modal listing what setup kept and removed for the player count: the
+  corporations in play as tokens; the privates dealt into the deck with the number of
+  Pass cards (in the two-player opening, the kept privates with no Pass cards); and the
+  removed corporations and privates, dimmed. The modal is local presentation, reads only
+  public state, and never shows packets, picks or the undrawn deck.
+- **Setup in history.** The oldest history entry, before the first round, reads "Set up
+  for N players" with the corporations in play as tokens and the kept privates by name,
+  without Pass cards. It is built from public state, so every game shows it, and
+  clicking it opens the same Companies modal.
 - **Construction modes.** During construction the action area shows one of track
   building, station placement or issuing/redeeming shares (Finance), chosen with the
   operating-mode switch. The switch lists only modes available now and appears when
@@ -102,7 +116,7 @@ station placement or nothing to build, then the shared operating actions.
   canonical inventory and stations change only on confirmation.
 - **Open Receivership panel.** A local selection registered with Undo, which closes it.
   It stays chosen only while the panel has claims for the acting player.
-- **Draft cover.** Local presentation. Submitting a card closes the packet before the
+- **Draft cover.** Local presentation, in local hotseat play only. Submitting a card closes the packet before the
   Action is sent, even if the submission fails; state publication, perspective changes
   and pending transitions close it again. In history a perspective sees only its own known
   cards, purchases are disabled, and history rows never print a draft card, the actor's
@@ -130,9 +144,11 @@ station placement or nothing to build, then the shared operating actions.
 
 ## Verification scenarios
 
-1. Open the packet, choose a card, change perspective, then open history. The packet
-   closes on submission; other perspectives show no cards; history shows only the
-   perspective's own cards and disables purchases. Manual.
+1. In local hotseat play, open the packet, choose a card, change perspective, then open
+   history. The packet closes on submission; other perspectives show no cards; history
+   shows only the perspective's own cards and disables purchases. Online, the choosing
+   seat sees its cards with no cover and the other seats see whom it is waiting for.
+   `draftPacketGate.spec.ts` covers the cover and panel choice; the rest is manual.
 2. Choose a track tile, rotate and preview it, then Undo. Nothing changes until
    confirmation; after Undo, inventory, treasury, stations and the drawing agree. Manual.
 3. In combined construction, choose Place station, place a station, then Undo. Undo
@@ -168,3 +184,9 @@ station placement or nothing to build, then the shared operating actions.
     at the end and in history. Automated (`apps/18xx-playground` finished-game spec).
 12. On desktop and narrow viewports, every action stays reachable and the board stays
     navigable. Manual.
+13. Open **Companies in this game** in a hidden draft for three, four and five players and
+    in the two-player opening. The kept and removed companies and the Pass count match
+    setup (`companyLineup.spec.ts`); every seat sees the link; the modal closes with its
+    close button, a backdrop click or Escape. The history's oldest entry names the kept
+    companies in both history orders and opens the same modal. Automated for the lineup,
+    manual for the modal and the history entry.

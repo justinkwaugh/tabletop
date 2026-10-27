@@ -23,11 +23,13 @@ import {
 } from './blockShape.js'
 import { screenAxes, uprightAngle } from './boardView.js'
 import { insidePolygon } from './polygon.js'
+import { TARGET_BAR_DEPTH, targetBarBox } from './targetBar.js'
 import { inReadingOrder } from './unitTypeOrder.js'
 import { byCommander } from './groupOrder.js'
 
 export const BAR_HALF_THICKNESS = 6
 const BAR_GAP = 3
+const NEAREST_TO_THE_BAR = BAR_HALF_THICKNESS + BAR_GAP
 const COLUMN_GAP = 6
 const RESERVE_ROW_GAP = 5
 const FILE_GROUP_GAP = 10
@@ -60,7 +62,7 @@ export interface PieceGroup {
     units: ProjectedUnit[]
 }
 
-interface PlacedGroup extends PieceGroup {
+export interface PlacedGroup extends PieceGroup {
     position: Position
     /** Where its singled-out units are shown nearest, when the viewer does not read the stack. */
     singledOutTowards?: Point
@@ -126,7 +128,7 @@ function withTheSingledOutForward(
     }
 }
 
-function placedGroups(state: BoardPieces, options: LayoutOptions): PlacedGroup[] {
+export function pieceGroups(state: BoardPieces, options: LayoutOptions): PlacedGroup[] {
     const groups = new Map<string, PlacedGroup>()
     for (const unit of state.units) {
         const position = unit.position
@@ -156,6 +158,8 @@ export interface LayoutOptions {
     readBy?: string
     /** Units that stacks the viewer does not read show at one end, so their place in the stack tells nothing. */
     singledOut?: readonly SingledOut[]
+    /** Approaches on offer as targets, whose target bars every piece stands clear of. */
+    offeredApproaches?: readonly number[]
 }
 
 function rankSpacing(count: number, room: number, loose: boolean): number {
@@ -299,12 +303,11 @@ function roomInsideLocale(approachId: number, locale: LocaleGeometry): number {
         return known
     }
     const bar = APPROACH_GEOMETRY[approachId]
-    const nearest = BAR_HALF_THICKNESS + BAR_GAP
-    let inward = nearest
+    let inward = NEAREST_TO_THE_BAR
     while (filesStayInside(bar, locale.outline, inward + INSIDE_STEP)) {
         inward += INSIDE_STEP
     }
-    const room = inward - nearest - FAR_SIDE_CLEARANCE
+    const room = inward - NEAREST_TO_THE_BAR - FAR_SIDE_CLEARANCE
     roomInsideByApproach.set(approachId, room)
     return room
 }
@@ -326,6 +329,12 @@ function roomsToTry(approachId: number, locale: LocaleGeometry, aloneInLocale: b
     )
 }
 
+function frontOfFiles(approachId: number, options: LayoutOptions): number {
+    return options.offeredApproaches?.includes(approachId)
+        ? TARGET_BAR_DEPTH + BAR_GAP
+        : NEAREST_TO_THE_BAR
+}
+
 function layoutBlockers(
     groups: PlacedGroup[],
     approachId: number,
@@ -338,6 +347,7 @@ function layoutBlockers(
         x: Math.cos((bar.angle * Math.PI) / 180),
         y: Math.sin((bar.angle * Math.PI) / 180)
     }
+    const front = frontOfFiles(approachId, options)
     const files = filesAcross(bar)
     const filed = fileGroups(groups, files)
     const deepest = Math.max(
@@ -345,12 +355,17 @@ function layoutBlockers(
     )
     const loose = options.looseLocales?.includes(groups[0].position.locale) === true
     const gapsInAFile = Math.max(...filed.map(({ groupsAhead }) => groupsAhead))
-    const spacing = fileSpacing(deepest, gapsInAFile, room, loose)
+    const spacing = fileSpacing(
+        deepest,
+        gapsInAFile,
+        Math.max(BLOCK_THICKNESS, room - (front - NEAREST_TO_THE_BAR)),
+        loose
+    )
     // Deliberate: groups filed one behind another stand a clear gap apart even where their own
     // blocks lie over one another, so a detached unit behind a corps is not read as part of it.
     const betweenGroups = Math.max(0, BLOCK_THICKNESS - spacing) + FILE_GROUP_GAP
     const angle = angleFacingAcross(bar)
-    const first = BAR_HALF_THICKNESS + BAR_GAP + BLOCK_THICKNESS / 2
+    const first = front + BLOCK_THICKNESS / 2
     const frontToRear = filed.map(({ group, file, ranksAhead, groupsAhead }) => {
         const sideways =
             files === 1 ? 0 : (((file + firstFile) % files) - 0.5) * (BLOCK_LENGTH + COLUMN_GAP)
@@ -411,16 +426,16 @@ function isBelow(place: Point, locale: LocaleGeometry, down: Point): boolean {
     return (place.x - locale.anchor.x) * down.x + (place.y - locale.anchor.y) * down.y > 0
 }
 
-function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBlocks[] {
+function arrangeReserve(
+    groups: PlacedGroup[],
+    options: LayoutOptions,
+    columns: number
+): PlacedBlocks[] {
     const locale = LOCALE_GEOMETRY[groups[0].position.locale]
     const { right, down } = screenAxes(options.rotation)
     const angle = uprightAngle((Math.atan2(right.y, right.x) * 180) / Math.PI, options.rotation)
     const loose = options.looseLocales?.includes(groups[0].position.locale) === true
     const room = Math.max(BLOCK_THICKNESS * 2, locale.clearance * 2.2)
-    const columns = Math.max(
-        1,
-        Math.min(groups.length, Math.floor((locale.clearance * 2.6) / (BLOCK_LENGTH + COLUMN_GAP)))
-    )
     const rows = Math.ceil(groups.length / columns)
     const tallest = Math.max(...groups.map((group) => group.units.length))
     const spacing = rankSpacing(tallest * rows, room, loose)
@@ -458,12 +473,33 @@ function moved(point: Point, shift: Point): Point {
     return { x: point.x + shift.x, y: point.y + shift.y }
 }
 
-function shiftClearOf(
+interface ReserveSpot {
+    shift: Point
+    cost: number
+    strandedBlocks: number
+}
+
+function fewerStrandedThenCheaper(a: ReserveSpot, b: ReserveSpot): number {
+    return a.strandedBlocks - b.strandedBlocks || a.cost - b.cost
+}
+
+function cheaper(a: ReserveSpot, b: ReserveSpot): number {
+    return a.cost - b.cost
+}
+
+interface ReserveSpots {
+    stay: ReserveSpot
+    stayIsClear: boolean
+    all: () => ReserveSpot[]
+}
+
+function spotsFor(
     reserve: readonly PlacedBlocks[],
     locale: LocaleGeometry,
     placed: readonly BlockFootprint[]
-): Point {
+): ReserveSpots {
     const samples = reserve.flatMap(({ blocks }) => blocks.flatMap(blockSamples))
+    const centres = reserve.flatMap(({ blocks }) => blocks.map((block) => block.centre))
     const reach = Math.max(
         ...[...locale.outline, ...samples].map((point) =>
             Math.hypot(point.x - locale.anchor.x, point.y - locale.anchor.y)
@@ -475,35 +511,107 @@ function shiftClearOf(
             reach * 2 + BLOCK_LENGTH
     )
     const onPlaced = coveredBy(near, RESERVE_CLEARANCE)
-    const covered = (shift: Point) =>
+    const outsideLocale = (points: readonly Point[], shift: Point) =>
+        points.filter((point) => !insidePolygon(moved(point, shift), locale.outline)).length
+    const coveredAt = (shift: Point) =>
         samples.filter((sample) => onPlaced(moved(sample, shift))).length
-    const stay = { x: 0, y: 0 }
-    if (covered(stay) === 0) {
-        return stay
+    const spotAt = (shift: Point): ReserveSpot => ({
+        shift,
+        cost:
+            coveredAt(shift) * OVERLAP_COST +
+            outsideLocale(samples, shift) * STRAY_COST +
+            Math.hypot(shift.x, shift.y) * DRIFT_COST,
+        strandedBlocks: outsideLocale(centres, shift)
+    })
+    const stay = spotAt({ x: 0, y: 0 })
+    let searched: ReserveSpot[] | undefined
+    const all = () => {
+        searched ??= [stay, ...shiftsInside(locale).map((shift) => spotAt(shift))]
+        return searched
     }
-    const cost = (shift: Point) =>
-        covered(shift) * OVERLAP_COST +
-        samples.filter((sample) => !insidePolygon(moved(sample, shift), locale.outline)).length *
-            STRAY_COST +
-        Math.hypot(shift.x, shift.y) * DRIFT_COST
+    return { stay, stayIsClear: coveredAt(stay.shift) === 0, all }
+}
+
+function shiftsInside(locale: LocaleGeometry): Point[] {
     const xs = locale.outline.map((corner) => corner.x)
     const ys = locale.outline.map((corner) => corner.y)
-    let best = stay
-    let lowest = cost(stay)
+    const shifts: Point[] = []
     for (let x = Math.min(...xs); x <= Math.max(...xs); x += SETTLE_STEP) {
         for (let y = Math.min(...ys); y <= Math.max(...ys); y += SETTLE_STEP) {
-            if (!insidePolygon({ x, y }, locale.outline)) {
-                continue
-            }
-            const shift = { x: x - locale.anchor.x, y: y - locale.anchor.y }
-            const candidate = cost(shift)
-            if (candidate < lowest) {
-                best = shift
-                lowest = candidate
+            if (insidePolygon({ x, y }, locale.outline)) {
+                shifts.push({ x: x - locale.anchor.x, y: y - locale.anchor.y })
             }
         }
     }
-    return best
+    return shifts
+}
+
+function lowest(spots: readonly ReserveSpot[], order: (a: ReserveSpot, b: ReserveSpot) => number) {
+    return spots.reduce((best, spot) => (order(spot, best) < 0 ? spot : best))
+}
+
+function clearestSpot(spots: ReserveSpots): ReserveSpot {
+    return spots.stayIsClear ? spots.stay : lowest(spots.all(), cheaper)
+}
+
+function columnsToTry(groupCount: number, locale: LocaleGeometry): number[] {
+    const fitted = Math.max(
+        1,
+        Math.min(groupCount, Math.floor((locale.clearance * 2.6) / (BLOCK_LENGTH + COLUMN_GAP)))
+    )
+    return Array.from({ length: groupCount - fitted + 1 }, (_, added) => fitted + added)
+}
+
+interface SettledReserve {
+    reserve: PlacedBlocks[]
+    shift: Point
+}
+
+// Deliberate: a block whose middle leaves its locale is read as standing in the next one, so a
+// reserve whose clearest spot would put one there keeps every middle inside instead, overlapping
+// other pieces if it must, and may stand in more columns than its locale's clearance gives it.
+function settleReserve(
+    groups: PlacedGroup[],
+    options: LayoutOptions,
+    placed: readonly BlockFootprint[]
+): SettledReserve {
+    const locale = LOCALE_GEOMETRY[groups[0].position.locale]
+    const arrangedIn = (columns: number) => {
+        const reserve = arrangeReserve(groups, options, columns)
+        return { reserve, spots: spotsFor(reserve, locale, placed) }
+    }
+    const [fittedColumns, ...widerColumns] = columnsToTry(groups.length, locale)
+    const fitted = arrangedIn(fittedColumns)
+    const clearest = clearestSpot(fitted.spots)
+    if (clearest.strandedBlocks === 0) {
+        return { reserve: fitted.reserve, shift: clearest.shift }
+    }
+    const keepingInside = [fitted, ...widerColumns.map(arrangedIn)].map(({ reserve, spots }) => ({
+        reserve,
+        spot: lowest(spots.all(), fewerStrandedThenCheaper)
+    }))
+    const best = keepingInside.reduce((chosen, candidate) =>
+        fewerStrandedThenCheaper(candidate.spot, chosen.spot) < 0 ? candidate : chosen
+    )
+    return { reserve: best.reserve, shift: best.spot.shift }
+}
+
+// Block-sized stand-ins laid end to end along a target bar, so the pieces placed after them keep off it.
+function targetBarStandIns(approachId: number): BlockFootprint[] {
+    const box = targetBarBox(approachId)
+    const angle = (Math.atan2(box.along.y, box.along.x) * 180) / Math.PI
+    const count = Math.ceil((box.halfLength * 2) / BLOCK_LENGTH)
+    const reach = Math.max(0, box.halfLength - BLOCK_LENGTH / 2)
+    return Array.from({ length: count }, (_, index) => {
+        const ahead = count === 1 ? 0 : -reach + (reach * 2 * index) / (count - 1)
+        return {
+            angle,
+            centre: {
+                x: box.centre.x + box.along.x * ahead,
+                y: box.centre.y + box.along.y * ahead
+            }
+        }
+    })
 }
 
 function sortGroups(groups: PlacedGroup[]): PlacedGroup[] {
@@ -514,8 +622,12 @@ export function layoutPieces(
     state: BoardPieces,
     options: LayoutOptions = { rotation: 0 }
 ): GroupSprite[] {
+    return layoutGroups(pieceGroups(state, options), options)
+}
+
+export function layoutGroups(groups: PlacedGroup[], options: LayoutOptions): GroupSprite[] {
     const byPosition: PlacedGroup[][] = []
-    for (const group of placedGroups(state, options)) {
+    for (const group of groups) {
         const peers = byPosition.find((entry) => samePosition(entry[0].position, group.position))
         if (peers) {
             peers.push(group)
@@ -523,7 +635,7 @@ export function layoutPieces(
             byPosition.push([group])
         }
     }
-    const placed: BlockFootprint[] = []
+    const placed: BlockFootprint[] = (options.offeredApproaches ?? []).flatMap(targetBarStandIns)
     const blocking = byPosition
         .flatMap((groups) => {
             const { approach } = groups[0].position
@@ -548,9 +660,7 @@ export function layoutPieces(
     const inReserve = byPosition
         .filter((groups) => groups[0].position.approach === undefined)
         .flatMap((groups) => {
-            const reserve = arrangeReserve(sortGroups(groups), options)
-            const locale = LOCALE_GEOMETRY[groups[0].position.locale]
-            const shift = shiftClearOf(reserve, locale, placed)
+            const { reserve, shift } = settleReserve(sortGroups(groups), options, placed)
             const settled = reserve.map(({ group, blocks, spacing }) =>
                 sprite(
                     group,

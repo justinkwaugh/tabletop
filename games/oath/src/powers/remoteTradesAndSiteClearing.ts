@@ -223,22 +223,55 @@ function bargainWith(ctx: EffectContext, entry: BargainEntry): void {
 const MAP_LIBRARY = 'denizen.arcane.map-library'
 registerModifier(MAP_LIBRARY, powerIndexOf(MAP_LIBRARY, PowerTiming.Modifier), {
     hooks: {
+        // Small Friends from revision 19: the pawn acts as if at its site (`actsAsAt`).
         condition: (ctx) => {
             const here = siteHolding(ctx.state, MAP_LIBRARY)
-            return here && ctx.state.getPlayerState(ctx.playerId).siteId === here
-                ? undefined
-                : 'your pawn is not at the Map Library'
+            const at = ctx.particulars?.actsAsAt ?? ctx.state.getPlayerState(ctx.playerId).siteId
+            return here && at === here ? undefined : 'your pawn is not at the Map Library'
         },
-        tradeSites: (ctx) => faceupSitesInYourRegion(ctx.state, ctx.playerId)
+        tradeSites: (ctx) => {
+            const at = ctx.particulars?.actsAsAt
+            if (at === undefined) return faceupSitesInYourRegion(ctx.state, ctx.playerId)
+            const region = ctx.state.regionOf(at)
+            return ctx.state
+                .faceupSiteIds()
+                .filter((siteId) => ctx.state.regionOf(siteId) === region)
+        }
     }
 })
 
 // "Act as if your pawn is at any site with a [suit:beast] card." Adviser.
 const SMALL_FRIENDS = 'denizen.beast.small-friends'
-const beastSites = (ctx: EffectContext) => faceupSitesWithCardOfSuit(ctx.state, Suit.Beast)
+// R-X.4 — before revision 19 every such site at once; from it, the one site its use names, and
+// only there (its Q&A: "Can I use Trade modifiers at the site my pawn is physically at, in
+// addition to the site I am acting as if I am at? Nope! Only the new site.").
+const actedAt = (ctx: EffectContext) =>
+    isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes15)
+        ? chosen(ctx, PowerChoiceKind.Site).map((choice) => choice.siteId)
+        : faceupSitesWithCardOfSuit(ctx.state, Suit.Beast)
 registerModifier(SMALL_FRIENDS, powerIndexOf(SMALL_FRIENDS, PowerTiming.Modifier), {
+    choices: [
+        one(PowerChoiceKind.Site, {
+            what: 'the site you act as if you are at',
+            domain: (state) =>
+                faceupSitesWithCardOfSuit(state, Suit.Beast).map((siteId) => ({
+                    kind: PowerChoiceKind.Site,
+                    siteId
+                })),
+            fromRevision: OathRevision.EngineFixes15
+        })
+    ],
     // "(You may use Trade modifiers there.)"
-    hooks: { tradeSites: beastSites, actsAsAtSites: beastSites }
+    hooks: {
+        tradeSites: actedAt,
+        actsAsAtSites: actedAt,
+        // From revision 19 its use names a site: with none to name, it is not usable.
+        reasonUnusable: (ctx) =>
+            isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes15) &&
+            faceupSitesWithCardOfSuit(ctx.state, Suit.Beast).length === 0
+                ? 'no faceup site has a Beast card'
+                : undefined
+    }
 })
 
 // "When played, draw a relic. Take it or put it on the bottom of the relic deck." Adviser, locked.

@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
-import { defineProject, mergeConfig } from 'vitest/config'
+import { configDefaults, defineProject, mergeConfig } from 'vitest/config'
 import { VitestConfig } from '@tabletop/vitest-config'
 
 // Unit tests use the plain Svelte plugin rather than sveltekit(): SvelteKit resets Vite's root
@@ -10,6 +10,7 @@ export default defineProject(
         plugins: [svelte()],
         resolve: {
             alias: { $lib: fileURLToPath(new URL('./src/lib', import.meta.url)) }
-        }
+        },
+        test: { exclude: [...configDefaults.exclude, '**/*.client.svelte.spec.ts'] }
     })
 )

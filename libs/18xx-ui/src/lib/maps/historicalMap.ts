@@ -10,7 +10,7 @@ import {
     type EighteenXXState
 } from '@tabletop/18xx'
 import { assertExists, RecordedHistory, type GameAction, type GameState } from '@tabletop/common'
-import { routeColor } from '../routes/routePresentation.js'
+import { trainRouteOverlays } from '../routes/routePresentation.js'
 import { createMapDrawing, routeLocationIds, type MapRoute } from './mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from './stationPresentation.js'
 import type { TitlePresentation } from '../session/titlePresentation.js'
@@ -104,12 +104,7 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
         assertExists(company, 'Historical map requires its operating company')
         const set = snapshot.operatingSet
         const run = isRunTrains(action) ? action : undefined
-        const routes =
-            run?.routes.map((route, index) => ({
-                id: route.trainId,
-                color: routeColor(index),
-                segments: route.paths
-            })) ?? []
+        const routes = trainRouteOverlays(run?.routes ?? [])
         const preview: HistoricalMap = {
             actionId: action.id,
             label: `${this.companyName(company.id)}${set ? ` · OR ${set.number}.${set.roundNumber}` : ''}`,

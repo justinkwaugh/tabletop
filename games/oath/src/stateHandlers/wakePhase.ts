@@ -33,7 +33,7 @@ export class WakePhaseStateHandler implements MachineStateHandler<
             const nextPlayerId = gameState.turnManager.startNextTurn(gameState.actionCount)
             gameState.activePlayerIds = [nextPlayerId]
 
-            // R-4.3.4 — the saving is `supplyAtTurnStart − supplySpentThisTurn`, never the marker.
+            // R-4.3.4 — before revision 24 (R-X.4) the saving is `supplyAtTurnStart − supplySpentThisTurn`.
             const player = gameState.getPlayerState(nextPlayerId)
             player.supplyAtTurnStart = player.supply
             player.supplySpentThisTurn = 0

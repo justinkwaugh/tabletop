@@ -4,6 +4,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { siteRecord } from '../data/sites.js'
 import { pawnSiteId } from './pawn.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 /** R-4.1.1.I, R-X.1 */
 export type PeoplesFavorStep = { kind: 'place' } | { kind: 'return'; toSuit: Suit }
@@ -36,6 +37,35 @@ export function availablePeoplesFavorOptions(
     if (usableFavor(state, playerId) > 0) options.push('place')
     if (state.banners[Banner.PeoplesFavor].value > 1) options.push('return')
     return options
+}
+
+/**
+ * R-9.2.a — the steps the holder must take if able. Vow of Kinship's Q&A: its bank's favor may be
+ * placed "as if it is on your board, but you are not forced to", so only the board's favor forces a
+ * place (R-10.10-H1). Before revision 18 the bank's forced it too (R-X.4).
+ */
+export function forcedPeoplesFavorOptions(
+    state: HydratedOathGameState,
+    playerId: string
+): PeoplesFavorStep['kind'][] {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes14)) {
+        return availablePeoplesFavorOptions(state, playerId)
+    }
+    const options: PeoplesFavorStep['kind'][] = []
+    if (state.getPlayerState(playerId).favor > 0) options.push('place')
+    if (state.banners[Banner.PeoplesFavor].value > 1) options.push('return')
+    return options
+}
+
+/** A step the holder may take or leave: only the Vow of Kinship's bank could place. */
+export function peoplesFavorStepIsOptional(
+    state: HydratedOathGameState,
+    playerId: string
+): boolean {
+    return (
+        forcedPeoplesFavorOptions(state, playerId).length === 0 &&
+        availablePeoplesFavorOptions(state, playerId).length > 0
+    )
 }
 
 export function reasonCannotTakePeoplesFavorStep(

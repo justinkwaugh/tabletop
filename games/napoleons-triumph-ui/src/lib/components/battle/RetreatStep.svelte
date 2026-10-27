@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PlaceText from '../PlaceText.svelte'
     import { commanderDefinition } from '@tabletop/napoleons-triumph'
     import UnitTile from '$lib/components/UnitTile.svelte'
     import type { RetreatStage } from '$lib/model/battleStage.js'
@@ -108,7 +109,7 @@
     <div class="nt-retreat-rows">
         {#each rows as row (row.kind === RetreatRowKind.Retreats ? row.locale : row.kind)}
             <div class="nt-retreat-to">
-                {rowName(row)}
+                <PlaceText text={rowName(row)} />
                 {#if row.kind === RetreatRowKind.Retreats && row.full && plan.stranded > 0}
                     <span class="nt-battle-faint">full</span>
                 {/if}

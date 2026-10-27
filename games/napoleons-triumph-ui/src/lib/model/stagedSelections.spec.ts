@@ -43,12 +43,14 @@ import {
     setPickedUp,
     setRide,
     setAim,
+    withoutAim,
     setGuardUnit,
     setThreat,
     guardUnitOf,
     threatOf,
     undoCommandSelection,
     unitsPickedUpWith,
+    type GroupUnits,
     wayStepsOf,
     type CommandSelection
 } from './commandSelection.js'
@@ -123,17 +125,28 @@ describe('command selection', () => {
     })
 
     it('aims at a locale as a choice of its own, which picking up pieces or Undo puts down', () => {
-        const aimed = setAim(94)
+        const aimed = setAim(noCommandSelection(), 94)
         expect(aimOf(aimed)).toBe(94)
         expect(hasManualCommandSelection(aimed)).toBe(true)
         expect(aimOf(setPickedUp({ groupKey: 'corps' }))).toBeUndefined()
-        expect(pickedUpOf(setAim(94))).toBeUndefined()
+        expect(pickedUpOf(aimed)).toBeUndefined()
         expect(undoCommandSelection(aimed)).toEqual(noCommandSelection())
 
         const threatening = setThreat(aimed, 246)
         const steppedBack = undoCommandSelection(threatening)
         expect(threatOf(steppedBack)).toBeUndefined()
         expect(aimOf(steppedBack)).toBe(94)
+    })
+
+    it('keeps the pieces in hand when aiming, and goes back to them when the aim is put down', () => {
+        const inHand = setCommand(corpsPickedUp(), CommandKind.Corps)
+        const aimed = setAim(inHand, 94)
+        expect(aimOf(aimed)).toBe(94)
+        expect(pickedUpOf(aimed)).toEqual(pickedUpOf(inHand))
+        expect(chosenCommandOf(aimed)).toBe(CommandKind.Corps)
+        expect(undoCommandSelection(aimed)).toEqual(inHand)
+        expect(withoutAim(aimed)).toEqual(inHand)
+        expect(aimOf(setPickedUp({ groupKey: 'other' }))).toBeUndefined()
     })
 
     it('takes back the Guard unit chosen for a threat before the threat itself', () => {
@@ -221,6 +234,10 @@ describe('choosing units of a corps', () => {
         expect(pickedUpOf(none)).toEqual({ groupKey: 'corps' })
     })
 
+    it('sends a unit that has moved on its own, to be attached, though no unit of the corps can move', () => {
+        expect(chosenUnitsOf(chooseCorpsUnit(corpsPickedUp(), 'F01', []))).toEqual(['F01'])
+    })
+
     it('keeps the command when the units change', () => {
         const commanded = setCommand(
             chooseCorpsUnit(corpsPickedUp(), 'F01', MOVABLE),
@@ -243,40 +260,61 @@ describe('choosing units of a corps', () => {
 
 describe('what a pick-up starts with', () => {
     const MOVABLE = ['F02', 'F03']
-    const NO_RIDERS: string[] = []
+
+    function units(movableIds: string[], more: Partial<GroupUnits> = {}): GroupUnits {
+        return { movableIds, choosableIds: movableIds, riderIds: [], isCorps: false, ...more }
+    }
 
     it('is every unit of a corps that can still move', () => {
-        expect(unitsPickedUpWith({ groupKey: 'corps' }, MOVABLE, true, NO_RIDERS)).toEqual(MOVABLE)
+        expect(unitsPickedUpWith({ groupKey: 'corps' }, units(MOVABLE, { isCorps: true }))).toEqual(
+            MOVABLE
+        )
     })
 
     it('is the detached unit that was tapped, when it can still move', () => {
         expect(
-            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F03' }, MOVABLE, false, NO_RIDERS)
+            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F03' }, units(MOVABLE))
         ).toEqual(['F03'])
     })
 
     it('is the first detached unit that can move when the tapped one cannot, or none was tapped', () => {
         expect(
-            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F01' }, MOVABLE, false, NO_RIDERS)
+            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F01' }, units(MOVABLE))
         ).toEqual(['F02'])
-        expect(unitsPickedUpWith({ groupKey: 'loose' }, MOVABLE, false, NO_RIDERS)).toEqual(['F02'])
-        expect(unitsPickedUpWith({ groupKey: 'loose' }, [], false, NO_RIDERS)).toEqual([])
+        expect(unitsPickedUpWith({ groupKey: 'loose' }, units(MOVABLE))).toEqual(['F02'])
+        expect(unitsPickedUpWith({ groupKey: 'loose' }, units([]))).toEqual([])
+    })
+
+    it('is the detached unit that was tapped when it cannot move but may be attached', () => {
+        const tapped = { groupKey: 'loose', tappedUnitId: 'F01' }
+        expect(unitsPickedUpWith(tapped, units([], { choosableIds: ['F01'] }))).toEqual(['F01'])
+        expect(
+            unitsPickedUpWith(tapped, units(MOVABLE, { choosableIds: ['F01', ...MOVABLE] }))
+        ).toEqual(['F01'])
+    })
+
+    it('is the first detached unit that may be attached when none can move', () => {
+        expect(
+            unitsPickedUpWith({ groupKey: 'loose' }, units([], { choosableIds: ['F01'] }))
+        ).toEqual(['F01'])
     })
 
     it('is the cavalry riding on in the group, unless another unit that can move was tapped', () => {
-        const RIDERS = ['F01']
-        expect(unitsPickedUpWith(undefined, MOVABLE, false, RIDERS)).toEqual(RIDERS)
-        expect(unitsPickedUpWith({ groupKey: 'loose' }, MOVABLE, false, RIDERS)).toEqual(RIDERS)
-        expect(
-            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F01' }, MOVABLE, false, RIDERS)
-        ).toEqual(RIDERS)
-        expect(
-            unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F03' }, MOVABLE, false, RIDERS)
-        ).toEqual(['F03'])
-        expect(unitsPickedUpWith({ groupKey: 'corps' }, [], true, ['F01', 'F02'])).toEqual([
-            'F01',
-            'F02'
+        const riding = units(MOVABLE, { riderIds: ['F01'] })
+        expect(unitsPickedUpWith(undefined, riding)).toEqual(['F01'])
+        expect(unitsPickedUpWith({ groupKey: 'loose' }, riding)).toEqual(['F01'])
+        expect(unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F01' }, riding)).toEqual([
+            'F01'
         ])
+        expect(unitsPickedUpWith({ groupKey: 'loose', tappedUnitId: 'F03' }, riding)).toEqual([
+            'F03'
+        ])
+        expect(
+            unitsPickedUpWith(
+                { groupKey: 'corps' },
+                units([], { riderIds: ['F01', 'F02'], isCorps: true })
+            )
+        ).toEqual(['F01', 'F02'])
     })
 })
 

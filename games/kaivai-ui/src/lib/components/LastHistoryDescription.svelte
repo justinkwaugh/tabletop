@@ -16,7 +16,8 @@
     import FishingResults from './FishingResults.svelte'
     import IslandScoringResults from './IslandScoringResults.svelte'
     import HutScoringResults from './HutScoringResults.svelte'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { isCallGameAction } from '@tabletop/common'
+    import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
     import CelebrateResults from './CelebrateResults.svelte'
     import MoveGodResults from './MoveGodResults.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
@@ -49,10 +50,12 @@
                 {#if lastAction && lastAction.playerId}
                     <PlayerName playerId={lastAction.playerId} capitalization="uppercase" />
                 {/if}
-                {getHistoryDescriptionForAction(
-                    lastAction,
-                    lastAction?.playerId === gameSession.myPlayer?.id
-                )}{#if isMove(lastAction) && lastAction.metadata?.playerSunk}
+                {#if lastAction && isCallGameAction(lastAction)}<CalledGameDescription
+                        action={lastAction}
+                    />{:else}{getHistoryDescriptionForAction(
+                        lastAction,
+                        lastAction?.playerId === gameSession.myPlayer?.id
+                    )}{/if}{#if isMove(lastAction) && lastAction.metadata?.playerSunk}
                     sunk <PlayerName
                         capitalization="uppercase"
                         playerId={lastAction.metadata.playerSunk}

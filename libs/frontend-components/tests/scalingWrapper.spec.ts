@@ -56,9 +56,9 @@ test('trackpad pan hands remaining movement and momentum to the enclosing table'
     }
 })
 
-async function touchDrag(target: Locator, from: Point, to: Point) {
+async function touchDrag(target: Locator, from: Point, ...path: Point[]) {
     await target.evaluate(
-        (element, { from, to }) => {
+        (element, { from, path }) => {
             const touchAt = (point: Point) =>
                 new Touch({ identifier: 1, target: element, clientX: point.x, clientY: point.y })
             const dispatch = (type: string, touches: Touch[]) =>
@@ -71,16 +71,20 @@ async function touchDrag(target: Locator, from: Point, to: Point) {
                     })
                 )
             dispatch('touchstart', [touchAt(from)])
-            for (let step = 1; step <= 5; step++) {
-                dispatch('touchmove', [
-                    touchAt({
-                        x: from.x + ((to.x - from.x) * step) / 5,
-                        y: from.y + ((to.y - from.y) * step) / 5
-                    })
-                ])
+            let current = from
+            for (const to of path) {
+                for (let step = 1; step <= 5; step++) {
+                    dispatch('touchmove', [
+                        touchAt({
+                            x: current.x + ((to.x - current.x) * step) / 5,
+                            y: current.y + ((to.y - current.y) * step) / 5
+                        })
+                    ])
+                }
+                current = to
             }
         },
-        { from, to }
+        { from, path }
     )
 }
 
@@ -103,6 +107,29 @@ test.describe('touch', () => {
         await touchDrag(board, { x: 200, y: 200 }, { x: 200, y: 120 })
         expect(await body.evaluate((element) => element.scrollTop)).toBe(80)
         expect(await table.evaluate((element) => element.scrollLeft)).toBe(250)
+    })
+
+    test('a drag that has handed off to the table keeps scrolling the table when it reverses', async ({
+        page
+    }) => {
+        await mountWrapper(page, { scrollable: true })
+        const board = page.getByTestId('board')
+        const table = page.getByTestId('table-scroll')
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+        await table.evaluate((element) => {
+            element.scrollLeft = 400
+        })
+        await board.dispatchEvent('wheel', { deltaY: -200, clientX: 200, clientY: 150 })
+        await expect
+            .poll(async () => (await board.boundingBox())?.width)
+            .toBeCloseTo(375 * Math.exp(0.6), 1)
+        await touchDrag(board, { x: 100, y: 150 }, { x: 350, y: 150 })
+        const handedOff = await table.evaluate((element) => element.scrollLeft)
+        expect(handedOff).toBeLessThan(400)
+        const boardAtEdge = await viewportOffset(board)
+        await touchDrag(board, { x: 350, y: 150 }, { x: 400, y: 150 }, { x: 300, y: 150 })
+        expect((await viewportOffset(board)).x).toBeCloseTo(boardAtEdge.x)
+        expect(await table.evaluate((element) => element.scrollLeft)).toBe(handedOff + 50)
     })
 })
 
@@ -135,6 +162,33 @@ test('full screen keeps the table and page behind it from scrolling', async ({ p
     await board.dispatchEvent('wheel', { deltaX: -250, clientX: 200, clientY: 150 })
     await expect.poll(() => table.evaluate((element) => element.scrollLeft)).toBeLessThan(400)
 })
+
+for (const [reveal, expected] of [
+    [
+        { x: 600, y: 50, width: 50, height: 50 },
+        { x: -250, y: 0 }
+    ],
+    [
+        { x: 10, y: 10, width: 10, height: 10 },
+        { x: 0, y: 0 }
+    ]
+] as const) {
+    test(`revealing a ${expected.x ? 'hidden' : 'visible'} region pans only as far as needed, keeping the scale`, async ({
+        page
+    }) => {
+        await mountWrapper(page, {
+            maxScale: 2,
+            focus: { x: 0, y: 0, width: 400, height: 300 },
+            reveal
+        })
+        const board = page.getByTestId('board')
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(1000)
+        await page.getByTestId('reveal').click()
+        await expect.poll(async () => (await viewportOffset(board)).x).toBeCloseTo(expected.x)
+        expect((await viewportOffset(board)).y).toBeCloseTo(expected.y)
+        expect((await board.boundingBox())?.width).toBe(1000)
+    })
+}
 
 for (const focus of [undefined, { x: 200, y: 200, width: 300, height: 200 }]) {
     test(`the scale read as reactive state follows the view ${focus ? 'focused on a region' : 'fitted whole'}, then zoomed`, async ({

@@ -4,6 +4,7 @@ import type {
     AdminAssignableRole,
     Bookmark,
     GameCatalogEntry,
+    CharityTally,
     GameHistoryPage,
     UserGameStats,
     CanonicalActionReplay,
@@ -60,6 +61,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async getGameCatalog(): Promise<GameCatalogEntry[]> {
         return this.fail('getGameCatalog')
+    }
+
+    async getCharityTally(): Promise<CharityTally | undefined> {
+        return this.fail('getCharityTally')
     }
 
     async getMyGameHistory(): Promise<GameHistoryPage> {
@@ -336,6 +341,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async openUndoVote(_game: Game, _actionIndex: number, _targetActionId: string): Promise<Game> {
         return this.fail('openUndoVote')
+    }
+
+    async requestCall(_game: Game, _declaredWinnerId?: string): Promise<Game> {
+        return this.fail('requestCall')
     }
 
     async approveVote(_game: Game, _voteId: string): Promise<Game> {

@@ -210,4 +210,15 @@ write(
     )
 )
 
+// Murat can ride by road from 52 through 53 into 63, which Bagration's screen may give up, and end the turn still riding.
+write(
+    'cavalry-still-riding-at-the-end-of-the-turn',
+    'Cavalry still riding at the end of the turn',
+    frenchTurn([
+        french('F01', cavalry(3), 52, { commanderId: 'murat' }),
+        french('F02', cavalry(2), 52, { commanderId: 'murat' }),
+        allied('A01', cavalry(2), 63)
+    ])
+)
+
 console.log(`Scenarios written to ${OUT}`)

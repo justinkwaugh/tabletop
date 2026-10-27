@@ -2,7 +2,8 @@
     import { range } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
     import type { CampaignState } from '@tabletop/oath'
-    import { attackFaceImage, defenseFaceImage } from '$lib/images/diceImages.js'
+    import DefenseDice from '$lib/components/DefenseDice.svelte'
+    import { attackFaceImage } from '$lib/images/diceImages.js'
     import { plural } from '$lib/model/names.js'
 
     // R-5.5.3 pools while the defender answers, then R-5.5.4 and R-5.5.5 faces and totals.
@@ -59,18 +60,7 @@
                 <span class="dice__total">{plural(campaign.swords, 'sword')}</span>
             {/if}
             <span class="dice__sep"></span>
-            {#each campaign.defenseRoll as face, index (index)}
-                <span class="die">
-                    <img
-                        src={defenseFaceImage(face)}
-                        alt={face.doubling
-                            ? 'Doubles the shields rolled'
-                            : face.shields === 0
-                              ? 'Blank'
-                              : plural(face.shields, 'shield')}
-                    />
-                </span>
-            {/each}
+            <DefenseDice faces={campaign.defenseRoll} />
             <span class="dice__total">{campaign.defense} defense</span>
         {/if}
     </div>

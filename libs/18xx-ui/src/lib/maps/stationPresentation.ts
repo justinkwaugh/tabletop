@@ -57,8 +57,8 @@ export type MapViewDefinition = {
     >
     /** Locations whose curved city name runs under the city, reading along its foot. */
     namesBelow?: readonly string[]
-    /** Height of a location's terrain cost row, by location id, where it is not placed below the stops. */
-    terrainHeights?: Readonly<Record<string, number>>
+    /** Centre of a location's terrain cost row, by location id, where it is not placed below the stops. */
+    terrainPositions?: Readonly<Record<string, Point>>
     markerArt?: Readonly<Record<string, MapMarkerArt>>
     /** Names for the kinds of marker private powers place during play, such as mines. */
     locationMarkerNames?: Readonly<Record<string, string>>

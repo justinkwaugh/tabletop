@@ -78,7 +78,9 @@ export const User = Type.Object({
     externalIds: Type.Array(Type.String()),
     preferences: Type.Optional(UserPreferences),
     createdAt: Type.Optional(DateType()),
-    updatedAt: Type.Optional(DateType())
+    updatedAt: Type.Optional(DateType()),
+    // Accounts activated before this field existed lack it until their next update
+    activatedAt: Type.Optional(DateType())
 })
 
 export const ADMIN_ASSIGNABLE_ROLES = [Role.AlphaTester, Role.BetaTester, Role.Developer] as const

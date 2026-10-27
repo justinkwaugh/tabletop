@@ -1,4 +1,9 @@
-import type { AuctionAwardDetails, RouteBonus } from '@tabletop/18xx'
+import type {
+    AuctionAwardDetails,
+    CertificateLimitChange,
+    CompanyClosure,
+    RouteBonus
+} from '@tabletop/18xx'
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
 import {
     isLayTile,
@@ -72,7 +77,9 @@ import {
     type StockMarketChart
 } from '@tabletop/18xx'
 import type { HistoryCompanyChanges } from './historyCompanyChanges.js'
-import { assertExists, type GameAction } from '@tabletop/common'
+import { trainCount } from './awaitedDecision.js'
+import { counted } from '../presentation/count.js'
+import { assertExists, gameCallDescription, gameCallOf, type GameAction } from '@tabletop/common'
 
 export type HistoryDescription = {
     text: string
@@ -85,6 +92,15 @@ export type HistoryDescription = {
     detail?: string
     routine?: boolean
     important?: boolean
+    /** A company whose token leads the row, such as one that floated or closed. */
+    companyToken?: string
+    /** A change to every player's certificate limit, called out below the row. */
+    certificateLimit?: CertificateLimitChange
+    /**
+     * A system action that stays in the operation or turn it happened in, as a company closing
+     * while another operates, rather than opening its own.
+     */
+    consequence?: boolean
 }
 
 /** What the bank paid as trains departed, as an action records it. */
@@ -119,7 +135,33 @@ export function ownerName(owner: Owner, names: HistoryNames): string {
 }
 
 function shareCount(shares: number): string {
-    return `${shares} ${shares === 1 ? 'share' : 'shares'}`
+    return counted(shares, 'share')
+}
+
+/**
+ * What a company's closure took off the table, as detail lines: its stations and reservations,
+ * its trains and where they went, and the privates it owned. Its own cash is left to the
+ * operating ledger, which shows it leaving.
+ */
+export function companyClosureDetails(
+    closure: CompanyClosure,
+    companyName: (id: string) => string
+): string[] {
+    const { removedStationIds, removedReservations, removedTrainIds, trainRelease } = closure
+    // Closures recorded before their trains' types say only how many left.
+    const trains = trainRelease
+        ? `${trainRelease.definitionIds.join(', ')} ${trainRelease.definitionIds.length === 1 ? 'train' : 'trains'} ${trainRelease.destination === 'market' ? 'to the market' : 'removed'}`
+        : `${trainCount(removedTrainIds.length)} left the company`
+    return [
+        ...(removedStationIds.length
+            ? [`${counted(removedStationIds.length, 'station')} removed`]
+            : []),
+        ...(removedReservations.length
+            ? [`${counted(removedReservations.length, 'reservation')} removed`]
+            : []),
+        ...(removedTrainIds.length ? [trains] : []),
+        ...closure.closedPrivateIds.map((id) => `${companyName(id)} closed`)
+    ]
 }
 
 export function companyLabels(
@@ -148,10 +190,16 @@ export function joinDetails(...details: (string | undefined)[]): string | undefi
     return details.filter(Boolean).join(' · ') || undefined
 }
 
+/** How a title's history rows name companies and map locations. */
+export type TitleHistoryNames = {
+    companyName: (id: string) => string
+    place: (locationId: string) => string
+}
+
 /** A title's own history row for an action, given the shared row it may add to. */
 export type TitleActionDescription = (
     action: GameAction,
-    companyName: (id: string) => string,
+    names: TitleHistoryNames,
     shared: () => HistoryDescription
 ) => HistoryDescription | undefined
 
@@ -174,7 +222,8 @@ export function departurePaymentsDetail(
 function runBonusesDetail(
     routes: readonly { bonuses?: readonly RouteBonus[] }[],
     money: MoneyFormat,
-    routeBonusName: (sourceId: string) => string
+    routeBonusName: (sourceId: string) => string,
+    place: (locationId: string) => string
 ): string | undefined {
     const totals = new Map<string, { amount: number; label?: string; locationId: string }>()
     for (const bonus of routes.flatMap((route) => route.bonuses ?? [])) {
@@ -190,7 +239,7 @@ function runBonusesDetail(
     return totals.size
         ? [...totals.values()]
               .map(({ label, amount, locationId }) =>
-                  label ? `${label} +${money(amount)}` : `+${money(amount)} at ${locationId}`
+                  label ? `${label} +${money(amount)}` : `+${money(amount)} at ${place(locationId)}`
               )
               .join(' · ')
         : undefined
@@ -207,7 +256,8 @@ export function historyDescription(
     lotName: (id: string) => string = companyName,
     routeBonusName: (sourceId: string) => string = (sourceId) => {
         throw new Error(`Route bonus ${sourceId} needs the title's names`)
-    }
+    },
+    place: (locationId: string) => string = (locationId) => locationId
 ): HistoryDescription {
     const description = describeShared(
         action,
@@ -218,7 +268,8 @@ export function historyDescription(
         companyChanges,
         money,
         lotName,
-        routeBonusName
+        routeBonusName,
+        place
     )
     const paid = departurePaymentsDetail(
         departurePayments(action),
@@ -237,7 +288,8 @@ function describeShared(
     companyChanges: HistoryCompanyChanges | undefined,
     money: MoneyFormat,
     lotName: (id: string) => string,
-    routeBonusName: (sourceId: string) => string
+    routeBonusName: (sourceId: string) => string,
+    place: (locationId: string) => string
 ): HistoryDescription {
     const layEffects = (effects: TrackLayEffects | undefined) =>
         effects
@@ -269,35 +321,37 @@ function describeShared(
         return chart.space(id).price
     }
     if (isRequestTrackConsent(action))
-        return { text: `Requested permission to lay track at ${action.locationId}` }
+        return { text: `Requested permission to lay track at ${place(action.locationId)}` }
     if (isRespondToTrackConsent(action)) {
         assertExists(action.metadata, 'Recorded track permission response requires its request')
         const { locationId, cost } = action.metadata.request.details
         return action.metadata.accepted
             ? {
-                  text: `Allowed track at ${locationId}; track laid`,
+                  text: `Allowed track at ${place(locationId)}; track laid`,
                   value: cost ? money(cost) : undefined
               }
-            : { text: `Declined permission to lay track at ${locationId}` }
+            : { text: `Declined permission to lay track at ${place(locationId)}` }
     }
     if (isLayTile(action))
         return {
-            text: `Laid track at ${action.locationId}`,
+            text: `Laid track at ${place(action.locationId)}`,
             value: action.expectedCost ? money(action.expectedCost) : undefined,
             detail: layEffects(action.metadata?.effects)
         }
     if (isPrivateTileLay(action))
         return {
-            text: `Laid track at ${action.locationId} with ${companyName(action.privateCompanyId)}`,
+            text: `Laid track at ${place(action.locationId)} with ${companyName(action.privateCompanyId)}`,
             value: action.expectedCost ? money(action.expectedCost) : undefined,
             detail: layEffects(action.metadata?.effects)
         }
     if (isPlacePrivateMarker(action))
-        return { text: `Marked ${action.locationId} with ${companyName(action.privateCompanyId)}` }
+        return {
+            text: `Marked ${place(action.locationId)} with ${companyName(action.privateCompanyId)}`
+        }
     if (isChooseHomeStation(action))
         return {
-            text: `Home station at ${action.locationId}`,
-            afterActorText: `Chose its home station at ${action.locationId}`
+            text: `Home station at ${place(action.locationId)}`,
+            afterActorText: `Chose its home station at ${place(action.locationId)}`
         }
     if (isPlaceHomeStations(action)) {
         assertExists(action.metadata, 'Recorded home stations require their placements')
@@ -306,7 +360,7 @@ function describeShared(
             detail: joinDetails(
                 ...action.metadata.map(
                     (placement) =>
-                        `${companyName(placement.companyId)} at ${placement.position.locationId}`
+                        `${companyName(placement.companyId)} at ${place(placement.position.locationId)}`
                 )
             )
         }
@@ -323,16 +377,16 @@ function describeShared(
     }
     if (isPlacePrivateStation(action))
         return {
-            text: `Station at ${action.position.locationId} with ${companyName(action.privateCompanyId)}`,
-            afterActorText: `Placed a station at ${action.position.locationId} with ${companyName(action.privateCompanyId)}`,
+            text: `Station at ${place(action.position.locationId)} with ${companyName(action.privateCompanyId)}`,
+            afterActorText: `Placed a station at ${place(action.position.locationId)} with ${companyName(action.privateCompanyId)}`,
             value: 'Free'
         }
     if (isDeclinePrivateStation(action))
         return { text: `Declined the ${companyName(action.privateCompanyId)} station` }
     if (isPlaceStation(action))
         return {
-            text: `Station at ${action.position.locationId}`,
-            afterActorText: `Placed a station at ${action.position.locationId}`,
+            text: `Station at ${place(action.position.locationId)}`,
+            afterActorText: `Placed a station at ${place(action.position.locationId)}`,
             value: action.expectedCost ? money(action.expectedCost) : 'Free'
         }
     if (isRunTrains(action)) {
@@ -341,7 +395,7 @@ function describeShared(
             text: action.routes.length ? 'Ran' : 'Did not run trains',
             trainDefinitionIds: action.metadata.routes.map((route) => route.definitionId),
             value: action.metadata.revenue ? money(action.metadata.revenue) : undefined,
-            detail: runBonusesDetail(action.metadata.routes, money, routeBonusName)
+            detail: runBonusesDetail(action.metadata.routes, money, routeBonusName, place)
         }
     }
     if (isDistributeEarnings(action)) {
@@ -618,7 +672,7 @@ function describeShared(
     }
     if (isAuctionCompany(action))
         return {
-            text: `Auctioned ${companyName(action.companyId)} at ${action.home.locationId}`,
+            text: `Auctioned ${companyName(action.companyId)} at ${place(action.home.locationId)}`,
             value: money(action.amount),
             important: true
         }
@@ -647,6 +701,7 @@ function describeShared(
             .reduce((sum, payment) => sum + payment.amount, 0)
         return {
             text: `${companyName(action.companyId)} floated`,
+            companyToken: action.companyId,
             detail:
                 [
                     ...(capital ? [`${money(capital)} capital`] : []),
@@ -719,6 +774,8 @@ function describeShared(
         }
     }
     if (isEndGame(action)) return { text: 'Game ended', important: true }
+    const call = gameCallOf(action)
+    if (call) return { text: gameCallDescription(call, playerName), important: true }
     if (isOfferPurchase(action) || isRespondToPurchaseOffer(action)) {
         assertExists(action.metadata, 'Recorded purchase offer requires its terms')
         const { offer, accepted } = action.metadata

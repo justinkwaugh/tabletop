@@ -1,5 +1,5 @@
 import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
-import { GameVisibility, type GameInfo } from '@tabletop/common'
+import type { GameInfo } from '@tabletop/common'
 import { EighteenThirtyTwoConfigurator } from './gameConfig.js'
 import { GAME_VERSION } from './version.js'
 
@@ -16,8 +16,7 @@ export const EighteenThirtyTwoInfo: GameInfo = {
         maxPlayers: 7,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true,
-        visibility: GameVisibility.Beta
+        beta: false
     },
     configurator: new EighteenThirtyTwoConfigurator()
 }

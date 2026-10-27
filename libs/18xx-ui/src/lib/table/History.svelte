@@ -18,16 +18,19 @@
     import RoundHistory from './RoundHistory.svelte'
     import AuctionHistoryCard from './AuctionHistoryCard.svelte'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    import type { Snippet } from 'svelte'
     let {
         session,
         onPreviewMap,
         trainColors,
-        describeAction
+        describeAction,
+        setup
     }: {
         onPreviewMap: (action: GameAction) => void
         session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
         describeAction?: TitleActionDescription
+        setup?: Snippet
     } = $props()
     const money = $derived(session.presentation.money)
     const jumpDisabled = $derived(
@@ -37,20 +40,22 @@
         if (!jumpDisabled) void session.history.goToActionIndex(index, { exact: true })
     }
     const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
-    const context = $derived(session.history.visibleContext)
-    const gameState = $derived(context.state)
-    const states = $derived(historyStates(context.actions, gameState, session.endingRules))
-    const orderChanges = $derived(historyOperatingOrder(context.actions, states))
+    const actions = $derived(session.actions)
+    // Stored form: the history is replayed from a copy, which the hydrated state's functions prevent.
+    const gameState = $derived(session.gameState.dehydrate())
+    const states = $derived(historyStates(actions, gameState, session.endingRules))
+    const orderChanges = $derived(historyOperatingOrder(actions, states))
     const cash = $derived(historyCash(states))
-    const entryOrders = $derived(entryOrderChanges(context.actions, orderChanges))
+    const entryOrders = $derived(entryOrderChanges(actions, orderChanges))
     const bankBreaks = $derived(historyBankBreaks(states))
-    const companyChanges = $derived(historyCompanyChanges(context.actions))
+    const companyChanges = $derived(historyCompanyChanges(actions))
+    const titleNames = $derived({ companyName, place: session.placeName })
     // A system action the title describes is one of its own events, unless it is routine.
     const rounds = $derived(
-        historyRounds(context.actions, gameState, states, orderChanges, cash, {
+        historyRounds(actions, gameState, states, orderChanges, cash, {
             isEvent: (action) => {
                 if (action.source !== ActionSource.System) return false
-                const description = describeAction?.(action, companyName, () =>
+                const description = describeAction?.(action, titleNames, () =>
                     describeShared(action)
                 )
                 return !!description && !description.routine
@@ -84,12 +89,13 @@
             companyChanges.get(action.id),
             session.presentation.money,
             (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
-            (id) => session.names.routeBonus(id)
+            (id) => session.names.routeBonus(id),
+            session.placeName
         )
     }
     function describe(action: GameAction) {
         const shared = () => describeShared(action)
-        const description = describeAction?.(action, companyName, shared) ?? shared()
+        const description = describeAction?.(action, titleNames, shared) ?? shared()
         return entryOrders.has(action.id) ? { ...description, important: true } : description
     }
 
@@ -108,7 +114,8 @@
     {rounds}
     phaseColors={session.presentation.phaseColors}
     {newestFirst}
-    historyComplete={context.hasCompleteHistory}
+    {setup}
+    historyComplete={session.hasCompleteHistory}
     onOrderChange={(first) =>
         session.preferences.set({ historyOrder: first ? 'newestFirst' : 'newestLast' }, 'family')}
 >
@@ -116,7 +123,11 @@
         <OperatingOrderHistory {order} stations={session.mapView.stations} {companyName} />
     {/snippet}
     {#snippet children(round)}
-        {@const groups = historyGroups(round.entries, round.label.startsWith('OR '))}
+        {@const groups = historyGroups(
+            round.entries,
+            round.label.startsWith('OR '),
+            (action) => !!describe(action).consequence
+        )}
         <ol aria-label={`${round.label} actions`}>
             {#each newestFirst ? groups : groups.toReversed() as entry (entry.id)}
                 {#if entry.kind === 'auction'}

@@ -62,7 +62,8 @@ Write (seen in the Discord forum; milestones also reach the reporter):
   status <post> <${STATUS_TAGS.join('|')}>
          [--note <text>] [--finding <text>] [--version <text>] [--approved] [--no-notify]
                                      Replace the post's status tag; a closed post stays closed
-  close <post> --as <status> [--note <text>] [--version <text>] [--approved] [--no-notify] [--lock]
+  close <post> --as <status> [--note <text>] [--finding <text>] [--version <text>] [--approved]
+        [--no-notify] [--lock]
                                      Set the status tag, then close the post
   notify <post> [--note <text>] [--version <text>] [--approved]
                                      Message the reporter again for the post's current status
@@ -77,9 +78,10 @@ updates the post, then messages the reporter: by Discord direct message when the
 linked, else by email, in the status's fixed wording plus --note. reproduced needs --finding,
 what was reproduced, posted in the forum under the status (the reporter gets --note, not this);
 fixed needs --version (it goes in the forum line; the reporter reads "our latest update"); wont
-fix and not a bug need --note; not a bug also needs --approved, given only after the user has
-read its --dry-run; suggestion thanks the reporter for the idea. A status the post already has
-is not sent twice; notify sends it again. --no-notify sets the tag alone.
+fix and not a bug need --note; not a bug also needs --finding, why the game works this way, for
+the forum, and --approved, given only after the user has read its --dry-run; suggestion thanks
+the reporter for the idea. A status the post already has is not sent twice; notify sends it
+again. --no-notify sets the tag alone.
 
 <post> is the post id from list, or a discord.com/channels/... link to the post or a message in it.
 Every read command accepts --json.

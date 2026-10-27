@@ -25,6 +25,8 @@ export interface ModifierParticulars {
     tradeOption?: string
     /** Master of Disguise — the player whose advisers a Trade acts with. */
     advisersOf?: string
+    /** Small Friends, from revision 19 (R-X.4) — the site a Trade acts as if the pawn is at. */
+    actsAsAt?: string
     /** `SearchSource`'s value. */
     drawFrom?: string
     playedCardId?: string
@@ -141,6 +143,11 @@ export interface OutcomeResult {
 export interface ModifierHooks {
     /** R-7.4.1 — a failing declared optional modifier is refused; a mandatory one is simply not applied. */
     condition?: (ctx: EffectContext) => string | undefined
+    /**
+     * R-7.4 — why the card cannot be declared now, whatever is picked (Small Friends with no site
+     * to name): the listing (`usableModifiers`) leaves it out and the declaration is refused.
+     */
+    reasonUnusable?: (ctx: EffectContext) => string | undefined
     /** R-5.1.1 to R-5.6.1 */
     supplyCost?: (base: number, ctx: EffectContext) => number
     /** R-7.6.2 — beats every `supplyCost`, whichever is declared first. */
@@ -249,6 +256,8 @@ export interface BattlePlanHooks {
     killsEnemyForce?: boolean
     /** Relic Hunter */
     targetsSiteRelics?: boolean
+    /** Relic Hunter — "you may put any relics you take on the bottom of the relic deck". */
+    bottomsTakenRelics?: boolean
     /** Wild Mounts, R-5.5.8 — one of `insteadCardIds` is discarded instead. */
     sparesEndDiscards?: (
         ctx: PlayerPlanContext,

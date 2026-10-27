@@ -18,6 +18,7 @@ import type { OathPlayerState } from '../model/playerState.js'
 import { VISIONS_DRAWN_SUPPLY_COST } from '../data/visionsDrawnTrack.js'
 import { FILLER as ORDER_CARD } from '../testing/cards.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { OathRevision } from './revision.js'
 
 const CHANCELLOR = 'chancellor'
 const CITIZEN = 'citizen'
@@ -92,7 +93,8 @@ describe('R-4.3.3 — the Supply refresh is banded, not linear', () => {
     })
 })
 
-describe('R-4.3.4-H1 — a mid-turn Supply gain', () => {
+/** A fixture with no `oathRevision` predates revision 24 (R-X.4): the turn's ledger is read. */
+describe('R-4.3.4-H1 — a mid-turn Supply gain, before revision 24', () => {
     function exile(overrides: Partial<OathPlayerState> = {}) {
         return testState([
             testPlayer({
@@ -248,8 +250,8 @@ describe('R-4.3.3 / R-4.3.4 — refresh and save Supply', () => {
     })
 })
 
-/** R-6.6.2, R-6.7, R-6.8 refresh Supply mid-turn; only the ledger records what went unspent. */
-describe('the Rest saving is the ledger, not the marker (R-4.3.4)', () => {
+/** R-6.6.2, R-6.7, R-6.8 refresh Supply mid-turn; before revision 24 (R-X.4) the ledger is read. */
+describe('before revision 24 the Rest saving is the ledger, not the marker (R-4.3.4)', () => {
     it('agrees with the marker when nothing refreshed Supply mid-turn', () => {
         const state = ledgerTable({ supply: 2, supplySpentThisTurn: 5, bank: 2 })
         expect(refreshSupply(state, LEDGER_PLAYER)).toBe(4 + 2)
@@ -290,6 +292,113 @@ describe('the Rest saving is the ledger, not the marker (R-4.3.4)', () => {
         const player = state.getPlayerState(LEDGER_PLAYER)
         expect(player.supplySpentThisTurn).toBe(0)
         expect(player.supplyAtTurnStart).toBe(player.supply)
+    })
+})
+
+/** R-4.3.4 — "Supply not spent" is the marker as it stands at the Rest, as on the board. */
+describe('from revision 24 the Rest saving is the marker (R-4.3.4, R-X.4)', () => {
+    const AT = OathRevision.EngineFixes20
+    const BEFORE = OathRevision.EngineFixes19
+
+    /** An Exile on base 4 (R-4.3.3: 3 or fewer banked warbands), Supply 7 at the turn's start. */
+    function exile(revision: number, overrides: Partial<OathPlayerState> = {}) {
+        return testState(
+            [
+                testPlayer({
+                    playerId: 'dana',
+                    color: Color.Red,
+                    status: PlayerStatus.Exile,
+                    supply: MAX_SUPPLY,
+                    warbandsInPersonalBank: { dana: 2 },
+                    ...overrides
+                })
+            ],
+            { oathRevision: revision }
+        )
+    }
+
+    function spend(state: ReturnType<typeof exile>, amount: number) {
+        state.getPlayerState('dana').spendSupply(amount)
+    }
+
+    /** R-6.6.2, R-6.7, R-6.8 move the marker to the leftmost space. */
+    function refreshToFull(state: ReturnType<typeof exile>) {
+        state.getPlayerState('dana').supply = MAX_SUPPLY
+    }
+
+    it('an ordinary turn saves what is left on the marker (5 of 7 spent: 4 + 2), at both revisions', () => {
+        for (const revision of [AT, BEFORE]) {
+            const state = exile(revision)
+            spend(state, 5)
+            expect(refreshSupply(state, 'dana')).toBe(4 + 2)
+        }
+    })
+
+    it('a refresh to full after all 7 were spent saves all 7; before revision 24, none', () => {
+        const marker = exile(AT)
+        spend(marker, MAX_SUPPLY)
+        refreshToFull(marker)
+        expect(refreshSupply(marker, 'dana')).toBe(MAX_SUPPLY)
+
+        const ledger = exile(BEFORE)
+        spend(ledger, MAX_SUPPLY)
+        refreshToFull(ledger)
+        expect(refreshSupply(ledger, 'dana')).toBe(4)
+    })
+
+    it('a refresh to full after 5 were spent saves 7; before revision 24, the 2 left', () => {
+        const marker = exile(AT)
+        spend(marker, 5)
+        refreshToFull(marker)
+        expect(refreshSupply(marker, 'dana')).toBe(MAX_SUPPLY)
+
+        const ledger = exile(BEFORE)
+        spend(ledger, 5)
+        refreshToFull(ledger)
+        expect(refreshSupply(ledger, 'dana')).toBe(4 + 2)
+    })
+
+    it('a gain moves the marker only; the saving is the marker left after spending it', () => {
+        const state = exile(AT, { supply: 2 })
+        expect(gainSupply(state, 'dana', 3)).toBe(3)
+        const dana = state.getPlayerState('dana')
+        expect(dana.supply).toBe(5)
+        expect(dana.supplyAtTurnStart).toBe(2)
+
+        spend(state, 4)
+        expect(refreshSupply(state, 'dana')).toBe(4 + 1)
+    })
+
+    it('a gain at the top of the track is lost (R-4.3.4-H1)', () => {
+        const state = exile(AT)
+        expect(gainSupply(state, 'dana', 2)).toBe(0)
+        spend(state, 5)
+        expect(refreshSupply(state, 'dana')).toBe(4 + 2)
+    })
+
+    it('a Citizen whose marker is below the Chancellor’s Supply rests on the Chancellor’s plus the marker', () => {
+        const state = table(
+            { oathRevision: AT },
+            {
+                [CHANCELLOR]: { supply: 5 },
+                [CITIZEN]: { supply: 1, supplySpentThisTurn: 6 }
+            }
+        )
+        expect(refreshSupply(state, CITIZEN)).toBe(5 + 1)
+    })
+
+    it('still cannot refresh past the leftmost space', () => {
+        const state = exile(AT, { warbandsInPersonalBank: { dana: 14 } })
+        expect(refreshSupply(state, 'dana')).toBe(MAX_SUPPLY)
+    })
+
+    it('resets the turn’s fields for the next turn as before, so the stored state keeps its shape', () => {
+        const state = exile(AT)
+        spend(state, 4)
+        refreshSupply(state, 'dana')
+        const dana = state.getPlayerState('dana')
+        expect(dana.supplySpentThisTurn).toBe(0)
+        expect(dana.supplyAtTurnStart).toBe(dana.supply)
     })
 })
 

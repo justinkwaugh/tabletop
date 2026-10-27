@@ -35,12 +35,14 @@ import {
     ModifierUses,
     payModifierCosts,
     resolveModifiers,
+    actsAsAtSite,
     disguisedAs,
     runAfter,
     runBefore,
     type ActiveModifier,
     type ActionPlan
 } from '../util/modifiers.js'
+import type { EffectContext } from '../powers/registry.js'
 
 /** R-5.3.1 */
 export const TRADE_SUPPLY_COST = 1
@@ -115,22 +117,31 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         if (plan.reason) {
             throw Error(`Cannot trade: ${plan.reason}`)
         }
+        const particulars = HydratedTrade.particulars(
+            state,
+            this.playerId,
+            this.cardId,
+            this.option,
+            this.modifiers
+        )
+        // Master of Disguise — the Trade's favor, paid and gained, follows the lent Vow of Kinship.
+        const { advisersOf } = particulars
         // R-7.1.4 — Curfew's toll, paid before anything else is placed.
         const tollNotes = payTolls(
             state,
             this.playerId,
             { kind: 'trade', cardId: this.cardId },
-            this.tolls
+            this.tolls,
+            advisersOf
         )
         const { cost, active } = plan
-        const particulars = HydratedTrade.particulars(this.cardId, this.option, this.modifiers)
 
         const suit = suitOf(this.cardId)
         assertExists(suit, `${this.cardId} has no suit`)
         const matching = HydratedTrade.matchingAdvisers(state, this.playerId, this.cardId, active)
 
         // R-7.1.2 — the price includes side-effects ("if you sacrifice one warband").
-        payModifierCosts(state, this.playerId, active)
+        payModifierCosts(state, this.playerId, active, advisersOf)
         const notes = runBefore(state, this.playerId, active, particulars)
 
         // R-5.3.1
@@ -143,7 +154,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             player.secrets -= 1
             state.addTokensOn(this.cardId, { secrets: 1 })
         } else {
-            spendFavor(state, this.playerId, 2)
+            spendFavor(state, this.playerId, 2, advisersOf)
             state.addTokensOn(this.cardId, { favor: 2 })
         }
 
@@ -156,7 +167,9 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             matching
         )
         // R-9.3 — favor is component-limited: take as many as possible.
-        const favorGained = forFavor ? gainFavorFromBank(state, this.playerId, suit, wanted) : 0
+        const favorGained = forFavor
+            ? gainFavorFromBank(state, this.playerId, suit, wanted, advisersOf)
+            : 0
         const secretsGained = forFavor ? 0 : wanted
         player.secrets += secretsGained
 
@@ -239,18 +252,28 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
     ): number {
         const suit = suitOf(cardId)
         assertExists(suit, `${cardId} has no suit`)
-        const particulars = HydratedTrade.particulars(cardId, option, modifiers)
+        const particulars = HydratedTrade.particulars(state, playerId, cardId, option, modifiers)
         const wanted = foldNumber('tradeSideFavor', 0, state, playerId, active, particulars)
         return Math.min(wanted, state.favorBank[suit])
     }
 
-    /** What the Trade's modifiers read: its card, its option and whose advisers it acts with (Master of Disguise). */
-    private static particulars(
+    /**
+     * What the Trade's modifiers read: its card, its option, whose advisers it acts with (Master of
+     * Disguise) and, from revision 19, the site it acts as if the pawn is at (Small Friends).
+     */
+    static particulars(
+        state: HydratedOathGameState,
+        playerId: string,
         cardId: string,
         option: TradeOption,
         modifiers: readonly ModifierUse[] | undefined
     ) {
-        return { cardId, tradeOption: option, advisersOf: disguisedAs(ActionType.Trade, modifiers) }
+        return {
+            cardId,
+            tradeOption: option,
+            advisersOf: disguisedAs(ActionType.Trade, modifiers),
+            actsAsAt: actsAsAtSite(state, playerId, ActionType.Trade, modifiers)
+        }
     }
 
     static plan(
@@ -264,7 +287,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         const none: ActionPlan = { cost: TRADE_SUPPLY_COST, active: [] }
         const player = state.getPlayerState(playerId)
         // Master of Disguise trades as the other player's advisers; the modifiers' conditions read it too.
-        const particulars = HydratedTrade.particulars(cardId, option, modifiers)
+        const particulars = HydratedTrade.particulars(state, playerId, cardId, option, modifiers)
         const resolved = resolveModifiers(state, playerId, ActionType.Trade, modifiers, particulars)
         if (resolved.reason) return { ...none, reason: resolved.reason }
         const active = resolved.active
@@ -272,7 +295,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         if (player.supply < cost) {
             return { cost, active, reason: `costs ${cost} Supply, player has ${player.supply}` }
         }
-        const sites = HydratedTrade.tradeableSitesFor(state, playerId, active)
+        const sites = HydratedTrade.tradeableSitesFor(state, playerId, active, particulars)
         if (!sites.some((siteId) => state.isMusterableCard(siteId, cardId))) {
             return {
                 cost,
@@ -293,28 +316,36 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         // R-7.1.4 — a persistent "cannot trade with …" (Forest Council).
         const forbidden = reasonPersistentForbidsTrade(state, playerId, cardId)
         if (forbidden) return { cost, active, reason: forbidden }
+        // R-7.1.4-H1, R-9.2 — Master of Disguise trades as the other player's advisers: their Vow of
+        // Poverty's "cannot gain favor from Trade", and from revision 23 their Vow of Kinship (R-7.4-H1).
+        const advisersOf = particulars.advisersOf ?? playerId
         // R-7.1.4 — Curfew's "unless they give favor" (`util/tolls.ts`).
-        const unpaid = reasonTollsUnpaid(state, playerId, { kind: 'trade', cardId }, tolls)
+        const unpaid = reasonTollsUnpaid(
+            state,
+            playerId,
+            { kind: 'trade', cardId },
+            tolls,
+            advisersOf
+        )
         if (unpaid) return { cost, active, reason: unpaid }
         if (option === TradeOption.ForFavor && player.secrets < 1) {
             return { cost, active, reason: 'trading for favor requires one secret to place' }
         }
-        // R-7.1.4-H1, R-9.2 — Vow of Poverty's "cannot gain favor from Trade"; Master of Disguise trades as the other player's advisers.
-        const advisersOf = particulars.advisersOf ?? playerId
         if (
             option === TradeOption.ForFavor &&
             cannotGainFavorFromTrade(state, playerId, advisersOf)
         ) {
             return { cost, active, reason: 'you cannot gain favor from Trade (Vow of Poverty)' }
         }
-        if (option === TradeOption.ForSecrets && usableFavor(state, playerId) < 2) {
+        if (option === TradeOption.ForSecrets && usableFavor(state, playerId, advisersOf) < 2) {
             return { cost, active, reason: 'trading for secrets requires two favor to place' }
         }
-        const unaffordable = reasonCannotPayInAll(state, playerId, [
-            modifierPayment(active),
-            tollPayment(tolls),
-            HydratedTrade.placement(state, option)
-        ])
+        const unaffordable = reasonCannotPayInAll(
+            state,
+            playerId,
+            [modifierPayment(active), tollPayment(tolls), HydratedTrade.placement(state, option)],
+            advisersOf
+        )
         if (unaffordable) return { cost, active, reason: unaffordable }
         return { cost, active }
     }
@@ -328,14 +359,20 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         )
     }
 
+    /**
+     * R-5.3 — the pawn's site, or from revision 19 the site Small Friends acts at instead (its
+     * Q&A: "Only the new site"), and the sites a declared modifier reaches.
+     */
     static tradeableSitesFor(
         state: HydratedOathGameState,
         playerId: string,
-        active: readonly ActiveModifier[]
+        active: readonly ActiveModifier[],
+        particulars: Partial<EffectContext['particulars']> = {}
     ): string[] {
-        const sites = new Set<string>([pawnSiteId(state, playerId)])
+        const sites = new Set<string>([particulars.actsAsAt ?? pawnSiteId(state, playerId)])
         for (const m of active) {
-            for (const siteId of m.hooks.tradeSites?.(modifierContext(state, playerId, m)) ?? []) {
+            const ctx = { ...modifierContext(state, playerId, m), particulars }
+            for (const siteId of m.hooks.tradeSites?.(ctx) ?? []) {
                 if (state.isSiteFaceup(siteId)) sites.add(siteId)
             }
         }

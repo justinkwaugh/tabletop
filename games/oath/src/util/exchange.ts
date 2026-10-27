@@ -2,11 +2,11 @@ import { bannerHolder } from './oathkeeper.js'
 import { assert, assertExists } from '@tabletop/common'
 import { giveFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import {
-    type ExchangeAllowance,
-    type ExchangeTerms,
-    type ExchangeTransfer,
-    type SiteTransfer
+import type {
+    ExchangeAllowance,
+    ExchangeTerms,
+    ExchangeTransfer,
+    SiteTransfer
 } from '../model/question.js'
 import { rulesSite, rulingWarbandOwners, actsAsIfBanditsAreWarbands, warbandsAt } from './rule.js'
 import { reasonCannotMoveCardTo } from './locked.js'

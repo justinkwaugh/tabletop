@@ -246,7 +246,8 @@ export const TournamentResultCorrection = Type.Object({
     administratorId: Type.String(),
     reason: Type.String({ minLength: 1, maxLength: 1000 }),
     createdAt: Type.Integer(),
-    gameActionCount: Type.Integer({ minimum: 0 })
+    // Written by older backends only
+    gameActionCount: Type.Optional(Type.Integer({ minimum: 0 }))
 })
 export type TournamentResultCorrection = Type.Static<typeof TournamentResultCorrection>
 

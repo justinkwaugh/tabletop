@@ -10,7 +10,7 @@
         recordedResult?: OperatingResult
         session: Pick<
             EighteenXXSessionView,
-            'undo' | 'busy' | 'isViewingHistory' | 'companyName'
+            'undo' | 'busy' | 'isViewingHistory' | 'companyName' | 'placeName'
         > & {
             gameState: Pick<EighteenXXSessionView['gameState'], 'routeStep' | 'companies'>
             presentation: Pick<EighteenXXSessionView['presentation'], 'money'>
@@ -33,9 +33,11 @@
     const money = $derived(session.presentation.money)
     function breakdown(route: RouteResult): string {
         return [
-            ...route.payments.map((payment) => `${payment.locationId}: ${money(payment.amount)}`),
+            ...route.payments.map(
+                (payment) => `${session.placeName(payment.locationId)}: ${money(payment.amount)}`
+            ),
             ...(route.bonuses ?? []).map(
-                (bonus) => `${bonus.locationId} bonus: ${money(bonus.amount)}`
+                (bonus) => `${session.placeName(bonus.locationId)} bonus: ${money(bonus.amount)}`
             )
         ].join(' + ')
     }

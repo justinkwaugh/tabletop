@@ -43,6 +43,11 @@ export type TileLayout = {
     revenuePositionsByRotation?: Partial<Record<TileRotation, Readonly<Record<string, Point>>>>
     revenuePositionsByOrientation?: Partial<Record<HexOrientation, Readonly<Record<string, Point>>>>
     labelPosition?: Point
+    /**
+     * Degrees clockwise to turn a city's row of station spaces off the tile's own axis, by node
+     * id, such as to level a two-space city under a row of revenues.
+     */
+    slotRowTurns?: Readonly<Record<string, number>>
     hideRevenue?: true | readonly string[]
     /** Lays staged revenue boxes out in a column or a row rather than whichever fits best. */
     revenueStack?: 'column' | 'row'
@@ -60,7 +65,10 @@ export type TileDrawnNode = {
     /** Station circle radius: the style's size, reduced so neighbouring cities on the tile stay apart. */
     slotRadius: number
     townAngle?: number
-    /** Radius of a town, or a city without station spaces, drawn as a dot: larger where three or more tracks meet. */
+    /**
+     * Radius of a node drawn as a dot: a town's is larger where three or more tracks meet, and a
+     * city without station spaces fills a station circle, since it is still a city.
+     */
     dotRadius: number
 }
 
@@ -105,6 +113,16 @@ export function createTileDrawing(
     )
     const angle =
         ((rotation * 60 + (orientation === HexOrientation.Pointy ? 30 : 0)) * Math.PI) / 180
+    // Four slots form a square, which a hex turn would tilt, so it stays upright, filled from
+    // the top left.
+    const citySlots = (node: Extract<TileNode, { kind: 'city' }>, center: Point) =>
+        stationPositions(
+            node.stationSlots,
+            center,
+            (node.stationSlots === 4 ? -Math.PI / 4 : angle) +
+                ((layout.slotRowTurns?.[node.id] ?? 0) * Math.PI) / 180,
+            citySlotRadius
+        )
     const centers = new Map<string, Point>()
     const automaticTownPaths = new Map<string, readonly TilePath[]>()
     for (const node of face.nodes) {
@@ -212,7 +230,7 @@ export function createTileDrawing(
     const stationSlots = face.nodes.flatMap((node) => {
         const center = centers.get(node.id)
         return center && node.kind === 'city' && node.stationSlots > 0
-            ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
+            ? citySlots(node, center)
             : []
     })
     const occupied: Point[] = [
@@ -221,7 +239,7 @@ export function createTileDrawing(
             const center = centers.get(node.id)
             assertExists(center, `Unknown tile node ${node.id}`)
             return node.kind === 'city' && node.stationSlots > 0
-                ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
+                ? citySlots(node, center)
                 : [center]
         })
     ]
@@ -288,10 +306,7 @@ export function createTileDrawing(
         return {
             node,
             center,
-            slots:
-                node.kind === 'city'
-                    ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
-                    : [],
+            slots: node.kind === 'city' ? citySlots(node, center) : [],
             revenuePosition,
             revenueCells,
             revenueHidden,
@@ -310,7 +325,13 @@ export function createTileDrawing(
                 others.map((other) => Math.hypot(point.x - other.x, point.y - other.y))
             )
         )
-        return { ...drawn, slotRadius: Math.min(citySlotRadius, nearest / 2 - 0.75) }
+        const slotRadius = Math.min(citySlotRadius, nearest / 2 - 0.75)
+        return {
+            ...drawn,
+            slotRadius,
+            dotRadius:
+                drawn.node.kind === 'city' && !drawn.slots.length ? slotRadius : drawn.dotRadius
+        }
     })
     const labelPosition = layout.labelPosition
         ? orientPoint(layout.labelPosition, angle)

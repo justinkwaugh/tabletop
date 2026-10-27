@@ -41,9 +41,7 @@
 
     const gameSession = getGameSession()
     const clusters = $derived(
-        byCorps && units.length > 0
-            ? corpsClusters(units, (some) => gameSession.asRead(units[0].playerId, some))
-            : []
+        byCorps && units.length > 0 ? corpsClusters(units, (some) => gameSession.asRead(some)) : []
     )
     const gap = $derived(onpick ? 'gap-x-1' : 'gap-x-0')
     // Two tiles fit side by side on a phone; a wrapped row would stretch the corps, and its rule, across the panel.

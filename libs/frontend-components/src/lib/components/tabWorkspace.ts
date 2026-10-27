@@ -164,7 +164,7 @@ export function resizeSplit(root: WorkspaceNode, id: string, ratio: number): Wor
     }
 }
 
-function mergeTabs(node: WorkspaceNode, pane: WorkspacePane): WorkspaceNode {
+export function mergeTabs(node: WorkspaceNode, pane: WorkspacePane): WorkspaceNode {
     if (node.kind === 'pane')
         return { ...node, tabs: [...node.tabs, ...pane.tabs], active: node.active ?? pane.active }
     return { ...node, first: mergeTabs(node.first, pane) }
@@ -196,4 +196,56 @@ export function closeTab(root: WorkspaceNode, tab: string): WorkspaceNode {
         return { ...root, first: closeTab(root.first, tab), second: closeTab(root.second, tab) }
     const tabs = root.tabs.filter((id) => id !== tab)
     return { ...root, tabs, active: root.active === tab ? tabs[0] : root.active }
+}
+
+export function moveTabToIndex(tabs: readonly string[], tab: string, index: number): string[] {
+    const rest = tabs.filter((id) => id !== tab)
+    rest.splice(Math.max(0, Math.min(rest.length, index)), 0, tab)
+    return rest
+}
+
+export function orderPaneTabs(
+    root: WorkspaceNode,
+    id: string,
+    tabs: readonly string[]
+): WorkspaceNode {
+    return updatePane(root, id, (pane) => ({ ...pane, tabs: [...tabs] }))
+}
+
+export function withdrawTabs(
+    root: WorkspaceNode,
+    tabs: readonly string[]
+): { root: WorkspaceNode; withdrawn: string[] } {
+    const present = new Set(workspaceLayout(root).panes.flatMap((item) => item.pane.tabs))
+    const withdrawn = tabs.filter((tab) => present.has(tab))
+    return { root: withdrawn.reduce(closeTab, root), withdrawn }
+}
+
+export interface TabDrag {
+    tabs: readonly string[]
+    tab: string
+    offset: number
+    rowHeight: number
+}
+
+export function tabDragIndex(drag: TabDrag): number {
+    const start = drag.tabs.indexOf(drag.tab)
+    return Math.max(
+        0,
+        Math.min(drag.tabs.length - 1, start + Math.round(drag.offset / drag.rowHeight))
+    )
+}
+
+export function tabDragShift(drag: TabDrag, tab: string): number {
+    const start = drag.tabs.indexOf(drag.tab)
+    if (tab === drag.tab)
+        return Math.max(
+            -start * drag.rowHeight,
+            Math.min((drag.tabs.length - 1 - start) * drag.rowHeight, drag.offset)
+        )
+    const index = tabDragIndex(drag)
+    const position = drag.tabs.indexOf(tab)
+    if (start < index && position > start && position <= index) return -drag.rowHeight
+    if (index < start && position >= index && position < start) return drag.rowHeight
+    return 0
 }

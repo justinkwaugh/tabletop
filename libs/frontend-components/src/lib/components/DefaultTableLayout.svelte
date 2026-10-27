@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Snippet } from 'svelte'
+    import type { Snippet } from 'svelte'
     import { scrollToRight } from '$lib/utils/scrollOnLoad.js'
     import DebugPanel from './DebugPanel.svelte'
     import HistoryControls from './HistoryControls.svelte'
@@ -60,6 +60,7 @@
                     </div>{/if}
                 <div
                     class:ms-2={showSidebar}
+                    class:beside-sidebar={showSidebar}
                     class="game-column shrink grow sm:min-w-[320px] min-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass} flex flex-col overflow-auto"
                     style:--table-inline-padding={`${horizontalPadding}px`}
                 >
@@ -86,8 +87,9 @@
     .table-scroller {
         position: relative;
     }
+    /* Beside the sidebar the row scrolls sideways, and a scroller drops its end padding. */
     @media (width < 40rem) {
-        .game-column {
+        .game-column.beside-sidebar {
             padding-inline-end: var(--table-inline-padding);
         }
     }

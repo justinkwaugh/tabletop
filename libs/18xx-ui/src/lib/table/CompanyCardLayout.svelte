@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
-    import { wheelDeltaUnit } from '@tabletop/frontend-components'
+    import { chainSidewaysScroll, wheelDeltaUnit } from '@tabletop/frontend-components'
     import ViewSwitch from './ViewSwitch.svelte'
 
     let {
@@ -61,6 +61,7 @@
         class:wide
         aria-label="Started companies"
         {@attach scrollRowOnWheel}
+        {@attach chainSidewaysScroll}
     >
         {@render children()}
     </div>

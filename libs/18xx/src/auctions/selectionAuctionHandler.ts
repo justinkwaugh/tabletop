@@ -1,8 +1,8 @@
-import {
-    type HydratedAction,
-    type HydratedGameState,
-    type MachineContext,
-    type MachineStateHandler
+import type {
+    HydratedAction,
+    HydratedGameState,
+    MachineContext,
+    MachineStateHandler
 } from '@tabletop/common'
 import {
     SelectionAuctionModel,

@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/the-old-prince-ui",
-    "version": "6.0.0",
+    "version": "7.1.0",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",
@@ -28,7 +28,7 @@
         "build": "pnpm run package",
         "package": "svelte-kit sync && svelte-package",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-        "bundle": "svelte-kit sync && rimraf bundle && rollup -c ./rollup.config.ts",
+        "bundle": "svelte-kit sync && rimraf bundle && rolldown -c ./rolldown.config.ts",
         "test": "pnpm run bundle && node --test tests/bundledStyles.test.mjs tests/scenarioFiles.test.mjs",
         "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs",
         "dev": "vite dev",
@@ -47,22 +47,23 @@
         "@tabletop/the-old-prince": "workspace:*"
     },
     "devDependencies": {
-        "@sveltejs/kit": "^2.48.4",
+        "@sveltejs/kit": "^2.70.3",
         "@sveltejs/package": "^2.5.7",
-        "@sveltejs/vite-plugin-svelte": "^6.2.4",
-        "@tabletop/rollup-config": "workspace:*",
+        "@sveltejs/vite-plugin-svelte": "^7.3.1",
+        "@tabletop/rolldown-config": "workspace:*",
         "@tailwindcss/postcss": "^4.1.18",
         "flowbite": "^3.1.2",
         "flowbite-svelte": "^1.31.0",
         "flowbite-svelte-icons": "^3.1.0",
         "rimraf": "^6.1.0",
-        "rollup": "4.55.2",
+        "rolldown": "^1.2.15",
         "svelte": "^5.0.0",
         "svelte-check": "^4.3.5",
         "tailwindcss": "^4.1.18",
         "typescript": "5.9.3",
-        "vite": "^7.3.1",
+        "vite": "^8.3.5",
         "@tabletop/eslint-config": "workspace:*",
-        "@tabletop/prettier-config": "workspace:*"
+        "@tabletop/prettier-config": "workspace:*",
+        "@tabletop/vitest-config": "workspace:*"
     }
 }

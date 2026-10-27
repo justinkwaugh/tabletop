@@ -40,8 +40,8 @@
                 return { label: `${name} defends with his corps`, marker: 'defends', chosen: true }
             case CommanderStatus.NamedElsewhere:
                 return {
-                    label: `${name} was named against another approach this turn, so he cannot defend here`,
-                    marker: 'named already',
+                    label: `${name} is already defending another approach this turn, so he cannot defend here`,
+                    marker: 'defending elsewhere',
                     dimmed: true
                 }
         }
@@ -98,6 +98,11 @@
     >
         Defend
     </button>
+    {#if stage.withAll}
+        <button type="button" class="nt-plain-button" onclick={() => gameSession.defendWithAll()}>
+            Defend with all
+        </button>
+    {/if}
     {#if !stage.forced}
         <button type="button" class="nt-plain-button" onclick={() => gameSession.planRetreat()}
             >Retreat before combat</button

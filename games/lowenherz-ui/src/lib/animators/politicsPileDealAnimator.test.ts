@@ -155,11 +155,14 @@ describe('PoliticsPileDealAnimator', () => {
         expect(animator.cardWidth).toBe(cardWidth)
         expect(animator.losingDeck).toEqual({
             left: ROW.width / 2 + CHOOSER_DECK_GAP / 2,
-            empty: false
+            empty: false,
+            pile: 'B'
         })
+        expect(animator.dealtPile).toBe('A')
         live.finish()
         expect(animator.dealing).toBe(false)
         expect(animator.losingDeck).toBeUndefined()
+        expect(animator.dealtPile).toBeUndefined()
     })
 
     it('deals an opening reached by history navigation, with no live click behind it', async () => {

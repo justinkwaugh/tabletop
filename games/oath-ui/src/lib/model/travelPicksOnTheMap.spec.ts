@@ -137,9 +137,9 @@ describe('R-11.7-H1 — the ruler’s pick after a card or a banish moves the pa
     it('Toll Roads on a free pick: the toll site’s chip is its toll alone', async () => {
         const { session } = await scene('whistleToll')
         const slum = session.question.travelPick?.sites.find((site) => site.siteId === greatSlum)
-        expect(slum).toMatchObject({ cost: undefined, toll: true, flip: false })
+        expect(slum).toMatchObject({ cost: undefined, toll: true, flips: 0 })
         const chip = slum ? pickChip(slum) : undefined
-        expect(chip).toEqual({ free: { toll: true, secret: false } })
+        expect(chip).toEqual({ free: { toll: true, secrets: 0 } })
         expect(chip ? chipWords(chip) : undefined).toBe('toll 1 favor')
     })
 
@@ -199,9 +199,7 @@ describe('R-11.13-H1 — the Brass Horse user’s own pick is made on the map', 
         expect(offered(session)).toEqual([plains, hiddenPlace].sort())
         const hidden = pick?.sites.find((site) => site.siteId === hiddenPlace)
         const open = pick?.sites.find((site) => site.siteId === plains)
-        expect(hidden ? pickChip(hidden) : undefined).toEqual({
-            free: { toll: false, secret: true }
-        })
+        expect(hidden ? pickChip(hidden) : undefined).toEqual({ free: { toll: false, secrets: 1 } })
         expect(open ? pickChip(open) : 'none').toBeUndefined()
         expect(session.mapPick).toMatchObject({ kind: 'travel', moverId: 'Dana' })
         expect(

@@ -113,8 +113,8 @@ describe('The Hidden Place — "Travel to The Hidden Place?": Travel · flip 1 [
 describe('the Brass Horse offers The Hidden Place with its flip', () => {
     it('marks The Hidden Place alone as flipping, and its answer carries the flip', async () => {
         const { draft, sent } = await asked(horse())
-        expect(draft.travelFlipAt('c2')).toBe(true)
-        expect(draft.travelFlipAt('p1')).toBe(false)
+        expect(draft.travelFlipsAt('c2')).toBe(1)
+        expect(draft.travelFlipsAt('p1')).toBe(0)
         await draft.travelTo('c2')
         expect(sent).toHaveBeenCalledWith({
             kind: PowerQuestionKind.TravelFreeTo,
@@ -130,7 +130,7 @@ describe('the Brass Horse offers The Hidden Place with its flip', () => {
 
     it('in a game created before revision 15 nothing flips', async () => {
         const { draft } = await asked(horse(), {}, OathRevision.EngineFixes10)
-        expect(draft.travelFlipAt('c2')).toBe(false)
+        expect(draft.travelFlipsAt('c2')).toBe(0)
     })
 })
 

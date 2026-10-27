@@ -67,7 +67,7 @@
               }
           ]
         : []}
-    historyDescription={(action, companyName) =>
+    historyDescription={(action, { companyName }) =>
         isSplitCompany(action)
             ? {
                   text: `Split ${companyName(action.branchId)} from ${companyName(action.parentId)}`,
@@ -80,6 +80,7 @@
     auctionLotDescription={(id) => lotInfo(id).description}
     {session}
     {privateOperationDescription}
+    {createRouteWorker}
 >
     {#snippet actions(focusLocation, focusRoute)}
         {#if session.offers.model && !session.offers.model.auction.completed}

@@ -18,8 +18,6 @@
     import { armyObjectives } from '$lib/utils/armyObjectives.js'
     import StarMark from './StarMark.svelte'
 
-    let { onlocate }: { onlocate: (locale: number) => void } = $props()
-
     const gameSession = getGameSession()
     const game = $derived(gameSession.gameState)
 
@@ -35,7 +33,7 @@
         game.players.flatMap((player) => (player.side ? [{ player, side: player.side }] : []))
     )
 
-    function strength(units: ProjectedUnit[]): string {
+    function unitCount(units: ProjectedUnit[]): string {
         return units.length === 1 ? '1 unit' : `${units.length} units`
     }
 
@@ -111,7 +109,7 @@
 
 {#snippet unitBlocks(units: ProjectedUnit[], colors: ArmyColors)}
     <div class="nt-corps-units">
-        {#each units as unit (unit.id)}
+        {#each gameSession.asRead(units) as unit (unit.id)}
             <svg
                 viewBox="{-BLOCK_LENGTH / 2} {-BLOCK_THICKNESS /
                     2} {BLOCK_LENGTH} {BLOCK_THICKNESS}"
@@ -166,7 +164,7 @@
                                     type="button"
                                     class="nt-corps-where nt-corps-locate"
                                     aria-label="Show {definition.name} on the map"
-                                    onclick={() => onlocate(locale)}
+                                    onclick={() => gameSession.locateLocale(locale)}
                                 >
                                     <svg viewBox="0 0 16 16" aria-hidden="true">
                                         <circle cx="8" cy="8" r="4.2"></circle>
@@ -180,10 +178,8 @@
                                 <span class="nt-corps-where">{where.place}</span>
                             {/if}
                         </div>
-                        {#if units.some((unit) => gameSession.visibleFace(unit))}
-                            {@render unitBlocks(gameSession.asRead(player.playerId, units), colors)}
-                        {:else if units.length > 0}
-                            <div class="nt-corps-where">{strength(units)}</div>
+                        {#if units.length > 0}
+                            {@render unitBlocks(units, colors)}
                         {/if}
                     </div>
                 {/each}
@@ -195,14 +191,9 @@
                                     ? 'Detached'
                                     : 'To set up'}</span
                             >
-                            <span class="nt-corps-where">{strength(detached)}</span>
+                            <span class="nt-corps-where">{unitCount(detached)}</span>
                         </div>
-                        {#if detached.some((unit) => gameSession.visibleFace(unit))}
-                            {@render unitBlocks(
-                                gameSession.asRead(player.playerId, detached),
-                                colors
-                            )}
-                        {/if}
+                        {@render unitBlocks(detached, colors)}
                     </div>
                 {/if}
             </div>
@@ -276,6 +267,7 @@
         display: flex;
         flex-direction: column;
         gap: 3px;
+        margin-bottom: 4px;
     }
 
     .nt-elite {

@@ -1,4 +1,7 @@
-import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
+import {
+    gameClientCapabilities,
+    type GameUiDefinition
+} from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { LowenherzInfo } from '@tabletop/lowenherz'
 import type { LowenherzProjectedState, HydratedLowenherzGameState } from '@tabletop/lowenherz'
 import coverImg from '$lib/images/lowenherz-cover.webp'
@@ -6,7 +9,8 @@ import coverImg from '$lib/images/lowenherz-cover.webp'
 export const UiDefinition: GameUiDefinition<LowenherzProjectedState, HydratedLowenherzGameState> = {
     info: {
         ...LowenherzInfo,
-        thumbnailUrl: coverImg
+        thumbnailUrl: coverImg,
+        clientCapabilities: gameClientCapabilities()
     },
     runtime: async () => {
         return (await import('./runtime.js')).LowenherzUiRuntime

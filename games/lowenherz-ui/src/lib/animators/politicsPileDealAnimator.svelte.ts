@@ -1,6 +1,7 @@
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
 import { isLookAtPoliticsPile, type PoliticsCard } from '@tabletop/lowenherz'
+import type { PoliticsPile } from '$lib/model/politicsCardPiles.js'
 import {
     buildSlotRows,
     chooserDeckCenter,
@@ -28,7 +29,7 @@ const DEAL_DURATION = 0.38
 const DEAL_STAGGER = 0.045
 const CARD_FADE_IN = 0.2
 
-export type LosingDeck = { left: number; empty: boolean }
+export type LosingDeck = { left: number; empty: boolean; pile: PoliticsPile }
 
 export class PoliticsPileDealAnimator extends StateAnimator {
     dealing = $state(false)
@@ -36,6 +37,7 @@ export class PoliticsPileDealAnimator extends StateAnimator {
     cardWidth = $state(0)
     rowWidth = $state(0)
     losingDeck: LosingDeck | undefined = $state(undefined)
+    dealtPile: PoliticsPile | undefined = $state(undefined)
 
     private nodes = new Map<string, HTMLElement>()
     private rowsEl: HTMLElement | undefined
@@ -68,6 +70,7 @@ export class PoliticsPileDealAnimator extends StateAnimator {
 
         this.slotRows = []
         this.losingDeck = undefined
+        this.dealtPile = undefined
         this.dealing = true
         await tick()
 
@@ -83,9 +86,11 @@ export class PoliticsPileDealAnimator extends StateAnimator {
         const losingDeckCenter = chooserDeckCenter(otherPile, row, this.cardWidth)
         this.losingDeck = {
             left: losingDeckCenter.x - row.left - this.cardWidth / 2,
-            empty: (from?.getPoliticsPileCount(otherPile) ?? 0) === 0
+            empty: (from?.getPoliticsPileCount(otherPile) ?? 0) === 0,
+            pile: otherPile
         }
         this.slotRows = buildSlotRows(cards, row.width, this.cardWidth)
+        this.dealtPile = pile
         await tick()
 
         // Placed the instant they mount, before the preload wait below, so nothing paints at its
@@ -183,6 +188,7 @@ export class PoliticsPileDealAnimator extends StateAnimator {
             this.dealing = false
             this.slotRows = []
             this.losingDeck = undefined
+            this.dealtPile = undefined
         })
     }
 
@@ -192,5 +198,6 @@ export class PoliticsPileDealAnimator extends StateAnimator {
         this.dealing = false
         this.slotRows = []
         this.losingDeck = undefined
+        this.dealtPile = undefined
     }
 }

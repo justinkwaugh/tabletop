@@ -56,7 +56,8 @@ export type TravelPickSite = {
     cost: number | undefined
     foldedBy: string[]
     toll: boolean
-    flip: boolean
+    /** R-11.13-H1 — the secrets the move flips: The Hidden Place's, and the Buried Giant's past a Narrow Pass. */
+    flips: number
 }
 
 /**

@@ -548,6 +548,19 @@ export function knownDraw(reveal: HiddenReveal | undefined): { seenBy?: string[]
     return seenBy !== undefined && seenBy.length > 0 ? { seenBy } : {}
 }
 
+/** R-X.3(c) — every player but `holderId` already knew the relic a question drew (its `seenBy`). */
+export function relicKnownToOthers(
+    state: HydratedOathGameState,
+    seenBy: readonly Witness[] | undefined,
+    holderId: string
+): boolean {
+    if (seenBy === undefined) return false
+    if (seenBy.includes(EVERYONE)) return true
+    return state.players.every(
+        (player) => player.playerId === holderId || seenBy.includes(player.playerId)
+    )
+}
+
 /** A relic a site flip drew onto `slotId`: whoever knew it knows it there, without a peek (R-6.3). */
 export function rememberRelicAt(
     state: HydratedOathGameState,

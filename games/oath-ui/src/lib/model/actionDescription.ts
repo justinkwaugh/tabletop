@@ -49,6 +49,7 @@ import {
     soleOwner,
     PowerMoveTollOutcome,
     IMPERIAL_WARBANDS,
+    OBSIDIAN_CAGE_ID,
     type AnswerConsentMetadata,
     type Banner,
     type CitizenshipTransfer,
@@ -71,7 +72,8 @@ import {
     type ResolveWake,
     type UseRestPower,
     type WarbandMove,
-    type WarbandOwner
+    type WarbandOwner,
+    secretsFlipped
 } from '@tabletop/oath'
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -326,6 +328,7 @@ const SPECIAL_ENVOY = /^Special Envoy ends \S+'s Act Phase$/
 const TYRANT = /^Tyrant killed a warband at (\S+)$/
 const AWAITED_RETURN = /^sacrificed a warband from your board \(Awaited Return\)$/
 const CARELESS = /^Careless: (.+)$/
+const SECOND_WIND = 'Second Wind: the next Travel, and then a Campaign, cost no Supply'
 // A note recorded with the reader's "you" read wrong for every other seat; the engine names the seat now.
 const SAYS_YOU = /\byour?\b/i
 
@@ -349,6 +352,10 @@ function noteClause(note: string, actorId: string | undefined): NoteClause | und
     if (careless) {
         const gained = careless[1] === 'gained 1 favor' ? 1 : 0
         return { text: `gained ${gained} favor (Careless)`, card: 'Careless' }
+    }
+    // R-5.5.8 — Second Wind's grant, on the spoils row (or the banish's answer) that recorded it.
+    if (note === SECOND_WIND) {
+        return { text: 'free Travel and Campaign next (Second Wind)', card: 'Second Wind' }
     }
     if (SAYS_YOU.test(note)) return undefined
     const carded = CARD_NOTE.exec(note)
@@ -537,6 +544,11 @@ function freeActionClause(cardId: string | undefined): string {
     return cardId ? ` (free, ${cardName(cardId)})` : ''
 }
 
+/** R-11.12, R-11.13 — each secret a Travel flipped: "; flipped 1 secret", "; flipped 2 secrets". */
+function flippedClause(secrets: number): string {
+    return secrets > 0 ? `; flipped ${plural(secrets, 'secret')}` : ''
+}
+
 const TOLL_GIVEN = /^(.+): gave a favor to (.+)$/
 const TOLL_BURNED = /^(.+): burned a favor for the bandits$/
 
@@ -615,7 +627,7 @@ function describeActionCited(
             `traveled to ${names.site(action.siteId)}` +
             costWith(meta?.supplySpent, cardsInBrackets(meta?.modifiers, named)) +
             tollClauses(meta?.tollsPaid, nameOf) +
-            (meta?.secretFlipped ? '; flipped 1 secret' : '') +
+            flippedClause(secretsFlipped(meta?.secretFlipped)) +
             revealed +
             freeActionClause(meta?.freeActionOf)
         )
@@ -856,6 +868,15 @@ function describeActionCited(
             const gain = noteClause(meta.summary, action.playerId)?.text ?? meta.summary
             return namedNote(gain, action.playerId, names, viewerId)
         }
+        // R-7.1.3-H2 — Gambling Hall's bank once the roll stood, read as Hospitality's bank reads.
+        if (meta.kind === PowerQuestionKind.GamblingHallBank) {
+            return namedNote(
+                `${meta.summary} (${cardName(meta.cardId)})`,
+                action.playerId,
+                names,
+                viewerId
+            )
+        }
         const answer = action.answer
         // The Gathering — the proposal's terms, from the answer's own record.
         if (answer.kind === PowerQuestionKind.GatheringFloor && answer.proposal) {
@@ -961,9 +982,47 @@ function gaining(secrets: number, favor: number, short: readonly FavorShort[] = 
 }
 
 /**
- * R-5.5.7 — the spoils one step at a time: the placements (I), the relics taken and the banners
- * seized with what their seizing burned (II), the banish and the defender's burn (III), then a
- * toll the banish met. A record without the defender names them by their role.
+ * Relic Hunter — the relics sent to the bottom of the relic deck, each clause naming the card: one
+ * from the defender's board by name and whose it was; a facedown one from a site by name to the
+ * attacker alone (R-9.4). The Obsidian Cage sent down is told on its own, then where its warbands
+ * went back (R-10.13-H1).
+ */
+function bottomedClauses(
+    action: CampaignResolveVictory,
+    defender: string,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string[] {
+    const held = action.bottomRelicIds ?? []
+    const facedown = action.bottomRelicSlotIds ?? []
+    const known = (action.metadata?.relicsToDeckBottom ?? []).filter((id) => !held.includes(id))
+    const sites =
+        viewerId === action.playerId && known.length === facedown.length
+            ? listed(known)
+            : facedown.length === 1
+              ? 'a facedown relic'
+              : `${facedown.length} facedown relics`
+    const wentBack = action.metadata?.cageWentBack
+    const cage = wentBack !== undefined && held.includes(OBSIDIAN_CAGE_ID)
+    const others = cage ? held.filter((id) => id !== OBSIDIAN_CAGE_ID) : held
+    const down = (relics: string) => `put ${relics} on the bottom of the relic deck (Relic Hunter)`
+    return [
+        ...(others.length > 0 ? [down(`${listed(others)} from ${defender}`)] : []),
+        ...(cage
+            ? [
+                  down(`${listed([OBSIDIAN_CAGE_ID])} from ${defender}`),
+                  namedNote(wentBack, action.playerId, names, viewerId)
+              ]
+            : []),
+        ...(facedown.length > 0 ? [down(sites)] : [])
+    ]
+}
+
+/**
+ * R-5.5.7 — the spoils one step at a time: the placements (I), the relics taken, those sent to the
+ * bottom of the relic deck, and the banners seized with what their seizing burned (II), the banish
+ * and the defender's burn (III), then a toll the banish met. A record without the defender names
+ * them by their role.
  */
 function describeSpoils(
     action: CampaignResolveVictory,
@@ -986,6 +1045,7 @@ function describeSpoils(
     const parts = [
         placementsClause(action.placements, action.playerId, names),
         taken.length > 0 ? `took ${listed(taken)}` : undefined,
+        ...bottomedClauses(action, defender, names, viewerId),
         banners.length > 0
             ? `seized ${listed(banners.map((banner) => `the ${bannerName(banner)}`))}${burning}`
             : undefined,

@@ -1,9 +1,11 @@
 import { test } from 'node:test'
+import { zstdCompressSync } from 'node:zlib'
 import assert from 'node:assert/strict'
 import {
     buildLogFilter,
     formatLogEntry,
     parseCount,
+    parseStoredJsonOr,
     parseTime,
     parseWhere,
     permissionHint,
@@ -30,6 +32,29 @@ test('redact masks secret keys, reduces endpoints to hosts, expands stored data,
         passwordHash: '<REDACTED>',
         owner: 'ref:users/u1'
     })
+})
+
+test('redact and parseStoredJsonOr expand zstd-compressed game store payloads', () => {
+    const state = { gameId: 'g1', secrets: ['s'] }
+    const actions = [{ id: 'a1', index: 0 }]
+    const zstd = (value) => zstdCompressSync(JSON.stringify(value))
+    assert.deepEqual(
+        redact({
+            dataZstd: zstd(state),
+            actionsZstd: zstd(actions),
+            brokenZstd: Buffer.from('not zstd'),
+            other: Buffer.from('xy')
+        }),
+        {
+            dataZstd: { gameId: 'g1', secrets: '<REDACTED>' },
+            actionsZstd: JSON.stringify(actions),
+            brokenZstd: '<8 bytes>',
+            other: '<2 bytes>'
+        }
+    )
+    assert.deepEqual(parseStoredJsonOr(undefined, zstd(actions), []), actions)
+    assert.deepEqual(parseStoredJsonOr(JSON.stringify(actions), undefined, []), actions)
+    assert.deepEqual(parseStoredJsonOr(undefined, Buffer.from('not zstd'), []), [])
 })
 
 test('redactDoc masks document IDs that are themselves secrets', () => {

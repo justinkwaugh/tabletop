@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/1817",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "private": true,
     "type": "module",
     "exports": {
@@ -22,7 +22,7 @@
         "build": "node ../../tools/scripts/write-game-version.cjs && tsgo",
         "check": "tsgo --noEmit",
         "test": "vitest run",
-        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rollup -c ./rollup.config.ts",
+        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rolldown -c ./rolldown.config.ts",
         "lint": "eslint ."
     },
     "dependencies": {
@@ -35,8 +35,8 @@
         "typescript": "5.9.3",
         "@tabletop/vitest-config": "workspace:*",
         "vitest": "^4.0.12",
-        "@tabletop/rollup-config": "workspace:*",
-        "rollup": "4.55.2",
+        "@tabletop/rolldown-config": "workspace:*",
+        "rolldown": "^1.2.15",
         "@tabletop/18xx-autorouter": "workspace:*",
         "typebox": "^1.0.79",
         "@tabletop/eslint-config": "workspace:*"

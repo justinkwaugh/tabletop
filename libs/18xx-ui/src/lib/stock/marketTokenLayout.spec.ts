@@ -13,6 +13,8 @@ import {
     MarketCellWidth,
     MarketScenePadding,
     MarketTokenSize,
+    MarketZoneGap,
+    marketGeometry,
     marketLowerRightSpace
 } from './marketTokenLayout.js'
 
@@ -32,18 +34,23 @@ it('keeps narrow-cell stacks below prices and uses the cell width for market mov
     const chart = new StockMarketChart(
         createRectangularStockMarketSpaces([[40, 50, 60, 70]], () => 'white')
     )
+    const geometry = marketGeometry(chart, cell)
     const market: StockMarket = { stacks: [] }
     for (const id of ['A', 'B', 'C', 'D', 'E', 'F', 'G']) placeStockMarker(market, id, '0:0')
-    for (const token of marketTokenLayout(chart, market, cell)) {
+    for (const token of marketTokenLayout(chart, market, geometry)) {
         expect(token.x - MarketTokenSize / 2).toBeGreaterThanOrEqual(0)
         expect(token.x + MarketTokenSize / 2).toBeLessThanOrEqual(cell.width)
         expect(token.y - MarketTokenSize / 2).toBeGreaterThanOrEqual(20)
         expect(token.y + MarketTokenSize / 2).toBeLessThanOrEqual(cell.height)
     }
-    expectSingleOrderedColumn(expandedMarketStack(chart, market, '0:0', cell), 4 * cell.width)
-    const before = marketTokenLayout(chart, market, cell).find((token) => token.companyId === 'A')!
+    expectSingleOrderedColumn(expandedMarketStack(chart, market, '0:0', geometry), 4 * cell.width)
+    const before = marketTokenLayout(chart, market, geometry).find(
+        (token) => token.companyId === 'A'
+    )!
     placeStockMarker(market, 'A', '0:1')
-    const after = marketTokenLayout(chart, market, cell).find((token) => token.companyId === 'A')!
+    const after = marketTokenLayout(chart, market, geometry).find(
+        (token) => token.companyId === 'A'
+    )!
     expect(after.x - before.x).toBe(cell.width)
 })
 
@@ -147,4 +154,34 @@ it('spreads a crowded stack from where the stack sits', () => {
     expect(expandedMarketStack(chart, market, '1:1').every((point) => point.x === stackX)).toBe(
         true
     )
+})
+
+it('sets a set-apart zone off with a gap either side, keeping every cell its full width', () => {
+    const cell = { width: 30, height: 96 }
+    const chart = new StockMarketChart(
+        createRectangularStockMarketSpaces([[0, 0, 0, 0, 40, 45]], (_row, column) =>
+            column === 0 ? 'red' : column < 4 ? 'orange' : 'white'
+        )
+    )
+    const zones = [
+        { color: 'red', name: 'Liquidation', description: '' },
+        { color: 'orange', name: 'Acquisition', description: '', setApart: true as const }
+    ]
+    const geometry = marketGeometry(chart, cell, zones)
+    expect(geometry.columnLefts).toEqual([
+        0,
+        30 + MarketZoneGap,
+        60 + MarketZoneGap,
+        90 + MarketZoneGap,
+        120 + 2 * MarketZoneGap,
+        150 + 2 * MarketZoneGap
+    ])
+    expect(geometry.gapBefore).toEqual([false, true, false, false, true, false])
+    expect(geometry.width).toBe(180 + 2 * MarketZoneGap)
+    const market: StockMarket = { stacks: [] }
+    placeStockMarker(market, 'A', '0:4')
+    expect(marketTokenLayout(chart, market, geometry)[0].x).toBe(
+        geometry.columnLefts[4] + cell.width / 2
+    )
+    expect(marketGeometry(chart, cell).columnLefts).toEqual([0, 30, 60, 90, 120, 150])
 })

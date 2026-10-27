@@ -1,6 +1,16 @@
 import { Color, type GameAction, type Point } from '@tabletop/common'
 import { allianceWalls } from '$lib/model/allianceGeometry.js'
 import { expansionActionsFor, openExpansionActionIdFor } from '$lib/model/expansionRun.js'
+import { powerPointHistory, type PlayerScoreHistory } from '$lib/model/scoreHistory.js'
+import {
+    isKnownTake,
+    otherPlayerCardDecks,
+    politicsCardPiles,
+    recordedTakes,
+    type PoliticsCardSource,
+    type PoliticsPile,
+    type RecordedTake
+} from '$lib/model/politicsCardPiles.js'
 import { GameSession } from '@tabletop/frontend-components'
 import type { StateChange } from '$lib/animators/stateAnimator.js'
 import {
@@ -110,6 +120,17 @@ export class LowenherzGameSession extends GameSession<
             this.myPlayer?.id === playerId
         )
     }
+
+    powerPointHistory: PlayerScoreHistory[] | undefined = $derived.by(() => {
+        const actions = this.actions
+        if (
+            this.gameState.machineState !== MachineState.EndOfGame ||
+            !this.hasCompleteHistory ||
+            actions.length !== this.gameState.actionCount
+        )
+            return undefined
+        return powerPointHistory(this.gameState.dehydrate(), actions)
+    })
 
     // True while the published state came from a silent-swap restoration, which publishes
     // without calling any state-change listener; local layout settling stays still for it.
@@ -1654,6 +1675,41 @@ export class LowenherzGameSession extends GameSession<
     // panels don't offer this at all, since seeing their cards would defeat the
     // point of them being private).
     viewingMyPoliticsCards: boolean = $state(false)
+
+    private politicsTakes: RecordedTake[] | undefined = $derived.by(() =>
+        this.hasCompleteHistory
+            ? recordedTakes(this.actions.slice(0, this.gameState.actionCount))
+            : undefined
+    )
+
+    // Your own hand matched to your own takes, card by card. Only when every one of your takes
+    // shows its card: exploring as another player, their takes' cards are hidden from you.
+    private myExactCardPiles: Map<PoliticsCard, PoliticsPile> | undefined = $derived.by(() => {
+        const myId = this.myPlayer?.id
+        const myTakes = this.politicsTakes?.filter((take) => take.playerId === myId)
+        if (!myId || !myTakes?.every(isKnownTake)) return undefined
+        return politicsCardPiles(this.myPoliticsCards, myTakes)
+    })
+
+    // Which deck a card in a player's hand came from, as far as this viewer can tell: exactly for
+    // your own cards, and from the decks of their takes otherwise (see otherPlayerCardDecks).
+    politicsCardSource(
+        playerId: string,
+        card: PoliticsCard | undefined,
+        index: number,
+        faceVisible: boolean
+    ): PoliticsCardSource | undefined {
+        if (playerId === this.myPlayer?.id && card && this.myExactCardPiles) {
+            return this.myExactCardPiles.get(card)
+        }
+        if (!this.politicsTakes) return undefined
+        const handCount = this.gameState.getPlayerState(playerId).politicsCardCount
+        if (handCount === undefined) return undefined
+        const takePiles = this.politicsTakes
+            .filter((take) => take.playerId === playerId)
+            .map((take) => take.pile)
+        return otherPlayerCardDecks(handCount, takePiles, faceVisible, !this.isExploring)?.[index]
+    }
 
     get myPoliticsCards(): PoliticsCard[] {
         return this.myPlayer

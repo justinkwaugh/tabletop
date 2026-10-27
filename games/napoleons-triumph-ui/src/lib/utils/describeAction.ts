@@ -14,6 +14,7 @@ import {
     isDeclareDefense,
     isDeclareFeint,
     isDeployArmy,
+    isAcknowledgeReveal,
     isEndTurn,
     isLeadDefense,
     isMove,
@@ -236,6 +237,9 @@ export function describeAction(action: GameAction, game: DescribedGame): string 
     }
     if (isEndTurn(action)) {
         return `${army} end their turn.`
+    }
+    if (isAcknowledgeReveal(action)) {
+        return `${army} see the enemy cavalry still riding when the last turn ended.`
     }
     return ''
 }

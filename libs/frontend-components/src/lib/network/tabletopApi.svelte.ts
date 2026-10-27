@@ -26,6 +26,7 @@ import {
     GameHistoryPage,
     UserGameStats,
     SiteStatsNow,
+    CharityTally,
     SiteStatsReport,
     type UtcDayRange,
     User,
@@ -187,6 +188,16 @@ export class TabletopApi {
 
     async getGameCatalog(): Promise<GameCatalogEntry[]> {
         const response = await this.wretch.get('/catalog').json<{ payload: GameCatalogEntry[] }>()
+        return response.payload
+    }
+
+    async getCharityTally(): Promise<CharityTally | undefined> {
+        const response = await this.wretch
+            .get('/pay-it-forward/tally')
+            .notFound(() => undefined)
+            .json<unknown>()
+        if (response === undefined) return undefined
+        Value.Assert(Type.Object({ payload: CharityTally }), response)
         return response.payload
     }
 
@@ -814,6 +825,10 @@ export class TabletopApi {
         return this.postVote(game, 'undo/open', { actionIndex, targetActionId })
     }
 
+    async requestCall(game: Game, declaredWinnerId?: string): Promise<Game> {
+        return this.postVote(game, 'call', { declaredWinnerId })
+    }
+
     async approveVote(game: Game, voteId: string): Promise<Game> {
         return this.postVote(game, 'approve', { voteId })
     }
@@ -829,7 +844,10 @@ export class TabletopApi {
     private async postVote(
         game: Game,
         route: VoteRoute,
-        body: { actionIndex: number; targetActionId: string } | { voteId: string }
+        body:
+            | { actionIndex: number; targetActionId: string }
+            | { declaredWinnerId?: string }
+            | { voteId: string }
     ): Promise<Game> {
         const response = await this.titleRequest(game.typeId)
             .post({ gameId: game.id, ...body }, `/game/${game.typeId}/vote/${route}`)
@@ -1169,7 +1187,7 @@ export class TabletopApi {
     }
 }
 
-type VoteRoute = 'undo/open' | 'approve' | 'decline' | 'withdraw'
+type VoteRoute = 'undo/open' | 'call' | 'approve' | 'decline' | 'withdraw'
 
 export type TabletopApiPublic = Pick<TabletopApi, keyof TabletopApi>
 

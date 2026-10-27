@@ -29,7 +29,7 @@ export const Shikoku1889TrainDepot = new TrainDepot({
         { id: '6', name: '6', price: 630, distance: { measure: 'revenue-centers', maximum: 6 } },
         {
             id: 'D',
-            name: 'Diesel',
+            name: 'D',
             price: 1100,
             distance: { measure: 'revenue-centers', maximum: 'unlimited' }
         }

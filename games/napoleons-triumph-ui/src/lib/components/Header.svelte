@@ -1,15 +1,11 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { Scenario, Side, roundLabel } from '@tabletop/napoleons-triumph'
+    import { Scenario, roundLabel } from '@tabletop/napoleons-triumph'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { TURN_TITLES } from '$lib/utils/turnTitles.js'
     import SwelledRule from './SwelledRule.svelte'
 
     const gameSession = getGameSession()
-
-    const TURN_TITLES: Record<Side, string> = {
-        [Side.Allied]: 'Allies’ turn',
-        [Side.French]: 'French turn'
-    }
 
     const activePlayerId = $derived(gameSession.gameState.activePlayerIds[0])
     const activeSide = $derived(

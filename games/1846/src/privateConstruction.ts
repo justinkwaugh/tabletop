@@ -22,7 +22,8 @@ import {
     recordPrivatePowerUse,
     rotateTileFace,
     type CompanyDecisionState,
-    type PrivateTrackTerms
+    type PrivateTrackTerms,
+    stateWith
 } from '@tabletop/18xx'
 import { AcquisitionSteps } from './acquisitions.js'
 import { EighteenFortySixMap, PrivateTrackBlocks } from './map.js'
@@ -119,11 +120,10 @@ export class PrivateConstruction {
             return { reason: 'Choose one or two permitted tile lays.' }
         if (this.privateId === 'LM' && this.miamiConnected(this.state))
             return { reason: 'Cincinnati and Dayton are already connected.' }
-        const planned = {
-            ...this.state,
+        const planned = stateWith(this.state, {
             cash: structuredClone(this.state.cash),
             bank: { ...this.state.bank }
-        }
+        })
         const lays: TrackLayDetails[] = []
         for (const request of requests) {
             if (

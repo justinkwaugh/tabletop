@@ -1,4 +1,4 @@
-import { type EighteenXXState, type LayTile, type PlaceStation } from '@tabletop/18xx'
+import type { EighteenXXState, LayTile, PlaceStation } from '@tabletop/18xx'
 import { minimalRailwayMap, minimalTileSet, TestNames } from '@tabletop/18xx/testing'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { expect, it } from 'vitest'

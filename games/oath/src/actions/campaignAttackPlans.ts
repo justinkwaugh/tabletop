@@ -5,6 +5,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { BattlePlanSide, type CardPower } from '../data/cardPowers.js'
 import { usableBattlePlans } from '../util/battlePlans.js'
+import { campaignStepRevealsInfo } from '../util/campaignRoll.js'
 import { BattlePlanUse, BattlePlanUses } from '../model/battlePlanUse.js'
 import { CampaignBattleMetadata, HydratedCampaign, reasonAttackerPlansInvalid } from './campaign.js'
 
@@ -62,8 +63,9 @@ export class HydratedCampaignAttackPlans
             ...held.declaration,
             plans: this.plans ?? []
         })
-        // R-X.3 — the PRNG moves now, or at the roll this has committed to.
-        this.revealsInfo = true
+        // R-X.3 — the PRNG moves now, or at the roll this has committed to; R-5.5.5.b-H1 — unless
+        // a plan decided the Campaign.
+        this.revealsInfo = campaignStepRevealsInfo(state)
         this.metadata = { battle }
     }
 

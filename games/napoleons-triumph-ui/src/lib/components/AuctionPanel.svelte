@@ -36,17 +36,24 @@
         <span
             >Your bid of {highBid ?? 0} wins the choice of army. It comes off that army's morale.</span
         >
-        {#each ARMIES as army (army.side)}
-            {@const morale = STARTING_MORALE[army.side] - (highBid ?? 0)}
-            <button
-                type="button"
-                class="nt-plain-button"
-                disabled={morale < 1}
-                onclick={() => gameSession.chooseSide(army.side)}
-            >
-                Take {army.name} at {morale} morale
-            </button>
-        {/each}
+        <div class="flex basis-full flex-wrap gap-2">
+            {#each ARMIES as army (army.side)}
+                {@const morale = STARTING_MORALE[army.side] - (highBid ?? 0)}
+                {@const colors = gameSession.sideColors(army.side)}
+                <button
+                    type="button"
+                    class="nt-plain-button"
+                    style:--nt-button-ground={colors.block}
+                    style:--nt-button-hover={colors.shade}
+                    style:--nt-button-edge={colors.shade}
+                    style:--nt-button-ink={colors.ink}
+                    disabled={morale < 1}
+                    onclick={() => gameSession.chooseSide(army.side)}
+                >
+                    Take {army.name} at {morale} morale
+                </button>
+            {/each}
+        </div>
     {:else if gameSession.canAct && auction}
         <span>
             Bid morale for the choice of army.
@@ -91,3 +98,9 @@
         </span>
     {/if}
 </div>
+
+<style>
+    .nt-plain-button[disabled] {
+        opacity: 0.4;
+    }
+</style>

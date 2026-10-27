@@ -5,7 +5,6 @@ import { EighteenThirtyTrainColors } from './trainPresentation.js'
 
 export const EighteenThirtyPresentation: TitlePresentation = {
     money: moneyFormat('$'),
-    trainShortLabels: { D: 'D' },
     phaseChart: EighteenThirtyPhaseChart,
     trainColors: EighteenThirtyTrainColors,
     phaseColors: EighteenThirtyTrainColors,

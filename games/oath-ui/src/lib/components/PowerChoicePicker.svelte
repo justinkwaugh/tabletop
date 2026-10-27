@@ -17,6 +17,7 @@
     import CountPicker from '$lib/components/CountPicker.svelte'
     import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
     import PileRows from '$lib/components/PileRows.svelte'
+    import PlaceChips from '$lib/components/PlaceChips.svelte'
     import { range } from '@tabletop/common'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import TokenRow from '$lib/components/TokenRow.svelte'
@@ -24,6 +25,7 @@
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
     import BargainPicker from '$lib/components/BargainPicker.svelte'
     import PlayerChips from '$lib/components/PlayerChips.svelte'
+    import SiteChips from '$lib/components/SiteChips.svelte'
     import WarbandGroupRows from '$lib/components/WarbandGroupRows.svelte'
     import { avatarImage } from '$lib/images/boardImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
@@ -59,6 +61,7 @@
         isOr,
         mayOf,
         NO_OPTION,
+        offersNothing,
         openCountCeiling,
         openRunBanks,
         optionIndexOf,
@@ -360,9 +363,9 @@
         (!grid || grid.specs[0] === i) &&
         (!run || run.specs[0] === i) &&
         asked(choices, i, picks) &&
-        !(isMay(legal) && legal.options.length === 0)}
+        !offersNothing(choices, i)}
     <!-- A grid or a run draws every spec it answers once, at its first; a may's own pick shows
-         only while the may is on, and a may the card does not offer now is not drawn. -->
+         only while the may is on; a choice it may skip with nothing offered is not drawn. -->
     {#if shown}
         <div class="mb-1 text-xs">
             {#if grid}
@@ -384,6 +387,18 @@
                     per={grid.step === 2 ? 2 : 1}
                     toward={grid.shared}
                     ownerWord={grid.namesOwners}
+                />
+            {:else if legal.spec.byPlace}
+                <!-- One warband from a place picked whole (Wrestlers' sacrifice): a button per place. -->
+                {@const places = legal.options.flatMap((o) =>
+                    o.kind === PowerChoiceKind.Warbands ? [o.group.at] : []
+                )}
+                <PlaceChips
+                    label={words.place ?? `${legal.spec.what ?? 'a place'}:`}
+                    {places}
+                    picked={pick === NO_OPTION ? undefined : pick}
+                    onpick={(j) => tapOption(legal, i, pick, j)}
+                    {busy}
                 />
             {:else if legal.spec.kind === PowerChoiceKind.Bargain}
                 <BargainPicker
@@ -412,6 +427,26 @@
                     {#if onMap.sites.length === 0 && legal.spec.min > 0}
                         <p class="text-oath-danger">no legal site right now</p>
                     {/if}
+                {/if}
+            {:else if words.siteButtons && legal.spec.kind === PowerChoiceKind.Site && !allowsSeveral(legal)}
+                <!-- A site picked under its card (Small Friends): its name on a button, as a player is their chip. -->
+                {@const sites = legal.options.flatMap((o) =>
+                    o.kind === PowerChoiceKind.Site ? [o.siteId] : []
+                )}
+                <!-- Never a label with no button: with no site to name, as on the lit map. -->
+                {#if sites.length > 0}
+                    <SiteChips
+                        label={`${legal.spec.what ?? 'a site'}:`}
+                        sites={sites.map((siteId) => ({
+                            siteId,
+                            name: siteName(gameSession.gameState, siteId)
+                        }))}
+                        picked={option?.kind === PowerChoiceKind.Site ? option.siteId : undefined}
+                        onpick={(siteId) => tapOption(legal, i, pick, sites.indexOf(siteId))}
+                        {busy}
+                    />
+                {:else if legal.spec.min > 0}
+                    <p class="text-oath-danger">no legal site right now</p>
                 {/if}
             {:else if legal.spec.kind === PowerChoiceKind.Count}
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">

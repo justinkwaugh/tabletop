@@ -32,7 +32,7 @@ export function syntheticUser(id: string): User {
     return { id, status: UserStatus.Active, roles: [Role.User], externalIds: [] }
 }
 
-export function createSyntheticHost({ activeSeats = 1 } = {}) {
+export function createSyntheticHost({ activeSeats = 1, playerIds = ['p1', 'p2', 'p3'] } = {}) {
     const game = SyntheticRuntime.initializer.initializeGame(
         {
             id: 'standing',
@@ -40,7 +40,7 @@ export function createSyntheticHost({ activeSeats = 1 } = {}) {
             ownerId: 'p1',
             seed: 7,
             config: {},
-            players: ['p1', 'p2', 'p3'].map((id) => ({
+            players: playerIds.map((id) => ({
                 id,
                 userId: id,
                 name: id,
@@ -112,9 +112,15 @@ export function createSyntheticHost({ activeSeats = 1 } = {}) {
             const priorState = state
             actions.push(...structuredClone(added))
             state = structuredClone(newState)
+            Object.assign(game, gameUpdates)
+            if (newState.result && !priorState.result) {
+                game.status = GameStatus.Finished
+                game.result = newState.result
+                game.winningPlayerIds = [...newState.winningPlayerIds]
+            }
             return {
                 storedActions: structuredClone(added),
-                updatedGame: { ...existing, ...gameUpdates, state: structuredClone(state) },
+                updatedGame: { ...existing, ...game, state: structuredClone(state) },
                 relatedActions,
                 priorState
             }

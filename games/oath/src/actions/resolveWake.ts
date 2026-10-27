@@ -1,5 +1,4 @@
 import { bannerHolder } from '../util/oathkeeper.js'
-import { usableFavor } from '../util/favor.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
@@ -10,6 +9,7 @@ import {
     applyPeoplesFavorStep,
     availablePeoplesFavorOptions,
     flipToMobIfAtThreshold,
+    forcedPeoplesFavorOptions,
     peoplesFavorStepCount,
     reasonCannotTakePeoplesFavorStep,
     reasonCannotUseOpportunitySite,
@@ -142,7 +142,7 @@ export class HydratedResolveWake
             }
             if (
                 favorSteps.length < stepCount &&
-                availablePeoplesFavorOptions(rehearsal, playerId).length > 0
+                forcedPeoplesFavorOptions(rehearsal, playerId).length > 0
             ) {
                 return (
                     `R-4.1.1 is a must and a favor step is still able (R-9.2.a): ` +
@@ -166,9 +166,10 @@ export class HydratedResolveWake
 
     /** R-X.1, R-4.1.1, R-4.1.4 */
     static nothingToDecide(state: HydratedOathGameState, playerId: string): boolean {
+        // A step the holder may leave (Vow of Kinship's bank) is still theirs to decide.
         if (
             HydratedResolveWake.holdsPeoplesFavor(state, playerId) &&
-            requiredFavorSteps(state, playerId) > 0
+            availablePeoplesFavorOptions(state, playerId).length > 0
         )
             return false
         if (canUseSitePower(state, playerId)) return false
@@ -183,10 +184,11 @@ export class HydratedResolveWake
     }
 }
 
-// R-4.1.1-H1, R-9.2.a: a holder with no favor can only return, once per favor above the floor of 1.
+// R-4.1.1-H1, R-9.2.a: a holder with no favor they must place can only return, once per favor
+// above the floor of 1 (Vow of Kinship's bank never forces a place, R-10.10-H1).
 export function requiredFavorSteps(state: HydratedOathGameState, playerId: string): number {
     const stepCount = peoplesFavorStepCount(state)
-    if (usableFavor(state, playerId) > 0) return stepCount
+    if (forcedPeoplesFavorOptions(state, playerId).includes('place')) return stepCount
     const aboveFloor = Math.max(0, state.banners[Banner.PeoplesFavor].value - 1)
     return Math.min(stepCount, aboveFloor)
 }

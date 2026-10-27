@@ -225,8 +225,13 @@ export function commitHiddenOutputs(
             depositOnPiles(state, action.metadata?.pileDeposits, deposit)
             return
         case ActionType.CampaignResolveVictory:
+            // Relic Hunter — a relic taken from the defender's board was public; one from a site was not.
             for (const id of action.metadata?.relicsToDeckBottom ?? [])
-                sendRelicToBottom(state, id, [action.playerId])
+                sendRelicToBottom(
+                    state,
+                    id,
+                    action.bottomRelicIds?.includes(id) ? 'everyone' : [action.playerId]
+                )
             depositOnPiles(state, action.metadata?.pileDeposits, deposit)
             return
         case ActionType.SearchResolve:

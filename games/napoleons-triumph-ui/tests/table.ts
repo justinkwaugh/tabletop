@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import {
+    AUSTERLITZ,
     NapoleonsTriumphGameStateValidator,
     SANTON_LOCALE,
     type NapoleonsTriumphGameState,
@@ -164,10 +165,20 @@ export async function openMapMenu(page: Page) {
     }
 }
 
+export const ST_HILAIRE_LOCALE = 93
+export const LOCALE_94 = 94
+
 // Pieces are labelled for picking up only while the session takes choices, so Playwright waits out an action or Undo still settling.
-/** Taps the threat arrow and, as a Guard unit standing there could announce a Guard Attack, declares the threat without one. */
-export async function threatenWithoutTheGuard(page: Page) {
-    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+/** Aims at the locale attacked and taps the threat arrow across the approach into it from `from`. */
+export async function threaten(page: Page, from: number, into: number) {
+    await page.locator('[aria-label="Select these pieces"]').first().waitFor()
+    await tap(page, `[data-aim-locale="${into}"]`)
+    await tap(page, `svg [data-threat="${AUSTERLITZ.approachBetween(from, into).id}"]`)
+}
+
+/** Threatens and, as a Guard unit standing there could announce a Guard Attack, declares the threat without one. */
+export async function threatenWithoutTheGuard(page: Page, from: number, into: number) {
+    await threaten(page, from, into)
     await page.getByRole('button', { name: 'Threaten an attack without the Guard' }).click()
 }
 

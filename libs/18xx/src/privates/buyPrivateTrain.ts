@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
@@ -26,10 +27,9 @@ export function privateTrainPurchase(
     trains: TrainRules
 ): TrainPurchase {
     return new TrainPurchase(
-        {
-            ...state,
+        stateWith(state, {
             trainPurchaseStep: state.trainPurchaseStep ?? { companyId, purchasedTrainIds: [] }
-        },
+        }),
         trains
     )
 }

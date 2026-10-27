@@ -7,6 +7,8 @@
     import { PoliticsPileDealAnimator } from '$lib/animators/politicsPileDealAnimator.svelte.js'
     import { PoliticsPileTakeAnimator } from '$lib/animators/politicsPileTakeAnimator.svelte.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
+    import DeckShade from './DeckShade.svelte'
+    import { deckOutlineColor } from '$lib/model/deckShade.js'
 
     const gameSession = getGameSession()
 
@@ -141,6 +143,9 @@
                             return () => dealAnimator.setNode('losing-deck', undefined)
                         }}
                     >
+                        {#if !dealAnimator.losingDeck.empty}
+                            <DeckShade deck={dealAnimator.losingDeck.pile} />
+                        {/if}
                         {#if dealAnimator.losingDeck.empty}
                             <div
                                 class="aspect-[534/832] rounded-md border border-dashed border-black/25 flex items-center justify-center text-black/40 text-xs"
@@ -160,16 +165,21 @@
                         {#each row as slot (slot.kind === 'deck' ? 'deck' : String(slot.index))}
                             {#if slot.kind === 'deck'}
                                 <div
+                                    class="relative"
                                     style="width: {dealCardWidthCss};"
                                     {@attach (el) => {
                                         dealAnimator.setNode('deck', el)
                                         return () => dealAnimator.setNode('deck', undefined)
                                     }}
                                 >
+                                    {#if dealAnimator.dealtPile}
+                                        <DeckShade deck={dealAnimator.dealtPile} />
+                                    {/if}
                                     <PoliticsCard card={slot.card} faceDown />
                                 </div>
                             {:else}
                                 <div
+                                    class="relative"
                                     style="width: {dealCardWidthCss};"
                                     {@attach (el) => {
                                         dealAnimator.setNode(String(slot.index), el)
@@ -177,6 +187,9 @@
                                             dealAnimator.setNode(String(slot.index), undefined)
                                     }}
                                 >
+                                    {#if dealAnimator.dealtPile}
+                                        <DeckShade deck={dealAnimator.dealtPile} />
+                                    {/if}
                                     <PoliticsCard card={slot.card} />
                                 </div>
                             {/if}
@@ -202,14 +215,15 @@
                                      from an opened pile, so there's no separate "still has cards
                                      left" state for this slot to distinguish. -->
                                 <div
-                                    class="aspect-[534/832] rounded-md border border-dashed border-black/25"
+                                    class="aspect-[534/832] rounded-md border-2 border-dashed border-black/25"
                                     style="width: {cardWidthCss};"
+                                    style:border-color={pile ? deckOutlineColor(pile) : undefined}
                                 ></div>
                             {:else}
                                 <button
                                     type="button"
                                     disabled={takingCardIndex !== undefined || gameSession.busy}
-                                    class="cursor-pointer opacity-90 hover:opacity-100"
+                                    class="relative cursor-pointer opacity-90 hover:opacity-100"
                                     style="width: {cardWidthCss};"
                                     onclick={() => chooseCard(slot.card, slot.index)}
                                     {@attach (el) => {
@@ -218,6 +232,9 @@
                                             takeAnimator.setNode(String(slot.index), undefined)
                                     }}
                                 >
+                                    {#if pile}
+                                        <DeckShade deck={pile} />
+                                    {/if}
                                     <CardMagnifier card={slot.card} />
                                 </button>
                             {/if}
