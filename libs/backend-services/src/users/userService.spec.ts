@@ -3,10 +3,13 @@ import { ExternalAuthService, Role, UserStatus, type User } from '@tabletop/comm
 import { UserService } from './userService.js'
 import { AccountUnavailableError, InvalidTimeZoneError } from './errors.js'
 import type { UserStore } from '../persistence/stores/userStore.js'
+import type { TaskService } from '../tasks/taskService.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import type { StoredUser } from '../persistence/model/storedUser.js'
 import { TokenService } from '../tokens/tokenService.js'
 import { LocalTaskService } from '../tasks/localTasksService.js'
+import { SessionService } from '../sessions/sessionService.js'
+import { MemorySessionStore } from '../persistence/memory/sessionStore.js'
 
 const user: User = {
     id: 'a',
@@ -29,7 +32,12 @@ function fixture(existing: User = user) {
     })
     const store: UserStore = Object.create(null)
     store.updateUser = updateUser
-    const service = new UserService(store, TokenService.prototype, LocalTaskService.prototype)
+    const service = new UserService(
+        store,
+        TokenService.prototype,
+        LocalTaskService.prototype,
+        SessionService.prototype
+    )
     return { service, updateUser }
 }
 
@@ -81,7 +89,12 @@ describe('external provider authentication', () => {
         store.findByEmail = async () => byEmail
         store.addExternalId = addExternalId
         store.createUser = createUser
-        const service = new UserService(store, TokenService.prototype, LocalTaskService.prototype)
+        const service = new UserService(
+            store,
+            TokenService.prototype,
+            LocalTaskService.prototype,
+            SessionService.prototype
+        )
         return { service, addExternalId, createUser }
     }
 
@@ -137,5 +150,45 @@ describe('external provider authentication', () => {
             expect(addExternalId).not.toHaveBeenCalled()
             expect(createUser).not.toHaveBeenCalled()
         }
+    })
+})
+
+describe('sessions after a Password Credential change', () => {
+    function passwordFixture() {
+        const sessionStore = new MemorySessionStore()
+        const sessions = new SessionService(sessionStore)
+        const store: UserStore = Object.create(null)
+        store.updateUser = async ({ fields, password }) => {
+            const stored: StoredUser = { ...user, createdAt: undefined, updatedAt: undefined }
+            const updatedFields = [...Object.keys(fields), ...(password ? ['password'] : [])]
+            return [{ ...user, ...fields }, updatedFields, stored]
+        }
+        store.updatePassword = async () => {}
+        const tasks: TaskService = Object.create(null)
+        tasks.sendAccountChangeNotificationEmail = async () => {}
+        const service = new UserService(store, TokenService.prototype, tasks, sessions)
+        return { service, sessions, sessionStore }
+    }
+
+    it('revokes every session when the password is changed through an update', async () => {
+        const { service, sessions, sessionStore } = passwordFixture()
+        await sessions.establish(user)
+        await sessions.establish(user)
+        await service.updateUser('a', {}, 'a-new-password-value', 'the-current-password')
+        expect(sessionStore.size).toBe(0)
+    })
+
+    it('revokes every session when the password is set', async () => {
+        const { service, sessions, sessionStore } = passwordFixture()
+        await sessions.establish(user)
+        await service.updatePassword('a', 'a-new-password-value')
+        expect(sessionStore.size).toBe(0)
+    })
+
+    it('keeps sessions through an update that leaves the password alone', async () => {
+        const { service, sessions, sessionStore } = passwordFixture()
+        await sessions.establish(user)
+        await service.updateUser('a', { username: 'Renamed' })
+        expect(sessionStore.size).toBe(1)
     })
 })

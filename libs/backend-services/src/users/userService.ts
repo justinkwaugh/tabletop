@@ -12,6 +12,7 @@ import {
 } from '@tabletop/common'
 import { TokenType, TokenService } from '../tokens/tokenService.js'
 import { TaskService } from '../tasks/taskService.js'
+import { SessionService } from '../sessions/sessionService.js'
 import {
     AccountUnavailableError,
     EmailVerificationError,
@@ -35,7 +36,8 @@ export class UserService {
     constructor(
         private readonly userStore: UserStore,
         private readonly tokenService: TokenService,
-        private readonly taskService: TaskService
+        private readonly taskService: TaskService,
+        private readonly sessionService: SessionService
     ) {
         const cmp = new Intl.Collator('en').compare
         const typeAheadSort = (info: uFuzzy.Info, haystack: string[]) => {
@@ -220,6 +222,10 @@ export class UserService {
             }
         })
 
+        if (updatedFields.includes('password')) {
+            await this.sessionService.revokeAll(userId)
+        }
+
         if (token) {
             await this.tokenService.invalidateToken(token)
         }
@@ -283,6 +289,7 @@ export class UserService {
         }
 
         await this.userStore.updatePassword(userId, cleanPassword)
+        await this.sessionService.revokeAll(userId)
     }
 
     async handleExternalAuth({

@@ -16,6 +16,7 @@
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext, trim } from '@tabletop/frontend-components'
     import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
+    import { broadcastLogout } from '$lib/utils/logoutChannel'
 
     let { authorizationService, api } = getAppContext()
 
@@ -160,6 +161,12 @@
     function clearErrors() {
         errorMessage = undefined
         errors = {}
+    }
+
+    async function logoutEverywhere() {
+        await api.logoutAll()
+        broadcastLogout()
+        await authorizationService.onLogout()
     }
 </script>
 
@@ -343,6 +350,15 @@
         </form>
         <div class="mt-6">
             <TimeZonePicker />
+        </div>
+        <div class="mt-6 flex items-center justify-between gap-4">
+            <P class="text-sm text-gray-700 dark:text-gray-400"
+                >Signed in somewhere you no longer trust? Sign out of every device, including this
+                one.</P
+            >
+            <Button color="alternative" size="sm" onclick={logoutEverywhere}
+                >Sign out everywhere</Button
+            >
         </div>
     </Card>
 </div>

@@ -30,6 +30,7 @@
     import PreferencesPanel from '$lib/components/PreferencesPanel.svelte'
     import AccountAvatar from '$lib/components/AccountAvatar.svelte'
     import { setLoginModal } from '$lib/stores/loginModal'
+    import { broadcastLogout, onLogoutBroadcast } from '$lib/utils/logoutChannel'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
     import {
@@ -222,14 +223,13 @@
         await authorizationService.onLogout()
     }
 
-    const logoutChannel = new BroadcastChannel('logout')
-    logoutChannel.onmessage = function (e) {
-        onLogout()
-    }
+    onLogoutBroadcast(() => {
+        void onLogout()
+    })
 
     async function logout() {
-        onLogout()
-        logoutChannel.postMessage({})
+        void onLogout()
+        broadcastLogout()
     }
 
     async function gotoProfile() {

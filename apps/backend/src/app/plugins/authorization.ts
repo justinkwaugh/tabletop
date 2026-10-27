@@ -1,7 +1,7 @@
 import { measure } from '@tabletop/backend-services/diagnostics'
 import fp from 'fastify-plugin'
 import { User, Role, UserStatus, canHoldAuthenticatedSession } from '@tabletop/common'
-import { AccountUnavailableError } from '@tabletop/backend-services'
+import { AccountUnavailableError, AuthenticatedSession } from '@tabletop/backend-services'
 import { FastifyAuthFunction } from '@fastify/auth'
 import { FastifyInstance, FastifyRequest } from 'fastify'
 
@@ -16,6 +16,7 @@ declare module 'fastify' {
 
     interface FastifyRequest {
         user?: User
+        authenticatedSession?: AuthenticatedSession
     }
 }
 
@@ -44,18 +45,28 @@ export default fp(async function (fastify: FastifyInstance) {
     }
 
     async function getUserForSession(request: FastifyRequest): Promise<User> {
-        const userId = request.session.get('userId')
-        if (!userId) {
-            throw new Error('No user id in session')
+        const sessionId = request.session.get('sessionId')
+        if (!sessionId) {
+            throw new Error('No session id in cookie')
         }
 
-        const user = await measure('auth.user', () => fastify.userService.getUser(userId))
+        const authenticated = await measure('auth.session', () =>
+            fastify.sessionService.authorize(sessionId)
+        )
+        if (!authenticated) {
+            throw new Error('Session is not live')
+        }
+
+        const user = await measure('auth.user', () =>
+            fastify.userService.getUser(authenticated.userId)
+        )
         if (!user) {
-            throw new Error('No user found for id ' + userId)
+            throw new Error('No user found for id ' + authenticated.userId)
         }
         if (!canHoldAuthenticatedSession(user)) {
             throw new AccountUnavailableError(user.status)
         }
+        request.authenticatedSession = authenticated
         return user
     }
 

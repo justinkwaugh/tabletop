@@ -65,7 +65,7 @@ _Avoid_: Social account, provider email
 A provider whose verified-email assertion is accepted as proof of email control for Account linking. Google and Discord are currently trusted; additional providers require an explicit trust decision.
 
 **Set Password**:
-The operation that establishes a new Password Credential, replacing any existing one.
+The operation that establishes a new Password Credential, replacing any existing one. It terminates every Authenticated Session of the Account.
 _Avoid_: Password Recovery
 
 **Authentication Challenge**:
@@ -82,13 +82,20 @@ An Authentication Challenge authorizing Set Password for an Incomplete or Active
 An Authentication Challenge authorizing its specified sensitive Account operation.
 
 **Authenticated Session**:
-Ongoing authorization associated with a User Account, with a thirty-day absolute lifetime and no sliding extension from ordinary activity. An Account may have multiple concurrent sessions.
+Ongoing authorization associated with a User Account, recorded server-side under an unguessable Session ID that the session cookie carries. It has a thirty-day absolute lifetime and no sliding extension from ordinary activity, and it ends early through Logout, Logout All, or Set Password. A cookie without a live record authorizes nothing. An Account may have multiple concurrent sessions.
+_Avoid_: Login cookie, stateless session
+
+**Session ID**:
+The unguessable identifier of one Authenticated Session. It is the only authorization the session cookie carries and is never derived from Account data.
 
 **Recent Authentication**:
 Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session. Ordinary activity does not refresh it.
 
+**Logout**:
+Termination of the current Authenticated Session. Any Account holding a session may log out; a copied cookie for that session stops authorizing at the same moment.
+
 **Logout All**:
-Termination of every Authenticated Session belonging to a User Account.
+Termination of every Authenticated Session belonging to a User Account, including the one requesting it.
 
 ## Authorization
 

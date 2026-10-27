@@ -21,6 +21,7 @@ import {
     FirestoreGameStore,
     FirestoreNotificationStore,
     FirestorePreferenceStore,
+    FirestoreSessionStore,
     FirestoreTokenStore,
     FirestoreTournamentStore,
     FirestoreLeagueStore,
@@ -46,6 +47,7 @@ import {
     RedisService,
     ResendEmailService,
     SecretsService,
+    SessionService,
     StalledGames,
     STATIC_ROOT,
     TaskService,
@@ -69,6 +71,7 @@ declare module 'fastify' {
     interface FastifyInstance {
         taskService: TaskService
         tokenService: TokenService
+        sessionService: SessionService
         userService: UserService
         preferenceService: PreferenceService
         emailService: EmailService
@@ -140,7 +143,10 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         fastify.firestore,
         service === 'local'
     )
-    const userService = new UserService(userStore, tokenService, taskService)
+    const sessionService = new SessionService(
+        new FirestoreSessionStore(redisCacheService, fastify.firestore)
+    )
+    const userService = new UserService(userStore, tokenService, taskService, sessionService)
 
     let pubSubService: PubSubService = new NullPubSubService()
     if (!useAbly) {
@@ -264,6 +270,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         if (taskService instanceof LocalTaskService) taskService.close()
     })
     fastify.decorate('tokenService', tokenService)
+    fastify.decorate('sessionService', sessionService)
     fastify.decorate('userService', userService)
     fastify.decorate(
         'preferenceService',

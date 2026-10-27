@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { User } from '@tabletop/common'
+import { authSession } from '../../../lib/session.js'
 
 type UserUpdateRequest = Static<typeof UserUpdateRequest>
 const UserUpdateRequest = Type.Evaluate(
@@ -47,6 +48,13 @@ export default async function (fastify: FastifyInstance) {
                 currentPassword,
                 token
             )
+            if (password) {
+                await authSession({
+                    session: request.session,
+                    user: updatedUser,
+                    sessions: fastify.sessionService
+                })
+            }
             console.log(`Updated user ${JSON.stringify(updatedUser)}`)
             return { status: 'ok', payload: { user: updatedUser } }
         }
