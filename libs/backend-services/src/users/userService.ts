@@ -1,6 +1,7 @@
 import { UserStore } from '../persistence/stores/userStore.js'
 import {
     type AdminAssignableRole,
+    canHoldAuthenticatedSession,
     ExternalAuthService,
     remove,
     Role,
@@ -12,6 +13,7 @@ import {
 import { TokenType, TokenService } from '../tokens/tokenService.js'
 import { TaskService } from '../tasks/taskService.js'
 import {
+    AccountUnavailableError,
     EmailVerificationError,
     InvalidPasswordError,
     InvalidTimeZoneError,
@@ -294,15 +296,19 @@ export class UserService {
         email?: string
         emailVerified?: boolean
     }): Promise<User> {
-        let user = await this.userStore.findByExternalId(externalId, service)
+        const linkedUser = await this.userStore.findByExternalId(externalId, service)
+        if (linkedUser) {
+            this.requireSessionEligibleAccount(linkedUser)
+            return linkedUser
+        }
 
-        // Try by email
-        if (!user && email) {
+        if (email) {
             console.log('No user found by external_id, trying by email')
             const userByEmail = await this.userStore.findByEmail(email)
             if (userByEmail && emailVerified && userByEmail.emailVerified) {
+                this.requireSessionEligibleAccount(userByEmail)
                 console.log('Found user by email... linking external_id to user')
-                user = await this.userStore.addExternalId({
+                return await this.userStore.addExternalId({
                     userId: userByEmail.id,
                     externalId,
                     service
@@ -310,18 +316,20 @@ export class UserService {
             }
         }
 
-        if (!user) {
-            user = await this.userStore.createUser(<User>{
-                id: nanoid(),
-                status: UserStatus.Incomplete,
-                email: email,
-                emailVerified: emailVerified,
-                roles: [Role.User],
-                externalIds: [`${service}:${externalId}`]
-            })
-        }
+        return await this.userStore.createUser(<User>{
+            id: nanoid(),
+            status: UserStatus.Incomplete,
+            email: email,
+            emailVerified: emailVerified,
+            roles: [Role.User],
+            externalIds: [`${service}:${externalId}`]
+        })
+    }
 
-        return user
+    private requireSessionEligibleAccount(user: User): void {
+        if (!canHoldAuthenticatedSession(user)) {
+            throw new AccountUnavailableError(user.status)
+        }
     }
 
     async verifyEmail(token: string): Promise<User> {

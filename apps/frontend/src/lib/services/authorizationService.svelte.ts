@@ -1,4 +1,4 @@
-import { Role, User, UserStatus } from '@tabletop/common'
+import { canHoldAuthenticatedSession, Role, User, UserStatus } from '@tabletop/common'
 import { goto, invalidateAll } from '$app/navigation'
 import { redirect } from '@sveltejs/kit'
 import { AuthorizationCategory, type TabletopApi } from '@tabletop/frontend-components'
@@ -193,11 +193,7 @@ export class AuthorizationService {
     private async fetchSessionUser(): Promise<User | undefined> {
         try {
             const sessionUser = await this.api.getSelf()
-            if (
-                sessionUser &&
-                sessionUser.status !== UserStatus.Deleted &&
-                sessionUser.status !== UserStatus.Inactive
-            ) {
+            if (sessionUser && canHoldAuthenticatedSession(sessionUser)) {
                 return sessionUser
             }
         } catch {

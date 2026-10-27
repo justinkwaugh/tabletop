@@ -133,11 +133,11 @@ Unless stated otherwise, every open item below is documented but not implemented
 
 ## Identity and Access
 
-### Persistence recomputes status and can reactivate Accounts
+### Persistence applies only the Account Completion transition
 
-- **Classification**: Defect and model contradiction; planned service-owned transitions
-- **Observed**: Every User store update writes Active when username, email, and email verification are present, otherwise Incomplete. An ordinary update can therefore reactivate an Inactive or Deleted User Account.
-- **Evidence**: `libs/backend-services/src/persistence/firestore/userStore.ts:343`; `libs/backend-services/src/users/userService.ts:124`
+- **Classification**: Aligned
+- **Observed**: The User store recomputes status from Account Completion only for Incomplete and Active Accounts, through the shared `accountStatusAfterCompletionCheck` rule. Inactive and Deleted Accounts keep their status through every update, including an empty profile update, preference, time zone, role, and email verification changes. Administrative Active-to-Inactive, Inactive-to-Active, and deletion transitions remain unimplemented and are tracked under administrative status and role management.
+- **Evidence**: `libs/common/src/site/user.ts:90`; `libs/backend-services/src/persistence/firestore/userStore.ts:438`; `libs/backend-services/src/persistence/firestore/userStore.integration.spec.ts:55`
 - **Invariant**: User Account status is one mutually exclusive lifecycle: Incomplete may become Active when completion requirements are met; only an administrator may move Active to Inactive or reactivate Inactive; authorized deletion is terminal. Persistence never invents transitions.
 
 ### Username discovery ignores Account status
@@ -161,11 +161,11 @@ Unless stated otherwise, every open item below is documented but not implemented
 - **Evidence**: `libs/common/src/site/user.ts:33`; `libs/backend-services/src/persistence/firestore/userStore.ts:504`
 - **Invariant**: A Public User Profile contains only stable Account ID and Username and exists only for an Active Account. Email, Authentication Methods, roles, preferences, and lifecycle details remain private. Historical attribution does not make a non-Active Account discoverable.
 
-### Login and existing sessions do not enforce status policy
+### Incomplete sessions reach routes beyond onboarding
 
 - **Classification**: Defect; planned authorization change
-- **Observed**: Password, provider, and token logins establish sessions without a complete status gate. General user verification accepts every status; only selected routes require an Active User.
-- **Evidence**: `apps/backend/src/app/routes/api/auth/login.ts:18`; `apps/backend/src/app/routes/api/auth/google/login.ts:41`; `apps/backend/src/app/routes/api/auth/token/login.ts:20`; `apps/backend/src/app/plugins/authorization.ts:21`; `apps/frontend/src/lib/model/authorizationService.svelte.ts:122`
+- **Observed**: Every session establishment passes through one helper that refuses Inactive and Deleted Accounts with the shared `canHoldAuthenticatedSession` rule, and every session use rechecks the stored Account, so an existing session stops granting access once the Account is Inactive or Deleted. Password, challenge, Google, and Discord logins are covered. General user verification still accepts Incomplete Accounts on routes beyond onboarding, such as hosted Game update, deletion, Fork, Undo, and voting; only selected routes require an Active User.
+- **Evidence**: `apps/backend/src/app/lib/session.ts:12`; `apps/backend/src/app/plugins/authorization.ts:56`; `apps/backend/src/app/routes/api/game/update.ts:22`; `apps/backend/src/app/routes/titleSpecific/fork.ts:17`; `apps/frontend/src/lib/services/authorizationService.svelte.ts:196`
 - **Invariant**: Incomplete permits only onboarding, verification, recovery, and logout; Active permits normal use; Inactive permits identity proof for recovery or support but cannot establish or continue a normal session; Deleted permits no authentication. Existing sessions cease granting access immediately for Inactive and Deleted Accounts.
 
 ### Recent Authentication is not consistently enforced
@@ -199,15 +199,15 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### Set Password can create a first Password Credential
 
 - **Classification**: Intended credential behavior with status and session defects
-- **Observed**: The public reset request returns the same success response for a missing email, but issues a challenge for any matching Account regardless of status or whether it already has a Password Credential. Completing the flow writes a password even for a provider-only Account. Deleted Accounts can receive a challenge, and the generic token-login step establishes an ordinary session without applying Account-status policy.
+- **Observed**: The public reset request returns the same success response for a missing email, but issues a challenge for any matching Account regardless of status or whether it already has a Password Credential. Completing the flow writes a password even for a provider-only Account. Inactive and Deleted Accounts can still receive a challenge, although the generic token-login step now refuses them a session; it still grants an ordinary session to Incomplete and Active Accounts.
 - **Evidence**: `apps/backend/src/app/routes/api/user/email/sendPasswordReset.ts:4`; `libs/backend-services/src/users/userService.ts:241`; `libs/backend-services/src/users/userService.ts:340`; `apps/backend/src/app/routes/api/auth/token/login.ts:20`; `apps/backend/src/app/routes/api/user/setPassword.ts:18`
 - **Invariant**: Set Password establishes a new Password Credential and replaces any existing one. An Incomplete or Active Account with an email may use a Set Password Challenge, including an Account that previously used only Google or Discord. Inactive and Deleted Accounts are forbidden. The public request response does not reveal Account existence or eligibility. Completion creates no ordinary Authenticated Session, changes neither status nor Email Verification, and invalidates existing sessions. Avoid the domain term Password Recovery because no password is recovered.
 
 ### Logged-out provider sign-in can link an Account by matching email
 
-- **Classification**: Intended linking behavior with a status-enforcement defect
-- **Observed**: When a Google or Discord identity is unknown, logged-out sign-in searches for an existing Account with the provider-supplied email. If the provider and Account both mark that email verified, the External Identity is attached and a session is immediately established. The lookup and session creation have no Account-status restriction. If either verification flag is absent, the code instead attempts to create an Account with the already-reserved email and fails uniqueness enforcement.
-- **Evidence**: `libs/backend-services/src/users/userService.ts:250`; `libs/backend-services/src/persistence/firestore/userStore.ts:54`; `apps/backend/src/app/routes/api/auth/google/login.ts:41`; `apps/backend/src/app/routes/api/auth/discord/login.ts:73`
+- **Classification**: Intended linking behavior with an unverified-email collision defect
+- **Observed**: When a Google or Discord identity is unknown, logged-out sign-in searches for an existing Account with the provider-supplied email. If the provider and Account both mark that email verified, the External Identity is attached and a session is immediately established. Inactive and Deleted Accounts are refused before any link whether matched by provider identity or by verified email, so they neither link nor receive a session. If either verification flag is absent, the code instead attempts to create an Account with the already-reserved email and fails uniqueness enforcement.
+- **Evidence**: `libs/backend-services/src/users/userService.ts:288`; `libs/backend-services/src/persistence/firestore/userStore.ts:54`; `apps/backend/src/app/routes/api/auth/google/login.ts:41`; `apps/backend/src/app/routes/api/auth/discord/login.ts:73`
 - **Invariant**: A provider explicitly trusted to validate email ownership may authorize linking its External Identity to an Account whose identical email is already verified. Google and Discord are currently trusted for this purpose; every additional provider requires an explicit trust decision. Active Accounts may link and receive a normal session. Incomplete Accounts may link but receive only restricted onboarding access; the trusted assertion may satisfy email verification. Inactive Accounts may use provider authentication only for recovery or support identity proof and do not receive a new link or normal session. Deleted Accounts neither link nor authenticate. Already-linked identities obey the same status restrictions.
 
 ### Email verification validity text disagrees with the service
@@ -248,7 +248,7 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### Account deletion and anonymization are absent
 
 - **Classification**: Planned change
-- **Observed**: No service writes Deleted status, performs Account deletion or anonymization, revokes credentials, or releases identifiers. A record manually marked Deleted would retain username, email, password hash, External Identities, roles, preferences, uniqueness reservations, sessions, and challenges.
+- **Observed**: No service writes Deleted status, performs Account deletion or anonymization, revokes credentials, or releases identifiers. A record manually marked Deleted would retain username, email, password hash, External Identities, roles, preferences, uniqueness reservations, and challenges; it can no longer establish or continue a session, and no update changes its status.
 - **Evidence**: `libs/common/src/site/user.ts:12`; `libs/backend-services/src/persistence/firestore/userStore.ts:593`; `apps/backend/src/app/routes/api/user/update.ts:5`
 - **Invariant**: Terminal deletion retains an anonymized tombstone with its immutable Account ID for historical attribution. It removes username, email, Password Credential, External Identities, roles, preferences, sessions, challenges, discoverability, and authentication capability. Released identifiers may be reused after deletion is finalized; Account IDs are never reused. Downstream contexts present a neutral deleted-user identity.
 
