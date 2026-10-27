@@ -102,6 +102,7 @@ test.each([true, false])(
         vi.stubEnv('REDIS_HOST', '127.0.0.1')
         vi.stubEnv('REDIS_PORT', String(address.port))
         vi.stubEnv('K_SERVICE', 'backend')
+        vi.stubEnv('SITE_MANIFEST_GCS_URI', 'gs://test-static/config/site-manifest.json')
         vi.stubEnv('ABLY_API_KEY', useAbly ? 'local-test' : '')
         const { RedisService, RedisPubSubService } = await import('@tabletop/backend-services')
         const pools: ReturnType<RedisServiceType['client']['createPool']>[] = []

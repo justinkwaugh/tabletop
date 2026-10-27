@@ -6,6 +6,8 @@ export const EighteenFortySixInfo: GameInfo = {
     id: '1846',
     metadata: {
         name: '1846: The Race for the Midwest',
+        bggId: 17405,
+        hasScores: true,
         designer: 'Thomas Lehmann',
         year: '2005',
         description:

@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { cloudManifestReader } from '../../runtime/cloudManifest.js'
 import {
     AblyService,
     AblyTransport,
@@ -118,6 +119,9 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     const titleValidation = new TitleValidation()
     const libraryService = new LibraryService(redisCacheService, {
         manifestPath: SITE_MANIFEST_PATH,
+        readManifest: EnvService.isLocal()
+            ? undefined
+            : cloudManifestReader(process.env['SITE_MANIFEST_GCS_URI']),
         fallbackManifest: EnvService.isLocal()
             ? () => createLocalManifest(LOCAL_WORKSPACE_ROOT)
             : undefined,
