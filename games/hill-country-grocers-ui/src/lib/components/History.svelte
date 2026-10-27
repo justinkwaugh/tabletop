@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { GameAction } from '@tabletop/common'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         SPACE_NAMES,
@@ -58,7 +58,7 @@
         <div class="subtitle">Transaction log</div>
     </div>
     <div class="double-rule"></div>
-    {#if gameSession.gameState.result && gameSession.gameState.winningPlayerIds.length > 0}
+    {#if !gameSession.gameCall && gameSession.gameState.result && gameSession.gameState.winningPlayerIds.length > 0}
         <div class="final">
             <div class="stars">*** Final total ***</div>
             <div class="winners">
@@ -88,6 +88,17 @@
             >
                 <div class="stars">*** Dividends paid ***</div>
                 <Description description={describeAction(entry.action)} />
+            </div>
+        {:else if entry.kind === 'call'}
+            <div
+                class="dividend jump"
+                role="button"
+                tabindex="0"
+                onclick={() => jumpTo(entry)}
+                onkeydown={(event) => onKey(event, entry)}
+            >
+                <div class="stars">*** Closed early ***</div>
+                <CalledGameDescription action={entry.action} />
             </div>
         {:else}
             <section

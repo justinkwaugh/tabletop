@@ -1,13 +1,13 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
-async function openWorkspace(page: Page) {
+async function openWorkspace(page: Page, splittable = true) {
     await page.goto('/session-test.html')
-    await page.evaluate(async () => {
+    await page.evaluate(async (splittable) => {
         const { mountWorkspace } = await import(
             new URL('/src/lib/components/tests/workspace.fixture.ts', location.href).href
         )
-        mountWorkspace()
-    })
+        mountWorkspace(splittable)
+    }, splittable)
 }
 
 async function splitTopAndBottom(page: Page) {
@@ -58,6 +58,43 @@ test('workspace works without a game and ignores railway theme variables', async
     ).toHaveCount(0)
     await editor.click()
     await expect(page.getByRole('textbox', { name: 'editor draft' })).toHaveValue('preserved')
+})
+
+test('an unsplittable workspace adds and closes tabs without splitting or deleting its pane', async ({
+    page
+}) => {
+    await openWorkspace(page, false)
+    await page.getByRole('button', { name: 'Pane options for Example pane 1' }).click()
+    const menu = page.locator('.widget-menu:popover-open')
+    await expect(menu.getByRole('button', { name: /^Split pane / })).toHaveCount(0)
+    await expect(menu.getByRole('button', { name: /^Delete pane / })).toHaveCount(0)
+    await menu.getByRole('button', { name: 'Notes', exact: true }).click()
+    await expect(page.getByRole('tab', { name: 'Notes', exact: true })).toHaveAttribute(
+        'aria-selected',
+        'true'
+    )
+    await expect(page.getByRole('tab', { name: 'Notes', exact: true })).toHaveAttribute(
+        'draggable',
+        'false'
+    )
+    await page.getByRole('button', { name: 'Pane options for Example pane 1' }).click()
+    const tabs = page.getByRole('tablist', { name: 'Example tabs 1' }).getByRole('tab')
+    const grip = menu.getByRole('button', { name: 'Move Notes tab', exact: true })
+    const box = (await grip.boundingBox())!
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width / 2, box.y - box.height * 2, { steps: 6 })
+    await page.mouse.up()
+    await expect(tabs).toHaveText(['Notes', 'Editor', 'Preview'])
+    await menu.getByRole('button', { name: 'Move Editor tab', exact: true }).focus()
+    await page.keyboard.press('ArrowUp')
+    await expect(tabs).toHaveText(['Editor', 'Notes', 'Preview'])
+    await expect(menu.getByRole('button', { name: 'Move Editor tab', exact: true })).toBeFocused()
+    await page.getByRole('button', { name: 'Close preview tab' }).click()
+    await expect(page.getByRole('tab', { name: 'Preview', exact: true })).toHaveCount(0)
+    await expect(page.getByLabel('Saved layout')).toHaveText(
+        JSON.stringify({ closed: ['preview'], v: 1, sidebar: [], main: ['editor', 'notes'] })
+    )
 })
 
 test('the menu of a low pane shorter than the menu opens upward inside the window', async ({

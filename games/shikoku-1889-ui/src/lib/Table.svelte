@@ -22,7 +22,7 @@
               : undefined
 </script>
 
-<GameTable {session} {privateOperationDescription}>
+<GameTable {session} {privateOperationDescription} {createRouteWorker}>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.waterfall.model && !session.waterfall.model.auction.completed}
             <WaterfallAuctionLots {session} />

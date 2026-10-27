@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/kaivai-ui",
-    "version": "5.7.0",
+    "version": "6.0.0",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",

@@ -29,7 +29,7 @@ export const Shikoku1889MapView: MapViewDefinition = {
         I4: { labelPosition: { x: -36, y: 0 } }
     },
     namePositions: { F9: { x: 0, y: 21.5 }, B7: { x: 0, y: 21.5 } },
-    terrainHeights: { F9: 31 },
+    terrainPositions: { F9: { x: 0, y: 31 } },
     markerArt: {
         port: { tileSymbol: 'port' },
         'ehime-railroad': { localLine: true },

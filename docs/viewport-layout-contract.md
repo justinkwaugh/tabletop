@@ -268,6 +268,8 @@ This is bundled rendering with no host-bridge change. Every Game UI Artifact bun
 page until it is republished. The 18xx phone body (`GameTable` in `@tabletop/18xx-ui`) and
 Napoleon's Triumph's body stop overscroll only vertically, so sideways swipes over them reach the
 table scroller.
+Sideways scrollers inside the table use `chainSidewaysScroll` so a swipe that starts at their edge
+moves the table scroller; see `libs/frontend-components/docs/ui-interaction-visual-contract.md`.
 
 ## Published artifact CSS compatibility
 

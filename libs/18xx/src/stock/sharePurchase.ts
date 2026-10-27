@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import { soldThisStockRound } from './stockRound.js'
 import { companyShareCount } from '../company/companyCharters.js'
 import * as Type from 'typebox'
@@ -138,7 +139,7 @@ export function evaluateShareTransfer(
         remaining -= amount
     }
     if (remaining > 0) return { reason: 'The buyer cannot afford this purchase.' }
-    const projected = { ...state, ...copyFinances(state) }
+    const projected = stateWith(state, copyFinances(state))
     const purchased = projected.certificates.find((item) => item.id === certificateId)
     assert(purchased, 'Missing purchased certificate')
     purchased.owner = buyer

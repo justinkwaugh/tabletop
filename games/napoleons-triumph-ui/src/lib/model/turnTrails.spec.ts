@@ -124,6 +124,31 @@ describe('the trails of the turn in progress', () => {
         expect(near(second.line[second.line.length - 1], 65)).toBe(true)
     })
 
+    it('follow the road of cavalry that took a locale by road, through the locale it attacked from', () => {
+        const recorded = new Recorded()
+        arrangeBattlefield(recorded.game, [
+            { id: 'A-cav', side: Side.Allied, face: cavalry(2), locale: 74 },
+            { id: 'F-inf', side: Side.French, face: infantry(2), locale: 72 }
+        ])
+        recorded.actions.length = 0
+        const rider = { kind: CommandKind.Unit, unitIds: ['A-cav'] }
+        recorded.act(ActionType.ThreatenAttack, Side.Allied, {
+            approach: recorded.game.hydrated.map.approachBetween(73, 72).id,
+            plan: rider
+        })
+        recorded.act(ActionType.Retreat, Side.French, {
+            losses: { 'F-inf': 1 },
+            destinations: { 'F-inf': 83 },
+            kept: {}
+        })
+        recorded.act(ActionType.Occupy, Side.Allied, { orders: [{ ...rider, road: [73] }] })
+        const [ride] = recorded
+            .trails()
+            .filter((trail) => near(trail.line[trail.line.length - 1], 72))
+        expect(near(ride.line[0], 74)).toBe(true)
+        expect(ride.line).toContainEqual(LOCALE_GEOMETRY[73].anchor)
+    })
+
     it('start from an opponent’s stack as a whole, whichever of its units moved', () => {
         const trailOf = (unitId: string, reader: Side) => {
             const recorded = new Recorded()

@@ -7,9 +7,15 @@
         GameStatus,
         PlayerStatus,
         GameResult,
+        GameCallKind,
         GameOutcome,
         gameOutcome,
-        ownerMayDeleteGame
+        daysUntilStalledGameEnds,
+        gameStallLevel,
+        GameStallLevel,
+        lastMoveAt,
+        ownerMayDeleteGame,
+        stalledGameEndsAt
     } from '@tabletop/common'
     import { isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
     import { gameCardOptions } from '$lib/utils/gameOptions'
@@ -30,6 +36,18 @@
     } from '@tabletop/frontend-components'
 
     const timeAgo = createTimeAgo()
+
+    const ending = { border: '!border-red-600', label: 'text-red-500', value: 'text-red-400' }
+    const stallColors: Record<GameStallLevel, { border: string; label: string; value: string }> = {
+        [GameStallLevel.None]: { border: '', label: '', value: '' },
+        [GameStallLevel.AtRisk]: {
+            border: '!border-amber-500',
+            label: 'text-amber-500',
+            value: 'text-amber-400'
+        },
+        [GameStallLevel.Ending]: ending,
+        [GameStallLevel.Due]: ending
+    }
 
     let {
         game,
@@ -54,6 +72,7 @@
     let loading = $derived(libraryService.loading)
 
     let editing = $state(false)
+    let continuing = $state(false)
     let openingGame = $state(false)
     let canToggle = $derived(expanded !== 'always')
     let isExpanded = $derived(expanded ? true : false)
@@ -111,6 +130,7 @@
     let canPlay = $derived(isMine && game.status === GameStatus.Started)
     let canWatch = $derived(!isMine && game.status === GameStatus.Started)
     let canRevisit = $derived(game.status === GameStatus.Finished)
+    let canContinue = $derived(!loading && isMine && game.canContinue === true)
     let canDelete = $derived(
         !game.tournament &&
             (authorizationService.isAdmin || (isOwnedByMe && ownerMayDeleteGame(game)))
@@ -145,6 +165,9 @@
     })
 
     let isMyTurn = $derived(isUsersNonHotseatTurn(game, sessionUser?.id))
+
+    let stallLevel = $derived(gameStallLevel(game, new Date()))
+    let stallColor = $derived(stallColors[stallLevel])
 
     let openSeats = $derived(
         game.players.reduce((acc, player) => acc + (player.status === PlayerStatus.Open ? 1 : 0), 0)
@@ -207,6 +230,16 @@
         editing = true
     }
 
+    function continueGame(event: Event) {
+        event.stopPropagation()
+        continuing = true
+    }
+
+    async function onContinued(next: Game) {
+        continuing = false
+        if (next.status === GameStatus.Started) await goto(`/game/${next.id}`)
+    }
+
     async function deleteGame(event: Event) {
         event.stopPropagation()
         confirmDelete = true
@@ -260,9 +293,35 @@
             case GameResult.Draw:
                 return 'Tied'
             case GameResult.Abandoned:
-                return 'Abandoned'
+                return game.call ? 'No winner' : 'Abandoned'
             default:
                 return 'Winner'
+        }
+    }
+
+    function stallText() {
+        switch (stallLevel) {
+            case GameStallLevel.AtRisk:
+                return 'Stalling'
+            case GameStallLevel.Ending: {
+                const days = daysUntilStalledGameEnds(game, new Date())
+                return days === 1 ? 'Ends in 1 day' : `Ends in ${days} days`
+            }
+            default:
+                return 'Stalled'
+        }
+    }
+
+    function finishedLabel() {
+        switch (game.call?.kind) {
+            case GameCallKind.Called:
+                return 'Called'
+            case GameCallKind.Conceded:
+                return 'Conceded'
+            case GameCallKind.Stalled:
+                return 'Stalled'
+            default:
+                return 'Finished'
         }
     }
 
@@ -307,7 +366,7 @@
 
 <Card
     onclick={toggleExpand}
-    class={`min-w-[310px] mx-2 mb-1 ${gameCardAppearance} ${className}`}
+    class={`min-w-[310px] mx-2 mb-1 ${gameCardAppearance} ${stallColor.border} ${className}`}
     size="sm"
 >
     <div class="flex flex-col">
@@ -389,6 +448,14 @@
                                             'h-[20px] dark:text-gray-200'
                                         )}
                                     {/if}
+                                    {#if canContinue}
+                                        <Button
+                                            size="xs"
+                                            color="blue"
+                                            class="h-[20px] ms-1"
+                                            onclick={continueGame}>Continue</Button
+                                        >
+                                    {/if}
                                 </div>
                                 {#if waitingToStart && !autoStartText}
                                     <div class="text-xs text-right text-gray-400">
@@ -451,6 +518,21 @@
                                 </div>
                                 <div class="text-xs text-green-400">Hotseat</div>
                             </div>
+                        {:else if game.status === GameStatus.Started && stallLevel !== GameStallLevel.None}
+                            <div
+                                class="flex flex-col justify-center items-end"
+                                title={`The game ends with no winner if nobody moves by ${stalledGameEndsAt(game).toLocaleDateString()}.`}
+                            >
+                                <div
+                                    class={stallColor.label}
+                                    style="font-size:.7rem; line-height:.8rem"
+                                >
+                                    {stallText()}
+                                </div>
+                                <div class="text-xs {stallColor.value}">
+                                    {timeAgo.format(lastMoveAt(game))}
+                                </div>
+                            </div>
                         {:else if game.status === GameStatus.Started && game.lastActionAt}
                             <div class="flex flex-col justify-center items-end">
                                 <div
@@ -469,7 +551,7 @@
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    Finished
+                                    {finishedLabel()}
                                 </div>
                                 {#if game.finishedAt}
                                     <div class="text-xs text-gray-400">
@@ -558,7 +640,7 @@
                         </div>
                     {/if}
 
-                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canRevisit || canDelete}
+                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canContinue || canRevisit || canDelete}
                         <Hr class="mt-1 mb-1" />
                         <div class="pt-4 pb-0 flex flex-row justify-center items-middle text-white">
                             {#if canDecline}
@@ -596,6 +678,11 @@
                                     isMyTurn ? 'yellow' : 'primary',
                                     'mx-2'
                                 )}
+                            {/if}
+                            {#if canContinue}
+                                <Button size="xs" color="blue" class="mx-2" onclick={continueGame}
+                                    >Continue</Button
+                                >
                             {/if}
                             {#if canRevisit}
                                 {@render gameEntryButton(
@@ -689,6 +776,24 @@
             {game}
             oncancel={() => (editing = false)}
             onsave={(game) => (editing = false)}
+        />
+    </Modal>
+{/if}
+
+{#if continuing}
+    <Modal
+        bind:open={continuing}
+        size="xs"
+        autoclose={false}
+        class="w-full"
+        outsideclose
+        dismissable={false}
+        onclick={(e) => e.stopPropagation()}
+    >
+        <GameEditForm
+            continueFrom={game}
+            oncancel={() => (continuing = false)}
+            onsave={onContinued}
         />
     </Modal>
 {/if}

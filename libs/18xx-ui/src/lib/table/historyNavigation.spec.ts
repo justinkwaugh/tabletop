@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { ActionSource } from '@tabletop/common'
+import { ActionSource, CALL_GAME_ACTION_TYPE } from '@tabletop/common'
 import type { FinishStockTurn, FinishOperatingTurn, SetStockInstruction } from '@tabletop/18xx'
 import { isHistoryBookkeeping, shouldContinueHistoryStep } from './historyNavigation.js'
 
@@ -66,4 +66,12 @@ it('steps onto automatic passes and purchases like hand-taken ones', () => {
     expect(shouldContinueHistoryStep(automaticPass)).toBe(false)
     expect(shouldContinueHistoryStep(automaticBuy)).toBe(false)
     expect(shouldContinueHistoryStep(floated)).toBe(true)
+    expect(
+        shouldContinueHistoryStep({
+            id: 'call',
+            gameId: 'g',
+            type: CALL_GAME_ACTION_TYPE,
+            source: ActionSource.System
+        })
+    ).toBe(false)
 })

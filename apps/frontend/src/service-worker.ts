@@ -8,6 +8,7 @@ import {
     NotificationCategory,
     type UserNotification,
     UserNotificationAction,
+    PlayerVoteKind,
     type IsYourTurnNotification,
     isYourTurnNotification
 } from '@tabletop/common'
@@ -108,7 +109,10 @@ async function generateLocalNotification(
                 tag: notification.data.game.id
             }
         } else if (notification.action === UserNotificationAction.PlayerVoteRequested) {
-            title = `${notification.data.initiator.name} asks to go back`
+            title =
+                notification.data.kind === PlayerVoteKind.Call
+                    ? `${notification.data.initiator.name} asks to end the game`
+                    : `${notification.data.initiator.name} asks to go back`
             options = {
                 body: `Vote in game ${notification.data.game.name}`,
                 tag: notification.data.game.id

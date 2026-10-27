@@ -3,7 +3,6 @@ import {
     isCompleteMergerPhase,
     isStartMergerPhase,
     EighteenThirtyTwoSoftLedge,
-    miamiFirstRun,
     type EighteenThirtyTwoState
 } from '@tabletop/1832'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
@@ -25,6 +24,8 @@ export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoS
     marketPoolId: 'open-market',
     ipoPoolId: 'initial-offering',
     companyNames: EighteenThirtyTwoCompanyNames,
+    // Redemption and reissue price from par after the initial offering sells out (§5.11).
+    companyPricePresentation: { showPar: true, parWithoutIpoShares: true, label: 'Value' },
     privatePurchaseHeading: 'Available privates',
     historyMapPlacement: eighteenThirtyTwoMapPlacement,
     privateTokens: {
@@ -33,10 +34,7 @@ export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoS
         P4: { imageUrl: UnknownToken },
         P7: { companyId: 'CG' }
     },
-    gameFacts: (state) => [
-        { label: 'Coal', value: String(CoalTokens - state.coalRights.length) },
-        ...(miamiFirstRun(state) ? [{ label: 'Miami', value: '$0' }] : [])
-    ],
+    gameFacts: (state) => [{ label: 'Coal', value: String(CoalTokens - state.coalRights.length) }],
     companyMarks: (state, companyId) =>
         state.coalRights.includes(companyId)
             ? [

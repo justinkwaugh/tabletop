@@ -29,6 +29,7 @@ export const EighteenSeventeenPresentation: TitlePresentation<EighteenSeventeenS
     gameFacts: eighteenSeventeenGameFacts,
     companyColumns: EighteenSeventeenCompanyColumns,
     companyFacts: eighteenSeventeenCompanyFacts,
+    marketCell: { width: 30, height: 96 },
     marketZones: EighteenSeventeenMarketZones,
     titleRounds: [
         {

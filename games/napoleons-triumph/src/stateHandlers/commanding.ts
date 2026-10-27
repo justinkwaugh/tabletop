@@ -37,7 +37,7 @@ export class CommandingStateHandler extends StepStateHandler {
             return playMachineState(state)
         }
         if (finishTurn(state)) {
-            return MachineState.Commanding
+            return state.revealedRide ? MachineState.RideRevealed : MachineState.Commanding
         }
         declareVictory(state, marginalVictor(state), VictoryKind.Marginal)
         action.revealsInfo = true

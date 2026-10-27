@@ -4,6 +4,8 @@ import {
     AblyTransport,
     BugReportService,
     CatalogService,
+    CharityTallyRefresher,
+    CharityTallyService,
     ChatService,
     CloudTasksTaskService,
     createLocalManifest,
@@ -14,6 +16,7 @@ import {
     EmailService,
     EnvSecretsService,
     EnvService,
+    FirestoreCharityTallyStore,
     FirestoreChatStore,
     FirestoreGameStore,
     FirestoreNotificationStore,
@@ -43,8 +46,10 @@ import {
     RedisService,
     ResendEmailService,
     SecretsService,
+    StalledGames,
     STATIC_ROOT,
     TaskService,
+    TiltifyApi,
     TokenService,
     TournamentService,
     TournamentStallAlerts,
@@ -53,7 +58,9 @@ import {
     UserService,
     WebPushTransport
 } from '@tabletop/backend-services'
+import { GameClientCapability } from '@tabletop/common'
 import { TitleValidation } from '../../runtime/titleValidation.js'
+import { publishedUiSupports } from '../lib/publishedUi.js'
 
 import { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
@@ -78,10 +85,13 @@ declare module 'fastify' {
         catalogService: CatalogService
         tournamentService: TournamentService
         tournamentStallAlerts: TournamentStallAlerts
+        stalledGames: StalledGames
         leagueService: LeagueService
         siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
         realtimeTokenIssuer: RealtimeTokenIssuer | undefined
+        charityTallyService: CharityTallyService
+        charityTallyRefresher: CharityTallyRefresher | undefined
     }
 }
 
@@ -93,6 +103,7 @@ const SITE_MANIFEST_PATH =
 const useAbly = !!process.env['ABLY_API_KEY']
 const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
+const useCharityTally = !!process.env['TILTIFY_CLIENT_ID']
 
 type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle'>
 
@@ -218,6 +229,16 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     )
     fastify.decorate('tournamentService', tournamentService)
     fastify.decorate(
+        'stalledGames',
+        new StalledGames(gameStore, gameService, taskService, (titleId) =>
+            publishedUiSupports(
+                { libraryService, catalogService },
+                titleId,
+                GameClientCapability.CalledGames
+            )
+        )
+    )
+    fastify.decorate(
         'tournamentStallAlerts',
         new TournamentStallAlerts(
             gameStore,
@@ -258,6 +279,24 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     fastify.decorate('discordService', discordService)
     fastify.decorate('chatService', chatService)
     fastify.decorate('cacheService', redisCacheService)
+    const charityTallyStore = new FirestoreCharityTallyStore(fastify.firestore)
+    fastify.decorate(
+        'charityTallyService',
+        new CharityTallyService(charityTallyStore, redisCacheService)
+    )
+    fastify.decorate(
+        'charityTallyRefresher',
+        useCharityTally
+            ? new CharityTallyRefresher(
+                  new TiltifyApi(
+                      await secretsService.getSecret('TILTIFY_CLIENT_ID'),
+                      await secretsService.getSecret('TILTIFY_CLIENT_SECRET')
+                  ),
+                  charityTallyStore,
+                  redisCacheService
+              )
+            : undefined
+    )
     fastify.decorate(
         'bugReportService',
         discordBotApi && BUG_REPORT_CHANNEL_ID

@@ -10,4 +10,5 @@ export interface WorkspaceFixedPane {
     target: HTMLElement | undefined
     tabs: readonly string[]
     label: string
+    deletable?: boolean
 }

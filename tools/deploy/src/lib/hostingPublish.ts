@@ -77,9 +77,9 @@ const requireHostingTarget = async (context: PublishContext): Promise<HostingTar
     return target
 }
 
-// Older backends report a new frontend version only after replacing their process, minutes after
-// Hosting switches, and clients reload while the two disagree.
-const MINIMUM_BACKEND_VERSION = '1.23.0'
+// Older backends report a new frontend version only after replacing their process, and clients
+// reload while the two disagree. 1.36.0 to 1.43.0 report it only after a restart.
+const MINIMUM_BACKEND_VERSION = '1.43.1'
 
 const assertBackendReportsManifestFrontend = async (context: PublishContext) => {
     const result = await fetchBackendManifest(context.deployConfig.backendManifestUrl)

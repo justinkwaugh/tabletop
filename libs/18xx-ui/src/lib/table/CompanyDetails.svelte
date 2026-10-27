@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import { privatePowerUsed, isObsoleteTrain } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import {
@@ -244,7 +245,7 @@
         </p>
     {/if}
     <div class="financial-summary">{@render prices()}</div>
-    <div class="detail-columns">
+    <div class="detail-columns" {@attach chainSidewaysScroll}>
         <section aria-label="Company ownership">
             <div class="ownership-heading">
                 <h3>Owners</h3>

@@ -21,7 +21,11 @@ A threat names only the approach, so batteries are paired when the attack is dec
 
 ## Objectives
 
-- **Objective stars held.** 10:00AM, French command phase. Lannes's infantry holds the red and black stars of 126, Murat's corps of cavalry stands on the three stars of 128, and Bagration's two infantry units are on the blue star of 62. In the armies panel the French line shows red and black filled and green outlined, as cavalry holds nothing, with "Any one wins"; the Allied line shows the blue star with a pale fill to the French, whose faces they cannot see, and "One wins if the French hold none". Lannes's, Murat's and Bagration's stacks cover their locales' printed stars, so each locale shows its stars on a cream tag beside the stack: red and black filled at 126, green, red and black outlined at 128, and blue with the pale fill at 62 for the French, filled for the Allies. Murat's flag flies away from the printed stars of 128.
+- **Objective stars held.** 10:00AM, French command phase. Lannes's infantry holds the red and black stars of 126, Murat's corps of cavalry stands on the three stars of 128, and Bagration's two infantry units are on the blue star of 62. In the armies panel the French line shows red and black filled and green outlined, as cavalry holds nothing, with "Any one stops the Allies winning"; the Allied line shows the blue star with a pale fill to the French, whose faces they cannot see, and "One wins if the French hold none". Lannes's, Murat's and Bagration's stacks cover their locales' printed stars, so each locale shows its stars on a cream tag beside the stack: red and black filled at 126, green, red and black outlined at 128, and blue with the pale fill at 62 for the French, filled for the Allies. Murat's flag flies away from the printed stars of 128.
+
+## Cavalry riding by road
+
+- **Cavalry still riding at the end of the turn.** French command phase. Murat's corps, a heavy cavalry and a 2-strength cavalry, stands in 52; a 2-strength Allied cavalry unit holds 63. Threaten 63 from 53 with Murat's corps by road; as the Allies, retreat to 64; as the French, ride into 63 and end the turn while still riding. The Allied turn opens with Murat's blocks face-up and the action panel saying that Murat's cavalry was still riding in locale 63 when the French turn ended, on a second line that it was revealed as a heavy cavalry and a 2-strength cavalry, with _Continue_. Continue turns the blocks face-down again and the Allied turn goes on as usual; it cannot be taken back.
 
 ## Saved games
 

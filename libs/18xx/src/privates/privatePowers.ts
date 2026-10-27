@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import {
     TrackConstruction,
     type TrackEvaluation,
@@ -67,7 +68,7 @@ export function privateTrackConstruction(
             : { companyId: terms.companyId, lays: [], completed: false }
     const discount = terms.terrainDiscount ?? 0
     return new TrackConstruction(
-        { ...state, trackStep },
+        stateWith(state, { trackStep }),
         {
             ...rules,
             allowance: terms.countsAsOrdinaryLay ? rules.allowance : () => ({ cost: 0 }),

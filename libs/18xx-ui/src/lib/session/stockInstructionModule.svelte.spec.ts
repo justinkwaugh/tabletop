@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource } from '@tabletop/common'
+import { ActionSource, GameResult } from '@tabletop/common'
 import {
     TestCompanyId,
     TestPlayerId,
@@ -121,6 +121,18 @@ describe('StockInstructionModule', () => {
         expect(harness(['SetStockInstruction'], { interactive: false }).module.canDeclare).toBe(
             false
         )
+    })
+
+    it('closes once the game has a result, such as a call mid-round', () => {
+        expect(harness(['SetStockInstruction'], {}, [standingPass]).module.mine).toBeDefined()
+        const called = testSession(
+            { ...instructionState([standingPass]), result: GameResult.Abandoned },
+            { stockRules: { ...minimalStockRules, purchaseTerms } },
+            ['SetStockInstruction']
+        )
+        const module = new StockInstructionModule(called.session)
+        expect(module.mine).toBeUndefined()
+        expect(module.available).toBe(false)
     })
 
     it('declares a pass out of turn', async () => {

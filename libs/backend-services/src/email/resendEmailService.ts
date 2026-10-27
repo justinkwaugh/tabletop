@@ -130,6 +130,7 @@ export class ResendEmailService implements EmailService {
             templates.GameEnd({
                 result: game.result,
                 winners: winners.map((w) => w.username || 'A Player'),
+                callKind: game.call?.kind,
                 gameName: game.name,
                 title: definition.info.metadata.name,
                 url

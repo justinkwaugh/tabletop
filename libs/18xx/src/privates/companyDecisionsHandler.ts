@@ -132,9 +132,10 @@ export class CompanyDecisionsHandler<
         for (const company of state.companies.filter(
             (company) => company.kind === 'private' && !company.closed
         )) {
+            // Only a lay the private can make now, so a company out of lays finishes its track.
             if (
                 !privatePowerUsed(state, company.id) &&
-                this.powers.trackTerms(state, company.id, playerId)
+                hasLegalPrivateTrackUse(state, company.id, playerId, this.powers, this.track)
             )
                 actions.push('LayPrivateTile')
             if (this.powers.markerTerms?.(state, company.id, playerId)?.locationIds.length)

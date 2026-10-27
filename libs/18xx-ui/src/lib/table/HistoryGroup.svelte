@@ -28,6 +28,8 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import { historyPhaseChange, type PhaseChangePalette } from './historyPhaseChange.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import HistoryCallout from './HistoryCallout.svelte'
+    import { bankBreakCallout, certificateLimitCallout } from './historyCallouts.js'
     let {
         money,
         group,
@@ -96,10 +98,12 @@
                   (group.companyId ? currentController(group.companyId) : undefined))
             : group.playerId
     )
+    const operatingCompanyId = $derived(group.kind === 'operation' ? group.companyId : undefined)
     const rows = $derived(
         group.actions.map((action) => {
             const description = describe(action)
             const stockPlayerId = isFloatCompany(action) ? undefined : action.playerId
+            const bankBreak = bankBreaks.get(action.id)
             const balance = cash.get(action.id)
             const delta =
                 startingCash !== undefined && group.companyId && balance
@@ -109,8 +113,19 @@
             return {
                 action,
                 ...description,
+                // A company's own operation already leads with its token.
+                companyToken:
+                    description.companyToken === operatingCompanyId
+                        ? undefined
+                        : description.companyToken,
                 stockPlayerId,
-                routine: delta || bankBreaks.has(action.id) ? false : description.routine,
+                callouts: [
+                    ...(description.certificateLimit
+                        ? [certificateLimitCallout(description.certificateLimit)]
+                        : []),
+                    ...(bankBreak ? [bankBreakCallout(bankBreak)] : [])
+                ],
+                routine: delta || bankBreak ? false : description.routine,
                 phase: historyPhaseChange(action, phasePalette),
                 order: orderChanges.get(action.id),
                 delta,
@@ -138,16 +153,10 @@
         >{:else}{@render summary()}{/if}
 {/snippet}
 
-{#snippet bankBroken(actionId: string)}
-    {@const bankBreak = bankBreaks.get(actionId)}
-    {#if bankBreak}<div class="bank-broken" role="note">
-            <strong>The bank is broken</strong>
-            {#if bankBreak.ending}<span
-                    >The game ends after {bankBreak.ending.lastRound
-                        ? `operating round ${bankBreak.ending.lastRound}`
-                        : 'the next set of operating rounds'}.</span
-                >{/if}
-        </div>{/if}
+{#snippet leadToken(companyId: string | undefined)}
+    {#if companyId && stations[companyId]}<span class="lead-token"
+            ><CompanyToken appearance={stations[companyId]} size={23} /></span
+        >{/if}
 {/snippet}
 
 <article
@@ -179,19 +188,14 @@
                     class="history-entry stock-action"
                     class:previews-map={previewsMap(row.action)}
                     class:phase-change={!!row.phase}
-                    class:flotation={isFloatCompany(row.action)}
+                    class:led={!!row.companyToken}
                     style:--phase-color={row.phase?.color}
                     style:--phase-ink={row.phase
                         ? contrastingTextColor(row.phase.color)
                         : undefined}
                     class:routine={row.routine}
                 >
-                    {#if isFloatCompany(row.action)}<span class="flotation-token"
-                            ><CompanyToken
-                                appearance={stations[row.action.companyId]}
-                                size={23}
-                            /></span
-                        >{/if}
+                    {@render leadToken(row.companyToken)}
                     {#if row.stockPlayerId}<PlayerName
                             playerId={row.stockPlayerId}
                             backgroundOpacity={0.45}
@@ -217,9 +221,9 @@
                             {stations}
                             {companyName}
                         />{/if}
-                    {@render bankBroken(row.action.id)}
                 </div>
             </div>
+            {#each row.callouts as callout (callout.kind)}<HistoryCallout {callout} />{/each}
         {/each}
     {:else}
         {#if group.kind !== 'event'}<header
@@ -277,7 +281,9 @@
                         : undefined}
                     class:important={row.important}
                     class:routine={row.routine}
+                    class:led={!!row.companyToken}
                 >
+                    {@render leadToken(row.companyToken)}
                     {#if !row.omitActor && row.action.playerId && row.action.playerId !== operatingPlayerId}<small
                             >{playerName(row.action.playerId)}</small
                         >{/if}
@@ -313,8 +319,8 @@
                             {stations}
                             {companyName}
                         />{/if}
-                    {@render bankBroken(row.action.id)}
                 </div>
+                {#each row.callouts as callout (callout.kind)}<HistoryCallout {callout} />{/each}
             {/each}
             {#if !visible.length}<div class="history-entry routine">No further actions</div>{/if}
         </div>
@@ -345,18 +351,29 @@
         padding: 0.333em 0.5em;
         line-height: 1.333em;
     }
-    .stock-action.flotation {
+    .stock-action.led {
         display: grid;
         grid-template-columns: 1.917em minmax(0, 1fr);
         column-gap: 0.5em;
         align-items: center;
     }
-    .flotation-token {
+    .lead-token {
         grid-row: 1 / span 2;
         display: flex;
         align-items: center;
     }
-    .stock-action.flotation > small {
+    /* Everything after a lead token, child components included, keeps to the text's column. */
+    .stock-action.led > :global(:not(.lead-token)) {
+        grid-column: 2;
+    }
+    .events .history-entry.led {
+        grid-template-columns: 1.917em minmax(0, 1fr) auto;
+        align-items: center;
+    }
+    .events .history-entry.led > :global(:not(.lead-token, span, strong)) {
+        grid-column: 2 / -1;
+    }
+    .events .history-entry.led > span:not(.lead-token) {
         grid-column: 2;
     }
     .stock-value {
@@ -424,7 +441,7 @@
         padding: 0;
     }
     .heading > :global(svg),
-    .flotation-token :global(svg) {
+    .lead-token :global(svg) {
         flex: none;
         width: 1.917em;
         height: 1.917em;
@@ -581,27 +598,5 @@
     }
     .important > span {
         font-weight: 600;
-    }
-    .bank-broken {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
-        gap: 2px;
-        margin: 6px 0 2px;
-        padding: 6px 10px;
-        border-left: 4px solid var(--rail-negative, #b33a32);
-        border-radius: 3px;
-        background: color-mix(in srgb, var(--rail-negative, #b33a32) 16%, transparent);
-    }
-    .bank-broken strong {
-        color: var(--rail-negative, #b33a32);
-        font-size: 13px;
-        font-weight: 750;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-    }
-    .bank-broken span {
-        font-size: 12px;
     }
 </style>

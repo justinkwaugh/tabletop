@@ -12,6 +12,7 @@
                 "DISCORD_CLIENT_ID",
                 "DISCORD_BOT_TOKEN",
                 "DISCORD_BUG_REPORT_CHANNEL_ID",
+                "TILTIFY_CLIENT_ID",
                 "FRONTEND_HOST",
                 "K_SERVICE",
                 "GOOGLE_CLIENT_ID",

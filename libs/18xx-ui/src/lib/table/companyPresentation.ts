@@ -35,6 +35,8 @@ export type NumberedShareNames = Readonly<Record<string, Readonly<Record<number,
 
 export type CompanyPricePresentation = {
     showPar: boolean
+    /** Keeps Par in the spreadsheet once the IPO sells out, where par still prices company actions. */
+    parWithoutIpoShares?: true
     label: string
 }
 

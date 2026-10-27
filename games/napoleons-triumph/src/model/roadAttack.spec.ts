@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { Side } from '../components/pieces.js'
+import { Side, type Face } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import {
@@ -71,6 +71,7 @@ describe('cavalry attacking by road from the attack locale', () => {
     it('has made an ordinary move, with nothing more to come, when it did not take the road', () => {
         const game = taken(false)
         expect(game.hydrated.roadMarch).toBeUndefined()
+        expect(game.hydrated.unit('F-cav').shown).toBeUndefined()
         expect(() =>
             game.act(ActionType.Move, game.playerOf(Side.French), {
                 order: { ...rider, road: [BEYOND], continues: true },
@@ -424,6 +425,88 @@ describe('a cavalry corps of two or more units attacking by road', () => {
         })
         expect(state.limits.marchedLocales).toEqual([NEAR, TAKEN])
     })
+
+    it('shows only the units that rode in, once their move is over', () => {
+        const game = threatened()
+        const french = game.playerOf(Side.French)
+        game.act(ActionType.Retreat, game.playerOf(Side.Allied), {
+            losses: {},
+            destinations: { 'A-1': BEYOND, 'A-2': BEYOND },
+            kept: { bagration: 'A-1' }
+        })
+        game.act(ActionType.Occupy, french, { orders: [{ ...corps, unitIds: ['F-c1'] }] })
+        expect(game.hydrated.unit('F-c1').position).toEqual({ locale: TAKEN })
+        expect(game.hydrated.unit('F-c1').shown).toBeUndefined()
+        expect(game.hydrated.unit('F-c2').position).toEqual({ locale: WEST })
+
+        game.act(ActionType.Move, french, {
+            order: { kind: CommandKind.Unit, unitIds: ['F-c2'] },
+            to: { locale: NEAR }
+        })
+        const state = game.hydrated
+        expect(state.roadMarch).toBeUndefined()
+        expect(state.unit('F-c1').shown).toEqual(cavalry(2))
+        expect(state.unit('F-c2').shown).toBeUndefined()
+    })
+})
+
+describe('cavalry still riding when its turn ends', () => {
+    const corps = {
+        kind: CommandKind.Corps,
+        commanderId: 'murat',
+        unitIds: ['F-c1', 'F-c2'],
+        road: [NEAR]
+    }
+
+    function riddenIn(faces: [Face, Face]): TestGame {
+        const game = frenchTurn([
+            { id: 'F-c1', side: Side.French, face: faces[0], locale: WEST, commanderId: 'murat' },
+            { id: 'F-c2', side: Side.French, face: faces[1], locale: WEST, commanderId: 'murat' },
+            { id: 'A-1', side: Side.Allied, face: cavalry(2), locale: TAKEN }
+        ])
+        const french = game.playerOf(Side.French)
+        game.act(ActionType.ThreatenAttack, french, { approach: approach(game, NEAR, TAKEN) })
+        game.act(ActionType.Retreat, game.playerOf(Side.Allied), {
+            losses: {},
+            destinations: { 'A-1': BEYOND },
+            kept: {}
+        })
+        game.act(ActionType.Occupy, french, { orders: [corps] })
+        game.act(ActionType.EndTurn, french)
+        return game
+    }
+
+    it('stays face-up into the opponent’s turn, which opens on seeing it', () => {
+        const game = riddenIn([cavalry(3), cavalry(2)])
+        const allied = game.playerOf(Side.Allied)
+        const state = game.hydrated
+        expect(state.roadMarch).toBeUndefined()
+        expect(state.machineState).toBe(MachineState.RideRevealed)
+        expect(state.activePlayerIds).toEqual([allied])
+        expect(state.revealedRide).toEqual({ unitIds: ['F-c1', 'F-c2'] })
+        expect([state.unit('F-c1').shown, state.unit('F-c2').shown]).toEqual([
+            cavalry(3),
+            cavalry(2)
+        ])
+        expect(() => game.act(ActionType.EndTurn, allied)).toThrow()
+        expect(() => game.act(ActionType.AcknowledgeReveal, game.playerOf(Side.French))).toThrow()
+
+        const [seen] = game.act(ActionType.AcknowledgeReveal, allied)
+        expect(seen.revealsInfo).toBe(true)
+        const after = game.hydrated
+        expect(after.machineState).toBe(MachineState.Commanding)
+        expect(after.revealedRide).toBeUndefined()
+        expect(after.unit('F-c1').shown).toBeUndefined()
+        expect(after.unit('F-c2').shown).toBeUndefined()
+        expect(after.turnPlayerId).toBe(allied)
+    })
+
+    it('needs no seeing when the shuffle leaves it shown', () => {
+        const state = riddenIn([cavalry(2), cavalry(2)]).hydrated
+        expect(state.machineState).toBe(MachineState.Commanding)
+        expect(state.unit('F-c1').shown).toEqual(cavalry(2))
+        expect(state.revealedRide).toBeUndefined()
+    })
 })
 
 describe('the fixed battery', () => {
@@ -631,6 +714,7 @@ describe('cavalry reinforcements riding on in their turn of entry', () => {
         }
         const riders = [state.unit('F-off')]
         expect(state.roadMarch).toMatchObject({ unitIds: ['F-off'], path: [ENTRY, TAKEN] })
+        expect(state.unit('F-off').shown).toBeUndefined()
         expect(rideOnAttackOrder(state, site, riders)).toMatchObject({ continues: true })
         expect(roadAttackOrders(state, site, riders)).toEqual([{ ...corps, road: [] }])
     })
@@ -658,6 +742,7 @@ describe('cavalry reinforcements riding on in their turn of entry', () => {
         defendWith(game, game.playerOf(Side.Allied), ['A-line'])
         game.act(ActionType.PressAttack, french)
         game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
+        expect(game.hydrated.unit('F-off').shown).toBeUndefined()
         expect(() =>
             game.act(ActionType.DeclareAttack, french, {
                 orders: [{ ...corps, road: [], continues: true }],
@@ -668,6 +753,7 @@ describe('cavalry reinforcements riding on in their turn of entry', () => {
         game.act(ActionType.DeclareAttack, french, { orders: [corps], wide: false, leaderIds: [] })
         const state = game.hydrated
         expect(state.roadMarch).toBeUndefined()
+        expect(state.unit('F-off').shown).toEqual(cavalry(2))
         expect(state.commander('bernadotte').commandsThisTurn).toBe(2)
     })
 })

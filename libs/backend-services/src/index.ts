@@ -61,16 +61,23 @@ export { LeagueTask, LeagueReminderTask, LeagueEmailTask } from './competitions/
 
 export { TournamentTask, TournamentResultsEmailTask } from './competitions/tournamentTasks.js'
 export { GameAutoStartTask } from './games/gameAutoStart.js'
+export { StalledGames, StalledGameTask } from './games/stalledGames.js'
 export { TurnReminderTask } from './games/turnReminders.js'
 export { FinalScoresBackfillTask } from './games/finalScoresBackfill.js'
 
 export * from './games/catalogService.js'
 export * from './persistence/stores/siteStatsStore.js'
 export * from './persistence/firestore/siteStatsStore.js'
+export * from './persistence/stores/charityTallyStore.js'
+export * from './persistence/firestore/charityTallyStore.js'
 export * from './stats/siteStatsRollup.js'
 export * from './stats/siteStatsService.js'
 export * from './stats/hyperLogLog.js'
+export * from './payItForward/charityTallyService.js'
+export * from './payItForward/charityTallyRefresher.js'
+export * from './payItForward/tiltifyApi.js'
 export * from './persistence/model/storedSiteStatsMonth.js'
+export * from './persistence/model/storedCharityTally.js'
 
 export * from './games/titleLookup.js'
 export * from './games/logicFactory.js'

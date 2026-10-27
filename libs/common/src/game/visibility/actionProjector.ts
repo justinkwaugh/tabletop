@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { Compile, type Validator } from 'typebox/compile'
 import * as Value from 'typebox/value'
-import { GameAction } from '../engine/gameAction.js'
+import { GameAction, withoutActionPatches } from '../engine/gameAction.js'
 import {
     protect,
     redaction,
@@ -127,12 +127,8 @@ class SchemaActionProjector<Schemas extends ActionSchemaRegistry> implements Act
             throw Error(`No visibility schema registered for Action type "${action.type}"`)
         }
 
-        const actionWithoutCanonicalPatches = structuredClone(action)
-        delete actionWithoutCanonicalPatches.undoPatch
-        delete actionWithoutCanonicalPatches.forwardPatch
-
         const projected: unknown = projector.project(
-            actionWithoutCanonicalPatches,
+            withoutActionPatches(action),
             perspective,
             context
         )

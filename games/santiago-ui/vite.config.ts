@@ -9,6 +9,9 @@ export default defineProject(
             exclude: ['@tabletop/frontend-components', '@tabletop/santiago']
         },
         build: {
+            // Nothing ships from this harness build; Vite 7's bundled es-module-lexer misreads
+            // some minified chunks (#209).
+            minify: false,
             commonjsOptions: {
                 include: [/node_modules/]
             }

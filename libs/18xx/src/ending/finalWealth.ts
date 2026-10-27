@@ -94,9 +94,10 @@ export function validateFinalResults(state: {
     result?: unknown
 }): void {
     assert(
-        (state.machineState === 'GameOver') === Boolean(state.finalWealth && state.result),
-        'Final results must match the terminal state'
+        (state.machineState === 'GameOver') === Boolean(state.finalWealth),
+        'Final wealth must match the terminal state'
     )
+    assert(!state.finalWealth || state.result, 'Final wealth requires a result')
 }
 
 export function certificateWealthItem(

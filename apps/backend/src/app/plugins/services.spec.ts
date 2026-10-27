@@ -17,9 +17,12 @@ vi.mock('@tabletop/backend-services', async () => {
         ...Object.fromEntries(
             [
                 'CatalogService',
+                'CharityTallyRefresher',
+                'CharityTallyService',
                 'ChatService',
                 'CloudTasksTaskService',
                 'DiscordService',
+                'FirestoreCharityTallyStore',
                 'FirestoreChatStore',
                 'FirestoreGameStore',
                 'FirestoreLeagueStore',
@@ -38,6 +41,7 @@ vi.mock('@tabletop/backend-services', async () => {
                 'PubSubTransport',
                 'RedisPublisher',
                 'SiteStatsService',
+                'StalledGames',
                 'TokenService',
                 'TournamentService',
                 'TournamentStallAlerts',

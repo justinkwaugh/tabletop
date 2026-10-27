@@ -38,12 +38,18 @@ clamped to 5–95% when restored or moved with the keyboard.
 
 `initialSplit: { axis: 'horizontal', first: ['editor'] }` starts with an upper pane
 containing Editor and the remaining tabs below. `vertical` splits left/right.
-`splittable={false}` uses a single tabbed view with no pane controls or dragging.
+`splittable={false}` keeps the initial layout: no split or delete-pane controls
+and no tab dragging, but each pane's menu still closes and adds tabs, and grips on
+its Current tabs rows reorder them by pointer drag or Arrow Up/Down.
 The caller chooses its responsive breakpoint; the workspace does not assume one.
 
 An optional `fixedPane` supplies a target HTMLElement, label, and allowed tab IDs.
-Its header and content render in that target. It cannot split or close; its tabs
-can move into main panes and back, and only its allowed IDs may enter it.
+Its header and content render in that target. It cannot split; its tabs
+can move into main panes and back, and only its allowed IDs may enter it. With
+`deletable: true` its menu can delete it, appending its tabs to the first main
+pane; `bind:fixedPaneDeleted` tells the caller to hide the target, and a left /
+right split icon in a main pane's menu brings it back. `initialLayout.sidebar`
+names the tabs it starts with (and gets back) when it accepts more than those.
 
 Content receives `(id, active)`. Moving or reordering a tab preserves its mounted
 content. Inactive panels are hidden and inert. Closing a tab unmounts its content.
@@ -63,6 +69,8 @@ and intentionally closed tabs. Runtime IDs and active selections are omitted.
 Layouts saved with the retired `locked` field restore normally and drop it.
 The historical `sidebar` field means the optional fixed pane, regardless of its
 physical position. Its name stays unchanged to preserve existing saved layouts.
+`sidebarDeleted: true` records a deleted fixed pane; it restores deleted, and its
+tabs missing from the layout return to the first main pane instead of it.
 Unknown/duplicate tabs are removed, missing required tabs are restored, optional
 absent tabs stay absent, and malformed or unsupported layouts use defaults.
 
