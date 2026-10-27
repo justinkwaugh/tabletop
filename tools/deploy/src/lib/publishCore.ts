@@ -170,10 +170,17 @@ export const publishManifest = async (
     await publication.invalidateBackend()
 }
 
-export const assertDeployConfig = (deployConfig: DeployConfig): string => {
+export const assertArtifactBucket = (deployConfig: DeployConfig): string => {
     if (!deployConfig.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
+    return deployConfig.gcsBucket
+}
+
+// Every publication ends by invalidating the backend's manifest cache, so it refuses to start
+// unless that call can be made and signed in; artifact-only work needs just the bucket.
+export const assertDeployConfig = (deployConfig: DeployConfig): string => {
+    const bucket = assertArtifactBucket(deployConfig)
     if (!deployConfig.backendAdmin?.url && !deployConfig.backendManifestUrl) {
         throw new Error(
             'Missing backend admin URL for manifest invalidation ' +
@@ -181,7 +188,7 @@ export const assertDeployConfig = (deployConfig: DeployConfig): string => {
         )
     }
     resolveBackendAdminCredentials(deployConfig.backendAdmin)
-    return deployConfig.gcsBucket
+    return bucket
 }
 
 // A version's artifact is immutable, but a deploy can fail after uploading it. Because the

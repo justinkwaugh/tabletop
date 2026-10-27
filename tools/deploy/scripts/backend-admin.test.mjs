@@ -7,6 +7,7 @@ import {
     resolveBackendAdminCredentials
 } from '../esm/lib/backend.js'
 import { mergeEnvConfig } from '../esm/lib/config.js'
+import { assertGamePublishable } from '../esm/lib/gamePublish.js'
 import { assertDeployConfig } from '../esm/lib/publishCore.js'
 
 const SESSION_COOKIE = '__session=deploy-session'
@@ -127,6 +128,19 @@ test('a token-only config is refused before any request, with migration guidance
                 return true
             })
             assert.throws(() => assertDeployConfig(candidate), /backendAdmin\.token/)
+            await assert.rejects(
+                assertGamePublishable(
+                    {
+                        repoRoot: '/nonexistent/checkout',
+                        catalogue: [{ gameId: 'oath', packageId: 'oath' }],
+                        deployConfig: candidate,
+                        log: () => {}
+                    },
+                    'oath',
+                    ['logic', 'ui']
+                ),
+                /backendAdmin\.token/
+            )
         }
         assert.deepEqual(requests, [])
     })
