@@ -3,6 +3,7 @@ import {
     APIError,
     DISCORD_AUTHORIZATION_PURPOSES,
     type DiscordAuthorizationPurpose,
+    type DiscordAuthorizationStart,
     type TabletopApiPublic
 } from '@tabletop/frontend-components'
 import { tabChannel } from './tabChannel'
@@ -17,6 +18,7 @@ const POPUP_WIDTH = 550
 const POPUP_HEIGHT = 700
 export const POPUP_CLOSE_WATCH_MS = 500
 export const POPUP_CLOSE_GRACE_MS = 2000
+export const POPUP_START_TIMEOUT_MS = 30000
 
 export type DiscordAuthorizationFailure = { name: string; message: string }
 
@@ -109,6 +111,7 @@ function popupFeatures(): string {
 }
 
 type Popup = Pick<Window, 'location' | 'close' | 'closed'>
+type Timer = ReturnType<typeof setTimeout>
 
 // The popup is opened while the click is still a user gesture and only then pointed at Discord,
 // so a slow server round trip never trips a pop-up blocker.
@@ -123,67 +126,118 @@ export async function openDiscordAuthorization({
     if (!popup) {
         throw new DiscordAuthorizationError('The browser blocked the Discord window')
     }
-    let started: { state: string; authorizationUrl: string; expiresInSeconds: number }
-    try {
-        started = await api.beginDiscordAuthorization(purpose)
-    } catch (error) {
-        popup.close()
-        throw error
-    }
-    if (popup.closed) {
-        throw new DiscordAuthorizationError('The Discord window was closed')
-    }
-    const result = awaitResult(popup, started.state, started.expiresInSeconds * 1000)
-    popup.location.href = started.authorizationUrl
-    return result
+    return new Promise((resolve, reject) => {
+        new PopupAttempt(popup, resolve, reject).start(() => api.beginDiscordAuthorization(purpose))
+    })
 }
 
-// The popup broadcasts its result just before it closes itself, so a closed window waits a grace
-// period for that message before it counts as abandoned.
-function awaitResult(
-    popup: Popup,
-    state: string,
-    lifetimeMs: number
-): Promise<DiscordAuthorizationSuccess> {
-    return new Promise((resolve, reject) => {
-        let closeGrace: ReturnType<typeof setTimeout> | undefined
-        const finish = (settle: () => void) => {
-            stop()
-            clearInterval(closeWatch)
-            clearTimeout(deadline)
-            clearTimeout(closeGrace)
-            settle()
+// The popup broadcasts its result just before it closes itself, so a window closed after it was
+// pointed at Discord waits a grace period for that message; a window closed before then has no
+// result on the way and settles at once.
+class PopupAttempt {
+    private settled = false
+    private navigated = false
+    private stopListening: (() => void) | undefined
+    private closeGrace: Timer | undefined
+    private lifetime: Timer | undefined
+    private readonly closeWatch: ReturnType<typeof setInterval>
+    private readonly startWait: Timer
+
+    constructor(
+        private readonly popup: Popup,
+        private readonly resolve: (result: DiscordAuthorizationSuccess) => void,
+        private readonly reject: (error: unknown) => void
+    ) {
+        this.closeWatch = setInterval(() => this.noticeClose(), POPUP_CLOSE_WATCH_MS)
+        this.startWait = setTimeout(
+            () => this.closeAndAbandon('The Discord authorization could not start in time'),
+            POPUP_START_TIMEOUT_MS
+        )
+    }
+
+    start(begin: () => Promise<DiscordAuthorizationStart>): void {
+        begin().then(
+            (started) => this.navigate(started),
+            (error: unknown) => this.refuse(error)
+        )
+    }
+
+    private navigate(started: DiscordAuthorizationStart): void {
+        if (this.settled) {
+            return
         }
-        const abandon = (message: string) => {
-            finish(() => reject(new DiscordAuthorizationError(message)))
+        if (this.popup.closed) {
+            this.abandon('The Discord window was closed')
+            return
         }
-        const stop = onDiscordAuthorizationResult((candidate) => {
-            if (candidate.state !== state) {
-                return
+        clearTimeout(this.startWait)
+        this.stopListening = onDiscordAuthorizationResult((candidate) => {
+            if (candidate.state === started.state) {
+                this.settleWith(candidate)
             }
-            finish(() => {
-                if (candidate.outcome === 'success') {
-                    resolve(candidate)
-                } else {
-                    reject(rebuildFailure(candidate.error))
-                }
-            })
         })
-        const closeWatch = setInterval(() => {
-            if (!popup.closed) {
-                return
-            }
-            clearInterval(closeWatch)
-            closeGrace = setTimeout(
-                () => abandon('The Discord window was closed'),
+        this.lifetime = setTimeout(
+            () => this.closeAndAbandon('The Discord authorization took too long and was abandoned'),
+            started.expiresInSeconds * 1000
+        )
+        this.navigated = true
+        this.popup.location.href = started.authorizationUrl
+    }
+
+    private refuse(error: unknown): void {
+        if (this.settled) {
+            return
+        }
+        this.popup.close()
+        this.finish(() => this.reject(error))
+    }
+
+    private noticeClose(): void {
+        if (!this.popup.closed) {
+            return
+        }
+        clearInterval(this.closeWatch)
+        if (this.navigated) {
+            this.closeGrace = setTimeout(
+                () => this.abandon('The Discord window was closed'),
                 POPUP_CLOSE_GRACE_MS
             )
-        }, POPUP_CLOSE_WATCH_MS)
-        const deadline = setTimeout(() => {
-            popup.close()
-            abandon('The Discord authorization took too long and was abandoned')
-        }, lifetimeMs)
-    })
+        } else {
+            this.abandon('The Discord window was closed')
+        }
+    }
+
+    private settleWith(result: DiscordAuthorizationResult): void {
+        this.finish(() => {
+            if (result.outcome === 'success') {
+                this.resolve(result)
+            } else {
+                this.reject(rebuildFailure(result.error))
+            }
+        })
+    }
+
+    private closeAndAbandon(message: string): void {
+        this.popup.close()
+        this.abandon(message)
+    }
+
+    private abandon(message: string): void {
+        this.finish(() => this.reject(new DiscordAuthorizationError(message)))
+    }
+
+    private finish(settle: () => void): void {
+        if (this.settled) {
+            return
+        }
+        this.settled = true
+        this.stopListening?.()
+        clearInterval(this.closeWatch)
+        clearTimeout(this.startWait)
+        clearTimeout(this.closeGrace)
+        clearTimeout(this.lifetime)
+        settle()
+    }
 }
 
 export async function completeDiscordAuthorization({

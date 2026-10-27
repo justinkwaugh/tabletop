@@ -21,7 +21,10 @@ export async function signInWithDiscord({
     oncomplete?: (result: DiscordAuthorizationSuccess) => void
     report: (message: string) => void
 }): Promise<void> {
-    const attempt = async () => oncomplete?.(await openDiscordAuthorization({ purpose, api }))
+    const attempt = async () => {
+        const result = await openDiscordAuthorization({ purpose, api })
+        oncomplete?.(result)
+    }
     try {
         if (purpose === 'link') {
             await reauthentication.run({ description: DISCORD_LINK_DESCRIPTION, retry: attempt })
