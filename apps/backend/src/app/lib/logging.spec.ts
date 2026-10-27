@@ -38,7 +38,7 @@ function capturingServer() {
     server.get('/api/v1/sse/user/:token', async () => ({}))
     server.get('/api/v1/sse/game/:gameId/:token', async () => ({}))
     server.get('/api/v1/invitation/token/:token', async () => ({}))
-    server.get('/api/v1/auth/discord/callback', async () => ({}))
+    server.get('/api/v1/auth/discord/callback', async (request) => request.query)
     server.get('/api/v1/games/mine', async () => ({}))
     servers.add(server)
     return { server, logging, logged: () => lines.join('') }
@@ -91,6 +91,41 @@ describe('request log lines', () => {
         expect(logged()).toContain('"statusCode":404')
         expect(logged()).not.toContain(SHORT_CODE)
         expect(logged()).not.toContain(STATE)
+    })
+
+    it('classify a query parameter by its decoded name, as Fastify reads it', async () => {
+        const { server, logged } = capturingServer()
+
+        const encoded = await server.inject({
+            method: 'GET',
+            url: `/api/v1/auth/discord/callback?%63ode=${CODE}&page=2&%53TATE=${STATE}&Code=${SHORT_CODE}&code=${CODE}`
+        })
+        const malformed = await server.inject({
+            method: 'GET',
+            url: `/api/v1/auth/discord/callback?%E0%A4%A=plain&code=${CODE}&c%ZZde=kept`
+        })
+
+        expect(encoded.json()).toMatchObject({
+            code: [CODE, CODE],
+            page: '2',
+            STATE,
+            Code: SHORT_CODE
+        })
+        expect(malformed.json()).toEqual({ '%E0%A4%A': 'plain', code: CODE, 'c%ZZde': 'kept' })
+        expect(logged()).toContain(
+            '"url":"/api/v1/auth/discord/callback?%63ode=[redacted]&page=2&%53TATE=[redacted]&Code=[redacted]&code=[redacted]"'
+        )
+        expect(logged()).toContain(
+            '"url":"/api/v1/auth/discord/callback?%E0%A4%A=plain&code=[redacted]&c%ZZde=kept"'
+        )
+        for (const line of logged()
+            .split('\n')
+            .filter((line) => line.length > 0)) {
+            expect(() => JSON.parse(line)).not.toThrow()
+        }
+        expect(logged()).not.toContain(CODE)
+        expect(logged()).not.toContain(STATE)
+        expect(logged()).not.toContain(SHORT_CODE)
     })
 
     it('mask structured URL fields the way the rate limiter logs them', () => {

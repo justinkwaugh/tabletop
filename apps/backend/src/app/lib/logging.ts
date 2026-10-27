@@ -40,8 +40,18 @@ function isCredentialKey(key: string): boolean {
     return CREDENTIAL_KEYS.includes(key.toLowerCase())
 }
 
+// Fastify reads a query parameter or path segment by its decoded name, so `%63ode` is `code`;
+// a malformed encoding is kept as sent, which is also how Fastify sees it.
+function decodedComponent(text: string): string {
+    try {
+        return decodeURIComponent(text)
+    } catch {
+        return text
+    }
+}
+
 function isCredentialUrlParameter(name: string): boolean {
-    return CREDENTIAL_URL_PARAMETERS.includes(name.toLowerCase())
+    return CREDENTIAL_URL_PARAMETERS.includes(decodedComponent(name).toLowerCase())
 }
 
 function escapeRegExp(text: string): string {
@@ -113,9 +123,7 @@ export class LoggingBoundary {
         const declared = this.credentialParameterValues(request.params)
         const concealedPath = path
             .split('/')
-            .map((segment) =>
-                declared.includes(this.decodedSegment(segment)) ? REDACTED : segment
-            )
+            .map((segment) => (declared.includes(decodedComponent(segment)) ? REDACTED : segment))
             .join('/')
         return this.conceal(`${concealedPath}${query}`)
     }
@@ -127,14 +135,6 @@ export class LoggingBoundary {
         return Object.entries(params)
             .filter(([key, value]) => isCredentialKey(key) && typeof value === 'string')
             .map(([, value]) => String(value))
-    }
-
-    private decodedSegment(segment: string): string {
-        try {
-            return decodeURIComponent(segment)
-        } catch {
-            return segment
-        }
     }
 
     private loggableRequest(request: FastifyRequest) {
