@@ -19,7 +19,7 @@
             action: 'Deactivate account',
             pending: 'Deactivating…',
             effect: 'Deactivating signs the account out everywhere and refuses new sign-ins until it is reactivated.',
-            done: 'Account deactivated. Its sessions and live connections have ended.'
+            done: 'Account deactivated. Existing sessions can no longer access the site.'
         },
         reactivate: {
             action: 'Reactivate account',
@@ -32,23 +32,25 @@
     type Outcome = { userId: string; kind: 'notice' | 'error'; text: string }
 
     let transition = $derived(offeredAccountStatusTransition(user.status))
-    let saving = $state(false)
+    let pendingUserId = $state<string>()
+    let saving = $derived(pendingUserId !== undefined)
     let outcome = $state<Outcome>()
     let shown = $derived(outcome?.userId === user.id ? outcome : undefined)
 
     async function apply(event: SubmitEvent) {
         event.preventDefault()
-        if (!transition) return
+        if (!transition || saving) return
         const applied = transition
-        saving = true
+        const userId = user.id
+        pendingUserId = userId
         outcome = undefined
         try {
-            const updated = await api.transitionUserAccountStatus(user.id, applied)
+            const updated = await api.transitionUserAccountStatus(userId, applied)
             outcome = { userId: updated.id, kind: 'notice', text: transitions[applied].done }
             onsaved(updated)
         } catch (failure) {
             outcome = {
-                userId: user.id,
+                userId,
                 kind: 'error',
                 text:
                     failure instanceof Error
@@ -56,7 +58,7 @@
                         : 'Could not change the account status'
             }
         } finally {
-            saving = false
+            pendingUserId = undefined
         }
     }
 </script>
@@ -77,9 +79,11 @@
         <button
             type="submit"
             disabled={saving}
-            aria-busy={saving}
+            aria-busy={pendingUserId === user.id}
             class="mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-            >{saving ? transitions[transition].pending : transitions[transition].action}</button
+            >{pendingUserId === user.id
+                ? transitions[transition].pending
+                : transitions[transition].action}</button
         >
     {:else}
         <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">

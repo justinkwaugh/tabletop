@@ -64,7 +64,7 @@ describe('POST /:userId/status', () => {
         return server.inject({ method: 'POST', url: '/user-2/status', payload })
     }
 
-    it('deactivates the Account, returns it and ends its realtime connections', async () => {
+    it('deactivates the Account, returns it and publishes its realtime revocation', async () => {
         const { server, transitionAccountStatus, revocations } = await fixture()
         const response = await change(server, { transition: 'deactivate' })
         expect(response.statusCode).toBe(200)

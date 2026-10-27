@@ -31,7 +31,6 @@ export default async function (fastify: FastifyInstance) {
                 request.body.transition
             )
             if (user.status === UserStatus.Inactive) {
-                // Every session died with the Session Generation; their realtime connections end too
                 await fastify.realtimeControl.revokeAccount(userId)
             }
             return { status: 'ok', payload: { user } }

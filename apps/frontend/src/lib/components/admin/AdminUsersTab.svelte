@@ -44,7 +44,7 @@
 
     function replaceUser(updated: User) {
         users = users.map((user) => (user.id === updated.id ? updated : user))
-        selected = updated
+        if (selected?.id === updated.id) selected = updated
     }
 </script>
 

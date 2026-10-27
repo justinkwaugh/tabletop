@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
-import { Role, UserStatus, type User } from '@tabletop/common'
+import { assertExists, Role, UserStatus, type User } from '@tabletop/common'
 import { mockLibrary } from './fixtures/library'
 
 const admin: User = {
@@ -139,7 +139,7 @@ test('deactivates an account, showing the pending state and adopting the server-
         statusPanel(page).getByRole('button', { name: 'Reactivate account' })
     ).toBeEnabled()
     await expect(statusPanel(page).getByRole('status')).toHaveText(
-        'Account deactivated. Its sessions and live connections have ended.'
+        'Account deactivated. Existing sessions can no longer access the site.'
     )
     await expect(
         page.getByRole('button', { name: /^Person active/ }).getByText(/Inactive/)
@@ -170,3 +170,65 @@ test('reports a refused change and keeps the shown status', async ({ page }) => 
     await select(page, UserStatus.Active)
     await expect(statusPanel(page).getByRole('alert')).toHaveCount(0)
 })
+
+for (const result of ['success', 'refusal'] as const) {
+    test(`keeps a delayed ${result} associated with the account submitted before selection changed`, async ({
+        page
+    }) => {
+        let pending: Route | undefined
+        await page.route('**/api/v1/admin/users/*/status', (route) => {
+            pending = route
+        })
+        await openUsers(page)
+        await select(page, UserStatus.Active)
+        await statusPanel(page).getByRole('button', { name: 'Deactivate account' }).click()
+        await expect.poll(() => pending !== undefined).toBe(true)
+        assertExists(pending, 'pending account status request')
+
+        await select(page, UserStatus.Inactive)
+        await expect(
+            statusPanel(page).getByRole('button', { name: 'Reactivate account' })
+        ).toHaveAttribute('aria-busy', 'false')
+        await pending.fulfill(
+            result === 'success'
+                ? {
+                      json: {
+                          payload: {
+                              user: { ...person(UserStatus.Active), status: UserStatus.Inactive }
+                          }
+                      }
+                  }
+                : {
+                      status: 403,
+                      json: {
+                          status: 'error',
+                          error: {
+                              name: 'AdminModeRequiredError',
+                              message: 'Admin Mode is required'
+                          }
+                      }
+                  }
+        )
+
+        await expect(
+            statusPanel(page).getByRole('button', { name: 'Reactivate account' })
+        ).toBeEnabled()
+        await expect(statusPanel(page)).toHaveAttribute(
+            'aria-label',
+            'Account status for Person inactive'
+        )
+        await expect(statusPanel(page).getByRole('status')).toHaveCount(0)
+        await expect(statusPanel(page).getByRole('alert')).toHaveCount(0)
+
+        await select(page, UserStatus.Active)
+        if (result === 'success') {
+            await expect(currentStatus(page)).toHaveText('Current status: Inactive')
+            await expect(statusPanel(page).getByRole('status')).toContainText(
+                'Account deactivated.'
+            )
+        } else {
+            await expect(currentStatus(page)).toHaveText('Current status: Active')
+            await expect(statusPanel(page).getByRole('alert')).toHaveText('Admin Mode is required')
+        }
+    })
+}
