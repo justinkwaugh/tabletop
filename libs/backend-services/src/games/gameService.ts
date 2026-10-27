@@ -58,6 +58,7 @@ import {
     GameStatus,
     GameStatusCategory,
     type GameHistoryCursor,
+    type TitleActivity,
     GameStorage,
     GameSyncStatus,
     IsYourTurnNotification,
@@ -616,6 +617,10 @@ export class GameService {
 
     async getOpenGamesForTitle(titleId: string): Promise<Game[]> {
         return await this.gameStore.findOpenGamesForTitle(titleId)
+    }
+
+    async getTitleActivity(titleId: string): Promise<TitleActivity> {
+        return this.gameStore.findTitleActivity(titleId)
     }
 
     async getCompletedGamesForUser(user: User): Promise<Game[]> {
