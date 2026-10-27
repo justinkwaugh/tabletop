@@ -233,7 +233,7 @@ export const invalidateBackendManifestCache = async (
         await session.release().catch((error: unknown) => {
             const warn = options?.warn ?? console.warn
             warn(
-                `backend sign-out failed (${error instanceof Error ? error.message : String(error)}); the session and its Admin Mode end on their own within 15 minutes`
+                `backend sign-out failed (${error instanceof Error ? error.message : String(error)}); Admin Mode ends within 15 minutes, but the session may remain active until it is revoked or expires`
             )
         })
     }

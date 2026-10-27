@@ -116,3 +116,85 @@ test('an unseated owner must be seated again once Admin Mode ends', async ({ pag
     const seated = await createAndWait(page, 1)
     expect(seated[0].ownerSeated).toBe(true)
 })
+
+async function holdRuntimeLoad(page: Page) {
+    await page.evaluate(async (fixturePath) => {
+        const fixture = await import(new URL(fixturePath, window.location.href).href)
+        fixture.holdRuntimeLoad()
+    }, fixturePath)
+}
+
+async function waitForRuntimeLoad(page: Page) {
+    await expect
+        .poll(() =>
+            page.evaluate(async (fixturePath) => {
+                const fixture = await import(new URL(fixturePath, window.location.href).href)
+                return fixture.runtimeLoadCount()
+            }, fixturePath)
+        )
+        .toBe(1)
+}
+
+async function resumeRuntimeLoad(page: Page) {
+    await page.evaluate(async (fixturePath) => {
+        const fixture = await import(new URL(fixturePath, window.location.href).href)
+        fixture.resumeRuntimeLoad()
+    }, fixturePath)
+}
+
+for (const reproductionSeeds of [true, false]) {
+    test(`expiry during runtime loading removes the ${reproductionSeeds ? 'master' : 'legacy'} seed and unlisted option`, async ({
+        page
+    }) => {
+        await mountForm(page, reproductionSeeds)
+        await openSeat(page).fill('Guest')
+        await page.getByText('Unlisted', { exact: true }).click()
+        await seedField(page).fill(reproductionSeeds ? '0123456789abcdef0123456789abcdef' : '42')
+        await holdRuntimeLoad(page)
+        await createButton(page).click()
+        await waitForRuntimeLoad(page)
+        await setAdminMode(page, false)
+        await expect(seedField(page)).toHaveCount(0)
+        await resumeRuntimeLoad(page)
+        await expect.poll(async () => (await recordedCreations(page)).length).toBe(1)
+        expect((await recordedCreations(page))[0]).toMatchObject({
+            masterSeed: undefined,
+            seed: undefined,
+            unlisted: undefined,
+            isPublic: false
+        })
+    })
+}
+
+test('expiry during runtime loading requires the excluded owner to reclaim a seat', async ({
+    page
+}) => {
+    await mountForm(page, false)
+    await page.getByText('Include me', { exact: true }).click()
+    await openSeat(page).first().fill('Guest One')
+    await openSeat(page).last().fill('Guest Two')
+    await seedField(page).fill('42')
+    await holdRuntimeLoad(page)
+    await createButton(page).click()
+    await waitForRuntimeLoad(page)
+    await setAdminMode(page, false)
+    await resumeRuntimeLoad(page)
+    await expect(page.getByText('Admin Mode has ended')).toBeVisible()
+    expect(await recordedCreations(page)).toEqual([])
+})
+
+test('expiry during runtime loading rechecks seats that have become required', async ({ page }) => {
+    await mountForm(page, false)
+    await page.getByText('Unlisted', { exact: true }).click()
+    await seedField(page).fill('42')
+    await holdRuntimeLoad(page)
+    await createButton(page).click()
+    await waitForRuntimeLoad(page)
+    await setAdminMode(page, false)
+    await resumeRuntimeLoad(page)
+    await expect(openSeat(page)).toHaveAttribute('required', '')
+    expect(await recordedCreations(page)).toEqual([])
+    await openSeat(page).fill('Guest')
+    const ordinary = await createAndWait(page, 1)
+    expect(ordinary[0]).toMatchObject({ seed: undefined, unlisted: undefined, isPublic: false })
+})

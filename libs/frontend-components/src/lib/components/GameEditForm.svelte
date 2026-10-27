@@ -49,7 +49,8 @@
     import { getAppContext } from '$lib/model/appContext.js'
     import {
         GameCreationPrivileges,
-        parseReproductionSeed
+        parseReproductionSeed,
+        type ReproductionSeed
     } from '$lib/model/gameCreationPrivileges.svelte.js'
 
     type EditableGame = Pick<
@@ -272,11 +273,28 @@
         event.stopPropagation()
 
         clearErrors()
+        let reproduction: ReproductionSeed | undefined
+        if (mode === EditMode.Create && privileges.seed.length > 0) {
+            try {
+                const runtime = await gameTitle.runtime()
+                if (privileges.seed.length > 0) {
+                    reproduction = parseReproductionSeed(privileges.seed, runtime)
+                }
+            } catch {
+                errors['seed'] = [
+                    'Use a 32-digit hexadecimal reproduction seed, or a number for legacy titles'
+                ]
+                return
+            }
+        }
         if (privileges.ownerExclusionLapsed) {
             return
         }
 
         const form = event.target as HTMLFormElement
+        if (!form.reportValidity()) {
+            return
+        }
         const formData = new FormData(form)
 
         const playersToUpload = $state.snapshot(players)
@@ -307,26 +325,15 @@
             : undefined
         if (mode === EditMode.Create) {
             gameData.typeId = gameTitle.info.id
-            if (privileges.seed.length > 0) {
-                try {
-                    const reproduction = parseReproductionSeed(
-                        privileges.seed,
-                        await gameTitle.runtime()
-                    )
-                    if ('masterSeed' in reproduction) {
-                        if (gameService.supportsReproductionSeed !== true) {
-                            errors['seed'] = ['Reload the site to use reproduction seeds']
-                            return
-                        }
-                        options = { ...options, masterSeed: reproduction.masterSeed }
-                    } else {
-                        gameData.seed = reproduction.seed
+            if (reproduction) {
+                if ('masterSeed' in reproduction) {
+                    if (gameService.supportsReproductionSeed !== true) {
+                        errors['seed'] = ['Reload the site to use reproduction seeds']
+                        return
                     }
-                } catch {
-                    errors['seed'] = [
-                        'Use a 32-digit hexadecimal reproduction seed, or a number for legacy titles'
-                    ]
-                    return
+                    options = { ...options, masterSeed: reproduction.masterSeed }
+                } else {
+                    gameData.seed = reproduction.seed
                 }
             }
         }

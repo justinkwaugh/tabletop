@@ -22,19 +22,34 @@ class FormFixtureSession extends GameSession<GameState, HydratedGameState> {}
 const creations: RecordedCreation[] = []
 let authorization: AuthorizationService | undefined
 let mounted: Record<string, unknown> | undefined
+let runtimeGate: Promise<void> | undefined
+let releaseRuntimeGate: (() => void) | undefined
+let blockedRuntimeLoads = 0
 
 // Mounts the real form for an Administrator without the Developer role, in Admin Mode, over the
 // harness services; creations are recorded instead of sent anywhere.
 export async function mountGameEditForm({ reproductionSeeds }: { reproductionSeeds: boolean }) {
     if (mounted) await unmount(mounted)
     creations.length = 0
+    runtimeGate = undefined
+    releaseRuntimeGate = undefined
+    blockedRuntimeLoads = 0
     const host = new PrivateHandHost()
     const runtime = {
         ...uiRuntime,
         sessionClass: FormFixtureSession,
         ...(reproductionSeeds ? { randomnessVersion: 1 as const } : {})
     }
-    const definition = { info: { ...info, thumbnailUrl: '' }, runtime: async () => runtime }
+    const definition = {
+        info: { ...info, thumbnailUrl: '' },
+        runtime: async () => {
+            if (runtimeGate) {
+                blockedRuntimeLoads += 1
+                await runtimeGate
+            }
+            return runtime
+        }
+    }
     const app = createHarnessAppContext(definition)
     app.authorizationService.setSessionUser({
         id: 'harness-user',
@@ -60,6 +75,23 @@ export async function mountGameEditForm({ reproductionSeeds }: { reproductionSee
 export function setAdminMode(active: boolean) {
     assertExists(authorization, 'The form is not mounted')
     authorization.adminCapabilitiesEnabled = active
+}
+
+export function holdRuntimeLoad() {
+    runtimeGate = new Promise((resolve) => {
+        releaseRuntimeGate = resolve
+    })
+}
+
+export function resumeRuntimeLoad() {
+    assertExists(releaseRuntimeGate, 'No runtime load is held')
+    releaseRuntimeGate()
+    runtimeGate = undefined
+    releaseRuntimeGate = undefined
+}
+
+export function runtimeLoadCount() {
+    return blockedRuntimeLoads
 }
 
 export function recordedCreations() {
