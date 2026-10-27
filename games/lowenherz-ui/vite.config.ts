@@ -6,8 +6,6 @@ import { VitestConfig } from '@tabletop/vitest-config'
 export default defineProject(
     mergeConfig(VitestConfig, {
         plugins: [sveltekit(), devtoolsJson()],
-        // Vite 8 resolves an SSR-externalized CSS @import as a relative file (vitejs/vite#23096).
-        ssr: { noExternal: ['tailwindcss'] },
         server: {
             host: true,
             port: 5173,

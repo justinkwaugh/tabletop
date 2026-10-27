@@ -43,8 +43,6 @@ export default defineProject(
             }
         },
         plugins: [sveltekit(), devtoolsJson()],
-        // Vite 8 resolves an SSR-externalized CSS @import as a relative file (vitejs/vite#23096).
-        ssr: { noExternal: ['tailwindcss'] },
         test: { exclude: ['**/*.client.spec.ts'] },
         assetsInclude: ['**/*.gltf'],
         build: {

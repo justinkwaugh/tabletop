@@ -63,6 +63,7 @@
         "typescript": "5.9.3",
         "vite": "^8.3.5",
         "@tabletop/eslint-config": "workspace:*",
-        "@tabletop/prettier-config": "workspace:*"
+        "@tabletop/prettier-config": "workspace:*",
+        "@tabletop/vitest-config": "workspace:*"
     }
 }

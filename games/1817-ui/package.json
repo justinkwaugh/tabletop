@@ -62,6 +62,7 @@
         "@tabletop/rollup-config": "workspace:*",
         "rollup": "4.55.2",
         "@tabletop/eslint-config": "workspace:*",
-        "@tabletop/prettier-config": "workspace:*"
+        "@tabletop/prettier-config": "workspace:*",
+        "@tabletop/vitest-config": "workspace:*"
     }
 }
