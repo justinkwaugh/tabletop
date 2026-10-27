@@ -86,6 +86,8 @@
               )
             : undefined
     )
+    // The header hides About Us in a game, so the menu carries it on desktop too.
+    let aboutMenuClass = $derived(gameService.currentGameSession ? '' : 'md:hidden')
     let bugReportSession = $derived(
         sessionUser &&
             gameService.currentGameSession &&
@@ -418,7 +420,7 @@
                     <div class="header-links flex items-center gap-3 mr-4">
                         <a
                             href="/about"
-                            class="hidden md:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                            class="about-link hidden md:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                         >
                             About Us
                         </a>
@@ -428,12 +430,12 @@
                             class="hidden md:inline-flex items-center gap-1.5 text-sm font-medium text-amber-800 hover:text-amber-900 dark:text-[#f2dfae] dark:hover:text-[#fbefcf]"
                         >
                             <HeartOutline class="h-5 w-5" />
-                            Pay it forward
+                            <span class="pay-it-forward-label">Pay it forward</span>
                         </a>
                         <Tooltip triggeredBy="#pay-it-forward-link" placement="bottom" class="z-50">
                             Help charities put games on more tables. Nothing goes to us.
                         </Tooltip>
-                        <div class="flex items-center gap-3">
+                        <div class="header-icons flex items-center gap-3">
                             <a
                                 href="/pay-it-forward"
                                 class="pay-it-forward-icon inline-flex md:hidden items-center leading-none text-amber-600 hover:text-amber-700 dark:text-[#f2dfae] dark:hover:text-[#fbefcf]"
@@ -625,8 +627,9 @@
                                     >
                                 {/if}
                                 <DropdownDivider />
-                                <DropdownItem onclick={gotoAbout} class="md:hidden w-full text-left"
-                                    >About us</DropdownItem
+                                <DropdownItem
+                                    onclick={gotoAbout}
+                                    class="{aboutMenuClass} w-full text-left">About us</DropdownItem
                                 >
                                 <DropdownItem
                                     onclick={gotoPayItForward}
@@ -634,7 +637,7 @@
                                     >Pay it forward</DropdownItem
                                 >
 
-                                <DropdownDivider class="md:hidden" />
+                                <DropdownDivider class={aboutMenuClass} />
                                 {#if authorizationService.canUseDeveloperTools}
                                     <li>
                                         <Toggle
@@ -834,6 +837,17 @@
         outline: 2px solid currentColor;
         outline-offset: 2px;
     }
+    .game-session-header .about-link {
+        display: none;
+    }
+    .game-session-header .pay-it-forward-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
     @media (width < 640px) {
         .mobile-game-header :global(.site-navbar) {
             padding-block: 4px;
@@ -875,11 +889,17 @@
         .game-session-header .competitions-link {
             display: none;
         }
+        .game-session-header .header-icons {
+            gap: 0;
+        }
         .mobile-game-header .bug-report-button,
         .mobile-game-header .pay-it-forward-icon {
             justify-content: center;
             width: 40px;
             height: 40px;
+        }
+        .mobile-game-header .pay-it-forward-icon {
+            width: 32px;
         }
         .mobile-game-header .game-logo {
             display: block;
