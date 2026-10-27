@@ -35,6 +35,7 @@
         NumberInputConfigOption,
         Player,
         PlayerStatus,
+        type User,
         range,
         StringInputConfigOption,
         type HydratedGameState
@@ -187,12 +188,13 @@
 
     function continuationGame(source: Game): EditableGame {
         assertExists(sessionUser, 'Continuing a game requires a signed-in user')
+        const user = sessionUser
         return {
             id: nanoid(),
             typeId: source.typeId,
             name: source.name,
             players: source.players.map((player) =>
-                isSessionUserSeat(source, player) ? ownerPlayer() : continuedPlayer(player)
+                isUsersSeat(source, player, user) ? ownerPlayer() : continuedPlayer(source, player)
             ),
             isPublic: source.isPublic,
             hotseat: source.hotseat,
@@ -201,16 +203,15 @@
         }
     }
 
-    function isSessionUserSeat(source: Game, player: Player) {
-        return source.hotseat
-            ? player.name === sessionUser?.username
-            : player.userId === sessionUser?.id
+    function isUsersSeat(source: Game, player: Player, user: User) {
+        return source.hotseat ? player.name === user.username : player.userId === user.id
     }
 
-    function continuedPlayer(player: Player): Player {
+    function continuedPlayer(source: Game, player: Player): Player {
         return {
             id: nanoid(),
             isHuman: player.isHuman,
+            ...(source.hotseat || !player.userId ? {} : { userId: player.userId }),
             name: player.name,
             status: player.name ? PlayerStatus.Reserved : PlayerStatus.Open
         }
@@ -361,6 +362,7 @@
 
     async function handleNameInput(player: Player, event: Event) {
         trim(event)
+        delete player.userId
         player.status = !player.name ? PlayerStatus.Open : PlayerStatus.Reserved
     }
 
@@ -535,6 +537,7 @@
                                 onclick={(event: Event) => {
                                     event.stopPropagation()
                                     player.name = ''
+                                    delete player.userId
                                     player.status = PlayerStatus.Open
                                 }}
                             >

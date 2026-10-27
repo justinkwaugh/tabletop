@@ -435,13 +435,6 @@
                                             class="h-[20px]"
                                             onclick={editGame}>Edit</Button
                                         >
-                                    {:else if canContinue}
-                                        <Button
-                                            size="xs"
-                                            color="blue"
-                                            class="h-[20px]"
-                                            onclick={continueGame}>Continue</Button
-                                        >
                                     {:else if canPlay || canWatch}
                                         {@render gameEntryButton(
                                             isMyTurn ? 'Your Turn' : canPlay ? 'Enter' : 'Watch',
@@ -454,6 +447,14 @@
                                             'light',
                                             'h-[20px] dark:text-gray-200'
                                         )}
+                                    {/if}
+                                    {#if canContinue}
+                                        <Button
+                                            size="xs"
+                                            color="blue"
+                                            class="h-[20px] ms-1"
+                                            onclick={continueGame}>Continue</Button
+                                        >
                                     {/if}
                                 </div>
                                 {#if waitingToStart && !autoStartText}

@@ -13,8 +13,7 @@ import {
     GameResult,
     calculateActionChecksum,
     createGameFork,
-    captureGameContinuation,
-    GameContinuation,
+    linkGameContinuation,
     GameForkError,
     findLast,
     isOutOfTurnDeclaration,
@@ -223,15 +222,14 @@ export class GameService {
         game.ownerId = owner.id // Don't trust client
         game.storage = GameStorage.Remote // Has to be remote here on the backend
 
-        const sourceGameId = options?.continueFromGameId
-        const continuation =
-            sourceGameId === undefined
-                ? undefined
-                : await this.captureContinuation(definition, sourceGameId, owner)
-
         const newGame = definition.runtime.initializer.initializeGame(game, definition)
         delete newGame.protectedInformation
-        if (sourceGameId !== undefined) newGame.continuedFromGameId = sourceGameId
+        const continuation = await linkGameContinuation(
+            newGame,
+            options?.continueFromGameId,
+            definition,
+            (sourceGameId) => this.findContinuationSource(sourceGameId, owner)
+        )
         // Titles bundle their own initializer, which may predate unlisted games.
         if (game.unlisted) newGame.unlisted = true
         else delete newGame.unlisted
@@ -285,18 +283,15 @@ export class GameService {
         return createdGame
     }
 
-    private async captureContinuation(
-        definition: GameDefinition,
+    private async findContinuationSource(
         sourceGameId: string,
         user: User
-    ): Promise<GameContinuation> {
+    ): Promise<Game | undefined> {
         const source = await this.getGame({ gameId: sourceGameId, withState: true })
-        if (!source) throw new GameNotFoundError({ id: sourceGameId })
-        if (!findPlayerForUserId(source, user.id) && !user.roles.includes(Role.Admin)) {
+        if (source && !findPlayerForUserId(source, user.id) && !user.roles.includes(Role.Admin)) {
             throw new UnauthorizedAccessError({ user, gameId: sourceGameId })
         }
-        assertExists(source.state, 'A finished game has a state')
-        return captureGameContinuation(source, source.state, definition)
+        return source
     }
 
     async provisionTournamentGame(

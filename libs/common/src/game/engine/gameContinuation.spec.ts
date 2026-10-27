@@ -3,7 +3,8 @@ import { assertExists } from '../../util/assertions.js'
 import { GameResult } from '../model/gameResult.js'
 import { GameCategory, type Game } from '../model/game.js'
 import type { GameState } from '../model/gameState.js'
-import { captureGameContinuation } from './gameContinuation.js'
+import { GameContinuationError } from './gameContinuation.js'
+import { captureGameContinuation, linkGameContinuation } from './gameContinuationCapture.js'
 import { GameEngine } from './gameEngine.js'
 import { createPrivateHandGame, info, runtime } from '../visibility/tests/privateHandGame.js'
 
@@ -108,5 +109,49 @@ describe('game continuation', () => {
                 { continuation }
             )
         ).toThrow('Continuation source does not match')
+    })
+
+    it('explains when the stored state no longer fits the current game version', () => {
+        const { game, state } = finishedGame()
+        const engine = new GameEngine(continuingRuntime())
+        const stale = structuredClone(state)
+        Reflect.deleteProperty(stale, 'table')
+
+        expect(() =>
+            engine.validateContinuation(game.id, { previousState: stale, previousPlayers: [] })
+        ).toThrow(GameContinuationError)
+        expect(() =>
+            engine.validateContinuation(game.id, { previousState: stale, previousPlayers: [] })
+        ).toThrow('can no longer continue')
+    })
+
+    it('links a new game to the game it continues', async () => {
+        const { game, state } = finishedGame()
+        const definition = { info, runtime: continuingRuntime() }
+        const next = nextGame(game, ['a', 'b'])
+        delete next.continuedFromGameId
+
+        const continuation = await linkGameContinuation(next, game.id, definition, async () => ({
+            ...game,
+            state
+        }))
+
+        expect(next.continuedFromGameId).toBe(game.id)
+        expect(continuation?.previousState).toEqual(state)
+    })
+
+    it('leaves an ordinary new game unlinked and reports a missing source', async () => {
+        const definition = { info, runtime: continuingRuntime() }
+        const { game } = finishedGame()
+        const next = nextGame(game, ['a', 'b'])
+        delete next.continuedFromGameId
+        const loadSource = vi.fn(async () => undefined)
+
+        expect(await linkGameContinuation(next, undefined, definition, loadSource)).toBeUndefined()
+        expect(loadSource).not.toHaveBeenCalled()
+        expect(next).not.toHaveProperty('continuedFromGameId')
+        await expect(linkGameContinuation(next, 'missing', definition, loadSource)).rejects.toThrow(
+            'not found'
+        )
     })
 })

@@ -19,7 +19,7 @@ Copy what carries over into the fresh state and leave everything else alone. The
 
 The new game's Players have new player IDs and may be different people, so carryover cannot be keyed by player ID. Carry over things that belong to no one (a campaign map, a shared deck, an era marker). To carry over a Player's own things, match `previousPlayers` to the new Players by `userId` for Hosted Games. Hotseat Players all share the owner's `userId`, so match them by name or seat. A title that needs exactly the same people at the table should not adopt continuation until the platform supports a locked roster.
 
-The engine re-validates the stored state against the title's current state schema before calling the initializer, and refuses to start if it no longer validates. A lobby can wait a long time before it starts, so a title must keep accepting the final states its earlier Publications produced.
+The engine re-validates the stored state against the title's current state schema before calling the initializer. If it no longer validates, starting fails with a `GameContinuationError` saying this version of the game can no longer continue from the finished game, and the lobby cannot start. A lobby can wait a long time before it starts, so a title must keep accepting the final states its earlier Publications produced.
 
 ## Lifecycle
 

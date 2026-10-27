@@ -5,7 +5,11 @@ import {
     type StartingPositionAssignment
 } from '../model/startingPositionAssignment.js'
 import { getGameVisibility } from '../visibility/gameVisibility.js'
-import type { GameContinuation } from './gameContinuation.js'
+import {
+    assertContinuationAllowed,
+    GameContinuationError,
+    type GameContinuation
+} from './gameContinuation.js'
 import { deriveGameSeeds, generateMasterSeed, normalizeMasterSeed } from '../../util/gameSeeds.js'
 import jsonpatch from 'fast-json-patch'
 import { GameAction, type HydratedAction, Patch, withoutActionPatches } from './gameAction.js'
@@ -191,20 +195,33 @@ export class GameEngine<
         sourceGameId: string,
         continuation: GameContinuation<T>
     ): GameContinuation<T> {
-        assert(
+        assertContinuationAllowed(
             this.runtime.initializer.supportsContinuation === true,
-            'This initializer does not support continuation'
+            'This Game Title does not support continuation'
         )
-        const previousState = this.runtime.hydrator
-            .hydrateState(structuredClone(continuation.previousState))
-            .dehydrate()
-        this.validateCanonicalState(previousState)
-        assert(
+        const previousState = this.canonicalContinuationState(continuation.previousState)
+        assertContinuationAllowed(
             previousState.result !== undefined && previousState.canContinue === true,
-            'Previous game is not ready to continue'
+            'The game being continued is not ready to continue'
         )
-        assert(previousState.gameId === sourceGameId, 'Continuation source does not match')
+        assertContinuationAllowed(
+            previousState.gameId === sourceGameId,
+            'Continuation source does not match'
+        )
         return { previousState, previousPlayers: structuredClone(continuation.previousPlayers) }
+    }
+
+    private canonicalContinuationState(state: Readonly<T>): T {
+        try {
+            const canonical = this.runtime.hydrator.hydrateState(structuredClone(state)).dehydrate()
+            this.validateCanonicalState(canonical)
+            return canonical
+        } catch (error) {
+            throw new GameContinuationError(
+                'This version of the game can no longer continue from the finished game',
+                error instanceof Error ? error : undefined
+            )
+        }
     }
 
     getValidActionTypesForPlayer(

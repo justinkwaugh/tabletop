@@ -26,10 +26,7 @@ import {
     type HydratedGameState,
     GameEngine,
     createGameFork,
-    captureGameContinuation,
-    assertExists,
-    type GameContinuation,
-    type GameDefinition,
+    linkGameContinuation,
     GameForkError,
     GameStorage,
     GameCategory,
@@ -298,15 +295,6 @@ export class GameService implements GameServiceInterface {
         return { game, actions, historyComplete }
     }
 
-    private async captureLocalContinuation(
-        sourceGameId: string,
-        definition: GameDefinition
-    ): Promise<GameContinuation> {
-        const { game: source } = await this.localGameStore.loadGameData(sourceGameId)
-        assertExists(source?.state, 'The game being continued was not found')
-        return captureGameContinuation(source, source.state, definition)
-    }
-
     getExplorations(gameId: string): Game[] {
         return Array.from(this.localGamesById.values()).filter(
             (game) => game.parentId === gameId && game.category === GameCategory.Exploration
@@ -333,12 +321,12 @@ export class GameService implements GameServiceInterface {
             const runtime = await definition.runtime()
             const gameDefinition = { info: definition.info, runtime }
             const initializedGame = runtime.initializer.initializeGame(game, gameDefinition)
-            const sourceGameId = options?.continueFromGameId
-            const continuation =
-                sourceGameId === undefined
-                    ? undefined
-                    : await this.captureLocalContinuation(sourceGameId, gameDefinition)
-            if (sourceGameId !== undefined) initializedGame.continuedFromGameId = sourceGameId
+            const continuation = await linkGameContinuation(
+                initializedGame,
+                options?.continueFromGameId,
+                gameDefinition,
+                async (sourceGameId) => (await this.localGameStore.loadGameData(sourceGameId)).game
+            )
 
             const engine = new GameEngine(runtime)
             const { startedGame, initialState } = engine.startGame(initializedGame, {
@@ -418,6 +406,7 @@ export class GameService implements GameServiceInterface {
         const actionsData = actions.map((action) => structuredClone(action))
 
         gameData.activePlayerIds = stateData.activePlayerIds
+        gameData.canContinue = stateData.canContinue
 
         if (game.storage !== GameStorage.Local) {
             throw new Error('Can only save local games locally')

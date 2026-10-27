@@ -119,6 +119,49 @@ describe('hosted game continuation', () => {
         expect(created).not.toHaveProperty('state')
     })
 
+    it('lets one finished game be continued more than once', async () => {
+        const { service, store } = fixture()
+        const source = finishedSource()
+        vi.spyOn(store, 'findGameById').mockResolvedValue(source)
+        vi.spyOn(store, 'createGame').mockImplementation(async (game) => game)
+
+        const [first, second] = await Promise.all(
+            ['first', 'second'].map((id) =>
+                service.createGame({
+                    definition,
+                    game: lobby(id, [`${id}-1`, `${id}-2`]),
+                    owner: alice,
+                    options: { continueFromGameId: source.id }
+                })
+            )
+        )
+
+        expect([first.id, second.id]).toEqual(['first', 'second'])
+        expect([first.continuedFromGameId, second.continuedFromGameId]).toEqual([
+            source.id,
+            source.id
+        ])
+        expect(source).not.toHaveProperty('continuedToGameId')
+    })
+
+    it('lets an administrator continue a game they did not play', async () => {
+        const { service, store } = fixture()
+        vi.spyOn(store, 'findGameById').mockResolvedValue(finishedSource())
+        vi.spyOn(store, 'createGame').mockImplementation(async (game) => game)
+        const admin: User = { ...stranger, id: 'admin', roles: [Role.Admin] }
+        const game = lobby('next', ['n1', 'n2'])
+        game.players[0].userId = admin.id
+
+        const created = await service.createGame({
+            definition,
+            game,
+            owner: admin,
+            options: { continueFromGameId: 'source' }
+        })
+
+        expect(created.continuedFromGameId).toBe('source')
+    })
+
     it('lets only a player of the finished game continue it', async () => {
         const { service, store } = fixture()
         vi.spyOn(store, 'findGameById').mockResolvedValue(finishedSource())
