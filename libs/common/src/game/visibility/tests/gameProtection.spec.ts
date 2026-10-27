@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { GameEngine } from '../../engine/gameEngine.js'
-import { createGameFork } from '../../engine/gameFork.js'
+import { canForkHostedGame, createGameFork } from '../../engine/gameFork.js'
 import { getGameVisibility } from '../gameVisibility.js'
-import { createPrivateHandGame } from './privateHandGame.js'
+import { createPrivateHandGame, PrivateHandHost } from './privateHandGame.js'
+import { ActionSource } from '../../engine/gameAction.js'
+import { Role } from '../../../site/user.js'
 
 describe('Game protection across publications', () => {
     it('selects protection at initialization independently of system version', () => {
@@ -60,6 +62,49 @@ describe('Game protection across publications', () => {
             expect(fork.state.actionCount).toBe(0)
         }
     )
+
+    it('reproduces future draws of the source Game in a canonical Fork', () => {
+        const host = new PrivateHandHost()
+        const fork = createGameFork({
+            game: host.game,
+            state: host.state,
+            actions: host.actions,
+            actionIndex: -1,
+            runtime: host.engine.runtime
+        })
+        const draw = {
+            id: 'draw',
+            gameId: fork.game.id,
+            source: ActionSource.User,
+            playerId: 'p1',
+            type: 'draw',
+            revealsInfo: true
+        }
+        const forked = host.engine.executeCanonicalAction({
+            game: fork.game,
+            state: fork.state,
+            action: draw
+        })
+        const source = host.apply({ ...draw, gameId: host.game.id })
+        const forkedDraw = forked.updatedState.players[0].hand?.cards.at(-1)
+        expect(fork.state.players[1].hand).toEqual(host.state.players[1].hand)
+        expect(forkedDraw).toBeDefined()
+        expect(forkedDraw).toEqual(source.updatedState.players[0].hand?.cards.at(-1))
+    })
+
+    it('offers a Hosted Fork of protected information only to Users with Host View access', () => {
+        const { game } = createPrivateHandGame()
+        expect(game.protectedInformation).toBe(true)
+        expect(canForkHostedGame(game, { roles: [Role.User] })).toBe(false)
+        expect(canForkHostedGame(game, { roles: [Role.User, Role.BetaTester] })).toBe(false)
+        expect(canForkHostedGame(game, undefined)).toBe(false)
+        expect(canForkHostedGame(game, { roles: [Role.User, Role.Developer] })).toBe(true)
+        expect(canForkHostedGame(game, { roles: [Role.Admin] })).toBe(true)
+        const unprotected = { ...game }
+        delete unprotected.protectedInformation
+        expect(canForkHostedGame(unprotected, { roles: [Role.User] })).toBe(true)
+        expect(canForkHostedGame(unprotected, undefined)).toBe(true)
+    })
 
     it('rejects a protected Game if its selected runtime loses visibility', () => {
         const { game, state, engine, firstPlay } = createPrivateHandGame()

@@ -28,7 +28,7 @@
     const explorationDisabled = $derived(!gameSession.isExploring && !gameSession.canExplore)
 
     function requestFork() {
-        if (gameSession.isExploring) {
+        if (!gameSession.canFork) {
             return
         }
         forkRequested = true
@@ -95,11 +95,14 @@
         {/if}
     {:else}
         <div class="w-full flex flex-row justify-between items-center">
-            <button aria-label="fork game" class={mobileIconCell} onclick={requestFork}>
+            <button
+                aria-label="fork game"
+                aria-disabled={!gameSession.canFork}
+                class={mobileIconCell}
+                onclick={requestFork}
+            >
                 <svg
-                    class="w-[22px] h-[22px] {!gameSession.isExploring
-                        ? enabledColor
-                        : disabledColor}"
+                    class="w-[22px] h-[22px] {gameSession.canFork ? enabledColor : disabledColor}"
                     aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"

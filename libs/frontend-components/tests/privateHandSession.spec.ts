@@ -9,6 +9,7 @@ for (const scenario of [
     'runPrivateHandExploration',
     'runPrivateHandHostView',
     'runPrivateHandProtectedFallback',
+    'runPrivateHandForkEntitlement',
     'runCorrectionDuringAnimation',
     'runRejectionDuringAnimation'
 ] as const) {

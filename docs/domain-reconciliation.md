@@ -127,9 +127,9 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### Invite-Only viewing and Fork entitlement remain policy questions
 
 - **Classification**: Open cross-context decision
-- **Observed**: Get and synchronization routes require an Active User but not participation; Fork requires an authenticated User and a known Game ID.
-- **Evidence**: `apps/backend/src/app/routes/api/game/get.ts:9`; `apps/backend/src/app/routes/api/game/checkSync.ts:14`; `apps/backend/src/app/routes/titleSpecific/fork.ts:12`
-- **Invariant**: Invite-Only restricts discovery and participation, not confidentiality. The exact direct-link viewing and Fork entitlement policy remains to be documented.
+- **Observed**: Get and synchronization routes require an Active User but not participation; Fork requires an authenticated User and a known Game ID. Since 2026-10-27 a Fork of a Game with protected information additionally requires an Administrator or Developer, because the copied canonical state would disclose the source's secrets (security audit finding S04).
+- **Evidence**: `apps/backend/src/app/routes/api/game/get.ts:9`; `apps/backend/src/app/routes/api/game/checkSync.ts:14`; `apps/backend/src/app/routes/titleSpecific/fork.ts:12`; `libs/backend-services/src/games/gameService.ts` (`forkGame`)
+- **Invariant**: Invite-Only restricts discovery and participation, not confidentiality. A Fork never grants canonical access its creator lacks. The direct-link viewing and Fork entitlement policy for public-information Games remains to be documented.
 
 ## Identity and Access
 

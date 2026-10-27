@@ -83,6 +83,10 @@ export const User = Type.Object({
     activatedAt: Type.Optional(DateType())
 })
 
+export function hasDeveloperAccess(user: Pick<User, 'roles'> | undefined): boolean {
+    return user?.roles.some((role) => role === Role.Admin || role === Role.Developer) ?? false
+}
+
 export const ADMIN_ASSIGNABLE_ROLES = [Role.AlphaTester, Role.BetaTester, Role.Developer] as const
 export type AdminAssignableRole = (typeof ADMIN_ASSIGNABLE_ROLES)[number]
 

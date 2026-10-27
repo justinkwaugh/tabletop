@@ -165,6 +165,8 @@ See [Hidden-information compatibility and completion review](hidden-information-
 
 C1 is fixed by the [canonical Fork slice](hidden-information-forks.md). The user settled Forks as real continuations and Exploration as hypothetical. Hosted Fork always loads canonical state, regardless of visibility registration; Hosted, Hotseat, and harness paths share suffix reconstruction without reinitialization or replay. Unsupported historical reconstruction may fail explicitly. The old recommendation to preserve seed-based replay fallback is superseded by that accepted compatibility policy. C2 remains deferred.
 
+**Security audit S04 (2026-10-27):** a Hosted Fork of a live protected Game let its Owner reassign the copied seats and read an opponent's hand, and playing any such Fork forward reproduces the source's future draws. Hosted Forks of Games marked `protectedInformation` are now created only for Users with Host View access; see [entitlement](hidden-information-forks.md#entitlement).
+
 ## Shared hydration integration follow-up
 
 `9f128dd6` adds canonical validation boundaries; `808537fe` integrates shared hydration, owner visibility, and permanent private-hand regressions. The [integration record](projected-hydration-prototype.md#integration-follow-up) reports 322 unit tests and 22 Chromium scenarios passing, with all 11 title logic packages building. This is repository conformance evidence, not publication of a new private-hand title.

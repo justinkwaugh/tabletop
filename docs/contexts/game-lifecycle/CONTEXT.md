@@ -139,7 +139,7 @@ An In Progress Hosted Game that nobody has moved in for a week, counted from its
 _Avoid_: Inactive game, expired game, timed-out game
 
 **Fork**:
-A new Game Instance derived from a selected position in another Game Instance’s Canonical Action History. It has its own identity, Owner, history, and lifecycle while retaining the source Game Title and Game Configuration. A Fork of a Tournament Game does not inherit its Tournament participation.
+A new Game Instance derived from a selected position in another Game Instance’s Canonical Action History. It has its own identity, Owner, history, and lifecycle while retaining the source Game Title and Game Configuration. A Fork of a Tournament Game does not inherit its Tournament participation. A Hosted Fork copies the source's canonical Game State, so a Game Instance with protected information is forked only by an Administrator or Developer; other Users are refused.
 _Avoid_: Exploration
 
 **Continuation**:

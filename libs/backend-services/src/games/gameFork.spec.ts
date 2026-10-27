@@ -7,12 +7,22 @@ import {
     PlayerStatus,
     createGameFork,
     GameForkError,
+    ProtectedGameForkError,
     GameStatus,
     GameStorage,
     UserStatus,
     Role,
+    type Game,
+    type GameAction,
+    type GameDefinition,
+    type GameState,
     type User
 } from '@tabletop/common'
+import {
+    PrivateHandHost,
+    info as privateHandInfo,
+    runtime as privateHandRuntime
+} from '@tabletop/common/test-fixtures/private-hand'
 import {
     SyntheticDefinition as Definition,
     SyntheticRuntime,
@@ -20,6 +30,7 @@ import {
     type Draw
 } from './tests/syntheticGame.js'
 import { GameService } from './gameService.js'
+import type { TitleLookup } from './titleLookup.js'
 import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { UserService } from '../users/userService.js'
@@ -211,7 +222,10 @@ describe('Canonical Fork', () => {
     })
 })
 
-function createService(source: ReturnType<typeof createSource>) {
+function createService(
+    source: { game: Game; state: GameState; actions: GameAction[] },
+    titles: TitleLookup = { [Definition.info.id]: Definition }
+) {
     const store = new FirestoreGameStore(
         RedisCacheService.prototype,
         new Firestore({ projectId: 'fork-unit-test' })
@@ -271,7 +285,7 @@ function createService(source: ReturnType<typeof createSource>) {
         tasks,
         notifications,
         RedisCacheService.prototype,
-        { [Definition.info.id]: Definition }
+        titles
     )
     return { service, store, reads, writes, notifications }
 }
@@ -368,6 +382,7 @@ describe('Hosted Fork service', () => {
                     visibility: visible ? SyntheticRuntime.visibility : undefined
                 }
             }
+            expect(source.game).not.toHaveProperty('protectedInformation')
             const game = await service.forkGame({
                 definition,
                 gameId: source.game.id,
@@ -406,4 +421,85 @@ describe('Hosted Fork service', () => {
         expect(writes).not.toHaveBeenCalled()
         expect(notifications.sendNotification).not.toHaveBeenCalled()
     })
+})
+
+describe('Hosted Fork of protected information', () => {
+    const title: GameDefinition = { info: privateHandInfo, runtime: privateHandRuntime }
+
+    function userWithRoles(id: string, roles: Role[] = [Role.User]): User {
+        return { id, status: UserStatus.Active, roles, externalIds: [] }
+    }
+
+    function createProtectedService() {
+        const host = new PrivateHandHost()
+        host.game.storage = GameStorage.Remote
+        return { host, ...createService(host, { [title.info.id]: title }) }
+    }
+
+    it('delivers a player only their own hand from the source game', async () => {
+        const { host, service } = createProtectedService()
+        const loaded = await service.getGameForUser({
+            gameId: host.game.id,
+            user: userWithRoles('p1')
+        })
+        const players = loaded?.game.state?.players
+        assertExists(players, 'Expected a projected state')
+        expect(players.find((player) => player.playerId === 'p1')).toHaveProperty('hand')
+        expect(players.find((player) => player.playerId === 'p2')).not.toHaveProperty('hand')
+    })
+
+    it.each([
+        ['a player', 'p1'],
+        ['the owner', 'p1'],
+        ['a spectator', 'observer']
+    ])('refuses a canonical Fork to %s and writes nothing', async (_, userId) => {
+        const { host, service, writes, notifications } = createProtectedService()
+        await expect(
+            service.forkGame({
+                definition: title,
+                gameId: host.game.id,
+                actionIndex: -1,
+                owner: userWithRoles(userId)
+            })
+        ).rejects.toThrow(ProtectedGameForkError)
+        expect(writes).not.toHaveBeenCalled()
+        expect(notifications.sendNotification).not.toHaveBeenCalled()
+    })
+
+    it('reports the refusal without hidden state', async () => {
+        const { host, service } = createProtectedService()
+        const refusal = await service
+            .forkGame({
+                definition: title,
+                gameId: host.game.id,
+                actionIndex: -1,
+                owner: userWithRoles('p1')
+            })
+            .catch((error: unknown) => error)
+        expect(refusal).toBeInstanceOf(ProtectedGameForkError)
+        expect(JSON.stringify(refusal)).not.toContain('cards')
+        expect(refusal).toMatchObject({
+            message: 'This game has hidden information, so it cannot be forked.',
+            metadata: { gameId: host.game.id }
+        })
+    })
+
+    it.each([Role.Developer, Role.Admin])(
+        'forks the canonical position for a %s, who may already read it through Host View',
+        async (role) => {
+            const { host, service, writes, notifications } = createProtectedService()
+            const fork = await service.forkGame({
+                definition: title,
+                gameId: host.game.id,
+                actionIndex: -1,
+                owner: userWithRoles('p1', [Role.User, role])
+            })
+            const written = writes.mock.calls[0]
+            assertExists(written, 'Expected fork persistence')
+            expect(written[1]).toEqual({ ...host.state, gameId: fork.id })
+            expect(fork.protectedInformation).toBe(true)
+            expect(fork.parentId).toBe(host.game.id)
+            expect(notifications.sendNotification).toHaveBeenCalledOnce()
+        }
+    )
 })

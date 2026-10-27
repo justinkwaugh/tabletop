@@ -29,6 +29,7 @@ export type GameSessionView<
     | 'advanceChatReadPosition'
     | 'bridge'
     | 'canExplore'
+    | 'canFork'
     | 'chatAuthor'
     | 'chatAvailable'
     | 'chatService'

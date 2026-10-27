@@ -16,11 +16,17 @@ Each Fork has a new Game ID and records its source as `parentId`. Inherited stat
 
 Hosted Fork always reads canonical state, even when the title has no visibility declaration. It preserves the existing owner/Reserved/Joined lobby behavior and starts by activating the copied position. Game metadata, state, and inherited Action chunks are created in one Firestore transaction. New chunks use the current chunk size even when the source used older storage. Hotseat and harness use their existing atomic IndexedDB save operation. Forks appear separately from saved Explorations.
 
+## Entitlement
+
+A Hosted Fork copies canonical state: every hidden hand, the concealed draw order, and both PRNG cursors. Its Owner edits the lobby's seats, and anyone who plays the Fork forward learns the draws the source Game has not made yet, so a Fork of live protected information discloses the source's secrets whichever seat each person holds. Freezing the copied seats would not change that.
+
+The backend therefore creates a Hosted Fork of a Game marked `protectedInformation` only for a User with Host View access (an Administrator or Developer), who may already read that canonical state. Any other User, Player or not, receives `This game has hidden information, so it cannot be forked.` with no hidden state and no persisted Game. Games without the marker keep their existing entitlement, and Hotseat and harness Forks are unchanged because their complete state is already local. `canForkHostedGame` in Common carries the rule for the backend and for the Game Client, whose Fork control is disabled where the rule denies it. Players who want to try a different continuation of a protected Game use Exploration, which samples a hypothetical world. This settles security audit finding S04 (2026-10-27).
+
 ## Compatibility and publication
 
 No API, injected service, or bridge signature changes. Older UI Artifacts call the corrected Site Frontend/backend Fork operation through their existing interface. New UI Artifacts remain compatible with the old host interface, but an old host retains its old Fork implementation until deployment/reload.
 
-Deploy the backend for Hosted reconstruction and atomic writes. Publish the Site Frontend for Hotseat reconstruction and the corrected Exploration lookup. Republish each title's UI Artifact to adopt the shared cannot-fork toast and accessible Fork label. The development harness uses the updated shared service. No title rules or canonical schema changed in this slice; it requires no Logic-changing Publication. This work does not publish artifacts or change versions.
+Deploy the backend for Hosted reconstruction and atomic writes. Publish the Site Frontend for Hotseat reconstruction and the corrected Exploration lookup. Republish each title's UI Artifact to adopt the shared cannot-fork toast and accessible Fork label. The backend enforces the protected-information entitlement for every client; an older UI Artifact still shows its Fork control and reports the refusal with its generic cannot-fork toast until republished. The development harness uses the updated shared service. No title rules or canonical schema changed in this slice; it requires no Logic-changing Publication. This work does not publish artifacts or change versions.
 
 ## Verification
 

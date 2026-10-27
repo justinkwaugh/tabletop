@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Role, withAssignedRoles } from './user.js'
+import { Role, hasDeveloperAccess, withAssignedRoles } from './user.js'
 
 describe('withAssignedRoles', () => {
     it('keeps non-assignable roles and replaces the assignable ones', () => {
@@ -18,5 +18,22 @@ describe('withAssignedRoles', () => {
         expect(
             withAssignedRoles([Role.User], [Role.Developer, Role.AlphaTester, Role.Developer])
         ).toEqual([Role.User, Role.AlphaTester, Role.Developer])
+    })
+})
+
+describe('hasDeveloperAccess', () => {
+    it.each([Role.Developer, Role.Admin])('grants a %s', (role) => {
+        expect(hasDeveloperAccess({ roles: [Role.User, role] })).toBe(true)
+    })
+
+    it.each([[[Role.User]], [[Role.User, Role.BetaTester, Role.AlphaTester]], [[]]])(
+        'denies roles %j',
+        (roles) => {
+            expect(hasDeveloperAccess({ roles })).toBe(false)
+        }
+    )
+
+    it('denies a missing user', () => {
+        expect(hasDeveloperAccess(undefined)).toBe(false)
     })
 })
