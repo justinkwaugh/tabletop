@@ -73,6 +73,64 @@ function flow(purpose: 'login' | 'link' | 'reauthenticate') {
     return { api, oncomplete, report, run }
 }
 
+// LoginPanel, the profile page and the notifications page mount DiscordSignIn without oncomplete:
+// the app layout adopts the signed-in or linked user from the broadcast result instead.
+function flowWithoutCallback(purpose: 'login' | 'link') {
+    const { api, remote } = fakeApi()
+    const report = vi.fn()
+    const run = () => signInWithDiscord({ purpose, api: remote, report })
+    return { api, report, run }
+}
+
+describe('a button with no completion callback', () => {
+    it('still begins the attempt, opens Discord and finishes a login', async () => {
+        const { api, report, run } = flowWithoutCallback('login')
+        const pending = run()
+        await delivered()
+        expect(api.beginDiscordAuthorization).toHaveBeenCalledWith('login')
+        expect(popup.location.href).toContain('state=login.attempt-1')
+        fromPopup({ state: 'login.attempt-1', purpose: 'login', outcome: 'success', user })
+        await pending
+        expect(report).not.toHaveBeenCalled()
+    })
+
+    it('still reports an attempt that is refused at begin', async () => {
+        const { api, report, run } = flowWithoutCallback('login')
+        api.beginDiscordAuthorization.mockRejectedValueOnce(new Error('synthetic begin failure'))
+        await run()
+        expect(api.beginDiscordAuthorization).toHaveBeenCalledTimes(1)
+        expect(report).toHaveBeenCalledWith('synthetic begin failure')
+    })
+
+    it('still asks for confirmation when the link callback is refused, then links through a new attempt', async () => {
+        const { api, report, run } = flowWithoutCallback('link')
+        const first = run()
+        await delivered()
+        expect(popup.location.href).toContain('state=link.attempt-1')
+        fromPopup({
+            state: 'link.attempt-1',
+            purpose: 'link',
+            outcome: 'error',
+            error: {
+                name: 'RecentAuthenticationRequiredError',
+                message: 'Recent authentication is required'
+            }
+        })
+        await first
+        expect(reauthentication.pending?.description).toBe(DISCORD_LINK_DESCRIPTION)
+        expect(report).not.toHaveBeenCalled()
+
+        const retried = reauthentication.complete()
+        await delivered()
+        expect(api.beginDiscordAuthorization).toHaveBeenCalledTimes(2)
+        expect(popup.location.href).toContain('state=link.attempt-2')
+        fromPopup({ state: 'link.attempt-2', purpose: 'link', outcome: 'success', user })
+        await retried
+        expect(reauthentication.pending).toBeUndefined()
+        expect(report).not.toHaveBeenCalled()
+    })
+})
+
 describe('linking a Discord account', () => {
     it('asks for confirmation when the callback is refused for want of Recent Authentication, then links through a new attempt', async () => {
         const { api, oncomplete, report, run } = flow('link')

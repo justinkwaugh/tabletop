@@ -18,10 +18,12 @@ import {
     openDiscordAuthorization,
     POPUP_CLOSE_GRACE_MS,
     POPUP_CLOSE_WATCH_MS,
+    POPUP_START_TIMEOUT_MS,
     purposeOfState,
     type DiscordAuthorizationApi,
     type DiscordAuthorizationResult
 } from './discordAuthorization'
+import type { DiscordAuthorizationStart } from '@tabletop/frontend-components'
 
 const user: User = {
     id: 'account-1',
@@ -201,6 +203,85 @@ describe('opening a Discord authorization', () => {
         expect(popup.location.href).toBe('about:blank')
         expect(addListener).not.toHaveBeenCalled()
         expect(vi.getTimerCount()).toBe(0)
+    })
+
+    function openWhileBeginPends(purpose: 'login' | 'link') {
+        const popup = newPopup()
+        stubWindow(popup)
+        const { api, remote } = fakeApi()
+        const start = Promise.withResolvers<DiscordAuthorizationStart>()
+        api.beginDiscordAuthorization.mockImplementationOnce(() => start.promise)
+        const pending = openDiscordAuthorization({ purpose, api: remote })
+        const outcome = vi.fn()
+        pending.then(outcome, outcome)
+        return { popup, start, pending, outcome }
+    }
+
+    it('settles as closed while the attempt is still beginning and ignores the answer that arrives later', async () => {
+        const { popup, start, pending, outcome } = openWhileBeginPends('login')
+        popup.close()
+        await vi.advanceTimersByTimeAsync(POPUP_CLOSE_WATCH_MS)
+        await expect(pending).rejects.toThrow('The Discord window was closed')
+        expect(vi.getTimerCount()).toBe(0)
+
+        start.resolve({
+            state: 'login.nonce',
+            authorizationUrl: 'https://discord.test/authorize?state=login.nonce',
+            expiresInSeconds: LIFETIME_SECONDS
+        })
+        await delivered()
+        await vi.advanceTimersByTimeAsync(POPUP_CLOSE_GRACE_MS)
+        expect(popup.location.href).toBe('about:blank')
+        expect(addListener).not.toHaveBeenCalled()
+        expect(vi.getTimerCount()).toBe(0)
+        fromPopup({ state: 'login.nonce', purpose: 'login', outcome: 'success', user })
+        await delivered()
+        expect(outcome).toHaveBeenCalledTimes(1)
+    })
+
+    it('settles as closed while the attempt is still beginning even when the server later refuses it', async () => {
+        const { popup, start, pending, outcome } = openWhileBeginPends('link')
+        popup.close()
+        await vi.advanceTimersByTimeAsync(POPUP_CLOSE_WATCH_MS)
+        await expect(pending).rejects.toThrow('The Discord window was closed')
+
+        start.reject(new Error('RecentAuthenticationRequired'))
+        await delivered()
+        expect(outcome).toHaveBeenCalledTimes(1)
+        expect(outcome.mock.calls[0][0]).toMatchObject({ message: 'The Discord window was closed' })
+        expect(vi.getTimerCount()).toBe(0)
+    })
+
+    it('gives up and closes the window when the attempt cannot begin within the startup wait', async () => {
+        const { popup, start, pending, outcome } = openWhileBeginPends('login')
+        await vi.advanceTimersByTimeAsync(POPUP_START_TIMEOUT_MS - 1)
+        expect(outcome).not.toHaveBeenCalled()
+        expect(popup.closed).toBe(false)
+        await vi.advanceTimersByTimeAsync(1)
+        await expect(pending).rejects.toThrow('could not start in time')
+        expect(popup.closed).toBe(true)
+        expect(vi.getTimerCount()).toBe(0)
+
+        start.resolve({
+            state: 'login.nonce',
+            authorizationUrl: 'https://discord.test/authorize?state=login.nonce',
+            expiresInSeconds: LIFETIME_SECONDS
+        })
+        await delivered()
+        expect(popup.location.href).toBe('about:blank')
+        expect(addListener).not.toHaveBeenCalled()
+        expect(vi.getTimerCount()).toBe(0)
+        expect(outcome).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not count the startup wait against an attempt that has begun', async () => {
+        const { popup, pending } = await openAndStart('login')
+        await vi.advanceTimersByTimeAsync(POPUP_START_TIMEOUT_MS + POPUP_CLOSE_WATCH_MS)
+        expect(popup.closed).toBe(false)
+        fromPopup({ state: 'login.nonce', purpose: 'login', outcome: 'success', user })
+        await expect(pending).resolves.toMatchObject({ outcome: 'success' })
+        expect(vi.getTimerCount()).toBe(0)
+        expectNoLeakedListener()
     })
 
     it('settles once as abandoned when the popup is closed and nothing arrives in the grace period', async () => {
