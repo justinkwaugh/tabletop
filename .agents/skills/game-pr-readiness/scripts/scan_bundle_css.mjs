@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path'
 import { workspaceRequire } from './workspace_compilers.mjs'
 
 const uiRoot = resolve(process.argv[2])
-const repoRequire = createRequire(join(uiRoot, '../../config/config-rollup/package.json'))
+const repoRequire = createRequire(join(uiRoot, '../../config/config-rolldown/package.json'))
 const pluginRequire = createRequire(repoRequire.resolve('rollup-plugin-postcss'))
 const postcss = pluginRequire('postcss')
 const { SourceMapConsumer } = pluginRequire('source-map')

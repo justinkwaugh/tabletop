@@ -20,7 +20,7 @@ The project is setup as a monorepo using [pnpm workspaces](https://pnpm.io/works
 |--/common - Shared game engine objects and types
 |--/config-eslint - Shared eslint config
 |--/config-games - A module used to define which games/versions are available
-|--/config-rollup - Shared rollup config for bundling game UIs
+|--/config-rolldown - Shared Rolldown config for bundling game UIs and logic
 |--/config-vitest - Shared vitest config
 |--/email - React Email project for email editing / previewing
 |--/frontend-components - Shared frontend components

@@ -98,7 +98,7 @@
         "bundle": {
             "dependsOn": ["^build"],
             "outputs": ["bundle/**/*"],
-            "env": ["ROLLUP_MINIFY"]
+            "env": ["ROLLDOWN_MINIFY"]
         },
         "stage-ui": {
             "dependsOn": ["bundle"],

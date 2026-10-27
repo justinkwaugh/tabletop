@@ -74,9 +74,9 @@ Commands:
                                invalidate the backend cache. Requires a clean tree, a release
                                tag on HEAD for each artifact, and an unpublished version.
                                Running with --game and no command is the same as deploy-game.
-  build-ui <gameId>            Build a game UI bundle (rollup)
+  build-ui <gameId>            Build a game UI bundle (rolldown)
   deploy-ui <gameId>           deploy-game for the UI only, with the same guards
-  build-logic <gameId>         Build a game logic bundle (rollup)
+  build-logic <gameId>         Build a game logic bundle (rolldown)
   deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
   migrate-logic-artifacts [--game=<id>] [--apply]
                                Add the collectible factory (index.cjs) beside each title's

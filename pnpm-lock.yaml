@@ -455,7 +455,7 @@ importers:
         specifier: ^3.4.1
         version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
 
-  config/config-rollup:
+  config/config-rolldown:
     dependencies:
       '@rollup/plugin-url':
         specifier: 8.0.2
@@ -500,9 +500,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -561,9 +561,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -613,9 +613,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -674,9 +674,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -729,9 +729,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -793,9 +793,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -845,9 +845,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -906,9 +906,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -958,9 +958,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1010,9 +1010,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1068,9 +1068,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1123,9 +1123,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1236,9 +1236,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1297,9 +1297,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1367,9 +1367,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1437,9 +1437,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1492,9 +1492,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1553,9 +1553,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1608,9 +1608,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1666,9 +1666,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1724,9 +1724,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1785,9 +1785,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1840,9 +1840,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1898,9 +1898,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -1953,9 +1953,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2014,9 +2014,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2069,9 +2069,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2130,9 +2130,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2185,9 +2185,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2246,9 +2246,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2301,9 +2301,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2365,9 +2365,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2417,9 +2417,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2478,9 +2478,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2533,9 +2533,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2591,9 +2591,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2646,9 +2646,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2741,9 +2741,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2796,9 +2796,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2860,9 +2860,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2921,9 +2921,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2973,9 +2973,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3031,9 +3031,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3098,9 +3098,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3156,9 +3156,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3208,9 +3208,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3263,9 +3263,9 @@ importers:
       '@tabletop/prettier-config':
         specifier: workspace:*
         version: link:../../config/config-prettier
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3808,9 +3808,9 @@ importers:
       '@tabletop/games-config':
         specifier: workspace:*
         version: link:../../config/config-games
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*
