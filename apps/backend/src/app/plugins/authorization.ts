@@ -60,7 +60,7 @@ export default fp(async function (fastify: FastifyInstance) {
 
         const authorized = await measure('auth.session', () =>
             fastify.sessionService.authorize(sessionId, (userId) =>
-                measure('auth.user', () => fastify.userService.getUserForAuthorization(userId))
+                measure('auth.user', () => fastify.userService.getUser(userId))
             )
         )
         if (!authorized) {

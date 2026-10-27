@@ -20,15 +20,13 @@ async function createServer(initialStatus: UserStatus) {
     const { sessionService, sessionStore } = memorySessions({ now: () => now })
     const server = await sessionServer(sessionService)
     let current = account(initialStatus)
-    let storedReadFailure: Error | undefined
+    let readFailure: Error | undefined
     const updateUser = vi.fn(async () => current)
-    const getUser = vi.fn()
     server.decorate('userService', {
-        getUserForAuthorization: async (id: string) => {
-            if (storedReadFailure) throw storedReadFailure
+        getUser: async (id: string) => {
+            if (readFailure) throw readFailure
             return id === current.id ? current : undefined
         },
-        getUser,
         updateUser
     })
     await server.register(authorization)
@@ -69,7 +67,6 @@ async function createServer(initialStatus: UserStatus) {
     return {
         server,
         updateUser,
-        getUser,
         sessionStore,
         cookie,
         login,
@@ -80,8 +77,8 @@ async function createServer(initialStatus: UserStatus) {
         advanceSessionGeneration: () => {
             current = { ...current, sessionGeneration: sessionGenerationOf(current) + 1 }
         },
-        failStoredRead: (error: Error) => {
-            storedReadFailure = error
+        failRead: (error: Error) => {
+            readFailure = error
         },
         get: (url: string, withCookie = cookie) =>
             server.inject({ url, headers: { cookie: withCookie } }),
@@ -139,20 +136,12 @@ describe('session authorization by Account status', () => {
         expect(updateUser).not.toHaveBeenCalled()
     })
 
-    it('never answers a session from the ordinary cached Account read', async () => {
-        const { get, getUser } = await fixture(UserStatus.Active)
+    it('refuses the request when the Account cannot be read', async () => {
+        const { get, failRead } = await fixture(UserStatus.Active)
         expect((await get('/any')).statusCode).toBe(200)
-        expect((await get('/active')).statusCode).toBe(200)
-        expect(getUser).not.toHaveBeenCalled()
-    })
-
-    it('refuses the request when the stored Account cannot be read, without consulting the cached read', async () => {
-        const { get, getUser, failStoredRead } = await fixture(UserStatus.Active)
-        expect((await get('/any')).statusCode).toBe(200)
-        failStoredRead(new Error('Firestore unavailable'))
+        failRead(new Error('Account store unavailable'))
         expect((await get('/any')).statusCode).toBe(401)
         expect((await get('/active')).statusCode).toBe(401)
-        expect(getUser).not.toHaveBeenCalled()
     })
 
     it('rejects a request without a session', async () => {

@@ -7,41 +7,55 @@ import {
     FirestoreUserStore,
     formatSetPasswordChallenge,
     LocalTaskService,
-    UserService
+    RealtimeControl,
+    REALTIME_CONTROL_CHANNEL,
+    UserService,
+    type RealtimeRevocation
 } from '@tabletop/backend-services'
-import {
-    cacheFixture,
-    cacheTestClient
-} from '../../../../../libs/backend-services/src/cache/tests/cacheFixture.js'
 import { isolatedFirestore } from '../../../../../libs/backend-services/src/persistence/firestore/tests/isolatedFirestore.js'
 
-vi.hoisted(() => vi.stubEnv('GCLOUD_PROJECT', 'demo-tabletop'))
+vi.hoisted(() => {
+    vi.stubEnv('GCLOUD_PROJECT', 'demo-tabletop')
+    vi.stubEnv('REDIS_HOST', process.env.CACHE_TEST_REDIS_HOST ?? '')
+})
 import authorization from './authorization.js'
 import adminMode from '../routes/api/auth/adminMode.js'
 import setPassword from '../routes/api/user/setPassword.js'
 import { authSession } from '../lib/session.js'
 import { apiErrorShape } from '../tests/accountFixture.js'
 import { sessionCookieHeader, sessionServer } from '../tests/sessionFixture.js'
+import { spanCount, traceRequests, type RequestTrace } from '../tests/requestTraces.js'
+import { connectedRedisCache } from '../tests/redisCache.js'
 
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_REDIS_HOST)(
-    'session authorization against the stored Account',
+    'session authorization from the cached Account',
     { timeout: 20_000 },
     () => {
-        const run = `fresh-auth-${Date.now()}`
+        const run = `cached-auth-${Date.now()}`
         const firestore = isolatedFirestore()
-        const client = cacheTestClient()
-        const { cache } = cacheFixture(client)
-        const store = new FirestoreUserStore(cache, firestore)
         const challenges = new AuthenticationChallengeService(
             new FirestoreAuthenticationChallengeStore(firestore)
         )
         const taskService = new LocalTaskService('')
-        const userService = new UserService(store, challenges, taskService)
         const servers = new Set<FastifyInstance>()
+        const revocations: RealtimeRevocation[] = []
+        const realtimeControl = new RealtimeControl({
+            publishMessage: async ({ topic, message }) => {
+                expect(topic).toBe(REALTIME_CONTROL_CHANNEL)
+                revocations.push(JSON.parse(message))
+            }
+        })
+        let redis: Awaited<ReturnType<typeof connectedRedisCache>>
+        let client: typeof redis.client
+        let store: FirestoreUserStore
+        let userService: UserService
         let sequence = 0
 
         beforeAll(async () => {
-            await client.connect()
+            redis = await connectedRedisCache()
+            client = redis.client
+            store = new FirestoreUserStore(redis.cache, firestore)
+            userService = new UserService(store, challenges, taskService)
         })
         afterEach(async () => {
             await Promise.all([...servers].map((server) => server.close()))
@@ -49,37 +63,42 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         })
         afterAll(async () => {
             taskService.close()
-            cache.destroy()
             for await (const keys of client.scanIterator({ MATCH: `user-${run}-*`, COUNT: 100 })) {
                 if (keys.length) await client.del(keys)
             }
-            client.destroy()
+            redis.close()
             await firestore.terminate()
         })
 
-        async function createAccount(status: UserStatus, roles: Role[] = [Role.User]) {
+        function newAccount(status: UserStatus, roles: Role[]): User {
             const index = sequence++
             const id = `${run}-${index}`
-            return store.createUser({
+            return {
                 id,
                 status,
-                username: `Person${id}`,
                 email: `person-${id}@example.test`,
                 emailVerified: true,
                 roles,
                 externalIds: []
-            })
+            }
         }
 
-        async function createServer(users: UserService = userService) {
+        async function createAccount(status: UserStatus, roles: Role[] = [Role.User]) {
+            const account = newAccount(status, roles)
+            return store.createUser({ ...account, username: `Person${account.id}` })
+        }
+
+        async function createServer() {
             const server = await sessionServer()
-            server.decorate('userService', users)
+            const lastTrace = traceRequests(server)
+            server.decorate('userService', userService)
+            server.decorate('realtimeControl', realtimeControl)
             apiErrorShape(server)
             await server.register(authorization)
             await server.register(adminMode, { prefix: '/auth' })
             await server.register(setPassword, { prefix: '/user' })
             server.post<{ Body: { userId: string } }>('/session', async (request) => {
-                const user = await users.getUserForAuthorization(request.body.userId)
+                const user = await userService.getUser(request.body.userId)
                 assertExists(user, 'Account to log in')
                 await authSession({
                     session: request.session,
@@ -117,7 +136,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 async (request) => ({ adminMode: request.principal?.adminMode })
             )
             servers.add(server)
-            return server
+            return { server, lastTrace }
         }
 
         function sessionView(user: User | undefined) {
@@ -133,7 +152,6 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(response.statusCode).toBe(200)
             const cookie = sessionCookieHeader(response)
             assertExists(cookie, 'session cookie')
-            await userService.getUser(userId)
             return (url: string, method: 'GET' | 'POST' = 'GET') =>
                 server.inject({ method, url, headers: { cookie } })
         }
@@ -165,6 +183,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             })
         }
 
+        function storedRecord(id: string) {
+            return firestore.collection('users').doc(id)
+        }
+
         async function cachedAccount(id: string): Promise<User> {
             const entry = await vi.waitFor(async () => {
                 const value = await client.get(`user-${id}`)
@@ -175,12 +197,25 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             return JSON.parse(entry.slice('V:'.length))
         }
 
-        function storedRecord(id: string) {
-            return firestore.collection('users').doc(id)
+        async function expectNoCachedAccount(id: string) {
+            expect(await client.get(`user-${id}`)).not.toMatch(/^V:/)
+        }
+
+        function expectCacheHit(trace: RequestTrace) {
+            expect(spanCount(trace, 'store.user.findById')).toBe(1)
+            expect(trace.counters['cache.hits']).toBeGreaterThanOrEqual(1)
+            expect(trace.counters['cache.misses']).toBeUndefined()
+            expect(spanCount(trace, 'firestore.user.get')).toBe(0)
+        }
+
+        function expectCacheMiss(trace: RequestTrace) {
+            expect(spanCount(trace, 'store.user.findById')).toBe(1)
+            expect(trace.counters['cache.misses']).toBe(1)
+            expect(spanCount(trace, 'firestore.user.get')).toBe(1)
         }
 
         it('lets Active and Incomplete cookies through their permitted routes', async () => {
-            const server = await createServer()
+            const { server } = await createServer()
             const active = await createAccount(UserStatus.Active)
             const asActive = await login(server, active.id)
             expect((await asActive('/any')).json()).toEqual({
@@ -199,55 +234,58 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect((await asIncomplete('/incomplete')).statusCode).toBe(200)
         })
 
-        it('refuses a cookie once Firestore holds Inactive or Deleted while the cache still says Active', async () => {
-            for (const status of [UserStatus.Inactive, UserStatus.Deleted]) {
-                const server = await createServer()
-                const account = await createAccount(UserStatus.Active, [Role.User, Role.Admin])
-                const get = await login(server, account.id)
-                expect((await cachedAccount(account.id)).status).toBe(UserStatus.Active)
-                expect((await get('/any')).statusCode).toBe(200)
-                await activateAdminMode(get)
-                const challenge = await issueSetPasswordChallenge(account)
+        it('answers warm session authorization from the user cache without a Firestore read', async () => {
+            const { server, lastTrace } = await createServer()
+            const account = await createAccount(UserStatus.Active)
+            const get = await login(server, account.id)
+            expectCacheMiss(lastTrace())
+            expect((await cachedAccount(account.id)).status).toBe(UserStatus.Active)
 
-                await storedRecord(account.id).update({ status })
-
-                expect((await cachedAccount(account.id)).status).toBe(UserStatus.Active)
-                expect((await userService.getUser(account.id))?.status).toBe(UserStatus.Active)
-                expect((await get('/any')).statusCode).toBe(401)
-                expect((await get('/active')).statusCode).toBe(401)
-                expect((await get('/incomplete')).statusCode).toBe(401)
-                expect((await get('/admin')).statusCode).toBe(401)
-                expect((await get('/admin-mode')).statusCode).toBe(401)
-                const refused = await completeSetPassword(server, challenge)
-                expect(refused.statusCode).toBe(400)
-                expect(refused.json().error.name).toBe('InvalidChallengeError')
-                expect(sessionCookieHeader(refused)).toBeUndefined()
-                const stored = (await storedRecord(account.id).get()).data()
-                assertExists(stored, 'stored Account')
-                expect(stored.passwordHash).toBeUndefined()
-                expect(sessionGenerationOf(stored)).toBe(sessionGenerationOf(account))
+            for (let request = 0; request < 20; request++) {
+                const response = await get(request % 2 ? '/active' : '/any')
+                expect(response.statusCode).toBe(200)
+                expectCacheHit(lastTrace())
             }
+
+            await client.del(`user-${account.id}`)
+            expect((await get('/any')).statusCode).toBe(200)
+            expectCacheMiss(lastTrace())
+            expect((await cachedAccount(account.id)).id).toBe(account.id)
+            expect((await get('/any')).statusCode).toBe(200)
+            expectCacheHit(lastTrace())
         })
 
-        it('refuses a cookie once Firestore advanced the Session Generation while the cache still holds the old one', async () => {
-            const server = await createServer()
-            const account = await createAccount(UserStatus.Active, [Role.User, Role.Admin])
+        it('refuses every earlier session once a profile password change advances the Session Generation', async () => {
+            const { server, lastTrace } = await createServer()
+            const draft = newAccount(UserStatus.Active, [Role.User, Role.Admin])
+            const account = await store.createUser(
+                { ...draft, username: `Person${draft.id}` },
+                'original-password-value'
+            )
             const get = await login(server, account.id)
+            expect((await cachedAccount(account.id)).id).toBe(account.id)
             expect((await get('/any')).statusCode).toBe(200)
+            expectCacheHit(lastTrace())
             await activateAdminMode(get)
 
-            await storedRecord(account.id).update({
-                sessionGeneration: sessionGenerationOf(account) + 1
-            })
-
-            expect(sessionGenerationOf(await cachedAccount(account.id))).toBe(
-                sessionGenerationOf(account)
+            await userService.updateUser(
+                account.id,
+                {},
+                'replacement-password-value',
+                'original-password-value'
             )
+
+            await expectNoCachedAccount(account.id)
             expect((await get('/any')).statusCode).toBe(401)
+            expectCacheMiss(lastTrace())
+            expect(sessionGenerationOf(await cachedAccount(account.id))).toBe(
+                sessionGenerationOf(account) + 1
+            )
             expect((await get('/active')).statusCode).toBe(401)
             expect((await get('/admin-mode')).statusCode).toBe(401)
             const renewed = await login(server, account.id)
             expect((await renewed('/any')).statusCode).toBe(200)
+            expectCacheHit(lastTrace())
             // A new session starts outside Admin Mode even for an Administrator
             const outside = await renewed('/admin-mode')
             expect(outside.statusCode).toBe(403)
@@ -255,18 +293,47 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await activateAdminMode(renewed)
         })
 
-        it('applies a direct role change on the next request, ending the Admin Mode the session holds', async () => {
-            const server = await createServer()
+        it('ends every earlier session in the commit that completes a Set Password challenge', async () => {
+            const { server, lastTrace } = await createServer()
+            const account = await createAccount(UserStatus.Active)
+            const get = await login(server, account.id)
+            expect((await cachedAccount(account.id)).id).toBe(account.id)
+            expect((await get('/any')).statusCode).toBe(200)
+            expectCacheHit(lastTrace())
+            const challenge = await issueSetPasswordChallenge(account)
+
+            const completed = await completeSetPassword(server, challenge)
+            expect(completed.statusCode).toBe(200)
+            expect(sessionCookieHeader(completed)).toBeUndefined()
+            expect(revocations.at(-1)).toMatchObject({ revoke: account.id })
+
+            await expectNoCachedAccount(account.id)
+            expect((await get('/any')).statusCode).toBe(401)
+            expectCacheMiss(lastTrace())
+            const stored = (await storedRecord(account.id).get()).data()
+            assertExists(stored, 'stored Account')
+            expect(stored.passwordHash).toEqual(expect.any(String))
+            expect(sessionGenerationOf(stored)).toBe(sessionGenerationOf(account) + 1)
+            expect((await completeSetPassword(server, challenge)).statusCode).toBe(400)
+            const renewed = await login(server, account.id)
+            expect((await renewed('/any')).statusCode).toBe(200)
+        })
+
+        it('applies a role change written through the store on the next request, ending the Admin Mode the session holds', async () => {
+            const { server, lastTrace } = await createServer()
             const account = await createAccount(UserStatus.Active, [Role.User, Role.Admin])
             const get = await login(server, account.id)
+            expect((await cachedAccount(account.id)).roles).toEqual([Role.User, Role.Admin])
             expect((await get('/admin')).statusCode).toBe(200)
+            expectCacheHit(lastTrace())
             expect((await get('/admin-mode')).statusCode).toBe(403)
             await activateAdminMode(get)
 
-            await storedRecord(account.id).update({ roles: [Role.User] })
+            await store.updateUser({ userId: account.id, fields: { roles: [Role.User] } })
 
-            expect((await cachedAccount(account.id)).roles).toEqual([Role.User, Role.Admin])
+            await expectNoCachedAccount(account.id)
             expect((await get('/admin')).statusCode).toBe(403)
+            expectCacheMiss(lastTrace())
             expect((await get('/admin-mode')).statusCode).toBe(403)
             expect((await get('/auth/admin-mode/activate', 'POST')).statusCode).toBe(403)
             expect((await get('/any')).json()).toEqual({
@@ -274,10 +341,29 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 status: UserStatus.Active,
                 roles: [Role.User]
             })
+            expect((await cachedAccount(account.id)).roles).toEqual([Role.User])
+        })
+
+        it('applies Account Completion written through the store on the next request', async () => {
+            const { server } = await createServer()
+            const account = await store.createUser(newAccount(UserStatus.Incomplete, [Role.User]))
+            const get = await login(server, account.id)
+            expect((await cachedAccount(account.id)).status).toBe(UserStatus.Incomplete)
+            expect((await get('/active')).statusCode).toBe(401)
+            expect((await get('/incomplete')).statusCode).toBe(200)
+
+            await store.updateUser({
+                userId: account.id,
+                fields: { username: `Completed${account.id}` }
+            })
+
+            expect((await get('/active')).statusCode).toBe(200)
+            expect((await get('/incomplete')).statusCode).toBe(401)
+            expect((await cachedAccount(account.id)).status).toBe(UserStatus.Active)
         })
 
         it('never grants Admin Mode to a session of an Account without the Admin role', async () => {
-            const server = await createServer()
+            const { server } = await createServer()
             const account = await createAccount(UserStatus.Active)
             const get = await login(server, account.id)
             expect((await get('/auth/admin-mode/activate', 'POST')).statusCode).toBe(403)

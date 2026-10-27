@@ -28,7 +28,7 @@ async function createServer(status: UserStatus) {
     server.decorate('userService', {
         getUserByUsernameAndPassword: async (username: string, password: string) =>
             username === 'Person' && password === 'correct-horse-battery' ? user : undefined,
-        getUserForAuthorization: async (id: string) => (id === user.id ? user : undefined)
+        getUser: async (id: string) => (id === user.id ? user : undefined)
     })
     await server.register(login, { prefix: '/auth' })
     return { server, sessionStore }
