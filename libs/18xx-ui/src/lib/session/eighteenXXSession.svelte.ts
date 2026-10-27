@@ -32,10 +32,10 @@ import {
     type HistoricalMapState,
     type HistoricalMap
 } from '../maps/historicalMap.js'
-import {
-    type MapViewDefinition,
-    type StationAppearance,
-    type TokenTiles
+import type {
+    MapViewDefinition,
+    StationAppearance,
+    TokenTiles
 } from '../maps/stationPresentation.js'
 import { createTileDrawing } from '../tiles/tileDrawing.js'
 import { ownerPortfolio } from '../finance/ownerPortfolio.js'

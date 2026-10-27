@@ -3,7 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { type CampaignState } from '../model/campaign.js'
+import type { CampaignState } from '../model/campaign.js'
 import { BattlePlanSide, type CardPower } from '../data/cardPowers.js'
 import {
     applyBattlePlans,

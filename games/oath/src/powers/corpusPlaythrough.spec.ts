@@ -10,7 +10,7 @@ import { SearchPlay, SearchResolve, isSearchResolve } from '../actions/searchRes
 import { UseActionPower, isUseActionPower } from '../actions/useActionPower.js'
 import { UseRestPower, isUseRestPower } from '../actions/useRestPower.js'
 import { CardKind, PlayerStatus } from '../model/oathEnums.js'
-import { type OathProjectedState } from '../model/gameState.js'
+import type { OathProjectedState } from '../model/gameState.js'
 import { testPlayer, testState, testVaultWithRelics } from '../testing/fixture.js'
 import { legalChoices, type PowerChoice } from '../util/powerChoice.js'
 import { hasEffect } from './registry.js'

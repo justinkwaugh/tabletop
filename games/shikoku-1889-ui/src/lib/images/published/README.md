@@ -1,7 +1,7 @@
 # Published artwork (Shikoku 1889, Boda Games edition)
 
 Extracted from the publisher print files with `tools/art-extraction/extract_shikoku.py`.
-Nothing in this folder is imported yet except as noted; Rollup only bundles imported assets,
+Nothing in this folder is imported yet except as noted; Rolldown only bundles imported assets,
 so unused files cost repository space only. The art is kept for a later published-art
 presentation like TOP's.
 

@@ -10,7 +10,7 @@ import {
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
-import { type StockRules } from './stockRules.js'
+import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 import { mustSellShares } from './shareSale.js'
 

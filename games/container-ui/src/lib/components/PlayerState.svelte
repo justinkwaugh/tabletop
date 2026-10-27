@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Player } from '@tabletop/common'
+    import type { Player } from '@tabletop/common'
     import { ContainerPlayerState } from '@tabletop/container'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 

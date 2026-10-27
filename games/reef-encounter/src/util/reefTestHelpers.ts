@@ -1,4 +1,4 @@
-import { type OffsetCoordinates } from '@tabletop/common'
+import type { OffsetCoordinates } from '@tabletop/common'
 import { CoralColor, coralCounts } from '../components/colors.js'
 import type { ReefEncounterProjectedState } from '../model/gameState.js'
 import type { Polyp, Shrimp } from '../model/reef.js'

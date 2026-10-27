@@ -40,7 +40,7 @@ python3 .agents/skills/game-pr-readiness/scripts/collect_readiness_evidence.py <
   --base <base-ref> --output /tmp/<slug>-readiness-evidence.json
 ```
 
-The bundle's final catalog step fails on a missing cover image (gate 3) after Rollup has written `bundle/`; that output still serves gates 9 and 13. The collector finds evidence; every judgement is yours. Judge gate 1 again on the full evidence. Open every file and usage site it identifies. Use repository search as a fallback if the collector reports an unreadable image or incomplete evidence.
+The bundle's final catalog step fails on a missing cover image (gate 3) after Rolldown has written `bundle/`; that output still serves gates 9 and 13. The collector finds evidence; every judgement is yours. Judge gate 1 again on the full evidence. Open every file and usage site it identifies. Use repository search as a fallback if the collector reports an unreadable image or incomplete evidence.
 
 ## Apply every gate
 

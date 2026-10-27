@@ -203,9 +203,9 @@ release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]
                              Bump versions, commit, tag, push, then deploy
 deploy-game --game=<id> [--logic]
                              Build and deploy a tagged HEAD, publish the manifest, invalidate cache
-build-ui <gameId>            Build a game UI bundle (rollup)
+build-ui <gameId>            Build a game UI bundle (rolldown)
 deploy-ui <gameId>           deploy-game for the UI only, with the same guards
-build-logic <gameId>         Build a game logic bundle (rollup)
+build-logic <gameId>         Build a game logic bundle (rolldown)
 deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
 release-frontend (--major | --minor | --patch) [--no-deploy]
                              Bump the frontend version, commit, tag, push, then deploy
@@ -277,7 +277,7 @@ is selected. Do not roll out the new frontend before the initial catalog publica
 Subsequent game publications update discovery through the normal manifest publication and cache
 invalidation flow; no Site Frontend deployment is needed. Browser caching can delay visibility by
 up to 60 seconds. For local artifacts already staged before this change, generate just the missing
-JSON with `node config/config-rollup/write-game-catalog.mjs <staged-ui-version-directory>`.
+JSON with `node config/config-rolldown/write-game-catalog.mjs <staged-ui-version-directory>`.
 
 ### Deployment settings
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Player } from '@tabletop/common'
+    import type { Player } from '@tabletop/common'
     import { BusPlayerState } from '@tabletop/bus'
     import WorkerCylinder from '$lib/components/WorkerCylinder.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
