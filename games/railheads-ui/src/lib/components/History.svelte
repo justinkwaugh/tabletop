@@ -190,9 +190,11 @@
     }
 
     .bids {
-        grid-column: 2;
+        grid-column: 1 / -1;
+        min-width: 0;
+        margin-left: 12px;
         display: grid;
-        grid-template-columns: max-content max-content max-content;
+        grid-template-columns: max-content max-content minmax(0, max-content);
         column-gap: 6px;
         row-gap: 2px;
         align-items: baseline;
