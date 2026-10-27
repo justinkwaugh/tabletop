@@ -1,8 +1,8 @@
 import { type Notification, NotificationCategory } from '@tabletop/common'
-import { EventEmitter } from 'node:events'
+import http from 'node:http'
 import https from 'node:https'
 import net from 'node:net'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
     BlockedDestinationError,
     UnsupportedWebPushSubscriptionError
@@ -22,29 +22,42 @@ const notification: Notification = {
 
 type ObservedRequest = https.RequestOptions
 
-function acceptEveryRequest(): ObservedRequest[] {
+function isResponseListener(value: unknown): value is (response: http.IncomingMessage) => void {
+    return typeof value === 'function'
+}
+
+// A plain HTTP server standing in for the push service, accepting every request with 201
+async function startPushServiceStandIn(): Promise<{ server: http.Server; port: number }> {
+    const server = http.createServer((request, response) => {
+        request.resume()
+        request.on('end', () => {
+            response.statusCode = 201
+            response.end()
+        })
+    })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const address = server.address()
+    if (typeof address !== 'object' || address === null) {
+        throw new Error('push service stand-in did not bind a TCP port')
+    }
+    return { server, port: address.port }
+}
+
+// Every https.request the real web-push library issues is recorded with its original options and
+// then carried out against the stand-in, so the transport drives a real ClientRequest and
+// IncomingMessage round trip
+function forwardRequestsTo(port: number): ObservedRequest[] {
     const observed: ObservedRequest[] = []
     vi.spyOn(https, 'request').mockImplementation((...args: unknown[]) => {
         const [options, onResponse] = args
-        if (typeof options !== 'object' || options === null || typeof onResponse !== 'function') {
+        if (typeof options !== 'object' || options === null || !isResponseListener(onResponse)) {
             throw new Error('unexpected https.request call shape')
         }
         observed.push(options)
-        const request = Object.assign(new EventEmitter(), {
-            write: () => true,
-            end: () => {
-                const response = Object.assign(new EventEmitter(), {
-                    statusCode: 201,
-                    headers: {}
-                })
-                onResponse(response)
-                queueMicrotask(() => response.emit('end'))
-                return request
-            },
-            destroy: () => request,
-            setTimeout: () => request
-        })
-        return request as unknown as ReturnType<typeof https.request>
+        return http.request(
+            { ...options, hostname: '127.0.0.1', host: '127.0.0.1', port, agent: false },
+            onResponse
+        )
     })
     return observed
 }
@@ -58,6 +71,18 @@ function storedSubscription(endpoint: string): WebPushSubscription {
 }
 
 describe('web push transport', () => {
+    let pushService: { server: http.Server; port: number }
+
+    beforeAll(async () => {
+        pushService = await startPushServiceStandIn()
+    })
+
+    afterAll(async () => {
+        await new Promise<void>((resolve, reject) =>
+            pushService.server.close((error) => (error ? reject(error) : resolve()))
+        )
+    })
+
     afterEach(() => {
         vi.restoreAllMocks()
     })
@@ -86,7 +111,7 @@ describe('web push transport', () => {
     })
 
     it('purges a previously stored subscription whose destination is not a push service without connecting', async () => {
-        const observed = acceptEveryRequest()
+        const observed = forwardRequestsTo(pushService.port)
         vi.spyOn(console, 'log').mockImplementation(() => {})
         const transport = new WebPushTransport()
         const result = await transport.sendNotification(
@@ -98,7 +123,7 @@ describe('web push transport', () => {
     })
 
     it('sends to a supported push service through the restricted agent with a socket timeout', async () => {
-        const observed = acceptEveryRequest()
+        const observed = forwardRequestsTo(pushService.port)
         const transport = new WebPushTransport()
         const result = await transport.sendNotification(
             storedSubscription(FCM_ENDPOINT),
