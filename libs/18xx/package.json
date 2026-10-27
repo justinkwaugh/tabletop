@@ -33,7 +33,7 @@
         "typebox": "^1.0.79"
     },
     "devDependencies": {
-        "@typescript/native-preview": "7.0.0-dev.20260203.1",
+        "@typescript/native-preview": "7.0.0-dev.20260707.2",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3",
         "@tabletop/vitest-config": "workspace:*",

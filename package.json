@@ -8,7 +8,6 @@
         "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath .githooks || true",
         "watch": "turbo watch dev --filter=@tabletop/frontend --filter=@tabletop/backend",
         "dev": "turbo dev --filter=@tabletop/frontend --filter=@tabletop/backend",
-        "email": "turbo watch dev --filter=@tabletop/email",
         "lint": "turbo run lint",
         "test": "vitest",
         "watch:frontend": "turbo watch dev --filter=@tabletop/frontend",
