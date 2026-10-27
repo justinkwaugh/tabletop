@@ -1627,6 +1627,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     /** R-3 — the finished game's top row: its winner, its ending, its title or Vision. */
     get gameEndRow(): (MajorEvent & { sentence: string }) | undefined {
         const state = this.gameState
+        // R-8 — a won game is finished once its chronicle is written and the result set.
+        if (state.result === undefined) return undefined
         const [winnerId] = state.winningPlayerIds
         const rule = endingRule(this.actions)
         if (winnerId === undefined || rule === undefined) return undefined

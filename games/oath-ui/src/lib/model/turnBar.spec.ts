@@ -82,6 +82,10 @@ describe('turnBarOf', () => {
         expect(turnBarOf(board({ machineState: MachineState.EndOfGame })).phase).toBe('Game over')
     })
 
+    it('reads "Game over" while the won game’s chronicle is written (R-8)', () => {
+        expect(turnBarOf(board({ machineState: MachineState.Chronicle })).phase).toBe('Game over')
+    })
+
     it('names the turn, not the seat the engine waits on, in every step of the Act Phase', () => {
         for (const machineState of [
             MachineState.Searching,

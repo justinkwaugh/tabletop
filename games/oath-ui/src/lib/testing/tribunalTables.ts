@@ -189,6 +189,12 @@ export function tribunalDealsTable(scene: TribunalDealsScene, long = false): Pla
     const state = testState(seats(home), {
         machineState: ending ? MachineState.WakePhase : MachineState.ActPhase,
         oathRevision: CURRENT_OATH_REVISION,
+        // A game started at this revision carries its table record, which R-8's record reads.
+        table: {
+            name: 'Thursday table',
+            date: '2026-10-22',
+            seatNames: { dana: 'Dana', rhys: 'Rhys', ann: 'Ann' }
+        },
         chancellorPlayerId: 'dana',
         round: 4,
         map: allMapSlots(),

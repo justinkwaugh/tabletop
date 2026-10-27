@@ -39,6 +39,9 @@ function stepOf(state: HydratedOathGameState, at: MachineState): Step {
         case MachineState.EndOfRound:
         case MachineState.EndOfGame:
             return { phase: at }
+        // R-8 — the game is won while its chronicle is written.
+        case MachineState.Chronicle:
+            return { resumes: MachineState.EndOfGame }
         case MachineState.Searching:
         case MachineState.CampaignPlans:
         case MachineState.CampaignSkullLosses:
