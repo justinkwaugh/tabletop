@@ -41,6 +41,7 @@
         "fastify-raw-body": "^5.0.0",
         "fastify-sse-v2": "^4.2.1",
         "google-auth-library": "^9.11.0",
+        "ipaddr.js": "^2.5.0",
         "nanoid": "5.1.6",
         "resend": "^6.8.0",
         "sodium-native": "^5.0.10",

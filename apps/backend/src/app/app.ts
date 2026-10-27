@@ -4,7 +4,7 @@ import RequestTimingsPlugin from './plugins/requestTimings.js'
 import { STATIC_ROOT, type LibraryServiceOptions } from '@tabletop/backend-services'
 import { assertExists } from '@tabletop/common'
 import * as path from 'path'
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { FastifyInstance, FastifyReply } from 'fastify'
 import AutoLoad from '@fastify/autoload'
 import SecureSession from '@fastify/secure-session'
 import Auth from '@fastify/auth'
@@ -12,7 +12,6 @@ import cors from '@fastify/cors'
 import FastifyFormbody from '@fastify/formbody'
 import fastifyPrintRoutes from 'fastify-print-routes'
 import fastifyStatic from '@fastify/static'
-import fastifyRateLimit from '@fastify/rate-limit'
 import { errorStatusCode } from './lib/errorStatusCode.js'
 import { FastifySSEPlugin } from 'fastify-sse-v2'
 import AuthorizationPlugin from './plugins/authorization.js'
@@ -21,6 +20,7 @@ import SensiblePlugin from './plugins/sensible.js'
 import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import GameAssetRedirectPlugin from './plugins/gameAssetRedirect.js'
+import RateLimitPlugin from './plugins/rateLimit.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
 
 const __dirname = import.meta.dirname
@@ -60,27 +60,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         return newPayload
     })
 
-    await fastify.register(fastifyRateLimit, {
-        global: service !== 'local',
-        max: (request: FastifyRequest, key: string) => {
-            if (key.startsWith('user:')) {
-                return 500
-            }
-            return 100
-        },
-        cache: 10000, // default 5000
-        keyGenerator: (request: FastifyRequest) => {
-            if (request.session.userId) {
-                return `user:${request.session.userId}`
-            }
-            const clientIp = request.headers['fastly-client-ip'] || request.ip
-            console.log('client ip: ', clientIp)
-            return `ip:${clientIp}`
-        },
-        onExceeded: (request: FastifyRequest, key: string) => {
-            console.log('REQUEST LIMIT EXCEEDED to', request.url, 'for key', key)
-        }
-    })
+    await fastify.register(RateLimitPlugin, { service })
 
     fastify.setErrorHandler(async function (error, req, rep) {
         if (!rep.statusCode || rep.statusCode < 400) {

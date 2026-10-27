@@ -280,6 +280,13 @@ Unless stated otherwise, every open item below is documented but not implemented
 - **Evidence**: `apps/backend/src/app/app.ts:124`; `apps/backend/src/app/lib/session.ts:3`; `apps/backend/src/app/plugins/authorization.ts:44`; `apps/backend/src/app/routes/api/auth/logout.ts:3`
 - **Invariant**: A User Account may have multiple concurrent Authenticated Sessions. Logout terminates the current session, while Logout All terminates every session for the Account; a device inventory is not initially required. Sessions have a 30-day absolute lifetime with no sliding extension from ordinary activity. Recent Authentication lasts 15 minutes and is refreshed only by successful proof through an Authentication Method. Inactivation, deletion, Set Password through a challenge, and the other agreed security events invalidate the required sessions immediately regardless of remaining lifetime.
 
+### Request throttling trusted a client-settable address header
+
+- **Classification**: Security defect; fixed
+- **Observed**: Anonymous requests were throttled by `Fastly-Client-IP` whenever the header was present, and the supervisor gateway replaced the forwarded address chain with its own peer. A direct caller of the Cloud Run URL renewed its quota on every request by changing the header, weakening the login, registration and reset-email limits. Login attempts and reset emails were bounded per address only.
+- **Evidence**: `apps/backend/src/runtime/clientAddress.ts:31`; `apps/backend/src/runtime/backendGateway.ts:27`; `apps/backend/src/app/lib/operationBudget.ts:21`; `docs/client-address.md`
+- **Invariant**: The client address is derived only from the documented trusted proxy chain: the loopback gateway, the Cloud Run ingress, and Firebase Hosting's verified `Fastly-Client-IP` when the request arrived from a Google service address. Password login is additionally bounded per Username and reset emails per Email Address, independent of the requester's address.
+
 ### Admin authority is always active on the backend
 
 - **Classification**: Model contradiction; planned Admin Mode
