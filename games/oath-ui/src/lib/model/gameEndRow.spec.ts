@@ -15,7 +15,8 @@ import {
     plainestChronicleAnswer,
     testBanners,
     testPlayer,
-    testState
+    testState,
+    wholeWorld
 } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, played, tableOf } from '$lib/testing/sessionHarness.js'
 
@@ -23,27 +24,36 @@ afterEach(() => {
     disposeSessions()
 })
 
-/** R-3.1 — Rhys wakes as the Usurper of Devotion at the chronicle revision. */
+/**
+ * R-3.1 — Rhys wakes as the Usurper of Devotion at the chronicle revision, every card of the game
+ * somewhere for R-8's steps.
+ */
 function usurperWon() {
-    const state = testState(
-        [
-            testPlayer({ playerId: 'p1', color: Color.Purple, status: PlayerStatus.Chancellor }),
-            testPlayer({ playerId: 'p2', color: Color.Red, status: PlayerStatus.Exile })
-        ],
-        {
-            machineState: MachineState.WakePhase,
-            chancellorPlayerId: 'p1',
-            oathType: OathType.Devotion,
-            oathkeeperPlayerId: 'p2',
-            oathkeeperIsUsurper: true,
-            banners: testBanners({ [Banner.DarkestSecret]: 'p2' }),
-            oathRevision: OathRevision.Chronicle,
-            table: {
-                name: 'Thursday table',
-                date: '2026-10-22',
-                seatNames: { p1: 'Dana', p2: 'Rhys' }
+    const state = wholeWorld(
+        testState(
+            [
+                testPlayer({
+                    playerId: 'p1',
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor
+                }),
+                testPlayer({ playerId: 'p2', color: Color.Red, status: PlayerStatus.Exile })
+            ],
+            {
+                machineState: MachineState.WakePhase,
+                chancellorPlayerId: 'p1',
+                oathType: OathType.Devotion,
+                oathkeeperPlayerId: 'p2',
+                oathkeeperIsUsurper: true,
+                banners: testBanners({ [Banner.DarkestSecret]: 'p2' }),
+                oathRevision: OathRevision.Chronicle,
+                table: {
+                    name: 'Thursday table',
+                    date: '2026-10-22',
+                    seatNames: { p1: 'Dana', p2: 'Rhys' }
+                }
             }
-        }
+        )
     )
     openTurn(state, 'p2')
     state.activePlayerIds = ['p2']

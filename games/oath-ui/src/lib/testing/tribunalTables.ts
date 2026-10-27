@@ -24,6 +24,7 @@ import {
     plainestChronicleAnswer,
     testPlayer,
     testState,
+    wholeWorld,
     testVaultWithRelics
 } from '@tabletop/oath/testing'
 import { played, tableOf, type PlayedTable } from './sessionHarness.js'
@@ -219,6 +220,8 @@ export function tribunalDealsTable(scene: TribunalDealsScene, long = false): Pla
     openTurn(state, seat)
     state.activePlayerIds = [seat]
     state.vault = testVaultWithRelics({})
+    // R-8 — Rhys's win runs the chronicle's steps, which deal with every card of the game.
+    if (ending) wholeWorld(state)
     const table = tableOf(state)
     const envelope = { gameId: table.state.gameId, source: ActionSource.User }
     if (scene === 'asked') {
