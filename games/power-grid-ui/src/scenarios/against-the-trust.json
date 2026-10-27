@@ -1,0 +1,4534 @@
+{
+    "game": {
+        "id": "scenario-against-the-trust",
+        "isPublic": false,
+        "status": "waitingForPlayers",
+        "typeId": "power-grid",
+        "deleted": false,
+        "name": "Against the Trust",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "p0",
+                "name": "Ada",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "p1",
+                "name": "Bram",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {},
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 97,
+        "activePlayerIds": ["p0"],
+        "createdAt": "2026-10-27T12:53:17.889Z",
+        "storage": "remote",
+        "category": "standard"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "4fdkEjHSe8yKJUTDaSAYv",
+        "gameId": "scenario-against-the-trust",
+        "seed": 3367980177,
+        "prng": {
+            "seed": 3367980177,
+            "invocations": 744
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+            "invocations": 66
+        },
+        "masterSeed": "0123456789abcdef0123456789abcdef",
+        "activePlayerIds": ["p0"],
+        "winningPlayerIds": [],
+        "actionCount": 58,
+        "actionChecksum": 483026660,
+        "players": [
+            {
+                "playerId": "p0",
+                "color": "red",
+                "money": 22,
+                "plants": [7, 9, 13],
+                "resources": {
+                    "coal": 0,
+                    "oil": 8,
+                    "garbage": 0,
+                    "uranium": 0
+                }
+            },
+            {
+                "playerId": "p1",
+                "color": "green",
+                "money": 12,
+                "plants": [4, 11, 16],
+                "resources": {
+                    "coal": 4,
+                    "oil": 2,
+                    "garbage": 0,
+                    "uranium": 2
+                }
+            }
+        ],
+        "machineState": "Building",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 6,
+                    "end": 8
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 10,
+                    "end": 11
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 13,
+                    "end": 14
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 15,
+                    "end": 16
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 16,
+                    "end": 17
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 17,
+                    "end": 18
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 21,
+                    "end": 23
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 25,
+                    "end": 26
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 28,
+                    "end": 29
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 30,
+                    "end": 31
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 31,
+                    "end": 32
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 32,
+                    "end": 33
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 36,
+                    "end": 38
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 40,
+                    "end": 41
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 43,
+                    "end": 44
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 45,
+                    "end": 46
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 46,
+                    "end": 47
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 47,
+                    "end": 48
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 51,
+                    "end": 52
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 53,
+                    "end": 54
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 55,
+                    "end": 56
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 57,
+                    "end": 58
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 58
+                }
+            ],
+            "turnOrder": ["p1", "p0"],
+            "turnCounts": {
+                "p0": 11,
+                "p1": 11
+            }
+        },
+        "roundManager": {
+            "series": [
+                {
+                    "type": "round",
+                    "start": 0,
+                    "number": 1,
+                    "end": 21
+                },
+                {
+                    "type": "round",
+                    "start": 20,
+                    "number": 2,
+                    "end": 36
+                },
+                {
+                    "type": "round",
+                    "start": 35,
+                    "number": 3,
+                    "end": 51
+                },
+                {
+                    "type": "round",
+                    "start": 50,
+                    "number": 4
+                }
+            ]
+        },
+        "phaseManager": {
+            "series": [
+                {
+                    "type": "phase",
+                    "start": 6,
+                    "name": "Auction",
+                    "end": 14
+                },
+                {
+                    "type": "phase",
+                    "start": 13,
+                    "name": "Resources",
+                    "end": 17
+                },
+                {
+                    "type": "phase",
+                    "start": 16,
+                    "name": "Building",
+                    "end": 19
+                },
+                {
+                    "type": "phase",
+                    "start": 18,
+                    "name": "Bureaucracy",
+                    "end": 22
+                },
+                {
+                    "type": "phase",
+                    "start": 21,
+                    "name": "Auction",
+                    "end": 29
+                },
+                {
+                    "type": "phase",
+                    "start": 28,
+                    "name": "Resources",
+                    "end": 32
+                },
+                {
+                    "type": "phase",
+                    "start": 31,
+                    "name": "Building",
+                    "end": 34
+                },
+                {
+                    "type": "phase",
+                    "start": 33,
+                    "name": "Bureaucracy",
+                    "end": 37
+                },
+                {
+                    "type": "phase",
+                    "start": 36,
+                    "name": "Auction",
+                    "end": 44
+                },
+                {
+                    "type": "phase",
+                    "start": 43,
+                    "name": "Resources",
+                    "end": 47
+                },
+                {
+                    "type": "phase",
+                    "start": 46,
+                    "name": "Building",
+                    "end": 49
+                },
+                {
+                    "type": "phase",
+                    "start": 48,
+                    "name": "Bureaucracy",
+                    "end": 52
+                },
+                {
+                    "type": "phase",
+                    "start": 51,
+                    "name": "Auction",
+                    "end": 56
+                },
+                {
+                    "type": "phase",
+                    "start": 55,
+                    "name": "Resources",
+                    "end": 59
+                },
+                {
+                    "type": "phase",
+                    "start": 58,
+                    "name": "Building"
+                }
+            ]
+        },
+        "mapId": "germany",
+        "regions": ["red", "blue", "yellow"],
+        "seatOrder": ["p0", "p1"],
+        "step": 1,
+        "plantDeck": [38, 33, 37, 18, 21, 36, 17, 28, 23, 31, 25, 46, "step3"],
+        "deckCount": 13,
+        "deckTopBack": "socket",
+        "underStack": [34, 50, 44],
+        "market": [3, 14, 22, 27, 30, 32, 39, 40],
+        "outOfGame": [5, 6, 8, 10],
+        "step3Drawn": false,
+        "resourceMarket": {
+            "coal": 13,
+            "oil": 0,
+            "garbage": 8,
+            "uranium": 2
+        },
+        "uraniumPhasedOut": false,
+        "cities": {
+            "dortmund": ["trust"],
+            "kassel": ["trust"],
+            "osnabrueck": ["trust"],
+            "fulda": ["trust"],
+            "frankfurt_main": ["trust"],
+            "mainz": ["trust"],
+            "duesseldorf": ["p1", "trust"],
+            "duisburg": ["p1", "trust"],
+            "essen": ["p1", "trust"],
+            "muenster": ["p0", "trust"],
+            "koeln": ["p0", "trust"]
+        },
+        "phaseDone": [],
+        "trust": {
+            "plants": [12, 19, 26],
+            "resources": {
+                "coal": 1,
+                "oil": 3,
+                "garbage": 2,
+                "uranium": 0
+            },
+            "housesLeft": 5,
+            "startingCities": [
+                "dortmund",
+                "kassel",
+                "osnabrueck",
+                "fulda",
+                "frankfurt_main",
+                "mainz"
+            ],
+            "tookPlant": true
+        }
+    },
+    "actions": [
+        {
+            "id": "a0",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PlaceTrustHouse",
+            "cityId": "dortmund",
+            "createdAt": "2026-10-27T12:53:17.889Z",
+            "index": 0,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 0
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/dortmund"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/housesLeft",
+                    "value": 16
+                },
+                {
+                    "op": "remove",
+                    "path": "/trust/startingCities/0"
+                }
+            ]
+        },
+        {
+            "id": "a1",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PlaceTrustHouse",
+            "cityId": "kassel",
+            "createdAt": "2026-10-27T12:53:17.890Z",
+            "index": 1,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 1
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -110999630
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/kassel"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/housesLeft",
+                    "value": 15
+                },
+                {
+                    "op": "remove",
+                    "path": "/trust/startingCities/1"
+                }
+            ]
+        },
+        {
+            "id": "a2",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PlaceTrustHouse",
+            "cityId": "osnabrueck",
+            "createdAt": "2026-10-27T12:53:17.890Z",
+            "index": 2,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 2
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 133782140
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/osnabrueck"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/housesLeft",
+                    "value": 14
+                },
+                {
+                    "op": "remove",
+                    "path": "/trust/startingCities/2"
+                }
+            ]
+        },
+        {
+            "id": "a3",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PlaceTrustHouse",
+            "cityId": "fulda",
+            "createdAt": "2026-10-27T12:53:17.890Z",
+            "index": 3,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 3
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 71941552
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/fulda"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/housesLeft",
+                    "value": 13
+                },
+                {
+                    "op": "remove",
+                    "path": "/trust/startingCities/3"
+                }
+            ]
+        },
+        {
+            "id": "a4",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PlaceTrustHouse",
+            "cityId": "frankfurt_main",
+            "createdAt": "2026-10-27T12:53:17.891Z",
+            "index": 4,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 4
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 222896559
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/frankfurt_main"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/housesLeft",
+                    "value": 12
+                },
+                {
+                    "op": "remove",
+                    "path": "/trust/startingCities/4"
+                }
+            ]
+        },
+        {
+            "id": "a5",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PlaceTrustHouse",
+            "cityId": "mainz",
+            "createdAt": "2026-10-27T12:53:17.891Z",
+            "index": 5,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 5
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -390521092
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "PlacingTrust"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/0"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/0"
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/mainz"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/housesLeft",
+                    "value": 11
+                },
+                {
+                    "op": "remove",
+                    "path": "/trust/startingCities/5"
+                },
+                {
+                    "op": "remove",
+                    "path": "/discountPlant"
+                }
+            ]
+        },
+        {
+            "id": "a6",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "ChoosePlant",
+            "plant": 7,
+            "bid": 7,
+            "createdAt": "2026-10-27T12:53:17.892Z",
+            "metadata": {
+                "plant": 7,
+                "withdrawn": []
+            },
+            "index": 6,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 6
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 59784459
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/auction"
+                }
+            ]
+        },
+        {
+            "id": "a7",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PassBid",
+            "createdAt": "2026-10-27T12:53:17.892Z",
+            "metadata": {
+                "plant": 7,
+                "withdrawn": [],
+                "winner": {
+                    "playerId": "p0",
+                    "amount": 7
+                }
+            },
+            "index": 7,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 9
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 7
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -201506142
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 50
+                },
+                {
+                    "op": "remove",
+                    "path": "/players/0/plants/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Bidding"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/0/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 0
+                },
+                {
+                    "op": "add",
+                    "path": "/market/3",
+                    "value": 7
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                },
+                {
+                    "op": "add",
+                    "path": "/auction",
+                    "value": {
+                        "plant": 7,
+                        "bidding": {
+                            "id": "a6",
+                            "type": "simple",
+                            "auctioneerId": "p0",
+                            "highBid": 7,
+                            "participants": [
+                                {
+                                    "playerId": "p0",
+                                    "passed": false,
+                                    "bid": 7
+                                },
+                                {
+                                    "playerId": "p1",
+                                    "passed": false
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "MJxbg1z7cets1nPj2H8lI",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "ReplacePlant",
+            "createdAt": "2026-10-27T12:53:17.892Z",
+            "metadata": {
+                "drawn": [9],
+                "removed": []
+            },
+            "revealsInfo": true,
+            "index": 8,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 44
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 8
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 108149414
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ReplacingPlant"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 9
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 29
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckTopBack",
+                    "value": "plug"
+                },
+                {
+                    "op": "remove",
+                    "path": "/market/4"
+                }
+            ]
+        },
+        {
+            "id": "av9NQuyIv6GgFj8xNnwdo",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "TrustTakesPlant",
+            "createdAt": "2026-10-27T12:53:17.892Z",
+            "metadata": {
+                "taken": 8,
+                "market": {
+                    "drawn": [16],
+                    "removed": []
+                }
+            },
+            "revealsInfo": true,
+            "index": 9,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 9
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 41309228
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "TrustTakingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/1"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 16
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 28
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/3",
+                    "value": 8
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/4",
+                    "value": 9
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/5",
+                    "value": 11
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/6",
+                    "value": 12
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/7",
+                    "value": 13
+                },
+                {
+                    "op": "remove",
+                    "path": "/trust/plants/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/tookPlant",
+                    "value": false
+                }
+            ]
+        },
+        {
+            "id": "a8",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "ChoosePlant",
+            "plant": 4,
+            "bid": 1,
+            "createdAt": "2026-10-27T12:53:17.893Z",
+            "metadata": {
+                "plant": 4,
+                "withdrawn": [],
+                "winner": {
+                    "playerId": "p1",
+                    "amount": 1
+                }
+            },
+            "index": 10,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 79
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 10
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -2112352983
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 50
+                },
+                {
+                    "op": "remove",
+                    "path": "/players/1/plants/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/1/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 0
+                },
+                {
+                    "op": "add",
+                    "path": "/market/0",
+                    "value": 4
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                },
+                {
+                    "op": "add",
+                    "path": "/discountPlant",
+                    "value": 4
+                }
+            ]
+        },
+        {
+            "id": "CYtXcGAM4hhN24pqazHkA",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "ReplacePlant",
+            "createdAt": "2026-10-27T12:53:17.893Z",
+            "metadata": {
+                "drawn": [34],
+                "removed": []
+            },
+            "revealsInfo": true,
+            "index": 11,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 114
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 11
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 2037905884
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ReplacingPlant"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 34
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 27
+                },
+                {
+                    "op": "remove",
+                    "path": "/market/7"
+                }
+            ]
+        },
+        {
+            "id": "TA2TiGAiIvQbwUvCkxANm",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "CloseAuctions",
+            "createdAt": "2026-10-27T12:53:17.893Z",
+            "metadata": {
+                "market": {
+                    "drawn": [],
+                    "removed": []
+                },
+                "step2Began": false,
+                "step3Began": false,
+                "playerOrder": ["p0", "p1"]
+            },
+            "revealsInfo": false,
+            "index": 12,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 12
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1236593264
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ClosingAuctions"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/2"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/0/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "p1"
+                }
+            ]
+        },
+        {
+            "id": "a9",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 2,
+                "oil": 0,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "createdAt": "2026-10-27T12:53:17.894Z",
+            "metadata": {
+                "cost": 2
+            },
+            "index": 13,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 149
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 13
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 2133380815
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 49
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/coal",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "BuyingResources"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/2/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 1
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 24
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "NswFN0HgvMy43YGK6bacM",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "TrustBuysResources",
+            "createdAt": "2026-10-27T12:53:17.894Z",
+            "metadata": {
+                "taken": {
+                    "coal": 3,
+                    "oil": 0,
+                    "garbage": 0,
+                    "uranium": 0
+                }
+            },
+            "index": 14,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 14
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1535880631
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "TrustBuying"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/3"
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 22
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/coal",
+                    "value": 0
+                }
+            ]
+        },
+        {
+            "id": "a10",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 0,
+                "oil": 3,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "createdAt": "2026-10-27T12:53:17.894Z",
+            "metadata": {
+                "cost": 9
+            },
+            "index": 15,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 15
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1988457381
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 43
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/resources/oil",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "BuyingResources"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/3/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/4"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 1
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/1/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 18
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "trust"
+                }
+            ]
+        },
+        {
+            "id": "a11",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuildCities",
+            "cityIds": ["duesseldorf", "duisburg", "essen"],
+            "createdAt": "2026-10-27T12:53:17.895Z",
+            "metadata": {
+                "built": [
+                    {
+                        "cityId": "duesseldorf",
+                        "connectionCost": 0,
+                        "houseCost": 10
+                    },
+                    {
+                        "cityId": "duisburg",
+                        "connectionCost": 2,
+                        "houseCost": 10
+                    },
+                    {
+                        "cityId": "essen",
+                        "connectionCost": 0,
+                        "houseCost": 10
+                    }
+                ],
+                "total": 32
+            },
+            "index": 16,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 16
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1693581619
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 47
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/4/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/5"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 2
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/duesseldorf"
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/duisburg"
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/essen"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/housesLeft",
+                    "value": 10
+                }
+            ]
+        },
+        {
+            "id": "a12",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "BuildCities",
+            "cityIds": ["muenster", "koeln"],
+            "createdAt": "2026-10-27T12:53:17.895Z",
+            "metadata": {
+                "built": [
+                    {
+                        "cityId": "muenster",
+                        "connectionCost": 0,
+                        "houseCost": 10
+                    },
+                    {
+                        "cityId": "koeln",
+                        "connectionCost": 12,
+                        "houseCost": 10
+                    }
+                ],
+                "total": 32
+            },
+            "index": 17,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 17
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1760686427
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 34
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Building"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/5/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 2
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/2/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/3"
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/muenster"
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/koeln"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/housesLeft",
+                    "value": 7
+                }
+            ]
+        },
+        {
+            "id": "a13",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PowerCities",
+            "plants": [7],
+            "fuel": {
+                "coal": 0,
+                "oil": 3,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "simultaneousGroupId": "power-1",
+            "createdAt": "2026-10-27T12:53:17.896Z",
+            "metadata": {
+                "powered": 2,
+                "earned": 33
+            },
+            "index": 18,
+            "undoPatch": [
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 18
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -243184038
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 2
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/resources/oil",
+                    "value": 3
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "a14",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PowerCities",
+            "plants": [4],
+            "fuel": {
+                "coal": 2,
+                "oil": 0,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "simultaneousGroupId": "power-1",
+            "createdAt": "2026-10-27T12:53:17.896Z",
+            "metadata": {
+                "powered": 1,
+                "earned": 22
+            },
+            "index": 19,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 184
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 19
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1998732144
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 15
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/coal",
+                    "value": 2
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Powering"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                }
+            ]
+        },
+        {
+            "id": "yBpfkzxSPnInCmLcy625D",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "Restock",
+            "createdAt": "2026-10-27T12:53:17.896Z",
+            "metadata": {
+                "resupplied": {
+                    "coal": 3,
+                    "oil": 2,
+                    "garbage": 1,
+                    "uranium": 1
+                },
+                "placedUnder": 34,
+                "market": {
+                    "drawn": [30],
+                    "removed": []
+                },
+                "step2Began": false,
+                "step3Began": false,
+                "playerOrder": ["p1", "p0"]
+            },
+            "revealsInfo": true,
+            "index": 20,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 20
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1894137546
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Restocking"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/6"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnOrder/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnOrder/1",
+                    "value": "p1"
+                },
+                {
+                    "op": "remove",
+                    "path": "/roundManager/series/0/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/roundManager/series/1"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/3/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/4"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 30
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 26
+                },
+                {
+                    "op": "remove",
+                    "path": "/underStack/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/7",
+                    "value": 34
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 19
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 15
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/garbage",
+                    "value": 9
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/uranium",
+                    "value": 2
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/coal",
+                    "value": 3
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/tookPlant",
+                    "value": true
+                },
+                {
+                    "op": "remove",
+                    "path": "/discountPlant"
+                }
+            ]
+        },
+        {
+            "id": "a15",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "ChoosePlant",
+            "plant": 11,
+            "bid": 11,
+            "createdAt": "2026-10-27T12:53:17.897Z",
+            "metadata": {
+                "plant": 11,
+                "withdrawn": []
+            },
+            "index": 21,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 21
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 37858438
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/auction"
+                }
+            ]
+        },
+        {
+            "id": "a16",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PassBid",
+            "createdAt": "2026-10-27T12:53:17.897Z",
+            "metadata": {
+                "plant": 11,
+                "withdrawn": [],
+                "winner": {
+                    "playerId": "p1",
+                    "amount": 11
+                }
+            },
+            "index": 22,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 219
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 22
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1382960668
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 37
+                },
+                {
+                    "op": "remove",
+                    "path": "/players/1/plants/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Bidding"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/6/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 3
+                },
+                {
+                    "op": "add",
+                    "path": "/market/3",
+                    "value": 11
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                },
+                {
+                    "op": "add",
+                    "path": "/auction",
+                    "value": {
+                        "plant": 11,
+                        "bidding": {
+                            "id": "a15",
+                            "type": "simple",
+                            "auctioneerId": "p1",
+                            "highBid": 11,
+                            "participants": [
+                                {
+                                    "playerId": "p0",
+                                    "passed": false
+                                },
+                                {
+                                    "playerId": "p1",
+                                    "passed": false,
+                                    "bid": 11
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "2rWLrSPQil8tjeAeWL075",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "ReplacePlant",
+            "createdAt": "2026-10-27T12:53:17.897Z",
+            "metadata": {
+                "drawn": [19],
+                "removed": []
+            },
+            "revealsInfo": true,
+            "index": 23,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 254
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 23
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 163043403
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ReplacingPlant"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 19
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 25
+                },
+                {
+                    "op": "remove",
+                    "path": "/market/6"
+                }
+            ]
+        },
+        {
+            "id": "A0W8nkFviujYeOdOTs8Lo",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "TrustTakesPlant",
+            "createdAt": "2026-10-27T12:53:17.898Z",
+            "metadata": {
+                "taken": 12,
+                "market": {
+                    "drawn": [40],
+                    "removed": []
+                }
+            },
+            "revealsInfo": true,
+            "index": 24,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 24
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -566220154
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "TrustTakingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/7"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 40
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 24
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/3",
+                    "value": 12
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/4",
+                    "value": 13
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/5",
+                    "value": 16
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/6",
+                    "value": 19
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/7",
+                    "value": 30
+                },
+                {
+                    "op": "remove",
+                    "path": "/trust/plants/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/tookPlant",
+                    "value": false
+                }
+            ]
+        },
+        {
+            "id": "a17",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "ChoosePlant",
+            "plant": 9,
+            "bid": 9,
+            "createdAt": "2026-10-27T12:53:17.898Z",
+            "metadata": {
+                "plant": 9,
+                "withdrawn": [],
+                "winner": {
+                    "playerId": "p0",
+                    "amount": 9
+                }
+            },
+            "index": 25,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 289
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 25
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -391006558
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 35
+                },
+                {
+                    "op": "remove",
+                    "path": "/players/0/plants/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/7/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 3
+                },
+                {
+                    "op": "add",
+                    "path": "/market/2",
+                    "value": 9
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                }
+            ]
+        },
+        {
+            "id": "oCPST7CdgfH5Bvplzk998",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "ReplacePlant",
+            "createdAt": "2026-10-27T12:53:17.898Z",
+            "metadata": {
+                "drawn": [32],
+                "removed": []
+            },
+            "revealsInfo": true,
+            "index": 26,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 324
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 26
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1796070942
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ReplacingPlant"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 32
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 23
+                },
+                {
+                    "op": "remove",
+                    "path": "/market/6"
+                }
+            ]
+        },
+        {
+            "id": "QTxCcwWdf6y16byoVL1LT",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "CloseAuctions",
+            "createdAt": "2026-10-27T12:53:17.898Z",
+            "metadata": {
+                "market": {
+                    "drawn": [50],
+                    "removed": [5]
+                },
+                "step2Began": false,
+                "unsoldDiscount": 5,
+                "step3Began": false
+            },
+            "revealsInfo": true,
+            "index": 27,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 27
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 950279946
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ClosingAuctions"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/8"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/4/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/5"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 50
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 22
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckTopBack",
+                    "value": "socket"
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/0",
+                    "value": 5
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/1",
+                    "value": 6
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/2",
+                    "value": 13
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/3",
+                    "value": 16
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/4",
+                    "value": 19
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/5",
+                    "value": 30
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/6",
+                    "value": 32
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/7",
+                    "value": 40
+                },
+                {
+                    "op": "remove",
+                    "path": "/outOfGame/0"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "p0"
+                },
+                {
+                    "op": "add",
+                    "path": "/discountPlant",
+                    "value": 5
+                }
+            ]
+        },
+        {
+            "id": "a18",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 0,
+                "oil": 4,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "createdAt": "2026-10-27T12:53:17.899Z",
+            "metadata": {
+                "cost": 14
+            },
+            "index": 28,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 359
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 28
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1792987490
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 26
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/resources/oil",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "BuyingResources"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/8/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 4
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 17
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "eHm5RSgpGFcym4PVpg9nh",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "TrustBuysResources",
+            "createdAt": "2026-10-27T12:53:17.899Z",
+            "metadata": {
+                "taken": {
+                    "coal": 4,
+                    "oil": 1,
+                    "garbage": 0,
+                    "uranium": 0
+                }
+            },
+            "index": 29,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 29
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1301246639
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "TrustBuying"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/9"
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 22
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 13
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/coal",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/oil",
+                    "value": 0
+                }
+            ]
+        },
+        {
+            "id": "a19",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 2,
+                "oil": 0,
+                "garbage": 0,
+                "uranium": 1
+            },
+            "createdAt": "2026-10-27T12:53:17.900Z",
+            "metadata": {
+                "cost": 18
+            },
+            "index": 30,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 30
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -895550717
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 26
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/coal",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/uranium",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "BuyingResources"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/9/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/10"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 4
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/5/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/6"
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 18
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/uranium",
+                    "value": 3
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "trust"
+                }
+            ]
+        },
+        {
+            "id": "a20",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "BuildCities",
+            "cityIds": [],
+            "createdAt": "2026-10-27T12:53:17.900Z",
+            "metadata": {
+                "built": [],
+                "total": 0
+            },
+            "index": 31,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 31
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 413752408
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/10/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/11"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 5
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "a21",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuildCities",
+            "cityIds": [],
+            "createdAt": "2026-10-27T12:53:17.901Z",
+            "metadata": {
+                "built": [],
+                "total": 0
+            },
+            "index": 32,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 32
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -324793481
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Building"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/11/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 5
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/6/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/7"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p0"
+                }
+            ]
+        },
+        {
+            "id": "a22",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PowerCities",
+            "plants": [4, 11],
+            "fuel": {
+                "coal": 2,
+                "oil": 0,
+                "garbage": 0,
+                "uranium": 1
+            },
+            "simultaneousGroupId": "power-2",
+            "createdAt": "2026-10-27T12:53:17.901Z",
+            "metadata": {
+                "powered": 3,
+                "earned": 44
+            },
+            "index": 33,
+            "undoPatch": [
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 33
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1075708862
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 8
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/coal",
+                    "value": 2
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/uranium",
+                    "value": 1
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "a23",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PowerCities",
+            "plants": [7],
+            "fuel": {
+                "coal": 0,
+                "oil": 3,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "simultaneousGroupId": "power-2",
+            "createdAt": "2026-10-27T12:53:17.902Z",
+            "metadata": {
+                "powered": 2,
+                "earned": 33
+            },
+            "index": 34,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 394
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 34
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1630050261
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 12
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/resources/oil",
+                    "value": 4
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Powering"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                }
+            ]
+        },
+        {
+            "id": "yDaBuWFf9ACm1zz5izZev",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "Restock",
+            "createdAt": "2026-10-27T12:53:17.902Z",
+            "metadata": {
+                "resupplied": {
+                    "coal": 3,
+                    "oil": 2,
+                    "garbage": 1,
+                    "uranium": 1
+                },
+                "placedUnder": 50,
+                "market": {
+                    "drawn": [14],
+                    "removed": []
+                },
+                "step2Began": false,
+                "step3Began": false,
+                "playerOrder": ["p1", "p0"]
+            },
+            "revealsInfo": true,
+            "index": 35,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 35
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1643044478
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Restocking"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/12"
+                },
+                {
+                    "op": "remove",
+                    "path": "/roundManager/series/1/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/roundManager/series/2"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/7/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/8"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 14
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 21
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckTopBack",
+                    "value": "plug"
+                },
+                {
+                    "op": "remove",
+                    "path": "/underStack/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/2",
+                    "value": 16
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/3",
+                    "value": 19
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/4",
+                    "value": 30
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/5",
+                    "value": 32
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/6",
+                    "value": 40
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/7",
+                    "value": 50
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 16
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 12
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/garbage",
+                    "value": 10
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/uranium",
+                    "value": 2
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/coal",
+                    "value": 4
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/oil",
+                    "value": 1
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/tookPlant",
+                    "value": true
+                },
+                {
+                    "op": "remove",
+                    "path": "/discountPlant"
+                }
+            ]
+        },
+        {
+            "id": "a24",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "ChoosePlant",
+            "plant": 16,
+            "bid": 16,
+            "createdAt": "2026-10-27T12:53:17.902Z",
+            "metadata": {
+                "plant": 16,
+                "withdrawn": []
+            },
+            "index": 36,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 36
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -2058039462
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/auction"
+                }
+            ]
+        },
+        {
+            "id": "a25",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PassBid",
+            "createdAt": "2026-10-27T12:53:17.903Z",
+            "metadata": {
+                "plant": 16,
+                "withdrawn": [],
+                "winner": {
+                    "playerId": "p1",
+                    "amount": 16
+                }
+            },
+            "index": 37,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 429
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 37
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 719096743
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 52
+                },
+                {
+                    "op": "remove",
+                    "path": "/players/1/plants/2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Bidding"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/12/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 6
+                },
+                {
+                    "op": "add",
+                    "path": "/market/3",
+                    "value": 16
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                },
+                {
+                    "op": "add",
+                    "path": "/auction",
+                    "value": {
+                        "plant": 16,
+                        "bidding": {
+                            "id": "a24",
+                            "type": "simple",
+                            "auctioneerId": "p1",
+                            "highBid": 16,
+                            "participants": [
+                                {
+                                    "playerId": "p0",
+                                    "passed": false
+                                },
+                                {
+                                    "playerId": "p1",
+                                    "passed": false,
+                                    "bid": 16
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "RU2eiYuEkVlmIUZWldr7g",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "ReplacePlant",
+            "createdAt": "2026-10-27T12:53:17.903Z",
+            "metadata": {
+                "drawn": [22],
+                "removed": []
+            },
+            "revealsInfo": true,
+            "index": 38,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 464
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 38
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1649280551
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ReplacingPlant"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 22
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 20
+                },
+                {
+                    "op": "remove",
+                    "path": "/market/4"
+                }
+            ]
+        },
+        {
+            "id": "flQ9kwII6Lt81jkJfkDAm",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "TrustTakesPlant",
+            "createdAt": "2026-10-27T12:53:17.903Z",
+            "metadata": {
+                "taken": 19,
+                "market": {
+                    "drawn": [44],
+                    "removed": []
+                }
+            },
+            "revealsInfo": true,
+            "index": 39,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 39
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1436988187
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "TrustTakingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/13"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 44
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 19
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckTopBack",
+                    "value": "socket"
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/3",
+                    "value": 19
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/4",
+                    "value": 22
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/5",
+                    "value": 30
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/6",
+                    "value": 32
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/7",
+                    "value": 40
+                },
+                {
+                    "op": "remove",
+                    "path": "/trust/plants/2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/tookPlant",
+                    "value": false
+                }
+            ]
+        },
+        {
+            "id": "a26",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "ChoosePlant",
+            "plant": 13,
+            "bid": 13,
+            "createdAt": "2026-10-27T12:53:17.904Z",
+            "metadata": {
+                "plant": 13,
+                "withdrawn": [],
+                "winner": {
+                    "playerId": "p0",
+                    "amount": 13
+                }
+            },
+            "index": 40,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 499
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 40
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 158250878
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 45
+                },
+                {
+                    "op": "remove",
+                    "path": "/players/0/plants/2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/13/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 6
+                },
+                {
+                    "op": "add",
+                    "path": "/market/1",
+                    "value": 13
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                }
+            ]
+        },
+        {
+            "id": "YnN74E1TTRvHLkUypzbuy",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "ReplacePlant",
+            "createdAt": "2026-10-27T12:53:17.904Z",
+            "metadata": {
+                "drawn": [10],
+                "removed": []
+            },
+            "revealsInfo": true,
+            "index": 41,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 534
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 41
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1768331528
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ReplacingPlant"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 10
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 18
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckTopBack",
+                    "value": "plug"
+                },
+                {
+                    "op": "remove",
+                    "path": "/market/1"
+                }
+            ]
+        },
+        {
+            "id": "Cy27GAku7HwnqewQSBSxZ",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "CloseAuctions",
+            "createdAt": "2026-10-27T12:53:17.904Z",
+            "metadata": {
+                "market": {
+                    "drawn": [26],
+                    "removed": [6]
+                },
+                "step2Began": false,
+                "unsoldDiscount": 6,
+                "step3Began": false
+            },
+            "revealsInfo": true,
+            "index": 42,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 42
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -293979706
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ClosingAuctions"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/14"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/8/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/9"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 26
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 17
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/0",
+                    "value": 6
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/1",
+                    "value": 10
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/2",
+                    "value": 14
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/3",
+                    "value": 22
+                },
+                {
+                    "op": "remove",
+                    "path": "/outOfGame/1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "p0"
+                },
+                {
+                    "op": "add",
+                    "path": "/discountPlant",
+                    "value": 6
+                }
+            ]
+        },
+        {
+            "id": "a27",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 0,
+                "oil": 4,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "createdAt": "2026-10-27T12:53:17.905Z",
+            "metadata": {
+                "cost": 18
+            },
+            "index": 43,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 569
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 43
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1883646658
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 32
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/resources/oil",
+                    "value": 1
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "BuyingResources"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/14/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 7
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 14
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "cZuTDuGwVookgL5fNV9YN",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "TrustBuysResources",
+            "createdAt": "2026-10-27T12:53:17.905Z",
+            "metadata": {
+                "taken": {
+                    "coal": 4,
+                    "oil": 1,
+                    "garbage": 2,
+                    "uranium": 0
+                }
+            },
+            "index": 44,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 44
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -2066803517
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "TrustBuying"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/15"
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 19
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 10
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/garbage",
+                    "value": 11
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/coal",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/oil",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/garbage",
+                    "value": 0
+                }
+            ]
+        },
+        {
+            "id": "a28",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 2,
+                "oil": 2,
+                "garbage": 0,
+                "uranium": 1
+            },
+            "createdAt": "2026-10-27T12:53:17.905Z",
+            "metadata": {
+                "cost": 32
+            },
+            "index": 45,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 45
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -699601675
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 36
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/coal",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/oil",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/uranium",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "BuyingResources"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/15/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/16"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 7
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/9/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/10"
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 15
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 9
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/uranium",
+                    "value": 3
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "trust"
+                }
+            ]
+        },
+        {
+            "id": "a29",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "BuildCities",
+            "cityIds": [],
+            "createdAt": "2026-10-27T12:53:17.906Z",
+            "metadata": {
+                "built": [],
+                "total": 0
+            },
+            "index": 46,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 46
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -81532280
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/16/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/17"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 8
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "a30",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuildCities",
+            "cityIds": [],
+            "createdAt": "2026-10-27T12:53:17.906Z",
+            "metadata": {
+                "built": [],
+                "total": 0
+            },
+            "index": 47,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 47
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1984470478
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Building"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/17/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 8
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/10/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/11"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p0"
+                }
+            ]
+        },
+        {
+            "id": "a31",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PowerCities",
+            "plants": [16],
+            "fuel": {
+                "coal": 0,
+                "oil": 2,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "simultaneousGroupId": "power-3",
+            "createdAt": "2026-10-27T12:53:17.907Z",
+            "metadata": {
+                "powered": 3,
+                "earned": 44
+            },
+            "index": 48,
+            "undoPatch": [
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 48
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1670278486
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 4
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/oil",
+                    "value": 2
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "a32",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PowerCities",
+            "plants": [9, 13],
+            "fuel": {
+                "coal": 0,
+                "oil": 1,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "simultaneousGroupId": "power-3",
+            "createdAt": "2026-10-27T12:53:17.908Z",
+            "metadata": {
+                "powered": 2,
+                "earned": 33
+            },
+            "index": 49,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 604
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 49
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1765066984
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 14
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/resources/oil",
+                    "value": 5
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Powering"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                }
+            ]
+        },
+        {
+            "id": "FNDvhPmGrE7cKDUP6Tai9",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "Restock",
+            "createdAt": "2026-10-27T12:53:17.908Z",
+            "metadata": {
+                "resupplied": {
+                    "coal": 3,
+                    "oil": 2,
+                    "garbage": 1,
+                    "uranium": 1
+                },
+                "placedUnder": 44,
+                "market": {
+                    "drawn": [39],
+                    "removed": []
+                },
+                "step2Began": false,
+                "step3Began": false,
+                "playerOrder": ["p1", "p0"]
+            },
+            "revealsInfo": true,
+            "index": 50,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 50
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -40233690
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Restocking"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/18"
+                },
+                {
+                    "op": "remove",
+                    "path": "/roundManager/series/2/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/roundManager/series/3"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/11/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/12"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 39
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 16
+                },
+                {
+                    "op": "remove",
+                    "path": "/underStack/2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/6",
+                    "value": 40
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/7",
+                    "value": 44
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 13
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 7
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/garbage",
+                    "value": 9
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/uranium",
+                    "value": 2
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/coal",
+                    "value": 4
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/oil",
+                    "value": 1
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/garbage",
+                    "value": 2
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/tookPlant",
+                    "value": true
+                },
+                {
+                    "op": "remove",
+                    "path": "/discountPlant"
+                }
+            ]
+        },
+        {
+            "id": "a33",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PassAuction",
+            "createdAt": "2026-10-27T12:53:17.908Z",
+            "index": 51,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 639
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 51
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1996533004
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/18/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 9
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "mbKzPmnrhbGnL5fpeRFly",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "TrustTakesPlant",
+            "createdAt": "2026-10-27T12:53:17.908Z",
+            "metadata": {
+                "taken": 26,
+                "scrapped": 8,
+                "market": {
+                    "drawn": [27],
+                    "removed": []
+                }
+            },
+            "revealsInfo": true,
+            "index": 52,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 52
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 112234354
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "TrustTakingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/19"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 27
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 15
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckTopBack",
+                    "value": "socket"
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/3",
+                    "value": 26
+                },
+                {
+                    "op": "remove",
+                    "path": "/outOfGame/2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/plants/0",
+                    "value": 8
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/plants/1",
+                    "value": 12
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/plants/2",
+                    "value": 19
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/tookPlant",
+                    "value": false
+                }
+            ]
+        },
+        {
+            "id": "a34",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PassAuction",
+            "createdAt": "2026-10-27T12:53:17.909Z",
+            "index": 53,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 674
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 53
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -212865605
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/19/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 9
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                }
+            ]
+        },
+        {
+            "id": "bx677Rvj1MWT1QlPAH4Ny",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "CloseAuctions",
+            "createdAt": "2026-10-27T12:53:17.909Z",
+            "metadata": {
+                "market": {
+                    "drawn": [3],
+                    "removed": [10]
+                },
+                "step2Began": false,
+                "unsoldDiscount": 10,
+                "step3Began": false
+            },
+            "revealsInfo": true,
+            "index": 54,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 54
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 752229228
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ClosingAuctions"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/20"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/12/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/13"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 3
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 14
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckTopBack",
+                    "value": "plug"
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/0",
+                    "value": 10
+                },
+                {
+                    "op": "remove",
+                    "path": "/outOfGame/3"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "p0"
+                },
+                {
+                    "op": "add",
+                    "path": "/discountPlant",
+                    "value": 10
+                }
+            ]
+        },
+        {
+            "id": "a35",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p0",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 0,
+                "oil": 4,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "createdAt": "2026-10-27T12:53:17.910Z",
+            "metadata": {
+                "cost": 25
+            },
+            "index": 55,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 709
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 55
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1711656739
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 47
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/resources/oil",
+                    "value": 4
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "BuyingResources"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/20/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 10
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 9
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "KfKwKngWTAYq4VX4pTkj6",
+            "gameId": "scenario-against-the-trust",
+            "source": "system",
+            "type": "TrustBuysResources",
+            "createdAt": "2026-10-27T12:53:17.910Z",
+            "metadata": {
+                "taken": {
+                    "coal": 1,
+                    "oil": 3,
+                    "garbage": 2,
+                    "uranium": 0
+                }
+            },
+            "index": 56,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 56
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1711839651
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "TrustBuying"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/21"
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 16
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 5
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/garbage",
+                    "value": 10
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/coal",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/oil",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/resources/garbage",
+                    "value": 0
+                }
+            ]
+        },
+        {
+            "id": "a36",
+            "gameId": "scenario-against-the-trust",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 2,
+                "oil": 2,
+                "garbage": 0,
+                "uranium": 1
+            },
+            "createdAt": "2026-10-27T12:53:17.911Z",
+            "metadata": {
+                "cost": 36
+            },
+            "index": 57,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 57
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1756628732
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 48
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/coal",
+                    "value": 2
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/oil",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/uranium",
+                    "value": 1
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "BuyingResources"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/21/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/22"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 10
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/13/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/14"
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 15
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 2
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/uranium",
+                    "value": 3
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "trust"
+                }
+            ]
+        }
+    ]
+}

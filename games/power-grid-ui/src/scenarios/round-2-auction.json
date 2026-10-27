@@ -1,0 +1,2233 @@
+{
+    "game": {
+        "id": "scenario-round-2-auction",
+        "isPublic": false,
+        "status": "waitingForPlayers",
+        "typeId": "power-grid",
+        "deleted": false,
+        "name": "Round 2 auction",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "p0",
+                "name": "Ada",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "p1",
+                "name": "Bram",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "p2",
+                "name": "Cleo",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "p3",
+                "name": "Dev",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {},
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 97,
+        "activePlayerIds": ["p1"],
+        "createdAt": "2026-10-27T12:53:16.986Z",
+        "storage": "remote",
+        "category": "standard"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "DM00Q-Iuiw_6bHKu8Oslq",
+        "gameId": "scenario-round-2-auction",
+        "seed": 3367980177,
+        "prng": {
+            "seed": 3367980177,
+            "invocations": 222
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+            "invocations": 68
+        },
+        "masterSeed": "0123456789abcdef0123456789abcdef",
+        "activePlayerIds": ["p1"],
+        "winningPlayerIds": [],
+        "actionCount": 30,
+        "actionChecksum": 1314493969,
+        "players": [
+            {
+                "playerId": "p0",
+                "color": "red",
+                "money": 24,
+                "plants": [9],
+                "resources": {
+                    "coal": 0,
+                    "oil": 0,
+                    "garbage": 0,
+                    "uranium": 0
+                }
+            },
+            {
+                "playerId": "p3",
+                "color": "blue",
+                "money": 40,
+                "plants": [4],
+                "resources": {
+                    "coal": 0,
+                    "oil": 0,
+                    "garbage": 0,
+                    "uranium": 0
+                }
+            },
+            {
+                "playerId": "p1",
+                "color": "green",
+                "money": 26,
+                "plants": [5],
+                "resources": {
+                    "coal": 0,
+                    "oil": 0,
+                    "garbage": 0,
+                    "uranium": 0
+                }
+            },
+            {
+                "playerId": "p2",
+                "color": "black",
+                "money": 38,
+                "plants": [7],
+                "resources": {
+                    "coal": 0,
+                    "oil": 0,
+                    "garbage": 0,
+                    "uranium": 0
+                }
+            }
+        ],
+        "machineState": "ChoosingPlant",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 0,
+                    "end": 13
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 14,
+                    "end": 15
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p3",
+                    "start": 17,
+                    "end": 18
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 18,
+                    "end": 19
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p2",
+                    "start": 19,
+                    "end": 20
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 20,
+                    "end": 21
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p3",
+                    "start": 21,
+                    "end": 22
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 22,
+                    "end": 23
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p2",
+                    "start": 23,
+                    "end": 24
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p0",
+                    "start": 24,
+                    "end": 25
+                },
+                {
+                    "type": "turn",
+                    "playerId": "p1",
+                    "start": 30
+                }
+            ],
+            "turnOrder": ["p1", "p0", "p2", "p3"],
+            "turnCounts": {
+                "p0": 3,
+                "p1": 3,
+                "p2": 2,
+                "p3": 2
+            }
+        },
+        "roundManager": {
+            "series": [
+                {
+                    "type": "round",
+                    "start": 0,
+                    "number": 1,
+                    "end": 30
+                },
+                {
+                    "type": "round",
+                    "start": 29,
+                    "number": 2
+                }
+            ]
+        },
+        "phaseManager": {
+            "series": [
+                {
+                    "type": "phase",
+                    "start": 0,
+                    "name": "Auction",
+                    "end": 18
+                },
+                {
+                    "type": "phase",
+                    "start": 17,
+                    "name": "Resources",
+                    "end": 22
+                },
+                {
+                    "type": "phase",
+                    "start": 21,
+                    "name": "Building",
+                    "end": 26
+                },
+                {
+                    "type": "phase",
+                    "start": 25,
+                    "name": "Bureaucracy",
+                    "end": 31
+                },
+                {
+                    "type": "phase",
+                    "start": 30,
+                    "name": "Auction"
+                }
+            ]
+        },
+        "mapId": "germany",
+        "regions": ["red", "teal", "yellow", "brown"],
+        "seatOrder": ["p0", "p3", "p1", "p2"],
+        "step": 1,
+        "plantDeck": [
+            34,
+            27,
+            40,
+            28,
+            18,
+            25,
+            23,
+            10,
+            14,
+            26,
+            44,
+            33,
+            3,
+            35,
+            17,
+            37,
+            39,
+            21,
+            19,
+            22,
+            50,
+            38,
+            36,
+            32,
+            46,
+            "step3"
+        ],
+        "deckCount": 26,
+        "deckTopBack": "socket",
+        "underStack": [42],
+        "market": [6, 8, 11, 12, 13, 16, 30, 31],
+        "outOfGame": [],
+        "step3Drawn": false,
+        "resourceMarket": {
+            "coal": 24,
+            "oil": 17,
+            "garbage": 11,
+            "uranium": 3
+        },
+        "uraniumPhasedOut": false,
+        "cities": {
+            "bremen": ["p3"],
+            "cuxhaven": ["p3"],
+            "flensburg": ["p1"],
+            "kiel": ["p1"],
+            "luebeck": ["p1"],
+            "hamburg": ["p2"],
+            "schwerin": ["p2"],
+            "hannover": ["p0"],
+            "magdeburg": ["p0"]
+        },
+        "phaseDone": [],
+        "discountPlant": 6
+    },
+    "actions": [
+        {
+            "id": "a0",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p0",
+            "type": "ChoosePlant",
+            "plant": 7,
+            "bid": 7,
+            "createdAt": "2026-10-27T12:53:16.991Z",
+            "metadata": {
+                "plant": 7,
+                "withdrawn": []
+            },
+            "index": 0,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/auction"
+                }
+            ]
+        },
+        {
+            "id": "a1",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p3",
+            "type": "PassBid",
+            "createdAt": "2026-10-27T12:53:16.993Z",
+            "metadata": {
+                "plant": 7,
+                "withdrawn": []
+            },
+            "index": 1,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p3"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 1
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -110999630
+                },
+                {
+                    "op": "replace",
+                    "path": "/auction/bidding/participants/1/passed",
+                    "value": false
+                }
+            ]
+        },
+        {
+            "id": "a2",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PassBid",
+            "createdAt": "2026-10-27T12:53:16.994Z",
+            "metadata": {
+                "plant": 7,
+                "withdrawn": []
+            },
+            "index": 2,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 2
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 133782140
+                },
+                {
+                    "op": "replace",
+                    "path": "/auction/bidding/participants/2/passed",
+                    "value": false
+                }
+            ]
+        },
+        {
+            "id": "a3",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p2",
+            "type": "RaiseBid",
+            "amount": 8,
+            "createdAt": "2026-10-27T12:53:16.994Z",
+            "metadata": {
+                "plant": 7,
+                "withdrawn": []
+            },
+            "index": 3,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 3
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 71941552
+                },
+                {
+                    "op": "replace",
+                    "path": "/auction/bidding/highBid",
+                    "value": 7
+                },
+                {
+                    "op": "remove",
+                    "path": "/auction/bidding/participants/3/bid"
+                }
+            ]
+        },
+        {
+            "id": "a4",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PassBid",
+            "createdAt": "2026-10-27T12:53:16.995Z",
+            "metadata": {
+                "plant": 7,
+                "withdrawn": [],
+                "winner": {
+                    "playerId": "p2",
+                    "amount": 8
+                }
+            },
+            "index": 4,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 12
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 4
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 222896559
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/3/money",
+                    "value": 50
+                },
+                {
+                    "op": "remove",
+                    "path": "/players/3/plants/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Bidding"
+                },
+                {
+                    "op": "add",
+                    "path": "/market/3",
+                    "value": 7
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                },
+                {
+                    "op": "add",
+                    "path": "/auction",
+                    "value": {
+                        "plant": 7,
+                        "bidding": {
+                            "id": "a0",
+                            "type": "simple",
+                            "auctioneerId": "p0",
+                            "highBid": 8,
+                            "participants": [
+                                {
+                                    "playerId": "p0",
+                                    "passed": false,
+                                    "bid": 7
+                                },
+                                {
+                                    "playerId": "p3",
+                                    "passed": true
+                                },
+                                {
+                                    "playerId": "p1",
+                                    "passed": true
+                                },
+                                {
+                                    "playerId": "p2",
+                                    "passed": false,
+                                    "bid": 8
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "rnZMJxbg1z7cets1nPj2H",
+            "gameId": "scenario-round-2-auction",
+            "source": "system",
+            "type": "ReplacePlant",
+            "createdAt": "2026-10-27T12:53:16.995Z",
+            "metadata": {
+                "drawn": [9],
+                "removed": []
+            },
+            "revealsInfo": true,
+            "index": 5,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 5
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -390521092
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ReplacingPlant"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 9
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 31
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckTopBack",
+                    "value": "plug"
+                },
+                {
+                    "op": "remove",
+                    "path": "/market/4"
+                }
+            ]
+        },
+        {
+            "id": "a5",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p0",
+            "type": "ChoosePlant",
+            "plant": 4,
+            "bid": 1,
+            "createdAt": "2026-10-27T12:53:16.997Z",
+            "metadata": {
+                "plant": 4,
+                "withdrawn": []
+            },
+            "index": 6,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 6
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -175419918
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/auction"
+                }
+            ]
+        },
+        {
+            "id": "a6",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p3",
+            "type": "RaiseBid",
+            "amount": 2,
+            "createdAt": "2026-10-27T12:53:16.998Z",
+            "metadata": {
+                "plant": 4,
+                "withdrawn": []
+            },
+            "index": 7,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p3"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 7
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 513954248
+                },
+                {
+                    "op": "replace",
+                    "path": "/auction/bidding/highBid",
+                    "value": 1
+                },
+                {
+                    "op": "remove",
+                    "path": "/auction/bidding/participants/1/bid"
+                }
+            ]
+        },
+        {
+            "id": "a7",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PassBid",
+            "createdAt": "2026-10-27T12:53:16.998Z",
+            "metadata": {
+                "plant": 4,
+                "withdrawn": []
+            },
+            "index": 8,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 8
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -288411730
+                },
+                {
+                    "op": "replace",
+                    "path": "/auction/bidding/participants/2/passed",
+                    "value": false
+                }
+            ]
+        },
+        {
+            "id": "a8",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PassBid",
+            "createdAt": "2026-10-27T12:53:16.999Z",
+            "metadata": {
+                "plant": 4,
+                "withdrawn": [],
+                "winner": {
+                    "playerId": "p3",
+                    "amount": 2
+                }
+            },
+            "index": 9,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 47
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 9
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 457222835
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 50
+                },
+                {
+                    "op": "remove",
+                    "path": "/players/1/plants/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Bidding"
+                },
+                {
+                    "op": "add",
+                    "path": "/market/0",
+                    "value": 4
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                },
+                {
+                    "op": "add",
+                    "path": "/discountPlant",
+                    "value": 4
+                },
+                {
+                    "op": "add",
+                    "path": "/auction",
+                    "value": {
+                        "plant": 4,
+                        "bidding": {
+                            "id": "a5",
+                            "type": "simple",
+                            "auctioneerId": "p0",
+                            "highBid": 2,
+                            "participants": [
+                                {
+                                    "playerId": "p0",
+                                    "passed": false,
+                                    "bid": 1
+                                },
+                                {
+                                    "playerId": "p3",
+                                    "passed": false,
+                                    "bid": 2
+                                },
+                                {
+                                    "playerId": "p1",
+                                    "passed": true
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "PFWav9NQuyIv6GgFj8xNn",
+            "gameId": "scenario-round-2-auction",
+            "source": "system",
+            "type": "ReplacePlant",
+            "createdAt": "2026-10-27T12:53:16.999Z",
+            "metadata": {
+                "drawn": [31],
+                "removed": []
+            },
+            "revealsInfo": true,
+            "index": 10,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 10
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -907275117
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ReplacingPlant"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 31
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 30
+                },
+                {
+                    "op": "remove",
+                    "path": "/market/7"
+                }
+            ]
+        },
+        {
+            "id": "a9",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p0",
+            "type": "ChoosePlant",
+            "plant": 9,
+            "bid": 9,
+            "createdAt": "2026-10-27T12:53:17.000Z",
+            "metadata": {
+                "plant": 9,
+                "withdrawn": []
+            },
+            "index": 11,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 11
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1082195104
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/auction"
+                }
+            ]
+        },
+        {
+            "id": "a10",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PassBid",
+            "createdAt": "2026-10-27T12:53:17.000Z",
+            "metadata": {
+                "plant": 9,
+                "withdrawn": [],
+                "winner": {
+                    "playerId": "p0",
+                    "amount": 9
+                }
+            },
+            "index": 12,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 82
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 12
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1680055140
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 50
+                },
+                {
+                    "op": "remove",
+                    "path": "/players/0/plants/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Bidding"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/0/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 0
+                },
+                {
+                    "op": "add",
+                    "path": "/market/3",
+                    "value": 9
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/2"
+                },
+                {
+                    "op": "add",
+                    "path": "/auction",
+                    "value": {
+                        "plant": 9,
+                        "bidding": {
+                            "id": "a9",
+                            "type": "simple",
+                            "auctioneerId": "p0",
+                            "highBid": 9,
+                            "participants": [
+                                {
+                                    "playerId": "p0",
+                                    "passed": false,
+                                    "bid": 9
+                                },
+                                {
+                                    "playerId": "p1",
+                                    "passed": false
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "U75CYtXcGAM4hhN24pqaz",
+            "gameId": "scenario-round-2-auction",
+            "source": "system",
+            "type": "ReplacePlant",
+            "createdAt": "2026-10-27T12:53:17.000Z",
+            "metadata": {
+                "drawn": [16],
+                "removed": []
+            },
+            "revealsInfo": true,
+            "index": 13,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 13
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1985220981
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ReplacingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/1"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 16
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 29
+                },
+                {
+                    "op": "remove",
+                    "path": "/market/6"
+                }
+            ]
+        },
+        {
+            "id": "a11",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p1",
+            "type": "ChoosePlant",
+            "plant": 5,
+            "bid": 5,
+            "createdAt": "2026-10-27T12:53:17.001Z",
+            "metadata": {
+                "plant": 5,
+                "withdrawn": [],
+                "winner": {
+                    "playerId": "p1",
+                    "amount": 5
+                }
+            },
+            "index": 14,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 117
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 14
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 2025197329
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/2/money",
+                    "value": 50
+                },
+                {
+                    "op": "remove",
+                    "path": "/players/2/plants/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ChoosingPlant"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/1/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 0
+                },
+                {
+                    "op": "add",
+                    "path": "/market/0",
+                    "value": 5
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/3"
+                }
+            ]
+        },
+        {
+            "id": "t7LTA2TiGAiIvQbwUvCkx",
+            "gameId": "scenario-round-2-auction",
+            "source": "system",
+            "type": "ReplacePlant",
+            "createdAt": "2026-10-27T12:53:17.001Z",
+            "metadata": {
+                "drawn": [42],
+                "removed": []
+            },
+            "revealsInfo": true,
+            "index": 15,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 152
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 15
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1958083795
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ReplacingPlant"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 42
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 28
+                },
+                {
+                    "op": "remove",
+                    "path": "/market/7"
+                }
+            ]
+        },
+        {
+            "id": "VoNswFN0HgvMy43YGK6ba",
+            "gameId": "scenario-round-2-auction",
+            "source": "system",
+            "type": "CloseAuctions",
+            "createdAt": "2026-10-27T12:53:17.001Z",
+            "metadata": {
+                "market": {
+                    "drawn": [],
+                    "removed": []
+                },
+                "step2Began": false,
+                "step3Began": false,
+                "playerOrder": ["p0", "p2", "p1", "p3"]
+            },
+            "revealsInfo": false,
+            "index": 16,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 16
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -970314523
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "ClosingAuctions"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnOrder/1",
+                    "value": "p3"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnOrder/3",
+                    "value": "p2"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/0/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p2"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "p3"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/2",
+                    "value": "p0"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/3",
+                    "value": "p1"
+                }
+            ]
+        },
+        {
+            "id": "a12",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p3",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 2,
+                "oil": 0,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "createdAt": "2026-10-27T12:53:17.003Z",
+            "metadata": {
+                "cost": 2
+            },
+            "index": 17,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p3"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 17
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -1878923293
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 48
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/coal",
+                    "value": 0
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/2/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/3"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p3",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 24
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "a13",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 2,
+                "oil": 0,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "createdAt": "2026-10-27T12:53:17.003Z",
+            "metadata": {
+                "cost": 3
+            },
+            "index": 18,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 18
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -158423268
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/2/money",
+                    "value": 45
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/2/resources/coal",
+                    "value": 0
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/3/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/4"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 1
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 22
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                }
+            ]
+        },
+        {
+            "id": "a14",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p2",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 0,
+                "oil": 3,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "createdAt": "2026-10-27T12:53:17.004Z",
+            "metadata": {
+                "cost": 9
+            },
+            "index": 19,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 19
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1882051126
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/3/money",
+                    "value": 42
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/3/resources/oil",
+                    "value": 0
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/4/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/5"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p2",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 18
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/2"
+                }
+            ]
+        },
+        {
+            "id": "a15",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p0",
+            "type": "BuyResources",
+            "resources": {
+                "coal": 0,
+                "oil": 1,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "createdAt": "2026-10-27T12:53:17.004Z",
+            "metadata": {
+                "cost": 4
+            },
+            "index": 20,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 20
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 2011813772
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 41
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/resources/oil",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "BuyingResources"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/5/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/6"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 1
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/1/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 15
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p3"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "p1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/2",
+                    "value": "p2"
+                }
+            ]
+        },
+        {
+            "id": "a16",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p3",
+            "type": "BuildCities",
+            "cityIds": ["bremen", "cuxhaven"],
+            "createdAt": "2026-10-27T12:53:17.006Z",
+            "metadata": {
+                "built": [
+                    {
+                        "cityId": "bremen",
+                        "connectionCost": 0,
+                        "houseCost": 10
+                    },
+                    {
+                        "cityId": "cuxhaven",
+                        "connectionCost": 8,
+                        "houseCost": 10
+                    }
+                ],
+                "total": 28
+            },
+            "index": 21,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p3"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 21
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 667301705
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 46
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/6/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/7"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p3",
+                    "value": 1
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/bremen"
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/cuxhaven"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "a17",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuildCities",
+            "cityIds": ["flensburg", "kiel", "luebeck"],
+            "createdAt": "2026-10-27T12:53:17.007Z",
+            "metadata": {
+                "built": [
+                    {
+                        "cityId": "flensburg",
+                        "connectionCost": 0,
+                        "houseCost": 10
+                    },
+                    {
+                        "cityId": "kiel",
+                        "connectionCost": 4,
+                        "houseCost": 10
+                    },
+                    {
+                        "cityId": "luebeck",
+                        "connectionCost": 4,
+                        "houseCost": 10
+                    }
+                ],
+                "total": 38
+            },
+            "index": 22,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 22
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 2082447563
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/2/money",
+                    "value": 42
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/7/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/8"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p1",
+                    "value": 2
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/flensburg"
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/kiel"
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/luebeck"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                }
+            ]
+        },
+        {
+            "id": "a18",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p2",
+            "type": "BuildCities",
+            "cityIds": ["hamburg", "schwerin"],
+            "createdAt": "2026-10-27T12:53:17.008Z",
+            "metadata": {
+                "built": [
+                    {
+                        "cityId": "hamburg",
+                        "connectionCost": 0,
+                        "houseCost": 10
+                    },
+                    {
+                        "cityId": "schwerin",
+                        "connectionCost": 8,
+                        "houseCost": 10
+                    }
+                ],
+                "total": 28
+            },
+            "index": 23,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 23
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 6045450
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/3/money",
+                    "value": 33
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/8/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/9"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p2",
+                    "value": 1
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/hamburg"
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/schwerin"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/2"
+                }
+            ]
+        },
+        {
+            "id": "a19",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p0",
+            "type": "BuildCities",
+            "cityIds": ["hannover", "magdeburg"],
+            "createdAt": "2026-10-27T12:53:17.009Z",
+            "metadata": {
+                "built": [
+                    {
+                        "cityId": "hannover",
+                        "connectionCost": 0,
+                        "houseCost": 10
+                    },
+                    {
+                        "cityId": "magdeburg",
+                        "connectionCost": 15,
+                        "houseCost": 10
+                    }
+                ],
+                "total": 35
+            },
+            "index": 24,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/3"
+                },
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/2"
+                },
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 24
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -655202082
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 37
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Building"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/9/end"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnCounts/p0",
+                    "value": 2
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/2/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/3"
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/hannover"
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/magdeburg"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p3"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "p1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/2",
+                    "value": "p2"
+                }
+            ]
+        },
+        {
+            "id": "a20",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PowerCities",
+            "plants": [9],
+            "fuel": {
+                "coal": 0,
+                "oil": 1,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "simultaneousGroupId": "power-1",
+            "createdAt": "2026-10-27T12:53:17.010Z",
+            "metadata": {
+                "powered": 1,
+                "earned": 22
+            },
+            "index": 25,
+            "undoPatch": [
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 25
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 180809304
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/money",
+                    "value": 2
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/0/resources/oil",
+                    "value": 1
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/0"
+                }
+            ]
+        },
+        {
+            "id": "a21",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p2",
+            "type": "PowerCities",
+            "plants": [7],
+            "fuel": {
+                "coal": 0,
+                "oil": 3,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "simultaneousGroupId": "power-1",
+            "createdAt": "2026-10-27T12:53:17.011Z",
+            "metadata": {
+                "powered": 2,
+                "earned": 33
+            },
+            "index": 26,
+            "undoPatch": [
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 26
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -20141858
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/3/money",
+                    "value": 5
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/3/resources/oil",
+                    "value": 3
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/1"
+                }
+            ]
+        },
+        {
+            "id": "a22",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PowerCities",
+            "plants": [5],
+            "fuel": {
+                "coal": 2,
+                "oil": 0,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "simultaneousGroupId": "power-1",
+            "createdAt": "2026-10-27T12:53:17.011Z",
+            "metadata": {
+                "powered": 1,
+                "earned": 22
+            },
+            "index": 27,
+            "undoPatch": [
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p1"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 27
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1383132598
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/2/money",
+                    "value": 4
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/2/resources/coal",
+                    "value": 2
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/2"
+                }
+            ]
+        },
+        {
+            "id": "a23",
+            "gameId": "scenario-round-2-auction",
+            "source": "user",
+            "playerId": "p3",
+            "type": "PowerCities",
+            "plants": [4],
+            "fuel": {
+                "coal": 2,
+                "oil": 0,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "simultaneousGroupId": "power-1",
+            "createdAt": "2026-10-27T12:53:17.012Z",
+            "metadata": {
+                "powered": 1,
+                "earned": 22
+            },
+            "index": 28,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/prng/invocations",
+                    "value": 187
+                },
+                {
+                    "op": "add",
+                    "path": "/activePlayerIds/0",
+                    "value": "p3"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 28
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1933797304
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/money",
+                    "value": 18
+                },
+                {
+                    "op": "replace",
+                    "path": "/players/1/resources/coal",
+                    "value": 2
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Powering"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseDone/3"
+                }
+            ]
+        },
+        {
+            "id": "PbuyBpfkzxSPnInCmLcy6",
+            "gameId": "scenario-round-2-auction",
+            "source": "system",
+            "type": "Restock",
+            "createdAt": "2026-10-27T12:53:17.012Z",
+            "metadata": {
+                "resupplied": {
+                    "coal": 4,
+                    "oil": 3,
+                    "garbage": 2,
+                    "uranium": 1
+                },
+                "placedUnder": 42,
+                "market": {
+                    "drawn": [30],
+                    "removed": []
+                },
+                "step2Began": false,
+                "step3Began": false,
+                "playerOrder": ["p1", "p0", "p2", "p3"]
+            },
+            "revealsInfo": true,
+            "index": 29,
+            "undoPatch": [
+                {
+                    "op": "remove",
+                    "path": "/activePlayerIds/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 29
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 1938427390
+                },
+                {
+                    "op": "replace",
+                    "path": "/machineState",
+                    "value": "Restocking"
+                },
+                {
+                    "op": "remove",
+                    "path": "/turnManager/series/10"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnOrder/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnOrder/1",
+                    "value": "p2"
+                },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnOrder/2",
+                    "value": "p1"
+                },
+                {
+                    "op": "remove",
+                    "path": "/roundManager/series/0/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/roundManager/series/1"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/3/end"
+                },
+                {
+                    "op": "remove",
+                    "path": "/phaseManager/series/4"
+                },
+                {
+                    "op": "add",
+                    "path": "/plantDeck/0",
+                    "value": 30
+                },
+                {
+                    "op": "replace",
+                    "path": "/deckCount",
+                    "value": 27
+                },
+                {
+                    "op": "remove",
+                    "path": "/underStack/0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/6",
+                    "value": 31
+                },
+                {
+                    "op": "replace",
+                    "path": "/market/7",
+                    "value": 42
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/coal",
+                    "value": 20
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/oil",
+                    "value": 14
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/garbage",
+                    "value": 9
+                },
+                {
+                    "op": "replace",
+                    "path": "/resourceMarket/uranium",
+                    "value": 2
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/1",
+                    "value": "p2"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/2",
+                    "value": "p1"
+                },
+                {
+                    "op": "add",
+                    "path": "/phaseDone/3",
+                    "value": "p3"
+                },
+                {
+                    "op": "remove",
+                    "path": "/discountPlant"
+                }
+            ]
+        }
+    ]
+}

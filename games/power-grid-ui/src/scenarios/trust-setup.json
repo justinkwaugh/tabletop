@@ -1,0 +1,242 @@
+{
+    "game": {
+        "id": "scenario-trust-setup",
+        "isPublic": false,
+        "status": "waitingForPlayers",
+        "typeId": "power-grid",
+        "deleted": false,
+        "name": "Trust setup",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "p0",
+                "name": "Ada",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "p1",
+                "name": "Bram",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {},
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 97,
+        "activePlayerIds": ["p1"],
+        "createdAt": "2026-10-27T12:53:17.887Z",
+        "storage": "remote",
+        "category": "standard"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "pnouZ8AzFk77RENNJI8PM",
+        "gameId": "scenario-trust-setup",
+        "seed": 3367980177,
+        "prng": {
+            "seed": 3367980177,
+            "invocations": 9
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+            "invocations": 66
+        },
+        "masterSeed": "0123456789abcdef0123456789abcdef",
+        "activePlayerIds": ["p1"],
+        "winningPlayerIds": [],
+        "actionCount": 2,
+        "actionChecksum": 133782140,
+        "players": [
+            {
+                "playerId": "p0",
+                "color": "red",
+                "money": 50,
+                "plants": [],
+                "resources": {
+                    "coal": 0,
+                    "oil": 0,
+                    "garbage": 0,
+                    "uranium": 0
+                }
+            },
+            {
+                "playerId": "p1",
+                "color": "green",
+                "money": 50,
+                "plants": [],
+                "resources": {
+                    "coal": 0,
+                    "oil": 0,
+                    "garbage": 0,
+                    "uranium": 0
+                }
+            }
+        ],
+        "machineState": "PlacingTrust",
+        "turnManager": {
+            "series": [],
+            "turnOrder": ["p0", "p1"],
+            "turnCounts": {
+                "p0": 0,
+                "p1": 0
+            }
+        },
+        "roundManager": {
+            "series": [
+                {
+                    "type": "round",
+                    "start": 0,
+                    "number": 1
+                }
+            ]
+        },
+        "phaseManager": {
+            "series": []
+        },
+        "mapId": "germany",
+        "regions": ["red", "blue", "yellow"],
+        "seatOrder": ["p0", "p1"],
+        "step": 1,
+        "plantDeck": [
+            9,
+            16,
+            34,
+            30,
+            19,
+            40,
+            32,
+            50,
+            14,
+            22,
+            44,
+            10,
+            26,
+            39,
+            27,
+            3,
+            38,
+            33,
+            37,
+            18,
+            21,
+            36,
+            17,
+            28,
+            23,
+            31,
+            25,
+            46,
+            "step3"
+        ],
+        "deckCount": 29,
+        "deckTopBack": "plug",
+        "underStack": [],
+        "market": [4, 5, 6, 7, 8, 11, 12, 13],
+        "outOfGame": [],
+        "step3Drawn": false,
+        "resourceMarket": {
+            "coal": 24,
+            "oil": 18,
+            "garbage": 9,
+            "uranium": 2
+        },
+        "uraniumPhasedOut": false,
+        "cities": {
+            "dortmund": ["trust"],
+            "kassel": ["trust"]
+        },
+        "phaseDone": [],
+        "trust": {
+            "plants": [],
+            "resources": {
+                "coal": 0,
+                "oil": 0,
+                "garbage": 0,
+                "uranium": 0
+            },
+            "housesLeft": 14,
+            "startingCities": ["dortmund", "kassel"],
+            "tookPlant": false
+        }
+    },
+    "actions": [
+        {
+            "id": "a0",
+            "gameId": "scenario-trust-setup",
+            "source": "user",
+            "playerId": "p0",
+            "type": "PlaceTrustHouse",
+            "cityId": "dortmund",
+            "createdAt": "2026-10-27T12:53:17.888Z",
+            "index": 0,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/activePlayerIds/0",
+                    "value": "p0"
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 0
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": 0
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/dortmund"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/housesLeft",
+                    "value": 16
+                },
+                {
+                    "op": "remove",
+                    "path": "/trust/startingCities/0"
+                }
+            ]
+        },
+        {
+            "id": "a1",
+            "gameId": "scenario-trust-setup",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PlaceTrustHouse",
+            "cityId": "kassel",
+            "createdAt": "2026-10-27T12:53:17.888Z",
+            "index": 1,
+            "undoPatch": [
+                {
+                    "op": "replace",
+                    "path": "/actionCount",
+                    "value": 1
+                },
+                {
+                    "op": "replace",
+                    "path": "/actionChecksum",
+                    "value": -110999630
+                },
+                {
+                    "op": "remove",
+                    "path": "/cities/kassel"
+                },
+                {
+                    "op": "replace",
+                    "path": "/trust/housesLeft",
+                    "value": 15
+                },
+                {
+                    "op": "remove",
+                    "path": "/trust/startingCities/1"
+                }
+            ]
+        }
+    ]
+}
