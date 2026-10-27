@@ -16,6 +16,11 @@
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext, trim } from '@tabletop/frontend-components'
     import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
+    import {
+        emailAddress,
+        minLengthMessage,
+        requiredMessage
+    } from '$lib/utils/accountFormValidation'
 
     let { authorizationService, api } = getAppContext()
 
@@ -73,16 +78,10 @@
         }
     })
 
-    const createUserSchema = zfd.formData({
-        username: zfd.text(z.string('Required')),
-        password: zfd.text(
-            z.string().min(12, 'String must contain at least 12 character(s)').optional()
-        ),
-        email: zfd.text(
-            z.email({
-                error: (issue) => (issue.input === undefined ? 'Required' : 'Invalid email')
-            })
-        )
+    const updateProfileSchema = zfd.formData({
+        username: zfd.text(z.string(requiredMessage)),
+        password: zfd.text(z.string().min(12, minLengthMessage(12)).optional()),
+        email: zfd.text(emailAddress())
     })
 
     function togglePassword() {
@@ -104,7 +103,7 @@
         success = false
         const form = event.target as HTMLFormElement
         const formData = new FormData(form)
-        const result = createUserSchema.safeParse(formData)
+        const result = updateProfileSchema.safeParse(formData)
         if (!result.success) {
             errors = z.flattenError(result.error).fieldErrors
             return
