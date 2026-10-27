@@ -206,9 +206,10 @@ export default [
                 burnSecret: 0
             },
             powerText: '-2 [attackDie] if this site is targeted.',
-            timing: 'modifier',
+            timing: 'battlePlan',
             persistent: false,
-            modifiesAction: 'campaign'
+            modifiesAction: null,
+            battlePlanSide: 'defender'
         }
     }
 ] satisfies readonly EdificeRecord[]

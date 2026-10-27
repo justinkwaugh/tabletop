@@ -541,6 +541,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             }
             // Relic Hunter — its target is declared now and the plan once they have answered.
             const hunter = plansTargetSiteRelics(
+                state,
                 usableBattlePlans(state, playerId, BattlePlanSide.Attacker, parties)
             )
             return choice.targets.some((t) => t.kind === CampaignTargetKind.SiteRelic) && !hunter

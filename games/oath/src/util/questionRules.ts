@@ -12,7 +12,8 @@ import {
 } from '../model/question.js'
 import { offerReroll, settleRoll } from './reroll.js'
 import { CONSPIRACY_ID } from '../data/cardRegistry.js'
-import { cardPowers, type CardPower, type PowerUseKey } from '../data/cardPowers.js'
+import { type CardPower, type PowerUseKey } from '../data/cardPowers.js'
+import { powerInPlay } from './powersInPlay.js'
 import { payPowerCost, reasonCannotPayPowerCost } from './powerCost.js'
 import { pawnSiteId, regionOfPawn } from './pawn.js'
 import type { SiteFlip } from './hiddenInputs.js'
@@ -230,7 +231,7 @@ function reasonCannotUsePowerToReroll(
     playerId: string,
     question: PowerUseKey
 ): string | undefined {
-    const power = cardPowers(question.cardId)[question.powerIndex]
+    const power = powerInPlay(state, question.cardId, question.powerIndex)
     return power ? reasonCannotPayPowerCost(state, playerId, power) : 'the power is not in play'
 }
 
@@ -249,7 +250,7 @@ function rerollStanding(
 }
 
 function powerForQuestion(state: HydratedOathGameState, question: PowerUseKey): CardPower {
-    const power = cardPowers(question.cardId)[question.powerIndex]
+    const power = powerInPlay(state, question.cardId, question.powerIndex)
     assertExists(power, `${question.cardId} power ${question.powerIndex} is not in play`)
     return power
 }

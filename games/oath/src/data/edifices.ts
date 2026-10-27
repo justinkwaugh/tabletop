@@ -6,7 +6,7 @@ import { type CardPlacement, SUIT_BY_NAME } from './typedData.js'
 import type { Suit } from '../model/oathEnums.js'
 import edifices from './edifices.data.js'
 
-/** R-2.9 — each side prints its own name, number and power; the powers have no effect yet. */
+/** R-2.9 — each side prints its own name, number and power (`cardPowers.ts` registers both). */
 export interface EdificeSide extends PowerRecord {
     name: string
     cardNumber: number

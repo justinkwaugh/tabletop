@@ -1,5 +1,6 @@
 import { HydratedOathGameState } from '../model/gameState.js'
-import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
+import { PowerTiming } from '../data/cardPowers.js'
+import { powersInPlay } from './powersInPlay.js'
 import { effectFor, type ContinuousHooks } from '../powers/registry.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
@@ -55,7 +56,7 @@ export function cannotPlayVisionsFaceup(state: HydratedOathGameState, playerId: 
 
 function hooksOfCard(state: HydratedOathGameState, cardId: string): ContinuousHooks[] {
     const hooks: ContinuousHooks[] = []
-    for (const power of powersWithTiming(cardId, PowerTiming.Continuous)) {
+    for (const power of powersInPlay(state, cardId, PowerTiming.Continuous)) {
         const c = effectFor(power)?.continuous
         if (c) hooks.push(c)
     }

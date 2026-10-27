@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { CardKind, Suit } from '../model/oathEnums.js'
-import { cardDefinition, cardIdsOfKind, cardPowers, kindOf, suitOf } from './cardRegistry.js'
+import {
+    BattlePlanSide,
+    NO_COST,
+    PowerTiming,
+    cardDefinition,
+    cardIdsOfKind,
+    cardPowers,
+    kindOf,
+    suitOf
+} from './cardRegistry.js'
 import { EDIFICE_RECORDS, edificeName } from './edifices.js'
 
 describe('the six edifice cards (R-2.9)', () => {
@@ -43,11 +52,12 @@ describe('the six edifice cards (R-2.9)', () => {
         expect(cardDefinition('edifice.nomad.ancient-forge')?.name).toBe('Ancient Forge')
     })
 
-    it('each side keeps its printed power as data, with no power registered for it', () => {
+    it('each side’s printed power is registered as one of the card’s two powers, intact first', () => {
         for (const rec of EDIFICE_RECORDS) {
-            expect(rec.intact.powerText).not.toBe('')
-            expect(rec.ruined.powerText).not.toBe('')
-            expect(cardPowers(rec.id)).toEqual([])
+            expect(cardPowers(rec.id).map((power) => power.text)).toEqual([
+                rec.intact.powerText,
+                rec.ruined.powerText
+            ])
         }
         const forge = EDIFICE_RECORDS.find((rec) => rec.id === 'edifice.nomad.ancient-forge')
         expect(forge?.ruined.powerText).toBe('Action: Flip this card over.')
@@ -57,5 +67,15 @@ describe('the six edifice cards (R-2.9)', () => {
             placeSecret: 2,
             burnSecret: 0
         })
+    })
+
+    it('Bandit Rampart is a defender battle plan, as its blue power box and crowned icon print it (R-7.5)', () => {
+        const [, bandit] = cardPowers('edifice.order.sprawling-rampart')
+        expect(bandit).toMatchObject({
+            text: '-2 [attackDie] if this site is targeted.',
+            timing: PowerTiming.BattlePlan,
+            battlePlanSide: BattlePlanSide.Defender
+        })
+        expect(bandit.cost).toEqual(NO_COST)
     })
 })
