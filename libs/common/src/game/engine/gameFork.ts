@@ -87,6 +87,8 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
         delete fork.state
         delete fork.finishedAt
         delete fork.result
+        delete fork.canContinue
+        delete fork.continuedFromGameId
         delete fork.everFinished
         resetCopiedGameVoting(fork, inherited)
         fork.winningPlayerIds = []

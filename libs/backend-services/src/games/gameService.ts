@@ -13,6 +13,7 @@ import {
     GameResult,
     calculateActionChecksum,
     createGameFork,
+    linkGameContinuation,
     GameForkError,
     findLast,
     isOutOfTurnDeclaration,
@@ -223,6 +224,12 @@ export class GameService {
 
         const newGame = definition.runtime.initializer.initializeGame(game, definition)
         delete newGame.protectedInformation
+        const continuation = await linkGameContinuation(
+            newGame,
+            options?.continueFromGameId,
+            definition,
+            (sourceGameId) => this.findContinuationSource(sourceGameId, owner)
+        )
         // Titles bundle their own initializer, which may predate unlisted games.
         if (game.unlisted) newGame.unlisted = true
         else delete newGame.unlisted
@@ -256,10 +263,10 @@ export class GameService {
             }
         }
 
-        const createdGame = await this.gameStore.createGame(
-            newGame,
-            masterSeed === undefined ? undefined : { masterSeed }
-        )
+        const createdGame = await this.gameStore.createGame(newGame, {
+            ...(masterSeed === undefined ? {} : { masterSeed }),
+            ...(continuation === undefined ? {} : { continuation })
+        })
 
         // Send invites
         for (const user of Object.values(usersByPlayerId)) {
@@ -274,6 +281,17 @@ export class GameService {
         await this.notifyGameAudience(GameNotificationAction.Create, { game: createdGame })
 
         return createdGame
+    }
+
+    private async findContinuationSource(
+        sourceGameId: string,
+        user: User
+    ): Promise<Game | undefined> {
+        const source = await this.getGame({ gameId: sourceGameId, withState: true })
+        if (source && !findPlayerForUserId(source, user.id) && !user.roles.includes(Role.Admin)) {
+            throw new UnauthorizedAccessError({ user, gameId: sourceGameId })
+        }
+        return source
     }
 
     async provisionTournamentGame(
@@ -1088,9 +1106,12 @@ export class GameService {
                 definition.runtime.randomnessVersion === 1
                     ? await this.gameStore.getMasterSeed(game.id)
                     : undefined
+            const continuation = game.continuedFromGameId
+                ? await this.gameStore.getContinuation(game.id)
+                : undefined
             const { startedGame: initializedGame, initialState } = new GameEngine(
                 definition.runtime
-            ).startGame(game, masterSeed)
+            ).startGame(game, { masterSeed, continuation })
             ;[startedGame] = await this.gameStore.updateGame({
                 game,
                 fields: {

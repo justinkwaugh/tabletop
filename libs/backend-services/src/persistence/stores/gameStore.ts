@@ -1,6 +1,6 @@
 import {
-    GameCreationOptions,
     GameAction,
+    GameContinuation,
     Game,
     GameState,
     User,
@@ -38,6 +38,8 @@ export type UndoActionWindow = {
 
 export type GameData = { game: Game; actions: GameAction[] }
 
+export type GameInitialization = { masterSeed?: string; continuation?: GameContinuation }
+
 export interface GameDataReader {
     readonly game: Game
     actions(): Promise<GameAction[]>
@@ -51,8 +53,9 @@ export interface GameStore {
         gameId: string,
         read: (reader: GameDataReader) => Promise<T>
     ): Promise<T | undefined>
-    createGame(game: Game, options?: GameCreationOptions): Promise<Game>
+    createGame(game: Game, initialization?: GameInitialization): Promise<Game>
     getMasterSeed(gameId: string): Promise<string | undefined>
+    getContinuation(gameId: string): Promise<GameContinuation | undefined>
     writeFullGameData(
         game: Game,
         state: GameState,

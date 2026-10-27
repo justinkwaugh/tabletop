@@ -81,6 +81,8 @@ export const Game = Type.Object({
     lastActionPlayerId: Type.Optional(Type.String()),
     lastActionAt: Type.Optional(DateType()),
     result: Type.Optional(Type.Enum(GameResult)),
+    canContinue: Type.Optional(Type.Boolean()),
+    continuedFromGameId: Type.Optional(Type.String()),
     winningPlayerIds: Type.Array(Type.String()),
     finalScores: Type.Optional(Type.Record(Type.String(), Type.Number())),
     everFinished: Type.Optional(Type.Literal(true)),

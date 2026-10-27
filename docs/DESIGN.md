@@ -170,7 +170,7 @@ Trace the affected contract end to end:
 
 1. Serialized schema and raw type.
 2. Hydrated class and nested hydration.
-3. Initializer, hydrator, and definition registration.
+3. Initializer, hydrator, and definition registration. A title whose play carries into a next game follows [Game continuation](game-continuation.md).
 4. Action/API contract and metadata.
 5. Machine-state availability, entry, and transition behavior.
 6. Session methods and UI consumers.

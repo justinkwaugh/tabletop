@@ -5,6 +5,11 @@ import {
     type StartingPositionAssignment
 } from '../model/startingPositionAssignment.js'
 import { getGameVisibility } from '../visibility/gameVisibility.js'
+import {
+    assertContinuationAllowed,
+    GameContinuationError,
+    type GameContinuation
+} from './gameContinuation.js'
 import { deriveGameSeeds, generateMasterSeed, normalizeMasterSeed } from '../../util/gameSeeds.js'
 import jsonpatch from 'fast-json-patch'
 import { GameAction, type HydratedAction, Patch, withoutActionPatches } from './gameAction.js'
@@ -52,8 +57,12 @@ export type ActionCascadeResult<T extends GameState = GameState> = ActionResult<
     actionCascade: CanonicalActionCascade<T>
 }
 
-export interface GameStartOptions extends GameCreationOptions {
+export interface GameStartOptions<T extends GameState = GameState> extends Omit<
+    GameCreationOptions,
+    'continueFromGameId'
+> {
     startingPositions?: StartingPositionAssignment
+    continuation?: GameContinuation<T>
 }
 
 export interface ActionAvailabilityOptions {
@@ -120,13 +129,25 @@ export class GameEngine<
 
     startGame(
         game: Game,
-        options: GameStartOptions | string = {}
+        options: GameStartOptions<T> | string = {}
     ): { startedGame: Game; initialState: T } {
         game = normalizeGame(game, this.runtime.configuration)
-        const { masterSeed, startingPositions: assignment } =
-            typeof options === 'string' ? { masterSeed: options } : options
+        const {
+            masterSeed,
+            startingPositions: assignment,
+            continuation
+        }: GameStartOptions<T> = typeof options === 'string' ? { masterSeed: options } : options
         if (game.startedAt !== null && game.startedAt !== undefined) {
             throw Error('Game is already started')
+        }
+        let validContinuation: GameContinuation<T> | undefined
+        if (game.continuedFromGameId !== undefined || continuation !== undefined) {
+            assertExists(
+                game.continuedFromGameId,
+                'Only a continued game has a previous game state'
+            )
+            assertExists(continuation, 'A continued game starts from its previous game state')
+            validContinuation = this.validateContinuation(game.continuedFromGameId, continuation)
         }
 
         const initializer = this.runtime.initializer
@@ -153,7 +174,8 @@ export class GameEngine<
         const initialState = initializer.initializeGameState(
             seededGame,
             uninitializedState,
-            assignment
+            assignment,
+            validContinuation
         )
 
         const machineContext = new MachineContext({
@@ -167,6 +189,39 @@ export class GameEngine<
         const state = initialState.dehydrate()
         this.validateCanonicalState(state)
         return { startedGame, initialState: state }
+    }
+
+    validateContinuation(
+        sourceGameId: string,
+        continuation: GameContinuation<T>
+    ): GameContinuation<T> {
+        assertContinuationAllowed(
+            this.runtime.initializer.supportsContinuation === true,
+            'This Game Title does not support continuation'
+        )
+        const previousState = this.canonicalContinuationState(continuation.previousState)
+        assertContinuationAllowed(
+            previousState.result !== undefined && previousState.canContinue === true,
+            'The game being continued is not ready to continue'
+        )
+        assertContinuationAllowed(
+            previousState.gameId === sourceGameId,
+            'Continuation source does not match'
+        )
+        return { previousState, previousPlayers: structuredClone(continuation.previousPlayers) }
+    }
+
+    private canonicalContinuationState(state: Readonly<T>): T {
+        try {
+            const canonical = this.runtime.hydrator.hydrateState(structuredClone(state)).dehydrate()
+            this.validateCanonicalState(canonical)
+            return canonical
+        } catch (error) {
+            throw new GameContinuationError(
+                'This version of the game can no longer continue from the finished game',
+                error instanceof Error ? error : undefined
+            )
+        }
     }
 
     getValidActionTypesForPlayer(

@@ -22,7 +22,7 @@ import {
     type ReadWriteTransactionOptions
 } from '@google-cloud/firestore'
 import {
-    GameCreationOptions,
+    GameContinuation,
     MasterSeed,
     ActionSource,
     GameAction,
@@ -70,6 +70,7 @@ import {
     ActionUpdateValidator,
     GameStore,
     GameData,
+    GameInitialization,
     GameDataReader,
     UndoActionWindow
 } from '../stores/gameStore.js'
@@ -129,7 +130,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         this.tournamentCacheKeys = new TournamentCacheKeys(tournamentCachePrefix)
     }
 
-    async createGame(game: Game, options?: GameCreationOptions): Promise<Game> {
+    async createGame(game: Game, initialization?: GameInitialization): Promise<Game> {
         const date = new Date()
         const storedGame = {
             ...structuredClone(game),
@@ -196,12 +197,17 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                     transaction.create(this.games.doc(game.id), structuredClone(storedGame))
                     if (state)
                         transaction.create(this.getStateCollection(game.id).doc(game.id), state)
-                    if (options?.masterSeed !== undefined) {
-                        Value.Assert(MasterSeed, options.masterSeed)
+                    if (initialization?.masterSeed !== undefined) {
+                        Value.Assert(MasterSeed, initialization.masterSeed)
                         transaction.create(
                             this.games.doc(game.id).collection('private').doc('initialization'),
-                            { masterSeed: options.masterSeed }
+                            { masterSeed: initialization.masterSeed }
                         )
+                    }
+                    if (initialization?.continuation !== undefined) {
+                        transaction.create(this.getContinuationDocument(game.id), {
+                            data: JSON.stringify(initialization.continuation)
+                        })
                     }
                     return state ? { ...storedGame, state } : storedGame
                 })
@@ -346,6 +352,20 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         const seed: unknown = snapshot.get('masterSeed')
         Value.Assert(MasterSeed, seed)
         return seed
+    }
+
+    async getContinuation(gameId: string): Promise<GameContinuation | undefined> {
+        const snapshot = await this.getContinuationDocument(gameId).get()
+        if (!snapshot.exists) return undefined
+        const data: unknown = snapshot.get('data')
+        assert(typeof data === 'string', 'Stored continuation is malformed')
+        const continuation: unknown = JSON.parse(data)
+        Value.Assert(GameContinuation, continuation)
+        return continuation
+    }
+
+    private getContinuationDocument(gameId: string): DocumentReference {
+        return this.games.doc(gameId).collection('private').doc('continuation')
     }
 
     async deleteGame(game: Game, authorize?: (existingGame: Game) => void): Promise<void> {
@@ -1146,6 +1166,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                     gameUpdates.status = GameStatus.Finished
                     gameUpdates.finishedAt = new Date()
                     gameUpdates.result = state.result
+                    gameUpdates.canContinue = state.canContinue
                     gameUpdates.winningPlayerIds = state.winningPlayerIds
                     gameUpdates.everFinished = true
                 } else {
@@ -2225,6 +2246,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             status: GameStatus.Started,
             finishedAt: undefined,
             result: undefined,
+            canContinue: undefined,
             winningPlayerIds: [],
             finalScores: undefined,
             call: undefined,
