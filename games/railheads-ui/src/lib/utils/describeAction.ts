@@ -84,9 +84,9 @@ function plural(count: number, noun: string): string {
     return `${count} ${noun}${count === 1 ? '' : 's'}`
 }
 
-function trackDescription(effects: readonly PlacementEffect[]): Description {
+export function trackLines(effects: readonly PlacementEffect[]): Description[] {
     const companies = [...new Set(effects.map((effect) => effect.companyId))]
-    return companies.flatMap((companyId, index): Description => {
+    return companies.map((companyId): Description => {
         const mine = effects.filter((effect) => effect.companyId === companyId)
         const discs = mine.filter((effect) => effect.kind === PlacementKind.Disc).length
         const cubes = mine.length - discs
@@ -99,9 +99,7 @@ function trackDescription(effects: readonly PlacementEffect[]): Description {
             .filter((part) => part !== '')
             .join(' and ')
         return [
-            index === 0 ? 'laid ' : '; ',
-            pieces,
-            ' for the ',
+            `laid ${pieces} for the `,
             { companyId },
             ` · $${cost}${gain > 0 ? `, revenue +${gain}` : ''}`
         ]
@@ -150,7 +148,9 @@ export function describeAction(action: GameAction): Description {
     }
     if (isLayTrack(action)) {
         const effects = action.metadata?.effects ?? []
-        return effects.length === 0 ? ['laid no track'] : trackDescription(effects)
+        return effects.length === 0
+            ? ['laid no track']
+            : trackLines(effects).flatMap((line, index) => (index === 0 ? line : ['; ', ...line]))
     }
     if (isEndRound(action)) {
         return [
@@ -170,16 +170,25 @@ export function actionSale(action: GameAction): ShareSale | undefined {
     return undefined
 }
 
+export type BidReveal = { playerId: string; amount: number; note: string }
+
 // Every sealed bid once the auction resolves, in seat order. A seat that never bid stood at the
 // minimum (the investor) or at $0.
-export function revealedBids(action: GameAction): Description[] {
+export function bidReveals(action: GameAction): BidReveal[] {
     if (!isResolveIndustryAuction(action) || !action.metadata) {
         return []
     }
     return action.metadata.sale.bids.map((bid) => {
         const note = bid.submitted ? '' : bid.amount > 0 ? ' (minimum)' : ' (no bid)'
-        return [{ playerId: bid.playerId }, ` bid $${bid.amount}${note}`]
+        return { playerId: bid.playerId, amount: bid.amount, note }
     })
+}
+
+export function revealedBids(action: GameAction): Description[] {
+    return bidReveals(action).map((bid) => [
+        { playerId: bid.playerId },
+        ` bid $${bid.amount}${bid.note}`
+    ])
 }
 
 export function withdrawnBidders(action: GameAction): string[] {
