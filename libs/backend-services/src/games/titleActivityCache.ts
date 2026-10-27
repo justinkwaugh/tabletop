@@ -131,11 +131,6 @@ if redis.call('HGET', KEYS[1], 'meta') == ARGV[1] then redis.call('DEL', KEYS[1]
 return 1
 `
 
-/**
- * Discovery lists of a Game Title's publicly listed Hosted Games, kept in Redis as game cards.
- * A missing title is rebuilt from Firestore once, shared by every concurrent request; committed
- * game changes then update it in place without reading Firestore, and it is rebuilt a day later.
- */
 export class TitleActivityCache {
     private readonly builds = new Map<string, Promise<TitleActivity | undefined>>()
 
