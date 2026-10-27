@@ -227,8 +227,8 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### Game-topic transport lacks an entitlement check
 
 - **Classification**: Open cross-context authorization risk
-- **Observed**: Any Active User can obtain a generic server-sent-events token, and the Game stream accepts an arbitrary Game ID without consulting Game Lifecycle for entitlement. The Ably token has an identity but no visible topic capability restriction.
-- **Evidence**: `apps/backend/src/app/routes/api/sse/token.ts:4`; `apps/backend/src/app/routes/api/sse/game.ts:16`; `libs/backend-services/src/ably/ablyService.ts:16`
+- **Observed**: Any Active User can obtain a generic server-sent-events token, and the Game stream accepts an arbitrary Game ID without consulting Game Lifecycle for entitlement. The Ably token and the relay token both name the Topics they grant (the caller's own user Topic, the global Topic and the requested game Topics, `apps/backend/src/app/lib/realtimeTopics.ts`), but neither consults Game Lifecycle for the game Topics.
+- **Evidence**: `apps/backend/src/app/routes/api/sse/token.ts:4`; `apps/backend/src/app/routes/api/sse/game.ts:16`; `apps/backend/src/app/lib/realtimeTopics.ts`
 - **Open question**: Identity proves the User Account; Game Lifecycle and Notification Delivery still need an agreed topic-entitlement policy.
 
 ### Account and role administration are absent
@@ -473,8 +473,8 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### Game audience capabilities are not enforced
 
 - **Classification**: Authorization defect with cross-context policy dependency
-- **Observed**: An Active Account can request an SSE stream for an arbitrary Game ID, while Ably tokens carry an identity but no audience capabilities and clients may attach arbitrary named channels.
-- **Evidence**: `apps/backend/src/app/routes/api/sse/game.ts:16`; `libs/backend-services/src/ably/ablyService.ts:16`; `apps/frontend/src/lib/network/ablyConnection.svelte.ts:55`
+- **Observed**: An Active Account can request an SSE stream for an arbitrary Game ID. Ably tokens used to carry an identity but no audience capabilities, so a client could attach any named channel, including another Account's user Topic, and publish on any channel the issuing key allowed. The Ably token now grants subscribe only, on exactly the Topics the relay token would grant (`libs/backend-services/src/ably/ablyService.ts`; `apps/backend/src/app/routes/api/auth/ably/token.ts`), and the client renews its token before attaching a game channel the current token does not cover (`apps/frontend/src/lib/network/ablyConnection.svelte.ts`). Game Topic entitlement remains the open policy below.
+- **Evidence**: `apps/backend/src/app/routes/api/sse/game.ts:16`; `apps/backend/src/app/lib/realtimeTopics.ts`
 - **Invariant**: Identity and Access proves the Account, Game Lifecycle decides Game Instance Audience entitlement, and Notification Delivery enforces only granted Audience capabilities. A User Audience contains exactly its Active Account, a Game Instance Audience contains Active Accounts permitted to access that Hosted Game, and the Global Audience contains every Active Account.
 
 ### SSE channel identity and connection state are corrupted
