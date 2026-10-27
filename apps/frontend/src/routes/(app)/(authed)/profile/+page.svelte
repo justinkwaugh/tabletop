@@ -180,8 +180,7 @@
         logoutEverywhereFailed = false
         try {
             await api.logoutAll()
-        } catch (e) {
-            console.log(e)
+        } catch {
             logoutEverywhereFailed = true
             return
         }
@@ -384,8 +383,8 @@
         </div>
         {#if logoutEverywhereFailed}
             <Alert class="dark:bg-red-200 dark:text-red-700 mt-4">
-                <span class="font-bold text-lg">Sign out everywhere failed</span><br />
-                Your sessions are unchanged. Please try again.
+                <span class="font-bold text-lg">We could not confirm the sign-out</span><br />
+                Other sessions may still be active. Please try again.
             </Alert>
         {/if}
     </Card>

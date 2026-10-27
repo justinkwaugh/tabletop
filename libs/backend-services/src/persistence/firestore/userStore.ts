@@ -151,6 +151,11 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         )
     }
 
+    @Timed('store.user.findByIdUncached')
+    async findByIdUncached(id: string): Promise<User | undefined> {
+        return await this.readUser(id)
+    }
+
     @Timed('store.user.findByIds')
     async findByIds(ids: string[]): Promise<(User | undefined)[]> {
         if (!ids.length) return []

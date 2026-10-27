@@ -119,6 +119,7 @@ describe('Discord linking callbacks are bound to the initiating session', () => 
         expect(begun.json().payload.authorizationUrl).toBe(
             `https://discord.test/authorize?redirect_uri=${encodeURIComponent('https://site.test/oauth/discord/link')}&state=${state}`
         )
+        expect(begun.json().payload.expiresInSeconds).toBe(OAUTH_STATE_LIFETIME_SECONDS)
         const linked = await f.post(
             '/auth/discord/link',
             { code: 'victim-code', state },

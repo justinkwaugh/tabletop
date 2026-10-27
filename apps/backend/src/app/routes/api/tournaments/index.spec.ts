@@ -31,8 +31,8 @@ async function setup(roles: Role[]) {
     await server.register(sensible)
     await server.register(secureSession, { key: randomBytes(32), cookie: { path: '/' } })
     const { sessionService } = memorySessions()
-    Reflect.set(server, 'sessionService', sessionService)
-    Reflect.set(server, 'userService', { getUser: async () => user })
+    server.decorate('sessionService', sessionService)
+    server.decorate('userService', { getUserForAuthorization: async () => user })
     const change = vi.fn(async () => ({ id: 'event' }))
     Reflect.set(server, 'tournamentService', {
         list: change,

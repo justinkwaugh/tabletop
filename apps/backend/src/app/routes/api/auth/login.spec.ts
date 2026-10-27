@@ -25,10 +25,10 @@ async function createServer(status: UserStatus) {
     const { sessionService, sessionStore } = memorySessions()
     const server = await sessionServer(sessionService)
     const user = account(status)
-    Reflect.set(server, 'userService', {
+    server.decorate('userService', {
         getUserByUsernameAndPassword: async (username: string, password: string) =>
             username === 'Person' && password === 'correct-horse-battery' ? user : undefined,
-        getUser: async (id: string) => (id === user.id ? user : undefined)
+        getUserForAuthorization: async (id: string) => (id === user.id ? user : undefined)
     })
     await server.register(login, { prefix: '/auth' })
     return { server, sessionStore }

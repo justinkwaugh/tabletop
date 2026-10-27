@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Alert, Button, Label, P } from 'flowbite-svelte'
+    import { toast } from 'svelte-sonner'
     import { ExternalAuthService } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
     import AuthModal from '$lib/components/AuthModal.svelte'
@@ -12,7 +13,6 @@
     } from '$lib/components/DiscordSignIn.svelte'
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
     import { reauthentication } from '$lib/stores/reauthentication.svelte'
-    import type { DiscordAuthorizationResult } from '$lib/utils/discordAuthorization'
 
     const { authorizationService, api } = getAppContext()
     const id = $props.id()
@@ -37,7 +37,11 @@
     async function confirmed() {
         password = ''
         failed = false
-        await reauthentication.complete()
+        try {
+            await reauthentication.complete()
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'The confirmed action failed')
+        }
     }
 
     function cancel() {
@@ -58,12 +62,6 @@
             failed = true
         } finally {
             submitting = false
-        }
-    }
-
-    async function discordCompleted(result: DiscordAuthorizationResult) {
-        if (result.outcome === 'success') {
-            await confirmed()
         }
     }
 </script>
@@ -95,7 +93,7 @@
             <GoogleSignIn mode="reauthenticate" oncomplete={confirmed} />
         {/if}
         {#if canUseDiscord}
-            <DiscordSignIn mode="reauthenticate" oncomplete={discordCompleted} />
+            <DiscordSignIn mode="reauthenticate" oncomplete={confirmed} />
         {/if}
         {#if !canUsePassword && !canUseGoogle && !canUseDiscord}
             <P class="text-sm text-gray-600 dark:text-gray-300">
