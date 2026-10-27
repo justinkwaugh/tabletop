@@ -24,7 +24,7 @@ import { deployGame, deployGameArtifacts, releaseGame } from './lib/gamePublish.
 import { migrateLogicArtifacts } from './lib/logicArtifacts.js'
 import { listHistory, rollback, switchFrontend, switchGame } from './lib/publicationHistory.js'
 import { DEFAULT_GRACE_DAYS, prune, pruneAfterDeploy, type PruneScope } from './lib/prune.js'
-import { type PublishContext } from './lib/publishCore.js'
+import type { PublishContext } from './lib/publishCore.js'
 import { deployRealtime, releaseRealtime, rollbackRealtime } from './lib/realtimePublish.js'
 import { getCataloguePath, getDeployConfigPath, getRepoRoot } from './lib/paths.js'
 import {
@@ -34,7 +34,7 @@ import {
     runGamePreflight,
     runRealtimePreflight
 } from './lib/releasePreflight.js'
-import { type BumpType } from './lib/versions.js'
+import type { BumpType } from './lib/versions.js'
 
 const repoRoot = getRepoRoot()
 const cataloguePath = getCataloguePath(repoRoot)

@@ -27,7 +27,7 @@ import {
     validNeutralTilePlacements,
     validSpringPlacements
 } from '@tabletop/santiago'
-import { type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import { TileDealAnimator } from '$lib/animators/tileDealAnimator.svelte.js'
 import { ActionBarAnimator } from '$lib/animators/actionBarAnimator.svelte.js'
 import { CanalBuildAnimator } from '$lib/animators/canalBuildAnimator.svelte.js'

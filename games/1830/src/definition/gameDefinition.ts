@@ -18,7 +18,7 @@ import { EighteenThirtyTrackRules } from '../trackRules.js'
 import { EighteenThirtyOperatingRules } from '../roundRules.js'
 import { EighteenThirtyCompanyRules } from '../companyRules.js'
 import { EighteenThirtyStockRules } from '../stockRules.js'
-import { type GameDefinition } from '@tabletop/common'
+import type { GameDefinition } from '@tabletop/common'
 import { EighteenThirtyInfo } from './info.js'
 import {
     EighteenThirtyStateDefinition,
