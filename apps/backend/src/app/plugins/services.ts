@@ -105,7 +105,6 @@ const useAbly = !!process.env['ABLY_API_KEY']
 const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
 const useCharityTally = !!process.env['TILTIFY_CLIENT_ID']
-// Writes States and action chunks zstd-compressed when 'zstd'; both encodings are always read.
 const GAME_STORAGE_ENCODING = storedJsonEncoding(process.env['GAME_STORAGE_ENCODING'])
 
 type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle'>

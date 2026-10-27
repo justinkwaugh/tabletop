@@ -190,5 +190,34 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 actionIds: ['action-0', 'action-1']
             })
         })
+
+        it('finds, ranges and undoes actions in a compressed chunk', async () => {
+            await zstd.writeFullGameData(game(), state(3), [action(0), action(1), action(2)])
+            await clearCache()
+
+            const read = await json.readGameData(gameId, async (reader) => ({
+                range: await reader.actionRange(1, 3),
+                window: await reader.undoWindow('action-1')
+            }))
+            expect(read?.range.map((stored) => stored.id)).toEqual(['action-1', 'action-2'])
+            expect(read?.window?.targetAction.id).toBe('action-1')
+
+            const undone = await zstd.undoActionsFromGame({
+                gameId,
+                actions: [action(1), action(2)],
+                redoneActions: [],
+                state: state(1),
+                validator: async () => UpdateValidationResult.Proceed
+            })
+            expect(undone.undoneActions.map((stored) => stored.id).sort()).toEqual([
+                'action-1',
+                'action-2'
+            ])
+
+            const after = await storedFields()
+            expect(after.chunk.actionsZstd).toBeInstanceOf(Uint8Array)
+            expect(after.chunk.actionIds).toEqual(['action-0'])
+            expect(await loaded(json)).toEqual({ actionCount: 1, actionIds: ['action-0'] })
+        })
     }
 )

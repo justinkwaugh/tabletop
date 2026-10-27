@@ -11,17 +11,3 @@ export const ActionChunk = Type.Object({
     endIndex: Type.Number(),
     actions: Type.Array(GameAction)
 })
-
-export type StoredActionChunk = Static<typeof StoredActionChunk>
-export const StoredActionChunk = Type.Evaluate(
-    Type.Intersect([
-        Type.Omit(ActionChunk, ['actions']),
-        Type.Object({
-            actions: Type.Optional(Type.Array(GameAction)),
-            // The actions as JSON text, or zstd-compressed (see storedJson.ts); a chunk holds one
-            actionsData: Type.Optional(Type.String()),
-            actionsZstd: Type.Optional(Type.Unsafe<Uint8Array>({})),
-            actionIds: Type.Array(Type.String())
-        })
-    ])
-)

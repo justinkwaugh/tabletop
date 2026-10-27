@@ -1,27 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import { zstdDecompressSync } from 'node:zlib'
-import { decodeStoredJson, encodeStoredJson, storedJsonEncoding } from './storedJson.js'
+import { StoredJson, storedJsonEncoding } from './storedJson.js'
 
-describe('stored JSON encoding', () => {
-    const value = { gameId: 'g1', players: ['p1', 'p2'], note: 'é' }
+describe('stored JSON payloads', () => {
+    const payload = new StoredJson<{ gameId: string; note: string }>('data', 'dataZstd', 'test')
+    const value = { gameId: 'g1', note: 'é' }
 
     it('writes JSON text or zstd bytes and reads either back', () => {
-        const text = encodeStoredJson(value, 'json', 'test')
-        expect(text).toBe(JSON.stringify(value))
-        expect(decodeStoredJson(text, undefined, 'test')).toEqual(value)
+        const text = payload.encode(value, 'json')
+        expect(text).toEqual({ data: JSON.stringify(value) })
+        expect(payload.decode(text)).toEqual(value)
 
-        const compressed = encodeStoredJson(value, 'zstd', 'test')
-        expect(compressed).toBeInstanceOf(Uint8Array)
-        expect(zstdDecompressSync(compressed as Uint8Array).toString('utf8')).toBe(
-            JSON.stringify(value)
-        )
-        expect(decodeStoredJson(undefined, compressed, 'test')).toEqual(value)
+        const compressed = payload.encode(value, 'zstd')
+        expect(Object.keys(compressed)).toEqual(['dataZstd'])
+        expect(zstdDecompressSync(compressed.dataZstd).toString('utf8')).toBe(JSON.stringify(value))
+        expect(payload.decode(compressed)).toEqual(value)
     })
 
-    it('prefers the compressed payload and reads nothing when neither is present', () => {
-        const compressed = encodeStoredJson(value, 'zstd', 'test')
-        expect(decodeStoredJson('{"stale":true}', compressed, 'test')).toEqual(value)
-        expect(decodeStoredJson(undefined, undefined, 'test')).toBeUndefined()
+    it('prefers the compressed payload and rejects a document with neither', () => {
+        const compressed = payload.encode(value, 'zstd')
+        expect(payload.decode({ data: '{"stale":true}', ...compressed })).toEqual(value)
+        expect(() => payload.decode({})).toThrow('test document has no data')
     })
 
     it('parses the configured encoding, defaulting to JSON', () => {

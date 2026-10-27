@@ -1,6 +1,6 @@
 # Game Storage Encoding
 
-Each action rewrites the Game's State document and its current action chunk (up to 200 actions). The game store keeps each payload as JSON text (`states.data`, `actionChunks.actionsData`) or zstd-compressed in a bytes field beside it (`states.dataZstd`, `actionChunks.actionsZstd`). Every backend that has `storedJson.ts` reads both, and a document holds one of the two. The `GAME_STORAGE_ENCODING` environment variable picks the encoding for writes: `json` (the default) or `zstd`. A document changes encoding the next time it is written, so turning compression on or off needs no migration (#115).
+Each action rewrites the Game's State document and its current action chunk (up to 200 actions). The game store keeps each payload as JSON text (`states.data`, `actionChunks.actionsData`) or zstd-compressed in a bytes field beside it (`states.dataZstd`, `actionChunks.actionsZstd`). Backends from the step 2 release on read both, and a document holds one of the two. The `GAME_STORAGE_ENCODING` environment variable picks the encoding for writes: `json` (the default) or `zstd`. A document changes encoding the next time it is written, so turning compression on or off needs no migration (#115).
 
 zstd stores chunks about 10 times smaller and States 5 to 10 times smaller. Locally it costs 0.4 ms per write and 0.3 ms per read for the largest chunk, and up to 0.13 ms per State.
 
@@ -8,17 +8,17 @@ zstd stores chunks about 10 times smaller and States 5 to 10 times smaller. Loca
 
 1. Deploy the field exemptions in `firebase/firestore.indexes.json` (`actionChunks.actionsData`, `actionChunks.actionsZstd`, `states.*`) and wait until they are ready. Without the `actionsZstd` exemption, Firestore indexes the bytes field on every chunk write.
 2. Release the backend with `GAME_STORAGE_ENCODING` unset. That release reads both encodings and still writes JSON.
-3. Once it is serving, set the variable on both services. Both write States and chunks, `tasks` for automatic actions. The deploy tool pins traffic to its named revision, so route traffic to the new revision as well:
+3. Once it is serving, set the variable on both services. Both write States and chunks, `tasks` for automatic actions. The deploy tool pins traffic to its named revision, so route traffic to the new revision as well. Revision names take the deploy tool's dashed form of the version, so backend 1.46.0 is `v1-46-0`:
 
     ```sh
     for service in tasks backend; do
       gcloud run services update "$service" \
         --project tabletop-426201 --region us-central1 \
         --update-env-vars=GAME_STORAGE_ENCODING=zstd \
-        --revision-suffix="v<version>-zstd"
+        --revision-suffix="v1-46-0-zstd"
       gcloud run services update-traffic "$service" \
         --project tabletop-426201 --region us-central1 \
-        --to-revisions="$service-v<version>-zstd=100"
+        --to-revisions="$service-v1-46-0-zstd=100"
     done
     ```
 

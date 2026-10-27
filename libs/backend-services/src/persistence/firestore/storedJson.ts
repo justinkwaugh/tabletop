@@ -1,9 +1,8 @@
 import { zstdCompressSync, zstdDecompressSync } from 'node:zlib'
+import type { DocumentData } from '@google-cloud/firestore'
+import { assert, type GameAction, type GameState } from '@tabletop/common'
 import { countTiming, measureSync } from '../../diagnostics/requestTimings.js'
 
-// How the game store writes a document's JSON payload: as a text field, or zstd-compressed in a
-// bytes field beside it. Readers accept either, so switching encodings never strands a document;
-// only a backend from before zstd reading cannot load a compressed one.
 export type StoredJsonEncoding = 'json' | 'zstd'
 
 export function storedJsonEncoding(value: string | undefined): StoredJsonEncoding {
@@ -12,28 +11,41 @@ export function storedJsonEncoding(value: string | undefined): StoredJsonEncodin
     throw new Error(`Unknown stored JSON encoding: ${value}`)
 }
 
-// Counts the payload's JSON and stored sizes and times each step under `metric`, so request
-// timing logs show what the encoding costs.
-export function encodeStoredJson(
-    value: unknown,
-    encoding: StoredJsonEncoding,
-    metric: string
-): string | Uint8Array {
-    const text = measureSync(`${metric}.stringify`, () => JSON.stringify(value))
-    countTiming(`${metric}.jsonBytes`, Buffer.byteLength(text))
-    if (encoding === 'json') return text
-    const compressed = measureSync(`${metric}.compress`, () => zstdCompressSync(text))
-    countTiming(`${metric}.zstdBytes`, compressed.byteLength)
-    return compressed
+// A document keeps its payload in one of two fields. Readers accept both so the write encoding
+// can change either way; backends from before the zstd field cannot read it.
+export class StoredJson<T> {
+    constructor(
+        private readonly textField: string,
+        private readonly zstdField: string,
+        private readonly metric: string
+    ) {}
+
+    encode(value: T, encoding: StoredJsonEncoding): DocumentData {
+        const text = measureSync(`${this.metric}.stringify`, () => JSON.stringify(value))
+        countTiming(`${this.metric}.jsonBytes`, Buffer.byteLength(text))
+        if (encoding === 'json') return { [this.textField]: text }
+        const compressed = measureSync(`${this.metric}.compress`, () => zstdCompressSync(text))
+        countTiming(`${this.metric}.zstdBytes`, compressed.byteLength)
+        return { [this.zstdField]: compressed }
+    }
+
+    decode(document: DocumentData): T {
+        const compressed: unknown = document[this.zstdField]
+        if (compressed instanceof Uint8Array) {
+            const text = measureSync(`${this.metric}.decompress`, () =>
+                zstdDecompressSync(compressed).toString('utf8')
+            )
+            return JSON.parse(text)
+        }
+        const text: unknown = document[this.textField]
+        assert(typeof text === 'string', `${this.metric} document has no ${this.textField}`)
+        return JSON.parse(text)
+    }
 }
 
-export function decodeStoredJson(text: unknown, compressed: unknown, metric: string): unknown {
-    if (compressed instanceof Uint8Array) {
-        const decompressed = measureSync(`${metric}.decompress`, () =>
-            zstdDecompressSync(compressed)
-        )
-        return JSON.parse(decompressed.toString('utf8'))
-    }
-    if (typeof text === 'string') return JSON.parse(text)
-    return undefined
-}
+export const storedState = new StoredJson<GameState>('data', 'dataZstd', 'store.state')
+export const storedActions = new StoredJson<GameAction[]>(
+    'actionsData',
+    'actionsZstd',
+    'store.actionChunk'
+)

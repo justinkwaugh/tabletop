@@ -32,13 +32,10 @@ export function validateLocalOptions({ site, backend, firestoreHost, redisHost, 
 export async function openLocalStore(options) {
     validateLocalOptions(options)
     process.env.FIRESTORE_EMULATOR_HOST = options.firestoreHost
-    const [{ FirestoreGameStore }, { RedisCacheService }, { decodeStoredJson }] = await Promise.all(
-        [
-            import('../../../backend-services/esm/persistence/firestore/gameStore.js'),
-            import('../../../backend-services/esm/cache/cacheService.js'),
-            import('../../../backend-services/esm/persistence/firestore/storedJson.js')
-        ]
-    )
+    const [{ FirestoreGameStore }, { RedisCacheService }] = await Promise.all([
+        import('../../../backend-services/esm/persistence/firestore/gameStore.js'),
+        import('../../../backend-services/esm/cache/cacheService.js')
+    ])
     const firestore = new Firestore({
         projectId: options.project,
         host: options.firestoreHost,
@@ -59,16 +56,15 @@ export async function openLocalStore(options) {
     }
     const cache = new RedisCacheService({ client })
     const store = new FirestoreGameStore(cache, firestore)
-    return new LocalRehearsalStore(firestore, client, cache, store, decodeStoredJson)
+    return new LocalRehearsalStore(firestore, client, cache, store)
 }
 
 class LocalRehearsalStore {
-    constructor(firestore, client, cache, store, decodeStoredJson) {
+    constructor(firestore, client, cache, store) {
         this.firestore = firestore
         this.client = client
         this.cache = cache
         this.store = store
-        this.decodeStoredJson = decodeStoredJson
     }
 
     async createPlayers(game) {
@@ -129,6 +125,8 @@ class LocalRehearsalStore {
     }
 
     async verifyPersistence(gameId, expected) {
+        const { storedState, storedActions } =
+            await import('../../../backend-services/esm/persistence/firestore/storedJson.js')
         const reference = this.firestore.collection('games').doc(gameId)
         const [gameDocument, stateDocument, chunks] = await Promise.all([
             reference.get(),
@@ -136,20 +134,13 @@ class LocalRehearsalStore {
             reference.collection('actionChunks').get()
         ])
         const game = gameDocument.data()
-        const stored = stateDocument.data()
-        const state = this.decodeStoredJson(stored.data, stored.dataZstd, 'state')
+        const state = storedState.decode(stateDocument.data())
         assert.deepEqual(state, jsonCopy(expected), 'Persisted State differs from the host API')
         assert.deepEqual(game.activePlayerIds, state.activePlayerIds)
         assert.deepEqual(game.winningPlayerIds, state.winningPlayerIds)
         assert.equal(game.status, state.result ? 'finished' : 'started')
         const actions = chunks.docs
-            .flatMap((document) =>
-                this.decodeStoredJson(
-                    document.data().actionsData,
-                    document.data().actionsZstd,
-                    'actionChunk'
-                )
-            )
+            .flatMap((document) => storedActions.decode(document.data()))
             .sort((left, right) => left.index - right.index)
         assert.equal(actions.length, state.actionCount)
         assert.equal(calculateActionChecksum(0, actions), state.actionChecksum)

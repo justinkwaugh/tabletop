@@ -39,10 +39,16 @@ test('redact and parseStoredJsonOr expand zstd-compressed game store payloads', 
     const actions = [{ id: 'a1', index: 0 }]
     const zstd = (value) => zstdCompressSync(JSON.stringify(value))
     assert.deepEqual(
-        redact({ dataZstd: zstd(state), actionsZstd: zstd(actions), other: Buffer.from('xy') }),
+        redact({
+            dataZstd: zstd(state),
+            actionsZstd: zstd(actions),
+            brokenZstd: Buffer.from('not zstd'),
+            other: Buffer.from('xy')
+        }),
         {
             dataZstd: { gameId: 'g1', secrets: '<REDACTED>' },
             actionsZstd: JSON.stringify(actions),
+            brokenZstd: '<8 bytes>',
             other: '<2 bytes>'
         }
     )

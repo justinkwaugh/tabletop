@@ -63,7 +63,6 @@ import {
 } from '../stores/errors.js'
 import { StoredAction } from '../model/storedAction.js'
 import { StoredGame } from '../model/storedGame.js'
-import { StoredState } from '../model/storedState.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import {
@@ -83,8 +82,8 @@ import {
 import { GameCacheKeys } from './gameCacheKeys.js'
 import { gameChatBookmarks } from './gameChatDocuments.js'
 import { nanoid } from 'nanoid'
-import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
-import { decodeStoredJson, encodeStoredJson, type StoredJsonEncoding } from './storedJson.js'
+import { ActionChunk } from '../model/storedActionChunk.js'
+import { storedActions, storedState, type StoredJsonEncoding } from './storedJson.js'
 import * as Value from 'typebox/value'
 import {
     assertUndoActionStorageSupported,
@@ -122,15 +121,14 @@ const LEGACY_EARLIER_ACTIONS = 20
 export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
     readonly games: CollectionReference<Game>
     private readonly tournamentCacheKeys: TournamentCacheKeys
-    private readonly stateConverter: FirestoreDataConverter<GameState, StoredState>
-    private readonly actionChunkConverter: FirestoreDataConverter<ActionChunk, StoredActionChunk>
+    private readonly stateConverter: FirestoreDataConverter<GameState>
+    private readonly actionChunkConverter: FirestoreDataConverter<ActionChunk>
 
     constructor(
         private readonly cacheService: RedisCacheService,
         private firestore: Firestore,
         {
             tournamentCachePrefix = 'tournaments:v1',
-            // States and action chunks are written in this encoding; both are always read.
             encoding = 'json'
         }: { tournamentCachePrefix?: string; encoding?: StoredJsonEncoding } = {}
     ) {
@@ -2327,17 +2325,12 @@ const gameConverter = {
     }
 }
 
-const stateConverter = (
-    encoding: StoredJsonEncoding
-): FirestoreDataConverter<GameState, StoredState> => ({
-    toFirestore(gameState: GameState): StoredState {
-        const stored = encodeStoredJson(gameState, encoding, 'store.state')
-        return typeof stored === 'string' ? { data: stored } : { dataZstd: stored }
+const stateConverter = (encoding: StoredJsonEncoding): FirestoreDataConverter<GameState> => ({
+    toFirestore(gameState: GameState): DocumentData {
+        return storedState.encode(gameState, encoding)
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): GameState {
-        const docData = snapshot.data() as StoredState
-        const state = decodeStoredJson(docData.data, docData.dataZstd, 'store.state') as GameState
-        return migrateFromSeedToPrng(state)
+        return migrateFromSeedToPrng(storedState.decode(snapshot.data()))
     }
 })
 
@@ -2371,26 +2364,26 @@ const actionConverter = {
 
 const actionChunkConverter = (
     encoding: StoredJsonEncoding
-): FirestoreDataConverter<ActionChunk, StoredActionChunk> => ({
-    toFirestore(chunk: ActionChunk): StoredActionChunk {
-        const { actions, ...docData } = chunk
-        const stored = encodeStoredJson(actions, encoding, 'store.actionChunk')
+): FirestoreDataConverter<ActionChunk> => ({
+    toFirestore(chunk: ActionChunk): DocumentData {
+        const { actions, ...fields } = chunk
         return {
-            ...structuredClone(docData),
-            ...(typeof stored === 'string' ? { actionsData: stored } : { actionsZstd: stored }),
+            ...structuredClone(fields),
+            ...storedActions.encode(actions, encoding),
             actionIds: actions.map((action) => action.id)
         }
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): ActionChunk {
-        const data = snapshot.data() as Partial<StoredActionChunk>
-        const actions = decodeStoredJson(data.actionsData, data.actionsZstd, 'store.actionChunk')
-        if (actions !== undefined) data.actions = actions as GameAction[]
-        delete data.actionsData
-        delete data.actionsZstd
-        delete data.actionIds
-
-        data.createdAt = data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined
-        data.updatedAt = data.updatedAt ? (data.updatedAt as Timestamp).toDate() : undefined
-        return data as ActionChunk
+        const document = snapshot.data()
+        const { id, gameId, startIndex, endIndex, createdAt, updatedAt } = document
+        return {
+            id,
+            gameId,
+            startIndex,
+            endIndex,
+            createdAt: createdAt?.toDate(),
+            updatedAt: updatedAt?.toDate(),
+            actions: storedActions.decode(document)
+        }
     }
 })
