@@ -3,7 +3,6 @@ import {
     HydratedTrade,
     TradeOption,
     defaultTolls,
-    suitOf,
     type HydratedOathGameState,
     type ModifierUse,
     type Suit
@@ -57,7 +56,8 @@ export function tradeRows(
     const sites = [own, ...state.faceupSiteIds().filter((siteId) => siteId !== own)]
     return sites.flatMap((siteId) =>
         state.denizensAt(siteId).flatMap((cardId): TradeRow[] => {
-            const suit = suitOf(cardId)
+            // R-2.9 — a ruin shows no suit, so it is never listed.
+            const suit = state.suitInPlay(cardId)
             if (!suit) return []
             const tolls = defaultTolls(state, playerId, { kind: 'trade', cardId })
             const choices = OPTIONS.flatMap((option): TradeChoice[] => {

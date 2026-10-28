@@ -24,7 +24,7 @@
     import HarnessGame from './HarnessGame.svelte'
     import GameEditForm from './GameEditForm.svelte'
     import DeleteModal from './DeleteModal.svelte'
-    import { type GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
+    import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
     import { setAppContext } from '$lib/model/appContext.js'
     import { createHarnessAppContext } from '$lib/harness/harnessContext.js'
     import { HarnessSessions } from '$lib/harness/harnessSessions.svelte.js'

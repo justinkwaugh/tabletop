@@ -1,9 +1,10 @@
 <script lang="ts">
     import type { CardKind } from '@tabletop/oath'
-    import { cardBack, cardImage } from '$lib/images/cardImages.js'
+    import { cardBack, cardImageInPlay } from '$lib/images/cardImages.js'
     import { cardAspect } from '$lib/images/cardShape.js'
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
-    import { cardName } from '$lib/model/names.js'
+    import { cardNameInPlay } from '$lib/model/names.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let {
         cardId,
@@ -22,16 +23,22 @@
         class?: string
     } = $props()
 
+    // R-2.9 — a card in play is drawn and named by the side that is up.
+    let gameSession = getGameSession()
+
     let inspectable = $derived(inspect && back === undefined && cardId !== undefined)
     // R-9.4 — a facedown card is never named from its own id.
     let name = $derived(
-        label ?? (back !== undefined || cardId === undefined ? 'Face down' : cardName(cardId))
+        label ??
+            (back !== undefined || cardId === undefined
+                ? 'Face down'
+                : cardNameInPlay(gameSession.gameState, cardId))
     )
     let preview = $derived({ cardId, back, label: name })
 
     let src = $derived.by(() => {
         if (back !== undefined) return cardBack(back)
-        return cardId ? cardImage(cardId) : undefined
+        return cardId ? cardImageInPlay(gameSession.gameState, cardId) : undefined
     })
 
     let height = $derived(Math.round(width / cardAspect({ cardId, back })))

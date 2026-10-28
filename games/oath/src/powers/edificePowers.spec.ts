@@ -211,7 +211,8 @@ describe("Hall of Mockery — Recovering the People's Favor always flips it to t
         expect(recover.metadata).toMatchObject({
             amountPaid: 2,
             favorRedistributedTo: [Suit.Hearth],
-            flippedToMob: true
+            flippedToMob: true,
+            mobSideBefore: false
         })
         expect(state.getPlayerState(RHYS).favor).toBe(2)
         // R-4.1.1 — the Mob side's Wake step then applies.
@@ -225,6 +226,7 @@ describe("Hall of Mockery — Recovering the People's Favor always flips it to t
         recover.apply(state)
         expect(state.banners[Banner.PeoplesFavor].mobSide).toBe(false)
         expect(recover.metadata?.flippedToMob).toBeUndefined()
+        expect(recover.metadata?.mobSideBefore).toBeUndefined()
         expect(peoplesFavorStepCount(state)).toBe(1)
     })
 
@@ -239,8 +241,11 @@ describe("Hall of Mockery — Recovering the People's Favor always flips it to t
             holderPlayerId: DANA,
             mobSide: true
         })
-        recoverPeoplesFavor(DANA, 3).apply(state)
+        const again = recoverPeoplesFavor(DANA, 3)
+        again.apply(state)
         expect(state.banners[Banner.PeoplesFavor].mobSide).toBe(true)
+        // The History says it stayed on its Mob side, not that it went there.
+        expect(again.metadata).toMatchObject({ flippedToMob: true, mobSideBefore: true })
     })
 
     it('acts while the bandits rule it', () => {
@@ -446,6 +451,27 @@ describe('Sprawling Rampart — Each site ruled by its ruler adds one more defen
         expect(siteDice(rampartTable('empire', true), DANA, PLAINS_SLOT)).toBe(1)
     })
 
+    it('the Campaign records each targeted site it added a die to, for the History', () => {
+        const state = rampartTable('empire')
+        const action = campaign(RHYS, DANA, [siteTarget(PLAINS_SLOT)], 2)
+        action.apply(state)
+        expect(action.metadata?.battle?.defenseBonusSites).toEqual([PLAINS_SLOT])
+        expect(action.metadata?.battle?.defensePool).toBe(2)
+    })
+
+    it('records nothing when it adds no die: its ruined side, or a site its ruler does not rule', () => {
+        for (const [ruler, ruined] of [
+            ['empire', true],
+            ['bandits', false]
+        ] as const) {
+            const state = rampartTable(ruler, ruined)
+            const action = campaign(RHYS, DANA, [siteTarget(PLAINS_SLOT)], 2)
+            action.apply(state)
+            expect(action.metadata?.battle).toBeDefined()
+            expect(action.metadata?.battle?.defenseBonusSites).toBeUndefined()
+        }
+    })
+
     it('a bandit-ruled Rampart adds a die to each bandit site targeted, and none to a player’s', () => {
         const state = rampartTable('bandits')
         expect(siteDice(state, DANA, PLAINS_SLOT)).toBe(1)
@@ -494,8 +520,13 @@ describe('Bandit Rampart — −2 attack dice if this site is targeted (a defend
         const state = banditRampartTable(RIVER_SLOT)
         const parties = declaredParties(state, RHYS, undefined, [siteTarget(RIVER_SLOT)])
         expect(banditBattlePlans(state, parties).map((p) => p.power.powerIndex)).toEqual([RUINED])
-        campaign(RHYS, undefined, [siteTarget(RIVER_SLOT)], 3).apply(state)
+        const action = campaign(RHYS, undefined, [siteTarget(RIVER_SLOT)], 3)
+        action.apply(state)
         expect(ongoingCampaign(state).attackPool).toBe(1)
+        // Nobody declares the bandits' plans, so the History reads it from this note.
+        expect(action.metadata?.battle?.planNotes).toEqual([
+            'Bandit Rampart: the bandits took 2 attack dice'
+        ])
     })
 
     it("meets the Mountain's −1: 2 attack dice lose 3, so one becomes a defense die (R-5.5.3)", () => {
@@ -542,8 +573,11 @@ describe('Bandit Rampart — −2 attack dice if this site is targeted (a defend
         ).toContainEqual([SPRAWLING_RAMPART, RUINED])
         campaign(RHYS, DANA, [siteTarget(RIVER_SLOT)], 3).apply(state)
         const before = ongoingCampaign(state).attackPool
-        defend([{ cardId: SPRAWLING_RAMPART, powerIndex: RUINED }], DANA).apply(state)
+        const defended = defend([{ cardId: SPRAWLING_RAMPART, powerIndex: RUINED }], DANA)
+        defended.apply(state)
         expect(ongoingCampaign(state).attackPool).toBe(before - 2)
+        // A player's use is named by their own row ("used Bandit Rampart"), so it writes no note.
+        expect(defended.metadata?.planNotes).toBeUndefined()
     })
 
     it('does nothing when its site is not targeted', () => {

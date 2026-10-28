@@ -1,17 +1,13 @@
 <script lang="ts">
-    import type { GameAction } from '@tabletop/common'
     import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { SPACE_NAMES, describeAction, winVerb } from '$lib/utils/describeAction.js'
     import {
-        SPACE_NAMES,
-        actionSale,
-        describeAction,
-        revealedBids,
-        saleDescription,
-        winVerb,
-        withdrawnBidders
-    } from '$lib/utils/describeAction.js'
-    import { entryActions, historyEntries, type HistoryEntry } from '$lib/utils/history.js'
+        entryActions,
+        historyEntries,
+        historyLines,
+        type HistoryEntry
+    } from '$lib/utils/history.js'
     import Description from './Description.svelte'
     import CompanyBadge from './CompanyBadge.svelte'
 
@@ -37,10 +33,6 @@
             event.preventDefault()
             void jumpTo(entry)
         }
-    }
-
-    function detailActions(entry: HistoryEntry): GameAction[] {
-        return entry.kind === 'turn' ? entry.actions.slice(1) : entryActions(entry)
     }
 </script>
 
@@ -75,6 +67,7 @@
                 <Description description={describeAction(entry.action)} />
             </div>
         {:else}
+            {@const lines = historyLines(entry)}
             <section class="entry">
                 <div
                     class="head jump"
@@ -95,26 +88,30 @@
                         {#if entry.companyId}<CompanyBadge companyId={entry.companyId} />{/if}
                     {/if}
                 </div>
-                {#each detailActions(entry) as action (action.id)}
-                    {@const sale = actionSale(action)}
-                    <div class="line">
-                        {#if action.playerId}<PlayerName playerId={action.playerId} />{/if}
-                        <Description description={describeAction(action)} />
+                {#if lines.length > 0}
+                    <div class="lines">
+                        {#each lines as line (line.key)}
+                            {#if line.kind === 'bids'}
+                                <div class="bids">
+                                    {#each line.bids as bid (bid.playerId)}
+                                        <span class="who"
+                                            ><PlayerName playerId={bid.playerId} /></span
+                                        >
+                                        <span class="amount">${bid.amount}</span>
+                                        <span class="note">{bid.note}</span>
+                                    {/each}
+                                </div>
+                            {:else}
+                                <span class="who">
+                                    {#if line.playerId}<PlayerName playerId={line.playerId} />{/if}
+                                </span>
+                                <span class="what {line.tone}">
+                                    <Description description={line.description} />
+                                </span>
+                            {/if}
+                        {/each}
                     </div>
-                    {#each withdrawnBidders(action) as playerId (playerId)}
-                        <div class="line sub">
-                            <PlayerName {playerId} /> cannot afford to bid on
-                        </div>
-                    {/each}
-                    {#if sale}
-                        <div class="line result">
-                            <Description description={saleDescription(sale)} />
-                        </div>
-                    {/if}
-                    {#each revealedBids(action) as bid, index (index)}
-                        <div class="line bid"><Description description={bid} /></div>
-                    {/each}
-                {/each}
+                {/if}
             </section>
         {/if}
     {/each}
@@ -169,24 +166,50 @@
         cursor: pointer;
     }
 
-    .line {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 4px;
-        padding-left: 8px;
+    .lines {
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr);
+        column-gap: 6px;
+        row-gap: 3px;
+        align-items: baseline;
+        padding: 3px 0 0 8px;
     }
 
-    .line.sub {
+    .who {
+        justify-self: start;
+        white-space: nowrap;
+    }
+
+    .what.result {
+        font-weight: 700;
+    }
+
+    .what.aside {
         color: #6d6a45;
         font-style: italic;
     }
 
-    .line.bid {
-        padding-left: 16px;
+    .bids {
+        grid-column: 1 / -1;
+        min-width: 0;
+        margin-left: 12px;
+        display: grid;
+        grid-template-columns: max-content max-content minmax(0, max-content);
+        column-gap: 6px;
+        row-gap: 2px;
+        align-items: baseline;
+        justify-self: start;
+        border-left: 2px solid #d6d0a8;
+        padding-left: 10px;
+        font-variant-numeric: tabular-nums;
     }
 
-    .line.result {
-        font-weight: 700;
+    .amount {
+        text-align: right;
+    }
+
+    .note {
+        color: #6d6a45;
+        font-style: italic;
     }
 </style>

@@ -13,7 +13,13 @@ function action(overrides: Partial<GameAction> & { id: string }): GameAction {
 
 const apiActions = {
     note: Type.Object({ type: Type.Literal('note'), supersedable: Type.Literal(true) }),
-    turn: Type.Object({ type: Type.Literal('turn') })
+    turn: Type.Object({ type: Type.Literal('turn') }),
+    pick: Type.Object({
+        type: Type.Literal('pick'),
+        supersedable: Type.Literal(true),
+        supersessionScope: Type.Literal('companyId'),
+        companyId: Type.String()
+    })
 }
 const standing = action({ id: 'standing' })
 const turn = action({ id: 'turn', type: 'turn' })
@@ -21,12 +27,33 @@ const cascade = action({ id: 'auto', source: ActionSource.System, type: 'auto' }
 
 describe('standing actions', () => {
     it('finds the player’s latest Action of a type anywhere, and at the tail only when last', () => {
-        expect(findStandingAction([standing, turn, cascade], standing)).toBe(standing)
-        expect(standingActionAtTail([standing, turn, cascade], standing)).toBeUndefined()
-        expect(standingActionAtTail([turn, standing], standing)).toBe(standing)
+        expect(findStandingAction(apiActions, [standing, turn, cascade], standing)).toBe(standing)
         expect(
-            findStandingAction([action({ id: 'other', playerId: 'p2' })], standing)
+            standingActionAtTail(apiActions, [standing, turn, cascade], standing)
         ).toBeUndefined()
+        expect(standingActionAtTail(apiActions, [turn, standing], standing)).toBe(standing)
+        expect(
+            findStandingAction(apiActions, [action({ id: 'other', playerId: 'p2' })], standing)
+        ).toBeUndefined()
+    })
+})
+
+describe('scoped declarations', () => {
+    const pick = (id: string, companyId: string) => {
+        const scoped: GameAction & { companyId: string } = {
+            ...action({ id, type: 'pick' }),
+            companyId
+        }
+        return scoped
+    }
+    it('stand one per scope value, so another company’s declaration is not a duplicate', () => {
+        const first = pick('first', 'A')
+        expect(unnamedDuplicateReason(apiActions, [first], pick('other', 'B'))).toBeUndefined()
+        expect(unnamedDuplicateReason(apiActions, [first], pick('again', 'A'))).toBeDefined()
+        expect(findStandingAction(apiActions, [first, pick('b', 'B')], pick('next', 'A'))).toBe(
+            first
+        )
+        expect(findStandingAction(apiActions, [first], pick('next', 'B'))).toBeUndefined()
     })
 })
 

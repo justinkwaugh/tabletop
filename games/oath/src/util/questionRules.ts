@@ -12,7 +12,7 @@ import {
 } from '../model/question.js'
 import { offerReroll, settleRoll } from './reroll.js'
 import { CONSPIRACY_ID } from '../data/cardRegistry.js'
-import { type CardPower, type PowerUseKey } from '../data/cardPowers.js'
+import type { CardPower, PowerUseKey } from '../data/cardPowers.js'
 import { powerInPlay } from './powersInPlay.js'
 import { payPowerCost, reasonCannotPayPowerCost } from './powerCost.js'
 import { pawnSiteId, regionOfPawn } from './pawn.js'
@@ -1032,7 +1032,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     [PowerQuestionKind.AdjustEndDie]: {
         reasonCannotAnswer: () => undefined,
         // Squalid District — the roll read as the ruler left it: a 6 raised to 7 still ends the game
-        // (its Q&A), a 1 lowered to 0 ends nothing.
+        // (its Q&A), a 2 lowered to 1 in round seven ends nothing.
         apply: (state, _playerId, matched) => {
             const { roll: rolled, round, threshold } = matched.question
             const roll = rolled + matched.answer.by

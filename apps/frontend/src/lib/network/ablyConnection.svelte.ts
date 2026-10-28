@@ -6,11 +6,12 @@ import {
     type RealtimeEventHandler,
     ChannelIdentifier
 } from './realtimeConnection'
-import type { NotificationChannel, TabletopApi } from '@tabletop/frontend-components'
+import { NotificationChannel, type TabletopApi } from '@tabletop/frontend-components'
 
 type ChannelData = {
-    channel: NotificationChannel
+    identifier: ChannelIdentifier
     ablyChannel: Ably.RealtimeChannel
+    subscribed: boolean
 }
 
 export class AblyConnection implements RealtimeTransport {
@@ -18,19 +19,25 @@ export class AblyConnection implements RealtimeTransport {
 
     private channels: Map<string, ChannelData> = new Map()
 
+    private removals: Map<string, Promise<void>> = new Map()
+
+    private grantedGameIds: Set<string> = new Set()
+
     private ably: Ably.Realtime
 
-    constructor(private readonly api: TabletopApi) {
+    constructor(private readonly api: Pick<TabletopApi, 'getAblyToken'>) {
         this.ably = new Ably.Realtime({
             autoConnect: false,
-            authCallback: async (tokenParams, callback) => {
+            authCallback: async (_tokenParams, callback) => {
+                const gameIds = this.gameIds()
                 let tokenRequest
                 try {
-                    tokenRequest = await api.getAblyToken() // Make a network request to your server
+                    tokenRequest = await this.api.getAblyToken(gameIds)
                 } catch (err) {
                     callback(JSON.stringify(err), null)
                     return
                 }
+                this.grantedGameIds = new Set(gameIds)
                 callback(null, tokenRequest)
             }
         })
@@ -40,14 +47,44 @@ export class AblyConnection implements RealtimeTransport {
         })
     }
 
+    private gameIds(): string[] {
+        return [...this.channels.values()]
+            .map(({ identifier }) => identifier)
+            .filter((identifier) => identifier.channel === NotificationChannel.GameInstance)
+            .map((identifier) => identifier.id)
+            .filter((id): id is string => id !== undefined)
+    }
+
+    private async ensureGrants() {
+        if (this.ably.connection.state !== 'connected') {
+            return
+        }
+        if (this.gameIds().every((gameId) => this.grantedGameIds.has(gameId))) {
+            return
+        }
+        await this.ably.auth.authorize()
+    }
+
     private async resubscribeChannels() {
-        for (const channelData of this.channels.values()) {
+        try {
+            await this.ensureGrants()
+        } catch (error) {
+            if (this.isClosed()) {
+                return
+            }
+            console.error('Failed to renew realtime grants', error)
+            return
+        }
+        for (const channelData of [...this.channels.values()]) {
             try {
-                await this.resubscribeChannel(channelData)
+                await this.syncHeldChannel(channelData)
             } catch (error) {
                 // Closing the connection rejects pending attaches; the next 'connected' resubscribes.
                 if (this.isClosed()) {
                     return
+                }
+                if (!this.holds(channelData)) {
+                    continue
                 }
                 console.error(
                     `Failed to resubscribe realtime channel ${channelData.ablyChannel.name}`,
@@ -57,11 +94,22 @@ export class AblyConnection implements RealtimeTransport {
         }
     }
 
-    private async resubscribeChannel(channelData: ChannelData) {
-        const channel = channelData.ablyChannel
-        if (channel.state === 'initialized') {
+    private holds(channelData: ChannelData): boolean {
+        return this.channels.get(channelData.identifier.channelName) === channelData
+    }
+
+    private async syncHeldChannel(channelData: ChannelData) {
+        await this.removals.get(channelData.identifier.channelName)
+        if (!this.holds(channelData) || this.ably.connection.state !== 'connected') {
+            return
+        }
+        if (!channelData.subscribed) {
+            channelData.subscribed = true
             await this.subscribeToChannel(channelData)
-        } else if (channel.state !== 'attached' && channel.state !== 'attaching') {
+            return
+        }
+        const channel = channelData.ablyChannel
+        if (channel.state !== 'attached' && channel.state !== 'attaching') {
             await channel.attach()
         }
     }
@@ -76,11 +124,11 @@ export class AblyConnection implements RealtimeTransport {
     }
 
     async addChannel(identifier: ChannelIdentifier) {
-        if (this.channels.get(identifier.channelName)) {
+        const channelName = identifier.channelName
+        if (this.channels.has(channelName)) {
             return
         }
 
-        const channelName = identifier.channelName
         const ablyChannel = this.ably.channels.get(channelName)
         ablyChannel.on('attached', () => {
             const realtimeEvent: RealtimeEvent = {
@@ -92,12 +140,11 @@ export class AblyConnection implements RealtimeTransport {
             }
         })
 
-        const channelData: ChannelData = { channel: identifier.channel, ablyChannel: ablyChannel }
+        const channelData: ChannelData = { identifier, ablyChannel, subscribed: false }
         this.channels.set(channelName, channelData)
 
-        if (this.ably.connection.state === 'connected') {
-            await this.subscribeToChannel(channelData)
-        }
+        await this.ensureGrants()
+        await this.syncHeldChannel(channelData)
     }
 
     private async subscribeToChannel(channelData: ChannelData) {
@@ -106,7 +153,7 @@ export class AblyConnection implements RealtimeTransport {
                 const data = JSON.parse(message.data)
                 const realtimeEvent: RealtimeEvent = {
                     type: RealtimeEventType.Data,
-                    channel: channelData.channel,
+                    channel: channelData.identifier.channel,
                     data: data
                 }
                 if (this.handler) {
@@ -119,22 +166,33 @@ export class AblyConnection implements RealtimeTransport {
         })
     }
 
-    async removeChannel(channel: ChannelIdentifier) {
-        const channelData = this.channels.get(channel.channelName)
-
+    async removeChannel(identifier: ChannelIdentifier) {
+        const channelName = identifier.channelName
+        const channelData = this.channels.get(channelName)
         if (!channelData) {
             return
         }
 
+        this.channels.delete(channelName)
+        const earlierRemoval = this.removals.get(channelName)
+        const removal = this.detachChannel(channelData, earlierRemoval).finally(() => {
+            if (this.removals.get(channelName) === removal) {
+                this.removals.delete(channelName)
+            }
+        })
+        this.removals.set(channelName, removal)
+        await removal
+    }
+
+    private async detachChannel(channelData: ChannelData, earlierRemoval?: Promise<void>) {
         channelData.ablyChannel.off()
         channelData.ablyChannel.unsubscribe()
+        await earlierRemoval
         try {
             await channelData.ablyChannel.detach()
         } catch {
             // ignore detach errors
         }
-
-        this.channels.delete(channel.channelName)
     }
 
     async connect() {

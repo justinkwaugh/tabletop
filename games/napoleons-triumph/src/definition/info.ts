@@ -7,6 +7,8 @@ export const NapoleonsTriumphInfo: GameInfo = {
     id: 'napoleons-triumph',
     metadata: {
         name: "Napoleon's Triumph",
+        bggId: 18098,
+        hasScores: false,
         designer: 'Rachel Simmons',
         description:
             'Austerlitz, 2 December 1805. Two armies of hidden wooden blocks manoeuvre by corps across the Moravian hills. There are no dice: an attack is a threat, a bluff and a sequence of commitments, and one lost fight can break a corps. Break the enemy army’s morale, or hold the ground that matters when the short winter day ends.',

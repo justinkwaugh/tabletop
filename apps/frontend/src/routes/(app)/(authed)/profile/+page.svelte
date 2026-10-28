@@ -16,14 +16,21 @@
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext, trim } from '@tabletop/frontend-components'
     import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
+    import {
+        emailAddress,
+        minLengthMessage,
+        requiredMessage
+    } from '$lib/utils/accountFormValidation'
+    import { broadcastLogout } from '$lib/utils/logoutChannel'
 
     let { authorizationService, api } = getAppContext()
 
-    const enum ReauthType {
-        None = 'none',
-        Password = 'password',
-        Token = 'token'
-    }
+    const ReauthType = {
+        None: 'none',
+        Password: 'password',
+        Token: 'token'
+    } as const
+    type ReauthType = (typeof ReauthType)[keyof typeof ReauthType]
 
     const imageForLinkType = new Map<string, string>([
         ['google', googleLogo],
@@ -72,10 +79,10 @@
         }
     })
 
-    const createUserSchema = zfd.formData({
-        username: zfd.text(),
-        password: zfd.text(z.string().min(12).optional()),
-        email: zfd.text(z.string().email())
+    const updateProfileSchema = zfd.formData({
+        username: zfd.text(z.string(requiredMessage)),
+        password: zfd.text(z.string().min(12, minLengthMessage(12)).optional()),
+        email: zfd.text(emailAddress())
     })
 
     function togglePassword() {
@@ -97,9 +104,9 @@
         success = false
         const form = event.target as HTMLFormElement
         const formData = new FormData(form)
-        const result = createUserSchema.safeParse(formData)
+        const result = updateProfileSchema.safeParse(formData)
         if (!result.success) {
-            errors = result.error.flatten().fieldErrors
+            errors = z.flattenError(result.error).fieldErrors
             return
         }
 
@@ -160,6 +167,20 @@
     function clearErrors() {
         errorMessage = undefined
         errors = {}
+    }
+
+    let logoutEverywhereFailed = $state(false)
+
+    async function logoutEverywhere() {
+        logoutEverywhereFailed = false
+        try {
+            await api.logoutAll()
+        } catch {
+            logoutEverywhereFailed = true
+            return
+        }
+        broadcastLogout()
+        await authorizationService.onLogout()
     }
 </script>
 
@@ -344,5 +365,20 @@
         <div class="mt-6">
             <TimeZonePicker />
         </div>
+        <div class="mt-6 flex items-center justify-between gap-4">
+            <P class="text-sm text-gray-700 dark:text-gray-400"
+                >Signed in somewhere you no longer trust? Sign out of every device, including this
+                one.</P
+            >
+            <Button color="alternative" size="sm" onclick={logoutEverywhere}
+                >Sign out everywhere</Button
+            >
+        </div>
+        {#if logoutEverywhereFailed}
+            <Alert class="dark:bg-red-200 dark:text-red-700 mt-4">
+                <span class="font-bold text-lg">We could not confirm the sign-out</span><br />
+                Other sessions may still be active. Please try again.
+            </Alert>
+        {/if}
     </Card>
 </div>

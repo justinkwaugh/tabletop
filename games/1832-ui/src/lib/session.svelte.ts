@@ -44,6 +44,7 @@ import {
     type TitlePrivatePower
 } from '@tabletop/18xx-ui'
 import { mapState1832 } from './mapState.js'
+import { createRouteWorker } from './routeWorker.js'
 import { awaitedDecision1832, mergedDiscardTerms, protectionTerms } from './awaitedDecision.js'
 import { EighteenThirtyTwoMapView } from './mapView.js'
 import { EighteenThirtyTwoPresentation } from './presentation.js'
@@ -70,7 +71,8 @@ const BaseSession: ReturnType<
 > = createEighteenXXSessionClass<typeof EighteenThirtyTwoState, HydratedEighteenThirtyTwoState>(
     EighteenThirtyTwoTitleRules,
     EighteenThirtyTwoMapView,
-    EighteenThirtyTwoPresentation
+    EighteenThirtyTwoPresentation,
+    createRouteWorker
 )
 
 const TokenPrivates = [

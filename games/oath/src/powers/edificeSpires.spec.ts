@@ -429,16 +429,20 @@ describe('Fallen Spire — "Action: Swap up to five denizens from the top of you
         expect(s.getPlayerState(DANA).secrets).toBe(0)
         expect(s.tokensOn(GREAT_SPIRE).secrets).toBe(1)
         expect(action.metadata?.summary).toBe(
-            'Fallen Spire: swapped 2 denizens on the cradle discard pile with cards from the Dispossessed'
+            'Fallen Spire: swapped 2 denizens in the Cradle discard pile with the Dispossessed'
         )
         expect(action.revealsInfo).toBe(true)
     })
 
     it('a one-card Dispossessed swaps, and the card never comes straight back', () => {
         const s = fallenTable([AUGURY], [NAYSAYERS])
-        fallenSpire(s, 1).apply(s)
+        const action = fallenSpire(s, 1)
+        action.apply(s)
         expect(s.requireVault().discardPiles[Region.Cradle]).toEqual([NAYSAYERS])
         expect(s.requireVault().dispossessed).toEqual([AUGURY])
+        expect(action.metadata?.summary).toBe(
+            'Fallen Spire: swapped 1 denizen in the Cradle discard pile with the Dispossessed'
+        )
     })
 
     it('with fewer denizens in the pile, swaps as many as it can (R-7.1.3)', () => {
@@ -447,7 +451,7 @@ describe('Fallen Spire — "Action: Swap up to five denizens from the top of you
         action.apply(s)
         expect(s.requireVault().discardPiles[Region.Cradle][0]).toBe(CONQUEST)
         expect(s.requireVault().dispossessed).toHaveLength(2)
-        expect(action.metadata?.summary).toMatch(/^Fallen Spire: swapped 1 denizen on/)
+        expect(action.metadata?.summary).toMatch(/^Fallen Spire: swapped 1 denizen in/)
     })
 
     it('nobody sees a card: each seat knows only how many swapped, and forgets what lay there', () => {

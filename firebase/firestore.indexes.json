@@ -113,6 +113,21 @@
     ],
     "fieldOverrides": [
         {
+            "collectionGroup": "actionChunks",
+            "fieldPath": "actionsData",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "actionChunks",
+            "fieldPath": "actionsZstd",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "states",
+            "fieldPath": "*",
+            "indexes": []
+        },
+        {
             "collectionGroup": "tournaments",
             "fieldPath": "entrants",
             "indexes": []

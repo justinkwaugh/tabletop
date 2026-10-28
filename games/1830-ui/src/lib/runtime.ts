@@ -10,6 +10,7 @@ import {
 import type { EighteenThirtyState, HydratedEighteenThirtyState } from '@tabletop/1830'
 import { EighteenThirtyPresentation } from './presentation.js'
 import Table from './Table.svelte'
+import { createRouteWorker } from './routeWorker.js'
 
 export const UiRuntime: GameUIRuntime<EighteenThirtyState, HydratedEighteenThirtyState> = {
     ...Definition.runtime,
@@ -17,7 +18,8 @@ export const UiRuntime: GameUIRuntime<EighteenThirtyState, HydratedEighteenThirt
     sessionClass: createEighteenXXSessionClass(
         EighteenThirtyTitleRules,
         EighteenThirtyMapView,
-        EighteenThirtyPresentation
+        EighteenThirtyPresentation,
+        createRouteWorker
     ),
     colorizer: new DefaultColorizer()
 }

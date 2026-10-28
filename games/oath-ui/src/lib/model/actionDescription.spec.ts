@@ -63,9 +63,8 @@ function action(
 // A registered card: a sentence names the card an action was taken on.
 const CARD = 'denizen.beast.errand-boy'
 
-/** Great Spire's swap step and the chronicle's choices: built in the engine, their History sentences not drawn yet. */
+/** The chronicle's choices: built in the engine, their History sentences not drawn yet. */
 const AWAITING_SENTENCE: readonly string[] = [
-    ActionType.SearchSwap,
     ActionType.ChooseOath,
     ActionType.OfferChronicleCitizenship,
     ActionType.AnswerChronicleCitizenship,

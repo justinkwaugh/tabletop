@@ -1,6 +1,6 @@
 import { getCompany } from '@tabletop/18xx'
 import { createEighteenXXSessionClass, type MapLocationChoice } from '@tabletop/18xx-ui'
-import { type GameSession } from '@tabletop/frontend-components'
+import type { GameSession } from '@tabletop/frontend-components'
 import type { HydratedTheOldPrinceState, TheOldPrinceState } from '@tabletop/the-old-prince'
 import {
     TheOldPrinceTitleRules,
@@ -11,6 +11,7 @@ import StraightTile from './images/tokens/straight-tile.svg'
 import UnknownToken from './images/tokens/unknown.svg'
 import { TheOldPrinceMapView } from './mapView.js'
 import { TheOldPrincePresentation } from './presentation.js'
+import { createRouteWorker } from './routeWorker.js'
 
 import { assert } from '@tabletop/common'
 import {
@@ -34,7 +35,8 @@ import {
 const BaseSession = createEighteenXXSessionClass(
     TheOldPrinceTitleRules,
     TheOldPrinceMapView,
-    TheOldPrincePresentation
+    TheOldPrincePresentation,
+    createRouteWorker
 )
 
 export class TheOldPrinceSession extends BaseSession {

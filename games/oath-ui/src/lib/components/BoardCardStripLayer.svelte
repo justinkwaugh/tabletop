@@ -4,7 +4,8 @@
     import { CardKind, effectiveSiteCapacity, siteRevealPrompt } from '@tabletop/oath'
     import BoardCard from '$lib/components/BoardCard.svelte'
     import TokenPair from '$lib/components/TokenPair.svelte'
-    import { cardName } from '$lib/model/names.js'
+    import { cardName, cardNameInPlay } from '$lib/model/names.js'
+    import { siteRowCards } from '$lib/model/siteRow.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         CARD_STRIP_RECTS,
@@ -29,7 +30,7 @@
         const siteCardId = gameState.siteCardAt(slotId)
         if (!siteCardId || !gameState.isSiteFaceup(slotId)) return []
 
-        const cards = gameState.denizensBySite[slotId] ?? []
+        const cards = siteRowCards(gameState, slotId)
         const relicSlots = gameState.relicSlotsAt(slotId)
 
         const capacity = Math.max(effectiveSiteCapacity(gameState, slotId), cards.length)
@@ -101,7 +102,7 @@
             {@const tokens = gameState.tokensOn(denizenCardId)}
             <BoardCard
                 cardId={denizenCardId}
-                label={cardName(denizenCardId)}
+                label={cardNameInPlay(gameState, denizenCardId)}
                 x={placed.x}
                 y={placed.y}
                 width={placed.width}

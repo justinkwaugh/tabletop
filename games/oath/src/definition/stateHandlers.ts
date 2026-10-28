@@ -1,8 +1,4 @@
-import {
-    type HydratedAction,
-    type MachineContext,
-    type MachineStateHandler
-} from '@tabletop/common'
+import type { HydratedAction, MachineContext, MachineStateHandler } from '@tabletop/common'
 import { MachineState, toMachineState } from './states.js'
 import { SetupStateHandler } from '../stateHandlers/setup.js'
 import { WakePhaseStateHandler } from '../stateHandlers/wakePhase.js'

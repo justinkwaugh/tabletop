@@ -1,5 +1,5 @@
 import { ContainerColor } from '../model/container.js'
-import { type ContainerValueCard } from '../model/valueCard.js'
+import type { ContainerValueCard } from '../model/valueCard.js'
 
 export const CONTAINER_COLORS: ContainerColor[] = [
     ContainerColor.Purple,

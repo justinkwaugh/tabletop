@@ -2,7 +2,9 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     RailwayMapState,
     TrackNetwork,
+    liftedPrivateBlocks,
     type EighteenXXState,
+    type PrivateRules,
     type StationState,
     type TileFace
 } from '@tabletop/18xx'
@@ -24,14 +26,14 @@ import type { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 type MapState = Parameters<typeof stationMapTokens>[0] &
     Pick<
         EighteenXXState,
-        'companies' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep'
+        'companies' | 'certificates' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep'
     > & {
         locationMarkers?: readonly Pick<
             import('@tabletop/18xx').LocationMarker,
             'kind' | 'locationId'
         >[]
     }
-export type MapSession = ModuleSession<MapState, unknown>
+export type MapSession = ModuleSession<MapState, { privateRules: Pick<PrivateRules, 'blocking'> }>
 export const MapStyles = ['classic', 'muted', 'maker', 'custom'] as const
 /** The tile style games draw in until a player picks another. */
 export const DefaultMapStyle: MapStyle = 'custom'
@@ -99,6 +101,14 @@ export class MapModule {
     // Held apart so a display state that only moves tokens doesn't redraw the board.
     private tileInventory = $derived.by(() => this.displayState().tileInventory)
     private locationMarkers = $derived.by(() => this.displayState().locationMarkers)
+    private companies = $derived.by(() => this.displayState().companies)
+    private certificates = $derived.by(() => this.displayState().certificates)
+    private liftedPrivateBlocks = $derived.by(() =>
+        liftedPrivateBlocks(this.view().map.markedPrivateIds, this.session.rules.privateRules, {
+            companies: this.companies,
+            certificates: this.certificates
+        })
+    )
     scene = $derived.by(() => this.draw(this.tileInventory))
     tokens = $derived.by(() => stationMapTokens(this.displayState(), this.view().stations))
     tileCounts = $derived.by(() => this.view().tileSet.counts(this.session.state.tileInventory))
@@ -302,7 +312,12 @@ export class MapModule {
         const view = this.view()
         return createMapDrawing(
             view.map,
-            { tileSet: view.tileSet, inventory, markers: this.locationMarkers },
+            {
+                tileSet: view.tileSet,
+                inventory,
+                markers: this.locationMarkers,
+                liftedPrivateBlocks: this.liftedPrivateBlocks
+            },
             view
         )
     }

@@ -1,9 +1,9 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -53,7 +53,7 @@ function offeredTrain(
 }
 export const OfferPurchase = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         ...PurchaseOfferRequest.properties,
         type: Type.Literal('OfferPurchase'),
         metadata: Type.Optional(
@@ -140,7 +140,7 @@ export class HydratedOfferPurchase
 }
 export const RespondToPurchaseOffer = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('RespondToPurchaseOffer'),
         offerId: Type.String(),
         accept: Type.Boolean(),

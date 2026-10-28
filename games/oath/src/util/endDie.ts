@@ -20,3 +20,11 @@ export function settleEndDie(
     state.round += 1
     return {}
 }
+
+/**
+ * Squalid District — one step up or down changes whether the game ends only from the threshold
+ * (lowered, it ends nothing) or one below it (raised, it ends the game) (R-3.3).
+ */
+export function endDieStepMatters(roll: number, threshold: number): boolean {
+    return roll === threshold - 1 || roll === threshold
+}

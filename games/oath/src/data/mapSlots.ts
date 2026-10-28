@@ -7,6 +7,17 @@ export const SLOTS_PER_REGION: Readonly<Record<Region, number>> = {
     [Region.Hinterland]: 3
 }
 
+const REGION_NAMES: Readonly<Record<Region, string>> = {
+    [Region.Cradle]: 'Cradle',
+    [Region.Provinces]: 'Provinces',
+    [Region.Hinterland]: 'Hinterland'
+}
+
+/** A region as the board prints it: "Cradle", "Provinces", "Hinterland". */
+export function regionName(region: Region): string {
+    return REGION_NAMES[region]
+}
+
 export const TOTAL_MAP_SLOTS = Object.values(SLOTS_PER_REGION).reduce((a, b) => a + b, 0)
 
 /** Not a card id: `kindOf` parses a card's kind off the first segment. */

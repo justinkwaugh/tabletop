@@ -2,10 +2,10 @@
     import { marketDarkLightness, marketSpaceColor, marketZone } from './marketColors.js'
     import { onMount, tick, untrack } from 'svelte'
     import { prefersReducedMotion } from 'svelte/motion'
-    import {
-        type StockMarket as StockMarketModel,
-        type StockMarketChart,
-        type StockMarketSpace
+    import type {
+        StockMarket as StockMarketModel,
+        StockMarketChart,
+        StockMarketSpace
     } from '@tabletop/18xx'
     import type { AnimationContext } from '@tabletop/frontend-components'
     import type { MarketAnimationSource, MarketStateChange } from './marketAnimationSource.js'

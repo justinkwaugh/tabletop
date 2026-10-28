@@ -4,7 +4,6 @@ import {
     ActionSource,
     GameAction,
     HydratableAction,
-    PlayerAction,
     assert,
     assertExists,
     type HydratedAction,
@@ -29,7 +28,8 @@ import {
     type ShareSaleSettlement,
     type StockMarket,
     type StockState,
-    stateWith
+    stateWith,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import {
     requireEighteenThirtyTwoState,
@@ -320,7 +320,7 @@ export class HydratedStartPriceProtection
 }
 
 const DecisionFields = {
-    ...PlayerAction.properties,
+    ...EighteenXXPlayerAction.properties,
     companyId: Type.String()
 }
 export const ProtectShares = Type.Object(

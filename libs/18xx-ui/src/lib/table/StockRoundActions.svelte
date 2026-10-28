@@ -11,7 +11,6 @@
     import type { CertificatePool } from '@tabletop/18xx'
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import StandingInstruction from '../stock/StandingInstruction.svelte'
     import PrivatePurchaseOffers from '../stock/PrivatePurchaseOffers.svelte'
     import CompanyAuctionOpening from '../stock/CompanyAuctionOpening.svelte'
     let {
@@ -470,7 +469,6 @@
         </aside>
     {/if}
 </section>
-<StandingInstruction {session} />
 
 <style>
     section {

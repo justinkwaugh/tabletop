@@ -1,6 +1,12 @@
 <script lang="ts">
-    import { TabWorkspace, type WorkspaceTab, type SavedWorkspace } from '../../index.js'
-    let { splittable = true }: { splittable?: boolean } = $props()
+    import {
+        TabWorkspace,
+        type WorkspaceTab,
+        type SavedWorkspace,
+        type WorkspaceAttention
+    } from '../../index.js'
+    let { splittable = true, attention }: { splittable?: boolean; attention?: WorkspaceAttention } =
+        $props()
     const tabs: WorkspaceTab[] = [
         { id: 'editor', label: 'Editor', closable: false },
         { id: 'preview', label: 'Preview' },
@@ -10,7 +16,13 @@
 </script>
 
 <div class="example">
-    <TabWorkspace {tabs} {splittable} label="Example" onLayoutChange={(value) => (saved = value)}>
+    <TabWorkspace
+        {tabs}
+        {splittable}
+        {attention}
+        label="Example"
+        onLayoutChange={(value) => (saved = value)}
+    >
         {#snippet children(id)}
             <label>{id} <input aria-label={`${id} draft`} /></label>
         {/snippet}

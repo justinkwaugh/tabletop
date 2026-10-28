@@ -13,7 +13,7 @@ import { MachineState } from '../definition/states.js'
 import { rollEndDie } from '../data/dice.js'
 import { endDieIsRolled, endDieThreshold } from '../util/victory.js'
 import { OpenDealsDropped, PowerQuestionKind } from '../model/question.js'
-import { settleEndDie } from '../util/endDie.js'
+import { endDieStepMatters, settleEndDie } from '../util/endDie.js'
 import { endDieAdjuster } from '../util/persistent.js'
 import { askQuestion } from '../util/questions.js'
 
@@ -75,8 +75,9 @@ export class HydratedRollEndDie extends HydratableAction<typeof RollEndDie> impl
         this.revealsInfo = true
 
         // Squalid District — its ruler may raise or lower the roll, after it is rolled (its Q&A),
-        // so their answer reads it.
-        const adjuster = endDieAdjuster(state)
+        // so their answer reads it. They are asked only when one step changes whether the game
+        // ends; any other roll stands, read at once as with no Squalid District.
+        const adjuster = endDieStepMatters(roll, threshold) ? endDieAdjuster(state) : undefined
         if (adjuster) {
             askQuestion(state, this.playerId, {
                 kind: PowerQuestionKind.AdjustEndDie,

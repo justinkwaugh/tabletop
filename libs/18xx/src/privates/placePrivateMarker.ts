@@ -1,9 +1,9 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     type GameAction,
     type HydratedGameState
@@ -14,7 +14,7 @@ import type { PrivateMarkerTerms, PrivatePowerRules } from './privatePowers.js'
 
 export const PlacePrivateMarker = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('PlacePrivateMarker'),
         privateCompanyId: Type.String(),
         locationId: Type.String()

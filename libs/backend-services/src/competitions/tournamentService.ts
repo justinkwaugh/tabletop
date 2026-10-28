@@ -582,16 +582,7 @@ export class TournamentService {
     async rebuildStandings(id: string, revision: number, user: User) {
         requireAdministrator(user)
         const before = await this.store.read(id)
-        let tournament = await this.store.rebuildStandings(
-            id,
-            revision,
-            user,
-            this.now(),
-            async (typeId, readState) => {
-                const scoring = lookupTitle(this.titles, typeId)?.runtime.scoring
-                return scoring ? scoring.finalScores(await readState()) : undefined
-            }
-        )
+        let tournament = await this.store.rebuildStandings(id, revision, user, this.now())
         if (before?.status !== 'finished') tournament = await this.completed(tournament)
         await this.notify(tournament)
         return tournament
