@@ -381,15 +381,11 @@ describe('R-7.4 — an action only two cards together make possible is one entry
     })
 })
 
-/** Great Spire: built in the engine, its menu line not drawn yet. */
-const AWAITING_LINE = ['edifice.arcane.great-spire']
-
 /** The built ones: a printed modifier with no effect yet is never offered (R-7.4). */
 function allModifiers() {
     return cardDefinitions()
         .flatMap((card) => powersWithTiming(card.id, PowerTiming.Modifier))
         .filter(hasEffect)
-        .filter((power) => !AWAITING_LINE.includes(power.cardId))
 }
 
 describe('R-7.4 — one line per card, read by the menu rows and Use a power alike', () => {
@@ -398,6 +394,5 @@ describe('R-7.4 — one line per card, read by the menu rows and Use a power ali
         const mandatory = allModifiers().filter(isMandatoryModifier)
         expect(Object.keys(ACTION_CARD_LINES).sort()).toEqual(optional.map((p) => p.cardId).sort())
         for (const power of mandatory) expect(ACTION_CARD_LINES[power.cardId]).toBeUndefined()
-        for (const cardId of AWAITING_LINE) expect(ACTION_CARD_LINES[cardId]).toBeUndefined()
     })
 })

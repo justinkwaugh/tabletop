@@ -63,9 +63,6 @@ function action(
 // A registered card: a sentence names the card an action was taken on.
 const CARD = 'denizen.beast.errand-boy'
 
-/** Great Spire's swap step: built in the engine, its History sentence not drawn yet. */
-const AWAITING_SENTENCE: readonly string[] = [ActionType.SearchSwap]
-
 /** Only each schema's required fields, so every sentence must survive missing metadata. */
 const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.SetupChoice]: { siteId: 'c1', adviserCardId: 'x', discardOrder: [] },
@@ -193,10 +190,6 @@ describe('the history tab describes every action', () => {
             const fields = MINIMAL[type]
             expect(fields, `no fixture for ${type}`).toBeDefined()
             const text = describeAction(action({ type, playerId: 'p1', ...fields }), nameOf)
-            if (AWAITING_SENTENCE.includes(type)) {
-                expect(text, `${type} has its sentence: take it off the list`).toBe(UNDESCRIBED)
-                continue
-            }
             expect(text, `${type} fell through to the fallback`).not.toBe(UNDESCRIBED)
             expect(text.length, `${type} described as empty`).toBeGreaterThan(3)
         }

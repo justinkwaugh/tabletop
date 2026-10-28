@@ -48,6 +48,7 @@ import {
     woodPicksBeforeTravel,
     woodTravelPaysAtPick,
     SearchResolve,
+    SearchSwap,
     SelfExile,
     SetupChoice,
     Suit,
@@ -1779,6 +1780,17 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         this.selection.set('card', cardId)
         this.selection.set('option', option)
         await this.trade(cardId, option)
+    }
+
+    /** Great Spire — the drawn denizens picked go to the Dispossessed, random ones come in (R-10.25). */
+    async searchSwap(swappedCardIds: string[]): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(SearchSwap, {
+                type: ActionType.SearchSwap,
+                swappedCardIds,
+                revealsInfo: true
+            })
+        )
     }
 
     async resolveSearch(resolution: SearchResolveChoice): Promise<void> {

@@ -6,7 +6,9 @@ import {
     VISION_GOALS,
     VISIONS_DRAWN_GATE,
     VISIONS_DRAWN_SUPPLY_COST,
+    END_DIE_FACES,
     endDieThreshold,
+    isAnswerQuestion,
     isCampaign,
     isCampaignResolveVictory,
     isCampaignSacrifice,
@@ -255,7 +257,15 @@ export function majorEventOf(
         }
     }
     if (isRollEndDie(action) && action.metadata) {
+        // Squalid District — the roll waits on its ruler's answer, whose record is the event.
+        if (action.metadata.adjustedBy !== undefined) return undefined
         return endDieEvent(action.metadata.roll, action.metadata.round, action.metadata.wonBy)
+    }
+    const adjusted = isAnswerQuestion(action) ? action.metadata?.endDie : undefined
+    if (adjusted) {
+        // The die as it stands after the answer; a 6 raised to 7 is off the die, so its face is the roll.
+        const face = END_DIE_FACES.includes(adjusted.roll) ? adjusted.roll : adjusted.rolled
+        return endDieEvent(face, adjusted.round, adjusted.wonBy)
     }
     if (isCompleteRest(action) && action.metadata?.endDieRoll !== undefined) {
         const next = action.metadata.round
@@ -319,10 +329,13 @@ export function endingRecord(
     actions: readonly GameAction[]
 ): { rule: WinRule; openDealsDropped: OpenDeal[] } | undefined {
     for (const action of actions.toReversed()) {
+        // Squalid District — an asked roll decides nothing; its ruler's answer records the ending.
         const metadata =
             isResolveWake(action) || isCompleteRest(action) || isRollEndDie(action)
                 ? action.metadata
-                : undefined
+                : isAnswerQuestion(action)
+                  ? action.metadata?.endDie
+                  : undefined
         const wonBy = metadata?.wonBy
         if (wonBy !== undefined && isWinRule(wonBy)) {
             return { rule: wonBy, openDealsDropped: metadata?.openDealsDropped ?? [] }

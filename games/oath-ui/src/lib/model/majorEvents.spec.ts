@@ -6,7 +6,8 @@ import {
     OathType,
     PlayerStatus,
     SearchPlay,
-    SearchSource
+    SearchSource,
+    type OpenDeal
 } from '@tabletop/oath'
 import { ActionSource, Color, type GameAction } from '@tabletop/common'
 import { testBanners, testPlayer, testState } from '@tabletop/oath/testing'
@@ -14,6 +15,7 @@ import { tokenParts } from './tokenText.js'
 import {
     MajorEventKind,
     campaignsBefore,
+    endingRecord,
     endingRule,
     gameEndEvent,
     historyRows,
@@ -32,6 +34,24 @@ function action(
     fields: { type: ActionType; playerId?: string } & Record<string, unknown>
 ): GameAction {
     return { id: `a-${fields.type}`, gameId: 'g1', source: ActionSource.User, ...fields }
+}
+
+/** Squalid District's answer, as the engine records it (its metadata's `endDie`). */
+function squalidAnswer(by: number, endDie: Record<string, unknown>): GameAction {
+    return action({
+        type: ActionType.AnswerQuestion,
+        playerId: 'p2',
+        answer: { kind: 'adjustEndDie', by },
+        metadata: { summary: 'adjusted', endDie }
+    })
+}
+
+const DEAL: OpenDeal = {
+    id: 'd1',
+    proposerPlayerId: 'p1',
+    counterpartyPlayerId: 'p2',
+    proposerPromise: 'I stay home.',
+    round: 2
 }
 
 const VISION = 'vision.conquest'
@@ -293,6 +313,74 @@ describe('the other major events', () => {
             aside: 'end of round 7',
             consequence: 'a 3 or higher ends the game in round 7 · play goes on to round 8'
         })
+    })
+
+    it('Squalid District: the event is the answer’s, the die as it stands after it; the roll it waits on is none', () => {
+        const asked = action({
+            type: ActionType.RollEndDie,
+            playerId: 'p1',
+            metadata: { roll: 5, round: 6, threshold: 5, adjustedBy: 'p2' }
+        })
+        expect(majorEventOf(asked, context())).toBeUndefined()
+        const lowered = squalidAnswer(-1, { rolled: 5, roll: 4, round: 6, threshold: 5 })
+        expect(majorEventOf(lowered, context())).toMatchObject({
+            kind: MajorEventKind.EndDie,
+            aside: 'end of round 6',
+            pictures: [{ kind: 'die', value: 4 }],
+            consequence: 'a 5 or higher ends the game in round 6 · play goes on to round 7'
+        })
+        const raised = squalidAnswer(1, {
+            rolled: 4,
+            roll: 5,
+            round: 6,
+            threshold: 5,
+            wonBy: 'R-3.3'
+        })
+        expect(majorEventOf(raised, context())).toMatchObject({
+            pictures: [{ kind: 'die', value: 5 }],
+            consequence: 'a 5 or higher ends the game in round 6 · the game ends'
+        })
+        // A 6 raised to 7 is off the die: the face drawn is the one rolled.
+        const offTheDie = squalidAnswer(1, {
+            rolled: 6,
+            roll: 7,
+            round: 5,
+            threshold: 6,
+            wonBy: 'R-3.3'
+        })
+        expect(majorEventOf(offTheDie, context())?.pictures).toEqual([{ kind: 'die', value: 6 }])
+        // Any other answer is no major event.
+        expect(
+            majorEventOf(
+                action({
+                    type: ActionType.AnswerQuestion,
+                    playerId: 'p2',
+                    answer: { kind: 'joinSite', join: true },
+                    metadata: { summary: 'went' }
+                }),
+                context()
+            )
+        ).toBeUndefined()
+    })
+
+    it('Squalid District: the ending is read from the answer that decided it (R-3)', () => {
+        const asked = action({
+            type: ActionType.RollEndDie,
+            playerId: 'p1',
+            metadata: { roll: 4, round: 6, threshold: 5, adjustedBy: 'p2' }
+        })
+        const raised = squalidAnswer(1, {
+            rolled: 4,
+            roll: 5,
+            round: 6,
+            threshold: 5,
+            wonBy: 'R-3.3',
+            openDealsDropped: [DEAL]
+        })
+        expect(endingRecord([asked, raised])).toEqual({ rule: 'R-3.3', openDealsDropped: [DEAL] })
+        expect(endingRule([asked, raised])).toBe('R-3.3')
+        const lowered = squalidAnswer(-1, { rolled: 4, roll: 3, round: 6, threshold: 5 })
+        expect(endingRecord([asked, lowered])).toBeUndefined()
     })
 
     it('ordinary actions are not major events', () => {

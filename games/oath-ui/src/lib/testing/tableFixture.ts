@@ -117,6 +117,16 @@ import { kinshipDissentTable, kinshipPlagueTable, kinshipWakeTable } from './kin
 import { RecordedStory } from './recordedStory.js'
 import { tribunalAnswerTable, tribunalDealsTable, tribunalOfferTable } from './tribunalTables.js'
 import { longSeatNameTable } from './longSeatNameTables.js'
+import {
+    banditRampartTable,
+    edificeMapTable,
+    fallenSpireTable,
+    festivalTable,
+    greatSpireMenuTable,
+    greatSpireSwapTable,
+    ruinedTempleTable,
+    squalidAskedTable
+} from './edificeTables.js'
 
 export type TableName =
     | 'setup'
@@ -341,6 +351,20 @@ export type TableName =
     | 'historySecondWind'
     | 'historyFreeGranted'
     | 'historyDeals'
+    | 'edificeMap'
+    | 'edificeAncientForge'
+    | 'greatSpireMenu'
+    | 'greatSpireMenuEmpty'
+    | 'greatSpireSwap'
+    | 'greatSpireSwapVision'
+    | 'fallenSpire'
+    | 'fallenSpireShort'
+    | 'squalidAsked'
+    | 'festivalDistrict'
+    | 'banditRampartDefender'
+    | 'banditRampartBandits'
+    | 'ruinedTemple'
+    | 'forestTempleSearch'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -5712,7 +5736,21 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     historyCampaign: () => historyWordsTable('campaign'),
     historySecondWind: () => historyWordsTable('secondWind'),
     historyFreeGranted: () => historyWordsTable('freeGranted'),
-    historyDeals: () => historyWordsTable('deals')
+    historyDeals: () => historyWordsTable('deals'),
+    edificeMap: () => edificeMapTable('broken'),
+    edificeAncientForge: () => edificeMapTable('ancient'),
+    greatSpireMenu: () => greatSpireMenuTable(),
+    greatSpireMenuEmpty: () => greatSpireMenuTable(true),
+    greatSpireSwap: () => greatSpireSwapTable(),
+    greatSpireSwapVision: () => greatSpireSwapTable(true),
+    fallenSpire: () => fallenSpireTable(),
+    fallenSpireShort: () => fallenSpireTable(2),
+    squalidAsked: () => squalidAskedTable(),
+    festivalDistrict: () => festivalTable(),
+    banditRampartDefender: () => banditRampartTable(true),
+    banditRampartBandits: () => banditRampartTable(false),
+    ruinedTemple: () => ruinedTempleTable(),
+    forestTempleSearch: () => ruinedTempleTable(true)
 }
 
 /** Every table a scenario can open. */
