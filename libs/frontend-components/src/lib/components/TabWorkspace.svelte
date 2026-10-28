@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { WorkspaceTab, WorkspaceFixedPane } from './workspaceTypes.js'
+    import type { WorkspaceTab, WorkspaceFixedPane, WorkspaceAttention } from './workspaceTypes.js'
     import {
         initialSidebarTabs,
         restoreWorkspaceTabs,
@@ -44,6 +44,7 @@
         initialLayout,
         fixedPane,
         tabTitle,
+        attention,
         savedLayout,
         onLayoutChange,
         fixedPaneDeleted = $bindable(false)
@@ -53,6 +54,7 @@
         savedLayout?: unknown
         onLayoutChange?: (value: SavedWorkspace) => void
         tabTitle?: Snippet<[string]>
+        attention?: WorkspaceAttention
         selected?: string
         label?: string
         fixedPane?: WorkspaceFixedPane
@@ -102,6 +104,13 @@
               ]
             : mainLayout.panes
     })
+    const attentionPane = $derived(
+        attention ? layout.panes.find((item) => item.pane.active === attention.tab) : undefined
+    )
+    const attentionLabelId = `${instanceId}-attention`
+    function paneRect(item: PaneLayout) {
+        return `left: ${item.x}%; top: ${item.y}%; width: ${item.width}%; height: ${item.height}%`
+    }
     function paneLabel(item: PaneLayout) {
         return item.pane.id === 'fixed'
             ? fixedPane?.label
@@ -403,12 +412,10 @@
             class="pane"
             class:fixed={item.pane.id === 'fixed'}
             class:drop-target={dropTarget === item.pane.id}
+            class:attention={item === attentionPane}
             aria-label={paneLabel(item)}
             use:mountPane={item.pane.id === 'fixed' ? fixedPane?.target : undefined}
-            style:left={`${item.x}%`}
-            style:top={`${item.y}%`}
-            style:width={`${item.width}%`}
-            style:height={`${item.height}%`}
+            style={paneRect(item)}
             ondragover={(event) => dragOver(event, item.pane.id)}
             ondrop={(event) => drop(event, item.pane.id)}
         >
@@ -425,6 +432,8 @@
                         {@const tab = tabs.find((tab) => tab.id === id)}
                         <button
                             class:insert-before={insertBefore === id && dragged !== id}
+                            class:attention={attention?.tab === id}
+                            aria-describedby={attention?.tab === id ? attentionLabelId : undefined}
                             role="tab"
                             id={`${instanceId}-tab-${encodeURIComponent(id)}`}
                             aria-selected={item.pane.active === id}
@@ -450,6 +459,10 @@
                             {#if tabTitle}{@render tabTitle(id)}{/if}<span
                                 class:has-short={!!tab?.shortLabel}>{tab?.label}</span
                             >{#if tab?.shortLabel}<span class="short-label">{tab.shortLabel}</span
+                                >{/if}{#if attention?.tab === id}<span
+                                    class="attention-label"
+                                    aria-hidden="true"
+                                    >· <span id={attentionLabelId}>{attention.label}</span></span
                                 >{/if}
                         </button>
                     {/each}
@@ -672,6 +685,14 @@
             </div>
         {/if}
     {/each}
+    {#if attentionPane}
+        <div
+            use:mountPane={attentionPane.pane.id === 'fixed' ? fixedPane?.target : undefined}
+            class="attention-frame"
+            aria-hidden="true"
+            style={paneRect(attentionPane)}
+        ></div>
+    {/if}
     {#each layout.dividers as item (item.split.id)}
         {@const vertical = item.split.axis === 'vertical'}
         <div
@@ -839,6 +860,37 @@
     }
     .panel.inactive {
         visibility: hidden;
+        pointer-events: none;
+    }
+    .pane.attention > header {
+        background: var(--workspace-attention, #e9cc7a);
+        border-bottom-color: var(--workspace-attention, #e9cc7a);
+    }
+    .pane.attention [role='tab'],
+    .pane.attention .split-button {
+        color: var(--workspace-attention-ink, #2a2110);
+    }
+    .pane.attention [role='tab'][aria-selected='true'] {
+        border-bottom-color: transparent;
+    }
+    [role='tab'].attention:not([aria-selected='true']) {
+        height: 24px;
+        padding: 0 8px;
+        border-radius: 3px;
+        background: var(--workspace-attention, #e9cc7a);
+        color: var(--workspace-attention-ink, #2a2110);
+    }
+    .attention-label {
+        margin-left: -2px;
+        font-size: 13px;
+        font-weight: 800;
+    }
+    .attention-frame {
+        position: absolute;
+        box-sizing: border-box;
+        z-index: 5;
+        border: 2px solid var(--workspace-attention, #e9cc7a);
+        border-top: 0;
         pointer-events: none;
     }
     .empty {

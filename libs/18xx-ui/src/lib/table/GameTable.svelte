@@ -146,6 +146,7 @@
     const readOnlyPosition = $derived(
         session.isViewingHistory || gameOver || !session.myPlayer || !session.isMyTurn
     )
+    const turnAttention = $derived(!readOnlyPosition && !session.isExploring)
     const auctionShownToAll = $derived(
         !session.isViewingHistory && !gameOver && session.privateAuctionActive
     )
@@ -317,6 +318,7 @@
     }
     const displayedScene = $derived(session.map.displayedScene)
     const paneLayout = new MediaQuery('(min-width: 64rem)')
+    const stackedTurnAttention = $derived(turnAttention && !paneLayout.current)
     const paneStripStacking = new LabelStacking()
     const actionStripStacking = new LabelStacking()
     const phoneLayout = new MediaQuery('(width < 40rem)')
@@ -1127,6 +1129,7 @@
                             {session}
                             bordered={!paneLayout.current}
                             centered={paneLayout.current}
+                            attention={stackedTurnAttention}
                         />
                     </div>
                 </div>
@@ -1201,7 +1204,7 @@
                     {/if}
                 {/snippet}
                 {#snippet actionContent()}
-                    <div class="action-body">
+                    <div class="action-body" class:attention-frame={stackedTurnAttention}>
                         <div class="action-information">
                             {@render gameInformationStrip(actionStripStacking)}
                         </div>
@@ -1449,6 +1452,9 @@
                             onLayoutChange={(value) =>
                                 layoutPreference.change(saveTableWorkspace(value))}
                             tabTitle={sidebarTabIcon}
+                            attention={turnAttention
+                                ? { tab: 'Actions', label: 'Your turn' }
+                                : undefined}
                             bind:selected={selectedView}
                             label="Table views"
                             initialLayout={initialTableLayout(paneTabs)}
@@ -1594,6 +1600,18 @@
         --stock-buy-overflow: auto;
         flex: none;
     }
+    .attention-frame {
+        position: relative;
+    }
+    .attention-frame::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border: 2px solid var(--rail-focus, #b8cddd);
+        border-top: 0;
+        pointer-events: none;
+        z-index: 10;
+    }
     .workspace-view {
         height: 100%;
         min-height: 0;
@@ -1628,6 +1646,9 @@
         margin-top: 0;
         padding: 4px 12px;
     }
+    .original-actions .action-information .game-information {
+        padding-top: 8px;
+    }
     .actions-area .action-panel {
         flex: 1 0 auto;
     }
@@ -1660,6 +1681,8 @@
         --workspace-hover: var(--rail-hover, #69554016);
         --workspace-surface: var(--rail-surface, #faf7f2);
         --workspace-danger: var(--rail-negative, #b33a32);
+        --workspace-attention: var(--rail-focus, #b8cddd);
+        --workspace-attention-ink: var(--rail-surface-inset, #1b232d);
     }
     .railway-table {
         color-scheme: dark;
