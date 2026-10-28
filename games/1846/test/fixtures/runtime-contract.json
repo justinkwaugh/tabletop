@@ -2429,6 +2429,176 @@
         ],
         "type": "object"
       },
+      "runInstructions": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "companyId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "declaredRevenue": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "declaredTrainIds": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "ignoredStops": {
+              "items": {
+                "enum": [
+                  "train-lost",
+                  "run-lowered"
+                ]
+              },
+              "type": "array"
+            },
+            "payout": {
+              "anyOf": [
+                {
+                  "const": "pay",
+                  "type": "string"
+                },
+                {
+                  "const": "withhold",
+                  "type": "string"
+                },
+                {
+                  "const": "half-pay",
+                  "type": "string"
+                }
+              ]
+            },
+            "playerId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "runs": {
+              "items": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "key": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "routes": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "paths": {
+                              "items": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "locationId": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                  },
+                                  "pathId": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "locationId",
+                                  "pathId"
+                                ],
+                                "type": "object"
+                              },
+                              "minItems": 1,
+                              "type": "array"
+                            },
+                            "start": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "locationId": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "nodeId": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "locationId",
+                                "nodeId"
+                              ],
+                              "type": "object"
+                            },
+                            "trainId": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "paths",
+                            "start",
+                            "trainId"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "routes"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "key": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "unsolved": {
+                        "const": true,
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "unsolved"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "stopReason": {
+              "enum": [
+                "train-lost",
+                "run-lowered",
+                "routes-unsolved",
+                "routes-stale",
+                "payout-unavailable",
+                "must-buy-train",
+                "president-changed"
+              ]
+            }
+          },
+          "required": [
+            "companyId",
+            "declaredRevenue",
+            "declaredTrainIds",
+            "payout",
+            "playerId",
+            "runs"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
       "seed": {
         "type": "number"
       },

@@ -38,6 +38,10 @@ export class InstructedRunSolver<
         this.#engine = new GameEngine(runtime)
     }
 
+    destroy() {
+        this.#queue.destroy()
+    }
+
     solveNow(state: HydratedEighteenXXState, companyId: string): Promise<InstructedRun> {
         return this.solve(
             state.dehydrate(),

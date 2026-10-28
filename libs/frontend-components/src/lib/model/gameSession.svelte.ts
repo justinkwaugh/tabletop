@@ -1073,21 +1073,37 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return action
     }
 
+    private preparedAction(
+        prepare: () => GameAction | undefined | Promise<GameAction | undefined>
+    ): GameAction | undefined | Promise<GameAction | undefined> {
+        const built = prepare()
+        if (built instanceof Promise)
+            return built.then((action) => action && this.prepareAction(action))
+        return built && this.prepareAction(built)
+    }
+
     async applyAction(action: GameAction) {
+        await this.applyPreparedAction(() => action)
+    }
+
+    /** Builds the Action while the session is busy, so nothing else applies before it does. */
+    async applyPreparedAction(
+        prepare: () => GameAction | undefined | Promise<GameAction | undefined>
+    ) {
         if (!this.isPlayable || this.busy) {
             return
         }
-        const prepared = this.prepareAction(action)
+        let prepared = this.preparedAction(prepare)
         if (prepared instanceof Promise) {
             this.preparingAction = true
             try {
-                action = await prepared
+                prepared = await prepared
             } finally {
                 this.preparingAction = false
             }
-        } else {
-            action = prepared
         }
+        if (!prepared) return
+        let action = prepared
 
         const relevantContext = this.currentModifiableContext
         const isRepresentationCurrent = this.representations.captureValidity()

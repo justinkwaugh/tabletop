@@ -271,7 +271,8 @@ export class EighteenXXSession<
         settled: () => session.waitForVisibleTransitionSettled(),
         withSupersededAction: (action) => session.withSupersededAction(action),
         createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
-        applyAction: (action) => session.applyAction(action)
+        applyAction: (action) => session.applyAction(action),
+        applyPreparedAction: (prepare) => session.applyPreparedAction(prepare)
     }))(this)
     readonly offers = new OfferAuctionModule(this.moduleSession)
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
@@ -872,6 +873,7 @@ export class EighteenXXSession<
     // stays still for it; the published transition says which it was.
     restoredSilently = $state(true)
     override dispose() {
+        this.#instructedRuns?.destroy()
         this.notices.dispose()
         super.dispose()
     }

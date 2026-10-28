@@ -168,9 +168,10 @@ export class RunInstructionModule {
         this.#failure = undefined
         this.changing = { companyId, on }
         try {
-            const action = await declaration()
-            if (!action) return
-            await this.session.applyAction(this.session.withSupersededAction(action))
+            await this.session.applyPreparedAction(async () => {
+                const action = await declaration()
+                return action && this.session.withSupersededAction(action)
+            })
             // A declaration that acts is presented first; until then the state shown predates it.
             await this.session.settled()
         } finally {

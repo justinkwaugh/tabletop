@@ -90,6 +90,7 @@ function validateStateComposition(
         | 'stockRules'
         | 'privatePowerRules'
         | 'trainFundingRules'
+        | 'runInstructions'
     >,
     handlers: Readonly<Record<string, unknown>>
 ): void {
@@ -118,6 +119,10 @@ function validateStateComposition(
     assert(
         !options.cashCrisisRules || 'bankruptPlayerIds' in schema.properties,
         'Cash crises record the bankrupt players'
+    )
+    assert(
+        !options.runInstructions || 'runInstructions' in schema.properties,
+        'Run instructions need their state field'
     )
     const machine = schema.properties.machineState
     const states = 'anyOf' in machine && Array.isArray(machine.anyOf) ? machine.anyOf : [machine]
