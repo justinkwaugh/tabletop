@@ -67,6 +67,23 @@ describe('playerUndoReach', () => {
         const actions = history({ playerId: 'a' }, { playerId: 'b', outOfTurn: true })
         expect(playerUndoReach(actions, 'a')).toBe(0)
     })
+
+    it('stops at another player’s declaration that acted at once', () => {
+        const actions = history({ playerId: 'a' }, { playerId: 'b', outOfTurn: true }, system)
+        expect(playerUndoReach(actions, 'a')).toBeUndefined()
+    })
+})
+
+describe('latestPlayerUndoTarget', () => {
+    it('skips the player’s declaration that only stands', () => {
+        const actions = history({ playerId: 'a' }, { playerId: 'a', outOfTurn: true })
+        expect(latestPlayerUndoTarget(actions, 'a')).toBe(actions[0])
+    })
+
+    it('targets the player’s declaration that acted at once', () => {
+        const actions = history({ playerId: 'a' }, { playerId: 'a', outOfTurn: true }, system)
+        expect(latestPlayerUndoTarget(actions, 'a')).toBe(actions[1])
+    })
 })
 
 describe('playerUndoRestriction', () => {

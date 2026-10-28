@@ -26,6 +26,9 @@ import {
 } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { assert, assertExists, GameStorage } from '@tabletop/common'
+import type { QueuedRouteWorker } from '../routes/routeSolveQueue.js'
+import { InstructedRunSolver } from './instructedRunSolver.js'
+import { RunInstructionModule } from './runInstructionModule.svelte.js'
 import type { PresentedTransition, TitlePreferences } from '@tabletop/frontend-components'
 import { GameSession, type GameSessionView } from '@tabletop/frontend-components'
 import {
@@ -382,6 +385,25 @@ export class EighteenXXSession<
         return model
     }
     readonly instructions = new StockInstructionModule(this.moduleSession)
+    #instructedRuns: InstructedRunSolver<EighteenXXState<Schema>, State> | undefined
+    private get instructedRuns(): InstructedRunSolver<EighteenXXState<Schema>, State> | undefined {
+        if (!this.createRouteWorker) return undefined
+        const components = titleComponents(this.rules)
+        this.#instructedRuns ??= new InstructedRunSolver(
+            this.createRouteWorker,
+            this.runtime,
+            this.rules.routeRules,
+            (state) => this.rules.state.hydrate(state, components)
+        )
+        return this.#instructedRuns
+    }
+    readonly runInstructions = new RunInstructionModule(this.moduleSession, () => {
+        const solver = this.instructedRuns
+        return solver ? (companyId) => solver.solveNow(this.gameState, companyId) : undefined
+    })
+    protected override prepareAction(action: GameAction): GameAction | Promise<GameAction> {
+        return this.instructedRuns?.withRuns(action, this.actionTarget) ?? action
+    }
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
     readonly loans = new LoanModule(this.moduleSession)
@@ -508,7 +530,8 @@ export class EighteenXXSession<
         options: SessionOptions<Schema, State>,
         private readonly rules: EighteenXXSessionRules<Schema, State>,
         private readonly mapViewDefinition: MapViewDefinition,
-        private readonly presentationDefinition: TitlePresentation<EighteenXXState<Schema>>
+        private readonly presentationDefinition: TitlePresentation<EighteenXXState<Schema>>,
+        private readonly createRouteWorker?: () => QueuedRouteWorker
     ) {
         super(options)
         const { map, tileSet } = titleComponents(rules)
@@ -892,11 +915,12 @@ export function createEighteenXXSessionClass<
 >(
     rules: EighteenXXSessionRules<Schema, State>,
     mapView: MapViewDefinition,
-    presentation: TitlePresentation<EighteenXXState<Schema>>
+    presentation: TitlePresentation<EighteenXXState<Schema>>,
+    createRouteWorker?: () => QueuedRouteWorker
 ): new (options: SessionOptions<Schema, State>) => EighteenXXSession<Schema, State> {
     return class extends EighteenXXSession<Schema, State> {
         constructor(options: SessionOptions<Schema, State>) {
-            super(options, rules, mapView, presentation)
+            super(options, rules, mapView, presentation, createRouteWorker)
         }
     }
 }

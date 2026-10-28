@@ -338,13 +338,14 @@ unchanged and subsequent reloads reuse the new example.
 
 ### Standing instructions
 
-During an open stock round a compact one-line bar pinned to the bottom of the
-stock action body is visible to every seated player whose valid actions include
-SetStockInstruction, regardless
-of whose turn it is. In local hotseat play outside the developer harness the bar is hidden unless the
-client is viewing as a non-active player, where it declares for that player. Off-turn the table shows the
-read-only position panel instead of the stock action body, so the bar sits at the bottom of the
-current action region beneath that panel; it renders exactly once in either position. The prototype
+During an open stock round a compact one-line row in the instruction bar, pinned to the
+bottom of the current action region, is visible to every seated player whose valid actions
+include SetStockInstruction, regardless
+of whose turn it is. In local hotseat play outside the developer harness the row is hidden unless the
+client is viewing as a non-active player, where it declares for that player. The instruction bar
+sits beneath the stock action body on the player's turn and beneath the read-only position
+panel off-turn; it renders exactly once in either position, under one top rule, sharing its line with
+the Autorun row (see Run instructions). The prototype
 trading panel embeds the same bar. Its left edge is an Autopass / Autobuy sliding toggle in
 the same style as the Buy / Sell strip. Selecting Autopass shows an inline
 Enable button. Selecting Autobuy extends the same line, wrapping only when the pane is narrow,
@@ -371,7 +372,9 @@ ignores ("sales", "company starts", "president changes", "presidency threats"), 
 `instructions.warning` reports that the instruction would stop at its next
 evaluation, followed by an underlined Ignore link when that reason can be ignored,
 and an inline Cancel button. A small "?" icon at the end of the row
-opens a popover listing when an instruction stops on its own. While a kind is
+opens a popover listing when an instruction stops on its own. Once Autobuy has a company and
+pool, the "?" moves inside the bordered settings tray as its last item. It is hidden while the
+row shows a stop reason: the stopped notice, or the warning on a declared instruction. While a kind is
 selected or an instruction is declared, the popover splits that list into "You
 choose", the four stops a player may ignore (a company started, a president
 changed, shares sold to the bank, a presidency threatened), each with a switch
@@ -426,6 +429,43 @@ player's live instruction acts inside it, and the bar starts undeclared.
 Instructions declared inside the exploration act normally there, and Undo
 redoes them like any other declaration. The live game keeps its instructions
 unchanged.
+
+### Run instructions
+
+In a title with Run Instructions, the instruction bar at the bottom of the current action
+region carries an Autorun row in every round. Alone it starts at the left edge; with the stock row it
+sits at the far right of the same line, wrapping beneath at the left when the line is full. It
+shows for a live seated player who presides over at least one open railway (never a private). History hides it,
+and ordinary local hotseat play hides it unless the client is viewing as a non-active player.
+The row's left edge is a pill in the inset surface of the Autopass / Autobuy toggle, holding an
+uppercase "Autorun" label, muted until any of the viewer's companies is on and then in the
+text color, and a token for each such company. A token that is off is muted and
+brightens on hover; a token that is on is at full strength with a green outline. Pressing an
+off token solves the company's best run from the published state and declares the instruction
+with it; pressing an on token cancels it. The token shows its new state the moment it is
+pressed and keeps it until the declaration lands and its presentation settles, or reverts if
+the declaration fails; controls disable while the session is busy, which includes the solve,
+but keep their appearance.
+No text accompanies a running instruction. Text follows the pill only for a problem: a solve
+that cannot prove the best run within a second declares nothing and shows "The best run could
+not be found in time." in the negative color, and a stopped instruction shows "<company>
+stopped: <reason>" in the muted color with an underlined "Keep going, ignore lower runs" or
+"Keep going, ignore lost trains" link when the reason can be ignored. A "?" after the pill
+opens a panel above it: a sentence on what Autorun does, a definition of each optional stop
+("Train loss": it loses a train; "Lower run": its run earns less than when you set it), a grid
+with one row per company (token and name) and one switch column per optional stop, headed
+"You choose" in its corner, and an "Always" list of the stops that cannot be switched off. A
+switch for a company that is on declares the change at once; one for a company that is off is
+kept locally and sent with its declaration. The row lists only the viewer's own companies and
+instructions; other players' instructions are never shown, a presentation rule over public
+Game State. Choices kept locally belong to the viewer who made them, and a failure message
+belongs to the position it was shown for. Nothing here is a staged selection: Undo and
+LocalSelections ignore it. Automatic turns render exactly like the same steps taken by hand.
+
+While any Run Instruction is declared, the session solves before it submits every Action and
+attaches the runs its effects need (see `research/18xx/run-instructions-design.md`). The session
+is busy while it solves, so the table disables its controls and holds incoming updates until the
+Action is submitted.
 
 ### Live maps in finance examples
 

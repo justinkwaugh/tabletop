@@ -18,7 +18,6 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     GameAction,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -49,7 +48,8 @@ import {
     SystemActionFirstHandler,
     RoundEnd,
     roundEnd,
-    type ValuationRules
+    type ValuationRules,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import { liquidate } from './liquidation.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
@@ -244,7 +244,7 @@ export function startsMergerRounds(
     )
 }
 
-const CompanyFields = { ...PlayerAction.properties, companyId: Type.String() }
+const CompanyFields = { ...EighteenXXPlayerAction.properties, companyId: Type.String() }
 
 export const ConvertCompany = Type.Object(
     {

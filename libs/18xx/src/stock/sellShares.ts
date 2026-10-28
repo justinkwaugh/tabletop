@@ -1,10 +1,10 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { recordStockRoundSale } from './stockRound.js'
 import { recordStockAction } from './stockRoundRules.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -17,7 +17,7 @@ import type { StockState } from './stockState.js'
 
 export const SellShares = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('SellShares'),
         seller: Owner,
         sales: Type.Array(ShareSale, { minItems: 1, maxItems: 1 }),

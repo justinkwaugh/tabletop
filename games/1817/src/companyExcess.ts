@@ -9,14 +9,13 @@ import {
     ActionSource,
     GameAction,
     HydratableAction,
-    PlayerAction,
     assert,
     assertExists,
     type HydratedAction,
     type HydratedGameState,
     type MachineContext
 } from '@tabletop/common'
-import { DeparturePayments, discardTrainToMarket } from '@tabletop/18xx'
+import { DeparturePayments, discardTrainToMarket, EighteenXXPlayerAction } from '@tabletop/18xx'
 import { EighteenSeventeenTrainRules } from './trains.js'
 import { stateAfterAcquisition } from './acquisitionRound.js'
 import { stateAfterConversion } from './mergerRound.js'
@@ -38,7 +37,7 @@ function excessCompanyFor(state: EighteenSeventeenState, playerId: string): stri
     return companyId && presidentOf(state, companyId) === playerId ? companyId : undefined
 }
 
-const CompanyFields = { ...PlayerAction.properties, companyId: Type.String() }
+const CompanyFields = { ...EighteenXXPlayerAction.properties, companyId: Type.String() }
 
 export const RemoveStation = Type.Object(
     {

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { createRouteWorker } from './routeWorker.js'
     import { assert } from '@tabletop/common'
     import type { GameSession } from '@tabletop/frontend-components'
     import type { EighteenThirtyTwoState, HydratedEighteenThirtyTwoState } from '@tabletop/1832'
@@ -15,9 +16,6 @@
     import PendingDecision from './PendingDecision.svelte'
     import CompanyShareActions from './CompanyShareActions.svelte'
     import MergerPhase from './MergerPhase.svelte'
-    function createRouteWorker() {
-        return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
-    }
     let {
         gameSession
     }: { gameSession: GameSession<EighteenThirtyTwoState, HydratedEighteenThirtyTwoState> } =

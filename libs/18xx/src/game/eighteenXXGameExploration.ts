@@ -1,6 +1,7 @@
 import type { GameAction, GameExploration, GameState, HydratedGameState } from '@tabletop/common'
 import type { EighteenXXState } from './eighteenXXState.js'
 import { isStockInstructionDeclaration } from '../stock/stockInstructionActions.js'
+import { isRunInstructionDeclaration } from '../routes/runInstructionActions.js'
 
 export class EighteenXXGameExploration<
     State extends GameState = EighteenXXState
@@ -8,14 +9,15 @@ export class EighteenXXGameExploration<
     constructor(
         private readonly hydrate: (
             state: State
-        ) => HydratedGameState<State> & Pick<EighteenXXState, 'stockRound'>
+        ) => HydratedGameState<State> & Pick<EighteenXXState, 'stockRound' | 'runInstructions'>
     ) {}
     createFromCanonicalState(state: State): State {
         const exploration = this.hydrate(state)
         delete exploration.stockRound.instructions
+        delete exploration.runInstructions
         return exploration.dehydrate()
     }
     keepsSourceDeclaration(action: GameAction): boolean {
-        return !isStockInstructionDeclaration(action)
+        return !isStockInstructionDeclaration(action) && !isRunInstructionDeclaration(action)
     }
 }

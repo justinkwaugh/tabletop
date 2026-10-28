@@ -1,6 +1,7 @@
-import { assert, assertExists } from '@tabletop/common'
+import { addToChecksum, assert, assertExists } from '@tabletop/common'
 import {
     RouteEvaluation,
+    atRunningStep,
     type OperatingResult,
     type RouteRules,
     type TrainRunningState
@@ -26,6 +27,18 @@ export type AutoroutingResult = {
         expansions: number
         connections: number
     }
+}
+
+/** Equal keys have the same best run: they hash everything the company's routes can reach. */
+export function routeProblemKey(
+    state: TrainRunningState,
+    rules: RouteRules,
+    companyId: string
+): string {
+    const running = atRunningStep(state, companyId)
+    const { network } = new RouteEvaluation(running, rules)
+    const encoded = new EncodedRoutes(running, rules, companyId, network, 1)
+    return addToChecksum(0, [encoded.networkKey()]).toString(36)
 }
 
 export class Autorouter {

@@ -51,7 +51,8 @@ export const EighteenThirtyTitleRules: EighteenXXTitleRules<
     privateRules: EighteenThirtyPrivateRules,
     phases: EighteenThirtyPhases,
     phaseRules: EighteenThirtyPhaseRules,
-    trainRules: EighteenThirtyTrainRules
+    trainRules: EighteenThirtyTrainRules,
+    runInstructions: true
 }
 
 export const Definition: GameDefinition<EighteenThirtyState, HydratedEighteenThirtyState> = {

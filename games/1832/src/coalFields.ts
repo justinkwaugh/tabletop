@@ -3,7 +3,6 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     type GameAction,
     type HydratedAction
@@ -18,7 +17,8 @@ import {
     privateOwningCompany,
     settleCashPayments,
     type FinancialState,
-    stepAction
+    stepAction,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import type { TitleStepAction } from './titleActions.js'
 import { CoalFieldsLocationId } from './coalAccess.js'
@@ -90,7 +90,7 @@ export function canBuyCoalRights(state: EighteenThirtyTwoState, playerId: string
 
 export const BuyCoalRights = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('BuyCoalRights'),
         companyId: Type.String(),
         metadata: Type.Optional(

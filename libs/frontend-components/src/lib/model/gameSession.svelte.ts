@@ -9,7 +9,7 @@ import {
     unnamedDuplicateReason,
     isSupersedableActionType,
     isOutOfTurnActionType,
-    isOutOfTurnDeclaration,
+    isStandingDeclaration,
     latestPlayerUndoTarget,
     gameCallOf,
     isCallGameAction,
@@ -20,6 +20,7 @@ import {
     GameEngine,
     type Player,
     GameState,
+    type ActionInput,
     type HydratedGameState,
     PlayerAction,
     GameStorage,
@@ -80,6 +81,8 @@ export type GameStateChangeListener<U extends HydratedGameState> = TransitionLis
     AnimationContext
 >
 
+export type ActionTarget<T extends GameState> = Omit<ActionInput<T>, 'action'>
+
 type PlayerStateOf<U extends HydratedGameState> = U['players'][number]
 
 export class GameSession<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -102,9 +105,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     processingActions = $state(false)
     updatingVisibleState = $state(false)
     private loadingGameRepresentation = $state(false)
+    private preparingAction = $state(false)
 
     busy = $derived.by(() => {
-        const actions = this.processingActions
+        const actions = this.processingActions || this.preparingAction
         const state = this.updatingVisibleState
         const representation = this.loadingGameRepresentation
 
@@ -113,6 +117,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     private historyBusy = $derived(
         this.processingActions ||
+            this.preparingAction ||
             this.updatingVisibleState ||
             this.loadingGameRepresentation ||
             this.applyingSynchronization
@@ -224,6 +229,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     })
 
+    protected get actionTarget(): ActionTarget<T> {
+        const context = this.currentModifiableContext
+        const { game, state } = context
+        return { game, state, perspective: this.projectedExecutionPerspective(context) }
+    }
+
     viewedHistoryPosition: ViewedHistoryPosition | undefined = $derived.by(() => {
         if (!this.history.inHistory || !this.myPlayer) {
             return undefined
@@ -254,8 +265,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         if (superUserAccess || localHotseatAccess) {
-            return this.undoableActions({ stopAtReveal: !superUserAccess }).findLast(
-                (action) => action.source === ActionSource.User && !isOutOfTurnDeclaration(action)
+            const actions = this.undoableActions({ stopAtReveal: !superUserAccess })
+            return actions.findLast(
+                (action, position) =>
+                    action.source === ActionSource.User && !isStandingDeclaration(actions, position)
             )
         }
 
@@ -1017,7 +1030,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     withSupersededAction(action: GameAction): GameAction {
         const context = this.currentModifiableContext
         if (!isSupersedableActionType(this.runtime.apiActions, action.type)) return action
-        const standing = findStandingAction(context.actions, action)
+        const standing = findStandingAction(this.runtime.apiActions, context.actions, action)
         if (!standing) return action
         const named = { ...action, supersedesActionId: standing.id }
         const outcome = replaceSupersededAction({
@@ -1056,9 +1069,24 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         context.applyActionResults(new GameActionResults(outcome.redone, outcome.state))
     }
 
+    protected prepareAction(action: GameAction): GameAction | Promise<GameAction> {
+        return action
+    }
+
     async applyAction(action: GameAction) {
         if (!this.isPlayable || this.busy) {
             return
+        }
+        const prepared = this.prepareAction(action)
+        if (prepared instanceof Promise) {
+            this.preparingAction = true
+            try {
+                action = await prepared
+            } finally {
+                this.preparingAction = false
+            }
+        } else {
+            action = prepared
         }
 
         const relevantContext = this.currentModifiableContext

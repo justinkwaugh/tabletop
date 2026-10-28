@@ -3,10 +3,11 @@ import {
     calculateActionChecksum,
     createPatch,
     ExplorationHistory,
+    isOutOfTurnDeclaration,
     type GameAction,
     type GameState,
     type HydratedGameState,
-    type Visibility
+    Visibility
 } from '@tabletop/common'
 import { GameActionResults } from './gameActionResults.svelte.js'
 import type { GameContext } from './gameContext.svelte.js'
@@ -46,7 +47,8 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
         action.index = context.nextActionIndex
         delete action.undoPatch
         const state = context.state
-        if (perspective !== undefined && action.forwardPatch !== undefined) {
+        const declaration = isOutOfTurnDeclaration(action) && !Visibility.isRedactedAction(action)
+        if (perspective !== undefined && action.forwardPatch !== undefined && !declaration) {
             const updatedState = context.engine.applyProcessedAction({
                 action,
                 state,
@@ -60,11 +62,11 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
             return
         }
         delete action.forwardPatch
-        const args = { action, state, game: context.game }
-        const result =
-            perspective === undefined
-                ? context.engine.executeCanonicalAction(args)
-                : context.engine.executeAction({ ...args, perspective })
+        const target = { action, state, game: context.game, perspective }
+        const result = declaration
+            ? context.engine.reapplyDeclaration(target)
+            : context.engine.execute(target)
+        if (!result) return
         context.applyActionResults(
             new GameActionResults(result.processedActions, result.updatedState)
         )

@@ -42,6 +42,7 @@ import {
     validateCompanyDecisions
 } from '../privates/companyDecision.js'
 import { RouteFields, validateRouteStep } from '../routes/route.js'
+import { RunInstructionFields } from '../routes/instructedRuns.js'
 import { StationStep, validateStationStep } from '../stations/stationPlacement.js'
 import { CompanyAuctionFields } from '../stock/companyAuction.js'
 import { StockMarket } from '../stock/stockMarket.js'
@@ -96,7 +97,8 @@ export const RailwayFields = {
     ...PhaseFields,
     ...EarningsFields,
     ...PurchaseOfferFields,
-    ...RouteFields
+    ...RouteFields,
+    ...RunInstructionFields
 }
 type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | 'purchaseOffer'> &
     typeof FinanceFields &
