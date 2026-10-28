@@ -2,7 +2,7 @@
     import { assertExists } from '@tabletop/common'
     import { namedPlaceText } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import { privateLotDetail } from './auctionLotDetails.js'
+    import { selectionLotDetail, type PrivateLotDetail } from './auctionLotDetails.js'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -11,29 +11,27 @@
         assertExists(auction.model, 'Lot tiers require a selection auction')
         return auction.model
     })
-    const lotDetail = (lotId: string) => {
-        const lot = model.lots.find((item) => item.id === lotId)
-        assertExists(lot, 'Remaining auction lot must be known')
-        return privateLotDetail(session, lot)
-    }
+    const tierSlots = $derived.by(() => {
+        assertExists(model.tiers, 'Lot tiers require a tiered selection auction')
+        return model.tiers
+    })
     const nominable = $derived(model.nominationLotIds)
     const tiers = $derived(
-        (model.tiers ?? []).map((slots, index) => ({
+        tierSlots.map((slots, index) => ({
             label: `Tier ${index + 1}`,
             open: slots.some((lotId) => !!lotId && nominable.includes(lotId)),
-            slots: slots.map((lotId) => (lotId ? lotDetail(lotId) : undefined))
+            slots: slots.map((lotId) => (lotId ? selectionLotDetail(session, lotId) : undefined))
         }))
     )
-    // While a lot is bid on, the pyramid shows it and takes no nomination.
     const biddingLotId = $derived(model.auction.bidding?.lotId)
     const nominating = $derived(auction.ownTurn && !biddingLotId)
-    const selectedLotId = $derived(biddingLotId ?? auction.selection?.lotId)
+    const selectedLotId = $derived(auction.selection?.lotId)
     const plainDescription = (description: string) => namedPlaceText(description, session.placeName)
-    const lotTitle = (lot: ReturnType<typeof lotDetail>) =>
+    const lotTitle = (lot: PrivateLotDetail) =>
         lot.company.description && plainDescription(lot.company.description)
 </script>
 
-{#snippet slotContent(lot: ReturnType<typeof lotDetail>, open: boolean)}
+{#snippet slotContent(lot: PrivateLotDetail, open: boolean)}
     <span class="slot-heading"
         ><span class="slot-name">{session.lotName(lot)}</span>
         <span class="slot-value">{money(lot.price)}</span></span
