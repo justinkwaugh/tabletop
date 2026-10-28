@@ -22,6 +22,8 @@
     // this game carried in, under its start.
     let chronicleRows = $derived(gameSession.chronicleRowsAfter)
     let carried = $derived(gameSession.carriedEntries)
+    // R-1.7-H1, R-1.9-H1 — a continued game's seats as it opened, just after its start, newest first.
+    let opening = $derived(gameSession.openingRows.toReversed())
     // The winner the game-end row names is their chip.
     let seats = $derived({ names: gameSession.historyNames, viewerId: gameSession.myPlayer?.id })
 
@@ -183,6 +185,21 @@
                         </TimelineItem>
                     </div>
                 {/if}
+            {/each}
+            {#each opening as row (row.playerId)}
+                <div data-opening-row>
+                    {@render dot()}
+                    <TimelineItem
+                        timeClass="text-oath-text-muted dark:text-oath-text-muted"
+                        title=""
+                        class="timeline-item text-left mb-5"
+                        date={timeAgo.format(gameSession.game.createdAt)}
+                    >
+                        <p class="mt-1 text-left text-sm text-base font-normal text-oath-text">
+                            <TokenText text={row.text} {seats} />
+                        </p>
+                    </TimelineItem>
+                </div>
             {/each}
             {@render dot()}
             <TimelineItem

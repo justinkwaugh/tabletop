@@ -1,9 +1,17 @@
 import {
     ActionSource,
     Color,
+    GameEngine,
+    GameStatus,
+    GameStorage,
+    PlayerStatus as SeatStatus,
     calculateActionChecksum,
+    captureGameContinuation,
     createAction,
-    type GameAction
+    type Game,
+    type GameAction,
+    type GameContinuation,
+    type Player
 } from '@tabletop/common'
 import {
     ActionType,
@@ -14,6 +22,7 @@ import {
     ChooseChronicleSuit,
     ChooseOath,
     ChronicleMark,
+    Definition,
     HydratedOathGameState,
     IMPERIAL_WARBANDS,
     MachineState,
@@ -222,10 +231,10 @@ export function gameOneAt(step: GameOneStep): PlayedTable {
  * Game 2 at its end, under Protection: Ann (blue), a Citizen, won as Successor; Dana (purple) is
  * the Chancellor; Rhys (red) an Exile. Purple holds Plains, Ancient City and Steppe, so Ann rules
  * them (R-6.6.3); red River and Lush Coast. Ann's faceup advisers are one Order and one Hearth.
- * `ruin`: the Great Spire stands ruined at Steppe.
+ * `ruin`: the Great Spire stands ruined at Steppe. `record`: the entries game 2 carried in.
  */
-function gameTwoEnd(ruin: boolean): HydratedOathGameState {
-    return atTheEnd(
+function gameTwoEnd(ruin: boolean, record?: ChronicleEntry[]): HydratedOathGameState {
+    const state = atTheEnd(
         [
             seat(DANA, Color.Purple, PlayerStatus.Chancellor, {
                 advisers: [facedown('denizen.discord.chaos-cult')]
@@ -274,6 +283,8 @@ function gameTwoEnd(ruin: boolean): HydratedOathGameState {
             }
         }
     )
+    if (record) state.chronicleRecord = record
+    return state
 }
 
 const SUCCESSOR = { winnerPlayerId: ANN, kind: WinKind.Successor, rule: 'R-3.3.1' } as const
@@ -334,9 +345,12 @@ export function gameOneVisionWon(): PlayedTable {
 
 export type GameTwoStep = 'build' | 'ruin' | 'suit' | 'heal' | 'story'
 
-/** Game 2's chronicle as far as `step`: Ann vows Devotion, then builds, picks a suit or a stack. */
-export function gameTwoAt(step: GameTwoStep): PlayedTable {
-    const state = gameTwoEnd(step === 'ruin')
+/**
+ * Game 2's chronicle as far as `step`: Ann vows Devotion, then builds, picks a suit or a stack.
+ * `record`: the entries game 2 carried in.
+ */
+export function gameTwoAt(step: GameTwoStep, record?: ChronicleEntry[]): PlayedTable {
+    const state = gameTwoEnd(step === 'ruin', record)
     if (step === 'heal') shortOfOrder(state)
     const vowed = played(gameTwoWon(state), [
         buildAction(ChooseOath, { playerId: ANN, oathType: OathType.Devotion })
@@ -443,4 +457,54 @@ export function gameThreeOpen(): PlayedTable {
 /** Ann's story skipped, so game 2 ends: no story row. */
 export function gameTwoSkipped(): PlayedTable {
     return played(gameTwoAt('story'), [buildAction(SkipChronicleStory, { playerId: ANN })])
+}
+
+/** Ann, Dana and Bea seated in that order, Dana dealt blue and Bea yellow (the seed is the given). */
+const GAME_THREE_SEED = '0000000000000000000000000000003f'
+
+function hosted(playerId: string): Player {
+    const name = playerId.charAt(0).toUpperCase() + playerId.slice(1)
+    return { id: playerId, isHuman: true, userId: `u-${playerId}`, name, status: SeatStatus.Joined }
+}
+
+/**
+ * Game 3 as Continue opens it, through the real definition: game 2 (carrying game 1) won by Ann
+ * and finished; Rhys does not continue and Bea joins. Ann, game 2's winner, is the Chancellor;
+ * Dana is dealt the blue board, still on its Citizen side, and Bea the yellow one (R-1.7-H1,
+ * R-1.9-H1). The table waits on Ann's setup choice.
+ */
+export function gameThreeContinued(): PlayedTable {
+    const finished = played(gameTwoAt('story', [GAME_ONE_ENTRY]), [
+        buildAction(SkipChronicleStory, { playerId: ANN })
+    ]).state
+    const source: Game = {
+        id: finished.gameId,
+        typeId: Definition.info.id,
+        status: GameStatus.Finished,
+        isPublic: false,
+        deleted: false,
+        ownerId: 'u-dana',
+        name: TABLE.name,
+        players: [DANA, RHYS, ANN].map(hosted),
+        config: {},
+        hotseat: false,
+        createdAt: new Date('2026-10-22T19:00:00Z'),
+        winningPlayerIds: [ANN],
+        storage: GameStorage.Local
+    }
+    const continuation = captureGameContinuation(source, finished, Definition as never)
+    const next: Game = {
+        ...source,
+        id: 'game-3',
+        status: GameStatus.WaitingToStart,
+        players: [ANN, DANA, BEA].map(hosted),
+        createdAt: new Date('2026-10-29T19:00:00Z'),
+        winningPlayerIds: [],
+        continuedFromGameId: source.id
+    }
+    const { initialState } = new GameEngine(Definition.runtime).startGame(next, {
+        masterSeed: GAME_THREE_SEED,
+        continuation: continuation as GameContinuation<OathProjectedState>
+    })
+    return { state: initialState, actions: [] }
 }

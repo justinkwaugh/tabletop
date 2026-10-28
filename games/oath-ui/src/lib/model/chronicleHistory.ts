@@ -1,6 +1,8 @@
 import type { GameAction } from '@tabletop/common'
 import {
+    BoardSide,
     ChronicleKeptFor,
+    OpeningChancellor,
     Goal,
     OATHKEEPER_GOALS,
     OathType,
@@ -19,6 +21,7 @@ import {
     type ChronicleMapRecord,
     type ChronicleRelicsRecord,
     type HydratedOathGameState,
+    type OpeningSeats,
     type Suit,
     type WinRule
 } from '@tabletop/oath'
@@ -397,6 +400,60 @@ export function chronicleRowsAfter(
 export function carriedEntries(state: HydratedOathGameState): ChronicleEntry[] {
     const record = state.chronicleRecord ?? []
     return (chronicleWritten(state) ? record.slice(0, -1) : record).toReversed()
+}
+
+/** A row saying how a continued game's seats were settled: the seat's id, for its chip, and words. */
+export interface OpeningRow {
+    playerId: string
+    text: string
+}
+
+/** The words after a seat's chip; the viewer's chip reads "you", so they agree with it. */
+interface SeatWords {
+    is: string
+    was: string
+    their: string
+}
+
+const CHANCELLOR_WORDS: Record<
+    OpeningChancellor,
+    (seat: OpeningSeats['chancellor'], words: SeatWords) => string
+> = {
+    [OpeningChancellor.Winner]: (seat, { is }) =>
+        `${is} the Chancellor, as the winner of game ${seat.gameNumber}.`,
+    [OpeningChancellor.Citizen]: (_, { is, their }) =>
+        `${is} the Chancellor: ${their} board was on its Citizen side.`,
+    [OpeningChancellor.Random]: (_, { is }) => `${is} the Chancellor, chosen at random.`
+}
+
+const SIDE_WORDS: Record<BoardSide, string> = {
+    [BoardSide.Exile]: 'Exile side up',
+    [BoardSide.Citizen]: 'Citizen side up'
+}
+
+/**
+ * R-1.7-H1, R-1.9-H1 — a continued game's seats as it opened, oldest first: the Chancellor, then
+ * each other seat in turn order. Each row's text starts with its seat's id, for its chip. None in a
+ * first game.
+ */
+export function openingRows(state: HydratedOathGameState, viewerId?: string): OpeningRow[] {
+    const seats = state.openingSeats
+    if (!seats) return []
+    const wordsFor = (playerId: string): SeatWords =>
+        playerId === viewerId
+            ? { is: 'are', was: 'were', their: 'your' }
+            : { is: 'is', was: 'was', their: 'their' }
+    const { chancellor } = seats
+    return [
+        {
+            playerId: chancellor.playerId,
+            text: `${chancellor.playerId} ${CHANCELLOR_WORDS[chancellor.chosen](chancellor, wordsFor(chancellor.playerId))}`
+        },
+        ...seats.boards.map((board) => ({
+            playerId: board.playerId,
+            text: `${board.playerId} ${board.kept ? 'kept' : `${wordsFor(board.playerId).was} dealt`} the ${board.color} board, ${SIDE_WORDS[board.side]}.`
+        }))
+    ]
 }
 
 /** "won as Usurper, under the Oath of Supremacy." — a record row's words after its chip. */

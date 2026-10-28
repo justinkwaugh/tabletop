@@ -139,6 +139,8 @@ import {
     carriedEntries,
     chronicleRowsAfter,
     chronicleWordsOf,
+    openingRows,
+    type OpeningRow,
     type ChronicleRowsAfter,
     type ChronicleWords
 } from './chronicleHistory.js'
@@ -1746,6 +1748,11 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     /** The record's entries this game carried in, newest first. */
     get carriedEntries() {
         return carriedEntries(this.gameState)
+    }
+
+    /** R-1.7-H1, R-1.9-H1 — how a continued game's seats were settled, oldest first. */
+    get openingRows(): OpeningRow[] {
+        return openingRows(this.gameState, this.myPlayer?.id)
     }
 
     /** R-3 — the finished game's top row: its winner, its ending, its title or Vision. */

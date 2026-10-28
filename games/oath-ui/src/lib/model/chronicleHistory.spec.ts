@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { GameAction, Visibility } from '@tabletop/common'
+import { Color, type GameAction, type Visibility } from '@tabletop/common'
 import {
+    BoardSide,
     BuildOrRepairEdifice,
+    OpeningChancellor,
     ChooseChronicleSuit,
     ChooseHealStack,
     HydratedOathGameState,
@@ -19,6 +21,7 @@ import {
     chronicleActionWords,
     chronicleRowsAfter,
     chronicleWordsOf,
+    openingRows,
     recordRowWords,
     shownInHistory
 } from './chronicleHistory.js'
@@ -32,11 +35,12 @@ import {
     LONGBOWS,
     gameOneAt,
     gameOneVisionWon,
+    gameThreeContinued,
     gameThreeOpen,
     gameTwoAt,
     gameTwoSkipped
 } from '$lib/testing/chronicleTables.js'
-import { played, type PlayedTable } from '$lib/testing/sessionHarness.js'
+import { played, setupTable, type PlayedTable } from '$lib/testing/sessionHarness.js'
 
 /**
  * The History's chronicle lines, oldest first, as `view` serves the state: each chronicle action's
@@ -214,5 +218,77 @@ describe('the record this game carried in', () => {
         expect(own).toBeDefined()
         if (own) state.chronicleRecord = [GAME_ONE_ENTRY, { ...own, gameNumber: 2 }]
         expect(carriedEntries(state)).toEqual([GAME_ONE_ENTRY])
+    })
+
+    it('a continued game 3 opens carrying games 2 and 1, newest first', () => {
+        const state = new HydratedOathGameState(gameThreeContinued().state)
+        expect(carriedEntries(state).map((entry) => entry.gameNumber)).toEqual([2, 1])
+        expect(carriedEntries(state)[1]).toEqual(GAME_ONE_ENTRY)
+    })
+})
+
+/** The opening rows as `viewerId` reads them, oldest first; each starts with its seat's id. */
+const openingLines = (state: OathProjectedState, viewerId?: string) =>
+    openingRows(new HydratedOathGameState(state), viewerId).map((row) => {
+        expect(row.text.startsWith(`${row.playerId} `)).toBe(true)
+        return row.text
+    })
+
+describe('R-1.7-H1, R-1.9-H1 — how a continued game’s seats were settled', () => {
+    it('game 3 opens: Ann the Chancellor as game 2’s winner, then Dana and Bea in turn order', () => {
+        expect(openingLines(gameThreeContinued().state)).toEqual([
+            'ann is the Chancellor, as the winner of game 2.',
+            'dana was dealt the blue board, Citizen side up.',
+            'bea was dealt the yellow board, Exile side up.'
+        ])
+    })
+
+    it('the other ways a Chancellor is chosen, and a kept board', () => {
+        const state = structuredClone(gameThreeContinued().state)
+        state.openingSeats = {
+            chancellor: { playerId: 'ann', chosen: OpeningChancellor.Citizen },
+            boards: [{ playerId: 'dana', color: Color.Blue, side: BoardSide.Citizen, kept: true }]
+        }
+        expect(openingLines(state)).toEqual([
+            'ann is the Chancellor: their board was on its Citizen side.',
+            'dana kept the blue board, Citizen side up.'
+        ])
+        state.openingSeats = {
+            chancellor: { playerId: 'ann', chosen: OpeningChancellor.Random },
+            boards: []
+        }
+        expect(openingLines(state)).toEqual(['ann is the Chancellor, chosen at random.'])
+    })
+
+    it('the viewer’s own row agrees with their chip’s “you”', () => {
+        const state = gameThreeContinued().state
+        expect(openingLines(state, 'ann')[0]).toBe(
+            'ann are the Chancellor, as the winner of game 2.'
+        )
+        expect(openingLines(state, 'dana')[1]).toBe(
+            'dana were dealt the blue board, Citizen side up.'
+        )
+        const citizen = structuredClone(state)
+        citizen.openingSeats = {
+            chancellor: { playerId: 'ann', chosen: OpeningChancellor.Citizen },
+            boards: []
+        }
+        expect(openingLines(citizen, 'ann')).toEqual([
+            'ann are the Chancellor: your board was on its Citizen side.'
+        ])
+    })
+
+    it('a first game has no opening rows', () => {
+        expect(openingLines(setupTable().state)).toEqual([])
+    })
+
+    it('every seat and the spectator read the same rows', () => {
+        const state = gameThreeContinued().state
+        const views: Visibility.Perspective[] = [
+            spectator,
+            ...['ann', 'dana', 'bea'].map((playerId) => ({ kind: 'player' as const, playerId }))
+        ]
+        for (const view of views)
+            expect(openingLines(served(state, view))).toEqual(openingLines(state))
     })
 })
