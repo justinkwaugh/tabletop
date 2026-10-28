@@ -1,4 +1,9 @@
 import { calculateHexGeometry, HexOrientation, type Point } from '@tabletop/common'
+import AllynsPointFerry from './images/ferries/allyns-point.svg'
+import FallRiverFerry from './images/ferries/fall-river.svg'
+import NewHavenFerry from './images/ferries/new-haven.svg'
+import ProvidenceFerry from './images/ferries/providence.svg'
+import StoningtonFerry from './images/ferries/stonington.svg'
 import { Map1833NE, TileSet1833NE } from '@tabletop/1833ne'
 import {
     StandardTileLayouts,
@@ -86,7 +91,7 @@ function arrow(
     id: string,
     [column, row]: readonly [number, number],
     heading: string,
-    footer: string,
+    footer: MapBonusArrow['footer'],
     values: Partial<Record<Band, number>>,
     points: MapBonusArrow['points']
 ): MapBonusArrow {
@@ -176,8 +181,8 @@ export const BonusArrows1833NE: readonly MapBonusArrow[] = [
     arrow(
         'montreal-port-city',
         [6.1, 29.2],
-        'MONTREAL ending at',
-        'NEW HAVEN or NORWICH',
+        'MONTREAL',
+        { before: 'to', symbol: 'port', after: 'CITY', spoken: 'ending at New Haven or Norwich' },
         { 'III-IV': 50, V: 80 },
         'both'
     )
@@ -212,6 +217,19 @@ export const MapView1833NE: MapViewDefinition = {
     cityNames: {
         H25: { 'city-0': 'Plymouth', 'city-1': 'New Bedford' }
     },
+    // Each ferry's marker sits in its hex, as the board prints them (setup, p. 3).
+    locationMarkerArt: Object.fromEntries(
+        Object.entries({
+            C26: NewHavenFerry,
+            E26: AllynsPointFerry,
+            F27: StoningtonFerry,
+            F25: ProvidenceFerry,
+            G26: FallRiverFerry
+        }).map(([id, imageUrl]) => [
+            id,
+            { ferry: { token: { imageUrl, place: 'corner' as const } } }
+        ])
+    ),
     // The connection bonuses name these places, so the board prints them large (p. 24).
     offboardNames: { fontSize: 9, color: '#4a0b0b' },
     // Eastern Townships is one printed area across its two hexes.
