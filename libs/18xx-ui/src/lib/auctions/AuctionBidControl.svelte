@@ -25,6 +25,11 @@
         onBid: () => void
         onPass?: () => void
     } = $props()
+    // The title's currency around a typed amount: "$" before, or a symbol after.
+    const [currencyBefore, currencyAfter] = $derived(money(0).split('0'))
+    function typed(value: number) {
+        if (Number.isFinite(value)) onChange(value)
+    }
 </script>
 
 <div class="controls" class:inline>
@@ -34,7 +39,19 @@
             disabled={!canDecrease}
             onclick={() => onChange(amount - increment)}>−</button
         >
-        <output aria-label="Bid amount">{money(amount)}</output>
+        <label class="amount"
+            >{currencyBefore}<input
+                type="number"
+                inputmode="numeric"
+                aria-label="Bid amount"
+                step={increment}
+                value={amount}
+                oninput={(event) => typed(event.currentTarget.valueAsNumber)}
+                onkeydown={(event) => {
+                    if (event.key === 'Enter' && canBid) onBid()
+                }}
+            />{currencyAfter}</label
+        >
         <button
             aria-label="Increase bid"
             disabled={!canIncrease}
@@ -66,7 +83,7 @@
         padding: 0;
         font-size: 17px;
     }
-    .controls.inline output {
+    .controls.inline .amount {
         min-width: 58px;
         font-size: 14px;
     }
@@ -100,13 +117,39 @@
         width: 32px;
         font-size: 19px;
     }
-    output {
+    .amount {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         min-width: 68px;
         padding: 0 6px;
-        text-align: center;
         font-size: 15px;
         font-weight: 600;
         font-variant-numeric: tabular-nums;
+        cursor: text;
+    }
+    input {
+        width: 5ch;
+        min-width: 0;
+        padding: 2px 0;
+        border: 0;
+        border-bottom: 1px dashed var(--rail-border, #c7b8a6);
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: center;
+        appearance: textfield;
+        -moz-appearance: textfield;
+    }
+    input::-webkit-inner-spin-button,
+    input::-webkit-outer-spin-button {
+        appearance: none;
+        margin: 0;
+    }
+    input:focus-visible {
+        outline: 2px solid #a87948;
+        outline-offset: 1px;
     }
     .bid {
         background: var(--rail-solid, #695540);

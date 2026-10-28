@@ -36,6 +36,24 @@ test('1817 opens with a selection auction and starts companies by auction', asyn
     )
 })
 
+test('1817 auction bids can be typed', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('opening')
+    const lots = page.getByRole('region', { name: 'Private auction' })
+    await lots.getByRole('button', { name: 'Auction Minor Coal Mine' }).click()
+    await lots.getByRole('spinbutton', { name: 'Bid amount' }).fill('100')
+    await lots.getByRole('button', { name: 'Bid', exact: true }).click()
+    const bidding = page.getByRole('article', { name: 'Current auction' })
+    await expect(bidding).toContainText('High bid $100')
+    const raise = bidding.getByRole('spinbutton', { name: 'Bid amount' })
+    await raise.fill('103')
+    await expect(bidding.getByRole('button', { name: 'Bid', exact: true })).toBeDisabled()
+    await raise.fill('125')
+    await raise.press('Enter')
+    await expect(bidding).toContainText('High bid $125')
+})
+
 test('1817 Volatility auctions its privates from the bottom tier of a pyramid', async ({
     page
 }) => {
