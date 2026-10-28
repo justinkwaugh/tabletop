@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { cloudManifestReader } from '../../runtime/cloudManifest.js'
 import {
     AblyService,
     AblyTransport,
@@ -21,6 +22,7 @@ import {
     FirestoreGameStore,
     FirestoreNotificationStore,
     FirestorePreferenceStore,
+    FirestoreSessionStore,
     FirestoreTokenStore,
     FirestoreTournamentStore,
     FirestoreLeagueStore,
@@ -46,6 +48,7 @@ import {
     RedisService,
     ResendEmailService,
     SecretsService,
+    SessionService,
     StalledGames,
     STATIC_ROOT,
     TaskService,
@@ -69,6 +72,7 @@ declare module 'fastify' {
     interface FastifyInstance {
         taskService: TaskService
         tokenService: TokenService
+        sessionService: SessionService
         userService: UserService
         preferenceService: PreferenceService
         emailService: EmailService
@@ -118,6 +122,9 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     const titleValidation = new TitleValidation()
     const libraryService = new LibraryService(redisCacheService, {
         manifestPath: SITE_MANIFEST_PATH,
+        readManifest: EnvService.isLocal()
+            ? undefined
+            : cloudManifestReader(process.env['SITE_MANIFEST_GCS_URI']),
         fallbackManifest: EnvService.isLocal()
             ? () => createLocalManifest(LOCAL_WORKSPACE_ROOT)
             : undefined,
@@ -139,6 +146,9 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         redisCacheService,
         fastify.firestore,
         service === 'local'
+    )
+    const sessionService = new SessionService(
+        new FirestoreSessionStore(redisCacheService, fastify.firestore)
     )
     const userService = new UserService(userStore, tokenService, taskService)
 
@@ -264,6 +274,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         if (taskService instanceof LocalTaskService) taskService.close()
     })
     fastify.decorate('tokenService', tokenService)
+    fastify.decorate('sessionService', sessionService)
     fastify.decorate('userService', userService)
     fastify.decorate(
         'preferenceService',

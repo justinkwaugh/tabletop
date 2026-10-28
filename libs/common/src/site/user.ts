@@ -59,6 +59,7 @@ export const UserPreferences = Type.Object({
     preferredColorsEnabled: Type.Boolean(),
     preferredColors: Type.Array(Type.Enum(Color)),
     colorBlindPalette: Type.Optional(Type.Boolean()),
+    bgStatsEnabled: Type.Optional(Type.Boolean()),
     reminderHours: Type.Optional(ReminderHours)
 })
 
@@ -80,8 +81,27 @@ export const User = Type.Object({
     createdAt: Type.Optional(DateType()),
     updatedAt: Type.Optional(DateType()),
     // Accounts activated before this field existed lack it until their next update
-    activatedAt: Type.Optional(DateType())
+    activatedAt: Type.Optional(DateType()),
+    sessionGeneration: Type.Optional(Type.Integer({ minimum: 0 }))
 })
+
+export function sessionGenerationOf(user: Pick<User, 'sessionGeneration'>): number {
+    return user.sessionGeneration ?? 0
+}
+
+export function canHoldAuthenticatedSession(user: Pick<User, 'status'>): boolean {
+    return user.status === UserStatus.Active || user.status === UserStatus.Incomplete
+}
+
+export function accountStatusAfterCompletionCheck(
+    status: UserStatus,
+    satisfiesCompletion: boolean
+): UserStatus {
+    if (status !== UserStatus.Incomplete && status !== UserStatus.Active) {
+        return status
+    }
+    return satisfiesCompletion ? UserStatus.Active : UserStatus.Incomplete
+}
 
 export const ADMIN_ASSIGNABLE_ROLES = [Role.AlphaTester, Role.BetaTester, Role.Developer] as const
 export type AdminAssignableRole = (typeof ADMIN_ASSIGNABLE_ROLES)[number]

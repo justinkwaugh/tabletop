@@ -79,7 +79,7 @@ describe("Erie's whole-hex home", () => {
         }))
         const president = game.state.activePlayerIds[0]
         expect(game.state.machineState).toBe('OperatingSet')
-        expect(game.valid(president)).toEqual(['ChooseHomeStation'])
+        expect(game.valid(president)).toEqual(['ChooseHomeStation', 'SetRunInstruction'])
         game.act('ChooseHomeStation', { companyId: 'ERIE', locationId: 'E11', nodeId: 'city-1' })
         expect(game.state.stations.find((station) => station.id === 'ERIE:home')).toMatchObject({
             status: 'placed',

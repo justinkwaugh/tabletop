@@ -68,6 +68,13 @@ fn longest_route_bonus_is_paid_once_for_the_fleet() {
 }
 
 #[test]
+fn large_longest_route_bonus_is_not_added_twice_in_selection_bounds() {
+    let mut p = graph(3, &[(0, 1), (0, 2)], &[3, 2]);
+    p["longest_route_bonus_per_stop"] = json!(500_000_000);
+    assert_eq!(solve(&p)["revenue"], 1_500_000_060);
+}
+
+#[test]
 fn longest_route_bonus_influences_single_train_candidate_selection() {
     let mut p = graph(3, &[(0, 1), (1, 2)], &[3]);
     p["trains"][0]["revenues"] = json!([10, 20, 0]);
@@ -79,6 +86,53 @@ fn longest_route_bonus_influences_single_train_candidate_selection() {
             .unwrap()
             .len(),
         2
+    );
+}
+
+#[test]
+fn mixed_fleets_with_repeated_profiles_match_the_permutation_oracle() {
+    let edges = [(0, 1), (0, 2), (0, 3), (1, 2), (2, 3)];
+    for trains in [&[3, 2, 3, 4][..], &[4, 4, 4, 4], &[2, 3, 2, 3, 2]] {
+        let mut p = graph(4, &edges, trains);
+        for bonus in [0, 10, 100] {
+            p["longest_route_bonus_per_stop"] = json!(bonus);
+            assert_eq!(
+                solve(&p)["revenue"].as_i64().unwrap(),
+                exhaustive_oracle(&p, &edges),
+                "{p}"
+            );
+        }
+    }
+}
+
+#[test]
+fn candidate_and_resource_bitsets_span_multiple_words() {
+    let edges: Vec<_> = (1..=130).map(|stop| (0, stop)).collect();
+    let p = graph(131, &edges, &[2, 2, 2, 2]);
+    let result = solve(&p);
+    assert_eq!(result["revenue"], 5220);
+    let routes = result["routes"].as_array().unwrap();
+    assert_eq!(routes.len(), 4);
+    assert_eq!(
+        routes
+            .iter()
+            .map(|route| route["connections"][0]["paths"][0].as_u64().unwrap())
+            .collect::<std::collections::HashSet<_>>()
+            .len(),
+        4
+    );
+}
+
+#[test]
+fn longest_route_bonus_can_outweigh_all_higher_revenue_candidates() {
+    let mut p = graph(6, &[(0, 1), (0, 2), (0, 3), (3, 4), (4, 5)], &[4, 2]);
+    p["trains"][0]["revenues"] = json!([0, 100, 100, 0, 0, 0]);
+    p["trains"][1]["revenues"] = json!([0, 1, 1, 0, 0, 0]);
+    p["longest_route_bonus_per_stop"] = json!(300);
+    assert_eq!(solve(&p)["revenue"], 1301);
+    assert_eq!(
+        solve(&p)["revenue"].as_i64().unwrap(),
+        exhaustive_oracle(&p, &[(0, 1), (0, 2), (0, 3), (3, 4), (4, 5)])
     );
 }
 

@@ -51,6 +51,7 @@ import {
     type TrackRequest
 } from '@tabletop/18xx'
 import { mapState1846 } from './mapState.js'
+import { createRouteWorker } from './routeWorker.js'
 import { undoableStagedSelection, type PresentedTransition } from '@tabletop/frontend-components'
 import {
     PrivateLayStageOrder,
@@ -85,7 +86,7 @@ const BaseSession: ReturnType<
 > = createEighteenXXSessionClass<
     typeof EighteenFortySixProjectedState,
     HydratedEighteenFortySixState
->(TitleRules1846, MapView1846, Presentation1846)
+>(TitleRules1846, MapView1846, Presentation1846, createRouteWorker)
 type ConstructionMode = 'track' | 'stations' | 'finance'
 export type StockPanel1846 = 'receivership'
 export class EighteenFortySixSession extends BaseSession {

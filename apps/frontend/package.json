@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/frontend",
-    "version": "24.4.1",
+    "version": "24.7.0",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",
@@ -28,8 +28,8 @@
         "svelte-sonner": "^0.3.27",
         "typebox": "^1.0.79",
         "wretch": "^2.9.0",
-        "zod": "^3.23.8",
-        "zod-form-data": "^2.0.2"
+        "zod": "^4.6.7",
+        "zod-form-data": "^3.0.4"
     },
     "devDependencies": {
         "@playwright/test": "^1.42.1",

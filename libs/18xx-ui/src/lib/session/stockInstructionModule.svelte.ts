@@ -60,6 +60,7 @@ export class StockInstructionModule {
             (!this.session.ordinaryHotseatPlay || this.session.viewingAsNonActivePlayer)
     )
     canDeclare = $derived.by(() => this.available && this.session.interactive)
+    shown = $derived(!!this.mine || this.available)
     warning = $derived.by(() =>
         this.mine
             ? stockPositionChange(this.session.state, this.mine, this.session.rules.stockRules)

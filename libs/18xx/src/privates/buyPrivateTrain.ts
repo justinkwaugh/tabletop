@@ -1,10 +1,10 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { stateWith } from '../game/stateWith.js'
 import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -35,7 +35,7 @@ export function privateTrainPurchase(
 }
 export const BuyPrivateTrain = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         ...TrainPurchaseRequest.properties,
         type: Type.Literal('BuyPrivateTrain'),
         privateCompanyId: Type.String(),

@@ -4,7 +4,6 @@ import {
     ActionSource,
     GameAction,
     HydratableAction,
-    PlayerAction,
     assert,
     assertExists,
     type HydratedAction,
@@ -24,7 +23,8 @@ import {
     RoundEnd,
     roundEnd,
     type ValuationRules,
-    stateWith
+    stateWith,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import { Absorption, absorbCompany, discardSharedHome } from './absorption.js'
 import {
@@ -357,7 +357,7 @@ export class HydratedCompleteMergerPhase
 
 export const ProposeMerger = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ProposeMerger'),
         companyId: Id,
         partnerId: Id,
@@ -431,7 +431,7 @@ export class HydratedProposeMerger
 
 export const AnswerMerger = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('AnswerMerger'),
         accept: Type.Boolean(),
         metadata: Type.Optional(
@@ -504,7 +504,7 @@ export class HydratedAnswerMerger
 }
 
 export const PassMerger = Type.Object(
-    { ...PlayerAction.properties, type: Type.Literal('PassMerger') },
+    { ...EighteenXXPlayerAction.properties, type: Type.Literal('PassMerger') },
     { additionalProperties: false }
 )
 export type PassMerger = Type.Static<typeof PassMerger>
@@ -535,7 +535,7 @@ export class HydratedPassMerger extends HydratableAction<typeof PassMerger> impl
 
 export const SellTakeoverShares = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('SellTakeoverShares'),
         companyId: Id,
         shares: Type.Integer({ minimum: 1 }),
@@ -641,7 +641,7 @@ export class HydratedCompleteTakeover
 
 export const DiscardMergedTrain = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('DiscardMergedTrain'),
         companyId: Id,
         trainId: Id,

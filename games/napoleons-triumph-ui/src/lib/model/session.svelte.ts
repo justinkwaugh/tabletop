@@ -64,7 +64,7 @@ import {
 import { shadeOf, type ArmyColors } from '$lib/utils/armyColors.js'
 import { BoardView, viewRotation } from '$lib/utils/boardView.js'
 import { commandDiscs } from '$lib/utils/commandTrack.js'
-import { describeAction } from '$lib/utils/describeAction.js'
+import { describeAction, fightsOf, type Fight } from '$lib/utils/describeAction.js'
 import { sameIds } from '$lib/utils/ids.js'
 import { moraleMarkers, type MoraleMarker } from '$lib/utils/moraleTrack.js'
 import { timeMarker } from '$lib/utils/timeTrack.js'
@@ -656,11 +656,13 @@ export class NapoleonsTriumphGameSession extends GameSession<
         })
     })
 
+    private fights: Map<string, Fight> = $derived(fightsOf(this.actions))
+
     describe(action: GameAction): string {
         const call = gameCallOf(action)
         return call
             ? `${gameCallDescription(call, (playerId) => this.getPlayerName(playerId))}.`
-            : describeAction(action, this.gameState)
+            : describeAction(action, this.gameState, this.fights.get(action.id))
     }
 
     chapters: HistoryChapter[] = $derived(

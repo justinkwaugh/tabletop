@@ -13,6 +13,29 @@ const base: MapLocation = {
 }
 
 describe('railway map', () => {
+    it('lists each private its markers name once', () => {
+        const marker = (id: string, privateCompanyId?: string) => ({
+            id,
+            label: id,
+            description: id,
+            ...(privateCompanyId ? { privateCompanyId } : {})
+        })
+        const map = new RailwayMap({
+            id: 'test',
+            name: 'Test',
+            orientation: HexOrientation.Flat,
+            locations: [
+                { ...base, markers: [marker('port'), marker('blocks-B', 'B')] },
+                {
+                    ...base,
+                    id: 'neighbor',
+                    coordinates: { q: 0, r: 1 },
+                    markers: [marker('blocks-B', 'B'), marker('blocks-H', 'H')]
+                }
+            ]
+        })
+        expect(map.markedPrivateIds).toEqual(['B', 'H'])
+    })
     it.each([HexOrientation.Flat, HexOrientation.Pointy])(
         'uses Common adjacency independently of map labels, %s',
         (orientation) => {

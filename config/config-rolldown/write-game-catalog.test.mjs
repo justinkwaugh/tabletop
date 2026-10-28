@@ -12,7 +12,7 @@ test('catalog generation preserves resolved metadata without loading runtime or 
         await writeFile(path.join(directory, 'runtime.js'), 'throw new Error("Runtime was loaded")')
         await writeFile(
             path.join(directory, 'metadata.js'),
-            'export const metadata = { name: "Example", beta: false }'
+            'export const metadata = { name: "Example", beta: false, bggId: 249381, hasScores: true }'
         )
         await writeFile(
             path.join(directory, 'index.js'),
@@ -30,7 +30,7 @@ test('catalog generation preserves resolved metadata without loading runtime or 
         await writeGameCatalog(directory)
         assert.deepEqual(JSON.parse(await readFile(path.join(directory, 'catalog.json'), 'utf8')), {
             id: 'example',
-            metadata: { name: 'Example', beta: false },
+            metadata: { name: 'Example', beta: false, bggId: 249381, hasScores: true },
             thumbnailUrl: '/games/example/ui/2.0.0/assets/cover-abc123.jpg'
         })
     } finally {

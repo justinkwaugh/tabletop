@@ -1,13 +1,17 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import type { WorkspaceAttention } from '../src/lib/components/workspaceTypes.js'
 
-async function openWorkspace(page: Page, splittable = true) {
+async function openWorkspace(page: Page, splittable = true, attention?: WorkspaceAttention) {
     await page.goto('/session-test.html')
-    await page.evaluate(async (splittable) => {
-        const { mountWorkspace } = await import(
-            new URL('/src/lib/components/tests/workspace.fixture.ts', location.href).href
-        )
-        mountWorkspace(splittable)
-    }, splittable)
+    await page.evaluate(
+        async ({ splittable, attention }) => {
+            const { mountWorkspace } = await import(
+                new URL('/src/lib/components/tests/workspace.fixture.ts', location.href).href
+            )
+            mountWorkspace(splittable, attention)
+        },
+        { splittable, attention }
+    )
 }
 
 async function splitTopAndBottom(page: Page) {
@@ -146,4 +150,30 @@ test('a pane menu taller than the room on either side scrolls inside the window'
     expect(await menu.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
     await menu.getByRole('button', { name: 'Delete pane 1', exact: true }).click()
     await expect(page.getByRole('tablist')).toHaveCount(1)
+})
+
+test('an attention tab fills its pane header and frames its panel only while shown', async ({
+    page
+}) => {
+    await openWorkspace(page, true, { tab: 'preview', label: 'Your turn' })
+    const attentionColor = 'rgb(233, 204, 122)'
+    const preview = page.getByRole('tab', { name: 'Preview', exact: true })
+    const header = page.getByRole('tablist').locator('..')
+    const frame = page.locator('.attention-frame')
+
+    await expect(preview).toHaveAttribute('aria-selected', 'false')
+    await expect(preview).toHaveAccessibleDescription('Your turn')
+    await expect(preview).toContainText('· Your turn')
+    await expect(preview).toHaveCSS('background-color', attentionColor)
+    await expect(header).not.toHaveCSS('background-color', attentionColor)
+    await expect(frame).toHaveCount(0)
+
+    await preview.click()
+    await expect(header).toHaveCSS('background-color', attentionColor)
+    await expect(frame).toHaveCSS('border-left-color', attentionColor)
+
+    await page.getByRole('tab', { name: 'Editor', exact: true }).click()
+    await expect(header).not.toHaveCSS('background-color', attentionColor)
+    await expect(frame).toHaveCount(0)
+    await expect(preview).toHaveCSS('background-color', attentionColor)
 })

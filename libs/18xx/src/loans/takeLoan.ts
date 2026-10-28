@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -15,7 +15,7 @@ import { LoanRecord, takeLoan, takeLoanReason, type LoanRules, type LoanState } 
 
 export const TakeLoan = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('TakeLoan'),
         companyId: Type.String(),
         metadata: Type.Optional(LoanRecord)

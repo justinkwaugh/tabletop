@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { TokenType, AuthenticationTokenData } from '@tabletop/backend-services'
+import { authSession } from '../../../lib/session.js'
 
 // While this could be combined into an update user api, for the purposes of resetting
 // a password, we cannot require the old password to be provided. Instead we require the
@@ -43,7 +44,12 @@ export default async function (fastify: FastifyInstance) {
                 return
             }
 
-            await fastify.userService.updatePassword(request.user.id, password)
+            const updatedUser = await fastify.userService.updatePassword(request.user.id, password)
+            await authSession({
+                session: request.session,
+                user: updatedUser,
+                sessions: fastify.sessionService
+            })
 
             try {
                 await fastify.tokenService.invalidateToken(token)

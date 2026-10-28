@@ -23,6 +23,7 @@ const view: MapViewDefinition = {
     stations: { [TestCompanyId]: { color: '#123456', label: TestCompanyId } }
 }
 const rules = {
+    privateRules: {},
     trackRules: minimalTrackRules(tileSet),
     privatePowerRules: { trackTerms: () => undefined, earlyTrainCompany: () => undefined },
     stationRules: { ...minimalStationRules, map: minimalTrackMap, tileSet },
