@@ -108,17 +108,18 @@ describe('BG Stats play links', () => {
 
     // BG Stats for Android rejects a play missing any of these with "No value for <field>".
     it('always sends the flags BG Stats for Android requires', () => {
-        for (const hasScores of [true, false, undefined]) {
-            const play = playData(game(), { ...metadata, hasScores }) as {
-                game: Record<string, unknown>
-                players: Record<string, unknown>[]
-            }
-            expect(typeof play.game.noPoints).toBe('boolean')
-            expect(typeof play.game.highestWins).toBe('boolean')
-            for (const player of play.players) {
-                expect(typeof player.startPlayer).toBe('boolean')
-                expect(typeof player.winner).toBe('boolean')
-            }
+        for (const [hasScores, noPoints] of [
+            [true, false],
+            [false, true],
+            [undefined, false]
+        ] as const) {
+            expect(playData(game(), { ...metadata, hasScores })).toMatchObject({
+                game: { noPoints, highestWins: true },
+                players: [
+                    { winner: true, startPlayer: false },
+                    { winner: false, startPlayer: false }
+                ]
+            })
         }
     })
 

@@ -47,7 +47,7 @@ export function bgStatsPlayUrl(
             sourcePlayerId: player.userId ? `user:${player.userId}` : `player:${player.id}`,
             score: scores?.[player.id],
             winner: game.winningPlayerIds.includes(player.id),
-            // Hosted Games don't record who started.
+            // Hosted Games don't record a reliable start player.
             startPlayer: false
         }))
     }
