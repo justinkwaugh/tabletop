@@ -5,6 +5,7 @@ import {
     TrackConstruction,
     TrainPurchase,
     type RoutePath,
+    type TileRotation,
     type TrackRules,
     type TrainRoute
 } from '@tabletop/18xx'
@@ -38,7 +39,7 @@ export function passStockRound(game: Table): void {
     while (game.state.machineState === 'StockRound') game.act('FinishStockTurn')
 }
 
-function exits(definitionId: string, rotation: number): number[] {
+export function exits(definitionId: string, rotation: number): number[] {
     const definition = TileSet1833NE.definitions.find((entry) => entry.id === definitionId)
     if (!definition) throw new Error(`Unknown tile ${definitionId}`)
     return [
@@ -123,14 +124,14 @@ export function buyTrain(game: Table, definitionId: string): void {
  * extension, if any, continues through its hexes to a stop in its last.
  */
 export function route(
-    game: Table,
+    state: Pick<Table['state'], 'tileInventory'>,
     trainId: string,
     start: { locationId: string; nodeId: string },
     hexes: readonly string[],
     extensionHexes: readonly string[] = []
 ): TrainRoute {
     const network = new RouteNetwork(
-        new RailwayMapState(Map1833NE, TileSet1833NE, game.state.tileInventory)
+        new RailwayMapState(Map1833NE, TileSet1833NE, state.tileInventory)
     )
     const walk = (
         paths: RoutePath[],
@@ -173,4 +174,14 @@ export function ownedTrainId(game: Table, companyId: string, definitionId: strin
     )
     if (!train) throw new Error(`${companyId} owns no ${definitionId}`)
     return train.id
+}
+
+/** The rotation turning a tile so its track leaves by exactly these edges. */
+export function rotationFor(definitionId: string, edges: readonly number[]): TileRotation {
+    const wanted = [...edges].sort().join()
+    const rotation = ([0, 1, 2, 3, 4, 5] as const).find(
+        (candidate) => exits(definitionId, candidate).join() === wanted
+    )
+    if (rotation === undefined) throw new Error(`${definitionId} cannot leave by ${wanted}`)
+    return rotation
 }

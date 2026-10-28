@@ -69,14 +69,18 @@ describe('the rulebook’s opening operations (p. 8)', () => {
         game.act('BuyFerry', { companyId: 'B&W', locationId: 'E26' })
         game.act('FinishTrack', { companyId: 'B&W' })
         const bw = [
-            route(game, ownedTrainId(game, 'B&W', '2+1'), { locationId: 'G22', nodeId: 'city-0' }, [
-                'F23',
-                'E22'
-            ]),
-            route(game, ownedTrainId(game, 'B&W', '2'), { locationId: 'E22', nodeId: 'city' }, [
-                'E24',
-                'E26'
-            ])
+            route(
+                game.state,
+                ownedTrainId(game, 'B&W', '2+1'),
+                { locationId: 'G22', nodeId: 'city-0' },
+                ['F23', 'E22']
+            ),
+            route(
+                game.state,
+                ownedTrainId(game, 'B&W', '2'),
+                { locationId: 'E22', nodeId: 'city' },
+                ['E24', 'E26']
+            )
         ]
         game.act('RunTrains', { companyId: 'B&W', routes: bw })
         expect(game.state.routeStep?.result?.routes.map((run) => run.revenue)).toEqual([60, 80])
@@ -87,13 +91,18 @@ describe('the rulebook’s opening operations (p. 8)', () => {
         game.act('BuyFerry', { companyId: 'B&P', locationId: 'F25' })
         game.act('FinishTrack', { companyId: 'B&P' })
         const bp = [
-            route(game, ownedTrainId(game, 'B&P', '2+1'), { locationId: 'F25', nodeId: 'city' }, [
-                'G24',
-                'G22'
-            ]),
-            route(game, ownedTrainId(game, 'B&P', '2'), { locationId: 'F25', nodeId: 'city' }, [
-                'F27'
-            ])
+            route(
+                game.state,
+                ownedTrainId(game, 'B&P', '2+1'),
+                { locationId: 'F25', nodeId: 'city' },
+                ['G24', 'G22']
+            ),
+            route(
+                game.state,
+                ownedTrainId(game, 'B&P', '2'),
+                { locationId: 'F25', nodeId: 'city' },
+                ['F27']
+            )
         ]
         game.act('RunTrains', { companyId: 'B&P', routes: bp })
         expect(game.state.routeStep?.result?.routes.map((run) => run.revenue)).toEqual([90, 80])
