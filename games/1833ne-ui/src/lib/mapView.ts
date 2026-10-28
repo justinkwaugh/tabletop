@@ -126,13 +126,13 @@ export const BonusArrows1833NE: readonly MapBonusArrow[] = [
     ),
     arrow(
         'ogdensburg-boston',
-        [-0.55, 8.6],
+        [-0.55, 7.95],
         'OGDENSBURG RR',
         'to BOSTON',
         { 'I-II': 40, 'III-IV': 70 },
         'right'
     ),
-    arrow('albany-troy-boston', [-0.3, 18], 'ALBANY/TROY', 'to BOSTON', { 'I-II': 50 }, 'right'),
+    arrow('albany-troy-boston', [-0.5, 18], 'ALBANY/TROY', 'to BOSTON', { 'I-II': 50 }, 'right'),
     arrow(
         'boston-new-york',
         [-0.6, 26.1],
