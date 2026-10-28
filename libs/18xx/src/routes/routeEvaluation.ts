@@ -12,7 +12,7 @@ import {
 } from './routeScoring.js'
 import { getCompany, sameOwner } from '../finance/finance.js'
 import { RailwayMapState } from '../map/mapState.js'
-import { cityIsBlocked } from '../map/station.js'
+import { cityIsBlocked, usesStationAt } from '../map/station.js'
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
 import type { TrainDefinition, Train } from '../trains/train.js'
@@ -189,13 +189,7 @@ export class RouteEvaluation {
                 return { reason: 'This train must visit a city.' }
             if (
                 !trace.visits.some((visit) =>
-                    this.state.stations.some(
-                        (station) =>
-                            station.status === 'placed' &&
-                            station.companyId === companyId &&
-                            station.position.locationId === visit.locationId &&
-                            station.position.nodeId === visit.nodeId
-                    )
+                    usesStationAt(this.state, companyId, visit.locationId, visit.nodeId)
                 )
             )
                 return { reason: 'The route must include a station of this company.' }
@@ -209,13 +203,7 @@ export class RouteEvaluation {
                 amount: this.revenue(companyId, visit, definition),
                 bonus: this.rules.stopBonus?.(this.state, definition, companyId, visit) ?? 0,
                 ...(bonusSourceIds.length ? { bonusSourceIds } : {}),
-                companyStation: this.state.stations.some(
-                    (station) =>
-                        station.status === 'placed' &&
-                        station.companyId === companyId &&
-                        station.position.locationId === visit.locationId &&
-                        station.position.nodeId === visit.nodeId
-                )
+                companyStation: usesStationAt(this.state, companyId, visit.locationId, visit.nodeId)
             }
         })
         const policy = this.rules.revenuePolicy?.(definition, this.state, companyId) ?? {}

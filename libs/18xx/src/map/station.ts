@@ -40,11 +40,51 @@ export const Station = Type.Union([
     Type.Object({ ...Identity, status: Type.Literal('removed') }, { additionalProperties: false })
 ])
 export type Station = Type.Static<typeof Station>
+/**
+ * A place a company uses as one of its stations to build and run from without a piece of its
+ * own there: a station shared with another company, or a private's offboard.
+ */
+export const StationAccess = Type.Object(
+    { companyId: Id, locationId: Id, nodeId: Id, sourceId: Id },
+    { additionalProperties: false }
+)
+export type StationAccess = Type.Static<typeof StationAccess>
 export const StationFields = {
     stations: Type.Array(Station),
-    stationReservations: Type.Array(StationReservation)
+    stationReservations: Type.Array(StationReservation),
+    stationAccess: Type.Optional(Type.Array(StationAccess))
 }
 export type StationState = Type.Static<Type.TObject<typeof StationFields>>
+
+/** Where a company builds and runs from: its placed stations and the places it has access to. */
+export function companyStationCenters(
+    state: StationState,
+    companyId: string
+): { locationId: string; nodeId: string }[] {
+    return [
+        ...state.stations.flatMap((station) =>
+            station.status === 'placed' && station.companyId === companyId
+                ? [{ locationId: station.position.locationId, nodeId: station.position.nodeId }]
+                : []
+        ),
+        ...(state.stationAccess ?? []).flatMap((access) =>
+            access.companyId === companyId
+                ? [{ locationId: access.locationId, nodeId: access.nodeId }]
+                : []
+        )
+    ]
+}
+
+export function usesStationAt(
+    state: StationState,
+    companyId: string,
+    locationId: string,
+    nodeId: string
+): boolean {
+    return companyStationCenters(state, companyId).some(
+        (center) => center.locationId === locationId && center.nodeId === nodeId
+    )
+}
 
 export function replaceStation(state: StationState, previousId: string, nextId: string): void {
     const previous = state.stations.find((station) => station.id === previousId)
@@ -75,6 +115,8 @@ export function validateStations(state: StationState, companyIds: readonly strin
     }
     for (const reservation of state.stationReservations)
         assert(companyIds.includes(reservation.companyId), 'Unknown reservation company')
+    for (const access of state.stationAccess ?? [])
+        assert(companyIds.includes(access.companyId), 'Unknown station access company')
 }
 
 export function cityIsBlocked(
@@ -91,8 +133,7 @@ export function cityIsBlocked(
             station.position.nodeId === node.id
     )
     return (
-        stations.length >= node.stationSlots &&
-        !stations.some((station) => station.companyId === companyId)
+        stations.length >= node.stationSlots && !usesStationAt(state, companyId, locationId, node.id)
     )
 }
 

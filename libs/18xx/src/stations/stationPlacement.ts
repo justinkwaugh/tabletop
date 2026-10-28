@@ -153,6 +153,9 @@ export class StationPlacement {
                     station.status === 'placed' &&
                     station.companyId === companyId &&
                     station.position.locationId === locationId
+            ) ||
+            (this.state.stationAccess ?? []).some(
+                (access) => access.companyId === companyId && access.locationId === locationId
             )
         )
             return []

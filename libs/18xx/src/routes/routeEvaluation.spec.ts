@@ -634,3 +634,14 @@ it('pays an interconnection for an extension past the counted stops, through blo
         running([{ from: ['0'], to: ['3'], amount: 50 }]).evaluate('A', [extended, second]).reason
     ).toContain('share track')
 })
+
+it('runs from a place the company has station access to as from its own station', () => {
+    const { running, route, state } = fixture([
+        city('yellow', [0], 20, 1),
+        city('yellow', [3], 30, 1)
+    ])
+    state.stations = []
+    expect(running.evaluate('A', [route]).reason).toContain('station')
+    state.stationAccess = [{ companyId: 'A', locationId: '0', nodeId: 'city', sourceId: 'joint' }]
+    expect(running.evaluate('A', [route]).result?.revenue).toBe(50)
+})
