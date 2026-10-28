@@ -1218,7 +1218,10 @@
                         {#if !session.isViewingHistory}
                             <StockActionStrip
                                 {session}
-                                additionalActions={additionalStockActions}
+                                additionalActions={[
+                                    ...session.familyStockPanels.menuOptions,
+                                    ...additionalStockActions
+                                ]}
                                 readOnly={readOnlyPosition}
                             />
                             <PrivatePowerControls {session} />

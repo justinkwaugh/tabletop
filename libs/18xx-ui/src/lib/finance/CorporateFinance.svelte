@@ -1,31 +1,28 @@
 <script lang="ts">
-    import { finiteCashOwnedBy } from '@tabletop/18xx'
-    import { corporateFinanceCertificates, type FinanceChoice } from '@tabletop/18xx'
-    import { CompanyToken } from '@tabletop/18xx-ui'
+    import type { FinanceChoice } from '@tabletop/18xx'
     import { assertExists } from '@tabletop/common'
-    import type { EighteenFortySixSession } from './session.svelte.js'
-    let { session }: { session: EighteenFortySixSession } = $props()
+    import CompanyToken from '../tokens/CompanyToken.svelte'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
-    const companyId = $derived.by(() => {
-        const choice = session.financeChoices[0]
-        assertExists(choice, 'The share transaction panel requires a legal transaction')
-        return choice.companyId
+    const finance = $derived(session.corporateFinance)
+    const holdings = $derived.by(() => {
+        assertExists(finance.holdings, 'The share transaction panel requires a legal transaction')
+        return finance.holdings
     })
     const groups = $derived(
         (['issue', 'redeem'] as const)
             .map((operation) => ({
                 operation,
-                choices: session.financeChoices.filter((choice) => choice.operation === operation)
+                choices: finance.choices.filter((choice) => choice.operation === operation)
             }))
             .filter(({ choices }) => choices.length)
     )
-    const appearance = $derived(session.mapView.stations[companyId])
+    const appearance = $derived(session.mapView.stations[holdings.companyId])
     const canFinishConstruction = $derived(
         session.gameState.machineState === 'LayingTrack' &&
             session.validActionTypes.includes('FinishTrack')
     )
-    const state = $derived(session.gameState)
-    const owner = $derived({ kind: 'company' as const, companyId })
 </script>
 
 {#snippet group(choices: readonly FinanceChoice[], label: string, sign: string)}
@@ -35,9 +32,9 @@
             {#each choices as choice (choice.shares)}
                 <button
                     class="finance-choice"
-                    disabled={!session.canChooseAction}
+                    disabled={!finance.canApply}
                     aria-label={`${label} ${choice.shares} for ${money(choice.amount)}`}
-                    onclick={() => session.corporateFinance(choice)}
+                    onclick={() => finance.apply(choice)}
                 >
                     <span class="finance-count">{choice.shares}</span>
                     <small>{sign}{money(choice.amount)}</small>
@@ -47,14 +44,14 @@
     </div>
 {/snippet}
 
-<section class="corporate-finance midwest-panel centered-panel" aria-label="Corporate finance">
+<section class="corporate-finance centered-panel" aria-label="Corporate finance">
     {#if canFinishConstruction}
         <header class="finance-prompt">
-            <span>{session.financePrompt}, or</span>
+            <span>{finance.prompt}, or</span>
             <button
                 class="action-button inline-action"
-                disabled={!session.canChooseAction}
-                onclick={() => session.finishConstruction()}>skip</button
+                disabled={!session.operatingMode.canFinish}
+                onclick={() => session.operatingMode.finish()}>skip</button
             >
         </header>
     {/if}
@@ -65,17 +62,15 @@
         </div>
         <div>
             <dt>Cash</dt>
-            <dd>{money(finiteCashOwnedBy(state, owner))}</dd>
+            <dd>{money(holdings.cash)}</dd>
         </div>
         <div>
             <dt>Treasury</dt>
-            <dd>{corporateFinanceCertificates(state, companyId, 'issue', 'open-market').length}</dd>
+            <dd>{holdings.treasuryShares}</dd>
         </div>
         <div>
             <dt>Market</dt>
-            <dd>
-                {corporateFinanceCertificates(state, companyId, 'redeem', 'open-market').length}
-            </dd>
+            <dd>{holdings.marketShares}</dd>
         </div>
     </dl>
     <div class="finance-groups">
@@ -90,16 +85,36 @@
 </section>
 
 <style>
-    .finance-prompt {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
     .corporate-finance {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 14px;
+    }
+    .finance-prompt {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    button {
+        font: inherit;
+        padding: 8px 12px;
+        border: 1px solid var(--rail-border, #c7b8a6);
+        border-radius: 4px;
+        background: var(--rail-surface, #fffdf8);
+        color: var(--rail-text, #514536);
+        cursor: pointer;
+    }
+    button:hover:not(:disabled) {
+        background: var(--rail-surface-selected, #ded0c2);
+    }
+    button:focus-visible {
+        outline: 2px solid #a87948;
+        outline-offset: 2px;
+    }
+    button:disabled {
+        opacity: 0.45;
+        cursor: default;
     }
     .finance-strip {
         display: flex;
@@ -163,8 +178,8 @@
         gap: 8px;
     }
     h3 {
-        margin: 0;
-        font-size: 11px;
+        margin: 6px 0;
+        font-size: 14px;
         font-weight: 650;
         letter-spacing: 0.08em;
         text-transform: uppercase;

@@ -94,6 +94,18 @@ export type CompanyColumn<State extends GameState = EighteenXXState> = {
     text(state: State, companyId: string): string
 }
 
+/** A step of the operating turn as the step bar shows it, with the states and Actions it covers. */
+export type TitleOperatingStep<State extends GameState = EighteenXXState> = {
+    label: string
+    states: readonly string[]
+    actions: readonly string[]
+    status?(
+        state: State,
+        actions: readonly GameAction[],
+        summaries: OperatingStepStatuses
+    ): string | undefined
+}
+
 export type TitlePresentation<State extends GameState = EighteenXXState> = {
     money: MoneyFormat
     phaseChart: PhaseChartData
@@ -122,16 +134,7 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     privateTokens?: Readonly<Record<string, PrivateTokenPresentation>>
     /** Lists minor companies a player owns among their privates, as 1846 sells them in its draft. */
     minorsAsPrivates?: true
-    operatingSteps?: readonly {
-        label: string
-        states: readonly string[]
-        actions: readonly string[]
-        status?(
-            state: State,
-            actions: readonly GameAction[],
-            summaries: OperatingStepStatuses
-        ): string | undefined
-    }[]
+    operatingSteps?: readonly TitleOperatingStep<State>[]
     openingRound?: Pick<TitleRound<State>, 'name' | 'abbreviation' | 'inProgress'>
     titleRounds?: readonly TitleRound<State>[]
     /** Facts of the title's own for the game information, such as money left to subsidise. */
