@@ -202,9 +202,11 @@ export const MapView1833NE: MapViewDefinition = {
                 stack ? { revenuePositions: { offboard: stack } } : { hideRevenue: true as const }
             ])
         ),
-        // The sea beyond the port cities pays nothing and prints no value.
-        C28: { hideRevenue: true },
-        E28: { hideRevenue: true },
+        // The port connections below New Haven and Norwich pay nothing and print an anchor.
+        C28: { hideRevenue: true, printedPaths: { 'edge-3': 'pier' } },
+        E28: { hideRevenue: true, printedPaths: { 'edge-3': 'pier' } },
+        // Cape Cod's tip prints a spike out of Hyannis, not track.
+        J25: { printedPaths: { 'edge-1': 'spike' } },
         H25: { nodePositions: { 'city-0': towardTileEdge(3, 20), 'city-1': towardTileEdge(0, 14) } }
     },
     cityNames: {
