@@ -1,4 +1,4 @@
-import { calculateHexGeometry, HexOrientation } from '@tabletop/common'
+import { calculateHexGeometry, HexOrientation, type Point } from '@tabletop/common'
 import { Map1833NE, TileSet1833NE } from '@tabletop/1833ne'
 import {
     StandardTileLayouts,
@@ -48,6 +48,23 @@ export const TileLayouts1833NE: Readonly<Record<string, TileLayout>> = {
     '1833ne:N25': {
         nodePositions: { 'city-0': towardTileEdge(5.5, 18), 'city-1': towardTileEdge(4, 20) }
     }
+}
+
+/**
+ * Where each offboard prints its name, on one line, and the stack of its values beneath, beside
+ * its spikes as the printed board has them. Eastern Townships prints one name across its two
+ * hexes and one stack.
+ */
+const OffboardPrinting: Readonly<Record<string, { name?: Point; stack?: Point }>> = {
+    A6: { name: { x: 0, y: -20 }, stack: { x: -14, y: 3.5 } },
+    A12: { name: { x: -4, y: -20 }, stack: { x: -14, y: 3.5 } },
+    A20: { name: { x: -6, y: -20 }, stack: { x: -14, y: 3.5 } },
+    A24: { name: { x: 0, y: -20 }, stack: { x: -14, y: 3.5 } },
+    A28: { name: { x: -4, y: -20 }, stack: { x: -14, y: 3.5 } },
+    B17: { name: { x: -18, y: -24 }, stack: { x: -23, y: 0 } },
+    F1: { name: { x: 45, y: 8 } },
+    G2: { stack: { x: 4, y: -6 } },
+    J11: { name: { x: 10, y: -20 }, stack: { x: 10, y: 6 } }
 }
 
 /** A point beside the board by column (A = 0) and row number, as the printed map numbers them. */
@@ -179,6 +196,12 @@ export const MapView1833NE: MapViewDefinition = {
         G22: Boston,
         B3: Montreal,
         I14: Portland,
+        ...Object.fromEntries(
+            Object.entries(OffboardPrinting).map(([id, { stack }]) => [
+                id,
+                stack ? { revenuePositions: { offboard: stack } } : { hideRevenue: true as const }
+            ])
+        ),
         // The sea beyond the port cities pays nothing and prints no value.
         C28: { hideRevenue: true },
         E28: { hideRevenue: true },
@@ -187,6 +210,18 @@ export const MapView1833NE: MapViewDefinition = {
     cityNames: {
         H25: { 'city-0': 'Plymouth', 'city-1': 'New Bedford' }
     },
+    // The connection bonuses name these places, so the board prints them large (p. 24).
+    offboardNames: { fontSize: 9, color: '#4a0b0b', serif: true },
+    namePositions: Object.fromEntries(
+        Object.entries(OffboardPrinting).flatMap(([id, { name }]) => (name ? [[id, name]] : []))
+    ),
+    hideLocationNames: Object.keys(OffboardPrinting).filter((id) => !OffboardPrinting[id].name),
+    nameLines: Object.fromEntries(
+        Object.keys(OffboardPrinting).flatMap((id) => {
+            const name = Map1833NE.location(id).name
+            return name ? [[id, [name]]] : []
+        })
+    ),
     revenueStack: 'column',
     revenueStageCaptions: { yellow: 'I-II', brown: 'III-IV', gray: 'V' },
     // A value for two phases is printed in both their colours.
