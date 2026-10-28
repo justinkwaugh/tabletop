@@ -12,7 +12,7 @@ import {
 } from '../model/question.js'
 import { offerReroll, settleRoll } from './reroll.js'
 import { CONSPIRACY_ID } from '../data/cardRegistry.js'
-import { type CardPower, type PowerUseKey } from '../data/cardPowers.js'
+import type { CardPower, PowerUseKey } from '../data/cardPowers.js'
 import { powerInPlay } from './powersInPlay.js'
 import { payPowerCost, reasonCannotPayPowerCost } from './powerCost.js'
 import { pawnSiteId, regionOfPawn } from './pawn.js'
