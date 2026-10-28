@@ -62,7 +62,7 @@ const OffboardPrinting: Readonly<Record<string, { name?: Point; stack?: Point }>
     A24: { name: { x: 0, y: -20 }, stack: { x: -14, y: 3.5 } },
     A28: { name: { x: -4, y: -20 }, stack: { x: -14, y: 3.5 } },
     B17: { name: { x: -18, y: -24 }, stack: { x: -23, y: 0 } },
-    F1: { name: { x: 45, y: 8 } },
+    F1: { name: { x: 45, y: 12 } },
     G2: { stack: { x: 4, y: -6 } },
     J11: { name: { x: 10, y: -20 }, stack: { x: 10, y: 6 } }
 }
@@ -212,6 +212,8 @@ export const MapView1833NE: MapViewDefinition = {
     },
     // The connection bonuses name these places, so the board prints them large (p. 24).
     offboardNames: { fontSize: 9, color: '#4a0b0b', serif: true },
+    // Eastern Townships is one printed area across its two hexes.
+    joinedEdges: { F1: [5], G2: [2] },
     namePositions: Object.fromEntries(
         Object.entries(OffboardPrinting).flatMap(([id, { name }]) => (name ? [[id, name]] : []))
     ),
