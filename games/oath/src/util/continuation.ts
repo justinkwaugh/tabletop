@@ -85,7 +85,7 @@ export function matchContinuedPlayers(
 export function readFinishedGame(
     previousState: Readonly<OathProjectedState>
 ): HydratedOathGameState {
-    const previous = new HydratedOathGameState(structuredClone(previousState) as OathProjectedState)
+    const previous = new HydratedOathGameState(structuredClone(previousState))
     assert(
         isAtLeastOathRevision(previous, OathRevision.Chronicle),
         'The finished game predates the chronicle, so it has no world to carry into another game'
