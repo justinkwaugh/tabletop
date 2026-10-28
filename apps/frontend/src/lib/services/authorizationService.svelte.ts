@@ -210,12 +210,14 @@ export class AuthorizationService {
     }
 
     public setSessionUser(user: User) {
+        if (this.sessionUser?.id !== user.id) reauthentication.cancel()
         this.sessionUser = user
         writeStoredValue(AuthorizationService.storageKey, user)
         this.onSessionUserSet()
     }
 
     public clearSessionUser() {
+        reauthentication.cancel()
         this.sessionUser = undefined
         this.forgetAdminMode()
         removeStoredValue(AuthorizationService.storageKey)
@@ -223,6 +225,7 @@ export class AuthorizationService {
     }
 
     public async onLogin(user: User) {
+        reauthentication.cancel()
         this.adoptSessionUser(user)
 
         if (user.status === UserStatus.Incomplete) {

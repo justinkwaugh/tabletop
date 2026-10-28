@@ -34,6 +34,7 @@
     import { broadcastLogout, onLogoutBroadcast } from '$lib/utils/logoutChannel'
     import { onDiscordAuthorizationResult } from '$lib/utils/discordAuthorization'
     import ReauthenticationPrompt from '$lib/components/ReauthenticationPrompt.svelte'
+    import { reauthentication } from '$lib/stores/reauthentication.svelte'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
     import {
@@ -228,6 +229,7 @@
     )
 
     async function onLogout() {
+        reauthentication.cancel()
         await api.logout()
         await authorizationService.onLogout()
     }
@@ -733,7 +735,11 @@
     </Navbar>
 </div>
 {#if sessionUser}
-    <ReauthenticationPrompt />
+    {#if reauthentication.pending}
+        {#key reauthentication.pending}
+            <ReauthenticationPrompt action={reauthentication.pending} />
+        {/key}
+    {/if}
 {:else}
     <AuthModal
         bind:open={showLoginModal}

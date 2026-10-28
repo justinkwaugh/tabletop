@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Role, UserStatus, type User } from '@tabletop/common'
+import { assertExists, Role, UserStatus, type User } from '@tabletop/common'
 
 vi.mock('@tabletop/frontend-components', () => ({
     DISCORD_AUTHORIZATION_PURPOSES: ['login', 'link', 'reauthenticate'],
@@ -120,7 +120,10 @@ describe('a button with no completion callback', () => {
         expect(reauthentication.pending?.description).toBe(DISCORD_LINK_DESCRIPTION)
         expect(report).not.toHaveBeenCalled()
 
-        const retried = reauthentication.complete()
+        const confirmation = reauthentication.pending
+        assertExists(confirmation, 'Discord linking requested confirmation')
+        await reauthentication.complete(confirmation)
+        const retried = reauthentication.resume(confirmation)
         await delivered()
         expect(api.beginDiscordAuthorization).toHaveBeenCalledTimes(2)
         expect(popup.location.href).toContain('state=link.attempt-2')
@@ -132,6 +135,29 @@ describe('a button with no completion callback', () => {
 })
 
 describe('linking a Discord account', () => {
+    it('waits for a fresh click after confirmation before opening the linking popup', async () => {
+        let userGesture = true
+        const open = vi.fn(() => (userGesture ? popup : null))
+        vi.stubGlobal('window', { open })
+        const { api, run } = flow('link')
+        api.beginDiscordAuthorization.mockRejectedValueOnce(recentAuthenticationRequired())
+        await run()
+        const confirmation = reauthentication.pending
+        assertExists(confirmation, 'Discord linking requested confirmation')
+        userGesture = false
+        await reauthentication.complete(confirmation)
+        expect(open).toHaveBeenCalledTimes(1)
+        expect(reauthentication.pending).toBe(confirmation)
+        expect(reauthentication.confirmed).toBe(true)
+        userGesture = true
+        const retried = reauthentication.resume(confirmation)
+        await delivered()
+        expect(open).toHaveBeenCalledTimes(2)
+        fromPopup({ state: 'link.attempt-1', purpose: 'link', outcome: 'success', user })
+        await retried
+        expect(reauthentication.pending).toBeUndefined()
+    })
+
     it('asks for confirmation when the callback is refused for want of Recent Authentication, then links through a new attempt', async () => {
         const { api, oncomplete, report, run } = flow('link')
         const first = run()
@@ -151,7 +177,10 @@ describe('linking a Discord account', () => {
         expect(oncomplete).not.toHaveBeenCalled()
         expect(report).not.toHaveBeenCalled()
 
-        const retried = reauthentication.complete()
+        const confirmation = reauthentication.pending
+        assertExists(confirmation, 'Discord linking requested confirmation')
+        await reauthentication.complete(confirmation)
+        const retried = reauthentication.resume(confirmation)
         await delivered()
         expect(reauthentication.pending).toBeUndefined()
         expect(api.beginDiscordAuthorization).toHaveBeenCalledTimes(2)

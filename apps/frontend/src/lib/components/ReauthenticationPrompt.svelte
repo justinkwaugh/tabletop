@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Alert, Button, Label, P } from 'flowbite-svelte'
     import { toast } from 'svelte-sonner'
+    import { untrack } from 'svelte'
     import { ExternalAuthService } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
     import AuthModal from '$lib/components/AuthModal.svelte'
@@ -12,12 +13,18 @@
         isEnabled as isDiscordSigninEnabled
     } from '$lib/components/DiscordSignIn.svelte'
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
-    import { reauthentication } from '$lib/stores/reauthentication.svelte'
+    import {
+        reauthentication,
+        type PendingSensitiveAction
+    } from '$lib/stores/reauthentication.svelte'
+
+    let { action }: { action: PendingSensitiveAction } = $props()
+    const initiatingAction = untrack(() => action)
 
     const { authorizationService, api } = getAppContext()
     const id = $props.id()
 
-    let open = $derived(reauthentication.pending !== undefined)
+    let open = $derived(reauthentication.pending === initiatingAction)
     let user = $derived(authorizationService.getSessionUser())
     let linkedProviders = $derived(
         new Set(user?.externalIds.map((externalId) => externalId.split(':', 2)[0]) ?? [])
@@ -38,7 +45,7 @@
         password = ''
         failed = false
         try {
-            await reauthentication.complete()
+            await reauthentication.complete(initiatingAction)
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'The confirmed action failed')
         }
@@ -47,7 +54,15 @@
     function cancel() {
         password = ''
         failed = false
-        reauthentication.cancel()
+        reauthentication.cancel(initiatingAction)
+    }
+
+    async function resume() {
+        try {
+            await reauthentication.resume(initiatingAction)
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'The confirmed action failed')
+        }
     }
 
     async function submitPassword(event: SubmitEvent) {
@@ -67,40 +82,52 @@
 </script>
 
 <AuthModal bind:open title="Confirm it's you" variant="form" oncancel={cancel}>
-    <P class="mb-4 text-sm text-gray-600 dark:text-gray-300">
-        To {reauthentication.pending?.description ?? 'continue'}, sign in again first.
-    </P>
-    {#if failed}
-        <Alert color="red" class="mb-4" role="alert">That password was not accepted.</Alert>
-    {/if}
-    <div class="flex flex-col gap-4">
-        {#if canUsePassword}
-            <form class="flex flex-col gap-4" onsubmit={submitPassword} {@attach focusFirstInput}>
-                <div>
-                    <Label for={`${id}-password`} class="mb-2">Password</Label>
-                    <PasswordInput
-                        id={`${id}-password`}
-                        bind:value={password}
-                        autocomplete="current-password"
-                    />
-                </div>
-                <Button color="blue" type="submit" disabled={submitting}>
-                    {submitting ? 'Confirming…' : 'Confirm'}
-                </Button>
-            </form>
-        {/if}
-        {#if canUseGoogle}
-            <GoogleSignIn mode="reauthenticate" oncomplete={confirmed} />
-        {/if}
-        {#if canUseDiscord}
-            <DiscordSignIn mode="reauthenticate" oncomplete={confirmed} />
-        {/if}
-        {#if !canUsePassword && !canUseGoogle && !canUseDiscord}
-            <P class="text-sm text-gray-600 dark:text-gray-300">
-                This account has no password or linked account to confirm with. Set a password from
-                your profile first.
-            </P>
-        {/if}
+    {#if reauthentication.confirmed}
+        <P class="mb-4 text-sm text-gray-600 dark:text-gray-300">
+            Your identity is confirmed. Continue to {initiatingAction.description}.
+        </P>
+        <Button color="blue" type="button" onclick={resume}>Continue</Button>
         <Button color="light" type="button" onclick={cancel}>Cancel</Button>
-    </div>
+    {:else}
+        <P class="mb-4 text-sm text-gray-600 dark:text-gray-300">
+            To {initiatingAction.description}, sign in again first.
+        </P>
+        {#if failed}
+            <Alert color="red" class="mb-4" role="alert">That password was not accepted.</Alert>
+        {/if}
+        <div class="flex flex-col gap-4">
+            {#if canUsePassword}
+                <form
+                    class="flex flex-col gap-4"
+                    onsubmit={submitPassword}
+                    {@attach focusFirstInput}
+                >
+                    <div>
+                        <Label for={`${id}-password`} class="mb-2">Password</Label>
+                        <PasswordInput
+                            id={`${id}-password`}
+                            bind:value={password}
+                            autocomplete="current-password"
+                        />
+                    </div>
+                    <Button color="blue" type="submit" disabled={submitting}>
+                        {submitting ? 'Confirming…' : 'Confirm'}
+                    </Button>
+                </form>
+            {/if}
+            {#if canUseGoogle}
+                <GoogleSignIn mode="reauthenticate" oncomplete={confirmed} />
+            {/if}
+            {#if canUseDiscord}
+                <DiscordSignIn mode="reauthenticate" oncomplete={confirmed} />
+            {/if}
+            {#if !canUsePassword && !canUseGoogle && !canUseDiscord}
+                <P class="text-sm text-gray-600 dark:text-gray-300">
+                    This account has no password or linked account to confirm with. Set a password
+                    from your profile first.
+                </P>
+            {/if}
+            <Button color="light" type="button" onclick={cancel}>Cancel</Button>
+        </div>
+    {/if}
 </AuthModal>

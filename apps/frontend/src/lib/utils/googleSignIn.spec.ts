@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { Role, UserStatus, type User } from '@tabletop/common'
+import { assertExists, Role, UserStatus, type User } from '@tabletop/common'
 
 vi.mock('@tabletop/frontend-components', () => ({
     APIError: class APIError extends Error {
@@ -82,7 +82,9 @@ describe('linking a Google account', () => {
         expect(session.setSessionUser).not.toHaveBeenCalled()
         expect(report).not.toHaveBeenCalled()
 
-        await reauthentication.complete()
+        const pending = reauthentication.pending
+        assertExists(pending, 'Google linking requested confirmation')
+        await reauthentication.complete(pending)
         expect(api.linkGoogle).toHaveBeenCalledTimes(2)
         expect(session.setSessionUser).toHaveBeenCalledWith(user)
         expect(oncomplete).toHaveBeenCalledTimes(1)
