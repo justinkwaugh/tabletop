@@ -546,8 +546,9 @@ export function createEighteenXXRuntime<
                 FinalWealthScoring.finalScores(stateDefinition.hydrate(state, components))
         },
         apiActions: actions.schemas,
-        exploration: new EighteenXXGameExploration<Type.Static<Schema>>((state) =>
-            stateDefinition.hydrate(state, components)
+        exploration: new EighteenXXGameExploration<Type.Static<Schema>>(
+            (state) => stateDefinition.hydrate(state, components),
+            options.canonicalState?.populate
         ),
         stateHandlers
     }

@@ -82,6 +82,7 @@ import {
     stockRound1846
 } from './handlers.js'
 import { EighteenFortySixInfo } from './info.js'
+import { populate1846Exploration } from '../exploration.js'
 
 type Handler = EighteenXXStateHandler<HydratedEighteenFortySixState>
 const endsGame = (handler: Handler): Handler => new GameEndingHandler(handler, EndingRules1846)
@@ -97,7 +98,8 @@ export const TitleRules1846: EighteenXXTitleRules<
     state: EighteenFortySixStateDefinition,
     canonicalState: {
         schema: EighteenFortySixState,
-        projector: Visibility.createProjector(EighteenFortySixState)
+        projector: Visibility.createProjector(EighteenFortySixState),
+        populate: populate1846Exploration
     },
     endingRules: EndingRules1846,
     names: Names1846,
