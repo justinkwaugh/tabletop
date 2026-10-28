@@ -24,6 +24,8 @@ struct Stop {
     endpoint: bool,
     allowed: bool,
     city: bool,
+    town: bool,
+    hex: usize,
     groups: Vec<usize>,
 }
 
@@ -55,64 +57,111 @@ struct Train {
     require_paying_token: bool,
     #[serde(default)]
     connection_bonuses: Vec<PaidConnectionBonus>,
+    #[serde(default)]
+    major_limit: Option<u32>,
+    #[serde(default)]
+    interconnections: Vec<Interconnection>,
 }
 
 #[derive(Deserialize, PartialEq)]
 struct PaidConnectionBonus {
     from: Vec<Option<i32>>,
     to: Vec<Option<i32>>,
+    #[serde(default)]
+    ends_only: bool,
+}
+
+#[derive(Deserialize, PartialEq)]
+struct Interconnection {
+    from: Vec<usize>,
+    to: Vec<usize>,
+    amount: i32,
+}
+
+struct Payment<'a> {
+    visits: &'a [usize],
+    stops: &'a [Stop],
+    destination: Option<usize>,
 }
 
 impl Train {
-    fn paid_revenue(&self, visits: &[usize], stops: &[Stop]) -> i32 {
+    fn paid_revenue(&self, payment: &Payment) -> i32 {
+        let visits = payment.visits;
         let count = self
             .paying_stop_limit
             .unwrap_or(visits.len())
             .min(visits.len());
         if count == visits.len() {
-            return self.selected_revenue(visits);
+            return self.selected_revenue(payment, visits);
         }
         let mut best = 0;
-        self.select_payments(visits, stops, 0, count, &mut Vec::new(), &mut best);
+        self.select_payments(payment, 0, count, &mut Vec::new(), &mut best);
         best
     }
 
     fn select_payments(
         &self,
-        visits: &[usize],
-        stops: &[Stop],
+        payment: &Payment,
         start: usize,
         count: usize,
         selected: &mut Vec<usize>,
         best: &mut i32,
     ) {
         if selected.len() == count {
-            if !self.require_paying_token || selected.iter().any(|&id| stops[id].token) {
-                *best = (*best).max(self.selected_revenue(selected));
+            if !self.require_paying_token || selected.iter().any(|&id| payment.stops[id].token) {
+                *best = (*best).max(self.selected_revenue(payment, selected));
             }
             return;
         }
-        for index in start..=visits.len() - (count - selected.len()) {
-            selected.push(visits[index]);
-            self.select_payments(visits, stops, index + 1, count, selected, best);
+        for index in start..=payment.visits.len() - (count - selected.len()) {
+            selected.push(payment.visits[index]);
+            self.select_payments(payment, index + 1, count, selected, best);
             selected.pop();
         }
     }
 
-    fn selected_revenue(&self, paid: &[usize]) -> i32 {
+    fn selected_revenue(&self, payment: &Payment, paid: &[usize]) -> i32 {
+        let ends = [payment.visits[0], payment.visits[payment.visits.len() - 1]];
         let bonuses: i32 = self
             .connection_bonuses
             .iter()
             .map(|bonus| {
                 let from = paid.iter().filter_map(|&id| bonus.from[id]).max();
-                let to = paid.iter().filter_map(|&id| bonus.to[id]).max();
+                let to = paid
+                    .iter()
+                    .filter(|id| !bonus.ends_only || ends.contains(id))
+                    .filter_map(|&id| bonus.to[id])
+                    .max();
                 match (from, to) {
                     (Some(from), Some(to)) => from + to,
                     _ => 0,
                 }
             })
             .sum();
-        paid.iter().map(|&id| self.revenues[id]).sum::<i32>() + bonuses
+        let interconnection = payment.destination.map_or(0, |hex| {
+            self.interconnections
+                .iter()
+                .filter(|interconnection| {
+                    interconnection.to.contains(&hex)
+                        && paid
+                            .iter()
+                            .any(|&id| interconnection.from.contains(&payment.stops[id].hex))
+                })
+                .map(|interconnection| interconnection.amount)
+                .max()
+                .unwrap_or(0)
+        });
+        paid.iter().map(|&id| self.revenues[id]).sum::<i32>() + bonuses + interconnection
+    }
+
+    fn scores_payments(&self) -> bool {
+        self.paying_stop_limit.is_some()
+            || !self.connection_bonuses.is_empty()
+            || !self.interconnections.is_empty()
+    }
+
+    fn majors(&self, stop: &Stop) -> u32 {
+        u32::from(self.major_limit.is_some() && !stop.town)
     }
 }
 
@@ -134,6 +183,7 @@ struct Candidate {
     connections: Vec<usize>,
     resources: Vec<u64>,
     reversed: bool,
+    extension: Vec<usize>,
 }
 
 #[derive(Serialize)]
@@ -155,6 +205,7 @@ pub struct Solution {
 struct Route {
     train: usize,
     connections: Vec<RouteConnection>,
+    extension: Vec<usize>,
 }
 
 #[derive(Serialize)]
@@ -188,11 +239,13 @@ fn milliseconds() -> f64 {
 
 fn validate(problem: &Problem) -> Result<(), String> {
     let n = problem.stops.len();
-    if problem.version != 4 || !problem.budget_ms.is_finite() || problem.budget_ms <= 0.0 {
+    if problem.version != 5 || !problem.budget_ms.is_finite() || problem.budget_ms <= 0.0 {
         return Err("Unsupported problem version or budget".into());
     }
     for stop in &problem.stops {
-        if stop.groups.iter().any(|&g| g >= problem.group_count) {
+        if stop.groups.iter().any(|&g| g >= problem.group_count)
+            || stop.hex >= problem.hex_bonuses.len()
+        {
             return Err("Invalid stop cost or group".into());
         }
     }
@@ -242,6 +295,14 @@ fn validate(problem: &Problem) -> Result<(), String> {
                         .any(|&amount| amount < 0)
             })
             || train.revenues.len() != n
+            || train.interconnections.iter().any(|interconnection| {
+                interconnection.amount < 0
+                    || interconnection
+                        .from
+                        .iter()
+                        .chain(&interconnection.to)
+                        .any(|&hex| hex >= problem.hex_bonuses.len())
+            })
             || train.first_bonus.len() != n
             || train
                 .revenues
@@ -357,6 +418,7 @@ impl Compiler<'_> {
 #[derive(Clone, Copy)]
 struct RouteValue {
     cost: u32,
+    majors: u32,
     revenue: i32,
     token: bool,
     city: bool,
@@ -368,8 +430,12 @@ struct Search<'a> {
     problem: &'a Problem,
     connections: &'a [Connection],
     adjacency: &'a [Vec<usize>],
+    departures: &'a [Vec<usize>],
     train: &'a Train,
     token_distance: &'a [u32],
+    origins: Vec<bool>,
+    destinations: Vec<bool>,
+    extension_parents: Vec<usize>,
     used: Vec<u64>,
     visited: Vec<bool>,
     groups: Vec<bool>,
@@ -383,10 +449,14 @@ struct Search<'a> {
     exhausted: bool,
 }
 
+const UNREACHED: usize = usize::MAX;
+const EXTENSION_ROOT: usize = usize::MAX - 1;
+
 impl Search<'_> {
     fn walk(&mut self, start: usize, node: usize, value: RouteValue) {
         let RouteValue {
             cost,
+            majors,
             revenue,
             token,
             city,
@@ -402,7 +472,8 @@ impl Search<'_> {
             return;
         }
         let stop = &self.problem.stops[node];
-        if cost > self.train.distance {
+        if cost > self.train.distance || self.train.major_limit.is_some_and(|limit| majors > limit)
+        {
             return;
         }
         let token = token || stop.token;
@@ -415,37 +486,7 @@ impl Search<'_> {
         let first_bonus = if first_bonus != 0 { first_bonus } else { bonus };
         let last_bonus = if bonus != 0 { bonus } else { last_bonus };
         if node > start && token && stop.endpoint && (!self.train.requires_city || city) {
-            self.count += 1;
-            let visits = self.walking.len() + 1;
-            let payment_adjustment = if self.train.paying_stop_limit.is_some()
-                || !self.train.connection_bonuses.is_empty()
-            {
-                let stops: Vec<_> = std::iter::once(start)
-                    .chain(self.walking.iter().map(|&id| self.connections[id].to))
-                    .collect();
-                self.train.paid_revenue(&stops, &self.problem.stops)
-                    - stops.iter().map(|&id| self.train.revenues[id]).sum::<i32>()
-            } else {
-                0
-            };
-            let total = revenue + payment_adjustment + first_bonus.max(last_bonus);
-            let fleet_bonus = self.problem.longest_route_bonus_per_stop;
-            if !self.best_only
-                || self.candidates.first().is_none_or(|c| {
-                    c.revenue + c.visits as i32 * fleet_bonus < total + visits as i32 * fleet_bonus
-                })
-            {
-                if self.best_only {
-                    self.candidates.clear();
-                }
-                self.candidates.push(Candidate {
-                    revenue: total,
-                    visits,
-                    connections: self.walking.clone(),
-                    resources: self.used.clone(),
-                    reversed: last_bonus > first_bonus,
-                });
-            }
+            self.record(start, node, revenue, first_bonus, last_bonus);
         }
         if !self.walking.is_empty()
             && (stop.blocked
@@ -494,6 +535,7 @@ impl Search<'_> {
                         } else {
                             0
                         },
+                    majors: majors + self.train.majors(next),
                     revenue: revenue + extra,
                     token,
                     city,
@@ -517,6 +559,191 @@ impl Search<'_> {
         }
         self.visited[node] = false;
     }
+
+    fn record(
+        &mut self,
+        start: usize,
+        end: usize,
+        revenue: i32,
+        first_bonus: i32,
+        last_bonus: i32,
+    ) {
+        self.count += 1;
+        let visits = self.walking.len() + 1;
+        if !self.train.scores_payments() {
+            self.offer(Candidate {
+                revenue: revenue + first_bonus.max(last_bonus),
+                visits,
+                connections: self.walking.clone(),
+                resources: self.used.clone(),
+                reversed: last_bonus > first_bonus,
+                extension: vec![],
+            });
+            return;
+        }
+        let problem = self.problem;
+        let train = self.train;
+        let stops: Vec<_> = std::iter::once(start)
+            .chain(self.walking.iter().map(|&id| self.connections[id].to))
+            .collect();
+        let fixed = revenue - stops.iter().map(|&id| train.revenues[id]).sum::<i32>();
+        let paid_revenue = |destination| {
+            train.paid_revenue(&Payment {
+                visits: &stops,
+                stops: &problem.stops,
+                destination,
+            })
+        };
+        let paid = paid_revenue(None);
+        self.offer(Candidate {
+            revenue: fixed + paid + first_bonus.max(last_bonus),
+            visits,
+            connections: self.walking.clone(),
+            resources: self.used.clone(),
+            reversed: last_bonus > first_bonus,
+            extension: vec![],
+        });
+        if !stops.iter().any(|&id| self.origins[problem.stops[id].hex]) {
+            return;
+        }
+        for (from, reversed, first_stop_bonus) in
+            [(end, false, first_bonus), (start, true, last_bonus)]
+        {
+            for extension in self.shortest_extensions(from) {
+                let destination = problem.arcs[extension[extension.len() - 1]]
+                    .to
+                    .map(|stop| problem.stops[stop].hex);
+                let extended = paid_revenue(destination);
+                if extended <= paid {
+                    continue;
+                }
+                let mut resources = self.used.clone();
+                for &r in extension
+                    .iter()
+                    .flat_map(|&arc| &problem.arcs[arc].resources)
+                {
+                    resources[r / 64] |= 1 << (r % 64);
+                }
+                self.offer(Candidate {
+                    revenue: fixed + extended + first_stop_bonus,
+                    visits,
+                    connections: self.walking.clone(),
+                    resources,
+                    reversed,
+                    extension,
+                });
+            }
+        }
+    }
+
+    fn offer(&mut self, candidate: Candidate) {
+        let fleet_bonus = self.problem.longest_route_bonus_per_stop;
+        let value = |c: &Candidate| c.revenue + c.visits as i32 * fleet_bonus;
+        if !self.best_only {
+            self.candidates.push(candidate);
+        } else if self
+            .candidates
+            .first()
+            .is_none_or(|best| value(best) < value(&candidate))
+        {
+            self.candidates.clear();
+            self.candidates.push(candidate);
+        }
+    }
+
+    fn shortest_extensions(&mut self, from: usize) -> Vec<Vec<usize>> {
+        let problem = self.problem;
+        let departures = self.departures;
+        let mut queue = vec![];
+        for &arc in &departures[from] {
+            if self.extends_along(arc) {
+                self.extension_parents[arc] = EXTENSION_ROOT;
+                queue.push(arc);
+            }
+        }
+        let mut reached = vec![];
+        let mut extensions = vec![];
+        let mut head = 0;
+        while let Some(&arc_id) = queue.get(head) {
+            head += 1;
+            let arc = &problem.arcs[arc_id];
+            let following: &[usize] = match arc.to {
+                None => &arc.next,
+                Some(stop_id) => {
+                    let stop = &problem.stops[stop_id];
+                    if self.destinations[stop.hex] && !reached.contains(&stop.hex) {
+                        let extension = self.extension_to(arc_id);
+                        if is_simple_extension(problem, &extension) {
+                            reached.push(stop.hex);
+                            extensions.push(extension);
+                        }
+                    }
+                    if stop.city || stop.town {
+                        &departures[stop_id]
+                    } else {
+                        &[]
+                    }
+                }
+            };
+            for &next in following {
+                if next != arc_id ^ 1
+                    && self.extension_parents[next] == UNREACHED
+                    && self.extends_along(next)
+                {
+                    self.extension_parents[next] = arc_id;
+                    queue.push(next);
+                }
+            }
+        }
+        for arc in queue {
+            self.extension_parents[arc] = UNREACHED;
+        }
+        extensions
+    }
+
+    fn extends_along(&self, arc_id: usize) -> bool {
+        let arc = &self.problem.arcs[arc_id];
+        !arc.terminal
+            && arc.to.is_none_or(|stop| self.problem.stops[stop].allowed)
+            && !arc
+                .resources
+                .iter()
+                .any(|&r| self.used[r / 64] & (1 << (r % 64)) != 0)
+    }
+
+    fn extension_to(&self, arc_id: usize) -> Vec<usize> {
+        let mut extension = vec![arc_id];
+        let mut current = arc_id;
+        while self.extension_parents[current] != EXTENSION_ROOT {
+            current = self.extension_parents[current];
+            extension.push(current);
+        }
+        extension.reverse();
+        extension
+    }
+}
+
+fn is_simple_extension(problem: &Problem, extension: &[usize]) -> bool {
+    let arcs = extension.iter().map(|&arc| &problem.arcs[arc]);
+    let mut resources: Vec<_> = arcs.clone().flat_map(|arc| arc.resources.iter()).collect();
+    let count = resources.len();
+    resources.sort_unstable();
+    resources.dedup();
+    let revisits_junction = |junctions: &mut Vec<usize>| {
+        junctions.sort_unstable();
+        junctions.windows(3).any(|three| three[0] == three[2])
+    };
+    let mut junctions = vec![];
+    for arc in arcs {
+        junctions.extend(&arc.junctions);
+        if arc.to.is_some() {
+            if revisits_junction(&mut junctions) {
+                return false;
+            }
+            junctions.clear();
+        }
+    }
+    resources.len() == count && !revisits_junction(&mut junctions)
 }
 
 struct CandidateGroup<'a> {
@@ -810,6 +1037,12 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
     for (id, connection) in connections.iter().enumerate() {
         adjacency[connection.from].push(id);
     }
+    let mut departures = vec![vec![]; problem.stops.len()];
+    for (id, arc) in problem.arcs.iter().enumerate() {
+        if let Some(from) = arc.from {
+            departures[from].push(id);
+        }
+    }
     let compile_ms = milliseconds() - started;
     let mut candidates: Vec<Rc<Vec<Candidate>>> = Vec::new();
     let mut counts = Vec::new();
@@ -826,6 +1059,8 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
                 && other.paying_stop_limit == train.paying_stop_limit
                 && other.require_paying_token == train.require_paying_token
                 && other.connection_bonuses == train.connection_bonuses
+                && other.major_limit == train.major_limit
+                && other.interconnections == train.interconnections
         }) {
             candidates.push(Rc::clone(&candidates[previous]));
             counts.push(counts[previous]);
@@ -863,8 +1098,16 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
             problem,
             connections: &connections,
             adjacency: &adjacency,
+            departures: &departures,
             train,
             token_distance: &token_distance,
+            origins: hex_flags(problem, train.interconnections.iter().flat_map(|i| &i.from)),
+            destinations: hex_flags(problem, train.interconnections.iter().flat_map(|i| &i.to)),
+            extension_parents: if train.interconnections.is_empty() {
+                vec![]
+            } else {
+                vec![UNREACHED; problem.arcs.len()]
+            },
             used: vec![0; problem.resource_count.div_ceil(64)],
             visited: vec![false; problem.stops.len()],
             groups: vec![false; problem.group_count],
@@ -884,6 +1127,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
                     id,
                     RouteValue {
                         cost: train.visit_costs[id],
+                        majors: train.majors(stop),
                         revenue: 0,
                         token: false,
                         city: false,
@@ -951,6 +1195,11 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
             Route {
                 train,
                 connections: route_connections,
+                extension: candidate
+                    .extension
+                    .iter()
+                    .map(|&arc| problem.arcs[arc].path)
+                    .collect(),
             }
         })
         .collect();
@@ -967,6 +1216,14 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         path_ms: path_finished - started - compile_ms,
         combination_ms: milliseconds() - path_finished,
     })
+}
+
+fn hex_flags<'a>(problem: &Problem, hexes: impl Iterator<Item = &'a usize>) -> Vec<bool> {
+    let mut flags = vec![false; problem.hex_bonuses.len()];
+    for &hex in hexes {
+        flags[hex] = true;
+    }
+    flags
 }
 
 pub fn solve_json(input: &[u8]) -> Vec<u8> {
