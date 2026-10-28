@@ -73,6 +73,8 @@ export type MapViewDefinition = {
     /** Centre of a location's terrain cost row, by location id, where it is not placed below the stops. */
     terrainPositions?: Readonly<Record<string, Point>>
     markerArt?: Readonly<Record<string, MapMarkerArt>>
+    /** Art for one location's markers, by location id then marker id, over ``markerArt``. */
+    locationMarkerArt?: Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>>
     /** Names for the kinds of marker private powers place during play, such as mines. */
     locationMarkerNames?: Readonly<Record<string, string>>
     layouts?: Readonly<Record<string, TileLayout>>

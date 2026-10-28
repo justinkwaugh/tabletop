@@ -315,7 +315,8 @@ export function createMapDrawing(
     },
     {
         layouts = {},
-        markerArt = {},
+        markerArt: sharedMarkerArt = {},
+        locationMarkerArt = {},
         placements = {},
         joinedEdges = {},
         locationMarkerNames = {},
@@ -337,6 +338,7 @@ export function createMapDrawing(
         MapViewDefinition,
         | 'layouts'
         | 'markerArt'
+        | 'locationMarkerArt'
         | 'placements'
         | 'joinedEdges'
         | 'locationMarkerNames'
@@ -368,6 +370,7 @@ export function createMapDrawing(
     const blockLifted = (marker: NonNullable<MapLocation['markers']>[number]) =>
         !!marker.privateCompanyId && liftedPrivateBlocks.includes(marker.privateCompanyId)
     const locations = map.definition.locations.map((printed): MapDrawnLocation => {
+        const markerArt = { ...sharedMarkerArt, ...locationMarkerArt[printed.id] }
         const placed = placedMarkers(printed.id)
         const location =
             placed.length || printed.markers?.some(blockLifted)

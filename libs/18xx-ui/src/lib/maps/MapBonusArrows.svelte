@@ -6,7 +6,12 @@
     } from '../colors/revenueStageColors.js'
     import DividedRect from '../colors/DividedRect.svelte'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
-    import { BonusArrowValueHeight, type DrawnBonusArrow } from './bonusArrows.js'
+    import TileSymbol from '../tiles/TileSymbol.svelte'
+    import {
+        BonusArrowValueHeight,
+        bonusArrowFooterText,
+        type DrawnBonusArrow
+    } from './bonusArrows.js'
     let {
         arrows,
         appearance,
@@ -16,16 +21,22 @@
         appearance: TileAppearance
         revenueStageColors?: RevenueStageColors
     } = $props()
+    // A footer's symbol sits between its words, small enough to stay within the plaque.
+    const FooterSymbolScale = 0.6
+    const FooterSymbolRoom = 6.5
+    const PortPaper = '#cfe8f3'
 </script>
 
 <g data-map-layer="bonus-arrows" pointer-events="none">
     {#each arrows as arrow (arrow.id)}
         {@const top = -arrow.height / 2}
+        {@const footer = arrow.footer}
+        {@const footerSize = bonusArrowFooterText(footer).length > 16 ? 5.6 : 6.5}
         <g
             data-map-bonus-arrow={arrow.id}
             transform={`translate(${arrow.center.x} ${arrow.center.y})`}
             role="img"
-            aria-label={`${arrow.heading} ${arrow.values.map((value) => `${value.label} ${value.amount}`).join(', ')} ${arrow.footer}`}
+            aria-label={`${arrow.heading} ${arrow.values.map((value) => `${value.label} ${value.amount}`).join(', ')} ${typeof arrow.footer === 'string' ? arrow.footer : arrow.footer.spoken}`}
         >
             <path
                 d={arrow.outline}
@@ -77,13 +88,27 @@
                     fill={appearance.ink}>{value.label}</text
                 >
             {/each}
-            <text
-                y={arrow.height / 2 - 4}
-                text-anchor="middle"
-                font-size={arrow.footer.length > 16 ? 5.6 : 6.5}
-                font-weight="700"
-                fill={appearance.ink}>{arrow.footer}</text
-            >
+            {#if typeof footer === 'string'}
+                <text
+                    y={arrow.height / 2 - 4}
+                    text-anchor="middle"
+                    font-size={footerSize}
+                    font-weight="700"
+                    fill={appearance.ink}>{footer}</text
+                >
+            {:else}
+                <g font-size={footerSize} font-weight="700" fill={appearance.ink}>
+                    <text x={-FooterSymbolRoom} y={arrow.height / 2 - 4} text-anchor="end"
+                        >{footer.before}</text
+                    >
+                    <g
+                        transform={`translate(0 ${arrow.height / 2 - 6}) scale(${FooterSymbolScale})`}
+                    >
+                        <TileSymbol symbol={footer.symbol} ink={appearance.ink} paper={PortPaper} />
+                    </g>
+                    <text x={FooterSymbolRoom} y={arrow.height / 2 - 4}>{footer.after}</text>
+                </g>
+            {/if}
         </g>
     {/each}
 </g>

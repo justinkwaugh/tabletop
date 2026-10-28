@@ -1,4 +1,5 @@
 import type { Point } from '@tabletop/common'
+import type { TileSymbolName } from '../tiles/tileSymbols.js'
 
 /**
  * A plaque printed beside the board, as 1833NE's route bonus arrows: values by phase band under
@@ -9,11 +10,24 @@ export type MapBonusArrow = {
     /** The plaque's centre in board units. */
     center: Point
     heading: string
-    footer: string
+    footer: string | BonusArrowFooter
     /** Each value's label, amount and the revenue stage whose colour it takes. */
     values: readonly { label: string; amount: number; stage: string }[]
     /** The pointed ends; a single point's other end is notched, like an arrow's tail. */
     points: 'left' | 'right' | 'both'
+}
+
+/** A footer printing a symbol between its words, such as a port city's anchor; ``spoken`` reads it. */
+export type BonusArrowFooter = {
+    before: string
+    symbol: TileSymbolName
+    after: string
+    spoken: string
+}
+
+/** The footer's words, the symbol counted as two letters' room. */
+export function bonusArrowFooterText(footer: MapBonusArrow['footer']): string {
+    return typeof footer === 'string' ? footer : `${footer.before}    ${footer.after}`
 }
 
 export type DrawnBonusArrow = MapBonusArrow & { width: number; height: number; outline: string }
@@ -30,7 +44,10 @@ function sides(arrow: MapBonusArrow) {
 }
 
 export function drawBonusArrow(arrow: MapBonusArrow): DrawnBonusArrow {
-    const width = Math.max(arrow.heading.length, arrow.footer.length) > LongText ? 104 : 88
+    const width =
+        Math.max(arrow.heading.length, bonusArrowFooterText(arrow.footer).length) > LongText
+            ? 104
+            : 88
     const height = 26 + arrow.values.length * ValueHeight
     const left = -width / 2
     const right = width / 2

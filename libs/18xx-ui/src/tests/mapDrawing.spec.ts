@@ -402,3 +402,29 @@ it('draws a printed port connection as a pier and a junction track as a spike', 
         ['edge-1', true, false]
     ])
 })
+
+it('draws one marker in each location’s own art', () => {
+    const port = (id: string, q: number) => ({
+        id,
+        coordinates: { q, r: 0 },
+        buildable: true,
+        preprintedTile: createCityTileFace('white', [], 0, 1),
+        markers: [{ id: 'ferry', label: 'Ferry', description: 'Ferry' }]
+    })
+    const map = new RailwayMap({
+        id: 'ferries',
+        name: 'Ferries',
+        orientation: HexOrientation.Flat,
+        locations: [port('east', 0), port('west', 4)]
+    })
+    const token = (imageUrl: string) => ({ token: { imageUrl, place: 'corner' as const } })
+    const tokens = createMapDrawing(map, undefined, {
+        markerArt: { ferry: token('shared.svg') },
+        locationMarkerArt: { west: { ferry: token('west.svg') } }
+    }).locations.map((entry) =>
+        entry.revenueAnnotations.flatMap((annotation) =>
+            annotation.kind === 'token' ? [annotation.imageUrl] : []
+        )
+    )
+    expect(tokens).toEqual([['shared.svg'], ['west.svg']])
+})
