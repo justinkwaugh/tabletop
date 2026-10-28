@@ -49,7 +49,7 @@ export const TileLayouts1833NE: Readonly<Record<string, TileLayout>> = {
 
 export const MapView1833NE: MapViewDefinition = {
     boardAreas: {
-        market: { x: -60, y: -250, width: 1000, height: 150 },
+        market: { x: -60, y: -175, width: 1000, height: 150 },
         depot: { x: 760, y: 60, width: 381, height: 187 }
     },
     map: Map1833NE,
