@@ -33,7 +33,6 @@
     import { setLoginModal } from '$lib/stores/loginModal'
     import { broadcastLogout, onLogoutBroadcast } from '$lib/utils/logoutChannel'
     import { onDiscordAuthorizationResult } from '$lib/utils/discordAuthorization'
-    import ReauthenticationPrompt from '$lib/components/ReauthenticationPrompt.svelte'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
     import {
@@ -308,7 +307,7 @@
         }
         if (result.purpose === 'login') {
             void authorizationService.onLogin(result.user)
-        } else if (result.purpose === 'link') {
+        } else {
             authorizationService.setSessionUser(result.user)
         }
     })
@@ -721,9 +720,7 @@
         </div>
     </Navbar>
 </div>
-{#if sessionUser}
-    <ReauthenticationPrompt />
-{:else}
+{#if !sessionUser}
     <AuthModal
         bind:open={showLoginModal}
         title={loginViewTitles[loginView]}

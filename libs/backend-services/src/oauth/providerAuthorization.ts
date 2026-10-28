@@ -4,19 +4,14 @@ import { BaseError, DateType, ExternalAuthService } from '@tabletop/common'
 
 export const OAUTH_STATE_LIFETIME_SECONDS = 10 * 60
 
-const STATE_SEPARATOR = '.'
-const NONCE_LENGTH = 32
-const nonce = customAlphabet(
+const STATE_LENGTH = 32
+const state = customAlphabet(
     '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-    NONCE_LENGTH
+    STATE_LENGTH
 )
 
 export type OAuthPurpose = Static<typeof OAuthPurpose>
-export const OAuthPurpose = Type.Union([
-    Type.Literal('login'),
-    Type.Literal('link'),
-    Type.Literal('reauthenticate')
-])
+export const OAuthPurpose = Type.Union([Type.Literal('login'), Type.Literal('link')])
 export const OAUTH_PURPOSES: readonly OAuthPurpose[] = OAuthPurpose.anyOf.map(
     (literal) => literal.const
 )
@@ -57,7 +52,7 @@ export function issueProviderAuthorization(
 ): ProviderAuthorizationAttempt {
     return {
         ...request,
-        state: `${request.purpose}${STATE_SEPARATOR}${nonce()}`,
+        state: state(),
         expiresAt: new Date(now.getTime() + OAUTH_STATE_LIFETIME_SECONDS * 1000)
     }
 }

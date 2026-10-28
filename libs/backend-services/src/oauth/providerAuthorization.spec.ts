@@ -34,11 +34,11 @@ function refusal(
 }
 
 describe('Provider Authorization Attempts', () => {
-    it('issues an unpredictable state labelled with its purpose that lasts ten minutes', () => {
+    it('issues an unpredictable state that lasts ten minutes', () => {
         const attempt = issueProviderAuthorization(login, NOW)
         expect(attempt).toEqual({
             ...login,
-            state: expect.stringMatching(/^login\.[0-9A-Za-z]{32}$/),
+            state: expect.stringMatching(/^[0-9A-Za-z]{32}$/),
             expiresAt: new Date(NOW.getTime() + OAUTH_STATE_LIFETIME_SECONDS * 1000)
         })
         expect(issueProviderAuthorization(login, NOW).state).not.toBe(attempt.state)
@@ -48,7 +48,7 @@ describe('Provider Authorization Attempts', () => {
     it('refuses a callback when no attempt is held or its state differs', () => {
         const attempt = issueProviderAuthorization(login, NOW)
         expect(refusal(undefined, attempt.state)).toBe('missing')
-        expect(refusal(attempt, 'login.0123456789abcdefghijklmnopqrstuv')).toBe('state')
+        expect(refusal(attempt, '0123456789abcdefghijklmnopqrstuv')).toBe('state')
         expect(refusal(attempt, '')).toBe('state')
     })
 

@@ -1,5 +1,5 @@
 import { customAlphabet } from 'nanoid'
-import { sessionGenerationOf, User } from '@tabletop/common'
+import { BaseError, sessionGenerationOf, User } from '@tabletop/common'
 import type { SessionStore } from '../persistence/stores/sessionStore.js'
 import { requireSessionEligibleAccount } from '../users/accountEligibility.js'
 import {
@@ -8,8 +8,7 @@ import {
     type ProviderAuthorizationRequest,
     verifyProviderAuthorization
 } from '../oauth/providerAuthorization.js'
-import type { AuthenticatedSession, AuthenticationProof } from './authenticatedSession.js'
-import { hasRecentAuthentication, SessionNotLiveError } from './recentAuthentication.js'
+import type { AuthenticatedSession } from './authenticatedSession.js'
 
 export const SESSION_LIFETIME_SECONDS = 30 * 24 * 60 * 60
 
@@ -22,13 +21,25 @@ const sessionId = customAlphabet(
 export type AuthorizedSession = { session: AuthenticatedSession; user: User }
 export type AccountLookup = (userId: string) => Promise<User | undefined>
 
+export class SessionNotLiveError extends BaseError {
+    readonly statusCode = 401
+
+    constructor(sessionId: string) {
+        super({
+            name: 'SessionNotLiveError',
+            message: 'The Authenticated Session is no longer live',
+            metadata: { sessionId }
+        })
+    }
+}
+
 export class SessionService {
     constructor(
         private readonly sessionStore: SessionStore,
         private readonly options: { lifetimeSeconds?: number; now?: () => Date } = {}
     ) {}
 
-    async establish(user: User, proof: AuthenticationProof): Promise<AuthenticatedSession> {
+    async establish(user: User): Promise<AuthenticatedSession> {
         requireSessionEligibleAccount(user)
         const createdAt = this.now()
         const session: AuthenticatedSession = {
@@ -36,7 +47,7 @@ export class SessionService {
             userId: user.id,
             generation: sessionGenerationOf(user),
             createdAt,
-            ...(proof === 'authentication-method' ? { authenticatedAt: createdAt } : {}),
+            authenticatedAt: createdAt,
             expiresAt: new Date(createdAt.getTime() + this.lifetimeSeconds() * 1000)
         }
         await this.sessionStore.create(session)
@@ -64,15 +75,6 @@ export class SessionService {
             return undefined
         }
         return { session, user }
-    }
-
-    isRecentlyAuthenticated(session: AuthenticatedSession): boolean {
-        return hasRecentAuthentication(session, this.now())
-    }
-
-    async recordAuthentication(session: AuthenticatedSession): Promise<AuthenticatedSession> {
-        const authenticatedAt = this.now()
-        return this.updateLive(session.id, (live) => ({ ...live, authenticatedAt }))
     }
 
     issueProviderAuthorization(

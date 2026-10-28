@@ -212,18 +212,6 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('linkDiscord')
     }
 
-    async reauthenticateDiscord(_code: string, _state: string): Promise<void> {
-        return this.fail('reauthenticateDiscord')
-    }
-
-    async reauthenticateWithPassword(_password: string): Promise<void> {
-        return this.fail('reauthenticateWithPassword')
-    }
-
-    async reauthenticateGoogle(_credential: string): Promise<void> {
-        return this.fail('reauthenticateGoogle')
-    }
-
     async loginToken(_token: string): Promise<User> {
         return this.fail('loginToken')
     }

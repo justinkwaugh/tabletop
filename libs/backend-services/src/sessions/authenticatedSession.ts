@@ -8,9 +8,7 @@ export const AuthenticatedSession = Type.Object({
     userId: Type.String(),
     generation: Type.Integer({ minimum: 0 }),
     createdAt: DateType(),
-    authenticatedAt: Type.Optional(DateType()),
+    authenticatedAt: DateType(),
     expiresAt: DateType(),
     providerAuthorization: Type.Optional(ProviderAuthorizationAttempt)
 })
-
-export type AuthenticationProof = 'authentication-method' | 'challenge'

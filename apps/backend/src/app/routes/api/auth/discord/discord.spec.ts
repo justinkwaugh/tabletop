@@ -1,20 +1,12 @@
 import type { FastifyInstance } from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-    OAUTH_STATE_LIFETIME_SECONDS,
-    RECENT_AUTHENTICATION_SECONDS
-} from '@tabletop/backend-services'
+import { OAUTH_STATE_LIFETIME_SECONDS } from '@tabletop/backend-services'
 
 vi.hoisted(() => {
     vi.stubEnv('GCLOUD_PROJECT', 'demo-tabletop')
     vi.stubEnv('FRONTEND_HOST', 'https://site.test')
 })
-import {
-    closing,
-    discordFixture,
-    PASSWORD,
-    type DiscordFixture
-} from '../../../../tests/discordFixture.js'
+import { closing, discordFixture, type DiscordFixture } from '../../../../tests/discordFixture.js'
 
 const REFUSED_STATE = 'The provider authorization does not belong to this request'
 const servers = new Set<FastifyInstance>()
@@ -45,7 +37,7 @@ describe('Discord linking callbacks are bound to the initiating session', () => 
         const { cookie } = await f.signIn('victim')
         const response = await f.post(
             '/auth/discord/link',
-            { code: 'attacker-code', state: 'link.0123456789abcdefghijklmnopqrstuv' },
+            { code: 'attacker-code', state: '0123456789abcdefghijklmnopqrstuv' },
             cookie
         )
         expect(response.statusCode).toBe(400)
@@ -58,7 +50,7 @@ describe('Discord linking callbacks are bound to the initiating session', () => 
         const attacker = await f.signIn('attacker')
         const victim = await f.signIn('victim')
         const { state } = await f.begin('link', attacker.cookie)
-        expect(state).toMatch(/^link\./)
+        expect(state).toMatch(/^[0-9A-Za-z]{32}$/)
         const injected = await f.post(
             '/auth/discord/link',
             { code: 'attacker-code', state },
@@ -171,7 +163,7 @@ describe('Discord linking callbacks are bound to the initiating session', () => 
         expect(victimLinks(f)).toEqual([])
     })
 
-    it('completes a recently authenticated link once and rejects the replay', async () => {
+    it('completes a link once and rejects the replay', async () => {
         const f = await fixture()
         const victim = await f.signIn('victim')
         const { state, response: begun } = await f.begin('link', victim.cookie)
@@ -206,7 +198,7 @@ describe('Discord login callbacks are bound to the browser that began them', () 
         const f = await fixture()
         const { response: begun, state, cookie } = await f.begin('login')
         expect(begun.statusCode).toBe(200)
-        expect(state).toMatch(/^login\.[0-9A-Za-z]{32}$/)
+        expect(state).toMatch(/^[0-9A-Za-z]{32}$/)
         expect(cookie).toBeDefined()
         expect(begun.json().payload.authorizationUrl).toContain(
             `redirect_uri=${encodeURIComponent('https://site.test/oauth/discord')}&state=${state}`
@@ -314,131 +306,5 @@ describe('Discord login callbacks are bound to the browser that began them', () 
         expect(response.statusCode).toBe(401)
         expect(f.handleExternalAuth).not.toHaveBeenCalled()
         expect(f.sessionStore.size).toBe(0)
-    })
-})
-
-describe('linking requires Recent Authentication', () => {
-    it('refuses to begin or complete a link from a session without recent proof', async () => {
-        const f = await fixture()
-        const victim = await f.signIn('victim', 'challenge')
-        const begun = await f.begin('link', victim.cookie)
-        expect(begun.response.statusCode).toBe(403)
-        expect((await f.sessionStore.find(victim.sessionId))?.providerAuthorization).toBeUndefined()
-        const proved = await f.signIn('victim')
-        const { state } = await f.begin('link', proved.cookie)
-        f.advance(RECENT_AUTHENTICATION_SECONDS)
-        const lapsed = await f.post(
-            '/auth/discord/link',
-            { code: 'victim-code', state },
-            proved.cookie
-        )
-        expect(lapsed.statusCode).toBe(403)
-        expect(victimLinks(f)).toEqual([])
-    })
-
-    it('lets a password reauthentication unlock linking for the same session', async () => {
-        const f = await fixture()
-        const victim = await f.signIn('victim', 'challenge')
-        const wrong = await f.post(
-            '/auth/reauthenticate',
-            { password: 'not-the-password' },
-            victim.cookie
-        )
-        expect(wrong.statusCode).toBe(401)
-        expect((await f.begin('link', victim.cookie)).response.statusCode).toBe(403)
-        const right = await f.post('/auth/reauthenticate', { password: PASSWORD }, victim.cookie)
-        expect(right.statusCode).toBe(200)
-        const { state } = await f.begin('link', victim.cookie)
-        const linked = await f.post(
-            '/auth/discord/link',
-            { code: 'victim-code', state },
-            victim.cookie
-        )
-        expect(linked.statusCode).toBe(200)
-        expect(victimLinks(f)).toEqual(['discord:victim-discord-id'])
-        const session = await f.sessionStore.find(victim.sessionId)
-        expect(session?.authenticatedAt).toEqual(new Date('2026-10-27T12:00:00.000Z'))
-    })
-
-    it('does not treat a password reauthentication as a new sign-in', async () => {
-        const f = await fixture()
-        const victim = await f.signIn('victim', 'challenge')
-        const before = await f.sessionStore.find(victim.sessionId)
-        f.advance(60)
-        const response = await f.post('/auth/reauthenticate', { password: PASSWORD }, victim.cookie)
-        expect(response.statusCode).toBe(200)
-        expect(response.cookies.find((cookie) => cookie.name === '__session')).toBeUndefined()
-        const after = await f.sessionStore.find(victim.sessionId)
-        expect(after?.expiresAt).toEqual(before?.expiresAt)
-        expect(after?.authenticatedAt).toEqual(new Date('2026-10-27T12:01:00.000Z'))
-        expect(f.sessionStore.size).toBe(1)
-    })
-})
-
-describe('Discord reauthentication proves the signed-in Account only', () => {
-    it('refreshes Recent Authentication through an identity linked to the Account', async () => {
-        const f = await fixture()
-        f.users.set('victim', {
-            ...f.users.get('victim')!,
-            externalIds: ['discord:victim-discord-id']
-        })
-        const victim = await f.signIn('victim', 'challenge')
-        const { state } = await f.begin('reauthenticate', victim.cookie)
-        expect(state).toMatch(/^reauthenticate\./)
-        f.advance(30)
-        const response = await f.post(
-            '/auth/discord/reauthenticate',
-            { code: 'victim-code', state },
-            victim.cookie
-        )
-        expect(response.statusCode).toBe(200)
-        const session = await f.sessionStore.find(victim.sessionId)
-        expect(session?.authenticatedAt).toEqual(new Date('2026-10-27T12:00:30.000Z'))
-        expect(f.linkExternalAccount).not.toHaveBeenCalled()
-        expect(f.handleExternalAuth).not.toHaveBeenCalled()
-    })
-
-    it('rejects an identity that is not linked to the Account without linking or switching it', async () => {
-        const f = await fixture()
-        const victim = await f.signIn('victim', 'challenge')
-        const { state } = await f.begin('reauthenticate', victim.cookie)
-        const response = await f.post(
-            '/auth/discord/reauthenticate',
-            { code: 'attacker-code', state },
-            victim.cookie
-        )
-        expect(response.statusCode).toBe(401)
-        const session = await f.sessionStore.find(victim.sessionId)
-        expect(session?.authenticatedAt).toBeUndefined()
-        expect(victimLinks(f)).toEqual([])
-        expect(f.linkExternalAccount).not.toHaveBeenCalled()
-        expect(f.handleExternalAuth).not.toHaveBeenCalled()
-        expect((await f.begin('link', victim.cookie)).response.statusCode).toBe(403)
-    })
-
-    it('rejects a reauthentication state presented as a link or by another session', async () => {
-        const f = await fixture()
-        f.users.set('victim', {
-            ...f.users.get('victim')!,
-            externalIds: ['discord:victim-discord-id']
-        })
-        const victim = await f.signIn('victim')
-        const attacker = await f.signIn('attacker', 'challenge')
-        const { state } = await f.begin('reauthenticate', victim.cookie)
-        const asLink = await f.post(
-            '/auth/discord/link',
-            { code: 'victim-code', state },
-            victim.cookie
-        )
-        expect(asLink.statusCode).toBe(400)
-        const again = await f.begin('reauthenticate', victim.cookie)
-        const crossed = await f.post(
-            '/auth/discord/reauthenticate',
-            { code: 'victim-code', state: again.state },
-            attacker.cookie
-        )
-        expect(crossed.statusCode).toBe(400)
-        expect(f.exchangeCode).not.toHaveBeenCalled()
-        expect((await f.sessionStore.find(attacker.sessionId))?.authenticatedAt).toBeUndefined()
     })
 })

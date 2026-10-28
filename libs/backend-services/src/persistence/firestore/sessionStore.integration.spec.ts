@@ -109,19 +109,18 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(store.find(kept.id)).resolves.toBeUndefined()
         })
 
-        it('stores a session without Recent Authentication or an attempt and changes it later', async () => {
-            const { authenticatedAt: _unproved, ...session } = newSession(`${run}-challenge`)
+        it('stores a session without an attempt and changes it later', async () => {
+            const session = newSession(`${run}-attempt`)
             await store.create(session)
             await expect(store.find(session.id)).resolves.toEqual(session)
             expect(await cachedAfterFill(session.id)).toBe(true)
             const changed = {
                 ...session,
-                authenticatedAt: new Date('2026-10-27T13:00:00.000Z'),
                 providerAuthorization: {
                     provider: ExternalAuthService.Discord,
                     purpose: 'link' as const,
                     redirectUri: 'https://site.test/oauth/discord/link',
-                    state: 'link.state',
+                    state: 'attempt-state',
                     expiresAt: new Date('2026-10-27T13:10:00.000Z')
                 }
             }
@@ -141,7 +140,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(
                 store.update(session.id, (stored) => ({
                     ...stored,
-                    authenticatedAt: new Date('2026-10-27T13:00:00.000Z')
+                    expiresAt: new Date('2026-10-27T13:00:00.000Z')
                 }))
             ).resolves.toBeUndefined()
             await expect(store.find(session.id)).resolves.toBeUndefined()

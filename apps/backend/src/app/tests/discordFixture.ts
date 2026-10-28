@@ -2,18 +2,15 @@ import { vi } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import type { LightMyRequestResponse } from 'fastify'
 import { ExternalAuthService, Role, UserStatus, type User } from '@tabletop/common'
-import type { AuthenticationProof, DiscordIdentity, DiscordOAuth } from '@tabletop/backend-services'
+import type { DiscordIdentity, DiscordOAuth } from '@tabletop/backend-services'
 import authorization from '../plugins/authorization.js'
 import { authSession } from '../lib/session.js'
 import discordBegin from '../routes/api/auth/discord/begin.js'
 import discordLogin from '../routes/api/auth/discord/login.js'
 import discordLink from '../routes/api/auth/discord/link.js'
-import discordReauthenticate from '../routes/api/auth/discord/reauthenticate.js'
-import passwordReauthenticate from '../routes/api/auth/reauthenticate.js'
 import { memorySessions, sessionCookieHeader, sessionServer } from './sessionFixture.js'
 
 export const START = new Date('2026-10-27T12:00:00.000Z')
-export const PASSWORD = 'correct-horse-battery-staple'
 
 export const identities: Record<string, DiscordIdentity> = {
     'attacker-code': { externalId: 'attacker-discord-id' },
@@ -90,8 +87,6 @@ export async function discordFixture() {
     server.decorate('discordOAuth', discordOAuth)
     Reflect.set(server, 'userService', {
         getUser: async (id: string) => users.get(id),
-        getUserByUsernameAndPassword: async (username: string, password: string) =>
-            password === PASSWORD ? users.get(username) : undefined,
         linkExternalAccount,
         handleExternalAuth
     })
@@ -99,22 +94,16 @@ export async function discordFixture() {
     await server.register(discordBegin, { prefix: '/auth/discord' })
     await server.register(discordLogin, { prefix: '/auth/discord' })
     await server.register(discordLink, { prefix: '/auth/discord' })
-    await server.register(discordReauthenticate, { prefix: '/auth/discord' })
-    await server.register(passwordReauthenticate, { prefix: '/auth' })
-    server.post<{ Body: { userId: string; proof: AuthenticationProof } }>(
-        '/session',
-        async (request) => {
-            const user = users.get(request.body.userId)
-            if (!user) throw new Error('unknown user')
-            const session = await authSession({
-                session: request.session,
-                user,
-                proof: request.body.proof,
-                sessions: sessionService
-            })
-            return { sessionId: session.id }
-        }
-    )
+    server.post<{ Body: { userId: string } }>('/session', async (request) => {
+        const user = users.get(request.body.userId)
+        if (!user) throw new Error('unknown user')
+        const session = await authSession({
+            session: request.session,
+            user,
+            sessions: sessionService
+        })
+        return { sessionId: session.id }
+    })
     server.get('/any', { onRequest: server.auth([server.verifyUser]) }, async (request) => ({
         id: request.user?.id,
         sessionId: request.authenticatedSession?.id
@@ -125,11 +114,11 @@ export async function discordFixture() {
         if (!cookie) throw new Error('expected a session cookie')
         return cookie
     }
-    const signIn = async (userId: string, proof: AuthenticationProof = 'authentication-method') => {
+    const signIn = async (userId: string) => {
         const response = await server.inject({
             method: 'POST',
             url: '/session',
-            payload: { userId, proof }
+            payload: { userId }
         })
         return { cookie: cookieOf(response), sessionId: String(response.json().sessionId) }
     }

@@ -1,36 +1,22 @@
 <script module lang="ts">
     import { PUBLIC_ENABLE_DISCORD_LOGIN } from '$env/static/public'
     export const isEnabled: boolean = !!PUBLIC_ENABLE_DISCORD_LOGIN
-    export type DiscordSignInMode = 'login' | 'link' | 'reauthenticate' | 'bot'
 </script>
 
 <script lang="ts">
     import { toast } from 'svelte-sonner'
     import { getAppContext } from '@tabletop/frontend-components'
-    import type { DiscordAuthorizationSuccess } from '$lib/utils/discordAuthorization'
-    import { signInWithDiscord } from '$lib/utils/discordSignIn'
+    import { openDiscordAuthorization, popupFeatures } from '$lib/utils/discordAuthorization'
 
-    let {
-        mode = 'login',
-        oncomplete
-    }: {
-        mode?: DiscordSignInMode
-        oncomplete?: (result: DiscordAuthorizationSuccess) => void
-    } = $props()
+    let { mode = 'login' }: { mode: 'link' | 'login' | 'bot' } = $props()
 
     const { api } = getAppContext()
-    const labels: Record<DiscordSignInMode, string> = {
-        login: 'Login with Discord',
-        link: 'Link',
-        reauthenticate: 'Continue with Discord',
-        bot: 'Add Bot'
-    }
 
     function addBot() {
         window.open(
             'https://discord.com/oauth2/authorize?client_id=1260059992589865133&integration_type=1&scope=applications.commands',
             'Discord Authorization',
-            'popup=true,resizable=no,width=550,height=700'
+            popupFeatures()
         )
     }
 
@@ -39,16 +25,16 @@
             addBot()
             return
         }
-        void signInWithDiscord({ purpose: mode, api, oncomplete, report: toast.error })
+        openDiscordAuthorization({ purpose: mode, api, report: toast.error })
     }
 </script>
 
 <button
     type="button"
     class="flex items-center justify-center rounded-full bg-[#5865F2] hover:bg-[#4752C4] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#99AAFF] {mode ===
-        'login' || mode === 'reauthenticate'
+    'login'
         ? 'px-6'
-        : 'px-2'} py-2 text-sm font-medium text-white {mode === 'login' || mode === 'reauthenticate'
+        : 'px-2'} py-2 text-sm font-medium text-white {mode === 'login'
         ? 'w-full'
         : mode === 'link'
           ? 'w-[100px]'
@@ -74,5 +60,5 @@
             </path>
         </g>
     </svg>
-    <span>{labels[mode]}</span>
+    <span>{mode === 'login' ? 'Login with Discord' : mode === 'link' ? 'Link' : 'Add Bot'}</span>
 </button>

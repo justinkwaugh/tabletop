@@ -25,7 +25,6 @@ export default async function (fastify: FastifyInstance) {
             await authSession({
                 session: request.session,
                 user,
-                proof: 'authentication-method',
                 sessions: fastify.sessionService
             })
             fastify.log.info(`Found authed user ${JSON.stringify(user)}`)

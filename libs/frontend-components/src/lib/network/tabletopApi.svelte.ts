@@ -247,7 +247,6 @@ export class TabletopApi {
         const response = await this.wretch
             .post({ credential }, '/auth/google/link')
             .unauthorized(this.on401)
-            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
@@ -260,7 +259,6 @@ export class TabletopApi {
         const response = await this.wretch
             .post(undefined, `/auth/discord/begin/${purpose}`)
             .unauthorized(this.on401)
-            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<DiscordAuthorizationStartResponse>()
 
@@ -281,35 +279,10 @@ export class TabletopApi {
         const response = await this.wretch
             .post({ code, state }, '/auth/discord/link')
             .unauthorized(this.handleError)
-            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
         return response.payload.user
-    }
-
-    async reauthenticateDiscord(code: string, state: string): Promise<void> {
-        await this.wretch
-            .post({ code, state }, '/auth/discord/reauthenticate')
-            .unauthorized(this.handleError)
-            .badRequest(this.handleError)
-            .json()
-    }
-
-    async reauthenticateWithPassword(password: string): Promise<void> {
-        await this.wretch
-            .post({ password }, '/auth/reauthenticate')
-            .unauthorized(this.handleError)
-            .badRequest(this.handleError)
-            .json()
-    }
-
-    async reauthenticateGoogle(credential: string): Promise<void> {
-        await this.wretch
-            .post({ credential }, '/auth/google/reauthenticate')
-            .unauthorized(this.handleError)
-            .badRequest(this.handleError)
-            .json()
     }
 
     async loginToken(token: string) {
