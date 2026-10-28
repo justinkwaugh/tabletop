@@ -2,15 +2,11 @@ import { Market1846 } from './stock.js'
 import * as Type from 'typebox'
 import {
     CashPayment,
-    PresidencyChange,
-    applyPresidencyChange,
+    ForcedSale,
     certificatesOwnedBy,
     closePrivate,
-    evaluatePresidency,
     reorderPendingOperatingCompanies,
-    playersAfterPresident,
-    settleCashPayments,
-    sharesOwned,
+    sellBankruptHoldings,
     type EliminationRules
 } from '@tabletop/18xx'
 import { closeRailroad, zeroPriceCorporation, RailroadClosure } from './closeCorporation.js'
@@ -18,17 +14,6 @@ import { inReceivership } from '@tabletop/18xx'
 import { OperatingRules1846 } from './operating.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 
-const ForcedSale = Type.Object(
-    {
-        companyId: Type.String(),
-        certificateIds: Type.Array(Type.String()),
-        shares: Type.Integer({ minimum: 1 }),
-        price: Type.Integer({ minimum: 0 }),
-        proceeds: Type.Integer({ minimum: 0 }),
-        presidency: Type.Optional(PresidencyChange)
-    },
-    { additionalProperties: false }
-)
 export const BankruptcyChanges1846 = Type.Object(
     {
         forcedSales: Type.Array(ForcedSale),
@@ -50,43 +35,11 @@ export const Elimination1846: EliminationRules<typeof BankruptcyChanges1846> = {
     schema: BankruptcyChanges1846,
     eliminate(state: HydratedEighteenFortySixState, playerId): BankruptcyChanges1846 {
         const player = { kind: 'player' as const, playerId }
-        const forcedSales: Type.Static<typeof ForcedSale>[] = []
-        const payments: CashPayment[] = []
-        for (const company of state.companies) {
-            if (company.kind !== 'major' || company.closed || !company.started) continue
-            const shares = sharesOwned(state, company.id, player)
-            if (!shares) continue
-            const presidency = evaluatePresidency(
-                state,
-                company.id,
-                playersAfterPresident(state, company.id, state.turnManager.turnOrder).filter(
-                    (owner) => owner.kind !== 'player' || owner.playerId !== playerId
-                ),
-                { owner: player, shares: 0 }
-            )
-            if (presidency.change) applyPresidencyChange(state, presidency.change)
-            const certificates = certificatesOwnedBy(state, player).filter(
-                (certificate) => certificate.companyId === company.id
-            )
-            const price = Market1846.companySpace(state.stockMarket, company.id).price
-            forcedSales.push({
-                companyId: company.id,
-                shares,
-                price,
-                proceeds: shares * price,
-                certificateIds: certificates.map((certificate) => certificate.id),
-                ...(presidency.change ? { presidency: presidency.change } : {})
-            })
-            if (shares * price)
-                payments.push({ from: { kind: 'bank' }, to: player, amount: shares * price })
-            for (const certificate of certificates) {
-                certificate.owner = { kind: 'bank' }
-                certificate.poolId = 'open-market'
-            }
-            if (company.president?.kind === 'player' && company.president.playerId === playerId)
-                delete company.president
-        }
-        settleCashPayments(state, payments)
+        const { forcedSales, payments } = sellBankruptHoldings(
+            { market: Market1846, marketPoolId: 'open-market' },
+            state,
+            playerId
+        )
         const closedRailroads = state.companies
             .filter(
                 (company) =>
