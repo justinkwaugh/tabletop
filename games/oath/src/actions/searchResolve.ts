@@ -8,7 +8,7 @@ import { discardRegionFor, HydratedOathGameState } from '../model/gameState.js'
 import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { ActionType } from '../definition/actions.js'
-import { effectiveSiteCapacity } from '../util/capacity.js'
+import { effectiveSiteCapacity, SALT_THE_EARTH } from '../util/capacity.js'
 import { discardCards } from '../util/discard.js'
 import { regionOfPawn, pawnSiteId } from '../util/pawn.js'
 import { isFaceupPlay, isIrreversible } from '../util/powerDoorway.js'
@@ -452,7 +452,16 @@ export function reasonCannotPairSecondPlay(
             keptToSiteId === undefined ||
             keptToSiteId === here ||
             !isAtLeastOathRevision(state, OathRevision.EngineFixes12)
-        if (keptHere && state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here))
+        // Salt the Earth: "When Played, ignore this site's capacity." From revision 29 its own check, on the site
+        // the kept card leaves, decides; before it (R-X.4), Salt the Earth second needed room for both too.
+        const ignoresCapacity =
+            second.cardId === SALT_THE_EARTH &&
+            isAtLeastOathRevision(state, OathRevision.EngineFixes25)
+        if (
+            keptHere &&
+            !ignoresCapacity &&
+            state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here)
+        )
             return 'no room at your site for two cards'
     }
     return undefined

@@ -26,6 +26,9 @@ const LAND_WARDEN = 'denizen.hearth.land-warden'
 const SALT = 'denizen.discord.salt-the-earth'
 const BOILING_LAKE = 'denizen.discord.boiling-lake'
 const FULL = ['denizen.arcane.alchemist', 'denizen.arcane.dazzle', 'denizen.arcane.fire-talkers']
+const WOLVES = 'denizen.beast.wolves'
+const RANGERS = 'denizen.beast.rangers'
+const LONGBOWS = 'denizen.order.longbows'
 
 const FIXED = OathRevision.EngineFixes25
 const BEFORE = OathRevision.EngineFixes24
@@ -33,11 +36,12 @@ const BEFORE = OathRevision.EngineFixes24
 /**
  * Dana holds Land Warden at the Plains (c1, capacity 3) and has searched the world deck with it, drawing `top`.
  * With `favor`, Dana also holds the People's Favor, so the kept card may go to the River (c2), in the same region.
+ * `site` replaces the Plains at c1.
  */
 function searched(
     revision: OathRevision,
     top: string[],
-    { c1 = [] as string[], favor = false } = {}
+    { c1 = [] as string[], favor = false, site = 'site.plains' } = {}
 ): HydratedOathGameState {
     const s = testState(
         withChancellor([
@@ -57,7 +61,7 @@ function searched(
             denizensBySite: { c1, c2: [], p1: [], h1: [] },
             warbandsBySite: { c1: { dana: 1 } },
             siteCards: {
-                c1: 'site.plains',
+                c1: site,
                 c2: 'site.river',
                 p1: 'site.marshes',
                 h1: 'site.mountain'
@@ -185,5 +189,129 @@ describe("Land Warden from revision 29: the second card's site play is judged on
         resolveOf(locked, lakeThenSalt)
         expect(locked.denizensBySite['c1']).toEqual([BOILING_LAKE, SALT])
         expect(effectiveSiteCapacity(locked, 'c1')).toBe(1)
+    })
+})
+
+// Salt the Earth: "When Played, ignore this site's capacity." Its Q&A plays it to the Drowned City, which has no
+// capacity for cards. So Salt the Earth may follow the kept card to your site when the kept card fills it.
+describe('Land Warden from revision 29: Salt the Earth second to your site ignores its capacity', () => {
+    const TWO_OF_THREE = [WOLVES, RANGERS]
+
+    it('setup: the Plains holds 2 of its 3', () => {
+        const s = searched(FIXED, [INN, SALT, FILLER], { c1: TWO_OF_THREE })
+        expect(effectiveSiteCapacity(s, 'c1')).toBe(3)
+        expect(s.denizensAt('c1')).toHaveLength(2)
+    })
+
+    it('the Wayside Inn kept to the last space, Salt the Earth second: accepted, and Salt discards the Inn and the others', () => {
+        const s = searched(FIXED, [INN, SALT, FILLER], { c1: TWO_OF_THREE })
+        expect(checkOf(s, innThenSalt)).toBeUndefined()
+        resolveOf(s, innThenSalt)
+        expect(s.denizensBySite['c1']).toEqual([SALT])
+        expect(effectiveSiteCapacity(s, 'c1')).toBe(1)
+        for (const id of [INN, ...TWO_OF_THREE]) {
+            expect(s.denizensBySite['c1']).not.toContain(id)
+        }
+    })
+
+    it('control: Salt the Earth kept alone to a full site is accepted', () => {
+        const s = searched(FIXED, [SALT, FILLER, INN], { c1: [...TWO_OF_THREE, LONGBOWS] })
+        expect(
+            checkOf(s, { keptCardId: SALT, discardOrder: [FILLER, INN], play: SearchPlay.Site })
+        ).toBeUndefined()
+    })
+
+    it('control: the Inn kept to your site with two spaces free, Salt the Earth second: accepted', () => {
+        const s = searched(FIXED, [INN, SALT, FILLER], { c1: [WOLVES] })
+        expect(checkOf(s, innThenSalt)).toBeUndefined()
+    })
+
+    it('control: the Inn kept as a facedown adviser, Salt the Earth second to a full site: accepted', () => {
+        const s = searched(FIXED, [INN, SALT, FILLER], { c1: [...TWO_OF_THREE, LONGBOWS] })
+        const choice = keptThenSecond(
+            INN,
+            { cardId: SALT, play: SearchPlay.Site },
+            {
+                play: SearchPlay.Adviser,
+                faceUp: false
+            }
+        )
+        expect(checkOf(s, choice)).toBeUndefined()
+        resolveOf(s, choice)
+        expect(s.denizensBySite['c1']).toEqual([SALT])
+        expect(s.getPlayerState('dana').knownAdviserIds()).toContain(INN)
+    })
+
+    it('Salt the Earth kept to the last space: a second card to your site is still refused', () => {
+        const s = searched(FIXED, [SALT, INN, FILLER], { c1: TWO_OF_THREE })
+        expect(checkOf(s, saltThenInn)).toBe('second card: site c1 is at its capacity of 1')
+    })
+
+    it('another second card to your site with one space left is still refused', () => {
+        const s = searched(FIXED, [INN, LONGBOWS, FILLER], { c1: TWO_OF_THREE })
+        expect(checkOf(s, keptThenSecond(INN, { cardId: LONGBOWS, play: SearchPlay.Site }))).toBe(
+            'second card: site c1 is at its capacity of 3'
+        )
+    })
+
+    it('a locked card at your site: Salt the Earth second is refused, by its own rule', () => {
+        const s = searched(FIXED, [INN, SALT, FILLER], { c1: [BOILING_LAKE, WOLVES] })
+        expect(checkOf(s, innThenSalt)).toBe(
+            'second card: Salt the Earth cannot be played to a site with any locked cards'
+        )
+    })
+
+    it('a locked card kept to the last space: Salt the Earth second is refused, by its own rule', () => {
+        const s = searched(FIXED, [BOILING_LAKE, SALT, FILLER], { c1: TWO_OF_THREE })
+        expect(checkOf(s, lakeThenSalt)).toBe(
+            'second card: Salt the Earth cannot be played to a site with any locked cards'
+        )
+    })
+
+    it('the Drowned City: Salt the Earth second after a facedown adviser is accepted; after the Inn kept there, the Inn is refused', () => {
+        const drowned = { site: 'site.drowned-city' }
+        const adviser = keptThenSecond(
+            INN,
+            { cardId: SALT, play: SearchPlay.Site },
+            {
+                play: SearchPlay.Adviser,
+                faceUp: false
+            }
+        )
+        const s = searched(FIXED, [INN, SALT, FILLER], drowned)
+        expect(effectiveSiteCapacity(s, 'c1')).toBe(0)
+        expect(checkOf(s, adviser)).toBeUndefined()
+        resolveOf(s, adviser)
+        expect(s.denizensBySite['c1']).toEqual([SALT])
+
+        expect(checkOf(searched(FIXED, [INN, SALT, FILLER], drowned), innThenSalt)).toBe(
+            'site c1 is at its capacity of 0'
+        )
+    })
+
+    it('the resolve records both plays, and shows both cards, so it cannot be undone', () => {
+        const s = searched(FIXED, [INN, SALT, FILLER], { c1: TWO_OF_THREE })
+        const action = new HydratedSearchResolve(
+            buildAction(SearchResolve, { playerId: 'dana', ...innThenSalt })
+        )
+        action.apply(s)
+        expect(action.metadata?.playedCardId).toBe(INN)
+        expect(action.metadata?.secondPlayedCardId).toBe(SALT)
+        expect(action.metadata?.secondWhenPlayed).toBe(
+            'Salt the Earth: discarded 3 denizens at c1; its capacity is now 1'
+        )
+        expect(action.revealsInfo).toBe(true)
+    })
+
+    it("the check runs on Dana's own view as on the full state", () => {
+        const s = searched(FIXED, [INN, SALT, FILLER], { c1: TWO_OF_THREE })
+        const own = new HydratedOathGameState(served(s, { kind: 'player', playerId: 'dana' }))
+        expect(checkOf(own, innThenSalt)).toBeUndefined()
+        expect(checkOf(own, innThenSalt)).toEqual(checkOf(s, innThenSalt))
+    })
+
+    it('before revision 29 a game keeps the check it was recorded with: the pair is refused for room', () => {
+        const s = searched(BEFORE, [INN, SALT, FILLER], { c1: TWO_OF_THREE })
+        expect(checkOf(s, innThenSalt)).toBe('no room at your site for two cards')
     })
 })
