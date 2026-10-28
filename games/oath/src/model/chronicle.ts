@@ -259,3 +259,45 @@ export const TableRecord = Type.Object({
     date: Type.String(),
     seatNames: Type.Record(Type.String(), Type.String())
 })
+
+/** R-1.7-H1 — why a continued game's Chancellor is who they are. */
+export enum OpeningChancellor {
+    /** The last game's winner, playing again. */
+    Winner = 'winner',
+    /** A returning player whose board was on its Citizen side, at random among them. */
+    Citizen = 'citizen',
+    /** Neither: a player at random. */
+    Random = 'random'
+}
+
+/** R-8.7.2, R-1.9 — the side a board was saved on. */
+export enum BoardSide {
+    Exile = 'exile',
+    Citizen = 'citizen'
+}
+
+/** R-1.9-H1 — a non-Chancellor's board as a continued game opens. */
+export type OpeningBoard = Type.Static<typeof OpeningBoard>
+export const OpeningBoard = Type.Object({
+    playerId: Type.String(),
+    color: Type.Enum(Color),
+    side: Type.Enum(BoardSide),
+    /** The colour they played in the last game; otherwise dealt at random from the free boards. */
+    kept: Type.Boolean()
+})
+
+/**
+ * R-1.7-H1, R-1.9-H1 — how a continued game's seats were settled, written once as it opens and
+ * never changed. Present only in a continued game.
+ */
+export type OpeningSeats = Type.Static<typeof OpeningSeats>
+export const OpeningSeats = Type.Object({
+    chancellor: Type.Object({
+        playerId: Type.String(),
+        chosen: Type.Enum(OpeningChancellor),
+        /** For `Winner`: the game they won, the record's last entry. */
+        gameNumber: Type.Optional(Type.Number())
+    }),
+    /** The other seats, in turn order. */
+    boards: Type.Array(OpeningBoard, { maxItems: 5 })
+})

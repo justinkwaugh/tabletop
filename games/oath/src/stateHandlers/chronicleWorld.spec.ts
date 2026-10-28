@@ -1,11 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
     Color,
+    GameEngine,
+    GameStatus,
     Visibility,
     assertExists,
+    captureGameContinuation,
+    createGameFork,
     latestPlayerUndoTarget,
-    type GameAction
+    type GameAction,
+    type GameContinuation
 } from '@tabletop/common'
+import { Definition, OathRuntime } from '../definition/runtime.js'
 import { engine } from '../testing/engine.js'
 import { buildAction } from '../testing/actions.js'
 import { testPlayer, testState } from '../testing/fixture.js'
@@ -40,6 +46,7 @@ import { buildOrRepair, edificeChoiceNamed } from '../util/chronicleChoices.js'
 import { OathRevision } from '../util/revision.js'
 import type { GameOutcome } from '../util/victory.js'
 import '../powers/index.js'
+import GAME_TWO_FINISHED from '../definition/tests/chronicle-game-2-finished.json'
 
 // The Law's examples for R-8.3.2 to R-8.8, each scene as the Law's steps meet it: every random
 // step's outcome is given, and every line the steps produce is asserted.
@@ -880,6 +887,57 @@ describe('the full boundary: game 2 of a chronicle to the world game 3 is dealt 
         const built = run(gameTwoAtTheBuild().final, BUILD_AT_MOUNTAIN).final
         const final = hydrated(run(built, suit(DANA, Suit.Hearth), skip(DANA)).final)
         expect({ favor: favorCensus(final), warbands: warbandCensus(final) }).toEqual(pieces)
+    })
+
+    it('game 2 at its end is the pinned finished state the next game continues from', () => {
+        given(GAME_TWO_GIVEN)
+        const built = run(gameTwoAtTheBuild().final, BUILD_AT_MOUNTAIN).final
+        const { final } = run(built, suit(DANA, Suit.Hearth), skip(DANA))
+        // Stored games keep plain data, so the pin is the state after a JSON round trip.
+        expect(JSON.parse(JSON.stringify(final))).toEqual(GAME_TWO_FINISHED)
+    })
+
+    it('a fork of the finished game cannot continue until its chronicle is written again', () => {
+        given(GAME_TWO_GIVEN)
+        const steps = [
+            vow(DANA, OathType.ThePeople),
+            BUILD_AT_MOUNTAIN,
+            suit(DANA, Suit.Hearth),
+            skip(DANA)
+        ]
+        const { final, actions } = run(wonTable(gameTwoEnd(), CHANCELLOR_WINS), ...steps)
+        const game = testGame([DANA, RHYS, ANN], { status: GameStatus.Finished })
+        expect(() => captureGameContinuation(game, final, Definition as never)).not.toThrow()
+
+        // Forked at the win: the fork's chronicle waits on the Vow, and it has no result.
+        const fork = createGameFork({
+            game,
+            state: final,
+            actions,
+            actionIndex: -1,
+            runtime: OathRuntime
+        })
+        expect(() => captureGameContinuation(fork.game, fork.state, Definition as never)).toThrow(
+            'not ready to continue'
+        )
+        let replayed = fork.state
+        for (const step of steps)
+            replayed = engine.runNext(
+                { ...step, gameId: fork.game.id },
+                replayed,
+                fork.game
+            ).updatedState
+        const continuation = captureGameContinuation(fork.game, replayed, Definition as never)
+        const next = testGame(['p1', 'p2', 'p3'], {
+            id: 'game-next',
+            status: GameStatus.WaitingToStart,
+            continuedFromGameId: fork.game.id
+        })
+        const { initialState } = new GameEngine(Definition.runtime).startGame(next, {
+            continuation: continuation as GameContinuation<OathProjectedState>
+        })
+        expect(initialState.machineState).toBe(MachineState.Setup)
+        expect(initialState.chronicleRecord).toEqual(final.chronicleRecord)
     })
 })
 

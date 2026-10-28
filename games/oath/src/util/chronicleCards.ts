@@ -5,7 +5,8 @@ import { topBackType } from '../model/vault.js'
 import { PRINTED_DENIZENS_BY_SUIT, isVision, kindOf } from '../data/cardRegistry.js'
 import { FAVOR_BANK_ORDER } from '../data/favorBanks.js'
 import { bySuit } from '../data/typedData.js'
-import { stackWorldDeck } from '../data/worldDeck.js'
+import { CIRCULATING_DENIZENS, stackWorldDeck } from '../data/worldDeck.js'
+import type { ChronicleEntry } from '../model/chronicle.js'
 import { chronicleOf, chronicleWinnerOf } from './chronicleChoices.js'
 import { ChronicleShuffle, chronicleShuffles } from './chronicleRandom.js'
 import { clearPiecesOn } from './chronicleMap.js'
@@ -16,6 +17,18 @@ const ADDED_BY_SUIT = [3, 2, 1]
 
 /** R-8.4.a, R-8.5 — six to the world deck from a heal, six to the Dispossessed. */
 const SIX = 6
+
+/**
+ * R-1.19.a-H1, A-36(3) — the denizens in circulation (the world deck, the piles, the hands, the
+ * advisers, the box and the map) as a chronicle leaves them: a first game's 54, less what each heal
+ * from a stack under six fell short of R-8.5's six (F-8). Read from the public record alone.
+ */
+export function denizensInCirculation(record: readonly ChronicleEntry[]): number {
+    return record.reduce(
+        (total, entry) => total - (entry.added?.heal ? SIX - entry.added.heal.count : 0),
+        CIRCULATING_DENIZENS
+    )
+}
 
 /** R-8.4 — the Archive: every printed denizen in no zone of this game, by the suit it prints. */
 export function archiveBySuit(state: HydratedOathGameState): Record<Suit, string[]> {

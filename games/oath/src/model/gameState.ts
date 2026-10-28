@@ -27,7 +27,7 @@ import { MAX_OPEN_DEALS, OpenDeal, PendingQuestions } from './question.js'
 import { PendingConsent } from './consent.js'
 import { OathVaultSchema, type OathVault } from './vault.js'
 import { kindOf, suitOf } from '../data/cardRegistry.js'
-import { Chronicle, ChronicleEntry, TableRecord } from './chronicle.js'
+import { Chronicle, ChronicleEntry, OpeningSeats, TableRecord } from './chronicle.js'
 
 /** R-2.8.2 — actions target the slot; `cardId` fills in once the identity is public (R-9.4). */
 export type RelicSlot = Type.Static<typeof RelicSlot>
@@ -164,7 +164,9 @@ export const OathGameState = Type.Object({
     /** R-8 — one entry per game, oldest first; absent until the first chronicle ends. */
     chronicleRecord: Type.Optional(Type.Array(ChronicleEntry)),
     /** R-8.2 — the colours whose boards are in the box on their Citizen side; absent when none are. */
-    boxedCitizenColors: Type.Optional(Type.Array(Type.Enum(Color)))
+    boxedCitizenColors: Type.Optional(Type.Array(Type.Enum(Color))),
+    /** R-1.7-H1, R-1.9-H1 — a continued game's seats as it opened; absent in a first game. */
+    openingSeats: Type.Optional(OpeningSeats)
 })
 
 export const OathGameStateValidator = Compile(OathGameState)
@@ -242,6 +244,7 @@ export class HydratedOathGameState
     declare chronicle?: Chronicle
     declare chronicleRecord?: ChronicleEntry[]
     declare boxedCitizenColors?: Color[]
+    declare openingSeats?: OpeningSeats
     declare vault?: OathProjectedState['vault']
 
     constructor(data: OathProjectedState) {

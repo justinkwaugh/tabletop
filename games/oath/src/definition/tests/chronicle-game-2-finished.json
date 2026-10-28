@@ -1,0 +1,480 @@
+{
+    "id": "state-1",
+    "gameId": "game-1",
+    "players": [
+        {
+            "playerId": "dana",
+            "color": "purple",
+            "status": "chancellor",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "favor": 0,
+            "secrets": 0,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {},
+            "warbandsInPersonalBank": {
+                "imperial": 19
+            },
+            "relicIds": [],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+                "cradle": [],
+                "provinces": [],
+                "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": [],
+            "advisers": [],
+            "adviserIds": [],
+            "supplyAtTurnStart": 7
+        },
+        {
+            "playerId": "rhys",
+            "color": "red",
+            "status": "exile",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "favor": 0,
+            "secrets": 0,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {},
+            "warbandsInPersonalBank": {
+                "rhys": 15
+            },
+            "relicIds": [],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+                "cradle": [],
+                "provinces": [],
+                "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": [],
+            "advisers": [],
+            "adviserIds": [],
+            "supplyAtTurnStart": 7
+        },
+        {
+            "playerId": "ann",
+            "color": "yellow",
+            "status": "exile",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "favor": 0,
+            "secrets": 0,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {},
+            "warbandsInPersonalBank": {
+                "ann": 16
+            },
+            "relicIds": [],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+                "cradle": [],
+                "provinces": [],
+                "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": [],
+            "advisers": [],
+            "adviserIds": [],
+            "supplyAtTurnStart": 7
+        }
+    ],
+    "activePlayerIds": [],
+    "actionCount": 4,
+    "actionChecksum": 381340940,
+    "prng": {
+        "seed": 1,
+        "invocations": 0
+    },
+    "machineState": "EndOfGame",
+    "turnManager": {
+        "series": [],
+        "turnOrder": ["dana", "rhys", "ann"],
+        "turnCounts": {
+            "dana": 0,
+            "rhys": 0,
+            "ann": 0
+        }
+    },
+    "winningPlayerIds": ["dana"],
+    "round": 1,
+    "map": {
+        "cradle": ["slot.cradle.0", "slot.cradle.1"],
+        "provinces": ["slot.provinces.0", "slot.provinces.1", "slot.provinces.2"],
+        "hinterland": ["slot.hinterland.0", "slot.hinterland.1", "slot.hinterland.2"]
+    },
+    "denizensBySite": {
+        "slot.cradle.0": ["denizen.hearth.armed-mob", "denizen.order.curfew"],
+        "slot.cradle.1": ["denizen.order.forced-labor"],
+        "slot.provinces.0": ["edifice.order.sprawling-rampart"],
+        "slot.provinces.1": [
+            "denizen.nomad.oracle",
+            "denizen.hearth.hospital",
+            "denizen.arcane.wizard-school"
+        ],
+        "slot.hinterland.2": ["edifice.nomad.ancient-forge"]
+    },
+    "cardTokens": {},
+    "relicsBySite": {
+        "slot.cradle.1": [
+            {
+                "slotId": "slot.cradle.1.relic.0"
+            }
+        ],
+        "slot.hinterland.2": [
+            {
+                "slotId": "slot.hinterland.2.relic.0"
+            }
+        ],
+        "slot.provinces.0": [
+            {
+                "slotId": "slot.provinces.0.relic.0"
+            }
+        ]
+    },
+    "warbandsBySite": {},
+    "warbandsOnCards": {},
+    "reliquary": [],
+    "favorBank": {
+        "discord": 3,
+        "hearth": 3,
+        "nomad": 3,
+        "order": 3,
+        "beast": 3,
+        "arcane": 3
+    },
+    "favorSupply": 18,
+    "chancellorPlayerId": "dana",
+    "banners": {
+        "peoplesFavor": {
+            "value": 1,
+            "mobSide": false
+        },
+        "darkestSecret": {
+            "value": 1,
+            "mobSide": false
+        }
+    },
+    "worldDeckExhausted": false,
+    "topCardBackType": "denizen",
+    "visionsDrawn": 0,
+    "worldDeckDrawn": 0,
+    "worldDeckVisions": 5,
+    "discardPileCounts": {
+        "cradle": 0,
+        "provinces": 0,
+        "hinterland": 0
+    },
+    "discardTopBackType": {},
+    "seenDiscardPiles": {
+        "cradle": [],
+        "provinces": [],
+        "hinterland": []
+    },
+    "seenWorldDeckBottom": [],
+    "seenRelicDeckBottom": [],
+    "seenRelics": {},
+    "dispossessedCount": 12,
+    "boxIds": ["relic.grand-scepter"],
+    "siteCapacityOverrides": {},
+    "oathType": "supremacy",
+    "vault": {
+        "worldDeck": [
+            "denizen.order.bear-traps",
+            "denizen.hearth.levelers",
+            "denizen.discord.blackmail",
+            "vision.rebellion",
+            "denizen.order.toll-roads",
+            "denizen.order.wrestlers",
+            "denizen.hearth.tavern-songs",
+            "denizen.arcane.dazzle",
+            "vision.faith",
+            "denizen.nomad.tents",
+            "denizen.discord.gambling-hall",
+            "denizen.order.knights-errant",
+            "denizen.hearth.deed-writer",
+            "denizen.discord.scryer",
+            "vision.conquest",
+            "denizen.order.scouts",
+            "denizen.nomad.elders",
+            "denizen.arcane.jinx",
+            "denizen.beast.giant-python",
+            "denizen.beast.walled-garden",
+            "vision.conspiracy",
+            "denizen.nomad.great-herd",
+            "denizen.arcane.revelation",
+            "denizen.hearth.storyteller",
+            "denizen.hearth.fabled-feast",
+            "denizen.discord.riots",
+            "vision.sanctuary",
+            "denizen.beast.wolves",
+            "denizen.hearth.land-warden",
+            "denizen.beast.bracken",
+            "denizen.arcane.bewitch",
+            "denizen.beast.rangers",
+            "denizen.order.messenger",
+            "denizen.hearth.news-from-afar",
+            "denizen.nomad.rival-khan",
+            "denizen.beast.new-growth",
+            "denizen.order.shield-wall",
+            "denizen.discord.dissent",
+            "denizen.beast.second-chance",
+            "denizen.nomad.lancers",
+            "denizen.discord.zealots",
+            "denizen.hearth.crop-rotation",
+            "denizen.nomad.storm-caller",
+            "denizen.order.outriders",
+            "denizen.arcane.alchemist",
+            "denizen.arcane.tutor",
+            "denizen.nomad.horse-archers",
+            "denizen.hearth.homesteaders",
+            "denizen.hearth.traveling-doctor",
+            "denizen.beast.forest-paths",
+            "denizen.order.palanquin",
+            "denizen.beast.wild-cry",
+            "denizen.beast.errand-boy"
+        ],
+        "discardPiles": {
+            "cradle": [],
+            "provinces": [],
+            "hinterland": []
+        },
+        "siteFacedown": {
+            "slot.provinces.2": "site.buried-giant",
+            "slot.hinterland.0": "site.river",
+            "slot.hinterland.1": "site.charming-valley"
+        },
+        "relicFacedown": {
+            "slot.cradle.1.relic.0": "relic.oracular-pig",
+            "slot.hinterland.2.relic.0": "relic.brass-horse",
+            "slot.provinces.0.relic.0": "relic.ivory-eye"
+        },
+        "relicDeck": [
+            "relic.obsidian-cage",
+            "relic.dragonskin-drum",
+            "relic.truthful-harp",
+            "relic.ring-of-devotion",
+            "relic.grand-mask",
+            "relic.whistle",
+            "relic.sticky-fire",
+            "relic.map",
+            "relic.bandit-crown",
+            "relic.cup-of-plenty",
+            "relic.horned-mask",
+            "relic.cracked-horn",
+            "relic.circlet-of-command",
+            "relic.skeleton-key",
+            "relic.book-of-records",
+            "relic.dowsing-sticks",
+            "relic.cursed-cauldron"
+        ],
+        "siteDeck": [
+            "site.ancient-city",
+            "site.barren-coast",
+            "site.drowned-city",
+            "site.marshes",
+            "site.mine",
+            "site.narrow-pass",
+            "site.plains",
+            "site.rocky-coast",
+            "site.salt-flats",
+            "site.shrouded-wood",
+            "site.standing-stones",
+            "site.the-hidden-place",
+            "site.wastes",
+            "site.great-slums",
+            "site.deep-woods"
+        ],
+        "dispossessed": [
+            "denizen.discord.cracked-sage",
+            "denizen.discord.downtrodden",
+            "denizen.arcane.fire-talkers",
+            "denizen.nomad.mountain-giant",
+            "denizen.beast.fae-merchant",
+            "denizen.hearth.salad-days",
+            "denizen.discord.charlatan",
+            "denizen.beast.roving-terror",
+            "denizen.hearth.marriage",
+            "denizen.order.garrison",
+            "denizen.nomad.rain-boots",
+            "denizen.arcane.augury"
+        ]
+    },
+    "oathRevision": 30,
+    "table": {
+        "name": "Thursday table",
+        "date": "2026-10-27",
+        "seatNames": {
+            "dana": "Dana",
+            "rhys": "Rhys",
+            "ann": "Ann"
+        }
+    },
+    "siteCards": {
+        "slot.cradle.0": "site.fertile-valley",
+        "slot.cradle.1": "site.the-tribunal",
+        "slot.provinces.0": "site.mountain",
+        "slot.provinces.1": "site.lush-coast",
+        "slot.hinterland.2": "site.steppe"
+    },
+    "chronicle": {
+        "ending": {
+            "winnerPlayerId": "dana",
+            "kind": "stableRegime",
+            "rule": "R-3.3",
+            "mark": "O",
+            "waysMet": {
+                "usurper": false,
+                "visionIds": [],
+                "empire": true
+            }
+        },
+        "vowedOath": "thePeople",
+        "built": {
+            "edificeId": "edifice.order.sprawling-rampart",
+            "siteId": "slot.provinces.2",
+            "siteCardId": "site.mountain",
+            "repaired": false
+        },
+        "map": {
+            "kept": [
+                "site.fertile-valley",
+                "site.the-tribunal",
+                "site.steppe",
+                "site.mountain",
+                "site.lush-coast"
+            ],
+            "keptFor": {
+                "site.fertile-valley": "ruled",
+                "site.the-tribunal": "ruled",
+                "site.steppe": "edifice",
+                "site.mountain": "ruled",
+                "site.lush-coast": "ruled"
+            },
+            "discarded": ["site.great-slums", "site.deep-woods"],
+            "discardedFacedown": 1,
+            "denizensDiscarded": 3,
+            "ruins": [
+                {
+                    "edificeId": "edifice.nomad.ancient-forge",
+                    "siteCardId": "site.steppe",
+                    "denizensDiscarded": 1
+                }
+            ],
+            "moved": [
+                {
+                    "siteCardId": "site.mountain",
+                    "from": "slot.provinces.2",
+                    "to": "slot.provinces.0"
+                },
+                {
+                    "siteCardId": "site.lush-coast",
+                    "from": "slot.hinterland.2",
+                    "to": "slot.provinces.1"
+                },
+                {
+                    "siteCardId": "site.steppe",
+                    "from": "slot.provinces.0",
+                    "to": "slot.hinterland.2"
+                }
+            ],
+            "dealt": ["slot.provinces.2", "slot.hinterland.0", "slot.hinterland.1"],
+            "flipped": []
+        },
+        "suit": "hearth",
+        "added": {
+            "suits": ["hearth", "beast", "nomad"]
+        },
+        "dispossessed": 6,
+        "relics": {
+            "returned": [
+                {
+                    "playerId": "rhys",
+                    "count": 1
+                },
+                {
+                    "playerId": "ann",
+                    "count": 1
+                }
+            ],
+            "placed": [
+                {
+                    "slotId": "slot.provinces.0",
+                    "count": 1
+                }
+            ],
+            "stacked": {
+                "winner": 1,
+                "reliquary": 4
+            }
+        },
+        "rebuilt": true
+    },
+    "ruinedEdificeIds": ["edifice.nomad.ancient-forge"],
+    "chronicleRecord": [
+        {
+            "gameNumber": 1,
+            "sessionName": "Thursday table",
+            "date": "2026-10-27",
+            "startingOath": "supremacy",
+            "mark": "O",
+            "kind": "stableRegime",
+            "rule": "R-3.3",
+            "winner": {
+                "name": "Dana",
+                "color": "purple"
+            },
+            "nextOath": "thePeople",
+            "added": {
+                "suits": ["hearth", "beast", "nomad"]
+            },
+            "built": {
+                "edificeId": "edifice.order.sprawling-rampart",
+                "siteId": "slot.provinces.2",
+                "siteCardId": "site.mountain",
+                "repaired": false
+            },
+            "ruined": ["edifice.nomad.ancient-forge"]
+        }
+    ],
+    "result": "Win",
+    "canContinue": true
+}

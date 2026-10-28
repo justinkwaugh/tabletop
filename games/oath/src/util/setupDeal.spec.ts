@@ -256,6 +256,47 @@ describe('R-1.19–R-1.22 applied to public state', () => {
         expect(s.visionsDrawn).toBe(2)
     })
 
+    it('A-43 — a Vision among R-1.19’s three shows its back on its pile, leaves the deck’s count and moves no marker', () => {
+        const s = state()
+        s.worldDeckVisions = 5
+        const vault = createOathVault({}, () => 0.5)
+        vault.worldDeck = [
+            'denizen.order.top',
+            'vision.faith',
+            'denizen.order.x',
+            'vision.conquest'
+        ]
+        applySetupDeal(s, resolveSetupDeal(vault, []))
+        expect(s.discardTopBackType).toEqual({
+            [Region.Cradle]: CardKind.Vision,
+            [Region.Provinces]: CardKind.Denizen,
+            [Region.Hinterland]: CardKind.Vision
+        })
+        expect(s.seenDiscardPiles[Region.Cradle]).toEqual([{ back: CardKind.Vision }])
+        expect(s.seenDiscardPiles[Region.Provinces]).toEqual([{ back: CardKind.Denizen }])
+        expect(s.visionsDrawn).toBe(0)
+        expect(s.worldDeckVisions).toBe(3)
+    })
+
+    it('A-43 — a Vision dealt into a hand moves the marker and leaves the deck’s count', () => {
+        const s = state()
+        s.worldDeckVisions = 5
+        const vault = createOathVault({}, () => 0.5)
+        vault.worldDeck = [
+            'denizen.order.top',
+            'vision.faith',
+            'denizen.order.b',
+            'denizen.order.c',
+            'denizen.order.d',
+            'denizen.order.e',
+            'denizen.order.f'
+        ]
+        applySetupDeal(s, resolveSetupDeal(vault, ['p1']))
+        expect(s.getPlayerState('p1').handVisions).toBe(1)
+        expect(s.visionsDrawn).toBe(1)
+        expect(s.worldDeckVisions).toBe(4)
+    })
+
     it('R-9.4 — the top card’s back type is published, the deck’s size is not', () => {
         const s = state()
         applySetupDeal(s, {

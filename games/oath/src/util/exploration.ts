@@ -21,6 +21,7 @@ import {
     TOP_PILE_VISIONS
 } from '../data/worldDeck.js'
 import { noKnownDiscardPiles } from './knowledge.js'
+import { denizensInCirculation } from './chronicleCards.js'
 
 type ProjectedQuestion = NonNullable<OathProjectedState['pendingQuestions']>['queue'][number]
 
@@ -283,7 +284,7 @@ export function explorationPools(state: Pick<OathProjectedState, 'setupVariant'>
         : { denizens: cardIdsOfKind(CardKind.Denizen), sites: ALL_SITE_IDS }
 }
 
-/** R-1.21 — nine denizens of each suit, some of which the table has not seen. */
+/** The Visions and denizens in this game that the table has not seen. */
 function unnamedWorldCards(
     state: OathProjectedState,
     named: ReadonlySet<string>,
@@ -291,8 +292,22 @@ function unnamedWorldCards(
 ): { visions: string[]; denizens: string[] } {
     const visions = cardIdsOfKind(CardKind.Vision).filter((cardId) => !named.has(cardId))
     const pools = explorationPools(state)
-    const denizens = Object.values(Suit).flatMap((suit) => {
-        const ofSuit = pools.denizens.filter((cardId) => suitOf(cardId) === suit)
+    const denizens = state.openingSeats
+        ? continuedWorldDenizens(state, pools.denizens, named, random)
+        : firstGameWorldDenizens(pools.denizens, named, random)
+    shuffle(visions, random)
+    shuffle(denizens, random)
+    return { visions, denizens }
+}
+
+/** R-1.21 — nine denizens of each suit, some of which the table has not seen. */
+function firstGameWorldDenizens(
+    pool: readonly string[],
+    named: ReadonlySet<string>,
+    random: RandomFunction
+): string[] {
+    return Object.values(Suit).flatMap((suit) => {
+        const ofSuit = pool.filter((cardId) => suitOf(cardId) === suit)
         const inPlay = ofSuit.filter((cardId) => named.has(cardId)).length
         assert(
             inPlay <= DENIZENS_PER_SUIT_IN_PLAY,
@@ -302,9 +317,28 @@ function unnamedWorldCards(
         shuffle(unseen, random)
         return unseen.slice(0, DENIZENS_PER_SUIT_IN_PLAY - inPlay)
     })
-    shuffle(visions, random)
-    shuffle(denizens, random)
-    return { visions, denizens }
+}
+
+/**
+ * A continued game: the chronicle changed each suit's share (R-8.4), so no suit has a quota. The
+ * hidden denizens are the circulation the public record gives (A-36(3), F-8) and the Dispossessed,
+ * less every one the table can name; the rest of the 198 are the Archive.
+ */
+function continuedWorldDenizens(
+    state: OathProjectedState,
+    pool: readonly string[],
+    named: ReadonlySet<string>,
+    random: RandomFunction
+): string[] {
+    const inGame = denizensInCirculation(state.chronicleRecord ?? []) + state.dispossessedCount
+    const hidden = inGame - pool.filter((cardId) => named.has(cardId)).length
+    const unseen = pool.filter((cardId) => !named.has(cardId))
+    assert(
+        hidden >= 0 && hidden <= unseen.length,
+        `The table names more denizens than the ${inGame} a continued game holds`
+    )
+    shuffle(unseen, random)
+    return unseen.slice(0, hidden)
 }
 
 function dealWorldCards(

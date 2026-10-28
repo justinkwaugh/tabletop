@@ -64,6 +64,27 @@ export function createOathVault(
     }
 }
 
+/**
+ * R-8.7, R-1.1 — a continued game's vault: each list exactly as given, in its order, and nothing
+ * shuffled. R-8.8 built the world deck and R-8.6.3 stacked the relic deck; setup reads both as
+ * they lie.
+ */
+export function carriedOathVault(contents: Partial<OathVault>): OathVault {
+    return {
+        worldDeck: [...(contents.worldDeck ?? [])],
+        discardPiles: {
+            [Region.Cradle]: [...(contents.discardPiles?.[Region.Cradle] ?? [])],
+            [Region.Provinces]: [...(contents.discardPiles?.[Region.Provinces] ?? [])],
+            [Region.Hinterland]: [...(contents.discardPiles?.[Region.Hinterland] ?? [])]
+        },
+        siteFacedown: { ...(contents.siteFacedown ?? {}) },
+        relicFacedown: { ...(contents.relicFacedown ?? {}) },
+        relicDeck: [...(contents.relicDeck ?? [])],
+        siteDeck: [...(contents.siteDeck ?? [])],
+        dispossessed: [...(contents.dispossessed ?? [])]
+    }
+}
+
 /** R-5.1.2 */
 export interface WorldDeckDraw {
     /** Fewer than asked for if the draw stopped (R-5.1.2, R-9.3). */

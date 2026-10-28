@@ -7,6 +7,94 @@ import { ALL_VISION_IDS } from '../data/visions.js'
 import { EDIFICE_DEFINITIONS } from '../data/edifices.js'
 import { TOP_PILE_DENIZENS, SECOND_PILE_DENIZENS } from '../data/worldDeck.js'
 import { warbandEntries } from '../util/warbands.js'
+import { denizensInCirculation } from '../util/chronicleCards.js'
+
+/**
+ * A game as it opens, checked whole (host-side): the 198 denizens each in at most one of the world
+ * deck, the piles, the hands, the advisers, the sites and the Dispossessed, as many in play as the
+ * record says (the rest the Archive); the five Visions; the 23 sites in the slots and the site deck;
+ * the 21 relics with the Chancellor, in the Reliquary, at the sites and in the relic deck; the six
+ * edifices at the sites or in the Archive. Returns every breach found.
+ */
+export function openingCensus(state: HydratedOathGameState): string[] {
+    const vault = state.requireVault()
+    const breaches: string[] = []
+    const once = (what: string, placed: readonly string[], universe: readonly string[]) => {
+        const seen = new Set<string>()
+        for (const cardId of placed) {
+            if (seen.has(cardId)) breaches.push(`${what}: ${cardId} is in two places`)
+            if (!universe.includes(cardId)) breaches.push(`${what}: ${cardId} is not one`)
+            seen.add(cardId)
+        }
+        return seen
+    }
+    const atSites = Object.values(state.denizensBySite).flat()
+    const held = state.players.flatMap((player) => [
+        ...player.knownHand(),
+        ...player.knownAdviserIds()
+    ])
+    const world = [
+        ...vault.worldDeck,
+        ...Object.values(vault.discardPiles).flat(),
+        ...held,
+        ...state.boxIds
+    ]
+    const denizens = once(
+        'Denizens',
+        [
+            ...world.filter((cardId) => kindOf(cardId) === CardKind.Denizen),
+            ...atSites.filter((cardId) => kindOf(cardId) === CardKind.Denizen),
+            ...vault.dispossessed
+        ],
+        PRINTED_DENIZEN_IDS
+    )
+    const inGame = denizensInCirculation(state.chronicleRecord ?? []) + vault.dispossessed.length
+    if (denizens.size !== inGame) breaches.push(`Denizens: ${denizens.size} in play, not ${inGame}`)
+    if (vault.dispossessed.length !== state.dispossessedCount)
+        breaches.push(`the Dispossessed is counted ${state.dispossessedCount}`)
+
+    const visions = once('Visions', world.filter(isVision), ALL_VISION_IDS)
+    if (visions.size !== ALL_VISION_IDS.length) breaches.push(`Visions: ${visions.size} of 5`)
+    if (state.worldDeckVisions !== vault.worldDeck.filter(isVision).length)
+        breaches.push(`the world deck's Visions are counted ${state.worldDeckVisions}`)
+
+    const slotSites = state.allSiteIds().flatMap((slotId) => {
+        const sites = [state.siteCards[slotId], vault.siteFacedown[slotId]].filter(
+            (cardId) => cardId !== undefined
+        )
+        if (sites.length !== 1) breaches.push(`${slotId} holds ${sites.length} sites`)
+        return sites
+    })
+    const sites = once('Sites', [...slotSites, ...vault.siteDeck], ALL_SITE_IDS)
+    if (sites.size !== ALL_SITE_IDS.length) breaches.push(`Sites: ${sites.size} of 23`)
+
+    const relicSlots = [...state.reliquarySlots(), ...Object.values(state.relicsBySite).flat()]
+    const placedRelics = relicSlots.map((slot) => vault.relicFacedown[slot.slotId])
+    if (placedRelics.some((cardId) => cardId === undefined))
+        breaches.push('a relic slot holds no relic')
+    if (Object.keys(vault.relicFacedown).length !== relicSlots.length)
+        breaches.push('the vault holds a relic in no slot')
+    const relics = once(
+        'Relics',
+        [
+            ...state.players.flatMap((player) => player.relicIds),
+            ...placedRelics.filter((cardId) => cardId !== undefined),
+            ...vault.relicDeck
+        ],
+        ALL_RELIC_IDS
+    )
+    if (relics.size !== ALL_RELIC_IDS.length) breaches.push(`Relics: ${relics.size} of 21`)
+    if (!state.getPlayerState(state.chancellorId()).relicIds.includes(GRAND_SCEPTER_ID))
+        breaches.push('the Chancellor does not hold the Grand Scepter')
+
+    const edifices = once(
+        'Edifices',
+        atSites.filter((cardId) => kindOf(cardId) === CardKind.Edifice),
+        EDIFICE_DEFINITIONS.map((edifice) => edifice.id)
+    )
+    if (edifices.size > EDIFICE_DEFINITIONS.length) breaches.push('more than six edifices')
+    return breaches
+}
 
 /**
  * A thin fixture made whole for R-8: every Vision, site and relic it leaves out is put where a game
