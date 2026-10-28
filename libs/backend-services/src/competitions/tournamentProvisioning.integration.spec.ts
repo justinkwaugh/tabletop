@@ -14,6 +14,7 @@ import {
     UserStatus,
     createGameFork,
     type GameState,
+    type HydratedGameState,
     type Tournament,
     type TournamentDraft,
     type User
@@ -1669,7 +1670,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(
                 games.updateGame({ gameId, fields: { tournament: undefined }, user: admin })
             ).rejects.toThrow('membership cannot be changed')
-            const fork = createGameFork({
+            const fork = createGameFork<GameState, HydratedGameState>({
                 game,
                 state: game.state,
                 actions: [],
