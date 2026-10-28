@@ -318,3 +318,36 @@ it('shows a border cost until track meets across the border from both sides', ()
         mapBorderCosts(createMapDrawing(map)).map(({ amount, kind }) => ({ amount, kind }))
     ).toEqual([{ amount: 60, kind: 'mountain' }])
 })
+
+it('stacks values that change by phase with their phases beside them, a lone value bare', () => {
+    const offboard = (id: string, q: number, values: { stage: string; amount: number }[]) => ({
+        id,
+        coordinates: { q, r: 0 },
+        buildable: false,
+        preprintedTile: createOffboardTileFace([1], { kind: 'staged' as const, values })
+    })
+    const map = new RailwayMap({
+        id: 'captions',
+        name: 'Captions',
+        orientation: HexOrientation.Flat,
+        locations: [
+            offboard('phased', 0, [
+                { stage: 'yellow', amount: 30 },
+                { stage: 'brown', amount: 50 },
+                { stage: 'gray', amount: 40 }
+            ]),
+            offboard('lone', 4, [{ stage: 'yellow', amount: 0 }])
+        ]
+    })
+    const [phased, lone] = createMapDrawing(map, undefined, {
+        revenueStageCaptions: { yellow: 'I-II', brown: 'III-IV', gray: 'V' }
+    }).locations.map((entry) => entry.drawing.nodes[0].revenueCells)
+    expect(phased.map((cell) => cell.caption)).toEqual(['I-II', 'III-IV', 'V'])
+    expect(new Set(phased.map((cell) => cell.x)).size).toBe(1)
+    expect(phased.map((cell) => cell.y)).toEqual(
+        phased.map((cell) => cell.y).toSorted((a, b) => a - b)
+    )
+    for (const cell of phased)
+        expect(Math.abs(cell.x - cell.width / 2 - cell.captionWidth)).toBeLessThan(50)
+    expect(lone.map((cell) => cell.caption)).toEqual([undefined])
+})

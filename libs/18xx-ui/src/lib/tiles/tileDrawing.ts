@@ -79,6 +79,10 @@ export type TileDrawingStyle = {
     longLabelFontSize?: number
     /** Printed prefixes for revenue stages that are not phases, such as D for diesel. */
     revenueStageLabels?: Readonly<Record<string, string>>
+    /** Phases printed beside each revenue stage's value, such as I-II. */
+    revenueStageCaptions?: Readonly<Record<string, string>>
+    /** How staged values line up where a location's layout does not say. */
+    revenueStack?: 'column' | 'row'
     /** Curves a lone one-station city's name over the top of the city. */
     cityNameArcs?: boolean
     /** Draws every town as a dot, never a bar across its track. */
@@ -284,9 +288,12 @@ export function createTileDrawing(
                       geometry.vertices,
                       paths,
                       occupied,
-                      style.revenueStageLabels,
-                      layout.revenueStack,
-                      !!hint
+                      {
+                          stageLabels: style.revenueStageLabels,
+                          captions: style.revenueStageCaptions,
+                          stack: layout.revenueStack ?? style.revenueStack,
+                          fixed: !!hint
+                      }
                   )
         if (node.kind !== 'junction' && !revenueHidden)
             occupied.push(...(revenueCells.length ? revenueCells : [revenuePosition]))

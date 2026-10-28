@@ -19,9 +19,15 @@ export type MapBonusArrow = {
 export type DrawnBonusArrow = MapBonusArrow & { width: number; height: number; outline: string }
 
 const ValueHeight = 14
-const PointLength = 12
-const TailNotch = 7
+// A point is an arrowhead, its shoulders standing clear of the plaque; a tail is notched.
+const HeadLength = 26
+const HeadFlare = 11
+const TailNotch = 12
 const LongText = 16
+
+function sides(arrow: MapBonusArrow) {
+    return { pointsLeft: arrow.points !== 'right', pointsRight: arrow.points !== 'left' }
+}
 
 export function drawBonusArrow(arrow: MapBonusArrow): DrawnBonusArrow {
     const width = Math.max(arrow.heading.length, arrow.footer.length) > LongText ? 104 : 88
@@ -30,15 +36,27 @@ export function drawBonusArrow(arrow: MapBonusArrow): DrawnBonusArrow {
     const right = width / 2
     const top = -height / 2
     const bottom = height / 2
-    const pointsLeft = arrow.points !== 'right'
-    const pointsRight = arrow.points !== 'left'
+    const { pointsLeft, pointsRight } = sides(arrow)
     const outline = [
         `M ${left} ${top}`,
         `L ${right} ${top}`,
-        `L ${pointsRight ? right + PointLength : right - TailNotch} 0`,
+        ...(pointsRight
+            ? [
+                  `L ${right} ${top - HeadFlare}`,
+                  `L ${right + HeadLength} 0`,
+                  `L ${right} ${bottom + HeadFlare}`
+              ]
+            : [`L ${right - TailNotch} 0`]),
         `L ${right} ${bottom}`,
         `L ${left} ${bottom}`,
-        `L ${pointsLeft ? left - PointLength : left + TailNotch} 0 Z`
+        ...(pointsLeft
+            ? [
+                  `L ${left} ${bottom + HeadFlare}`,
+                  `L ${left - HeadLength} 0`,
+                  `L ${left} ${top - HeadFlare}`
+              ]
+            : [`L ${left + TailNotch} 0`]),
+        'Z'
     ].join(' ')
     return { ...arrow, width, height, outline }
 }
@@ -50,13 +68,16 @@ export function bonusArrowHull(arrow: DrawnBonusArrow): Point[] {
     const right = x + arrow.width / 2
     const top = y - arrow.height / 2
     const bottom = y + arrow.height / 2
+    const { pointsLeft, pointsRight } = sides(arrow)
+    const leftFlare = pointsLeft ? HeadFlare : 0
+    const rightFlare = pointsRight ? HeadFlare : 0
     return [
-        { x: left, y: top },
-        { x: right, y: top },
-        { x: arrow.points === 'left' ? right : right + PointLength, y },
-        { x: right, y: bottom },
-        { x: left, y: bottom },
-        { x: arrow.points === 'right' ? left : left - PointLength, y }
+        { x: left, y: top - leftFlare },
+        { x: right, y: top - rightFlare },
+        { x: pointsRight ? right + HeadLength : right, y },
+        { x: right, y: bottom + rightFlare },
+        { x: left, y: bottom + leftFlare },
+        { x: pointsLeft ? left - HeadLength : left, y }
     ]
 }
 

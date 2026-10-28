@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { RevenueStageColors } from '../colors/revenueStageColors.js'
     // A medium city's ring stands clear of its town dot by the track's half-width.
     const TownRingGap = 3.4
     import MapTrackJoins from './MapTrackJoins.svelte'
@@ -61,7 +62,7 @@
         reservations?: readonly StationReservation[]
         stationAppearances?: Readonly<Record<string, StationAppearance>>
         routes?: readonly MapRoute[]
-        revenueStageColors?: Readonly<Record<string, string>>
+        revenueStageColors?: RevenueStageColors
         appearance?: TileAppearance
         hexDiameter?: number
         artwork?: BoardArtwork

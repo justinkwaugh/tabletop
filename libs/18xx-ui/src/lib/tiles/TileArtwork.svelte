@@ -1,5 +1,11 @@
 <script lang="ts">
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
+    import DividedRect from '../colors/DividedRect.svelte'
+    import {
+        dividedTextColor,
+        revenueStageFills,
+        type RevenueStageColors
+    } from '../colors/revenueStageColors.js'
     import { assert, assertExists, type Point } from '@tabletop/common'
     import type { TileFace } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
@@ -28,7 +34,7 @@
         face: TileFace
         drawing: TileDrawing
         appearance?: TileAppearance
-        revenueStageColors?: Readonly<Record<string, string>>
+        revenueStageColors?: RevenueStageColors
         highlightedPathIds?: readonly string[]
         showZeroRevenue?: boolean
         /** Edges shared with another hex of the same printed area, drawn without a seam. */
@@ -410,29 +416,40 @@
                         {/if}
                     {:else}
                         {#each revenueCells as cell (cell.stage)}
-                            {@const color =
-                                revenueStageColors[cell.stage] ??
-                                appearance.colors[cell.stage] ??
-                                appearance.paper}
+                            {@const fills = revenueStageFills(
+                                revenueStageColors,
+                                cell.stage,
+                                appearance.colors[cell.stage] ?? appearance.paper
+                            )}
                             <g
                                 transform={`translate(${cell.x - revenuePosition.x} ${cell.y - revenuePosition.y})`}
                                 data-revenue-stage={cell.stage}
                             >
-                                <rect
+                                <DividedRect
                                     x={-cell.width / 2}
                                     y={-cell.height / 2}
                                     width={cell.width}
                                     height={cell.height}
-                                    fill={color}
+                                    {fills}
                                     stroke={appearance.ink}
-                                    stroke-width="0.5"
-                                ></rect>
+                                    strokeWidth={0.5}
+                                />
                                 <text
-                                    fill={contrastingTextColor(color)}
+                                    fill={dividedTextColor(fills)}
                                     font-size="9"
                                     font-weight="650"
                                     aria-label={`${cell.stage}: ${cell.amount}`}>{cell.text}</text
                                 >
+                                {#if cell.caption}
+                                    <text
+                                        data-revenue-caption
+                                        x={-cell.width / 2 - 2.5}
+                                        style:text-anchor="end"
+                                        fill={contrastingTextColor(fill)}
+                                        font-size="7.5"
+                                        font-weight="700">{cell.caption}</text
+                                    >
+                                {/if}
                             </g>
                         {/each}
                     {/if}

@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { contrastingTextColor } from '../colors/contrastingTextColor.js'
+    import {
+        dividedTextColor,
+        revenueStageFills,
+        type RevenueStageColors
+    } from '../colors/revenueStageColors.js'
+    import DividedRect from '../colors/DividedRect.svelte'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
     import { BonusArrowValueHeight, type DrawnBonusArrow } from './bonusArrows.js'
     let {
@@ -9,10 +14,8 @@
     }: {
         arrows: readonly DrawnBonusArrow[]
         appearance: TileAppearance
-        revenueStageColors?: Readonly<Record<string, string>>
+        revenueStageColors?: RevenueStageColors
     } = $props()
-    const stageColor = (stage: string) =>
-        revenueStageColors[stage] ?? appearance.colors[stage] ?? appearance.paper
 </script>
 
 <g data-map-layer="bonus-arrows" pointer-events="none">
@@ -41,17 +44,21 @@
             >
             {#each arrow.values as value, index (value.label)}
                 {@const y = top + 15 + index * BonusArrowValueHeight}
-                {@const color = stageColor(value.stage)}
-                <rect
-                    x="-26"
+                {@const fills = revenueStageFills(
+                    revenueStageColors,
+                    value.stage,
+                    appearance.colors[value.stage] ?? appearance.paper
+                )}
+                <DividedRect
+                    x={-26}
                     {y}
-                    width="22"
-                    height="12"
-                    rx="3"
-                    fill={color}
+                    width={22}
+                    height={12}
+                    rx={3}
+                    {fills}
                     stroke={appearance.ink}
-                    stroke-width="0.8"
-                ></rect>
+                    strokeWidth={0.8}
+                />
                 <text
                     x="-15"
                     y={y + 6}
@@ -59,7 +66,7 @@
                     dominant-baseline="central"
                     font-size="9"
                     font-weight="700"
-                    fill={contrastingTextColor(color)}>{value.amount}</text
+                    fill={dividedTextColor(fills)}>{value.amount}</text
                 >
                 <text
                     x="2"

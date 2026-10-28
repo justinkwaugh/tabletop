@@ -315,6 +315,8 @@ export function createMapDrawing(
         hideLocationNames,
         drawingStyle,
         revenueStageLabels,
+        revenueStageCaptions,
+        revenueStack,
         terrainCostPrefix = '',
         namePositions = {},
         cityNames = {},
@@ -333,6 +335,8 @@ export function createMapDrawing(
         | 'hideLocationNames'
         | 'drawingStyle'
         | 'revenueStageLabels'
+        | 'revenueStageCaptions'
+        | 'revenueStack'
         | 'terrainCostPrefix'
         | 'namePositions'
         | 'cityNames'
@@ -491,7 +495,7 @@ export function createMapDrawing(
                         : [])
                 ]
             },
-            { ...locationStyle, revenueStageLabels }
+            { ...locationStyle, revenueStageLabels, revenueStageCaptions, revenueStack }
         )
         const markers = location.markers ?? []
         const lifted = markers.some((marker) => {

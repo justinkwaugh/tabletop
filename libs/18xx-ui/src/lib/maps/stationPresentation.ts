@@ -4,6 +4,7 @@ import type { StationState, RailwayMap, TileEdge, TileFace, TileSet } from '@tab
 import type { BoardArtwork, MapMarkerArt, MapPlacement, MapToken } from './mapDrawing.js'
 import type { TileDrawing, TileDrawingStyle, TileLayout } from '../tiles/tileDrawing.js'
 import type { TileAppearance } from '../tiles/tileAppearance.js'
+import type { RevenueStageColors } from '../colors/revenueStageColors.js'
 
 /** Tiles drawn side by side in place of a round token, at the token's height. */
 export type TokenTiles = {
@@ -37,9 +38,13 @@ export type MapViewDefinition = {
      * published artwork toggle is on; companies without an entry keep their generic appearance.
      */
     publishedStations?: Readonly<Record<string, StationAppearance>>
-    revenueStageColors?: Readonly<Record<string, string>>
+    revenueStageColors?: RevenueStageColors
     /** Printed prefixes for revenue stages that are not phases, such as D for diesel. */
     revenueStageLabels?: Readonly<Record<string, string>>
+    /** Phases printed beside each revenue stage's value, such as I-II. */
+    revenueStageCaptions?: Readonly<Record<string, string>>
+    /** How staged values line up where a location's layout does not say. */
+    revenueStack?: 'column' | 'row'
     /** Printed before terrain costs, such as ¥. */
     terrainCostPrefix?: string
     /** Baseline of a location's name, by location id; names otherwise print across the top. */
