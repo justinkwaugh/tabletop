@@ -1,5 +1,7 @@
 import { assertExists, type Point } from '@tabletop/common'
+import type { RoutePath } from '@tabletop/18xx'
 import type { TileDrawnNode } from '../tiles/tileDrawing.js'
+import { tilePathPoint, type TileDrawnPath } from '../tiles/tileTrackGeometry.js'
 import type { MapDrawing, MapRoute } from './mapDrawing.js'
 
 export function cityOutline(node: TileDrawnNode): string {
@@ -46,11 +48,14 @@ export function cityOutline(node: TileDrawnNode): string {
     )
 }
 
+/** Where an extension reaches its destination: the arrow's tip at the stop, and its heading. */
+export type RouteArrow = { id: string; color: string; tip: Point; angle: number }
+
 export function drawMapRoutes(scene: MapDrawing, routes: readonly MapRoute[]) {
     return scene.locations.flatMap((entry) => {
         if (entry.hidden) return []
-        const paths = routes.flatMap((route) =>
-            route.segments
+        const drawn = (route: MapRoute, segments: readonly RoutePath[], dashed: boolean) =>
+            segments
                 .filter((segment) => segment.locationId === entry.location.id)
                 .map((segment) => {
                     const path = entry.drawing.paths.find((path) => path.id === segment.pathId)
@@ -61,10 +66,14 @@ export function drawMapRoutes(scene: MapDrawing, routes: readonly MapRoute[]) {
                         color: route.color,
                         d: path.d,
                         spike: path.spike,
-                        pathId: path.id
+                        pathId: path.id,
+                        dashed
                     }
                 })
-        )
+        const paths = routes.flatMap((route) => [
+            ...drawn(route, route.segments, false),
+            ...drawn(route, route.extension ?? [], true)
+        ])
         if (!paths.length) return []
         const cities = entry.drawing.nodes
             .filter((node) => node.node.kind === 'city')
@@ -83,6 +92,43 @@ export function drawMapRoutes(scene: MapDrawing, routes: readonly MapRoute[]) {
                     ? [{ id: node.node.id, d: cityOutline(node) }]
                     : []
             })
-        return [{ id: entry.location.id, center: entry.center, paths, cities }]
+        const arrows = routes.flatMap((route): RouteArrow[] => {
+            const last = route.extension?.at(-1)
+            if (last?.locationId !== entry.location.id) return []
+            const path = entry.drawing.paths.find((path) => path.id === last.pathId)
+            const ends = entry.face.paths
+                .find((path) => path.id === last.pathId)
+                ?.endpoints.flatMap((end) => (end.kind === 'node' ? [end.nodeId] : []))
+            const node = entry.drawing.nodes.find((node) => ends?.includes(node.node.id))
+            if (!path || !node) return []
+            return [{ id: `${route.id}:arrow`, color: route.color, ...arrowAtStop(path, node) }]
+        })
+        return [{ id: entry.location.id, center: entry.center, paths, cities, arrows }]
     })
+}
+
+const HeadingRun = 6
+
+/** The arrow's tip where the track meets the stop's outline, pointing along the track into it. */
+function arrowAtStop(path: TileDrawnPath, node: TileDrawnNode): { tip: Point; angle: number } {
+    const fromCenter = (point: Point) =>
+        Math.hypot(point.x - node.center.x, point.y - node.center.y)
+    const towardNode = fromCenter(path.end) < fromCenter(path.start)
+    const at = (t: number) => tilePathPoint(path, towardNode ? t : 1 - t)
+    const reach = node.slots.length ? node.slotRadius + 1.5 : node.dotRadius + 4
+    const nearest = (point: Point) =>
+        node.slots.length
+            ? Math.min(...node.slots.map((slot) => Math.hypot(point.x - slot.x, point.y - slot.y)))
+            : fromCenter(point)
+    const steps = 40
+    const samples = Array.from({ length: steps + 1 }, (_, step) => at(step / steps))
+    const found = samples.findIndex((point) => nearest(point) <= reach)
+    const reached = found < 0 ? steps : found
+    const tip = samples[reached]
+    const before =
+        samples
+            .slice(0, Math.max(reached, 1))
+            .findLast((point) => Math.hypot(point.x - tip.x, point.y - tip.y) >= HeadingRun) ??
+        samples[0]
+    return { tip, angle: (Math.atan2(tip.y - before.y, tip.x - before.x) * 180) / Math.PI }
 }

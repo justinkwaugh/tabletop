@@ -3,6 +3,7 @@
     const TownRingGap = 3.4
     import MapTrackJoins from './MapTrackJoins.svelte'
     import MapRoutes from './MapRoutes.svelte'
+    import MapBonusArrows from './MapBonusArrows.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { StationAppearance } from './stationPresentation.js'
     import type { StationReservation } from '@tabletop/18xx'
@@ -875,6 +876,9 @@
                 ></polygon>
             {/each}
         </g>
+    {/if}
+    {#if !artwork && scene.bonusArrows.length}
+        <MapBonusArrows arrows={scene.bonusArrows} {appearance} {revenueStageColors} />
     {/if}
     <g
         data-map-layer="highlights"

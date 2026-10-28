@@ -1,3 +1,4 @@
+import type { MapBonusArrow } from './bonusArrows.js'
 import { assertExists, type BoundingBox, type HexOrientation, type Point } from '@tabletop/common'
 import type { StationState, RailwayMap, TileEdge, TileFace, TileSet } from '@tabletop/18xx'
 import type { BoardArtwork, MapMarkerArt, MapPlacement, MapToken } from './mapDrawing.js'
@@ -24,6 +25,8 @@ export type BoardAreas = { market?: BoundingBox; depot?: BoundingBox }
 
 export type MapViewDefinition = {
     boardArtwork?: BoardArtwork
+    /** Plaques printed beside the board, such as route bonus arrows. */
+    bonusArrows?: readonly MapBonusArrow[]
     /** Empty map regions, in map units, where the board view draws table panels. */
     boardAreas?: BoardAreas
     map: RailwayMap

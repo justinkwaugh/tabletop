@@ -3,6 +3,7 @@ export { default as TileArtwork } from './tiles/TileArtwork.svelte'
 export { default as TileLibraryViewer } from './tiles/TileLibraryViewer.svelte'
 export { default as TileManifest } from './tiles/TileManifest.svelte'
 export {
+    TileRadius,
     createTileDrawing,
     type TileDrawing,
     type TileDrawnPath,
@@ -36,6 +37,7 @@ export { default as StockTrading } from './stock/StockTrading.svelte'
 export { default as StockMarket } from './stock/StockMarket.svelte'
 
 export * from './maps/stationPresentation.js'
+export type { MapBonusArrow } from './maps/bonusArrows.js'
 export { default as MapViewer } from './maps/MapViewer.svelte'
 export { default as FinanceMap } from './maps/FinanceMap.svelte'
 

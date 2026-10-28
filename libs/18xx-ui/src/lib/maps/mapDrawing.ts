@@ -1,3 +1,4 @@
+import { bonusArrowBounds, drawBonusArrow, type DrawnBonusArrow } from './bonusArrows.js'
 import type { MapViewDefinition, StationAppearance, SymbolPosition } from './stationPresentation.js'
 import {
     assert,
@@ -50,12 +51,21 @@ export type MapRoute = {
     id: string
     color: string
     segments: readonly RoutePath[]
+    /** Track the route runs on past its counted stops for an interconnection, drawn dashed. */
+    extension?: readonly RoutePath[]
+}
+
+/** Every piece of track a route draws: its own and its extension's. */
+export function mapRouteTrack(route: MapRoute): readonly RoutePath[] {
+    return [...route.segments, ...(route.extension ?? [])]
 }
 export function routeLocationIds(
     routes: readonly MapRoute[],
     { map, joinedEdges = {} }: Pick<MapViewDefinition, 'map' | 'joinedEdges'>
 ): string[] {
-    const ids = new Set(routes.flatMap((route) => route.segments.map((path) => path.locationId)))
+    const ids = new Set(
+        routes.flatMap((route) => mapRouteTrack(route).map((path) => path.locationId))
+    )
     const pending = [...ids]
     for (let id = pending.pop(); id !== undefined; id = pending.pop())
         for (const edge of joinedEdges[id] ?? []) {
@@ -248,6 +258,7 @@ function enclosingBounds(first: BoundingBox, second: BoundingBox): BoundingBox {
 export type MapDrawing = {
     map: RailwayMap
     locations: readonly MapDrawnLocation[]
+    bonusArrows: readonly DrawnBonusArrow[]
     bounds: BoundingBox
     /** Printed before terrain costs, such as ¥. */
     terrainCostPrefix: string
@@ -310,7 +321,8 @@ export function createMapDrawing(
         namesBelow = [],
         symbolPositions = {},
         nameLines = {},
-        terrainPositions = {}
+        terrainPositions = {},
+        bonusArrows = []
     }: Pick<
         MapViewDefinition,
         | 'layouts'
@@ -328,6 +340,7 @@ export function createMapDrawing(
         | 'symbolPositions'
         | 'nameLines'
         | 'terrainPositions'
+        | 'bonusArrows'
     > = {}
 ): MapDrawing {
     const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
@@ -609,16 +622,18 @@ export function createMapDrawing(
     )
     const x = Math.min(...vertices.map((point) => point.x)) - 26
     const y = Math.min(...vertices.map((point) => point.y)) - 26
+    const drawnArrows = bonusArrows.map(drawBonusArrow)
     return {
         map,
         locations,
+        bonusArrows: drawnArrows,
         terrainCostPrefix,
-        bounds: {
+        bounds: drawnArrows.map(bonusArrowBounds).reduce(enclosingBounds, {
             x,
             y,
             width: Math.max(...vertices.map((point) => point.x)) - x + 26,
             height: Math.max(...vertices.map((point) => point.y)) - y + 26
-        }
+        })
     }
 }
 
@@ -1302,11 +1317,12 @@ export function assertMapOverlays(
         )
     }
     for (const route of routes)
-        for (const segment of route.segments) mapSelectionPoint(scene, { kind: 'path', ...segment })
+        for (const segment of mapRouteTrack(route))
+            mapSelectionPoint(scene, { kind: 'path', ...segment })
 }
 
 export function isMapRouteValid(scene: MapDrawing, route: MapRoute): boolean {
-    return route.segments.every((segment) =>
+    return mapRouteTrack(route).every((segment) =>
         isMapSelectionValid(scene, { kind: 'path', ...segment })
     )
 }
