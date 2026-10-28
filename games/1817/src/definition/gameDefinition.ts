@@ -171,6 +171,7 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules<
     phases: EighteenSeventeenPhases,
     phaseRules: EighteenSeventeenPhaseRules,
     trainRules: EighteenSeventeenTrainRules,
+    runInstructions: true,
     loanRules: EighteenSeventeenLoanRules,
     cashCrisisRules: EighteenSeventeenCashCrisisRules,
     decisionHandlers: {

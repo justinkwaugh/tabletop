@@ -1,13 +1,7 @@
 import { Market1846 } from './stock.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import {
-    ActionSource,
-    PlayerAction,
-    HydratableAction,
-    assert,
-    assertExists
-} from '@tabletop/common'
+import { ActionSource, HydratableAction, assert, assertExists } from '@tabletop/common'
 import {
     CashPayment,
     certificatesInPool,
@@ -17,7 +11,8 @@ import {
     finiteCashOwnedBy,
     settleCashPayments,
     treasuryPoolId,
-    type FinancialState
+    type FinancialState,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import type { HydratedEighteenFortySixState } from './state.js'
 
@@ -116,7 +111,7 @@ export function corporateFinanceChoices(state: HydratedEighteenFortySixState): F
 }
 export const CorporateFinance = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         ...FinanceChoice.properties,
         type: Type.Literal('CorporateFinance'),
         source: Type.Literal(ActionSource.User),

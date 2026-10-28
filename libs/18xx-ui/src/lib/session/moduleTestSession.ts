@@ -44,6 +44,10 @@ export function testSession<State, Rules>(
             }),
         applyAction: async (action) => {
             applied.push(action)
+        },
+        applyPreparedAction: async (prepare) => {
+            const action = await prepare()
+            if (action) applied.push(action)
         }
     }
     return { session, applied }

@@ -8,7 +8,7 @@ import type { GameEngine } from './gameEngine.js'
 import type { Game } from '../model/game.js'
 import type { ExplorationState, GameState, HydratedGameState } from '../model/gameState.js'
 import { isRedactedAction } from '../visibility/actionProjector.js'
-import { isCascadedSystemAction, isOutOfTurnDeclaration } from './actionHistory.js'
+import { isCascadedSystemAction, isStandingDeclaration } from './actionHistory.js'
 import { isSameSimultaneousGroup } from './playerUndo.js'
 
 export class ExplorationHistory<T extends GameState, U extends HydratedGameState<T>> {
@@ -83,8 +83,8 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
         const exploration = current.explorationState
         let state = current
         const redo: GameAction[] = []
-        for (const action of undone.toReversed()) {
-            if (this.redoesAfterUndo(action, target, exploration)) redo.unshift(action)
+        for (const [position, action] of [...undone.entries()].toReversed()) {
+            if (this.redoesAfterUndo(undone, position, target, exploration)) redo.unshift(action)
             state = this.undo(state, action, exploration)
         }
         return { state: this.afterUndo(current, state, undone), redo }
@@ -131,17 +131,19 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
     }
 
     private redoesAfterUndo(
-        action: GameAction,
+        undone: readonly GameAction[],
+        position: number,
         target: GameAction,
         exploration?: ExplorationState
     ): boolean {
+        const action = undone[position]
         if (
             action.playerId !== undefined &&
             action.playerId !== target.playerId &&
             isSameSimultaneousGroup(action, target)
         )
             return true
-        if (!isOutOfTurnDeclaration(action) || action.id === target.id) return false
+        if (!isStandingDeclaration(undone, position) || action.id === target.id) return false
         if (!this.recordedBeforeExploration(action, exploration)) return true
         return this.engine.runtime.exploration?.keepsSourceDeclaration?.(action) ?? true
     }

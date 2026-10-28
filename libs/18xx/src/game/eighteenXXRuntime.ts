@@ -42,6 +42,10 @@ import { PrivateExchangeHandler } from '../privates/privateExchangeHandler.js'
 import { PrivatePowerRequestHandler } from '../privates/privatePowerRequestHandler.js'
 import { routeActions } from '../routes/routeActions.js'
 import { RunningTrainsHandler } from '../routes/runningTrainsHandler.js'
+import { InstructedRunsHandler } from '../routes/instructedRunsHandler.js'
+import { runInstructionActions } from '../routes/runInstructionActions.js'
+import { RunInstructionHandler } from '../routes/runInstructionHandler.js'
+import type { RunInstructionStep } from '../routes/runInstructionEvaluation.js'
 import { HomeStationChoiceHandler } from '../stations/chooseHomeStation.js'
 import { PlacingStationHandler } from '../stations/placingStationHandler.js'
 import { stationActions } from '../stations/stationActions.js'
@@ -86,6 +90,7 @@ function validateStateComposition(
         | 'stockRules'
         | 'privatePowerRules'
         | 'trainFundingRules'
+        | 'runInstructions'
     >,
     handlers: Readonly<Record<string, unknown>>
 ): void {
@@ -114,6 +119,10 @@ function validateStateComposition(
     assert(
         !options.cashCrisisRules || 'bankruptPlayerIds' in schema.properties,
         'Cash crises record the bankrupt players'
+    )
+    assert(
+        !options.runInstructions || 'runInstructions' in schema.properties,
+        'Run instructions need their state field'
     )
     const machine = schema.properties.machineState
     const states = 'anyOf' in machine && Array.isArray(machine.anyOf) ? machine.anyOf : [machine]
@@ -190,6 +199,16 @@ export function createEighteenXXRuntime<
         endsGame(
             allowsPrivatePowerRequests(allowsCompanyDecisions(allowsExchange(allowsLoans(handler))))
         )
+    const runInstructionRules = {
+        routeRules: options.routeRules,
+        trainRules: options.trainRules,
+        earningsRules: options.earningsRules,
+        ...(receivershipRules ? { receivershipRules } : {})
+    }
+    const followsRunInstructions = (step: RunInstructionStep, handler: Handler): Handler =>
+        options.runInstructions
+            ? new RunInstructionHandler(step, handler, runInstructionRules)
+            : handler
     const familyStateHandlers: Record<string, Handler> = {
         ...(options.offerAuctionRules
             ? {
@@ -308,84 +327,102 @@ export function createEighteenXXRuntime<
                 )
             )
         ),
-        LayingTrack: new AutomaticTrackCompletionHandler(
-            options.trackRules,
-            operatingStep(
-                operatesReceivership(
-                    'LayingTrack',
-                    decides(
+        LayingTrack: followsRunInstructions(
+            'LayingTrack',
+            new AutomaticTrackCompletionHandler(
+                options.trackRules,
+                operatingStep(
+                    operatesReceivership(
                         'LayingTrack',
-                        new LayingTrackHandler(options.trackRules, after('LayingTrack'))
+                        decides(
+                            'LayingTrack',
+                            new LayingTrackHandler(options.trackRules, after('LayingTrack'))
+                        )
                     )
-                )
-            ),
-            options.additionalConstructionActions
+                ),
+                options.additionalConstructionActions
+            )
         ),
         ...(familySteps.includes('PlacingStation')
             ? {
-                  PlacingStation: operatingStep(
-                      operatesReceivership(
-                          'PlacingStation',
-                          decides(
+                  PlacingStation: followsRunInstructions(
+                      'PlacingStation',
+                      operatingStep(
+                          operatesReceivership(
                               'PlacingStation',
-                              new PlacingStationHandler(
-                                  options.stationRules,
-                                  after('PlacingStation')
+                              decides(
+                                  'PlacingStation',
+                                  new PlacingStationHandler(
+                                      options.stationRules,
+                                      after('PlacingStation')
+                                  )
                               )
                           )
                       )
                   )
               }
             : {}),
-        RunningTrains: operatingStep(
-            operatesReceivership(
-                'RunningTrains',
-                decides(
+        RunningTrains: followsRunInstructions(
+            'RunningTrains',
+            operatingStep(
+                operatesReceivership(
                     'RunningTrains',
-                    new RunningTrainsHandler(options.routeRules, after('RunningTrains'))
-                )
-            )
-        ),
-        DistributingEarnings: operatingStep(
-            operatesReceivership(
-                'DistributingEarnings',
-                decides(
-                    'DistributingEarnings',
-                    new DistributingEarningsHandler(
-                        options.earningsRules,
-                        after('DistributingEarnings'),
-                        receivershipRules
+                    decides(
+                        'RunningTrains',
+                        new RunningTrainsHandler(options.routeRules, after('RunningTrains'))
                     )
                 )
             )
         ),
-        BuyingTrains: new AutomaticTrainCompletionHandler(
+        DistributingEarnings: followsRunInstructions(
+            'DistributingEarnings',
             operatingStep(
                 operatesReceivership(
-                    'BuyingTrains',
+                    'DistributingEarnings',
                     decides(
+                        'DistributingEarnings',
+                        new DistributingEarningsHandler(
+                            options.earningsRules,
+                            after('DistributingEarnings'),
+                            receivershipRules
+                        )
+                    )
+                )
+            )
+        ),
+        BuyingTrains: followsRunInstructions(
+            'BuyingTrains',
+            new AutomaticTrainCompletionHandler(
+                operatingStep(
+                    operatesReceivership(
                         'BuyingTrains',
-                        trainFundingRules
-                            ? new BuyingTrainsHandler(
-                                  options.trainRules,
-                                  trainFundingRules,
-                                  rules,
-                                  after('BuyingTrains')
-                              )
-                            : new OrdinaryBuyingTrainsHandler(
-                                  options.trainRules,
-                                  after('BuyingTrains')
-                              )
+                        decides(
+                            'BuyingTrains',
+                            trainFundingRules
+                                ? new BuyingTrainsHandler(
+                                      options.trainRules,
+                                      trainFundingRules,
+                                      rules,
+                                      after('BuyingTrains')
+                                  )
+                                : new OrdinaryBuyingTrainsHandler(
+                                      options.trainRules,
+                                      after('BuyingTrains')
+                                  )
+                        )
                     )
                 )
             )
         ),
         ...(loanRules
             ? {
-                  RepayingLoans: endsGame(
-                      decides(
-                          'RepayingLoans',
-                          new RepayingLoansHandler(loanRules, options.trainRules)
+                  RepayingLoans: followsRunInstructions(
+                      'RepayingLoans',
+                      endsGame(
+                          decides(
+                              'RepayingLoans',
+                              new RepayingLoansHandler(loanRules, options.trainRules)
+                          )
                       )
                   )
               }
@@ -403,10 +440,15 @@ export function createEighteenXXRuntime<
             !(machineState in familyStateHandlers),
             `${machineState} already has a family handler; wrap its decisions instead`
         )
-    const stateHandlers: Record<string, Handler> = {
-        ...familyStateHandlers,
-        ...options.titleStateHandlers
-    }
+    const instructedRunRules = options.runInstructions ? options.routeRules : undefined
+    const stateHandlers: Record<string, Handler> = Object.fromEntries(
+        Object.entries({ ...familyStateHandlers, ...options.titleStateHandlers }).map(
+            ([machineState, handler]) => [
+                machineState,
+                new InstructedRunsHandler(handler, instructedRunRules)
+            ]
+        )
+    )
     const actions = new ActionRegistry([
         ...endingActions(options.endingRules),
         ...auctionActions(
@@ -459,6 +501,7 @@ export function createEighteenXXRuntime<
         ...companyActions(companyRules, rules),
         ...stationActions(options.stationRules),
         ...routeActions(options.routeRules),
+        ...(options.runInstructions ? runInstructionActions(options.routeRules) : []),
         ...earningsActions(
             options.earningsRules,
             options.privateRules,

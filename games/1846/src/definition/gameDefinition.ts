@@ -111,6 +111,7 @@ export const TitleRules1846: EighteenXXTitleRules<
     earningsRules: EarningsRules1846,
     routeRules: RouteRules1846,
     trainRules: TrainRules1846,
+    runInstructions: true,
     phases: Phases1846,
     phaseRules: PhaseRules1846,
     trainFundingRules: TrainFundingRules1846,

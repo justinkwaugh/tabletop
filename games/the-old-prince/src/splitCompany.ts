@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '@tabletop/18xx'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -13,7 +13,7 @@ import { TheOldPrinceBranchSplit, type BranchSplitState } from './branchSplit.js
 
 export const SplitCompany = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('SplitCompany'),
         parentId: Type.String(),
         branchId: Type.String(),

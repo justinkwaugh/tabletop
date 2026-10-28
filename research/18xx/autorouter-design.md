@@ -145,3 +145,55 @@ the full 1846 game, paid-station selection, paid-only connection bonuses, identi
 and distinct train profiles, and longest-route bonus assignment. The independent
 native permutation oracle now also checks 200 graphs with payment limits,
 connection bonuses and fleet bonuses, in addition to their ordinary profiles.
+
+## Exact fleet selection
+
+The encoded fleet problem is partitioned maximum-weight set packing: each route
+consumes track resources and one train slot. Equivalently, legal fleets are
+cliques in a graph joining disjoint routes of different trains. Exact
+branch-and-bound with bitset intersections and weighted independent-set bounds
+is a practical algorithm family for this problem; see
+[the independent-set-cover approach to maximum weighted clique](https://doi.org/10.1016/j.cor.2019.05.017).
+There is no universally fastest algorithm for this NP-hard problem.
+
+Selection indexes candidates by resource once. A candidate's compatibility row
+is then the complement of the union of its resource indexes, computed on first
+use and cached. Rows contain only the remaining train profiles. Each search depth
+reuses its own available-candidate bitset, intersects it with the cached row, and
+records the first occupied word for each profile. Conflict checks no longer scan
+every route's resources on every visit to a branch.
+
+Profiles are ordered by descending maximum revenue, then candidate count, with
+stable input order breaking ties. A branch's upper bound sums the best remaining
+candidate revenues for the remaining train slots, ignoring conflicts between
+those candidates. This is an admissible weighted independent-set bound because a
+train can select at most one route. Identical profiles share a domain; their bound
+uses the best distinct candidates, and their choices have increasing candidate
+indices. Any feasible assignment of identical trains can be permuted into this
+order. Skipping a profile therefore skips its remaining identical train slots.
+Original train identities and output ordering are restored when emitting routes.
+
+The longest-route bonus remains a fleet maximum. Bounds include the greatest
+possible remaining visit count, using precomputed suffix maxima in revenue order;
+they never assume that the highest-revenue route is also the longest. The loop
+over a profile reuses the bound for later profiles, taking the maximum visit
+count across both parts before adding the bonus once. These bounds may
+overestimate, but cannot discard a better fleet. Fixed ordering, bit iteration,
+and strict incumbent improvement keep completed searches deterministic.
+Deadline checks retain the existing
+nonexhaustive-result contract. The wire format and TypeScript interface are
+unchanged.
+
+This changes selection procedure only. The full route-trait survey above still
+governs the supported policy: TOP's H/+ distances, 1889's ordinary/diesel revenue,
+and 1846's payment selection and longest-route bonus all produce the same candidate
+data as before. Track sharing, repeated-stop payment, or connected service sets
+in 1862, 1877 Stockholm, 1860 and 18GB would require a different encoded policy;
+the compatibility graph does not add support for those mechanisms.
+
+Verification adds mixed fleets with nonadjacent identical profiles, candidate and
+resource sets crossing multiple bitset words, and a longest-route bonus that
+outweighs higher-base-revenue routes. A large-bonus case checks that the bound
+does not overflow by counting the fleet bonus twice. The recorded six-title corpus
+provides an additional differential check against the preserved native executable; benchmark
+inputs and generated measurements remain outside the repository.

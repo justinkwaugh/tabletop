@@ -93,4 +93,5 @@ export interface EighteenXXTitleRules<
     cashCrisisRules?: CashCrisisRules
     /** How a company without a president keeps operating, and how a presidency is reclaimed. */
     receivershipRules?: ReceivershipRules
+    runInstructions?: true
 }

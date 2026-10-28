@@ -134,7 +134,11 @@ describe('share price protection', () => {
         play.act('FinishStockTurn')
         expect(play.state.machineState).toBe('ProtectingPrice')
         expect(play.state.activePlayerIds).toEqual(['blair'])
-        expect(play.valid('blair')).toEqual(['ProtectShares', 'DeclineProtection'])
+        expect(play.valid('blair')).toEqual([
+            'ProtectShares',
+            'DeclineProtection',
+            'SetRunInstruction'
+        ])
         play.act('ProtectShares', { companyId: 'CG' }, 'blair')
         expect(play.state.machineState).toBe('StockRound')
         expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('0:6')
@@ -253,7 +257,11 @@ describe('share price protection', () => {
             // With nothing left to buy, casey's turn ends with the second sale.
             sell(play, 'CG', 1)
             expect(play.state.activePlayerIds).toEqual(['alex'])
-            expect(play.valid('alex')).toEqual(['ProtectShares', 'DeclineProtection'])
+            expect(play.valid('alex')).toEqual([
+                'ProtectShares',
+                'DeclineProtection',
+                'SetRunInstruction'
+            ])
             return play
         }
         const both = caseySells()

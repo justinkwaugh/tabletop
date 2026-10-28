@@ -20,7 +20,7 @@
     import PositionPanel from './PositionPanel.svelte'
     import TurnRecap from './TurnRecap.svelte'
     import { setPlaceLinks } from '../places/placeLinks.js'
-    import StandingInstruction from '../stock/StandingInstruction.svelte'
+    import InstructionBar from './InstructionBar.svelte'
     import TurnHeading from './TurnHeading.svelte'
     import {
         companyFocusLocations,
@@ -1230,9 +1230,6 @@
                                     {trainColors}
                                     describeAction={historyDescription}
                                 />
-                                {#if !session.isViewingHistory}<StandingInstruction
-                                        {session}
-                                    />{/if}
                             {:else}
                                 {#if auctionTurnPlayerId}<TurnHeading
                                         {session}
@@ -1245,6 +1242,7 @@
                                     />{/if}
                                 {@render actions(focusLocation, focusRoute)}
                             {/if}
+                            {#if !session.isViewingHistory}<InstructionBar {session} />{/if}
                         </section>
                     </div>
                     {#if !paneLayout.current}{@render operatingOrderContent()}{/if}
