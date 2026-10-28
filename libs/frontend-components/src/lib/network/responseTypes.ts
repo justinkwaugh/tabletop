@@ -30,7 +30,8 @@ export const UserResponse = Type.Evaluate(
     ])
 )
 
-export type DiscordAuthorizationPurpose = 'login' | 'link'
+export const DISCORD_AUTHORIZATION_PURPOSES = ['login', 'link', 'reauthenticate'] as const
+export type DiscordAuthorizationPurpose = (typeof DISCORD_AUTHORIZATION_PURPOSES)[number]
 
 export type DiscordAuthorizationStart = Static<typeof DiscordAuthorizationStart>
 export const DiscordAuthorizationStart = Type.Object({

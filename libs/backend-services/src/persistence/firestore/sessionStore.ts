@@ -175,11 +175,11 @@ const sessionConverter = {
         return session
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): AuthenticatedSession {
-        const { providerAuthorization, ...data } = snapshot.data()
+        const { authenticatedAt, providerAuthorization, ...data } = snapshot.data()
         const session = Value.Convert(AuthenticatedSession, {
             ...data,
             createdAt: toDate(data.createdAt),
-            authenticatedAt: toDate(data.authenticatedAt),
+            ...(authenticatedAt === undefined ? {} : { authenticatedAt: toDate(authenticatedAt) }),
             expiresAt: toDate(data.expiresAt),
             ...(providerAuthorization === undefined
                 ? {}

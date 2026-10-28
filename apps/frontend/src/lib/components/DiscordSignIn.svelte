@@ -1,16 +1,33 @@
 <script module lang="ts">
     import { PUBLIC_ENABLE_DISCORD_LOGIN } from '$env/static/public'
     export const isEnabled: boolean = !!PUBLIC_ENABLE_DISCORD_LOGIN
+    export type DiscordSignInMode = 'login' | 'link' | 'reauthenticate' | 'bot'
 </script>
 
 <script lang="ts">
     import { toast } from 'svelte-sonner'
     import { getAppContext } from '@tabletop/frontend-components'
-    import { openDiscordAuthorization, popupFeatures } from '$lib/utils/discordAuthorization'
+    import {
+        popupFeatures,
+        type DiscordAuthorizationSuccess
+    } from '$lib/utils/discordAuthorization'
+    import { signInWithDiscord } from '$lib/utils/discordSignIn'
 
-    let { mode = 'login' }: { mode: 'link' | 'login' | 'bot' } = $props()
+    let {
+        mode = 'login',
+        oncomplete
+    }: {
+        mode?: DiscordSignInMode
+        oncomplete?: (result: DiscordAuthorizationSuccess) => void
+    } = $props()
 
     const { api } = getAppContext()
+    const labels: Record<DiscordSignInMode, string> = {
+        login: 'Login with Discord',
+        link: 'Link',
+        reauthenticate: 'Continue with Discord',
+        bot: 'Add Bot'
+    }
 
     function addBot() {
         window.open(
@@ -25,16 +42,16 @@
             addBot()
             return
         }
-        openDiscordAuthorization({ purpose: mode, api, report: toast.error })
+        void signInWithDiscord({ purpose: mode, api, oncomplete, report: toast.error })
     }
 </script>
 
 <button
     type="button"
     class="flex items-center justify-center rounded-full bg-[#5865F2] hover:bg-[#4752C4] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#99AAFF] {mode ===
-    'login'
+        'login' || mode === 'reauthenticate'
         ? 'px-6'
-        : 'px-2'} py-2 text-sm font-medium text-white {mode === 'login'
+        : 'px-2'} py-2 text-sm font-medium text-white {mode === 'login' || mode === 'reauthenticate'
         ? 'w-full'
         : mode === 'link'
           ? 'w-[100px]'
@@ -60,5 +77,5 @@
             </path>
         </g>
     </svg>
-    <span>{mode === 'login' ? 'Login with Discord' : mode === 'link' ? 'Link' : 'Add Bot'}</span>
+    <span>{labels[mode]}</span>
 </button>

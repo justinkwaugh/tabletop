@@ -1,12 +1,29 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Role, UserStatus, type User } from '@tabletop/common'
+
+vi.mock('@tabletop/frontend-components', () => ({
+    DISCORD_AUTHORIZATION_PURPOSES: ['login', 'link', 'reauthenticate'],
+    APIError: class APIError extends Error {
+        constructor({ name, message }: { name: string; message: string }) {
+            super(message)
+            this.name = name
+        }
+    }
+}))
+import { APIError } from '@tabletop/frontend-components'
 import {
     completeDiscordAuthorization,
+    DiscordAuthorizationError,
     onDiscordAuthorizationResult,
     openDiscordAuthorization,
+    POPUP_CLOSE_GRACE_MS,
+    POPUP_CLOSE_WATCH_MS,
+    POPUP_START_TIMEOUT_MS,
+    purposeOfState,
     type DiscordAuthorizationApi,
     type DiscordAuthorizationResult
 } from './discordAuthorization'
+import type { DiscordAuthorizationStart } from '@tabletop/frontend-components'
 
 const user: User = {
     id: 'account-1',
@@ -22,12 +39,13 @@ type Popup = { location: { href: string }; close: () => void; closed: boolean }
 function fakeApi() {
     const api = {
         beginDiscordAuthorization: vi.fn(async (purpose: string) => ({
-            state: `${purpose}-state`,
-            authorizationUrl: `https://discord.test/authorize?state=${purpose}-state`,
+            state: `${purpose}.nonce`,
+            authorizationUrl: `https://discord.test/authorize?state=${purpose}.nonce`,
             expiresInSeconds: LIFETIME_SECONDS
         })),
         loginDiscord: vi.fn(async () => user),
-        linkDiscord: vi.fn(async () => user)
+        linkDiscord: vi.fn(async () => user),
+        reauthenticateDiscord: vi.fn(async () => {})
     }
     const remote: DiscordAuthorizationApi = api
     return { api, remote }
@@ -63,7 +81,7 @@ beforeEach(() => {
     results.length = 0
     addListener.mockClear()
     removeListener.mockClear()
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
 })
 afterEach(() => {
     vi.useRealTimers()
@@ -74,14 +92,13 @@ afterAll(() => otherTab.close())
 // Channel messages are delivered on the next turn of the event loop, which fake timers leave alone.
 const delivered = () => new Promise((resolve) => setImmediate(resolve))
 
-async function openAndStart(purpose: 'login' | 'link') {
+async function openAndStart(purpose: 'login' | 'link' | 'reauthenticate') {
     const popup = newPopup()
     const open = stubWindow(popup)
     const { api, remote } = fakeApi()
-    const report = vi.fn()
-    openDiscordAuthorization({ purpose, api: remote, report })
+    const pending = openDiscordAuthorization({ purpose, api: remote })
     await delivered()
-    return { popup, open, api, report }
+    return { popup, open, api, pending }
 }
 
 function expectNoLeakedListener() {
@@ -90,96 +107,220 @@ function expectNoLeakedListener() {
 
 describe('opening a Discord authorization', () => {
     it('opens the popup during the click and points it at the issued authorization URL', async () => {
-        const { popup, open, api, report } = await openAndStart('login')
+        const { popup, open, api, pending } = await openAndStart('login')
         expect(open).toHaveBeenCalledWith(
             'about:blank',
             'Discord Authorization',
             expect.stringContaining('popup=true')
         )
         expect(api.beginDiscordAuthorization).toHaveBeenCalledWith('login')
-        expect(popup.location.href).toBe('https://discord.test/authorize?state=login-state')
-        fromPopup({ state: 'other-state', outcome: 'error', message: 'someone else' })
-        await delivered()
-        expect(report).not.toHaveBeenCalled()
-        expect(removeListener).not.toHaveBeenCalled()
-        fromPopup({ state: 'login-state', purpose: 'login', outcome: 'success', user })
-        await delivered()
-        expect(report).not.toHaveBeenCalled()
+        expect(popup.location.href).toBe('https://discord.test/authorize?state=login.nonce')
+        fromPopup({
+            state: 'other.nonce',
+            outcome: 'error',
+            error: { name: 'Error', message: 'someone else' }
+        })
+        fromPopup({ state: 'login.nonce', purpose: 'login', outcome: 'success', user })
+        await expect(pending).resolves.toMatchObject({ state: 'login.nonce', outcome: 'success' })
         expectNoLeakedListener()
     })
 
-    it('reports the refusal the popup broadcast for its own attempt and stops listening', async () => {
-        const { report } = await openAndStart('link')
+    it('rejects with the error the popup reported, keeping its name', async () => {
+        const { pending } = await openAndStart('link')
         fromPopup({
-            state: 'link-state',
+            state: 'link.nonce',
+            purpose: 'link',
             outcome: 'error',
-            message: 'The provider authorization does not belong to this request'
+            error: {
+                name: 'RecentAuthenticationRequiredError',
+                message: 'Recent authentication is required'
+            }
         })
-        await delivered()
-        expect(report).toHaveBeenCalledWith(
-            'The provider authorization does not belong to this request'
-        )
+        const error = await pending.catch((caught: unknown) => caught)
+        expect(error).toBeInstanceOf(APIError)
+        expect(error).toMatchObject({
+            name: 'RecentAuthenticationRequiredError',
+            message: 'Recent authentication is required'
+        })
         expectNoLeakedListener()
-        fromPopup({ state: 'link-state', outcome: 'error', message: 'again' })
-        await delivered()
-        expect(report).toHaveBeenCalledTimes(1)
+    })
+
+    it('rebuilds a refusal raised by the popup itself as a DiscordAuthorizationError', async () => {
+        const { pending } = await openAndStart('login')
+        fromPopup({
+            state: 'login.nonce',
+            outcome: 'error',
+            error: { name: 'DiscordAuthorizationError', message: 'Denied' }
+        })
+        await expect(pending).rejects.toBeInstanceOf(DiscordAuthorizationError)
     })
 
     it('closes the popup and reports the refusal when the authorization cannot begin', async () => {
         const popup = newPopup()
         stubWindow(popup)
         const { api, remote } = fakeApi()
-        api.beginDiscordAuthorization.mockRejectedValueOnce(new Error('No session found'))
-        const report = vi.fn()
-        openDiscordAuthorization({ purpose: 'link', api: remote, report })
-        await delivered()
-        expect(report).toHaveBeenCalledWith('No session found')
+        api.beginDiscordAuthorization.mockRejectedValueOnce(
+            new Error('RecentAuthenticationRequired')
+        )
+        await expect(openDiscordAuthorization({ purpose: 'link', api: remote })).rejects.toThrow(
+            'RecentAuthenticationRequired'
+        )
         expect(popup.closed).toBe(true)
         expect(popup.location.href).toBe('about:blank')
         expect(addListener).not.toHaveBeenCalled()
     })
 
-    it('reports a blocked popup without contacting the server', () => {
+    it('reports a blocked popup without contacting the server', async () => {
         stubWindow(null)
         const { api, remote } = fakeApi()
-        const report = vi.fn()
-        openDiscordAuthorization({ purpose: 'login', api: remote, report })
-        expect(report).toHaveBeenCalledWith('The browser blocked the Discord window')
+        await expect(
+            openDiscordAuthorization({ purpose: 'login', api: remote })
+        ).rejects.toBeInstanceOf(DiscordAuthorizationError)
         expect(api.beginDiscordAuthorization).not.toHaveBeenCalled()
     })
 
-    it('neither navigates nor listens when the popup is closed while the attempt begins', async () => {
+    it('gives up without navigating or listening when the popup is closed while the attempt begins', async () => {
         const popup = newPopup()
         stubWindow(popup)
         const { api, remote } = fakeApi()
-        let started: (
-            value: Awaited<ReturnType<typeof api.beginDiscordAuthorization>>
-        ) => void = () => {}
-        api.beginDiscordAuthorization.mockReturnValueOnce(
-            new Promise((resolve) => (started = resolve))
+        let begun: (start: {
+            state: string
+            authorizationUrl: string
+            expiresInSeconds: number
+        }) => void = () => {}
+        api.beginDiscordAuthorization.mockImplementationOnce(
+            () => new Promise((resolve) => (begun = resolve))
         )
-        openDiscordAuthorization({ purpose: 'login', api: remote, report: vi.fn() })
+        const pending = openDiscordAuthorization({ purpose: 'login', api: remote })
+        await delivered()
         popup.close()
-        started({
-            state: 'login-state',
-            authorizationUrl: 'https://discord.test/authorize?state=login-state',
+        begun({
+            state: 'login.nonce',
+            authorizationUrl: 'https://discord.test/authorize',
+            expiresInSeconds: LIFETIME_SECONDS
+        })
+        await expect(pending).rejects.toThrow('The Discord window was closed')
+        expect(popup.location.href).toBe('about:blank')
+        expect(addListener).not.toHaveBeenCalled()
+        expect(vi.getTimerCount()).toBe(0)
+    })
+
+    function openWhileBeginPends(purpose: 'login' | 'link') {
+        const popup = newPopup()
+        stubWindow(popup)
+        const { api, remote } = fakeApi()
+        const start = Promise.withResolvers<DiscordAuthorizationStart>()
+        api.beginDiscordAuthorization.mockImplementationOnce(() => start.promise)
+        const pending = openDiscordAuthorization({ purpose, api: remote })
+        const outcome = vi.fn()
+        pending.then(outcome, outcome)
+        return { popup, start, pending, outcome }
+    }
+
+    it('settles as closed while the attempt is still beginning and ignores the answer that arrives later', async () => {
+        const { popup, start, pending, outcome } = openWhileBeginPends('login')
+        popup.close()
+        await vi.advanceTimersByTimeAsync(POPUP_CLOSE_WATCH_MS)
+        await expect(pending).rejects.toThrow('The Discord window was closed')
+        expect(vi.getTimerCount()).toBe(0)
+
+        start.resolve({
+            state: 'login.nonce',
+            authorizationUrl: 'https://discord.test/authorize?state=login.nonce',
+            expiresInSeconds: LIFETIME_SECONDS
+        })
+        await delivered()
+        await vi.advanceTimersByTimeAsync(POPUP_CLOSE_GRACE_MS)
+        expect(popup.location.href).toBe('about:blank')
+        expect(addListener).not.toHaveBeenCalled()
+        expect(vi.getTimerCount()).toBe(0)
+        fromPopup({ state: 'login.nonce', purpose: 'login', outcome: 'success', user })
+        await delivered()
+        expect(outcome).toHaveBeenCalledTimes(1)
+    })
+
+    it('settles as closed while the attempt is still beginning even when the server later refuses it', async () => {
+        const { popup, start, pending, outcome } = openWhileBeginPends('link')
+        popup.close()
+        await vi.advanceTimersByTimeAsync(POPUP_CLOSE_WATCH_MS)
+        await expect(pending).rejects.toThrow('The Discord window was closed')
+
+        start.reject(new Error('RecentAuthenticationRequired'))
+        await delivered()
+        expect(outcome).toHaveBeenCalledTimes(1)
+        expect(outcome.mock.calls[0][0]).toMatchObject({ message: 'The Discord window was closed' })
+        expect(vi.getTimerCount()).toBe(0)
+    })
+
+    it('gives up and closes the window when the attempt cannot begin within the startup wait', async () => {
+        const { popup, start, pending, outcome } = openWhileBeginPends('login')
+        await vi.advanceTimersByTimeAsync(POPUP_START_TIMEOUT_MS - 1)
+        expect(outcome).not.toHaveBeenCalled()
+        expect(popup.closed).toBe(false)
+        await vi.advanceTimersByTimeAsync(1)
+        await expect(pending).rejects.toThrow('could not start in time')
+        expect(popup.closed).toBe(true)
+        expect(vi.getTimerCount()).toBe(0)
+
+        start.resolve({
+            state: 'login.nonce',
+            authorizationUrl: 'https://discord.test/authorize?state=login.nonce',
             expiresInSeconds: LIFETIME_SECONDS
         })
         await delivered()
         expect(popup.location.href).toBe('about:blank')
         expect(addListener).not.toHaveBeenCalled()
+        expect(vi.getTimerCount()).toBe(0)
+        expect(outcome).toHaveBeenCalledTimes(1)
     })
 
-    it('stops listening once the server-side attempt has expired', async () => {
-        const { report } = await openAndStart('link')
-        expect(addListener).toHaveBeenCalledTimes(1)
-        vi.advanceTimersByTime(LIFETIME_SECONDS * 1000 - 1)
-        expect(removeListener).not.toHaveBeenCalled()
-        vi.advanceTimersByTime(1)
+    it('does not count the startup wait against an attempt that has begun', async () => {
+        const { popup, pending } = await openAndStart('login')
+        await vi.advanceTimersByTimeAsync(POPUP_START_TIMEOUT_MS + POPUP_CLOSE_WATCH_MS)
+        expect(popup.closed).toBe(false)
+        fromPopup({ state: 'login.nonce', purpose: 'login', outcome: 'success', user })
+        await expect(pending).resolves.toMatchObject({ outcome: 'success' })
+        expect(vi.getTimerCount()).toBe(0)
         expectNoLeakedListener()
-        fromPopup({ state: 'link-state', outcome: 'error', message: 'late' })
+    })
+
+    it('settles once as abandoned when the popup is closed and nothing arrives in the grace period', async () => {
+        const { popup, pending } = await openAndStart('link')
+        const outcome = vi.fn()
+        pending.then(outcome, outcome)
+        popup.close()
+        await vi.advanceTimersByTimeAsync(POPUP_CLOSE_WATCH_MS + POPUP_CLOSE_GRACE_MS - 1)
+        expect(outcome).not.toHaveBeenCalled()
+        await vi.advanceTimersByTimeAsync(1)
+        await expect(pending).rejects.toThrow('The Discord window was closed')
+        expect(vi.getTimerCount()).toBe(0)
+        expectNoLeakedListener()
+        fromPopup({ state: 'link.nonce', purpose: 'link', outcome: 'success', user })
         await delivered()
-        expect(report).not.toHaveBeenCalled()
+        await vi.advanceTimersByTimeAsync(POPUP_CLOSE_GRACE_MS)
+        expect(outcome).toHaveBeenCalledTimes(1)
+    })
+
+    it('still succeeds when the popup closes right after broadcasting its result', async () => {
+        const { popup, pending } = await openAndStart('reauthenticate')
+        popup.close()
+        await vi.advanceTimersByTimeAsync(POPUP_CLOSE_WATCH_MS)
+        fromPopup({ state: 'reauthenticate.nonce', purpose: 'reauthenticate', outcome: 'success' })
+        await expect(pending).resolves.toMatchObject({ outcome: 'success' })
+        expect(vi.getTimerCount()).toBe(0)
+        expectNoLeakedListener()
+    })
+
+    it('abandons the attempt and closes the popup once the server-side attempt has expired', async () => {
+        const { popup, pending } = await openAndStart('login')
+        const abandoned = expect(pending).rejects.toThrow('took too long')
+        await vi.advanceTimersByTimeAsync(LIFETIME_SECONDS * 1000 - 1)
+        expect(popup.closed).toBe(false)
+        await vi.advanceTimersByTimeAsync(1)
+        await abandoned
+        expect(popup.closed).toBe(true)
+        expect(vi.getTimerCount()).toBe(0)
+        expectNoLeakedListener()
     })
 })
 
@@ -187,14 +328,14 @@ describe('listening for results from another tab', () => {
     it('delivers results posted by the popup to every registered handler until it stops', async () => {
         const received: string[] = []
         const stop = onDiscordAuthorizationResult((result) => received.push(result.state))
-        fromPopup({ state: 'one', purpose: 'link', outcome: 'success', user })
+        fromPopup({ state: 'link.one', purpose: 'link', outcome: 'success', user })
         otherTab.postMessage({ unrelated: true })
-        otherTab.postMessage({ state: 'bad', outcome: 'error' })
+        otherTab.postMessage({ state: 'link.bad', outcome: 'error' })
         await delivered()
         stop()
-        fromPopup({ state: 'two', purpose: 'link', outcome: 'success', user })
+        fromPopup({ state: 'link.two', purpose: 'link', outcome: 'success', user })
         await delivered()
-        expect(received).toEqual(['one'])
+        expect(received).toEqual(['link.one'])
     })
 })
 
@@ -203,66 +344,89 @@ describe('completing a Discord callback', () => {
         const { api, remote } = fakeApi()
         await completeDiscordAuthorization({
             url: new URL('https://site.test/oauth/discord/link?code=attacker-code'),
-            purpose: 'link',
             api: remote
         })
         await delivered()
         expect(api.linkDiscord).not.toHaveBeenCalled()
+        expect(api.loginDiscord).not.toHaveBeenCalled()
         expect(results).toEqual([])
     })
 
-    it("submits code and state to the page's own route and broadcasts the outcome", async () => {
+    it('submits code and state to the route named by the state and broadcasts the outcome', async () => {
         const { api, remote } = fakeApi()
         await completeDiscordAuthorization({
-            url: new URL('https://site.test/oauth/discord/link?code=victim-code&state=link-state'),
-            purpose: 'link',
+            url: new URL('https://site.test/oauth/discord/link?code=victim-code&state=link.nonce'),
             api: remote
         })
-        expect(api.linkDiscord).toHaveBeenCalledWith('victim-code', 'link-state')
+        expect(api.linkDiscord).toHaveBeenCalledWith('victim-code', 'link.nonce')
         await completeDiscordAuthorization({
-            url: new URL('https://site.test/oauth/discord?code=victim-code&state=login-state'),
-            purpose: 'login',
+            url: new URL('https://site.test/oauth/discord?code=victim-code&state=login.nonce'),
             api: remote
         })
-        expect(api.loginDiscord).toHaveBeenCalledWith('victim-code', 'login-state')
+        expect(api.loginDiscord).toHaveBeenCalledWith('victim-code', 'login.nonce')
+        await completeDiscordAuthorization({
+            url: new URL(
+                'https://site.test/oauth/discord/link?code=victim-code&state=reauthenticate.nonce'
+            ),
+            api: remote
+        })
+        expect(api.reauthenticateDiscord).toHaveBeenCalledWith(
+            'victim-code',
+            'reauthenticate.nonce'
+        )
         await delivered()
-        expect(results).toEqual([
-            { state: 'link-state', purpose: 'link', outcome: 'success', user },
-            { state: 'login-state', purpose: 'login', outcome: 'success', user }
+        expect(results.map((result) => [result.state, result.outcome])).toEqual([
+            ['link.nonce', 'success'],
+            ['login.nonce', 'success'],
+            ['reauthenticate.nonce', 'success']
         ])
     })
 
-    it('broadcasts a refusal from the server for the initiating tab to report', async () => {
+    it('broadcasts a refusal from the server with its name for the initiating tab to act on', async () => {
         const { api, remote } = fakeApi()
         api.linkDiscord.mockRejectedValueOnce(
-            new Error('The provider authorization does not belong to this request')
+            new APIError({
+                name: 'RecentAuthenticationRequiredError',
+                message: 'Recent authentication is required'
+            })
         )
         await completeDiscordAuthorization({
-            url: new URL('https://site.test/oauth/discord/link?code=victim-code&state=link-state'),
-            purpose: 'link',
+            url: new URL('https://site.test/oauth/discord/link?code=victim-code&state=link.nonce'),
             api: remote
         })
         await delivered()
         expect(results).toEqual([
             {
-                state: 'link-state',
+                state: 'link.nonce',
+                purpose: 'link',
                 outcome: 'error',
-                message: 'The provider authorization does not belong to this request'
+                error: {
+                    name: 'RecentAuthenticationRequiredError',
+                    message: 'Recent authentication is required'
+                }
             }
         ])
     })
 
-    it('reports a denied authorization without calling the server', async () => {
+    it('reports a denied authorization or an unknown purpose without calling the server', async () => {
         const { api, remote } = fakeApi()
         await completeDiscordAuthorization({
             url: new URL(
-                'https://site.test/oauth/discord?error=access_denied&error_description=Denied&state=login-state'
+                'https://site.test/oauth/discord?error=access_denied&error_description=Denied&state=login.nonce'
             ),
-            purpose: 'login',
+            api: remote
+        })
+        await completeDiscordAuthorization({
+            url: new URL('https://site.test/oauth/discord?code=victim-code&state=admin.nonce'),
             api: remote
         })
         await delivered()
         expect(api.loginDiscord).not.toHaveBeenCalled()
-        expect(results).toEqual([{ state: 'login-state', outcome: 'error', message: 'Denied' }])
+        expect(results.map((result) => result.outcome)).toEqual(['error', 'error'])
+        expect(results[0]).toMatchObject({
+            error: { name: 'DiscordAuthorizationError', message: 'Denied' }
+        })
+        expect(purposeOfState('admin.nonce')).toBeUndefined()
+        expect(purposeOfState('link.nonce')).toBe('link')
     })
 })

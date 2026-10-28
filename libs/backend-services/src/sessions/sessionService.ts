@@ -8,7 +8,8 @@ import {
     type ProviderAuthorizationRequest,
     verifyProviderAuthorization
 } from '../oauth/providerAuthorization.js'
-import type { AuthenticatedSession } from './authenticatedSession.js'
+import type { AuthenticatedSession, AuthenticationProof } from './authenticatedSession.js'
+import { hasRecentAuthentication } from './recentAuthentication.js'
 
 export const SESSION_LIFETIME_SECONDS = 30 * 24 * 60 * 60
 
@@ -38,7 +39,7 @@ export class SessionService {
         private readonly options: { lifetimeSeconds?: number; now?: () => Date } = {}
     ) {}
 
-    async establish(user: User): Promise<AuthenticatedSession> {
+    async establish(user: User, proof: AuthenticationProof): Promise<AuthenticatedSession> {
         requireSessionEligibleAccount(user)
         const createdAt = this.now()
         const session: AuthenticatedSession = {
@@ -46,7 +47,7 @@ export class SessionService {
             userId: user.id,
             generation: sessionGenerationOf(user),
             createdAt,
-            authenticatedAt: createdAt,
+            ...(proof === 'authentication-method' ? { authenticatedAt: createdAt } : {}),
             expiresAt: new Date(createdAt.getTime() + this.lifetimeSeconds() * 1000)
         }
         await this.sessionStore.create(session)
@@ -74,6 +75,15 @@ export class SessionService {
             return undefined
         }
         return { session, user }
+    }
+
+    isRecentlyAuthenticated(session: AuthenticatedSession): boolean {
+        return hasRecentAuthentication(session, this.now())
+    }
+
+    async recordAuthentication(session: AuthenticatedSession): Promise<AuthenticatedSession> {
+        const authenticatedAt = this.now()
+        return this.updateLive(session.id, (live) => ({ ...live, authenticatedAt }))
     }
 
     issueProviderAuthorization(
