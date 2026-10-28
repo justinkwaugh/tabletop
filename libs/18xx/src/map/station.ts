@@ -45,7 +45,14 @@ export type Station = Type.Static<typeof Station>
  * own there: a station shared with another company, or a private's offboard.
  */
 export const StationAccess = Type.Object(
-    { companyId: Id, locationId: Id, nodeId: Id, sourceId: Id },
+    {
+        companyId: Id,
+        locationId: Id,
+        nodeId: Id,
+        sourceId: Id,
+        /** The company may not trace new stations from it, as from a private's offboard. */
+        placesStations: Type.Optional(Type.Literal(false))
+    },
     { additionalProperties: false }
 )
 export type StationAccess = Type.Static<typeof StationAccess>
@@ -133,7 +140,8 @@ export function cityIsBlocked(
             station.position.nodeId === node.id
     )
     return (
-        stations.length >= node.stationSlots && !usesStationAt(state, companyId, locationId, node.id)
+        stations.length >= node.stationSlots &&
+        !usesStationAt(state, companyId, locationId, node.id)
     )
 }
 
