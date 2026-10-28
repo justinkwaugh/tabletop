@@ -175,6 +175,8 @@ function readyAfter(
     attackApproach: ApproachId,
     lastFired: number
 ): number | undefined {
+    // Once the last turn of the day is played no round is in progress, and no guns wait to fire.
+    if (state.rounds.currentRound === undefined) return undefined
     const ready = lastFired + (firesDownFromAHill(state, attackApproach) ? 1 : 2)
     return ready > state.round ? ready : undefined
 }
