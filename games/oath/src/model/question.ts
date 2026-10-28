@@ -256,7 +256,8 @@ export enum PowerQuestionKind {
     DealKept = 'dealKept',
     /**
      * Squalid District — the end die just rolled to end the game: its ruler raises or lowers it by
-     * one, or leaves it, before it is read (its Q&A: after the roll).
+     * one, or leaves it, before it is read (its Q&A: after the roll). Asked only when one step
+     * changes whether the game ends (`endDieStepMatters`).
      */
     AdjustEndDie = 'adjustEndDie'
 }

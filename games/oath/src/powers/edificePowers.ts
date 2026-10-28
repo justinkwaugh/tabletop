@@ -1,5 +1,6 @@
 import { EDIFICE_POWER_INDEX, EdificeFace } from '../data/cardPowers.js'
 import { edificeName } from '../data/edifices.js'
+import { regionName } from '../data/mapSlots.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, PlayerStatus, Suit } from '../model/oathEnums.js'
@@ -15,7 +16,8 @@ import {
     registerBattlePlan,
     registerEffect,
     registerModifier,
-    registerPersistent
+    registerPersistent,
+    type BattlePlanContext
 } from './registry.js'
 import { drawRelicToKeepOrBottom } from './relicCards.js'
 
@@ -63,15 +65,22 @@ registerPersistent(RAMPART, INTACT, {
     siteDefenseBonus: (ctx, siteId) => (ownersRuleSite(ctx, siteId) ? 1 : 0)
 })
 
-// Bandit Rampart: "-2 [attackDie] if this site is targeted." Defender, cost-free (R-7.5).
+/** Bandit Rampart's site is among the Campaign's targets. */
+function banditRampartTargeted(ctx: BattlePlanContext): boolean {
+    const here = siteHolding(ctx.state, RAMPART)
+    return here !== undefined && targetedSiteIds(ctx.campaign.parties).includes(here)
+}
+
+// Bandit Rampart: "-2 [attackDie] if this site is targeted." Defender, cost-free (R-7.5). The bandits'
+// use is compelled and declared by nobody (R-5.5.3-H1), so it leaves a note for the History; a player's
+// use is named on their own row. The note says 2 even when the pool holds fewer (R-5.5.3).
 registerBattlePlan(RAMPART, RUINED, {
     hooks: {
-        dice: (ctx) => {
-            const here = siteHolding(ctx.state, RAMPART)
-            return here && targetedSiteIds(ctx.campaign.parties).includes(here)
-                ? { attack: -2 }
+        dice: (ctx) => (banditRampartTargeted(ctx) ? { attack: -2 } : undefined),
+        onUse: (ctx) =>
+            ctx.playerId === undefined && banditRampartTargeted(ctx)
+                ? `${edificeName(RAMPART, true)}: the bandits took 2 attack dice`
                 : undefined
-        }
     }
 })
 
@@ -129,7 +138,7 @@ registerEffect(SPIRE, RUINED, {
         const region = regionOfPawn(ctx.state, ctx.playerId)
         const swapped = ctx.reveal?.kind === 'swapped' ? ctx.reveal.count : 0
         return {
-            summary: `${edificeName(SPIRE, true)}: swapped ${swapped} ${swapped === 1 ? 'denizen' : 'denizens'} on the ${region} discard pile with cards from the Dispossessed`
+            summary: `${edificeName(SPIRE, true)}: swapped ${swapped} ${swapped === 1 ? 'denizen' : 'denizens'} in the ${regionName(region)} discard pile with the Dispossessed`
         }
     }
 })

@@ -28,6 +28,8 @@ import { PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
 import { legalPowers, reasonCannotUsePower } from '../util/powerDoorway.js'
 import { currentQuestion } from '../util/questions.js'
 import { endDieAdjuster } from '../util/persistent.js'
+import { endDieStepMatters } from '../util/endDie.js'
+import { endDieThreshold } from '../util/victory.js'
 import { rulersOfSite } from '../util/rule.js'
 import { CURRENT_OATH_REVISION } from '../util/revision.js'
 import './index.js'
@@ -314,10 +316,10 @@ describe('Squalid District — its ruler may raise or lower the end die by one, 
         expect(answered.updatedState.winningPlayerIds).toEqual([DANA])
     })
 
-    it('a 3 lowered to 2 in round seven ends nothing; a 1 lowered to 0 neither', () => {
+    it('a 3 lowered to 2 in round seven ends nothing; a 2 lowered to 1 neither', () => {
         for (const [wanted, after] of [
             [3, 2],
-            [1, 0]
+            [2, 1]
         ]) {
             const options = { round: 7 }
             const rolled = roll(roundEnd({ ...options, seed: seedRolling(wanted, options) }))
@@ -367,7 +369,8 @@ describe('Squalid District — its ruler may raise or lower the end die by one, 
                 warbands: {
                     c1: { [IMPERIAL_WARBANDS]: 1 },
                     c2: { [RHYS]: 1, [IMPERIAL_WARBANDS]: 1 }
-                }
+                },
+                seed: seedRolling(5)
             })
         )
         expect(rolled.processedActions.find(isRollEndDie)?.metadata?.adjustedBy).toBe(DANA)
@@ -394,7 +397,8 @@ describe('Squalid District — its ruler may raise or lower the end die by one, 
                 state: {
                     oathType: OathType.Devotion,
                     banners: testBanners({ [Banner.DarkestSecret]: DANA })
-                }
+                },
+                seed: seedRolling(5)
             })
         )
         expect(rolled.processedActions.find(isRollEndDie)?.metadata?.adjustedBy).toBe(RHYS)
@@ -402,7 +406,11 @@ describe('Squalid District — its ruler may raise or lower the end die by one, 
 
     it('a Citizen holding the Bandit Crown: its bandits are the Empire’s, so the Chancellor is asked', () => {
         const rolled = roll(
-            roundEnd({ at: 'p1', rhys: { relicIds: [BANDIT_CROWN], status: PlayerStatus.Citizen } })
+            roundEnd({
+                at: 'p1',
+                rhys: { relicIds: [BANDIT_CROWN], status: PlayerStatus.Citizen },
+                seed: seedRolling(5)
+            })
         )
         expect(rolled.processedActions.find(isRollEndDie)?.metadata?.adjustedBy).toBe(DANA)
     })
@@ -445,4 +453,69 @@ describe('Squalid District — its ruler may raise or lower the end die by one, 
             ).toEqual(engine.getValidActionTypesForPlayer(game, state, playerId))
         }
     })
+})
+
+// Squalid District asks only when one step changes whether the game ends (R-3.3): the roll is the
+// threshold or one below it. Any other roll is read at once, as with no Squalid District.
+describe('Squalid District — asked only when one step changes whether the game ends', () => {
+    it('one step matters only from the threshold or one below it', () => {
+        const asked = [5, 6, 7].map((round) => {
+            const threshold = endDieThreshold(round) ?? 0
+            return [1, 2, 3, 4, 5, 6].filter((rolled) => endDieStepMatters(rolled, threshold))
+        })
+        expect(asked).toEqual([
+            [5, 6],
+            [4, 5],
+            [2, 3]
+        ])
+    })
+
+    for (const [round, rolled] of [
+        [5, 5],
+        [5, 6],
+        [6, 4],
+        [6, 5],
+        [7, 2],
+        [7, 3]
+    ]) {
+        it(`round ${round} on a ${rolled}: its ruler is asked`, () => {
+            const options = { round }
+            const state = roll(roundEnd({ ...options, seed: seedRolling(rolled, options) }))
+            expect(state.processedActions.find(isRollEndDie)?.metadata).toEqual({
+                roll: rolled,
+                round,
+                threshold: endDieThreshold(round),
+                adjustedBy: RHYS
+            })
+            expect(state.updatedState.machineState).toBe(MachineState.PowerQuestion)
+            expect(state.updatedState.round).toBe(round)
+        })
+    }
+
+    for (const [round, rolled] of [
+        [5, 4],
+        [6, 3],
+        [6, 6],
+        [7, 1],
+        [7, 4]
+    ]) {
+        it(`round ${round} on a ${rolled}: nobody is asked, and the roll is read as with no Squalid District`, () => {
+            const options = { round }
+            const seed = seedRolling(rolled, options)
+            const withDistrict = roll(roundEnd({ ...options, seed }))
+            const withoutDistrict = roll(roundEnd({ ...options, seed, ruined: false }))
+            const metadata = withDistrict.processedActions.find(isRollEndDie)?.metadata
+            expect(metadata?.roll).toBe(rolled)
+            expect(metadata?.adjustedBy).toBeUndefined()
+            expect(metadata).toEqual(withoutDistrict.processedActions.find(isRollEndDie)?.metadata)
+            expect(withDistrict.updatedState.pendingQuestions).toBeUndefined()
+            expect(withDistrict.updatedState.machineState).toBe(
+                withoutDistrict.updatedState.machineState
+            )
+            expect(withDistrict.updatedState.round).toBe(withoutDistrict.updatedState.round)
+            expect(withDistrict.updatedState.winningPlayerIds).toEqual(
+                withoutDistrict.updatedState.winningPlayerIds
+            )
+        })
+    }
 })

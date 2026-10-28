@@ -319,6 +319,19 @@ export function targetDefenseDice(state: HydratedOathGameState, parties: Campaig
     return dice
 }
 
+/** Sprawling Rampart — the targeted sites a persistent power adds a defense die to, as `targetDefenseDice` counts them. */
+export function sitesAddingDefenseDice(
+    state: HydratedOathGameState,
+    parties: CampaignParties
+): string[] {
+    return parties.targets.flatMap((target) =>
+        target.kind === CampaignTargetKind.Site &&
+        persistentSiteDefenseBonus(state, target.siteId, parties) > 0
+            ? [target.siteId]
+            : []
+    )
+}
+
 /** R-2.11.c, R-2.11.d — the Chancellor's title covers a defending Citizen unless R-5.5.1.a suspends them. */
 export function titleDefenseDice(state: HydratedOathGameState, parties: CampaignParties): number {
     const holderId = state.oathkeeperPlayerId

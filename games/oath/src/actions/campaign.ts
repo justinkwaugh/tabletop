@@ -32,6 +32,7 @@ import {
     reasonCannotChooseDefender,
     reasonCannotDeclareTargets,
     scopeOf,
+    sitesAddingDefenseDice,
     suspendedImperialsFor,
     type CampaignParties,
     type DicePools
@@ -146,6 +147,8 @@ export const CampaignBattleMetadata = Type.Object({
         Type.Array(Type.Object({ siteId: Type.String(), attack: Type.Number() }))
     ),
     planNotes: Type.Optional(Type.Array(Type.String())),
+    /** Sprawling Rampart — the targeted sites it added a defense die to; absent when it added none. */
+    defenseBonusSites: Type.Optional(Type.Array(Type.String())),
     awaitingDefender: Type.Optional(Type.Boolean()),
     /** R-5.5.4-H1 — the attack dice held for the defender's reroll, as they will be rolled. */
     heldAttackDice: Type.Optional(Type.Number())
@@ -377,6 +380,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         if (bandits) pools = bandits.pools
 
         const siteDice = attackDiceFromSites(state, sitesWithTargets(state, parties))
+        const defenseBonusSites = sitesAddingDefenseDice(state, parties)
         // R-X.4 — a game created before revision 13 adds the site dice after the plans.
         if (!stepTwo) {
             for (const delta of siteDice) {
@@ -455,6 +459,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             plansUsed: campaign.plansUsed.length > 0 ? campaign.plansUsed : undefined,
             siteDice: siteDice.length > 0 ? siteDice : undefined,
             planNotes: planNotes.length > 0 ? planNotes : undefined,
+            defenseBonusSites: defenseBonusSites.length > 0 ? defenseBonusSites : undefined,
             awaitingDefender: awaitingDefender || undefined,
             heldAttackDice: campaign.pendingAttackRoll ? campaign.attackPool : undefined
         }
