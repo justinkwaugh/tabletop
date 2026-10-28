@@ -88,10 +88,39 @@ describe('BG Stats play links', () => {
                 highestWins: true
             },
             players: [
-                { name: 'Alice & Zoë', sourcePlayerId: 'user:alice', score: 12, winner: true },
-                { name: 'Bob', sourcePlayerId: 'user:bob', score: -4.5, winner: false }
+                {
+                    name: 'Alice & Zoë',
+                    sourcePlayerId: 'user:alice',
+                    score: 12,
+                    winner: true,
+                    startPlayer: false
+                },
+                {
+                    name: 'Bob',
+                    sourcePlayerId: 'user:bob',
+                    score: -4.5,
+                    winner: false,
+                    startPlayer: false
+                }
             ]
         })
+    })
+
+    // BG Stats for Android rejects a play missing any of these with "No value for <field>".
+    it('always sends the flags BG Stats for Android requires', () => {
+        for (const [hasScores, noPoints] of [
+            [true, false],
+            [false, true],
+            [undefined, false]
+        ] as const) {
+            expect(playData(game(), { ...metadata, hasScores })).toMatchObject({
+                game: { noPoints, highestWins: true },
+                players: [
+                    { winner: true, startPlayer: false },
+                    { winner: false, startPlayer: false }
+                ]
+            })
+        }
     })
 
     it('requires opt-in and participation', () => {
@@ -166,10 +195,15 @@ describe('BG Stats play links', () => {
     it('keeps older catalog entries usable without inferring scores or a BGG identity', () => {
         const play = playData(game(), { ...metadata, hasScores: undefined, bggId: undefined })
         expect(play).toMatchObject({
-            game: { name: 'Game & Title', sourceGameId: 'test-title' },
+            game: {
+                name: 'Game & Title',
+                sourceGameId: 'test-title',
+                noPoints: false,
+                highestWins: true
+            },
             players: [{ winner: true }, { winner: false }]
         })
-        for (const field of ['score', 'noPoints', 'highestWins', 'bggId']) {
+        for (const field of ['score', 'bggId']) {
             expect(JSON.stringify(play)).not.toContain(`"${field}":`)
         }
     })
