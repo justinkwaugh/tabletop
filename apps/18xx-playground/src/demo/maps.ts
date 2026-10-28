@@ -1,4 +1,4 @@
-import { type MapToken, type MapRoute } from '@tabletop/18xx-ui'
+import type { MapToken, MapRoute } from '@tabletop/18xx-ui'
 import { PlaygroundTitles, type PlaygroundTitle } from '../titles.js'
 
 export const MapExamples = Object.fromEntries(

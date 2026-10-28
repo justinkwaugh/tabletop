@@ -18,6 +18,7 @@ import type { StockRules } from '../stock/stockRules.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { eliminatePlayer } from './elimination.js'
 import { NoTitleChanges } from '../actions/titleChanges.js'
+import { InstructedRunAttachments } from '../routes/instructedRuns.js'
 import { inReceivership, type ReceivershipRules } from '../finance/receivership.js'
 import {
     Bankruptcy,
@@ -29,6 +30,7 @@ import {
 export type DeclareBankruptcySchema<Changes extends Type.TSchema = NoTitleChanges> = Type.TObject<
     Omit<typeof GameAction.properties, 'type'> & {
         type: Type.TLiteral<'DeclareBankruptcy'>
+        instructedRuns: Type.TOptional<typeof InstructedRunAttachments>
         metadata: Type.TOptional<
             Type.TObject<
                 typeof Bankruptcy.properties & {
@@ -52,6 +54,8 @@ export function declareBankruptcySchema<Changes extends Type.TSchema>(
         {
             ...GameAction.properties,
             type: Type.Literal('DeclareBankruptcy'),
+            // The president declares it, or the System does when no choice remains.
+            instructedRuns: Type.Optional(InstructedRunAttachments),
             metadata: Type.Optional(
                 Type.Object(
                     {

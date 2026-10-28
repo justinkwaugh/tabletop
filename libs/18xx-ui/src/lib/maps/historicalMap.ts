@@ -70,7 +70,10 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
         private readonly openReservations: (
             state: HistoricalMapState
         ) => HistoricalMapState['stationReservations'] = (state) => state.stationReservations,
-        private readonly titlePlacement: TitlePresentation['historyMapPlacement'] = undefined
+        private readonly titlePlacement: TitlePresentation['historyMapPlacement'] = undefined,
+        private readonly liftedPrivateBlocks: (
+            state: HistoricalMapState
+        ) => readonly string[] = () => []
     ) {}
 
     previews(action: GameAction): boolean {
@@ -115,7 +118,8 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
                 {
                     tileSet: view.tileSet,
                     inventory: snapshot.tileInventory,
-                    markers: snapshot.locationMarkers
+                    markers: snapshot.locationMarkers,
+                    liftedPrivateBlocks: this.liftedPrivateBlocks(snapshot)
                 },
                 view
             ),

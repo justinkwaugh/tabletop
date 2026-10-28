@@ -11,15 +11,3 @@ export const ActionChunk = Type.Object({
     endIndex: Type.Number(),
     actions: Type.Array(GameAction)
 })
-
-export type StoredActionChunk = Static<typeof StoredActionChunk>
-export const StoredActionChunk = Type.Evaluate(
-    Type.Intersect([
-        Type.Omit(ActionChunk, ['actions']),
-        Type.Object({
-            actions: Type.Optional(Type.Array(GameAction)),
-            actionsData: Type.String(), // JSON stringified array of GameAction
-            actionIds: Type.Array(Type.String())
-        })
-    ])
-)

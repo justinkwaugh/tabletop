@@ -145,6 +145,10 @@ export class HydratedNapoleonsTriumphGameState
         return AUSTERLITZ
     }
 
+    get roundInProgress(): boolean {
+        return this.rounds.currentRound !== undefined
+    }
+
     get round(): number {
         const current = this.rounds.currentRound
         assertExists(current, 'No round is in progress')

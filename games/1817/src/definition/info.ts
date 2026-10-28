@@ -8,6 +8,8 @@ export const EighteenSeventeenInfo: GameInfo = {
     id: '1817',
     metadata: {
         name: '1817',
+        bggId: 63170,
+        hasScores: true,
         designer: 'Craig Bartell, Tim Flowers',
         year: '2010',
         description:

@@ -3,7 +3,6 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     assertExists,
     type GameAction
@@ -23,7 +22,8 @@ import {
     rotateTileFace,
     type CompanyDecisionState,
     type PrivateTrackTerms,
-    stateWith
+    stateWith,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import { AcquisitionSteps } from './acquisitions.js'
 import { EighteenFortySixMap, PrivateTrackBlocks } from './map.js'
@@ -223,7 +223,7 @@ export class PrivateConstruction {
 
 export const BuildPrivateTrack = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('BuildPrivateTrack'),
         privateCompanyId: ConstructionPrivateId,
         lays: Type.Array(TrackRequest, { minItems: 1, maxItems: 2 }),

@@ -67,6 +67,10 @@ export function trainsOwnedBy(state: TrainState, owner: Owner): Train[] {
     )
 }
 
+export function trainIdsOwnedBy(state: TrainState, owner: Owner): string[] {
+    return trainsOwnedBy(state, owner).map((train) => train.id)
+}
+
 export function isObsoleteTrain(train: Train): boolean {
     return train.status === 'owned' && train.rustsAfterOperation === true
 }

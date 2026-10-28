@@ -1,12 +1,16 @@
 <script lang="ts">
+    import BattleResultLine from '$lib/components/BattleResultLine.svelte'
     import TokenText from '$lib/components/TokenText.svelte'
-    import { assertExists, range } from '@tabletop/common'
+    import { assertExists } from '@tabletop/common'
     import { MachineState, type WarbandGroup } from '@tabletop/oath'
     import SpoilsSteps from '$lib/components/SpoilsSteps.svelte'
+    import StepHeading from '$lib/components/StepHeading.svelte'
     import TokenRow from '$lib/components/TokenRow.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import WarbandGroupRows from '$lib/components/WarbandGroupRows.svelte'
     import { warbandFigure } from '$lib/images/pieceImages.js'
+    import WentHomeLine from '$lib/components/WentHomeLine.svelte'
+    import { battleLine, currentCampaignSteps } from '$lib/model/battleResult.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ownForcePlaceName, siteName } from '$lib/model/names.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
@@ -65,6 +69,13 @@
     let loseRefusedBecause = $derived(losses.loseRefusedBecause)
 
     const battleWidth = new ChoiceWidth()
+
+    // R-5.5.5 — the attacker's battle line before the sacrifice, from the Campaign's record.
+    let battle = $derived(
+        gameState.machineState === MachineState.CampaignSacrifice
+            ? battleLine(gameState, campaign, currentCampaignSteps(gameSession.actions))
+            : undefined
+    )
 </script>
 
 <!-- R-10.22 — a row of the warbands per place, the board first; the picked warbands die, so they
@@ -87,36 +98,32 @@
 {/snippet}
 
 <div>
-    <div class="mb-2 flex items-center gap-2.5">
-        <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger">{heading}</h3>
-        {#if spoilsSteps > 1}
-            <span class="flex items-center gap-1" aria-hidden="true">
-                {#each range(1, spoilsSteps) as n (n)}
-                    <span
-                        class="rounded-full {n === spoils.stepNumber
-                            ? 'h-2.5 w-2.5 bg-oath-accent ring-2 ring-oath-accent-soft'
-                            : n < spoils.stepNumber
-                              ? 'h-1.5 w-1.5 bg-oath-accent'
-                              : 'h-1.5 w-1.5 bg-oath-text-muted/50'}"
-                    ></span>
-                {/each}
-            </span>
-            <span class="text-xs text-oath-text-muted">{spoils.stepNumber} of {spoilsSteps}</span>
-        {/if}
-    </div>
+    <StepHeading {heading} step={spoils.stepNumber} steps={spoilsSteps} />
 
     {#if gameState.machineState === MachineState.CampaignDefeat}
         {#if !iChooseLosses}
             <WaitingOn />
         {:else}
             <p class="text-sm mb-2">Pick {defeat.required} to kill.</p>
+            <!-- R-5.5.6.a — one row per place, never merged, each starting with its player's chip;
+                 R-10.28 — under them, whose Hospital will hold the warbands picked there. -->
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                {@render countRows(
-                    defeat.groups,
-                    defeat.picked,
-                    (index) => defeat.ceilingAt(index),
-                    (index, n) => defeat.setPicked(index, n)
-                )}
+                <WarbandGroupRows
+                    groups={defeat.groups}
+                    order={defeat.rowOrder}
+                    counts={defeat.picked}
+                    ceilingAt={(index) => defeat.ceilingAt(index)}
+                    onpick={(index, n) => defeat.setPicked(index, n)}
+                    playerOf={(group) => defeat.playerOf(group)}
+                    tone="rose"
+                />
+                {#each defeat.hospitalHolders as holderId (holderId)}
+                    {@const owner = gameSession.getPlayerName(holderId)}
+                    <p class="my-1.5">
+                        {owner}'s warbands chosen here are set aside at <strong>Hospital</strong>
+                        and go to its site at the Campaign's end.
+                    </p>
+                {/each}
                 <div class="text-oath-text-muted">
                     Chosen {defeat.pickedTotal} of {defeat.required}
                 </div>
@@ -136,6 +143,13 @@
                     Kill
                 </button>
             {/if}
+        {/if}
+    {:else if gameState.machineState === MachineState.CampaignVictory}
+        <WentHomeLine />
+        {#if isAttacker}
+            <SpoilsSteps />
+        {:else}
+            <WaitingOn />
         {/if}
     {:else if !isAttacker}
         <WaitingOn />
@@ -185,9 +199,9 @@
             </button>
         {/if}
     {:else if gameState.machineState === MachineState.CampaignSacrifice}
-        <!-- With nothing to sacrifice, the outcome is all there is to say. -->
-        {#if needed === 0}
-            <p class="text-sm mb-2">{losses.wonWithoutSacrifice ? 'You win.' : 'You lose.'}</p>
+        <!-- The swords against the defense: the win, or how far short; or the plan that decided it. -->
+        {#if battle}
+            <BattleResultLine parts={battle} />
         {/if}
         {#if losses.choosesSacrifice}
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
@@ -252,7 +266,5 @@
                 </button>
             {/if}
         </div>
-    {:else if gameState.machineState === MachineState.CampaignVictory}
-        <SpoilsSteps />
     {/if}
 </div>

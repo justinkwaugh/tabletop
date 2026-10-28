@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { createRouteWorker } from './routeWorker.js'
     import {
         isSplitCompany,
         TheOldPrinceCompanies,
@@ -17,9 +18,6 @@
     import { requireTheOldPrinceSession } from './session.svelte.js'
     import BranchSplitPreview from './BranchSplitPreview.svelte'
     import Tranches from './Tranches.svelte'
-    function createRouteWorker() {
-        return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
-    }
     let {
         gameSession
     }: { gameSession: GameSession<TheOldPrinceState, HydratedTheOldPrinceState> } = $props()

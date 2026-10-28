@@ -33,6 +33,8 @@ import { AnswerConsent } from '../actions/answerConsent.js'
 import { AnswerQuestion } from '../actions/answerQuestion.js'
 import { ExileCitizen } from '../actions/exileCitizen.js'
 import { SelfExile } from '../actions/selfExile.js'
+import { ClaimDealKept } from '../actions/claimDealKept.js'
+import { LeaveDealUnconfirmed } from '../actions/leaveDealUnconfirmed.js'
 
 // The backend generates a validated endpoint for each entry.
 export const OathApiActions = {
@@ -47,6 +49,8 @@ export const OathApiActions = {
     [ActionType.AnswerQuestion]: AnswerQuestion,
     [ActionType.ExileCitizen]: ExileCitizen,
     [ActionType.SelfExile]: SelfExile,
+    [ActionType.ClaimDealKept]: ClaimDealKept,
+    [ActionType.LeaveDealUnconfirmed]: LeaveDealUnconfirmed,
 
     [ActionType.SetupChoice]: SetupChoice,
     [ActionType.Travel]: Travel,

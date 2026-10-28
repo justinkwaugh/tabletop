@@ -29,8 +29,12 @@ export default async function (fastify: FastifyInstance) {
                 await reply.code(401).send()
                 return
             }
+            await authSession({
+                session: request.session,
+                user,
+                sessions: fastify.sessionService
+            })
             fastify.log.info(`Found authed user ${JSON.stringify(user)}`)
-            authSession({ session: request.session, userId: user.id })
 
             return { status: 'ok', payload: { user } }
         }

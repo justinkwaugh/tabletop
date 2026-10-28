@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { createRouteWorker } from './routeWorker.js'
     import { privatePowerUsed } from '@tabletop/18xx'
     import type { GameSession } from '@tabletop/frontend-components'
     import type { Shikoku1889State, HydratedShikoku1889State } from '@tabletop/shikoku-1889'
@@ -8,9 +9,6 @@
         WaterfallAuctionLots,
         requireEighteenXXSession
     } from '@tabletop/18xx-ui'
-    function createRouteWorker() {
-        return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
-    }
     let { gameSession }: { gameSession: GameSession<Shikoku1889State, HydratedShikoku1889State> } =
         $props()
     const session = $derived(requireEighteenXXSession(gameSession))

@@ -6,6 +6,7 @@ export const RailheadsInfo: GameInfo = {
     id: 'railheads',
     metadata: {
         name: 'Railheads',
+        hasScores: true,
         designer: 'Pontus Nilsson',
         description:
             'Invest in the railroads racing to reach the industries of Germany or the American Midwest. Choose actions from a shrinking round timer, auction shares and industry tokens, and lay track for the companies you back; the richest investor after four payouts wins.',

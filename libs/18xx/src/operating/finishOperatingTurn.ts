@@ -1,3 +1,4 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { OperatingRoundSnapshot, operatingRoundSnapshot } from './operatingRoundSnapshot.js'
 import { actsFor, inReceivership } from '../finance/receivership.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
@@ -5,7 +6,6 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -47,7 +47,7 @@ export function finishOperatingTurnReason(
 }
 export const FinishOperatingTurn = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('FinishOperatingTurn'),
         companyId: Type.String(),
         metadata: Type.Optional(OperatingRoundSnapshot)

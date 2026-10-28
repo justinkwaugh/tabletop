@@ -17,6 +17,7 @@ import {
     isPayInterest,
     type EighteenXXState,
     isStockInstructionAction,
+    isRunInstructionAction,
     type AuctionAward
 } from '@tabletop/18xx'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
@@ -121,6 +122,7 @@ export function historyRounds(
         const entry =
             (isStartOperatingRound(action) && !action.metadata?.payments.length) ||
             isStockInstructionAction(action) ||
+            isRunInstructionAction(action) ||
             isSetPrivatePowerRequest(action) ||
             isDropPrivatePowerRequest(action)
                 ? undefined

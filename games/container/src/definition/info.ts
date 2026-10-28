@@ -6,6 +6,8 @@ export const ContainerInfo: GameInfo = {
     id: 'container',
     metadata: {
         name: 'Container',
+        bggId: 26990,
+        hasScores: true,
         designer: 'Franz-Benno Delonge',
         description:
             'A market-driven logistics game about building factories, setting prices, shipping goods, and running auctions to stock your island.',

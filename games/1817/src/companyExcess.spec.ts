@@ -62,7 +62,7 @@ it.each(['merger', 'acquisition'] as const)(
             'city-1'
         ])
         const playerId = state.activePlayerIds[0]
-        expect(play.valid(playerId)).toEqual(['RemoveStation'])
+        expect(play.valid(playerId)).toEqual(['RemoveStation', 'SetRunInstruction'])
         const unrelated = state.stations.find(
             (station) =>
                 station.companyId === 'BA' &&

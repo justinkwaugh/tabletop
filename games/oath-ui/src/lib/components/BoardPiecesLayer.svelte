@@ -48,6 +48,10 @@
                         alt={banditsName(pieces.rule)}
                         style="height:{WARBAND_HEIGHT}px; width:auto;"
                     />
+                    <!-- R-2.8.3 — the usual 1 goes unsaid; Bandit Chief's 3 wears the warbands' badge. -->
+                    {#if pieces.banditCount !== 1}
+                        <span class="warband__count">{pieces.banditCount}</span>
+                    {/if}
                 </span>
             {/if}
             {#each pieces.warbands as [owner, count] (owner)}
