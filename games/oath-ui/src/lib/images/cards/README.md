@@ -1,13 +1,14 @@
 # Card images
 
-One JPEG per card front, named by its card id, which is the only join key between an image,
-its data row and game state:
+One image per card front, named by its card id, which is the only join key between an image,
+its data row and game state; the lookup ignores the extension. New art is lossy WebP, and the
+older fronts are JPEG:
 
 - Denizens, 381 × 596, in one folder per suit: `arcane/denizen.arcane.alchemist.jpg`.
   Ancient Binding's scan is 325 × 508 and is drawn at the same width as the rest.
-- Edifices, 381 × 596, in their suit's folder, one card id per edifice: the intact side under the
-  id (`nomad/edifice.nomad.ancient-forge.jpg`), the ruined side with `.ruined`
-  (`nomad/edifice.nomad.ancient-forge.ruined.jpg`). The side drawn is the one the game state shows
+- Edifices, 381 × 596 lossy WebP, in their suit's folder, one card id per edifice: the intact side
+  under the id (`nomad/edifice.nomad.ancient-forge.webp`), the ruined side with `.ruined`
+  (`nomad/edifice.nomad.ancient-forge.ruined.webp`). The side drawn is the one the game state shows
   (`cardImageInPlay`).
 - Sites, 770 × 596: `site.the-tribunal.jpg`.
 - Relics, 381 × 381: `relic.grand-scepter.jpg`.

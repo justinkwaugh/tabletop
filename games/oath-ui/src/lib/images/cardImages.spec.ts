@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { CardKind, cardIdsOfKind } from '@tabletop/oath'
 import {
@@ -33,6 +34,20 @@ describe('card art coverage', () => {
             expect(ruined, id).toBeDefined()
             expect(ruined).not.toBe(intact)
             expect(cardImage(id)).toBe(intact)
+        }
+    })
+
+    it('each edifice side ships as lossy WebP, the encoding new opaque art takes', () => {
+        for (const id of cardIdsOfKind(CardKind.Edifice)) {
+            const suit = id.split('.')[1]
+            for (const name of [id, `${id}.ruined`]) {
+                expect(cardImage(name), name).toMatch(/\.webp$/)
+                const file = readFileSync(new URL(`./cards/${suit}/${name}.webp`, import.meta.url))
+                expect(file.subarray(0, 4).toString('latin1'), name).toBe('RIFF')
+                expect(file.subarray(8, 12).toString('latin1'), name).toBe('WEBP')
+                // `VP8 ` is the lossy bitstream; `VP8L` would be lossless and `VP8X` would carry alpha.
+                expect(file.subarray(12, 16).toString('latin1'), name).toBe('VP8 ')
+            }
         }
     })
 
