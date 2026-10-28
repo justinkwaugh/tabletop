@@ -1,6 +1,6 @@
+import { CorporateFinanceValidator } from '@tabletop/18xx'
 import {
     Phases1846,
-    CorporateFinanceValidator,
     TrainDepot1846,
     inReceivership,
     MarketZoneColors1846,

@@ -27,11 +27,7 @@ import { TrainFundingRules1846 } from '../trainFundingRules.js'
 import { Phases1846, TrainRules1846 } from '../trains.js'
 import { EarningsRules1846 } from '../earnings.js'
 import { StationRules1846 } from '../stations.js'
-import {
-    CorporateFinance,
-    CorporateFinanceValidator,
-    CorporateFinanceAction
-} from '../corporateFinance.js'
+import { CorporateFinanceRules1846 } from '../corporateFinance.js'
 import { RouteRules1846 } from '../routes.js'
 import { AssignSteamboat, AssignSteamboatValidator, AssignSteamboatAction } from '../steamboat.js'
 import {
@@ -74,7 +70,6 @@ import {
     distributingEarnings1846,
     draftingHandler,
     fundingTrain1846,
-    layingTrack1846,
     operatingSet1846,
     revealingDraftHandler,
     runningTrains1846,
@@ -122,16 +117,13 @@ export const TitleRules1846: EighteenXXTitleRules<
     privatePowerRules: PrivatePowerRules1846,
     transferRules: TransferRules1846,
     operatingSteps: ['LayingTrack', 'RunningTrains', 'DistributingEarnings', 'BuyingTrains'],
-    additionalConstructionActions: [
-        'PlaceStation',
-        'BuildPrivateTrack',
-        'PlaceCWIStation',
-        'CorporateFinance'
-    ],
+    corporateFinanceRules: CorporateFinanceRules1846,
+    stationsWithTrack: true,
+    additionalConstructionActions: ['BuildPrivateTrack', 'PlaceCWIStation'],
     decisionHandlers: {
         StockRound: stockRound1846,
         OperatingSet: operatingSet1846,
-        LayingTrack: withPrivatePowers(layingTrack1846),
+        LayingTrack: withPrivatePowers((family) => family),
         RunningTrains: withPrivatePowers(runningTrains1846),
         DistributingEarnings: withPrivatePowers(distributingEarnings1846),
         BuyingTrains: withPrivatePowers(buyingTrains1846),
@@ -175,11 +167,6 @@ export const TitleRules1846: EighteenXXTitleRules<
             SettleIndependent,
             (data) => SettleIndependentValidator.Check(data),
             (data) => new SettleIndependentAction(data, EndingRules1846)
-        ),
-        defineAction(
-            CorporateFinance,
-            (data) => CorporateFinanceValidator.Check(data),
-            (data) => new CorporateFinanceAction(data)
         ),
         defineAction(
             AssignRevenueMarker,

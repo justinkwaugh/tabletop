@@ -6,7 +6,7 @@ import {
     evaluateShareSale,
     mustSellShares,
     allSharesHeld,
-    createRectangularStockMarketSpaces,
+    createLinearStockMarketSpaces,
     StockMarketChart,
     getCompany,
     marketSaleTerms,
@@ -37,16 +37,7 @@ function marketZoneColor(price: number) {
 }
 
 export const Market1846 = new StockMarketChart(
-    createRectangularStockMarketSpaces([MarketPrices], (_, column) =>
-        marketZoneColor(MarketPrices[column])
-    ).map((space) => ({
-        ...space,
-        moves: {
-            ...space.moves,
-            ...(space.moves.right ? { up: space.moves.right } : {}),
-            ...(space.moves.left ? { down: space.moves.left } : {})
-        }
-    }))
+    createLinearStockMarketSpaces(MarketPrices, marketZoneColor)
 )
 
 export const StockRules1846: StockRules = {

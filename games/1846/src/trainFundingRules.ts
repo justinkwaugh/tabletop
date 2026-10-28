@@ -1,6 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import {
     controllingOwner,
+    corporateIssueLimit,
     finiteCashOwnedBy,
     marketSaleTerms,
     reorderPendingOperatingCompanies,
@@ -9,7 +10,6 @@ import {
     type TrainPurchaseDetails
 } from '@tabletop/18xx'
 import { Elimination1846 } from './bankruptcy.js'
-import { corporateIssueLimit } from './corporateFinance.js'
 import { OperatingRules1846 } from './operating.js'
 import { Market1846, StockRules1846 } from './stock.js'
 
@@ -26,12 +26,15 @@ function emergencyIssuance(
 ): Issuance | undefined {
     const treasury = finiteCashOwnedBy(state, { kind: 'company', companyId })
     const space = Market1846.companySpace(state.stockMarket, companyId)
-    const issuances = Array.from({ length: corporateIssueLimit(state, companyId) }, (_, i) => {
-        const shares = i + 1
-        const destination = Market1846.move(space.id, 'left', shares)
-        const unitPrice = Market1846.move(destination.id, 'left', 1).price
-        return { shares, unitPrice, proceeds: shares * unitPrice, floor: destination.price }
-    }).filter((issuance) => issuance.floor >= 20 && issuance.proceeds > 0)
+    const issuances = Array.from(
+        { length: corporateIssueLimit(state, companyId, 'open-market') },
+        (_, i) => {
+            const shares = i + 1
+            const destination = Market1846.move(space.id, 'left', shares)
+            const unitPrice = Market1846.move(destination.id, 'left', 1).price
+            return { shares, unitPrice, proceeds: shares * unitPrice, floor: destination.price }
+        }
+    ).filter((issuance) => issuance.floor >= 20 && issuance.proceeds > 0)
     return issuances.find((issuance) => treasury + issuance.proceeds >= price) ?? issuances.at(-1)
 }
 

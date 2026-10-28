@@ -1,6 +1,6 @@
 <script lang="ts">
     import { finiteCashOwnedBy } from '@tabletop/18xx'
-    import { corporateFinanceCertificates, type FinanceChoice } from '@tabletop/1846'
+    import { corporateFinanceCertificates, type FinanceChoice } from '@tabletop/18xx'
     import { CompanyToken } from '@tabletop/18xx-ui'
     import { assertExists } from '@tabletop/common'
     import type { EighteenFortySixSession } from './session.svelte.js'
@@ -69,11 +69,13 @@
         </div>
         <div>
             <dt>Treasury</dt>
-            <dd>{corporateFinanceCertificates(state, companyId, 'issue').length}</dd>
+            <dd>{corporateFinanceCertificates(state, companyId, 'issue', 'open-market').length}</dd>
         </div>
         <div>
             <dt>Market</dt>
-            <dd>{corporateFinanceCertificates(state, companyId, 'redeem').length}</dd>
+            <dd>
+                {corporateFinanceCertificates(state, companyId, 'redeem', 'open-market').length}
+            </dd>
         </div>
     </dl>
     <div class="finance-groups">

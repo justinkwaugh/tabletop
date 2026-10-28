@@ -18,9 +18,7 @@ import {
     AssignRevenueMarker,
     revenueMarkerChoices,
     type RevenuePrivateId,
-    CorporateFinance,
-    corporateFinanceChoices,
-    type FinanceChoice,
+    CorporateFinanceRules1846,
     AssignSteamboat,
     PortSymbols,
     type SteamboatAssignment,
@@ -39,6 +37,9 @@ import {
     type TitlePrivatePower
 } from '@tabletop/18xx-ui'
 import {
+    CorporateFinance,
+    corporateFinanceChoices,
+    type FinanceChoice,
     ClaimPresidency,
     isOfferPurchase,
     isRespondToPurchaseOffer,
@@ -463,7 +464,9 @@ export class EighteenFortySixSession extends BaseSession {
             })
         )
     }
-    readonly financeChoices = $derived(corporateFinanceChoices(this.gameState))
+    readonly financeChoices = $derived(
+        corporateFinanceChoices(this.gameState, CorporateFinanceRules1846)
+    )
     readonly financeLabel = $derived.by(() => {
         const operations = new Set(this.financeChoices.map((choice) => choice.operation))
         if (operations.size > 1) return 'Issue / redeem'
