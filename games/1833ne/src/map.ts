@@ -160,7 +160,6 @@ const border = (edge: TileEdge, kind: TileBorder['kind'], cost?: number): TileBo
 const borders = (...list: TileBorder[]) => ({ borders: list })
 const emptyTown = town('white', [[]], 0)
 const emptyCity = city('white', [], 0, 1)
-const upgradeCost = (face: TileFace, cost: number): TileFace => ({ ...face, upgradeCost: cost })
 
 /** Off-board values for phases I–II, III–IV and V. */
 const phased = (early: number, middle: number, late: number) =>
@@ -325,27 +324,30 @@ export const Map1833NE = new RailwayMap({
 
         ...locations(
             'B3',
-            upgradeCost(
-                cities(
-                    'yellow',
-                    [
-                        { edges: [5], revenue: 30, stationSlots: 1 },
-                        { edges: [4], revenue: 30, stationSlots: 1 }
-                    ],
-                    ['Mo']
-                ),
-                40
-            )
+            cities(
+                'yellow',
+                [
+                    { edges: [5], revenue: 30, stationSlots: 1 },
+                    { edges: [4], revenue: 30, stationSlots: 1 }
+                ],
+                ['Mo']
+            ),
+            water(40)
         ),
-        ...locations('B11', upgradeCost({ ...town('yellow', [[1, 3]], 20), labels: ['We'] }, 40), {
-            ...borders(border(4, 'impassable'))
-        }),
+        ...locations(
+            'B11',
+            { ...town('yellow', [[1, 3]], 20), labels: ['We'] },
+            {
+                ...water(40),
+                ...borders(border(4, 'impassable'))
+            }
+        ),
         ...locations('C24', city('yellow', [0, 4], 20, 1)),
         ...locations('E20', city('yellow', [2, 5], 20, 1)),
         ...locations('F17', city('yellow', [0, 3], 30, 1, ['Ma']), {
             ...borders(border(2, 'water', 40))
         }),
-        ...locations('F25', upgradeCost(city('yellow', [0, 4], 20, 1, ['Pr']), 40)),
+        ...locations('F25', city('yellow', [0, 4], 20, 1, ['Pr']), water(40)),
         ...locations('G22', Boston),
         ...locations('I14', Portland),
 
