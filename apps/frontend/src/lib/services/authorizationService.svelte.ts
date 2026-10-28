@@ -9,6 +9,7 @@ import {
 } from '$lib/utils/loginContinuation'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils/storedValue'
 import { browserTimeZone } from '$lib/utils/timeZones'
+import { reauthentication } from '$lib/stores/reauthentication.svelte'
 
 /**
  *
@@ -125,18 +126,21 @@ export class AuthorizationService {
     }
 
     public setSessionUser(user: User) {
+        if (this.sessionUser?.id !== user.id) reauthentication.cancel()
         this.sessionUser = user
         writeStoredValue(AuthorizationService.storageKey, user)
         this.onSessionUserSet()
     }
 
     public clearSessionUser() {
+        reauthentication.cancel()
         this.sessionUser = undefined
         removeStoredValue(AuthorizationService.storageKey)
         this.onSessionUserCleared()
     }
 
     public async onLogin(user: User) {
+        reauthentication.cancel()
         this.adoptSessionUser(user)
 
         if (user.status === UserStatus.Incomplete) {

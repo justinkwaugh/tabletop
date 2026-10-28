@@ -7,37 +7,57 @@ export function requiresRecentAuthentication(error: unknown): boolean {
 export type PendingSensitiveAction = {
     description: string
     retry: () => Promise<void>
+    requiresUserGesture?: boolean
 }
 
-// One prompt, mounted by the app layout, serves every sensitive action: a component that is
-// refused for want of Recent Authentication hands over what to retry once the person has proved
-// their identity again.
 class ReauthenticationRequests {
-    pending: PendingSensitiveAction | undefined = $state(undefined)
+    pending: PendingSensitiveAction | undefined = $state.raw(undefined)
+    confirmed: boolean = $state(false)
+    private revision = 0
 
     request(action: PendingSensitiveAction): void {
-        this.pending = action
+        this.cancel()
+        this.pending = { ...action }
     }
 
-    async complete(): Promise<void> {
-        const action = this.pending
-        this.pending = undefined
-        await action?.retry()
+    async complete(action: PendingSensitiveAction): Promise<void> {
+        if (this.pending !== action) return
+        if (action.requiresUserGesture) {
+            this.confirmed = true
+            return
+        }
+        await this.retry(action)
     }
 
-    cancel(): void {
+    async resume(action: PendingSensitiveAction): Promise<void> {
+        if (this.pending !== action || !this.confirmed) return
+        await this.retry(action)
+    }
+
+    cancel(action?: PendingSensitiveAction): void {
+        if (action && this.pending !== action) return
+        this.revision += 1
         this.pending = undefined
+        this.confirmed = false
     }
 
     async run(action: PendingSensitiveAction): Promise<void> {
+        this.cancel()
+        const revision = this.revision
         try {
             await action.retry()
         } catch (error) {
+            if (revision !== this.revision) return
             if (!requiresRecentAuthentication(error)) {
                 throw error
             }
             this.request(action)
         }
+    }
+
+    private async retry(action: PendingSensitiveAction): Promise<void> {
+        this.cancel(action)
+        await action.retry()
     }
 }
 

@@ -27,7 +27,11 @@ export async function signInWithDiscord({
     }
     try {
         if (purpose === 'link') {
-            await reauthentication.run({ description: DISCORD_LINK_DESCRIPTION, retry: attempt })
+            await reauthentication.run({
+                description: DISCORD_LINK_DESCRIPTION,
+                retry: attempt,
+                requiresUserGesture: true
+            })
         } else {
             await attempt()
         }

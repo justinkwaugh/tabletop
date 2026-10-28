@@ -1,15 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { Role, UserStatus, type User } from '@tabletop/common'
-import { TabletopApi } from '@tabletop/frontend-components'
+import { assertExists, Role, UserStatus, type User } from '@tabletop/common'
+import { APIError, TabletopApi } from '@tabletop/frontend-components'
 import { invalidateAll } from '$app/navigation'
 import { AuthorizationService } from './authorizationService.svelte.js'
 import { stubLocalStorage } from '$lib/test/localStorageStub'
+import { reauthentication } from '$lib/stores/reauthentication.svelte'
+import { signInWithGoogle } from '$lib/utils/googleSignIn'
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }))
 
 beforeEach(() => {
     stubLocalStorage()
+    vi.stubGlobal('sessionStorage', {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {}
+    })
     vi.mocked(invalidateAll).mockClear()
+    reauthentication.cancel()
 })
 
 function createUser(roles: Role[]): User {
@@ -48,6 +56,83 @@ describe('AuthorizationService developer tools', () => {
 })
 
 describe('AuthorizationService session lifecycle', () => {
+    it('cannot replay a saved Google link after logout and another account signs in', async () => {
+        const api = new TabletopApi()
+        const first = { ...createUser([Role.User]), id: 'first', timeZone: 'UTC' }
+        const second = { ...createUser([Role.User]), id: 'second', timeZone: 'UTC' }
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
+        service.setSessionUser(first)
+        const link = vi
+            .spyOn(api, 'linkGoogle')
+            .mockRejectedValueOnce(
+                new APIError({
+                    name: 'RecentAuthenticationRequiredError',
+                    message: 'Confirm your identity'
+                })
+            )
+            .mockResolvedValue(first)
+        await signInWithGoogle({
+            credential: 'first-account-credential',
+            mode: 'link',
+            api,
+            session: service,
+            report: vi.fn()
+        })
+        const pending = reauthentication.pending
+        assertExists(pending, 'Google linking requested confirmation')
+        await service.onLogout()
+        await service.onLogin(second)
+        await reauthentication.complete(pending)
+        expect(link).toHaveBeenCalledTimes(1)
+        expect(service.getSessionUser()?.id).toBe(second.id)
+    })
+
+    it('cancels confirmation when another account is adopted', () => {
+        const service = new AuthorizationService(new TabletopApi(), vi.fn(), vi.fn())
+        service.setSessionUser(createUser([Role.User]))
+        reauthentication.request({ description: 'link Google', retry: vi.fn() })
+        service.setSessionUser({ ...createUser([Role.User]), id: 'another-user' })
+        expect(reauthentication.pending).toBeUndefined()
+    })
+
+    it('cancels confirmation on a new login to the same account', async () => {
+        const service = new AuthorizationService(new TabletopApi(), vi.fn(), vi.fn())
+        const user = { ...createUser([Role.User]), timeZone: 'UTC' }
+        service.setSessionUser(user)
+        reauthentication.request({ description: 'link Google', retry: vi.fn() })
+        await service.onLogin(user)
+        expect(reauthentication.pending).toBeUndefined()
+    })
+
+    it('keeps confirmation during a profile refresh for the same account', () => {
+        const service = new AuthorizationService(new TabletopApi(), vi.fn(), vi.fn())
+        const user = createUser([Role.User])
+        service.setSessionUser(user)
+        reauthentication.request({ description: 'link Google', retry: vi.fn() })
+        const pending = reauthentication.pending
+        service.setSessionUser({ ...user, timeZone: 'UTC' })
+        expect(reauthentication.pending).toBe(pending)
+    })
+
+    it('does not reopen confirmation when an old request is refused after logout', async () => {
+        const service = new AuthorizationService(new TabletopApi(), vi.fn(), vi.fn())
+        service.setSessionUser(createUser([Role.User]))
+        const response = Promise.withResolvers<void>()
+        const request = reauthentication.run({
+            description: 'link Google',
+            retry: () => response.promise
+        })
+        service.clearSessionUser()
+        response.reject(
+            new APIError({
+                name: 'RecentAuthenticationRequiredError',
+                message: 'Confirm your identity'
+            })
+        )
+        await request
+        expect(reauthentication.pending).toBeUndefined()
+    })
+
     it('notifies after establishing a session and after signing out and back in', () => {
         const onSessionUserSet = vi.fn()
         const service = new AuthorizationService(new TabletopApi(), onSessionUserSet, vi.fn())
