@@ -147,7 +147,11 @@ it('offers the optional exchange before bankruptcy and lets its proceeds fund th
     const play = otherwiseBankrupt()
     begin(play)
     expect(play.state.machineState).toBe('FundingTrain')
-    expect(play.valid('blair')).toEqual(['DeclareBankruptcy', 'ExchangePrivate'])
+    expect(play.valid('blair')).toEqual([
+        'DeclareBankruptcy',
+        'ExchangePrivate',
+        'SetRunInstruction'
+    ])
     exchange(play, 'blair')
     const sale = funding(play.state).next()
     if (sale.kind !== 'sell') throw Error('The exchanged share can be sold')

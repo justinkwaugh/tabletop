@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
-    import { type Player } from '@tabletop/common'
+    import type { Player } from '@tabletop/common'
     import {
         antiqueSetPayout,
         AntiquesPerPlayer,

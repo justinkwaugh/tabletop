@@ -6,6 +6,7 @@ import {
     getCompany,
     isPrivateExchangeAction,
     isPrivateTileLay,
+    liftedPrivateBlocks,
     priorityOrder,
     shareSaleValue,
     sharesOwned,
@@ -25,6 +26,9 @@ import {
 } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { assert, assertExists, GameStorage } from '@tabletop/common'
+import type { QueuedRouteWorker } from '../routes/routeSolveQueue.js'
+import { InstructedRunSolver } from './instructedRunSolver.js'
+import { RunInstructionModule } from './runInstructionModule.svelte.js'
 import type { PresentedTransition, TitlePreferences } from '@tabletop/frontend-components'
 import { GameSession, type GameSessionView } from '@tabletop/frontend-components'
 import {
@@ -32,10 +36,10 @@ import {
     type HistoricalMapState,
     type HistoricalMap
 } from '../maps/historicalMap.js'
-import {
-    type MapViewDefinition,
-    type StationAppearance,
-    type TokenTiles
+import type {
+    MapViewDefinition,
+    StationAppearance,
+    TokenTiles
 } from '../maps/stationPresentation.js'
 import { createTileDrawing } from '../tiles/tileDrawing.js'
 import { ownerPortfolio } from '../finance/ownerPortfolio.js'
@@ -267,7 +271,8 @@ export class EighteenXXSession<
         settled: () => session.waitForVisibleTransitionSettled(),
         withSupersededAction: (action) => session.withSupersededAction(action),
         createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
-        applyAction: (action) => session.applyAction(action)
+        applyAction: (action) => session.applyAction(action),
+        applyPreparedAction: (prepare) => session.applyPreparedAction(prepare)
     }))(this)
     readonly offers = new OfferAuctionModule(this.moduleSession)
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
@@ -381,6 +386,25 @@ export class EighteenXXSession<
         return model
     }
     readonly instructions = new StockInstructionModule(this.moduleSession)
+    #instructedRuns: InstructedRunSolver<EighteenXXState<Schema>, State> | undefined
+    private get instructedRuns(): InstructedRunSolver<EighteenXXState<Schema>, State> | undefined {
+        if (!this.createRouteWorker) return undefined
+        const components = titleComponents(this.rules)
+        this.#instructedRuns ??= new InstructedRunSolver(
+            this.createRouteWorker,
+            this.runtime,
+            this.rules.routeRules,
+            (state) => this.rules.state.hydrate(state, components)
+        )
+        return this.#instructedRuns
+    }
+    readonly runInstructions = new RunInstructionModule(this.moduleSession, () => {
+        const solver = this.instructedRuns
+        return solver ? (companyId) => solver.solveNow(this.gameState, companyId) : undefined
+    })
+    protected override prepareAction(action: GameAction): GameAction | Promise<GameAction> {
+        return this.instructedRuns?.withRuns(action, this.actionTarget) ?? action
+    }
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
     readonly loans = new LoanModule(this.moduleSession)
@@ -507,7 +531,8 @@ export class EighteenXXSession<
         options: SessionOptions<Schema, State>,
         private readonly rules: EighteenXXSessionRules<Schema, State>,
         private readonly mapViewDefinition: MapViewDefinition,
-        private readonly presentationDefinition: TitlePresentation<EighteenXXState<Schema>>
+        private readonly presentationDefinition: TitlePresentation<EighteenXXState<Schema>>,
+        private readonly createRouteWorker?: () => QueuedRouteWorker
     ) {
         super(options)
         const { map, tileSet } = titleComponents(rules)
@@ -521,7 +546,8 @@ export class EighteenXXSession<
             (state) =>
                 this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules))),
             (state) => this.stations.openReservations(state),
-            (action) => this.presentationDefinition.historyMapPlacement?.(action)
+            (action) => this.presentationDefinition.historyMapPlacement?.(action),
+            (state) => liftedPrivateBlocks(map.markedPrivateIds, this.rules.privateRules, state)
         )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
@@ -847,6 +873,7 @@ export class EighteenXXSession<
     // stays still for it; the published transition says which it was.
     restoredSilently = $state(true)
     override dispose() {
+        this.#instructedRuns?.destroy()
         this.notices.dispose()
         super.dispose()
     }
@@ -890,11 +917,12 @@ export function createEighteenXXSessionClass<
 >(
     rules: EighteenXXSessionRules<Schema, State>,
     mapView: MapViewDefinition,
-    presentation: TitlePresentation<EighteenXXState<Schema>>
+    presentation: TitlePresentation<EighteenXXState<Schema>>,
+    createRouteWorker?: () => QueuedRouteWorker
 ): new (options: SessionOptions<Schema, State>) => EighteenXXSession<Schema, State> {
     return class extends EighteenXXSession<Schema, State> {
         constructor(options: SessionOptions<Schema, State>) {
-            super(options, rules, mapView, presentation)
+            super(options, rules, mapView, presentation, createRouteWorker)
         }
     }
 }

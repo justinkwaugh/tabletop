@@ -10,6 +10,7 @@
     import { cardName } from '$lib/model/names.js'
     import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
+    import { movesShown } from '$lib/model/powerMoves.js'
 
     // R-5.5.3, R-7.5.2 — the defending side's battle plans, answered knowing
     // the pools and not the roll. R-5.5.3.a: the defender first, then each ally.
@@ -66,7 +67,8 @@
         {#each usable as power (powerKey(power.cardId, power.powerIndex))}
             {@const choices = defence.planChoicesOf(power)}
             {@const moves = defence.movesOf(power)}
-            {#if defence.isDeclared(power) && choices.length > 0}
+            <!-- Warning Signals with no warband it can move asks nothing. -->
+            {#if defence.isDeclared(power) && choices.length > 0 && (!moves || movesShown(moves))}
                 <div class="mb-1" data-plan-picks={power.cardId}>
                     <div class="text-xs text-oath-text-muted">{cardName(power.cardId)}:</div>
                     <!-- Warning Signals' moves are Messenger's: one at a time, as tiles and warband pieces. -->

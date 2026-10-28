@@ -1,6 +1,11 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { CardKind, type ExchangeAllowance, type ExchangeTransfer } from '@tabletop/oath'
+    import {
+        CardKind,
+        PROMISE_MAX_LENGTH,
+        type ExchangeAllowance,
+        type ExchangeTransfer
+    } from '@tabletop/oath'
     import TokenRow from '$lib/components/TokenRow.svelte'
     import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
@@ -9,12 +14,14 @@
     import { favorToken, secretToken } from '$lib/images/tileImages.js'
     import { cardChoices } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
-    import { siteName } from '$lib/model/names.js'
+    import { chipCased, siteName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         exchangeOffers,
         inReturnOf,
         isSitePicked,
+        promiseDraftOf,
+        promiseLength,
         siteCounts,
         siteWarbandsIn,
         tappedCount,
@@ -23,6 +30,7 @@
         transferOf,
         warbandsToMoveIn,
         withOfferedPicks,
+        withPromise,
         withSiteCount,
         withSitePicked,
         withTransfer,
@@ -114,6 +122,11 @@
             ...value,
             terms: withTransfer(value.terms, key, { [token]: tappedCount(picked, tapped) })
         })
+    }
+
+    // R-7.6.3-H1 — a promise moves nothing, so no row's offers change with it.
+    function typePromise(key: ExchangeSide, text: string) {
+        onchange(withPromise(value, key, text))
     }
 
     function toggleRelic(key: ExchangeSide, relicId: string) {
@@ -238,6 +251,28 @@
                     />
                 {/if}
             </div>
+            {#if allows.promises}
+                <!-- R-7.6.3-H1 — this side's promise, optional; the counter is the engine's own count of it. -->
+                <div class="mt-2 max-w-[330px]">
+                    <label class="block">
+                        <span class="text-oath-text-muted mb-[3px] block">
+                            {giver === myId
+                                ? 'You promise'
+                                : `${chipCased(nameOf(giver))} promises`} (optional)
+                        </span>
+                        <textarea
+                            class="field-sizing-content block min-h-11 w-full resize-none rounded-md border border-oath-frame bg-white/[.03] px-2 py-1.5 text-[13px] leading-[1.35] text-oath-text"
+                            rows="1"
+                            value={promiseDraftOf(value, key)}
+                            disabled={busy}
+                            oninput={(event) => typePromise(key, event.currentTarget.value)}
+                        ></textarea>
+                    </label>
+                    <p class="text-right text-[11px] text-oath-text-muted" data-promise-count>
+                        {promiseLength(value.terms, key)} / {PROMISE_MAX_LENGTH}
+                    </p>
+                </div>
+            {/if}
         </div>
     {/each}
 </div>

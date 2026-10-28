@@ -1,19 +1,13 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import {
-    ActionSource,
-    PlayerAction,
-    GameAction,
-    HydratableAction,
-    Visibility
-} from '@tabletop/common'
-import { RoundEnd, roundEnd, type ValuationRules } from '@tabletop/18xx'
+import { ActionSource, GameAction, HydratableAction, Visibility } from '@tabletop/common'
+import { RoundEnd, roundEnd, type ValuationRules, EighteenXXPlayerAction } from '@tabletop/18xx'
 import { Purchase, type HydratedEighteenFortySixState } from './state.js'
 import { chooseCard, passFinalCompany, settleDistribution } from './distribution.js'
 
 export const ChooseDraftCard = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ChooseDraftCard'),
         source: Type.Literal(ActionSource.User),
         cardId: Visibility.protect(Type.String(), { policy: Visibility.Policy.Actor }),
@@ -23,7 +17,7 @@ export const ChooseDraftCard = Type.Object(
 )
 export const PassFinalCompany = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('PassFinalCompany'),
         source: Type.Literal(ActionSource.User),
         revealsInfo: Type.Literal(true)

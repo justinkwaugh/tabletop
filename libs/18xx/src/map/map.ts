@@ -72,7 +72,8 @@ export const MapLocation = Type.Object(
                         label: Identifier,
                         description: Identifier,
                         /** How many times the marker's symbol is printed, such as two ports. */
-                        count: Type.Optional(Type.Integer({ minimum: 1 }))
+                        count: Type.Optional(Type.Integer({ minimum: 1 })),
+                        privateCompanyId: Type.Optional(Identifier)
                     },
                     { additionalProperties: false }
                 )
@@ -98,6 +99,7 @@ const MapValidator = Compile(RailwayMapDefinition)
 export class RailwayMap {
     readonly definition: RailwayMapDefinition
     readonly preprintedTiles: Readonly<Record<string, TileFace>>
+    readonly markedPrivateIds: readonly string[]
     private readonly locationsById: Map<string, MapLocation>
     private readonly grid: HexGrid<HexGridNode & { locationId: string }>
 
@@ -148,6 +150,13 @@ export class RailwayMap {
                 this.definition.locations.map((location) => [location.id, location.preprintedTile])
             )
         )
+        this.markedPrivateIds = Object.freeze([
+            ...new Set(
+                this.definition.locations.flatMap((location) =>
+                    (location.markers ?? []).flatMap((marker) => marker.privateCompanyId ?? [])
+                )
+            )
+        ])
     }
 
     reservedLocationIds(companyId: string): string[] {

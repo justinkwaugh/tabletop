@@ -8,6 +8,7 @@
         session,
         bordered = true,
         centered = false,
+        attention = false,
         artworkAvailable = false,
         publishedArtwork = false,
         onToggleArtwork
@@ -17,6 +18,7 @@
         onToggleArtwork?: () => void
         bordered?: boolean
         centered?: boolean
+        attention?: boolean
         session: EighteenXXSessionView
     } = $props()
     let compact = $state(false)
@@ -91,6 +93,7 @@
     class:compact
     class:centered
     class:borderless={!bordered}
+    class:attention
 >
     <div class="phase">
         <strong>
@@ -179,8 +182,16 @@
     header.borderless {
         border-bottom: 0;
     }
+    header.attention {
+        --rail-text: var(--rail-surface-inset, #1b232d);
+        --rail-muted: var(--rail-surface-inset, #1b232d);
+        --rail-hover: #00000014;
+        border-bottom-color: var(--rail-focus, #b8cddd);
+        background: var(--rail-focus, #b8cddd);
+    }
     header:not(.centered) {
         width: 100%;
+        padding-left: 8px;
         flex-wrap: wrap;
         row-gap: 0;
     }

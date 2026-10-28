@@ -293,6 +293,7 @@ export function createMapDrawing(
         tileSet: TileSet
         inventory: TileInventory
         markers?: readonly Pick<LocationMarker, 'kind' | 'locationId'>[]
+        liftedPrivateBlocks?: readonly string[]
     },
     {
         layouts = {},
@@ -337,11 +338,21 @@ export function createMapDrawing(
                 const name = locationMarkerName({ locationMarkerNames }, marker.kind)
                 return { id: marker.kind, label: name, description: name }
             })
+    const liftedPrivateBlocks = supply?.liftedPrivateBlocks ?? []
+    const blockLifted = (marker: NonNullable<MapLocation['markers']>[number]) =>
+        !!marker.privateCompanyId && liftedPrivateBlocks.includes(marker.privateCompanyId)
     const locations = map.definition.locations.map((printed): MapDrawnLocation => {
         const placed = placedMarkers(printed.id)
-        const location = placed.length
-            ? { ...printed, markers: [...(printed.markers ?? []), ...placed] }
-            : printed
+        const location =
+            placed.length || printed.markers?.some(blockLifted)
+                ? {
+                      ...printed,
+                      markers: [
+                          ...(printed.markers ?? []).filter((marker) => !blockLifted(marker)),
+                          ...placed
+                      ]
+                  }
+                : printed
         const tile = mapState?.tile(location.id)
         const placement = tile?.placement
         const relocation = placement ? undefined : placements[location.id]

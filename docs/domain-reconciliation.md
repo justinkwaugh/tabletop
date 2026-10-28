@@ -241,8 +241,8 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### Game-topic transport lacks an entitlement check
 
 - **Classification**: Open cross-context authorization risk
-- **Observed**: Any Active User can obtain a generic server-sent-events token, and the Game stream accepts an arbitrary Game ID without consulting Game Lifecycle for entitlement. The Ably token has an identity but no visible topic capability restriction.
-- **Evidence**: `apps/backend/src/app/routes/api/sse/token.ts:4`; `apps/backend/src/app/routes/api/sse/game.ts:16`; `libs/backend-services/src/ably/ablyService.ts:16`
+- **Observed**: Any Active User can obtain a generic server-sent-events token, and the Game stream accepts an arbitrary Game ID without consulting Game Lifecycle for entitlement. The Ably token and the relay token both name the Topics they grant (the caller's own user Topic, the global Topic and the requested game Topics, `apps/backend/src/app/lib/realtimeTopics.ts`), but neither consults Game Lifecycle for the game Topics.
+- **Evidence**: `apps/backend/src/app/routes/api/sse/token.ts:4`; `apps/backend/src/app/routes/api/sse/game.ts:16`; `apps/backend/src/app/lib/realtimeTopics.ts`
 - **Open question**: Identity proves the User Account; Game Lifecycle and Notification Delivery still need an agreed topic-entitlement policy.
 
 ### Account and role administration are absent
@@ -470,6 +470,13 @@ Unless stated otherwise, every open item below is documented but not implemented
 - **Gap**: Account inactivation and deletion currently do not revoke persisted Topic Registrations or trigger a delivery-time eligibility check. Logout cleanup is best effort and can leave registrations when unregister fails.
 - **Planned improvement**: Topics may become typed values combining notification contract and Audience, with their string encoding retained only as an implementation detail. This is desirable but deferred; the current string representation need not be replaced as part of the initial domain documentation work.
 
+### Web Push accepted arbitrary server destinations
+
+- **Classification**: Security defect; resolved 2026-10-27 (security audit finding S09)
+- **Observed**: Registration accepted any endpoint string as a Web Push subscription, and Dispatch handed it to the push library, which opened a server-side HTTPS request to whatever host and port the Active User had chosen, with no timeout and no bound on how many such registrations one User Topic could hold. Since the fix, registration and Dispatch share one policy: an endpoint must be an HTTPS URL on the default port without credentials whose host is a Supported Push Service (Chromium, Firefox, Safari and Edge push hosts, matched on whole labels), and its keys must be usable for push encryption: the p256dh key must be an uncompressed point that lies on the P-256 curve, checked with Node's EC facilities, and the auth secret must decode to at least 16 bytes. A stored registration that fails the policy is removed when Dispatch reaches it instead of being contacted. Dispatch connects through an agent that refuses loopback, private, link-local and other special-purpose addresses, including IPv4-mapped and other IPv4-embedding IPv6 forms, at the socket for both resolved hostnames and IP literals, so a later DNS answer cannot redirect a permitted host inward; each request carries a socket timeout and its own deadline, armed when the request is given a socket and cleared when the request completes, errors or is aborted, so a socket handed on to a queued request never carries an earlier request's spent deadline; concurrent push requests are capped. One User Topic holds at most twenty Web Push registrations; a further registration is refused as a client error until an existing one is removed or reported invalid.
+- **Evidence**: `libs/backend-services/src/notifications/subscriptions/webPushSubscriptionPolicy.ts:10`; `libs/backend-services/src/notifications/subscriptions/webPushSubscriptionPolicy.ts:35`; `libs/backend-services/src/notifications/transports/publicInternetAgent.ts:54`; `libs/backend-services/src/notifications/transports/publicInternetAgent.ts:82`; `libs/backend-services/src/notifications/transports/webPushTransport.ts:91`; `libs/backend-services/src/notifications/defaultNotificationService.ts:17`; `libs/backend-services/src/persistence/firestore/notificationStore.ts:89`
+- **Invariant**: A Topic Registration never makes Notification Delivery contact a destination other than a Supported Push Service, and Dispatch never opens a connection to a non-public address regardless of how the destination resolves. Outbound delivery work per notice is bounded by the per-topic registration cap, the per-request deadline and the concurrency cap.
+
 ### Attention delivery preferences are transport-registration-level
 
 - **Classification**: Current behavior aligned with intended initial scope
@@ -487,8 +494,8 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### Game audience capabilities are not enforced
 
 - **Classification**: Authorization defect with cross-context policy dependency
-- **Observed**: An Active Account can request an SSE stream for an arbitrary Game ID, while Ably tokens carry an identity but no audience capabilities and clients may attach arbitrary named channels.
-- **Evidence**: `apps/backend/src/app/routes/api/sse/game.ts:16`; `libs/backend-services/src/ably/ablyService.ts:16`; `apps/frontend/src/lib/network/ablyConnection.svelte.ts:55`
+- **Observed**: An Active Account can request an SSE stream for an arbitrary Game ID. Ably tokens used to carry an identity but no audience capabilities, so a client could attach any named channel, including another Account's user Topic, and publish on any channel the issuing key allowed. The Ably token now grants subscribe only, on exactly the Topics the relay token would grant (`libs/backend-services/src/ably/ablyService.ts`; `apps/backend/src/app/routes/api/auth/ably/token.ts`), and the client renews its token before attaching a game channel the current token does not cover (`apps/frontend/src/lib/network/ablyConnection.svelte.ts`). Game Topic entitlement remains the open policy below.
+- **Evidence**: `apps/backend/src/app/routes/api/sse/game.ts:16`; `apps/backend/src/app/lib/realtimeTopics.ts`
 - **Invariant**: Identity and Access proves the Account, Game Lifecycle decides Game Instance Audience entitlement, and Notification Delivery enforces only granted Audience capabilities. A User Audience contains exactly its Active Account, a Game Instance Audience contains Active Accounts permitted to access that Hosted Game, and the Global Audience contains every Active Account.
 
 ### SSE channel identity and connection state are corrupted

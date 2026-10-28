@@ -1,4 +1,4 @@
-import { type GameUiDefinition } from '@tabletop/frontend-components'
+import type { GameUiDefinition } from '@tabletop/frontend-components'
 import { GameState, User, type HydratedGameState } from '@tabletop/common'
 import type { ManifestService } from './manifestService.js'
 import { availableLibraryTitles } from '$lib/utils/libraryTitles.js'

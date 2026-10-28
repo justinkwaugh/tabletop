@@ -28,6 +28,7 @@ import {
     MachineState,
     PassBid,
     PlaceBid,
+    PlaceSealedBid,
     RailheadsRuntime,
     type RailheadsProjectedState
 } from '@tabletop/railheads'
@@ -157,6 +158,10 @@ export function invest(table: PlayedTable, industry: Industry): PlayedTable {
     return played(table, [
         createAction(InvestInIndustry, { ...envelope(table, onTheClock(table)), industry })
     ])
+}
+
+export function sealedBid(table: PlayedTable, playerId: string, amount: number): PlayedTable {
+    return played(table, [createAction(PlaceSealedBid, { ...envelope(table, playerId), amount })])
 }
 
 export function layNothing(table: PlayedTable): PlayedTable {

@@ -3,6 +3,7 @@ import {
     invalidateBackendManifestCache,
     type BackendReplacement
 } from './backend.js'
+import { manifestPublicationSignature } from '@tabletop/games-config'
 import {
     backupManifestCommand,
     dedupeCommandSpecs,
@@ -97,14 +98,21 @@ export type PreparedManifestPublication = {
     invalidateBackend: () => Promise<void>
 }
 
-export const invalidateBackendManifest = (context: PublishContext) =>
+export const invalidateBackendManifest = (
+    context: PublishContext,
+    expectedManifest?: SiteManifest
+) =>
     runStep(
         context,
         { label: 'invalidate-manifest', logPath: '/tmp/manifest-invalidate.log' },
         async () =>
             context.log(
                 `invalidate-manifest: ${describeReplacement(
-                    await invalidateBackendManifestCache(context.deployConfig)
+                    await invalidateBackendManifestCache(context.deployConfig, {
+                        expectedPublication: manifestPublicationSignature(
+                            expectedManifest ?? (await fetchBucketManifest(context.deployConfig))
+                        )
+                    })
                 )}`
             )
     )
@@ -142,16 +150,16 @@ export const prepareManifestPublication = async (
     const deploy = deployManifestCommand(manifestPath, context.deployConfig)
     await runDirectoryPlaceholders(context, [backup, deploy])
     await runSpec(context, backup)
+    let published: SiteManifest | undefined
     return {
         before,
         write: async (change) => {
-            await writeManifest(
-                manifestPath,
-                change(await fetchBucketManifest(context.deployConfig))
-            )
+            const next = change(await fetchBucketManifest(context.deployConfig))
+            await writeManifest(manifestPath, next)
             await runSpec(context, deploy)
+            published = next
         },
-        invalidateBackend: () => invalidateBackendManifest(context)
+        invalidateBackend: () => invalidateBackendManifest(context, published)
     }
 }
 

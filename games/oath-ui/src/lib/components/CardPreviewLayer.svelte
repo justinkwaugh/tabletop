@@ -8,7 +8,7 @@
     import { cardAspect } from '$lib/images/cardShape.js'
     import { cardPreview } from '$lib/model/cardPreview.svelte.js'
     import { previewSourceWidth, previewWidth } from '$lib/model/previewSize.js'
-    import { cardName, plural } from '$lib/model/names.js'
+    import { banditsDoing, cardName, plural } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { pawnImage, siteBanditsImage, warbandImage } from '$lib/images/pieceImages.js'
     import TokenBadge from '$lib/components/TokenBadge.svelte'
@@ -183,12 +183,11 @@
                                         alt=""
                                     />
                                     {#if pieces.rule.banditsHolderId === undefined}
-                                        bandits rule here
+                                        {banditsDoing(pieces.banditCount, 'rule')} here
                                     {:else}
                                         <!-- R-7.6.5 — "your warbands": the holder alone, while every Imperial player may rule. -->
-                                        bandits serve <PlayerName
-                                            playerId={pieces.rule.banditsHolderId}
-                                        /> here
+                                        {banditsDoing(pieces.banditCount, 'serve')}
+                                        <PlayerName playerId={pieces.rule.banditsHolderId} /> here
                                     {/if}
                                 </span>
                             {:else}

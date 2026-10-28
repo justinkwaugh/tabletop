@@ -1,5 +1,5 @@
 import { assertExists } from '../../util/assertions.js'
-import { isOutOfTurnDeclaration } from './actionHistory.js'
+import { isStandingDeclaration } from './actionHistory.js'
 import { ActionSource, type GameAction } from './gameAction.js'
 import { CALL_GAME_ACTION_TYPE } from './callGame.js'
 
@@ -37,11 +37,11 @@ export function playerUndoRestriction(
     target: UndoAction,
     playerId: string
 ): PlayerUndoRestriction | undefined {
-    for (const action of undoneActions) {
+    for (const [position, action] of undoneActions.entries()) {
         if (action.type === CALL_GAME_ACTION_TYPE) return PlayerUndoRestriction.CalledGame
         if (action.revealsInfo) return PlayerUndoRestriction.RevealsInformation
         if (
-            isOtherPlayersUserAction(action, playerId) &&
+            isOtherPlayersUserAction(undoneActions, position, playerId) &&
             !isSameSimultaneousGroup(action, target)
         ) {
             return PlayerUndoRestriction.OtherPlayersActions
@@ -55,10 +55,10 @@ export function latestPlayerUndoTarget<T extends UndoAction>(
     playerId: string
 ): T | undefined {
     const position = actions.findLastIndex(
-        (action) =>
+        (action, index) =>
             action.source === ActionSource.User &&
             action.playerId === playerId &&
-            !isOutOfTurnDeclaration(action)
+            !isStandingDeclaration(actions, index)
     )
     const target = actions[position]
     if (!target || playerUndoRestriction(actions.slice(position), target, playerId)) {
@@ -85,10 +85,15 @@ export function playerUndoReach(
     return reach
 }
 
-function isOtherPlayersUserAction(action: UndoAction, playerId: string): boolean {
+function isOtherPlayersUserAction(
+    actions: readonly UndoAction[],
+    position: number,
+    playerId: string
+): boolean {
+    const action = actions[position]
     return (
         action.source === ActionSource.User &&
-        !isOutOfTurnDeclaration(action) &&
+        !isStandingDeclaration(actions, position) &&
         action.playerId !== undefined &&
         action.playerId !== playerId
     )

@@ -40,6 +40,10 @@ export enum ActionType {
     ExileCitizen = 'exileCitizen',
     /** R-6.8 */
     SelfExile = 'selfExile',
+    /** R-7.6.3-H1 — a party to an open Tribunal deal asks the other to confirm it was kept. */
+    ClaimDealKept = 'claimDealKept',
+    /** R-7.6.3-H1 — a party to an open Tribunal deal closes it unconfirmed, asking no one. */
+    LeaveDealUnconfirmed = 'leaveDealUnconfirmed',
 
     /** R-4.1 */
     ResolveWake = 'resolveWake',

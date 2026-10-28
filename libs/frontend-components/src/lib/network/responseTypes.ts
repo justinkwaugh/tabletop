@@ -199,12 +199,23 @@ export const TokenResponse = Type.Evaluate(
     ])
 )
 
+export type AblyTokenRequest = Static<typeof AblyTokenRequest>
+export const AblyTokenRequest = Type.Object({
+    keyName: Type.String(),
+    nonce: Type.String(),
+    mac: Type.String(),
+    timestamp: Type.Number(),
+    capability: Type.String(),
+    clientId: Type.Optional(Type.String()),
+    ttl: Type.Optional(Type.Number())
+})
+
 export type AblyTokenResponse = Static<typeof AblyTokenResponse>
 export const AblyTokenResponse = Type.Evaluate(
     Type.Intersect([
         Type.Omit(ApiResponse, ['payload']),
         Type.Object({
-            payload: Type.Object({ token: Type.Unknown() })
+            payload: Type.Object({ token: AblyTokenRequest })
         })
     ])
 )

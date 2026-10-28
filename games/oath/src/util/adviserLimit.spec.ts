@@ -4,7 +4,7 @@ import { HydratedSearchResolve, SearchPlay, SearchResolve } from '../actions/sea
 import { HydratedPlayFacedownAdviser, PlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
 import { ActionSource } from '@tabletop/common'
 import { AnswerQuestion, HydratedAnswerQuestion } from '../actions/answerQuestion.js'
-import { type UseActionPower } from '../actions/useActionPower.js'
+import type { UseActionPower } from '../actions/useActionPower.js'
 import { powerIndexOf, PowerTiming } from '../data/cardPowers.js'
 import { ActionType } from '../definition/actions.js'
 import { OathRuntime } from '../definition/runtime.js'

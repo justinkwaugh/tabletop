@@ -64,6 +64,29 @@ export const RolledDefenseFace = Type.Object({
     doubling: Type.Boolean()
 })
 
+/**
+ * R-5.5.4, R-5.5.5 — a Campaign's roll as the battle closes on it: the last faces rolled (a reroll
+ * replaces the first roll) and what the engine counted from them.
+ */
+export type CampaignRollRecord = Type.Static<typeof CampaignRollRecord>
+export const CampaignRollRecord = Type.Object({
+    /** The faces as rolled; a face a card ignores stays as rolled. */
+    attackFaces: Type.Array(RolledAttackFace),
+    defenseFaces: Type.Array(RolledDefenseFace),
+    /** R-5.5.5.a — hollow swords paired, before any sacrifice. */
+    swords: Type.Number(),
+    skulls: Type.Number(),
+    /** R-5.5.4.a — after any doubling; `doubled` when a doubling face counted, even with no shields to double. */
+    shields: Type.Number(),
+    doubled: Type.Boolean(),
+    /** R-10.9 — the defending warbands by place, fixed at the roll. */
+    defendingForce: Type.Array(WarbandGroup),
+    /** R-2.8.3, R-10.3 */
+    defendingBandits: Type.Number(),
+    /** R-5.5.4 — the shields, the warbands and the bandits. */
+    defense: Type.Number()
+})
+
 /** R-5.5.4, R-5.5.5 */
 export type RollRules = Type.Static<typeof RollRules>
 export const RollRules = Type.Object({
@@ -95,6 +118,10 @@ export const HeldForHospital = Type.Object({
     owner: WarbandOwner,
     count: Type.Integer({ minimum: 1 })
 })
+
+/** Hospital — the warbands placed on its site when the Campaign ended, recorded by the step that ended it. */
+export type HospitalPlaced = Type.Static<typeof HospitalPlaced>
+export const HospitalPlaced = Type.Array(HeldForHospital, { minItems: 1, maxItems: 32 })
 
 /** R-5.5 */
 export type CampaignState = Type.Static<typeof CampaignState>

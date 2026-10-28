@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import {
     ActionSource,
     GameAction,
     HydratableAction,
-    PlayerAction,
     assert,
     type HydratedGameState
 } from '@tabletop/common'
@@ -23,7 +23,7 @@ export type PrivatePowerRequestDropReason = Type.Static<typeof PrivatePowerReque
 
 export const SetPrivatePowerRequest = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('SetPrivatePowerRequest'),
         outOfTurn: Type.Literal(true),
         supersedable: Type.Literal(true),

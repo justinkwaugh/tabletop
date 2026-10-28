@@ -128,8 +128,11 @@ test('runs a sealed-bid industry auction', async ({ page }) => {
     await expect.poll(() => machineState(page)).toBe('ChoosingAction')
     await screenshot(page, '07-after-industry-auction')
     await page.getByRole('tab', { name: 'History', exact: true }).click()
-    await expect(page.locator('.history .line.bid')).toHaveCount(4)
+    await expect(page.locator('.history .bids .amount')).toHaveCount(4)
     await screenshot(page, '07b-revealed-bids')
+    await page
+        .locator('.history')
+        .screenshot({ path: test.info().outputPath('07c-history-panel.png') })
 })
 
 for (const edition of ['Germany', 'Midwest']) {

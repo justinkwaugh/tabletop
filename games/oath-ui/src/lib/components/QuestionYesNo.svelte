@@ -9,7 +9,8 @@
         no,
         cost,
         dot = true,
-        yesLabel
+        yesLabel,
+        noConsequence
     }: {
         yes: string
         no: string
@@ -19,6 +20,8 @@
         dot?: boolean
         /** The yes read aloud, where "<yes>, paying <cost>" does not say it ("Travel and flip 1 secret"). */
         yesLabel?: string
+        /** What the no brings beyond its word, in rose after a dot ("Refuse · Ann takes it"). */
+        noConsequence?: string
     } = $props()
 
     let gameSession = getGameSession()
@@ -48,5 +51,14 @@
                 >{/if}
         </AnswerButton>
     {/if}
-    <AnswerButton {width} disabled={busy} onclick={() => draft.decline()}>{no}</AnswerButton>
+    <AnswerButton
+        {width}
+        disabled={busy}
+        label={noConsequence ? `${no}, ${noConsequence}` : undefined}
+        onclick={() => draft.decline()}
+    >
+        {no}{#if noConsequence}<span class="text-oath-text-muted" aria-hidden="true">·</span><span
+                class="font-semibold text-oath-danger">{noConsequence}</span
+            >{/if}
+    </AnswerButton>
 </div>

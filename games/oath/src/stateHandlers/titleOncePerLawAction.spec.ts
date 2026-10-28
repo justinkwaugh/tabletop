@@ -223,7 +223,7 @@ interface SupremacyOptions {
 
 /**
  * Supremacy. Dana, the Chancellor, attacks from p1. Rhys, an Exile, holds the title and rules p1,
- * p2 and p3; Mara rules h1 and h2; the Empire rules `empireSites` of c1 and c2. With Bea, she rules
+ * p2 and p3; Mara rules h1 and h2; the Empire rules `empireSites` of c1 and c2. With Bea in the game, Bea rules
  * h3 and c2.
  */
 function supremacy(revision: OathRevision, options: SupremacyOptions, seed: number) {
@@ -361,7 +361,7 @@ describe('R-2.11-H1 — a Campaign is one Law action: the title is judged once, 
         })
     })
 
-    it("a tie with a Sneak Attack to ask: Rhys chooses first, then is asked for his Sneak Attack, and Dana's Act Phase resumes", () => {
+    it("a tie with a Sneak Attack to ask: Rhys chooses first, then is asked for their Sneak Attack, and Dana's Act Phase resumes", () => {
         const { r } = chancellorsCampaign(NOW, { empireSites: 0, rhysAdvisers: [SNEAK_ATTACK] })
         expect(r.state.machineState).toBe(MachineState.OathkeeperChoice)
         expect(r.state.pendingQuestions?.queue[0]).toMatchObject({
@@ -609,7 +609,7 @@ describe("R-2.11-H1 — the defender's last sites lost at R-5.5.6 do not leave t
 
 describe('R-2.11-H1 — a holder who ends the Campaign still holding the title keeps its Usurper side (R-2.11.c)', () => {
     // Supremacy, 1-1: Dana rules c2 and holds the title on its Usurper side; Rhys rules c1. Dana
-    // attacks c1 with Vow of Union and must sacrifice her warband at c2 to win.
+    // attacks c1 with Vow of Union and must sacrifice their warband at c2 to win.
     const build = (revision: OathRevision) => (seed: number) =>
         table(
             revision,
@@ -683,7 +683,7 @@ describe('R-2.11-H1 — a holder who ends the Campaign still holding the title k
         return r
     }
 
-    it('Dana never lost the title, so she keeps the Usurper side', () => {
+    it('Dana never lost the title, so they keep the Usurper side', () => {
         const r = sacrificeAtC2(NOW)
         expect({
             transfers: r.transfers(),
@@ -905,7 +905,7 @@ describe("R-2.11-H1 — a Sneak Attack over another player's turn is judged once
         return { r, holderAfterDefeat, transfers: r.transfers().slice(before) }
     }
 
-    it('one move, Rhys to Dana, and Rhys is back on the clock in his Act Phase', () => {
+    it('one move, Rhys to Dana, and Rhys is back on the clock in their Act Phase', () => {
         const { r, holderAfterDefeat, transfers } = sneakAttack(NOW)
         expect({ holderAfterDefeat, transfers, holder: r.state.oathkeeperPlayerId }).toEqual({
             holderAfterDefeat: RHYS,
@@ -1318,7 +1318,7 @@ describe.each([
         })
     })
 
-    it('Second Wind: Dana holds the title before her free Travel and Campaign', () => {
+    it('Second Wind: Dana holds the title before their free Travel and Campaign', () => {
         const r = firstCampaign([SECOND_WIND], [])
         const dana = r.player(DANA)
         expect({
@@ -1398,7 +1398,7 @@ interface BanishTableOptions {
 }
 
 interface ThiefScene extends BanishTableOptions {
-    /** Mara's answer to Jinx's question; left out when she does not hold Jinx. */
+    /** Mara's answer to Jinx's question; left out when they do not hold Jinx. */
     reroll?: boolean
     /** Whether the roll that stands takes the Horn. */
     takes: boolean
@@ -1411,7 +1411,7 @@ function canonical(state: unknown): OathGameState {
 
 describe('R-2.11-H1 — a Relic Thief take answered while the Campaign waits on a banish is judged at that answer', () => {
     // Protection. Rhys (the attacker, ruling c1 with Toll Roads) has won against Dana (the holder:
-    // the Horn and the Book) at c2, taking the Horn and banishing her to c1. Mara holds Relic Thief
+    // the Horn and the Book) at c2, taking the Horn and banishing them to c1. Mara holds Relic Thief
     // and the Sticks, in the Cradle. The thief's question comes first, then Dana's toll; the
     // Campaign stays open until the toll is answered.
     function build(revision: OathRevision, seed: number, more: BanishTableOptions = {}) {

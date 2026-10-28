@@ -11,7 +11,7 @@
     const activeSide = $derived(
         activePlayerId ? gameSession.gameState.findPlayerState(activePlayerId)?.side : undefined
     )
-    const inPlay = $derived(gameSession.gameState.rounds.currentRound !== undefined)
+    const inPlay = $derived(gameSession.gameState.roundInProgress)
 </script>
 
 <div class="nt-masthead-block">
