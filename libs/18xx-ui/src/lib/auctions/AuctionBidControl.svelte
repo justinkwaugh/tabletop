@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { MoneyFormat } from '../presentation/money.js'
+    import { currencyAffixes, type MoneyFormat } from '../presentation/money.js'
     let {
         money,
         amount,
@@ -25,10 +25,28 @@
         onBid: () => void
         onPass?: () => void
     } = $props()
-    // The title's currency around a typed amount: "$" before, or a symbol after.
-    const [currencyBefore, currencyAfter] = $derived(money(0).split('0'))
-    function typed(value: number) {
-        if (Number.isFinite(value)) onChange(value)
+    const currency = $derived(currencyAffixes(money))
+    let typedText = $state<string>()
+    // Bid sends `amount`, which the caller may not have taken from the field (a blank field, or
+    // a typed value it replaces with its minimum), so the field has to read that amount.
+    const bidReady = $derived(
+        canBid && (typedText === undefined || (typedText !== '' && Number(typedText) === amount))
+    )
+    function type(field: HTMLInputElement) {
+        typedText = field.value
+        if (Number.isFinite(field.valueAsNumber)) onChange(field.valueAsNumber)
+    }
+    function step(value: number) {
+        typedText = undefined
+        onChange(value)
+    }
+    function bid() {
+        typedText = undefined
+        onBid()
+    }
+    function pass() {
+        typedText = undefined
+        onPass?.()
     }
 </script>
 
@@ -37,29 +55,29 @@
         <button
             aria-label="Decrease bid"
             disabled={!canDecrease}
-            onclick={() => onChange(amount - increment)}>−</button
+            onclick={() => step(amount - increment)}>−</button
         >
         <label class="amount"
-            >{currencyBefore}<input
+            >{currency.before}<input
                 type="number"
                 inputmode="numeric"
                 aria-label="Bid amount"
                 step={increment}
-                value={amount}
-                oninput={(event) => typed(event.currentTarget.valueAsNumber)}
+                value={typedText ?? amount}
+                oninput={(event) => type(event.currentTarget)}
                 onkeydown={(event) => {
-                    if (event.key === 'Enter' && canBid) onBid()
+                    if (event.key === 'Enter' && bidReady) bid()
                 }}
-            />{currencyAfter}</label
+            />{currency.after}</label
         >
         <button
             aria-label="Increase bid"
             disabled={!canIncrease}
-            onclick={() => onChange(amount + increment)}>+</button
+            onclick={() => step(amount + increment)}>+</button
         >
     </div>
-    <button class="bid action-button" disabled={!canBid} onclick={onBid}>Bid</button>
-    {#if onPass}<button class="pass action-button" disabled={!canPass} onclick={onPass}>Pass</button
+    <button class="bid action-button" disabled={!bidReady} onclick={bid}>Bid</button>
+    {#if onPass}<button class="pass action-button" disabled={!canPass} onclick={pass}>Pass</button
         >{/if}
 </div>
 

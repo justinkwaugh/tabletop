@@ -17,6 +17,7 @@ import {
     minimumBid,
     openingBid,
     bidCeiling,
+    bidRejection,
     BuyConvertedShare,
     ConvertCompany,
     DiscardMergedTrain,
@@ -180,7 +181,8 @@ export class EighteenSeventeenSession extends BaseSession {
                     ? bidCeiling(state, sale, playerId)
                     : undefined,
             /** The bidder's companies that could pay this amount. */
-            payers: (amount: number) => (playerId ? buyersFor(state, playerId, sale, amount) : [])
+            payers: (amount: number) => (playerId ? buyersFor(state, playerId, sale, amount) : []),
+            allows: (amount: number) => !!playerId && !bidRejection(state, sale, playerId, amount)
         }
     })
     acquirerChoice = $derived(
