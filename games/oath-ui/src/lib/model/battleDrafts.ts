@@ -1,5 +1,6 @@
 import { assertExists } from '@tabletop/common'
 import {
+    BattlePlanSide,
     CampaignTargetKind,
     HydratedCampaignDefeatKills,
     HydratedCampaignAttackPlans,
@@ -15,6 +16,7 @@ import {
     countOf,
     defeatPickMatters,
     forceTotal,
+    hospitalHolderOf,
     powerKey,
     reasonCagePlacementInvalid,
     shroudedWoodChooser,
@@ -786,6 +788,40 @@ export class DefeatDraft implements PanelDraft {
 
     get required(): number {
         return this.playerId ? HydratedCampaignDefeatKills.required(this.session.gameState) : 0
+    }
+
+    /** Whose warbands a row holds, its chip: a board's own player; at a site, the defender's. */
+    playerOf(group: WarbandGroup): string | undefined {
+        if (group.at.kind === 'board') return group.at.playerId
+        return (
+            this.session.gameState.campaign?.defenderPlayerId ??
+            (group.owner === IMPERIAL_WARBANDS ? undefined : group.owner)
+        )
+    }
+
+    /** The rows' order by index in `groups`: each player's rows together, a board's before a site's. */
+    get rowOrder(): number[] {
+        const groups = this.groups
+        const indices = groups.map((_, index) => index)
+        const boardFirst = [
+            ...indices.filter((index) => groups[index].at.kind === 'board'),
+            ...indices.filter((index) => groups[index].at.kind !== 'board')
+        ]
+        const players = [...new Set(boardFirst.map((index) => this.playerOf(groups[index])))]
+        return players.flatMap((playerId) =>
+            boardFirst.filter((index) => this.playerOf(groups[index]) === playerId)
+        )
+    }
+
+    /** R-10.28 — whose Hospital would hold warbands picked here, each once, in the rows' order. */
+    get hospitalHolders(): string[] {
+        const state = this.session.gameState
+        const campaign = state.campaign
+        if (!campaign) return []
+        const holders = this.rowOrder.map((index) =>
+            hospitalHolderOf(state, campaign, BattlePlanSide.Defender, this.groups[index])
+        )
+        return [...new Set(holders.filter((holder) => holder !== undefined))]
     }
 
     get picked(): number[] {

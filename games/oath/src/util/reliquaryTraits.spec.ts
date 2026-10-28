@@ -743,11 +743,11 @@ describe('sideFavor under Vow of Poverty and with Secret Signal', () => {
             return s
         }
 
-        it('no Vow of her own, borrowing one: the Trade gains nothing beside, and the count says so', () => {
+        it('no Vow of their own, borrowing one: the Trade gains nothing beside, and the count says so', () => {
             expect(both(borrowing([RETURN], [POVERTY]), disguise)).toEqual([0, 0])
         })
 
-        it("her own Vow, borrowing advisers with none: the Trade gains Careless's favor, and the count shows it", () => {
+        it("their own Vow, borrowing advisers with none: the Trade gains Careless's favor, and the count shows it", () => {
             expect(both(borrowing([RETURN, POVERTY], [STEED]), disguise)).toEqual([1, 1])
         })
     })

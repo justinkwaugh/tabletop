@@ -64,7 +64,7 @@ describe('merger phase', () => {
         const play = mergerPhase()
         expect(play.state.machineState).toBe('Merging')
         const playerId = proposer(play)
-        expect(play.valid(playerId)).toEqual(['ProposeMerger', 'PassMerger'])
+        expect(play.valid(playerId)).toEqual(['ProposeMerger', 'PassMerger', 'SetRunInstruction'])
     })
 
     it('gives each proposer a turn in priority order, answers falling within it', () => {
@@ -118,7 +118,7 @@ describe('merger phase', () => {
             'alex'
         )
         expect(play.state.activePlayerIds).toEqual(['blair'])
-        expect(play.valid('blair')).toEqual(['AnswerMerger'])
+        expect(play.valid('blair')).toEqual(['AnswerMerger', 'SetRunInstruction'])
         play.act('AnswerMerger', { accept: true }, 'blair')
         expect(play.state.systems).toEqual({ AMTK: ['ACL', 'CG'] })
         expect(getCompany(play.state, 'AMTK').president).toEqual(player('alex'))
@@ -203,7 +203,7 @@ describe('merger phase', () => {
             targetId: 'CG',
             playerId: 'alex'
         })
-        expect(play.valid('alex')).toEqual(['SellTakeoverShares'])
+        expect(play.valid('alex')).toEqual(['SellTakeoverShares', 'SetRunInstruction'])
         const sales = takeoverSales(play.state, {
             buyerId: 'ACL',
             targetId: 'CG',

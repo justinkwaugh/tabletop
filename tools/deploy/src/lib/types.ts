@@ -1,39 +1,11 @@
-export type GameCatalogueEntry = {
-    gameId: string
-    packageId: string
-}
-
-export type PublicationRecord = {
-    logicVersion: string
-    uiVersion: string
-    deployedAt?: string
-    commitSha?: string
-    tags?: string[]
-}
-
-export type FrontendVersionRecord = {
-    version: string
-    deployedAt?: string
-    commitSha?: string
-    tag?: string
-}
-
-export type GameManifestEntry = GameCatalogueEntry & {
-    logicVersion: string
-    uiVersion: string
-    priorLogicVersions?: string[]
-    priorUiVersions?: string[]
-    history?: PublicationRecord[]
-}
-
-export type SiteManifest = {
-    frontend: {
-        version: string
-        priorVersions?: string[]
-        history?: FrontendVersionRecord[]
-    }
-    games: GameManifestEntry[]
-}
+import type { SiteManifest } from '@tabletop/games-config'
+export type {
+    GameCatalogueEntry,
+    PublicationRecord,
+    FrontendVersionRecord,
+    SiteManifest,
+    SiteManifestGame as GameManifestEntry
+} from '@tabletop/games-config'
 
 export type BackendManifest = SiteManifest & {
     backend?: {

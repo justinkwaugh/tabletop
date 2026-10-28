@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type AdminAssignableRole, type Role, type User } from '@tabletop/common'
+    import type { AdminAssignableRole, Role, User } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
 
     let {

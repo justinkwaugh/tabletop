@@ -51,12 +51,7 @@ async function setup(roles: Role[]) {
     await server.register(authorization)
     await server.register(tournaments, { prefix: '/tournaments' })
     server.get('/session', async (request) => {
-        await authSession({
-            session: request.session,
-            user,
-            proof: 'authentication-method',
-            sessions: sessionService
-        })
+        await authSession({ session: request.session, user, sessions: sessionService })
         return {}
     })
     const response = await server.inject('/session')

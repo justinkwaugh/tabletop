@@ -2,9 +2,10 @@ import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { beforeAll, expect, it } from 'vitest'
 import { assertExists, Color, HexOrientation } from '@tabletop/common'
-import { Autorouter } from '@tabletop/18xx-autorouter'
+import { Autorouter, routeProblemKey } from '@tabletop/18xx-autorouter'
 import {
     RouteEvaluation,
+    applyStationPlacement,
     RailwayMap,
     TileSet,
     createCityTileFace,
@@ -15,7 +16,7 @@ import {
 import { exhaustiveRevenue } from '@tabletop/18xx-autorouter/testing'
 import { createShikoku1889CompanyExample } from './scenarios/index.js'
 import { Shikoku1889RouteRules } from './index.js'
-import { Shikoku1889TrainDepot } from './index.js'
+import { Shikoku1889TileSet, Shikoku1889TrainDepot } from './index.js'
 
 let router: Autorouter
 beforeAll(async () => {
@@ -127,4 +128,58 @@ it('reserves gray offboard values for diesels even during the diesel phase', () 
         })
         expect(router.solve(state, rules, 'IR').result.revenue).toBe(expected)
     }
+})
+it('keys a company’s run by what the solver reads, wherever its turn stands', () => {
+    const state: TrainRunningState = createShikoku1889CompanyExample(players, 'operations')
+    const key = routeProblemKey(state, Shikoku1889RouteRules, 'IR')
+    expect(
+        routeProblemKey({ ...state, routeStep: { companyId: 'IR' } }, Shikoku1889RouteRules, 'IR')
+    ).toBe(key)
+    expect(routeProblemKey(structuredClone(state), Shikoku1889RouteRules, 'IR')).toBe(key)
+    expect(routeProblemKey(state, Shikoku1889RouteRules, 'AR')).not.toBe(key)
+    const withoutTrain = structuredClone(state)
+    withoutTrain.trainInventory.trains = withoutTrain.trainInventory.trains.filter(
+        (train) => train.id !== 'shikoku-1889/2/1'
+    )
+    expect(routeProblemKey(withoutTrain, Shikoku1889RouteRules, 'IR')).not.toBe(key)
+    const laterPhase = { ...structuredClone(state), phaseId: '5' }
+    expect(routeProblemKey(laterPhase, Shikoku1889RouteRules, 'IR')).not.toBe(key)
+})
+
+it('keys only the track and stops the company can reach', () => {
+    const state: TrainRunningState = createShikoku1889CompanyExample(players, 'operations')
+    const key = routeProblemKey(state, Shikoku1889RouteRules, 'IR')
+    const withTiles = (extra: { locationId: string; definitionId: string; rotation: number }[]) => {
+        const next = structuredClone(state)
+        next.tileInventory = Shikoku1889TileSet.createInventory([
+            { locationId: 'E2', definitionId: '18xx:5', rotation: 4 },
+            { locationId: 'F3', definitionId: '18xx:57', rotation: 2 },
+            { locationId: 'G4', definitionId: '18xx:6', rotation: 0 },
+            ...extra
+        ])
+        return next
+    }
+    expect(routeProblemKey(withTiles([]), Shikoku1889RouteRules, 'IR')).toBe(key)
+    const farAway = withTiles([{ locationId: 'J11', definitionId: '18xx:9', rotation: 0 }])
+    expect(routeProblemKey(farAway, Shikoku1889RouteRules, 'IR')).toBe(key)
+    expect(routeProblemKey(farAway, Shikoku1889RouteRules, 'AR')).toBe(
+        routeProblemKey(state, Shikoku1889RouteRules, 'AR')
+    )
+    const turned = structuredClone(state)
+    turned.tileInventory = Shikoku1889TileSet.createInventory([
+        { locationId: 'E2', definitionId: '18xx:5', rotation: 3 },
+        { locationId: 'F3', definitionId: '18xx:57', rotation: 2 },
+        { locationId: 'G4', definitionId: '18xx:6', rotation: 0 }
+    ])
+    expect(routeProblemKey(turned, Shikoku1889RouteRules, 'IR')).not.toBe(key)
+    const blocked = structuredClone(state)
+    applyStationPlacement(blocked, {
+        companyId: 'IR',
+        stationId: 'IR:station:1',
+        position: { locationId: 'F3', nodeId: 'city', slot: 0 },
+        cost: 0
+    })
+    expect(routeProblemKey(blocked, Shikoku1889RouteRules, 'AR')).not.toBe(
+        routeProblemKey(state, Shikoku1889RouteRules, 'AR')
+    )
 })

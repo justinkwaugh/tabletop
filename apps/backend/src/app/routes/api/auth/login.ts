@@ -25,7 +25,6 @@ export default async function (fastify: FastifyInstance) {
             await authSession({
                 session: request.session,
                 user,
-                proof: 'authentication-method',
                 sessions: fastify.sessionService
             })
             request.log.info({ userId: user.id }, 'Password login succeeded')

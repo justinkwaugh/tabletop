@@ -18,6 +18,7 @@ export type GridAction =
     | ActionType.Peek
     | ActionType.LetPeek
     | ActionType.MoveWarbands
+    | ActionType.LeaveDealUnconfirmed
     | ActionType.OfferCitizenship
     | ActionType.ExileCitizen
     | ActionType.SelfExile
@@ -113,6 +114,15 @@ export const MINOR_ACTIONS: readonly ActionEntry[] = [
         rule: 'R-6.5',
         summary: 'Between your board and a site you rule.'
     },
+    // R-7.6.3-H1 — one entry for an open deal's two actions: each deal's row asks the other party
+    // (`ClaimDealKept`) or leaves it unconfirmed. It is offered while leaving one is, that is while
+    // the seat is party to an open deal; a deal claimed this turn can still be left.
+    {
+        type: ActionType.LeaveDealUnconfirmed,
+        label: 'Resolve Tribunal',
+        rule: 'R-7.6.3-H1',
+        summary: 'Ask the other player to confirm a deal, or leave it unconfirmed.'
+    },
     {
         type: ActionType.OfferCitizenship,
         label: 'Offer Citizenship',
@@ -147,12 +157,13 @@ export const MODIFIABLE_ACTIONS: ReadonlySet<ActionType> = new Set([
     ActionType.Search
 ])
 
-/** R-6.1, R-6.3, R-6.5, R-6.7, R-6.8 — one choice from a list the engine computes. */
+/** R-6.1, R-6.3, R-6.5, R-6.7, R-6.8, R-7.6.3-H1 — one choice from a list the engine computes. */
 export const MINOR_TARGETED_ACTIONS: ReadonlySet<ActionType> = new Set([
     ActionType.PlayFacedownAdviser,
     ActionType.Peek,
     ActionType.LetPeek,
     ActionType.MoveWarbands,
+    ActionType.LeaveDealUnconfirmed,
     ActionType.ExileCitizen,
     ActionType.SelfExile
 ])

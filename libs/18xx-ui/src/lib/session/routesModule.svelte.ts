@@ -2,11 +2,13 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     RouteEvaluation,
     RunTrains,
+    trainRoutesOf,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type OperatingResult,
     type RevenueCenter,
-    type RoutePath
+    type RoutePath,
+    type TrainRoute
 } from '@tabletop/18xx'
 import { trainRouteOverlays } from '../routes/routePresentation.js'
 import type { MapSelection } from '../maps/mapDrawing.js'
@@ -29,10 +31,6 @@ export type RoutesSession<State extends RoutesState = RoutesState> = Pick<
 >
 export type RouteOverlay = { id: string; color: string; segments: readonly RoutePath[] }
 type SolvedRoutes<State> = { state: State; result: OperatingResult; exhaustive: boolean }
-
-function submittedRoutes(result: OperatingResult) {
-    return result.routes.map(({ trainId, start, paths }) => ({ trainId, start, paths }))
-}
 
 export class RoutesModule<State extends RoutesState> implements LocalSelection {
     #solved: SolvedRoutes<State> | undefined = $state.raw()
@@ -87,7 +85,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
             companyId && result.companyId === companyId,
             'Automatic routes require the operating company'
         )
-        const checked = this.evaluate(state, companyId, submittedRoutes(result))
+        const checked = this.evaluate(state, companyId, trainRoutesOf(result))
         assertExists(checked.result, checked.reason ?? 'Invalid automatic routes')
         this.#solved = { state, result: checked.result, exhaustive }
     }
@@ -97,7 +95,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         await this.session.applyAction(
             this.session.createPlayerAction(RunTrains, {
                 companyId: result.companyId,
-                routes: submittedRoutes(result)
+                routes: trainRoutesOf(result)
             })
         )
     }
@@ -160,7 +158,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
     private assertActive() {
         assert(this.canRun, 'Routes are not active')
     }
-    private evaluate(state: State, companyId: string, routes: ReturnType<typeof submittedRoutes>) {
+    private evaluate(state: State, companyId: string, routes: TrainRoute[]) {
         return new RouteEvaluation(state, this.session.rules.routeRules).evaluate(companyId, routes)
     }
 }

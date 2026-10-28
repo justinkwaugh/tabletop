@@ -8,7 +8,9 @@ import {
     OathRevision,
     PlayerStatus,
     TINKERS_FAIR_ALLOWS,
+    TRIBUNAL_ALLOWS,
     reasonExchangeInvalid,
+    reasonTermsOutsideCard,
     type AdviserRow,
     type OathPlayerState
 } from '@tabletop/oath'
@@ -16,14 +18,19 @@ import { served, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     exchangeComplete,
     exchangeOffers,
+    exchangePicked,
     inReturnOf,
     noExchangePicks,
+    promiseDraftOf,
+    promiseEdited,
+    promiseLength,
     siteCounts,
     tappedCount,
     tappedSiteCount,
     transferOf,
     warbandsToMoveIn,
     withOfferedPicks,
+    withPromise,
     withSiteCount,
     withSitePicked,
     type ExchangePicks,
@@ -43,7 +50,7 @@ const faceup = (cardId: string): AdviserRow => ({ cardId, faceUp: true })
 
 /**
  * 'dana' is the Chancellor and rules c1 and c2 (Imperial warbands); 'rhys' is an Exile;
- * 'ann' is a Citizen with Imperial warbands on her board.
+ * 'ann' is a Citizen with Imperial warbands on their board.
  */
 function table(
     seats: {
@@ -374,7 +381,7 @@ describe('a pick the other side no longer allows leaves the terms with it', () =
         s.warbandsBySite = { ...s.warbandsBySite, p1: { rhys: 2 } }
         return s
     }
-    /** 'dana' proposes; she gives c1, 'rhys' gives p1 and the warbands it sends home fill c1. */
+    /** 'dana' proposes; they give c1, 'rhys' gives p1 and the warbands it sends home fill c1. */
     const keep = (
         state: ReturnType<typeof table>,
         picks: ExchangePicks,
@@ -519,7 +526,7 @@ const views = [
 // R-10.8 — a site's count is one its row's pieces offer; a count the other side's change took
 // away is cleared, not clamped, so the player picks again and the terms wait for it.
 describe('a count no longer among its row’s counts is cleared', () => {
-    /** 'rhys' has one warband on his board and rules p1 with three; 'dana' gives c1. */
+    /** 'rhys' has one warband on their board and rules p1 with three; 'dana' gives c1. */
     function staleTable() {
         const s = table(
             {
@@ -691,5 +698,120 @@ describe('Deed Writer — two sites that depend on each other, both boards empty
             true
         )
         expect(ed.keep(picked).uncountedSiteIds).toEqual([])
+    })
+})
+
+describe('the Tribunal’s promise boxes — each side’s promise, sent as the engine’s rule reads it (R-7.6.3-H1)', () => {
+    it('the box keeps what was typed; the terms carry it trimmed, line breaks inside kept', () => {
+        const typed = '  I will travel to the Hinterland\nnext round.  \n'
+        const picks = withPromise(noExchangePicks(), 'fromProposer', typed)
+        expect(promiseDraftOf(picks, 'fromProposer')).toBe(typed)
+        expect(promiseDraftOf(picks, 'fromCounterparty')).toBe('')
+        expect(picks.terms.promises).toEqual({
+            fromProposer: 'I will travel to the Hinterland\nnext round.'
+        })
+        expect(reasonTermsOutsideCard(picks.terms, TRIBUNAL_ALLOWS)).toBeUndefined()
+    })
+
+    it('a box empty after the trim is no promise: the side has no key, and no promises object without one', () => {
+        const both = withPromise(
+            withPromise(noExchangePicks(), 'fromProposer', 'I will.'),
+            'fromCounterparty',
+            'So will I.'
+        )
+        expect(both.terms.promises).toEqual({
+            fromProposer: 'I will.',
+            fromCounterparty: 'So will I.'
+        })
+
+        const one = withPromise(both, 'fromProposer', '   \n ')
+        expect(one.terms.promises).toEqual({ fromCounterparty: 'So will I.' })
+        expect(promiseDraftOf(one, 'fromProposer')).toBe('   \n ')
+
+        const none = withPromise(one, 'fromCounterparty', '')
+        expect(none.terms).not.toHaveProperty('promises')
+    })
+
+    it('a promise alone is an offer, "Use" ready; spaces alone are no pick', () => {
+        const promised = withPromise(noExchangePicks(), 'fromCounterparty', 'Rhys stays home.')
+        expect(exchangeComplete(promised)).toBe(true)
+        expect(exchangePicked(promised)).toBe(true)
+        const blank = withPromise(noExchangePicks(), 'fromCounterparty', '   ')
+        expect(exchangeComplete(blank)).toBe(false)
+        expect(exchangePicked(blank)).toBe(false)
+    })
+
+    it('the counter is the validator’s number: UTF-16 units of the trimmed text, so 201 is refused and 200 is not', () => {
+        const over = withPromise(
+            noExchangePicks(),
+            'fromProposer',
+            ' a' + '\u0301'.repeat(200) + ' '
+        )
+        expect(promiseLength(over.terms, 'fromProposer')).toBe(201)
+        expect(reasonTermsOutsideCard(over.terms, TRIBUNAL_ALLOWS)).toBe(
+            'a promise is at most 200 characters'
+        )
+
+        const exact = withPromise(noExchangePicks(), 'fromProposer', '\u{1F600}' + 'x'.repeat(198))
+        expect(promiseLength(exact.terms, 'fromProposer')).toBe(200)
+        expect(reasonTermsOutsideCard(exact.terms, TRIBUNAL_ALLOWS)).toBeUndefined()
+        expect(promiseLength(exact.terms, 'fromCounterparty')).toBe(0)
+    })
+
+    it('promiseEdited names the one side whose promise is all that changed', () => {
+        const picked = { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] }
+        const typed = withPromise(picked, 'fromProposer', 'I ')
+        expect(promiseEdited(picked, typed)).toBe('fromProposer')
+        expect(promiseEdited(typed, withPromise(typed, 'fromProposer', 'I s'))).toBe('fromProposer')
+        expect(promiseEdited(typed, withPromise(typed, 'fromCounterparty', 'x'))).toBe(
+            'fromCounterparty'
+        )
+        expect(promiseEdited(typed, typed)).toBeUndefined()
+        const more = { ...typed, terms: { ...typed.terms, fromProposer: { favor: 2 } } }
+        expect(promiseEdited(typed, withPromise(more, 'fromProposer', 'I s'))).toBeUndefined()
+    })
+
+    it('a box erased to empty reads exactly like a box never typed in', () => {
+        const picked = { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] }
+        const erased = withPromise(withPromise(picked, 'fromProposer', 'I'), 'fromProposer', '')
+        expect(erased).toEqual(picked)
+        expect(JSON.stringify(erased)).toBe(JSON.stringify(picked))
+        expect(promiseEdited(picked, erased)).toBeUndefined()
+        const both = withPromise(withPromise(picked, 'fromProposer', 'I'), 'fromCounterparty', 'R')
+        expect(withPromise(both, 'fromProposer', '').promiseDrafts).toEqual({
+            fromCounterparty: 'R'
+        })
+    })
+
+    it('a box erased and typed in again, the other box holding text, is still that box’s edit', () => {
+        const both = withPromise(
+            withPromise(noExchangePicks(), 'fromProposer', 'I'),
+            'fromCounterparty',
+            'R'
+        )
+        const erased = withPromise(both, 'fromProposer', '')
+        const retyped = withPromise(erased, 'fromProposer', 'J')
+        expect(promiseEdited(both, retyped)).toBe('fromProposer')
+        expect(promiseEdited(erased, retyped)).toBe('fromProposer')
+        expect(JSON.stringify(retyped)).toBe(JSON.stringify(withPromise(both, 'fromProposer', 'J')))
+    })
+
+    it('a change to the pieces keeps both promises, in the box and in the terms', () => {
+        const s = table({}, OathRevision.EngineFixes24)
+        const promised = withPromise(
+            withPromise(noExchangePicks(), 'fromProposer', 'I will. '),
+            'fromCounterparty',
+            'So will I.'
+        )
+        const tapped = withOfferedPicks(s, 'dana', 'rhys', TRIBUNAL_ALLOWS, 'dana', {
+            ...promised,
+            terms: { ...promised.terms, fromProposer: { favor: 2 } }
+        })
+        expect(tapped.terms).toEqual({
+            fromProposer: { favor: 2 },
+            promises: { fromProposer: 'I will.', fromCounterparty: 'So will I.' }
+        })
+        expect(promiseDraftOf(tapped, 'fromProposer')).toBe('I will. ')
+        expect(reasonExchangeInvalid(s, 'dana', 'rhys', tapped.terms)).toBeUndefined()
     })
 })

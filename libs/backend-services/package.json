@@ -41,7 +41,7 @@
         "nanoid": "5.1.6",
         "redis": "^5.10.0",
         "resend": "^6.8.0",
-        "typescript-retry-decorator": "2.5.4",
+        "typescript-retry-decorator": "2.6.0",
         "web-push": "^3.6.7"
     },
     "devDependencies": {
@@ -50,8 +50,9 @@
         "@tabletop/eslint-config": "workspace:*",
         "@types/bcrypt": "^5.0.2",
         "@types/glob-to-regexp": "^0.4.4",
+        "@types/node": "^24.3.1",
         "@types/web-push": "^3.6.3",
-        "@typescript/native-preview": "7.0.0-dev.20260203.1",
+        "@typescript/native-preview": "7.0.0-dev.20260707.2",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3"
     }

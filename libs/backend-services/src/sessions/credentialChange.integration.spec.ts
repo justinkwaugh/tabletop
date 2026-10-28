@@ -95,11 +95,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
 
         async function tryLogin(username: string, password: string) {
             const user = await userStore.findByUsernameAndPassword(username, password)
-            return user ? sessions.establish(user, 'authentication-method') : undefined
+            return user ? sessions.establish(user) : undefined
         }
 
         async function login(username: string, password: string) {
-            return sessions.establish(await holderOf(username, password), 'authentication-method')
+            return sessions.establish(await holderOf(username, password))
         }
 
         async function setPassword(account: { id: string; email: string }, password: string) {
@@ -150,7 +150,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(await sessionsStored(account.id)).toBe(0)
             await expect(tryLogin(account.username, ORIGINAL_PASSWORD)).resolves.toBeUndefined()
 
-            const renewed = await sessions.establish(changed, 'authentication-method')
+            const renewed = await sessions.establish(changed)
             await expect(authorize(renewed.id)).resolves.toMatchObject({ session: renewed })
             const fresh = await login(account.username, NEW_PASSWORD)
             await expect(authorize(fresh.id)).resolves.toMatchObject({ session: fresh })
@@ -181,7 +181,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const account = await createAccount()
             const readBeforeChange = await holderOf(account.username, ORIGINAL_PASSWORD)
             await setPassword(account, NEW_PASSWORD)
-            const raced = await sessions.establish(readBeforeChange, 'authentication-method')
+            const raced = await sessions.establish(readBeforeChange)
             await expect(authorize(raced.id)).resolves.toBeUndefined()
             expect(await sessionsStored(account.id)).toBe(0)
         })

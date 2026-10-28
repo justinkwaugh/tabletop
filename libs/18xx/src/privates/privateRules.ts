@@ -1,6 +1,8 @@
+import type { FinancialState } from '../finance/finance.js'
 import type { MapStateData } from '../map/mapState.js'
 import type { OperatingState } from '../operating/operatingSet.js'
 import * as Type from 'typebox'
+import { assertExists } from '@tabletop/common'
 import type { StockState } from '../stock/stockState.js'
 
 export type PrivateState = StockState & OperatingState & { machineState: string }
@@ -45,4 +47,17 @@ export interface PrivateRules {
     phaseEffects(state: StockState & MapStateData): PrivateEffect[]
     operationEffects(state: StockState, companyId: string): PrivateEffect[]
     description(state: StockState, privateCompanyId: string): string
+    blocking?(state: PrivateHoldings, privateCompanyId: string): boolean
+}
+export type PrivateHoldings = Pick<FinancialState, 'companies' | 'certificates'>
+
+export function liftedPrivateBlocks(
+    markedPrivateIds: readonly string[],
+    rules: Pick<PrivateRules, 'blocking'>,
+    state: PrivateHoldings
+): string[] {
+    if (!markedPrivateIds.length) return []
+    const { blocking } = rules
+    assertExists(blocking, 'Map markers showing private blocks need the title to judge them')
+    return markedPrivateIds.filter((privateCompanyId) => !blocking(state, privateCompanyId))
 }

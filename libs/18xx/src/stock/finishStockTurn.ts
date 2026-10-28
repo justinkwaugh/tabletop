@@ -1,22 +1,22 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { allPlayersPassed } from './stockRoundRules.js'
 import { clearTurnPurchases } from './turnPurchases.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
-import { type StockRules } from './stockRules.js'
+import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 import { mustSellShares } from './shareSale.js'
 
 export const FinishStockTurn = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('FinishStockTurn'),
         metadata: Type.Optional(
             Type.Object({ passed: Type.Boolean() }, { additionalProperties: false })

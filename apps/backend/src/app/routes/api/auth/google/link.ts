@@ -3,24 +3,22 @@ import { Type, type Static } from 'typebox'
 import { ExternalAuthService } from '@tabletop/common'
 import { verifyGoogleCredential } from '../../../../lib/googleCredential.js'
 
-type LinkRequest = Static<typeof LinkRequest>
-const LinkRequest = Type.Object({
+type LoginRequest = Static<typeof LoginRequest>
+const LoginRequest = Type.Object({
     credential: Type.String()
 })
 
 export default async function (fastify: FastifyInstance) {
-    fastify.post<{ Body: LinkRequest }>(
+    fastify.post<{ Body: LoginRequest }>(
         '/link',
         {
             config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
-            schema: { body: LinkRequest },
-            onRequest: fastify.auth([fastify.verifyUser, fastify.verifyRecentAuthentication], {
-                relation: 'and'
-            })
+            schema: { body: LoginRequest },
+            onRequest: fastify.auth([fastify.verifyUser], { relation: 'and' })
         },
         async function (request, _reply) {
             if (!request.user) {
-                throw Error('No user found for link request')
+                throw Error('No user found for create request')
             }
             const payload = await verifyGoogleCredential(request.body.credential)
             const updatedUser = await fastify.userService.linkExternalAccount({

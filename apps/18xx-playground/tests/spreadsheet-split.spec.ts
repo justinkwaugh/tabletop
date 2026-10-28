@@ -107,7 +107,7 @@ test('tabs reorder and empty-pane deletion restores a single pane', async ({ pag
     const tiles = page.getByRole('tab', { name: 'Tiles', exact: true })
     const board = page.getByRole('tab', { name: 'Board', exact: true })
     const paneTabs = page.getByRole('tablist', { name: 'Table views tabs 1' }).getByRole('tab')
-    const otherTabs = ['SpreadsheetSheet', 'Actions', 'History', 'Chat', 'Players']
+    const otherTabs = ['SpreadsheetSheet', /^Actions/, 'History', 'Chat', 'Players']
     await expect(paneTabs).toHaveText(['Companies', 'Board', 'Tiles', ...otherTabs])
     await tiles.dragTo(board)
     await expect(paneTabs).toHaveText(['Companies', 'Tiles', 'Board', ...otherTabs])

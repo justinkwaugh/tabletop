@@ -11,6 +11,7 @@
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
     import ReliquaryPlacard from '$lib/components/ReliquaryPlacard.svelte'
     import TokenBadge from '$lib/components/TokenBadge.svelte'
+    import UseBadge from '$lib/components/UseBadge.svelte'
     import { avatarImage, boardGround, titleImage } from '$lib/images/boardImages.js'
     import {
         bannerImage,
@@ -30,6 +31,7 @@
     import { handBacks } from '$lib/model/cardBacks.js'
     import { seatFacts } from '$lib/model/seatFacts.js'
     import { seatGoals, type SeatGoal } from '$lib/model/seatGoals.js'
+    import { dealCount } from '$lib/model/tribunalDeals.js'
 
     // R-9.4 — a facedown adviser is a back to others and a dimmed front to its owner; a hand is its backs.
     let gameSession = getGameSession()
@@ -42,6 +44,8 @@
     let status = $derived(playerState.status)
     let color = $derived(gameSession.colors.getPlayerColor(player.id))
     let seatColor = $derived(gameSession.colors.getPlayerUiColor(player.id))
+    // R-7.6.3-H1 — the seat's open Tribunal deals, public once agreed: the mark beside the name pill.
+    let deals = $derived(gameSession.dealsOf(player.id).length)
     let ground = $derived(boardGround(status, color))
 
     let facts = $derived(seatFacts(gameState, player.id))
@@ -62,6 +66,9 @@
     }
 
     let hasHoldings = $derived(playerState.relicIds.length > 0 || facts.banners.length > 0)
+
+    // R-6.2 — in this seat's own Act Phase, a card whose power Use a power lists wears "Use".
+    let badged = $derived(isMe ? gameSession.powerBadgeCards : [])
 
     // R-6.5 — Move warbands offers its site -> board move in the panel; the counter wears the ring.
     let toBoard = $derived(
@@ -86,6 +93,27 @@
             onclick={() => gameSession.seatDetail.toggle(player.id)}
             >{player.name}{isMe ? ' · you' : ''}</button
         >
+        {#if deals > 0}
+            <!-- A scroll and the count, amber beside the pill; the deals are in the seat detail. -->
+            <span
+                class="inline-flex shrink-0 items-center gap-[3px] rounded-full border border-oath-accent
+                       bg-oath-accent-soft py-px pr-[7px] pl-1 text-[11px] font-bold text-oath-accent"
+                data-deal-mark
+                ><svg
+                    class="h-[13px] w-[13px]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    ><path d="M7 4h11v13a3 3 0 0 1-3 3H6"></path><path
+                        d="M7 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2"
+                    ></path><path d="M10 9h5M10 13h5"></path></svg
+                >{dealCount(deals)}</span
+            >
+        {/if}
         <img class="avatar" src={avatarImage(status, color)} alt="" />
     </header>
 
@@ -183,24 +211,29 @@
                         !playable}
                     class:thumb--pickable={playable}
                 >
-                    {#if playable && cardId}
-                        <!-- R-6.1 — offered in the panel; here it wears the ring and enlarges. -->
-                        <CardImage {cardId} width={50} label={cardName(cardId)} inspect />
-                    {:else if cardId}
-                        <CardImage
-                            {cardId}
-                            width={50}
-                            label={cardName(cardId) +
-                                (adviser.faceUp
-                                    ? ''
-                                    : adviser.shownToMe
-                                      ? ' — facedown; shown to you'
-                                      : ' — facedown; only you see it')}
-                            inspect
-                        />
-                    {:else}
-                        <CardImage back={adviser.back} width={50} label="A facedown adviser" />
-                    {/if}
+                    <span class="thumb__card">
+                        {#if playable && cardId}
+                            <!-- R-6.1 — offered in the panel; here it wears the ring and enlarges. -->
+                            <CardImage {cardId} width={50} label={cardName(cardId)} inspect />
+                        {:else if cardId}
+                            <CardImage
+                                {cardId}
+                                width={50}
+                                label={cardName(cardId) +
+                                    (adviser.faceUp
+                                        ? ''
+                                        : adviser.shownToMe
+                                          ? ' — facedown; shown to you'
+                                          : ' — facedown; only you see it')}
+                                inspect
+                            />
+                        {:else}
+                            <CardImage back={adviser.back} width={50} label="A facedown adviser" />
+                        {/if}
+                        {#if adviser.faceUp && cardId && badged.includes(cardId)}
+                            <UseBadge {cardId} />
+                        {/if}
+                    </span>
                     <figcaption>{adviser.faceUp ? '' : 'facedown'}</figcaption>
                 </figure>
             {/each}
@@ -246,6 +279,9 @@
                 <figure class="thumb thumb--relic">
                     <CardImage cardId={relicId} width={52} label={cardName(relicId)} inspect />
                     <span class="on-card"><CardWarbands cardId={relicId} size={12} /></span>
+                    {#if badged.includes(relicId)}
+                        <UseBadge cardId={relicId} />
+                    {/if}
                 </figure>
             {/each}
             {#each facts.banners as banner (banner)}
@@ -329,13 +365,15 @@
         height: 54px;
         padding: 0 8px 0 10px;
     }
-    /* The pill ellipsises before anything overflows; the title word yields first. */
+    /* The pill ellipsises before anything overflows; the title word yields first. It takes only
+       the room the pill, a deal mark and the avatar leave, up to 40%, so a mark beside the pill
+       shrinks the word before it cuts the name. */
     .word {
         height: 32px;
         width: auto;
         max-width: 40%;
         min-width: 0;
-        flex: 0 1 auto;
+        flex: 1 1 0;
         object-fit: contain;
         object-position: left;
     }
@@ -544,6 +582,10 @@
     .thumb {
         margin: 0;
         flex: none;
+    }
+    .thumb__card {
+        position: relative;
+        display: block;
     }
     .thumb figcaption {
         height: 12px;

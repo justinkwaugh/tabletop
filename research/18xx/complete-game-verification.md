@@ -120,7 +120,7 @@ must retain the selected versions from the repository manifest.
 ```sh
 GAME_LOGIC_ROOT="$PWD/.local-static/games" \
 SITE_MANIFEST_PATH="$PWD/.local-static/config/18xx-verification-manifest.json" \
-LOCAL_HOSTED_FRONTEND_PORT=5174 PORT=3100 ROLLUP_TERSER=0 \
+LOCAL_HOSTED_FRONTEND_PORT=5174 PORT=3100 ROLLDOWN_MINIFY=0 \
   tools/scripts/local-hosted-game.mjs the-old-prince
 ```
 

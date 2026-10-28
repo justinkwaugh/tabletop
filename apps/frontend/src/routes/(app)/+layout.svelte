@@ -26,13 +26,13 @@
     import BugReportModal from '$lib/components/BugReportModal.svelte'
     import CallGameModal from '$lib/components/CallGameModal.svelte'
     import { callGameOffer } from '$lib/utils/callGameOffer'
+    import { bgStatsPlayUrl } from '$lib/utils/bgStats'
     import { getAppContext as getSiteContext } from '$lib/stores/appContext.svelte'
     import PreferencesPanel from '$lib/components/PreferencesPanel.svelte'
     import AccountAvatar from '$lib/components/AccountAvatar.svelte'
     import { setLoginModal } from '$lib/stores/loginModal'
     import { broadcastLogout, onLogoutBroadcast } from '$lib/utils/logoutChannel'
     import { onDiscordAuthorizationResult } from '$lib/utils/discordAuthorization'
-    import ReauthenticationPrompt from '$lib/components/ReauthenticationPrompt.svelte'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
     import {
@@ -100,6 +100,12 @@
             : undefined
     )
     const siteGameService = getSiteContext().gameService
+    let bgStatsUrl = $derived.by(() => {
+        const session = gameService.currentGameSession
+        if (!session) return undefined
+        const game = siteGameService.cachedGame(session.primaryGame.id) ?? session.primaryGame
+        return bgStatsPlayUrl(game, titlesById[game.typeId]?.info.metadata, sessionUser)
+    })
     let callOffer = $derived.by(() => {
         const session = gameService.currentGameSession
         if (!session || !sessionUser) return undefined
@@ -301,7 +307,7 @@
         }
         if (result.purpose === 'login') {
             void authorizationService.onLogin(result.user)
-        } else if (result.purpose === 'link') {
+        } else {
             authorizationService.setSessionUser(result.user)
         }
     })
@@ -612,6 +618,12 @@
                                     >
                                     <DropdownDivider />
                                 {/if}
+                                {#if bgStatsUrl}
+                                    <DropdownItem class="w-full text-left" href={bgStatsUrl}
+                                        >Log to BG Stats</DropdownItem
+                                    >
+                                    <DropdownDivider />
+                                {/if}
                                 <DropdownItem class="w-full text-left" onclick={gotoProfile}
                                     >Profile</DropdownItem
                                 >
@@ -708,9 +720,7 @@
         </div>
     </Navbar>
 </div>
-{#if sessionUser}
-    <ReauthenticationPrompt />
-{:else}
+{#if !sessionUser}
     <AuthModal
         bind:open={showLoginModal}
         title={loginViewTitles[loginView]}

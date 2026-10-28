@@ -15,3 +15,11 @@ The four-player hosted game "How may TOPs does it take to screw in a light bulb?
 
 - The table opens on the game's result: Player 1 wins with $8,001, ahead of Player 3 ($7,971), Player 2 ($6,953) and Player 4 ($6,548).
 - The history steps back through all nine operating sets to the opening auction, which shows the PEIR lots as offered.
+
+## Turn recap
+
+Stock round 2 of the four-player trading example, built by `scripts/build-scenarios.mjs` through real actions. Blair has an Autobuy for one more Charlottetown share that then passes; Casey and Drew have Autopass. Alex bought a Charlottetown share, Blair's Autobuy bought one, Casey and Drew autopassed, and the turn is back with Alex.
+
+- The table opens on Alex's turn with "Since your last turn": Blair bought 1 Charlottetown for $92; Casey and Drew passed.
+- Buy the treasury Charlottetown share: Blair's Autobuy has met its goal and passes, Casey and Drew pass, and the turn comes back with "Blair, Casey and Drew passed".
+- Pass instead: everyone else passes too, so the stock round ends and the operating round starts.

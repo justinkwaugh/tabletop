@@ -145,6 +145,7 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     phases: EighteenThirtyTwoPhases,
     phaseRules: EighteenThirtyTwoPhaseRules,
     trainRules: EighteenThirtyTwoTrainRules,
+    runInstructions: true,
     additionalConstructionActions: ['BuyCoalRights'],
     decisionHandlers: {
         StockRound: (family) =>
