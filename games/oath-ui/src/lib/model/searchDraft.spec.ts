@@ -1143,3 +1143,50 @@ describe('Land Warden — the second card to your site is judged on the site the
         })
     }
 })
+
+describe('Land Warden — Salt the Earth second to your site ignores its capacity', () => {
+    const SALT = 'denizen.discord.salt-the-earth'
+    const INN = 'denizen.hearth.wayside-inn'
+    const TWO_OF_THREE = ['denizen.beast.wolves', 'denizen.beast.rangers']
+
+    /** The seat holds Land Warden at c1, one space short of full, and has drawn the Inn, Salt the Earth and a card to discard. */
+    async function innThenSalt(oathRevision: OathRevision) {
+        const { session, draft, sent } = await searchingWith([INN, SALT, TUTOR], [], {
+            oathRevision,
+            denizensBySite: { c1: TWO_OF_THREE, c2: [], p1: [], h1: [] },
+            ...WARDEN_CARRIED
+        })
+        expect(TWO_OF_THREE).toHaveLength(FIXTURE_SITE_CAPACITY - 1)
+        draft.keep(INN)
+        draft.setSecondPlay(
+            draft.secondPlays.find(
+                (option) => option.cardId === SALT && option.play === SearchPlay.Site
+            )?.key
+        )
+        expect(draft.second).toMatchObject({ cardId: SALT, mode: 'to your site' })
+        return { session, draft, sent }
+    }
+    const sitePlay = { play: SearchPlay.Site, faceUp: undefined }
+    const placed = (draft: Awaited<ReturnType<typeof innThenSalt>>['draft']) =>
+        draft.placements.map(({ play, faceUp }) => ({ play, faceUp }))
+
+    it('from revision 29, the Inn kept to the last space: its site play is offered with Salt the Earth second, and the engine accepts it', async () => {
+        const { session, draft, sent } = await innThenSalt(OathRevision.EngineFixes25)
+        expect(placed(draft)).toContainEqual(sitePlay)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                keptCardId: INN,
+                play: SearchPlay.Site,
+                secondPlay: { cardId: SALT, play: SearchPlay.Site }
+            })
+        )
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('before revision 29, the site play is not offered with Salt the Earth second, as the engine refuses it', async () => {
+        const { draft } = await innThenSalt(OathRevision.EngineFixes24)
+        expect(placed(draft)).not.toContainEqual(sitePlay)
+        expect(placed(draft)).toContainEqual({ play: SearchPlay.Adviser, faceUp: false })
+    })
+})

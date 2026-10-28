@@ -2471,6 +2471,28 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             )
         })
 
+        it('Land Warden’s second card Salt the Earth after the kept card: both plays, and what Salt the Earth discarded', () => {
+            const row = action({
+                type: ActionType.SearchResolve,
+                playerId: 'p2',
+                keptCardId: 'denizen.hearth.wayside-inn',
+                discardOrder: [],
+                play: SearchPlay.Site,
+                secondPlay: { cardId: 'denizen.discord.salt-the-earth', play: SearchPlay.Site },
+                metadata: {
+                    ...searched,
+                    favorGained: 2,
+                    playedCardId: 'denizen.hearth.wayside-inn',
+                    secondPlayedCardId: 'denizen.discord.salt-the-earth',
+                    secondWhenPlayed:
+                        'Salt the Earth: discarded 3 denizens at slot.provinces.0; its capacity is now 1'
+                }
+            })
+            expect(describeAction(row, nameOf)).toBe(
+                'kept Wayside Inn and played it to their site, gaining 2 favor; Salt the Earth: discarded 3 denizens at Provinces 1; its capacity is now 1'
+            )
+        })
+
         it('Land Warden’s second card, a triggered power, a Homeland and a modifier each follow as their own clause', () => {
             const row = action({
                 type: ActionType.SearchResolve,
