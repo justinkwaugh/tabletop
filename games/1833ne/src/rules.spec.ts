@@ -108,3 +108,76 @@ describe('brown cities (p. 21)', () => {
         expect(choices.every((id) => ['N51', 'N52', 'N53'].includes(id))).toBe(true)
     })
 })
+
+describe('the golden spike (corporate mats)', () => {
+    it('pays $100 to the president of each St. Lawrence corporation that laid yellow track', () => {
+        const straight = (locationId: string, edges: number[], definitionId = '18xx:9') => ({
+            locationId,
+            definitionId,
+            rotation: rotationFor(definitionId, edges)
+        })
+        const state = position(
+            [
+                straight('C4', [2, 5], '18xx:4'),
+                straight('D5', [2, 5]),
+                straight('E6', [2, 5]),
+                straight('F7', [2, 5]),
+                straight('G8', [2, 5]),
+                straight('H9', [0, 2], '18xx:8'),
+                straight('H11', [0, 3]),
+                straight('H13', [3, 5], '18xx:8')
+            ],
+            [],
+            {}
+        )
+        for (const company of state.companies)
+            if (company.id === 'StL&A' || company.id === 'A&StL') {
+                company.started = true
+                company.president = {
+                    kind: 'player',
+                    playerId: company.id === 'StL&A' ? 'p1' : 'p2'
+                }
+            }
+        state.spikeLayers = ['StL&A']
+        const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)
+        const owner = { kind: 'company' as const, companyId: 'StL&A' }
+        const effects = TrackRules1833NE.afterLay?.(
+            hydrated,
+            layDetails('H13', '18xx:8', 'StL&A'),
+            owner
+        )
+        expect(effects?.payments).toEqual([
+            { from: { kind: 'bank' }, to: { kind: 'player', playerId: 'p1' }, amount: 100 }
+        ])
+        expect(hydrated.goldenSpike).toBe(true)
+        expect(
+            TrackRules1833NE.afterLay?.(hydrated, layDetails('H13', '18xx:8', 'StL&A'), owner)
+                ?.payments
+        ).toEqual([])
+    })
+})
+
+describe('Lowell Merchants (P2)', () => {
+    it('makes its buyer’s G20 tile free in the round it bought it', () => {
+        const state = position([], [], {})
+        state.operatingSet = {
+            number: 2,
+            roundNumber: 1,
+            roundCount: 2,
+            companyOrder: ['B&L'],
+            completedCompanyIds: [],
+            privateIncomePaid: true,
+            completed: false
+        }
+        state.lowellPurchase = { companyId: 'B&L', operatingSet: 2, round: 1 }
+        const request = {
+            companyId: 'B&L',
+            locationId: 'G20',
+            definitionId: '18xx:5',
+            rotation: 0 as const,
+            nodeMapping: {}
+        }
+        expect(TrackRules1833NE.terrainCost?.(state, request, 0)).toBe(0)
+        expect(TrackRules1833NE.terrainCost?.(state, { ...request, companyId: 'B&P' }, 0)).toBe(20)
+    })
+})
