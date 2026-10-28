@@ -366,10 +366,13 @@ export class GameEngine<
             gameConfig: game.config,
             gameState: this.guardStateForPerspective(hydratedState, perspective, game)
         })
-        return !this.pendingActionRejection(
-            action,
-            this.runtime.hydrator.hydrateAction(structuredClone(action)),
-            { hydratedState, machineContext, perspective, game }
+        const check = { hydratedState, machineContext, perspective, game }
+        return (
+            !this.pendingActionRejection(action, check) &&
+            !this.invalidActionRejection(
+                this.runtime.hydrator.hydrateAction(structuredClone(action)),
+                check
+            )
         )
     }
 
@@ -447,6 +450,10 @@ export class GameEngine<
             const currentAction = machineContext.nextPendingAction()
             assertExists(currentAction, 'Action to process was unexpectedly null')
 
+            const check = { hydratedState, machineContext, perspective, game }
+            const rejection = this.pendingActionRejection(currentAction, check)
+            if (rejection) throw rejection
+
             const hydratedAction = this.runtime.hydrator.hydrateAction(
                 structuredClone(currentAction)
             )
@@ -454,13 +461,8 @@ export class GameEngine<
                 hydratedAction.createdAt = new Date()
             }
 
-            const rejection = this.pendingActionRejection(currentAction, hydratedAction, {
-                hydratedState,
-                machineContext,
-                perspective,
-                game
-            })
-            if (rejection) throw rejection
+            const invalid = this.invalidActionRejection(hydratedAction, check)
+            if (invalid) throw invalid
             const stateHandler = this.getStateHandler(hydratedState)
 
             hydratedAction.apply(runtimeState, machineContext)
@@ -547,8 +549,7 @@ export class GameEngine<
 
     private pendingActionRejection(
         action: GameAction,
-        hydratedAction: HydratedAction,
-        { hydratedState, machineContext, perspective, game }: PendingActionCheck<U>
+        { hydratedState, perspective, game }: PendingActionCheck<U>
     ): Error | undefined {
         if (hydratedState.result !== undefined)
             return new Error('A Game State with a result accepts no further Actions')
@@ -556,11 +557,18 @@ export class GameEngine<
             return new Error(`Player ${action.playerId} is not an active player`)
         if (!this.isAvailableToPerspective(action, perspective, game))
             return new UnavailableProjectedActionError(action.type)
-        if (!this.getStateHandler(hydratedState).isValidAction(hydratedAction, machineContext))
-            return new Error(
-                `Action of type ${hydratedAction.type} is not valid in state ${hydratedState.machineState}`
-            )
         return undefined
+    }
+
+    private invalidActionRejection(
+        hydratedAction: HydratedAction,
+        { hydratedState, machineContext }: PendingActionCheck<U>
+    ): Error | undefined {
+        return this.getStateHandler(hydratedState).isValidAction(hydratedAction, machineContext)
+            ? undefined
+            : new Error(
+                  `Action of type ${hydratedAction.type} is not valid in state ${hydratedState.machineState}`
+              )
     }
 
     private isAvailableToPerspective(
