@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ExternalAuthService, Role, UserStatus, type User } from '@tabletop/common'
 import { UserService } from './userService.js'
-import { AccountUnavailableError, InvalidTimeZoneError } from './errors.js'
+import { AccountUnavailableError, InvalidPasswordError, InvalidTimeZoneError } from './errors.js'
 import type { UserStore } from '../persistence/stores/userStore.js'
+import type { TaskService } from '../tasks/taskService.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import type { StoredUser } from '../persistence/model/storedUser.js'
 import { TokenService } from '../tokens/tokenService.js'
@@ -137,5 +138,42 @@ describe('external provider authentication', () => {
             expect(addExternalId).not.toHaveBeenCalled()
             expect(createUser).not.toHaveBeenCalled()
         }
+    })
+})
+
+describe('Password Credential changes', () => {
+    function passwordFixture() {
+        const updatePassword = vi.fn<UserStore['updatePassword']>(async () => ({
+            ...user,
+            sessionGeneration: 1
+        }))
+        const store: UserStore = Object.create(null)
+        store.updatePassword = updatePassword
+        store.updateUser = async ({ fields, password }) => {
+            const stored: StoredUser = { ...user, createdAt: undefined, updatedAt: undefined }
+            const updatedFields = [...Object.keys(fields), ...(password ? ['password'] : [])]
+            return [{ ...user, ...fields, sessionGeneration: 1 }, updatedFields, stored]
+        }
+        const tasks: TaskService = Object.create(null)
+        tasks.sendAccountChangeNotificationEmail = async () => {}
+        const service = new UserService(store, TokenService.prototype, tasks)
+        return { service, updatePassword }
+    }
+
+    it('returns the Account as the store committed it, Session Generation included', async () => {
+        const { service, updatePassword } = passwordFixture()
+        await expect(service.updatePassword('a', '  a-new-password-value  ')).resolves.toEqual(
+            expect.objectContaining({ id: 'a', sessionGeneration: 1 })
+        )
+        expect(updatePassword).toHaveBeenCalledExactlyOnceWith('a', 'a-new-password-value')
+        await expect(
+            service.updateUser('a', {}, 'a-new-password-value', 'the-current-password')
+        ).resolves.toEqual(expect.objectContaining({ id: 'a', sessionGeneration: 1 }))
+    })
+
+    it('refuses a short password before reaching the store', async () => {
+        const { service, updatePassword } = passwordFixture()
+        await expect(service.updatePassword('a', 'short')).rejects.toThrow(InvalidPasswordError)
+        expect(updatePassword).not.toHaveBeenCalled()
     })
 })

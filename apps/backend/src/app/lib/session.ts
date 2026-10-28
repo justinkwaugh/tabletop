@@ -1,16 +1,29 @@
 import { Session } from '@fastify/secure-session'
 import { User } from '@tabletop/common'
-import { requireSessionEligibleAccount } from '@tabletop/backend-services'
+import { AuthenticatedSession, SessionService } from '@tabletop/backend-services'
 
 declare module '@fastify/secure-session' {
     interface SessionData {
+        sessionId: string
         userId: string
-        authTimestamp: string
     }
 }
 
-export function authSession({ session, user }: { session: Session; user: User }) {
-    requireSessionEligibleAccount(user)
+export async function authSession({
+    session,
+    user,
+    sessions
+}: {
+    session: Session
+    user: User
+    sessions: SessionService
+}): Promise<AuthenticatedSession> {
+    const previousSessionId = session.get('sessionId')
+    const authenticated = await sessions.establish(user)
+    if (previousSessionId) {
+        await sessions.revoke(previousSessionId)
+    }
+    session.set('sessionId', authenticated.id)
     session.set('userId', user.id)
-    session.set('authTimestamp', new Date().toISOString())
+    return authenticated
 }

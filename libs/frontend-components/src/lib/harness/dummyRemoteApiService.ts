@@ -28,7 +28,10 @@ import type {
     LeagueAllocationPreview,
     LeagueList,
     LeagueSeasonDetail,
-    LeagueState
+    LeagueState,
+    SiteStatsNow,
+    SiteStatsReport,
+    UtcDayRange
 } from '@tabletop/common'
 import type {
     GameVersionProvider,
@@ -207,6 +210,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async logout(): Promise<void> {
         return this.fail('logout')
+    }
+
+    async logoutAll(): Promise<void> {
+        return this.fail('logoutAll')
     }
 
     async searchUsernames(_query: string): Promise<string[]> {
@@ -419,6 +426,18 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async getActiveGamesForTitle(_titleId: string): Promise<Game[]> {
         return this.fail('getActiveGamesForTitle')
+    }
+
+    async getSiteStatsReport(_range: UtcDayRange): Promise<SiteStatsReport> {
+        return this.fail('getSiteStatsReport')
+    }
+
+    async getSiteStatsNow(): Promise<SiteStatsNow> {
+        return this.fail('getSiteStatsNow')
+    }
+
+    async startSiteStatsRollup(): Promise<string> {
+        return this.fail('startSiteStatsRollup')
     }
 
     async setGameState(_state: GameState): Promise<void> {

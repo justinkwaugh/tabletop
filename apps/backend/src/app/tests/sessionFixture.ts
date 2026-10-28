@@ -4,10 +4,13 @@ import SecureSession from '@fastify/secure-session'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { LightMyRequestResponse } from 'fastify'
 import { randomBytes } from 'node:crypto'
+import { MemorySessionStore, SessionService } from '@tabletop/backend-services'
 
 const SESSION_COOKIE = '__session'
 
-export async function sessionServer(): Promise<FastifyInstance> {
+export async function sessionServer(
+    sessions: SessionService = memorySessions().sessionService
+): Promise<FastifyInstance> {
     const server = Fastify()
     await server.register(SecureSession, {
         sessionName: 'session',
@@ -17,7 +20,14 @@ export async function sessionServer(): Promise<FastifyInstance> {
     })
     await server.register(Auth)
     await server.register(Sensible)
+    server.decorate('sessionService', sessions)
     return server
+}
+
+export function memorySessions(options: { now?: () => Date } = {}) {
+    const sessionStore = new MemorySessionStore()
+    const sessionService = new SessionService(sessionStore, options)
+    return { sessionStore, sessionService }
 }
 
 export function sessionCookieHeader(response: LightMyRequestResponse): string | undefined {

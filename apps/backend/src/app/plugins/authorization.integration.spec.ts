@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { assertExists, Role, UserStatus, type User } from '@tabletop/common'
+import { assertExists, Role, sessionGenerationOf, UserStatus, type User } from '@tabletop/common'
 import {
     FirestoreTokenStore,
     FirestoreUserStore,
@@ -84,7 +84,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             server.post<{ Body: { userId: string } }>('/session', async (request) => {
                 const user = await userService.getUser(request.body.userId)
                 assertExists(user, 'Account to log in')
-                authSession({ session: request.session, user })
+                await authSession({
+                    session: request.session,
+                    user,
+                    sessions: server.sessionService
+                })
                 return {}
             })
             server.get('/any', { onRequest: server.auth([server.verifyUser]) }, async (request) =>
@@ -199,6 +203,28 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expectCacheMiss(lastTrace())
             expect((await cachedAccount(account.id)).id).toBe(account.id)
             expect((await get('/any')).statusCode).toBe(200)
+            expectCacheHit(lastTrace())
+        })
+
+        it('refuses every earlier session once a password change advances the Session Generation', async () => {
+            const { server, lastTrace } = await createServer()
+            const account = await createAccount(UserStatus.Active)
+            const get = await login(server, account.id)
+            expect((await cachedAccount(account.id)).id).toBe(account.id)
+            expect((await get('/any')).statusCode).toBe(200)
+            expectCacheHit(lastTrace())
+
+            await userService.updatePassword(account.id, 'replacement-password-value')
+
+            await expectNoCachedAccount(account.id)
+            expect((await get('/any')).statusCode).toBe(401)
+            expectCacheMiss(lastTrace())
+            expect(sessionGenerationOf(await cachedAccount(account.id))).toBe(
+                sessionGenerationOf(account) + 1
+            )
+            expect((await get('/active')).statusCode).toBe(401)
+            const renewed = await login(server, account.id)
+            expect((await renewed('/any')).statusCode).toBe(200)
             expectCacheHit(lastTrace())
         })
 

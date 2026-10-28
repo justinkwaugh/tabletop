@@ -6,7 +6,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 vi.hoisted(() => vi.stubEnv('GCLOUD_PROJECT', 'demo-tabletop'))
 import login from './login.js'
 import tokenLogin from './token/login.js'
-import { sessionCookieHeader, sessionServer } from '../../../tests/sessionFixture.js'
+import {
+    memorySessions,
+    sessionCookieHeader,
+    sessionServer
+} from '../../../tests/sessionFixture.js'
 
 function account(status: UserStatus): User {
     return {
@@ -20,7 +24,8 @@ function account(status: UserStatus): User {
 }
 
 async function createServer(status: UserStatus) {
-    const server = await sessionServer()
+    const { sessionService, sessionStore } = memorySessions()
+    const server = await sessionServer(sessionService)
     const user = account(status)
     server.decorate('userService', {
         getUserByUsernameAndPassword: async (username: string, password: string) =>
@@ -35,7 +40,7 @@ async function createServer(status: UserStatus) {
     })
     await server.register(login, { prefix: '/auth' })
     await server.register(tokenLogin, { prefix: '/auth/token' })
-    return server
+    return { server, sessionStore }
 }
 
 describe('login by Account status', () => {
@@ -47,9 +52,9 @@ describe('login by Account status', () => {
     })
 
     async function fixture(status: UserStatus) {
-        const server = await createServer(status)
-        servers.add(server)
-        return server
+        const created = await createServer(status)
+        servers.add(created.server)
+        return created
     }
 
     const passwordLogin = (server: FastifyInstance) =>
@@ -61,31 +66,34 @@ describe('login by Account status', () => {
     const challengeLogin = (server: FastifyInstance) =>
         server.inject({ method: 'POST', url: '/auth/token/login', payload: { token: 'challenge' } })
 
-    it('establishes a session for an Active or Incomplete Account', async () => {
+    it('establishes a durable session for an Active or Incomplete Account', async () => {
         for (const status of [UserStatus.Active, UserStatus.Incomplete]) {
-            const server = await fixture(status)
+            const { server, sessionStore } = await fixture(status)
+            let established = 0
             for (const attempt of [passwordLogin, challengeLogin]) {
                 const response = await attempt(server)
                 expect(response.statusCode).toBe(200)
                 expect(response.json().payload.user.id).toBe('account-1')
                 expect(sessionCookieHeader(response)).toBeDefined()
+                expect(sessionStore.size).toBe(++established)
             }
         }
     })
 
     it('refuses an Inactive or Deleted Account with a valid password or challenge', async () => {
         for (const status of [UserStatus.Inactive, UserStatus.Deleted]) {
-            const server = await fixture(status)
+            const { server, sessionStore } = await fixture(status)
             for (const attempt of [passwordLogin, challengeLogin]) {
                 const response = await attempt(server)
                 expect(response.statusCode).toBe(401)
                 expect(sessionCookieHeader(response)).toBeUndefined()
             }
+            expect(sessionStore.size).toBe(0)
         }
     })
 
     it('refuses a wrong password', async () => {
-        const server = await fixture(UserStatus.Active)
+        const { server } = await fixture(UserStatus.Active)
         const response = await server.inject({
             method: 'POST',
             url: '/auth/login',

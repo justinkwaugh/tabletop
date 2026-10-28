@@ -275,13 +275,13 @@ export class UserService {
         return await this.userStore.removeExternalId(userId, cleanExternalId)
     }
 
-    async updatePassword(userId: string, password: string): Promise<void> {
+    async updatePassword(userId: string, password: string): Promise<User> {
         const cleanPassword = password.trim()
         if (cleanPassword.length < 12) {
             throw new InvalidPasswordError()
         }
 
-        await this.userStore.updatePassword(userId, cleanPassword)
+        return await this.userStore.updatePassword(userId, cleanPassword)
     }
 
     async handleExternalAuth({

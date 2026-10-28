@@ -283,6 +283,10 @@ export class TabletopApi {
         await this.wretch.get('/auth/logout').json()
     }
 
+    async logoutAll() {
+        await this.wretch.post(undefined, '/auth/logoutAll').unauthorized(this.on401).json()
+    }
+
     async searchUsernames(query: string): Promise<string[]> {
         const response = await this.wretch
             .post({ query: query.trim() }, `/user/usernameSearch`)

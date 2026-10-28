@@ -1,7 +1,11 @@
 import { installTitleScope } from '../runtime/titleScope.js'
 import { installManifestRefresh } from '../runtime/manifestRefresh.js'
 import RequestTimingsPlugin from './plugins/requestTimings.js'
-import { STATIC_ROOT, type LibraryServiceOptions } from '@tabletop/backend-services'
+import {
+    SESSION_LIFETIME_SECONDS,
+    STATIC_ROOT,
+    type LibraryServiceOptions
+} from '@tabletop/backend-services'
 import { assertExists } from '@tabletop/common'
 import * as path from 'path'
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
@@ -34,7 +38,6 @@ const service: string = process.env['K_SERVICE'] ?? 'local'
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
 const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
-const SESSION_EXPIRY_SECONDS = 30 * 24 * 60 * 60
 
 const SESSION_KEY = process.env['SESSION_KEY']
 
@@ -124,13 +127,13 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         sessionName: 'session',
         cookieName: '__session',
         key: SESSION_KEY,
-        expiry: SESSION_EXPIRY_SECONDS,
+        expiry: SESSION_LIFETIME_SECONDS,
         cookie: {
             path: '/',
             httpOnly: true,
             secure: service === 'local' ? false : true,
             sameSite: service === 'local' ? false : true,
-            maxAge: SESSION_EXPIRY_SECONDS
+            maxAge: SESSION_LIFETIME_SECONDS
         }
     })
 
