@@ -24,12 +24,6 @@ import {
 import { ChooseAction, PassAction, RevealAction, RevealDraft } from '../actions.js'
 import { choicesFor, draftExhausted, hiddenDistribution } from '../distribution.js'
 import { ResumeOpeningPurchases, ResumeOpeningPurchasesAction } from '../publicDistribution.js'
-import {
-    CloseCorporation,
-    CloseCorporationAction,
-    corporationAwaitingClosure,
-    corporationClosureHandler
-} from '../closeCorporation.js'
 import { AssignSteamboatAction, steamboatOwner } from '../steamboat.js'
 import { SettleIndependent, SettleIndependentAction } from '../settleIndependent.js'
 import type { HydratedEighteenFortySixState } from '../state.js'
@@ -90,36 +84,6 @@ export const revealingDraftHandler: Handler = {
     },
     onAction() {
         return 'StockRound'
-    }
-}
-
-/** Zero-price corporations close before trading. */
-export function stockRound1846(family: Handler): Handler {
-    return {
-        enter(context) {
-            const companyId = corporationAwaitingClosure(context.gameState)
-            if (companyId) context.addSystemAction(CloseCorporation, { companyId })
-            else family.enter(context)
-        },
-        validActionsForPlayer: (playerId, context) =>
-            corporationAwaitingClosure(context.gameState)
-                ? []
-                : family.validActionsForPlayer(playerId, context),
-        isValidAction(action, context) {
-            return corporationAwaitingClosure(context.gameState)
-                ? corporationClosureHandler.isValidAction(action, context)
-                : family.isValidAction(action, context)
-        },
-        onAction(_action, context) {
-            if (
-                context.gameState.stockRound.completed &&
-                !corporationAwaitingClosure(context.gameState)
-            ) {
-                context.gameState.activePlayerIds = []
-                return 'StartingOperatingSet'
-            }
-            return 'StockRound'
-        }
     }
 }
 
@@ -189,16 +153,6 @@ export function runningTrains1846(family: Handler): Handler {
     })
 }
 
-export function distributingEarnings1846(family: Handler): Handler {
-    return wrapping(family, {
-        onAction(_action, { gameState }) {
-            return corporationAwaitingClosure(gameState)
-                ? 'ClosingOperatingCorporation'
-                : 'BuyingTrains'
-        }
-    })
-}
-
 export function buyingTrains1846(family: Handler): Handler {
     return wrapping(family, {
         onAction(action, context) {
@@ -207,38 +161,6 @@ export function buyingTrains1846(family: Handler): Handler {
             return next
         }
     })
-}
-
-/** A corporation whose price falls to zero during funding closes before funding goes on. */
-export function fundingTrain1846(family: Handler): Handler {
-    return {
-        enter(context) {
-            const companyId = corporationAwaitingClosure(context.gameState)
-            if (companyId) context.addSystemAction(CloseCorporation, { companyId })
-            else family.enter(context)
-        },
-        validActionsForPlayer: (id, context) =>
-            corporationAwaitingClosure(context.gameState)
-                ? []
-                : family.validActionsForPlayer(id, context),
-        isValidAction: (action, context) =>
-            corporationAwaitingClosure(context.gameState)
-                ? corporationClosureHandler.isValidAction(action, context)
-                : family.isValidAction(action, context),
-        onAction: (action, context) =>
-            action instanceof CloseCorporationAction
-                ? 'FundingTrain'
-                : family.onAction(action, context)
-    }
-}
-
-export const closingOperatingCorporationHandler: Handler = {
-    ...corporationClosureHandler,
-    onAction(action: HydratedAction, { gameState }: Context) {
-        assert(action instanceof CloseCorporationAction, 'Closure requires its system action')
-        gameState.activePlayerIds = []
-        return 'OperatingSet'
-    }
 }
 
 export const settlingIndependentHandler: Handler = {

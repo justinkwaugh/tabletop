@@ -37,11 +37,7 @@ import {
 } from '../settleIndependent.js'
 import { OperatingRules1846 } from '../operating.js'
 import { TrackRules1846 } from '../track.js'
-import {
-    CloseCorporation,
-    CloseCorporationValidator,
-    CloseCorporationAction
-} from '../closeCorporation.js'
+import { ZeroPriceClosure1846 } from '../closeCorporation.js'
 import { StockRules1846, CompanyRules1846 } from '../stock.js'
 import {
     EighteenFortySixState,
@@ -66,15 +62,11 @@ import {
 import {
     assigningSteamboatHandler,
     buyingTrains1846,
-    closingOperatingCorporationHandler,
-    distributingEarnings1846,
     draftingHandler,
-    fundingTrain1846,
     operatingSet1846,
     revealingDraftHandler,
     runningTrains1846,
-    settlingIndependentHandler,
-    stockRound1846
+    settlingIndependentHandler
 } from './handlers.js'
 import { EighteenFortySixInfo } from './info.js'
 import { populate1846Exploration } from '../exploration.js'
@@ -119,23 +111,21 @@ export const TitleRules1846: EighteenXXTitleRules<
     operatingSteps: ['LayingTrack', 'RunningTrains', 'DistributingEarnings', 'BuyingTrains'],
     corporateFinanceRules: CorporateFinanceRules1846,
     stationsWithTrack: true,
+    zeroPriceClosure: ZeroPriceClosure1846,
     additionalConstructionActions: ['BuildPrivateTrack', 'PlaceCWIStation'],
     decisionHandlers: {
-        StockRound: stockRound1846,
         OperatingSet: operatingSet1846,
         LayingTrack: withPrivatePowers((family) => family),
         RunningTrains: withPrivatePowers(runningTrains1846),
-        DistributingEarnings: withPrivatePowers(distributingEarnings1846),
-        BuyingTrains: withPrivatePowers(buyingTrains1846),
-        FundingTrain: fundingTrain1846
+        DistributingEarnings: withPrivatePowers((family) => family),
+        BuyingTrains: withPrivatePowers(buyingTrains1846)
     },
     titleStateHandlers: {
         Drafting: endsGame(draftingHandler),
         RevealingDraft: endsGame(revealingDraftHandler),
         BuyingOpeningCompanies: endsGame(buyingOpeningCompaniesHandler),
         AssigningSteamboat: endsGame(assigningSteamboatHandler),
-        SettlingIndependent: endsGame(settlingIndependentHandler),
-        ClosingOperatingCorporation: endsGame(closingOperatingCorporationHandler)
+        SettlingIndependent: endsGame(settlingIndependentHandler)
     },
     titleActions: [
         defineAction(
@@ -152,11 +142,6 @@ export const TitleRules1846: EighteenXXTitleRules<
             RevealDraft,
             (data) => RevealValidator.Check(data),
             (data) => new RevealAction(data, EndingRules1846)
-        ),
-        defineAction(
-            CloseCorporation,
-            (data) => CloseCorporationValidator.Check(data),
-            (data) => new CloseCorporationAction(data, EndingRules1846)
         ),
         defineAction(
             AssignSteamboat,

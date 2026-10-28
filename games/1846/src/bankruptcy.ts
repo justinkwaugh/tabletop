@@ -13,7 +13,7 @@ import {
     sharesOwned,
     type EliminationRules
 } from '@tabletop/18xx'
-import { closeRailroad, corporationAwaitingClosure, RailroadClosure } from './closeCorporation.js'
+import { closeRailroad, zeroPriceCorporation, RailroadClosure } from './closeCorporation.js'
 import { inReceivership } from '@tabletop/18xx'
 import { OperatingRules1846 } from './operating.js'
 import type { HydratedEighteenFortySixState } from './state.js'
@@ -101,10 +101,10 @@ export const Elimination1846: EliminationRules<typeof BankruptcyChanges1846> = {
             .map((certificate) => certificate.companyId)
         for (const id of closedPrivateIds) closePrivate(state, id)
         if (closedPrivateIds.includes('SC')) delete state.steamboat
-        let closing = corporationAwaitingClosure(state)
+        let closing = zeroPriceCorporation(state)
         while (closing) {
             closedRailroads.push(closeRailroad(state, closing))
-            closing = corporationAwaitingClosure(state)
+            closing = zeroPriceCorporation(state)
         }
         reorderPendingOperatingCompanies(state, OperatingRules1846.companyOrder(state))
         return {
