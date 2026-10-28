@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { calculateHexGeometry, HexOrientation } from '@tabletop/common'
+import { calculateHexGeometry, HexOrientation, type Point } from '@tabletop/common'
 import { Market1833NE } from '@tabletop/1833ne'
 import {
     MarketScenePadding,
     MarketZoneBannerHeight,
     marketGeometry
 } from '../../../../libs/18xx-ui/src/lib/stock/marketTokenLayout.js'
-import { MapView1833NE } from './mapView.js'
+import {
+    bonusArrowHull,
+    drawBonusArrow
+} from '../../../../libs/18xx-ui/src/lib/maps/bonusArrows.js'
+import { BonusArrows1833NE, MapView1833NE } from './mapView.js'
 import { Presentation1833NE } from './presentation.js'
 
 describe('1833NE board', () => {
@@ -49,5 +53,38 @@ describe('1833NE board', () => {
             ).toBe(true)
         const depot = areas!.depot!
         expect(clear(depot.x, depot.y, depot.width, depot.height)).toBe(true)
+    })
+
+    it('prints each bonus arrow clear of the hexes, but Albany/Troy’s on its blank red hex', () => {
+        const geometry = { orientation: HexOrientation.Flat, dimensions: { radius: 50 } }
+        const hexes = MapView1833NE.map.definition.locations.map((location) => ({
+            id: location.id,
+            corners: calculateHexGeometry(geometry, location.coordinates).vertices
+        }))
+        // Two convex outlines overlap unless a side of one has all of the other beyond it.
+        const separates = (outline: readonly Point[], other: readonly Point[]) => {
+            const middle = {
+                x: outline.reduce((sum, point) => sum + point.x, 0) / outline.length,
+                y: outline.reduce((sum, point) => sum + point.y, 0) / outline.length
+            }
+            return outline.some((corner, index) => {
+                const next = outline[(index + 1) % outline.length]
+                const side = (point: Point) =>
+                    (next.x - corner.x) * (point.y - corner.y) -
+                    (next.y - corner.y) * (point.x - corner.x)
+                const inward = Math.sign(side(middle))
+                return other.every((point) => side(point) * inward <= 0)
+            })
+        }
+        const covered = Object.fromEntries(
+            BonusArrows1833NE.map((arrow) => {
+                const plate = bonusArrowHull(drawBonusArrow(arrow))
+                const overlaps = hexes.filter(
+                    ({ corners }) => !separates(corners, plate) && !separates(plate, corners)
+                )
+                return [arrow.id, overlaps.map((hex) => hex.id)]
+            }).filter(([, ids]) => ids.length)
+        )
+        expect(covered).toEqual({ 'albany-troy-boston': ['A18'] })
     })
 })

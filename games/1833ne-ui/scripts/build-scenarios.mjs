@@ -170,6 +170,40 @@ function secondOperatingRound() {
     return position
 }
 
+function exitsMatch(definitionId, rotation, edges) {
+    return exits(definitionId, rotation) === [...edges].sort().join()
+}
+
+/**
+ * Rulebook p. 9: the Fitchburg, with two 2+1s, can run Troy to Fitchburg interconnecting to
+ * Boston and Fitchburg to Nashua for $170, rather than two routes for $160.
+ */
+function interconnectionToBoston() {
+    const position = start()
+    for (const company of Privates1833NE)
+        play(position, 'BuyAuctionLot', { lotId: company.id, expectedPrice: company.faceValue })
+    launch(position, 'FRR', 100)
+    while (position.state.machineState === 'StockRound') play(position, 'FinishStockTurn')
+    play(position, 'FinishTrack', { companyId: 'FRR' })
+    buyTrain(position, '2+1')
+    buyTrain(position, '2+1')
+    finishTurn(position, 'FRR')
+    const tile = (locationId, definitionId, edges) => ({
+        locationId,
+        definitionId,
+        rotation: [0, 1, 2, 3, 4, 5].find((rotation) => exitsMatch(definitionId, rotation, edges))
+    })
+    position.state.tileInventory = TileSet1833NE.createInventory([
+        tile('C18', '18xx:9', [2, 5]),
+        tile('D19', '18xx:4', [2, 5]),
+        tile('E20', '18xx:14', [1, 2, 4, 5]),
+        tile('F21', '18xx:4', [2, 5]),
+        tile('F19', '18xx:57', [1, 4]),
+        { locationId: 'G22', definitionId: '1833ne:N23', rotation: 4 }
+    ])
+    return position
+}
+
 function write(slug, name, { game, state }) {
     const file = startingPositionFile({ slug, name, game, state })
     writeFileSync(join(OUT, file.fileName), file.contents)
@@ -178,3 +212,4 @@ function write(slug, name, { game, state }) {
 mkdirSync(OUT, { recursive: true })
 write('first-operating-round', 'First operating round', firstOperatingRound())
 write('ferries-in-the-second-round', 'Ferries in the second round', secondOperatingRound())
+write('interconnection-to-boston', 'Interconnection to Boston', interconnectionToBoston())
