@@ -16,7 +16,7 @@ import cors from '@fastify/cors'
 import FastifyFormbody from '@fastify/formbody'
 import fastifyPrintRoutes from 'fastify-print-routes'
 import fastifyStatic from '@fastify/static'
-import { errorStatusCode } from './lib/errorStatusCode.js'
+import { replyStatusCode } from './lib/errorStatusCode.js'
 import { installRequestLimits } from './lib/requestLimits.js'
 import { FastifySSEPlugin } from 'fastify-sse-v2'
 import AuthorizationPlugin from './plugins/authorization.js'
@@ -66,9 +66,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await installRequestLimits(fastify, { global: service !== 'local' })
 
     fastify.setErrorHandler(async function (error, req, rep) {
-        if (!rep.statusCode || rep.statusCode < 400) {
-            void rep.code(errorStatusCode(error))
-        }
+        void rep.code(replyStatusCode(error, rep.statusCode))
 
         if (rep.statusCode >= 500) {
             req.log.error({ err: error }, 'Request failed')
