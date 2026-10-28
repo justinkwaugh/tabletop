@@ -5,8 +5,8 @@ class, beside its rules and map view. It holds what is fixed for the title and o
 how things look or are named: the phase chart, train and phase colours, which pools are
 the market and the exchange, company names, how a company's price is presented, numbered
 share names, which companies are listed or excluded from map focus and portfolios, pool
-names, the private purchase label and heading, private tile prompts, how money is
-written and a train's short label. Components read `session.presentation`.
+names, the private purchase label and heading, private tile prompts and how money is
+written. Components read `session.presentation`.
 
 What depends on the State stays where it was: the `actions` and `gameInformation`
 snippets, `additionalStockActions`, `spreadsheetCompanyOrder`, `auctionLotDescription`,
@@ -31,8 +31,9 @@ two title UIs passes today; `docs/agents/18xx-design.md` on shared presentation.
 - **Money.** `$` prefix in 42 titles, `£` in 11, `¥` in 5, `L.` in 4; a suffix in others —
   `M` (4), `ℳ`, `F`, `kr`, `c` — some with a space before it; `₹`, `₧`, `₡`, `ƒ` once
   each. Prefix or suffix, optional space, grouping of thousands. None uses decimals.
-- **Trains** are named on the card and abbreviated on badges; 1889 and TOP name the
-  diesel "Diesel" and badge it "D".
+- **Trains** are named on the card and abbreviated on badges; 1889 and TOP named the
+  diesel "Diesel" and badged it "D". Since 2026-10-26 every title names its diesel "D", so
+  the short label it needed was removed and badges show the train's name.
 
 ## Shared behaviour and title-owned choices
 
@@ -41,8 +42,7 @@ title facts as props. Title-owned: every value in the presentation.
 
 ## Support now and later
 
-Now: the fields above; money as a symbol before or after the grouped amount; a train's
-short label falling back to its name.
+Now: the fields above; money as a symbol before or after the grouped amount.
 
 Considered, not built: a shared `createEighteenXXUiDefinition` for the near-identical
 `index.ts`, `runtime.ts` and worker files of the title UIs; moving the State-dependent

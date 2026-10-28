@@ -27,6 +27,8 @@ export {
 export { revenueBadgeHalfWidth } from './tiles/revenueBadge.js'
 export { default as Portfolio } from './finance/Portfolio.svelte'
 export { default as FinanceInspector } from './finance/FinanceInspector.svelte'
+export { ownerPortfolio } from './finance/ownerPortfolio.js'
+export { withDraftedCompanies, type DraftedCompany } from './finance/draftedCompanies.js'
 
 export * from './session/eighteenXXSession.svelte.js'
 export type { PrivateTrackPower, TitlePrivatePower } from './session/privateActionsModule.svelte.js'
@@ -40,6 +42,7 @@ export { default as FinanceMap } from './maps/FinanceMap.svelte'
 export { default as TrainBuying } from './trains/TrainBuying.svelte'
 
 export { default as PrivateCompanies } from './privates/PrivateCompanies.svelte'
+export { setPlaceLinks, type PlaceLinks } from './places/placeLinks.js'
 
 export { default as CompanyDecisions } from './finance/CompanyDecisions.svelte'
 export { default as DecisionResponse } from './finance/DecisionResponse.svelte'
@@ -62,9 +65,15 @@ export {
 export type {
     HistoryDescription,
     HistoryNames,
-    TitleActionDescription
+    TitleActionDescription,
+    TitleHistoryNames
 } from './table/historyDescription.js'
-export { departurePaymentsDetail, joinDetails, ownerName } from './table/historyDescription.js'
+export {
+    companyClosureDetails,
+    departurePaymentsDetail,
+    joinDetails,
+    ownerName
+} from './table/historyDescription.js'
 export { trainCount, type AwaitedDecision } from './table/awaitedDecision.js'
 export type {
     CompanyColumn,
@@ -125,5 +134,6 @@ export { earningsForHistoryStep } from './earnings/earningsForHistoryStep.js'
 export { actionForHistoryStep } from './table/actionForHistoryStep.js'
 
 export { default as AutomaticRoutes } from './routes/AutomaticRoutes.svelte'
+export { default as ProjectedRun } from './routes/ProjectedRun.svelte'
 export { default as StationBuilding } from './maps/StationBuilding.svelte'
 export type { HistoricalMapState, HistoryMapPlacement } from './maps/historicalMap.js'

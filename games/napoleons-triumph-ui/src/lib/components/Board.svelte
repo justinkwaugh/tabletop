@@ -31,6 +31,8 @@
     let artLoaded = $state(false)
 
     const size = $derived(viewSize(gameSession.boardRotation))
+
+    const unitsVisibility = $derived(gameSession.unitsHidden ? 'hidden' : undefined)
 </script>
 
 <div class="relative select-none" style="width: {size.width}px; height: {size.height}px;">
@@ -79,23 +81,28 @@
             <g data-in-picture><ArmyDisplays /></g>
             <ApproachBars />
             <LocaleNumbers />
-            <g data-in-picture>
-                <TrackMarkers />
-                <HeldApproaches approaches={gameSession.heldApproaches} />
+            <g data-in-picture><TrackMarkers /></g>
+            <g visibility={unitsVisibility}>
+                <g data-in-picture>
+                    <HeldApproaches approaches={gameSession.heldApproaches} />
+                </g>
             </g>
             <SetupLocales />
             <ClosedReserves />
             <AimLocales />
             <TargetLayer />
-            <g data-in-picture><PiecesLayer /></g>
-            <g data-in-picture><ApproachPlates /></g>
-            <g data-in-picture><GunTags /></g>
+            <!-- Deliberate: hiding the units wraps the pictured layers, so a saved picture still shows them. -->
+            <g visibility={unitsVisibility}>
+                <g data-in-picture><PiecesLayer /></g>
+                <g data-in-picture><ApproachPlates /></g>
+                <g data-in-picture><GunTags /></g>
+            </g>
             <LocatedLocale />
             <MovementTrails />
             <ApproachSymbols />
             <CapacityTags />
             <StarTags />
-            <g data-in-picture><FlagLayer /></g>
+            <g visibility={unitsVisibility}><g data-in-picture><FlagLayer /></g></g>
             <TargetLayer overThePieces />
             <BattleMarker />
         </svg>

@@ -72,6 +72,13 @@ export const GameAction = Type.Object({
     updatedAt: Type.Optional(DateType())
 })
 
+export function withoutActionPatches<T extends GameAction>(action: T): T {
+    const copy = structuredClone(action)
+    delete copy.undoPatch
+    delete copy.forwardPatch
+    return copy
+}
+
 export type PlayerAction = Type.Static<typeof PlayerAction>
 export const PlayerAction = Type.Evaluate(
     Type.Intersect([

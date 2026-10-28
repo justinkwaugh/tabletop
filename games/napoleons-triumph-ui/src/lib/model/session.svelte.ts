@@ -1,5 +1,13 @@
 import { GameSession, type TitlePreferences } from '@tabletop/frontend-components'
-import { assert, assertExists, type Color, type Point } from '@tabletop/common'
+import {
+    assert,
+    assertExists,
+    gameCallDescription,
+    gameCallOf,
+    type Color,
+    type GameAction,
+    type Point
+} from '@tabletop/common'
 import {
     ActionType,
     Advance,
@@ -13,6 +21,7 @@ import {
     DeclareFeint,
     DeployArmy,
     isDeployArmy,
+    AcknowledgeReveal,
     EndTurn,
     MachineState,
     Move,
@@ -144,7 +153,8 @@ import {
     nameDefendingCommander,
     sendRetreatTo,
     type BattleRole,
-    type BattleStage
+    type BattleStage,
+    type DefenceDeclaration
 } from './battleStage.js'
 import {
     blockMarkOf,
@@ -293,6 +303,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     localeNumbersShown = $state(false)
 
+    unitsHidden = $state(false)
+
     locatedLocale: { locale: number; press: number } | undefined = $state()
 
     private locatePresses = 0
@@ -339,9 +351,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.myPlayerId === undefined || showsArmyOf(this.gameState, this.myPlayerId)
     )
 
-    canAct = $derived(this.isMyTurn && !this.isViewingHistory && this.armyInView)
+    canAct = $derived(
+        this.isMyTurn &&
+            !this.isViewingHistory &&
+            this.armyInView &&
+            this.gameState.result === undefined
+    )
 
     isCommanding = $derived(this.canAct && this.gameState.machineState === MachineState.Commanding)
+
+    /** The turn opens on the enemy cavalry still riding when the last one ended, face-up until this player has seen it. */
+    isSeeingRide = $derived(
+        this.canAct && this.gameState.machineState === MachineState.RideRevealed
+    )
 
     isAuction = $derived(
         this.gameState.machineState === MachineState.Bidding ||
@@ -584,19 +606,27 @@ export class NapoleonsTriumphGameSession extends GameSession<
             : []
     })
 
+    private unitOutlines: ConvexOutline[] = $derived(
+        this.unitsHidden
+            ? []
+            : [
+                  ...this.sprites.flatMap((sprite) => sprite.blocks.map(blockOutline)),
+                  ...plateOutlines(this.approachPlates),
+                  ...this.gunTags.map((tag) => cornersOf(tag.box)),
+                  ...this.flags.flatMap((flag) => flagOutlines(flag, this.flagView))
+              ]
+    )
+
     private drawnOverTheMap: ConvexOutline[] = $derived([
-        ...this.sprites.flatMap((sprite) => sprite.blocks.map(blockOutline)),
+        ...this.unitOutlines,
         ...this.arrowOutlines,
-        ...plateOutlines(this.approachPlates),
-        ...this.gunTags.map((tag) => cornersOf(tag.box)),
         ...this.approachSymbolTags.map((tag) => cornersOf(tag.cover)),
         ...this.movementTrails.flatMap((trail) => [
             ...drawnArrowOutlines(trail.arrow),
             trailNumberOutline(numberOfTrail(trail, this.flagSize))
         ]),
         ...this.retreatArrows.flatMap(retreatArrowOutlines),
-        ...this.waySigns.map(({ at }) => waySignOutline(at, this.flagSize)),
-        ...this.flags.flatMap((flag) => flagOutlines(flag, this.flagView))
+        ...this.waySigns.map(({ at }) => waySignOutline(at, this.flagSize))
     ])
 
     // Placed after the flags and kept off them, so no flag hides a capacity; the flags keep off the printed boxes instead.
@@ -626,12 +656,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
         })
     })
 
+    describe(action: GameAction): string {
+        const call = gameCallOf(action)
+        return call
+            ? `${gameCallDescription(call, (playerId) => this.getPlayerName(playerId))}.`
+            : describeAction(action, this.gameState)
+    }
+
     chapters: HistoryChapter[] = $derived(
         historyChapters(this.actions, {
             rounds: this.gameState.rounds.series,
             turns: this.gameState.turnManager.series,
             scenario: this.gameState.scenario,
-            describe: (action) => describeAction(action, this.gameState),
+            describe: (action) => this.describe(action),
             turnTitle: (playerId) => TURN_TITLES[this.gameState.sideOf(playerId)]
         })
     )
@@ -1242,6 +1279,13 @@ export class NapoleonsTriumphGameSession extends GameSession<
         await this.applyAction(this.createPlayerAction(Attach, { commanderId, unitId }))
     }
 
+    async acknowledgeReveal() {
+        if (!this.validActionTypes.includes(ActionType.AcknowledgeReveal)) {
+            return
+        }
+        await this.applyAction(this.createPlayerAction(AcknowledgeReveal, {}))
+    }
+
     async endTurn() {
         if (!this.validActionTypes.includes(ActionType.EndTurn)) {
             return
@@ -1434,13 +1478,27 @@ export class NapoleonsTriumphGameSession extends GameSession<
     async declareDefense() {
         const stage = this.battleStage
         if (stage?.kind === StageKind.Defence && stage.defenders.length > 0 && !stage.problem) {
-            await this.applyAction(
-                this.createPlayerAction(DeclareDefense, {
-                    unitIds: inGameOrder(this.gameState.units, stage.defenders),
-                    commanderIds: namedCommanderIds(stage)
-                })
-            )
+            await this.sendDefence({
+                unitIds: stage.defenders,
+                commanderIds: namedCommanderIds(stage)
+            })
         }
+    }
+
+    async defendWithAll() {
+        const stage = this.battleStage
+        if (stage?.kind === StageKind.Defence && stage.withAll) {
+            await this.sendDefence(stage.withAll)
+        }
+    }
+
+    private async sendDefence({ unitIds, commanderIds }: DefenceDeclaration) {
+        await this.applyAction(
+            this.createPlayerAction(DeclareDefense, {
+                unitIds: inGameOrder(this.gameState.units, unitIds),
+                commanderIds
+            })
+        )
     }
 
     async leadDefense() {

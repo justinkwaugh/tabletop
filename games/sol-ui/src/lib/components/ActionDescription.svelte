@@ -1,7 +1,7 @@
 <script lang="ts">
     import { isAggregatedMove, type AggregatedMove } from '$lib/aggregates/aggregatedMove.js'
-    import { type GameAction } from '@tabletop/common'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { isCallGameAction, type GameAction } from '@tabletop/common'
+    import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
     import {
         Activate,
         ActivateBonus,
@@ -344,6 +344,8 @@
     {/each}
 {:else if isFuel(action)}
     used fuel to gain 3 movement points
+{:else if isCallGameAction(action)}
+    <CalledGameDescription {action} />
 {:else}
     {action.type}
 {/if}

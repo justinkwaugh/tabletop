@@ -2,14 +2,13 @@ import { bannerHolder } from './oathkeeper.js'
 import { assert, assertExists } from '@tabletop/common'
 import { giveFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import {
-    MAX_OPEN_DEALS_PER_PLAYER,
-    PROMISE_MAX_LENGTH,
-    type ExchangeAllowance,
-    type ExchangeTerms,
-    type ExchangeTransfer,
-    type OpenDeal,
-    type SiteTransfer
+import { MAX_OPEN_DEALS_PER_PLAYER, PROMISE_MAX_LENGTH } from '../model/question.js'
+import type {
+    ExchangeAllowance,
+    ExchangeTerms,
+    ExchangeTransfer,
+    OpenDeal,
+    SiteTransfer
 } from '../model/question.js'
 import { rulesSite, rulingWarbandOwners, actsAsIfBanditsAreWarbands, warbandsAt } from './rule.js'
 import { reasonCannotMoveCardTo } from './locked.js'

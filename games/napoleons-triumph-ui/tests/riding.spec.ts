@@ -130,7 +130,7 @@ test('a unit standing beside cavalry that is riding on takes a command of its ow
 
     await leftOut.click()
     await tap(page, 'svg [aria-label^="Move to"]')
-    await expect(page.getByText('Choose a corps or unit on the map')).toBeVisible()
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
 })
 
 test('reinforcement cavalry that is riding on takes its second command and presses an attack', async ({
@@ -156,7 +156,7 @@ test('reinforcement cavalry that is riding on takes its second command and press
     await newCommand.click()
     await threaten(page, 38, 52)
     await page.locator('button[aria-label="Choose this unit"]:not([disabled])').first().click()
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Defend', exact: true }).click()
 
     await page.getByRole('button', { name: 'Call it a feint' }).click()
     await expect(newCommand).toHaveAttribute('aria-pressed', 'true')
@@ -178,6 +178,7 @@ test('cavalry riding on stays in hand while a locale is aimed at, and the threat
     await frenchTurnWith(page, reinforcementCavalryRidesIn)
     const rideSwitch = page.getByRole('group', { name: RIDE_SWITCH })
     await expect(page.getByRole('group', { name: 'Bernadotte’s corps, riding on' })).toBeVisible()
+    await expect(page.getByText('Tap an enemy locale to threaten an attack.')).toBeVisible()
 
     await tap(page, '[data-aim-locale="52"]')
     await expect(
@@ -185,7 +186,7 @@ test('cavalry riding on stays in hand while a locale is aimed at, and the threat
     ).toBeVisible()
     await tap(page, `svg [data-threat="${AUSTERLITZ.approachBetween(38, 52).id}"]`)
     await page.locator('button[aria-label="Choose this unit"]:not([disabled])').first().click()
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Defend', exact: true }).click()
 
     await page.getByRole('button', { name: 'Call it a feint' }).click()
     await expect(rideSwitch.getByRole('button', { name: 'Riding on' })).toHaveAttribute(

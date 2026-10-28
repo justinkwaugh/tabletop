@@ -26,11 +26,12 @@
         assert(gameSession instanceof EighteenThirtyTwoSession, '1832 requires its title session')
         return gameSession
     })
-    const historyDescription: TitleActionDescription = (action, companyName) =>
+    const historyDescription: TitleActionDescription = (action, { companyName, place }) =>
         describe1832Action(
             action,
             {
                 companyName,
+                place,
                 playerName: (id) => session.getPlayerName(id),
                 bankName: 'Bank'
             },
@@ -43,6 +44,7 @@
 <GameTable
     {session}
     {privateOperationDescription}
+    {createRouteWorker}
     {historyDescription}
     additionalStockActions={session.stockPanels.menuOptions}
 >

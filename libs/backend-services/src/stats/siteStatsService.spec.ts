@@ -43,7 +43,7 @@ function setup(latest?: UtcDay, earliestGame?: Date) {
                 countGamesWithStatus: async () => 0,
                 countStartedGamesQuietSince: async () => 0
             },
-            users: { countUsersCreatedIn: async () => 0, countUsersWithStatus: async () => 0 },
+            users: { countUsersActivatedIn: async () => 0, countUsersWithStatus: async () => 0 },
             subscriptions: { countSubscriptionsWithTransport: async () => 0 }
         },
         {

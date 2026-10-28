@@ -2,6 +2,7 @@ import {
     ExplorationHistory,
     getPrng,
     assertExists,
+    resetCopiedGameVoting,
     type Visibility,
     GameCategory,
     GameStorage,
@@ -162,6 +163,7 @@ export class GameExplorations<T extends GameState, U extends HydratedGameState<T
                 game.lastActionPlayerId = originalContext.actions.at(-1)?.playerId
                 game.lastActionAt = originalContext.actions.at(-1)?.createdAt
                 if (game.result === undefined) delete game.finishedAt
+                resetCopiedGameVoting(game, originalContext.actions)
                 for (const player of game.players) {
                     if (player.userId !== myUserId) player.userId = undefined
                 }

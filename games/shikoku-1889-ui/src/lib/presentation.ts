@@ -5,7 +5,6 @@ import { Shikoku1889TrainColors } from './trainPresentation.js'
 
 export const Shikoku1889Presentation: TitlePresentation = {
     money: moneyFormat('¥'),
-    trainShortLabels: { D: 'D' },
     phaseChart: Shikoku1889PhaseChart,
     trainColors: Shikoku1889TrainColors,
     phaseColors: Shikoku1889TrainColors,

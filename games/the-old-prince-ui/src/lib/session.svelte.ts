@@ -1,6 +1,6 @@
 import { getCompany } from '@tabletop/18xx'
 import { createEighteenXXSessionClass, type MapLocationChoice } from '@tabletop/18xx-ui'
-import { type GameSession } from '@tabletop/frontend-components'
+import type { GameSession } from '@tabletop/frontend-components'
 import type { HydratedTheOldPrinceState, TheOldPrinceState } from '@tabletop/the-old-prince'
 import {
     TheOldPrinceTitleRules,

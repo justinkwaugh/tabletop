@@ -9,8 +9,7 @@
         getCompany,
         isBankrupt,
         playersWithBankruptLast,
-        type Owner,
-        type ValuationRules
+        type Owner
     } from '@tabletop/18xx'
     import { auctionLotDetail, auctionLotDetails } from '../auctions/auctionLotDetails.js'
     import { assertExists } from '@tabletop/common'
@@ -21,12 +20,10 @@
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PresidentName from '../finance/PresidentName.svelte'
-    import { ownerPortfolio } from '../finance/ownerPortfolio.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
     let {
         session,
-        valuationRules,
         auctionLotDescription,
         numberedShareNames = {},
         numberedShareLocation,
@@ -37,7 +34,6 @@
         portfolioCompanyIds = []
     }: {
         session: EighteenXXSessionView
-        valuationRules: ValuationRules
         auctionLotDescription?: (id: string) => string
         numberedShareNames?: NumberedShareNames
         numberedShareLocation?: (companyId: string, number: number) => string | undefined
@@ -65,11 +61,8 @@
             name: session.getPlayerName(playerId),
             liquidity: session.playerLiquidity(playerId),
             certs: session.playerCertificates(playerId),
-            ...ownerPortfolio(
-                session.gameState,
+            ...session.portfolio(
                 { kind: 'player', playerId },
-                valuationRules,
-                session.charters,
                 !!session.presentation.minorsAsPrivates
             )
         })),
@@ -86,12 +79,7 @@
                 bankrupt: false,
                 liquidity: undefined,
                 certs: undefined,
-                ...ownerPortfolio(
-                    session.gameState,
-                    { kind: 'company', companyId },
-                    valuationRules,
-                    session.charters
-                )
+                ...session.portfolio({ kind: 'company', companyId })
             }
         })
     ])
@@ -503,7 +491,9 @@
                                             description={session.privates.companies.find(
                                                 (company) => company.id === entry.company.id
                                             )?.description ?? ''}
-                                        />{#each session.privates.allExchangeOptions.filter((option) => option.playerId === player.playerId && option.privateCompanyId === entry.company.id) as option (option.certificateId)}<span
+                                        />{#if player.draftedCompanyIds.includes(entry.company.id)}<span
+                                                class="drafted">Drafted</span
+                                            >{/if}{#each session.privates.allExchangeOptions.filter((option) => option.playerId === player.playerId && option.privateCompanyId === entry.company.id) as option (option.certificateId)}<span
                                                 class="private-power"
                                                 ><PrivateExchangeButton {session} {option} /></span
                                             >{/each}{#each session.privateActions
@@ -675,6 +665,12 @@
     .controller {
         color: var(--rail-muted, #887664);
         font-size: 10px;
+    }
+    .drafted {
+        margin-left: 6px;
+        color: var(--rail-muted, #887664);
+        font-size: 10px;
+        font-weight: 400;
     }
     .turn-position {
         display: flex;

@@ -25,8 +25,9 @@ rule may differ, follow the engine and record the difference.
 
 - **Hosting:** 18xx playground only, like 1889 and 1830. Not added to `games.json`.
 - **Artwork:** none. Boardless map, generic share and private presentation.
-- **Players:** 3 to 12, as the reference. The reference warns that more than 7 is
-  untested. Prepared playground positions use 3 or 4 players.
+- **Players:** 3 to 7, the published game's range. The reference allows 12 but warns that
+  more than 7 is untested, and the 18xx family has seven player colours. The rules keep the
+  reference's tables for 8 to 12. Prepared playground positions use 3 or 4 players.
 - **Optional rules:** all four of the reference's [options][meta] (project decision,
   2026-10-01):
     - Short Squeeze;

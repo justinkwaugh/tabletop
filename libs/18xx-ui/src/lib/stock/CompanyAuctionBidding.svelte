@@ -21,9 +21,7 @@
         return model.bidding
     })
     const company = $derived(getCompany(session.gameState, auction.companyId))
-    const homeName = $derived(
-        session.mapView.map.location(auction.home.locationId).name ?? auction.home.locationId
-    )
+    const homeName = $derived(session.placeName(auction.home.locationId))
     const startPrice = $derived(
         session.stockMarketChart.space(model.terms.startSpace(session.gameState, bidding.highBid))
             .price

@@ -5,7 +5,7 @@
     import { assertExists } from '@tabletop/common'
     import { ActionType } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { type ReasonPart } from '$lib/model/names.js'
+    import type { ReasonPart } from '$lib/model/names.js'
     import { cardsMakingPossible } from '$lib/model/actionCards.js'
     import { listedActionPowers } from '$lib/model/phaseDrafts.js'
     import {

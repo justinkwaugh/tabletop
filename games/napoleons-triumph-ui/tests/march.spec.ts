@@ -30,7 +30,7 @@ test('a corps chooses the road to a place two roads lead to', async ({ page }) =
 
     await tap(page, `svg [aria-label^="March by road to"][data-locale="${DESTINATION}"]`)
     await tap(page, `svg [data-way="${BY_ONE_ROAD}"]`)
-    await expect(page.getByText('Choose a corps or unit on the map')).toBeVisible()
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
 
     await pickUp(page, 'langeron')
     await expect(page.locator('svg [aria-label^="Move to"]')).not.toHaveCount(0)

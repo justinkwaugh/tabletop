@@ -2,8 +2,10 @@ import { expect, it } from 'vitest'
 import { restoreWorkspace, workspaceLayout, type SavedPane } from '@tabletop/frontend-components'
 import {
     defaultTableView,
+    firstTabbedView,
     initialTableLayout,
     restoreTableWorkspace,
+    tabbedTableLayout,
     saveTableWorkspace
 } from './tableWorkspace.js'
 const tabs = [
@@ -107,4 +109,47 @@ it('starts a new layout with Board in place of Map when the title has board area
         ],
         closed: ['Map', 'Market', 'Player Aid', 'Game info']
     })
+})
+it('builds the tabbed layout for a title, with Chat and Game info only where they exist', () => {
+    const board = tabbedTableLayout({ board: true, chat: true, gameInformation: true })
+    expect(board.tabs.find((tab) => tab.id === 'Map')).toEqual({
+        id: 'Map',
+        label: 'Board',
+        closable: false
+    })
+    expect(board.initial).toEqual({
+        main: ['Map', 'Spreadsheet', 'Companies', 'Tiles'],
+        sidebar: ['Players', 'History', 'Chat']
+    })
+    expect(board.sidebarAccepts).not.toContain('Map')
+    expect(board.tabs.filter((tab) => tab.optional).map((tab) => tab.id)).toEqual([
+        'Market',
+        'Player Aid',
+        'Depot',
+        'Stats',
+        'Game info'
+    ])
+    const hotseat = tabbedTableLayout({ board: false, chat: false, gameInformation: false })
+    expect(hotseat.initial).toEqual({
+        main: ['Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles'],
+        sidebar: ['Players', 'History']
+    })
+    expect(hotseat.tabs.map((tab) => tab.id)).not.toContain('Chat')
+    expect(hotseat.tabs.map((tab) => tab.id)).not.toContain('Game info')
+})
+it('opens the tabbed layout on the first tab of its view pane', () => {
+    const layout = tabbedTableLayout({ board: true, chat: true, gameInformation: false })
+    expect(firstTabbedView(null, layout)).toBe('Map')
+    expect(
+        firstTabbedView(
+            { v: 1, sidebar: ['Players', 'History'], main: ['Tiles', 'Map', 'Spreadsheet'] },
+            layout
+        )
+    ).toBe('Tiles')
+    expect(
+        firstTabbedView(
+            { v: 1, sidebarDeleted: true, sidebar: [], main: ['History', 'Map'] },
+            layout
+        )
+    ).toBe('History')
 })

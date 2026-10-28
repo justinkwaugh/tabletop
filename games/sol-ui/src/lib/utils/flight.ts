@@ -1,11 +1,6 @@
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import type { OffsetCoordinates, Point } from '@tabletop/common'
-import {
-    type Fly,
-    type Hurl,
-    type HydratedSolGameBoard,
-    type HydratedSolGameState
-} from '@tabletop/sol'
+import type { Fly, Hurl, HydratedSolGameBoard, HydratedSolGameState } from '@tabletop/sol'
 import {
     dimensionsForSpace,
     getCirclePoint,

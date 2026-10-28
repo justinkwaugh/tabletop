@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import type { MoneyFormat } from '../presentation/money.js'
     import './playerTint.css'
     import type { GameAction } from '@tabletop/common'
@@ -34,7 +35,7 @@
 </script>
 
 {#if rounds.length}
-    <div class="table-scroll">
+    <div class="table-scroll" {@attach chainSidewaysScroll}>
         <table aria-label="Operating round history">
             <colgroup>
                 <col class="round-column" />

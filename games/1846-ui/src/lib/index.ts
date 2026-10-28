@@ -4,11 +4,14 @@ import {
     type EighteenFortySixProjectedState,
     type HydratedEighteenFortySixState
 } from '@tabletop/1846'
-import type { GameUiDefinition } from '@tabletop/frontend-components'
+import {
+    gameClientCapabilities,
+    type GameUiDefinition
+} from '@tabletop/frontend-components/definition/gameUiDefinition'
 export const UiDefinition: GameUiDefinition<
     EighteenFortySixProjectedState,
     HydratedEighteenFortySixState
 > = {
-    info: { ...EighteenFortySixInfo, thumbnailUrl },
+    info: { ...EighteenFortySixInfo, thumbnailUrl, clientCapabilities: gameClientCapabilities() },
     runtime: async () => (await import('./runtime.js')).UiRuntime
 }

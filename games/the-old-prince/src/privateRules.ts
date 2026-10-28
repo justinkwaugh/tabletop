@@ -4,6 +4,7 @@ import { TheOldPrinceTileSet } from './tiles.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
     certificatesOwnedBy,
+    placeReference,
     type PrivateRules,
     type PrivateEffect,
     type FinancialState,
@@ -139,7 +140,7 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             return (
                 `**Includes one reserved share of ${company}.**\n\n` +
                 (id === 'VR'
-                    ? 'The owner’s permission is required to build on N18 while this private is open.\n\n'
+                    ? `The owner’s permission is required to build on ${placeReference('N18')} while this private is open.\n\n`
                     : '') +
                 'Exchange for a reserved Shortline share during your stock turn, in addition to selling and buying. Cancels your pass. Ownership limit exemption applies.\n\nForced exchange at 4+.'
             )

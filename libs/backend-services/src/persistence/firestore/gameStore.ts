@@ -18,11 +18,12 @@ import {
     FieldPath,
     DocumentData,
     type DocumentSnapshot,
+    type FirestoreDataConverter,
     type ReadOnlyTransactionOptions,
     type ReadWriteTransactionOptions
 } from '@google-cloud/firestore'
 import {
-    GameCreationOptions,
+    GameContinuation,
     MasterSeed,
     ActionSource,
     GameAction,
@@ -62,7 +63,6 @@ import {
 } from '../stores/errors.js'
 import { StoredAction } from '../model/storedAction.js'
 import { StoredGame } from '../model/storedGame.js'
-import { StoredState } from '../model/storedState.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import {
@@ -70,6 +70,7 @@ import {
     ActionUpdateValidator,
     GameStore,
     GameData,
+    GameInitialization,
     GameDataReader,
     UndoActionWindow
 } from '../stores/gameStore.js'
@@ -81,7 +82,13 @@ import {
 import { GameCacheKeys } from './gameCacheKeys.js'
 import { gameChatBookmarks } from './gameChatDocuments.js'
 import { nanoid } from 'nanoid'
-import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
+import { ActionChunk } from '../model/storedActionChunk.js'
+import {
+    GAME_STORAGE_ENCODING,
+    storedActions,
+    storedState,
+    type StoredJsonEncoding
+} from './storedJson.js'
 import * as Value from 'typebox/value'
 import {
     assertUndoActionStorageSupported,
@@ -119,17 +126,24 @@ const LEGACY_EARLIER_ACTIONS = 20
 export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
     readonly games: CollectionReference<Game>
     private readonly tournamentCacheKeys: TournamentCacheKeys
+    private readonly stateConverter: FirestoreDataConverter<GameState>
+    private readonly actionChunkConverter: FirestoreDataConverter<ActionChunk>
 
     constructor(
         private readonly cacheService: RedisCacheService,
         private firestore: Firestore,
-        tournamentCachePrefix = 'tournaments:v1'
+        {
+            tournamentCachePrefix = 'tournaments:v1',
+            encoding = GAME_STORAGE_ENCODING
+        }: { tournamentCachePrefix?: string; encoding?: StoredJsonEncoding } = {}
     ) {
         this.games = firestore.collection('games').withConverter(gameConverter)
         this.tournamentCacheKeys = new TournamentCacheKeys(tournamentCachePrefix)
+        this.stateConverter = stateConverter(encoding)
+        this.actionChunkConverter = actionChunkConverter(encoding)
     }
 
-    async createGame(game: Game, options?: GameCreationOptions): Promise<Game> {
+    async createGame(game: Game, initialization?: GameInitialization): Promise<Game> {
         const date = new Date()
         const storedGame = {
             ...structuredClone(game),
@@ -196,12 +210,17 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                     transaction.create(this.games.doc(game.id), structuredClone(storedGame))
                     if (state)
                         transaction.create(this.getStateCollection(game.id).doc(game.id), state)
-                    if (options?.masterSeed !== undefined) {
-                        Value.Assert(MasterSeed, options.masterSeed)
+                    if (initialization?.masterSeed !== undefined) {
+                        Value.Assert(MasterSeed, initialization.masterSeed)
                         transaction.create(
                             this.games.doc(game.id).collection('private').doc('initialization'),
-                            { masterSeed: options.masterSeed }
+                            { masterSeed: initialization.masterSeed }
                         )
+                    }
+                    if (initialization?.continuation !== undefined) {
+                        transaction.create(this.getContinuationDocument(game.id), {
+                            data: JSON.stringify(initialization.continuation)
+                        })
                     }
                     return state ? { ...storedGame, state } : storedGame
                 })
@@ -346,6 +365,20 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         const seed: unknown = snapshot.get('masterSeed')
         Value.Assert(MasterSeed, seed)
         return seed
+    }
+
+    async getContinuation(gameId: string): Promise<GameContinuation | undefined> {
+        const snapshot = await this.getContinuationDocument(gameId).get()
+        if (!snapshot.exists) return undefined
+        const data: unknown = snapshot.get('data')
+        assert(typeof data === 'string', 'Stored continuation is malformed')
+        const continuation: unknown = JSON.parse(data)
+        Value.Assert(GameContinuation, continuation)
+        return continuation
+    }
+
+    private getContinuationDocument(gameId: string): DocumentReference {
+        return this.games.doc(gameId).collection('private').doc('continuation')
     }
 
     async deleteGame(game: Game, authorize?: (existingGame: Game) => void): Promise<void> {
@@ -859,6 +892,11 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         }
     }
 
+    // Every Game in play: a Game nobody has moved in has no lastActionAt to query a range on.
+    async findStartedGames(): Promise<Game[]> {
+        return this.readGames(this.games.where('status', '==', GameStatus.Started), 'started')
+    }
+
     async findFinishedGames(afterGameId: string | undefined, limit: number): Promise<Game[]> {
         let query = this.games
             .where('status', '==', GameStatus.Finished)
@@ -1141,6 +1179,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                     gameUpdates.status = GameStatus.Finished
                     gameUpdates.finishedAt = new Date()
                     gameUpdates.result = state.result
+                    gameUpdates.canContinue = state.canContinue
                     gameUpdates.winningPlayerIds = state.winningPlayerIds
                     gameUpdates.everFinished = true
                 } else {
@@ -2163,7 +2202,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             .collection('games')
             .doc(gameId)
             .collection('actionChunks')
-            .withConverter(actionChunkConverter)
+            .withConverter(this.actionChunkConverter)
     }
 
     private getStateCollection(gameId: string): CollectionReference<GameState> {
@@ -2171,7 +2210,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             .collection('games')
             .doc(gameId)
             .collection('states')
-            .withConverter(stateConverter)
+            .withConverter(this.stateConverter)
     }
 
     private handleError(error: unknown, id: string) {
@@ -2220,8 +2259,10 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             status: GameStatus.Started,
             finishedAt: undefined,
             result: undefined,
+            canContinue: undefined,
             winningPlayerIds: [],
             finalScores: undefined,
+            call: undefined,
             everFinished: true
         }
     }
@@ -2289,16 +2330,14 @@ const gameConverter = {
     }
 }
 
-const stateConverter = {
-    toFirestore(gameState: GameState): PartialWithFieldValue<StoredState> {
-        return { data: JSON.stringify(gameState) }
+const stateConverter = (encoding: StoredJsonEncoding): FirestoreDataConverter<GameState> => ({
+    toFirestore(gameState: GameState): DocumentData {
+        return storedState.encode(gameState, encoding)
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): GameState {
-        const docData = snapshot.data() as StoredState
-        const state = JSON.parse(docData.data) as GameState
-        return migrateFromSeedToPrng(state)
+        return migrateFromSeedToPrng(storedState.decode(snapshot.data()))
     }
-}
+})
 
 const migrateFromSeedToPrng = (state: GameState): GameState => {
     if (!state.prng) {
@@ -2328,25 +2367,28 @@ const actionConverter = {
     }
 }
 
-const actionChunkConverter = {
-    toFirestore(chunk: ActionChunk): PartialWithFieldValue<StoredActionChunk> {
-        const docData = structuredClone(chunk) as unknown as StoredActionChunk
-        docData.actionsData = JSON.stringify(chunk.actions)
-        docData.actionIds = chunk.actions.map((action) => action.id)
-
-        delete docData.actions
-        return docData
+const actionChunkConverter = (
+    encoding: StoredJsonEncoding
+): FirestoreDataConverter<ActionChunk> => ({
+    toFirestore(chunk: ActionChunk): DocumentData {
+        const { actions, ...fields } = chunk
+        return {
+            ...structuredClone(fields),
+            ...storedActions.encode(actions, encoding),
+            actionIds: actions.map((action) => action.id)
+        }
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): ActionChunk {
-        const data = snapshot.data() as Partial<StoredActionChunk>
-        if (typeof data.actionsData == 'string') {
-            data.actions = JSON.parse(data.actionsData)
+        const document = snapshot.data()
+        const { id, gameId, startIndex, endIndex, createdAt, updatedAt } = document
+        return {
+            id,
+            gameId,
+            startIndex,
+            endIndex,
+            createdAt: createdAt?.toDate(),
+            updatedAt: updatedAt?.toDate(),
+            actions: storedActions.decode(document)
         }
-        delete data.actionsData
-        delete data.actionIds
-
-        data.createdAt = data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined
-        data.updatedAt = data.updatedAt ? (data.updatedAt as Timestamp).toDate() : undefined
-        return data as ActionChunk
     }
-}
+})

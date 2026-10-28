@@ -76,7 +76,8 @@ export function trainCanBeTraded(train: Train): boolean {
 }
 
 /** Where trains go when they leave a company: the bank's market, or out of play. */
-export type TrainDestination = 'market' | 'removed'
+export const TrainDestination = Type.Union([Type.Literal('market'), Type.Literal('removed')])
+export type TrainDestination = Type.Static<typeof TrainDestination>
 
 export function releaseTrains(
     inventory: TrainInventory,

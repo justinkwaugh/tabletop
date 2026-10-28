@@ -11,7 +11,7 @@
     "scripts": {
         "clean": "rimraf esm",
         "build": "node ../../tools/scripts/write-game-version.cjs && tsgo",
-        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rollup -c ./rollup.config.ts",
+        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rolldown -c ./rolldown.config.ts",
         "lint": "eslint ."
     },
     "dependencies": {
@@ -21,10 +21,10 @@
     "devDependencies": {
         "@tabletop/vitest-config": "workspace:*",
         "@tabletop/eslint-config": "workspace:*",
-        "@tabletop/rollup-config": "workspace:*",
+        "@tabletop/rolldown-config": "workspace:*",
         "@typescript/native-preview": "7.0.0-dev.20260707.2",
         "rimraf": "^6.1.0",
-        "rollup": "4.55.2",
+        "rolldown": "^1.2.15",
         "typescript": "5.9.3"
     }
 }

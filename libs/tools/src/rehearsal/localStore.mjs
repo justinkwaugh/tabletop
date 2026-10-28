@@ -125,6 +125,8 @@ class LocalRehearsalStore {
     }
 
     async verifyPersistence(gameId, expected) {
+        const { storedState, storedActions } =
+            await import('../../../backend-services/esm/persistence/firestore/storedJson.js')
         const reference = this.firestore.collection('games').doc(gameId)
         const [gameDocument, stateDocument, chunks] = await Promise.all([
             reference.get(),
@@ -132,13 +134,13 @@ class LocalRehearsalStore {
             reference.collection('actionChunks').get()
         ])
         const game = gameDocument.data()
-        const state = JSON.parse(stateDocument.data().data)
+        const state = storedState.decode(stateDocument.data())
         assert.deepEqual(state, jsonCopy(expected), 'Persisted State differs from the host API')
         assert.deepEqual(game.activePlayerIds, state.activePlayerIds)
         assert.deepEqual(game.winningPlayerIds, state.winningPlayerIds)
         assert.equal(game.status, state.result ? 'finished' : 'started')
         const actions = chunks.docs
-            .flatMap((document) => JSON.parse(document.data().actionsData))
+            .flatMap((document) => storedActions.decode(document.data()))
             .sort((left, right) => left.index - right.index)
         assert.equal(actions.length, state.actionCount)
         assert.equal(calculateActionChecksum(0, actions), state.actionChecksum)

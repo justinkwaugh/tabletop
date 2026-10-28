@@ -79,7 +79,7 @@ test('a feint curls the attack’s arrow back, on the map while it is answered a
     const onTheMap = page.locator('svg[data-board] [data-attack-arrow]')
     await expect(onTheMap).toHaveAttribute('data-attack-arrow', 'threat')
     await tap(page, 'svg [aria-label="Choose this unit"]')
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Defend', exact: true }).click()
     await page.getByRole('button', { name: 'Call it a feint' }).click()
     await page.getByRole('button', { name: 'Feint, staying in reserve' }).click()
     await expect(onTheMap).toHaveAttribute('data-attack-arrow', 'feint')

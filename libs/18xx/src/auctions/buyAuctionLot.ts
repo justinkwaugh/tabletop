@@ -10,7 +10,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { activeAuction, canActInAuction, type OpeningAuctionState } from './auctionProcedure.js'
-import { type WaterfallAuctionRules } from './waterfallAuction.js'
+import type { WaterfallAuctionRules } from './waterfallAuction.js'
 
 export const BuyAuctionLot = Type.Object(
     {

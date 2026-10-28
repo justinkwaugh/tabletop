@@ -1,6 +1,12 @@
-import { ActionSource, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    isCallGameAction,
+    isCascadedSystemAction,
+    type GameAction
+} from '@tabletop/common'
 import {
     isBuyShares,
+    isEndGame,
     isFloatCompany,
     isFinishTrack,
     isFinishStations,
@@ -23,6 +29,10 @@ export function isHistoryBookkeeping(action: GameAction): boolean {
     )
 }
 
+export function isGameEndAction(action: GameAction): boolean {
+    return isEndGame(action) || isCallGameAction(action)
+}
+
 export function isAutomaticStockDecision(action: GameAction): boolean {
     return (
         action.source === ActionSource.System &&
@@ -31,7 +41,7 @@ export function isAutomaticStockDecision(action: GameAction): boolean {
 }
 
 function isGeneratedConsequence(action: GameAction): boolean {
-    return action.source === ActionSource.System && !isAutomaticStockDecision(action)
+    return isCascadedSystemAction(action) && !isAutomaticStockDecision(action)
 }
 
 export function shouldContinueHistoryStep(action: GameAction, next?: GameAction): boolean {

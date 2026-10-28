@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Writes `src/lib/images/imageManifest.generated.ts` as static imports, because the rollup bundle
+// Writes `src/lib/images/imageManifest.generated.ts` as static imports, because the Rolldown bundle
 // cannot resolve `import.meta.glob`. Runs before every script that
 // compiles or serves the package; the file is not committed.
 import fs from 'node:fs'

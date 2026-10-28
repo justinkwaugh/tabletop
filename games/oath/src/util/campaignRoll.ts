@@ -2,17 +2,17 @@ import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import type { HeldAttackRoll } from '../actions/answerQuestion.js'
 import type { PileDeposit } from '../model/hidden.js'
-import {
-    type CampaignKillPath,
-    type CampaignRollRecord,
-    type CampaignState,
-    type HeldForHospital,
-    type KillRedirect,
-    type LossSource,
-    type RolledAttackFace,
-    type RolledDefenseFace,
-    type WarbandGroup,
-    type WarbandLocation
+import type {
+    CampaignKillPath,
+    CampaignRollRecord,
+    CampaignState,
+    HeldForHospital,
+    KillRedirect,
+    LossSource,
+    RolledAttackFace,
+    RolledDefenseFace,
+    WarbandGroup,
+    WarbandLocation
 } from '../model/campaign.js'
 import { attackFromFaces, defenseFromFaces, rollAttackDice, rollDefenseDice } from '../data/dice.js'
 import { askQuestion } from './questions.js'
