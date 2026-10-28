@@ -205,3 +205,42 @@ export function storyDraft(text: string): { text: string; left: number; countSho
 export function storyWritable(text: string): boolean {
     return normalizedStory(text).length > 0
 }
+
+/**
+ * R-8.5 — the winner's story as it is typed, kept on the session as every panel's value is: the
+ * panel is drawn again on stepping into History or toggling full screen, and the text stays. Write
+ * sends it; Skip, any send and Undo clear it.
+ */
+export class ChronicleStoryDraft extends OneStepDraft<string> {
+    get text(): string {
+        return this.stored ?? ''
+    }
+
+    get left(): number {
+        return storyDraft(this.text).left
+    }
+
+    get countShown(): boolean {
+        return storyDraft(this.text).countShown
+    }
+
+    get writable(): boolean {
+        return storyWritable(this.text)
+    }
+
+    /** Keeps the typed text, capped; an emptied box holds no draft. Returns what is kept. */
+    edit(value: string): string {
+        const capped = storyDraft(value).text
+        if (capped === '') this.reset()
+        else this.store(capped)
+        return capped
+    }
+
+    async write(): Promise<void> {
+        await this.session.writeChronicleStory(this.text)
+    }
+
+    async skip(): Promise<void> {
+        await this.session.skipChronicleStory()
+    }
+}

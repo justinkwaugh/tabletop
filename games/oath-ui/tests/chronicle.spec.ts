@@ -235,6 +235,17 @@ for (const viewport of [
             if (phone) await phoneButtons(page)
             await noOverflow(page, viewport.width)
             await shot(page, 'story')
+            // The panel is drawn again in full screen and out of it; the story stays typed.
+            await page.getByRole('button', { name: 'Enter full screen' }).click()
+            const dialog = page.locator('dialog[aria-label="Full screen view"]')
+            await expect(dialog.getByPlaceholder('Tell your story in your own way.')).toHaveValue(
+                'a'.repeat(930)
+            )
+            await expect(dialog.locator('[data-story-left]')).toHaveText('70 left')
+            await dialog.getByRole('button', { name: 'Exit full screen' }).click()
+            await expect(dialog).toHaveCount(0)
+            await expect(box).toHaveValue('a'.repeat(930))
+            await expect(panel(page).locator('[data-story-left]')).toHaveText('70 left')
         })
 
         test('the result: today’s panel, and game 1’s History from the win to the story', async ({

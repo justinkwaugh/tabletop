@@ -130,6 +130,7 @@ import { humanizeReason, reasonParts, siteName, type ReasonPart } from './names.
 import {
     BuildPickDraft,
     ChronicleOfferDraft,
+    ChronicleStoryDraft,
     ChronicleSuitDraft,
     HealStackDraft,
     OathPickDraft
@@ -242,6 +243,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly chronicleBuild = new BuildPickDraft(this)
     readonly chronicleSuit = new ChronicleSuitDraft(this)
     readonly healStack = new HealStackDraft(this)
+    readonly chronicleStory = new ChronicleStoryDraft(this)
     readonly seatCardPeek = new SeatCardPeekDraft()
     readonly seatDetail = new SeatDetail(this)
     readonly goalsView = new GoalsView()
@@ -287,7 +289,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.chronicleOffer,
             this.chronicleBuild,
             this.chronicleSuit,
-            this.healStack
+            this.healStack,
+            this.chronicleStory
         ]
     }
 

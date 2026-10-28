@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
     ActionType,
     CHRONICLE_STORY_LIMIT,
@@ -160,6 +160,56 @@ describe('the story', () => {
         expect(storyWritable('')).toBe(false)
         expect(storyWritable('  \n ')).toBe(false)
         expect(storyWritable('The title stayed.')).toBe(true)
+    })
+
+    it('lives on the session, not in the panel: 930 characters stored are read back with "70 left"', async () => {
+        const session = await openSessionOn(gameOneAt('story'))
+        expect(session.chronicleStory.text).toBe('')
+        expect(session.chronicleStory.edit('a'.repeat(930))).toBe('a'.repeat(930))
+        // The panel is drawn again on stepping into History or toggling full screen: a fresh mount
+        // reads the session's draft, so the story is still there.
+        expect(session.chronicleStory.text).toBe('a'.repeat(930))
+        expect(session.chronicleStory).toMatchObject({ left: 70, countShown: true, writable: true })
+        expect(session.hasManualDraft).toBe(true)
+        expect(session.chronicleStory.edit('a'.repeat(1200))).toBe('a'.repeat(1000))
+        expect(session.chronicleStory.text).toBe('a'.repeat(1000))
+    })
+
+    it('Undo clears the typed story before it undoes any sent action', async () => {
+        const session = await openSessionOn(gameOneAt('story'))
+        // The platform's own Undo, which would take back a sent action.
+        const undone = vi.spyOn(Object.getPrototypeOf(Object.getPrototypeOf(session)), 'undo')
+        session.chronicleStory.edit('The title stayed.')
+        await session.undo()
+        expect(session.chronicleStory.text).toBe('')
+        expect(session.hasManualDraft).toBe(false)
+        expect(undone).not.toHaveBeenCalled()
+        undone.mockRestore()
+    })
+
+    it('an emptied box holds no draft', async () => {
+        const session = await openSessionOn(gameOneAt('story'))
+        session.chronicleStory.edit('The')
+        session.chronicleStory.edit('')
+        expect(session.hasManualDraft).toBe(false)
+    })
+
+    it('Write sends the typed story and clears it; Skip sends none and clears it', async () => {
+        const session = await openSessionOn(gameOneAt('story'))
+        const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
+        session.chronicleStory.edit('The title stayed.')
+        await session.chronicleStory.write()
+        expect(sent).toHaveBeenCalledTimes(1)
+        expect(sent.mock.calls[0][0]).toMatchObject({
+            type: ActionType.WriteChronicleStory,
+            text: 'The title stayed.'
+        })
+        expect(session.chronicleStory.text).toBe('')
+
+        session.chronicleStory.edit('Not this one.')
+        await session.chronicleStory.skip()
+        expect(sent.mock.calls[1][0]).toMatchObject({ type: ActionType.SkipChronicleStory })
+        expect(session.chronicleStory.text).toBe('')
     })
 
     it('the result is unset until the story step is answered', () => {

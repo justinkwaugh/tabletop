@@ -1,23 +1,20 @@
 <script lang="ts">
     import { gameNumberOf } from '$lib/model/chronicleHistory.js'
-    import { storyDraft, storyWritable } from '$lib/model/chronicleDrafts.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // The winner's own entry, written once as the chronicle's last step: plain text, capped in
     // code points as the engine counts them, the count shown only near the cap. "Write" appears
-    // once there is text; "Skip" is always there. Nothing is editable once sent.
+    // once there is text; "Skip" is always there. Nothing is editable once sent. The text lives on
+    // the session's draft, so the panel drawn again (History, full screen) still holds it.
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
     let gameNumber = $derived(gameNumberOf(gameSession.gameState))
-
-    let text = $state('')
-    let draft = $derived(storyDraft(text))
+    let draft = $derived(gameSession.chronicleStory)
 
     // `maxlength` counts UTF-16 units, so the cap is the draft's own, in code points.
     function oninput(event: Event & { currentTarget: HTMLTextAreaElement }) {
-        const capped = storyDraft(event.currentTarget.value).text
+        const capped = draft.edit(event.currentTarget.value)
         if (capped !== event.currentTarget.value) event.currentTarget.value = capped
-        text = capped
     }
 
     const PRIMARY =
@@ -33,7 +30,7 @@
         class="story__box w-full rounded-md border border-oath-frame bg-oath-surface-raised px-3 py-2 text-sm
                text-oath-text placeholder:text-oath-text-muted"
         placeholder="Tell your story in your own way."
-        value={text}
+        value={draft.text}
         disabled={busy}
         {oninput}
     ></textarea>
@@ -42,19 +39,13 @@
     {/if}
 </div>
 <div class="buttons mt-2">
-    {#if storyWritable(text)}
-        <button
-            type="button"
-            class={PRIMARY}
-            disabled={busy}
-            onclick={() => gameSession.writeChronicleStory(text)}>Write</button
+    {#if draft.writable}
+        <button type="button" class={PRIMARY} disabled={busy} onclick={() => draft.write()}
+            >Write</button
         >
     {/if}
-    <button
-        type="button"
-        class={SECONDARY}
-        disabled={busy}
-        onclick={() => gameSession.skipChronicleStory()}>Skip</button
+    <button type="button" class={SECONDARY} disabled={busy} onclick={() => draft.skip()}
+        >Skip</button
     >
 </div>
 
