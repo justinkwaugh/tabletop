@@ -2,6 +2,7 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     RouteNetwork,
     cityIsBlocked,
+    usesStationAt,
     routePathResources,
     stopValue,
     RouteEvaluation,
@@ -138,13 +139,7 @@ export class EncodedRoutes {
                 city: node.kind === 'city',
                 town: node.kind === 'town',
                 hex: this.hexOf(center.locationId),
-                token: state.stations.some(
-                    (station) =>
-                        station.status === 'placed' &&
-                        station.companyId === companyId &&
-                        station.position.locationId === center.locationId &&
-                        station.position.nodeId === center.nodeId
-                ),
+                token: usesStationAt(state, companyId, center.locationId, center.nodeId),
                 blocked:
                     node.kind === 'offboard' ||
                     cityIsBlocked(state, companyId, center.locationId, node),
