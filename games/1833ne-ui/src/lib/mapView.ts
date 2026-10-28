@@ -15,7 +15,11 @@ import {
 } from '@tabletop/18xx-ui'
 import { PhaseColors1833NE } from './trainPresentation.js'
 
+// Boston's and Portland's terminals print spikes running all the way in to them.
+const TerminalSpikeReach = 1
+
 const Boston: TileLayout = {
+    spikeReach: TerminalSpikeReach,
     nodePositions: {
         'city-0': towardTileEdge(1, 20),
         'city-1': towardTileEdge(3, 20),
@@ -26,6 +30,13 @@ const Montreal: TileLayout = {
     nodePositions: { 'city-0': towardTileEdge(5, 20), 'city-1': towardTileEdge(2, 20) }
 }
 const Portland: TileLayout = {
+    spikeReach: TerminalSpikeReach,
+    // The city's value sits west, between the terminals' spikes; theirs stay at the top.
+    revenuePositions: {
+        'city-0': { x: -34, y: 0 },
+        'terminal-0': { x: 16, y: -27.7 },
+        'terminal-1': { x: -16, y: -27.7 }
+    },
     nodePositions: {
         'city-0': towardTileEdge(4.5, 18),
         'terminal-0': towardTileEdge(1, 26),
@@ -37,6 +48,7 @@ const Portland: TileLayout = {
 export const TileLayouts1833NE: Readonly<Record<string, TileLayout>> = {
     ...StandardTileLayouts,
     '1833ne:N23': {
+        spikeReach: TerminalSpikeReach,
         nodePositions: {
             'city-0': towardTileEdge(0, 18),
             'city-1': towardTileEdge(3.5, 20),
@@ -44,6 +56,7 @@ export const TileLayouts1833NE: Readonly<Record<string, TileLayout>> = {
         }
     },
     '1833ne:N24': {
+        spikeReach: TerminalSpikeReach,
         nodePositions: {
             'city-0': towardTileEdge(1, 20),
             'city-1': towardTileEdge(3, 20),
@@ -239,6 +252,7 @@ export const MapView1833NE: MapViewDefinition = {
         Object.entries(OffboardPrinting).flatMap(([id, { name }]) => (name ? [[id, name]] : []))
     ),
     labelsReplaceNames: true,
+    borderWidths: { impassable: 5 },
     // Providence prints its river cost at the top and its label low, clear of its track.
     terrainPositions: { F25: { x: 0, y: -28 } },
     hideLocationNames: Object.keys(OffboardPrinting).filter((id) => !OffboardPrinting[id].name),
