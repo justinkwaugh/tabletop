@@ -18,6 +18,7 @@
     import TableNotices from './TableNotices.svelte'
     import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
+    import TurnRecap from './TurnRecap.svelte'
     import { setPlaceLinks } from '../places/placeLinks.js'
     import StandingInstruction from '../stock/StandingInstruction.svelte'
     import TurnHeading from './TurnHeading.svelte'
@@ -1236,6 +1237,11 @@
                                 {#if auctionTurnPlayerId}<TurnHeading
                                         {session}
                                         playerIds={[auctionTurnPlayerId]}
+                                    />{/if}
+                                {#if turnAttention && session.myPlayer}<TurnRecap
+                                        {session}
+                                        playerId={session.myPlayer.id}
+                                        describeAction={historyDescription}
                                     />{/if}
                                 {@render actions(focusLocation, focusRoute)}
                             {/if}

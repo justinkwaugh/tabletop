@@ -2154,6 +2154,18 @@ the action body, stopping above the operating-order carousel. Neither layout cha
 height or position when the turn arrives: the round header's left padding and the space
 above the game-information strip are the same on every turn.
 
+### Since your last turn
+
+When a stock-round turn comes back to the viewer, the top of the current action shows
+"Since your last turn": the other players' decisions since the viewer last ended a
+stock turn, in the history panel's wording, one line each with the player's dot. A run
+of passes folds into one line ("Casey and Drew passed"). Decisions made by standing
+instructions read the same as any other. It shows only with the turn signal above, so
+never in History View, exploration, after the game ends or for spectators. It is absent
+before the viewer's first turn in the stock round, so it never reaches back into an
+auction or operating round, and it goes away once the viewer acts in the turn. An
+answer the viewer gave off turn, such as a purchase response, does not shorten it.
+
 ### Saved pane arrangements
 
 `paneLayout` is an account preference at 18xx family scope, with a versioned compact
