@@ -722,7 +722,7 @@
                     <text
                         font-size={size}
                         font-weight={style || curved ? 700 : 650}
-                        font-family={style?.serif ? "Georgia, 'Times New Roman', serif" : undefined}
+                        font-family={style ? appearance.labelFont?.family : undefined}
                         letter-spacing={curved ? 0.15 : undefined}
                         >{#each lines as line, index (index)}<tspan
                                 x="0"

@@ -211,7 +211,7 @@ export const MapView1833NE: MapViewDefinition = {
         H25: { 'city-0': 'Plymouth', 'city-1': 'New Bedford' }
     },
     // The connection bonuses name these places, so the board prints them large (p. 24).
-    offboardNames: { fontSize: 9, color: '#4a0b0b', serif: true },
+    offboardNames: { fontSize: 9, color: '#4a0b0b' },
     // Eastern Townships is one printed area across its two hexes.
     joinedEdges: { F1: [5], G2: [2] },
     namePositions: Object.fromEntries(
