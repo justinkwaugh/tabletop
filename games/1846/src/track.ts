@@ -13,6 +13,7 @@ import {
 import { EighteenFortySixMap, LandGrantLocations, PrivateTrackBlocks } from './map.js'
 import { EighteenFortySixTileSet } from './tiles.js'
 import { Phases1846 } from './trains.js'
+import { privateReservesTrack } from './privateRules.js'
 
 /** What the Tunnel Blasting Company takes off its owning corporation's mountain costs. */
 export const TunnelBlastingDiscount = 20
@@ -45,11 +46,7 @@ export const TrackRules1846: TrackRules = {
     homeLocations: (id) => EighteenFortySixMap.reservedLocationIds(id),
     restriction(state, request) {
         for (const [privateId, locations] of Object.entries(PrivateTrackBlocks))
-            if (
-                locations.includes(request.locationId) &&
-                state.companies.some((company) => company.id === privateId) &&
-                privateOwner(state, privateId)?.kind === 'player'
-            )
+            if (locations.includes(request.locationId) && privateReservesTrack(state, privateId))
                 return 'This hex is reserved by a player-owned private company.'
         return undefined
     },

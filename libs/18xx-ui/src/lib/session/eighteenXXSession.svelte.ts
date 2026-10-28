@@ -6,6 +6,7 @@ import {
     getCompany,
     isPrivateExchangeAction,
     isPrivateTileLay,
+    liftedPrivateBlocks,
     priorityOrder,
     shareSaleValue,
     sharesOwned,
@@ -521,7 +522,8 @@ export class EighteenXXSession<
             (state) =>
                 this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules))),
             (state) => this.stations.openReservations(state),
-            (action) => this.presentationDefinition.historyMapPlacement?.(action)
+            (action) => this.presentationDefinition.historyMapPlacement?.(action),
+            (state) => liftedPrivateBlocks(map.markedPrivateIds, this.rules.privateRules, state)
         )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))

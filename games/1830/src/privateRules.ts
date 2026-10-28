@@ -23,5 +23,6 @@ export const EighteenThirtyPrivateRules: PrivateRules = {
     },
     phaseEffects: (state) => EighteenThirtyPrivateCatalog.closureEffects(state),
     operationEffects: () => [],
-    description: (_state, id) => EighteenThirtyPrivateCatalog.definition(id).description ?? ''
+    description: (_state, id) => EighteenThirtyPrivateCatalog.definition(id).description ?? '',
+    blocking: EighteenThirtyPrivateCatalog.blocking.bind(EighteenThirtyPrivateCatalog)
 }
