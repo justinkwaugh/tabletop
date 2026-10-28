@@ -47,6 +47,7 @@ import { tokenParts } from './tokenText.js'
 import { ActionSource, Color, type GameAction } from '@tabletop/common'
 import { buildAction, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { siteName, slotLabel } from './names.js'
+import { shownInHistory } from './chronicleHistory.js'
 
 const nameOf = {
     player: (playerId: string) => ({ p1: 'Alice', p2: 'Bob', p3: 'Cass' })[playerId] ?? playerId,
@@ -62,18 +63,6 @@ function action(
 
 // A registered card: a sentence names the card an action was taken on.
 const CARD = 'denizen.beast.errand-boy'
-
-/** The chronicle's choices: built in the engine, their History sentences not drawn yet. */
-const AWAITING_SENTENCE: readonly string[] = [
-    ActionType.ChooseOath,
-    ActionType.OfferChronicleCitizenship,
-    ActionType.AnswerChronicleCitizenship,
-    ActionType.BuildOrRepairEdifice,
-    ActionType.ChooseChronicleSuit,
-    ActionType.ChooseHealStack,
-    ActionType.WriteChronicleStory,
-    ActionType.SkipChronicleStory
-]
 
 /** Only each schema's required fields, so every sentence must survive missing metadata. */
 const MINIMAL: Record<string, Record<string, unknown>> = {
@@ -200,6 +189,15 @@ describe('a history line names a site by its printed name', () => {
     })
 })
 
+describe('a skipped story has no History row (R-8)', () => {
+    it('SkipChronicleStory alone of every action is left out', () => {
+        for (const type of Object.values(ActionType)) {
+            const shown = shownInHistory(action({ type, playerId: 'p1', ...MINIMAL[type] }))
+            expect(shown, type).toBe(type !== ActionType.SkipChronicleStory)
+        }
+    })
+})
+
 describe('the history tab describes every action', () => {
     it('has a sentence for all 44 action types, and reaches no fallback but the ones awaiting theirs', () => {
         const types = Object.values(ActionType)
@@ -210,10 +208,6 @@ describe('the history tab describes every action', () => {
             const fields = MINIMAL[type]
             expect(fields, `no fixture for ${type}`).toBeDefined()
             const text = describeAction(action({ type, playerId: 'p1', ...fields }), nameOf)
-            if (AWAITING_SENTENCE.includes(type)) {
-                expect(text, `${type} has its sentence: take it off the list`).toBe(UNDESCRIBED)
-                continue
-            }
             expect(text, `${type} fell through to the fallback`).not.toBe(UNDESCRIBED)
             expect(text.length, `${type} described as empty`).toBeGreaterThan(3)
         }

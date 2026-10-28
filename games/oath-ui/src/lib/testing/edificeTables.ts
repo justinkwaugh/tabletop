@@ -137,6 +137,12 @@ function scene({ on, at, over = {}, denizens = {}, warbands = {}, round = 2 }: S
             chancellorPlayerId: 'dana',
             oathType: OathType.Supremacy,
             oathRevision: CURRENT_OATH_REVISION,
+            // A game started at this revision carries its table record, which R-8 reads once won.
+            table: {
+                name: 'Thursday table',
+                date: '2026-10-22',
+                seatNames: { dana: 'Dana', rhys: 'Rhys', ann: 'Ann' }
+            },
             round,
             map: allMapSlots(),
             siteCards: SITES,

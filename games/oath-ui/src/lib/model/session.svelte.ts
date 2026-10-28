@@ -2,6 +2,14 @@ import { GameSession } from '@tabletop/frontend-components'
 import { assert, assertExists, type Color, type GameAction } from '@tabletop/common'
 import {
     ActionType,
+    AnswerChronicleCitizenship,
+    BuildOrRepairEdifice,
+    ChooseChronicleSuit,
+    ChooseHealStack,
+    ChooseOath,
+    OfferChronicleCitizenship,
+    SkipChronicleStory,
+    WriteChronicleStory,
     AnswerConsent,
     AnswerQuestion,
     Campaign,
@@ -52,6 +60,7 @@ import {
     SelfExile,
     SetupChoice,
     Suit,
+    OathType,
     Trade,
     TradeOption,
     Travel,
@@ -118,12 +127,27 @@ import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
 import { TurnNotice } from './turnNotice.svelte.js'
 import { humanizeReason, reasonParts, siteName, type ReasonPart } from './names.js'
+import {
+    BuildPickDraft,
+    ChronicleOfferDraft,
+    ChronicleSuitDraft,
+    HealStackDraft,
+    OathPickDraft
+} from './chronicleDrafts.js'
+import {
+    carriedEntries,
+    chronicleRowsAfter,
+    chronicleWordsOf,
+    type ChronicleRowsAfter,
+    type ChronicleWords
+} from './chronicleHistory.js'
 import { phraseWarbandOwner, type HistoryNames } from './actionDescription.js'
 import { sideWarbandOwner } from './campaignLedger.js'
 import type { WarbandWhose } from './tokenText.js'
 import {
-    endingRule,
+    endingActionIndex,
     gameEndEvent,
+    wonGame,
     historyRows,
     type HistoryRow,
     type MajorEvent,
@@ -212,6 +236,12 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly actionPowers = new ActionPowersDraft(this)
     readonly citizenship = new CitizenshipDraft(this)
     readonly consent = new ConsentDraft(this)
+    // R-8 — the chronicle's choices.
+    readonly oathPick = new OathPickDraft(this)
+    readonly chronicleOffer = new ChronicleOfferDraft(this)
+    readonly chronicleBuild = new BuildPickDraft(this)
+    readonly chronicleSuit = new ChronicleSuitDraft(this)
+    readonly healStack = new HealStackDraft(this)
     readonly seatCardPeek = new SeatCardPeekDraft()
     readonly seatDetail = new SeatDetail(this)
     readonly goalsView = new GoalsView()
@@ -252,7 +282,12 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.citizenship,
             this.consent,
             this.campaign,
-            this.setup
+            this.setup,
+            this.oathPick,
+            this.chronicleOffer,
+            this.chronicleBuild,
+            this.chronicleSuit,
+            this.healStack
         ]
     }
 
@@ -320,6 +355,70 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 favorSteps,
                 ...(sitePowerTake ? { sitePowerTake } : {})
             })
+        )
+    }
+
+    // R-8 — the chronicle's choices, each sent as its chooser's own action.
+    async chooseOath(oathType: OathType): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(ChooseOath, { type: ActionType.ChooseOath, oathType })
+        )
+    }
+
+    async offerChronicleCitizenship(exilePlayerIds: string[]): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(OfferChronicleCitizenship, {
+                type: ActionType.OfferChronicleCitizenship,
+                exilePlayerIds
+            })
+        )
+    }
+
+    async answerChronicleCitizenship(accept: boolean): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(AnswerChronicleCitizenship, {
+                type: ActionType.AnswerChronicleCitizenship,
+                accept
+            })
+        )
+    }
+
+    async buildOrRepairEdifice(choice: { siteId: string; cardId: string } | undefined) {
+        await this.commit(
+            this.createPlayerAction(BuildOrRepairEdifice, {
+                type: ActionType.BuildOrRepairEdifice,
+                ...(choice ? { choice } : {})
+            })
+        )
+    }
+
+    async chooseChronicleSuit(suit: Suit): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(ChooseChronicleSuit, {
+                type: ActionType.ChooseChronicleSuit,
+                suit
+            })
+        )
+    }
+
+    async chooseHealStack(suit: Suit): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(ChooseHealStack, { type: ActionType.ChooseHealStack, suit })
+        )
+    }
+
+    async writeChronicleStory(text: string): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(WriteChronicleStory, {
+                type: ActionType.WriteChronicleStory,
+                text
+            })
+        )
+    }
+
+    async skipChronicleStory(): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(SkipChronicleStory, { type: ActionType.SkipChronicleStory })
         )
     }
 
@@ -1433,6 +1532,11 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (powerSites.length > 0) {
             return { kind: 'power', sites: powerSites, choosing: true, moverId }
         }
+        // R-8.3.1 — the sites holding the winner's ringed cards; no pawn moves, so the first region.
+        const buildSites = [...new Set(this.chronicleBuild.choices.map(({ siteId }) => siteId))]
+        if (buildSites.length > 0) {
+            return { kind: 'build', sites: buildSites, choosing: true, moverId: undefined }
+        }
         const playToSites = this.siteOffers.flatMap((offer) =>
             offer.intent === 'playTo' ? [offer.slotId] : []
         )
@@ -1453,7 +1557,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (this.selection.action === ActionType.Muster) {
             return this.musterRows.map((row) => row.cardId)
         }
-        return []
+        // R-8.3.1 — every legal build or repair stays ringed; the tapped one is pointed.
+        return this.chronicleBuild.ringed
     }
 
     // R-5.3.2, R-7.4 — every trade at the site, each priced with the cards in use that fit it.
@@ -1625,15 +1730,28 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return historyRows(this.actions, this.majorEventContext)
     }
 
+    /** R-8 — the chronicle of the state being viewed, for its choices' History sentences. */
+    get chronicleWords(): ChronicleWords | undefined {
+        return chronicleWordsOf(this.gameState)
+    }
+
+    /** R-8 — the rows the chronicle adds after each action, read from the state being viewed. */
+    get chronicleRowsAfter(): ChronicleRowsAfter {
+        return chronicleRowsAfter(this.actions, endingActionIndex(this.actions), this.gameState)
+    }
+
+    /** The record's entries this game carried in, newest first. */
+    get carriedEntries() {
+        return carriedEntries(this.gameState)
+    }
+
     /** R-3 — the finished game's top row: its winner, its ending, its title or Vision. */
     get gameEndRow(): (MajorEvent & { sentence: string }) | undefined {
         const state = this.gameState
         // R-8 — a won game is finished once its chronicle is written and the result set.
         if (state.result === undefined) return undefined
-        const [winnerId] = state.winningPlayerIds
-        const rule = endingRule(this.actions)
-        if (winnerId === undefined || rule === undefined) return undefined
-        return gameEndEvent(state, winnerId, rule, this.majorEventContext)
+        const won = wonGame(state, this.actions)
+        return won ? gameEndEvent(state, won, this.majorEventContext) : undefined
     }
 
     private get majorEventContext(): MajorEventContext {

@@ -1,6 +1,6 @@
 <script lang="ts">
-    import type { CardKind } from '@tabletop/oath'
-    import { cardBack, cardImageInPlay } from '$lib/images/cardImages.js'
+    import { edificeName, type CardKind } from '@tabletop/oath'
+    import { cardBack, cardImageInPlay, cardSideImage } from '$lib/images/cardImages.js'
     import { cardAspect } from '$lib/images/cardShape.js'
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
     import { cardNameInPlay } from '$lib/model/names.js'
@@ -12,6 +12,7 @@
         back,
         label,
         inspect = false,
+        intact = false,
         class: className = ''
     }: {
         cardId?: string
@@ -20,6 +21,8 @@
         back?: CardKind
         label?: string
         inspect?: boolean
+        /** R-8.3.1 — an edifice's intact side, whichever side is up: what a build or repair makes. */
+        intact?: boolean
         class?: string
     } = $props()
 
@@ -32,12 +35,15 @@
         label ??
             (back !== undefined || cardId === undefined
                 ? 'Face down'
-                : cardNameInPlay(gameSession.gameState, cardId))
+                : intact
+                  ? edificeName(cardId, false)
+                  : cardNameInPlay(gameSession.gameState, cardId))
     )
     let preview = $derived({ cardId, back, label: name })
 
     let src = $derived.by(() => {
         if (back !== undefined) return cardBack(back)
+        if (cardId && intact) return cardSideImage(cardId, false)
         return cardId ? cardImageInPlay(gameSession.gameState, cardId) : undefined
     })
 

@@ -40,6 +40,7 @@ import { endingParts, isWinRule } from '$lib/model/endings.js'
 import { endDieRollWords } from '$lib/model/endOfRound.js'
 import { worldDeckPrice } from '$lib/model/searchCost.js'
 import { campaignStepsTo } from '$lib/model/campaignLedger.js'
+import { shownInHistory } from '$lib/model/chronicleHistory.js'
 
 export enum MajorEventKind {
     VisionDrawn = 'visionDrawn',
@@ -318,6 +319,7 @@ export function historyRows(
                         : undefined
             }
         })
+        .filter((row) => shownInHistory(row.action))
         .toReversed()
 }
 
@@ -328,20 +330,29 @@ export function historyRows(
 export function endingRecord(
     actions: readonly GameAction[]
 ): { rule: WinRule; openDealsDropped: OpenDeal[] } | undefined {
-    for (const action of actions.toReversed()) {
-        // Squalid District — an asked roll decides nothing; its ruler's answer records the ending.
-        const metadata =
-            isResolveWake(action) || isCompleteRest(action) || isRollEndDie(action)
-                ? action.metadata
-                : isAnswerQuestion(action)
-                  ? action.metadata?.endDie
-                  : undefined
-        const wonBy = metadata?.wonBy
-        if (wonBy !== undefined && isWinRule(wonBy)) {
-            return { rule: wonBy, openDealsDropped: metadata?.openDealsDropped ?? [] }
-        }
-    }
-    return undefined
+    const action = actions[endingActionIndex(actions)]
+    const metadata = action ? endingMetadata(action) : undefined
+    const wonBy = metadata?.wonBy
+    if (wonBy === undefined || !isWinRule(wonBy)) return undefined
+    return { rule: wonBy, openDealsDropped: metadata?.openDealsDropped ?? [] }
+}
+
+/** The ending fields an action records, if it is one that can end the game. */
+function endingMetadata(action: GameAction) {
+    // Squalid District — an asked roll decides nothing; its ruler's answer records the ending.
+    return isResolveWake(action) || isCompleteRest(action) || isRollEndDie(action)
+        ? action.metadata
+        : isAnswerQuestion(action)
+          ? action.metadata?.endDie
+          : undefined
+}
+
+/** R-3 — where the action that recorded the win is in `actions`, or -1. */
+export function endingActionIndex(actions: readonly GameAction[]): number {
+    return actions.findLastIndex((action) => {
+        const wonBy = endingMetadata(action)?.wonBy
+        return wonBy !== undefined && isWinRule(wonBy)
+    })
 }
 
 /** R-3 — the ending action's rule. */
@@ -352,25 +363,51 @@ export function endingRule(actions: readonly GameAction[]): WinRule | undefined 
 const VISION_ENDINGS: ReadonlySet<WinRule> = new Set(['R-3.2', 'R-3.4.3'])
 const USURPER_ENDINGS: ReadonlySet<WinRule> = new Set(['R-3.1', 'R-3.4.2'])
 
-/** R-3.2, R-3.4.3 — a Vision ending shows the Vision the winner met, their own before a shared one. */
+/** R-3 — who won, by which rule, and the Vision a Vision ending shows. */
+export interface WonGame {
+    winnerId: string
+    rule: WinRule
+    visionId?: string
+}
+
+/**
+ * R-3 — the result as recorded: from the chronicle revision, the ending the action that won stored
+ * (R-8.5 sets every Vision aside before the result, so the Vision is read there too); below it, the
+ * action log and the revealed Vision, the winner's own before a shared one.
+ */
+export function wonGame(
+    state: HydratedOathGameState,
+    actions: readonly GameAction[]
+): WonGame | undefined {
+    const ending = state.chronicle?.ending
+    if (ending) {
+        const [visionId] = VISION_ENDINGS.has(ending.rule) ? ending.waysMet.visionIds : []
+        return { winnerId: ending.winnerPlayerId, rule: ending.rule, visionId }
+    }
+    const [winnerId] = state.winningPlayerIds
+    const rule = endingRule(actions)
+    if (winnerId === undefined || rule === undefined) return undefined
+    const [visionId] = VISION_ENDINGS.has(rule) ? visionsMetBy(state, winnerId) : []
+    return { winnerId, rule, visionId }
+}
+
+/** R-3.2, R-3.4.3 — a Vision ending shows the Vision the winner met. */
 export function gameEndEvent(
     state: HydratedOathGameState,
-    winnerId: string,
-    rule: WinRule,
+    won: WonGame,
     context: MajorEventContext
 ): MajorEvent & { sentence: string } {
-    const [visionId] = VISION_ENDINGS.has(rule) ? visionsMetBy(state, winnerId) : []
-    const picture: EventPicture = visionId
-        ? { kind: 'card', cardId: visionId }
-        : { kind: 'title', usurper: USURPER_ENDINGS.has(rule) }
-    const { how, why } = endingParts(rule)
+    const picture: EventPicture = won.visionId
+        ? { kind: 'card', cardId: won.visionId }
+        : { kind: 'title', usurper: USURPER_ENDINGS.has(won.rule) }
+    const { how, why } = endingParts(won.rule)
     return {
         kind: MajorEventKind.GameEnd,
         heading: 'Game end',
         aside: `round ${state.round}`,
         tone: 'heading',
         pictures: [picture],
-        sentence: `${startingWith(winnerId, context)} won ${how}`,
+        sentence: `${startingWith(won.winnerId, context)} won ${how}`,
         consequence: why ? capitalized(why) : undefined
     }
 }

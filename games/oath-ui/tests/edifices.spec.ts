@@ -412,8 +412,11 @@ for (const viewport of [
         test('a raise that ends the game ends it for the Chancellor', async ({ page }) => {
             await openTable(page, 'squalidAsked')
             await panel(page).getByRole('button', { name: 'Raise to 6', exact: true }).click()
-            await expect(page.getByText(/Dana wins|wins/).first()).toBeVisible()
+            // R-8 — the win opens the chronicle: the History names the winner, and the Chancellor
+            // chooses the next Oath.
+            await expect(panel(page)).toContainText('Choose the Oath.')
             await openHistory(page)
+            await expect(history(page)).toContainText('won by Stable Regime. The Chronicle begins.')
             await expect(history(page)).toContainText('raised the end die to 6 (Squalid District)')
             await expect(history(page)).toContainText('the game ends')
         })

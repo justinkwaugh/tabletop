@@ -114,6 +114,7 @@ import {
     type PileDeposit
 } from '$lib/model/actionOutcomes.js'
 import type { WarbandWhose } from '$lib/model/tokenText.js'
+import { chronicleActionWords, type ChronicleWords } from '$lib/model/chronicleHistory.js'
 import {
     paidTollClause,
     tollMoveText,
@@ -286,8 +287,12 @@ export function describeAction(
     action: GameAction,
     names: HistoryNames,
     viewerId?: string,
-    campaign?: Campaign
+    campaign?: Campaign,
+    chronicle?: ChronicleWords
 ): string {
+    // R-8 — a chronicle choice's row reads the chronicle of the state being viewed.
+    const chronicleWords = chronicleActionWords(action, chronicle)
+    if (chronicleWords !== undefined) return historyText(chronicleWords, names)
     // The row starts with this seat's chip, so a note about them needs no subject.
     const actorId = rowActorOf(action)
     const notes = recordedNotes(action).flatMap((note) => {

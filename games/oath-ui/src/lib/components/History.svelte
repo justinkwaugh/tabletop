@@ -7,7 +7,8 @@
     import MajorEventRow from './MajorEventRow.svelte'
     import TokenText from './TokenText.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { rowActorOf } from '$lib/model/actionDescription.js'
+    import { historyText, rowActorOf } from '$lib/model/actionDescription.js'
+    import RecordRow from './RecordRow.svelte'
     import { quotedPromise } from '$lib/model/tribunalDeals.js'
 
     const timeAgo = createTimeAgo()
@@ -17,6 +18,10 @@
     let rows = $derived(gameSession.historyRows)
     let ending = $derived(gameSession.isViewingHistory ? undefined : gameSession.gameEndRow)
     let dropped = $derived(gameSession.droppedDeals)
+    // R-8 — the chronicle's rows after the actions that ran its steps, newest first, and the record
+    // this game carried in, under its start.
+    let chronicleRows = $derived(gameSession.chronicleRowsAfter)
+    let carried = $derived(gameSession.carriedEntries)
     // The winner the game-end row names is their chip.
     let seats = $derived({ names: gameSession.historyNames, viewerId: gameSession.myPlayer?.id })
 
@@ -104,6 +109,37 @@
             {/if}
             {#each rows as row (row.action.id)}
                 {@const actorId = rowActorOf(row.action)}
+                {#each (chronicleRows.get(row.action.id) ?? []).toReversed() as added, index (index)}
+                    {@const text = historyText(added.text, gameSession.historyNames)}
+                    <div data-chronicle-row={added.kind}>
+                        {#if added.kind === 'begins'}{@render ringedDot(
+                                false
+                            )}{:else}{@render dot()}{/if}
+                        <TimelineItem
+                            timeClass="text-oath-text-muted dark:text-oath-text-muted"
+                            title=""
+                            class="timeline-item text-left mb-5"
+                            date={whenOf(row.action)}
+                        >
+                            {#if added.kind === 'begins'}
+                                <p
+                                    class="mt-1 rounded-md border border-oath-frame bg-oath-surface-raised px-3 py-2 text-left text-sm text-oath-text"
+                                >
+                                    <TokenText {text} {seats} />
+                                </p>
+                            {:else}
+                                <p
+                                    class="mt-1 text-left text-sm text-base font-normal text-oath-text"
+                                >
+                                    {#if added.actorId}
+                                        <PlayerName playerId={added.actorId} />
+                                    {/if}
+                                    <TokenText {text} {seats} />
+                                </p>
+                            {/if}
+                        </TimelineItem>
+                    </div>
+                {/each}
                 {#if row.event}
                     <div>
                         {@render ringedDot(row.event.tone === 'danger')}
@@ -159,6 +195,17 @@
                     The game was started
                 </p>
             </TimelineItem>
+            {#each carried as entry (entry.gameNumber)}
+                {@render dot()}
+                <TimelineItem
+                    timeClass="text-oath-text-muted dark:text-oath-text-muted"
+                    title=""
+                    class="timeline-item text-left mb-5"
+                    date={timeAgo.format(gameSession.game.createdAt)}
+                >
+                    <section class="mt-1"><RecordRow {entry} /></section>
+                </TimelineItem>
+            {/each}
         </Timeline>
     </div>
 </div>

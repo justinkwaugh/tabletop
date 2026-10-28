@@ -21,6 +21,9 @@
     let selectableCardIds = $derived(gameSession.selectableCards)
     let selectableRelicSlotIds = $derived(gameSession.selectableRelicSlots)
     let badged = $derived(gameSession.powerBadgeCards)
+    // R-8.3.1 — a tap on a ringed card points it; the panel shows what would stand there.
+    let build = $derived(gameSession.chronicleBuild)
+    let buildRinged = $derived(build.ringed)
 
     type Space =
         | { kind: 'denizen'; cardId?: string; pickable: boolean }
@@ -108,7 +111,11 @@
                 width={placed.width}
                 zIndex={placed.zIndex}
                 offered={space.pickable}
-                pointed={menuPointer.is({ kind: 'card', cardId: denizenCardId })}
+                pointed={menuPointer.is({ kind: 'card', cardId: denizenCardId }) ||
+                    build.pointed?.cardId === denizenCardId}
+                onpick={buildRinged.includes(denizenCardId)
+                    ? () => build.point(denizenCardId)
+                    : undefined}
                 useBadge={badged.includes(denizenCardId)}
             />
             {#if tokens.favor > 0 || tokens.secrets > 0}

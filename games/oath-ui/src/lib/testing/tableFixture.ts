@@ -127,6 +127,7 @@ import {
     ruinedTempleTable,
     squalidAskedTable
 } from './edificeTables.js'
+import { gameOneAt, gameThreeOpen, gameTwoAt } from './chronicleTables.js'
 
 export type TableName =
     | 'setup'
@@ -365,6 +366,16 @@ export type TableName =
     | 'banditRampartBandits'
     | 'ruinedTemple'
     | 'forestTempleSearch'
+    | 'chronicleVow'
+    | 'chronicleOffer'
+    | 'chronicleAnswer'
+    | 'chronicleStory'
+    | 'chronicleResult'
+    | 'chronicleBuild'
+    | 'chronicleRepair'
+    | 'chronicleSuit'
+    | 'chronicleHeal'
+    | 'chronicleRecord'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -5750,7 +5761,17 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     banditRampartDefender: () => banditRampartTable(true),
     banditRampartBandits: () => banditRampartTable(false),
     ruinedTemple: () => ruinedTempleTable(),
-    forestTempleSearch: () => ruinedTempleTable(true)
+    forestTempleSearch: () => ruinedTempleTable(true),
+    chronicleVow: () => gameOneAt('vow'),
+    chronicleOffer: () => gameOneAt('offer'),
+    chronicleAnswer: () => gameOneAt('answer'),
+    chronicleStory: () => gameOneAt('story'),
+    chronicleResult: () => gameOneAt('result'),
+    chronicleBuild: () => gameTwoAt('build'),
+    chronicleRepair: () => gameTwoAt('ruin'),
+    chronicleSuit: () => gameTwoAt('suit'),
+    chronicleHeal: () => gameTwoAt('heal'),
+    chronicleRecord: () => gameThreeOpen()
 }
 
 /** Every table a scenario can open. */
