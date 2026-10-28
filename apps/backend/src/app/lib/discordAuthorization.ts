@@ -10,9 +10,9 @@ import type {
 } from '@tabletop/backend-services'
 import { discordRedirectUri } from './discordRedirects.js'
 import {
-    heldLoginAuthorization,
-    holdLoginAuthorization,
-    releaseLoginAuthorization
+    heldProviderAuthorization,
+    holdProviderAuthorization,
+    releaseProviderAuthorization
 } from './session.js'
 
 export type DiscordCallbackRequest = Static<typeof DiscordCallbackRequest>
@@ -42,7 +42,7 @@ export async function beginDiscordAuthorization(
     const authorization = discordAuthorization(purpose)
     if (purpose === 'login') {
         const attempt = fastify.sessionService.issueProviderAuthorization(authorization)
-        holdLoginAuthorization(request.session, attempt)
+        holdProviderAuthorization(request.session, attempt)
         return attempt
     }
     return fastify.sessionService.beginProviderAuthorization(
@@ -61,11 +61,11 @@ export async function completeDiscordCallback(
     const { code, state } = request.body
     if (purpose === 'login') {
         fastify.sessionService.verifyProviderAuthorization(
-            heldLoginAuthorization(request.session),
+            heldProviderAuthorization(request.session),
             state,
             authorization
         )
-        releaseLoginAuthorization(request.session)
+        releaseProviderAuthorization(request.session)
     } else {
         await fastify.sessionService.completeProviderAuthorization(
             signedInSession(fastify, request),

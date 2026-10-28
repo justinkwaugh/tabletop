@@ -11,7 +11,7 @@ declare module '@fastify/secure-session' {
     interface SessionData {
         sessionId: string
         userId: string
-        loginAuthorization: unknown
+        providerAuthorization: unknown
     }
 }
 
@@ -31,19 +31,21 @@ export async function authSession({
     }
     session.set('sessionId', authenticated.id)
     session.set('userId', user.id)
-    session.set('loginAuthorization', undefined)
+    session.set('providerAuthorization', undefined)
     return authenticated
 }
 
-export function holdLoginAuthorization(session: Session, attempt: ProviderAuthorizationAttempt) {
-    session.set('loginAuthorization', attempt)
+export function holdProviderAuthorization(session: Session, attempt: ProviderAuthorizationAttempt) {
+    session.set('providerAuthorization', attempt)
 }
 
-export function heldLoginAuthorization(session: Session): ProviderAuthorizationAttempt | undefined {
-    const held = Value.Convert(ProviderAuthorizationAttempt, session.get('loginAuthorization'))
+export function heldProviderAuthorization(
+    session: Session
+): ProviderAuthorizationAttempt | undefined {
+    const held = Value.Convert(ProviderAuthorizationAttempt, session.get('providerAuthorization'))
     return Value.Check(ProviderAuthorizationAttempt, held) ? held : undefined
 }
 
-export function releaseLoginAuthorization(session: Session) {
-    session.set('loginAuthorization', undefined)
+export function releaseProviderAuthorization(session: Session) {
+    session.set('providerAuthorization', undefined)
 }
