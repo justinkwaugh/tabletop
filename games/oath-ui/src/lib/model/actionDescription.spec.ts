@@ -2493,6 +2493,29 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             )
         })
 
+        it('Land Warden’s second card after the kept card discarded a card first: the kept play, the favor both plays gained, and the cards discarded with the one discarded first', () => {
+            const row = action({
+                type: ActionType.SearchResolve,
+                playerId: 'p2',
+                keptCardId: 'denizen.hearth.wayside-inn',
+                discardOrder: ['denizen.order.wrestlers'],
+                play: SearchPlay.Site,
+                discardFirstCardId: 'denizen.beast.wolves',
+                secondPlay: { cardId: 'denizen.order.longbows', play: SearchPlay.Site },
+                metadata: {
+                    ...searched,
+                    discardedCardIds: ['denizen.order.wrestlers', 'denizen.beast.wolves'],
+                    discardedCount: 2,
+                    favorGained: 2,
+                    playedCardId: 'denizen.hearth.wayside-inn',
+                    secondPlayedCardId: 'denizen.order.longbows'
+                }
+            })
+            expect(describeAction(row, nameOf)).toBe(
+                'kept Wayside Inn and played it to their site, gaining 2 favor; 2 cards went to the cradle discard pile'
+            )
+        })
+
         it('Land Warden’s second card, a triggered power, a Homeland and a modifier each follow as their own clause', () => {
             const row = action({
                 type: ActionType.SearchResolve,

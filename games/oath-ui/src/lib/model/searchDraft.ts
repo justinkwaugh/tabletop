@@ -646,12 +646,14 @@ export class SearchDraft implements PanelDraft {
         const state = this.session.gameState
         // R-5.1.4.I — the kept card may go to another site, which leaves your site's room to the second card.
         const keptTo = first.play === SearchPlay.Site ? this.toSite : undefined
+        // R-5.1.4.I, R-11.10 — a card the kept card discards first at your site leaves its space.
+        const discardFirst = first.play === SearchPlay.Site ? this.discardFirst : undefined
         return (
-            reasonCannotPairSecondPlay(state, playerId, first.play, second, keptTo) ??
+            reasonCannotPairSecondPlay(state, playerId, first.play, second, keptTo, discardFirst) ??
             reasonCannotPlaySecondCard(state, playerId, kept, second, {
                 play: first.play,
                 faceUp: first.faceUp,
-                discardFirstCardId: first.play === SearchPlay.Site ? this.discardFirst : undefined,
+                discardFirstCardId: discardFirst,
                 toSiteId: keptTo
             })
         )
