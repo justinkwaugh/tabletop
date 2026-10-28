@@ -1,8 +1,4 @@
-import {
-    type HydratedAction,
-    type MachineContext,
-    type MachineStateHandler
-} from '@tabletop/common'
+import type { HydratedAction, MachineContext, MachineStateHandler } from '@tabletop/common'
 import type { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { attackStep } from '../model/attackState.js'

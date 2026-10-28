@@ -1,4 +1,3 @@
-import type Ably from 'ably'
 import type {
     BugReportRequest,
     AdminAssignableRole,
@@ -37,7 +36,10 @@ import type {
     RealtimeTokenOptions
 } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
-import type { GameChatMessageResponsePayload } from '$lib/network/responseTypes.js'
+import type {
+    AblyTokenRequest,
+    GameChatMessageResponsePayload
+} from '$lib/network/responseTypes.js'
 import type { VersionChange } from '$lib/network/versionChecker.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 
@@ -395,7 +397,7 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('getRealtimeToken')
     }
 
-    async getAblyToken(): Promise<Ably.TokenRequest> {
+    async getAblyToken(_gameIds?: string[]): Promise<AblyTokenRequest> {
         return this.fail('getAblyToken')
     }
 

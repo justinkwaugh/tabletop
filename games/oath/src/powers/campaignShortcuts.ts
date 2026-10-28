@@ -16,7 +16,7 @@ import {
 } from './registry.js'
 import { siteHolding } from '../util/access.js'
 import { faceupSitesWithCardOfSuit, pawnSiteId, regionOfPawn } from './vocabulary.js'
-import { nextActionIndex } from '../util/freeActions.js'
+import { grantFreeCampaign, nextActionIndex } from '../util/freeActions.js'
 import { siteChoicesYouRule } from './choiceDomains.js'
 import { opposingLeadId } from '../util/battlePlans.js'
 import { HydratedOathGameState } from '../model/gameState.js'
@@ -151,9 +151,8 @@ function campaignFrom(cardId: string, what: string, domain: ChoiceDomain) {
         resolve: (ctx) => {
             const [site] = chosen(ctx, PowerChoiceKind.Site)
             const me = ctx.state.getPlayerState(ctx.playerId)
-            const next = nextActionIndex(ctx.state)
-            me.campaignAsIf = { siteId: site.siteId, atAction: next }
-            me.freeCampaignAtAction = next
+            me.campaignAsIf = { siteId: site.siteId, atAction: nextActionIndex(ctx.state) }
+            grantFreeCampaign(ctx.state, ctx.playerId, cardId)
             return {
                 summary: `${cardId}: the next action is a Campaign at ${site.siteId}, as if the pawn were there, for no Supply`
             }

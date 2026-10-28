@@ -84,12 +84,13 @@
     {@attach measureColumn}
     style="height:{fitted ? `${fitted.height}px` : 'auto'};"
 >
+    <!-- `--fit-scale` for a tap target that must stay 44 px on the screen however the step is scaled. -->
     <div
         class="fit__inner"
         {@attach measureNaturalHeight}
         style="width:{scale < 1 ? `${100 / scale}%` : '100%'}; transform:{scale < 1
             ? `scale(${scale})`
-            : 'none'};"
+            : 'none'}; --fit-scale:{scale};"
     >
         {@render children()}
     </div>

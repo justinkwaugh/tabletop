@@ -26,6 +26,7 @@ import {
     type PowerChoicePicks,
     type WarbandGrid
 } from './powerChoices.js'
+import { noExchangePicks, withPromise } from './exchangeTerms.js'
 
 const warbands = (group: WarbandGroup): PowerChoice => ({ kind: PowerChoiceKind.Warbands, group })
 const atSite = (siteId: string, owner: string, count: number) =>
@@ -316,6 +317,20 @@ describe('an exchange choice — the player, then terms that name something, eve
             terms: { 0: { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: ['c1'] } }
         }
         expect(picksComplete([deal], uncounted)).toBe(false)
+    })
+
+    it('The Tribunal: a promise alone readies "Use", and is sent trimmed (R-7.6.3-H1)', () => {
+        const promised = withPromise(noExchangePicks(), 'fromCounterparty', ' Rhys stays home. ')
+        const picks = { ...withRhys, terms: { 0: promised } }
+        expect(picksComplete([deal], picks)).toBe(true)
+        expect(hasPicks(picks)).toBe(true)
+        expect(powerChoicesFrom([deal], picks)).toEqual([
+            {
+                kind: PowerChoiceKind.Exchange,
+                withPlayerId: 'rhys',
+                terms: { promises: { fromCounterparty: 'Rhys stays home.' } }
+            }
+        ])
     })
 
     it('another player picked drops the terms written for the last one', () => {

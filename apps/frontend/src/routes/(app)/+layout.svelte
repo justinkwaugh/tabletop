@@ -26,6 +26,7 @@
     import BugReportModal from '$lib/components/BugReportModal.svelte'
     import CallGameModal from '$lib/components/CallGameModal.svelte'
     import { callGameOffer } from '$lib/utils/callGameOffer'
+    import { bgStatsPlayUrl } from '$lib/utils/bgStats'
     import { getAppContext as getSiteContext } from '$lib/stores/appContext.svelte'
     import PreferencesPanel from '$lib/components/PreferencesPanel.svelte'
     import AccountAvatar from '$lib/components/AccountAvatar.svelte'
@@ -98,6 +99,12 @@
             : undefined
     )
     const siteGameService = getSiteContext().gameService
+    let bgStatsUrl = $derived.by(() => {
+        const session = gameService.currentGameSession
+        if (!session) return undefined
+        const game = siteGameService.cachedGame(session.primaryGame.id) ?? session.primaryGame
+        return bgStatsPlayUrl(game, titlesById[game.typeId]?.info.metadata, sessionUser)
+    })
     let callOffer = $derived.by(() => {
         const session = gameService.currentGameSession
         if (!session || !sessionUser) return undefined
@@ -609,6 +616,12 @@
                                         class="w-full text-left"
                                         onclick={() => (showCallGame = true)}
                                         >{callOffer.label}…</DropdownItem
+                                    >
+                                    <DropdownDivider />
+                                {/if}
+                                {#if bgStatsUrl}
+                                    <DropdownItem class="w-full text-left" href={bgStatsUrl}
+                                        >Log to BG Stats</DropdownItem
                                     >
                                     <DropdownDivider />
                                 {/if}

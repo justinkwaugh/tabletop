@@ -12,3 +12,8 @@ export interface WorkspaceFixedPane {
     label: string
     deletable?: boolean
 }
+
+export interface WorkspaceAttention {
+    tab: string
+    label: string
+}

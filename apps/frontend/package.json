@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/frontend",
-    "version": "24.3.0",
+    "version": "24.5.0",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",
@@ -28,15 +28,14 @@
         "svelte-sonner": "^0.3.27",
         "typebox": "^1.0.79",
         "wretch": "^2.9.0",
-        "zod": "^3.23.8",
-        "zod-form-data": "^2.0.2"
+        "zod": "^4.6.7",
+        "zod-form-data": "^3.0.4"
     },
     "devDependencies": {
         "@playwright/test": "^1.42.1",
-        "@rollup/plugin-dynamic-import-vars": "^2.1.5",
         "@sveltejs/adapter-static": "^3.0.10",
-        "@sveltejs/kit": "^2.48.4",
-        "@sveltejs/vite-plugin-svelte": "^6.2.4",
+        "@sveltejs/kit": "^2.70.3",
+        "@sveltejs/vite-plugin-svelte": "^7.3.1",
         "@tabletop/eslint-config": "workspace:*",
         "@tabletop/prettier-config": "workspace:*",
         "@tabletop/vitest-config": "workspace:*",
@@ -56,7 +55,7 @@
         "tailwindcss": "^4.1.18",
         "tslib": "^2.8.1",
         "typescript": "5.9.3",
-        "vite": "^7.3.1",
+        "vite": "^8.3.5",
         "vite-plugin-devtools-json": "^1.0.0"
     }
 }

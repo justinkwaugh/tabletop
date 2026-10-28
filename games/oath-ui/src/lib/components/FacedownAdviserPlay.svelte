@@ -13,13 +13,14 @@
     import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
     import AnswerButton from '$lib/components/AnswerButton.svelte'
     import PileRows from '$lib/components/PileRows.svelte'
+    import PlayToSites from '$lib/components/PlayToSites.svelte'
     import SiteGain from '$lib/components/SiteGain.svelte'
     import { cardBack } from '$lib/images/cardImages.js'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, siteName } from '$lib/model/names.js'
+    import { cardName } from '$lib/model/names.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { powerUseKey, samePowerUse } from '$lib/model/powerUse.js'
     import { actionCardLine, answerCostText } from '$lib/model/actionCards.js'
@@ -29,7 +30,7 @@
 
     // R-6.1 — the chosen facedown adviser large on the left, ringed, with its magnifier; its plays,
     // then every later step of the play, in one column beside it. R-7.4 — each Search card the play
-    // may use sits in the step it changes: a site New Growth opens under "Play to:", a card Crop
+    // may use sits in the step it changes: a site New Growth opens under "To which site", a card Crop
     // Rotation lets go first under "Discard first", the Cracked Horn's place and Bracken's piles
     // under "To", and a card that adds to the play (Wild Cry) as a row above the confirm. On a
     // phone Bracken's piles run under the card: the column beside it is too narrow for them.
@@ -167,24 +168,8 @@
                 >
                     {chosen.label}
                 </p>
-                {#if gameSession.adviserOtherSites.length > 0}
-                    <label class="flex items-center gap-2 text-xs">
-                        <span class="text-oath-text-muted">Play to:</span>
-                        <select
-                            disabled={busy}
-                            class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs w-fit max-w-full"
-                            value={gameSession.adviserToSite ?? ''}
-                            onchange={(e) =>
-                                gameSession.setAdviserToSite(e.currentTarget.value || undefined)}
-                        >
-                            <option value="">your site</option>
-                            {#each gameSession.adviserOtherSites as siteId (siteId)}
-                                <option value={siteId}
-                                    >{siteName(gameSession.gameState, siteId)}</option
-                                >
-                            {/each}
-                        </select>
-                    </label>
+                {#if gameSession.playTo}
+                    <PlayToSites playTo={gameSession.playTo} />
                 {/if}
                 {#if gameSession.adviserDiscardFirstOptions.length > 0}
                     <div class="text-xs">

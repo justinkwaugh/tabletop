@@ -6,6 +6,7 @@ import {
     getCompany,
     isPrivateExchangeAction,
     isPrivateTileLay,
+    liftedPrivateBlocks,
     priorityOrder,
     shareSaleValue,
     sharesOwned,
@@ -32,10 +33,10 @@ import {
     type HistoricalMapState,
     type HistoricalMap
 } from '../maps/historicalMap.js'
-import {
-    type MapViewDefinition,
-    type StationAppearance,
-    type TokenTiles
+import type {
+    MapViewDefinition,
+    StationAppearance,
+    TokenTiles
 } from '../maps/stationPresentation.js'
 import { createTileDrawing } from '../tiles/tileDrawing.js'
 import { ownerPortfolio } from '../finance/ownerPortfolio.js'
@@ -521,7 +522,8 @@ export class EighteenXXSession<
             (state) =>
                 this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules))),
             (state) => this.stations.openReservations(state),
-            (action) => this.presentationDefinition.historyMapPlacement?.(action)
+            (action) => this.presentationDefinition.historyMapPlacement?.(action),
+            (state) => liftedPrivateBlocks(map.markedPrivateIds, this.rules.privateRules, state)
         )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))

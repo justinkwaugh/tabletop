@@ -24,7 +24,7 @@ import { deployGame, deployGameArtifacts, releaseGame } from './lib/gamePublish.
 import { migrateLogicArtifacts } from './lib/logicArtifacts.js'
 import { listHistory, rollback, switchFrontend, switchGame } from './lib/publicationHistory.js'
 import { DEFAULT_GRACE_DAYS, prune, pruneAfterDeploy, type PruneScope } from './lib/prune.js'
-import { type PublishContext } from './lib/publishCore.js'
+import type { PublishContext } from './lib/publishCore.js'
 import { deployRealtime, releaseRealtime, rollbackRealtime } from './lib/realtimePublish.js'
 import { getCataloguePath, getDeployConfigPath, getRepoRoot } from './lib/paths.js'
 import {
@@ -34,7 +34,7 @@ import {
     runGamePreflight,
     runRealtimePreflight
 } from './lib/releasePreflight.js'
-import { type BumpType } from './lib/versions.js'
+import type { BumpType } from './lib/versions.js'
 
 const repoRoot = getRepoRoot()
 const cataloguePath = getCataloguePath(repoRoot)
@@ -74,9 +74,9 @@ Commands:
                                invalidate the backend cache. Requires a clean tree, a release
                                tag on HEAD for each artifact, and an unpublished version.
                                Running with --game and no command is the same as deploy-game.
-  build-ui <gameId>            Build a game UI bundle (rollup)
+  build-ui <gameId>            Build a game UI bundle (rolldown)
   deploy-ui <gameId>           deploy-game for the UI only, with the same guards
-  build-logic <gameId>         Build a game logic bundle (rollup)
+  build-logic <gameId>         Build a game logic bundle (rolldown)
   deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
   migrate-logic-artifacts [--game=<id>] [--apply]
                                Add the collectible factory (index.cjs) beside each title's

@@ -2,6 +2,8 @@ import { expect, it } from 'vitest'
 import { assert, HexOrientation } from '@tabletop/common'
 import {
     RailwayMap,
+    StandardTileCatalog,
+    TileSet,
     createCityTileFace,
     createOffboardTileFace,
     createTrackTileFace,
@@ -121,6 +123,35 @@ it('leaves joined edges out of the outline and hides a duplicate revenue', () =>
     expect(second.drawing.nodes[0].revenueHidden).toBe(false)
     const plain = createMapDrawing(map).locations[0]
     expect(plain.outline).toHaveLength(6)
+})
+
+it('leaves off the markers of a private whose block has lifted', () => {
+    const map = new RailwayMap({
+        id: 'blocks',
+        name: 'Blocks',
+        orientation: HexOrientation.Pointy,
+        locations: [
+            {
+                id: 'blocked',
+                coordinates: { q: 0, r: 0 },
+                buildable: true,
+                preprintedTile: createTrackTileFace('white', []),
+                markers: [
+                    { id: 'port', label: 'Port', description: 'Port' },
+                    { id: 'blocks-B', label: 'B', description: 'Blocked', privateCompanyId: 'B' }
+                ]
+            }
+        ]
+    })
+    const tileSet = new TileSet({ id: 'none', entries: [] }, [StandardTileCatalog])
+    const markerIds = (liftedPrivateBlocks: string[]) =>
+        createMapDrawing(map, {
+            tileSet,
+            inventory: tileSet.createInventory(),
+            liftedPrivateBlocks
+        }).locations[0].location.markers?.map((marker) => marker.id)
+    expect(markerIds([])).toEqual(['port', 'blocks-B'])
+    expect(markerIds(['B'])).toEqual(['port'])
 })
 
 it('divides neighbouring offboard areas and joins the hexes of one area', () => {

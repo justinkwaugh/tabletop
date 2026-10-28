@@ -25,7 +25,7 @@ const TOME = 'denizen.order.tome-guardians'
 
 const faceup = (cardIds: string[]) => cardIds.map((cardId) => ({ cardId, faceUp: true }))
 
-/** Dana takes from Rhys at c1: two Order advisers against his Order adviser, a relic to take. */
+/** Dana takes from Rhys at c1: two Order advisers against Rhys's Order adviser, a relic to take. */
 function scene(
     dana: Partial<OathPlayerState> = {},
     rhys: Partial<OathPlayerState> = {},

@@ -2133,6 +2133,39 @@ Their shortcuts select the tab in its current pane. Below 1024px the original
 three sidebar tabs remain unchanged. Chat mounts when active, so merely rendering
 a hidden Chat tab does not mark messages read.
 
+### Turn attention
+
+While the viewer must act in the live game, the action area carries a turn signal in
+the table's focus color (`--rail-focus`, the active player card's outline) with
+`--rail-surface-inset` ink. It is absent in History View, during exploration, after the
+game ends, and for spectators or players waiting on someone else; those positions keep
+the unchanged waiting view.
+
+At 1024px and above, the pane showing Actions fills its header and appends a bold
+"· Your turn" to the tab label; the tab's accessible name stays "Actions" and the turn
+is its description. A 2px frame without a top edge surrounds that pane. It is a separate
+layer above the pane dividers, because a divider's line covers a fractional last pixel
+of the pane before it. It takes no pointer events, so dividers still drag beneath it.
+When Actions is a background tab, the tab alone shows as a filled chip.
+
+Below 1024px there is no pane header: the round header fills instead (no "Your turn"
+text, which would push Undo off a 390px screen), and a 2px frame runs from it around
+the action body, stopping above the operating-order carousel. Neither layout changes
+height or position when the turn arrives: the round header's left padding and the space
+above the game-information strip are the same on every turn.
+
+### Since your last turn
+
+When a stock-round turn comes back to the viewer, the top of the current action shows
+"Since your last turn": the other players' decisions since the viewer last ended a
+stock turn, in the history panel's wording, one line each with the player's dot. A run
+of passes folds into one line ("Casey and Drew passed"). Decisions made by standing
+instructions read the same as any other. It shows only with the turn signal above, so
+never in History View, exploration, after the game ends or for spectators. It is absent
+before the viewer's first turn in the stock round, so it never reaches back into an
+auction or operating round, and it goes away once the viewer acts in the turn. An
+answer the viewer gave off turn, such as a purchase response, does not shorten it.
+
 ### Saved pane arrangements
 
 `paneLayout` is an account preference at 18xx family scope, with a versioned compact

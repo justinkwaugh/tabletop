@@ -207,7 +207,7 @@ describe('R-4.3.3 / R-4.3.4 — refresh and save Supply', () => {
         expect(state.getPlayerState(EXILE).supplySpentThisTurn).toBe(0)
     })
 
-    it('refreshes the Chancellor on his OWN band table, not the Exiles’ (R-4.3.3)', () => {
+    it('refreshes the Chancellor on their OWN band table, not the Exiles’ (R-4.3.3)', () => {
         // 5 banked warbands give Supply 5 on the Exile track but 4 on the Chancellor's.
         const state = table({}, { [CHANCELLOR]: { supply: 0, supplySpentThisTurn: 2 } })
         expect(refreshSupply(state, CHANCELLOR)).toBe(4)

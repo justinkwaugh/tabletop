@@ -126,6 +126,14 @@ describe('R-10.2 — a granted free action comes next', () => {
         expect(freeActionDueLine(board(), CHANCELLOR)).toBeUndefined()
     })
 
+    it('the line does not name the granting card (the History row does)', () => {
+        const granted = due({ freeTravelAtAction: 0, freeCampaignAtAction: 0 })
+        const player = granted.getPlayerState(CHANCELLOR)
+        player.freeTravelGrantedBy = 'relic.brass-horse'
+        player.freeCampaignGrantedBy = 'denizen.order.knights-errant'
+        expect(freeActionDueLine(granted, CHANCELLOR)).toBe('Free Travel or Campaign next.')
+    })
+
     it('a dimmed tile tapped says the free action comes first; the free action itself is not refused for it', () => {
         const state = due({ freeTravelAtAction: 0 })
         expect(line(state, CHANCELLOR, ActionType.Search)).toBe('Free Travel first.')

@@ -15,13 +15,80 @@ import {
 } from '@tabletop/oath'
 import { offerableAdviserRows, type AdviserRowOffer } from './questionChoices.js'
 
-export type ExchangeSide = keyof ExchangeTerms
+/** The two sides that hand something over; the terms' `promises` are written, not handed over. */
+export type ExchangeSide = Exclude<keyof ExchangeTerms, 'promises'>
 
-/** The editor's picks: the terms, and the sites picked whose count of warbands is not picked yet. */
-export type ExchangePicks = { terms: ExchangeTerms; uncountedSiteIds: string[] }
+/** R-7.6.3-H1 — each side's promise as its box holds it, before the trim the terms carry it with. */
+export type PromiseDrafts = Partial<Record<ExchangeSide, string>>
+
+/**
+ * The editor's picks: the terms, the sites picked whose count of warbands is not picked yet, and
+ * the Tribunal's promises as typed.
+ */
+export type ExchangePicks = {
+    terms: ExchangeTerms
+    uncountedSiteIds: string[]
+    promiseDrafts?: PromiseDrafts
+}
 
 export function noExchangePicks(): ExchangePicks {
     return { terms: {}, uncountedSiteIds: [] }
+}
+
+/** R-7.6.3-H1 — a side's promise as its box holds it. */
+export function promiseDraftOf(picks: ExchangePicks, side: ExchangeSide): string {
+    return picks.promiseDrafts?.[side] ?? ''
+}
+
+/**
+ * R-7.6.3-H1 — a side's promise typed: the box keeps the text as typed, and the terms carry each
+ * promise trimmed, as the engine's rule reads it. A side empty after the trim promises nothing, and
+ * the terms hold a `promises` object only with a promise in it. A box erased to empty keeps no
+ * draft, so the picks read exactly as if it was never typed in. The drafts keep one order of
+ * sides, regardless of which box was typed in first, so two picks with the same text in each box
+ * read the same.
+ */
+export function withPromise(picks: ExchangePicks, side: ExchangeSide, text: string): ExchangePicks {
+    const typed: PromiseDrafts = { ...picks.promiseDrafts, [side]: text }
+    const promiseDrafts: PromiseDrafts = {
+        ...(typed.fromProposer ? { fromProposer: typed.fromProposer } : {}),
+        ...(typed.fromCounterparty ? { fromCounterparty: typed.fromCounterparty } : {})
+    }
+    const fromProposer = promiseDrafts.fromProposer?.trim()
+    const fromCounterparty = promiseDrafts.fromCounterparty?.trim()
+    const terms: ExchangeTerms = { ...picks.terms }
+    delete terms.promises
+    if (fromProposer || fromCounterparty) {
+        terms.promises = {
+            ...(fromProposer ? { fromProposer } : {}),
+            ...(fromCounterparty ? { fromCounterparty } : {})
+        }
+    }
+    const next: ExchangePicks = { ...picks, terms, promiseDrafts }
+    if (Object.keys(promiseDrafts).length === 0) delete next.promiseDrafts
+    return next
+}
+
+/**
+ * R-7.6.3-H1 — the one side whose promise `after` changes from `before`, when that promise (as typed
+ * and as the terms carry it) is all that differs.
+ */
+export function promiseEdited(
+    before: ExchangePicks,
+    after: ExchangePicks
+): ExchangeSide | undefined {
+    const sides: ExchangeSide[] = ['fromProposer', 'fromCounterparty']
+    return sides.find(
+        (side) =>
+            promiseDraftOf(before, side) !== promiseDraftOf(after, side) &&
+            JSON.stringify(withPromise(before, side, promiseDraftOf(after, side))) ===
+                JSON.stringify(after)
+    )
+}
+
+/** R-7.6.3-H1 — a promise's length as the engine's rule counts it: UTF-16 units of the sent text. */
+export function promiseLength(terms: ExchangeTerms, side: ExchangeSide): number {
+    return terms.promises?.[side]?.length ?? 0
 }
 
 /** A count picked from the pieces themselves: one per unit held, the first `addable` reachable. */
@@ -192,8 +259,12 @@ export function withTransfer(
     return { ...terms, [side]: { ...transferOf(terms, side), ...patch } }
 }
 
-/** Whether the terms move anything at all, from either side. */
+/**
+ * Whether the terms move anything at all, from either side, or promise anything: at the Tribunal a
+ * promise alone is an exchange (R-7.6.3-H1).
+ */
 function namesAnything(terms: ExchangeTerms): boolean {
+    if (terms.promises !== undefined) return true
     return [terms.fromProposer, terms.fromCounterparty].some(
         (transfer) =>
             transfer !== undefined &&
@@ -205,7 +276,7 @@ function namesAnything(terms: ExchangeTerms): boolean {
     )
 }
 
-/** "Use" and "Propose" wait for terms that move something, every picked site counted. */
+/** "Use" and "Propose" wait for terms that move or promise something, every picked site counted. */
 export function exchangeComplete(picks: ExchangePicks): boolean {
     return namesAnything(picks.terms) && picks.uncountedSiteIds.length === 0
 }
@@ -277,6 +348,7 @@ function withSiteEntry(
 ): ExchangePicks {
     const transfer = transferOf(picks.terms, side)
     return {
+        ...picks,
         terms: withTransfer(picks.terms, side, withSiteWarbands(transfer, siteId, warbands)),
         uncountedSiteIds: toggled(picks.uncountedSiteIds, siteId, uncounted)
     }
@@ -384,5 +456,6 @@ export function withOfferedPicks(
             }
         }
     }
-    return kept
+    // R-7.6.3-H1 — a promise moves nothing, so it stands as typed whatever the rows drop.
+    return { ...kept, promiseDrafts: picks.promiseDrafts }
 }

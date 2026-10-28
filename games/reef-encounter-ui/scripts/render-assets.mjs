@@ -1,6 +1,6 @@
 // Cuts Reef Encounter's art out of the official print files (R&D Games) into the images the UI
 // shows, in src/lib/images, and writes src/lib/images/art.generated.ts to import them, because the
-// rollup bundle cannot resolve `import.meta.glob`.
+// Rolldown bundle cannot resolve `import.meta.glob`.
 //
 // The print files are not in the repository. Needs ImageMagick (`convert`).
 // Run from games/reef-encounter-ui: node scripts/render-assets.mjs <folder of official files>
