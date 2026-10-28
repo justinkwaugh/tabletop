@@ -292,6 +292,12 @@ export class HydratedSearchResolve
             isIrreversible(this.metadata) ||
             reveal !== undefined
         commitHiddenOutputs(this, state, witnesses)
+
+        // R-7.4.3 — the Search ends with its play, or with the last of the questions the play asked (Twin Brother's
+        // swap and the discard after it), whose queue keeps its modifiers barred until it closes.
+        const inUse = state.searchModifiersInUse
+        state.searchModifiersInUse = undefined
+        if (inUse && state.pendingQuestions) state.pendingQuestions.searchModifiersInUse = inUse
     }
 
     static reasonCannotResolve(

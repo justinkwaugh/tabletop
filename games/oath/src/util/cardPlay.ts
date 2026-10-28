@@ -33,7 +33,7 @@ import { pawnSiteId } from './pawn.js'
 import { denizensAfterPlay } from '../powers/vocabulary.js'
 import { isFaceupPlay, powerOutcomeOf } from './powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
-import { modifierContext, type ActiveModifier } from './modifiers.js'
+import { modifierContext, reasonModifierInUse, type ActiveModifier } from './modifiers.js'
 import {
     advisersTowardLimit,
     arrivesIgnoringAdviserLimit,
@@ -668,14 +668,28 @@ export function adviserDiscardsNeeded(
     return Math.max(0, held + (played ? 1 : 0) - effectiveAdviserLimit(state, playerId, withCardId))
 }
 
-/** R-7.2.2 — a faceup locked adviser cannot be discarded; a facedown one has no lock. */
+/**
+ * Why one of the player's advisers cannot be discarded: R-7.2.2, a faceup locked adviser (a facedown one has no
+ * lock); R-7.4.3, a modifier the Search under way uses.
+ */
+export function reasonAdviserNotDiscardable(
+    state: HydratedOathGameState,
+    playerId: string,
+    adviserId: string
+): string | undefined {
+    const adviser = state.getPlayerState(playerId).knownAdviser(adviserId)
+    if (adviser === undefined) return `${adviserId} is not one of your advisers`
+    if (adviser.faceUp && isLockedFor(state, playerId, adviserId))
+        return `${adviserId} is locked and cannot be discarded`
+    return reasonModifierInUse(state, adviserId)
+}
+
 export function adviserDiscardable(
     state: HydratedOathGameState,
     playerId: string,
     adviserId: string
 ): boolean {
-    const adviser = state.getPlayerState(playerId).knownAdviser(adviserId)
-    return adviser !== undefined && !(adviser.faceUp && isLockedFor(state, playerId, adviserId))
+    return reasonAdviserNotDiscardable(state, playerId, adviserId) === undefined
 }
 
 function holdsPeoplesFavor(state: HydratedOathGameState, playerId: string): boolean {
@@ -705,9 +719,9 @@ function reasonDiscardFirstInvalid(
         return "only the Great Slum, Crop Rotation, or holding the People's Favor, lets a card be discarded first"
     }
     // R-7.2.2 — a locked card cannot be discarded; Ancient Bloodline locks it for its holder's enemies.
-    return isLockedFor(state, playerId, cardId)
-        ? `${cardId} is locked and cannot be discarded`
-        : undefined
+    if (isLockedFor(state, playerId, cardId)) return `${cardId} is locked and cannot be discarded`
+    // R-7.4.3 — nor a site modifier the Search uses (Welcoming Party).
+    return reasonModifierInUse(state, cardId)
 }
 
 export function reasonCannotPlaceCard(
@@ -836,9 +850,8 @@ export function reasonCannotPlaceCard(
                 if (!player.knownAdviser(discardedId) || discardedId === cardId) {
                     return `${discardedId} is not one of your other advisers`
                 }
-                if (!adviserDiscardable(state, playerId, discardedId)) {
-                    return `${discardedId} is locked and cannot be discarded`
-                }
+                const notDiscardable = reasonAdviserNotDiscardable(state, playerId, discardedId)
+                if (notDiscardable) return notDiscardable
             }
             return undefined
         }

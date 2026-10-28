@@ -30,10 +30,12 @@ export enum OathRevision {
     EngineFixes22 = 26,
     EngineFixes23 = 27,
     EngineFixes24 = 28,
-    EngineFixes25 = 29
+    EngineFixes25 = 29,
+    // 30 is held by a branch not yet merged here, and stays unused on this one.
+    EngineFixes26 = 31
 }
 
-export const CURRENT_OATH_REVISION = OathRevision.EngineFixes25
+export const CURRENT_OATH_REVISION = OathRevision.EngineFixes26
 
 export function isAtLeastOathRevision(
     state: Pick<OathGameState, 'oathRevision'>,

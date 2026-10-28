@@ -405,6 +405,20 @@ export function carriedModifiers(
     return active
 }
 
+/**
+ * R-7.4.3 — "A modifier cannot be discarded during the major action it is modifying": the cards of the modifiers
+ * the Search under way uses, until its resolve and the questions that asks are done. None before revision 31.
+ */
+export function reasonModifierInUse(
+    state: HydratedOathGameState,
+    cardId: string
+): string | undefined {
+    const inUse = state.searchModifiersInUse ?? state.pendingQuestions?.searchModifiersInUse ?? []
+    return inUse.includes(cardId)
+        ? `${cardId} is a modifier in use and cannot be discarded during the action it modifies`
+        : undefined
+}
+
 /** R-7.4, R-5.1.4 — the modifiers a Search carries to its play. */
 export function searchPlayModifiers(state: HydratedOathGameState): ActiveModifier[] {
     return carriedModifiers(state, state.pendingSearchModifiers)
