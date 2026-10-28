@@ -100,10 +100,12 @@ describe('the round artillery may lead again from an approach it fired across', 
         const approach = approachOf(game, FLAT)
         const french = game.playerOf(Side.French)
         playOut(game)
+        const lastRoundPlayed = (game.hydrated.rounds.series.at(-1)?.number ?? 0) - 1
         game.arrange((state) => {
-            state.getPlayerState(french).artilleryFire = { [String(approach)]: 8 }
+            state.getPlayerState(french).artilleryFire = { [String(approach)]: lastRoundPlayed }
         })
         expect(game.state.machineState).toBe(MachineState.EndOfGame)
+        expect(game.hydrated.roundInProgress).toBe(false)
         expect(restingArtillery(game.hydrated)).toEqual([])
         expect(artilleryReadyRound(game.hydrated, french, approach)).toBeUndefined()
     })
