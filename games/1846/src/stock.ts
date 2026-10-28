@@ -5,18 +5,15 @@ import {
     evaluateSharePurchase,
     evaluateShareSale,
     mustSellShares,
-    allSharesHeld,
     createLinearStockMarketSpaces,
     StockMarketChart,
     getCompany,
-    marketSaleTerms,
-    playersAfterPresident,
-    priorityOrder,
-    sameOwner,
     sharesOwned,
-    treasuryPoolId,
+    treasuryShareCompanyRules,
+    treasuryShareStockRules,
     type CompanyRules,
-    type StockRules
+    type StockRules,
+    type TreasuryShareTrading
 } from '@tabletop/18xx'
 import { Corporations } from './catalog.js'
 import type { HydratedEighteenFortySixState } from './state.js'
@@ -40,53 +37,11 @@ export const Market1846 = new StockMarketChart(
     createLinearStockMarketSpaces(MarketPrices, marketZoneColor)
 )
 
-export const StockRules1846: StockRules = {
+const Trading1846: TreasuryShareTrading = {
     market: Market1846,
     charters: Charters1846,
-    round: {
-        passing: 'consecutive',
-        nextPlayerOrder: (state) => priorityOrder(state, StockRules1846.round),
-        soldOut: (state, id) => allSharesHeld(state, id, (share) => share.owner.kind === 'player'),
-        poolDrop: (state, id) =>
-            state.certificates.some(
-                (certificate) =>
-                    certificate.companyId === id && certificate.poolId === 'open-market'
-            )
-                ? 1
-                : 0
-    },
-    buyers: (_, playerId) => [{ kind: 'player', playerId }],
-    sellers: (_, playerId) => [{ kind: 'player', playerId }],
-    purchaseTerms(state, certificate, buyer) {
-        const company = getCompany(state, certificate.companyId)
-        if (company.kind !== 'major' || !company.started || company.closed || certificate.president)
-            return 'Choose an available ordinary share of a launched corporation.'
-        if (
-            certificate.poolId !== treasuryPoolId(company.id) &&
-            certificate.poolId !== 'open-market'
-        )
-            return 'This share is not in the treasury or market.'
-        return {
-            price:
-                Market1846.companySpace(state.stockMarket, company.id).price * certificate.shares,
-            recipient: certificate.owner,
-            payers: [buyer]
-        }
-    },
-    saleTerms(state, companyId, _shares, seller) {
-        const company = getCompany(state, companyId)
-        if (company.kind !== 'major' || !company.started || company.closed || !company.president)
-            return 'This corporation has no saleable stock.'
-        const president = sameOwner(company.president, seller)
-        if (!company.operated && !president)
-            return 'Only the president may sell before the corporation operates.'
-        return marketSaleTerms(Market1846, state, companyId, {
-            destinationPoolId: 'open-market',
-            marketLimit: 50,
-            maximumShares: 10,
-            movement: president ? 1 : 0
-        })
-    },
+    marketPoolId: 'open-market',
+    launchColor: MarketZoneColors1846.par,
     certificateLimit(state) {
         const corporations = state.companies.filter(
             (company) => company.kind === 'major' && !company.closed
@@ -96,25 +51,17 @@ export const StockRules1846: StockRules = {
         if (state.players.length === 4) return corporations >= 6 ? 12 : corporations === 5 ? 10 : 8
         return corporations >= 7 ? 11 : corporations === 6 ? 10 : corporations === 5 ? 8 : 6
     },
-    certificateWeight: () => 1,
     ownershipLimit: (state, id) =>
-        getCompany(state, id).kind === 'minor' ? 100 : state.players.length === 2 ? 70 : 60,
-    presidencyCandidates: (state, id) =>
-        playersAfterPresident(state, id, state.turnManager.turnOrder),
-    turnOrder: 'sell-buy'
+        getCompany(state, id).kind === 'minor' ? 100 : state.players.length === 2 ? 70 : 60
 }
 
+export const StockRules1846: StockRules = treasuryShareStockRules(Trading1846)
+
 export const CompanyRules1846: CompanyRules = {
-    startMarketSpaces: (state, id) =>
-        getCompany(state, id).kind === 'major'
-            ? Market1846.spaces
-                  .filter((space) => space.color === MarketZoneColors1846.par)
-                  .map((space) => space.id)
-            : [],
-    startTerms: (state, companyId, buyer, spaceId) => ({
-        price: Market1846.space(spaceId).price * 2,
-        recipient: { kind: 'company', companyId },
-        payers: [buyer]
+    ...treasuryShareCompanyRules(Trading1846, (id) => {
+        const corporation = Corporations.find((company) => company.id === id)
+        assertExists(corporation, 'A corporation requires its home')
+        return corporation.home
     }),
     flotationPayments(state, companyId) {
         const company = getCompany(state, companyId)
@@ -129,36 +76,6 @@ export const CompanyRules1846: CompanyRules = {
                   }
               ]
             : []
-    },
-    onFloat(state, id) {
-        const corporation = Corporations.find((company) => company.id === id)
-        assertExists(corporation, 'A corporation requires its home')
-        const station = state.stations.find(
-            (station) => station.companyId === id && station.status === 'available'
-        )
-        assertExists(station, 'A corporation requires a home station')
-        let slot = 0
-        while (
-            state.stations.some(
-                (station) =>
-                    station.status === 'placed' &&
-                    station.position.locationId === corporation.home &&
-                    station.position.nodeId === 'city' &&
-                    station.position.slot === slot
-            )
-        )
-            slot++
-        state.stations[state.stations.indexOf(station)] = {
-            id: station.id,
-            companyId: id,
-            status: 'placed',
-            position: { locationId: corporation.home, nodeId: 'city', slot }
-        }
-        state.stationReservations = state.stationReservations.filter(
-            (reservation) =>
-                reservation.companyId !== id || reservation.locationId !== corporation.home
-        )
-        getCompany(state, id).funded = true
     }
 }
 
