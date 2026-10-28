@@ -6,12 +6,13 @@ export function routeColor(index: number): string {
     return RouteColors[index % RouteColors.length]
 }
 
+/** Each train's track, with any interconnection extension beyond its stops. */
 export function trainRouteOverlays(
-    routes: readonly Pick<TrainRoute, 'trainId' | 'paths'>[]
+    routes: readonly Pick<TrainRoute, 'trainId' | 'paths' | 'extension'>[]
 ): MapRoute[] {
     return routes.map((route, index) => ({
         id: route.trainId,
         color: routeColor(index),
-        segments: route.paths
+        segments: [...route.paths, ...(route.extension ?? [])]
     }))
 }
