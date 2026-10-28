@@ -104,6 +104,8 @@ export type MapViewDefinition = {
      * hexes in labels and text.
      */
     hideLocationNames?: true | readonly string[]
+    /** A hex whose tile prints a label, such as Pr, shows the label in place of its name. */
+    labelsReplaceNames?: true
 }
 export function stationMapTokens(
     state: StationState,

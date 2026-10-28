@@ -321,6 +321,7 @@ export function createMapDrawing(
         joinedEdges = {},
         locationMarkerNames = {},
         hideLocationNames,
+        labelsReplaceNames,
         drawingStyle,
         revenueStageLabels,
         revenueStageCaptions,
@@ -343,6 +344,7 @@ export function createMapDrawing(
         | 'joinedEdges'
         | 'locationMarkerNames'
         | 'hideLocationNames'
+        | 'labelsReplaceNames'
         | 'drawingStyle'
         | 'revenueStageLabels'
         | 'revenueStageCaptions'
@@ -415,6 +417,7 @@ export function createMapDrawing(
         const nameShown =
             hideLocationNames !== true &&
             !hideLocationNames?.includes(location.id) &&
+            !(labelsReplaceNames && face.labels.length) &&
             !placement &&
             !!location.name
         const nameStyle =
@@ -1036,7 +1039,7 @@ function placedTokens(
                 ? { x: 0, y: 0 }
                 : covered
                   ? { x: covered.x, y: covered.y }
-                  : cornerSpot(space, (at) => [at], TokenRadius, revenues)?.points[0]
+                  : cornerSpot(space, (at) => [at], TokenRadius, revenues, TokenEdgeGap)?.points[0]
         if (!point) continue
         tokens.push({
             kind: 'token',
@@ -1056,22 +1059,30 @@ function cornerSpot(
     space: HexSpace,
     row: (at: Point) => Point[],
     radius: number,
-    revenues: readonly Point[]
+    revenues: readonly Point[],
+    edgeGap = EdgeGap
 ): Spot | undefined {
     const farness = (corner: Point) =>
         Math.min(...revenues.map((revenue) => distanceBetween(corner, revenue)))
     const corners = [...space.vertices].sort((a, b) => farness(b) - farness(a))
     for (const corner of corners) {
-        const spot = searchSpot(space, row, radius, (at) => distanceBetween(at, corner))
+        const spot = searchSpot(space, row, radius, (at) => distanceBetween(at, corner), edgeGap)
         if (spot && isClearSpot(spot) && spot.distance <= CornerReach) return spot
     }
-    return searchSpot(space, row, radius, (at) =>
-        Math.min(...corners.map((corner) => distanceBetween(at, corner)))
+    return searchSpot(
+        space,
+        row,
+        radius,
+        (at) => Math.min(...corners.map((corner) => distanceBetween(at, corner))),
+        edgeGap
     )
 }
 
 type Spot = { points: Point[]; clearance: number; trackClearance: number; distance: number }
 const SpotGap = 2.5
+// How far a mark keeps inside the hex's edge; a whole token, outlined, keeps further.
+const EdgeGap = 1.5
+const TokenEdgeGap = 4
 // Beyond this a mark reads as in the middle of the hex rather than in a corner.
 const CornerReach = 20
 const distanceBetween = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
@@ -1080,13 +1091,14 @@ function searchSpot(
     space: HexSpace,
     row: (at: Point) => Point[],
     radius: number,
-    distance: (at: Point) => number
+    distance: (at: Point) => number,
+    edgeGap = EdgeGap
 ): Spot | undefined {
     let best: Spot | undefined
     for (let x = -40; x <= 40; x += 2)
         for (let y = -40; y <= 40; y += 2) {
             const points = row({ x, y })
-            if (points.some((point) => space.inset(point) < radius + 1.5)) continue
+            if (points.some((point) => space.inset(point) < radius + edgeGap)) continue
             const spare = (among: readonly Obstacle[]) =>
                 Math.min(
                     ...points.flatMap((point) =>
