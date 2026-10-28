@@ -20,7 +20,7 @@ import { HydratedOathGameState, type OathProjectedState } from '../model/gameSta
 import { CardKind, OathType, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
 import type { AdviserRow, OathPlayerState } from '../model/playerState.js'
 import { IMPERIAL_WARBANDS, type WarbandCounts } from '../model/warbandCounts.js'
-import { ChronicleStep, type TableRecord } from '../model/chronicle.js'
+import { ChronicleKeptFor, ChronicleStep, type TableRecord } from '../model/chronicle.js'
 import type { OathVault } from '../model/vault.js'
 import { WinKind } from '../model/ending.js'
 import { allMapSlots, mapSlotsFor } from '../data/mapSlots.js'
@@ -611,6 +611,13 @@ describe('the full boundary: game 2 of a chronicle to the world game 3 is dealt 
         // 8.3.2
         expect(discardSites(state)).toEqual({
             kept: ['fertile-valley', 'the-tribunal', 'steppe', 'mountain', 'lush-coast'].map(site),
+            keptFor: {
+                [site('fertile-valley')]: ChronicleKeptFor.Ruled,
+                [site('the-tribunal')]: ChronicleKeptFor.Ruled,
+                [site('steppe')]: ChronicleKeptFor.Edifice,
+                [site('mountain')]: ChronicleKeptFor.Ruled,
+                [site('lush-coast')]: ChronicleKeptFor.Ruled
+            },
             discarded: ['great-slums', 'deep-woods'].map(site),
             discardedFacedown: 1,
             denizensDiscarded: 3
@@ -856,7 +863,12 @@ describe('the full boundary: game 2 of a chronicle to the world game 3 is dealt 
             winner: { name: 'Dana', color: Color.Purple },
             nextOath: OathType.ThePeople,
             added: { suits: [Suit.Hearth, Suit.Beast, Suit.Nomad] },
-            built: { edificeId: RAMPART, siteId: P3, repaired: false },
+            built: {
+                edificeId: RAMPART,
+                siteId: P3,
+                siteCardId: site('mountain'),
+                repaired: false
+            },
             ruined: [FORGE]
         })
         expect(chronicleCensus(hydrated(final))).toEqual([])
@@ -904,6 +916,10 @@ describe('hidden information through the steps (R-9.4)', () => {
                 expect(hidden.filter((cardId) => json.includes(`"${cardId}"`))).toEqual([])
                 // The public result is the same on every view.
                 expect(view.chronicle).toEqual(state.chronicle)
+                // Why each site was kept is public, by its faceup card, on every view.
+                expect(Object.keys(view.chronicle?.map?.keptFor ?? {})).toEqual(
+                    state.chronicle?.map?.kept ?? []
+                )
                 expect(view.siteCards).toEqual(state.siteCards)
                 expect(view.relicsBySite).toEqual(state.relicsBySite)
                 expect(view.chronicle?.healTie).toBeUndefined()
@@ -1065,6 +1081,15 @@ describe('R-8.3.5 — a Chancellor winner keeps six sites: steps 1, 2, 3, 4 and 
                 'charming-valley',
                 'lush-coast'
             ].map(site),
+            keptFor: {
+                [site('plains')]: ChronicleKeptFor.Ruled,
+                [site('mountain')]: ChronicleKeptFor.Edifice,
+                [site('fertile-valley')]: ChronicleKeptFor.Ruled,
+                [site('steppe')]: ChronicleKeptFor.Ruled,
+                [site('great-slums')]: ChronicleKeptFor.Ruled,
+                [site('charming-valley')]: ChronicleKeptFor.Ruled,
+                [site('lush-coast')]: ChronicleKeptFor.Ruled
+            },
             discarded: [site('marshes')],
             discardedFacedown: 0,
             denizensDiscarded: 1
@@ -1186,6 +1211,12 @@ describe('R-8.3.5 — an Exile winner who rules only a ruin: steps 4, 5, 6 and 7
         const state = hydrated(vowed.final)
         expect(discardSites(state)).toEqual({
             kept: ['ancient-city', 'standing-stones', 'wastes', 'the-hidden-place'].map(site),
+            keptFor: {
+                [site('ancient-city')]: ChronicleKeptFor.Edifice,
+                [site('standing-stones')]: ChronicleKeptFor.Edifice,
+                [site('wastes')]: ChronicleKeptFor.Edifice,
+                [site('the-hidden-place')]: ChronicleKeptFor.Ruled
+            },
             discarded: ['the-tribunal', 'deep-woods', 'rocky-coast'].map(site),
             discardedFacedown: 1,
             denizensDiscarded: 4
@@ -1579,9 +1610,12 @@ describe('R-8.3.2 — Forest Temple keeps a site with a beast card', () => {
         const state = hydrated(
             run(wonTable(templeTable(), CHANCELLOR_WINS), vow(DANA, OathType.ThePeople)).final
         )
-        const kept = discardSites(state).kept
+        const { kept, keptFor } = discardSites(state)
         expect(kept).toContain(site('deep-woods'))
         expect(kept).toContain(site('great-slums'))
+        // Why each stayed: the Temple's own site for its edifice, the Deep Woods by the Temple.
+        expect(keptFor?.[site('deep-woods')]).toBe(ChronicleKeptFor.ForestTemple)
+        expect(keptFor?.[site('great-slums')]).toBe(ChronicleKeptFor.Edifice)
         expect(ruinAndSetAside(state).ruins.map((ruin) => ruin.edificeId)).toEqual([
             FORGE,
             FOREST_TEMPLE

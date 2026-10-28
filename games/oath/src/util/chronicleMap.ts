@@ -1,7 +1,12 @@
 import { assert, assertExists } from '@tabletop/common'
 import type { HydratedOathGameState, RelicSlot } from '../model/gameState.js'
 import { CardKind, Region } from '../model/oathEnums.js'
-import type { ChronicleMapRecord, ChronicleMove, ChronicleRuin } from '../model/chronicle.js'
+import {
+    ChronicleKeptFor,
+    type ChronicleMapRecord,
+    type ChronicleMove,
+    type ChronicleRuin
+} from '../model/chronicle.js'
 import { discardOnto, drawSites } from '../model/vault.js'
 import { OBSIDIAN_CAGE_ID } from '../data/relics.js'
 import { chronicleWinnerOf } from './chronicleChoices.js'
@@ -34,28 +39,35 @@ export function cleanUpMap(state: HydratedOathGameState): ChronicleMapRecord {
  */
 export function discardSites(
     state: HydratedOathGameState
-): Pick<ChronicleMapRecord, 'kept' | 'discarded' | 'discardedFacedown' | 'denizensDiscarded'> {
+): Pick<
+    ChronicleMapRecord,
+    'kept' | 'keptFor' | 'discarded' | 'discardedFacedown' | 'denizensDiscarded'
+> {
     const vault = state.requireVault()
     const winnerId = chronicleWinnerOf(state)
-    const keeps = new Set(
-        state
-            .allSiteIds()
-            .filter(
-                (slotId) =>
-                    rulesSite(state, winnerId, slotId) ||
-                    hasIntactEdifice(state, slotId) ||
-                    forestTempleKeepsSite(state, slotId)
-            )
-    )
+    const keeps = new Map<string, ChronicleKeptFor>()
+    for (const slotId of state.allSiteIds()) {
+        const reason = rulesSite(state, winnerId, slotId)
+            ? ChronicleKeptFor.Ruled
+            : hasIntactEdifice(state, slotId)
+              ? ChronicleKeptFor.Edifice
+              : forestTempleKeepsSite(state, slotId)
+                ? ChronicleKeptFor.ForestTemple
+                : undefined
+        if (reason) keeps.set(slotId, reason)
+    }
     const kept: string[] = []
+    const keptFor: Record<string, ChronicleKeptFor> = {}
     const discarded: string[] = []
     let discardedFacedown = 0
     let denizensDiscarded = 0
     for (const slotId of state.allSiteIds()) {
         const faceupCardId = state.siteCardAt(slotId)
-        if (keeps.has(slotId)) {
+        const keptBecause = keeps.get(slotId)
+        if (keptBecause) {
             assertExists(faceupCardId, `R-8.3.2 — a site kept at ${slotId} is faceup`)
             kept.push(faceupCardId)
+            keptFor[faceupCardId] = keptBecause
             continue
         }
         let siteCardId = faceupCardId
@@ -95,7 +107,7 @@ export function discardSites(
         delete state.siteCapacityOverrides[slotId]
     }
     chronicleShuffles.shuffle(state, ChronicleShuffle.SiteDeck, vault.siteDeck)
-    return { kept, discarded, discardedFacedown, denizensDiscarded }
+    return { kept, keptFor, discarded, discardedFacedown, denizensDiscarded }
 }
 
 /**

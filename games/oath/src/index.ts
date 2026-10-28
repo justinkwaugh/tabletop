@@ -124,3 +124,12 @@ export * from './util/wake.js'
 export * from './util/rest.js'
 export * from './util/freeActions.js'
 export * from './util/witchsBargain.js'
+export {
+    chronicleSuitLeaders,
+    citizenshipEligible,
+    edificeChoices,
+    normalizedStory,
+    unansweredOffers,
+    vowableOaths,
+    type EdificeChoice
+} from './util/chronicleChoices.js'

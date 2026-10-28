@@ -593,6 +593,7 @@ describe('R-8.3.1 — build or repair, a Chancellor or Citizen winner only', () 
         expect(final.chronicle?.built).toEqual({
             edificeId: SPRAWLING_RAMPART,
             siteId: PLAINS,
+            siteCardId: 'site.plains',
             repaired: false
         })
         expect(actions.find(isBuildOrRepairEdifice)?.metadata).toEqual({
@@ -606,6 +607,7 @@ describe('R-8.3.1 — build or repair, a Chancellor or Citizen winner only', () 
         expect(ended.chronicleRecord?.at(-1)?.built).toEqual({
             edificeId: SPRAWLING_RAMPART,
             siteId: PLAINS,
+            siteCardId: 'site.plains',
             repaired: false
         })
     })
@@ -635,6 +637,7 @@ describe('R-8.3.1 — build or repair, a Chancellor or Citizen winner only', () 
         expect(final.chronicle?.built).toEqual({
             edificeId: GREAT_SPIRE,
             siteId: STEPPE,
+            siteCardId: 'site.steppe',
             repaired: true
         })
         expect(final.chronicle?.returnedDenizenId).toBeUndefined()
@@ -864,12 +867,13 @@ describe('the story, the last step', () => {
         expect(Object.keys(final.chronicleRecord?.at(-1) ?? {})).not.toContain('story')
     })
 
-    it(`counts up to ${CHRONICLE_STORY_LIMIT} characters as code points, and refuses plain-text breaches`, () => {
+    it('counts up to 1,000 characters as code points: 1,000 astral characters are taken, 1,001 refused', () => {
         const state = atStory()
-        const longest = '🜂'.repeat(CHRONICLE_STORY_LIMIT)
+        expect(CHRONICLE_STORY_LIMIT).toBe(1000)
+        const longest = '🜂'.repeat(1000)
         expect(run(state, story(DANA, longest)).final.chronicleRecord?.at(-1)?.story).toBe(longest)
         expect(refusal(state, story(DANA, `${longest}a`))).toBe(
-            `the story is longer than ${CHRONICLE_STORY_LIMIT} characters`
+            'the story is longer than 1,000 characters'
         )
         expect(refusal(state, story(DANA, '   \n '))).toBe('the story is empty')
         expect(refusal(state, story(DANA, 'a\u0007b'))).toBe(
@@ -937,7 +941,12 @@ describe('two games of a chronicle', () => {
             winner: { name: 'Ann', color: Color.Blue },
             nextOath: OathType.Devotion,
             added: { suits: [Suit.Order, Suit.Hearth, Suit.Beast] },
-            built: { edificeId: SPRAWLING_RAMPART, siteId: PLAINS, repaired: false }
+            built: {
+                edificeId: SPRAWLING_RAMPART,
+                siteId: PLAINS,
+                siteCardId: 'site.plains',
+                repaired: false
+            }
         })
         expect(chronicleCensus(hydrated(final))).toEqual([])
     })

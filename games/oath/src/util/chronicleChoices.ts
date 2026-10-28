@@ -330,9 +330,12 @@ export function buildOrRepair(state: HydratedOathGameState, choice: EdificeChoic
         state.denizensBySite[choice.siteId] = [choice.edificeId, ...rest]
         chronicle.returnedDenizenId = choice.cardId
     }
+    const siteCardId = state.siteCardAt(choice.siteId)
+    assertExists(siteCardId, `R-8.3.1 — the winner rules ${choice.siteId}, so it is faceup`)
     chronicle.built = {
         edificeId: choice.edificeId,
         siteId: choice.siteId,
+        siteCardId,
         repaired: choice.repair
     }
 }
@@ -449,7 +452,7 @@ export function reasonCannotWriteChronicleStory(
     const story = normalizedStory(text)
     if (story.length === 0) return 'the story is empty'
     if ([...story].length > CHRONICLE_STORY_LIMIT) {
-        return `the story is longer than ${CHRONICLE_STORY_LIMIT} characters`
+        return `the story is longer than ${CHRONICLE_STORY_LIMIT.toLocaleString('en-US')} characters`
     }
     if ([...story].some(isControl)) return 'the story holds a character that is not plain text'
     return undefined

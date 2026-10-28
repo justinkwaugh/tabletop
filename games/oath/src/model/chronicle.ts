@@ -9,7 +9,7 @@ import { WIN_RULES, WinKind } from './ending.js'
  */
 
 /** The winner's story: at most this many characters, counted as Unicode code points. */
-export const CHRONICLE_STORY_LIMIT = 500
+export const CHRONICLE_STORY_LIMIT = 1000
 
 /** The journal's letter for how the game was won. */
 export enum ChronicleMark {
@@ -89,6 +89,8 @@ export type ChronicleBuilt = Type.Static<typeof ChronicleBuilt>
 export const ChronicleBuilt = Type.Object({
     edificeId: Type.String(),
     siteId: Type.String(),
+    /** The site card in that slot as it was built: R-8.3.5 may move it, and the record outlives the map. */
+    siteCardId: Type.Optional(Type.String()),
     repaired: Type.Boolean()
 })
 
@@ -140,6 +142,13 @@ export const ChronicleMove = Type.Object({
     to: Type.String()
 })
 
+/** R-8.3.2 — why a site stayed: the winner rules it, it holds an intact edifice, or Forest Temple keeps it. */
+export enum ChronicleKeptFor {
+    Ruled = 'ruled',
+    Edifice = 'edifice',
+    ForestTemple = 'forestTemple'
+}
+
 /**
  * R-8.3.2 to R-8.3.5 — the map step as the table saw it: faceup sites by card, facedown ones
  * counted (R-9.4).
@@ -148,6 +157,8 @@ export type ChronicleMapRecord = Type.Static<typeof ChronicleMapRecord>
 export const ChronicleMapRecord = Type.Object({
     /** R-8.3.2 — the sites kept, in deal order; every one is faceup. */
     kept: Type.Array(Type.String()),
+    /** R-8.3.2 — each kept site's reason, by card, the first that holds in the order above. */
+    keptFor: Type.Optional(Type.Record(Type.String(), Type.Enum(ChronicleKeptFor))),
     /** R-8.3.2 — the faceup sites shuffled into the site deck. */
     discarded: Type.Array(Type.String()),
     /** R-8.3.2 — the facedown sites shuffled into the site deck. */
