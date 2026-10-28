@@ -212,6 +212,7 @@ export const MapView1833NE: MapViewDefinition = {
         E28: { hideRevenue: true, printedPaths: { 'edge-3': 'pier' } },
         // Cape Cod's tip prints a spike out of Hyannis, not track.
         J25: { printedPaths: { 'edge-1': 'spike' } },
+        F25: { labelPosition: { x: -22, y: 22 }, revenuePositions: { city: { x: -33, y: 0 } } },
         H25: { nodePositions: { 'city-0': towardTileEdge(3, 20), 'city-1': towardTileEdge(0, 14) } }
     },
     cityNames: {
@@ -237,6 +238,9 @@ export const MapView1833NE: MapViewDefinition = {
     namePositions: Object.fromEntries(
         Object.entries(OffboardPrinting).flatMap(([id, { name }]) => (name ? [[id, name]] : []))
     ),
+    labelsReplaceNames: true,
+    // Providence prints its river cost at the top and its label low, clear of its track.
+    terrainPositions: { F25: { x: 0, y: -28 } },
     hideLocationNames: Object.keys(OffboardPrinting).filter((id) => !OffboardPrinting[id].name),
     nameLines: Object.fromEntries(
         Object.keys(OffboardPrinting).flatMap((id) => {
