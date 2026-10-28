@@ -121,6 +121,24 @@ for (const [locationId, companyId] of Object.entries(FirstRoundReservedHexes))
         }
     ]
 
+/** The five ferries' cities and values (setup, p. 3). */
+export const FerryPorts: Readonly<Record<string, { name: string; value: number }>> = {
+    C26: { name: 'New Haven', value: 20 },
+    E26: { name: 'Allyn’s Point', value: 20 },
+    F27: { name: 'Stonington', value: 20 },
+    F25: { name: 'Providence', value: 10 },
+    G26: { name: 'Fall River', value: 20 }
+}
+for (const [locationId, ferry] of Object.entries(FerryPorts))
+    Markers[locationId] = [
+        ...(Markers[locationId] ?? []),
+        {
+            id: 'ferry',
+            label: `Ferry ${ferry.value}`,
+            description: `The ${ferry.name} ferry: $40 to a corporation connected here and on to Boston; worth $${ferry.value} on its routes.`
+        }
+    ]
+
 const locations = createLetterNumberLocationFactory({
     orientation: HexOrientation.Flat,
     numberOffset: 0,

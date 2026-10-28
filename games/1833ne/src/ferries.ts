@@ -12,20 +12,15 @@ import {
     settleCashPayments,
     type HydratedEighteenXXState
 } from '@tabletop/18xx'
-import { Places } from './map.js'
+import { FerryPorts, Places } from './map.js'
 import { mapState, ownsPrivate } from './privates.js'
 import { Phases1833NE } from './trains.js'
 
 export type FerryDefinition = { locationId: string; name: string; value: number }
 
-/** The five ferries and their values (setup, p. 3). */
-export const Ferries1833NE: readonly FerryDefinition[] = [
-    { locationId: 'C26', name: 'New Haven', value: 20 },
-    { locationId: 'E26', name: 'Allyn’s Point', value: 20 },
-    { locationId: 'F27', name: 'Stonington', value: 20 },
-    { locationId: 'F25', name: 'Providence', value: 10 },
-    { locationId: 'G26', name: 'Fall River', value: 20 }
-]
+export const Ferries1833NE: readonly FerryDefinition[] = Object.entries(FerryPorts).map(
+    ([locationId, ferry]) => ({ locationId, ...ferry })
+)
 export const FerryPrice = 40
 export const FerryBonus = { new: 20, last: 20 } as const
 

@@ -833,6 +833,119 @@ importers:
         specifier: ^8.3.5
         version: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
+  games/1833ne:
+    dependencies:
+      '@tabletop/18xx':
+        specifier: workspace:*
+        version: link:../../libs/18xx
+      '@tabletop/common':
+        specifier: workspace:*
+        version: link:../../libs/common
+    devDependencies:
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
+      '@tabletop/rolldown-config':
+        specifier: workspace:*
+        version: link:../../config/config-rolldown
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
+      '@typescript/native-preview':
+        specifier: 7.0.0-dev.20260707.2
+        version: 7.0.0-dev.20260707.2
+      rimraf:
+        specifier: ^6.1.0
+        version: 6.1.3
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
+      typebox:
+        specifier: ^1.0.79
+        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.12
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  games/1833ne-ui:
+    dependencies:
+      '@tabletop/1833ne':
+        specifier: workspace:*
+        version: link:../1833ne
+      '@tabletop/18xx':
+        specifier: workspace:*
+        version: link:../../libs/18xx
+      '@tabletop/18xx-autorouter':
+        specifier: workspace:*
+        version: link:../../libs/18xx-autorouter
+      '@tabletop/18xx-ui':
+        specifier: workspace:*
+        version: link:../../libs/18xx-ui
+      '@tabletop/common':
+        specifier: workspace:*
+        version: link:../../libs/common
+      '@tabletop/frontend-components':
+        specifier: workspace:*
+        version: link:../../libs/frontend-components
+    devDependencies:
+      '@sveltejs/kit':
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@sveltejs/package':
+        specifier: ^2.5.7
+        version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
+      '@sveltejs/vite-plugin-svelte':
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
+      '@tabletop/rolldown-config':
+        specifier: workspace:*
+        version: link:../../config/config-rolldown
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
+      '@tailwindcss/postcss':
+        specifier: ^4.1.18
+        version: 4.3.3
+      flowbite:
+        specifier: ^3.1.2
+        version: 3.1.2(rollup@4.64.12)
+      flowbite-svelte:
+        specifier: ^1.31.0
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
+      flowbite-svelte-icons:
+        specifier: ^3.1.0
+        version: 3.1.0(svelte@5.49.0)
+      rimraf:
+        specifier: ^6.1.0
+        version: 6.1.3
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
+      svelte:
+        specifier: ^5.0.0
+        version: 5.49.0
+      svelte-check:
+        specifier: ^4.3.5
+        version: 4.7.7(picomatch@4.0.7)(svelte@5.49.0)(typescript@5.9.3)
+      tailwindcss:
+        specifier: ^4.1.18
+        version: 4.3.3
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+
   games/1846:
     dependencies:
       '@tabletop/18xx':

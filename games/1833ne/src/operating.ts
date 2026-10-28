@@ -12,6 +12,7 @@ import {
     floatedCompaniesInMarketOrder,
     getCompany,
     inReceivership,
+    isTreasuryPoolId,
     issueFirstTrainFunding,
     marketReceivership,
     marketShareValue,
@@ -36,7 +37,13 @@ export const Names1833NE = titleNames(
         ...Corporations1833NE.map((company) => [company.id, company.name]),
         ...Privates1833NE.map((company) => [company.id, company.name])
     ]),
-    (poolId) => (poolId === MarketPoolId ? 'Market' : undefined)
+    (poolId) =>
+        poolId === MarketPoolId ? 'Market' : isTreasuryPoolId(poolId) ? 'Treasury' : undefined,
+    {
+        direct: 'Direct connection',
+        interconnection: 'Interconnection',
+        ferry: 'Ferry'
+    }
 )
 
 export const OperatingRules1833NE: OperatingRules = {

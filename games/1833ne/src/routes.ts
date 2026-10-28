@@ -1,9 +1,9 @@
-import {
-    type Interconnection,
-    type PaidConnectionBonus,
-    type RouteRevenuePolicy,
-    type RouteRules,
-    type TrainRunningState
+import type {
+    Interconnection,
+    PaidConnectionBonus,
+    RouteRevenuePolicy,
+    RouteRules,
+    TrainRunningState
 } from '@tabletop/18xx'
 import { ferryValue, type FerryState } from './ferries.js'
 import { Map1833NE, Places } from './map.js'
