@@ -1,7 +1,7 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     type GameAction,
     type HydratedGameState
@@ -28,7 +28,7 @@ import { evaluatePrivateTrack, type PrivatePowerRules } from './privatePowers.js
 import { privateStationPositions } from './privateStation.js'
 export const LayPrivateTile = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         ...TrackRequest.properties,
         type: Type.Literal('LayPrivateTile'),
         privateCompanyId: Type.String(),
@@ -209,7 +209,7 @@ export class HydratedLayPrivateTileOutOfTurn
 }
 export const DeclinePrivateTile = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('DeclinePrivateTile'),
         privateCompanyId: Type.String()
     },

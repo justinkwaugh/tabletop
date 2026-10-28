@@ -18,6 +18,8 @@
         stalledGameEndsAt
     } from '@tabletop/common'
     import { isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
+    import { bgStatsPlayUrl } from '$lib/utils/bgStats'
+    import { recordedFinalScores } from '$lib/utils/gameScores'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
@@ -340,6 +342,8 @@
     }
 
     let title = $derived.by(() => titlesById[game.typeId])
+    let finalScores = $derived(recordedFinalScores(game, title?.info.metadata))
+    let bgStatsUrl = $derived(bgStatsPlayUrl(game, title?.info.metadata, sessionUser))
     let displayableConfigs = $derived(
         gameCardOptions(game.config ?? {}, title?.info.configurator ?? [])
     )
@@ -602,10 +606,13 @@
                     <div class="flex flex-col text-sm">
                         <div class="flex flex-row justify-between">
                             <div class="text-xs font-semibold">PLAYERS</div>
+                            {#if finalScores}
+                                <div class="text-xs font-semibold">SCORE</div>
+                            {/if}
                         </div>
                         <Hr class="mt-1 mb-1" />
                         {#each sortedPlayers as player (player.id)}
-                            <div class="flex flex-row justify-between">
+                            <div class="flex flex-row justify-between gap-3">
                                 <div
                                     class={isActive(player.id)
                                         ? 'text-orange-400'
@@ -615,11 +622,19 @@
                                 >
                                     {player.name ?? ''}
                                 </div>
-                                <div>
-                                    {game.hotseat
-                                        ? 'local'
-                                        : playerStatusDisplay(player, game.ownerId)}
-                                </div>
+                                {#if game.status === GameStatus.Finished}
+                                    {#if finalScores}
+                                        <div class="shrink-0 text-right tabular-nums">
+                                            {finalScores[player.id] ?? '—'}
+                                        </div>
+                                    {/if}
+                                {:else}
+                                    <div>
+                                        {game.hotseat
+                                            ? 'local'
+                                            : playerStatusDisplay(player, game.ownerId)}
+                                    </div>
+                                {/if}
                             </div>
                         {/each}
                     </div>
@@ -640,9 +655,11 @@
                         </div>
                     {/if}
 
-                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canContinue || canRevisit || canDelete}
+                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canContinue || canRevisit || canDelete || bgStatsUrl}
                         <Hr class="mt-1 mb-1" />
-                        <div class="pt-4 pb-0 flex flex-row justify-center items-middle text-white">
+                        <div
+                            class="pt-4 pb-0 flex flex-row flex-wrap gap-y-2 justify-center items-middle text-white"
+                        >
                             {#if canDecline}
                                 <Button size="xs" color="red" class="mx-2" onclick={declineGame}
                                     >Decline</Button
@@ -690,6 +707,16 @@
                                     'light',
                                     'mx-2 dark:text-gray-200'
                                 )}
+                            {/if}
+                            {#if bgStatsUrl}
+                                <Button
+                                    size="xs"
+                                    color="light"
+                                    class="mx-2"
+                                    href={bgStatsUrl}
+                                    onclick={(event) => event.stopPropagation()}
+                                    >Log to BG Stats</Button
+                                >
                             {/if}
                             {#if canDelete}
                                 <Button size="xs" color="red" class="mx-2" onclick={deleteGame}

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Snippet } from 'svelte'
+    import type { Snippet } from 'svelte'
     import { scrollToRight } from '$lib/utils/scrollOnLoad.js'
     import DebugPanel from './DebugPanel.svelte'
     import HistoryControls from './HistoryControls.svelte'

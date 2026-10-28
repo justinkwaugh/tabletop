@@ -3,10 +3,12 @@
     import { assertExists, type GameAction } from '@tabletop/common'
     import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import ActionDescription from './ActionDescription.svelte'
+    import CampaignLedger from './CampaignLedger.svelte'
     import MajorEventRow from './MajorEventRow.svelte'
     import TokenText from './TokenText.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { rowActorOf } from '$lib/model/actionDescription.js'
+    import { quotedPromise } from '$lib/model/tribunalDeals.js'
 
     const timeAgo = createTimeAgo()
 
@@ -14,6 +16,7 @@
 
     let rows = $derived(gameSession.historyRows)
     let ending = $derived(gameSession.isViewingHistory ? undefined : gameSession.gameEndRow)
+    let dropped = $derived(gameSession.droppedDeals)
     // The winner the game-end row names is their chip.
     let seats = $derived({ names: gameSession.historyNames, viewerId: gameSession.myPlayer?.id })
 
@@ -67,33 +70,83 @@
                         {/if}
                     </TimelineItem>
                 </div>
+                <!-- R-7.6.3-H1 — under the game-end row, the Tribunal deals still open, from the
+                     ending's record: both parties, the round, and each promise. -->
+                {#if dropped.length > 0}
+                    <div>
+                        {@render dot()}
+                        <TimelineItem
+                            timeClass="text-oath-text-muted dark:text-oath-text-muted"
+                            title=""
+                            class="timeline-item text-left mb-5"
+                            date={timeAgo.format(gameSession.game.finishedAt)}
+                        >
+                            <p
+                                class="mt-1 text-left text-sm text-base font-normal text-oath-text"
+                                data-dropped-deals
+                            >
+                                Deals still open at the end, dropped:
+                                {#each dropped as deal, index (deal.id)}
+                                    <PlayerName playerId={deal.proposerPlayerId} />
+                                    and
+                                    <PlayerName playerId={deal.counterpartyPlayerId} />, round {deal.round}
+                                    (<span class="whitespace-pre-wrap wrap-anywhere"
+                                        >{quotedPromise(deal.proposerPromise)}</span
+                                    >
+                                    /
+                                    <span class="whitespace-pre-wrap wrap-anywhere"
+                                        >{quotedPromise(deal.counterpartyPromise)}</span
+                                    >){index < dropped.length - 1 ? '; ' : ''}{/each}
+                            </p>
+                        </TimelineItem>
+                    </div>
+                {/if}
             {/if}
             {#each rows as row (row.action.id)}
                 {@const actorId = rowActorOf(row.action)}
-                <div>
-                    {#if row.event}{@render ringedDot(
-                            row.event.tone === 'danger'
-                        )}{:else}{@render dot()}{/if}
-                    <TimelineItem
-                        timeClass="text-oath-text-muted dark:text-oath-text-muted"
-                        title=""
-                        class="timeline-item text-left mb-5"
-                        date={whenOf(row.action)}
-                    >
-                        {#if row.event}
-                            <MajorEventRow event={row.event} {actorId}>
-                                <ActionDescription action={row.action} />
-                            </MajorEventRow>
-                        {:else}
+                {#if row.event}
+                    <div>
+                        {@render ringedDot(row.event.tone === 'danger')}
+                        <TimelineItem
+                            timeClass="text-oath-text-muted dark:text-oath-text-muted"
+                            title=""
+                            class="timeline-item text-left mb-5"
+                            date={whenOf(row.action)}
+                        >
+                            {#if row.campaignSteps}
+                                <MajorEventRow event={row.event}>
+                                    <CampaignLedger steps={row.campaignSteps} />
+                                </MajorEventRow>
+                            {:else}
+                                <MajorEventRow event={row.event} {actorId}>
+                                    <ActionDescription
+                                        action={row.action}
+                                        campaign={row.campaign}
+                                    />
+                                </MajorEventRow>
+                            {/if}
+                        </TimelineItem>
+                    </div>
+                {/if}
+                <!-- R-5.5 — the step that closes a Campaign stays a row below its card, as every step does. -->
+                {#if !row.event || row.campaignSteps}
+                    <div>
+                        {@render dot()}
+                        <TimelineItem
+                            timeClass="text-oath-text-muted dark:text-oath-text-muted"
+                            title=""
+                            class="timeline-item text-left mb-5"
+                            date={whenOf(row.action)}
+                        >
                             <p class="mt-1 text-left text-sm text-base font-normal text-oath-text">
                                 {#if actorId}
                                     <PlayerName playerId={actorId} />
                                 {/if}
-                                <ActionDescription action={row.action} />
+                                <ActionDescription action={row.action} campaign={row.campaign} />
                             </p>
-                        {/if}
-                    </TimelineItem>
-                </div>
+                        </TimelineItem>
+                    </div>
+                {/if}
             {/each}
             {@render dot()}
             <TimelineItem

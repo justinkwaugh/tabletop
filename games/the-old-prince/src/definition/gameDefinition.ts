@@ -56,7 +56,8 @@ export const TheOldPrinceTitleRules: EighteenXXTitleRules<
     privateRules: TheOldPrincePrivateRules,
     phases: TheOldPrincePhases,
     phaseRules: TheOldPrincePhaseRules,
-    trainRules: TheOldPrinceTrainRules
+    trainRules: TheOldPrinceTrainRules,
+    runInstructions: true
 }
 
 export const Definition: GameDefinition<TheOldPrinceState, HydratedTheOldPrinceState> = {

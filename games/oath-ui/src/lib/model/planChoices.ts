@@ -37,7 +37,8 @@ export function planChoices(
 
 /**
  * R-5.5.3 — the plans a list offers: each usable plan less one whose picks can never be made
- * now (Warning Signals with no warband it can move), which could never be declared.
+ * now, which could never be declared. Warning Signals with no warband it can move stays: its
+ * moves are all a "may", so it is declared moving nothing.
  */
 export function listedPlans(
     state: HydratedOathGameState,

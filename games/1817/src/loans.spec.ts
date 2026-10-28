@@ -151,12 +151,21 @@ describe('loans in the operating turn', () => {
         })
         toLoanStep(play)
         expect(treasury(play.state, 'BA')).toBe(370)
-        expect(play.valid('blair')).toEqual(['RepayLoan', 'TakeLoan', 'FinishOperatingTurn'])
+        expect(play.valid('blair')).toEqual([
+            'RepayLoan',
+            'TakeLoan',
+            'FinishOperatingTurn',
+            'SetRunInstruction'
+        ])
         play.act('RepayLoan', { companyId: 'BA' })
         play.act('RepayLoan', { companyId: 'BA' })
         expect(getCompany(play.state, 'BA').loans).toBe(1)
         play.act('TakeLoan', { companyId: 'BA' })
-        expect(play.valid('blair')).toEqual(['TakeLoan', 'FinishOperatingTurn'])
+        expect(play.valid('blair')).toEqual([
+            'TakeLoan',
+            'FinishOperatingTurn',
+            'SetRunInstruction'
+        ])
         play.act('FinishOperatingTurn', { companyId: 'BA' })
         expect(play.state.loanStep).toBeUndefined()
     })
@@ -223,7 +232,8 @@ describe('the stock-round corporate action', () => {
             'TakeLoan',
             'BuyBackShares',
             'FinishStockTurn',
-            'SetStockInstruction'
+            'SetStockInstruction',
+            'SetRunInstruction'
         ])
         play.act('BuyBackShares', { companyId: 'BA', certificateIds: ['BA:share:2'] })
         expect(play.state.activePlayerIds).toEqual(['casey'])
@@ -253,7 +263,8 @@ describe('the stock-round corporate action', () => {
         expect(play.valid('blair')).toEqual([
             'BuyBackShares',
             'FinishStockTurn',
-            'SetStockInstruction'
+            'SetStockInstruction',
+            'SetRunInstruction'
         ])
         expect(() =>
             play.act('BuyShares', {

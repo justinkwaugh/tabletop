@@ -1,33 +1,15 @@
-import { FastifyInstance, FastifyRequest, RouteShorthandOptions } from 'fastify'
-import { nanoid } from 'nanoid'
-import { ExternalAuthService } from '@tabletop/common'
+import { FastifyInstance, RouteShorthandOptions } from 'fastify'
 import {
     OAUTH_PURPOSES,
-    type OAuthPurpose,
-    type OAuthStateBinding
+    OAUTH_STATE_LIFETIME_SECONDS,
+    type OAuthPurpose
 } from '@tabletop/backend-services'
-import { discordRedirectUri } from '../../../../lib/discordRedirects.js'
+import { beginDiscordAuthorization } from '../../../../lib/discordAuthorization.js'
 
 export default async function (fastify: FastifyInstance) {
     const guards: Record<OAuthPurpose, RouteShorthandOptions['onRequest']> = {
         login: undefined,
-        link: fastify.auth([fastify.verifyUser, fastify.verifyRecentAuthentication], {
-            relation: 'and'
-        }),
-        reauthenticate: fastify.auth([fastify.verifyUser], { relation: 'and' })
-    }
-
-    function binding(request: FastifyRequest, purpose: OAuthPurpose): OAuthStateBinding {
-        if (purpose === 'login') {
-            const attemptId = nanoid()
-            request.session.set('oauthAttemptId', attemptId)
-            return { kind: 'attempt', attemptId }
-        }
-        const session = request.authenticatedSession
-        if (!session) {
-            throw fastify.httpErrors.unauthorized('No session found')
-        }
-        return { kind: 'session', sessionId: session.id, userId: session.userId }
+        link: fastify.auth([fastify.verifyUser], { relation: 'and' })
     }
 
     for (const purpose of OAUTH_PURPOSES) {
@@ -38,23 +20,20 @@ export default async function (fastify: FastifyInstance) {
                 onRequest: guards[purpose]
             },
             async function (request) {
-                const redirectUri = discordRedirectUri(purpose)
-                const { state } = await fastify.oauthStateService.issue({
-                    provider: ExternalAuthService.Discord,
-                    purpose,
-                    redirectUri,
-                    binding: binding(request, purpose)
-                })
-                const authorizationUrl = fastify.discordOAuth.authorizationUrl({
-                    redirectUri,
-                    state
-                })
+                const { state, redirectUri } = await beginDiscordAuthorization(
+                    fastify,
+                    request,
+                    purpose
+                )
                 return {
                     status: 'ok',
                     payload: {
                         state,
-                        authorizationUrl,
-                        expiresInSeconds: fastify.oauthStateService.lifetimeSeconds()
+                        authorizationUrl: fastify.discordOAuth.authorizationUrl({
+                            redirectUri,
+                            state
+                        }),
+                        expiresInSeconds: OAUTH_STATE_LIFETIME_SECONDS
                     }
                 }
             }

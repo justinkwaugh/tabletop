@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -21,7 +21,7 @@ import type { StockState } from './stockState.js'
 
 export const StopStockInstruction = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('StopStockInstruction'),
         reason: StockInstructionStopReason,
         replacement: Type.Optional(StockInstruction)

@@ -58,7 +58,7 @@ A secret used to authenticate a User Account. Leading and trailing whitespace is
 _Avoid_: Password record
 
 **External Identity**:
-A stable, provider-qualified identity linked to exactly one User Account. An Account may link at most one identity from each provider. Linking requires Recent Authentication and completes only a Provider Authorization Attempt the linking session began.
+A stable, provider-qualified identity linked to exactly one User Account. An Account may link at most one identity from each provider. Linking completes only a Provider Authorization Attempt the linking session began.
 _Avoid_: Social account, provider email
 
 **Trusted External Provider**:
@@ -92,14 +92,10 @@ The unguessable identifier of one Authenticated Session. It is the only authoriz
 A counter on the User Account that every Authenticated Session records when it is established. A session authorizes only while its recorded generation equals the Account's. A Password Credential change advances the generation in the same commit as the new credential, so no session established from the old credential survives it, including one established concurrently.
 
 **Recent Authentication**:
-Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session. Ordinary activity does not refresh it, and a session re-established after a Sensitive Change Challenge has none until the person Reauthenticates.
-
-**Reauthentication**:
-Proof through an Authentication Method of the Account that already holds the current Authenticated Session, which refreshes that session's Recent Authentication. It establishes no session, extends no lifetime, and cannot switch the session to another Account: a Password Credential must be the Account's own and an External Identity must already be linked to it.
-_Avoid_: Re-login, step-up
+Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session. Ordinary activity does not refresh it.
 
 **Provider Authorization Attempt**:
-One pass through an external provider's authorization flow, begun on this platform for a stated purpose: sign-in, linking, or Reauthentication. Its Authorization State is an unpredictable, server-recorded, single-use value with a ten-minute lifetime, bound to the provider, the purpose, the registered return address, and either the Authenticated Session that began it or, for sign-in, the browser that began it. A provider callback is accepted only with the state of a live attempt from the same binding, consumed exactly once.
+One pass through an external provider's authorization flow, begun on this platform for a stated purpose: sign-in or linking. Its Authorization State is an unpredictable value with a ten-minute lifetime, bound to the provider, the purpose and the registered return address, and held by whoever began the attempt: the Authenticated Session for linking, the browser's session cookie for sign-in. Each holder keeps at most one attempt, so beginning another replaces it. A provider callback is accepted only with the state of the live attempt its own holder keeps. An attempt held by an Authenticated Session is consumed exactly once; an attempt held by a sign-in cookie is cleared from that browser when its callback completes, and the provider's single-use authorization code is what limits a copy of the cookie taken earlier.
 _Avoid_: OAuth state parameter, CSRF token
 
 **Logout**:

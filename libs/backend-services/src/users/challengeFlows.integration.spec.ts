@@ -124,7 +124,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
 
         async function login(username: string, password: string) {
             const user = await userStore.findByUsernameAndPassword(username, password)
-            return user ? sessions.establish(user, 'authentication-method') : undefined
+            return user ? sessions.establish(user) : undefined
         }
 
         async function stored(id: string) {
@@ -420,7 +420,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                     { externalIds: ['google:g-2'] },
                     { withPassword: false }
                 )
-                const copied = await sessions.establish(account, 'authentication-method')
+                const copied = await sessions.establish(account)
                 const newEmail = `next-${account.id}@example.test`
                 const issued = await users.sendSensitiveChangeChallenge(account, {
                     email: newEmail.toUpperCase(),

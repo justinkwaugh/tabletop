@@ -7,6 +7,8 @@ export const ReefEncounterInfo: GameInfo = {
     id: 'reef-encounter',
     metadata: {
         name: 'Reef Encounter',
+        bggId: 12962,
+        hasScores: true,
         designer: 'Richard Breese',
         description:
             'Grow corals across the reef, guard them with your shrimps and feed whole corals to your parrotfish. Shift which corals overpower which, so that what your parrotfish has eaten is worth the most when the reef runs out.',

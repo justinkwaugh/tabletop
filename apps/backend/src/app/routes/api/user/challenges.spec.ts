@@ -66,7 +66,7 @@ async function createServer(user: User, { withPassword = true }: { withPassword?
     await server.register(sendPasswordReset, { prefix: '/user/email' })
 
     const adoptSession = async () => {
-        const established = await sessionService.establish(account(), 'authentication-method')
+        const established = await sessionService.establish(account())
         const response = await server.inject({
             method: 'POST',
             url: '/adopt',

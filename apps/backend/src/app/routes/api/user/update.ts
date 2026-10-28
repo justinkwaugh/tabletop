@@ -52,7 +52,6 @@ export default async function (fastify: FastifyInstance) {
                 await authSession({
                     session: request.session,
                     user: updatedUser,
-                    proof: currentPassword ? 'authentication-method' : 'challenge',
                     sessions: fastify.sessionService
                 })
             }

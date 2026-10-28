@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Player } from '@tabletop/common'
+    import type { Player } from '@tabletop/common'
     import { flip } from 'svelte/animate'
     import { cubicOut } from 'svelte/easing'
     import PlayerCompanyCompactCard from '$lib/components/PlayerCompanyCompactCard.svelte'

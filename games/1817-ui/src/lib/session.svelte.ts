@@ -46,6 +46,7 @@ import {
 import { assert, PassableBidding } from '@tabletop/common'
 import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import { EighteenSeventeenMapView } from './mapView.js'
+import { createRouteWorker } from './routeWorker.js'
 import { EighteenSeventeenPresentation } from './presentation.js'
 
 const BaseSession: ReturnType<
@@ -56,7 +57,8 @@ const BaseSession: ReturnType<
 > = createEighteenXXSessionClass(
     EighteenSeventeenTitleRules,
     EighteenSeventeenMapView,
-    EighteenSeventeenPresentation
+    EighteenSeventeenPresentation,
+    createRouteWorker
 )
 
 /** The stock-round panels 1817 adds beside Buy and Sell. */

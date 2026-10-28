@@ -29,8 +29,17 @@
     import { favorToken } from '$lib/images/tileImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { tappedCount } from '$lib/model/exchangeTerms.js'
-    import { cardName, listed, plural, siteName, suitName, transferText } from '$lib/model/names.js'
+    import {
+        cardName,
+        chipCased,
+        listed,
+        plural,
+        siteName,
+        suitName,
+        transferText
+    } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { promiseBy } from '$lib/model/tribunalDeals.js'
 
     // Every "no" is a first-class button: silence is not an answer (R-X.1).
     let gameSession = getGameSession()
@@ -56,7 +65,30 @@
         assertExists(campaign, 'A Campaign reroll is offered only mid-Campaign')
         return roll.side === 'attack' ? `${campaign.swords} swords` : `${campaign.defense} defense`
     }
+
+    // A seat named in plain words, capitalized as its chip on the line above capitalizes it.
+    function seatName(playerId: string): string {
+        return chipCased(gameSession.getPlayerName(playerId))
+    }
 </script>
+
+<!-- R-7.6.3-H1 — a promise in an offer, quoted as its player wrote it, line breaks kept. -->
+{#snippet promise(text: string)}
+    <span
+        class="min-w-0 whitespace-pre-wrap wrap-anywhere border-l-[3px] border-oath-frame px-2 py-0.5 text-[13px]"
+        data-promise>{text}</span
+    >
+{/snippet}
+
+<!-- R-7.6.3-H1 — a deal's promise, quoted with who made it: a party's chip, or "You". -->
+{#snippet quoted(text: string, playerId?: string)}
+    <p class="border-l-[3px] border-oath-frame px-2 py-0.5 text-[13px]">
+        <span data-promise-by
+            >{#if playerId}<PlayerName {playerId} />{:else}You{/if} promised:</span
+        >
+        <span class="whitespace-pre-wrap wrap-anywhere" data-promise>{text}</span>
+    </p>
+{/snippet}
 
 <div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
@@ -117,7 +149,11 @@
                 <TokenText text="{mine.price} favor" /> to keep {cardName(
                     mine.relicCardId
                 )}?{/snippet}
-            <QuestionYesNo yes="Pay" no="Refuse" />
+            <QuestionYesNo
+                yes="Pay"
+                no="Refuse"
+                noConsequence="{seatName(mine.takerPlayerId)} takes it"
+            />
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.PickFavorBank}
         <QuestionForm cardId={mine.cardId}>
@@ -147,6 +183,13 @@
                         )}
                     />
                 </span>
+                <!-- R-7.6.3-H1 — each side's promise, quoted under what that side gives. -->
+                {#if mine.terms.promises?.fromProposer}
+                    <span class="text-oath-text-muted"
+                        ><PlayerName playerId={mine.proposerPlayerId} /> promises</span
+                    >
+                    {@render promise(mine.terms.promises.fromProposer)}
+                {/if}
                 <span class="text-oath-text-muted">You give</span>
                 <span>
                     <TokenText
@@ -157,8 +200,29 @@
                         )}
                     />
                 </span>
+                {#if mine.terms.promises?.fromCounterparty}
+                    <span class="text-oath-text-muted">You promise</span>
+                    {@render promise(mine.terms.promises.fromCounterparty)}
+                {/if}
             </div>
             <QuestionYesNo yes="Accept" no="Refuse" />
+        </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.DealKept}
+        <!-- R-7.6.3-H1 — the claimant says the deal was kept; each promise is quoted, theirs first. -->
+        {@const deal = draft.claimedDeal}
+        {@const theirs = deal && promiseBy(deal, mine.claimantPlayerId)}
+        {@const yours = deal && promiseBy(deal, mine.askedPlayerId)}
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}<PlayerName playerId={mine.claimantPlayerId} /> says your deal is kept{/snippet}
+            <div class="mb-2 flex flex-col gap-1">
+                {#if theirs}
+                    {@render quoted(theirs, mine.claimantPlayerId)}
+                {/if}
+                {#if yours}
+                    {@render quoted(yours)}
+                {/if}
+            </div>
+            <QuestionYesNo yes="Yes, it was kept" no="Not kept" />
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.JoinSite}
         <QuestionForm cardId={mine.cardId}>

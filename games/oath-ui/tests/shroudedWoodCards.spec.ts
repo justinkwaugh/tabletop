@@ -140,8 +140,8 @@ for (const { name, viewport, phone } of SIZES) {
                 .filter((slotId) => slotId !== SLOTS.wood)
                 .sort()
             expect(await litSlots(page)).toEqual(sites)
-            // Way Station's Great Slum also offers its favor way, as on any Travel there ("0 or 0+").
-            for (const slotId of sites.filter((slotId) => slotId !== SLOTS.greatSlum)) {
+            // The free way hides Way Station's favor way at the Great Slum: every chip reads "0 Supply".
+            for (const slotId of sites) {
                 await expect(siteAt(page, slotId).locator('.travel-cost')).toHaveText('0 Supply')
             }
             await siteAt(page, SLOTS.mountain).locator('.board-card').click()

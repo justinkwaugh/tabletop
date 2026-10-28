@@ -57,6 +57,7 @@ import {
     UndoVotePreview
 } from '@tabletop/common'
 import type {
+    AblyTokenRequest,
     AblyTokenResponse,
     ApiResponse,
     ApplyActionResponse,
@@ -82,7 +83,6 @@ import type {
 } from './responseTypes.js'
 import { APIError } from './errors.js'
 import type { Credentials } from './requestTypes.js'
-import Ably from 'ably'
 import { checkVersion, resolveVersionChange, VersionChange } from './versionChecker.js'
 import { toast } from 'svelte-sonner'
 
@@ -249,7 +249,6 @@ export class TabletopApi {
         const response = await this.wretch
             .post({ credential }, '/auth/google/link')
             .unauthorized(this.on401)
-            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
@@ -262,7 +261,6 @@ export class TabletopApi {
         const response = await this.wretch
             .post(undefined, `/auth/discord/begin/${purpose}`)
             .unauthorized(this.on401)
-            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<DiscordAuthorizationStartResponse>()
 
@@ -283,35 +281,10 @@ export class TabletopApi {
         const response = await this.wretch
             .post({ code, state }, '/auth/discord/link')
             .unauthorized(this.handleError)
-            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
         return response.payload.user
-    }
-
-    async reauthenticateDiscord(code: string, state: string): Promise<void> {
-        await this.wretch
-            .post({ code, state }, '/auth/discord/reauthenticate')
-            .unauthorized(this.handleError)
-            .badRequest(this.handleError)
-            .json()
-    }
-
-    async reauthenticateWithPassword(password: string): Promise<void> {
-        await this.wretch
-            .post({ password }, '/auth/reauthenticate')
-            .unauthorized(this.handleError)
-            .badRequest(this.handleError)
-            .json()
-    }
-
-    async reauthenticateGoogle(credential: string): Promise<void> {
-        await this.wretch
-            .post({ credential }, '/auth/google/reauthenticate')
-            .unauthorized(this.handleError)
-            .badRequest(this.handleError)
-            .json()
     }
 
     async logout() {
@@ -1015,14 +988,15 @@ export class TabletopApi {
         return response.payload.token
     }
 
-    async getAblyToken(): Promise<Ably.TokenRequest> {
+    async getAblyToken(gameIds: string[] = []): Promise<AblyTokenRequest> {
+        const params = new URLSearchParams(gameIds.map((gameId) => ['game', gameId]))
         const response = await this.wretch
-            .get('/auth/ably/token')
+            .get(`/auth/ably/token?${params}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<AblyTokenResponse>()
 
-        return response.payload.token as Ably.TokenRequest
+        return response.payload.token
     }
 
     async subscribeToPushNotifications(subscription: PushSubscription) {

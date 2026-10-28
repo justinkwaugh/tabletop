@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { createRouteWorker } from './routeWorker.js'
     import { assert } from '@tabletop/common'
     import type { GameSession } from '@tabletop/frontend-components'
     import {
@@ -99,9 +100,6 @@
             !session.privateActions.trackPowerSelection &&
             !session.decisions.selection
     )
-    function createRouteWorker() {
-        return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
-    }
 </script>
 
 <GameTable

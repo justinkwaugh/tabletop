@@ -34,12 +34,7 @@ async function createServer(initialStatus: UserStatus) {
     await server.register(logout, { prefix: '/auth' })
     await server.register(logoutAll, { prefix: '/auth' })
     server.post('/session', async (request) => {
-        await authSession({
-            session: request.session,
-            user: current,
-            proof: 'authentication-method',
-            sessions: sessionService
-        })
+        await authSession({ session: request.session, user: current, sessions: sessionService })
         return {}
     })
     server.post('/legacy-session', async (request) => {

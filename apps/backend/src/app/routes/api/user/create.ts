@@ -44,7 +44,6 @@ export default async function (fastify: FastifyInstance) {
             await authSession({
                 session: request.session,
                 user: createdUser,
-                proof: 'authentication-method',
                 sessions: fastify.sessionService
             })
             return { status: 'ok', payload: { user: createdUser } }

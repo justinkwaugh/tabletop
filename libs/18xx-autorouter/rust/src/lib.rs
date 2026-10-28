@@ -519,12 +519,77 @@ impl Search<'_> {
     }
 }
 
+struct CandidateGroup<'a> {
+    candidates: &'a [Candidate],
+    words: std::ops::Range<usize>,
+    trains: std::ops::Range<usize>,
+    longest_suffix: Vec<usize>,
+}
+
+struct Compatibility {
+    resource_candidates: Vec<Vec<u64>>,
+    rows: Vec<Option<Vec<u64>>>,
+    words: usize,
+}
+
+impl Compatibility {
+    fn new(groups: &[CandidateGroup<'_>], resource_count: usize, words: usize) -> Self {
+        if groups.last().is_none_or(|group| group.trains.end <= 1) {
+            return Self {
+                resource_candidates: vec![],
+                rows: vec![],
+                words,
+            };
+        }
+        let mut resource_candidates = vec![vec![0; words]; resource_count];
+        for group in groups {
+            for (index, candidate) in group.candidates.iter().enumerate() {
+                for (word, &resources) in candidate.resources.iter().enumerate() {
+                    let mut resources = resources;
+                    while resources != 0 {
+                        let resource = word * 64 + resources.trailing_zeros() as usize;
+                        resources &= resources - 1;
+                        resource_candidates[resource][group.words.start + index / 64] |=
+                            1 << (index % 64);
+                    }
+                }
+            }
+        }
+        Self {
+            resource_candidates,
+            rows: vec![None; words * 64],
+            words,
+        }
+    }
+
+    fn row(&mut self, id: usize, candidate: &Candidate, start: usize) -> &[u64] {
+        self.rows[id].get_or_insert_with(|| {
+            let mut compatible = vec![u64::MAX; self.words - start];
+            for (word, &resources) in candidate.resources.iter().enumerate() {
+                let mut resources = resources;
+                while resources != 0 {
+                    let resource = word * 64 + resources.trailing_zeros() as usize;
+                    resources &= resources - 1;
+                    for (bits, conflicts) in compatible
+                        .iter_mut()
+                        .zip(&self.resource_candidates[resource][start..])
+                    {
+                        *bits &= !conflicts;
+                    }
+                }
+            }
+            compatible
+        })
+    }
+}
+
 struct Selection<'a> {
-    candidates: &'a [Rc<Vec<Candidate>>],
-    upper: Vec<i32>,
-    longest_upper: Vec<usize>,
+    groups: Vec<CandidateGroup<'a>>,
+    order: Vec<(usize, usize)>,
+    available: Vec<Vec<u64>>,
+    first_words: Vec<Vec<usize>>,
+    compatibility: Compatibility,
     longest_bonus: i32,
-    used: Vec<u64>,
     current: Vec<(usize, usize)>,
     best: Vec<(usize, usize)>,
     revenue: i32,
@@ -533,14 +598,113 @@ struct Selection<'a> {
     exhausted: bool,
 }
 
-impl Selection<'_> {
-    fn walk(&mut self, train: usize, revenue: i32, longest: usize) {
+impl<'a> Selection<'a> {
+    fn new(
+        candidates: &'a [Rc<Vec<Candidate>>],
+        resource_count: usize,
+        longest_bonus: i32,
+        deadline: f64,
+    ) -> Self {
+        let mut profiles: Vec<Vec<usize>> = vec![];
+        for train in 0..candidates.len() {
+            if let Some(profile) = profiles
+                .iter_mut()
+                .find(|profile| Rc::ptr_eq(&candidates[profile[0]], &candidates[train]))
+            {
+                profile.push(train);
+            } else {
+                profiles.push(vec![train]);
+            }
+        }
+        profiles.sort_by_key(|profile| {
+            (
+                std::cmp::Reverse(candidates[profile[0]].first().map_or(0, |c| c.revenue)),
+                std::cmp::Reverse(candidates[profile[0]].len()),
+            )
+        });
+        let mut groups = vec![];
+        let mut order = vec![];
+        let mut initial = vec![];
+        for profile in profiles {
+            let routes = &candidates[profile[0]];
+            let first_train = order.len();
+            order.extend(profile.into_iter().map(|train| (train, groups.len())));
+            let start = initial.len();
+            initial.resize(start + routes.len().div_ceil(64), u64::MAX);
+            if !routes.len().is_multiple_of(64) {
+                *initial.last_mut().unwrap() = (1 << (routes.len() % 64)) - 1;
+            }
+            let mut longest_suffix = vec![0; routes.len() + 1];
+            if longest_bonus != 0 {
+                for index in (0..routes.len()).rev() {
+                    longest_suffix[index] = longest_suffix[index + 1].max(routes[index].visits);
+                }
+            }
+            groups.push(CandidateGroup {
+                candidates: routes,
+                words: start..initial.len(),
+                trains: first_train..order.len(),
+                longest_suffix,
+            });
+        }
+        let compatibility = Compatibility::new(&groups, resource_count, initial.len());
+        let mut available = vec![vec![0; initial.len()]; order.len() + 1];
+        available[0] = initial;
+        let first_words =
+            vec![groups.iter().map(|group| group.words.start).collect(); order.len() + 1];
+        Self {
+            groups,
+            order,
+            available,
+            first_words,
+            compatibility,
+            longest_bonus,
+            current: vec![],
+            best: vec![],
+            revenue: 0,
+            expansions: 0,
+            deadline,
+            exhausted: false,
+        }
+    }
+
+    fn upper(&self, depth: usize, group_id: usize, mut longest: usize) -> (i32, usize) {
+        let mut revenue = 0;
+        for (id, group) in self.groups.iter().enumerate().skip(group_id) {
+            let mut remaining = group.trains.end - depth.max(group.trains.start);
+            let mut first = true;
+            for word in self.first_words[depth][id]..group.words.end {
+                let mut bits = self.available[depth][word];
+                while bits != 0 && remaining != 0 {
+                    let index = (word - group.words.start) * 64 + bits.trailing_zeros() as usize;
+                    bits &= bits - 1;
+                    if first && self.longest_bonus != 0 {
+                        longest = longest.max(group.longest_suffix[index]);
+                        first = false;
+                    }
+                    revenue += group.candidates[index].revenue;
+                    remaining -= 1;
+                }
+                if remaining == 0 {
+                    break;
+                }
+            }
+        }
+        (revenue, longest)
+    }
+
+    fn timed_out(&mut self) -> bool {
         self.expansions += 1;
-        if self.exhausted
-            || (self.expansions == 1 || self.expansions.is_multiple_of(4096))
-                && milliseconds() > self.deadline
+        if (self.expansions == 1 || self.expansions.is_multiple_of(1024))
+            && milliseconds() > self.deadline
         {
             self.exhausted = true;
+        }
+        self.exhausted
+    }
+
+    fn walk(&mut self, depth: usize, revenue: i32, longest: usize) {
+        if self.timed_out() {
             return;
         }
         let total = revenue + longest as i32 * self.longest_bonus;
@@ -548,42 +712,76 @@ impl Selection<'_> {
             self.revenue = total;
             self.best.clone_from(&self.current);
         }
-        let bonus_upper = longest.max(self.longest_upper[train]) as i32 * self.longest_bonus;
-        if train == self.candidates.len()
-            || revenue + self.upper[train] + bonus_upper <= self.revenue
-        {
+        if depth == self.order.len() {
             return;
         }
-        for (index, candidate) in self.candidates[train].iter().enumerate() {
-            if revenue + candidate.revenue + self.upper[train + 1] + bonus_upper <= self.revenue {
-                break;
-            }
-            if candidate
-                .resources
-                .iter()
-                .zip(&self.used)
-                .any(|(a, b)| a & b != 0)
-            {
-                continue;
-            }
-            for (used, bits) in self.used.iter_mut().zip(&candidate.resources) {
-                *used |= bits;
-            }
-            self.current.push((train, index));
-            self.walk(
-                train + 1,
-                revenue + candidate.revenue,
-                longest.max(candidate.visits),
-            );
-            self.current.pop();
-            for (used, bits) in self.used.iter_mut().zip(&candidate.resources) {
-                *used &= !bits;
-            }
-            if self.exhausted {
-                break;
+        let (train, group) = self.order[depth];
+        let (upper, longest_upper) = self.upper(depth, group, longest);
+        if revenue + upper + longest_upper as i32 * self.longest_bonus <= self.revenue {
+            return;
+        }
+        let (remaining_upper, remaining_longest) = self.upper(depth, group + 1, longest);
+        let start = self.groups[group].words.start;
+        for word in self.first_words[depth][group]..self.groups[group].words.end {
+            while self.available[depth][word] != 0 {
+                if self.timed_out() {
+                    return;
+                }
+                let bit = self.available[depth][word].trailing_zeros() as usize;
+                let index = (word - start) * 64 + bit;
+                self.available[depth][word] &= !(1 << bit);
+                let candidate = &self.groups[group].candidates[index];
+                let next_revenue = revenue + candidate.revenue;
+                let next_longest = longest.max(candidate.visits);
+                let copies = self.groups[group].trains.end - depth;
+                let bonus_upper = remaining_longest.max(self.groups[group].longest_suffix[index])
+                    as i32
+                    * self.longest_bonus;
+                if revenue + candidate.revenue * copies as i32 + remaining_upper + bonus_upper
+                    <= self.revenue
+                {
+                    return;
+                }
+                self.current.push((train, index));
+                if depth + 1 < self.order.len() {
+                    let suffix_start = if self.groups[group].trains.len() > 1 {
+                        start
+                    } else {
+                        self.groups[group].words.end
+                    };
+                    let compatible =
+                        self.compatibility
+                            .row(word * 64 + bit, candidate, suffix_start);
+                    let (parents, children) = self.available.split_at_mut(depth + 1);
+                    for next_group in self.order[depth + 1].1..self.groups.len() {
+                        let end = self.groups[next_group].words.end;
+                        let mut first = end;
+                        let from = if next_group == group {
+                            word
+                        } else {
+                            self.first_words[depth][next_group]
+                        };
+                        for next_word in from..end {
+                            let bits =
+                                parents[depth][next_word] & compatible[next_word - suffix_start];
+                            children[0][next_word] = bits;
+                            if bits != 0 && first == end {
+                                first = next_word;
+                            }
+                        }
+                        self.first_words[depth + 1][next_group] = first;
+                    }
+                }
+                self.walk(depth + 1, next_revenue, next_longest);
+                self.current.pop();
             }
         }
-        self.walk(train + 1, revenue, longest);
+        let next = self.groups[group].trains.end;
+        let (parents, children) = self.available.split_at_mut(next);
+        children[0].copy_from_slice(&parents[depth]);
+        let (parents, children) = self.first_words.split_at_mut(next);
+        children[0].copy_from_slice(&parents[depth]);
+        self.walk(next, revenue, longest);
     }
 }
 
@@ -718,27 +916,14 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         candidates.push(Rc::new(search.candidates));
     }
     let path_finished = milliseconds();
-    let mut upper = vec![0; candidates.len() + 1];
-    let mut longest_upper = vec![0; candidates.len() + 1];
-    for t in (0..candidates.len()).rev() {
-        upper[t] = upper[t + 1] + candidates[t].first().map_or(0, |c| c.revenue);
-        longest_upper[t] =
-            longest_upper[t + 1].max(candidates[t].iter().map(|c| c.visits).max().unwrap_or(0));
-    }
-    let mut selection = Selection {
-        candidates: &candidates,
-        upper,
-        longest_upper,
-        longest_bonus: problem.longest_route_bonus_per_stop,
-        used: vec![0; problem.resource_count.div_ceil(64)],
-        current: vec![],
-        best: vec![],
-        revenue: 0,
-        expansions: 0,
-        deadline: path_finished + problem.budget_ms,
-        exhausted: false,
-    };
+    let mut selection = Selection::new(
+        &candidates,
+        problem.resource_count,
+        problem.longest_route_bonus_per_stop,
+        path_finished + problem.budget_ms,
+    );
     selection.walk(0, 0, 0);
+    selection.best.sort_unstable_by_key(|&(train, _)| train);
     let routes = selection
         .best
         .iter()

@@ -90,7 +90,6 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 await authSession({
                     session: request.session,
                     user,
-                    proof: 'authentication-method',
                     sessions: server.sessionService
                 })
                 return {}

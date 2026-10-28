@@ -110,6 +110,15 @@ describe('a private catalog', () => {
         expect(catalog.blockedBy(state('early', { H: company }, ['H']), 'N18')).toBeUndefined()
     })
 
+    it('judges a private blocking only while it is in the game, open, and its block holds', () => {
+        expect(catalog.blocking(state('early', { B: player }), 'B')).toBe(true)
+        expect(catalog.blocking(state('early', { B: company }), 'B')).toBe(false)
+        expect(catalog.blocking(state('early', { B: player }, ['B']), 'B')).toBe(false)
+        expect(catalog.blocking(state('early', {}), 'B')).toBe(false)
+        expect(catalog.blocking(state('early', { A: player }), 'A')).toBe(false)
+        expect(catalog.blocking(state('early', { H: company }), 'H')).toBe(true)
+    })
+
     it('bounds a sale at half, rounded up, to double face value unless the private says otherwise', () => {
         expect(catalog.priceRange('A')).toEqual({ minimum: 23, maximum: 90 })
         expect(catalog.priceRange('H')).toEqual({ minimum: 1, maximum: 200 })

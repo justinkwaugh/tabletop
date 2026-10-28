@@ -1,5 +1,6 @@
 import { type Static, Type } from 'typebox'
 import { DateType } from '@tabletop/common'
+import { ProviderAuthorizationAttempt } from '../oauth/providerAuthorization.js'
 
 export type AuthenticatedSession = Static<typeof AuthenticatedSession>
 export const AuthenticatedSession = Type.Object({
@@ -7,8 +8,7 @@ export const AuthenticatedSession = Type.Object({
     userId: Type.String(),
     generation: Type.Integer({ minimum: 0 }),
     createdAt: DateType(),
-    authenticatedAt: Type.Optional(DateType()),
-    expiresAt: DateType()
+    authenticatedAt: DateType(),
+    expiresAt: DateType(),
+    providerAuthorization: Type.Optional(ProviderAuthorizationAttempt)
 })
-
-export type AuthenticationProof = 'authentication-method' | 'challenge'

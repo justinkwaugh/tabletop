@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -37,7 +37,7 @@ export function discardableTrains(
 }
 export const DiscardTrain = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('DiscardTrain'),
         companyId: Type.String(),
         trainId: Type.String(),
