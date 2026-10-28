@@ -104,6 +104,8 @@ export type MapViewDefinition = {
      * hexes in labels and text.
      */
     hideLocationNames?: true | readonly string[]
+    /** Hexside border widths by kind, such as a heavier impassable border; 3 otherwise. */
+    borderWidths?: Readonly<Record<string, number>>
     /** A hex whose tile prints a label, such as Pr, shows the label in place of its name. */
     labelsReplaceNames?: true
 }

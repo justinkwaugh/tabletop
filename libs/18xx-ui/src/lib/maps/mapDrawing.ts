@@ -269,6 +269,8 @@ export type MapDrawing = {
     bounds: BoundingBox
     /** Printed before terrain costs, such as ¥. */
     terrainCostPrefix: string
+    /** Hexside border widths by kind, where the view sets one. */
+    borderWidths: Readonly<Record<string, number>>
 }
 
 function remapFaceEdges(face: TileFace, edges: Readonly<Record<number, number>>): TileFace {
@@ -327,6 +329,7 @@ export function createMapDrawing(
         revenueStageCaptions,
         revenueStack,
         terrainCostPrefix = '',
+        borderWidths = {},
         namePositions = {},
         cityNames = {},
         namesBelow = [],
@@ -350,6 +353,7 @@ export function createMapDrawing(
         | 'revenueStageCaptions'
         | 'revenueStack'
         | 'terrainCostPrefix'
+        | 'borderWidths'
         | 'namePositions'
         | 'cityNames'
         | 'namesBelow'
@@ -655,6 +659,7 @@ export function createMapDrawing(
         locations,
         bonusArrows: drawnArrows,
         terrainCostPrefix,
+        borderWidths,
         bounds: drawnArrows.map(bonusArrowBounds).reduce(enclosingBounds, {
             x,
             y,

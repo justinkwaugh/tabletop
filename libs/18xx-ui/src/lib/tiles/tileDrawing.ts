@@ -59,6 +59,8 @@ export type TileLayout = {
      * dashes from the edge to an anchor.
      */
     printedPaths?: Readonly<Record<string, 'spike' | 'pier'>>
+    /** How far an offboard spike runs from its edge toward its stop, as a share of the way. */
+    spikeReach?: number
 }
 
 export type TileDrawnNode = {
@@ -213,7 +215,7 @@ export function createTileDrawing(
         if (!offboard && !printed) return drawn
         const [base, center] =
             path.endpoints[0].kind === 'edge' ? [drawn.start, drawn.end] : [drawn.end, drawn.start]
-        const reach = printed === 'pier' ? PierReach : OffboardSpikeReach
+        const reach = printed === 'pier' ? PierReach : (layout.spikeReach ?? OffboardSpikeReach)
         const tip = {
             x: base.x + (center.x - base.x) * reach,
             y: base.y + (center.y - base.y) * reach

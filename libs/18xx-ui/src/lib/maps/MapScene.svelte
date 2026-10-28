@@ -661,7 +661,7 @@
                             x2={end.x}
                             y2={end.y}
                             stroke={borderColor(border.kind)}
-                            stroke-width="3"
+                            stroke-width={scene.borderWidths[border.kind] ?? 3}
                         ></line>
                     {/each}
                 </g>
