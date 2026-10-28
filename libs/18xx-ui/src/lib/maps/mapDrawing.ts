@@ -1,5 +1,10 @@
 import { bonusArrowBounds, drawBonusArrow, type DrawnBonusArrow } from './bonusArrows.js'
-import type { MapViewDefinition, StationAppearance, SymbolPosition } from './stationPresentation.js'
+import type {
+    MapViewDefinition,
+    OffboardNameStyle,
+    StationAppearance,
+    SymbolPosition
+} from './stationPresentation.js'
 import {
     assert,
     assertExists,
@@ -180,6 +185,8 @@ export type MapDrawnLocation = {
     nameBaseline: Point
     /** The name's lines where it prints straight. */
     nameRows: readonly string[]
+    /** An offboard's own type for its name, where the view sets one. */
+    nameStyle?: OffboardNameStyle
     /**
      * True where the title places a city or town's name itself rather than across the top. An
      * offboard's name is never curved, so it keeps the plain style wherever it is placed.
@@ -323,6 +330,7 @@ export function createMapDrawing(
         namesBelow = [],
         symbolPositions = {},
         nameLines = {},
+        offboardNames,
         terrainPositions = {},
         bonusArrows = []
     }: Pick<
@@ -343,6 +351,7 @@ export function createMapDrawing(
         | 'namesBelow'
         | 'symbolPositions'
         | 'nameLines'
+        | 'offboardNames'
         | 'terrainPositions'
         | 'bonusArrows'
     > = {}
@@ -405,8 +414,13 @@ export function createMapDrawing(
             !hideLocationNames?.includes(location.id) &&
             !placement &&
             !!location.name
+        const nameStyle =
+            face.nodes.length && face.nodes.every((node) => node.kind === 'offboard')
+                ? offboardNames
+                : undefined
+        const nameScale = (nameStyle?.fontSize ?? NameFontSize) / NameFontSize
         const nameBaseline = namePositions[location.id] ?? { x: 0, y: -35 }
-        const nameRows = nameLines[location.id] ?? splitName(location.name ?? '')
+        const nameRows = nameLines[location.id] ?? splitName(location.name ?? '', 18 / nameScale)
         const townRing = (location.markers ?? []).some((marker) => {
             const art = markerArt[marker.id]
             return !!art && 'townRing' in art
@@ -477,10 +491,12 @@ export function createMapDrawing(
                     ...(tileLayout.annotationExclusions ?? []),
                     ...nameArcPoints,
                     ...(nameShown && !curvedName
-                        ? [-18, 0, 18].map((x) => ({
-                              x: nameBaseline.x + x,
-                              y: nameBaseline.y - 3
-                          }))
+                        ? nameRows.flatMap((_, row) =>
+                              [-18, 0, 18].map((x) => ({
+                                  x: nameBaseline.x + x * nameScale,
+                                  y: nameBaseline.y + (row * NameLineHeight - 3) * nameScale
+                              }))
+                          )
                         : []),
                     ...(!placement && location.terrain
                         ? face.nodes.length
@@ -557,6 +573,7 @@ export function createMapDrawing(
             nameShown,
             nameBaseline,
             nameRows,
+            ...(nameStyle ? { nameStyle } : {}),
             namePlaced:
                 !!namePositions[location.id] &&
                 !face.nodes.some((node) => node.kind === 'offboard'),
@@ -594,7 +611,7 @@ export function createMapDrawing(
                         ...(curvedName
                             ? nameArcPoints.map((point) => disc(point, 3))
                             : nameShown && location.name
-                              ? [nameBox(nameRows, nameBaseline)]
+                              ? [nameBox(nameRows, nameBaseline, nameScale)]
                               : []),
                         ...(!placement && location.terrain
                             ? [terrainBox(location.terrain, terrainCostPrefix, terrainRow)]
@@ -818,8 +835,8 @@ function terrainBox(
 }
 
 // Long names split at the space nearest their middle.
-function splitName(name: string): string[] {
-    if (name.length <= 18) return [name]
+function splitName(name: string, longest: number): string[] {
+    if (name.length <= longest) return [name]
     const breaks = [...name.matchAll(/\s+/g)].map((match) => match.index)
     if (!breaks.length) return [name]
     const split = breaks.reduce((best, index) =>
@@ -829,13 +846,15 @@ function splitName(name: string): string[] {
 }
 
 // Names print in small type, a line beneath the baseline per row, with room for descenders.
-function nameBox(rows: readonly string[], baseline: Point): Obstacle {
+const NameFontSize = 5
+const NameLineHeight = 6
+function nameBox(rows: readonly string[], baseline: Point, scale = 1): Obstacle {
     const lines = rows.length
     const longest = Math.max(...rows.map((row) => row.length))
     return box(
-        { x: baseline.x, y: baseline.y - 1.4 + (lines - 1) * 3 },
-        longest * 1.6 + 2,
-        2.6 + (lines - 1) * 3
+        { x: baseline.x, y: baseline.y + (-1.4 + (lines - 1) * 3) * scale },
+        (longest * 1.6 + 2) * scale,
+        (2.6 + (lines - 1) * 3) * scale
     )
 }
 

@@ -14,6 +14,15 @@ export type RevenueCell = Point & {
     captionWidth: number
 }
 
+/** A caption's width at its bold 7.5 size: roman numerals are mostly narrow I's. */
+function captionTextWidth(caption: string): number {
+    return [...caption].reduce(
+        (sum, character) =>
+            sum + (/[Iil1|]/.test(character) ? 2.2 : /[-. ]/.test(character) ? 3.1 : 5.3),
+        0
+    )
+}
+
 export function stagedRevenueLayout(
     revenue: TileRevenue,
     anchor: Point,
@@ -42,7 +51,9 @@ export function stagedRevenueLayout(
     const captioned =
         revenue.values.length > 1 && revenue.values.some((value) => captions[value.stage])
     const captionWidth = captioned
-        ? Math.max(...revenue.values.map((value) => (captions[value.stage] ?? '').length * 4.6 + 3))
+        ? Math.max(
+              ...revenue.values.map((value) => captionTextWidth(captions[value.stage] ?? ''))
+          ) + 3
         : 0
     const track = paths.flatMap((path) =>
         Array.from({ length: 21 }, (_, i) => tilePathPoint(path, i / 20))

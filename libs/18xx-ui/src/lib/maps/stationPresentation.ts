@@ -6,6 +6,8 @@ import type { TileDrawing, TileDrawingStyle, TileLayout } from '../tiles/tileDra
 import type { TileAppearance } from '../tiles/tileAppearance.js'
 import type { RevenueStageColors } from '../colors/revenueStageColors.js'
 
+export type OffboardNameStyle = { fontSize: number; color: string; serif?: true }
+
 /** Tiles drawn side by side in place of a round token, at the token's height. */
 export type TokenTiles = {
     orientation: HexOrientation
@@ -56,6 +58,8 @@ export type MapViewDefinition = {
     cityNames?: Readonly<Record<string, Readonly<Record<string, string>>>>
     /** Explicit lines for a location's name, by location id; long names otherwise split in two. */
     nameLines?: Readonly<Record<string, readonly string[]>>
+    /** Offboards' names in their own larger type, as a board printing them for its connections. */
+    offboardNames?: OffboardNameStyle
     /**
      * Where a location's revenue-sized symbols go, by location id, in place of clear space: the
      * centre of their row, or each symbol's own centre.

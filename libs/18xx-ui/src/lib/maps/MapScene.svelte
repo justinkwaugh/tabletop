@@ -707,22 +707,27 @@
                 {@const lines = entry.nameRows}
                 <!-- A city name the title places itself matches the curved names in their styles. -->
                 {@const curved = entry.namePlaced && appearance.cityNameArcs}
+                {@const style = entry.nameStyle}
+                {@const size = style?.fontSize ?? (curved ? 6 : 5)}
                 <g
                     class="map-annotations"
+                    data-map-name={entry.location.id}
                     transform={`translate(${entry.center.x + entry.nameBaseline.x} ${entry.center.y})`}
-                    fill={curved ? appearance.ink : '#202c31'}
+                    fill={style?.color ?? (curved ? appearance.ink : '#202c31')}
                     text-anchor="middle"
                     paint-order="stroke"
                     stroke={appearance.colors[entry.face.color]}
-                    stroke-width={curved ? 1.4 : 1.7}
+                    stroke-width={style ? 1 : curved ? 1.4 : 1.7}
                 >
                     <text
-                        font-size={curved ? 6 : 5}
-                        font-weight={curved ? 700 : 650}
+                        font-size={size}
+                        font-weight={style || curved ? 700 : 650}
+                        font-family={style?.serif ? "Georgia, 'Times New Roman', serif" : undefined}
                         letter-spacing={curved ? 0.15 : undefined}
                         >{#each lines as line, index (index)}<tspan
                                 x="0"
-                                y={entry.nameBaseline.y + index * 6}>{line}</tspan
+                                y={entry.nameBaseline.y + index * (style ? size * 1.2 : 6)}
+                                >{line}</tspan
                             >{/each}</text
                     >
                 </g>
