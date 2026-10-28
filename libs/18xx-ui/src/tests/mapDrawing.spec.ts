@@ -351,3 +351,54 @@ it('stacks values that change by phase with their phases beside them, a lone val
         expect(Math.abs(cell.x - cell.width / 2 - cell.captionWidth)).toBeLessThan(50)
     expect(lone.map((cell) => cell.caption)).toEqual([undefined])
 })
+
+it('draws a printed port connection as a pier and a junction track as a spike', () => {
+    const map = new RailwayMap({
+        id: 'printed',
+        name: 'Printed',
+        orientation: HexOrientation.Flat,
+        locations: [
+            {
+                id: 'port',
+                coordinates: { q: 0, r: 0 },
+                buildable: false,
+                preprintedTile: createOffboardTileFace([2, 3], {
+                    kind: 'staged',
+                    values: [{ stage: 'yellow', amount: 0 }]
+                })
+            },
+            {
+                id: 'cape',
+                coordinates: { q: 3, r: 0 },
+                buildable: false,
+                preprintedTile: {
+                    color: 'blue',
+                    labels: [],
+                    nodes: [{ id: 'junction', kind: 'junction' }],
+                    paths: [
+                        {
+                            id: 'edge-1',
+                            endpoints: [
+                                { kind: 'edge', edge: 1 },
+                                { kind: 'node', nodeId: 'junction' }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ]
+    })
+    const [port, cape] = createMapDrawing(map, undefined, {
+        layouts: {
+            port: { printedPaths: { 'edge-3': 'pier' } },
+            cape: { printedPaths: { 'edge-1': 'spike' } }
+        }
+    }).locations.map((entry) => entry.drawing.paths)
+    expect(port.map((path) => [path.id, !!path.spike, !!path.pier])).toEqual([
+        ['edge-2', true, false],
+        ['edge-3', false, true]
+    ])
+    expect(cape.map((path) => [path.id, !!path.spike, !!path.pier])).toEqual([
+        ['edge-1', true, false]
+    ])
+})

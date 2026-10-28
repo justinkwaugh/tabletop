@@ -33,6 +33,7 @@ export type { TileDrawnPath } from './tileTrackGeometry.js'
 export const TileRadius = 50
 
 const OffboardSpikeReach = 0.6
+const PierReach = 0.6
 
 export type TileLayout = {
     annotationExclusions?: readonly Point[]
@@ -53,6 +54,11 @@ export type TileLayout = {
     revenueStack?: 'column' | 'row'
     /** Centres the revenue, with any badge beneath it on a map, on the hex's middle line. */
     revenueAlign?: 'middle'
+    /**
+     * How the print draws a connection to the board's edge, by path id: a spike, or a port's
+     * dashes from the edge to an anchor.
+     */
+    printedPaths?: Readonly<Record<string, 'spike' | 'pier'>>
 }
 
 export type TileDrawnNode = {
@@ -203,14 +209,18 @@ export function createTileDrawing(
                     (endpoint) => endpoint.kind === 'node' && endpoint.nodeId === node.id
                 )
         )
-        if (!offboard) return drawn
+        const printed = layout.printedPaths?.[path.id]
+        if (!offboard && !printed) return drawn
         const [base, center] =
             path.endpoints[0].kind === 'edge' ? [drawn.start, drawn.end] : [drawn.end, drawn.start]
+        const reach = printed === 'pier' ? PierReach : OffboardSpikeReach
         const tip = {
-            x: base.x + (center.x - base.x) * OffboardSpikeReach,
-            y: base.y + (center.y - base.y) * OffboardSpikeReach
+            x: base.x + (center.x - base.x) * reach,
+            y: base.y + (center.y - base.y) * reach
         }
-        return { ...drawn, spike: { base, tip } }
+        return printed === 'pier'
+            ? { ...drawn, pier: { base, tip } }
+            : { ...drawn, spike: { base, tip } }
     }
     const paths = face.paths.map((path): TileDrawnPath => {
         const start = endpointPosition(path.endpoints[0])

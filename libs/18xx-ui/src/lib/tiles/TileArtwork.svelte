@@ -43,6 +43,29 @@
         overlays?: Snippet<[TileDrawing]>
     } = $props()
     const crossingClipId = $props.id()
+    // A junction whose every track prints as a spike or pier has no track to join.
+    const printedOnlyJunctionIds = $derived(
+        face.nodes
+            .filter((node) => node.kind === 'junction')
+            .map((node) => node.id)
+            .filter((nodeId) =>
+                face.paths
+                    .filter((path) =>
+                        path.endpoints.some(
+                            (endpoint) => endpoint.kind === 'node' && endpoint.nodeId === nodeId
+                        )
+                    )
+                    .every((path) => {
+                        const drawn = drawing.paths.find((entry) => entry.id === path.id)
+                        return !!(drawn?.spike || drawn?.pier)
+                    })
+            )
+    )
+    // A port connection prints as two dashes across it from the edge, then the anchor.
+    const PierDashes = [0.12, 0.38]
+    const PierDashLength = 11
+    const PierDashWidth = 3.4
+    const PierAnchorScale = 1.25
     const fill = $derived.by(() => {
         const color = appearance.colors[face.color]
         assertExists(color, `Tile palette requires color ${face.color}`)
@@ -207,7 +230,24 @@
     {/each}
     <g fill="none" stroke-linecap="butt" filter={trackInkFilter}>
         {#each drawing.paths as path (path.id)}
-            {#if path.spike}
+            {#if path.pier}
+                {@const { base, tip } = path.pier}
+                {@const angle = (Math.atan2(tip.y - base.y, tip.x - base.x) * 180) / Math.PI}
+                <g data-path-id={path.id} data-port-pier fill={appearance.ink} stroke="none">
+                    {#each PierDashes as share (share)}
+                        <rect
+                            x={-PierDashLength / 2}
+                            y={-PierDashWidth / 2}
+                            width={PierDashLength}
+                            height={PierDashWidth}
+                            transform={`translate(${base.x + (tip.x - base.x) * share} ${base.y + (tip.y - base.y) * share}) rotate(${angle + 90})`}
+                        ></rect>
+                    {/each}
+                    <g transform={`translate(${tip.x} ${tip.y}) scale(${PierAnchorScale})`}>
+                        <TileSymbol symbol="port" ink={appearance.ink} paper={appearance.paper} />
+                    </g>
+                </g>
+            {:else if path.spike}
                 <polygon
                     points={spikePoints(path.spike, appearance.trackWidth)}
                     fill={appearance.ink}
@@ -226,7 +266,7 @@
                 ></path>
             {/if}
         {/each}
-        {#each drawing.paths.filter((path) => !path.spike) as path (path.id)}
+        {#each drawing.paths.filter((path) => !path.spike && !path.pier) as path (path.id)}
             <g data-path-id={path.id}>
                 <path d={path.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
                 ></path>
@@ -334,7 +374,7 @@
                         fill={appearance.ink}
                     ></circle>
                 {/if}
-            {:else if node.kind === 'offboard'}{:else}
+            {:else if node.kind === 'offboard' || printedOnlyJunctionIds.includes(node.id)}{:else}
                 <circle cx={center.x} cy={center.y} r="3" fill={appearance.ink}></circle>
             {/if}
         </g>
