@@ -9,7 +9,7 @@
     "BuyShares": "332655f3b5d48a7bf2f712e030b7df3690b2729916ff6312f571ad6faf96b48f",
     "BuyTrain": "2b1b48783347c512fdd3039030e89ccaf804882b5cceaa84a4f9ec825a5afafa",
     "CapitalizeCompany": "4cfdd493c127d35dff8a8c0693c078f4fa0e38080a5ed59a2a87a01f240723d3",
-    "CloseCompany": "d19f2043f2e00213ee7a61a9f05ac332a4d5914df18dc1b30fc327e3118072b2",
+    "CloseCompany": "5750f6197ecdce63251ec68505eba9438da759b28b0ddd0ffa82034638c20fe4",
     "CompleteMergerPhase": "6f641f15bda39cd112826a283a451e2f5613f5d30753c6de1bea2886aa23b321",
     "CompletePriceProtection": "13f3089e9789141cc1a2f2ab3bbf7ec0d12e0b9db76e8c504a9164fd0636a1a1",
     "CompleteStockRound": "612936ae4c03965571f07d451d3d418d0b6bae3ddd2e0ea2ae898239e3245712",
@@ -2907,6 +2907,10 @@
             "nodeId": {
               "minLength": 1,
               "type": "string"
+            },
+            "placesStations": {
+              "const": false,
+              "type": "boolean"
             },
             "sourceId": {
               "minLength": 1,

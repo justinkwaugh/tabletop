@@ -1,6 +1,6 @@
 {
   "actionSchemaDigests": {
-    "AdvancePhase": "5330126ea3abfceb384235bcf173f59f51725430d0794ae9f55833784a24c665",
+    "AdvancePhase": "f8e85abcbef35455be4cc040e4b277c9d7fc5304fb7d9e2f3ae552fe1137fc94",
     "AssignRevenueMarker": "7c73dfa08c0d346e6aae53abb52be400f0cbe964e4d698377aef4ae8c52c5e02",
     "AssignSteamboat": "15ceaec0ddb3a89a5711b5c42f49b97da22ff59d47ef3bba06ef2ee30d8486ac",
     "BuildPrivateTrack": "7b651a7d8d2a3710e5fa52ad4bf34816d746a4d8c88f819208926cd8ebdf88dd",
@@ -10,12 +10,12 @@
     "BuyTrain": "2b1b48783347c512fdd3039030e89ccaf804882b5cceaa84a4f9ec825a5afafa",
     "ChooseDraftCard": "386d135b3e70dcdacf43ff4522da17a45893946d20523ee8ba9e797c286f2358",
     "ClaimPresidency": "f54aaf668be0b8213b1c4b4e351565787a85a29dcce81ee79327f98c817a5578",
-    "CloseCorporation": "88d82ee50567a248f0c0579f708b2ed4173ca3db97cf3fe0a8e0fa7df4b5f1ac",
+    "CloseCorporation": "f06cb5e7e2b72e8b3780b5073055ee29efd5faa6a6ccc7a7698d1afe086d4eaa",
     "CompleteStockRound": "612936ae4c03965571f07d451d3d418d0b6bae3ddd2e0ea2ae898239e3245712",
     "ContinueOperatingRound": "d7859bd006d0cf1a3bf6b0d3424ab8d61dcbe1741a5ee6943bdc0a5bd90b3fa7",
     "ContributeTrainFunds": "9aab8e3d874a342cd810be78376e00d627c1e1ee8e0cb71079b7ef9e4068d9bd",
     "CorporateFinance": "3bde49d283bb67f4cc501080324f37e99f25340ac0b810ec1d588b549dc31398",
-    "DeclareBankruptcy": "7c6cc00dc9fb420507b35b4501f53180ea8feeaf60aa5a159c46b51923031a70",
+    "DeclareBankruptcy": "40b39c1263b03ab6f70a95bd2dd5505713f5cbe28a357d8b6616f926f8da12b5",
     "DeclinePrivateTile": "9d347b9c716993c5f027fe1e6acdc8e0f4d65d71d9a74d391e40d06e1f6115dd",
     "DiscardTrain": "5d1a970100fabffbe644562b9d090a757dc8600817bcace18db3ee3e5537bf13",
     "DistributeEarnings": "6e8cc02305a328ea8536f0a64e471b0aa9c529dfad9bcd54b79abae8200a5d23",
@@ -2661,6 +2661,10 @@
             "nodeId": {
               "minLength": 1,
               "type": "string"
+            },
+            "placesStations": {
+              "const": false,
+              "type": "boolean"
             },
             "sourceId": {
               "minLength": 1,

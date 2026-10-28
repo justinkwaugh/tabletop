@@ -2530,6 +2530,10 @@
               "minLength": 1,
               "type": "string"
             },
+            "placesStations": {
+              "const": false,
+              "type": "boolean"
+            },
             "sourceId": {
               "minLength": 1,
               "type": "string"
