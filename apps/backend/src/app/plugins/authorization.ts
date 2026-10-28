@@ -1,6 +1,7 @@
 import { measure } from '@tabletop/backend-services/diagnostics'
 import fp from 'fastify-plugin'
 import { User, Role, UserStatus } from '@tabletop/common'
+import { requireSessionEligibleAccount } from '@tabletop/backend-services'
 import { FastifyAuthFunction } from '@fastify/auth'
 import { FastifyInstance, FastifyRequest } from 'fastify'
 
@@ -52,6 +53,7 @@ export default fp(async function (fastify: FastifyInstance) {
         if (!user) {
             throw new Error('No user found for id ' + userId)
         }
+        requireSessionEligibleAccount(user)
         return user
     }
 

@@ -18,6 +18,7 @@ import {
     InvalidTokenError,
     UnauthenticatedUpdateError
 } from './errors.js'
+import { requireSessionEligibleAccount } from './accountEligibility.js'
 import { AccountChangeType } from '../email/emailService.js'
 import { nanoid } from 'nanoid'
 import { AuthenticationTokenData, VerificationTokenData } from '../tokens/tokenData.js'
@@ -294,15 +295,19 @@ export class UserService {
         email?: string
         emailVerified?: boolean
     }): Promise<User> {
-        let user = await this.userStore.findByExternalId(externalId, service)
+        const linkedUser = await this.userStore.findByExternalId(externalId, service)
+        if (linkedUser) {
+            requireSessionEligibleAccount(linkedUser)
+            return linkedUser
+        }
 
-        // Try by email
-        if (!user && email) {
+        if (email) {
             console.log('No user found by external_id, trying by email')
             const userByEmail = await this.userStore.findByEmail(email)
             if (userByEmail && emailVerified && userByEmail.emailVerified) {
+                requireSessionEligibleAccount(userByEmail)
                 console.log('Found user by email... linking external_id to user')
-                user = await this.userStore.addExternalId({
+                return await this.userStore.addExternalId({
                     userId: userByEmail.id,
                     externalId,
                     service
@@ -310,18 +315,14 @@ export class UserService {
             }
         }
 
-        if (!user) {
-            user = await this.userStore.createUser(<User>{
-                id: nanoid(),
-                status: UserStatus.Incomplete,
-                email: email,
-                emailVerified: emailVerified,
-                roles: [Role.User],
-                externalIds: [`${service}:${externalId}`]
-            })
-        }
-
-        return user
+        return await this.userStore.createUser(<User>{
+            id: nanoid(),
+            status: UserStatus.Incomplete,
+            email: email,
+            emailVerified: emailVerified,
+            roles: [Role.User],
+            externalIds: [`${service}:${externalId}`]
+        })
     }
 
     async verifyEmail(token: string): Promise<User> {

@@ -1,5 +1,6 @@
 import { Timed, measure } from '../../diagnostics/requestTimings.js'
 import {
+    accountStatusAfterCompletionCheck,
     BaseError,
     ExternalAuthService,
     Role,
@@ -434,19 +435,13 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 updatedFields.push('password')
             }
 
-            if (
-                updatedUser.cleanUsername &&
-                updatedUser.email &&
-                updatedUser.emailVerified === true
-            ) {
-                if (updatedUser.status !== UserStatus.Active) {
-                    fieldsToUpdate.status = UserStatus.Active
-                    updatedUser.status = fieldsToUpdate.status
-                    updatedFields.push('status')
-                }
-            } else if (updatedUser.status !== UserStatus.Incomplete) {
-                fieldsToUpdate.status = UserStatus.Incomplete
-                updatedUser.status = fieldsToUpdate.status
+            const status = accountStatusAfterCompletionCheck(
+                updatedUser.status,
+                this.satisfiesAccountCompletion(updatedUser)
+            )
+            if (status !== updatedUser.status) {
+                fieldsToUpdate.status = status
+                updatedUser.status = status
                 updatedFields.push('status')
             }
 
@@ -580,6 +575,10 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             this.handleError(error, userId)
             throw Error('unreachable')
         }
+    }
+
+    private satisfiesAccountCompletion(user: StoredUser): boolean {
+        return Boolean(user.cleanUsername && user.email && user.emailVerified === true)
     }
 
     private async findByUsernameIncludingPasswordHash(

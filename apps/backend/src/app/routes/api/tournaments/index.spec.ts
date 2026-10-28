@@ -29,7 +29,7 @@ async function setup(roles: Role[]) {
     }
     await server.register(sensible)
     await server.register(secureSession, { key: randomBytes(32), cookie: { path: '/' } })
-    Reflect.set(server, 'userService', { getUser: async () => user })
+    server.decorate('userService', { getUser: async () => user })
     const change = vi.fn(async () => ({ id: 'event' }))
     Reflect.set(server, 'tournamentService', {
         list: change,
@@ -48,7 +48,7 @@ async function setup(roles: Role[]) {
     await server.register(authorization)
     await server.register(tournaments, { prefix: '/tournaments' })
     server.get('/session', async (request) => {
-        authSession({ session: request.session, userId: user.id })
+        authSession({ session: request.session, user })
         request.session.set('authTimestamp', '2000-01-01T00:00:00.000Z')
         return {}
     })

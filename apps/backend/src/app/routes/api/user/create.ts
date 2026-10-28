@@ -41,7 +41,7 @@ export default async function (fastify: FastifyInstance) {
 
             const createdUser = await fastify.userService.createUser(newUser, request.body.password)
             console.log(`Created user ${JSON.stringify(createdUser)}`)
-            authSession({ session: request.session, userId: createdUser.id })
+            authSession({ session: request.session, user: createdUser })
             return { status: 'ok', payload: { user: createdUser } }
         }
     )
