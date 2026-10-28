@@ -309,7 +309,14 @@ export class HydratedSearchResolve
         if (second) {
             const secondReason =
                 reasonCannotPlaySecondCard(state, playerId, choice.keptCardId, second, choice) ??
-                reasonCannotPairSecondPlay(state, playerId, choice.play, second, choice.toSiteId)
+                reasonCannotPairSecondPlay(
+                    state,
+                    playerId,
+                    choice.play,
+                    second,
+                    choice.toSiteId,
+                    choice.discardFirstCardId
+                )
             if (secondReason) return secondReason
         }
         const expected = player
@@ -433,14 +440,16 @@ function shownSecondCardForAfter(
 /**
  * Land Warden — "if you play at least one card to a site", with room for both at your site when both go there.
  * `keptToSiteId` is where the kept card goes: the People's Favor may send it to another site (R-5.1.4.I), and its
- * Q&A lets both cards use it.
+ * Q&A lets both cards use it. `keptDiscardFirstCardId` is the card the kept card's play discards first (the People's
+ * Favor, the Great Slum, Crop Rotation); the kept card's own check judges whether it may.
  */
 export function reasonCannotPairSecondPlay(
     state: HydratedOathGameState,
     playerId: string,
     firstPlay: SearchPlay,
     second: SearchSecondPlay,
-    keptToSiteId?: string
+    keptToSiteId?: string,
+    keptDiscardFirstCardId?: string
 ): string | undefined {
     if (firstPlay !== SearchPlay.Site && second.play !== SearchPlay.Site)
         return 'Land Warden: at least one of the two cards must be played to a site'
@@ -457,10 +466,19 @@ export function reasonCannotPairSecondPlay(
         const ignoresCapacity =
             second.cardId === SALT_THE_EARTH &&
             isAtLeastOathRevision(state, OathRevision.EngineFixes25)
+        // The kept card plays first, so a card it discards first at your site leaves its space to the second
+        // card. From revision 29 the pair is counted on your site as the kept play leaves it; before it (R-X.4),
+        // the card discarded first was counted as staying.
+        const freed =
+            keptDiscardFirstCardId !== undefined &&
+            state.denizensAt(here).includes(keptDiscardFirstCardId) &&
+            isAtLeastOathRevision(state, OathRevision.EngineFixes25)
+                ? 1
+                : 0
         if (
             keptHere &&
             !ignoresCapacity &&
-            state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here)
+            state.denizensAt(here).length - freed + 2 > effectiveSiteCapacity(state, here)
         )
             return 'no room at your site for two cards'
     }
