@@ -2,13 +2,7 @@ import { vi } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import type { LightMyRequestResponse } from 'fastify'
 import { ExternalAuthService, Role, UserStatus, type User } from '@tabletop/common'
-import {
-    MemoryOAuthStateStore,
-    OAuthStateService,
-    type AuthenticationProof,
-    type DiscordIdentity,
-    type DiscordOAuth
-} from '@tabletop/backend-services'
+import type { AuthenticationProof, DiscordIdentity, DiscordOAuth } from '@tabletop/backend-services'
 import authorization from '../plugins/authorization.js'
 import { authSession } from '../lib/session.js'
 import discordBegin from '../routes/api/auth/discord/begin.js'
@@ -47,11 +41,14 @@ export function account(id: string, externalIds: string[] = []): User {
 export async function discordFixture() {
     let now = START
     const { sessionService, sessionStore } = memorySessions({ now: () => now })
-    const stateStore = new MemoryOAuthStateStore()
-    const oauthStateService = new OAuthStateService(stateStore, { now: () => now })
-    const exchangeCode = vi.fn(
-        async ({ code }: { code: string; redirectUri: string }) => identities[code]
-    )
+    const spentCodes = new Set<string>()
+    const exchangeCode = vi.fn(async ({ code }: { code: string; redirectUri: string }) => {
+        if (spentCodes.has(code)) {
+            return undefined
+        }
+        spentCodes.add(code)
+        return identities[code]
+    })
     const discordOAuth: DiscordOAuth = {
         authorizationUrl: ({ redirectUri, state }) =>
             `https://discord.test/authorize?redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`,
@@ -90,7 +87,6 @@ export async function discordFixture() {
             register(account(`created-${externalId}`, [`${service}:${externalId}`]))
     )
     const server = await sessionServer(sessionService)
-    server.decorate('oauthStateService', oauthStateService)
     server.decorate('discordOAuth', discordOAuth)
     Reflect.set(server, 'userService', {
         getUser: async (id: string) => users.get(id),
@@ -162,7 +158,6 @@ export async function discordFixture() {
     return {
         server,
         sessionStore,
-        stateStore,
         exchangeCode,
         linkExternalAccount,
         handleExternalAuth,

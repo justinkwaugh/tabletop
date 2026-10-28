@@ -2,6 +2,12 @@ import { customAlphabet } from 'nanoid'
 import { sessionGenerationOf, User } from '@tabletop/common'
 import type { SessionStore } from '../persistence/stores/sessionStore.js'
 import { requireSessionEligibleAccount } from '../users/accountEligibility.js'
+import {
+    issueProviderAuthorization,
+    type ProviderAuthorizationAttempt,
+    type ProviderAuthorizationRequest,
+    verifyProviderAuthorization
+} from '../oauth/providerAuthorization.js'
 import type { AuthenticatedSession, AuthenticationProof } from './authenticatedSession.js'
 import { hasRecentAuthentication, SessionNotLiveError } from './recentAuthentication.js'
 
@@ -65,15 +71,42 @@ export class SessionService {
     }
 
     async recordAuthentication(session: AuthenticatedSession): Promise<AuthenticatedSession> {
-        const now = this.now()
-        if (session.expiresAt <= now) {
-            throw new SessionNotLiveError(session.id)
-        }
-        const refreshed = await this.sessionStore.recordAuthentication(session.id, now)
-        if (!refreshed) {
-            throw new SessionNotLiveError(session.id)
-        }
-        return refreshed
+        const authenticatedAt = this.now()
+        return this.updateLive(session.id, (live) => ({ ...live, authenticatedAt }))
+    }
+
+    issueProviderAuthorization(
+        request: ProviderAuthorizationRequest
+    ): ProviderAuthorizationAttempt {
+        return issueProviderAuthorization(request, this.now())
+    }
+
+    verifyProviderAuthorization(
+        attempt: ProviderAuthorizationAttempt | undefined,
+        state: string,
+        expected: ProviderAuthorizationRequest
+    ): void {
+        verifyProviderAuthorization(attempt, state, expected, this.now())
+    }
+
+    async beginProviderAuthorization(
+        session: AuthenticatedSession,
+        request: ProviderAuthorizationRequest
+    ): Promise<ProviderAuthorizationAttempt> {
+        const providerAuthorization = this.issueProviderAuthorization(request)
+        await this.updateLive(session.id, (live) => ({ ...live, providerAuthorization }))
+        return providerAuthorization
+    }
+
+    async completeProviderAuthorization(
+        session: AuthenticatedSession,
+        state: string,
+        expected: ProviderAuthorizationRequest
+    ): Promise<void> {
+        await this.updateLive(session.id, ({ providerAuthorization, ...live }) => {
+            this.verifyProviderAuthorization(providerAuthorization, state, expected)
+            return live
+        })
     }
 
     async revoke(id: string): Promise<void> {
@@ -82,6 +115,23 @@ export class SessionService {
 
     async revokeAll(userId: string, options: { except?: string } = {}): Promise<void> {
         await this.sessionStore.deleteForUser(userId, options)
+    }
+
+    private async updateLive(
+        id: string,
+        change: (live: AuthenticatedSession) => AuthenticatedSession
+    ): Promise<AuthenticatedSession> {
+        const now = this.now()
+        const updated = await this.sessionStore.update(id, (stored) => {
+            if (stored.expiresAt <= now) {
+                throw new SessionNotLiveError(id)
+            }
+            return change(stored)
+        })
+        if (!updated) {
+            throw new SessionNotLiveError(id)
+        }
+        return updated
     }
 
     private now(): Date {

@@ -52,9 +52,9 @@ export class FirestoreSessionStore implements SessionStore {
         return Value.Check(AuthenticatedSession, session) ? session : undefined
     }
 
-    async recordAuthentication(
+    async update(
         id: string,
-        authenticatedAt: Date
+        change: (stored: AuthenticatedSession) => AuthenticatedSession
     ): Promise<AuthenticatedSession | undefined> {
         if (!this.isValidId(id)) {
             return undefined
@@ -63,13 +63,14 @@ export class FirestoreSessionStore implements SessionStore {
             return await this.cacheService.lockWhileWriting([this.cacheKey(id)], () =>
                 this.sessions.firestore.runTransaction(async (transaction) => {
                     const reference = this.sessions.doc(id)
-                    const session = (await transaction.get(reference)).data()
+                    const stored = (await transaction.get(reference)).data()
                     this.recordRead()
-                    if (!session) {
+                    if (!stored) {
                         return undefined
                     }
-                    transaction.update(reference, { authenticatedAt })
-                    return { ...session, authenticatedAt }
+                    const changed = change(stored)
+                    transaction.set(reference, changed)
+                    return changed
                 })
             )
         } catch (error) {
@@ -162,12 +163,20 @@ const sessionConverter = {
         return session
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): AuthenticatedSession {
-        const { authenticatedAt, ...data } = snapshot.data()
+        const { authenticatedAt, providerAuthorization, ...data } = snapshot.data()
         const session = Value.Convert(AuthenticatedSession, {
             ...data,
             createdAt: toDate(data.createdAt),
             ...(authenticatedAt === undefined ? {} : { authenticatedAt: toDate(authenticatedAt) }),
-            expiresAt: toDate(data.expiresAt)
+            expiresAt: toDate(data.expiresAt),
+            ...(providerAuthorization === undefined
+                ? {}
+                : {
+                      providerAuthorization: {
+                          ...providerAuthorization,
+                          expiresAt: toDate(providerAuthorization.expiresAt)
+                      }
+                  })
         })
         if (!Value.Check(AuthenticatedSession, session)) {
             throw new Error(`Stored session ${snapshot.id} is malformed`)
