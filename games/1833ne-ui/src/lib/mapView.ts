@@ -115,7 +115,7 @@ export const BonusArrows1833NE: readonly MapBonusArrow[] = [
         { 'I-II': 40, 'III-IV': 70 },
         'right'
     ),
-    arrow('albany-troy-boston', [-0.1, 18], 'ALBANY/TROY', 'to BOSTON', { 'I-II': 50 }, 'right'),
+    arrow('albany-troy-boston', [-0.3, 18], 'ALBANY/TROY', 'to BOSTON', { 'I-II': 50 }, 'right'),
     arrow(
         'boston-new-york',
         [-0.6, 26.1],
@@ -126,7 +126,7 @@ export const BonusArrows1833NE: readonly MapBonusArrow[] = [
     ),
     arrow(
         'boston-north',
-        [8.5, 21.5],
+        [8.6, 21.5],
         'BOSTON to',
         'MONTREAL or OGDENSBURG',
         { 'I-II': 30, 'III-IV': 50 },
@@ -134,7 +134,7 @@ export const BonusArrows1833NE: readonly MapBonusArrow[] = [
     ),
     arrow(
         'boston-and-north',
-        [10.15, 21.5],
+        [10.45, 21.5],
         'BOSTON and',
         'MONTREAL or OGDENSBURG',
         { 'I-II': 50, 'III-IV': 60 },
@@ -142,7 +142,7 @@ export const BonusArrows1833NE: readonly MapBonusArrow[] = [
     ),
     arrow(
         'boston-and-albany-troy',
-        [10.15, 23.5],
+        [10.45, 23.5],
         'BOSTON and',
         'ALBANY/TROY',
         { 'I-II': 50 },
@@ -179,14 +179,20 @@ export const MapView1833NE: MapViewDefinition = {
         G22: Boston,
         B3: Montreal,
         I14: Portland,
+        // The sea beyond the port cities pays nothing and prints no value.
+        C28: { hideRevenue: true },
+        E28: { hideRevenue: true },
         H25: { nodePositions: { 'city-0': towardTileEdge(3, 20), 'city-1': towardTileEdge(0, 14) } }
     },
     cityNames: {
         H25: { 'city-0': 'Plymouth', 'city-1': 'New Bedford' }
     },
+    revenueStack: 'column',
+    revenueStageCaptions: { yellow: 'I-II', brown: 'III-IV', gray: 'V' },
+    // A value for two phases is printed in both their colours.
     revenueStageColors: {
-        yellow: PhaseColors1833NE.I,
-        brown: PhaseColors1833NE.III,
+        yellow: [PhaseColors1833NE.I, PhaseColors1833NE.II],
+        brown: [PhaseColors1833NE.III, PhaseColors1833NE.IV],
         gray: PhaseColors1833NE.V
     },
     markerArt: Object.fromEntries(

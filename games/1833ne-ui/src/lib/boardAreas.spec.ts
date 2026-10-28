@@ -55,7 +55,7 @@ describe('1833NE board', () => {
         expect(clear(depot.x, depot.y, depot.width, depot.height)).toBe(true)
     })
 
-    it('prints each bonus arrow clear of the hexes, but Albany/Troy’s on its blank red hex', () => {
+    it('prints each bonus arrow clear of the hexes and the others, but Albany/Troy’s on its blank red hex', () => {
         const geometry = { orientation: HexOrientation.Flat, dimensions: { radius: 50 } }
         const hexes = MapView1833NE.map.definition.locations.map((location) => ({
             id: location.id,
@@ -86,5 +86,19 @@ describe('1833NE board', () => {
             }).filter(([, ids]) => ids.length)
         )
         expect(covered).toEqual({ 'albany-troy-boston': ['A18'] })
+        const plates = BonusArrows1833NE.map((arrow) => ({
+            id: arrow.id,
+            hull: bonusArrowHull(drawBonusArrow(arrow))
+        }))
+        const touching = plates.flatMap((plate, index) =>
+            plates
+                .slice(index + 1)
+                .filter(
+                    (other) =>
+                        !separates(plate.hull, other.hull) && !separates(other.hull, plate.hull)
+                )
+                .map((other) => `${plate.id} ${other.id}`)
+        )
+        expect(touching).toEqual([])
     })
 })
