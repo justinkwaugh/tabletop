@@ -247,8 +247,12 @@ export * from './construction/automaticTrackCompletionHandler.js'
 export {
     payingRouteStops,
     routeConnectionBonuses,
+    routeInterconnectionBonus,
+    routeStopBonuses,
+    type Interconnection,
     type PaidConnectionBonus,
-    type RouteRevenuePolicy
+    type RouteRevenuePolicy,
+    type RouteShape
 } from './routes/routeScoring.js'
 export * from './earnings/payoutJumps.js'
 export * from './finance/corporateFinance.js'

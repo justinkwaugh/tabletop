@@ -15,7 +15,13 @@ export const RoutePath = Type.Object(
 )
 export type RoutePath = Type.Static<typeof RoutePath>
 export const TrainRoute = Type.Object(
-    { trainId: Id, start: RevenueCenter, paths: Type.Array(RoutePath, { minItems: 1 }) },
+    {
+        trainId: Id,
+        start: RevenueCenter,
+        paths: Type.Array(RoutePath, { minItems: 1 }),
+        /** Track beyond the route's end, counting no stops, that earns an interconnection. */
+        extension: Type.Optional(Type.Array(RoutePath, { minItems: 1 }))
+    },
     { additionalProperties: false }
 )
 export type TrainRoute = Type.Static<typeof TrainRoute>
@@ -53,7 +59,12 @@ export const OperatingResult = Type.Object(
 )
 export type OperatingResult = Type.Static<typeof OperatingResult>
 export function trainRoutesOf(result: OperatingResult): TrainRoute[] {
-    return result.routes.map(({ trainId, start, paths }) => ({ trainId, start, paths }))
+    return result.routes.map(({ trainId, start, paths, extension }) => ({
+        trainId,
+        start,
+        paths,
+        ...(extension ? { extension } : {})
+    }))
 }
 export const RouteStep = Type.Object(
     { companyId: Id, result: Type.Optional(OperatingResult) },

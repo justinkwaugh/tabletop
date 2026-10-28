@@ -4,9 +4,11 @@ import { hasStationRoute } from '../trains/trainRequirement.js'
 import { routeRevenue } from './routeRevenue.js'
 import {
     payingRouteStops,
-    routeConnectionBonuses,
+    routeInterconnectionBonus,
+    routeStopBonuses,
     type RouteRevenueStop,
-    type RouteRevenuePolicy
+    type RouteRevenuePolicy,
+    type RouteShape
 } from './routeScoring.js'
 import { getCompany, sameOwner } from '../finance/finance.js'
 import { RailwayMapState } from '../map/mapState.js'
@@ -32,7 +34,11 @@ export interface RouteRules {
     /** What earns the longest route's per-stop bonus, by the id the title names. */
     longestRouteBonusSourceId?: string
     canRunTrain?(state: TrainRunningState, train: Train): boolean
-    revenuePolicy?(train: TrainDefinition): RouteRevenuePolicy
+    revenuePolicy?(
+        train: TrainDefinition,
+        state: TrainRunningState,
+        companyId: string
+    ): RouteRevenuePolicy
 
     map: RailwayMap
     tileSet: TileSet
@@ -160,7 +166,7 @@ export class RouteEvaluation {
                 return { reason: 'A route may stop only once in each hex.' }
         }
         const distance = this.distance(definition, trace)
-        if (definition.distance.maximum !== 'unlimited' && distance > definition.distance.maximum)
+        if (this.exceedsDistance(definition, trace))
             return { reason: `The route exceeds the ${definition.name} train’s distance limit.` }
         if (complete) {
             if (
@@ -212,14 +218,22 @@ export class RouteEvaluation {
                 )
             }
         })
-        const policy = this.rules.revenuePolicy?.(definition) ?? {}
-        const paying = payingRouteStops(visits, policy)
+        const policy = this.rules.revenuePolicy?.(definition, this.state, companyId) ?? {}
+        const extension = route.extension ? this.extension(companyId, route) : undefined
+        if (extension?.reason) return { reason: extension.reason }
+        const shape: RouteShape = {
+            ends: [trace.visits[0], trace.visits[trace.visits.length - 1]],
+            ...(extension?.locationId ? { extensionLocationId: extension.locationId } : {})
+        }
+        const paying = payingRouteStops(visits, policy, shape)
         const payments = paying.map(({ locationId, nodeId, amount }) => ({
             locationId,
             nodeId,
             amount
         }))
-        const bonuses = [...this.bonuses(route, paying), ...routeConnectionBonuses(paying, policy)]
+        const bonuses = [...this.bonuses(route, paying), ...routeStopBonuses(paying, policy, shape)]
+        if (extension && !routeInterconnectionBonus(paying, policy, shape))
+            return { reason: 'The extension earns no interconnection.' }
         return {
             result: {
                 ...route,
@@ -245,7 +259,10 @@ export class RouteEvaluation {
             trains.add(route.trainId)
             const evaluation = this.evaluateRoute(companyId, route)
             if (!evaluation.result) return evaluation
-            const trace = this.network.trace(route.start, route.paths).trace!
+            const trace = this.network.trace(route.start, [
+                ...route.paths,
+                ...(route.extension ?? [])
+            ]).trace!
             if (trace.resources.some((key) => resources.has(key)))
                 return { reason: 'The submitted routes share track or a hex border.' }
             for (const key of trace.resources) resources.add(key)
@@ -314,6 +331,46 @@ export class RouteEvaluation {
             (visit) => this.rules.map.location(visit.locationId).stopGroup ?? []
         )
         return groups.find((group, index) => groups.indexOf(group) !== index)
+    }
+    /**
+     * Where a route's extension ends: it runs on from the route's end through any stops,
+     * blocked or not, without counting them, and ends at a revenue center past no offboard.
+     */
+    private extension(
+        companyId: string,
+        route: TrainRoute
+    ): { locationId: string; reason?: never } | { reason: string; locationId?: never } {
+        const base = this.network.trace(route.start, route.paths).trace
+        const extended = this.network.trace(route.start, [
+            ...route.paths,
+            ...(route.extension ?? [])
+        ])
+        if (!base || !extended.trace) return { reason: extended.reason ?? 'The route is invalid.' }
+        const visits = extended.trace.visits.slice(base.visits.length)
+        const end = extended.trace.end
+        const last = visits.at(-1)
+        if (
+            !last ||
+            end.endpoint.kind !== 'node' ||
+            end.locationId !== last.locationId ||
+            end.endpoint.nodeId !== last.nodeId
+        )
+            return { reason: 'End the extension at a revenue center.' }
+        if (visits.slice(0, -1).some((visit) => visit.node.kind === 'offboard'))
+            return { reason: 'An extension cannot pass through an offboard.' }
+        if (
+            visits.some((visit) => this.rules.stopAllowed?.(this.state, companyId, visit) === false)
+        )
+            return { reason: 'This company may not use that revenue center.' }
+        return { locationId: last.locationId }
+    }
+    private exceedsDistance(train: TrainDefinition, trace: RouteTrace): boolean {
+        const { maximum, extraTowns = 0 } = train.distance
+        if (maximum === 'unlimited') return false
+        const distance = this.distance(train, trace)
+        if (!extraTowns) return distance > maximum
+        const towns = trace.visits.filter((visit) => visit.node.kind === 'town').length
+        return distance > maximum + extraTowns || distance - towns > maximum
     }
     private distance(train: TrainDefinition, trace: RouteTrace): number {
         if (train.distance.measure === 'hex-edges') return trace.crossings
