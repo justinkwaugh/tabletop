@@ -1,4 +1,4 @@
-import { type HydratedAction, type MachineStateHandler } from '@tabletop/common'
+import type { HydratedAction, MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
 import type { HydratedLowenherzGameState } from '../model/gameState.js'
 import { StartOfTurnStateHandler } from '../stateHandlers/startOfTurn.js'

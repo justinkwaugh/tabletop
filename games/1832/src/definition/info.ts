@@ -8,6 +8,8 @@ export const EighteenThirtyTwoInfo: GameInfo = {
     id: '1832',
     metadata: {
         name: '1832: The South',
+        bggId: 23421,
+        hasScores: true,
         designer: 'W. R. Dixon',
         year: '2006',
         description:

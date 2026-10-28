@@ -7,6 +7,7 @@ import { cardPowers } from '../data/cardPowers.js'
 import { banksWithFavor, gainFavorFromBank, homeBankPayable, usableFavor } from './favor.js'
 import { takeNotes, takeRelicsFrom } from './relics.js'
 import { reasonExchangeInvalid } from './exchange.js'
+import { reasonDealKeptInvalid } from './deals.js'
 import { playersAt } from './pawn.js'
 import { reliquarySlot } from './imperial.js'
 import { reasonCannotPayPowerCost } from './powerCost.js'
@@ -174,7 +175,9 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
         return invalid
             ? `${question.askedPlayerId} cannot flip a secret to travel to ${question.siteId}: ${invalid}`
             : undefined
-    }
+    },
+    // R-7.6.3-H1 — a claim names an open deal; one closed meanwhile is not asked about.
+    [PowerQuestionKind.DealKept]: (state, question) => reasonDealKeptInvalid(state, question)
 }
 
 /** Second Wind out of turn — asked for the next action, so judged as that action will be: free. */

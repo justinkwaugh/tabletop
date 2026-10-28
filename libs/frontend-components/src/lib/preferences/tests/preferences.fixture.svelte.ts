@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { flushSync } from 'svelte'
 import { fromStore } from 'svelte/store'
-import { type PreferenceChange, type PreferenceResponse } from '@tabletop/common'
+import type { PreferenceChange, PreferenceResponse } from '@tabletop/common'
 import { DummyRemoteApiService } from '../../harness/dummyRemoteApiService.js'
 import { TitlePreferences } from '../titlePreferences.svelte.js'
 import { RuneBackedStore } from '../../utils/runeBackedStore.svelte.js'

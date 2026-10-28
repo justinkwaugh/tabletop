@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { Role, UserStatus, type User } from '@tabletop/common'
-import { SessionService, SESSION_LIFETIME_SECONDS } from './sessionService.js'
+import { ExternalAuthService, Role, UserStatus, type User } from '@tabletop/common'
+import { SessionNotLiveError, SessionService, SESSION_LIFETIME_SECONDS } from './sessionService.js'
 import { MemorySessionStore } from '../persistence/memory/sessionStore.js'
 import { AccountUnavailableError } from '../users/errors.js'
 import {
+    InvalidOAuthStateError,
+    OAUTH_STATE_LIFETIME_SECONDS,
+    type ProviderAuthorizationRequest
+} from '../oauth/providerAuthorization.js'
+import {
     hasRecentAuthentication,
     RECENT_AUTHENTICATION_SECONDS,
-    RecentAuthenticationRequiredError,
-    SessionNotLiveError
+    RecentAuthenticationRequiredError
 } from './recentAuthentication.js'
 import { AdministratorRequiredError } from './adminMode.js'
 import { RealtimeControl, REALTIME_CONTROL_CHANNEL } from '../realtime/realtimeControl.js'
@@ -235,6 +239,98 @@ describe('Recent Authentication on an Authenticated Session', () => {
         await expect(store.find(expired.id)).resolves.toMatchObject({
             authenticatedAt: expired.createdAt
         })
+    })
+})
+
+describe('Provider Authorization Attempts on an Authenticated Session', () => {
+    const link: ProviderAuthorizationRequest = {
+        provider: ExternalAuthService.Discord,
+        purpose: 'link',
+        redirectUri: 'https://site.test/oauth/discord/link'
+    }
+
+    it('holds one attempt per session and consumes it once', async () => {
+        const { sessions, store } = fixture()
+        const session = await sessions.establish(
+            account(UserStatus.Active),
+            'authentication-method'
+        )
+        const attempt = await sessions.beginProviderAuthorization(session, link)
+        await expect(store.find(session.id)).resolves.toEqual({
+            ...session,
+            providerAuthorization: attempt
+        })
+        await sessions.completeProviderAuthorization(session, attempt.state, link)
+        await expect(store.find(session.id)).resolves.toEqual(session)
+        await expect(
+            sessions.completeProviderAuthorization(session, attempt.state, link)
+        ).rejects.toBeInstanceOf(InvalidOAuthStateError)
+    })
+
+    it('keeps an attempt on its own session', async () => {
+        const { sessions, register } = fixture()
+        const mine = await sessions.establish(account(UserStatus.Active), 'authentication-method')
+        const theirs = await sessions.establish(
+            register(account(UserStatus.Active, 'account-2')),
+            'authentication-method'
+        )
+        const attempt = await sessions.beginProviderAuthorization(theirs, link)
+        await expect(
+            sessions.completeProviderAuthorization(mine, attempt.state, link)
+        ).rejects.toBeInstanceOf(InvalidOAuthStateError)
+        await expect(
+            sessions.completeProviderAuthorization(theirs, attempt.state, link)
+        ).resolves.toBeUndefined()
+    })
+
+    it('replaces the earlier attempt and leaves the newer one through refused callbacks', async () => {
+        const { sessions, store, advance } = fixture()
+        const session = await sessions.establish(
+            account(UserStatus.Active),
+            'authentication-method'
+        )
+        const older = await sessions.beginProviderAuthorization(session, link)
+        const newer = await sessions.beginProviderAuthorization(session, link)
+        await expect(
+            sessions.completeProviderAuthorization(session, older.state, link)
+        ).rejects.toBeInstanceOf(InvalidOAuthStateError)
+        await expect(
+            sessions.completeProviderAuthorization(session, newer.state, {
+                ...link,
+                purpose: 'reauthenticate'
+            })
+        ).rejects.toBeInstanceOf(InvalidOAuthStateError)
+        expect((await store.find(session.id))?.providerAuthorization).toEqual(newer)
+        advance(OAUTH_STATE_LIFETIME_SECONDS)
+        await expect(
+            sessions.completeProviderAuthorization(session, newer.state, link)
+        ).rejects.toBeInstanceOf(InvalidOAuthStateError)
+    })
+
+    it('never begins or completes an attempt on a revoked or expired session', async () => {
+        const { sessions, store, advance } = fixture()
+        const revoked = await sessions.establish(
+            account(UserStatus.Active),
+            'authentication-method'
+        )
+        const attempt = await sessions.beginProviderAuthorization(revoked, link)
+        await sessions.revoke(revoked.id)
+        await expect(
+            sessions.completeProviderAuthorization(revoked, attempt.state, link)
+        ).rejects.toBeInstanceOf(SessionNotLiveError)
+        await expect(sessions.beginProviderAuthorization(revoked, link)).rejects.toBeInstanceOf(
+            SessionNotLiveError
+        )
+        expect(store.size).toBe(0)
+        const expired = await sessions.establish(
+            account(UserStatus.Active),
+            'authentication-method'
+        )
+        advance(SESSION_LIFETIME_SECONDS)
+        await expect(sessions.beginProviderAuthorization(expired, link)).rejects.toBeInstanceOf(
+            SessionNotLiveError
+        )
+        await expect(store.find(expired.id)).resolves.toEqual(expired)
     })
 })
 

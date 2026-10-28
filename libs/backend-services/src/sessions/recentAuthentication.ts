@@ -24,14 +24,3 @@ export class RecentAuthenticationRequiredError extends BaseError {
         })
     }
 }
-
-export class SessionNotLiveError extends BaseError {
-    readonly statusCode = 401
-
-    constructor() {
-        super({
-            name: 'SessionNotLiveError',
-            message: 'The Authenticated Session is no longer live'
-        })
-    }
-}

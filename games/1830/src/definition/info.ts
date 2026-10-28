@@ -8,6 +8,8 @@ export const EighteenThirtyInfo: GameInfo = {
     id: '1830',
     metadata: {
         name: '1830: Railways & Robber Barons',
+        bggId: 421,
+        hasScores: true,
         designer: 'Francis Tresham',
         year: '1986',
         description:

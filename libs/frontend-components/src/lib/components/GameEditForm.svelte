@@ -57,10 +57,11 @@
         Game,
         'id' | 'typeId' | 'name' | 'players' | 'isPublic' | 'hotseat' | 'ownerId' | 'config'
     >
-    enum EditMode {
-        Create = 'create',
-        Edit = 'edit'
-    }
+    const EditMode = {
+        Create: 'create',
+        Edit: 'edit'
+    } as const
+    type EditMode = (typeof EditMode)[keyof typeof EditMode]
 
     let {
         game,

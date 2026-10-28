@@ -82,7 +82,11 @@ export * from './utils/validateLocalGameState.js'
 export { TitlePreferences } from './preferences/titlePreferences.svelte.js'
 
 export { default as TabWorkspace } from './components/TabWorkspace.svelte'
-export type { WorkspaceTab, WorkspaceFixedPane } from './components/workspaceTypes.js'
+export type {
+    WorkspaceTab,
+    WorkspaceFixedPane,
+    WorkspaceAttention
+} from './components/workspaceTypes.js'
 export type { WorkspaceInitialSplit, SplitAxis } from './components/tabWorkspace.js'
 export type {
     SavedWorkspace,

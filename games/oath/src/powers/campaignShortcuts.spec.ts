@@ -320,6 +320,35 @@ describe('Wild Allies and Captains — a Campaign from another site', () => {
         expect(attackingSiteOf(s, 'att')).toBe('c1')
     })
 
+    it('from revision 27 the Campaign names the card that granted it: Captains, Wild Allies', () => {
+        const atRevision = { oathRevision: OathRevision.EngineFixes23 }
+        const s = board(
+            [CAPTAINS],
+            {},
+            {
+                ...atRevision,
+                warbandsBySite: { c1: { att: 1, def: 2 }, c2: { att: 2, def: 1 }, p1: { def: 3 } }
+            }
+        )
+        actionPowerUse('att', CAPTAINS, [site('c2')]).apply(s)
+        expect(s.getPlayerState('att').freeCampaignGrantedBy).toBe(CAPTAINS)
+        s.actionCount += 1
+        expect(
+            campaign(s, {
+                targets: [{ kind: CampaignTargetKind.Site, siteId: 'c2' }],
+                attackDice: 6
+            }).metadata
+        ).toMatchObject({ supplySpent: 0, freeActionOf: CAPTAINS })
+        expect(s.getPlayerState('att').freeCampaignGrantedBy).toBeUndefined()
+
+        const w = board([WILD_ALLIES], {}, atRevision)
+        actionPowerUse('att', WILD_ALLIES, [site('p1')]).apply(w)
+        w.actionCount += 1
+        expect(
+            campaign(w, { targets: [{ kind: CampaignTargetKind.Site, siteId: 'p1' }] }).metadata
+        ).toMatchObject({ supplySpent: 0, freeActionOf: WILD_ALLIES })
+    })
+
     it("R-5.5.5 — a loss order naming another player's warbands at the Wild Allies site is refused", () => {
         const s = board([WILD_ALLIES])
         actionPowerUse('att', WILD_ALLIES, [site('p1')]).apply(s)
@@ -1117,7 +1146,7 @@ describe('Captains and Wild Allies name only a site with a defender (R-5.5.1; re
         }
         const dana = { kind: 'player', playerId: DANA } as const
 
-        /** Dana's own view as her table executes on it: projected, then guarded. */
+        /** Dana's own view as their table executes on it: projected, then guarded. */
         const ownView = (s: HydratedOathGameState) =>
             OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, dana)), dana)
 
@@ -1141,7 +1170,7 @@ describe('Captains and Wild Allies name only a site with a defender (R-5.5.1; re
             return own
         }
 
-        it('Wild Allies at her own site: the beast sites with a defender, and Use a power and End turn', () => {
+        it('Wild Allies at their own site: the beast sites with a defender, and Use a power and End turn', () => {
             expect(
                 expectSameOnOwnView(exiles({ atC1: [WILD_ALLIES] }), WILD_ALLIES, ['p1', 'h2'])
             ).toContain(ActionType.UseActionPower)
@@ -1155,13 +1184,13 @@ describe('Captains and Wild Allies name only a site with a defender (R-5.5.1; re
             )
         })
 
-        it('Wild Allies at her own site, The Hidden Place asking for the secret its cost takes: that site is left out', () => {
+        it('Wild Allies at their own site, The Hidden Place asking for the secret its cost takes: that site is left out', () => {
             const s = exiles({ atC1: [WILD_ALLIES] })
             s.siteCards = { ...s.siteCards, p1: HIDDEN_PLACE }
             expect(expectSameOnOwnView(s, WILD_ALLIES, ['h2'])).toContain(ActionType.UseActionPower)
         })
 
-        it('Captains at her own site: the ruled site with a defender, and Use a power and End turn', () => {
+        it('Captains at their own site: the ruled site with a defender, and Use a power and End turn', () => {
             expect(expectSameOnOwnView(exiles(), CAPTAINS, ['p2'])).toContain(
                 ActionType.UseActionPower
             )

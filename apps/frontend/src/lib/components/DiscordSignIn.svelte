@@ -7,7 +7,10 @@
 <script lang="ts">
     import { toast } from 'svelte-sonner'
     import { getAppContext } from '@tabletop/frontend-components'
-    import type { DiscordAuthorizationSuccess } from '$lib/utils/discordAuthorization'
+    import {
+        popupFeatures,
+        type DiscordAuthorizationSuccess
+    } from '$lib/utils/discordAuthorization'
     import { signInWithDiscord } from '$lib/utils/discordSignIn'
 
     let {
@@ -30,7 +33,7 @@
         window.open(
             'https://discord.com/oauth2/authorize?client_id=1260059992589865133&integration_type=1&scope=applications.commands',
             'Discord Authorization',
-            'popup=true,resizable=no,width=550,height=700'
+            popupFeatures()
         )
     }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
     import StockMarketScene from './StockMarketScene.svelte'
-    import { type StockMarket as StockMarketModel, type StockMarketChart } from '@tabletop/18xx'
+    import type { StockMarket as StockMarketModel, StockMarketChart } from '@tabletop/18xx'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import type { MarketAnimationSource } from './marketAnimationSource.js'
     let {

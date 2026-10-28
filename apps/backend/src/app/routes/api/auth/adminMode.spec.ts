@@ -89,10 +89,9 @@ async function createServer(initial: User = administrator()) {
     const invalidateManifestCache = vi
         .spyOn(library, 'invalidateManifestCache')
         .mockResolvedValue(undefined)
-    vi.spyOn(library, 'refreshAndActivate').mockResolvedValue({
-        frontend: { version: '0.0.0' },
-        games: []
-    })
+    const served = { frontend: { version: '0.0.0' }, games: [] }
+    vi.spyOn(library, 'refreshAndActivate').mockResolvedValue(served)
+    vi.spyOn(library, 'getServedManifest').mockResolvedValue(served)
     server.decorate('userService', userService)
     server.decorate('libraryService', library)
     server.decorate(

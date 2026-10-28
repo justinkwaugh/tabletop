@@ -9,7 +9,7 @@ import {
     infantry,
     defendWith
 } from '@tabletop/napoleons-triumph/testing'
-import { describeAction } from './describeAction.js'
+import { describeAction, fightsOf } from './describeAction.js'
 
 const NEAR = 94
 
@@ -149,8 +149,8 @@ describe('how morale paid beyond the losses is told', () => {
         expect(guardAttackUpTheSlope(23)).toBe(
             'The French make a narrow attack with a unit, led by a unit. Initial result 0. ' +
                 'The French commit the Guard and lose 4 morale. ' +
-                'Final result 0: the attack is defeated. 2 steps lost. ' +
-                'The French lose 1 morale. ' +
+                'Final result 0: the attack is defeated. The French lose 1 step and 1 morale. ' +
+                'The Allies lose 1 step. ' +
                 'The Guard Attack is defeated. The French lose 3 more morale and may make no more Guard Attacks.'
         )
     })
@@ -178,6 +178,81 @@ describe('how morale paid beyond the losses is told', () => {
         ).toBe(
             'The French retreat from locale 108 without a fight. ' +
                 'The French commit their heavy cavalry and lose 2 morale.'
+        )
+    })
+})
+
+describe('how the losses of an attack are told', () => {
+    const FROM = 107
+    const INTO = 94
+    const FLANK = 105
+    const REFUGE = 93
+
+    function frenchDefeatedInReserve() {
+        const game = alliedTurn([
+            { id: 'A-inf', side: Side.Allied, face: infantry(3), locale: FROM },
+            {
+                id: 'F-lead',
+                side: Side.French,
+                face: infantry(2),
+                locale: INTO,
+                commanderId: 'st-hilaire'
+            },
+            {
+                id: 'F-weak',
+                side: Side.French,
+                face: infantry(1),
+                locale: INTO,
+                commanderId: 'st-hilaire'
+            },
+            { id: 'F-flank', side: Side.French, face: infantry(2), locale: INTO, facing: FLANK }
+        ])
+        const allied = game.playerOf(Side.Allied)
+        const french = game.playerOf(Side.French)
+        game.act(ActionType.ThreatenAttack, allied, {
+            approach: game.hydrated.map.approachBetween(FROM, INTO).id
+        })
+        defendWith(game, french, ['F-lead', 'F-weak'])
+        game.act(ActionType.PressAttack, allied)
+        game.act(ActionType.LeadDefense, french, { leaderIds: ['F-lead'] })
+        const [declaration] = game.act(ActionType.DeclareAttack, allied, {
+            orders: [{ kind: CommandKind.Unit, unitIds: ['A-inf'] }],
+            wide: false,
+            leaderIds: ['A-inf']
+        })
+        const [counter] = game.act(ActionType.CounterAttack, french, { unitIds: [] })
+        const fight = fightsOf([declaration, counter]).get(counter.id)
+        return {
+            game,
+            counter: describeAction(counter, game.hydrated, fight),
+            counterWithoutDeclaration: describeAction(counter, game.hydrated)
+        }
+    }
+
+    it('says what each army lost in the fight, and the morale only the loser pays', () => {
+        expect(frenchDefeatedInReserve().counter).toBe(
+            'The French do not counter-attack. Final result +1: the attack succeeds. ' +
+                'The Allies lose 1 step. The French lose 2 steps (a unit destroyed) and 2 morale.'
+        )
+    })
+
+    it('tells the losses together while the history that names the attackers is still loading', () => {
+        expect(frenchDefeatedInReserve().counterWithoutDeclaration).toBe(
+            'The French do not counter-attack. Final result +1: the attack succeeds. ' +
+                '3 steps lost, a unit destroyed. The French lose 2 morale.'
+        )
+    })
+
+    it('says how many units the retreat destroyed', () => {
+        const { game } = frenchDefeatedInReserve()
+        expect(
+            told(game, ActionType.Retreat, Side.French, {
+                losses: { 'F-flank': 2 },
+                destinations: { 'F-weak': REFUGE },
+                kept: {}
+            })
+        ).toBe(
+            'The French retreat from locale 94, losing 2 steps (a unit destroyed) and as much morale.'
         )
     })
 })

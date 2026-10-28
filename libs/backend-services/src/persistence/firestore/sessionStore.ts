@@ -1,12 +1,10 @@
 import { measure } from '../../diagnostics/requestTimings.js'
 import {
     CollectionReference,
-    FieldValue,
     Firestore,
     PartialWithFieldValue,
     QueryDocumentSnapshot,
-    Timestamp,
-    type UpdateData
+    Timestamp
 } from '@google-cloud/firestore'
 import { Value } from 'typebox/value'
 import { BaseError } from '@tabletop/common'
@@ -67,35 +65,9 @@ export class FirestoreSessionStore implements SessionStore {
         return Value.Check(AuthenticatedSession, session) ? session : undefined
     }
 
-    async recordAuthentication(
+    async update(
         id: string,
-        authenticatedAt: Date
-    ): Promise<AuthenticatedSession | undefined> {
-        return this.updateLiveRecord(id, (session) => ({ ...session, authenticatedAt }), {
-            authenticatedAt
-        })
-    }
-
-    async setAdminMode(
-        id: string,
-        adminModeExpiresAt: Date | undefined
-    ): Promise<AuthenticatedSession | undefined> {
-        if (adminModeExpiresAt === undefined) {
-            return this.updateLiveRecord(
-                id,
-                ({ adminModeExpiresAt: _cleared, ...session }) => session,
-                { adminModeExpiresAt: FieldValue.delete() }
-            )
-        }
-        return this.updateLiveRecord(id, (session) => ({ ...session, adminModeExpiresAt }), {
-            adminModeExpiresAt
-        })
-    }
-
-    private async updateLiveRecord(
-        id: string,
-        apply: (session: AuthenticatedSession) => AuthenticatedSession,
-        update: UpdateData<AuthenticatedSession>
+        change: (stored: AuthenticatedSession) => AuthenticatedSession
     ): Promise<AuthenticatedSession | undefined> {
         if (!this.isValidId(id)) {
             return undefined
@@ -104,13 +76,14 @@ export class FirestoreSessionStore implements SessionStore {
             return await this.cacheService.lockWhileWriting([sessionCacheKey(id)], () =>
                 this.sessions.firestore.runTransaction(async (transaction) => {
                     const reference = this.sessions.doc(id)
-                    const session = (await transaction.get(reference)).data()
+                    const stored = (await transaction.get(reference)).data()
                     this.recordRead()
-                    if (!session) {
+                    if (!stored) {
                         return undefined
                     }
-                    transaction.update(reference, update)
-                    return apply(session)
+                    const changed = change(stored)
+                    transaction.set(reference, changed)
+                    return changed
                 })
             )
         } catch (error) {
@@ -202,7 +175,8 @@ const sessionConverter = {
         return session
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): AuthenticatedSession {
-        const { authenticatedAt, adminModeExpiresAt, ...data } = snapshot.data()
+        const { authenticatedAt, adminModeExpiresAt, providerAuthorization, ...data } =
+            snapshot.data()
         const session = Value.Convert(AuthenticatedSession, {
             ...data,
             createdAt: toDate(data.createdAt),
@@ -210,7 +184,15 @@ const sessionConverter = {
             ...(adminModeExpiresAt === undefined
                 ? {}
                 : { adminModeExpiresAt: toDate(adminModeExpiresAt) }),
-            expiresAt: toDate(data.expiresAt)
+            expiresAt: toDate(data.expiresAt),
+            ...(providerAuthorization === undefined
+                ? {}
+                : {
+                      providerAuthorization: {
+                          ...providerAuthorization,
+                          expiresAt: toDate(providerAuthorization.expiresAt)
+                      }
+                  })
         })
         if (!Value.Check(AuthenticatedSession, session)) {
             throw new Error(`Stored session ${secretReference(snapshot.id)} is malformed`)

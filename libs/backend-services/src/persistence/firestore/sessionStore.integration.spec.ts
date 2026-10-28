@@ -1,6 +1,7 @@
 import { createClient, type RedisClientType } from 'redis'
 import { inspect } from 'node:util'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { ExternalAuthService } from '@tabletop/common'
 import { cacheFixture } from '../../cache/tests/cacheFixture.js'
 import { isolatedFirestore } from './tests/isolatedFirestore.js'
 import { FirestoreSessionStore, sessionCacheKey } from './sessionStore.js'
@@ -145,63 +146,78 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(store.find(kept.id)).resolves.toBeUndefined()
         })
 
-        it('stores a session without Recent Authentication and records proof later', async () => {
+        it('stores a session without Recent Authentication or an attempt and changes it later', async () => {
             const { authenticatedAt: _unproved, ...session } = newSession(`${run}-challenge`)
             await store.create(session)
             await expect(store.find(session.id)).resolves.toEqual(session)
             expect(await cachedAfterFill(session.id)).toBe(true)
-            const proved = new Date('2026-10-27T13:00:00.000Z')
-            await expect(store.recordAuthentication(session.id, proved)).resolves.toEqual({
+            const changed = {
                 ...session,
-                authenticatedAt: proved
-            })
-            await expect(store.find(session.id)).resolves.toEqual({
-                ...session,
-                authenticatedAt: proved
-            })
+                authenticatedAt: new Date('2026-10-27T13:00:00.000Z'),
+                providerAuthorization: {
+                    provider: ExternalAuthService.Discord,
+                    purpose: 'link' as const,
+                    redirectUri: 'https://site.test/oauth/discord/link',
+                    state: 'link.state',
+                    expiresAt: new Date('2026-10-27T13:10:00.000Z')
+                }
+            }
+            await expect(store.update(session.id, () => changed)).resolves.toEqual(changed)
+            await expect(store.find(session.id)).resolves.toEqual(changed)
             const restarted = new FirestoreSessionStore(cache, firestore)
-            await expect(restarted.find(session.id)).resolves.toEqual({
-                ...session,
-                authenticatedAt: proved
-            })
+            await expect(restarted.find(session.id)).resolves.toEqual(changed)
+            const { providerAuthorization: _cleared, ...cleared } = changed
+            await expect(store.update(session.id, () => cleared)).resolves.toEqual(cleared)
+            await expect(restarted.find(session.id)).resolves.toEqual(cleared)
         })
 
-        it('stores, reads back and clears Admin Mode on a live session, through the cache and after a restart', async () => {
+        it('stores, reads back and clears Admin Mode, through the cache and after a restart', async () => {
             const session = newSession(`${run}-admin-mode`)
             await store.create(session)
             await expect(store.find(session.id)).resolves.toEqual(session)
             expect(await cachedAfterFill(session.id)).toBe(true)
-            const until = new Date('2026-10-27T12:15:00.000Z')
-            const activated = { ...session, adminModeExpiresAt: until }
-            await expect(store.setAdminMode(session.id, until)).resolves.toEqual(activated)
+            const activated = {
+                ...session,
+                adminModeExpiresAt: new Date('2026-10-27T12:15:00.000Z')
+            }
+            await expect(store.update(session.id, () => activated)).resolves.toEqual(activated)
             await expect(store.find(session.id)).resolves.toEqual(activated)
             const restarted = new FirestoreSessionStore(cache, firestore)
             await expect(restarted.find(session.id)).resolves.toEqual(activated)
-            await expect(store.setAdminMode(session.id, undefined)).resolves.toEqual(session)
+            await expect(
+                store.update(session.id, ({ adminModeExpiresAt: _ended, ...live }) => live)
+            ).resolves.toEqual(session)
             await expect(store.find(session.id)).resolves.toEqual(session)
             await expect(restarted.find(session.id)).resolves.toEqual(session)
             const stored = (await firestore.collection('sessions').doc(session.id).get()).data()
             expect(stored).not.toHaveProperty('adminModeExpiresAt')
         })
 
-        it('keeps Admin Mode out of a session that no longer exists', async () => {
-            const session = newSession(`${run}-admin-gone`)
-            await store.create(session)
-            await store.delete(session.id)
-            await expect(
-                store.setAdminMode(session.id, new Date('2026-10-27T12:15:00.000Z'))
-            ).resolves.toBeUndefined()
-            await expect(store.find(session.id)).resolves.toBeUndefined()
-        })
-
-        it('does not record proof on a session that no longer exists', async () => {
+        it('does not change or recreate a session that no longer exists', async () => {
             const session = newSession(`${run}-gone`)
             await store.create(session)
             await store.delete(session.id)
             await expect(
-                store.recordAuthentication(session.id, new Date('2026-10-27T13:00:00.000Z'))
+                store.update(session.id, (stored) => ({
+                    ...stored,
+                    authenticatedAt: new Date('2026-10-27T13:00:00.000Z')
+                }))
             ).resolves.toBeUndefined()
             await expect(store.find(session.id)).resolves.toBeUndefined()
+            const snapshot = await firestore.collection('sessions').doc(session.id).get()
+            expect(snapshot.exists).toBe(false)
+        })
+
+        it('writes nothing when the change refuses', async () => {
+            const session = newSession(`${run}-refused`)
+            await store.create(session)
+            await expect(
+                store.update(session.id, () => {
+                    throw new Error('refused')
+                })
+            ).rejects.toThrow()
+            const restarted = new FirestoreSessionStore(cache, firestore)
+            await expect(restarted.find(session.id)).resolves.toEqual(session)
         })
 
         it('treats an invalid id as an unknown session', async () => {

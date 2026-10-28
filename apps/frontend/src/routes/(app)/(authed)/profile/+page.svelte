@@ -16,17 +16,23 @@
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext, trim } from '@tabletop/frontend-components'
     import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
+    import {
+        emailAddress,
+        minLengthMessage,
+        requiredMessage
+    } from '$lib/utils/accountFormValidation'
     import { broadcastLogout } from '$lib/utils/logoutChannel'
     import { challengeExpiryText } from '$lib/utils/challengeExpiry'
     import { reauthentication } from '$lib/stores/reauthentication.svelte'
 
     let { authorizationService, api } = getAppContext()
 
-    const enum ReauthType {
-        None = 'none',
-        Password = 'password',
-        Token = 'token'
-    }
+    const ReauthType = {
+        None: 'none',
+        Password: 'password',
+        Token: 'token'
+    } as const
+    type ReauthType = (typeof ReauthType)[keyof typeof ReauthType]
 
     const imageForLinkType = new Map<string, string>([
         ['google', googleLogo],
@@ -76,10 +82,10 @@
         }
     })
 
-    const createUserSchema = zfd.formData({
-        username: zfd.text(),
-        password: zfd.text(z.string().min(12).optional()),
-        email: zfd.text(z.string().email())
+    const updateProfileSchema = zfd.formData({
+        username: zfd.text(z.string(requiredMessage)),
+        password: zfd.text(z.string().min(12, minLengthMessage(12)).optional()),
+        email: zfd.text(emailAddress())
     })
 
     function togglePassword() {
@@ -106,9 +112,9 @@
         success = false
         const form = event.target as HTMLFormElement
         const formData = new FormData(form)
-        const result = createUserSchema.safeParse(formData)
+        const result = updateProfileSchema.safeParse(formData)
         if (!result.success) {
-            errors = result.error.flatten().fieldErrors
+            errors = z.flattenError(result.error).fieldErrors
             return
         }
 

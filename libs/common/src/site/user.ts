@@ -59,6 +59,7 @@ export const UserPreferences = Type.Object({
     preferredColorsEnabled: Type.Boolean(),
     preferredColors: Type.Array(Type.Enum(Color)),
     colorBlindPalette: Type.Optional(Type.Boolean()),
+    bgStatsEnabled: Type.Optional(Type.Boolean()),
     reminderHours: Type.Optional(ReminderHours)
 })
 

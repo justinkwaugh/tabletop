@@ -2,9 +2,8 @@ import { FastifyInstance } from 'fastify'
 import { ExternalAuthService } from '@tabletop/common'
 import {
     completeDiscordCallback,
-    DiscordCallbackRequest,
-    sessionBinding
-} from '../../../../lib/discordCallback.js'
+    DiscordCallbackRequest
+} from '../../../../lib/discordAuthorization.js'
 import { reauthenticatedResponse, requireLinkedIdentity } from '../../../../lib/reauthentication.js'
 
 export default async function (fastify: FastifyInstance) {
@@ -16,12 +15,7 @@ export default async function (fastify: FastifyInstance) {
             onRequest: fastify.auth([fastify.verifyUser], { relation: 'and' })
         },
         async function (request) {
-            const identity = await completeDiscordCallback(
-                fastify,
-                request,
-                'reauthenticate',
-                sessionBinding(request)
-            )
+            const identity = await completeDiscordCallback(fastify, request, 'reauthenticate')
             requireLinkedIdentity(request, ExternalAuthService.Discord, identity.externalId)
             return reauthenticatedResponse(fastify, request)
         }

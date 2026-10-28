@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -16,7 +16,7 @@ import {
 } from './selectionAuction.js'
 
 export const PassSelectionAuction = Type.Object(
-    { ...PlayerAction.properties, type: Type.Literal('PassSelectionAuction') },
+    { ...EighteenXXPlayerAction.properties, type: Type.Literal('PassSelectionAuction') },
     { additionalProperties: false }
 )
 export type PassSelectionAuction = Type.Static<typeof PassSelectionAuction>

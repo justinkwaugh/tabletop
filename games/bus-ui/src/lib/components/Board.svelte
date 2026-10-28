@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Point } from '@tabletop/common'
+    import type { Point } from '@tabletop/common'
     import { isSiteId, type BusStationId } from '@tabletop/bus'
     import AddPassengersPicker from './AddPassengersPicker.svelte'
     import BoardActionRows from './BoardActionRows.svelte'

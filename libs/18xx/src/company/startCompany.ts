@@ -1,9 +1,9 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { recordStockAction } from '../stock/stockRoundRules.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -19,7 +19,7 @@ import type { CompanyRules } from './companyRules.js'
 
 export const StartCompany = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('StartCompany'),
         buyer: Owner,
         companyId: Type.String(),

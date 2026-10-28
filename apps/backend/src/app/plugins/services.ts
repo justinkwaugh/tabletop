@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { cloudManifestReader } from '../../runtime/cloudManifest.js'
 import {
     AblyService,
     AblyTransport,
@@ -51,8 +52,6 @@ import {
     ResendEmailService,
     SecretsService,
     SessionService,
-    OAuthStateService,
-    FirestoreOAuthStateStore,
     DiscordOAuth,
     DiscordOAuthClient,
     StalledGames,
@@ -79,7 +78,6 @@ declare module 'fastify' {
         taskService: TaskService
         tokenService: TokenService
         sessionService: SessionService
-        oauthStateService: OAuthStateService
         discordOAuth: DiscordOAuth
         userService: UserService
         preferenceService: PreferenceService
@@ -131,6 +129,9 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     const titleValidation = new TitleValidation()
     const libraryService = new LibraryService(redisCacheService, {
         manifestPath: SITE_MANIFEST_PATH,
+        readManifest: EnvService.isLocal()
+            ? undefined
+            : cloudManifestReader(process.env['SITE_MANIFEST_GCS_URI']),
         fallbackManifest: EnvService.isLocal()
             ? () => createLocalManifest(LOCAL_WORKSPACE_ROOT)
             : undefined,
@@ -166,7 +167,6 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         new FirestoreAuthenticationChallengeStore(fastify.firestore)
     )
     const userService = new UserService(userStore, challengeService, taskService)
-    const oauthStateService = new OAuthStateService(new FirestoreOAuthStateStore(fastify.firestore))
     const discordOAuth = new DiscordOAuthClient({
         clientId: process.env['DISCORD_CLIENT_ID'] ?? '',
         clientSecret: () => secretsService.getSecret('DISCORD_SECRET')
@@ -295,7 +295,6 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     })
     fastify.decorate('tokenService', tokenService)
     fastify.decorate('sessionService', sessionService)
-    fastify.decorate('oauthStateService', oauthStateService)
     fastify.decorate('discordOAuth', discordOAuth)
     fastify.decorate('userService', userService)
     fastify.decorate(

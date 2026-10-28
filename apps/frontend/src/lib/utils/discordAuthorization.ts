@@ -104,7 +104,7 @@ export function onDiscordAuthorizationResult(handler: ResultHandler): () => void
     return () => channel.removeEventListener('message', listener)
 }
 
-function popupFeatures(): string {
+export function popupFeatures(): string {
     const left = (screen.width - POPUP_WIDTH) / 2
     const top = (screen.height - POPUP_HEIGHT) / 2
     return `popup=true,resizable=no,width=${POPUP_WIDTH},height=${POPUP_HEIGHT},top=${top},left=${left}`

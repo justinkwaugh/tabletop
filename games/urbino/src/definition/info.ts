@@ -7,6 +7,8 @@ export const UrbinoInfo: GameInfo = {
     id: 'urbino',
     metadata: {
         name: 'Urbino',
+        bggId: 237009,
+        hasScores: true,
         designer: 'Dieter Stein',
         description:
             'Urbino is a 2-player abstract strategy game where players develop the city of Urbino by constructing districts. Use two shared architect figures to control where buildings may be placed, then contest districts with houses, palaces, and towers.',

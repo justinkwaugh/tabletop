@@ -67,10 +67,10 @@
             >
         {/if}
     </div>
-    <p class="mt-0.5 text-sm text-oath-text">
+    <div class="mt-0.5 text-sm text-oath-text">
         {#if actorId}<PlayerName playerId={actorId} />{/if}
         {@render children()}
-    </p>
+    </div>
     {#if event.pictures.length > 0}
         <div class="mt-1.5 flex items-end gap-1.5">
             {#each event.pictures as picture, i (i)}

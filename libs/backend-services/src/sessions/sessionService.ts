@@ -1,12 +1,23 @@
 import { customAlphabet } from 'nanoid'
-import { assertExists, isAdministrator, sessionGenerationOf, User } from '@tabletop/common'
+import {
+    assertExists,
+    BaseError,
+    isAdministrator,
+    sessionGenerationOf,
+    User
+} from '@tabletop/common'
 import type { SessionStore } from '../persistence/stores/sessionStore.js'
 import { requireSessionEligibleAccount } from '../users/accountEligibility.js'
+import {
+    issueProviderAuthorization,
+    type ProviderAuthorizationAttempt,
+    type ProviderAuthorizationRequest,
+    verifyProviderAuthorization
+} from '../oauth/providerAuthorization.js'
 import type { AuthenticatedSession, AuthenticationProof } from './authenticatedSession.js'
 import {
     hasRecentAuthentication,
-    RecentAuthenticationRequiredError,
-    SessionNotLiveError
+    RecentAuthenticationRequiredError
 } from './recentAuthentication.js'
 import { adminModeExpiry, AdministratorRequiredError, hasAdminMode } from './adminMode.js'
 import { RELAY_STATS_TOPIC } from '../notifications/topics.js'
@@ -22,6 +33,17 @@ const sessionId = customAlphabet(
 
 export type AuthorizedSession = { session: AuthenticatedSession; user: User }
 export type AccountLookup = (userId: string) => Promise<User | undefined>
+
+export class SessionNotLiveError extends BaseError {
+    readonly statusCode = 401
+
+    constructor() {
+        super({
+            name: 'SessionNotLiveError',
+            message: 'The Authenticated Session is no longer live'
+        })
+    }
+}
 
 export type SessionServiceOptions = {
     lifetimeSeconds?: number
@@ -79,15 +101,42 @@ export class SessionService {
     }
 
     async recordAuthentication(session: AuthenticatedSession): Promise<AuthenticatedSession> {
-        const now = this.now()
-        if (session.expiresAt <= now) {
-            throw new SessionNotLiveError()
-        }
-        const refreshed = await this.sessionStore.recordAuthentication(session.id, now)
-        if (!refreshed) {
-            throw new SessionNotLiveError()
-        }
-        return refreshed
+        const authenticatedAt = this.now()
+        return this.updateLive(session.id, (live) => ({ ...live, authenticatedAt }))
+    }
+
+    issueProviderAuthorization(
+        request: ProviderAuthorizationRequest
+    ): ProviderAuthorizationAttempt {
+        return issueProviderAuthorization(request, this.now())
+    }
+
+    verifyProviderAuthorization(
+        attempt: ProviderAuthorizationAttempt | undefined,
+        state: string,
+        expected: ProviderAuthorizationRequest
+    ): void {
+        verifyProviderAuthorization(attempt, state, expected, this.now())
+    }
+
+    async beginProviderAuthorization(
+        session: AuthenticatedSession,
+        request: ProviderAuthorizationRequest
+    ): Promise<ProviderAuthorizationAttempt> {
+        const providerAuthorization = this.issueProviderAuthorization(request)
+        await this.updateLive(session.id, (live) => ({ ...live, providerAuthorization }))
+        return providerAuthorization
+    }
+
+    async completeProviderAuthorization(
+        session: AuthenticatedSession,
+        state: string,
+        expected: ProviderAuthorizationRequest
+    ): Promise<void> {
+        await this.updateLive(session.id, ({ providerAuthorization, ...live }) => {
+            this.verifyProviderAuthorization(providerAuthorization, state, expected)
+            return live
+        })
     }
 
     isInAdminMode(session: AuthenticatedSession): boolean {
@@ -98,27 +147,28 @@ export class SessionService {
         session: AuthenticatedSession,
         account: User
     ): Promise<AuthenticatedSession> {
-        const now = this.now()
-        if (session.expiresAt <= now || session.userId !== account.id) {
+        if (session.userId !== account.id) {
             throw new SessionNotLiveError()
         }
         if (!isAdministrator(account)) {
             throw new AdministratorRequiredError()
         }
-        if (!hasRecentAuthentication(session, now)) {
-            throw new RecentAuthenticationRequiredError()
-        }
-        const expiresAt = adminModeExpiry(session)
-        assertExists(expiresAt, 'Recent Authentication implies an authentication time')
-        const activated = await this.sessionStore.setAdminMode(session.id, expiresAt)
-        if (!activated) {
-            throw new SessionNotLiveError()
-        }
-        return activated
+        const now = this.now()
+        return this.updateLive(session.id, (live) => {
+            if (!hasRecentAuthentication(live, now)) {
+                throw new RecentAuthenticationRequiredError()
+            }
+            const adminModeExpiresAt = adminModeExpiry(live)
+            assertExists(adminModeExpiresAt, 'Recent Authentication implies an authentication time')
+            return { ...live, adminModeExpiresAt }
+        })
     }
 
     async deactivateAdminMode(session: AuthenticatedSession): Promise<void> {
-        await this.sessionStore.setAdminMode(session.id, undefined)
+        await this.sessionStore.update(
+            session.id,
+            ({ adminModeExpiresAt: _ended, ...live }) => live
+        )
         await this.endAdminGrants(session.userId)
     }
 
@@ -143,6 +193,23 @@ export class SessionService {
     // and their ordinary Topics.
     async endAdminGrants(userId: string): Promise<void> {
         await this.options.realtime?.revokeTopics(userId, [RELAY_STATS_TOPIC])
+    }
+
+    private async updateLive(
+        id: string,
+        change: (live: AuthenticatedSession) => AuthenticatedSession
+    ): Promise<AuthenticatedSession> {
+        const now = this.now()
+        const updated = await this.sessionStore.update(id, (stored) => {
+            if (stored.expiresAt <= now) {
+                throw new SessionNotLiveError()
+            }
+            return change(stored)
+        })
+        if (!updated) {
+            throw new SessionNotLiveError()
+        }
+        return updated
     }
 
     private now(): Date {

@@ -1,9 +1,10 @@
-import { GLOBAL_TOPIC, RELAY_STATS_TOPIC, gameTopic, userTopic } from '@tabletop/backend-services'
+import { RELAY_STATS_TOPIC } from '@tabletop/backend-services'
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
+import { RealtimeGameTopicsQuery, realtimeTopicsFor } from '../../../lib/realtimeTopics.js'
 
 const Query = Type.Object({
-    game: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { maxItems: 4 })),
+    ...RealtimeGameTopicsQuery.properties,
     relayStats: Type.Optional(Type.Boolean())
 })
 
@@ -35,13 +36,11 @@ export default async function (fastify: FastifyInstance) {
                 request.query.relayStats === true && adminModeEnd
                     ? { [RELAY_STATS_TOPIC]: adminModeEnd }
                     : undefined
-            const gameIds = [...new Set(request.query.game)]
-            const topics = [
-                userTopic(principal.user.id),
-                GLOBAL_TOPIC,
-                ...gameIds.map(gameTopic),
-                ...(relayStats ? [RELAY_STATS_TOPIC] : [])
-            ]
+            const topics = realtimeTopicsFor({
+                user: principal.user,
+                gameIds: request.query.game,
+                relayStats: relayStats !== undefined
+            })
 
             reply.header('Cache-Control', 'no-store')
             return {

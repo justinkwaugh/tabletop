@@ -2,7 +2,11 @@ import path from 'node:path'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { access, readFile, stat } from 'node:fs/promises'
 import { GameDefinition } from '@tabletop/common'
-import type { SiteManifest, SiteManifestGame } from '@tabletop/games-config'
+import {
+    gamePublicationSignature,
+    type SiteManifest,
+    type SiteManifestGame
+} from '@tabletop/games-config'
 import type { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
 import { STATIC_ROOT } from '../env/staticRoot.js'
@@ -54,6 +58,7 @@ export type WhileLoadingTitle = <T>(load: () => Promise<T>) => Promise<T>
 
 export type LibraryServiceOptions = {
     manifestPath?: string
+    readManifest?: () => Promise<SiteManifest>
     cacheKey?: string
     useCache?: boolean
     fallbackManifest?: () => Promise<SiteManifest>
@@ -66,6 +71,7 @@ export type LibraryServiceOptions = {
 export class LibraryService {
     private readonly cacheService: ManifestCache
     private readonly manifestPath: string
+    private readonly readManifest?: () => Promise<SiteManifest>
     private readonly manifestCacheKey: string
     private readonly useCache: boolean
     private readonly fallbackManifest?: () => Promise<SiteManifest>
@@ -84,6 +90,7 @@ export class LibraryService {
     constructor(cacheService: ManifestCache, options: LibraryServiceOptions = {}) {
         this.cacheService = cacheService
         this.manifestPath = options.manifestPath ?? MANIFEST_PATH
+        this.readManifest = options.readManifest
         this.manifestCacheKey = options.cacheKey ?? DEFAULT_CACHE_KEY
         this.useCache = options.useCache ?? true
         this.fallbackManifest = options.fallbackManifest
@@ -154,7 +161,7 @@ export class LibraryService {
         const manifest = this.manifestSnapshot
         if (!manifest) return
         if (this.loadedManifest && this.publicationsMatch(this.loadedManifest, manifest)) return
-        const signature = this.publicationSignature(manifest)
+        const signature = gamePublicationSignature(manifest.games)
         const failure = this.activationFailure
         if (
             failure &&
@@ -420,9 +427,9 @@ export class LibraryService {
             const manifest = this.useCache
                 ? await this.cacheService.cachingGet<SiteManifest>(
                       this.manifestCacheKey,
-                      readManifest
+                      this.readManifest ?? readManifest
                   )
-                : await readManifest()
+                : await (this.readManifest ?? readManifest)()
             if (manifest) return manifest
         } catch (error) {
             if (error !== unavailable) throw error
@@ -438,19 +445,6 @@ export class LibraryService {
     }
 
     private publicationsMatch(loaded: SiteManifest, manifest: SiteManifest): boolean {
-        return this.publicationSignature(loaded) === this.publicationSignature(manifest)
-    }
-
-    private publicationSignature(manifest: SiteManifest): string {
-        return JSON.stringify(
-            (manifest.games ?? [])
-                .map((entry) => [
-                    entry.gameId,
-                    entry.packageId,
-                    entry.logicVersion,
-                    entry.uiVersion
-                ])
-                .sort(([left], [right]) => left.localeCompare(right))
-        )
+        return gamePublicationSignature(loaded.games) === gamePublicationSignature(manifest.games)
     }
 }

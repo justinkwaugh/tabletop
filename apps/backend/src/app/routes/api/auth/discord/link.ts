@@ -2,9 +2,8 @@ import { FastifyInstance } from 'fastify'
 import { ExternalAuthService } from '@tabletop/common'
 import {
     completeDiscordCallback,
-    DiscordCallbackRequest,
-    sessionBinding
-} from '../../../../lib/discordCallback.js'
+    DiscordCallbackRequest
+} from '../../../../lib/discordAuthorization.js'
 
 export default async function (fastify: FastifyInstance) {
     fastify.post<{ Body: DiscordCallbackRequest }>(
@@ -20,12 +19,7 @@ export default async function (fastify: FastifyInstance) {
             if (!request.user) {
                 throw Error('No user found for link request')
             }
-            const identity = await completeDiscordCallback(
-                fastify,
-                request,
-                'link',
-                sessionBinding(request)
-            )
+            const identity = await completeDiscordCallback(fastify, request, 'link')
             const updatedUser = await fastify.userService.linkExternalAccount({
                 userId: request.user.id,
                 externalId: identity.externalId,

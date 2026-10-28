@@ -4,14 +4,12 @@ import { randomUUID } from 'node:crypto'
 import { inspect } from 'node:util'
 import { ExternalAuthService } from '@tabletop/common'
 import {
-    FirestoreOAuthStateStore,
     FirestoreSessionStore,
     RedisCacheService,
     RedisService,
     secretReference,
     sessionCacheKey,
-    type AuthenticatedSession,
-    type OAuthStateRecord
+    type AuthenticatedSession
 } from '@tabletop/backend-services'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -141,37 +139,46 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(reported()).not.toContain(session.id)
         })
 
-        it('logs a refused duplicate OAuth state without the Authorization State anywhere', async () => {
+        it('logs a failed attempt transaction on a session record by reference only', async () => {
             const { server, logged, reported } = capturingServer()
-            const store = new FirestoreOAuthStateStore(firestore)
-            const record: OAuthStateRecord = {
-                state: `link.SYNTHETIC-STATE-${randomUUID()}`,
-                provider: ExternalAuthService.Discord,
-                purpose: 'link',
-                redirectUri: 'https://site.test/oauth/discord/link',
-                binding: { kind: 'session', sessionId: 'session-1', userId: 'account-1' },
-                expiresAt: new Date('2026-10-27T12:10:00.000Z')
-            }
-            server.post('/states', async (request) => {
+            const store = new FirestoreSessionStore(cache, firestore)
+            const session = newSession()
+            await store.create(session)
+            const state = `SYNTHETIC-STATE-${randomUUID()}`
+            vi.spyOn(firestore, 'runTransaction').mockRejectedValueOnce(
+                new Error(`Transaction on sessions/${session.id} failed`)
+            )
+            server.post('/attempts', async (request) => {
                 try {
-                    await store.create(record)
+                    await store.update(session.id, (stored) => ({
+                        ...stored,
+                        providerAuthorization: {
+                            provider: ExternalAuthService.Discord,
+                            purpose: 'link',
+                            redirectUri: 'https://site.test/oauth/discord/link',
+                            state,
+                            expiresAt: new Date('2026-10-27T12:10:00.000Z')
+                        }
+                    }))
                 } catch (error) {
-                    request.log.error({ err: error }, 'Authorization State write refused')
+                    request.log.error({ err: error }, 'Provider Authorization Attempt refused')
                     throw error
                 }
                 return {}
             })
 
-            expect((await server.inject({ method: 'POST', url: '/states' })).statusCode).toBe(200)
-            const refused = await server.inject({ method: 'POST', url: '/states' })
+            const refused = await server.inject({ method: 'POST', url: '/attempts' })
 
             expect(refused.statusCode).toBe(400)
-            expect(refused.body).not.toContain(record.state)
-            expect(logged()).toContain('Authorization State write refused')
-            expect(logged()).toContain('AlreadyExistsError')
-            expect(logged()).toContain(`"id":"${secretReference(record.state)}"`)
-            expect(logged()).not.toContain(record.state)
-            expect(reported()).not.toContain(record.state)
+            expect(refused.body).not.toContain(session.id)
+            expect(logged()).toContain('Provider Authorization Attempt refused')
+            expect(logged()).toContain('UnknownStorageError')
+            expect(logged()).toContain('Transaction on sessions/')
+            expect(logged()).toContain(`"id":"${secretReference(session.id)}"`)
+            expect(logged()).not.toContain(session.id)
+            expect(reported()).not.toContain(session.id)
+            expect(logged()).not.toContain(state)
+            expect(reported()).not.toContain(state)
         })
     }
 )

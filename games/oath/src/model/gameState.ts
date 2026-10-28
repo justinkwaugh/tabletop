@@ -21,7 +21,7 @@ import { MachineState } from '../definition/states.js'
 import { Banner, CardKind, OathType, Region, SetupVariant, Suit } from './oathEnums.js'
 import { CampaignState } from './campaign.js'
 import { PendingCampaign } from './pendingCampaign.js'
-import { PendingQuestions } from './question.js'
+import { MAX_OPEN_DEALS, OpenDeal, PendingQuestions } from './question.js'
 import { PendingConsent } from './consent.js'
 import { OathVaultSchema, type OathVault } from './vault.js'
 
@@ -144,6 +144,8 @@ export const OathGameState = Type.Object({
     /** R-X.1 */
     pendingConsent: Type.Optional(PendingConsent),
     pendingQuestions: Type.Optional(PendingQuestions),
+    /** R-7.6.3-H1 — the Tribunal's deals with a promise in them, public once agreed. From revision 28. */
+    openDeals: Type.Optional(Type.Array(OpenDeal, { maxItems: MAX_OPEN_DEALS })),
     /** Sneak Attack — present while a Campaign runs out of turn. */
     heldTurn: Type.Optional(PendingQuestions),
     /** Salt the Earth (R-2.8.1). */
@@ -217,6 +219,7 @@ export class HydratedOathGameState
     declare pendingCampaign?: PendingCampaign
     declare pendingConsent?: PendingConsent
     declare pendingQuestions?: OathProjectedState['pendingQuestions']
+    declare openDeals?: OpenDeal[]
     declare heldTurn?: OathProjectedState['heldTurn']
     declare siteCapacityOverrides: Record<string, number>
     declare chancellorPlayerId?: string

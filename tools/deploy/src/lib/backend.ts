@@ -252,7 +252,11 @@ export type BackendReplacement = (typeof BackendReplacements)[number]
 const isBackendReplacement = (value: unknown): value is BackendReplacement =>
     BackendReplacements.some((replacement) => replacement === value)
 
-export type InvalidationOptions = { signal?: AbortSignal; warn?: (message: string) => void }
+export type InvalidationOptions = {
+    signal?: AbortSignal
+    warn?: (message: string) => void
+    expectedPublication?: string
+}
 
 export const invalidateBackendManifestCache = async (
     config: DeployConfig,
@@ -270,7 +274,7 @@ export const invalidateBackendManifestCache = async (
     const session = await openAdminSession(apiRoot, credentials, options?.signal)
     try {
         await activateAdminMode(apiRoot, session, options?.signal)
-        return await requestInvalidation(adminUrl, session.cookie, options?.signal)
+        return await requestInvalidation(adminUrl, session.cookie, options)
     } finally {
         await session.release().catch((error: unknown) => {
             const warn = options?.warn ?? console.warn
@@ -281,16 +285,30 @@ export const invalidateBackendManifestCache = async (
     }
 }
 
-const requestInvalidation = async (adminUrl: string, cookie: string, signal?: AbortSignal) => {
+const requestInvalidation = async (
+    adminUrl: string,
+    cookie: string,
+    options?: Pick<InvalidationOptions, 'signal' | 'expectedPublication'>
+) => {
     const response = await fetch(adminUrl, {
         method: 'POST',
         headers: { accept: 'application/json', cookie },
-        signal
+        signal: options?.signal
     })
     if (!response.ok) {
         throw new Error(describeRefusal('manifest invalidate', await readRefusal(response)))
     }
     const body: unknown = await response.json()
+    if (options?.expectedPublication !== undefined) {
+        if (!isObject(body) || typeof body.publication !== 'string') {
+            throw new Error(
+                'Backend cannot confirm the published manifest; release the backend first'
+            )
+        }
+        if (body.activation !== 'complete' || body.publication !== options.expectedPublication) {
+            throw new Error('Backend activated a different publication than the uploaded manifest')
+        }
+    }
     if (
         typeof body === 'object' &&
         body !== null &&

@@ -203,9 +203,9 @@ release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]
                              Bump versions, commit, tag, push, then deploy
 deploy-game --game=<id> [--logic]
                              Build and deploy a tagged HEAD, publish the manifest, invalidate cache
-build-ui <gameId>            Build a game UI bundle (rollup)
+build-ui <gameId>            Build a game UI bundle (rolldown)
 deploy-ui <gameId>           deploy-game for the UI only, with the same guards
-build-logic <gameId>         Build a game logic bundle (rollup)
+build-logic <gameId>         Build a game logic bundle (rolldown)
 deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
 release-frontend (--major | --minor | --patch) [--no-deploy]
                              Bump the frontend version, commit, tag, push, then deploy
@@ -232,6 +232,22 @@ open until the instance it reaches has activated and answers `activation: "compl
 instance activates during its next request, which waits for the load. No process is replaced and
 no UI republish is needed for a logic change. See
 [ADR 0011](../../docs/adr/0011-game-logic-runs-as-collectible-factories.md).
+
+Production reads the mutable manifest through the authenticated Cloud Storage API when Redis
+needs filling. Game artifacts still come from the mounted bucket. Reading the manifest through
+the mount can return cached metadata after an upload and refill Redis with an older publication.
+Local development continues to read its staged manifest file.
+
+The activation response includes a `publication` signature identifying the served frontend and
+every selected game package, logic version, and UI version. The deploy tool compares it with the
+manifest it uploaded and fails if the backend reports a different selection or cannot confirm
+one. Publication history and game ordering do not affect the signature.
+
+Roll out this activation protocol by releasing the backend before using the updated deploy tool
+to publish games or the frontend. Backend deployment supplies `SITE_MANIFEST_GCS_URI` from
+`gcsBucket`; both runtime services require it and use their application credentials to read that
+object. Their service accounts need object-read access to the bucket, as they do for the mount.
+Cloud Storage read failures fail activation instead of falling back to the mounted manifest.
 
 Artifacts published before the build emitted the factory are imported the old way and stay
 resident until the worker restarts. `migrate-logic-artifacts` lists each title's current logic
@@ -277,7 +293,7 @@ is selected. Do not roll out the new frontend before the initial catalog publica
 Subsequent game publications update discovery through the normal manifest publication and cache
 invalidation flow; no Site Frontend deployment is needed. Browser caching can delay visibility by
 up to 60 seconds. For local artifacts already staged before this change, generate just the missing
-JSON with `node config/config-rollup/write-game-catalog.mjs <staged-ui-version-directory>`.
+JSON with `node config/config-rolldown/write-game-catalog.mjs <staged-ui-version-directory>`.
 
 ### Deployment settings
 
