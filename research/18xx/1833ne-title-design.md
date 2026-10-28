@@ -204,3 +204,52 @@ mergers; none needed it before.
   withholding; at $124 full or half both reach $150.
 - Issue example (§6.31): at $60 with 40% held by players and 20% in the market the
   Fitchburg may issue two shares at $50.
+
+## Implementation notes (2026-10-28)
+
+Built on branch `feat/implement-1833ne`. Family changes beyond the plan above:
+
+- **More 1846 rules moved to the family:** zero-price closure (`zeroPriceClosure`,
+  `ClosingOperatingCorporation`), issue-first train funding, market receivership and the
+  bankrupt player's forced sales (`issueFirstTrainFunding`, `marketReceivership`,
+  `sellBankruptHoldings`), and treasury-share stock and launch rules
+  (`treasuryShareStockRules`, `treasuryShareCompanyRules`). 1846 selects all of them.
+- **Terminals:** Boston's and Portland's triangles are offboard nodes worth their city's
+  value. An offboard terminal may become a city of a tile with fewer terminals
+  (`tileUpgradeMappings`), which is how Portland's two triangles become a city and a triangle
+  in green and every tile's cities and triangles merge in brown. The title's
+  `preservesStops` lets only the B, Mo and Po tiles combine stops.
+- **Station access** (`StationFields.stationAccess`): the A&StL's use of the joint
+  Sherbrooke token, and a corporation's use of the Ogdensburg or D&H offboard, which may not
+  be used to trace new stations (`placesStations: false`). A closing St. Lawrence corporation
+  leaves the joint piece to the other.
+- **Several homes per hex** in the location factory (Boston: B&W and B&L).
+- **Purchase charges** (`PurchaseEffects.charges`) record the D&H's $40 to the bank.
+- **Autorouter wire version 5:** N+s budgets, end-only destinations and interconnection
+  extensions; the shortest extension per end and destination is tried.
+- **UI:** route overlays draw extensions. 1846's finance panel and construction modes are
+  being lifted into `@tabletop/18xx-ui` so the shared table offers them to 1833NE.
+
+Every 18xx title's runtime contract gained only optional fields, so each title's next logic
+release is a major.
+
+### Verified by tests
+
+- Rulebook p. 8: OR1 in reverse price order with the top of a column first; OR2 runs of
+  $60/$80 (B&W) and $90/$80 (B&P) with ferries and the moving New bonus.
+- §6.66: the Fitchburg's two routes earn $160, or $170 with Troy–Fitchburg interconnecting
+  to Boston; an extension may not share another route's track; the Albany/Troy–Boston total
+  applies only in phases I–II.
+- Auction: first bid at the printed price, $5 multiples, all-pass resolution with two income
+  payments, priority left of the last buyer.
+- Phase-out and removal timing, private removal at III and IV, the joint token, brown 50
+  cities only where no 60/70 fits.
+
+### Known limits
+
+- **Takeover game** not built (its five corporations are unidentified).
+- **Last ferry bonus** assumed +20; **golden spike** text assumed on both mats.
+- **P3** may lay one of its two tiles and stop; the rulebook says both must be laid.
+- **Manual route drawing** of an extension exists only in the debug route builder; the table
+  relies on the autorouter for extensions.
+- **No scenarios** yet: the title is not in the 18xx playground or `games.json`.
