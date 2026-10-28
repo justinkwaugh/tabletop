@@ -54,6 +54,13 @@ test('1817 Volatility auctions its privates from the bottom tier of a pyramid', 
     await bottom.nth(1).click()
     await lots.getByRole('button', { name: 'Bid', exact: true }).click()
     const bidding = page.getByRole('article', { name: 'Current auction' })
+    // The pyramid stays in view while the nominated lot is bid on.
+    const biddingTier = bidding
+        .getByRole('group', { name: 'Lot tiers' })
+        .getByRole('group', { name: 'Tier 6', exact: true })
+    await expect(biddingTier.locator('.slot')).toHaveCount(6)
+    await expect(biddingTier.locator('.slot[aria-current="true"]')).toHaveCount(1)
+    await expect(biddingTier.getByRole('button', { name: /^Auction / })).toHaveCount(0)
     for (let pass = 0; pass < 2; pass++)
         await bidding.getByRole('button', { name: 'Pass', exact: true }).click()
     await expect(page.getByRole('article', { name: 'Current auction' })).toHaveCount(0)
