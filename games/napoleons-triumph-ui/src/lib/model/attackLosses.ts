@@ -50,7 +50,7 @@ function noLosses(playerId: string): SideLosses {
     return { playerId, steps: 0, owed: 0, morale: 0, taken: [], paidForSteps: 0, penalties: [] }
 }
 
-function stepsIn(losses: readonly LossEntry[]): number {
+export function stepsIn(losses: readonly LossEntry[]): number {
     return losses.reduce((sum, loss) => sum + loss.steps, 0)
 }
 
