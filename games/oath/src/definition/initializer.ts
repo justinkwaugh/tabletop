@@ -11,6 +11,7 @@ import {
     Game,
     Player,
     HydratedTurnManager,
+    pickRandom,
     shuffle,
     type StartingPositionAssignment
 } from '@tabletop/common'
@@ -111,7 +112,12 @@ export class OathGameInitializer
 
         const config = readOathGameConfig(game.config)
         // R-8.1, R-1.13 — a first game is the Oath of Supremacy, or the Oath a stored config names.
-        const oathType = config.oathType ?? OathType.Supremacy
+        // R-8-H1 — a tournament's game draws one of the four instead: it writes no chronicle, so
+        // no game before it vowed one.
+        const tournamentGame = game.tournament !== undefined
+        const oathType =
+            config.oathType ??
+            (tournamentGame ? pickRandom(Object.values(OathType), prng.random) : OathType.Supremacy)
         const setupVariant = config.setupVariant ?? SetupVariant.Randomized
         const seeded = seedRequiredFields(state, {
             players: orderedPlayers,
@@ -138,6 +144,8 @@ export class OathGameInitializer
         initial.oathRevision = CURRENT_OATH_REVISION
         // R-8 — the chronicle's record names the table as it started.
         initial.table = tableRecordOf(game)
+        // R-8-H1 — a tournament's game records its result at the win and skips the chronicle.
+        if (tournamentGame) initial.tournamentGame = true
         return initial
     }
 
