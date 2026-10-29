@@ -307,6 +307,47 @@ for (const viewport of [
             await shot(page, 'record-rows')
         })
 
+        test('the Chronicle tab open while the History steps back before the first entry: it stays, with none', async ({
+            page
+        }) => {
+            await openTable(page, 'chronicleResult')
+            await openTab(page, 'Chronicle')
+            await expect(page.locator('.chronicle-tab article')).toHaveCount(1)
+            await page.evaluate(async () => {
+                const fixture = await import(
+                    new URL('/src/lib/testing/tableFixture.ts', location.href).href
+                )
+                await fixture.stepHistoryBack(1)
+            })
+            await expect(page.getByRole('tab')).toHaveText([
+                'Players',
+                'History',
+                'Chronicle',
+                'Chat'
+            ])
+            await expect(page.getByRole('tab', { name: 'Chronicle' })).toHaveAttribute(
+                'aria-selected',
+                'true'
+            )
+            await expect(page.locator('.chronicle-tab')).toBeVisible()
+            await expect(page.locator('.chronicle-tab article')).toHaveCount(0)
+            // Another tab opened, the Chronicle tab leaves until the state shown holds an entry.
+            await openTab(page, 'History')
+            await expect(page.getByRole('tab')).toHaveText(['Players', 'History', 'Chat'])
+            await page.evaluate(async () => {
+                const fixture = await import(
+                    new URL('/src/lib/testing/tableFixture.ts', location.href).href
+                )
+                await fixture.leaveHistory()
+            })
+            await expect(page.getByRole('tab')).toHaveText([
+                'Players',
+                'History',
+                'Chronicle',
+                'Chat'
+            ])
+        })
+
         test('two Citizens of one name: both chips, each in the colour they played', async ({
             page
         }) => {

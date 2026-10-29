@@ -200,9 +200,8 @@
             </div>
             <!-- The platform's three tabs, and the chronicle's record once it holds an entry. -->
             <OathTabs
-                chronicle={(oath.gameState.chronicleRecord?.length ?? 0) > 0
-                    ? chronicleTab
-                    : undefined}
+                chronicle={chronicleTab}
+                chronicleShown={(oath.gameState.chronicleRecord?.length ?? 0) > 0}
                 activeTabClass="py-1 px-3 bg-oath-accent-soft border-2 border-oath-frame rounded-lg text-oath-text font-semibold"
                 inactiveTabClass="py-1 px-3 border-2 border-transparent rounded-lg text-oath-text-muted hover:text-oath-text hover:border-oath-frame"
             >

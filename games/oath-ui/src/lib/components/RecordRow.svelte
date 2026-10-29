@@ -37,4 +37,9 @@
     .caret--open {
         transform: rotate(90deg);
     }
+    @media (prefers-reduced-motion: reduce) {
+        .caret {
+            transition: none;
+        }
+    }
 </style>

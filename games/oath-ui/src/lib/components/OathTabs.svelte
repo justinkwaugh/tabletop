@@ -17,14 +17,16 @@
         playersPanel,
         history,
         chronicle,
+        chronicleShown,
         chat,
         activeTabClass,
         inactiveTabClass
     }: {
         playersPanel: Snippet
         history: Snippet
-        /** Absent until the record holds an entry. */
-        chronicle?: Snippet
+        chronicle: Snippet
+        /** The state on screen holds a record entry. */
+        chronicleShown: boolean
         chat: Snippet
         activeTabClass: string
         inactiveTabClass: string
@@ -35,9 +37,20 @@
     let chatActive = $state(false)
     let showNewMessageIndicator = $derived(gameSession.hasUnreadMessages && !chatActive)
 
+    // The Chronicle tab stays while it is the open one, so stepping the History back before the
+    // record's first entry leaves it open on the state shown, with no entry; it leaves when another
+    // tab is opened.
+    let chronicleActive = $state(false)
+    let chronicleTab = $derived(chronicleShown || chronicleActive)
+
+    function opened(tab: 'chat' | 'chronicle' | 'other') {
+        chatActive = tab === 'chat'
+        chronicleActive = tab === 'chronicle'
+    }
+
     // Four tabs fit the side column on one line, at a desktop's width and a phone's: their names
     // alone, a little closer together.
-    let four = $derived(chronicle !== undefined)
+    let four = $derived(chronicleTab)
     let activeClasses = $derived(`relative box-border ${narrowed(activeTabClass)}`)
     let inactiveClasses = $derived(`relative box-border ${narrowed(inactiveTabClass)}`)
 
@@ -62,7 +75,7 @@
 >
     <TabItem
         open
-        onclick={() => (chatActive = false)}
+        onclick={() => opened('other')}
         activeClass={activeClasses}
         inactiveClass={inactiveClasses}
     >
@@ -70,16 +83,16 @@
         {@render playersPanel()}
     </TabItem>
     <TabItem
-        onclick={() => (chatActive = false)}
+        onclick={() => opened('other')}
         activeClass={activeClasses}
         inactiveClass={inactiveClasses}
     >
         {#snippet titleSlot()}{@render title('History', ClockSolid)}{/snippet}
         {@render history()}
     </TabItem>
-    {#if chronicle}
+    {#if chronicleTab}
         <TabItem
-            onclick={() => (chatActive = false)}
+            onclick={() => opened('chronicle')}
             activeClass={activeClasses}
             inactiveClass={inactiveClasses}
         >
@@ -89,7 +102,7 @@
     {/if}
     {#if gameSession.chatAvailable}
         <TabItem
-            onclick={() => (chatActive = true)}
+            onclick={() => opened('chat')}
             activeClass={activeClasses}
             inactiveClass={inactiveClasses}
         >

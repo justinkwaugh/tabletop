@@ -5917,6 +5917,23 @@ export function openDeals(): OpenDeal[] {
     return current().gameState.openDeals ?? []
 }
 
+/** History Navigation: `steps` back from the state on screen, one at a time. */
+export async function stepHistoryBack(steps: number): Promise<void> {
+    const table = current()
+    for (let step = 0; step < steps; step++) {
+        await table.history.goToPreviousAction()
+        // The platform releases its stepping lock on the next tick.
+        await new Promise((resolve) => setTimeout(resolve))
+    }
+    await settled()
+}
+
+/** History Navigation back to the live game. */
+export async function leaveHistory(): Promise<void> {
+    current().history.goToEnd()
+    await settled()
+}
+
 export function viewOffTheClock(): string | undefined {
     const table = current()
     table.setViewingAsNonActivePlayer(true)
