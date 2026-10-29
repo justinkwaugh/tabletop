@@ -7,24 +7,21 @@ import {
 } from './approachSymbols.js'
 import type { ConvexOutline } from './convexOutline.js'
 
-export interface SymbolTagsShown {
-    /** The map menu's Approach symbols switch. */
-    allShown: boolean
-    scale: number
-    arrows: readonly ConvexOutline[]
-    plates: readonly ApproachPlate[]
-}
-
-/** Every side's tag while the symbols are switched on, else those whose marks an arrow covers; none for a side whose marks are on a plate. Each keeps off the arrows and the plates. */
 export function shownSymbolTags({
-    allShown,
+    switchedOn,
     scale,
     arrows,
     plates
-}: SymbolTagsShown): PlacedSymbolTag[] {
+}: {
+    switchedOn: boolean
+    scale: number
+    arrows: readonly ConvexOutline[]
+    plates: readonly ApproachPlate[]
+}): PlacedSymbolTag[] {
     const onPlates = plates.map((plate) => plate.side)
+    const drawnOver = [...arrows, ...plateOutlines(plates)]
     const shown = SYMBOL_TAGS.filter(
-        (tag) => !onPlates.includes(tag.key) && (allShown || printedMarksCovered(tag, arrows))
+        (tag) => !onPlates.includes(tag.key) && (switchedOn || printedMarksCovered(tag, drawnOver))
     )
-    return placeSymbolTags(shown, scale, [...arrows, ...plateOutlines(plates)])
+    return placeSymbolTags(shown, scale, drawnOver)
 }

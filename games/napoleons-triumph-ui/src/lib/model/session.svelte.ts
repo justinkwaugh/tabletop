@@ -592,10 +592,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     approachSymbolTags: PlacedSymbolTag[] = $derived.by(() =>
         shownSymbolTags({
-            allShown: this.approachSymbolsShown,
+            switchedOn: this.approachSymbolsShown,
             scale: approachSymbolScale(this.zoom),
             arrows: this.arrowOutlines,
-            plates: this.approachPlates
+            plates: this.unitsHidden ? [] : this.approachPlates
         })
     )
 

@@ -115,9 +115,9 @@ export function tagCentre(tag: SymbolTag, scale: number): Point {
     }
 }
 
-export function printedMarksCovered(tag: SymbolTag, arrows: readonly ConvexOutline[]): boolean {
+export function printedMarksCovered(tag: SymbolTag, drawnOver: readonly ConvexOutline[]): boolean {
     const printed = cornersOf(tag.printed)
-    return arrows.some((arrow) => outlinesOverlap(printed, arrow))
+    return drawnOver.some((outline) => outlinesOverlap(printed, outline))
 }
 
 export interface PlacedSymbolTag extends SymbolTag {
