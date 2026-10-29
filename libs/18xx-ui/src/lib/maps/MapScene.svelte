@@ -25,7 +25,9 @@
         type MapSelection,
         type MapToken,
         type MapRoute,
-        CaptionFontSize
+        CaptionFontSize,
+        NoticeFontSize,
+        NoticeY
     } from './mapDrawing.js'
 
     let {
@@ -433,6 +435,16 @@
                             {#if art && 'imageUrl' in art && !entry.placed}
                                 <image href={art.imageUrl} x="-25" y="-25" width="50" height="40"
                                 ></image>
+                            {:else if art && 'notice' in art && !entry.placed}
+                                <text
+                                    data-map-marker-notice={marker.id}
+                                    y={NoticeY}
+                                    dominant-baseline="central"
+                                    font-size={NoticeFontSize}
+                                    font-weight="650"
+                                    fill={appearance.ink}
+                                    ><title>{marker.description}</title>{marker.label}</text
+                                >
                             {:else if art && 'centeredLabel' in art && !entry.placed}
                                 <text
                                     data-map-marker-label={marker.id}

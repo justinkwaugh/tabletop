@@ -102,6 +102,8 @@ export type MapMarkerArt =
     | { localLine: true; above?: true }
     /** The marker's label, large in the centre of an unbuilt hex. */
     | { centeredLabel: true }
+    /** The marker's label as a printed note across an unbuilt hex's lower half, such as a reservation. */
+    | { notice: true }
     /** A ring around the hex's towns, drawn as dots, as a medium city is printed. */
     | { townRing: true }
     /**
@@ -518,6 +520,9 @@ export function createMapDrawing(
                         : []),
                     ...((location.markers ?? []).some((marker) => !markerArt[marker.id])
                         ? [{ x: 0, y: 36 }]
+                        : []),
+                    ...(!placement && noticeShown(location.markers ?? [], markerArt)
+                        ? [-18, 0, 18].map((x) => ({ x, y: NoticeY }))
                         : [])
                 ]
             },
@@ -628,6 +633,9 @@ export function createMapDrawing(
                             : []),
                         ...(markers.some((marker) => !markerArt[marker.id])
                             ? [box({ x: 0, y: 36 }, 24, 4)]
+                            : []),
+                        ...(!placement && noticeShown(markers, markerArt)
+                            ? [box({ x: 0, y: NoticeY }, 26, NoticeFontSize / 2 + 1)]
                             : []),
                         ...(!placement &&
                         markers.some((marker) => {
@@ -744,6 +752,18 @@ function withRevenueLeads(face: TileFace, leads: readonly RevenueLead[]): TileFa
 }
 
 export const CaptionFontSize = 5
+export const NoticeFontSize = 9
+export const NoticeY = 24
+
+function noticeShown(
+    markers: NonNullable<MapLocation['markers']>,
+    markerArt: Readonly<Record<string, MapMarkerArt>>
+): boolean {
+    return markers.some((marker) => {
+        const art = markerArt[marker.id]
+        return !!art && 'notice' in art
+    })
+}
 const CaptionCharacterWidth = 3.4
 // From the top of a lead's box to the middle of its caption.
 const CaptionRise = 3
