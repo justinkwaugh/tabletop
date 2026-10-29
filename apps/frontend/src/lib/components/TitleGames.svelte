@@ -9,7 +9,7 @@
     import TitleSection from '$lib/components/TitleSection.svelte'
     import { nextTabIndex } from '$lib/utils/tabNavigation'
 
-    const PREVIEW_COUNT = 10
+    const PAGE_SIZE = 4
 
     let { titleId, oncreate }: { titleId: string; oncreate: () => void } = $props()
     const { gameService, authorizationService, api } = getAppContext()
@@ -21,9 +21,10 @@
         public: 'loading'
     })
     let activity = $state<TitleActivity>({ inProgress: [], recentlyFinished: [] })
-    let expanded = $state<Record<ActivityScope, boolean>>({
-        inProgress: false,
-        recentlyFinished: false
+    let pages = $state<Record<ActivityScope | 'open', number>>({
+        open: 0,
+        inProgress: 0,
+        recentlyFinished: 0
     })
     const activityTabs: { scope: ActivityScope; title: string; empty: string }[] = [
         {
@@ -65,15 +66,7 @@
     function gamesFor(scope: Scope) {
         if (scope === 'mine') return myGames
         if (scope === 'open') return openGames
-        const activityScope = selectedTab.scope
-        return expanded[activityScope]
-            ? activity[activityScope]
-            : activity[activityScope].slice(0, PREVIEW_COUNT)
-    }
-
-    function hiddenCount(scope: Scope): number {
-        if (scope !== 'public' || expanded[selectedTab.scope]) return 0
-        return Math.max(activity[selectedTab.scope].length - PREVIEW_COUNT, 0)
+        return activity[selectedTab.scope]
     }
 
     function moveActivityTab(event: KeyboardEvent, index: number) {
@@ -89,7 +82,10 @@
         states[scope] = 'loading'
         try {
             if (scope === 'mine') await gameService.loadGames()
-            else await gameService.loadOpenGames(titleId)
+            else {
+                await gameService.loadOpenGames(titleId)
+                pages.open = 0
+            }
             states[scope] = 'ready'
         } catch {
             states[scope] = 'error'
@@ -100,6 +96,8 @@
         states.public = 'loading'
         try {
             activity = await api.getTitleActivity(titleId)
+            pages.inProgress = 0
+            pages.recentlyFinished = 0
             states.public = 'ready'
         } catch (error) {
             states.public =
@@ -121,7 +119,11 @@
 
 {#snippet gameContent(scope: Scope, empty: string)}
     {@const games = gamesFor(scope)}
-    {@const hidden = hiddenCount(scope)}
+    {@const pageScope = scope === 'public' ? selectedTab.scope : 'open'}
+    {@const lastPage = Math.max(0, Math.ceil(games.length / PAGE_SIZE) - 1)}
+    {@const page = Math.min(pages[pageScope], lastPage)}
+    {@const visibleGames =
+        scope === 'mine' ? games : games.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)}
     {#if states[scope] === 'loading'}
         <p class="empty" role="status">Loading games…</p>
     {:else if states[scope] === 'error'}
@@ -141,7 +143,7 @@
         </div>
     {:else}
         <div class="game-list" class:public-list={scope === 'public'}>
-            {#each games as game (game.id)}
+            {#each visibleGames as game (game.id)}
                 <div
                     class="min-w-0"
                     animate:flip={{ duration: prefersReducedMotion.current ? 0 : 250 }}
@@ -153,10 +155,24 @@
                 </div>
             {/each}
         </div>
-        {#if hidden > 0}
-            <button class="show-more" onclick={() => (expanded[selectedTab.scope] = true)}
-                >Show {hidden} more</button
+        {#if scope !== 'mine' && games.length > PAGE_SIZE}
+            <nav
+                class="game-pagination"
+                aria-label={scope === 'open' ? 'Open games pages' : `${selectedTab.title} pages`}
             >
+                <button
+                    aria-disabled={page === 0}
+                    onclick={() => {
+                        if (page > 0) pages[pageScope] = page - 1
+                    }}>Previous</button
+                >
+                <button
+                    aria-disabled={page === lastPage}
+                    onclick={() => {
+                        if (page < lastPage) pages[pageScope] = page + 1
+                    }}>Next</button
+                >
+            </nav>
         {/if}
     {/if}
 {/snippet}
@@ -171,8 +187,8 @@
         </TitleSection>
     {/each}
     <div class="public-games">
-        <TitleSection title="Public games">
-            <div class="collection-tabs activity-tabs" role="tablist" aria-label="Public games">
+        <TitleSection title="Community games">
+            <div class="collection-tabs activity-tabs" role="tablist" aria-label="Community games">
                 {#each activityTabs as tab, index (tab.scope)}
                     <button
                         class="collection-tab"
@@ -260,14 +276,21 @@
         min-height: 0;
     }
     .empty button:hover,
-    .show-more:hover {
+    .game-pagination button:not([aria-disabled='true']):hover {
         text-decoration: underline;
     }
-    .show-more {
+    .game-pagination {
+        display: flex;
+        justify-content: flex-end;
+        gap: 20px;
         margin-top: 14px;
         color: var(--color-blue-300);
         font-size: 14px;
         font-weight: 500;
+    }
+    .game-pagination button[aria-disabled='true'] {
+        color: var(--color-gray-500);
+        cursor: default;
     }
     @media (max-width: 800px) {
         .game-sections,

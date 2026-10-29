@@ -520,11 +520,10 @@ export class GameService implements GameServiceInterface {
             ) {
                 this.removeFromPublicCache(game.id)
             } else {
-                const titleGames = (this.openGamesByTitleId.get(game.typeId) || []).filter(
-                    (g) => g.id !== game.id
-                )
-
-                titleGames.push(game)
+                const titleGames = [...(this.openGamesByTitleId.get(game.typeId) ?? [])]
+                const index = titleGames.findIndex((existing) => existing.id === game.id)
+                if (index === -1) titleGames.push(game)
+                else titleGames[index] = game
                 this.openGamesByTitleId.set(game.typeId, titleGames)
             }
 

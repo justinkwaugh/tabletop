@@ -571,7 +571,7 @@
                                     {#if openSeats === 0}
                                         None
                                     {:else}
-                                        {openSeats}/{totalSeats}
+                                        {openSeats}
                                     {/if}
                                 </div>
                             </div>
