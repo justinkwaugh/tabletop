@@ -8,7 +8,7 @@ export class SantiagoProgression implements GameProgression<SantiagoProjectedSta
         const round = Math.max(state.round, 1)
         const lastRound = round === rounds
         return {
-            fraction: (round - 1) / rounds,
+            fraction: state.result === undefined ? (round - 1) / rounds : 1,
             label: lastRound ? 'Last round' : `Round ${round} of ${rounds}`,
             ...(lastRound ? { final: true } : {})
         }

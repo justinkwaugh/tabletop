@@ -5,19 +5,18 @@ import {
     GameEngine,
     GameProgress,
     MachineContext,
-    PlayerStatus,
     reportGameProgress,
     type Game,
     type GameAction
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import { describe, expect, it } from 'vitest'
+import { createTestGame } from './testGame.js'
 import { HydratedBuild } from '../actions/build.js'
 import { HydratedMoveGod } from '../actions/moveGod.js'
 import type { HydratedKaivaiGameState, KaivaiProjectedState } from '../model/gameState.js'
 import { ActionType } from './actions.js'
 import { Ruleset } from './gameConfig.js'
-import { Definition } from './gameDefinition.js'
 import { HutType } from './huts.js'
 import { KaivaiRuntime } from './runtime.js'
 import { MachineState } from './states.js'
@@ -25,24 +24,6 @@ import { MachineState } from './states.js'
 const engine = new GameEngine(KaivaiRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
 const lowestRoundBid = 1
-
-function createGame(count: number, ruleset: Ruleset) {
-    return KaivaiRuntime.initializer.initializeGame(
-        {
-            id: 'kaivai-progression',
-            typeId: Definition.info.id,
-            ownerId: 'owner',
-            config: { ruleset, lucklessFishing: false },
-            players: Array.from({ length: count }, (_, index) => ({
-                id: `p${index}`,
-                name: `Player ${index}`,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
 
 function initialHut(state: HydratedKaivaiGameState, playerId: string) {
     const coordList = [...state.board.grid].map((node) => node.coords)
@@ -97,7 +78,7 @@ function playToEnd(
     ruleset: Ruleset,
     onState: (state: KaivaiProjectedState) => void
 ): KaivaiProjectedState {
-    const game = createGame(count, ruleset)
+    const game = createTestGame(count, { ruleset, lucklessFishing: false })
     const { startedGame, initialState } = engine.startGame(game, { masterSeed })
     let state = initialState
     onState(state)

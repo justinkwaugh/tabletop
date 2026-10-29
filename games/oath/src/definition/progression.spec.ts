@@ -12,10 +12,24 @@ import type { OathProjectedState } from '../model/gameState.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { engine } from '../testing/engine.js'
 import { openTurn } from '../testing/fixture.js'
-import { testGame } from '../testing/game.js'
+import { testGame, waitingGame } from '../testing/game.js'
+import { playPassiveMove, start } from '../testing/playthrough.js'
 import { OathRuntime } from './runtime.js'
+import { MachineState } from './states.js'
 
 const PLAYERS = ['p1', 'p2', 'p3']
+
+/** R-3.3 — the Empire holds the title throughout a passive game, so rounds five to seven roll the end die. */
+const ROUND_LABELS = [
+    'Round 1 of 8',
+    'Round 2 of 8',
+    'Round 3 of 8',
+    'Round 4 of 8',
+    'Round 5 · end die 6+',
+    'Round 6 · end die 5+',
+    'Round 7 · end die 3+',
+    'Last round'
+]
 
 function startedState(): OathProjectedState {
     const game = testGame(PLAYERS, { status: GameStatus.WaitingToStart })
@@ -27,6 +41,20 @@ function inRound(round: number, turnOf: number): OathProjectedState {
     state.round = round
     openTurn(state, state.turnManager.turnOrder[turnOf])
     return state
+}
+
+/** Every state of a three-seat game whose seats take no actions, played to its end; `seed` fixes R-3.3's end die. */
+function passiveGame(seed: number): OathProjectedState[] {
+    const game = waitingGame(PLAYERS.length)
+    const initial = start(game)
+    initial.protectedPrng = { seed, invocations: 0 }
+    const states = [initial]
+    let state = initial
+    while (state.machineState !== MachineState.EndOfGame) {
+        state = playPassiveMove(game, state)
+        states.push(state)
+    }
+    return states
 }
 
 function progressOf(state: OathProjectedState): GameProgress {
@@ -91,6 +119,32 @@ describe('Oath Game Progress', () => {
             fraction: Math.round(((7 + 2 / 3) / FINAL_ROUND) * 1000) / 1000,
             label: 'Last round',
             final: true
+        })
+    })
+
+    describe.each([
+        [7, 5],
+        [2, 6],
+        [1, 7],
+        [9, 8]
+    ])('through a passive game that end die seed %i ends in round %i', (seed, lastRound) => {
+        const states = passiveGame(seed)
+        const reports = states.map(progressOf)
+
+        it('opens at the first round and never goes back', () => {
+            expect(states.at(-1)?.round).toBe(lastRound)
+            expect(reports[0]).toEqual({ fraction: 0, label: 'Round 1 of 8' })
+            reports.slice(1).forEach((report, index) => {
+                expect(report.fraction).toBeGreaterThanOrEqual(reports[index].fraction)
+            })
+        })
+
+        it('names the end die only in rounds five to seven, and the last round only in the eighth', () => {
+            states.forEach((state, index) => {
+                const { label, final } = reports[index]
+                expect(label).toBe(ROUND_LABELS[state.round - 1])
+                expect(final === true).toBe(label === 'Last round')
+            })
         })
     })
 })

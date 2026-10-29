@@ -3,7 +3,7 @@ import * as Value from 'typebox/value'
 import { describe, expect, it } from 'vitest'
 import { Deeds } from '../components/deed.js'
 import type { IndonesiaGameState } from '../model/gameState.js'
-import { createGame, engine, placeNewEraCities } from '../utils/testGame.js'
+import { createGame, engine, nextBotAction, placeNewEraCities } from '../utils/testGame.js'
 import { CompanyType } from './companyType.js'
 import { Era } from './eras.js'
 import { Good } from './goods.js'
@@ -97,5 +97,42 @@ describe.each([3, 4, 5])('Indonesia Game Progress with %i players', (count) => {
             fraction: 0.667,
             label: 'Era B · 0 deeds left'
         })
+    })
+})
+
+describe.each([3, 4, 5])('Indonesia Game Progress through a bot game with %i players', (count) => {
+    it('climbs through Eras A, B and C to a final report at the end', () => {
+        const game = createGame(count)
+        let state = engine.startGame(game).initialState
+        const reports = [report(state)]
+        expect(reports[0]).toEqual({ fraction: 0, label: 'Era A · 8 deeds left' })
+
+        for (let step = 0; step < 2000 && state.result === undefined; step++) {
+            const result = engine.executeCanonicalAction({
+                game,
+                state,
+                action: nextBotAction(game, state)
+            })
+            for (const { action, after } of result.actionCascade.transitions) {
+                const progress = report(after)
+                const previous = reports.at(-1)
+                assertExists(previous, 'Expected an earlier report')
+                expect(
+                    progress.fraction,
+                    `step ${step} ${action.type} in ${after.machineState}, era ${after.era}`
+                ).toBeGreaterThanOrEqual(previous.fraction)
+                expect(progress.final === true).toBe(progress.label === 'Era C · last operations')
+                reports.push(progress)
+            }
+            state = result.updatedState
+        }
+
+        expect(state.result).toBeDefined()
+        expect(
+            reports
+                .map((progress) => progress.label.slice(0, 'Era A'.length))
+                .filter((era, index, eras) => era !== eras[index - 1])
+        ).toEqual(['Era A', 'Era B', 'Era C'])
+        expect(reports.at(-1)).toMatchObject({ label: 'Era C · last operations', final: true })
     })
 })

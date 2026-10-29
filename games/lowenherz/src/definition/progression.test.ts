@@ -1,16 +1,10 @@
-import {
-    assertExists,
-    GameEngine,
-    GameProgress,
-    PlayerStatus,
-    reportGameProgress
-} from '@tabletop/common'
+import { assertExists, GameEngine, GameProgress, reportGameProgress } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import { describe, expect, it } from 'vitest'
+import { createTestGame } from '../util/testGame.js'
 import type { LowenherzProjectedState } from '../model/gameState.js'
 import { nextAction } from '../testing/autoplay.js'
 import { ActionCardDeck, CardBack } from './actionCards.js'
-import { Definition } from './definition.js'
 import { LowenherzRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 
@@ -19,24 +13,6 @@ const visibility = LowenherzRuntime.visibility
 assertExists(visibility, 'Löwenherz projects state')
 const masterSeed = '0123456789abcdef0123456789abcdef'
 const basicDeckSize = ActionCardDeck.filter((card) => card.back !== CardBack.A).length
-
-function createGame(count: number, standardSetup: boolean) {
-    return LowenherzRuntime.initializer.initializeGame(
-        {
-            id: 'lowenherz-progression',
-            typeId: Definition.info.id,
-            ownerId: 'p0',
-            config: { standardSetup },
-            players: Array.from({ length: count }, (_, index) => ({
-                id: `p${index}`,
-                name: `Player ${index}`,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
 
 function report(state: LowenherzProjectedState): GameProgress {
     const progress = reportGameProgress(LowenherzRuntime, state)
@@ -55,7 +31,7 @@ describe.each([
     'Löwenherz Game Progress with $count players (standard setup $standardSetup)',
     ({ count, standardSetup, startingDeck }) => {
         it('counts the action deck down to the King possibly dying', () => {
-            const game = createGame(count, standardSetup)
+            const game = createTestGame(count, { standardSetup })
             const { startedGame, initialState } = engine.startGame(game, { masterSeed })
             const reports = [report(initialState)]
             let state = initialState
@@ -91,7 +67,9 @@ describe.each([
 
 describe('Löwenherz Game Progress from deck backs', () => {
     function stateWithBacks(backs: CardBack[]): LowenherzProjectedState {
-        const { initialState } = engine.startGame(createGame(3, true), { masterSeed })
+        const { initialState } = engine.startGame(createTestGame(3, { standardSetup: true }), {
+            masterSeed
+        })
         return { ...initialState, actionDeckBacks: backs }
     }
 
@@ -115,7 +93,9 @@ describe('Löwenherz Game Progress from deck backs', () => {
     })
 
     it('reads the backs from the deck in saves that predate the public backs', () => {
-        const { initialState } = engine.startGame(createGame(4, true), { masterSeed })
+        const { initialState } = engine.startGame(createTestGame(4, { standardSetup: true }), {
+            masterSeed
+        })
         const legacy = { ...initialState }
         delete legacy.actionDeckBacks
         expect(report(legacy)).toEqual(report(initialState))

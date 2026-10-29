@@ -1,4 +1,6 @@
 import {
+    ActionSource,
+    assert,
     defaultGameConfig,
     GameEngine,
     GameProgress,
@@ -8,11 +10,13 @@ import {
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import { describe, expect, it } from 'vitest'
-import type { SolProjectedState } from '../model/gameState.js'
+import { SolGameStateValidator, type SolProjectedState } from '../model/gameState.js'
 import { STARTING_INSTABILITY } from '../utils/solConstants.js'
 import { Definition } from './gameDefinition.js'
 import { SolInfo } from './info.js'
 import { SolRuntime } from './runtime.js'
+import { MachineState } from './states.js'
+import recorded from './tests/recorded-legacy-2026.json'
 
 const engine = new GameEngine(SolRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
@@ -75,5 +79,53 @@ describe('Sol Game Progress', () => {
         })
         expect(reports.at(-1)).toEqual({ fraction: 1, label: 'Last flare', final: true })
         expect(reports.filter((progress) => progress.final)).toHaveLength(2)
+    })
+
+    it('reports a recorded four-player game from the first turn to the last flare', () => {
+        assert(SolGameStateValidator.Check(recorded.initial), 'The recorded state is canonical')
+        const game = SolRuntime.initializer.initializeGame(
+            {
+                id: recorded.gameId,
+                typeId: SolInfo.id,
+                ownerId: 'owner',
+                config: recorded.config,
+                players: recorded.players.map((id) => ({
+                    id,
+                    name: id,
+                    isHuman: true,
+                    status: PlayerStatus.Joined
+                }))
+            },
+            Definition
+        )
+
+        let state: SolProjectedState = structuredClone(recorded.initial)
+        const reports = [report(state)]
+        for (const action of recorded.actions) {
+            state = engine.executeCanonicalAction({
+                game,
+                state,
+                action: { ...action, source: ActionSource.User }
+            }).updatedState
+            reports.push(report(state))
+        }
+
+        expect(state.machineState).toBe(MachineState.EndOfGame)
+        expect(state.actionCount).toBe(recorded.actionCount)
+        expect(state.winningPlayerIds).toEqual(recorded.winners)
+
+        expect(reports[0]).toEqual({ fraction: 0, label: `Instability ${STARTING_INSTABILITY}` })
+        expect(reports.at(-1)).toEqual({ fraction: 1, label: 'Last flare', final: true })
+        for (const [index, progress] of reports.entries()) {
+            expect(progress.fraction).toBeGreaterThanOrEqual(reports[index - 1]?.fraction ?? 0)
+            expect(progress.final ?? false).toBe(progress.label === 'Last flare')
+        }
+        expect([...new Set(reports.map((progress) => progress.label))]).toEqual([
+            ...Array.from(
+                { length: STARTING_INSTABILITY - 1 },
+                (_, flares) => `Instability ${STARTING_INSTABILITY - flares}`
+            ),
+            'Last flare'
+        ])
     })
 })

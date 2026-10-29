@@ -1,12 +1,12 @@
-import type { GameProgress, GameProgression } from '@tabletop/common'
+import { HydratedTurnManager, type GameProgress, type GameProgression } from '@tabletop/common'
 import { FINAL_ROUND } from '../actions/completeRest.js'
-import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
+import type { OathProjectedState } from '../model/gameState.js'
 import { endDieIsRolled, endDieThreshold } from '../util/victory.js'
 
 export class OathProgression implements GameProgression<OathProjectedState> {
-    progress(data: OathProjectedState): GameProgress {
-        const state = new HydratedOathGameState(data)
-        const turnsPlayed = this.turnsTakenThisRound(state) / state.turnManager.turnOrder.length
+    progress(state: OathProjectedState): GameProgress {
+        const turns = new HydratedTurnManager(state.turnManager)
+        const turnsPlayed = this.turnsTakenThisRound(turns) / turns.turnOrder.length
         const lastRound = state.round === FINAL_ROUND
         return {
             fraction: (state.round - 1 + turnsPlayed) / FINAL_ROUND,
@@ -15,18 +15,17 @@ export class OathProgression implements GameProgression<OathProjectedState> {
         }
     }
 
-    private roundLabel(state: HydratedOathGameState): string {
+    private roundLabel(state: OathProjectedState): string {
         const threshold = endDieThreshold(state.round)
         return threshold !== undefined && endDieIsRolled(state)
             ? `Round ${state.round} · end die ${threshold}+`
             : `Round ${state.round} of ${FINAL_ROUND}`
     }
 
-    private turnsTakenThisRound(state: HydratedOathGameState): number {
-        const order = state.turnManager.turnOrder
-        const current = state.turnManager.currentTurn()
-        if (current) return order.indexOf(current.playerId)
-        const last = state.turnManager.lastPlayer()
-        return last === undefined ? 0 : order.indexOf(last) + 1
+    private turnsTakenThisRound(turns: HydratedTurnManager): number {
+        const current = turns.currentTurn()
+        if (current) return turns.turnOrder.indexOf(current.playerId)
+        const last = turns.lastPlayer()
+        return last === undefined ? 0 : turns.turnOrder.indexOf(last) + 1
     }
 }

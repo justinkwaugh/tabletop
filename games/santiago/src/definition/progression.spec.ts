@@ -3,37 +3,18 @@ import {
     assertExists,
     GameEngine,
     GameProgress,
-    PlayerStatus,
     reportGameProgress
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import { describe, expect, it } from 'vitest'
+import { createTestGame } from '../testing/testGame.js'
 import type { SantiagoProjectedState } from '../model/gameState.js'
 import { nextAction } from '../testing/autoplay.js'
-import { Definition } from './gameDefinition.js'
 import { SantiagoRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 
 const engine = new GameEngine(SantiagoRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
-
-function createGame(count: number, randomizeSpring: boolean) {
-    return SantiagoRuntime.initializer.initializeGame(
-        {
-            id: 'santiago-progression',
-            typeId: Definition.info.id,
-            ownerId: 'owner',
-            config: { randomizeSpring, palmTrees: true },
-            players: Array.from({ length: count }, (_, index) => ({
-                id: `p${index}`,
-                name: `Player ${index}`,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
 
 function report(state: SantiagoProjectedState): GameProgress {
     const progress = reportGameProgress(SantiagoRuntime, state)
@@ -48,7 +29,7 @@ describe.each([
     [5, 9]
 ])('Santiago Game Progress with %i players', (count, rounds) => {
     it.each([true, false])('counts the rounds to the last (random spring %s)', (randomSpring) => {
-        const game = createGame(count, randomSpring)
+        const game = createTestGame(count, { randomizeSpring: randomSpring, palmTrees: true })
         const { startedGame, initialState } = engine.startGame(game, { masterSeed })
         const reports = [report(initialState)]
         let state = initialState
@@ -72,10 +53,12 @@ describe.each([
             ...Array.from({ length: rounds - 1 }, (_, index) => `Round ${index + 1} of ${rounds}`),
             'Last round'
         ])
-        expect(reports.at(-1)).toEqual({
+        expect(reports.find((progress) => progress.label === 'Last round')).toEqual({
             fraction: Math.round(((rounds - 1) / rounds) * 1000) / 1000,
             label: 'Last round',
             final: true
         })
+        expect(state.result).toBeDefined()
+        expect(reports.at(-1)).toEqual({ fraction: 1, label: 'Last round', final: true })
     })
 })
