@@ -88,6 +88,13 @@ const Homes: Readonly<Record<string, string | CityReservation | readonly CityRes
     I14: 'A&StL'
 }
 
+/** The short names the board's private blocks print. */
+const PrivateInitials: Readonly<Record<string, string>> = {
+    P1: 'Granite',
+    P2: 'Lowell',
+    P3: 'C&StL'
+}
+
 /** The hexes privates keep free of track while players own them (§6.46). */
 export const PrivateBlocks: Readonly<Record<string, readonly string[]>> = {
     P1: ['H23'],
@@ -107,9 +114,9 @@ for (const [privateId, locationIds] of Object.entries(PrivateBlocks))
         Markers[locationId] = [
             {
                 id: `blocks-${privateId}`,
-                label: privateId,
+                label: PrivateInitials[privateId],
                 privateCompanyId: privateId,
-                description: `No track until a corporation buys ${privateId}.`
+                description: `No track until a corporation buys ${PrivateInitials[privateId]}.`
             }
         ]
 for (const [locationId, companyId] of Object.entries(FirstRoundReservedHexes))
