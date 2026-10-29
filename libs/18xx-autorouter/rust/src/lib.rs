@@ -55,6 +55,9 @@ struct Train {
     paying_stop_limit: Option<usize>,
     #[serde(default)]
     require_paying_token: bool,
+    /// Bonuses count the stops from the first paid to the last, which are the route's ends.
+    #[serde(default)]
+    bonuses_along_route: bool,
     #[serde(default)]
     connection_bonuses: Vec<PaidConnectionBonus>,
     #[serde(default)]
@@ -121,13 +124,30 @@ impl Train {
     }
 
     fn selected_revenue(&self, payment: &Payment, paid: &[usize]) -> i32 {
-        let ends = [payment.visits[0], payment.visits[payment.visits.len() - 1]];
+        // Bonuses count the paid stops, or with `bonuses_along_route` every stop from the first
+        // paid one to the last, which are then the route's ends.
+        let (bonused, ends) = if self.bonuses_along_route && !paid.is_empty() {
+            let position = |id: usize| {
+                payment
+                    .visits
+                    .iter()
+                    .position(|&visit| visit == id)
+                    .unwrap()
+            };
+            let span = &payment.visits[position(paid[0])..=position(paid[paid.len() - 1])];
+            (span, [span[0], span[span.len() - 1]])
+        } else {
+            (
+                paid,
+                [payment.visits[0], payment.visits[payment.visits.len() - 1]],
+            )
+        };
         let bonuses: i32 = self
             .connection_bonuses
             .iter()
             .map(|bonus| {
-                let from = paid.iter().filter_map(|&id| bonus.from[id]).max();
-                let to = paid
+                let from = bonused.iter().filter_map(|&id| bonus.from[id]).max();
+                let to = bonused
                     .iter()
                     .filter(|id| !bonus.ends_only || ends.contains(id))
                     .filter_map(|&id| bonus.to[id])
@@ -143,7 +163,7 @@ impl Train {
                 .iter()
                 .filter(|interconnection| {
                     interconnection.to.contains(&hex)
-                        && paid
+                        && bonused
                             .iter()
                             .any(|&id| interconnection.from.contains(&payment.stops[id].hex))
                 })

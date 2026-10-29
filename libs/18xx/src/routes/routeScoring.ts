@@ -31,6 +31,12 @@ export type RouteRevenuePolicy = {
     requirePayingStation?: true
     connectionBonuses?: readonly PaidConnectionBonus[]
     interconnections?: readonly Interconnection[]
+    /**
+     * Bonuses count every stop the route runs from its first paid stop to its last, which are its
+     * ends: stops an N/M train passes without paying stay on its route, those skipped off an
+     * end do not (1833NE §6.66). Otherwise bonuses count only paid stops.
+     */
+    bonusesAlongRoute?: true
 }
 
 /** Where a route ends, and where its extension reaches, for bonuses that depend on them. */
@@ -109,6 +115,24 @@ export function routeStopBonuses(
     ]
 }
 
+/** The stops and ends a route's bonuses count, given the stops it is paid for. */
+export function bonusRoute(
+    visits: readonly RouteRevenueStop[],
+    paid: readonly RouteRevenueStop[],
+    policy: RouteRevenuePolicy,
+    shape?: RouteShape
+): { stops: readonly RouteRevenueStop[]; shape?: RouteShape } {
+    if (!policy.bonusesAlongRoute || !paid.length)
+        return { stops: paid, ...(shape ? { shape } : {}) }
+    const first = visits.indexOf(paid[0])
+    const last = visits.indexOf(paid[paid.length - 1])
+    const stops = visits.slice(first, last + 1)
+    return {
+        stops,
+        shape: { ...shape, ends: [stops[0], stops[stops.length - 1]] }
+    }
+}
+
 export function payingRouteStops(
     visits: readonly RouteRevenueStop[],
     policy: RouteRevenuePolicy,
@@ -123,9 +147,13 @@ export function payingRouteStops(
     function select(stops: RouteRevenueStop[], start: number): void {
         if (stops.length === count) {
             if (requiresStation && !stops.some((stop) => stop.companyStation)) return
+            const route = bonusRoute(visits, stops, policy, shape)
             const value =
                 stops.reduce((sum, stop) => sum + stop.amount + stop.bonus, 0) +
-                routeStopBonuses(stops, policy, shape).reduce((sum, bonus) => sum + bonus.amount, 0)
+                routeStopBonuses(route.stops, policy, route.shape).reduce(
+                    (sum, bonus) => sum + bonus.amount,
+                    0
+                )
             if (value > revenue) {
                 best = stops
                 revenue = value

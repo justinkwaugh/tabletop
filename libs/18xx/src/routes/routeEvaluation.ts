@@ -4,6 +4,7 @@ import { hasStationRoute } from '../trains/trainRequirement.js'
 import { routeRevenue } from './routeRevenue.js'
 import {
     payingRouteStops,
+    bonusRoute,
     routeInterconnectionBonus,
     routeStopBonuses,
     type RouteRevenueStop,
@@ -219,8 +220,12 @@ export class RouteEvaluation {
             nodeId,
             amount
         }))
-        const bonuses = [...this.bonuses(route, paying), ...routeStopBonuses(paying, policy, shape)]
-        if (extension && !routeInterconnectionBonus(paying, policy, shape))
+        const bonused = bonusRoute(visits, paying, policy, shape)
+        const bonuses = [
+            ...this.bonuses(route, paying),
+            ...routeStopBonuses(bonused.stops, policy, bonused.shape)
+        ]
+        if (extension && !routeInterconnectionBonus(bonused.stops, policy, bonused.shape))
             return { reason: 'The extension earns no interconnection.' }
         return {
             result: {

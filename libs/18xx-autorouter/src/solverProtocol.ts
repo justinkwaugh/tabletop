@@ -31,6 +31,7 @@ export type SolverTrain = {
     first_bonus: number[]
     paying_stop_limit: number | null
     require_paying_token: boolean
+    bonuses_along_route: boolean
     major_limit: number | null
     connection_bonuses: { from: (number | null)[]; to: (number | null)[]; ends_only: boolean }[]
     interconnections: { from: number[]; to: number[]; amount: number }[]

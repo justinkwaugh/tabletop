@@ -189,6 +189,7 @@ export class EncodedRoutes {
                 requires_city: rules.requiresCity(definition),
                 paying_stop_limit: policy?.payingStopLimit ?? null,
                 require_paying_token: policy?.requirePayingStation ?? false,
+                bonuses_along_route: policy?.bonusesAlongRoute ?? false,
                 connection_bonuses: (policy?.connectionBonuses ?? []).map(
                     ({ from, to, destinationAtEnd }) => ({
                         from: this.centers.map((center) => from[center.locationId] ?? null),
@@ -314,6 +315,7 @@ export class EncodedRoutes {
                     major_limit: train.major_limit,
                     paying_stop_limit: train.paying_stop_limit,
                     require_paying_token: train.require_paying_token,
+                    bonuses_along_route: train.bonuses_along_route,
                     visit_costs: perStop(train.visit_costs),
                     revenues: perStop(train.revenues),
                     first_bonus: perStop(train.first_bonus),
