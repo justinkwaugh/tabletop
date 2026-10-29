@@ -123,7 +123,7 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
                 },
                 view
             ),
-            tokens: stationMapTokens(snapshot, view.stations),
+            tokens: stationMapTokens(snapshot, view.stations, view.sharedStations),
             reservations: this.openReservations(snapshot),
             stationAppearances: view.stations,
             routes,

@@ -76,7 +76,19 @@
     const viewport = $derived(mapViewport(scene, hexDiameter, artwork, extents))
     const perimeterMaskId = $props.id()
     const perimeterRoundingId = `${perimeterMaskId}-rounding`
-    const currentReservations = $derived(reservations ?? printedMapReservations(scene))
+    const currentReservations = $derived([
+        ...(reservations ?? printedMapReservations(scene)),
+        // A printed space stays held until any token stands in its city.
+        ...scene.printedReservations.filter(
+            (reservation) =>
+                !tokens.some(
+                    (token) =>
+                        token.locationId === reservation.locationId &&
+                        token.nodeId === reservation.nodeId
+                )
+        )
+    ])
+    const reservedAppearances = $derived({ ...scene.sharedStations, ...stationAppearances })
     const entries = $derived.by(() => {
         assertMapOverlays(scene, tokens, routes, currentReservations)
         return scene.locations
@@ -314,7 +326,7 @@
                                 />
                             </g>
                         {/if}
-                        {@const reservedAppearance = stationAppearances[reservedBySlot[slot]]}
+                        {@const reservedAppearance = reservedAppearances[reservedBySlot[slot]]}
                         {#if !token && reservedAppearance}
                             <g class="reserved-token" data-map-reservation={reservedBySlot[slot]}>
                                 <title>{`Reserved for ${reservedAppearance.label}`}</title>
@@ -325,7 +337,7 @@
                                     y={point.y - tokenSize / 2}
                                 />
                             </g>
-                        {:else if slot === 0 && reservedCompanyIds.length && !token && !stationAppearances[reservedCompanyIds[0]]}
+                        {:else if slot === 0 && reservedCompanyIds.length && !token && !reservedAppearances[reservedCompanyIds[0]]}
                             <text
                                 x={point.x}
                                 y={point.y}
@@ -352,6 +364,17 @@
                         ></circle>
                     {/each}
                 {/if}
+                {#each scene.printedTokens[entry.location.id] ?? [] as token (token.imageUrl)}
+                    <image
+                        data-map-printed-token={entry.location.id}
+                        href={token.imageUrl}
+                        x={token.at.x - token.radius}
+                        y={token.at.y - token.radius}
+                        width={token.radius * 2}
+                        height={token.radius * 2}
+                        pointer-events="none"><title>{token.title}</title></image
+                    >
+                {/each}
                 {#if !artwork || entry.placed}
                     <g
                         class="map-annotations"

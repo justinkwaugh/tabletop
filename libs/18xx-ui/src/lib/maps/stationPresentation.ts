@@ -6,6 +6,8 @@ import type { TileDrawing, TileDrawingStyle, TileLayout } from '../tiles/tileDra
 import type { TileAppearance } from '../tiles/tileAppearance.js'
 import type { RevenueStageColors } from '../colors/revenueStageColors.js'
 
+export type PrintedToken = { imageUrl: string; at: Point; radius: number; title: string }
+
 /** Offboard names print in the tile label face, which ships with the app, at their own size. */
 export type OffboardNameStyle = { fontSize: number; color: string }
 
@@ -41,6 +43,16 @@ export type MapViewDefinition = {
      * published artwork toggle is on; companies without an entry keep their generic appearance.
      */
     publishedStations?: Readonly<Record<string, StationAppearance>>
+    /**
+     * How a station that another company shares through station access prints, by the access's
+     * source, such as one token two corporations hold jointly.
+     */
+    sharedStations?: Readonly<Record<string, StationAppearance>>
+    /**
+     * Station spaces the board prints held beyond its homes, by company or by a shared station's
+     * source, shown until a token stands there, such as a joint token's city.
+     */
+    printedReservations?: readonly { locationId: string; nodeId: string; companyId: string }[]
     revenueStageColors?: RevenueStageColors
     /** Printed prefixes for revenue stages that are not phases, such as D for diesel. */
     revenueStageLabels?: Readonly<Record<string, string>>
@@ -104,6 +116,8 @@ export type MapViewDefinition = {
      * hexes in labels and text.
      */
     hideLocationNames?: true | readonly string[]
+    /** Art printed at a point in a hex, by location id, such as a private's token on its track. */
+    printedTokens?: Readonly<Record<string, readonly PrintedToken[]>>
     /** Hexside border widths by kind, such as a heavier impassable border; 3 otherwise. */
     borderWidths?: Readonly<Record<string, number>>
     /** A hex whose tile prints a label, such as Pr, shows the label in place of its name. */
@@ -111,11 +125,18 @@ export type MapViewDefinition = {
 }
 export function stationMapTokens(
     state: StationState,
-    appearances: MapViewDefinition['stations']
+    appearances: MapViewDefinition['stations'],
+    shared: MapViewDefinition['sharedStations'] = {}
 ): MapToken[] {
     return state.stations.flatMap((station) => {
         if (station.status !== 'placed') return []
-        const appearance = appearances[station.companyId]
+        const access = (state.stationAccess ?? []).find(
+            (entry) =>
+                entry.locationId === station.position.locationId &&
+                entry.nodeId === station.position.nodeId &&
+                shared[entry.sourceId]
+        )
+        const appearance = (access && shared[access.sourceId]) ?? appearances[station.companyId]
         assertExists(appearance, `Missing station appearance: ${station.companyId}`)
         return [{ id: station.id, ...station.position, ...appearance }]
     })
