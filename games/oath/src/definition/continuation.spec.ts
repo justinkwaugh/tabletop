@@ -109,7 +109,7 @@ function continuationOf(
     ) as GameContinuation<OathProjectedState>
 }
 
-/** V-4.3's §1.7: clockwise from Dana, Ann, then Rhys. */
+/** The Law's §1.7 example: clockwise from Dana, Ann, then Rhys. */
 const SEED = '00000000000000000000000000000001'
 
 /** Game 3 opened through the platform, as Continue opens it. */
@@ -132,8 +132,8 @@ const vaultOf = (state: OathProjectedState) => {
     return vault
 }
 
-describe('V-4.5 to V-4.6 — game 3 opens on the world game 2 saved', () => {
-    it('R-1.1: the stack dealt slot by slot with its facing; the S-4 flip finds a faceup site in every region', () => {
+describe('The Law’s example — game 3 opens on the world game 2 saved', () => {
+    it('R-1.1: the stack dealt slot by slot with its facing; R-8.3.5 step 7’s flip finds a faceup site in every region', () => {
         const state = open()
         const vault = vaultOf(state)
         expect(state.siteCards).toEqual({
@@ -737,11 +737,11 @@ const BOXED_WHITE_SEED = '00000000000000000000000000000001'
 
 // ---------------------------------------------------------------------------------------------
 
-describe('A-43 — a continued game’s setup reaches a Vision, and deals it as the Law says', () => {
+describe('R-1.19 to R-1.22, read as written — a continued game’s setup reaches a Vision, and deals it as the Law says', () => {
     /**
      * Three earlier games each healed from a stack of one (R-8.4.a, R-9.3), so 15 fewer denizens
-     * circulate (F-8) and the rebuilt deck's denizen-only bottom holds 8: setup's 12 draws reach the
-     * 18-card pile, whose bottom card R-8.8's shuffle made the Vision of Sanctuary.
+     * circulate (R-8.5) and the rebuilt deck's denizen-only bottom holds 8: setup's 12 draws reach
+     * the 18-card pile, whose bottom card R-8.8's shuffle made the Vision of Sanctuary.
      */
     function shortWorld(): OathProjectedState {
         const previous = finished()

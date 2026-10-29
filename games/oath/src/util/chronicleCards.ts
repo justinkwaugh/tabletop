@@ -19,9 +19,9 @@ const ADDED_BY_SUIT = [3, 2, 1]
 const SIX = 6
 
 /**
- * R-1.19.a-H1, A-36(3) — the denizens in circulation (the world deck, the piles, the hands, the
+ * R-1.19.a-H1 — the denizens in circulation (the world deck, the piles, the hands, the
  * advisers, the box and the map) as a chronicle leaves them: a first game's 54, less what each heal
- * from a stack under six fell short of R-8.5's six (F-8). Read from the public record alone.
+ * from a stack under six fell short of R-8.5's six. Read from the public record alone.
  */
 export function denizensInCirculation(record: readonly ChronicleEntry[]): number {
     return record.reduce(

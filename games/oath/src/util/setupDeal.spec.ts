@@ -256,7 +256,7 @@ describe('R-1.19–R-1.22 applied to public state', () => {
         expect(s.visionsDrawn).toBe(2)
     })
 
-    it('A-43 — a Vision among R-1.19’s three shows its back on its pile, leaves the deck’s count and moves no marker', () => {
+    it('R-1.19 to R-1.22 — a Vision among R-1.19’s three shows its back on its pile, leaves the deck’s count and moves no marker', () => {
         const s = state()
         s.worldDeckVisions = 5
         const vault = createOathVault({}, () => 0.5)
@@ -278,7 +278,7 @@ describe('R-1.19–R-1.22 applied to public state', () => {
         expect(s.worldDeckVisions).toBe(3)
     })
 
-    it('A-43 — a Vision dealt into a hand moves the marker and leaves the deck’s count', () => {
+    it('R-1.19 to R-1.22 — a Vision dealt into a hand moves the marker and leaves the deck’s count', () => {
         const s = state()
         s.worldDeckVisions = 5
         const vault = createOathVault({}, () => 0.5)

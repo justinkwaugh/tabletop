@@ -321,8 +321,8 @@ function firstGameWorldDenizens(
 
 /**
  * A continued game: the chronicle changed each suit's share (R-8.4), so no suit has a quota. The
- * hidden denizens are the circulation the public record gives (A-36(3), F-8) and the Dispossessed,
- * less every one the table can name; the rest of the 198 are the Archive.
+ * hidden denizens are the circulation the public record gives (R-1.19.a-H1, R-8.5) and the
+ * Dispossessed, less every one the table can name; the rest of the 198 are the Archive.
  */
 function continuedWorldDenizens(
     state: OathProjectedState,

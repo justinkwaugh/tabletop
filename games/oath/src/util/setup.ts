@@ -103,7 +103,7 @@ export interface SetupContext {
 }
 
 /**
- * R-8.7.1, R-1.1 — the eight slots as the last game saved them (A-37): each slot's site with its
+ * R-8.7.1, R-1.1 — the eight slots as the last game saved them: each slot's site with its
  * facing, its denizens and edifice, its relic slots, and the capacity a Salt the Earth still on it
  * sets (R-7-H1). The facedown sites' identities stay in the vault.
  */
@@ -116,7 +116,7 @@ export interface CarriedMap {
     siteCapacityOverrides: Record<string, number>
 }
 
-/** R-1.1 with R-8.7.1 — the stack is dealt as it was stacked: no site moves and none flips (A-37). */
+/** R-1.1 with R-8.7.1 — the stack is dealt as it was stacked: no site moves and none flips. */
 function dealCarriedSites(state: HydratedOathGameState, carried: CarriedMap): void {
     state.map = structuredClone(carried.map)
     state.siteCards = { ...carried.siteCards }
@@ -124,7 +124,7 @@ function dealCarriedSites(state: HydratedOathGameState, carried: CarriedMap): vo
     state.relicsBySite = structuredClone(carried.relicsBySite)
     if (carried.ruinedEdificeIds) state.ruinedEdificeIds = [...carried.ruinedEdificeIds]
     state.siteCapacityOverrides = { ...carried.siteCapacityOverrides }
-    // R-8.3.5 step 7 runs inside the chronicle, so a first game's flip never runs here (A-37).
+    // R-8.3.5 step 7 runs inside the chronicle, so a first game's flip never runs here.
     for (const region of Object.values(Region)) {
         if (!state.map[region].some((slotId) => state.isSiteFaceup(slotId))) {
             throw Error(
@@ -398,8 +398,8 @@ export function buildSetupVault(state: HydratedOathGameState, random: RandomFunc
 
     drawSetupRelics(state, vault)
 
-    // R-8.8, A-15 — a first game's bottom pile is denizens only (29 cards, more than six seats
-    // draw), so its setup draws no Vision.
+    // R-8.8, R-1.19 to R-1.22 read as written — a first game's bottom pile is denizens only
+    // (29 cards, more than six seats draw), so its setup draws no Vision.
     const tail = visionFreeTailLength(vault.worldDeck)
     const needed = setupDrawTotal(state.players.length)
     if (tail < needed) {
@@ -416,7 +416,8 @@ export function buildSetupVault(state: HydratedOathGameState, random: RandomFunc
  * R-8.7, R-1.1, R-1.17, R-1.18 — a continued game's vault: the facedown sites in their slots, the
  * relics at the sites, the world deck, the relic deck and the Dispossessed exactly as the last game
  * saved them. Only the site deck is new: the sites in no slot, shuffled from this game's protected
- * stream (R-9.4). R-1.19's and R-1.20's draws may reach a Vision (A-43).
+ * stream (R-9.4). R-1.19's and R-1.20's draws may reach a Vision (R-1.19 to R-1.22, read
+ * as written).
  */
 export function buildContinuedVault(
     state: HydratedOathGameState,
@@ -554,7 +555,7 @@ export function applySetupDeal(state: HydratedOathGameState, result: SetupDealRe
         const seeded = result.discardSeedCounts[region] ?? 0
         state.discardPileCounts[region] += seeded
         // R-1.19 seeds each pile with one card, so its back is the top's: a denizen's in a first
-        // game (A-15), and a continued game's may be a Vision's (A-43).
+        // game, and a continued game's may be a Vision's.
         const back = result.discardSeedTopBackType?.[region]
         state.seenDiscardPiles[region] = Array.from({ length: seeded }, () => ({
             back: back ?? CardKind.Denizen
@@ -571,7 +572,8 @@ export function applySetupDeal(state: HydratedOathGameState, result: SetupDealRe
     }
 
     // R-1.22 — a Vision in a hand moves the marker; one in R-1.19's piles is unseen and does not
-    // (A-15, A-43). Every Vision dealt left the world deck, as its back showed.
+    // (R-1.19 to R-1.22, read as written). Every Vision dealt left the world deck, as its back
+    // showed.
     state.visionsDrawn = visionsDrawnAfter(state.visionsDrawn, result.visionsDrawn)
     state.worldDeckVisions -= result.visionsDrawn + seededVisions
 

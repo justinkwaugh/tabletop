@@ -534,7 +534,7 @@ describe('scene B — the pinned finished game 2 (an edifice and a ruin on its m
                 { playerId: g3('Rhys'), color: Color.Red, side: BoardSide.Exile, kept: true }
             ]
         })
-        // A-43 is not reached here: no Vision came to a setup hand.
+        // R-1.22's marker is not reached here: no Vision came to a setup hand.
         expect(three.state.visionsDrawn).toBe(0)
     })
 
