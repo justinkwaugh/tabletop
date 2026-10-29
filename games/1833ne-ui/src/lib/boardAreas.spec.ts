@@ -85,7 +85,7 @@ describe('1833NE board', () => {
                 return [arrow.id, overlaps.map((hex) => hex.id)]
             }).filter(([, ids]) => ids.length)
         )
-        expect(covered).toEqual({ 'albany-troy-boston': ['A18'] })
+        expect(covered).toEqual({ 'albany-troy-to-boston': ['A18'] })
         const plates = BonusArrows1833NE.map((arrow) => ({
             id: arrow.id,
             hull: bonusArrowHull(drawBonusArrow(arrow))

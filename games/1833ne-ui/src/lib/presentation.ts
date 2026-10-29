@@ -1,6 +1,9 @@
+import { assertExists } from '@tabletop/common'
 import {
     FerryBonus,
+    MarketPoolId,
     ferryDefinition,
+    ferryValue,
     FirstRoundReservedHexes,
     MarketZones1833NE,
     Phases1833NE,
@@ -17,10 +20,12 @@ import { CompanyNames1833NE } from './companyPresentation.js'
 import { PhaseChart1833NE } from './phaseChart.js'
 import { PhaseColors1833NE, TrainColors1833NE } from './trainPresentation.js'
 
+const Money = moneyFormat('$')
+
 export const Presentation1833NE: TitlePresentation<State1833NE> = {
-    money: moneyFormat('$'),
+    money: Money,
     companyNames: CompanyNames1833NE,
-    marketPoolId: 'open-market',
+    marketPoolId: MarketPoolId,
     trainColors: TrainColors1833NE,
     phaseColors: PhaseColors1833NE,
     phaseChart: PhaseChart1833NE,
@@ -112,24 +117,24 @@ function ferryMarks(state: State1833NE, companyId: string): CompanyMark[] {
         .filter((ferry) => ferry.companyId === companyId)
         .flatMap((ferry): CompanyMark[] => {
             const definition = ferryDefinition(ferry.locationId)
-            if (!definition) return []
+            assertExists(definition, `Unknown ferry ${ferry.locationId}`)
+            const value = ferryValue(state, companyId, ferry.locationId)
             const bonus =
                 state.ferryBonus?.locationId === ferry.locationId
                     ? state.ferryBonus.side
                     : undefined
-            const bonusAmount = bonus ? FerryBonus[bonus] : 0
-            const value = (definition.value + bonusAmount) * (ferry.luxury ? 2 : 1)
+            const side = bonus === 'new' ? 'New' : 'Last'
             return [
                 {
                     label: definition.name,
                     imageUrl: (ferry.luxury ? LuxuryFerryArt : FerryArt)[ferry.locationId],
-                    description: `${definition.name} ferry: $${value} on its routes${ferry.luxury ? ', doubled by the Luxury Ferry Service' : ''}`
+                    description: `${definition.name} ferry: ${Money(value)} on its routes${ferry.luxury ? ', doubled by the Luxury Ferry Service' : ''}`
                 },
                 ...(bonus
                     ? [
                           {
-                              label: `+${bonusAmount} ${bonus === 'new' ? 'New' : 'Last'}`,
-                              description: `The ${bonus === 'new' ? 'New' : 'Last'} ferry bonus: +$${bonusAmount} on the ${definition.name} ferry`
+                              label: `+${FerryBonus[bonus]} ${side}`,
+                              description: `The ${side} ferry bonus: +${Money(FerryBonus[bonus])} on the ${definition.name} ferry`
                           }
                       ]
                     : [])

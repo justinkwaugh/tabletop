@@ -11,7 +11,16 @@ import HRToken from './images/tokens/HR.png'
 import JointToken from './images/tokens/joint.png'
 import RRToken from './images/tokens/RR.png'
 import StLAToken from './images/tokens/StLA.png'
-import { Map1833NE, TileSet1833NE } from '@tabletop/1833ne'
+import {
+    JointTokenSource,
+    Map1833NE,
+    Phases1833NE,
+    Places,
+    TileSet1833NE,
+    ValuePeriods,
+    bonusArrow,
+    valuePeriod
+} from '@tabletop/1833ne'
 import {
     StandardTileLayouts,
     TileRadius,
@@ -29,7 +38,6 @@ const TerminalSpikeReach = 1
 const Boston: TileLayout = {
     spikeReach: TerminalSpikeReach,
     hideRevenue: ['city-0', 'city-1'],
-    // The value sits by the spike, the label east of the cities.
     revenuePositions: { terminal: { x: 22, y: 24 } },
     labelPosition: { x: 32, y: 0 },
     nodePositions: {
@@ -45,7 +53,6 @@ const Montreal: TileLayout = {
 const Portland: TileLayout = {
     spikeReach: TerminalSpikeReach,
     hideRevenue: ['terminal-0', 'terminal-1'],
-    // The value sits west, between the terminals' spikes.
     revenuePositions: { 'city-0': { x: -34, y: 0 } },
     nodePositions: {
         // The city sits low, toward the south-east, as printed.
@@ -137,29 +144,23 @@ function besideBoard(column: number, row: number) {
     ).center
 }
 
-type Band = 'I-II' | 'III-IV' | 'V'
-const Bands: readonly Band[] = ['I-II', 'III-IV', 'V']
-const BandStages: Readonly<Record<Band, string>> = {
-    'I-II': 'yellow',
-    'III-IV': 'brown',
-    V: 'gray'
-}
+/** A printed bonus arrow beside the board, its values those the rules pay for it. */
 function arrow(
     id: string,
     [column, row]: readonly [number, number],
     heading: string,
     footer: MapBonusArrow['footer'],
-    values: Partial<Record<Band, number>>,
     points: MapBonusArrow['points']
 ): MapBonusArrow {
+    const { values } = bonusArrow(id)
     return {
         id,
         center: besideBoard(column, row),
         heading,
         footer,
-        values: Bands.flatMap((band) => {
-            const amount = values[band]
-            return amount === undefined ? [] : [{ label: band, amount, stage: BandStages[band] }]
+        values: ValuePeriods.flatMap((period) => {
+            const amount = values[period.id]
+            return amount === undefined ? [] : [{ label: period.id, amount, stage: period.stage }]
         }),
         points
     }
@@ -170,77 +171,21 @@ function arrow(
  * interconnection from its heading's place, two for a direct connection (p. 24).
  */
 export const BonusArrows1833NE: readonly MapBonusArrow[] = [
-    arrow(
-        'montreal-portland',
-        [-0.55, 1.9],
-        'MONTREAL',
-        'to PORTLAND',
-        { 'I-II': 30, 'III-IV': 60, V: 40 },
-        'right'
-    ),
-    arrow(
-        'montreal-boston',
-        [-0.55, 4],
-        'MONTREAL',
-        'to BOSTON',
-        { 'I-II': 70, 'III-IV': 90 },
-        'right'
-    ),
-    arrow(
-        'ogdensburg-boston',
-        [-0.55, 7.95],
-        'OGDENSBURG RR',
-        'to BOSTON',
-        { 'I-II': 40, 'III-IV': 70 },
-        'right'
-    ),
-    arrow('albany-troy-boston', [-0.5, 18], 'ALBANY/TROY', 'to BOSTON', { 'I-II': 50 }, 'right'),
-    arrow(
-        'boston-new-york',
-        [-0.6, 26.1],
-        'BOSTON and',
-        'NEW YORK',
-        { 'III-IV': 60, V: 80 },
-        'both'
-    ),
-    arrow(
-        'boston-north',
-        [8.6, 21.5],
-        'BOSTON to',
-        'MONTREAL or OGDENSBURG',
-        { 'I-II': 30, 'III-IV': 50 },
-        'left'
-    ),
-    arrow(
-        'boston-and-north',
-        [10.45, 21.5],
-        'BOSTON and',
-        'MONTREAL or OGDENSBURG',
-        { 'I-II': 50, 'III-IV': 60 },
-        'both'
-    ),
-    arrow(
-        'boston-and-albany-troy',
-        [10.45, 23.5],
-        'BOSTON and',
-        'ALBANY/TROY',
-        { 'I-II': 50 },
-        'both'
-    ),
-    arrow(
-        'portland-montreal',
-        [9.55, 13.1],
-        'PORTLAND',
-        'to MONTREAL',
-        { 'I-II': 30, 'III-IV': 60, V: 40 },
-        'left'
-    ),
+    arrow('montreal-to-portland', [-0.55, 1.9], 'MONTREAL', 'to PORTLAND', 'right'),
+    arrow('montreal-to-boston', [-0.55, 4], 'MONTREAL', 'to BOSTON', 'right'),
+    arrow('ogdensburg-to-boston', [-0.55, 7.95], 'OGDENSBURG RR', 'to BOSTON', 'right'),
+    arrow('albany-troy-to-boston', [-0.5, 18], 'ALBANY/TROY', 'to BOSTON', 'right'),
+    arrow('boston-and-new-york', [-0.6, 26.1], 'BOSTON and', 'NEW YORK', 'both'),
+    // One arrow prints Boston's interconnection to Montreal and to Ogdensburg, which are equal.
+    arrow('boston-to-montreal', [8.6, 21.5], 'BOSTON to', 'MONTREAL or OGDENSBURG', 'left'),
+    arrow('boston-and-north', [10.45, 21.5], 'BOSTON and', 'MONTREAL or OGDENSBURG', 'both'),
+    arrow('boston-and-albany-troy', [10.45, 23.5], 'BOSTON and', 'ALBANY/TROY', 'both'),
+    arrow('portland-to-montreal', [9.55, 13.1], 'PORTLAND', 'to MONTREAL', 'left'),
     arrow(
         'montreal-port-city',
         [6.1, 29.2],
         'MONTREAL',
         { before: 'to', symbol: 'port', after: 'CITY', spoken: 'ending at New Haven or Norwich' },
-        { 'III-IV': 50, V: 80 },
         'both'
     )
 ]
@@ -248,7 +193,6 @@ export const BonusArrows1833NE: readonly MapBonusArrow[] = [
 export const MapView1833NE: MapViewDefinition = {
     boardAreas: {
         market: { x: -115, y: -175, width: 1000, height: 150 },
-        // In the bay east of Eastern Townships, above Lewiston and Portland.
         depot: { x: 545, y: 20, width: 470, height: 231 }
     },
     map: Map1833NE,
@@ -308,20 +252,24 @@ export const MapView1833NE: MapViewDefinition = {
         })
     ),
     revenueStack: 'column',
-    revenueStageCaptions: { yellow: 'I-II', brown: 'III-IV', gray: 'V' },
+    revenueStageCaptions: Object.fromEntries(
+        ValuePeriods.map((period) => [period.stage, period.id])
+    ),
     // A value for two phases is printed in both their colours.
-    revenueStageColors: {
-        yellow: [PhaseColors1833NE.I, PhaseColors1833NE.II],
-        brown: [PhaseColors1833NE.III, PhaseColors1833NE.IV],
-        gray: PhaseColors1833NE.V
-    },
+    revenueStageColors: Object.fromEntries(
+        ValuePeriods.map((period) => {
+            const colors = Phases1833NE.phases
+                .filter((phase) => valuePeriod(phase.id) === period.id)
+                .map((phase) => PhaseColors1833NE[phase.id])
+            return [period.stage, colors.length === 1 ? colors[0] : colors]
+        })
+    ),
     markerArt: {
         ...Object.fromEntries(
             ['P1', 'P2', 'P3'].map((id) => [`blocks-${id}`, { localLine: true, above: true }])
         ),
         // Only the B&W, or the B&P, may build here in the first operating round (§6.46).
         'first-round': { notice: true },
-        // The lower cost a hex prints under its terrain, for a corporation or from a phase.
         'terrain-discount': { terrainNote: true }
     },
     // The corporations' tokens, from GMT's sample token sheet.
@@ -338,8 +286,10 @@ export const MapView1833NE: MapViewDefinition = {
     },
     // The St. Lawrence corporations' one Sherbrooke token prints both their marks (§6.53).
     sharedStations: {
-        joint: { color: '#8d807d', label: 'StL&A / A&StL', imageUrl: JointToken }
+        [JointTokenSource]: { color: '#8d807d', label: 'StL&A / A&StL', imageUrl: JointToken }
     },
     // The board prints it in Sherbrooke, where it goes with the city's yellow tile.
-    printedReservations: [{ locationId: 'F5', nodeId: 'city', companyId: 'joint' }]
+    printedReservations: [
+        { locationId: Places.sherbrooke, nodeId: 'city', companyId: JointTokenSource }
+    ]
 }

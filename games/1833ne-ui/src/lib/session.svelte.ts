@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import {
     AssignLuxuryFerry,
     BuyFerry,
@@ -38,23 +39,25 @@ export class Session1833NE extends BaseSession {
     )
     readonly ferryOffers = $derived.by((): FerryOffer[] =>
         this.validActionTypes.includes('BuyFerry')
-            ? ferryChoices(this.gameState).flatMap((locationId) => {
+            ? ferryChoices(this.gameState).map((locationId) => {
                   const ferry = ferryDefinition(locationId)
-                  return ferry ? [ferry] : []
+                  assertExists(ferry, `Unknown ferry ${locationId}`)
+                  return ferry
               })
             : []
     )
     readonly luxuryOffers = $derived.by((): FerryOffer[] =>
         this.validActionTypes.includes('AssignLuxuryFerry')
-            ? luxuryChoices(this.gameState).flatMap((locationId) => {
+            ? luxuryChoices(this.gameState).map((locationId) => {
                   const ferry = ferryDefinition(locationId)
-                  return ferry ? [ferry] : []
+                  assertExists(ferry, `Unknown ferry ${locationId}`)
+                  return ferry
               })
             : []
     )
     private operatingCompanyId(): string {
         const companyId = nextOperatingCompany(this.gameState)
-        if (!companyId) throw new Error('Ferries belong to the operating corporation')
+        assertExists(companyId, 'Ferries belong to the operating corporation')
         return companyId
     }
     async buyFerry(locationId: string): Promise<void> {
