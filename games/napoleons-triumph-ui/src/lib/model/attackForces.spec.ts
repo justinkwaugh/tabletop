@@ -50,6 +50,17 @@ describe('the units of an attack as they entered it', () => {
         expect(entered(game).get('A02')?.shown).toEqual(infantry(1))
     })
 
+    it('stand as they are on the board until the history is loaded', () => {
+        const game = wonBeforeTheRetreat()
+        const attack = game.state.attack
+        assertExists(attack, 'Expected an attack being fought')
+        const entered = unitsAsTheyEnteredTheAttack(
+            { state: game.state, actions: [] },
+            lossesOfAttack([], attack, attack.pending)
+        )
+        expect(entered.get('F01')).toEqual(game.hydrated.findUnit('F01'))
+    })
+
     it('leave the units that lost nothing as they stand', () => {
         const game = retreatToTheRefuge(wonBeforeTheRetreat())
         expect(entered(game).get('F02')).toEqual(game.hydrated.findUnit('F02'))
