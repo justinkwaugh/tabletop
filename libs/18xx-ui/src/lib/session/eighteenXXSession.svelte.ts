@@ -51,6 +51,7 @@ import {
 } from '../finance/draftedCompanies.js'
 import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import { terrainIconAppearance } from '../maps/terrainIcons.js'
+import type { MapMarkerArt } from '../maps/mapDrawing.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
 import {
@@ -523,9 +524,35 @@ export class EighteenXXSession<
         tileColors: this.tileAppearance.colors,
         tileColorNames: this.tileAppearance.colorNames ?? {}
     }))
+    // Held as text, so the map redraws when the art changes rather than on every action.
+    private playedMarkerArt = $derived.by(() =>
+        JSON.stringify(this.presentationDefinition.markerArtFor?.(this.gameState) ?? {})
+    )
     /** The map view for the current presentation: published token art replaces the generic set when selected. */
     readonly mapView: MapViewDefinition = $derived.by(() => {
-        const base = this.mapViewDefinition
+        const printed = this.mapViewDefinition
+        const played: Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>> = JSON.parse(
+            this.playedMarkerArt
+        )
+        const base = Object.keys(played).length
+            ? {
+                  ...printed,
+                  locationMarkerArt: Object.fromEntries(
+                      [
+                          ...new Set([
+                              ...Object.keys(printed.locationMarkerArt ?? {}),
+                              ...Object.keys(played)
+                          ])
+                      ].map((locationId) => [
+                          locationId,
+                          {
+                              ...printed.locationMarkerArt?.[locationId],
+                              ...played[locationId]
+                          }
+                      ])
+                  )
+              }
+            : printed
         const overrides = this.stationAppearanceOverrides
         const definition = overrides
             ? { ...base, stations: { ...base.stations, ...overrides } }

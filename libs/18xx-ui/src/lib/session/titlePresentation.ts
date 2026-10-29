@@ -17,6 +17,7 @@ import type {
 import type { TileSymbolName } from '../tiles/tileSymbols.js'
 import type { TerrainIconName } from '../maps/terrainIcons.js'
 import type { HistoryMapPlacement } from '../maps/historicalMap.js'
+import type { MapMarkerArt } from '../maps/mapDrawing.js'
 
 export type PrivateTokenPresentation =
     | { companyId: string }
@@ -139,6 +140,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     titleRounds?: readonly TitleRound<State>[]
     /** Facts of the title's own for the game information, such as money left to subsidise. */
     gameFacts?(state: State): readonly TitleFact[]
+    /**
+     * Marker art that changes with play, by location id then marker id, over the map view's:
+     * such as a marker hidden once its rule lapses, or one a private has marked.
+     */
+    markerArtFor?(state: State): Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>>
     companyColumns?: readonly CompanyColumn<State>[]
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
