@@ -94,7 +94,6 @@ export class FirestoreSessionStore implements SessionStore {
             return snapshot.data()
         } catch (error) {
             this.handleError(error, id)
-            throw Error('unreachable')
         }
     }
 

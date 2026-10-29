@@ -173,7 +173,7 @@ export class GameService implements GameServiceInterface {
         }
         const sessionUser = this.authorizationService.getSessionUser()
         let fetched: { games: Game[]; localGames: Game[] } | undefined
-        let changes: GameListChange[] = []
+        let changes: GameListChange[]
         do {
             this.reloadRequested = false
             changes = []
