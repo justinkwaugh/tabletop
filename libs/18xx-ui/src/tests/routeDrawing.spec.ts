@@ -2,7 +2,7 @@ import { expect, it } from 'vitest'
 import { HexOrientation } from '@tabletop/common'
 import { RailwayMap, createCityTileFace } from '@tabletop/18xx'
 import { createMapDrawing, type MapRoute } from '../lib/maps/mapDrawing.js'
-import { cityOutline, drawMapRoutes } from '../lib/maps/routeDrawing.js'
+import { ExtensionDash, cityOutline, drawMapRoutes } from '../lib/maps/routeDrawing.js'
 
 function cityScene(slots: number) {
     return createMapDrawing(
@@ -48,32 +48,37 @@ it('masks shared cities once while preserving complete track geometry', () => {
     expect(drawMapRoutes(scene, [])).toEqual([])
 })
 
-it('dashes an extension and points an arrow into the stop it reaches', () => {
+it('marks an extension’s paths apart from the route’s own', () => {
     const scene = cityScene(1)
     const [first, second] = scene.locations[0].drawing.paths
-    const city = scene.locations[0].drawing.nodes[0]
-    const routes: MapRoute[] = [
+    const [drawing] = drawMapRoutes(scene, [
         {
             id: 'a',
             color: 'red',
             segments: [{ locationId: 'A1', pathId: first.id }],
             extension: [{ locationId: 'A1', pathId: second.id }]
         }
-    ]
-    const [drawing] = drawMapRoutes(scene, routes)
-    expect(drawing.paths.map((path) => [path.pathId, path.dashed])).toEqual([
+    ])
+    expect(drawing.paths.map((path) => [path.pathId, path.extension])).toEqual([
         [first.id, false],
         [second.id, true]
     ])
-    const [arrow] = drawing.arrows
-    const slot = city.slots[0]
-    expect(Math.hypot(arrow.tip.x - slot.x, arrow.tip.y - slot.y)).toBeLessThanOrEqual(
-        city.slotRadius + 1.5
-    )
-    const heading = (arrow.angle * Math.PI) / 180
-    const ahead = { x: arrow.tip.x + Math.cos(heading), y: arrow.tip.y + Math.sin(heading) }
-    expect(Math.hypot(ahead.x - slot.x, ahead.y - slot.y)).toBeLessThan(
-        Math.hypot(arrow.tip.x - slot.x, arrow.tip.y - slot.y)
-    )
-    expect(drawMapRoutes(scene, [{ ...routes[0], extension: undefined }])[0].arrows).toEqual([])
+})
+
+it('mirrors an extension’s dashes on track it runs backwards', () => {
+    const scene = cityScene(3)
+    const [first, second] = scene.locations[0].drawing.paths
+    const [drawing] = drawMapRoutes(scene, [
+        {
+            id: 'a',
+            color: 'red',
+            segments: [{ locationId: 'A1', pathId: first.id }],
+            extension: [{ locationId: 'A1', pathId: second.id }]
+        }
+    ])
+    const length = Math.hypot(second.end.x - second.start.x, second.end.y - second.start.y)
+    const period = ExtensionDash.drawn + ExtensionDash.gap
+    const wrap = (value: number) => ((value % period) + period) % period
+    // The extension leaves the city along the second path, which is drawn from its edge.
+    expect(drawing.paths[1].dashOffset).toBeCloseTo(wrap(ExtensionDash.drawn - length), 1)
 })

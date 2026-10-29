@@ -48,13 +48,76 @@ export function cityOutline(node: TileDrawnNode): string {
     )
 }
 
-/** Where an extension reaches its destination: the arrow's tip at the stop, and its heading. */
-export type RouteArrow = { id: string; color: string; tip: Point; angle: number }
+/** An extension's dashes: drawn and gap lengths, in tile units. */
+export const ExtensionDash = { drawn: 4, gap: 3 } as const
+
+type Traversal = { reversed: boolean; travelled: number }
+
+/** How far along a path's length its points lie, from its start, by even sampling. */
+function pathLength(path: TileDrawnPath): number {
+    const samples = Array.from({ length: 65 }, (_, index) => tilePathPoint(path, index / 64))
+    return samples
+        .slice(1)
+        .reduce(
+            (sum, point, index) =>
+                sum + Math.hypot(point.x - samples[index].x, point.y - samples[index].y),
+            0
+        )
+}
+
+/**
+ * Where each extension path's dashes pick up, so they run on unbroken from tile to tile: the
+ * length travelled before it, and whether the extension runs it from its end to its start.
+ */
+function extensionTraversals(scene: MapDrawing, route: MapRoute): Map<string, Traversal> {
+    const traversals = new Map<string, Traversal>()
+    const world = (segment: RoutePath) => {
+        const entry = scene.locations.find(
+            (location) => location.location.id === segment.locationId
+        )
+        const path = entry?.drawing.paths.find((candidate) => candidate.id === segment.pathId)
+        assertExists(entry, `Missing route location ${segment.locationId}`)
+        assertExists(path, `Missing route path ${segment.pathId}`)
+        const at = (point: Point) => ({ x: entry.center.x + point.x, y: entry.center.y + point.y })
+        return { path, start: at(path.start), end: at(path.end) }
+    }
+    const near = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y) < 1
+    const last = route.segments.at(-1)
+    let joint: Point | undefined
+    if (last) {
+        const { start, end } = world(last)
+        const first = route.extension?.[0]
+        const firstEnds = first ? world(first) : undefined
+        joint =
+            firstEnds &&
+            [start, end].find((point) => near(point, firstEnds.start) || near(point, firstEnds.end))
+    }
+    let travelled = 0
+    for (const segment of route.extension ?? []) {
+        const { path, start, end } = world(segment)
+        const reversed = !!joint && near(joint, end)
+        traversals.set(`${segment.locationId} ${segment.pathId}`, { reversed, travelled })
+        travelled += pathLength(path)
+        joint = reversed ? start : end
+    }
+    return traversals
+}
+
+/** The dash offset that continues an extension's dashes into a path, as SVG dashes run. */
+function extensionDashOffset(path: TileDrawnPath, traversal: Traversal | undefined): number {
+    if (!traversal) return 0
+    const period = ExtensionDash.drawn + ExtensionDash.gap
+    const offset = traversal.reversed
+        ? ExtensionDash.drawn - (traversal.travelled + pathLength(path))
+        : traversal.travelled
+    return ((offset % period) + period) % period
+}
 
 export function drawMapRoutes(scene: MapDrawing, routes: readonly MapRoute[]) {
+    const traversals = new Map(routes.map((route) => [route.id, extensionTraversals(scene, route)]))
     return scene.locations.flatMap((entry) => {
         if (entry.hidden) return []
-        const drawn = (route: MapRoute, segments: readonly RoutePath[], dashed: boolean) =>
+        const drawn = (route: MapRoute, segments: readonly RoutePath[], extension: boolean) =>
             segments
                 .filter((segment) => segment.locationId === entry.location.id)
                 .map((segment) => {
@@ -67,7 +130,13 @@ export function drawMapRoutes(scene: MapDrawing, routes: readonly MapRoute[]) {
                         d: path.d,
                         spike: path.spike,
                         pathId: path.id,
-                        dashed
+                        extension,
+                        dashOffset: extension
+                            ? extensionDashOffset(
+                                  path,
+                                  traversals.get(route.id)?.get(`${segment.locationId} ${path.id}`)
+                              )
+                            : 0
                     }
                 })
         const paths = routes.flatMap((route) => [
@@ -92,43 +161,6 @@ export function drawMapRoutes(scene: MapDrawing, routes: readonly MapRoute[]) {
                     ? [{ id: node.node.id, d: cityOutline(node) }]
                     : []
             })
-        const arrows = routes.flatMap((route): RouteArrow[] => {
-            const last = route.extension?.at(-1)
-            if (last?.locationId !== entry.location.id) return []
-            const path = entry.drawing.paths.find((path) => path.id === last.pathId)
-            const ends = entry.face.paths
-                .find((path) => path.id === last.pathId)
-                ?.endpoints.flatMap((end) => (end.kind === 'node' ? [end.nodeId] : []))
-            const node = entry.drawing.nodes.find((node) => ends?.includes(node.node.id))
-            if (!path || !node) return []
-            return [{ id: `${route.id}:arrow`, color: route.color, ...arrowAtStop(path, node) }]
-        })
-        return [{ id: entry.location.id, center: entry.center, paths, cities, arrows }]
+        return [{ id: entry.location.id, center: entry.center, paths, cities }]
     })
-}
-
-const HeadingRun = 6
-
-/** The arrow's tip where the track meets the stop's outline, pointing along the track into it. */
-function arrowAtStop(path: TileDrawnPath, node: TileDrawnNode): { tip: Point; angle: number } {
-    const fromCenter = (point: Point) =>
-        Math.hypot(point.x - node.center.x, point.y - node.center.y)
-    const towardNode = fromCenter(path.end) < fromCenter(path.start)
-    const at = (t: number) => tilePathPoint(path, towardNode ? t : 1 - t)
-    const reach = node.slots.length ? node.slotRadius + 1.5 : node.dotRadius + 4
-    const nearest = (point: Point) =>
-        node.slots.length
-            ? Math.min(...node.slots.map((slot) => Math.hypot(point.x - slot.x, point.y - slot.y)))
-            : fromCenter(point)
-    const steps = 40
-    const samples = Array.from({ length: steps + 1 }, (_, step) => at(step / steps))
-    const found = samples.findIndex((point) => nearest(point) <= reach)
-    const reached = found < 0 ? steps : found
-    const tip = samples[reached]
-    const before =
-        samples
-            .slice(0, Math.max(reached, 1))
-            .findLast((point) => Math.hypot(point.x - tip.x, point.y - tip.y) >= HeadingRun) ??
-        samples[0]
-    return { tip, angle: (Math.atan2(tip.y - before.y, tip.x - before.x) * 180) / Math.PI }
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { MapDrawing, MapRoute } from './mapDrawing.js'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
-    import { drawMapRoutes } from './routeDrawing.js'
+    import { ExtensionDash, drawMapRoutes } from './routeDrawing.js'
     import { spikePoints } from '../tiles/tileTrackGeometry.js'
 
     let {
@@ -14,10 +14,8 @@
     const RouteWidth = 6.5
     const RouteEdgeWidth = 9
     const RouteLayers = ['edge', 'fill'] as const
-    // An interconnection extension runs dashed, its dashes long enough to read as track.
-    const ExtensionDash = '10 7'
-    const ArrowLength = 15
-    const ArrowWidth = 14
+    // An interconnection extension runs a dashed white line down its band.
+    const ExtensionLineWidth = 1.6
 </script>
 
 <g data-map-layer="routes" pointer-events="none" aria-hidden="true">
@@ -82,30 +80,25 @@
                         {:else}
                             <path
                                 data-map-route={edge ? undefined : path.routeId}
-                                data-map-route-extension={path.dashed && !edge ? true : undefined}
                                 d={path.d}
                                 {stroke}
                                 stroke-width={edge ? RouteEdgeWidth : RouteWidth}
-                                stroke-dasharray={path.dashed ? ExtensionDash : undefined}
-                                stroke-linecap={path.dashed ? 'butt' : undefined}
                             ></path>
+                            {#if path.extension && !edge}
+                                <path
+                                    data-map-route-extension={path.routeId}
+                                    d={path.d}
+                                    stroke="white"
+                                    stroke-width={ExtensionLineWidth}
+                                    stroke-dasharray={`${ExtensionDash.drawn} ${ExtensionDash.gap}`}
+                                    stroke-dashoffset={path.dashOffset}
+                                    stroke-linecap="butt"
+                                ></path>
+                            {/if}
                         {/if}
                     {/each}
                 </g>
             {/each}
         {/each}
     </g>
-    {#each locations as location (location.id)}
-        {#each location.arrows as arrow (arrow.id)}
-            <polygon
-                data-map-route-arrow={arrow.id}
-                transform={`translate(${location.center.x + arrow.tip.x} ${location.center.y + arrow.tip.y}) rotate(${arrow.angle})`}
-                points={`0,0 ${-ArrowLength},${-ArrowWidth / 2} ${-ArrowLength},${ArrowWidth / 2}`}
-                fill={arrow.color}
-                stroke={`color-mix(in srgb, ${arrow.color} 55%, black)`}
-                stroke-width="1.5"
-                stroke-linejoin="round"
-            ></polygon>
-        {/each}
-    {/each}
 </g>
