@@ -2,13 +2,13 @@ import type { RedisClientType } from 'redis'
 import { isCacheUnavailable } from './cacheService.js'
 import { countTiming } from '../diagnostics/requestTimings.js'
 
-export interface WindowCount {
+export interface RateLimitCount {
     readonly current: number
     readonly ttlMs: number
 }
 
-export interface WindowCounter {
-    count(key: string, windowMs: number): Promise<WindowCount>
+export interface RateLimitCounter {
+    increment(key: string, windowMs: number): Promise<RateLimitCount>
 }
 
 interface LocalWindow {
@@ -16,12 +16,12 @@ interface LocalWindow {
     expiresAt: number
 }
 
-export class LocalWindowCounter implements WindowCounter {
+export class LocalRateLimitCounter implements RateLimitCounter {
     private readonly windows = new Map<string, LocalWindow>()
 
     constructor(private readonly capacity = 10_000) {}
 
-    async count(key: string, windowMs: number): Promise<WindowCount> {
+    async increment(key: string, windowMs: number): Promise<RateLimitCount> {
         const now = Date.now()
         const open = this.windows.get(key)
         if (open && open.expiresAt > now) {
@@ -46,7 +46,7 @@ export class LocalWindowCounter implements WindowCounter {
 }
 
 // INCR and PEXPIRE run in one script so a window can never be left without an expiry.
-const countInWindow = `
+const incrementInWindow = `
 local current = redis.call('INCR', KEYS[1])
 local ttl = redis.call('PTTL', KEYS[1])
 if current == 1 or ttl < 0 then
@@ -56,21 +56,24 @@ end
 return {current, ttl}
 `
 
-export interface RedisWindowCounterOptions {
+export interface RedisRateLimitCounterOptions {
     timeoutMs?: number
-    fallback?: WindowCounter
+    fallback?: RateLimitCounter
 }
 
 // Counts while Redis is reachable and falls back to per-process counting while it is not, so a
 // cache outage narrows every budget to one instance instead of removing it or failing requests.
-export class RedisWindowCounter implements WindowCounter {
+export class RedisRateLimitCounter implements RateLimitCounter {
     private readonly client: RedisClientType
-    private readonly fallback: WindowCounter
+    private readonly fallback: RateLimitCounter
     private unavailableSince: number | undefined
 
     constructor(
         client: RedisClientType,
-        { timeoutMs = 250, fallback = new LocalWindowCounter() }: RedisWindowCounterOptions = {}
+        {
+            timeoutMs = 250,
+            fallback = new LocalRateLimitCounter()
+        }: RedisRateLimitCounterOptions = {}
     ) {
         this.client = client.withCommandOptions({ timeout: timeoutMs })
         this.fallback = fallback
@@ -80,27 +83,27 @@ export class RedisWindowCounter implements WindowCounter {
         return this.unavailableSince !== undefined
     }
 
-    async count(key: string, windowMs: number): Promise<WindowCount> {
+    async increment(key: string, windowMs: number): Promise<RateLimitCount> {
         try {
-            const reply = await this.client.eval(countInWindow, {
+            const reply = await this.client.eval(incrementInWindow, {
                 keys: [key],
                 arguments: [String(windowMs)]
             })
             this.recovered()
-            return parseWindowCount(reply)
+            return parseRateLimitCount(reply)
         } catch (error) {
             if (!isCacheUnavailable(error)) throw error
             this.degrade(error)
-            return this.fallback.count(key, windowMs)
+            return this.fallback.increment(key, windowMs)
         }
     }
 
     private degrade(error: unknown): void {
-        countTiming('windowCounter.fallback')
+        countTiming('rateLimitCounter.fallback')
         if (this.unavailableSince !== undefined) return
         this.unavailableSince = Date.now()
         console.warn(
-            'Window counter falling back to per-process counting: cache unavailable',
+            'Rate limit counter falling back to per-process counting: cache unavailable',
             error
         )
     }
@@ -108,13 +111,13 @@ export class RedisWindowCounter implements WindowCounter {
     private recovered(): void {
         if (this.unavailableSince === undefined) return
         console.log(
-            `Window counter back on the cache after ${Date.now() - this.unavailableSince} ms of per-process counting`
+            `Rate limit counter back on the cache after ${Date.now() - this.unavailableSince} ms of per-process counting`
         )
         this.unavailableSince = undefined
     }
 }
 
-function parseWindowCount(reply: unknown): WindowCount {
+function parseRateLimitCount(reply: unknown): RateLimitCount {
     if (
         Array.isArray(reply) &&
         reply.length === 2 &&
@@ -123,5 +126,5 @@ function parseWindowCount(reply: unknown): WindowCount {
     ) {
         return { current: reply[0], ttlMs: reply[1] }
     }
-    throw new Error(`Unexpected window counter reply: ${JSON.stringify(reply)}`)
+    throw new Error(`Unexpected rate limit counter reply: ${JSON.stringify(reply)}`)
 }

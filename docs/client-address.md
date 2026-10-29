@@ -6,7 +6,7 @@ address comes from, which hops of the path to production are trusted, what the e
 that trust is, and which guarantees the budgets do and do not give. The derivation lives in
 `apps/backend/src/runtime/clientAddress.ts`, the budgets in
 `apps/backend/src/app/plugins/rateLimit.ts` and `apps/backend/src/app/lib/operationBudget.ts`,
-and the shared counter in `libs/backend-services/src/cache/windowCounter.ts`.
+and the shared counter in `libs/backend-services/src/cache/rateLimitCounter.ts`.
 
 ## The path to production
 
@@ -88,7 +88,7 @@ subject (a Username or Email Address, trimmed and lowercased) and answers `429` 
 
 ## Shared storage and failure policy
 
-All budgets count through `fastify.windowCounter`, a `RedisWindowCounter` over the backend's
+All budgets count through `fastify.rateLimitCounter`, a `RedisRateLimitCounter` over the backend's
 Redis connection, so every Cloud Run instance and every supervisor-replaced worker continues the
 same windows. Each count is one Lua script (`INCR`, then `PEXPIRE` on a new window) so a window
 is never left without an expiry and concurrent requests on different instances cannot both be
@@ -97,7 +97,7 @@ budgets (`GET:/api/v1/auth/login:`) and the key above.
 
 If Redis does not answer within 250 ms, or the connection is down, the counter falls back to
 per-process counting for that request and logs
-`Window counter falling back to per-process counting: cache unavailable` once per outage and a
+`Rate limit counter falling back to per-process counting: cache unavailable` once per outage and a
 recovery line when Redis answers again. The budgets therefore narrow to one instance during a
 cache outage; they never open, and requests never fail because the counter did. Any other error
 from Redis is a real fault and fails the request with `500`.

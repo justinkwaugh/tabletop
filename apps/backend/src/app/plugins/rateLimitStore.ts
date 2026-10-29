@@ -1,5 +1,5 @@
 import type { FastifyRateLimitStore, FastifyRateLimitStoreCtor } from '@fastify/rate-limit'
-import type { WindowCounter } from '@tabletop/backend-services/window-counter'
+import type { RateLimitCounter } from '@tabletop/backend-services/rate-limit-counter'
 
 type IncrCallback = (error: Error | null, result?: { current: number; ttl: number }) => void
 
@@ -18,29 +18,29 @@ function routeScope(params: object): string {
     return `${methods.map(String).join('|')}:${routeInfo.url}:`
 }
 
-class WindowCounterStore implements FastifyRateLimitStore {
+class RateLimitCounterStore implements FastifyRateLimitStore {
     constructor(
-        private readonly counter: WindowCounter,
+        private readonly counter: RateLimitCounter,
         private readonly scope: string
     ) {}
 
     incr(key: string, callback: IncrCallback, timeWindow = defaultWindowMs): void {
-        this.counter.count(`${this.scope}${key}`, timeWindow).then(
+        this.counter.increment(`${this.scope}${key}`, timeWindow).then(
             (window) => callback(null, { current: window.current, ttl: window.ttlMs }),
             (error: unknown) => callback(error instanceof Error ? error : new Error(String(error)))
         )
     }
 
-    child(params: object): WindowCounterStore {
-        return new WindowCounterStore(this.counter, `${this.scope}${routeScope(params)}`)
+    child(params: object): RateLimitCounterStore {
+        return new RateLimitCounterStore(this.counter, `${this.scope}${routeScope(params)}`)
     }
 }
 
-export function windowCounterStore(
-    counter: WindowCounter,
+export function rateLimitCounterStore(
+    counter: RateLimitCounter,
     scope: string
 ): FastifyRateLimitStoreCtor {
-    return class extends WindowCounterStore {
+    return class extends RateLimitCounterStore {
         constructor() {
             super(counter, scope)
         }

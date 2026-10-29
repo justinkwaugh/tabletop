@@ -1,14 +1,17 @@
 import fp from 'fastify-plugin'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import fastifyRateLimit, { type RateLimitOptions } from '@fastify/rate-limit'
-import { LocalWindowCounter, type WindowCounter } from '@tabletop/backend-services/window-counter'
+import {
+    LocalRateLimitCounter,
+    type RateLimitCounter
+} from '@tabletop/backend-services/rate-limit-counter'
 import { clientIdentity } from '../../runtime/clientAddress.js'
 import { rejectWhenExceeded } from '../lib/budgetExceeded.js'
-import { windowCounterStore } from './rateLimitStore.js'
+import { rateLimitCounterStore } from './rateLimitStore.js'
 
 export interface RateLimitPluginOptions {
     service: string
-    counter?: WindowCounter
+    counter?: RateLimitCounter
     keyScope?: string
 }
 
@@ -35,14 +38,14 @@ export default fp(
         fastify,
         {
             service,
-            counter = new LocalWindowCounter(),
+            counter = new LocalRateLimitCounter(),
             keyScope = 'rate-limit:'
         }: RateLimitPluginOptions
     ) {
         const limitsEveryRoute = service !== 'local'
         await fastify.register(fastifyRateLimit, {
             global: limitsEveryRoute,
-            store: windowCounterStore(counter, keyScope),
+            store: rateLimitCounterStore(counter, keyScope),
             max: (_request, key) =>
                 key.startsWith('user:') ? sessionRequestsPerMinute : anonymousRequestsPerMinute,
             keyGenerator: (request) =>

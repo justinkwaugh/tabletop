@@ -129,7 +129,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin, { projectId: GCLOUD_PROJECT })
     await fastify.register(ServicesPlugin, { whileLoadingTitle: opts.whileLoadingTitle })
-    await fastify.register(RateLimitPlugin, { service, counter: fastify.windowCounter })
+    await fastify.register(RateLimitPlugin, { service, counter: fastify.rateLimitCounter })
     installTitleScope(fastify)
 
     if (service !== 'local') installManifestRefresh(fastify, [API_PREFIX, TASKS_PREFIX])

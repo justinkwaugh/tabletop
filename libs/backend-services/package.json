@@ -11,9 +11,9 @@
             "import": "./esm/diagnostics/requestTimings.js",
             "types": "./src/diagnostics/requestTimings.ts"
         },
-        "./window-counter": {
-            "import": "./esm/cache/windowCounter.js",
-            "types": "./src/cache/windowCounter.ts"
+        "./rate-limit-counter": {
+            "import": "./esm/cache/rateLimitCounter.js",
+            "types": "./src/cache/rateLimitCounter.ts"
         },
         "./discord-commands": {
             "import": "./esm/discord/commands.js",

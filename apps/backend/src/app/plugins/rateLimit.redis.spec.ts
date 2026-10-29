@@ -3,7 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import Fastify from 'fastify'
 import SecureSession from '@fastify/secure-session'
 import { createClient, type RedisClientType } from 'redis'
-import { RedisWindowCounter } from '@tabletop/backend-services/window-counter'
+import { RedisRateLimitCounter } from '@tabletop/backend-services/rate-limit-counter'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { trustedProxyChain } from '../../runtime/clientAddress.js'
 import loginRoute from '../routes/api/auth/login.js'
@@ -63,7 +63,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('request budgets shared thro
         })
         await server.register(RateLimitPlugin, {
             service: 'backend',
-            counter: new RedisWindowCounter(redis),
+            counter: new RedisRateLimitCounter(redis),
             keyScope
         })
         server.get(
