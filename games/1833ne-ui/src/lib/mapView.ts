@@ -222,8 +222,9 @@ export const BonusArrows1833NE: readonly MapBonusArrow[] = [
 
 export const MapView1833NE: MapViewDefinition = {
     boardAreas: {
-        market: { x: -60, y: -175, width: 1000, height: 150 },
-        depot: { x: 760, y: 60, width: 381, height: 187 }
+        market: { x: -115, y: -175, width: 1000, height: 150 },
+        // In the bay east of Eastern Townships, above Lewiston and Portland.
+        depot: { x: 545, y: 20, width: 470, height: 231 }
     },
     map: Map1833NE,
     tileSet: TileSet1833NE,
