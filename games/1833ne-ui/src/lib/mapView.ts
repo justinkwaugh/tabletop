@@ -4,6 +4,17 @@ import FallRiverFerry from './images/ferries/fall-river.svg'
 import NewHavenFerry from './images/ferries/new-haven.svg'
 import ProvidenceFerry from './images/ferries/providence.svg'
 import StoningtonFerry from './images/ferries/stonington.svg'
+import AStLToken from './images/tokens/AStL.png'
+import BLToken from './images/tokens/BL.png'
+import BPToken from './images/tokens/BP.png'
+import BWToken from './images/tokens/BW.png'
+import CVToken from './images/tokens/CV.png'
+import DHToken from './images/tokens/DH.png'
+import FRRToken from './images/tokens/FRR.png'
+import HRToken from './images/tokens/HR.png'
+import JointToken from './images/tokens/joint.png'
+import RRToken from './images/tokens/RR.png'
+import StLAToken from './images/tokens/StLA.png'
 import { Map1833NE, TileSet1833NE } from '@tabletop/1833ne'
 import {
     StandardTileLayouts,
@@ -41,7 +52,8 @@ const Portland: TileLayout = {
     // The value sits west, between the terminals' spikes.
     revenuePositions: { 'city-0': { x: -34, y: 0 } },
     nodePositions: {
-        'city-0': towardTileEdge(4.5, 18),
+        // The city sits low, toward the south-east, as printed.
+        'city-0': towardTileEdge(5.3, 24),
         'terminal-0': towardTileEdge(1, 26),
         'terminal-1': towardTileEdge(2, 26)
     }
@@ -284,15 +296,33 @@ export const MapView1833NE: MapViewDefinition = {
         // Only the B&W, or the B&P, may build here in the first operating round (§6.46).
         'first-round': { notice: true }
     },
+    // The corporations' tokens, from GMT's sample token sheet.
     stations: {
-        'B&W': { color: '#ffffff', label: 'B&W' },
-        'B&P': { color: '#eacd93', label: 'B&P' },
-        'B&L': { color: '#f5abad', label: 'B&L' },
-        FRR: { color: '#d1e088', label: 'Fitch' },
-        HR: { color: '#c4e9fb', label: 'Hart' },
-        RR: { color: '#2f7146', label: 'Rut' },
-        CV: { color: '#0095da', label: 'CV' },
-        'StL&A': { color: '#f38221', label: 'StL&A' },
-        'A&StL': { color: '#8d807d', label: 'A&StL' }
+        'B&W': { color: '#ffffff', label: 'B&W', imageUrl: BWToken },
+        'B&P': { color: '#eacd93', label: 'B&P', imageUrl: BPToken },
+        'B&L': { color: '#f5abad', label: 'B&L', imageUrl: BLToken },
+        FRR: { color: '#d1e088', label: 'Fitch', imageUrl: FRRToken },
+        HR: { color: '#c4e9fb', label: 'Hart', imageUrl: HRToken },
+        RR: { color: '#2f7146', label: 'Rut', imageUrl: RRToken },
+        CV: { color: '#0095da', label: 'CV', imageUrl: CVToken },
+        'StL&A': { color: '#f38221', label: 'StL&A', imageUrl: StLAToken },
+        'A&StL': { color: '#8d807d', label: 'A&StL', imageUrl: AStLToken }
+    },
+    // The St. Lawrence corporations' one Sherbrooke token prints both their marks (§6.53).
+    sharedStations: {
+        joint: { color: '#8d807d', label: 'StL&A / A&StL', imageUrl: JointToken }
+    },
+    // The board prints it in Sherbrooke, where it goes with the city's yellow tile.
+    printedReservations: [{ locationId: 'F5', nodeId: 'city', companyId: 'joint' }],
+    // The D&H's mark where Westport's track runs to its off-board area, A12.
+    printedTokens: {
+        B11: [
+            {
+                imageUrl: DHToken,
+                at: towardTileEdge(1, 29),
+                radius: 8.5,
+                title: 'Delaware & Hudson RR: its corporation lays track and runs from A12'
+            }
+        ]
     }
 }
