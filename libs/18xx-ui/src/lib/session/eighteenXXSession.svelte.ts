@@ -905,7 +905,7 @@ export class EighteenXXSession<
         return this.presentation.companyNames[lot.id]?.initials ?? lot.id
     }
     poolName(poolId: string) {
-        return this.rules.names.pool(poolId)
+        return this.presentation.poolName?.(poolId) ?? this.rules.names.pool(poolId)
     }
     stockCompanyName(companyId: string) {
         return this.companyName(companyId)

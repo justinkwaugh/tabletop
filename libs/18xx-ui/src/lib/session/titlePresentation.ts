@@ -1,11 +1,6 @@
 import type { OperatingStepStatuses } from '../table/operatingStepStatuses.js'
 import type { MarketCellDimensions } from '../stock/marketTokenLayout.js'
-import type {
-    CertificatePool,
-    EighteenXXState,
-    StockInstructionStopReason,
-    TileRotation
-} from '@tabletop/18xx'
+import type { EighteenXXState, StockInstructionStopReason, TileRotation } from '@tabletop/18xx'
 import type { GameAction, GameState } from '@tabletop/common'
 import type { PhaseChartData } from '../phases/phaseChart.js'
 import type { MoneyFormat } from '../presentation/money.js'
@@ -126,7 +121,7 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     mapFocusExcludedCompanyIds?: readonly string[]
     portfolioCompanyIds?: readonly string[]
     includedPortfolioCompanyIds?: readonly string[]
-    poolName?: (pool: CertificatePool) => string
+    poolName?: (poolId: string) => string
     instructionStopText?: (reason: TitleStopReason) => string
     privatePurchaseLabel?: string
     privatePurchaseHeading?: string

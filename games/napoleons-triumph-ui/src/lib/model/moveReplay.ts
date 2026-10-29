@@ -57,6 +57,7 @@ import {
 } from './battleStage.js'
 import { attackMarkOf, type AttackMark } from './attackMark.js'
 import { belongsToAnAttack } from './historyChapters.js'
+import { partStandIns, standInId } from '$lib/utils/standIns.js'
 
 export interface Standing {
     units: ProjectedUnit[]
@@ -268,12 +269,6 @@ const BOARD_CORNERS: Point[] = [
     { x: 0, y: BOARD_HEIGHT }
 ]
 
-// Deliberate: the places left are laid out as pieces of their own beside those that stayed, so a
-// corps some units left keeps the shape it had and those places are not hidden under it.
-function placeLeftId(unitId: string): string {
-    return `${unitId} (left)`
-}
-
 function within(value: number, low: number, high: number): number {
     return Math.min(Math.max(value, low), high)
 }
@@ -352,9 +347,9 @@ function singledOutBy(
     return [
         ...movements.map((movement) => ({
             towards: firstPlaceOnTheWay(movement),
-            unitIds: movement.unitIds.map(placeLeftId)
+            unitIds: movement.unitIds.map(standInId)
         })),
-        { towards: fought, unitIds: lost.map((unit) => placeLeftId(unit.id)) },
+        { towards: fought, unitIds: lost.map((unit) => standInId(unit.id)) },
         ...committedUnits(attack),
         { towards: fought, unitIds: namedIds }
     ]
@@ -372,29 +367,20 @@ export function moveReplayScene(
         [
             ...before.units.filter((unit) => movedIds.includes(unit.id) && isOnMap(unit)),
             ...lost
-        ].map((unit) => [placeLeftId(unit.id), unit])
+        ].map((unit) => [standInId(unit.id), unit])
     )
     const laidOut = layoutPieces(
         piecesOf(after, [
             ...after.units.flatMap((unit) => {
-                const was = stood.get(placeLeftId(unit.id))
-                return was ? [{ ...was, id: placeLeftId(unit.id) }, unit] : [unit]
+                const was = stood.get(standInId(unit.id))
+                return was ? [{ ...was, id: standInId(unit.id) }, unit] : [unit]
             }),
-            ...lost.map((unit) => ({ ...unit, id: placeLeftId(unit.id) }))
+            ...lost.map((unit) => ({ ...unit, id: standInId(unit.id) }))
         ]),
         { rotation, readBy, singledOut: singledOutBy(movements, lost, attack, unitIds) }
     )
-    const left = laidOut
-        .flatMap((sprite) => sprite.blocks)
-        .flatMap((block) => {
-            const unit = stood.get(block.unit.id)
-            return unit ? [{ ...block, unit }] : []
-        })
-    const sprites = laidOut.flatMap((sprite) => {
-        const blocks = sprite.blocks.filter((block) => !stood.has(block.unit.id))
-        const units = sprite.group.units.filter((unit) => !stood.has(unit.id))
-        return blocks.length > 0 ? [{ ...sprite, blocks, group: { ...sprite.group, units } }] : []
-    })
+    const { sprites, standIns } = partStandIns(laidOut, stood)
+    const left = standIns.map(({ block, of }) => ({ ...block, unit: of }))
     const standing = sprites.flatMap((sprite) => sprite.blocks)
     const ofMovement = (movement: Movement) => (block: BlockSprite) =>
         movement.unitIds.includes(block.unit.id)
