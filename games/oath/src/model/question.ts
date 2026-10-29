@@ -715,11 +715,8 @@ export const PowerQuestion = Type.Union([
         cardId: Type.String(),
         /** Its ruler, never a Citizen ("Citizens cannot use this power"). */
         askedPlayerId: Type.String(),
-        /** R-3.3 — the end die as the Chancellor rolled it. */
-        roll: Type.Integer({ minimum: 1, maximum: 6 }),
-        round: Type.Integer({ minimum: 5, maximum: 7 }),
-        /** R-3.3.1 — the least roll that ends the game this round. */
-        threshold: Type.Integer({ minimum: 1, maximum: 6 })
+        /** R-3.3 — the end die as the Chancellor rolled it; the round and its threshold are the State's. */
+        roll: Type.Integer({ minimum: 1, maximum: 6 })
     })
 ])
 

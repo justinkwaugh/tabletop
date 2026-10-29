@@ -32,7 +32,6 @@ import {
     Suit
 } from '../model/oathEnums.js'
 import { BoardSide, OpeningChancellor, type ChronicleEntry } from '../model/chronicle.js'
-import { WinKind } from '../model/ending.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { mapSlotsFor, TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
@@ -784,7 +783,7 @@ describe('R-1.19 to R-1.22, read as written — a continued game’s setup reach
         const healed = (gameNumber: number): ChronicleEntry => ({
             ...own,
             gameNumber,
-            kind: WinKind.StableRegime,
+            rule: 'R-3.3',
             nextOath: OathType.Supremacy,
             added: { heal: { suit: own.added?.suits?.[0] ?? ('hearth' as never), count: 1 } }
         })

@@ -118,8 +118,8 @@
         }
     ],
     "activePlayerIds": [],
-    "actionCount": 4,
-    "actionChecksum": 381340940,
+    "actionCount": 10,
+    "actionChecksum": 950363571,
     "prng": {
         "seed": 1,
         "invocations": 0
@@ -358,9 +358,7 @@
     "chronicle": {
         "ending": {
             "winnerPlayerId": "dana",
-            "kind": "stableRegime",
             "rule": "R-3.3",
-            "mark": "O",
             "waysMet": {
                 "usurper": false,
                 "visionIds": [],
@@ -368,84 +366,6 @@
             }
         },
         "vowedOath": "thePeople",
-        "built": {
-            "edificeId": "edifice.order.sprawling-rampart",
-            "siteId": "slot.provinces.2",
-            "siteCardId": "site.mountain",
-            "repaired": false
-        },
-        "map": {
-            "kept": [
-                "site.fertile-valley",
-                "site.the-tribunal",
-                "site.steppe",
-                "site.mountain",
-                "site.lush-coast"
-            ],
-            "keptFor": {
-                "site.fertile-valley": "ruled",
-                "site.the-tribunal": "ruled",
-                "site.steppe": "edifice",
-                "site.mountain": "ruled",
-                "site.lush-coast": "ruled"
-            },
-            "discarded": ["site.great-slums", "site.deep-woods"],
-            "discardedFacedown": 1,
-            "denizensDiscarded": 3,
-            "ruins": [
-                {
-                    "edificeId": "edifice.nomad.ancient-forge",
-                    "siteCardId": "site.steppe",
-                    "denizensDiscarded": 1
-                }
-            ],
-            "moved": [
-                {
-                    "siteCardId": "site.mountain",
-                    "from": "slot.provinces.2",
-                    "to": "slot.provinces.0"
-                },
-                {
-                    "siteCardId": "site.lush-coast",
-                    "from": "slot.hinterland.2",
-                    "to": "slot.provinces.1"
-                },
-                {
-                    "siteCardId": "site.steppe",
-                    "from": "slot.provinces.0",
-                    "to": "slot.hinterland.2"
-                }
-            ],
-            "dealt": ["slot.provinces.2", "slot.hinterland.0", "slot.hinterland.1"],
-            "flipped": []
-        },
-        "suit": "hearth",
-        "added": {
-            "suits": ["hearth", "beast", "nomad"]
-        },
-        "dispossessed": 6,
-        "relics": {
-            "returned": [
-                {
-                    "playerId": "rhys",
-                    "count": 1
-                },
-                {
-                    "playerId": "ann",
-                    "count": 1
-                }
-            ],
-            "placed": [
-                {
-                    "slotId": "slot.provinces.0",
-                    "count": 1
-                }
-            ],
-            "stacked": {
-                "winner": 1,
-                "reliquary": 4
-            }
-        },
         "rebuilt": true
     },
     "ruinedEdificeIds": ["edifice.nomad.ancient-forge"],
@@ -455,8 +375,6 @@
             "sessionName": "Thursday table",
             "date": "2026-10-27",
             "startingOath": "supremacy",
-            "mark": "O",
-            "kind": "stableRegime",
             "rule": "R-3.3",
             "winner": {
                 "name": "Dana",

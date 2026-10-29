@@ -49,7 +49,9 @@ export function cleanUpRelics(state: HydratedOathGameState): ChronicleRelicsReco
         })
         if (slots.length === 0) continue
         state.relicsBySite[slotId] = [...held, ...slots]
-        placed.push({ slotId, count: slots.length })
+        const siteCardId = state.siteCardAt(slotId)
+        assertExists(siteCardId, `R-8.6.2 — ${slotId} is faceup`)
+        placed.push({ slotId, siteCardId, count: slots.length })
     }
 
     // 8.6.3

@@ -9,6 +9,12 @@ import {
     reasonCannotWriteChronicleStory
 } from '../util/chronicleChoices.js'
 
+export type WriteChronicleStoryMetadata = Type.Static<typeof WriteChronicleStoryMetadata>
+export const WriteChronicleStoryMetadata = Type.Object({
+    /** The game whose story it is: the record's entry it was written into. */
+    gameNumber: Type.Number()
+})
+
 /** The winner's story of the game: plain text, stored once in the record and never edited. */
 export type WriteChronicleStory = Type.Static<typeof WriteChronicleStory>
 export const WriteChronicleStory = Type.Evaluate(
@@ -17,7 +23,8 @@ export const WriteChronicleStory = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.WriteChronicleStory),
             playerId: Type.String(),
-            text: Type.String()
+            text: Type.String(),
+            metadata: Type.Optional(WriteChronicleStoryMetadata)
         })
     ])
 )
@@ -35,6 +42,7 @@ export class HydratedWriteChronicleStory
     declare type: ActionType.WriteChronicleStory
     declare playerId: string
     declare text: string
+    declare metadata?: WriteChronicleStoryMetadata
 
     constructor(data: WriteChronicleStory) {
         super(data, WriteChronicleStoryValidator)
@@ -46,6 +54,7 @@ export class HydratedWriteChronicleStory
         this.revealsInfo = false
         // Held until the record's entry, written in this same action, takes it.
         chronicleOf(state).story = normalizedStory(this.text)
+        this.metadata = { gameNumber: (state.chronicleRecord?.length ?? 0) + 1 }
     }
 
     static canDoWriteChronicleStory(state: HydratedOathGameState, playerId: string): boolean {

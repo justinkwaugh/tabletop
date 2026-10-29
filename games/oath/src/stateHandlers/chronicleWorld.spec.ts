@@ -8,6 +8,7 @@ import {
     captureGameContinuation,
     createGameFork,
     latestPlayerUndoTarget,
+    withoutActionPatches,
     type GameAction,
     type GameContinuation
 } from '@tabletop/common'
@@ -17,7 +18,7 @@ import { buildAction } from '../testing/actions.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { testGame } from '../testing/game.js'
 import { served, spectator } from '../testing/projection.js'
-import { wonTable } from '../testing/chronicle.js'
+import { wonTable, wonWithActions } from '../testing/chronicle.js'
 import { chronicleCensus, wholeWorld } from '../testing/chronicleWorld.js'
 import { favorCensus, warbandCensus } from '../testing/census.js'
 import { MachineState } from '../definition/states.js'
@@ -29,6 +30,9 @@ import { IMPERIAL_WARBANDS, type WarbandCounts } from '../model/warbandCounts.js
 import { ChronicleKeptFor, ChronicleStep, type TableRecord } from '../model/chronicle.js'
 import type { OathVault } from '../model/vault.js'
 import { WinKind } from '../model/ending.js'
+import { isChronicleMap } from '../actions/chronicleMap.js'
+import { isChronicleAddCards } from '../actions/chronicleAddCards.js'
+import { isChronicleRelics } from '../actions/chronicleRelics.js'
 import { allMapSlots, mapSlotsFor } from '../data/mapSlots.js'
 import { PRINTED_DENIZENS_BY_SUIT, kindOf } from '../data/cardRegistry.js'
 import { GRAND_SCEPTER_ID, OBSIDIAN_CAGE_ID } from '../data/relics.js'
@@ -573,6 +577,15 @@ const GAME_TWO_GIVEN: Partial<Record<ChronicleShuffle, string[][]>> = {
     ]
 }
 
+const CRADLE = Region.Cradle
+const PROV = Region.Provinces
+const HINT = Region.Hinterland
+
+/** R-8.3.5 — a move's record names each slot's region. */
+function ways(fromRegion: Region, toRegion: Region) {
+    return { fromRegion, toRegion }
+}
+
 /** Game 2's chronicle up to its build: Dana vows The People; nothing has been drawn yet. */
 function gameTwoAtTheBuild(): Played {
     return run(wonTable(gameTwoEnd(), CHANCELLOR_WINS), vow(DANA, OathType.ThePeople))
@@ -674,9 +687,9 @@ describe('the full boundary: game 2 of a chronicle to the world game 3 is dealt 
         // 8.3.5
         expect(fillSlots(state, [P1])).toEqual({
             moved: [
-                { siteCardId: site('mountain'), from: P3, to: P1 },
-                { siteCardId: site('lush-coast'), from: H3, to: P2 },
-                { siteCardId: site('steppe'), from: P1, to: H3 }
+                { siteCardId: site('mountain'), from: P3, to: P1, ...ways(PROV, PROV) },
+                { siteCardId: site('lush-coast'), from: H3, to: P2, ...ways(HINT, PROV) },
+                { siteCardId: site('steppe'), from: P1, to: H3, ...ways(PROV, HINT) }
             ],
             dealt: [P3, H1, H2],
             flipped: []
@@ -702,14 +715,21 @@ describe('the full boundary: game 2 of a chronicle to the world game 3 is dealt 
             at('charming-valley', false),
             at('steppe', true, [`${FORGE} (ruined)`], [relic('brass-horse')])
         ])
-        expect(final.chronicle?.map).toMatchObject({
+        expect(actions.find(isChronicleMap)?.metadata).toMatchObject({
+            winnerPlayerId: DANA,
             ruins: [{ edificeId: FORGE, siteCardId: site('steppe'), denizensDiscarded: 1 }],
             dealt: [P3, H1, H2],
             flipped: []
         })
+        // State keeps only the ruined edifice, for the entry.
+        expect(final.chronicle?.ruined).toEqual([FORGE])
+        expect(Object.keys(final.chronicle ?? {})).not.toContain('map')
         expect(archiveEdifices(final)).toEqual([FESTIVAL, GREAT_SPIRE, HALL, FOREST_TEMPLE])
         expect(final.chronicle?.returnedDenizenId).toBe(den('order.toll-roads'))
-        expect(actions[0].revealsInfo).toBe(true)
+        expect(actions.map((action) => [action.type, action.revealsInfo])).toEqual([
+            [ActionType.BuildOrRepairEdifice, false],
+            [ActionType.ChronicleMap, true]
+        ])
         expect(latestPlayerUndoTarget(actions, DANA)).toBeUndefined()
     })
 
@@ -718,7 +738,13 @@ describe('the full boundary: game 2 of a chronicle to the world game 3 is dealt 
         const built = run(gameTwoAtTheBuild().final, BUILD_AT_MOUNTAIN).final
         const { final, actions } = run(built, suit(DANA, Suit.Hearth))
         const vault = vaultOf(final)
-        expect(actions[0].revealsInfo).toBe(true)
+        expect(actions.map((action) => [action.type, action.revealsInfo])).toEqual([
+            [ActionType.ChooseChronicleSuit, false],
+            [ActionType.ChronicleAddCards, true],
+            [ActionType.ChronicleDispossess, true],
+            [ActionType.ChronicleRelics, true],
+            [ActionType.ChronicleRebuild, true]
+        ])
         expect(final.chronicle?.step).toBe(ChronicleStep.Story)
 
         // 8.4
@@ -784,14 +810,16 @@ describe('the full boundary: game 2 of a chronicle to the world game 3 is dealt 
         expect(final.dispossessedCount).toBe(12)
         // 8.6
         expect(final.boxIds).toEqual([GRAND_SCEPTER_ID])
-        expect(final.chronicle?.relics).toEqual({
+        expect(actions.find(isChronicleRelics)?.metadata).toEqual({
+            winnerPlayerId: DANA,
             returned: [
                 { playerId: RHYS, count: 1 },
                 { playerId: ANN, count: 1 }
             ],
-            placed: [{ slotId: P1, count: 1 }],
+            placed: [{ slotId: P1, siteCardId: site('mountain'), count: 1 }],
             stacked: { winner: 1, reliquary: 4 }
         })
+        expect(Object.keys(final.chronicle ?? {})).not.toContain('relics')
         expect(stack(final).map((slot) => slot.relics)).toEqual([
             [],
             [relic('oracular-pig')],
@@ -864,8 +892,6 @@ describe('the full boundary: game 2 of a chronicle to the world game 3 is dealt 
             sessionName: 'Thursday table',
             date: '2026-10-27',
             startingOath: OathType.Supremacy,
-            mark: 'O',
-            kind: WinKind.StableRegime,
             rule: 'R-3.3',
             winner: { name: 'Dana', color: Color.Purple },
             nextOath: OathType.ThePeople,
@@ -905,16 +931,21 @@ describe('the full boundary: game 2 of a chronicle to the world game 3 is dealt 
             suit(DANA, Suit.Hearth),
             skip(DANA)
         ]
-        const { final, actions } = run(wonTable(gameTwoEnd(), CHANCELLOR_WINS), ...steps)
+        const won = wonWithActions(gameTwoEnd(), CHANCELLOR_WINS)
+        const played = run(won.final, ...steps)
+        const final = played.final
+        const actions = [...won.actions, ...played.actions]
         const game = testGame([DANA, RHYS, ANN], { status: GameStatus.Finished })
         expect(() => captureGameContinuation(game, final, Definition as never)).not.toThrow()
 
-        // Forked at the win: the fork's chronicle waits on the Vow, and it has no result.
+        // Forked at the win, after the System Action that starts the Chronicle: the fork's
+        // chronicle waits on the Vow, and it has no result.
+        expect(won.actions.map((action) => action.type)).toEqual([ActionType.ChronicleStart])
         const fork = createGameFork({
             game,
             state: final,
             actions,
-            actionIndex: -1,
+            actionIndex: 0,
             runtime: OathRuntime
         })
         expect(() => captureGameContinuation(fork.game, fork.state, Definition as never)).toThrow(
@@ -951,8 +982,10 @@ describe('hidden information through the steps (R-9.4)', () => {
 
     it('no seat and no spectator is served a facedown site, a relic drawn or a card dispossessed; the counts are public', () => {
         given(GAME_TWO_GIVEN)
-        const built = run(gameTwoAtTheBuild().final, BUILD_AT_MOUNTAIN).final
-        const ended = run(built, suit(DANA, Suit.Hearth)).final
+        const building = run(gameTwoAtTheBuild().final, BUILD_AT_MOUNTAIN)
+        const built = building.final
+        const suited = run(built, suit(DANA, Suit.Hearth))
+        const ended = suited.final
         const dealt = ['buried-giant', 'river', 'charming-valley'].map(site)
         const hiddenAt: [OathProjectedState, string[]][] = [
             [built, dealt],
@@ -974,15 +1007,27 @@ describe('hidden information through the steps (R-9.4)', () => {
                 expect(hidden.filter((cardId) => json.includes(`"${cardId}"`))).toEqual([])
                 // The public result is the same on every view.
                 expect(view.chronicle).toEqual(state.chronicle)
-                // Why each site was kept is public, by its faceup card, on every view.
-                expect(Object.keys(view.chronicle?.map?.keptFor ?? {})).toEqual(
-                    state.chronicle?.map?.kept ?? []
-                )
                 expect(view.siteCards).toEqual(state.siteCards)
                 expect(view.relicsBySite).toEqual(state.relicsBySite)
                 expect(view.chronicle?.healTie).toBeUndefined()
             }
         }
+        // Each step's System Action is served whole to every view, and names no hidden card.
+        const [, hiddenAtTheEnd] = hiddenAt[1]
+        const steps = [...building.actions, ...suited.actions]
+        const visibility = OathRuntime.visibility
+        assertExists(visibility, 'Oath registers its visibility')
+        for (const perspective of PERSPECTIVES) {
+            for (const action of steps) {
+                const projected = visibility.actions.project(action, perspective, { config: {} })
+                expect(projected).toEqual(withoutActionPatches(action))
+                const json = JSON.stringify(projected)
+                expect(hiddenAtTheEnd.filter((cardId) => json.includes(`"${cardId}"`))).toEqual([])
+            }
+        }
+        // Why each site was kept is public, by its faceup card.
+        const map = steps.find(isChronicleMap)?.metadata
+        expect(Object.keys(map?.keptFor ?? {})).toEqual(map?.kept)
         const view = served(ended, spectator)
         expect(view.dispossessedCount).toBe(12)
         expect(view.discardPileCounts).toEqual({
@@ -1162,12 +1207,12 @@ describe('R-8.3.5 — a Chancellor winner keeps six sites: steps 1, 2, 3, 4 and 
         clearMap(state)
         expect(fillSlots(state, [C2])).toEqual({
             moved: [
-                { siteCardId: site('fertile-valley'), from: P1, to: C2 },
-                { siteCardId: site('steppe'), from: P2, to: P1 },
-                { siteCardId: site('great-slums'), from: P3, to: P2 },
-                { siteCardId: site('charming-valley'), from: H1, to: P3 },
-                { siteCardId: site('lush-coast'), from: H2, to: H1 },
-                { siteCardId: site('mountain'), from: C2, to: H3 }
+                { siteCardId: site('fertile-valley'), from: P1, to: C2, ...ways(PROV, CRADLE) },
+                { siteCardId: site('steppe'), from: P2, to: P1, ...ways(PROV, PROV) },
+                { siteCardId: site('great-slums'), from: P3, to: P2, ...ways(PROV, PROV) },
+                { siteCardId: site('charming-valley'), from: H1, to: P3, ...ways(HINT, PROV) },
+                { siteCardId: site('lush-coast'), from: H2, to: H1, ...ways(HINT, HINT) },
+                { siteCardId: site('mountain'), from: C2, to: H3, ...ways(CRADLE, HINT) }
             ],
             dealt: [H2],
             flipped: []
@@ -1295,9 +1340,9 @@ describe('R-8.3.5 — an Exile winner who rules only a ruin: steps 4, 5, 6 and 7
         clearMap(state)
         expect(fillSlots(state, [C1, P1, P3, H3])).toEqual({
             moved: [
-                { siteCardId: site('ancient-city'), from: C1, to: P3 },
-                { siteCardId: site('standing-stones'), from: P1, to: H1 },
-                { siteCardId: site('wastes'), from: P3, to: H2 }
+                { siteCardId: site('ancient-city'), from: C1, to: P3, ...ways(CRADLE, PROV) },
+                { siteCardId: site('standing-stones'), from: P1, to: H1, ...ways(PROV, HINT) },
+                { siteCardId: site('wastes'), from: P3, to: H2, ...ways(PROV, HINT) }
             ],
             dealt: [C1, C2, P1, P2],
             flipped: [{ slotId: C1, siteCardId: site('mine') }]
@@ -1307,7 +1352,7 @@ describe('R-8.3.5 — an Exile winner who rules only a ruin: steps 4, 5, 6 and 7
     it('the stack as saved: the Mine flipped with no reveal prompt, then given the Cracked Horn', () => {
         given(GIVEN)
         const { final, actions } = offered()
-        expect(actions[0].revealsInfo).toBe(true)
+        expect(actions[1]).toMatchObject({ type: ActionType.ChronicleMap, revealsInfo: true })
         expect(final.chronicle?.step).toBe(ChronicleStep.Story)
         expect(stack(final)).toEqual([
             at('mine', true, [], [relic('cracked-horn')]),
@@ -1326,7 +1371,9 @@ describe('R-8.3.5 — an Exile winner who rules only a ruin: steps 4, 5, 6 and 7
         ])
         // R-8.3.5-H1 — no favor or secret at the flip.
         expect(final.cardTokens[site('mine')]).toBeUndefined()
-        expect(final.chronicle?.relics?.placed).toEqual([{ slotId: C1, count: 1 }])
+        expect(actions.find(isChronicleRelics)?.metadata?.placed).toEqual([
+            { slotId: C1, siteCardId: site('mine'), count: 1 }
+        ])
         expect(archiveEdifices(final)).toEqual([FOREST_TEMPLE, FORGE])
         expect(chronicleCensus(hydrated(final))).toEqual([])
     })
@@ -1468,7 +1515,18 @@ function ninthBoundary(): HydratedOathGameState {
 describe('R-8.4.a — the Archive cannot give the 3/2/1: heal it instead', () => {
     function tied() {
         const vowed = run(wonTable(ninthBoundary(), CHANCELLOR_WINS), vow(DANA, OathType.ThePeople))
-        expect(vowed.actions[0].revealsInfo).toBe(true)
+        expect(vowed.actions.map((action) => [action.type, action.revealsInfo])).toEqual([
+            [ActionType.ChooseOath, false],
+            [ActionType.ChronicleMap, true],
+            [ActionType.ChronicleSettleSuit, false],
+            [ActionType.ChronicleAddCards, true]
+        ])
+        // The tie is the System Action's record; the State keeps it while the winner chooses.
+        expect(vowed.actions.find(isChronicleAddCards)?.metadata).toEqual({
+            suit: Suit.Arcane,
+            chosen: false,
+            healTie: { suits: [Suit.Arcane, Suit.Order], count: 12 }
+        })
         return vowed.final
     }
 
@@ -1499,7 +1557,19 @@ describe('R-8.4.a — the Archive cannot give the 3/2/1: heal it instead', () =>
             ]
         })
         const { final, actions } = run(tied(), heal(DANA, Suit.Arcane))
-        expect(actions[0].revealsInfo).toBe(true)
+        // The choice records what it adds; the draw is the System Action after it.
+        expect(actions.slice(0, 2)).toMatchObject([
+            {
+                type: ActionType.ChooseHealStack,
+                revealsInfo: false,
+                metadata: { added: { heal: { suit: Suit.Arcane, count: 6 } } }
+            },
+            {
+                type: ActionType.ChronicleHeal,
+                revealsInfo: true,
+                metadata: { added: { heal: { suit: Suit.Arcane, count: 6 } } }
+            }
+        ])
         expect(final.chronicle?.added).toEqual({ heal: { suit: Suit.Arcane, count: 6 } })
         expect(archiveBySuit(hydrated(final))[Suit.Arcane].sort()).toEqual(
             [
@@ -1647,11 +1717,11 @@ describe('R-8.6.1-H1 — the Grand Scepter goes to the box wherever it is', () =
             run(wonTable(scepterAt('site'), CHANCELLOR_WINS), vow(DANA, OathType.ThePeople)).final,
             BUILD_AT_MOUNTAIN
         ).final
-        const final = run(built, suit(DANA, Suit.Hearth)).final
+        const { final, actions } = run(built, suit(DANA, Suit.Hearth))
         expect(final.relicsBySite[C2]).toEqual([{ slotId: `${C2}.relic.0` }])
-        expect(final.chronicle?.relics?.placed).toEqual([
-            { slotId: C2, count: 1 },
-            { slotId: P1, count: 1 }
+        expect(actions.find(isChronicleRelics)?.metadata?.placed).toEqual([
+            { slotId: C2, siteCardId: final.siteCards[C2], count: 1 },
+            { slotId: P1, siteCardId: final.siteCards[P1], count: 1 }
         ])
     })
 })

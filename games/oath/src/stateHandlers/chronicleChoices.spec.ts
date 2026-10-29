@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+    ActionSource,
     Color,
     GameResult,
     RecordedHistory,
@@ -20,7 +21,7 @@ import {
     SPRAWLING_RAMPART,
     GREAT_SPIRE
 } from '../testing/edifices.js'
-import { wonTable } from '../testing/chronicle.js'
+import { wonTable, wonWithActions } from '../testing/chronicle.js'
 import { chronicleCensus, wholeWorld } from '../testing/chronicleWorld.js'
 import { PRINTED_DENIZENS_BY_SUIT } from '../data/cardRegistry.js'
 import { MachineState } from '../definition/states.js'
@@ -41,7 +42,8 @@ import {
 import { BuildOrRepairEdifice, isBuildOrRepairEdifice } from '../actions/buildOrRepairEdifice.js'
 import { ChooseChronicleSuit, isChooseChronicleSuit } from '../actions/chooseChronicleSuit.js'
 import { ChooseHealStack } from '../actions/chooseHealStack.js'
-import { WriteChronicleStory } from '../actions/writeChronicleStory.js'
+import { WriteChronicleStory, isWriteChronicleStory } from '../actions/writeChronicleStory.js'
+import { isChronicleFlipCitizens } from '../actions/chronicleFlipCitizens.js'
 import { SkipChronicleStory } from '../actions/skipChronicleStory.js'
 import { ResolveWake } from '../actions/resolveWake.js'
 import {
@@ -59,10 +61,11 @@ const DANA = 'dana'
 const RHYS = 'rhys'
 const ANN = 'ann'
 const BEA = 'bea'
+const CY = 'cy'
 const TABLE: TableRecord = {
     name: 'Thursday table',
     date: '2026-10-22',
-    seatNames: { dana: 'Dana', rhys: 'Rhys', ann: 'Ann', bea: 'Bea' }
+    seatNames: { dana: 'Dana', rhys: 'Rhys', ann: 'Ann', bea: 'Bea', cy: 'Cy' }
 }
 
 const PLAINS = 'c1'
@@ -153,7 +156,8 @@ function gameOne(
                 advisers: [facedown(GREAT_HERD)],
                 ...over[ANN]
             }),
-            ...(over[BEA] ? [seat(BEA, Color.Yellow, PlayerStatus.Exile, over[BEA])] : [])
+            ...(over[BEA] ? [seat(BEA, Color.Yellow, PlayerStatus.Exile, over[BEA])] : []),
+            ...(over[CY] ? [seat(CY, Color.White, PlayerStatus.Exile, over[CY])] : [])
         ],
         {
             oathType: OathType.Supremacy,
@@ -325,7 +329,6 @@ describe('R-8.1 — the Vow', () => {
     it('the winner vows: the chronicle and the record keep the next Oath, and this game’s stays', () => {
         const { final } = run(wonTable(gameOne(), USURPER), vow(DANA, OathType.Protection))
         expect(final.chronicle?.vowedOath).toBe(OathType.Protection)
-        expect(final.chronicle?.vowedByVisionId).toBeUndefined()
         expect(final.oathType).toBe(OathType.Supremacy)
         expect(final.chronicle?.step).toBe(ChronicleStep.Citizenship)
     })
@@ -363,15 +366,40 @@ describe('R-8.1 — the Vow', () => {
         }
 
         it('does not stop: the Oath is Faith’s, Devotion, even though it is this game’s', () => {
-            const won = wonTable(faithAlone(), VISIONARY)
+            const { final: won, actions } = wonWithActions(faithAlone(), VISIONARY)
             expect(won.chronicle?.ending.waysMet).toEqual({
                 usurper: false,
                 visionIds: [FAITH],
                 empire: false
             })
             expect(won.chronicle?.vowedOath).toBe(OathType.Devotion)
-            expect(won.chronicle?.vowedByVisionId).toBe(FAITH)
+            // The Vision that vowed it is the System Action's record, not the State's.
+            expect(
+                actions.find((action) => action.type === ActionType.ChronicleForcedVow)
+            ).toMatchObject({
+                source: ActionSource.System,
+                revealsInfo: false,
+                metadata: { winnerPlayerId: DANA, oathType: OathType.Devotion, visionId: FAITH }
+            })
+            expect(Object.keys(won.chronicle ?? {})).not.toContain('vowedByVisionId')
             expect(won.chronicle?.step).toBe(ChronicleStep.Citizenship)
+        })
+
+        it('while its System Action is due, the winner is offered nothing and a chosen Oath is refused', () => {
+            const state = hydrated(wonTable(faithAlone(), VISIONARY))
+            const chronicle = state.chronicle
+            assertExists(chronicle, 'the win stored its ending')
+            chronicle.step = ChronicleStep.Vow
+            delete chronicle.vowedOath
+            const handler = OathStateHandlers[MachineState.Chronicle]
+            const context = machineContext(state)
+            expect(handler.validActionsForPlayer(DANA, context)).toEqual([])
+            expect(() =>
+                handler.isValidAction(
+                    new OathHydrator().hydrateAction(vow(DANA, OathType.Protection)),
+                    context
+                )
+            ).toThrow('R-8 — the rules settle this step of the chronicle alone')
         })
 
         it('records the Vision’s Oath as the next one', () => {
@@ -410,11 +438,16 @@ describe('R-8.2 — Citizenship, an Exile winner only', () => {
     it('flips every Citizen board to Exile first, the box’s too; those just flipped are not offered', () => {
         const table = gameOne({ [BEA]: { status: PlayerStatus.Citizen } })
         table.boxedCitizenColors = [Color.White]
-        const offering = vowed(table)
+        const { final: offering, actions } = run(
+            wonTable(table, USURPER),
+            vow(DANA, OathType.Protection)
+        )
         expect(offering.players.find((player) => player.playerId === BEA)?.status).toBe(
             PlayerStatus.Exile
         )
-        expect(offering.chronicle?.citizenship).toEqual({
+        // State keeps who may not be offered; the boxed boards' colours are the flip's record.
+        expect(offering.chronicle?.citizenship).toEqual({ flippedPlayerIds: [BEA] })
+        expect(actions.find(isChronicleFlipCitizens)?.metadata).toEqual({
             flippedPlayerIds: [BEA],
             flippedBoxColors: [Color.White]
         })
@@ -462,7 +495,9 @@ describe('R-8.2 — Citizenship, an Exile winner only', () => {
         expect(final.warbandsBySite[RIVER]).toEqual({ [IMPERIAL_WARBANDS]: 3 })
         expect(final.warbandsBySite[WASTES]).toBeUndefined()
         expect(actions.find(isAnswerChronicleCitizenship)?.metadata).toEqual({
-            siteIds: [ANCIENT_CITY, STEPPE]
+            siteIds: [ANCIENT_CITY, STEPPE],
+            siteCardIds: [SITES[ANCIENT_CITY], SITES[STEPPE]],
+            winnerPlayerId: DANA
         })
     })
 
@@ -471,7 +506,9 @@ describe('R-8.2 — Citizenship, an Exile winner only', () => {
         const { final, actions } = run(offered, answer(ANN, true))
         // Wastes and Mountain hold no warbands, so the Crown's bandits serve Ann there (R-7.6.5-H1).
         expect(actions.find(isAnswerChronicleCitizenship)?.metadata).toEqual({
-            siteIds: [ANCIENT_CITY, STEPPE, WASTES, MOUNTAIN]
+            siteIds: [ANCIENT_CITY, STEPPE, WASTES, MOUNTAIN],
+            siteCardIds: [SITES[ANCIENT_CITY], SITES[STEPPE], SITES[WASTES], SITES[MOUNTAIN]],
+            winnerPlayerId: DANA
         })
         expect(final.warbandsBySite[WASTES]).toEqual({ [DANA]: 1 })
         expect(final.warbandsBySite[MOUNTAIN]).toEqual({ [DANA]: 1 })
@@ -533,7 +570,7 @@ describe('R-8.2 — Citizenship, an Exile winner only', () => {
             { oathkeeperPlayerId: DANA, oathkeeperIsUsurper: true }
         )
         const { final } = run(wonTable(table, USURPER), vow(DANA, OathType.Protection))
-        expect(final.chronicle?.citizenship).toEqual({ flippedPlayerIds: [], flippedBoxColors: [] })
+        expect(final.chronicle?.citizenship).toEqual({ flippedPlayerIds: [] })
         expect(final.chronicle?.step).toBe(ChronicleStep.Suit)
     })
 
@@ -598,11 +635,15 @@ describe('R-8.3.1 — build or repair, a Chancellor or Citizen winner only', () 
         })
         expect(actions.find(isBuildOrRepairEdifice)?.metadata).toEqual({
             edificeId: SPRAWLING_RAMPART,
+            siteCardId: 'site.plains',
             repaired: false,
             returnedDenizenId: LONGBOWS
         })
-        // R-8.3.2 to R-8.3.5 run inside the build's action, and they draw (R-X.3).
-        expect(actions[0].revealsInfo).toBe(true)
+        // R-8.3.2 to R-8.3.5 run as the System Action after the build, and they draw (R-X.3).
+        expect(actions.map((action) => [action.type, action.revealsInfo]).slice(0, 2)).toEqual([
+            [ActionType.BuildOrRepairEdifice, false],
+            [ActionType.ChronicleMap, true]
+        ])
         const ended = run(final, suit(ANN, Suit.Order), skip(ANN)).final
         expect(ended.chronicleRecord?.at(-1)?.built).toEqual({
             edificeId: SPRAWLING_RAMPART,
@@ -733,8 +774,20 @@ describe('R-8.4 — the suit', () => {
         )
         const { final, actions } = run(state, suit(ANN, Suit.Order))
         expect(final.chronicle?.suit).toBe(Suit.Order)
+        // The choice's record says what it adds; the System Action after it draws them.
         expect(actions.find(isChooseChronicleSuit)?.metadata).toEqual({
-            tiedSuits: [Suit.Order, Suit.Hearth]
+            tiedSuits: [Suit.Order, Suit.Hearth],
+            added: { suits: [Suit.Order, Suit.Hearth, Suit.Beast] }
+        })
+        expect(
+            actions.find((action) => action.type === ActionType.ChronicleAddCards)
+        ).toMatchObject({
+            revealsInfo: true,
+            metadata: {
+                suit: Suit.Order,
+                chosen: true,
+                added: { suits: [Suit.Order, Suit.Hearth, Suit.Beast] }
+            }
         })
     })
 
@@ -853,7 +906,8 @@ describe('the story, the last step', () => {
         )
         expect(final.chronicleRecord?.at(-1)?.story).toBe('The Usurper held.\nNo one else did.')
         expect(final.chronicle && Object.keys(final.chronicle)).not.toContain('story')
-        expect(Object.keys(actions[0])).not.toContain('metadata')
+        // The row names the game from the action's own record.
+        expect(actions.find(isWriteChronicleStory)?.metadata).toEqual({ gameNumber: 1 })
         expect(final.result).toBe(GameResult.Win)
         expect(final.canContinue).toBe(true)
         expect(reasonCannotWriteChronicleStory(hydrated(final), DANA, 'Again.')).toBe(
@@ -901,15 +955,17 @@ describe('two games of a chronicle', () => {
             answer(ANN, true),
             story(DANA, 'Dana held the Plains to the end.')
         )
-        expect(final.chronicle?.suit).toBe(Suit.Beast)
+        expect(Object.keys(final.chronicle ?? {}).sort()).toEqual([
+            'ending',
+            'rebuilt',
+            'vowedOath'
+        ])
         expect(final.chronicleRecord).toEqual([
             {
                 gameNumber: 1,
                 sessionName: 'Thursday table',
                 date: '2026-10-22',
                 startingOath: OathType.Supremacy,
-                mark: 'O',
-                kind: WinKind.Usurper,
                 rule: 'R-3.1',
                 winner: { name: 'Dana', color: Color.Red },
                 nextOath: OathType.Protection,
@@ -929,14 +985,16 @@ describe('two games of a chronicle', () => {
             suit(ANN, Suit.Order),
             skip(ANN)
         )
-        expect(final.chronicle?.suit).toBe(Suit.Order)
+        expect(Object.keys(final.chronicle ?? {}).sort()).toEqual([
+            'ending',
+            'rebuilt',
+            'vowedOath'
+        ])
         expect(final.chronicleRecord?.at(-1)).toEqual({
             gameNumber: 1,
             sessionName: 'Thursday table',
             date: '2026-10-22',
             startingOath: OathType.Protection,
-            mark: 'S',
-            kind: WinKind.Successor,
             rule: 'R-3.3.1',
             winner: { name: 'Ann', color: Color.Blue },
             nextOath: OathType.Devotion,
@@ -978,9 +1036,9 @@ describe('two games of a chronicle', () => {
         )
         expect(mountainNow).toBe(PLAINS)
         expect(final.denizensBySite[PLAINS]).toEqual([SPRAWLING_RAMPART])
-        expect(final.chronicle?.suit).toBe(Suit.Hearth)
         expect(final.chronicleRecord?.at(-1)).toMatchObject({
             nextOath: OathType.ThePeople,
+            added: { suits: [Suit.Hearth, Suit.Beast, Suit.Nomad] },
             built: { edificeId: SPRAWLING_RAMPART, siteId: MOUNTAIN, repaired: false }
         })
     })
@@ -1024,17 +1082,28 @@ describe('R-X.3 — a choice that reveals nothing is its chooser’s to undo, un
         const all = [...offered.actions, ...answered.actions]
         expect(latestPlayerUndoTarget(all, DANA)).toBeUndefined()
         undoTarget(all, ANN, ActionType.AnswerChronicleCitizenship)
-        // The last answer runs R-8.3.2's shuffle and the steps after it: no one undoes past it.
+        // The last answer is followed by R-8.3.2's shuffle and the steps after it, each a System
+        // Action: no one undoes past them.
         const last = run(answered.final, answer(BEA, false))
-        expect(last.actions[0].revealsInfo).toBe(true)
+        expect(last.actions.map((action) => [action.type, action.revealsInfo]).slice(0, 2)).toEqual(
+            [
+                [ActionType.AnswerChronicleCitizenship, false],
+                [ActionType.ChronicleMap, true]
+            ]
+        )
         expect(latestPlayerUndoTarget([...all, ...last.actions], BEA)).toBeUndefined()
         expect(latestPlayerUndoTarget([...all, ...last.actions], ANN)).toBeUndefined()
     })
 
-    it('a build runs the map step with it, which draws: no undo', () => {
+    it('a build is followed by the map step, which draws: no undo', () => {
         const building = run(wonTable(gameTwo(), SUCCESSOR), vow(ANN, OathType.Devotion)).final
         const played = run(building, build(ANN, { siteId: PLAINS, cardId: LONGBOWS }))
-        expect(played.actions[0].revealsInfo).toBe(true)
+        expect(played.actions[0].revealsInfo).toBe(false)
+        expect(played.actions[1]).toMatchObject({
+            type: ActionType.ChronicleMap,
+            source: ActionSource.System,
+            revealsInfo: true
+        })
         expect(latestPlayerUndoTarget(played.actions, ANN)).toBeUndefined()
     })
 
@@ -1052,5 +1121,80 @@ describe('R-X.3 — a choice that reveals nothing is its chooser’s to undo, un
         expect(before.machineState).toBe(MachineState.WakePhase)
         expect(before.winningPlayerIds).toEqual([])
         expect(Object.keys(before)).not.toContain('chronicle')
+    })
+})
+
+describe('R-8 — what the rules settle alone runs as System Actions after the action that reaches it', () => {
+    it('the flip, the map, the settled suit, the six, the Dispossessed, the relics and the rebuild: each its own System Action', () => {
+        const table = gameOne({ [BEA]: { status: PlayerStatus.Citizen } })
+        const vowed = run(wonTable(table, USURPER), vow(DANA, OathType.Protection))
+        const offered = run(vowed.final, offer([]))
+        const record = (action: GameAction) => [action.type, action.source, action.revealsInfo]
+        expect(vowed.actions.map(record)).toEqual([
+            [ActionType.ChooseOath, ActionSource.User, false],
+            [ActionType.ChronicleFlipCitizens, ActionSource.System, false]
+        ])
+        expect(offered.actions.map(record)).toEqual([
+            [ActionType.OfferChronicleCitizenship, ActionSource.User, false],
+            [ActionType.ChronicleMap, ActionSource.System, true],
+            [ActionType.ChronicleSettleSuit, ActionSource.System, false],
+            [ActionType.ChronicleAddCards, ActionSource.System, true],
+            [ActionType.ChronicleDispossess, ActionSource.System, true],
+            [ActionType.ChronicleRelics, ActionSource.System, true],
+            [ActionType.ChronicleRebuild, ActionSource.System, true]
+        ])
+        expect(offered.final.chronicle?.step).toBe(ChronicleStep.Story)
+        expect(offered.final.activePlayerIds).toEqual([DANA])
+    })
+
+    it('each records what the table saw in its metadata', () => {
+        const table = gameOne({ [BEA]: { status: PlayerStatus.Citizen } })
+        table.boxedCitizenColors = [Color.Black]
+        const vowed = run(wonTable(table, USURPER), vow(DANA, OathType.Protection))
+        const offered = run(vowed.final, offer([]))
+        const of = (type: ActionType) => {
+            const found = [...vowed.actions, ...offered.actions].find(
+                (action) => action.type === type
+            )
+            return found && 'metadata' in found ? found.metadata : undefined
+        }
+        expect(of(ActionType.ChronicleFlipCitizens)).toEqual({
+            flippedPlayerIds: [BEA],
+            flippedBoxColors: [Color.Black]
+        })
+        expect(of(ActionType.ChronicleMap)).toMatchObject({ winnerPlayerId: DANA })
+        expect(of(ActionType.ChronicleSettleSuit)).toEqual({ suit: Suit.Beast })
+        expect(of(ActionType.ChronicleAddCards)).toMatchObject({
+            suit: Suit.Beast,
+            chosen: false,
+            added: { suits: [Suit.Beast, Suit.Nomad, Suit.Discord] }
+        })
+        expect(of(ActionType.ChronicleDispossess)).toEqual({ count: 3 })
+        expect(of(ActionType.ChronicleRelics)).toMatchObject({ winnerPlayerId: DANA })
+        expect(of(ActionType.ChronicleRebuild)).toEqual({ visions: 5 })
+    })
+
+    it('the State keeps only what a rule still reads, and once the entry is written only the ending, the Oath vowed and the rebuild', () => {
+        const table = gameOne({ [BEA]: { status: PlayerStatus.Citizen } })
+        const offered = run(
+            run(wonTable(table, USURPER), vow(DANA, OathType.Protection)).final,
+            offer([])
+        ).final
+        const chronicle = offered.chronicle
+        assertExists(chronicle)
+        expect(Object.keys(chronicle)).not.toContain('map')
+        expect(Object.keys(chronicle)).not.toContain('relics')
+        expect(chronicle.citizenship).toEqual({ flippedPlayerIds: [BEA], offers: [] })
+        const written = run(offered, skip(DANA)).final
+        expect(Object.keys(written.chronicle ?? {}).sort()).toEqual([
+            'ending',
+            'rebuilt',
+            'vowedOath'
+        ])
+        expect(Object.keys(written.chronicle?.ending ?? {}).sort()).toEqual([
+            'rule',
+            'waysMet',
+            'winnerPlayerId'
+        ])
     })
 })

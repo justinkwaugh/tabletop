@@ -282,9 +282,7 @@ describe('Squalid District — its ruler may raise or lower the end die by one, 
                 kind: PowerQuestionKind.AdjustEndDie,
                 cardId: FESTIVAL_DISTRICT,
                 askedPlayerId: RHYS,
-                roll: 5,
-                round: 6,
-                threshold: 5
+                roll: 5
             }
         ])
         expect(engine.getValidActionTypesForPlayer(game, state, DANA)).toEqual([])

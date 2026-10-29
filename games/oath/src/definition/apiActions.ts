@@ -44,6 +44,16 @@ import { ChooseChronicleSuit } from '../actions/chooseChronicleSuit.js'
 import { ChooseHealStack } from '../actions/chooseHealStack.js'
 import { WriteChronicleStory } from '../actions/writeChronicleStory.js'
 import { SkipChronicleStory } from '../actions/skipChronicleStory.js'
+import { ChronicleStart } from '../actions/chronicleStart.js'
+import { ChronicleForcedVow } from '../actions/chronicleForcedVow.js'
+import { ChronicleFlipCitizens } from '../actions/chronicleFlipCitizens.js'
+import { ChronicleMap } from '../actions/chronicleMap.js'
+import { ChronicleSettleSuit } from '../actions/chronicleSettleSuit.js'
+import { ChronicleAddCards } from '../actions/chronicleAddCards.js'
+import { ChronicleHeal } from '../actions/chronicleHeal.js'
+import { ChronicleDispossess } from '../actions/chronicleDispossess.js'
+import { ChronicleRelics } from '../actions/chronicleRelics.js'
+import { ChronicleRebuild } from '../actions/chronicleRebuild.js'
 
 // The backend generates a validated endpoint for each entry.
 export const OathApiActions = {
@@ -92,5 +102,15 @@ export const OathApiActions = {
     [ActionType.ChooseChronicleSuit]: ChooseChronicleSuit,
     [ActionType.ChooseHealStack]: ChooseHealStack,
     [ActionType.WriteChronicleStory]: WriteChronicleStory,
-    [ActionType.SkipChronicleStory]: SkipChronicleStory
+    [ActionType.SkipChronicleStory]: SkipChronicleStory,
+    [ActionType.ChronicleStart]: ChronicleStart,
+    [ActionType.ChronicleForcedVow]: ChronicleForcedVow,
+    [ActionType.ChronicleFlipCitizens]: ChronicleFlipCitizens,
+    [ActionType.ChronicleMap]: ChronicleMap,
+    [ActionType.ChronicleSettleSuit]: ChronicleSettleSuit,
+    [ActionType.ChronicleAddCards]: ChronicleAddCards,
+    [ActionType.ChronicleHeal]: ChronicleHeal,
+    [ActionType.ChronicleDispossess]: ChronicleDispossess,
+    [ActionType.ChronicleRelics]: ChronicleRelics,
+    [ActionType.ChronicleRebuild]: ChronicleRebuild
 }

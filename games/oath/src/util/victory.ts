@@ -14,7 +14,7 @@ import { WinKind, type WinRule } from '../model/ending.js'
 
 /** R-3 — pure: R-3.3's die is rolled by the caller in `apply()` from the protected stream. */
 
-export { WinKind, WIN_RULES, type WinRule } from '../model/ending.js'
+export { WIN_KIND_OF_RULE, WinKind, WIN_RULES, type WinRule } from '../model/ending.js'
 
 export interface GameOutcome {
     winnerPlayerId: string

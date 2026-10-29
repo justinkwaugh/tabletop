@@ -23,8 +23,13 @@ import { Banner, OathType, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import type { OathPlayerState } from '../model/playerState.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
-import { ChronicleMark, ChronicleStep, type TableRecord } from '../model/chronicle.js'
-import { WinKind } from '../model/ending.js'
+import {
+    ChronicleMark,
+    ChronicleStep,
+    chronicleMarkOf,
+    type TableRecord
+} from '../model/chronicle.js'
+import { WIN_KIND_OF_RULE, WinKind } from '../model/ending.js'
 import { ResolveWake } from '../actions/resolveWake.js'
 import { EndActPhase } from '../actions/endActPhase.js'
 import { FINAL_ROUND } from '../actions/completeRest.js'
@@ -218,13 +223,6 @@ function stringsIn(value: unknown): string[] {
     return []
 }
 
-/** A choice not yet built, made to wait on its choosers as a built one will. */
-function waitAt(step: ChronicleStep) {
-    const rule = CHRONICLE_STEPS.find((candidate) => candidate.step === step)
-    if (rule?.kind !== 'choice') throw Error(`${step} is not a choice`)
-    return vi.spyOn(rule, 'applies').mockReturnValue(true)
-}
-
 afterEach(() => {
     vi.restoreAllMocks()
 })
@@ -252,12 +250,19 @@ describe('R-8 — at the chronicle revision a win writes its chronicle before th
             expect(won.final.machineState).toBe(MachineState.Chronicle)
             expect(won.final.result).toBeUndefined()
             expect(won.final.canContinue).toBeUndefined()
-            // The winning action is recorded alike: the chronicle's choices come after it.
-            expect(
-                won.actions.map((action) => [action.type, action.source, action.revealsInfo])
-            ).toEqual(
-                before.actions.map((action) => [action.type, action.source, action.revealsInfo])
+            // The winning action is recorded alike; the Chronicle begins with a System Action of
+            // its own after it, which reveals nothing.
+            const record = (action: GameAction) => [action.type, action.source, action.revealsInfo]
+            expect(won.actions.slice(0, before.actions.length).map(record)).toEqual(
+                before.actions.map(record)
             )
+            expect(won.actions.slice(before.actions.length).map(record)).toEqual([
+                [ActionType.ChronicleStart, ActionSource.System, false]
+            ])
+            expect(won.actions.at(-1)).toMatchObject({
+                winnerPlayerId: before.final.winningPlayerIds[0],
+                rule: won.final.chronicle?.ending.rule
+            })
             const { final } = written(won)
             expect(final.machineState).toBe(MachineState.EndOfGame)
             expect(final.result).toBe(GameResult.Win)
@@ -269,53 +274,69 @@ describe('R-8 — at the chronicle revision a win writes its chronicle before th
         })
     }
 
-    it('consults all twelve steps once each, in the Law’s order', () => {
+    it('reaches all eleven steps, in the Law’s order', () => {
         expect(CHRONICLE_STEPS.map((rule) => rule.step)).toEqual(Object.values(ChronicleStep))
-        const consulted = CHRONICLE_STEPS.map((rule) => vi.spyOn(rule, 'applies'))
+        const consulted = CHRONICLE_STEPS.map((rule) => vi.spyOn(rule, 'waiting'))
         written(warExhaustion(AT))
-        expect(consulted.map((spy) => spy.mock.calls.length)).toEqual(CHRONICLE_STEPS.map(() => 1))
+        expect(consulted.every((spy) => spy.mock.calls.length > 0)).toBe(true)
         const order = consulted.map((spy) => spy.mock.invocationCallOrder[0])
         expect(order).toEqual([...order].sort((a, b) => a - b))
+    })
+
+    it('each step the rules settle alone is a System Action after the action that reaches it', () => {
+        const { actions } = written(warExhaustion(AT))
+        const record = (action: GameAction) => [action.type, action.source, action.revealsInfo]
+        const won = actions.findIndex((action) => action.type === ActionType.ChronicleStart)
+        // The Chancellor has no advisers: every suit ties, so the plainest answer picks one.
+        expect(actions.slice(won).map(record)).toEqual([
+            [ActionType.ChronicleStart, ActionSource.System, false],
+            [ActionType.ChooseOath, ActionSource.User, false],
+            [ActionType.ChronicleMap, ActionSource.System, true],
+            [ActionType.ChooseChronicleSuit, ActionSource.User, false],
+            [ActionType.ChronicleAddCards, ActionSource.System, true],
+            [ActionType.ChronicleDispossess, ActionSource.System, true],
+            [ActionType.ChronicleRelics, ActionSource.System, true],
+            [ActionType.ChronicleRebuild, ActionSource.System, true],
+            [ActionType.SkipChronicleStory, ActionSource.User, false]
+        ])
     })
 
     it('R-3.1 with a revealed Vision met: the ending records both ways (R-8.1 reads every way)', () => {
         expect(usurperWake(AT).final.chronicle?.ending).toEqual({
             winnerPlayerId: 'p2',
-            kind: WinKind.Usurper,
             rule: 'R-3.1',
-            mark: ChronicleMark.Oathkeeper,
             waysMet: { usurper: true, visionIds: [FAITH], empire: false }
         })
+        expect(WIN_KIND_OF_RULE['R-3.1']).toBe(WinKind.Usurper)
+        expect(chronicleMarkOf('R-3.1')).toBe(ChronicleMark.Oathkeeper)
     })
 
     it('R-3.2-H2 — a Visionary meeting a second, shared Vision records both Visions', () => {
         expect(visionaryWake(AT).final.chronicle?.ending).toEqual({
             winnerPlayerId: 'p2',
-            kind: WinKind.Visionary,
             rule: 'R-3.2',
-            mark: ChronicleMark.Visionary,
             waysMet: { usurper: false, visionIds: [FAITH, SANCTUARY], empire: false }
         })
+        expect(chronicleMarkOf('R-3.2')).toBe(ChronicleMark.Visionary)
     })
 
     it('R-3.3.1 — the Successor is marked S and won through the Empire', () => {
         expect(stableRegimeSuccessor(AT, WINNING_SEED).final.chronicle?.ending).toEqual({
             winnerPlayerId: 'p3',
-            kind: WinKind.Successor,
             rule: 'R-3.3.1',
-            mark: ChronicleMark.Successor,
             waysMet: { usurper: false, visionIds: [], empire: true }
         })
+        expect(WIN_KIND_OF_RULE['R-3.3.1']).toBe(WinKind.Successor)
+        expect(chronicleMarkOf('R-3.3.1')).toBe(ChronicleMark.Successor)
     })
 
     it('R-3.4.1 — the Chancellor’s War Exhaustion win is marked O', () => {
         expect(warExhaustion(AT).final.chronicle?.ending).toEqual({
             winnerPlayerId: 'p1',
-            kind: WinKind.WarExhaustion,
             rule: 'R-3.4.1',
-            mark: ChronicleMark.Oathkeeper,
             waysMet: { usurper: false, visionIds: [], empire: true }
         })
+        expect(chronicleMarkOf('R-3.4.1')).toBe(ChronicleMark.Oathkeeper)
     })
 })
 
@@ -327,8 +348,6 @@ describe('the chronicle record', () => {
                 sessionName: 'Thursday table',
                 date: '2026-10-22',
                 startingOath: OathType.ThePeople,
-                mark: ChronicleMark.Successor,
-                kind: WinKind.Successor,
                 rule: 'R-3.3.1',
                 winner: { name: 'Ann', color: Color.Blue },
                 nextOath: OathType.Supremacy,
@@ -354,8 +373,6 @@ describe('the chronicle record', () => {
             sessionName: 'Thursday table',
             date: '2026-10-15',
             startingOath: OathType.Supremacy,
-            mark: ChronicleMark.Visionary,
-            kind: WinKind.Visionary,
             rule: 'R-3.2' as const,
             winner: { name: 'Bea', color: Color.Yellow },
             nextOath: OathType.Devotion,
@@ -426,8 +443,8 @@ describe('the table record at the start', () => {
 })
 
 describe('the Chronicle phase while a step waits', () => {
+    /** R-3.1 — a Usurper's win: the Vow is theirs to choose, so the phase waits on them. */
     function waiting() {
-        waitAt(ChronicleStep.Vow)
         return usurperWake(AT)
     }
 
@@ -494,7 +511,7 @@ describe('the Chronicle phase while a step waits', () => {
             candidates: ['p2'],
             resumeMachineState: MachineState.WakePhase
         }
-        expect(() => stateAfterWin(state, {})).toThrow(/nothing of the game left open/)
+        expect(() => stateAfterWin(state)).toThrow(/nothing of the game left open/)
     })
 })
 

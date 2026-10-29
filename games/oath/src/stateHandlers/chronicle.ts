@@ -1,17 +1,26 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
-import { HydratedOathGameState } from '../model/gameState.js'
-import { MachineState } from '../definition/states.js'
-import { ActionType } from '../definition/actions.js'
-import { chroniclersOf, completeChronicleStep } from '../util/chronicle.js'
 import {
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext,
+    type GameAction
+} from '@tabletop/common'
+import type * as Type from 'typebox'
+import { HydratedOathGameState } from '../model/gameState.js'
+import { ActionType } from '../definition/actions.js'
+import {
+    type ChronicleSystemActionType,
+    chronicleAfter,
+    chronicleWaiting
+} from '../util/chronicle.js'
+import {
+    chronicleOf,
     reasonCannotAnswerChronicleCitizenship,
     reasonCannotBuildOrRepair,
     reasonCannotChooseChronicleSuit,
     reasonCannotChooseHealStack,
     reasonCannotChooseOath,
     reasonCannotOfferChronicleCitizenship,
-    reasonCannotWriteChronicleStory,
-    unansweredOffers
+    reasonCannotWriteChronicleStory
 } from '../util/chronicleChoices.js'
 import { HydratedChooseOath, isChooseOath } from '../actions/chooseOath.js'
 import {
@@ -36,12 +45,42 @@ import {
     isWriteChronicleStory
 } from '../actions/writeChronicleStory.js'
 import { isSkipChronicleStory } from '../actions/skipChronicleStory.js'
+import { ChronicleStart, isChronicleStart } from '../actions/chronicleStart.js'
+import { ChronicleForcedVow } from '../actions/chronicleForcedVow.js'
+import { ChronicleFlipCitizens } from '../actions/chronicleFlipCitizens.js'
+import { ChronicleMap } from '../actions/chronicleMap.js'
+import { ChronicleSettleSuit } from '../actions/chronicleSettleSuit.js'
+import { ChronicleAddCards } from '../actions/chronicleAddCards.js'
+import { ChronicleHeal } from '../actions/chronicleHeal.js'
+import { ChronicleDispossess } from '../actions/chronicleDispossess.js'
+import { ChronicleRelics } from '../actions/chronicleRelics.js'
+import { ChronicleRebuild } from '../actions/chronicleRebuild.js'
 
 const CHRONICLE_BEING_WRITTEN = 'The game is over; the chronicle is being written'
+const RULES_SETTLE_IT = 'R-8 — the rules settle this step of the chronicle alone'
+
+/** What the rules settle alone at a step, each its own System Action (DESIGN.md). */
+const SYSTEM_ACTIONS: Record<ChronicleSystemActionType, Type.TSchema> = {
+    [ActionType.ChronicleStart]: ChronicleStart,
+    [ActionType.ChronicleForcedVow]: ChronicleForcedVow,
+    [ActionType.ChronicleFlipCitizens]: ChronicleFlipCitizens,
+    [ActionType.ChronicleMap]: ChronicleMap,
+    [ActionType.ChronicleSettleSuit]: ChronicleSettleSuit,
+    [ActionType.ChronicleAddCards]: ChronicleAddCards,
+    [ActionType.ChronicleHeal]: ChronicleHeal,
+    [ActionType.ChronicleDispossess]: ChronicleDispossess,
+    [ActionType.ChronicleRelics]: ChronicleRelics,
+    [ActionType.ChronicleRebuild]: ChronicleRebuild
+}
+
+function isChronicleSystemAction(action: GameAction): boolean {
+    return Object.hasOwn(SYSTEM_ACTIONS, action.type)
+}
 
 /**
  * R-8 — the won game's chronicle, written before the result: one state whose cursor walks the
- * steps. No title, Wake, Rest or turn runs here; only the players a step waits on act.
+ * steps. On entering, it schedules the System Action that settles what the rules decide alone, or
+ * waits on the players a choice names. No title, Wake, Rest or turn runs here.
  */
 export class ChronicleStateHandler implements MachineStateHandler<
     HydratedAction,
@@ -59,6 +98,8 @@ export class ChronicleStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedOathGameState>
     ): string[] {
         const state = context.gameState
+        // While a step's System Action settles it, nobody is asked anything.
+        if (chronicleWaiting(state).kind !== 'choice') return []
         const types: string[] = []
         if (HydratedChooseOath.canDoChooseOath(state, playerId)) types.push(ActionType.ChooseOath)
         if (HydratedOfferChronicleCitizenship.canDoOfferChronicleCitizenship(state, playerId)) {
@@ -83,23 +124,29 @@ export class ChronicleStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedOathGameState>): void {
-        context.gameState.activePlayerIds = chroniclersOf(context.gameState)
+        const state = context.gameState
+        // The engine enters again after every action; a step's System Action is scheduled once.
+        if (context.getPendingActions().length > 0) return
+        const wait = chronicleWaiting(state)
+        if (wait.kind === 'choice') {
+            state.activePlayerIds = wait.choosers
+            return
+        }
+        state.activePlayerIds = []
+        if (wait.type === ActionType.ChronicleStart) {
+            const { winnerPlayerId, rule } = chronicleOf(state).ending
+            context.addSystemAction(ChronicleStart, { winnerPlayerId, rule })
+            return
+        }
+        context.addSystemAction(SYSTEM_ACTIONS[wait.type])
     }
 
     onAction(action: HydratedAction, context: MachineContext<HydratedOathGameState>): string {
         const state = context.gameState
-        // R-8.2-H1 — the offers wait on every offered Exile's answer, given in any order.
-        if (isOfferChronicleCitizenship(action)) {
-            return action.exilePlayerIds.length > 0
-                ? MachineState.Chronicle
-                : completeChronicleStep(state, action)
-        }
-        if (isAnswerChronicleCitizenship(action)) {
-            return unansweredOffers(state).length > 0
-                ? MachineState.Chronicle
-                : completeChronicleStep(state, action)
-        }
         if (
+            isChronicleSystemAction(action) ||
+            isOfferChronicleCitizenship(action) ||
+            isAnswerChronicleCitizenship(action) ||
             isChooseOath(action) ||
             isBuildOrRepairEdifice(action) ||
             isChooseChronicleSuit(action) ||
@@ -107,13 +154,18 @@ export class ChronicleStateHandler implements MachineStateHandler<
             isWriteChronicleStory(action) ||
             isSkipChronicleStory(action)
         ) {
-            return completeChronicleStep(state, action)
+            return chronicleAfter(state, action)
         }
         throw Error(CHRONICLE_BEING_WRITTEN)
     }
 
-    /** Only the step being written takes an action; every other action is refused. */
+    /**
+     * Only the step being written takes an action; every other action is refused. A peek is refused
+     * before this handler sees it: `HydratedLetPeek` takes none once the game is won (R-3).
+     */
     private reasonCannot(action: HydratedAction, state: HydratedOathGameState): string | undefined {
+        if (isChronicleSystemAction(action)) return reasonCannotSettle(action, state)
+        if (chronicleWaiting(state).kind !== 'choice') return RULES_SETTLE_IT
         const playerId = action.playerId ?? ''
         if (isChooseOath(action)) return reasonCannotChooseOath(state, playerId, action.oathType)
         if (isOfferChronicleCitizenship(action)) {
@@ -137,4 +189,19 @@ export class ChronicleStateHandler implements MachineStateHandler<
         if (isSkipChronicleStory(action)) return reasonCannotWriteChronicleStory(state, playerId)
         return CHRONICLE_BEING_WRITTEN
     }
+}
+
+/** A step's System Action is taken only while that step waits on it, as the rules settled it. */
+function reasonCannotSettle(action: GameAction, state: HydratedOathGameState): string | undefined {
+    const wait = chronicleWaiting(state)
+    if (wait.kind !== 'system' || wait.type !== action.type) {
+        return `R-8 — the chronicle does not wait on ${action.type} now`
+    }
+    if (isChronicleStart(action)) {
+        const { winnerPlayerId, rule } = chronicleOf(state).ending
+        if (action.winnerPlayerId !== winnerPlayerId || action.rule !== rule) {
+            return 'R-8 — the Chronicle begins with the win as it was recorded'
+        }
+    }
+    return undefined
 }

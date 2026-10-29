@@ -39,6 +39,7 @@ import {
 import { askQuestion } from './questions.js'
 import type { QuestionRules } from './questionAnswers.js'
 import { settleEndDie } from './endDie.js'
+import { endDieThreshold } from './victory.js'
 import {
     discardAdvisersToMeetLimit,
     reasonAdviserLimitDiscardsInvalid,
@@ -1034,7 +1035,11 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         // Squalid District — the roll read as the ruler left it: a 6 raised to 7 still ends the game
         // (its Q&A), a 2 lowered to 1 in round seven ends nothing.
         apply: (state, _playerId, matched) => {
-            const { roll: rolled, round, threshold } = matched.question
+            const rolled = matched.question.roll
+            // The round the die was rolled for: it is still open while its ruler is asked.
+            const round = state.round
+            const threshold = endDieThreshold(round)
+            assertExists(threshold, `R-3.3 — round ${round} rolls the end die`)
             const roll = rolled + matched.answer.by
             const settled = settleEndDie(state, roll)
             return {

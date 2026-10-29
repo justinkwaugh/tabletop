@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assertExists, type Color } from '@tabletop/common'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import { CardKind, OathType, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { CHRONICLE_STORY_LIMIT, ChronicleStep, type Chronicle } from '../model/chronicle.js'
@@ -97,16 +97,22 @@ export function reasonCannotChooseOath(
 // ---------------------------------------------------------------------------------------------
 // R-8.2 — Citizenship
 
-/** R-8.2 — "flip all Citizen boards (even in the box) to their Exile side", an Exile winner only. */
-export function flipCitizenBoards(state: HydratedOathGameState): void {
+/**
+ * R-8.2 — "flip all Citizen boards (even in the box) to their Exile side", an Exile winner only.
+ * State keeps the players flipped, whom no offer may reach; the boxed boards' colours are the
+ * flip's record alone.
+ */
+export function flipCitizenBoards(state: HydratedOathGameState): {
+    flippedPlayerIds: string[]
+    flippedBoxColors: Color[]
+} {
     const flipped = state.players.filter((player) => player.status === PlayerStatus.Citizen)
     for (const player of flipped) player.status = PlayerStatus.Exile
     const flippedBoxColors = state.boxedCitizenColors ?? []
     delete state.boxedCitizenColors
-    chronicleOf(state).citizenship = {
-        flippedPlayerIds: flipped.map((player) => player.playerId),
-        flippedBoxColors
-    }
+    const flippedPlayerIds = flipped.map((player) => player.playerId)
+    chronicleOf(state).citizenship = { flippedPlayerIds: [...flippedPlayerIds] }
+    return { flippedPlayerIds, flippedBoxColors }
 }
 
 export function isExileWinner(state: HydratedOathGameState): boolean {

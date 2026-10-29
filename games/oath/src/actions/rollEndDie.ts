@@ -83,9 +83,7 @@ export class HydratedRollEndDie extends HydratableAction<typeof RollEndDie> impl
                 kind: PowerQuestionKind.AdjustEndDie,
                 cardId: adjuster.cardId,
                 askedPlayerId: adjuster.playerId,
-                roll,
-                round,
-                threshold
+                roll
             })
             this.metadata = { roll, round, threshold, adjustedBy: adjuster.playerId }
             return

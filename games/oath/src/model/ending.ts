@@ -26,3 +26,15 @@ export const WIN_RULES = [
 ] as const
 
 export type WinRule = (typeof WIN_RULES)[number]
+
+/** R-3 — how each rule is won: the rule names the way, so the kind is never stored beside it. */
+export const WIN_KIND_OF_RULE: Readonly<Record<WinRule, WinKind>> = {
+    'R-3.1': WinKind.Usurper,
+    'R-3.2': WinKind.Visionary,
+    'R-3.3': WinKind.StableRegime,
+    'R-3.3.1': WinKind.Successor,
+    'R-3.4.1': WinKind.WarExhaustion,
+    'R-3.4.2': WinKind.Usurper,
+    'R-3.4.3': WinKind.Visionary,
+    'R-3.4.4': WinKind.WarExhaustion
+}

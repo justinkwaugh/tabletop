@@ -1,7 +1,7 @@
-import { assertExists, type Game, type GameAction } from '@tabletop/common'
+import { MachineContext, assert, assertExists, type Game, type GameAction } from '@tabletop/common'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { ChronicleStep } from '../model/chronicle.js'
-import { MachineState } from '../definition/states.js'
+import { MachineState, toMachineState } from '../definition/states.js'
 import { ChooseOath } from '../actions/chooseOath.js'
 import { OfferChronicleCitizenship } from '../actions/offerChronicleCitizenship.js'
 import { BuildOrRepairEdifice } from '../actions/buildOrRepairEdifice.js'
@@ -12,18 +12,55 @@ import { chronicleSuitLeaders, vowableOaths } from '../util/chronicleChoices.js'
 import { recordWin, stateAfterWin } from '../util/chronicle.js'
 import type { GameOutcome } from '../util/victory.js'
 import { OathStateHandlers } from '../definition/stateHandlers.js'
-import { buildAction, machineContext } from './actions.js'
+import { OathHydrator } from '../definition/hydrator.js'
+import { buildAction } from './actions.js'
 import { engine } from './engine.js'
 
 /**
- * The table as the action that won leaves it: the ending stored, the chronicle written up to the
- * first step that waits, and that step's choosers on the clock.
+ * The table as the action that won leaves it: the ending stored, the chronicle's System Actions
+ * run up to the first step that waits, and that step's choosers on the clock.
  */
 export function wonTable(state: HydratedOathGameState, outcome: GameOutcome): OathProjectedState {
+    return wonWithActions(state, outcome).final
+}
+
+/** `wonTable`, with the System Actions the win scheduled, as the engine records them. */
+export function wonWithActions(
+    state: HydratedOathGameState,
+    outcome: GameOutcome
+): { final: OathProjectedState; actions: GameAction[] } {
     recordWin(state, outcome)
-    state.machineState = stateAfterWin(state, {})
-    OathStateHandlers[state.machineState].enter(machineContext(state))
-    return state.dehydrate()
+    // As the engine's, the System Actions' ids follow from the action that won (system version 1).
+    const context = new MachineContext<HydratedOathGameState>({
+        action: buildAction(SkipChronicleStory, { id: 'won', playerId: outcome.winnerPlayerId }),
+        gameConfig: {},
+        gameState: state
+    })
+    context.nextPendingAction()
+    state.machineState = stateAfterWin(state)
+    OathStateHandlers[state.machineState].enter(context)
+    const actions = runSystemActions(state, context)
+    return { final: state.dehydrate(), actions }
+}
+
+/** The engine's loop for the System Actions `context` holds, as a processed action schedules them. */
+export function runSystemActions(
+    state: HydratedOathGameState,
+    context: MachineContext<HydratedOathGameState>
+): GameAction[] {
+    const hydrator = new OathHydrator()
+    const processed: GameAction[] = []
+    for (let next = context.nextPendingAction(); next; next = context.nextPendingAction()) {
+        const action = hydrator.hydrateAction(structuredClone(next))
+        const handler = OathStateHandlers[state.machineState]
+        assert(handler.isValidAction(action, context), `${action.type} is valid now`)
+        action.apply(state, context)
+        state.machineState = toMachineState(handler.onAction(action, context))
+        state.recordAction(action)
+        OathStateHandlers[state.machineState].enter(context)
+        processed.push(action.dehydrate())
+    }
+    return processed
 }
 
 /**

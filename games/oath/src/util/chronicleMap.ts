@@ -259,7 +259,15 @@ export function fillSlots(
                 })
             }
             if (site.capacity !== undefined) state.siteCapacityOverrides[slotId] = site.capacity
-            if (from !== slotId) moved.push({ siteCardId: site.siteCardId, from, to: slotId })
+            if (from !== slotId) {
+                moved.push({
+                    siteCardId: site.siteCardId,
+                    from,
+                    to: slotId,
+                    fromRegion: state.regionOf(from),
+                    toRegion: region
+                })
+            }
         }
     }
     renameRelicSlots(state, renames)

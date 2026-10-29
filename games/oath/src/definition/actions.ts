@@ -79,5 +79,27 @@ export enum ActionType {
     ChooseHealStack = 'chooseHealStack',
     /** The winner's story, written once into the record. */
     WriteChronicleStory = 'writeChronicleStory',
-    SkipChronicleStory = 'skipChronicleStory'
+    SkipChronicleStory = 'skipChronicleStory',
+
+    // R-8 — what the rules settle alone, each step a System Action of its own.
+    /** The Chronicle begins: the winner and how they won. */
+    ChronicleStart = 'chronicleStart',
+    /** R-8.1 — a win with a Vision alone vows that Vision's Oath. */
+    ChronicleForcedVow = 'chronicleForcedVow',
+    /** R-8.2 — an Exile winner flips every Citizen board, the box's too. */
+    ChronicleFlipCitizens = 'chronicleFlipCitizens',
+    /** R-8.3.2 to R-8.3.5 */
+    ChronicleMap = 'chronicleMap',
+    /** R-8.4 — one suit leads the winner's advisers. */
+    ChronicleSettleSuit = 'chronicleSettleSuit',
+    /** R-8.4, R-8.4.a */
+    ChronicleAddCards = 'chronicleAddCards',
+    /** R-8.4.a-H1 — the draw from the stack the winner chose. */
+    ChronicleHeal = 'chronicleHeal',
+    /** R-8.5 */
+    ChronicleDispossess = 'chronicleDispossess',
+    /** R-8.6 */
+    ChronicleRelics = 'chronicleRelics',
+    /** R-8.7, R-8.8 */
+    ChronicleRebuild = 'chronicleRebuild'
 }

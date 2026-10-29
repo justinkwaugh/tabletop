@@ -80,6 +80,25 @@ import {
     isWriteChronicleStory
 } from '../actions/writeChronicleStory.js'
 import { HydratedSkipChronicleStory, isSkipChronicleStory } from '../actions/skipChronicleStory.js'
+import { HydratedChronicleStart, isChronicleStart } from '../actions/chronicleStart.js'
+import { HydratedChronicleForcedVow, isChronicleForcedVow } from '../actions/chronicleForcedVow.js'
+import {
+    HydratedChronicleFlipCitizens,
+    isChronicleFlipCitizens
+} from '../actions/chronicleFlipCitizens.js'
+import { HydratedChronicleMap, isChronicleMap } from '../actions/chronicleMap.js'
+import {
+    HydratedChronicleSettleSuit,
+    isChronicleSettleSuit
+} from '../actions/chronicleSettleSuit.js'
+import { HydratedChronicleAddCards, isChronicleAddCards } from '../actions/chronicleAddCards.js'
+import { HydratedChronicleHeal, isChronicleHeal } from '../actions/chronicleHeal.js'
+import {
+    HydratedChronicleDispossess,
+    isChronicleDispossess
+} from '../actions/chronicleDispossess.js'
+import { HydratedChronicleRelics, isChronicleRelics } from '../actions/chronicleRelics.js'
+import { HydratedChronicleRebuild, isChronicleRebuild } from '../actions/chronicleRebuild.js'
 
 export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOathGameState> {
     hydrateAction(data: GameAction): HydratedAction {
@@ -215,6 +234,36 @@ export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOa
             }
             case isSkipChronicleStory(data): {
                 return new HydratedSkipChronicleStory(data)
+            }
+            case isChronicleStart(data): {
+                return new HydratedChronicleStart(data)
+            }
+            case isChronicleForcedVow(data): {
+                return new HydratedChronicleForcedVow(data)
+            }
+            case isChronicleFlipCitizens(data): {
+                return new HydratedChronicleFlipCitizens(data)
+            }
+            case isChronicleMap(data): {
+                return new HydratedChronicleMap(data)
+            }
+            case isChronicleSettleSuit(data): {
+                return new HydratedChronicleSettleSuit(data)
+            }
+            case isChronicleAddCards(data): {
+                return new HydratedChronicleAddCards(data)
+            }
+            case isChronicleHeal(data): {
+                return new HydratedChronicleHeal(data)
+            }
+            case isChronicleDispossess(data): {
+                return new HydratedChronicleDispossess(data)
+            }
+            case isChronicleRelics(data): {
+                return new HydratedChronicleRelics(data)
+            }
+            case isChronicleRebuild(data): {
+                return new HydratedChronicleRebuild(data)
             }
 
             default: {

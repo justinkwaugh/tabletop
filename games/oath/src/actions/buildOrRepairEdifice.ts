@@ -1,10 +1,11 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import {
     buildOrRepair,
+    chronicleOf,
     edificeChoiceNamed,
     reasonCannotBuildOrRepair
 } from '../util/chronicleChoices.js'
@@ -12,6 +13,8 @@ import {
 export type BuildOrRepairEdificeMetadata = Type.Static<typeof BuildOrRepairEdificeMetadata>
 export const BuildOrRepairEdificeMetadata = Type.Object({
     edificeId: Type.String(),
+    /** The site card in the chosen slot as it was built: R-8.3.5 may move it. */
+    siteCardId: Type.String(),
     repaired: Type.Boolean(),
     /** A build's replaced denizen, bound for the world deck. */
     returnedDenizenId: Type.Optional(Type.String())
@@ -58,8 +61,11 @@ export class HydratedBuildOrRepairEdifice
         if (!this.choice) return
         const choice = edificeChoiceNamed(state, this.choice)
         buildOrRepair(state, choice)
+        const siteCardId = chronicleOf(state).built?.siteCardId
+        assertExists(siteCardId, 'R-8.3.1 — the build names the site it was made at')
         this.metadata = {
             edificeId: choice.edificeId,
+            siteCardId,
             repaired: choice.repair,
             ...(choice.repair ? {} : { returnedDenizenId: choice.cardId })
         }

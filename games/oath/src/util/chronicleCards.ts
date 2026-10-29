@@ -110,9 +110,9 @@ export function addSixOrHeal(state: HydratedOathGameState): void {
     const suit = chronicle.suit
     assertExists(suit, 'R-8.4 — the suit is known before the six are added')
     const vault = state.requireVault()
-    const suits = suitsAddedFrom(suit)
-    const archive = archiveBySuit(state)
-    if (suits.every((added, k) => archive[added].length >= ADDED_BY_SUIT[k])) {
+    const suits = sixFromArchive(state, suit)
+    if (suits) {
+        const archive = archiveBySuit(state)
         for (const [k, added] of suits.entries()) {
             const stack = archive[added]
             chronicleShuffles.shuffle(state, ChronicleShuffle.Archive, stack)
@@ -130,6 +130,21 @@ export function addSixOrHeal(state: HydratedOathGameState): void {
     }
     // R-8.4.a-H1 — the stacks are sorted in front of everyone, so their sizes are public.
     chronicle.healTie = { suits: largest, count }
+}
+
+/**
+ * R-8.4 — the suits the six come from, three, two and one, when the Archive holds them all;
+ * undefined when it is short and R-8.4.a heals it instead.
+ */
+export function sixFromArchive(state: HydratedOathGameState, suit: Suit): Suit[] | undefined {
+    const suits = suitsAddedFrom(suit)
+    const archive = archiveBySuit(state)
+    return suits.every((added, k) => archive[added].length >= ADDED_BY_SUIT[k]) ? suits : undefined
+}
+
+/** R-8.4.a, R-9.3 — a heal takes six from its stack, or all it holds. */
+export function healCount(stackSize: number): number {
+    return Math.min(SIX, stackSize)
 }
 
 /** R-8.4.a-H1 — the six come from the tied stack the winner chose. */

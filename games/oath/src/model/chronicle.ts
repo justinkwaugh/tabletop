@@ -1,7 +1,7 @@
 import { Color } from '@tabletop/common'
 import * as Type from 'typebox'
-import { OathType, Suit } from './oathEnums.js'
-import { WIN_RULES, WinKind } from './ending.js'
+import { OathType, Region, Suit } from './oathEnums.js'
+import { WIN_KIND_OF_RULE, WIN_RULES, WinKind, type WinRule } from './ending.js'
 
 /**
  * R-8 — what a won game writes at its end, and the record a chronicle keeps. Every field is public
@@ -41,9 +41,7 @@ export enum ChronicleStep {
     Dispossess = 'dispossess',
     /** R-8.6 */
     Relics = 'relics',
-    /** R-8.7 */
-    Save = 'save',
-    /** R-8.8 */
+    /** R-8.7 and R-8.8 — the save moves nothing on the table, so the rebuild follows it at once. */
     Rebuild = 'rebuild',
     /** The winner's entry in the record. */
     Story = 'story'
@@ -60,15 +58,27 @@ export const ChronicleWaysMet = Type.Object({
     empire: Type.Boolean()
 })
 
-/** R-3 — the win as decided, stored once by the action that won. */
+/** R-3 — the win as decided, stored once by the action that won. The rule gives its kind and mark. */
 export type ChronicleEnding = Type.Static<typeof ChronicleEnding>
 export const ChronicleEnding = Type.Object({
     winnerPlayerId: Type.String(),
-    kind: Type.Enum(WinKind),
     rule: Type.Enum(WIN_RULES),
-    mark: Type.Enum(ChronicleMark),
     waysMet: ChronicleWaysMet
 })
+
+/** The journal's letter for a win by `rule`. */
+export function chronicleMarkOf(rule: WinRule): ChronicleMark {
+    switch (WIN_KIND_OF_RULE[rule]) {
+        case WinKind.Successor:
+            return ChronicleMark.Successor
+        case WinKind.Visionary:
+            return ChronicleMark.Visionary
+        case WinKind.Usurper:
+        case WinKind.StableRegime:
+        case WinKind.WarExhaustion:
+            return ChronicleMark.Oathkeeper
+    }
+}
 
 /** A seat as the record keeps it: player ids change between games, so a name and a colour. */
 export type ChronicleSeat = Type.Static<typeof ChronicleSeat>
@@ -101,13 +111,11 @@ export const ChronicleOffer = Type.Object({
     accepted: Type.Optional(Type.Boolean())
 })
 
-/** R-8.2 — the boards the flip turned to their Exile side, then the offers, made together (R-8.2-H1). */
+/** R-8.2 — the players the flip turned to their Exile side, then the offers, made together (R-8.2-H1). */
 export type ChronicleCitizenship = Type.Static<typeof ChronicleCitizenship>
 export const ChronicleCitizenship = Type.Object({
     /** The players whose Citizen boards just flipped: no offer goes to them. */
     flippedPlayerIds: Type.Array(Type.String()),
-    /** The colours of the Citizen boards in the box that flipped with them. */
-    flippedBoxColors: Type.Array(Type.Enum(Color)),
     /** Absent until the winner offers; empty when they offer no one. */
     offers: Type.Optional(Type.Array(ChronicleOffer))
 })
@@ -134,12 +142,14 @@ export const ChronicleRuin = Type.Object({
     denizensDiscarded: Type.Number()
 })
 
-/** R-8.3.5 — a site that changed slot, with its cards. */
+/** R-8.3.5 — a site that changed slot, with its cards, and each slot's region. */
 export type ChronicleMove = Type.Static<typeof ChronicleMove>
 export const ChronicleMove = Type.Object({
     siteCardId: Type.String(),
     from: Type.String(),
-    to: Type.String()
+    to: Type.String(),
+    fromRegion: Type.Enum(Region),
+    toRegion: Type.Enum(Region)
 })
 
 /** R-8.3.2 — why a site stayed: the winner rules it, it holds an intact edifice, or Forest Temple keeps it. */
@@ -150,8 +160,8 @@ export enum ChronicleKeptFor {
 }
 
 /**
- * R-8.3.2 to R-8.3.5 — the map step as the table saw it: faceup sites by card, facedown ones
- * counted (R-9.4).
+ * R-8.3.2 to R-8.3.5 — the map step as the table saw it, recorded by its System Action: faceup
+ * sites by card, facedown ones counted (R-9.4).
  */
 export type ChronicleMapRecord = Type.Static<typeof ChronicleMapRecord>
 export const ChronicleMapRecord = Type.Object({
@@ -175,29 +185,36 @@ export const ChronicleMapRecord = Type.Object({
     flipped: Type.Array(ChronicleSiteAt)
 })
 
-/** R-8.6 — the relics as the table saw them move: counts, never which (R-9.4). */
+/**
+ * R-8.6 — the relics as the table saw them move, recorded by its System Action: counts, never
+ * which (R-9.4).
+ */
 export type ChronicleRelicsRecord = Type.Static<typeof ChronicleRelicsRecord>
 export const ChronicleRelicsRecord = Type.Object({
     /** R-8.6.1 — each losing player's relics returned to the relic deck. */
     returned: Type.Array(Type.Object({ playerId: Type.String(), count: Type.Number() })),
-    /** R-8.6.2 — each faceup site given facedown relics. */
-    placed: Type.Array(Type.Object({ slotId: Type.String(), count: Type.Number() })),
+    /** R-8.6.2 — each faceup site given facedown relics, by slot and site card. */
+    placed: Type.Array(
+        Type.Object({ slotId: Type.String(), siteCardId: Type.String(), count: Type.Number() })
+    ),
     /** R-8.6.3 — the winner's relics and the Reliquary's stacked on top of the relic deck. */
     stacked: Type.Object({ winner: Type.Number(), reliquary: Type.Number() })
 })
 
-/** R-8 — present from the win; `step` is the step being written, absent once the last is done. */
+/**
+ * R-8 — present from the win; `step` is the step being written, absent before the first and once
+ * the last is done. What a step did is its Action's record: State keeps only what a later rule
+ * reads, and once the entry is written only the ending, the Oath vowed and the rebuild.
+ */
 export type Chronicle = Type.Static<typeof Chronicle>
 export const Chronicle = Type.Object({
     ending: ChronicleEnding,
     step: Type.Optional(Type.Enum(ChronicleStep)),
-    /** R-8.1 — the Oath the next game is played under. */
+    /** R-8.1 — the Oath the next game is played under; the continuation reads it. */
     vowedOath: Type.Optional(Type.Enum(OathType)),
-    /** R-8.1 — the Vision a win with a Vision alone vowed by; absent when the winner chose. */
-    vowedByVisionId: Type.Optional(Type.String()),
-    /** R-8.2, an Exile winner only. */
+    /** R-8.2, an Exile winner only: who may be offered, and the answers the step waits on. */
     citizenship: Type.Optional(ChronicleCitizenship),
-    /** R-8.3.1 */
+    /** R-8.3.1, for the entry. */
     built: Type.Optional(ChronicleBuilt),
     /**
      * R-8.3.1 — the denizen a build replaced, bound for the world deck. Its place there is never
@@ -205,21 +222,19 @@ export const Chronicle = Type.Object({
      * public, until then.
      */
     returnedDenizenId: Type.Optional(Type.String()),
+    /** R-8.3.3 — the edifices flipped to their ruined side, for the entry. */
+    ruined: Type.Optional(Type.Array(Type.String())),
     /** R-8.4 — the most common suit in the winner's advisers, or the one they chose among the tied. */
     suit: Type.Optional(Type.Enum(Suit)),
     /** R-8.4.a-H1 */
     healTie: Type.Optional(ChronicleHealTie),
     /** R-8.4.a-H1 — the tied stack the winner chose. */
     healSuit: Type.Optional(Type.Enum(Suit)),
-    /** R-8.3.2 to R-8.3.5, once done. */
-    map: Type.Optional(ChronicleMapRecord),
-    /** R-8.4, R-8.4.a, once done. */
+    /** R-8.4, R-8.4.a, once done: the entry and the explorations read it. */
     added: Type.Optional(ChronicleAdded),
-    /** R-8.5 — how many cards went to the Dispossessed, once done. */
+    /** R-8.5 — how many cards went to the Dispossessed, once done: the explorations read it. */
     dispossessed: Type.Optional(Type.Number()),
-    /** R-8.6, once done. */
-    relics: Type.Optional(ChronicleRelicsRecord),
-    /** R-8.8, once done. */
+    /** R-8.8, once done: the continuation reads it. */
     rebuilt: Type.Optional(Type.Literal(true)),
     /** The winner's story, held only inside the action that writes it, until the record's entry takes it. */
     story: Type.Optional(Type.String())
@@ -235,8 +250,7 @@ export const ChronicleEntry = Type.Object({
     date: Type.String(),
     /** The Oath this game was played under. */
     startingOath: Type.Enum(OathType),
-    mark: Type.Enum(ChronicleMark),
-    kind: Type.Enum(WinKind),
+    /** R-3 — how it was won; its kind and mark follow from the rule. */
     rule: Type.Enum(WIN_RULES),
     winner: ChronicleSeat,
     /** R-8.1 */

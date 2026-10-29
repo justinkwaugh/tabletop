@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import {
+    ActionSource,
     Color,
     GameCategory,
     GameContinuationError,
@@ -15,13 +16,8 @@ import { MachineState } from '../states.js'
 import { ActionType } from '../actions.js'
 import type { OathProjectedState } from '../../model/gameState.js'
 import { OathType, Region } from '../../model/oathEnums.js'
-import {
-    BoardSide,
-    ChronicleMark,
-    ChronicleStep,
-    OpeningChancellor
-} from '../../model/chronicle.js'
-import { WinKind } from '../../model/ending.js'
+import { BoardSide, ChronicleStep, OpeningChancellor } from '../../model/chronicle.js'
+import { WIN_KIND_OF_RULE, WinKind } from '../../model/ending.js'
 import { mapSlotsFor } from '../../data/mapSlots.js'
 import { vowableOaths } from '../../util/chronicleChoices.js'
 import { OathRevision } from '../../util/revision.js'
@@ -77,6 +73,12 @@ const g2 = (name: string) => `g2-${name.toLowerCase()}`
 const g3 = (name: string) => `g3-${name.toLowerCase()}`
 
 const typesOf = (play: LocalPlay, from = 0) => play.actions.slice(from).map((action) => action.type)
+/** The players' own actions from `from` on: the steps that waited on them. */
+const choicesOf = (play: LocalPlay, from = 0) =>
+    play.actions
+        .slice(from)
+        .filter((action) => action.source === ActionSource.User)
+        .map((action) => action.type)
 
 /** What every seat and the spectator must be served alike. */
 function publicOf(view: OathProjectedState) {
@@ -139,10 +141,10 @@ describe('scene A — "The long table": three seats play to a win, Continue, and
             expect(won.state.round).toBe(6)
             expect(won.state.winningPlayerIds).toEqual([g1('Dana')])
             expect(won.state.chronicle?.ending).toMatchObject({
-                kind: WinKind.StableRegime,
                 rule: 'R-3.3',
                 winnerPlayerId: g1('Dana')
             })
+            expect(WIN_KIND_OF_RULE['R-3.3']).toBe(WinKind.StableRegime)
             expect(won.state.chronicle?.step).toBe(ChronicleStep.Vow)
         })
 
@@ -150,9 +152,20 @@ describe('scene A — "The long table": three seats play to a win, Continue, and
             const vowable = vowableOaths(hydrated(one.won.state))
             expect(vowable).not.toContain(OathType.Supremacy)
             // The steps that waited, in order: the Vow, the tied suit, the story.
-            expect(typesOf(one.finished, one.won.actions.length)).toEqual([
+            expect(choicesOf(one.finished, one.won.actions.length)).toEqual([
                 ActionType.ChooseOath,
                 ActionType.ChooseChronicleSuit,
+                ActionType.WriteChronicleStory
+            ])
+            // Between them, what the rules settle alone, each its own System Action.
+            expect(typesOf(one.finished, one.won.actions.length)).toEqual([
+                ActionType.ChooseOath,
+                ActionType.ChronicleMap,
+                ActionType.ChooseChronicleSuit,
+                ActionType.ChronicleAddCards,
+                ActionType.ChronicleDispossess,
+                ActionType.ChronicleRelics,
+                ActionType.ChronicleRebuild,
                 ActionType.WriteChronicleStory
             ])
             expect(one.finished.state.machineState).toBe(MachineState.EndOfGame)
@@ -181,8 +194,6 @@ describe('scene A — "The long table": three seats play to a win, Continue, and
                     sessionName: TABLE_NAME,
                     date: state.table?.date,
                     startingOath: OathType.Supremacy,
-                    mark: ChronicleMark.Oathkeeper,
-                    kind: WinKind.StableRegime,
                     rule: 'R-3.3',
                     winner: { name: 'Dana', color: Color.Purple },
                     nextOath: OathType.ThePeople,
