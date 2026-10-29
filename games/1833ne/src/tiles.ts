@@ -81,8 +81,9 @@ const Westport: TileFace = {
 
 const TitleFaces: Readonly<Record<string, TileFace>> = {
     N10: labelled(town('yellow', [[2, 4]], 20), 'Hy'),
-    N11: city('yellow', [0, 3, 4], 20, 2, ['Sh']),
-    N21: city('green', [0, 3, 4], 30, 2, ['Sh']),
+    // Sherbrooke's one space holds the St. Lawrence corporations' joint token (p. 21).
+    N11: city('yellow', [0, 3, 4], 20, 1, ['Sh']),
+    N21: city('green', [0, 3, 4], 30, 1, ['Sh']),
     N22: city('green', [0, 4, 5], 40, 2, ['Pr']),
     N23: stops('green', 'B', [
         { id: 'city-0', kind: 'city', revenue: 50, slots: 2, edges: [0, 1, 5] },
