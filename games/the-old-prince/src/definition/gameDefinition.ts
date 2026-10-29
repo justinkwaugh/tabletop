@@ -46,6 +46,7 @@ export const TheOldPrinceTitleRules: EighteenXXTitleRules<
     privatePowerRules: TheOldPrincePrivatePowerRules,
     createOpening: createTheOldPrinceOpening,
     startingCash: theOldPrinceStartingCash,
+    currencySymbol: '$',
     stockRules: TheOldPrinceStockRules,
     companyRules: TheOldPrinceCompanyRules,
     operatingRules: TheOldPrinceOperatingRules,

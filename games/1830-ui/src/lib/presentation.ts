@@ -1,10 +1,11 @@
+import { EighteenThirtyTitleRules } from '@tabletop/1830'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyCompanyNames } from './companyPresentation.js'
 import { EighteenThirtyPhaseChart } from './phaseChart.js'
 import { EighteenThirtyTrainColors } from './trainPresentation.js'
 
 export const EighteenThirtyPresentation: TitlePresentation = {
-    money: moneyFormat('$'),
+    money: moneyFormat(EighteenThirtyTitleRules.currencySymbol),
     phaseChart: EighteenThirtyPhaseChart,
     trainColors: EighteenThirtyTrainColors,
     phaseColors: EighteenThirtyTrainColors,

@@ -100,7 +100,11 @@ import Peir6Thumb from './images/published/peirs/v2/peir-6-georgetown-600.webp'
 import Peir7Card from './images/published/peirs/v2/peir-7-charlottetown.webp'
 import Peir7Thumb from './images/published/peirs/v2/peir-7-charlottetown-600.webp'
 import { isTreasuryPoolId } from '@tabletop/18xx'
-import { TheOldPrinceCompanies, TheOldPrinceNames } from '@tabletop/the-old-prince'
+import {
+    TheOldPrinceCompanies,
+    TheOldPrinceNames,
+    TheOldPrinceTitleRules
+} from '@tabletop/the-old-prince'
 import { TheOldPrinceCompanyNames } from './companyPresentation.js'
 import { TheOldPrincePhaseChart } from './phaseChart.js'
 import { TheOldPrinceMarketZones, TheOldPrincePublishedMarketZones } from './marketPresentation.js'
@@ -111,7 +115,7 @@ import {
 } from './trainPresentation.js'
 
 export const TheOldPrincePresentation: TitlePresentation = {
-    money: moneyFormat('$'),
+    money: moneyFormat(TheOldPrinceTitleRules.currencySymbol),
     phaseChart: TheOldPrincePhaseChart,
     trainColors: TheOldPrinceTrainColors,
     phaseColors: TheOldPrinceTrainColors,

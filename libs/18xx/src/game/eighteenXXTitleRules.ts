@@ -77,6 +77,7 @@ export interface EighteenXXTitleRules<
     createOpening: (setup: OpeningSetup) => Opening<Schema, State>
     /** The cash each player's opening gives them, before any opening round. */
     startingCash: (setup: StartingCashSetup) => number
+    currencySymbol: string
     stockRules: StockRules
     companyRules: CompanyRules
     operatingRules: OperatingRules

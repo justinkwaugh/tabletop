@@ -134,6 +134,7 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     privatePowerRules: EighteenThirtyTwoPrivatePowerRules,
     createOpening: createEighteenThirtyTwoOpening,
     startingCash: eighteenThirtyTwoStartingCash,
+    currencySymbol: '$',
     stockRules: EighteenThirtyTwoStockRules,
     companyRules: EighteenThirtyTwoCompanyRules,
     operatingRules: EighteenThirtyTwoOperatingRules,

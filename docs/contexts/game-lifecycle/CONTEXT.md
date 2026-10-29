@@ -79,6 +79,10 @@ A Game Instance starts one minute after it becomes Ready. The countdown is cance
 **In Progress**:
 The lifecycle state of a Game Instance after it starts and before its Game State contains a result.
 
+**Game Progress**:
+How far an In Progress Game has come, as its Game Title reports it from public information: a rough share of the game played, a short description in the title's own terms, and whether the game's end has begun. It is recorded with every change to Game State. A Game Title that does not report it leaves its games without one.
+_Avoid_: Completion, percent done
+
 **Finished**:
 The lifecycle state derived from a Game State containing a result. Authorized Undo may return a Finished Game to In Progress, except that Players cannot reopen a Finished Tournament Game.
 

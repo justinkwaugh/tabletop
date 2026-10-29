@@ -30,6 +30,7 @@
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
+    import GameProgressBar from './GameProgressBar.svelte'
     import {
         copyTextToClipboard,
         createTimeAgo,
@@ -474,6 +475,9 @@
                             {/if}
                         </div>
                     </div>
+                    {#if game.status === GameStatus.Started && game.progress}
+                        <GameProgressBar progress={game.progress} class="pb-1.5" />
+                    {/if}
                     <div class="flex flex-row justify-between items-start text-white">
                         {#if game.status === GameStatus.Started}
                             <div class="flex flex-col justify-start items-start">

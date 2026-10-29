@@ -51,6 +51,7 @@ import {
     GameAction,
     GameDefinition,
     GameEngine,
+    reportGameProgress,
     type ActionCascadeResult,
     GameNotificationAction,
     type GameNotificationData,
@@ -1123,6 +1124,7 @@ export class GameService {
                     status: GameStatus.Started,
                     seed: initializedGame.seed,
                     ...(initializedGame.protectedInformation ? { protectedInformation: true } : {}),
+                    progress: initializedGame.progress,
                     state: initialState
                 },
                 validator: (existingGame, fieldsToUpdate) => {
@@ -1277,6 +1279,7 @@ export class GameService {
                     }
 
                     gameUpdates.activePlayerIds = newState.activePlayerIds
+                    gameUpdates.progress = reportGameProgress(definition.runtime, newState)
                     const lastPlayerAction = findLast(actions, (a) => a.playerId != undefined)
                     if (lastPlayerAction) {
                         gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
@@ -2328,6 +2331,7 @@ export class GameService {
                 }
 
                 gameUpdates.activePlayerIds = newState.activePlayerIds
+                gameUpdates.progress = reportGameProgress(definition.runtime, newState)
                 if (resolvingVoteId !== undefined && existingGame.vote?.id !== resolvingVoteId) {
                     throw new DisallowedPlayerVoteError({ gameId, reason: 'the vote is closed' })
                 }

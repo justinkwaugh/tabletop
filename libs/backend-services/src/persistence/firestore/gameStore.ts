@@ -54,7 +54,8 @@ import {
     type UserGameStats,
     type TimeWindow,
     type TitleActivity,
-    summarizeUserGames
+    summarizeUserGames,
+    sameGameProgress
 } from '@tabletop/common'
 import {
     AlreadyExistsError,
@@ -2302,6 +2303,9 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         after: Game | undefined
     ): Promise<void> {
         const keys = GameCacheKeys.changedLists(before, after)
+        const tournamentId = after?.tournament?.tournamentId
+        if (tournamentId && !sameGameProgress(before?.progress, after?.progress))
+            keys.push(this.tournamentCacheKeys.key('games', tournamentId))
         if (keys.length) await locks.addKeys(keys)
     }
 

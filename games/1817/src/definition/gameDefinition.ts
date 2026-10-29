@@ -160,6 +160,7 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules<
     privatePowerRules: EighteenSeventeenPrivatePowerRules,
     createOpening: createEighteenSeventeenOpening,
     startingCash: eighteenSeventeenStartingCash,
+    currencySymbol: '$',
     stockRules: EighteenSeventeenStockRules,
     companyRules: EighteenSeventeenCompanyRules,
     operatingRules: EighteenSeventeenOperatingRules,

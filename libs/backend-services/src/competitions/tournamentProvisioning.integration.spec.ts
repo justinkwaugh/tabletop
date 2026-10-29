@@ -469,6 +469,37 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(await tournaments.readGameLinks(tournament.id)).toEqual(links)
         })
 
+        it('shows each active game’s Game Progress as play moves on', async () => {
+            const { tournament } = await fixture()
+            await service.runTask({ tournamentId: tournament.id })
+            const [link] = await tournaments.readGameLinks(tournament.id)
+            expect(link.progress).toBeUndefined()
+            const game = await store.findGameById(link.gameId, true)
+            assertExists(game?.state)
+            const progress = { fraction: 0.25, label: 'Round 2 of 8' }
+            await store.addActionsToGame({
+                game,
+                state: game.state,
+                actions: [
+                    {
+                        id: 'move',
+                        gameId: game.id,
+                        source: ActionSource.System,
+                        type: 'move',
+                        index: 0
+                    }
+                ],
+                validator: async (_game, _existing, _next, _actions, gameUpdates) => {
+                    gameUpdates.progress = progress
+                    return UpdateValidationResult.Proceed
+                }
+            })
+            const links = await tournaments.readGameLinks(tournament.id)
+            expect(links.find((moved) => moved.gameId === link.gameId)?.progress).toEqual(progress)
+            const [group] = await service.groupResults([tournament.id])
+            expect(group.activeProgress).toBe(0.25)
+        })
+
         it('creates a league group locked with its assigned roster, starts it, and accepts retried creation', async () => {
             enqueue.mockReset()
             enqueue.mockResolvedValue(undefined)
