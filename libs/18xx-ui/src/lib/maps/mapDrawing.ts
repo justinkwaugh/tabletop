@@ -58,6 +58,8 @@ export type MapRoute = {
     segments: readonly RoutePath[]
     /** Track the route runs on past its counted stops for an interconnection, drawn dashed. */
     extension?: readonly RoutePath[]
+    /** The printed bonus arrows paying the route, outlined in its colour. */
+    bonusArrowIds?: readonly string[]
 }
 
 /** Every piece of track a route draws: its own and its extension's. */

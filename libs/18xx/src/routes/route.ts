@@ -35,7 +35,9 @@ export const RouteBonus = Type.Object(
         locationId: Id,
         amount: Type.Integer({ minimum: 1 }),
         /** What earned the bonus, such as a private company, by the ids the title names. */
-        sourceIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true }))
+        sourceIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true })),
+        /** The bonus arrows printed beside the board that paid it. */
+        arrowIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true }))
     },
     { additionalProperties: false }
 )

@@ -150,10 +150,12 @@ function arrow(
     [column, row]: readonly [number, number],
     heading: string,
     footer: MapBonusArrow['footer'],
-    points: MapBonusArrow['points']
+    points: MapBonusArrow['points'],
+    alsoPrints: readonly string[] = []
 ): MapBonusArrow {
     const { values } = bonusArrow(id)
     return {
+        ...(alsoPrints.length ? { arrowIds: [id, ...alsoPrints] } : {}),
         id,
         center: besideBoard(column, row),
         heading,
@@ -177,7 +179,9 @@ export const BonusArrows1833NE: readonly MapBonusArrow[] = [
     arrow('albany-troy-to-boston', [-0.5, 18], 'ALBANY/TROY', 'to BOSTON', 'right'),
     arrow('boston-and-new-york', [-0.6, 26.1], 'BOSTON and', 'NEW YORK', 'both'),
     // One arrow prints Boston's interconnection to Montreal and to Ogdensburg, which are equal.
-    arrow('boston-to-montreal', [8.6, 21.5], 'BOSTON to', 'MONTREAL or OGDENSBURG', 'left'),
+    arrow('boston-to-montreal', [8.6, 21.5], 'BOSTON to', 'MONTREAL or OGDENSBURG', 'left', [
+        'boston-to-ogdensburg'
+    ]),
     arrow('boston-and-north', [10.45, 21.5], 'BOSTON and', 'MONTREAL or OGDENSBURG', 'both'),
     arrow('boston-and-albany-troy', [10.45, 23.5], 'BOSTON and', 'ALBANY/TROY', 'both'),
     arrow('portland-to-montreal', [9.55, 13.1], 'PORTLAND', 'to MONTREAL', 'left'),

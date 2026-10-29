@@ -36,7 +36,7 @@
     "ResolveAuction": "17f217f0d6d8ccb679367f808f25537025483cd896b49ebd30ec593a10eed7d9",
     "RespondToPurchaseOffer": "3750e29e4505cbce5f65efe310687f638d05f3123780dd6a0779679ea7657e00",
     "RespondToTrackConsent": "723a0508d5a63c9693fc24e8fc5647bd2ad1dfe098daa711345a3ce9870a6f10",
-    "RunTrains": "ced94fc2ad0b28d8c3c546cd606ee58e04734a866b8f8332da40d92be0f98a8c",
+    "RunTrains": "63aad66060b22710c17da2893ff8afe2a7f8991cfb9639a1993692e7a065e80c",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
     "SellFundingShares": "72facb9a9d838d543e5e1f61184ab4f3ca8fb3a377763d8ea20c893ca4387509",
@@ -2117,6 +2117,15 @@
                           "amount": {
                             "minimum": 1,
                             "type": "integer"
+                          },
+                          "arrowIds": {
+                            "items": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "type": "array",
+                            "uniqueItems": true
                           },
                           "locationId": {
                             "minLength": 1,

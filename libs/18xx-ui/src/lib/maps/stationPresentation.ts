@@ -29,7 +29,7 @@ export type BoardAreas = { market?: BoundingBox; depot?: BoundingBox }
 
 export type MapViewDefinition = {
     boardArtwork?: BoardArtwork
-    /** Plaques printed beside the board, such as route bonus arrows. */
+    /** Board arrows printed beside the map, such as route bonus arrows. */
     bonusArrows?: readonly MapBonusArrow[]
     /** Empty map regions, in map units, where the board view draws table panels. */
     boardAreas?: BoardAreas
