@@ -280,6 +280,7 @@
                         {revenueStageColors}
                         showZeroRevenue={false}
                         joints={entry.joints}
+                        printedSpaces={false}
                     >
                         {#snippet trackOverlay()}
                             {@render selectedTrack()}
@@ -371,17 +372,6 @@
                         ></circle>
                     {/each}
                 {/if}
-                {#each scene.printedTokens[entry.location.id] ?? [] as token (token.imageUrl)}
-                    <image
-                        data-map-printed-token={entry.location.id}
-                        href={token.imageUrl}
-                        x={token.at.x - token.radius}
-                        y={token.at.y - token.radius}
-                        width={token.radius * 2}
-                        height={token.radius * 2}
-                        pointer-events="none"><title>{token.title}</title></image
-                    >
-                {/each}
                 {#if !artwork || entry.placed}
                     <g
                         class="map-annotations"

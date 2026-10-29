@@ -6,8 +6,6 @@ import type { TileDrawing, TileDrawingStyle, TileLayout } from '../tiles/tileDra
 import type { TileAppearance } from '../tiles/tileAppearance.js'
 import type { RevenueStageColors } from '../colors/revenueStageColors.js'
 
-export type PrintedToken = { imageUrl: string; at: Point; radius: number; title: string }
-
 /** Offboard names print in the tile label face, which ships with the app, at their own size. */
 export type OffboardNameStyle = { fontSize: number; color: string }
 
@@ -116,8 +114,6 @@ export type MapViewDefinition = {
      * hexes in labels and text.
      */
     hideLocationNames?: true | readonly string[]
-    /** Art printed at a point in a hex, by location id, such as a private's token on its track. */
-    printedTokens?: Readonly<Record<string, readonly PrintedToken[]>>
     /** Hexside border widths by kind, such as a heavier impassable border; 3 otherwise. */
     borderWidths?: Readonly<Record<string, number>>
     /** A hex whose tile prints a label, such as Pr, shows the label in place of its name. */

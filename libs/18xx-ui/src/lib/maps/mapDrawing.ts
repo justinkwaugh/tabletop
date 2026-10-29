@@ -278,7 +278,6 @@ export type MapDrawing = {
     terrainCostPrefix: string
     /** Hexside border widths by kind, where the view sets one. */
     borderWidths: Readonly<Record<string, number>>
-    printedTokens: NonNullable<MapViewDefinition['printedTokens']>
     printedReservations: NonNullable<MapViewDefinition['printedReservations']>
     sharedStations: NonNullable<MapViewDefinition['sharedStations']>
 }
@@ -340,7 +339,6 @@ export function createMapDrawing(
         revenueStack,
         terrainCostPrefix = '',
         borderWidths = {},
-        printedTokens = {},
         printedReservations = [],
         sharedStations = {},
         namePositions = {},
@@ -367,7 +365,6 @@ export function createMapDrawing(
         | 'revenueStack'
         | 'terrainCostPrefix'
         | 'borderWidths'
-        | 'printedTokens'
         | 'printedReservations'
         | 'sharedStations'
         | 'namePositions'
@@ -690,7 +687,6 @@ export function createMapDrawing(
         bonusArrows: drawnArrows,
         terrainCostPrefix,
         borderWidths,
-        printedTokens,
         printedReservations,
         sharedStations,
         bounds: drawnArrows.map(bonusArrowBounds).reduce(enclosingBounds, {

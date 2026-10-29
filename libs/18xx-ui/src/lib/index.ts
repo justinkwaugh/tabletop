@@ -7,6 +7,7 @@ export {
     createTileDrawing,
     type TileDrawing,
     type TileDrawnPath,
+    type TilePrintedToken,
     type TileDrawnNode,
     type TileDrawingStyle,
     type TileLayout

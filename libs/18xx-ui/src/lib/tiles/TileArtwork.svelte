@@ -28,6 +28,7 @@
         revenueStageColors = {},
         showZeroRevenue = true,
         joints = [],
+        printedSpaces = true,
         trackOverlay,
         overlays
     }: {
@@ -39,6 +40,8 @@
         showZeroRevenue?: boolean
         /** Edges shared with another hex of the same printed area, drawn without a seam. */
         joints?: readonly { start: Point; end: Point }[]
+        /** Draws tokens a tile prints in its station spaces; a map shows its own there. */
+        printedSpaces?: boolean
         trackOverlay?: Snippet<[TileDrawing]>
         overlays?: Snippet<[TileDrawing]>
     } = $props()
@@ -407,6 +410,18 @@
                 <TileSymbol symbol="port" ink={appearance.ink} paper={appearance.paper} />
             </g>
         {/if}
+        {#each drawing.printedTokens.filter((token) => printedSpaces || !token.space) as token, index (index)}
+            <!-- A printed reservation shows faded, as a space held rather than a token placed. -->
+            <image
+                data-tile-printed-token
+                href={token.imageUrl}
+                x={token.center.x - token.radius}
+                y={token.center.y - token.radius}
+                width={token.radius * 2}
+                height={token.radius * 2}
+                opacity={token.space ? 0.75 : 1}><title>{token.title}</title></image
+            >
+        {/each}
         {#each drawing.nodes as { node, revenuePosition, revenueCells, revenueHidden } (node.id)}
             {#if node.kind !== 'junction' && !revenueHidden && (showZeroRevenue || node.revenue.kind === 'staged' || node.revenue.amount !== 0)}
                 <g

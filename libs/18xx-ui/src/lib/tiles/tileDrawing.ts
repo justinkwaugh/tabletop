@@ -59,8 +59,26 @@ export type TileLayout = {
      * dashes from the edge to an anchor.
      */
     printedPaths?: Readonly<Record<string, 'spike' | 'pier'>>
+    /**
+     * Tokens the tile prints, such as a reservation in a city's space or a private's mark on
+     * its track: in a station space by node and slot, or at a point before the tile's rotation.
+     */
+    printedTokens?: readonly TilePrintedToken[]
     /** How far an offboard spike runs from its edge toward its stop, as a share of the way. */
     spikeReach?: number
+}
+
+export type TilePrintedToken = {
+    imageUrl: string
+    title: string
+} & ({ nodeId: string; slot: number } | { at: Point; radius: number })
+/** A printed token placed on the drawn tile, with a station space's size where it fills one. */
+export type TileDrawnToken = {
+    imageUrl: string
+    title: string
+    center: Point
+    radius: number
+    space: boolean
 }
 
 export type TileDrawnNode = {
@@ -107,6 +125,7 @@ export type TileDrawing = {
     labelPosition: Point
     symbolPosition: Point
     upgradeCostPosition: Point
+    printedTokens: readonly TileDrawnToken[]
 }
 
 export function createTileDrawing(
@@ -390,7 +409,32 @@ export function createTileDrawing(
         nodes,
         labelPosition,
         symbolPosition,
-        upgradeCostPosition
+        upgradeCostPosition,
+        printedTokens: (layout.printedTokens ?? []).flatMap((token): TileDrawnToken[] => {
+            if ('at' in token)
+                return [
+                    {
+                        imageUrl: token.imageUrl,
+                        title: token.title,
+                        center: orientPoint(token.at, angle),
+                        radius: token.radius,
+                        space: false
+                    }
+                ]
+            const node = nodes.find((entry) => entry.node.id === token.nodeId)
+            const center = node?.slots[token.slot]
+            return node && center
+                ? [
+                      {
+                          imageUrl: token.imageUrl,
+                          title: token.title,
+                          center,
+                          radius: node.slotRadius,
+                          space: true
+                      }
+                  ]
+                : []
+        })
     }
 }
 
