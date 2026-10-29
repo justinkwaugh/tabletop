@@ -301,16 +301,17 @@ export const OpeningBoard = Type.Object({
 })
 
 /**
- * R-1.7-H1, R-1.9-H1 — how a continued game's seats were settled, written once as it opens and
- * never changed. Present only in a continued game.
+ * R-1.7-H1, R-1.9-H1 — how a continued game's seats were settled: the setup's outcome, written
+ * once by the initializer (the only code that sees the finished game) and never changed. No rule
+ * reads it; the History's opening rows do, before any action exists to carry it. Present only in
+ * a continued game.
  */
 export type OpeningSeats = Type.Static<typeof OpeningSeats>
 export const OpeningSeats = Type.Object({
+    /** For `Winner`, the game they won is the record's last entry as this game opens. */
     chancellor: Type.Object({
         playerId: Type.String(),
-        chosen: Type.Enum(OpeningChancellor),
-        /** For `Winner`: the game they won, the record's last entry. */
-        gameNumber: Type.Optional(Type.Number())
+        chosen: Type.Enum(OpeningChancellor)
     }),
     /** The other seats, in turn order. */
     boards: Type.Array(OpeningBoard, { maxItems: 5 })

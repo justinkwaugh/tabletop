@@ -1,4 +1,4 @@
-import { assertExists, type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import {
     BoardSide,
     ChronicleKeptFor,
@@ -30,7 +30,6 @@ import {
     type ChronicleMapMetadata,
     type ChronicleRelicsMetadata,
     type HydratedOathGameState,
-    type OpeningSeats,
     type Suit,
     type WinRule
 } from '@tabletop/oath'
@@ -376,15 +375,13 @@ interface SeatWords {
     their: string
 }
 
+/** Each way the Chancellor was chosen, given the game before this one and the seat's words. */
 const CHANCELLOR_WORDS: Record<
     OpeningChancellor,
-    (seat: OpeningSeats['chancellor'], words: SeatWords) => string
+    (previousGame: number, words: SeatWords) => string
 > = {
-    [OpeningChancellor.Winner]: (seat, { is }) => {
-        // The engine writes the game the winner won with every Winner opening.
-        assertExists(seat.gameNumber, 'R-1.7-H1 — the winner Chancellor names the game they won')
-        return `${is} the Chancellor, as the winner of ${ageName(seat.gameNumber)}.`
-    },
+    [OpeningChancellor.Winner]: (previousGame, { is }) =>
+        `${is} the Chancellor, as the winner of ${ageName(previousGame)}.`,
     [OpeningChancellor.Citizen]: (_, { is, their }) =>
         `${is} the Chancellor: ${their} board was on its Citizen side.`,
     [OpeningChancellor.Random]: (_, { is }) => `${is} the Chancellor, chosen at random.`
@@ -408,10 +405,12 @@ export function openingRows(state: HydratedOathGameState, viewerId?: string): Op
             ? { is: 'are', was: 'were', their: 'your' }
             : { is: 'is', was: 'was', their: 'their' }
     const { chancellor } = seats
+    // R-1.7-H1 — the last winner won the game before this one: the record's last entry as it opened.
+    const previousGame = gameNumberOf(state) - 1
     return [
         {
             playerId: chancellor.playerId,
-            text: `${chancellor.playerId} ${CHANCELLOR_WORDS[chancellor.chosen](chancellor, wordsFor(chancellor.playerId))}`
+            text: `${chancellor.playerId} ${CHANCELLOR_WORDS[chancellor.chosen](previousGame, wordsFor(chancellor.playerId))}`
         },
         ...seats.boards.map((board) => ({
             playerId: board.playerId,

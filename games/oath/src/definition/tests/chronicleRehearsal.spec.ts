@@ -250,11 +250,7 @@ describe('scene A — "The long table": three seats play to a win, Continue, and
             it('Dana is Chancellor as game 1’s winner, first in turn order; Ann and Rhys keep their boards; Bea is dealt a free one, all Exile side up', () => {
                 const { state } = two
                 expect(state.openingSeats).toEqual({
-                    chancellor: {
-                        playerId: g2('Dana'),
-                        chosen: OpeningChancellor.Winner,
-                        gameNumber: 1
-                    },
+                    chancellor: { playerId: g2('Dana'), chosen: OpeningChancellor.Winner },
                     boards: [
                         {
                             playerId: g2('Ann'),
@@ -538,7 +534,7 @@ describe('scene B — the pinned finished game 2 (an edifice and a ruin on its m
 
     it('Dana is Chancellor; Ann keeps yellow and Rhys red; Bea is dealt a free colour; all Exile side up', () => {
         expect(three.state.openingSeats).toEqual({
-            chancellor: { playerId: g3('Dana'), chosen: OpeningChancellor.Winner, gameNumber: 1 },
+            chancellor: { playerId: g3('Dana'), chosen: OpeningChancellor.Winner },
             boards: [
                 { playerId: g3('Bea'), color: Color.White, side: BoardSide.Exile, kept: false },
                 { playerId: g3('Ann'), color: Color.Yellow, side: BoardSide.Exile, kept: true },

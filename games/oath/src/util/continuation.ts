@@ -127,11 +127,8 @@ export function chooseChancellor(
 ): OpeningSeats['chancellor'] {
     const winner = previous.chronicle?.ending.winnerPlayerId
     const returningWinner = playerIds.find((id) => people.returning[id] === winner)
-    if (returningWinner !== undefined) {
-        const gameNumber = previous.chronicleRecord?.at(-1)?.gameNumber
-        assertExists(gameNumber, 'A finished chronicle has written its entry')
-        return { playerId: returningWinner, chosen: OpeningChancellor.Winner, gameNumber }
-    }
+    if (returningWinner !== undefined)
+        return { playerId: returningWinner, chosen: OpeningChancellor.Winner }
     const citizens = playerIds.filter((id) => {
         const previousId = people.returning[id]
         return (

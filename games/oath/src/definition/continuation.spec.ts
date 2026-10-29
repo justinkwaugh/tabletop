@@ -56,6 +56,19 @@ const RAMPART = 'edifice.order.sprawling-rampart'
 const finished = (): OathProjectedState =>
     structuredClone(GAME_TWO_FINISHED) as unknown as OathProjectedState
 
+/**
+ * The pinned game 2 records its own entry only; its world holds game 1's 3/2/1 too (Order,
+ * Hearth, Beast: R-8.4), so this record starts with game 1's entry and numbers its own 2.
+ */
+function gameTwoRecord(previous: OathProjectedState): ChronicleEntry[] {
+    const [own] = previous.chronicleRecord as ChronicleEntry[]
+    const { built: _built, ruined: _ruined, story: _story, ...plain } = own
+    return [
+        { ...plain, gameNumber: 1, added: { suits: [Suit.Order, Suit.Hearth, Suit.Beast] } },
+        { ...own, gameNumber: 2 }
+    ]
+}
+
 interface Person {
     name: string
     userId?: string
@@ -242,11 +255,7 @@ describe('The Law’s example — game 3 opens on the world game 2 saved', () =>
         expect(seat(RHYS)).toEqual({ color: Color.Red, status: PlayerStatus.Exile })
         expect(seat(ANN)).toEqual({ color: Color.Yellow, status: PlayerStatus.Exile })
         expect(state.openingSeats).toEqual({
-            chancellor: {
-                playerId: idOf(DANA),
-                chosen: OpeningChancellor.Winner,
-                gameNumber: 1
-            },
+            chancellor: { playerId: idOf(DANA), chosen: OpeningChancellor.Winner },
             boards: [
                 { playerId: idOf(ANN), color: Color.Yellow, side: BoardSide.Exile, kept: true },
                 { playerId: idOf(RHYS), color: Color.Red, side: BoardSide.Exile, kept: true }
@@ -364,8 +373,7 @@ describe('through the platform, as Continue opens it', () => {
         )
         expect(state.openingSeats?.chancellor).toEqual({
             playerId: idOf(DANA),
-            chosen: OpeningChancellor.Winner,
-            gameNumber: 1
+            chosen: OpeningChancellor.Winner
         })
         expect(state.openingSeats?.boards.map((b) => [b.playerId, b.color, b.kept])).toEqual(
             expect.arrayContaining([
@@ -509,7 +517,8 @@ interface SeatScene {
     /** The finished game's seats, in its order: id, colour, status. */
     seats: [string, Color, PlayerStatus][]
     winner: string
-    gameNumber?: number
+    /** The game just finished: the record holds an entry for it and for each game before it. */
+    gameNumber?: 1 | 2
     boxed?: Color[]
 }
 
@@ -534,9 +543,7 @@ function sceneOf(scene: SeatScene): OathProjectedState {
         previous.chronicle.ending.winnerPlayerId = scene.winner
         previous.winningPlayerIds = [scene.winner]
     }
-    const record = previous.chronicleRecord as ChronicleEntry[]
-    const last = record[record.length - 1]
-    record[record.length - 1] = { ...last, gameNumber: scene.gameNumber ?? 1 }
+    if (scene.gameNumber === 2) previous.chronicleRecord = gameTwoRecord(previous)
     if (scene.boxed) previous.boxedCitizenColors = scene.boxed
     previous.table = {
         ...(previous.table as NonNullable<OathProjectedState['table']>),
@@ -575,9 +582,10 @@ describe('R-1.7-H1, R-1.9-H1 — the seats and boards as a continued game opens'
         const state = opened(GAME_ONE, people('dana', 'rhys', 'ann'), GAME_TWO_SEED)
         expect(state.openingSeats?.chancellor).toEqual({
             playerId: g3('dana'),
-            chosen: OpeningChancellor.Winner,
-            gameNumber: 1
+            chosen: OpeningChancellor.Winner
         })
+        // The game they won is the record's last entry, which History names.
+        expect(state.chronicleRecord?.map((entry) => entry.gameNumber)).toEqual([1])
         expect(boardsOf(state)).toEqual(
             expect.arrayContaining([
                 `${g3('ann')} blue citizen kept`,
@@ -612,9 +620,9 @@ describe('R-1.7-H1, R-1.9-H1 — the seats and boards as a continued game opens'
         const state = opened(GAME_TWO, people('ann', 'dana', 'bea'), GAME_THREE_SEED)
         expect(state.openingSeats?.chancellor).toEqual({
             playerId: g3('ann'),
-            chosen: OpeningChancellor.Winner,
-            gameNumber: 2
+            chosen: OpeningChancellor.Winner
         })
+        expect(state.chronicleRecord?.map((entry) => entry.gameNumber)).toEqual([1, 2])
         expect(state.turnManager.turnOrder).toEqual([g3('ann'), g3('dana'), g3('bea')])
         expect(boardsOf(state)).toEqual([
             `${g3('dana')} blue citizen dealt`,
@@ -657,7 +665,6 @@ describe('R-1.7-H1, R-1.9-H1 — the seats and boards as a continued game opens'
             ['01', '02', '03', '04', '05', '06', '07', '08'].map((seed) => {
                 const state = opened(scene, people('rhys', 'bea', 'eli'), seed.padStart(32, '0'))
                 expect(state.openingSeats?.chancellor.chosen).toBe(OpeningChancellor.Random)
-                expect(state.openingSeats?.chancellor.gameNumber).toBeUndefined()
                 return state.openingSeats?.chancellor.playerId
             })
         )
@@ -915,15 +922,8 @@ describe('hidden information at open (R-9.4)', () => {
     })
 
     it('an exploration from a seat’s view deals only what that seat cannot see, each suit to the count the record gives', () => {
-        // The pinned game 2 records its own entry only; its world holds game 1's 3/2/1 too
-        // (Order, Hearth, Beast: R-8.4), so the record here starts with game 1's entry.
         const previous = finished()
-        const [own] = previous.chronicleRecord as ChronicleEntry[]
-        const { built: _built, ruined: _ruined, story: _story, ...plain } = own
-        previous.chronicleRecord = [
-            { ...plain, gameNumber: 1, added: { suits: [Suit.Order, Suit.Hearth, Suit.Beast] } },
-            { ...own, gameNumber: 2 }
-        ]
+        previous.chronicleRecord = gameTwoRecord(previous)
         const state = open([DANA, RHYS, ANN], previous)
         const view = served(state, { kind: 'player', playerId: idOf(ANN) })
         const explored = new OathGameExploration().createFromProjectedState({

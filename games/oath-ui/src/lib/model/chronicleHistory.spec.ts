@@ -297,6 +297,25 @@ describe('R-1.7-H1, R-1.9-H1 — how a continued game’s seats were settled', (
         ])
     })
 
+    it('the winner’s Age is the game before this one, read from the record, also once this game’s own entry is written', () => {
+        const state = structuredClone(gameThreeContinued().state)
+        // The seat says why, not which game: the record's last entry is the game Ann won.
+        expect(state.openingSeats?.chancellor).toEqual({
+            playerId: 'ann',
+            chosen: OpeningChancellor.Winner
+        })
+        expect(state.chronicleRecord?.map((entry) => entry.gameNumber)).toEqual([1, 2])
+        const written = gameTwoSkipped().state.chronicle
+        assertExists(written, 'game 2 has written its chronicle')
+        expect(written.step).toBeUndefined()
+        state.chronicle = structuredClone(written)
+        state.chronicleRecord = [
+            ...(state.chronicleRecord ?? []),
+            { ...GAME_TWO_ENTRY, gameNumber: 3 }
+        ]
+        expect(openingLines(state)[0]).toBe('ann is the Chancellor, as the winner of Age II.')
+    })
+
     it('the other ways a Chancellor is chosen, and a kept board', () => {
         const state = structuredClone(gameThreeContinued().state)
         state.openingSeats = {
