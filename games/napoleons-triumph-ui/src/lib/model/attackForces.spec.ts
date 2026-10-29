@@ -45,6 +45,11 @@ describe('the units of an attack as they entered it', () => {
         expect(entered(game).get('A01')?.shown).toEqual(infantry(2))
     })
 
+    it('show the enemy a unit revealed by the loss that destroyed it', () => {
+        const game = wonBeforeTheRetreat()
+        expect(entered(game).get('A02')?.shown).toEqual(infantry(1))
+    })
+
     it('leave the units that lost nothing as they stand', () => {
         const game = retreatToTheRefuge(wonBeforeTheRetreat())
         expect(entered(game).get('F02')).toEqual(game.hydrated.findUnit('F02'))

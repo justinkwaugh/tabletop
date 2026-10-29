@@ -7,7 +7,7 @@ import {
     type EndedAttack,
     type LocaleId
 } from '@tabletop/napoleons-triumph'
-import { actionsOfTheLastAttack } from './attackForces.js'
+import { actionsOfTheLastAttack } from './lastAttack.js'
 import type { RecordedGame } from './moveReplay.js'
 
 export interface ConcludedBattle {

@@ -17,7 +17,7 @@ import {
     type PendingDecision,
     type ResultTerm
 } from '@tabletop/napoleons-triumph'
-import { actionsOfTheLastAttack } from './attackForces.js'
+import { actionsOfTheLastAttack } from './lastAttack.js'
 
 export interface StepLoss {
     unitId: string
