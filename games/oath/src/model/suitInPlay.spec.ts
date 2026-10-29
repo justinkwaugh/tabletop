@@ -15,7 +15,20 @@ const REGISTRY_SUIT_READERS = [
     'util/exploration.ts'
 ]
 
+/** Any mention of the registry's suit by name: an aliased import or a namespace's member names it too. */
 const REGISTRY_SUIT = /\bsuitOf\b/
+
+/** The code alone: comments and quoted strings (module paths among them) set aside. */
+function codeOf(source: string): string {
+    return source
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/[^\n]*/g, '')
+        .replace(/(['"`])[^'"`\n]*\1/g, "''")
+}
+
+function readsPrintedSuit(source: string): boolean {
+    return REGISTRY_SUIT.test(codeOf(source))
+}
 
 async function productionSources(): Promise<{ path: string; source: string }[]> {
     const fs = await vi.importActual<SourceFiles>('node:fs')
@@ -33,7 +46,7 @@ describe('R-2.9, R-10.14 — a card in play matches by the suit it shows', () =>
         const offending = (await productionSources())
             .filter(
                 ({ path, source }) =>
-                    !REGISTRY_SUIT_READERS.includes(path) && REGISTRY_SUIT.test(source)
+                    !REGISTRY_SUIT_READERS.includes(path) && readsPrintedSuit(source)
             )
             .map(({ path }) => path)
         expect(offending).toEqual([])
@@ -41,8 +54,19 @@ describe('R-2.9, R-10.14 — a card in play matches by the suit it shows', () =>
 
     it('each listed reader still reads it', async () => {
         const readers = (await productionSources())
-            .filter(({ source }) => REGISTRY_SUIT.test(source))
+            .filter(({ source }) => readsPrintedSuit(source))
             .map(({ path }) => path)
         expect([...readers].sort()).toEqual([...REGISTRY_SUIT_READERS].sort())
+    })
+
+    it('an aliased import or a namespace import is caught', () => {
+        const aliased =
+            "import { suitOf as printedSuit } from '../data/cardRegistry.js'\nprintedSuit(id)"
+        const namespaced =
+            "import * as registry from '../data/cardRegistry.js'\nregistry.suitOf(id)"
+        const other = "import { kindOf } from '../data/cardRegistry.js'\nkindOf(id)"
+        expect(readsPrintedSuit(aliased)).toBe(true)
+        expect(readsPrintedSuit(namespaced)).toBe(true)
+        expect(readsPrintedSuit(other)).toBe(false)
     })
 })

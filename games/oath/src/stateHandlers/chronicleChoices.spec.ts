@@ -42,10 +42,15 @@ import {
 import { BuildOrRepairEdifice, isBuildOrRepairEdifice } from '../actions/buildOrRepairEdifice.js'
 import { ChooseChronicleSuit, isChooseChronicleSuit } from '../actions/chooseChronicleSuit.js'
 import { ChooseHealStack } from '../actions/chooseHealStack.js'
-import { WriteChronicleStory, isWriteChronicleStory } from '../actions/writeChronicleStory.js'
+import {
+    WriteChronicleStory,
+    WriteChronicleStoryValidator as StoryValidator,
+    isWriteChronicleStory
+} from '../actions/writeChronicleStory.js'
 import { isChronicleFlipCitizens } from '../actions/chronicleFlipCitizens.js'
 import { SkipChronicleStory } from '../actions/skipChronicleStory.js'
 import { ResolveWake } from '../actions/resolveWake.js'
+import { HydratedLetPeek, LetPeek, LetPeekSubjectKind } from '../actions/letPeek.js'
 import {
     chronicleSuitLeaders,
     citizenshipEligible,
@@ -926,7 +931,13 @@ describe('the story, the last step', () => {
         expect(CHRONICLE_STORY_LIMIT).toBe(1000)
         const longest = '🜂'.repeat(1000)
         expect(run(state, story(DANA, longest)).final.chronicleRecord?.at(-1)?.story).toBe(longest)
-        expect(refusal(state, story(DANA, `${longest}a`))).toBe(
+        // The schema caps it too, counting grapheme clusters: never fewer allowed than the handler.
+        expect(() => story(DANA, `${longest}a`)).toThrow()
+        expect(StoryValidator.Check(story(DANA, longest))).toBe(true)
+        // 1,001 code points in 1,000 clusters pass the schema; the handler counts code points.
+        const combined = `${'a'.repeat(999)}e\u0301`
+        expect(StoryValidator.Check(story(DANA, combined))).toBe(true)
+        expect(refusal(state, story(DANA, combined))).toBe(
             'the story is longer than 1,000 characters'
         )
         expect(refusal(state, story(DANA, '   \n '))).toBe('the story is empty')
@@ -1250,5 +1261,23 @@ describe('R-8.2-H1 — the offered Exiles answer as one simultaneous group', () 
         const actions = [...first.processedActions, ...second.processedActions]
         expect(latestPlayerUndoTarget(actions, ANN)?.id).toBe(`answer-${ANN}`)
         expect(latestPlayerUndoTarget(actions, BEA)?.id).toBe(`answer-${BEA}`)
+    })
+})
+
+describe('R-3 — once the game is won, no one lets another peek, while the chronicle is written', () => {
+    it('Rhys, not on the clock, cannot show Ann their facedown adviser; the Vow still waits on Dana', () => {
+        const won = wonTable(gameOne(), USURPER)
+        const peek = buildAction(LetPeek, {
+            playerId: RHYS,
+            toPlayerId: ANN,
+            subject: { kind: LetPeekSubjectKind.Adviser, cardId: CHARLATAN }
+        })
+        expect(HydratedLetPeek.reasonCannotShowNow(hydrated(won), RHYS)).toBe('the game is over')
+        expect(validFor(won, RHYS)).toEqual([])
+        expect(() =>
+            engine.runNext(peek, won, testGame(won.players.map((player) => player.playerId)))
+        ).toThrow('Action of type letPeek is not valid in state Chronicle')
+        expect(won.chronicle?.step).toBe(ChronicleStep.Vow)
+        expect(won.activePlayerIds).toEqual([DANA])
     })
 })

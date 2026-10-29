@@ -30,6 +30,8 @@ const SRC = new URL('../', import.meta.url)
  */
 const PRINTED_POWER_READERS = [
     'data/cardPowers.ts',
+    // It re-exports them, so a file importing them from it names them too.
+    'data/cardRegistry.ts',
     'util/powersInPlay.ts',
     'util/access.ts',
     'util/hiddenInputs.ts',
@@ -37,7 +39,23 @@ const PRINTED_POWER_READERS = [
     'util/witchsBargain.ts'
 ]
 
-const PRINTED_POWERS = /\b(powersWithTiming|cardPowers|cardPower)\(/
+/**
+ * Any mention of a printed-power reader by name, a call or not, once module paths are set aside:
+ * an aliased import (`cardPowers as powers`) and a namespace's member (`data.cardPowers`) still name it.
+ */
+const PRINTED_POWERS = /\b(powersWithTiming|cardPowers|cardPower)\b/
+
+/** The code alone: comments and quoted strings (module paths among them) set aside. */
+function codeOf(source: string): string {
+    return source
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/[^\n]*/g, '')
+        .replace(/(['"`])[^'"`\n]*\1/g, "''")
+}
+
+function readsPrintedPowers(source: string): boolean {
+    return PRINTED_POWERS.test(codeOf(source))
+}
 
 async function productionSources(): Promise<{ path: string; source: string }[]> {
     const fs = await vi.importActual<SourceFiles>('node:fs')
@@ -55,7 +73,7 @@ describe('R-2.9 — a card in play has the powers of the side it shows', () => {
         const offending = (await productionSources())
             .filter(
                 ({ path, source }) =>
-                    !PRINTED_POWER_READERS.includes(path) && PRINTED_POWERS.test(source)
+                    !PRINTED_POWER_READERS.includes(path) && readsPrintedPowers(source)
             )
             .map(({ path }) => path)
         expect(offending).toEqual([])
@@ -63,9 +81,20 @@ describe('R-2.9 — a card in play has the powers of the side it shows', () => {
 
     it('each listed reader still reads them', async () => {
         const readers = (await productionSources())
-            .filter(({ source }) => PRINTED_POWERS.test(source))
+            .filter(({ source }) => readsPrintedPowers(source))
             .map(({ path }) => path)
         expect([...readers].sort()).toEqual([...PRINTED_POWER_READERS].sort())
+    })
+
+    it('an aliased import or a namespace import is caught; another import from the module is not', () => {
+        const aliased = "import { cardPowers as printed } from '../data/cardPowers.js'\nprinted(id)"
+        const namespaced = "import * as data from '../data/cardPowers.js'\ndata.cardPower(id, 0)"
+        const other = "import { PowerTiming } from '../data/cardPowers.js'\nPowerTiming.Action"
+        const comment = '/** `cardPowers.ts` registers both. */\n// cardPower(id) is not read here'
+        expect(readsPrintedPowers(aliased)).toBe(true)
+        expect(readsPrintedPowers(namespaced)).toBe(true)
+        expect(readsPrintedPowers(other)).toBe(false)
+        expect(readsPrintedPowers(comment)).toBe(false)
     })
 })
 

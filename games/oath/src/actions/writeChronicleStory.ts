@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { CHRONICLE_STORY_LIMIT } from '../model/chronicle.js'
 import {
     chronicleOf,
     normalizedStory,
@@ -15,7 +16,11 @@ export const WriteChronicleStoryMetadata = Type.Object({
     gameNumber: Type.Number()
 })
 
-/** The winner's story of the game: plain text, stored once in the record and never edited. */
+/**
+ * The winner's story of the game: plain text, stored once in the record and never edited. The
+ * handler takes at most `CHRONICLE_STORY_LIMIT` code points as sent; the schema's `maxLength` counts
+ * grapheme clusters, each one code point or more, so it never refuses a story the handler takes.
+ */
 export type WriteChronicleStory = Type.Static<typeof WriteChronicleStory>
 export const WriteChronicleStory = Type.Evaluate(
     Type.Intersect([
@@ -23,7 +28,7 @@ export const WriteChronicleStory = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.WriteChronicleStory),
             playerId: Type.String(),
-            text: Type.String(),
+            text: Type.String({ maxLength: CHRONICLE_STORY_LIMIT }),
             metadata: Type.Optional(WriteChronicleStoryMetadata)
         })
     ])

@@ -171,12 +171,16 @@ export class OathGameInitializer
             players.map((player) => player.playerId),
             prng.random
         )
-        const turnManager = HydratedTurnManager.generate(players, prng.random)
+        const drawn = HydratedTurnManager.generate(players, prng.random).turnOrder
         const turnOrder = [
             chancellorSeat.playerId,
-            ...turnManager.turnOrder.filter((id) => id !== chancellorSeat.playerId)
+            ...drawn.filter((id) => id !== chancellorSeat.playerId)
         ]
-        turnManager.turnOrder.splice(0, turnOrder.length, ...turnOrder)
+        // Seated through the platform's starting-position assignment; the draw above was the
+        // random one, so this one draws nothing more from the stream.
+        const turnManager = HydratedTurnManager.generate(players, () => 0, {
+            playerIds: turnOrder
+        })
 
         // R-1.9-H1
         const { boards, boxedCitizenColors } = settleBoards(

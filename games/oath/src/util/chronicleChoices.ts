@@ -469,7 +469,8 @@ export function reasonCannotWriteChronicleStory(
     if (turn || text === undefined) return turn
     const story = normalizedStory(text)
     if (story.length === 0) return 'the story is empty'
-    if ([...story].length > CHRONICLE_STORY_LIMIT) {
+    // Counted as sent, so the schema's cap never refuses a story taken here.
+    if ([...text].length > CHRONICLE_STORY_LIMIT) {
         return `the story is longer than ${CHRONICLE_STORY_LIMIT.toLocaleString('en-US')} characters`
     }
     if ([...story].some(isControl)) return 'the story holds a character that is not plain text'

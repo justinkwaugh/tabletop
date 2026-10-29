@@ -38,8 +38,15 @@ import { OathImperialColor } from './colors.js'
 
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
-/** R-1.13 — the Oath changes setup: who holds a banner. The deck has one option, Random. */
-const CONFIGS = Object.values(OathType).map((oathType) => ({ oathType }))
+/**
+ * A new game has no options, so its config is empty (the Oath of Supremacy, R-1.13); a stored or
+ * provisioned one may still name its Oath, which changes setup: who holds a banner.
+ */
+const CONFIGS: { oathType?: OathType }[] = [
+    {},
+    ...Object.values(OathType).map((oathType) => ({ oathType }))
+]
+const CONFIG_CASES = CONFIGS.map((config) => [config.oathType ?? 'no options', config] as const)
 
 /** R-1.13 — the banner the Chancellor starts with, if the Oath gives one. */
 const OATH_BANNER: Partial<Record<OathType, Banner>> = {
@@ -84,13 +91,13 @@ function playSetup(game: Game, initial: OathProjectedState) {
     return { state, actors }
 }
 
-describe.each(CONFIGS)('Oath tournaments, $oathType', (config) => {
+describe.each(CONFIG_CASES)('Oath tournaments, %s', (_name, config) => {
     describe.each([2, 3, 4, 5, 6])('with %i players', (count) => {
         it('R-1.7 — position zero is the Chancellor, and every seat keeps its assigned place through setup', () => {
             const game = waitingGame(count, config)
             expect(new OathGameInitializer().supportsStartingPositions).toBe(true)
             const unassigned = start(game)
-            const banner = OATH_BANNER[config.oathType]
+            const banner = config.oathType ? OATH_BANNER[config.oathType] : undefined
             for (const order of rotations(game.players.map((player) => player.id))) {
                 const initial = start(game, order)
                 expect(initial.turnManager.turnOrder).toEqual(order)
@@ -252,6 +259,15 @@ describe('Oath tournament results', () => {
 
     it('R-3.4 — a War Exhaustion victory at the automatic Rest passes validateGameResult and scores its one winner', () => {
         const { game, order, finished } = finishedWithin(3, (round) => round === 8)
+        expectOneScoredWinner(game, finished, order[0])
+    })
+})
+
+describe.each([2, 3, 4, 5, 6])('Oath tournament results with %i players', (count) => {
+    it('a game with no options plays through the Chronicle to its result and scores its one winner', () => {
+        const { game, order, finished } = finishedWithin(count, () => true)
+        expect(game.config).toEqual({})
+        expect(finished.chronicleRecord).toHaveLength(1)
         expectOneScoredWinner(game, finished, order[0])
     })
 })
