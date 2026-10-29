@@ -172,6 +172,18 @@ export function unansweredOffers(state: HydratedOathGameState): string[] {
         .map((offer) => offer.playerId)
 }
 
+/** R-8.2-H1 — the offered Exiles answer together, in any order: their answers are one group. */
+export const CHRONICLE_CITIZENSHIP_GROUP = 'chronicle-citizenship'
+
+/** An answer outside the offered Exiles' group could not be taken against a stale index. */
+export function reasonOutsideCitizenshipGroup(
+    simultaneousGroupId: string | undefined
+): string | undefined {
+    return simultaneousGroupId === CHRONICLE_CITIZENSHIP_GROUP
+        ? undefined
+        : 'an answer to Citizenship belongs to the offered Exiles’ group'
+}
+
 export function reasonCannotAnswerChronicleCitizenship(
     state: HydratedOathGameState,
     playerId: string

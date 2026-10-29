@@ -4,11 +4,16 @@ import { ChronicleStep } from '../model/chronicle.js'
 import { MachineState, toMachineState } from '../definition/states.js'
 import { ChooseOath } from '../actions/chooseOath.js'
 import { OfferChronicleCitizenship } from '../actions/offerChronicleCitizenship.js'
+import { AnswerChronicleCitizenship } from '../actions/answerChronicleCitizenship.js'
 import { BuildOrRepairEdifice } from '../actions/buildOrRepairEdifice.js'
 import { ChooseChronicleSuit } from '../actions/chooseChronicleSuit.js'
 import { ChooseHealStack } from '../actions/chooseHealStack.js'
 import { SkipChronicleStory } from '../actions/skipChronicleStory.js'
-import { chronicleSuitLeaders, vowableOaths } from '../util/chronicleChoices.js'
+import {
+    CHRONICLE_CITIZENSHIP_GROUP,
+    chronicleSuitLeaders,
+    vowableOaths
+} from '../util/chronicleChoices.js'
 import { recordWin, stateAfterWin } from '../util/chronicle.js'
 import type { GameOutcome } from '../util/victory.js'
 import { OathStateHandlers } from '../definition/stateHandlers.js'
@@ -61,6 +66,16 @@ export function runSystemActions(
         processed.push(action.dehydrate())
     }
     return processed
+}
+
+/** An offered Exile's answer, in the group every answer belongs to (R-8.2-H1). */
+export function chronicleAnswer(playerId: string, accept: boolean, id = `answer-${playerId}`) {
+    return buildAction(AnswerChronicleCitizenship, {
+        id,
+        playerId,
+        accept,
+        simultaneousGroupId: CHRONICLE_CITIZENSHIP_GROUP
+    })
 }
 
 /**

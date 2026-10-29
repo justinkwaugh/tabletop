@@ -7,7 +7,8 @@ import {
     acceptChronicleCitizenship,
     chronicleOf,
     chronicleWinnerOf,
-    reasonCannotAnswerChronicleCitizenship
+    reasonCannotAnswerChronicleCitizenship,
+    reasonOutsideCitizenshipGroup
 } from '../util/chronicleChoices.js'
 
 export type AnswerChronicleCitizenshipMetadata = Type.Static<
@@ -22,7 +23,10 @@ export const AnswerChronicleCitizenshipMetadata = Type.Object({
     winnerPlayerId: Type.String()
 })
 
-/** R-8.2, R-X.1 — an offered Exile's own answer; the others answer on their own, in any order (R-8.2-H1). */
+/**
+ * R-8.2, R-X.1 — an offered Exile's own answer; the others answer on their own, in any order
+ * (R-8.2-H1), so every answer carries the group `CHRONICLE_CITIZENSHIP_GROUP`.
+ */
 export type AnswerChronicleCitizenship = Type.Static<typeof AnswerChronicleCitizenship>
 export const AnswerChronicleCitizenship = Type.Evaluate(
     Type.Intersect([
@@ -58,7 +62,9 @@ export class HydratedAnswerChronicleCitizenship
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
-        const reason = reasonCannotAnswerChronicleCitizenship(state, this.playerId)
+        const reason =
+            reasonCannotAnswerChronicleCitizenship(state, this.playerId) ??
+            reasonOutsideCitizenshipGroup(this.simultaneousGroupId)
         if (reason) throw Error(reason)
         this.revealsInfo = false
         const offer = chronicleOf(state).citizenship?.offers?.find(

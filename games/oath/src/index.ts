@@ -135,6 +135,7 @@ export * from './util/rest.js'
 export * from './util/freeActions.js'
 export * from './util/witchsBargain.js'
 export {
+    CHRONICLE_CITIZENSHIP_GROUP,
     chronicleSuitLeaders,
     citizenshipEligible,
     edificeChoices,

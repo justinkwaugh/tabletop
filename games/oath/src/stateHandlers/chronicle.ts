@@ -20,7 +20,8 @@ import {
     reasonCannotChooseHealStack,
     reasonCannotChooseOath,
     reasonCannotOfferChronicleCitizenship,
-    reasonCannotWriteChronicleStory
+    reasonCannotWriteChronicleStory,
+    reasonOutsideCitizenshipGroup
 } from '../util/chronicleChoices.js'
 import { HydratedChooseOath, isChooseOath } from '../actions/chooseOath.js'
 import {
@@ -172,7 +173,10 @@ export class ChronicleStateHandler implements MachineStateHandler<
             return reasonCannotOfferChronicleCitizenship(state, playerId, action.exilePlayerIds)
         }
         if (isAnswerChronicleCitizenship(action)) {
-            return reasonCannotAnswerChronicleCitizenship(state, playerId)
+            return (
+                reasonCannotAnswerChronicleCitizenship(state, playerId) ??
+                reasonOutsideCitizenshipGroup(action.simultaneousGroupId)
+            )
         }
         if (isBuildOrRepairEdifice(action)) {
             return reasonCannotBuildOrRepair(state, playerId, action.choice)

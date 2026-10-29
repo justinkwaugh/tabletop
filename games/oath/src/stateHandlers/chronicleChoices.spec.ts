@@ -21,7 +21,7 @@ import {
     SPRAWLING_RAMPART,
     GREAT_SPIRE
 } from '../testing/edifices.js'
-import { wonTable, wonWithActions } from '../testing/chronicle.js'
+import { chronicleAnswer, wonTable, wonWithActions } from '../testing/chronicle.js'
 import { chronicleCensus, wholeWorld } from '../testing/chronicleWorld.js'
 import { PRINTED_DENIZENS_BY_SUIT } from '../data/cardRegistry.js'
 import { MachineState } from '../definition/states.js'
@@ -54,6 +54,7 @@ import {
     vowableOaths
 } from '../util/chronicleChoices.js'
 import { OathRevision } from '../util/revision.js'
+import { CHRONICLE_CITIZENSHIP_GROUP } from '../util/chronicleChoices.js'
 import type { GameOutcome } from '../util/victory.js'
 import '../powers/index.js'
 
@@ -276,8 +277,7 @@ const vow = (playerId: string, oathType: OathType, id = 'vow') =>
     buildAction(ChooseOath, { id, playerId, oathType })
 const offer = (exilePlayerIds: string[], playerId = DANA, id = 'offer') =>
     buildAction(OfferChronicleCitizenship, { id, playerId, exilePlayerIds })
-const answer = (playerId: string, accept: boolean) =>
-    buildAction(AnswerChronicleCitizenship, { id: `answer-${playerId}`, playerId, accept })
+const answer = (playerId: string, accept: boolean) => chronicleAnswer(playerId, accept)
 const build = (playerId: string, choice?: { siteId: string; cardId: string }) =>
     buildAction(BuildOrRepairEdifice, { id: 'build', playerId, ...(choice ? { choice } : {}) })
 const suit = (playerId: string, chosen: Suit) =>
@@ -1196,5 +1196,59 @@ describe('R-8 — what the rules settle alone runs as System Actions after the a
             'waysMet',
             'winnerPlayerId'
         ])
+    })
+})
+
+describe('R-8.2-H1 — the offered Exiles answer as one simultaneous group', () => {
+    const grouped = (playerId: string, accept: boolean, index: number) => ({
+        ...answer(playerId, accept),
+        index
+    })
+    const ungrouped = (playerId: string, accept: boolean) =>
+        buildAction(AnswerChronicleCitizenship, { id: `answer-${playerId}`, playerId, accept })
+
+    function offeredToThree() {
+        return run(vowed3(), offer([ANN, BEA, CY])).final
+    }
+
+    function vowed3() {
+        const table = gameOne({
+            [BEA]: { status: PlayerStatus.Exile },
+            [CY]: { status: PlayerStatus.Exile }
+        })
+        return run(wonTable(table, USURPER), vow(DANA, OathType.Protection)).final
+    }
+
+    it('an answer sent against the state before another Exile’s answer is still taken', () => {
+        const offered = offeredToThree()
+        const game = testGame(offered.players.map((player) => player.playerId))
+        const at = offered.actionCount
+        const first = engine.run(grouped(ANN, true, at), offered, game).updatedState
+        const second = engine.run(grouped(BEA, false, at), first, game)
+        expect(second.updatedState.activePlayerIds).toEqual([CY])
+        expect(second.updatedState.chronicle?.citizenship?.offers).toEqual([
+            { playerId: ANN, accepted: true },
+            { playerId: BEA, accepted: false },
+            { playerId: CY }
+        ])
+    })
+
+    it('an answer outside the group is refused', () => {
+        const offered = offeredToThree()
+        expect(refusal(offered, ungrouped(ANN, true))).toBe(
+            'an answer to Citizenship belongs to the offered Exiles’ group'
+        )
+        expect(answer(ANN, true).simultaneousGroupId).toBe(CHRONICLE_CITIZENSHIP_GROUP)
+    })
+
+    it('each Exile can still undo their own answer after another has answered', () => {
+        const offered = offeredToThree()
+        const game = testGame(offered.players.map((player) => player.playerId))
+        const at = offered.actionCount
+        const first = engine.run(grouped(ANN, true, at), offered, game)
+        const second = engine.run(grouped(BEA, false, at + 1), first.updatedState, game)
+        const actions = [...first.processedActions, ...second.processedActions]
+        expect(latestPlayerUndoTarget(actions, ANN)?.id).toBe(`answer-${ANN}`)
+        expect(latestPlayerUndoTarget(actions, BEA)?.id).toBe(`answer-${BEA}`)
     })
 })
