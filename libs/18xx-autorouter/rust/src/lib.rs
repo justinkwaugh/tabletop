@@ -483,6 +483,8 @@ struct Search<'a> {
     groups: Vec<bool>,
     hexes: Vec<u32>,
     walking: Vec<usize>,
+    // Every stop uses some of the train's capacity, so a full train cannot continue.
+    every_stop_costs: bool,
     candidates: Vec<Candidate>,
     count: usize,
     expansions: u64,
@@ -548,9 +550,37 @@ impl Search<'_> {
         for &g in &stop.groups {
             self.groups[g] = true;
         }
+        // A full train goes no further unless some stop is free to visit.
+        if cost == self.train.distance && self.every_stop_costs {
+            for &g in &stop.groups {
+                self.groups[g] = false;
+            }
+            self.visited[node] = false;
+            return;
+        }
         for &connection_id in &self.adjacency[node] {
             let edge = &self.connections[connection_id];
             let next = &self.problem.stops[edge.to];
+            // The step the next call would reject at once, checked first and before touching any
+            // state.
+            let next_cost = cost
+                + self.train.visit_costs[edge.to]
+                + if self.train.counts_crossings {
+                    edge.crossings
+                } else {
+                    0
+                };
+            let next_majors = majors + self.train.majors(next);
+            if next_cost > self.train.distance
+                || self
+                    .train
+                    .major_limit
+                    .is_some_and(|limit| next_majors > limit)
+                || !(token || next.token)
+                    && self.token_distance[edge.to] > self.train.distance - next_cost
+            {
+                continue;
+            }
             if self.visited[edge.to]
                 || next.groups.iter().any(|&g| self.groups[g])
                 || edge.first_terminal && !self.walking.is_empty() && edge.paths.len() > 1
@@ -576,14 +606,8 @@ impl Search<'_> {
                 start,
                 edge.to,
                 RouteValue {
-                    cost: cost
-                        + self.train.visit_costs[edge.to]
-                        + if self.train.counts_crossings {
-                            edge.crossings
-                        } else {
-                            0
-                        },
-                    majors: majors + self.train.majors(next),
+                    cost: next_cost,
+                    majors: next_majors,
                     revenue: revenue + extra,
                     token,
                     city,
@@ -619,6 +643,9 @@ impl Search<'_> {
         self.count += 1;
         let visits = self.walking.len() + 1;
         if !self.train.scores_payments() {
+            if !self.wanted(revenue + first_bonus.max(last_bonus), visits) {
+                return;
+            }
             self.offer(Candidate {
                 revenue: revenue + first_bonus.max(last_bonus),
                 visits,
@@ -643,14 +670,16 @@ impl Search<'_> {
             })
         };
         let paid = paid_revenue(None);
-        self.offer(Candidate {
-            revenue: fixed + paid + first_bonus.max(last_bonus),
-            visits,
-            connections: self.walking.clone(),
-            resources: self.used.clone(),
-            reversed: last_bonus > first_bonus,
-            extension: vec![],
-        });
+        if self.wanted(fixed + paid + first_bonus.max(last_bonus), visits) {
+            self.offer(Candidate {
+                revenue: fixed + paid + first_bonus.max(last_bonus),
+                visits,
+                connections: self.walking.clone(),
+                resources: self.used.clone(),
+                reversed: last_bonus > first_bonus,
+                extension: vec![],
+            });
+        }
         if !stops.iter().any(|&id| self.origins[problem.stops[id].hex]) {
             return;
         }
@@ -662,7 +691,7 @@ impl Search<'_> {
                     .to
                     .map(|stop| problem.stops[stop].hex);
                 let extended = paid_revenue(destination);
-                if extended <= paid {
+                if extended <= paid || !self.wanted(fixed + extended + first_stop_bonus, visits) {
                     continue;
                 }
                 let mut resources = self.used.clone();
@@ -684,6 +713,19 @@ impl Search<'_> {
         }
     }
 
+    // Whether a candidate worth this much would be stored, checked before copying its lists.
+    fn wanted(&self, revenue: i32, visits: usize) -> bool {
+        let fleet_bonus = self.problem.longest_route_bonus_per_stop;
+        let value = revenue + visits as i32 * fleet_bonus;
+        if self.best_only {
+            self.candidates
+                .first()
+                .is_none_or(|best| best.revenue + best.visits as i32 * fleet_bonus < value)
+        } else {
+            self.floor.is_none_or(|floor| value > floor)
+        }
+    }
+
     fn offer(&mut self, candidate: Candidate) {
         let fleet_bonus = self.problem.longest_route_bonus_per_stop;
         let value = |c: &Candidate| c.revenue + c.visits as i32 * fleet_bonus;
@@ -697,7 +739,7 @@ impl Search<'_> {
                 && self.stored_bytes + 3 * self.candidates.capacity().max(4) * header
                     > self.memory_budget
             {
-                self.keep_most_valuable_half();
+                self.reclaim();
                 if self.floor.is_some_and(|floor| value(&candidate) <= floor) {
                     return;
                 }
@@ -705,7 +747,7 @@ impl Search<'_> {
             self.stored_bytes += candidate_bytes(self.problem, &candidate) - header;
             self.candidates.push(candidate);
             if self.stored_bytes + self.candidates.capacity() * header > self.memory_budget {
-                self.keep_most_valuable_half();
+                self.reclaim();
             }
         } else if self
             .candidates
@@ -717,21 +759,29 @@ impl Search<'_> {
         }
     }
 
-    fn keep_most_valuable_half(&mut self) {
-        let fleet_bonus = self.problem.longest_route_bonus_per_stop;
-        let value = |c: &Candidate| c.revenue + c.visits as i32 * fleet_bonus;
-        self.candidates
-            .sort_unstable_by_key(|c| std::cmp::Reverse(value(c)));
-        self.candidates.truncate(self.candidates.len() / 2);
-        self.candidates.shrink_to_fit();
-        self.floor = self.candidates.last().map(value);
+    // Frees room for more candidates: duplicates go first, which loses nothing; if that is not
+    // enough, only the more valuable half is kept.
+    fn reclaim(&mut self) {
         let header = std::mem::size_of::<Candidate>();
-        self.stored_bytes = self
-            .candidates
-            .iter()
-            .map(|c| candidate_bytes(self.problem, c) - header)
-            .sum();
-        self.limited = true;
+        let payload = |candidates: &[Candidate]| -> usize {
+            candidates
+                .iter()
+                .map(|c| candidate_bytes(self.problem, c) - header)
+                .sum()
+        };
+        dedup_candidates(self.problem, &mut self.candidates);
+        self.stored_bytes = payload(&self.candidates);
+        if self.stored_bytes + self.candidates.len() * header > self.memory_budget / 2 {
+            let fleet_bonus = self.problem.longest_route_bonus_per_stop;
+            let value = |c: &Candidate| c.revenue + c.visits as i32 * fleet_bonus;
+            self.candidates
+                .sort_unstable_by_key(|c| std::cmp::Reverse(value(c)));
+            self.candidates.truncate(self.candidates.len() / 2);
+            self.floor = self.candidates.last().map(value);
+            self.stored_bytes = payload(&self.candidates);
+            self.limited = true;
+        }
+        self.candidates.shrink_to_fit();
     }
 
     fn shortest_extensions(&mut self, from: usize) -> Vec<Vec<usize>> {
@@ -806,6 +856,25 @@ impl Search<'_> {
     }
 }
 
+// Of candidates using the same track, only the most valuable can be best. Sorting groups them in
+// place, without copying every resource set into a lookup.
+fn dedup_candidates(problem: &Problem, candidates: &mut Vec<Candidate>) {
+    let visits = |c: &Candidate| {
+        if problem.longest_route_bonus_per_stop > 0 {
+            c.visits
+        } else {
+            0
+        }
+    };
+    candidates.sort_unstable_by(|a, b| {
+        (&a.resources, visits(a))
+            .cmp(&(&b.resources, visits(b)))
+            .then(b.revenue.cmp(&a.revenue))
+    });
+    candidates
+        .dedup_by(|later, kept| later.resources == kept.resources && visits(later) == visits(kept));
+}
+
 // What one compiled connection costs: itself, its lists with allocator overhead, and its entry in
 // the stop adjacency built from them.
 fn connection_bytes(connection: &Connection) -> usize {
@@ -817,8 +886,9 @@ fn connection_bytes(connection: &Connection) -> usize {
         + std::mem::size_of::<usize>()
 }
 
-// What one stored candidate costs: the candidate and its lists with allocator overhead, its entry
-// in the selection's per-candidate vectors, and its column in the resource compatibility table.
+// What one stored candidate costs: the candidate and its lists with allocator overhead, its entries
+// in the selection's per-candidate vectors and availability bits, and its column in the resource
+// compatibility table.
 fn candidate_bytes(problem: &Problem, candidate: &Candidate) -> usize {
     const ALLOCATION: usize = 16;
     std::mem::size_of::<Candidate>()
@@ -829,6 +899,7 @@ fn candidate_bytes(problem: &Problem, candidate: &Candidate) -> usize {
         + std::mem::size_of::<Option<Vec<u64>>>()
         + std::mem::size_of::<usize>()
         + problem.resource_count.div_ceil(8)
+        + (problem.trains.len() + 1).div_ceil(8)
 }
 
 fn is_simple_extension(problem: &Problem, extension: &[usize]) -> bool {
@@ -861,11 +932,18 @@ struct CandidateGroup<'a> {
     longest_suffix: Vec<usize>,
 }
 
+// Which candidates each candidate can run beside. Selection only asks about candidates after the
+// one chosen, so columns before the first group's suffix are never kept.
 struct Compatibility {
+    // Candidates using each resource, over the words from `base`.
     resource_candidates: Vec<Vec<u64>>,
-    rows: Vec<Option<Vec<u64>>>,
+    base: usize,
     words: usize,
-    // Cached rows are dropped together once they would exceed this many bytes.
+    // With more than two trains a candidate can be chosen under several parents, so its row is
+    // cached; dropped together once the cache would exceed `row_budget` bytes. With two trains
+    // each row is used once, and one buffer is reused.
+    rows: Vec<Option<Vec<u64>>>,
+    scratch: Vec<u64>,
     row_budget: usize,
     row_bytes: usize,
 }
@@ -877,49 +955,61 @@ impl Compatibility {
         words: usize,
         row_budget: usize,
     ) -> Self {
-        if groups.last().is_none_or(|group| group.trains.end <= 1) {
+        let train_count = groups.last().map_or(0, |group| group.trains.end);
+        let base = groups.first().map_or(words, |group| {
+            if group.trains.len() > 1 {
+                group.words.start
+            } else {
+                group.words.end
+            }
+        });
+        if train_count <= 1 {
             return Self {
                 resource_candidates: vec![],
-                rows: vec![],
+                base: words,
                 words,
+                rows: vec![],
+                scratch: vec![],
                 row_budget,
                 row_bytes: 0,
             };
         }
-        let mut resource_candidates = vec![vec![0; words]; resource_count];
-        for group in groups {
+        let mut resource_candidates = vec![vec![0; words - base]; resource_count];
+        for group in groups.iter().filter(|group| group.words.end > base) {
             for (index, candidate) in group.candidates.iter().enumerate() {
-                for (word, &resources) in candidate.resources.iter().enumerate() {
+                let word = group.words.start + index / 64;
+                if word < base {
+                    continue;
+                }
+                for (resource_word, &resources) in candidate.resources.iter().enumerate() {
                     let mut resources = resources;
                     while resources != 0 {
-                        let resource = word * 64 + resources.trailing_zeros() as usize;
+                        let resource = resource_word * 64 + resources.trailing_zeros() as usize;
                         resources &= resources - 1;
-                        resource_candidates[resource][group.words.start + index / 64] |=
-                            1 << (index % 64);
+                        resource_candidates[resource][word - base] |= 1 << (index % 64);
                     }
                 }
             }
         }
         Self {
             resource_candidates,
-            rows: vec![None; words * 64],
+            base,
             words,
+            rows: if train_count > 2 {
+                vec![None; words * 64]
+            } else {
+                vec![]
+            },
+            scratch: vec![],
             row_budget,
             row_bytes: 0,
         }
     }
 
     fn row(&mut self, id: usize, candidate: &Candidate, start: usize) -> &[u64] {
-        if self.rows[id].is_none() {
-            let bytes = (self.words - start) * std::mem::size_of::<u64>();
-            if self.row_bytes + bytes > self.row_budget {
-                self.rows.iter_mut().for_each(|row| *row = None);
-                self.row_bytes = 0;
-            }
-            self.row_bytes += bytes;
-        }
-        self.rows[id].get_or_insert_with(|| {
-            let mut compatible = vec![u64::MAX; self.words - start];
+        let fill = |compatible: &mut Vec<u64>, resource_candidates: &[Vec<u64>]| {
+            compatible.clear();
+            compatible.resize(self.words - start, u64::MAX);
             for (word, &resources) in candidate.resources.iter().enumerate() {
                 let mut resources = resources;
                 while resources != 0 {
@@ -927,14 +1017,29 @@ impl Compatibility {
                     resources &= resources - 1;
                     for (bits, conflicts) in compatible
                         .iter_mut()
-                        .zip(&self.resource_candidates[resource][start..])
+                        .zip(&resource_candidates[resource][start - self.base..])
                     {
                         *bits &= !conflicts;
                     }
                 }
             }
-            compatible
-        })
+        };
+        if self.rows.is_empty() {
+            fill(&mut self.scratch, &self.resource_candidates);
+            return &self.scratch;
+        }
+        if self.rows[id].is_none() {
+            let bytes = (self.words - start) * std::mem::size_of::<u64>();
+            if self.row_bytes + bytes > self.row_budget {
+                self.rows.iter_mut().for_each(|row| *row = None);
+                self.row_bytes = 0;
+            }
+            self.row_bytes += bytes;
+            let mut compatible = vec![];
+            fill(&mut compatible, &self.resource_candidates);
+            self.rows[id] = Some(compatible);
+        }
+        self.rows[id].as_deref().unwrap()
     }
 }
 
@@ -993,8 +1098,9 @@ impl<'a> Selection<'a> {
             if !routes.len().is_multiple_of(64) {
                 *initial.last_mut().unwrap() = (1 << (routes.len() % 64)) - 1;
             }
-            let mut longest_suffix = vec![0; routes.len() + 1];
+            let mut longest_suffix = vec![];
             if longest_bonus != 0 {
+                longest_suffix = vec![0; routes.len() + 1];
                 for index in (0..routes.len()).rev() {
                     longest_suffix[index] = longest_suffix[index + 1].max(routes[index].visits);
                 }
@@ -1097,9 +1203,12 @@ impl<'a> Selection<'a> {
                 let next_revenue = revenue + candidate.revenue;
                 let next_longest = longest.max(candidate.visits);
                 let copies = self.groups[group].trains.end - depth;
-                let bonus_upper = remaining_longest.max(self.groups[group].longest_suffix[index])
-                    as i32
-                    * self.longest_bonus;
+                let bonus_upper = if self.longest_bonus == 0 {
+                    0
+                } else {
+                    remaining_longest.max(self.groups[group].longest_suffix[index]) as i32
+                        * self.longest_bonus
+                };
                 if revenue + candidate.revenue * copies as i32 + remaining_upper + bonus_upper
                     <= self.revenue
                 {
@@ -1270,6 +1379,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
             groups: vec![false; problem.group_count],
             hexes: vec![0; problem.hex_bonuses.len()],
             walking: vec![],
+            every_stop_costs: train.visit_costs.iter().all(|&cost| cost > 0),
             candidates: vec![],
             count: 0,
             expansions: 0,
@@ -1301,23 +1411,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
                 break;
             }
         }
-        // Of candidates using the same track, only the most valuable can be best. Sorting groups
-        // them in place, without copying every resource set into a lookup.
-        let visits = |c: &Candidate| {
-            if problem.longest_route_bonus_per_stop > 0 {
-                c.visits
-            } else {
-                0
-            }
-        };
-        search.candidates.sort_unstable_by(|a, b| {
-            (&a.resources, visits(a))
-                .cmp(&(&b.resources, visits(b)))
-                .then(b.revenue.cmp(&a.revenue))
-        });
-        search.candidates.dedup_by(|later, kept| {
-            later.resources == kept.resources && visits(later) == visits(kept)
-        });
+        dedup_candidates(problem, &mut search.candidates);
         search
             .candidates
             .sort_unstable_by_key(|a| std::cmp::Reverse(a.revenue));

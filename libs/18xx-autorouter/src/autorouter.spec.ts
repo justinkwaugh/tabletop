@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { beforeAll, expect, it } from 'vitest'
-import { HexOrientation } from '@tabletop/common'
+import { HexOrientation, assert } from '@tabletop/common'
 import {
     RailwayMap,
     TileSet,
@@ -474,3 +474,15 @@ it.each([
         expect(extended?.extension?.at(-1)?.locationId).toBe('0')
     }
 )
+it('builds the solver with a 64 MiB memory maximum', async () => {
+    const bytes = await readFile(new URL('../esm/solver.wasm', import.meta.url))
+    const { instance } = await WebAssembly.instantiate(bytes, {
+        clock: { now: () => performance.now() }
+    })
+    const memory = instance.exports.memory
+    assert(memory instanceof WebAssembly.Memory, 'The solver exports its memory')
+    const page = 64 * 1024
+    memory.grow(64 * 16 - memory.buffer.byteLength / page)
+    expect(memory.buffer.byteLength).toBe(64 * 2 ** 20)
+    expect(() => memory.grow(1)).toThrow(RangeError)
+})

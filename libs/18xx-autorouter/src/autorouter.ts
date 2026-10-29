@@ -12,11 +12,12 @@ import { SolverError, SolverSolution, type SolverProblem } from './solverProtoco
 
 export type AutoroutingOptions = { timeLimitMs?: number }
 
-// What the solver may hold in candidate routes and the tables that combine them. With the rest of
-// a solve, the instance stays within InstanceMemoryLimitBytes, which a phone tab can afford.
+// What the solver may hold in track paths, candidate routes and the tables that combine them. With
+// the rest of a solve this stays within the instance's 64 MiB maximum, set when it is built.
 const SolverMemoryBudgetBytes = 40 * 2 ** 20
-// WebAssembly memory never shrinks, so an instance that grew past this is replaced after its solve.
-const InstanceMemoryLimitBytes = 64 * 2 ** 20
+// WebAssembly memory never shrinks, so an instance that grew past this is replaced after its solve
+// rather than holding the memory until the next one.
+const InstanceMemoryReleaseBytes = 32 * 2 ** 20
 export type AutoroutingResult = {
     result: OperatingResult
     exhaustive: boolean
@@ -111,7 +112,7 @@ export class Autorouter {
             throw error
         }
         const memoryBytes = this.memory.buffer.byteLength
-        if (memoryBytes > InstanceMemoryLimitBytes) this.instantiate()
+        if (memoryBytes > InstanceMemoryReleaseBytes) this.instantiate()
         const solveMs = performance.now() - searchStarted
         const validationStarted = performance.now()
         const checked = evaluation.evaluate(companyId, encoded.decode(solution))

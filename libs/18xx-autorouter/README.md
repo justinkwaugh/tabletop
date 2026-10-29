@@ -43,8 +43,10 @@ The solver also limits the memory its compiled track paths, candidates and
 selection tables use to 40 MiB. Compilation stops at a quarter of it; a train
 whose candidates reach their share keeps only its most valuable ones. Either is
 reported with `metrics.memoryLimited` and `exhaustive: false`.
-WebAssembly memory never shrinks, so after a solve that left the instance above
-64 MiB, or one that failed, the `Autorouter` replaces its instance. Either way
+The WebAssembly instance is built with a 64 MiB memory maximum, so an
+allocation beyond it traps instead of growing the tab. WebAssembly memory never
+shrinks, so after a solve that left the instance above 32 MiB, or one that
+failed, the `Autorouter` replaces its instance. Either way
 an interrupted search returns the best legal operation found. Metrics separate
 encoding, solving, final validation and the Rust search stages, and report the
 instance's memory after the solve.
