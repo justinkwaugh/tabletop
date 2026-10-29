@@ -8,6 +8,7 @@ import {
     captureGameContinuation,
     latestPlayerUndoTarget,
     type Game,
+    type GameConfig,
     type GameContinuation,
     type Player
 } from '@tabletop/common'
@@ -21,7 +22,14 @@ import { seatIds, testGame } from '../testing/game.js'
 import { served, spectator } from '../testing/projection.js'
 import { openingCensus } from '../testing/chronicleWorld.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
-import { Banner, CardKind, OathType, PlayerStatus, Region } from '../model/oathEnums.js'
+import {
+    Banner,
+    CardKind,
+    OathType,
+    PlayerStatus,
+    Region,
+    SetupVariant
+} from '../model/oathEnums.js'
 import { BoardSide, OpeningChancellor, type ChronicleEntry } from '../model/chronicle.js'
 import { WinKind } from '../model/ending.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
@@ -86,7 +94,7 @@ function sourceOf(previous: OathProjectedState, people: readonly Person[] = GAME
 const idOf = (person: Person) => `g3-${person.name.toLowerCase()}`
 
 /** Game 3, made by Continue: new ids for everyone. */
-function nextGame(people: readonly Person[]): Game {
+function nextGame(people: readonly Person[], config: GameConfig = {}): Game {
     return testGame([], {
         id: 'game-3',
         name: 'Friday table',
@@ -94,7 +102,8 @@ function nextGame(people: readonly Person[]): Game {
         hotseat: false,
         createdAt: new Date('2026-11-05T19:00:00Z'),
         continuedFromGameId: 'game-1',
-        players: seated(people, people.map(idOf))
+        players: seated(people, people.map(idOf)),
+        config
     })
 }
 
@@ -399,6 +408,25 @@ describe('through the platform, as Continue opens it', () => {
                 previousPlayers: sourceOf(finished()).players
             })
         ).toThrow('does not support continuation')
+    })
+
+    it('R-8.1 — a continued game plays the vowed Oath, whatever Oath its copied config names', () => {
+        // The state's own id is drawn fresh at every start; everything else is set up from the seed.
+        const start = (config: GameConfig) => ({
+            ...new GameEngine(Definition.runtime).startGame(nextGame([DANA, RHYS, ANN], config), {
+                masterSeed: SEED,
+                continuation: continuationOf(finished())
+            }).initialState,
+            id: 'state'
+        })
+        const withoutConfig = start({})
+        expect(withoutConfig.oathType).toBe(OathType.ThePeople)
+        for (const oathType of Object.values(OathType)) {
+            expect(start({ setupVariant: SetupVariant.Randomized, oathType })).toEqual(
+                withoutConfig
+            )
+        }
+        expect(start({ setupVariant: SetupVariant.Curated })).toEqual(withoutConfig)
     })
 
     it('Continue pressed twice makes two independent games', () => {

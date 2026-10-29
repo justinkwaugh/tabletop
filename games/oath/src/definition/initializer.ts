@@ -110,7 +110,7 @@ export class OathGameInitializer
         })
 
         const config = readOathGameConfig(game.config)
-        // R-8.1 — a first game reads the Oath from config; default as in `OathGameConfigOptions`.
+        // R-8.1, R-1.13 — a first game is the Oath of Supremacy, or the Oath a stored config names.
         const oathType = config.oathType ?? OathType.Supremacy
         const setupVariant = config.setupVariant ?? SetupVariant.Randomized
         const seeded = seedRequiredFields(state, {
