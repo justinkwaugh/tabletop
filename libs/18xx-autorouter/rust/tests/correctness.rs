@@ -637,7 +637,7 @@ fn a_fleet_cut_for_memory_in_both_passes_reports_it_and_keeps_a_legal_operation(
     let edges: Vec<_> = (0..8)
         .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
         .collect();
-    for trains in [&[5, 4][..], &[4, 4]] {
+    for trains in [&[6, 5][..], &[5, 5]] {
         let mut p = graph(8, &edges, trains);
         p["longest_route_bonus_per_stop"] = json!(101);
         let full = solve(&p);
@@ -788,4 +788,31 @@ fn compilation_stops_at_its_share_of_the_memory_budget() {
     assert_eq!(limited["exhaustive"], false);
     assert!(limited["connections"].as_u64().unwrap() < 2 * 16384);
     assert_eq!(limited["revenue"], full["revenue"]);
+}
+
+#[test]
+fn wide_connection_ids_preserve_the_small_graph_oracle() {
+    let edges = [(0, 1), (0, 2)];
+    let mut p = graph(3, &edges, &[2, 2]);
+    let optimum = exhaustive_oracle(&p, &edges);
+    let arcs = p["arcs"].as_array().unwrap();
+    let mut wide = Vec::with_capacity(65538);
+    for _ in 0..32768 {
+        wide.extend_from_slice(&arcs[..2]);
+    }
+    wide.extend_from_slice(&arcs[2..]);
+    p["arcs"] = json!(wide);
+    p["memory_budget_bytes"] = json!(128 * 1024 * 1024);
+    let result = solve(&p);
+    assert_eq!(result["connections"], 65538);
+    assert_eq!(result["revenue"], optimum);
+    assert_eq!(result["exhaustive"], true);
+    assert_eq!(result["memory_limited"], false);
+    assert!(result["routes"].as_array().unwrap().iter().any(|route| {
+        route["connections"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|connection| connection["paths"] == json!([1]))
+    }));
 }

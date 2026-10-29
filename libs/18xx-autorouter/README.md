@@ -41,7 +41,7 @@ input order breaks remaining ties. This is a candidate-count heuristic, includin
 when the trains use different distance measures; the choice does not affect
 exactness. The stored profile gets half the remaining time, and streaming gets
 the rest, including time the first train did not use. Only an improving streamed
-route is copied. Either train may run alone. Resource bitsets include extension
+route is copied. Either train may run alone. Resource conflicts include extension
 track, and bounds account for the longest-route bonus once for the fleet.
 
 Identical-profile pairs and fleets of three or more keep candidate enumeration
@@ -52,13 +52,28 @@ partner search and starts with the best stored route alone. An interrupted searc
 returns the best legal operation found with `exhaustive: false`. The limit is
 checked periodically; it is not a hard wall-clock deadline.
 
+Stored candidates have a 24-byte descriptor on wasm32 and share an arena of
+connection and extension-arc IDs. The arena uses `u16` when both ID ranges fit,
+otherwise machine-width IDs. Candidates keep a 32-bit resource-set fingerprint,
+computed during enumeration, but no resource bitset. Deduplication checks equal
+fingerprints against exact resource sets rebuilt from the compiled connections
+and extension arcs, retaining distinct visit counts when the fleet bonus needs
+them. Cuts and deduplication compact the arena in place, reclaiming discarded IDs.
+
 The solver also limits the memory its compiled track paths, candidates and
-selection tables use to 40 MiB. Compilation stops at a quarter of it. Ordinary
-fleet selection reserves another quarter for cached compatibility rows; streaming
-needs no such rows or resource-to-candidate matrix, so its stored profile can use
-the remaining budget. A train whose candidates reach their share first discards
-duplicates; if the remainder still exceeds half its budget, it keeps the most
-valuable half. Cutting candidates or compiled connections is reported with
+selection tables use to 40 MiB. Candidate accounting includes allocated capacity,
+old and new allocations during growth or shrinking, and deduplication scratch
+space. Compilation stops at a quarter of the budget. Ordinary fleet selection
+reserves another quarter for cached compatibility rows; streaming needs no cached
+rows, so its stored profile can use the remaining budget. After enumeration,
+streaming uses spare budget, up to a quarter of the total, to index resources
+against the highest-value stored candidates. It tests indexed partners 64 at a
+time and checks the rest through connection and extension resource lists, caching
+each connection or arc's conflict for the current streamed route. The index and
+cache stay within the same working budget. A train whose candidates reach their
+share first discards duplicates; if the remainder still exceeds half its budget,
+it keeps the most valuable half. Cutting candidates or compiled connections is
+reported with
 `metrics.memoryLimited` and `exhaustive: false`. Streaming alone does not make a
 completed enumeration non-exhaustive.
 

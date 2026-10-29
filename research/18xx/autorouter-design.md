@@ -1,5 +1,29 @@
 # Shared client autorouter
 
+## Compact candidate storage
+
+Candidate storage preserves the full route-trait survey below: counted visits,
+paid stops, route orientation, extension track, and the fleet's longest-route
+bonus remain distinct. This changes representation and partner lookup within the
+existing encoding; it adds no title policy or support for the fleet connectivity
+and track-sharing counterexamples in the survey. TOP, 1889, 1846, and 1817 still
+supply their existing rules.
+
+Each candidate records scoring metadata, a resource fingerprint, and an arena
+span. Connection and extension-arc IDs share a narrow arena with a checked wide
+fallback; resources are recovered from the existing compiled network. Equal
+fingerprints require exact resource-set equality before dominance removes a
+candidate. Arena compaction recovers cut and duplicate spans without another
+arena allocation. Capacity, reallocation peaks, and temporary exact-comparison
+storage count against the working budget.
+
+Streaming can use the ordinary selector's resource-column representation for a
+bounded prefix of its stored list, with connection-level conflict caching beyond
+that prefix. This offsets the CPU cost of reconstructing resource usage while
+retaining the first-partner-search and second-pass proof guarantees. Exhaustive
+oracles cover mixed profiles, extensions, fleet bonuses, and wide connection IDs;
+focused tests force hash collisions, repeated cuts, and partial index coverage.
+
 ## Placement and interface
 
 `@tabletop/18xx-autorouter` owns the independent Rust solver, WASM build, and a
