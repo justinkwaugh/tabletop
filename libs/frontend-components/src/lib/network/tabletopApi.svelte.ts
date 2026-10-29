@@ -57,6 +57,7 @@ import {
     UndoVotePreview
 } from '@tabletop/common'
 import type {
+    AblyTokenRequest,
     AblyTokenResponse,
     ApiResponse,
     ApplyActionResponse,
@@ -78,7 +79,6 @@ import type {
 } from './responseTypes.js'
 import { APIError } from './errors.js'
 import type { Credentials } from './requestTypes.js'
-import Ably from 'ably'
 import { checkVersion, resolveVersionChange, VersionChange } from './versionChecker.js'
 import { toast } from 'svelte-sonner'
 
@@ -283,6 +283,10 @@ export class TabletopApi {
 
     async logout() {
         await this.wretch.get('/auth/logout').json()
+    }
+
+    async logoutAll() {
+        await this.wretch.post(undefined, '/auth/logoutAll').unauthorized(this.on401).json()
     }
 
     async searchUsernames(query: string): Promise<string[]> {
@@ -1003,14 +1007,15 @@ export class TabletopApi {
         return response.payload.token
     }
 
-    async getAblyToken(): Promise<Ably.TokenRequest> {
+    async getAblyToken(gameIds: string[] = []): Promise<AblyTokenRequest> {
+        const params = new URLSearchParams(gameIds.map((gameId) => ['game', gameId]))
         const response = await this.wretch
-            .get('/auth/ably/token')
+            .get(`/auth/ably/token?${params}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<AblyTokenResponse>()
 
-        return response.payload.token as Ably.TokenRequest
+        return response.payload.token
     }
 
     async subscribeToPushNotifications(subscription: PushSubscription) {

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { assert, type GameAction } from '@tabletop/common'
+    import type { GameAction } from '@tabletop/common'
     import {
         nextOperatingCompany,
         isOfferAuctionLot,
@@ -11,13 +11,11 @@
         isLayTile,
         isPrivateTileLay,
         isRespondToTrackConsent,
-        placeReference,
         trainsOwnedBy
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
         companyLabels,
-        historyDescription,
         joinDetails,
         type HistoryDescription,
         type TitleActionDescription
@@ -31,7 +29,7 @@
         lastNotableStep,
         payoutRecipients
     } from './lastAction.js'
-    import { auctionLotName } from './auctionHistory.js'
+    import { describeLastAction } from './lastActionDescription.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import TrackLayResult from './TrackLayResult.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -110,29 +108,7 @@
         return session.companyName(id)
     }
     function describe(action: GameAction): HistoryDescription {
-        if (isOfferAuctionLot(action) || isBidOnAuctionLot(action)) {
-            const lot = session.auctionLotsFor(gameState).find((lot) => lot.id === action.lotId)
-            assert(lot, 'Recorded auction requires its lot')
-            return isOfferAuctionLot(action)
-                ? { text: `Offered ${session.lotName(lot)} for auction at ${money(lot.price)}` }
-                : { text: `Bid ${money(action.amount)} for ${session.lotName(lot)}` }
-        }
-        if (isPassAuction(action)) return { text: 'Passed' }
-        const shared = () =>
-            historyDescription(
-                action,
-                gameState,
-                session.stockMarketChart,
-                companyName,
-                (id) => session.getPlayerName(id),
-                undefined,
-                session.presentation.money,
-                (id) =>
-                    auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
-                (id) => session.names.routeBonus(id),
-                placeReference
-            )
-        return describeAction?.(action, { companyName, place: placeReference }, shared) ?? shared()
+        return describeLastAction(session, action, describeAction)
     }
     const labels = $derived(
         companyLabels(gameState.companies, (id) => session.companyInitials(id), companyName)

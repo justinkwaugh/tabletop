@@ -76,7 +76,11 @@ export default async function (fastify: FastifyInstance) {
                 email,
                 emailVerified
             })
-            authSession({ session: request.session, userId: user.id })
+            await authSession({
+                session: request.session,
+                user,
+                sessions: fastify.sessionService
+            })
             return { status: 'ok', payload: { user } }
         }
     )

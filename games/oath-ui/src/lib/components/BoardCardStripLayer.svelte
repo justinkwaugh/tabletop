@@ -19,6 +19,7 @@
 
     let selectableCardIds = $derived(gameSession.selectableCards)
     let selectableRelicSlotIds = $derived(gameSession.selectableRelicSlots)
+    let badged = $derived(gameSession.powerBadgeCards)
 
     type Space =
         | { kind: 'denizen'; cardId?: string; pickable: boolean }
@@ -107,6 +108,7 @@
                 zIndex={placed.zIndex}
                 offered={space.pickable}
                 pointed={menuPointer.is({ kind: 'card', cardId: denizenCardId })}
+                useBadge={badged.includes(denizenCardId)}
             />
             {#if tokens.favor > 0 || tokens.secrets > 0}
                 <!-- R-7.1.2 — favor and secrets on the card, which R-7.1.2.a's occupancy reads. -->

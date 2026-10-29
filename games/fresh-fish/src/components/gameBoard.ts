@@ -227,10 +227,6 @@ export class HydratedGameBoard
                     [CardinalDirection.West]: this.getNeighbor(coords, CardinalDirection.West)
                 }
 
-                let xLen = 0
-                let yLen = 0
-
-                let dimensions: Dimensions = [0, 0]
                 switch (true) {
                     case this.isOnboardCell(neighbors[CardinalDirection.North]) &&
                         this.isOnboardCell(neighbors[CardinalDirection.West]) &&
@@ -238,9 +234,10 @@ export class HydratedGameBoard
                             !neighbors[CardinalDirection.South]) &&
                         (this.isOffboardCell(neighbors[CardinalDirection.East]) ||
                             !neighbors[CardinalDirection.East]): {
-                        xLen = this.getOffboardDistance(coords, CardinalDirection.East)
-                        yLen = this.getOffboardDistance(coords, CardinalDirection.South)
-                        dimensions = [xLen, yLen]
+                        const dimensions: Dimensions = [
+                            this.getOffboardDistance(coords, CardinalDirection.East),
+                            this.getOffboardDistance(coords, CardinalDirection.South)
+                        ]
                         corners.push({ coords, direction: OrdinalDirection.Northwest, dimensions })
                         break
                     }
@@ -250,9 +247,10 @@ export class HydratedGameBoard
                             !neighbors[CardinalDirection.South]) &&
                         (this.isOffboardCell(neighbors[CardinalDirection.West]) ||
                             !neighbors[CardinalDirection.West]): {
-                        xLen = this.getOffboardDistance(coords, CardinalDirection.West)
-                        yLen = this.getOffboardDistance(coords, CardinalDirection.South)
-                        dimensions = [xLen, yLen]
+                        const dimensions: Dimensions = [
+                            this.getOffboardDistance(coords, CardinalDirection.West),
+                            this.getOffboardDistance(coords, CardinalDirection.South)
+                        ]
                         corners.push({ coords, direction: OrdinalDirection.Northeast, dimensions })
                         break
                     }
@@ -262,9 +260,10 @@ export class HydratedGameBoard
                             !neighbors[CardinalDirection.North]) &&
                         (this.isOffboardCell(neighbors[CardinalDirection.West]) ||
                             !neighbors[CardinalDirection.West]): {
-                        xLen = this.getOffboardDistance(coords, CardinalDirection.West)
-                        yLen = this.getOffboardDistance(coords, CardinalDirection.North)
-                        dimensions = [xLen, yLen]
+                        const dimensions: Dimensions = [
+                            this.getOffboardDistance(coords, CardinalDirection.West),
+                            this.getOffboardDistance(coords, CardinalDirection.North)
+                        ]
                         corners.push({ coords, direction: OrdinalDirection.Southeast, dimensions })
                         break
                     }
@@ -274,9 +273,10 @@ export class HydratedGameBoard
                             !neighbors[CardinalDirection.North]) &&
                         (this.isOffboardCell(neighbors[CardinalDirection.East]) ||
                             !neighbors[CardinalDirection.East]): {
-                        xLen = this.getOffboardDistance(coords, CardinalDirection.East)
-                        yLen = this.getOffboardDistance(coords, CardinalDirection.North)
-                        dimensions = [xLen, yLen]
+                        const dimensions: Dimensions = [
+                            this.getOffboardDistance(coords, CardinalDirection.East),
+                            this.getOffboardDistance(coords, CardinalDirection.North)
+                        ]
                         corners.push({ coords, direction: OrdinalDirection.Southwest, dimensions })
                         break
                     }

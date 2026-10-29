@@ -33,6 +33,7 @@ export type { TileDrawnPath } from './tileTrackGeometry.js'
 export const TileRadius = 50
 
 const OffboardSpikeReach = 0.6
+const PierReach = 0.6
 
 export type TileLayout = {
     annotationExclusions?: readonly Point[]
@@ -53,6 +54,33 @@ export type TileLayout = {
     revenueStack?: 'column' | 'row'
     /** Centres the revenue, with any badge beneath it on a map, on the hex's middle line. */
     revenueAlign?: 'middle'
+    /**
+     * How the print draws a connection to the board's edge, by path id: a spike, or a port's
+     * dashes from the edge to an anchor.
+     */
+    printedPaths?: Readonly<Record<string, 'spike' | 'pier'>>
+    /**
+     * Tokens the tile prints, such as a reservation in a city's space or a private's mark on
+     * its track: in a station space by node and slot, or at a point before the tile's rotation.
+     */
+    printedTokens?: readonly TilePrintedToken[]
+    /** Prints staged values' phase captions after them, as on a board's east edge. */
+    revenueCaptionsAfter?: boolean
+    /** How far an offboard spike runs from its edge toward its stop, as a share of the way. */
+    spikeReach?: number
+}
+
+export type TilePrintedToken = {
+    imageUrl: string
+    title: string
+} & ({ nodeId: string; slot: number } | { at: Point; radius: number })
+/** A printed token placed on the drawn tile, with a station space's size where it fills one. */
+export type TileDrawnToken = {
+    imageUrl: string
+    title: string
+    center: Point
+    radius: number
+    space: boolean
 }
 
 export type TileDrawnNode = {
@@ -79,6 +107,10 @@ export type TileDrawingStyle = {
     longLabelFontSize?: number
     /** Printed prefixes for revenue stages that are not phases, such as D for diesel. */
     revenueStageLabels?: Readonly<Record<string, string>>
+    /** Phases printed beside each revenue stage's value, such as I-II. */
+    revenueStageCaptions?: Readonly<Record<string, string>>
+    /** How staged values line up where a location's layout does not say. */
+    revenueStack?: 'column' | 'row'
     /** Curves a lone one-station city's name over the top of the city. */
     cityNameArcs?: boolean
     /** Draws every town as a dot, never a bar across its track. */
@@ -95,6 +127,7 @@ export type TileDrawing = {
     labelPosition: Point
     symbolPosition: Point
     upgradeCostPosition: Point
+    printedTokens: readonly TileDrawnToken[]
 }
 
 export function createTileDrawing(
@@ -199,14 +232,18 @@ export function createTileDrawing(
                     (endpoint) => endpoint.kind === 'node' && endpoint.nodeId === node.id
                 )
         )
-        if (!offboard) return drawn
+        const printed = layout.printedPaths?.[path.id]
+        if (!offboard && !printed) return drawn
         const [base, center] =
             path.endpoints[0].kind === 'edge' ? [drawn.start, drawn.end] : [drawn.end, drawn.start]
+        const reach = printed === 'pier' ? PierReach : (layout.spikeReach ?? OffboardSpikeReach)
         const tip = {
-            x: base.x + (center.x - base.x) * OffboardSpikeReach,
-            y: base.y + (center.y - base.y) * OffboardSpikeReach
+            x: base.x + (center.x - base.x) * reach,
+            y: base.y + (center.y - base.y) * reach
         }
-        return { ...drawn, spike: { base, tip } }
+        return printed === 'pier'
+            ? { ...drawn, pier: { base, tip } }
+            : { ...drawn, spike: { base, tip } }
     }
     const paths = face.paths.map((path): TileDrawnPath => {
         const start = endpointPosition(path.endpoints[0])
@@ -284,9 +321,13 @@ export function createTileDrawing(
                       geometry.vertices,
                       paths,
                       occupied,
-                      style.revenueStageLabels,
-                      layout.revenueStack,
-                      !!hint
+                      {
+                          stageLabels: style.revenueStageLabels,
+                          captions: style.revenueStageCaptions,
+                          captionAfter: layout.revenueCaptionsAfter,
+                          stack: layout.revenueStack ?? style.revenueStack,
+                          fixed: !!hint
+                      }
                   )
         if (node.kind !== 'junction' && !revenueHidden)
             occupied.push(...(revenueCells.length ? revenueCells : [revenuePosition]))
@@ -371,7 +412,32 @@ export function createTileDrawing(
         nodes,
         labelPosition,
         symbolPosition,
-        upgradeCostPosition
+        upgradeCostPosition,
+        printedTokens: (layout.printedTokens ?? []).flatMap((token): TileDrawnToken[] => {
+            if ('at' in token)
+                return [
+                    {
+                        imageUrl: token.imageUrl,
+                        title: token.title,
+                        center: orientPoint(token.at, angle),
+                        radius: token.radius,
+                        space: false
+                    }
+                ]
+            const node = nodes.find((entry) => entry.node.id === token.nodeId)
+            const center = node?.slots[token.slot]
+            return node && center
+                ? [
+                      {
+                          imageUrl: token.imageUrl,
+                          title: token.title,
+                          center,
+                          radius: node.slotRadius,
+                          space: true
+                      }
+                  ]
+                : []
+        })
     }
 }
 

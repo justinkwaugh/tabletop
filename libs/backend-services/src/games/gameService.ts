@@ -17,6 +17,7 @@ import {
     GameForkError,
     findLast,
     isOutOfTurnDeclaration,
+    isStandingDeclaration,
     isSameSimultaneousGroup,
     type CallVote,
     createCallGameAction,
@@ -1250,11 +1251,10 @@ export class GameService {
                     relatedActions.push(...reconciledRace)
 
                     // Lookup and verify the missing actions
-                    let missingActions: GameAction[] = []
                     if (indexOffset > 0 && initialIndex !== undefined) {
                         const startIndex = initialIndex
                         const endIndex = initialIndex + indexOffset
-                        missingActions = await this.gameStore.findActionRangeForGame({
+                        const missingActions = await this.gameStore.findActionRangeForGame({
                             game: existingGame,
                             startIndex,
                             endIndex
@@ -2200,8 +2200,12 @@ export class GameService {
         const priorChecksum = gameState.actionChecksum
 
         const redoActions = []
-        for (const action of actions.slice(1)) {
-            if (isOutOfTurnDeclaration(action) || isSameSimultaneousGroup(action, actionToUndo)) {
+        for (const [position, action] of actions.entries()) {
+            if (position === 0) continue
+            if (
+                isStandingDeclaration(actions, position) ||
+                isSameSimultaneousGroup(action, actionToUndo)
+            ) {
                 const redoAction = structuredClone(action)
                 // These fields will be re-assigned by the game engine
                 redoAction.index = undefined
@@ -2221,15 +2225,15 @@ export class GameService {
         measureSync('engine.validate', () => gameEngine.validateCanonicalState(gameState))
         const redoneActions: GameAction[] = []
         for (const redoAction of redoActions) {
-            const { processedActions, updatedState } = measureSync('engine.execute', () =>
-                gameEngine.executeCanonicalAction({
-                    action: redoAction,
-                    state: gameState,
-                    game
-                })
+            const target = { action: redoAction, state: gameState, game }
+            const redone = measureSync('engine.execute', () =>
+                isOutOfTurnDeclaration(redoAction)
+                    ? gameEngine.reapplyDeclaration(target)
+                    : gameEngine.executeCanonicalAction(target)
             )
-            redoneActions.push(...processedActions)
-            gameState = updatedState
+            if (!redone) continue
+            redoneActions.push(...redone.processedActions)
+            gameState = redone.updatedState
         }
 
         return this.persistReversal({

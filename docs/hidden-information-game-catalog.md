@@ -125,7 +125,7 @@ Sources: [state](../games/1846/src/state.ts), [opening](../games/1846/src/openin
 - **Protect:** `draft.deck` for the host only; each participant's `packet` and `selections` for their owner. `remainingCount`, the lone `finalOffer`, who has passed, the seating and the removed companies are public.
 - **Actions:** `ChooseDraftCard.cardId` is the actor's; `PassFinalCompany` and `RevealDraft` are public, and the reveal records every purchase.
 - **Randomness:** the deck shuffle and each reshuffle of returned cards draw from the protected stream; seating and removals use the public stream.
-- **Adopted:** the runtime registers its strict canonical schema through `canonicalState`, from which the family projects state and Actions. There is no projected Exploration.
+- **Adopted:** the runtime registers its strict canonical schema through `canonicalState`, from which the family projects state and Actions. Projected Exploration replays the draft through `canonicalState.populate`, keeping every packet the viewer was dealt and treating each packet they passed as an unordered block at the bottom of the deck ([design](../research/18xx/1846-opening-design.md)).
 
 ## Titles with no identified protection requirement
 

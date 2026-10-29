@@ -8,7 +8,8 @@ import {
     type RouteRevenueStop
 } from '@tabletop/18xx'
 import { stockGame, start, buyTrain } from '../test/testSupport.js'
-import { corporateFinanceChoices } from './corporateFinance.js'
+import { corporateFinanceChoices } from '@tabletop/18xx'
+import { CorporateFinanceRules1846 } from './corporateFinance.js'
 import { TrainDepot1846, trainBuyingChoices1846 } from './trains.js'
 import { RouteRules1846 } from './routes.js'
 
@@ -22,7 +23,7 @@ function lastPhaseITrain() {
     table.act('FinishTrack', { companyId: 'IC' })
     for (let i = 0; i < 3; i++) buyTrain(table, '2')
     table.act('FinishOperatingTurn', { companyId: 'IC' })
-    const issue = corporateFinanceChoices(table.hydrated).find(
+    const issue = corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846).find(
         (choice) => choice.operation === 'issue' && choice.shares === 2
     )
     assertExists(issue)

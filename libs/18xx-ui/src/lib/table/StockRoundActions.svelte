@@ -8,19 +8,11 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
-    import type { CertificatePool } from '@tabletop/18xx'
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import StandingInstruction from '../stock/StandingInstruction.svelte'
     import PrivatePurchaseOffers from '../stock/PrivatePurchaseOffers.svelte'
     import CompanyAuctionOpening from '../stock/CompanyAuctionOpening.svelte'
-    let {
-        session,
-        poolName
-    }: {
-        session: EighteenXXSessionView
-        poolName?: (pool: CertificatePool) => string
-    } = $props()
+    let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
     const disabled = $derived(
         session.busy ||
@@ -209,9 +201,9 @@
                                                 (pool) => pool.id === choice.certificate.poolId
                                             )}
                                             {@const source = pool
-                                                ? (
-                                                      poolName?.(pool) ?? session.poolName(pool.id)
-                                                  ).replace('Treasury shares', 'Treasury')
+                                                ? session
+                                                      .poolName(pool.id)
+                                                      .replace('Treasury shares', 'Treasury')
                                                 : sameOwner(choice.certificate.owner, {
                                                         kind: 'company',
                                                         companyId: company.id
@@ -470,7 +462,6 @@
         </aside>
     {/if}
 </section>
-<StandingInstruction {session} />
 
 <style>
     section {

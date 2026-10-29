@@ -39,6 +39,7 @@ export const Shikoku1889TitleRules: EighteenXXTitleRules<
     transferRules: Shikoku1889TransferRules,
     privatePowerRules: Shikoku1889PrivatePowerRules,
     outOfTurnPrivatePowers: true,
+    runInstructions: true,
     createOpening: createShikoku1889Opening,
     startingCash: shikoku1889StartingCash,
     stockRules: Shikoku1889StockRules,

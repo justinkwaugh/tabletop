@@ -40,6 +40,8 @@ interface Scene {
     c1?: string[]
     c2?: string[]
     defender?: Partial<OathPlayerState>
+    /** The prng's seed; 1 unless a scene needs other dice. */
+    seed?: number
 }
 
 /**
@@ -93,7 +95,7 @@ function table(scene: Scene = {}): OathProjectedState {
             siteCards: Object.fromEntries(
                 [...CRADLE, ...PROVINCES, ...HINTERLAND].map((slotId) => [slotId, slotId])
             ),
-            prng: { seed: 1, invocations: 0 }
+            prng: { seed: scene.seed ?? 1, invocations: 0 }
         }
     )
     s.turnManager.series = [{ type: 'turn', playerId: DANA, start: 0 }]
@@ -166,9 +168,13 @@ function defendRecord(processed: readonly GameAction[]) {
 
 /** The answer's record of the attack it rolled. */
 function heldAttackOf(processed: readonly GameAction[]) {
+    return answerRecord(processed)?.heldAttack
+}
+
+function answerRecord(processed: readonly GameAction[]) {
     const action = only(processed)
     if (!isAnswerQuestion(action)) throw Error(`expected an answer, not ${action.type}`)
-    return action.metadata?.heldAttack
+    return action.metadata
 }
 
 const danaBoard = (state: OathProjectedState) => state.players[0].warbandsOnBoard[DANA] ?? 0
@@ -332,5 +338,56 @@ describe('R-5.5.4-H1 — the attack held for the defender’s reroll, as History
         expect(
             heldAttackOf(answer(declared.updatedState, BEA, false).processedActions)
         ).toBeUndefined()
+    })
+})
+
+/**
+ * Seed 6 with Dana's own Jinx: both rolls are made, 8 defense against 3 swords and a skull; Dana is asked
+ * before the skull kills. Rerolled, the attack makes 5 swords and 2 skulls.
+ */
+describe('R-5.5.5 — Jinx: the skulls’ kills the attacker’s own answer settles, as History reads them', () => {
+    const atQuestion = () => {
+        const declared = declare(table({ jinx: [DANA], seed: 6 }))
+        expect(asked(declared.updatedState)).toEqual([DANA])
+        expect(campaignBattle(declared.processedActions)?.skullsKilled).toBe(0)
+        expect(danaBoard(declared.updatedState)).toBe(5)
+        return declared.updatedState
+    }
+
+    it('Dana keeps the roll: the answer records the 1 warband its skull killed', () => {
+        const kept = answer(atQuestion(), DANA, false)
+        expect(danaBoard(kept.updatedState)).toBe(4)
+        expect(answerRecord(kept.processedActions)).toMatchObject({ skullsKilled: 1 })
+        expect(heldAttackOf(kept.processedActions)).toBeUndefined()
+    })
+
+    it('Dana rerolls: the answer records the 2 warbands the rerolled skulls killed', () => {
+        const rerolled = answer(atQuestion(), DANA, true)
+        const campaign = ongoingCampaign(rerolled.updatedState)
+        expect(campaign.attackRoll.reduce((sum, face) => sum + face.skulls, 0)).toBe(2)
+        expect(danaBoard(rerolled.updatedState)).toBe(3)
+        expect(answerRecord(rerolled.processedActions)).toMatchObject({ skullsKilled: 2 })
+    })
+
+    it('two copies: Bea’s answer leaves the kills waiting and records none; Dana’s records the kill', () => {
+        const kept = answer(declare(table({ jinx: [DANA, BEA] })).updatedState, BEA, false)
+        expect(answerRecord(kept.processedActions)?.skullsKilled).toBeUndefined()
+        const danaKept = answer(kept.updatedState, DANA, false)
+        expect(danaBoard(danaKept.updatedState)).toBe(4)
+        expect(answerRecord(danaKept.processedActions)).toMatchObject({ skullsKilled: 1 })
+    })
+
+    it('an answer that settles no held kills records none: Bea’s reroll of the held attack', () => {
+        const rerolled = answer(declare(table()).updatedState, BEA, true)
+        expect(answerRecord(rerolled.processedActions)?.skullsKilled).toBeUndefined()
+    })
+
+    it('the record is the action’s alone: the state the answer leaves names no kill count, at any revision', () => {
+        for (const revision of [before, OathRevision.EngineFixes10, atRevision]) {
+            const declared = declare(table({ jinx: [DANA], seed: 6, revision }))
+            const kept = answer(declared.updatedState, DANA, false)
+            expect(answerRecord(kept.processedActions)).toMatchObject({ skullsKilled: 1 })
+            expect(JSON.stringify(kept.updatedState)).not.toContain('skullsKilled')
+        }
     })
 })

@@ -142,7 +142,7 @@ const isBackendReplacement = (value: unknown): value is BackendReplacement =>
 
 export const invalidateBackendManifestCache = async (
     config: DeployConfig,
-    options?: { signal?: AbortSignal }
+    options?: { signal?: AbortSignal; expectedPublication?: string }
 ) => {
     const adminUrl = resolveAdminInvalidateUrl(config)
     if (!adminUrl) {
@@ -185,6 +185,16 @@ export const invalidateBackendManifestCache = async (
         throw new Error(`manifest invalidate ${response.status} ${response.statusText}`)
     }
     const body: unknown = await response.json()
+    if (options?.expectedPublication !== undefined) {
+        if (!isObject(body) || typeof body.publication !== 'string') {
+            throw new Error(
+                'Backend cannot confirm the published manifest; release the backend first'
+            )
+        }
+        if (body.activation !== 'complete' || body.publication !== options.expectedPublication) {
+            throw new Error('Backend activated a different publication than the uploaded manifest')
+        }
+    }
     if (
         typeof body === 'object' &&
         body !== null &&

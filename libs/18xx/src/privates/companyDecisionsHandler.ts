@@ -103,9 +103,11 @@ export class CompanyDecisionsHandler<
                 ? ['RespondToTrackConsent']
                 : []
         if (state.privateTrackLay)
-            return state.privateTrackLay.playerId === playerId
-                ? ['LayPrivateTile', 'DeclinePrivateTile']
-                : []
+            return state.privateTrackLay.playerId !== playerId
+                ? []
+                : state.privateTrackLay.required
+                  ? ['LayPrivateTile']
+                  : ['LayPrivateTile', 'DeclinePrivateTile']
         if (state.privateStation)
             return state.privateStation.playerId === playerId
                 ? ['PlacePrivateStation', 'DeclinePrivateStation']

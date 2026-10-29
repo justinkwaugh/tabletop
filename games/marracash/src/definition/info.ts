@@ -6,6 +6,8 @@ export const MarracashInfo: GameInfo = {
     id: 'marracash',
     metadata: {
         name: 'MarraCash',
+        bggId: 16,
+        hasScores: true,
         designer: 'Stefan Dorra',
         description:
             'Auction market stalls in old Marrakesh and steer crowds of visitors into your shops, earning a cut when you send customers to your rivals.',

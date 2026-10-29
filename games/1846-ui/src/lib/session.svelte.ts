@@ -18,17 +18,12 @@ import {
     AssignRevenueMarker,
     revenueMarkerChoices,
     type RevenuePrivateId,
-    CorporateFinance,
-    corporateFinanceChoices,
-    type FinanceChoice,
     AssignSteamboat,
     PortSymbols,
     type SteamboatAssignment,
     ChooseDraftCard,
     PassFinalCompany,
     choicesFor,
-    StockRules1846,
-    ReceivershipRules1846,
     TitleRules1846
 } from '@tabletop/1846'
 import { assertExists } from '@tabletop/common'
@@ -39,18 +34,15 @@ import {
     type TitlePrivatePower
 } from '@tabletop/18xx-ui'
 import {
-    ClaimPresidency,
     isOfferPurchase,
     isRespondToPurchaseOffer,
-    nextOperatingCompany,
-    presidencyClaims,
-    type PresidencyClaimOffer,
     stationsAfterLay,
     type OfferPurchase,
     type RespondToPurchaseOffer,
     type TrackRequest
 } from '@tabletop/18xx'
 import { mapState1846 } from './mapState.js'
+import { createRouteWorker } from './routeWorker.js'
 import { undoableStagedSelection, type PresentedTransition } from '@tabletop/frontend-components'
 import {
     PrivateLayStageOrder,
@@ -85,47 +77,8 @@ const BaseSession: ReturnType<
 > = createEighteenXXSessionClass<
     typeof EighteenFortySixProjectedState,
     HydratedEighteenFortySixState
->(TitleRules1846, MapView1846, Presentation1846)
-type ConstructionMode = 'track' | 'stations' | 'finance'
-export type StockPanel1846 = 'receivership'
+>(TitleRules1846, MapView1846, Presentation1846, createRouteWorker)
 export class EighteenFortySixSession extends BaseSession {
-    readonly stockPanels = this.titleStockPanels<StockPanel1846>([
-        {
-            id: 'receivership',
-            label: 'Receivership',
-            available: () =>
-                this.gameState.machineState === 'StockRound' && this.presidencyClaims.length > 0
-        }
-    ])
-    private readonly constructionModeScope = $derived(
-        [
-            this.gameState.machineState,
-            nextOperatingCompany(this.gameState),
-            this.myPlayer?.id,
-            this.isViewingHistory
-        ].join(':')
-    )
-    private manualConstructionMode = $derived.by((): ConstructionMode | undefined => {
-        void this.constructionModeScope
-        return undefined
-    })
-    constructionMode = $derived.by((): ConstructionMode => {
-        if (this.privateDraft) return 'track'
-        const manual = this.manualConstructionMode
-        if (manual && this.constructionModeAvailable(manual)) return manual
-        if (this.validActionTypes.includes('LayTile')) return 'track'
-        if (this.validActionTypes.includes('PlaceStation')) return 'stations'
-        return this.gameState.machineState === 'LayingTrack' && this.financeChoices.length
-            ? 'finance'
-            : 'stations'
-    })
-    readonly nothingToBuild = $derived.by(
-        () =>
-            this.gameState.machineState === 'LayingTrack' &&
-            this.validActionTypes.includes('FinishTrack') &&
-            !this.validActionTypes.some((type) => type === 'LayTile' || type === 'PlaceStation') &&
-            !this.financeChoices.length
-    )
     private steamboatSelection = $derived.by((): SteamboatSelection => {
         void this.gameState.machineState
         void this.gameState.actionCount
@@ -166,40 +119,9 @@ export class EighteenFortySixSession extends BaseSession {
             )
         )
     }
-    protected override get trackBuildingActive() {
-        return this.constructionMode === 'track' && !this.decisions.selection
-    }
-    protected override get stationPlacementActive() {
-        return (
-            this.gameState.machineState === 'LayingTrack' &&
-            this.constructionMode === 'stations' &&
-            !this.privateActions.selection &&
-            !this.decisions.selection
-        )
-    }
     protected override get sharedActionsBlocked() {
         return !!this.gameState.pendingRevenueMarker
     }
-    private constructionModeAvailable(mode: ConstructionMode): boolean {
-        if (mode === 'finance') return this.financeChoices.length > 0
-        return this.validActionTypes.includes(mode === 'track' ? 'LayTile' : 'PlaceStation')
-    }
-    chooseConstructionMode(mode: ConstructionMode | undefined) {
-        this.track.stages.clear()
-        this.stations.stages.clear()
-        this.manualConstructionMode = mode
-    }
-
-    protected override get operatingStepCompletion() {
-        if (this.validActionTypes.includes('FinishTrack'))
-            return { lastTarget: 1, finish: () => this.finishConstruction() }
-        return undefined
-    }
-
-    async finishConstruction() {
-        await this.track.finish()
-    }
-
     private privateLaySelection = $derived.by((): PrivateLaySelection => {
         void [
             this.gameState,
@@ -444,35 +366,6 @@ export class EighteenFortySixSession extends BaseSession {
                 ...(locationId ? { locationId } : {})
             })
         )
-    }
-    readonly presidencyClaims = $derived(
-        this.myPlayer
-            ? presidencyClaims(
-                  this.gameState,
-                  { stockRules: StockRules1846, receivershipRules: ReceivershipRules1846 },
-                  this.myPlayer.id
-              )
-            : []
-    )
-    async claimPresidency(offer: PresidencyClaimOffer): Promise<void> {
-        await this.applyAction(
-            this.createPlayerAction(ClaimPresidency, {
-                companyId: offer.companyId,
-                expectedPrice: offer.price
-            })
-        )
-    }
-    readonly financeChoices = $derived(corporateFinanceChoices(this.gameState))
-    readonly financeLabel = $derived.by(() => {
-        const operations = new Set(this.financeChoices.map((choice) => choice.operation))
-        if (operations.size > 1) return 'Issue / redeem'
-        return operations.has('issue') ? 'Issue shares' : 'Redeem shares'
-    })
-    readonly financePrompt = $derived(
-        this.financeLabel === 'Issue / redeem' ? 'Issue or redeem shares' : this.financeLabel
-    )
-    async corporateFinance(choice: FinanceChoice): Promise<void> {
-        await this.applyAction(this.createPlayerAction(CorporateFinance, choice))
     }
     readonly packetGate = new DraftPacketGate({
         ordinaryHotseatPlay: () => this.ordinaryHotseatPlay,

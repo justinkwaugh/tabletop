@@ -8,6 +8,7 @@ import {
     minimalRouteRules,
     minimalTrackMap
 } from '@tabletop/18xx/testing'
+import { routeProblemKey } from '@tabletop/18xx-autorouter'
 import { createMapDrawing } from '../maps/mapDrawing.js'
 import type { RouteSolution } from '../routes/latestRouteSolver.js'
 import {
@@ -118,12 +119,20 @@ describe('ProjectedRunModule', () => {
         expect(projected({ trains: [] }).module.request).toBeUndefined()
     })
 
-    it('asks for the run of the operating company with its trains', () => {
+    it('asks for the run of the operating company with its trains, within a second', () => {
         expect(projected().module.request).toMatchObject({
             companyId: TestCompanyId,
             trains: [train],
+            timeLimitMs: 1000,
             state: { routeStep: { companyId: TestCompanyId } }
         })
+    })
+
+    it('keys each preview by its route problem, so previews of the same network share a run', () => {
+        const { map, request } = projected()
+        map.displayedStationState = previewStations
+        const { state, key } = request()
+        expect(key).toBe(routeProblemKey(state, minimalRouteRules, TestCompanyId))
     })
 
     it('runs on the previewed tile and stations', () => {

@@ -233,6 +233,22 @@ instance activates during its next request, which waits for the load. No process
 no UI republish is needed for a logic change. See
 [ADR 0011](../../docs/adr/0011-game-logic-runs-as-collectible-factories.md).
 
+Production reads the mutable manifest through the authenticated Cloud Storage API when Redis
+needs filling. Game artifacts still come from the mounted bucket. Reading the manifest through
+the mount can return cached metadata after an upload and refill Redis with an older publication.
+Local development continues to read its staged manifest file.
+
+The activation response includes a `publication` signature identifying the served frontend and
+every selected game package, logic version, and UI version. The deploy tool compares it with the
+manifest it uploaded and fails if the backend reports a different selection or cannot confirm
+one. Publication history and game ordering do not affect the signature.
+
+Roll out this activation protocol by releasing the backend before using the updated deploy tool
+to publish games or the frontend. Backend deployment supplies `SITE_MANIFEST_GCS_URI` from
+`gcsBucket`; both runtime services require it and use their application credentials to read that
+object. Their service accounts need object-read access to the bucket, as they do for the mount.
+Cloud Storage read failures fail activation instead of falling back to the mounted manifest.
+
 Artifacts published before the build emitted the factory are imported the old way and stay
 resident until the worker restarts. `migrate-logic-artifacts` lists each title's current logic
 version that lacks it and, with `--apply`, builds it from the published ESM bundle and uploads it

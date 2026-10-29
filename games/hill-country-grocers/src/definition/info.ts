@@ -6,6 +6,8 @@ export const HcgInfo: GameInfo = {
     id: 'hill-country-grocers',
     metadata: {
         name: 'Hill Country Grocers',
+        bggId: 440213,
+        hasScores: true,
         designer: 'Jake Stanley',
         description:
             'Invest in grocery chains expanding across the Texas Hill Country. Bid for shares, build the distribution networks of the chains you own and develop the cities they serve; the richest investor when the shelves run bare wins.',

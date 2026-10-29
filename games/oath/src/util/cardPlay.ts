@@ -590,6 +590,26 @@ function unresolvedForWantOfReveal(cardId: string): string {
     return `${card.name}: its When Played power was not resolved, because no hidden card was drawn for it`
 }
 
+/**
+ * R-5.1.4, R-7.3.3 — the denizens a faceup play's When Played power puts off the map, judged on the map the play
+ * leaves (`mapChanges`, from `playMapChanges`), the state unchanged. A power that declares none puts none off.
+ */
+export function whenPlayedMapLeaving(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    faceUp: boolean | undefined,
+    mapChanges: PlayMapChanges
+): string[] {
+    const power = isFaceupPlay(play, faceUp)
+        ? powersWithTiming(cardId, PowerTiming.WhenPlayed)[0]
+        : undefined
+    const mapLeaving = power ? effectFor(power)?.mapLeaving : undefined
+    if (!power || !mapLeaving) return []
+    return mapLeaving({ state, playerId, power, choices: [], mapChanges })
+}
+
 export function reasonWhenPlayedChoicesInvalid(
     state: HydratedOathGameState,
     playerId: string,

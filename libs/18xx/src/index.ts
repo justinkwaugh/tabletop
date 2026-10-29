@@ -130,6 +130,16 @@ export * from './routes/routeEvaluation.js'
 export * from './routes/routeNetwork.js'
 export * from './routes/runningTrainsHandler.js'
 export * from './routes/runTrains.js'
+export * from './routes/instructedRuns.js'
+export * from './game/orderedSubset.js'
+export * from './routes/runInstructionEvaluation.js'
+export * from './routes/runInstructionHandler.js'
+export * from './routes/instructedRunsHandler.js'
+export * from './routes/runInstructionActions.js'
+export * from './routes/setRunInstruction.js'
+export * from './routes/setRunInstructionStops.js'
+export * from './routes/stopRunInstruction.js'
+export * from './actions/eighteenXXPlayerAction.js'
 
 export * from './earnings/distributeEarnings.js'
 export * from './earnings/distributingEarningsHandler.js'
@@ -237,6 +247,17 @@ export * from './construction/automaticTrackCompletionHandler.js'
 export {
     payingRouteStops,
     routeConnectionBonuses,
+    routeInterconnectionBonus,
+    routeStopBonuses,
+    type Interconnection,
     type PaidConnectionBonus,
-    type RouteRevenuePolicy
+    type RouteRevenuePolicy,
+    type RouteShape
 } from './routes/routeScoring.js'
+export * from './earnings/payoutJumps.js'
+export * from './finance/corporateFinance.js'
+export * from './stations/stationsWithTrackHandler.js'
+export * from './construction/trackCosts.js'
+export * from './company/zeroPriceClosure.js'
+export * from './funding/issueFirstFunding.js'
+export * from './stock/treasuryShareTrading.js'

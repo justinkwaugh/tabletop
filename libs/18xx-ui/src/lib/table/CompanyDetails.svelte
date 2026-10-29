@@ -7,7 +7,7 @@
         DefaultCompanyPricePresentation,
         type CompanyPricePresentation
     } from './companyPresentation.js'
-    import { assertExists, type GameAction } from '@tabletop/common'
+    import type { GameAction } from '@tabletop/common'
     import {
         cashOwnedBy,
         certificatesOwnedBy,
@@ -18,8 +18,7 @@
         trainsOwnedBy,
         sharesOwned,
         type Company,
-        type Owner,
-        type CertificatePool
+        type Owner
     } from '@tabletop/18xx'
     import type {
         CompanyShareStatus,
@@ -41,8 +40,7 @@
         unavailable = false,
         purchaseSources,
         canPurchase,
-        trainColors,
-        poolName = (pool) => session.poolName(pool.id)
+        trainColors
     }: {
         pricePresentation?: CompanyPricePresentation
         unavailable?: boolean
@@ -54,7 +52,6 @@
         session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
         company: Company
-        poolName?: (pool: CertificatePool) => string
     } = $props()
     const vertical = $derived(layout === 'vertical')
     const shareStatusLabels: Record<CompanyShareStatus, string> = {
@@ -139,13 +136,8 @@
                 : []
         })
     )
-    function poolLabel(poolId: string): string {
-        const pool = gameState.certificatePools.find((entry) => entry.id === poolId)
-        assertExists(pool, 'Unknown certificate pool')
-        return poolName(pool)
-    }
     function ownershipName(entry: (typeof ownership)[number]): string {
-        if (entry.poolId) return poolLabel(entry.poolId)
+        if (entry.poolId) return session.poolName(entry.poolId)
         return sameOwner(entry.owner, owner) ? 'Treasury' : session.ownerName(entry.owner)
     }
 </script>
@@ -185,11 +177,16 @@
                                 ? 'Must buy a train when operating'
                                 : undefined}>No trains</span
                         >{/each}
-                    {#each marks as mark (mark.label)}<span
-                            class="company-mark"
-                            title={mark.description}
-                            aria-label={mark.description}>{mark.label}</span
-                        >{/each}
+                    {#each marks as mark (mark.label)}{#if mark.imageUrl}<img
+                                class="company-mark-image"
+                                src={mark.imageUrl}
+                                alt={mark.description}
+                                title={mark.description}
+                            />{:else}<span
+                                class="company-mark"
+                                title={mark.description}
+                                aria-label={mark.description}>{mark.label}</span
+                            >{/if}{/each}
                 </div>
                 {#if company.closed}<p class="subtitle">Closed</p>{/if}
             </div>
@@ -403,7 +400,13 @@
                         class="private-power"><PrivateTrackPowerButton {session} {power} /></span
                     >{/each}
             </div>
-            <span>{purchasePrice ?? (item.closed ? 'Closed' : `${money(item.revenue)} / OR`)}</span>
+            <span
+                >{purchasePrice ??
+                    (item.closed
+                        ? 'Closed'
+                        : (session.presentation.privateStatus?.(gameState, item.id) ??
+                          `${money(item.revenue)} / OR`))}</span
+            >
         </div>
         {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span
             >{/if}
@@ -549,6 +552,11 @@
         font-weight: 650;
         line-height: 1.2;
         white-space: nowrap;
+    }
+    .company-mark-image {
+        width: 24px;
+        height: 24px;
+        cursor: help;
     }
     .company-mark {
         padding: 0 5px;

@@ -1,4 +1,3 @@
-import type Ably from 'ably'
 import type {
     BugReportRequest,
     AdminAssignableRole,
@@ -30,7 +29,10 @@ import type {
     LeagueAllocationPreview,
     LeagueList,
     LeagueSeasonDetail,
-    LeagueState
+    LeagueState,
+    SiteStatsNow,
+    SiteStatsReport,
+    UtcDayRange
 } from '@tabletop/common'
 import type {
     GameVersionProvider,
@@ -38,7 +40,10 @@ import type {
     RealtimeTokenOptions
 } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
-import type { GameChatMessageResponsePayload } from '$lib/network/responseTypes.js'
+import type {
+    AblyTokenRequest,
+    GameChatMessageResponsePayload
+} from '$lib/network/responseTypes.js'
 import type { VersionChange } from '$lib/network/versionChecker.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 
@@ -206,6 +211,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async logout(): Promise<void> {
         return this.fail('logout')
+    }
+
+    async logoutAll(): Promise<void> {
+        return this.fail('logoutAll')
     }
 
     async searchUsernames(_query: string): Promise<string[]> {
@@ -400,7 +409,7 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('getRealtimeToken')
     }
 
-    async getAblyToken(): Promise<Ably.TokenRequest> {
+    async getAblyToken(_gameIds?: string[]): Promise<AblyTokenRequest> {
         return this.fail('getAblyToken')
     }
 
@@ -422,6 +431,18 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async getActiveGamesForTitle(_titleId: string): Promise<Game[]> {
         return this.fail('getActiveGamesForTitle')
+    }
+
+    async getSiteStatsReport(_range: UtcDayRange): Promise<SiteStatsReport> {
+        return this.fail('getSiteStatsReport')
+    }
+
+    async getSiteStatsNow(): Promise<SiteStatsNow> {
+        return this.fail('getSiteStatsNow')
+    }
+
+    async startSiteStatsRollup(): Promise<string> {
+        return this.fail('startSiteStatsRollup')
     }
 
     async setGameState(_state: GameState): Promise<void> {

@@ -19,6 +19,7 @@ import { NotificationSubscription } from '../../notifications/subscriptions/noti
 import { StoredSubscription } from '../model/storedSubscription.js'
 import { NotificationSubscriptionIdentifier } from '../../notifications/subscriptions/notificationSubscriptionIdentifier.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
+import { RegistrationLimitExceededError } from '../../notifications/notificationErrors.js'
 
 export class FirestoreNotificationStore implements NotificationStore, SiteStatsSubscriptionSource {
     readonly notificationSubscriptions: CollectionReference
@@ -58,10 +59,12 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
 
     async upsertNotificationSubscription({
         subscription,
-        topic
+        topic,
+        registrationLimit
     }: {
         subscription: NotificationSubscription
         topic: string
+        registrationLimit?: number
     }): Promise<void> {
         const subscriptionId = this.docIdForSubscription(subscription)
 
@@ -82,6 +85,17 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
                 }
 
                 if (!existingTopic.clients.find((client) => client.id === subscriptionId)) {
+                    if (
+                        registrationLimit !== undefined &&
+                        this.countClientsOfTransport(existingTopic, subscription.transport) >=
+                            registrationLimit
+                    ) {
+                        throw new RegistrationLimitExceededError({
+                            transport: subscription.transport,
+                            topic,
+                            limit: registrationLimit
+                        })
+                    }
                     topicToUpdate = existingTopic
 
                     const newClient: PushClient = {
@@ -132,7 +146,6 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
             })
         } catch (error) {
             this.handleError(error, subscriptionId, 'StoredSubscription | PushTopic')
-            throw Error('unreachable')
         }
     }
 
@@ -175,8 +188,11 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
             })
         } catch (error) {
             this.handleError(error, subscriptionId, 'NotificationSubscription | PushTopic')
-            throw Error('unreachable')
         }
+    }
+
+    private countClientsOfTransport(pushTopic: StoredPushTopic, transport: TransportType): number {
+        return pushTopic.clients.filter((client) => client.type === transport).length
     }
 
     private docIdForSubscription(identifier: NotificationSubscriptionIdentifier): string {
@@ -193,7 +209,6 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
             return storedTopic.clients
         } catch (error) {
             this.handleError(error, topic, 'PushTopic')
-            throw Error('unreachable')
         }
     }
 
@@ -207,11 +222,10 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
             return snapshot.data().count
         } catch (error) {
             this.handleError(error, transport, 'NotificationSubscription')
-            throw Error('unreachable')
         }
     }
 
-    private handleError(error: unknown, id: string, type: string) {
+    private handleError(error: unknown, id: string, type: string): never {
         console.log(error)
         if (error instanceof BaseError) {
             throw error

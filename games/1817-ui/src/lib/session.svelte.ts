@@ -17,6 +17,7 @@ import {
     minimumBid,
     openingBid,
     bidCeiling,
+    bidRejection,
     BuyConvertedShare,
     ConvertCompany,
     DiscardMergedTrain,
@@ -46,6 +47,7 @@ import {
 import { assert, PassableBidding } from '@tabletop/common'
 import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import { EighteenSeventeenMapView } from './mapView.js'
+import { createRouteWorker } from './routeWorker.js'
 import { EighteenSeventeenPresentation } from './presentation.js'
 
 const BaseSession: ReturnType<
@@ -56,7 +58,8 @@ const BaseSession: ReturnType<
 > = createEighteenXXSessionClass(
     EighteenSeventeenTitleRules,
     EighteenSeventeenMapView,
-    EighteenSeventeenPresentation
+    EighteenSeventeenPresentation,
+    createRouteWorker
 )
 
 /** The stock-round panels 1817 adds beside Buy and Sell. */
@@ -178,7 +181,8 @@ export class EighteenSeventeenSession extends BaseSession {
                     ? bidCeiling(state, sale, playerId)
                     : undefined,
             /** The bidder's companies that could pay this amount. */
-            payers: (amount: number) => (playerId ? buyersFor(state, playerId, sale, amount) : [])
+            payers: (amount: number) => (playerId ? buyersFor(state, playerId, sale, amount) : []),
+            allows: (amount: number) => !!playerId && !bidRejection(state, sale, playerId, amount)
         }
     })
     acquirerChoice = $derived(

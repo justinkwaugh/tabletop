@@ -17,7 +17,8 @@ import { afterRelicsTakenPersistent } from '../util/persistent.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { ActionType } from '../definition/actions.js'
 import { Banner } from '../model/oathEnums.js'
-import { CampaignTargetKind, type CampaignState } from '../model/campaign.js'
+import { CampaignTargetKind, HospitalPlaced, type CampaignState } from '../model/campaign.js'
+import { hospitalPlacedRecord } from '../util/campaignEnd.js'
 import { targetedSiteIds } from '../util/campaignSite.js'
 import { partiesOf } from '../util/campaignRoll.js'
 import {
@@ -86,6 +87,8 @@ export const CampaignResolveVictoryMetadata = Type.Object({
     resumeMachineState: Type.Optional(Type.Enum(MachineState)),
     /** R-5.5.8, R-9.4 */
     pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 })),
+    /** Hospital — the defeated side's warbands it placed on its site as the Campaign ended. */
+    hospitalPlaced: Type.Optional(HospitalPlaced),
     /** Toll Roads on the banish. */
     tollMove: Type.Optional(PowerMoveToll)
 })
@@ -186,6 +189,7 @@ export class HydratedCampaignResolveVictory
             relicsRevealed: revealed?.relicsRevealed ?? 0,
             resumeMachineState: conclusion?.resumeMachineState,
             pileDeposits: pileDeposits.length > 0 ? pileDeposits : undefined,
+            hospitalPlaced: hospitalPlacedRecord(conclusion?.hospitalPlaced),
             tollMove
         }
         // R-X.3(b): a discard is replayed into the vault, which is never rolled back.
