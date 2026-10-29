@@ -63,12 +63,6 @@ export const OperatingRules1833NE: OperatingRules = {
                       Market1833NE.companySpace(state.stockMarket, b).price
               )
             : corporations
-    },
-    // Privates pay their corporations only until phase III (§3.1).
-    privateIncome(state, privateId) {
-        const definition = Privates1833NE.find((company) => company.id === privateId)
-        assertExists(definition, 'A private has an income')
-        return Phases1833NE.isAtLeast(state.phaseId, 'III') ? 0 : definition.revenue
     }
 }
 

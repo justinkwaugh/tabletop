@@ -27,7 +27,7 @@ describe('phases (§9)', () => {
         expect(trainRetirement('V', '7+3')).toBeUndefined()
     })
 
-    it('removes players’ privates and P1–P2 at III, P3–P5 at IV, never the D&H', () => {
+    it('removes players’ privates and P1–P2 at III and flips the rest, P3–P5 go at IV, the D&H never', () => {
         const state = structuredClone(table(4).state)
         const own = (privateId: string, companyId?: string) => {
             const certificate = state.certificates.find(
@@ -39,11 +39,19 @@ describe('phases (§9)', () => {
         }
         for (const id of ['P1', 'P2', 'P3', 'P4', 'P6']) own(id, 'B&W')
         own('P5')
-        const closing = (phaseId: string) =>
-            privatePhaseEffects({ ...state, phaseId }).map((effect) => effect.privateCompanyId)
-        expect(closing('II')).toEqual([])
-        expect(closing('III')).toEqual(['P1', 'P2', 'P5'])
-        expect(closing('IV')).toEqual(['P1', 'P2', 'P3', 'P4', 'P5'])
+        const effects = (phaseId: string, kind: 'close' | 'income') =>
+            privatePhaseEffects({ ...state, phaseId })
+                .filter((effect) => effect.kind === kind)
+                .map((effect) => effect.privateCompanyId)
+        expect(effects('II', 'close')).toEqual([])
+        expect(effects('II', 'income')).toEqual([])
+        expect(effects('III', 'close')).toEqual(['P1', 'P2', 'P5'])
+        // P3, P4 and the D&H flip over: no more income, abilities kept.
+        expect(effects('III', 'income')).toEqual(['P3', 'P4', 'P6'])
+        expect(effects('IV', 'close')).toEqual(['P1', 'P2', 'P3', 'P4', 'P5'])
+        for (const id of ['P3', 'P4', 'P6'])
+            state.companies.find((company) => company.id === id)!.privateRevenue = 0
+        expect(effects('IV', 'income')).toEqual([])
     })
 })
 

@@ -52,20 +52,24 @@ const RemovedAtIII = ['P1', 'P2']
 const RemovedAtIV = ['P3', 'P4', 'P5']
 
 /**
- * Phase III removes every private players still hold and P1–P2; phase IV removes P3–P5. The
- * D&H is never removed (§9).
+ * Phase III removes every private players still hold and P1–P2, and flips P3–P6 over: they pay
+ * nothing more but keep their abilities. Phase IV removes P3–P5; the D&H is permanent (§9).
  */
 export function privatePhaseEffects(
     state: Parameters<PrivateRules['phaseEffects']>[0]
 ): PrivateEffect[] {
-    const closing = (id: string) => {
-        if (Phases1833NE.isAtLeast(state.phaseId, 'IV') && RemovedAtIV.includes(id)) return true
-        if (!Phases1833NE.isAtLeast(state.phaseId, 'III')) return false
-        return RemovedAtIII.includes(id) || privateOwner(state, id)?.kind !== 'company'
-    }
-    return state.companies
-        .filter((company) => company.kind === 'private' && !company.closed && closing(company.id))
-        .map((company) => ({ kind: 'close', privateCompanyId: company.id }))
+    if (!Phases1833NE.isAtLeast(state.phaseId, 'III')) return []
+    const closing = (id: string) =>
+        (Phases1833NE.isAtLeast(state.phaseId, 'IV') && RemovedAtIV.includes(id)) ||
+        RemovedAtIII.includes(id) ||
+        privateOwner(state, id)?.kind !== 'company'
+    return state.companies.flatMap((company): PrivateEffect[] => {
+        if (company.kind !== 'private' || company.closed) return []
+        if (closing(company.id)) return [{ kind: 'close', privateCompanyId: company.id }]
+        return company.privateRevenue === 0
+            ? []
+            : [{ kind: 'income', privateCompanyId: company.id, revenue: 0 }]
+    })
 }
 
 export const PrivateRules1833NE: PrivateRules = {
