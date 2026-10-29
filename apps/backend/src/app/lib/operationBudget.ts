@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest, RouteGenericInterface } from 'fastify'
+import { assertExists } from '@tabletop/common'
 import { rejectWhenExceeded } from './budgetExceeded.js'
 
 export interface OperationBudget<Route extends RouteGenericInterface> {
@@ -9,6 +10,11 @@ export interface OperationBudget<Route extends RouteGenericInterface> {
 }
 
 export const caseInsensitiveSubject = (value: string) => value.trim().toLowerCase()
+
+export function authenticatedAccountSubject(request: FastifyRequest): string {
+    assertExists(request.user, 'An account budget requires an authenticated user')
+    return request.user.id
+}
 
 export function operationBudget<Route extends RouteGenericInterface>(
     fastify: FastifyInstance,

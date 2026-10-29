@@ -79,6 +79,40 @@ describe('request rate limiting', () => {
             viaHosting(`203.0.${Math.floor(index / 250)}.${(index % 250) + 1}`, proxy)
         )
 
+    describe.each([
+        {
+            path: 'direct',
+            request: (address: string): Request => ({
+                forwardedFor: `${address}, ${CLOUD_RUN_INGRESS}`
+            })
+        },
+        { path: 'Hosting', request: viaHosting }
+    ])('address normalization through $path', ({ request }) => {
+        it('shares one allowance within an IPv6 /64 and keeps other subnets separate', async () => {
+            const server = await createServer('backend')
+            expect(
+                await statuses(server, [
+                    request('2001:db8:1:2::1'),
+                    request('2001:db8:1:2::2'),
+                    request('2001:0DB8:0001:0002:ffff::99'),
+                    request('2001:db8:1:3::1')
+                ])
+            ).toEqual([200, 200, 429, 200])
+        })
+
+        it('shares one allowance between IPv4 and its IPv6-mapped form', async () => {
+            const server = await createServer('backend')
+            expect(
+                await statuses(server, [
+                    request('198.51.100.7'),
+                    request('::ffff:198.51.100.7'),
+                    request('::ffff:c633:6407'),
+                    request('198.51.100.8')
+                ])
+            ).toEqual([200, 200, 429, 200])
+        })
+    })
+
     describe('direct callers of the Cloud Run URL', () => {
         it('cannot reset their quota by changing Fastly-Client-IP', async () => {
             const server = await createServer('backend')
@@ -154,6 +188,18 @@ describe('request rate limiting', () => {
             ])
         })
 
+        it('normalizes IPv6 peer spellings without grouping separate proxies', async () => {
+            const server = await createServer('backend')
+            const peerMax = PROBE_MAX * browsersPerHostingPeer
+            await statuses(server, rotatingHints(peerMax, '2001:4860:4801:2::1'))
+            expect(
+                await statuses(server, [
+                    viaHosting('203.0.113.99', '2001:4860:4801:0002:0000:0000:0000:0001'),
+                    viaHosting('203.0.113.99', '2001:4860:4801:2::2')
+                ])
+            ).toEqual([429, 200])
+        })
+
         it('keeps the peer bound separate for each route', async () => {
             const server = await createServer('backend')
             await statuses(server, rotatingHints(PROBE_MAX * browsersPerHostingPeer))
@@ -181,15 +227,15 @@ describe('request rate limiting', () => {
 
     it('keys an Authenticated Session by its Account rather than its address', async () => {
         const server = await createServer('backend')
-        const browser = viaHosting('203.0.113.1')
+        const browser = viaHosting('2001:db8:1:2::1')
         expect(
             await statuses(server, [
                 browser,
                 browser,
                 browser,
                 { ...browser, userId: 'user-1' },
-                { ...browser, userId: 'user-1' },
-                { ...browser, userId: 'user-1' },
+                { ...viaHosting('2001:db8:1:2::2'), userId: 'user-1' },
+                { ...viaHosting('2001:db8:1:3::1'), userId: 'user-1' },
                 { ...browser, userId: 'user-2' }
             ])
         ).toEqual([200, 200, 429, 200, 200, 429, 200])

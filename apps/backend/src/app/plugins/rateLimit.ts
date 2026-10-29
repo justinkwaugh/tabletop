@@ -1,6 +1,6 @@
 import fp from 'fastify-plugin'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
-import fastifyRateLimit, { type RateLimitOptions } from '@fastify/rate-limit'
+import fastifyRateLimit, { normalizeIP, type RateLimitOptions } from '@fastify/rate-limit'
 import {
     LocalRateLimitCounter,
     type RateLimitCounter
@@ -51,7 +51,7 @@ export default fp(
             keyGenerator: (request) =>
                 request.session.userId
                     ? `user:${request.session.userId}`
-                    : `client:${clientIdentity(request).client}`,
+                    : `client:${normalizeIP(clientIdentity(request).client, 64)}`,
             onExceeded: (request, key) =>
                 request.log.warn({ key, url: request.url }, 'Request limit exceeded')
         })
@@ -67,7 +67,7 @@ export default fp(
                 consume = fastify.createRateLimit({
                     max: hostingPeerMax(budget?.max),
                     timeWindow: budget?.timeWindow ?? '1 minute',
-                    keyGenerator: (limited) => `peer:${route}:${limited.ip}`
+                    keyGenerator: (limited) => `peer:${route}:${normalizeIP(limited.ip, 128)}`
                 })
                 hostingPeerBudgets.set(route, consume)
             }

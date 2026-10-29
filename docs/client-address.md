@@ -52,20 +52,29 @@ caller.
   (attribution `ingress-peer`). A claim that is ignored is logged at `warn` as
   `Ignoring Fastly-Client-IP that did not arrive from a Google service address`.
 
-The hint keeps attribution usable: browsers behind the same Hosting proxy get separate client
-budgets instead of sharing one. It is never the only bound on a request.
+The hint keeps attribution usable: client addresses behind the same Hosting proxy retain their
+own budgets. It is never the only bound on a request.
+
+Anonymous client keys use Fastify's `normalizeIP(address, 64)`: equivalent IPv6 spellings share
+a key, IPv4-mapped IPv6 addresses share the ordinary IPv4 key, and all addresses within one
+IPv6 `/64` share a budget. Separate people on that subnet therefore share the anonymous
+allowance. Account, Username and Email Address keys are independent of IP addresses. Hosting
+peer keys use `normalizeIP(address, 128)`, which normalizes spellings without combining distinct
+Google proxy addresses into one subnet budget.
 
 ## Budgets
 
 Every budget is a fixed window counted in the shared store described below.
 
-| Layer          | Key                           | Who could forge the key                | Budget                                                               |
-| -------------- | ----------------------------- | -------------------------------------- | -------------------------------------------------------------------- |
-| Account        | `user:<account id>`           | nobody without the session cookie      | 500 requests / minute                                                |
-| Client         | `client:<client>`             | any Google-hosted caller, via the hint | 100 requests / minute, or the route's `config.rateLimit`             |
-| Hosting peer   | `peer:<route>:<ingress peer>` | nobody; it is the connection's address | 3 × the route's client budget, per Google service address, per route |
-| Login          | `login:<username>`            | nobody; the subject is the target      | 20 attempts / 15 minutes, from any addresses                         |
-| Password reset | `password reset:<email>`      | nobody; the subject is the target      | 10 emails / 15 minutes, from any requesters                          |
+| Layer                  | Key                                   | Who could forge the key                | Budget                                                               |
+| ---------------------- | ------------------------------------- | -------------------------------------- | -------------------------------------------------------------------- |
+| Account                | `user:<account id>`                   | nobody without the session cookie      | 500 requests / minute                                                |
+| Client                 | `client:<normalized client>`          | any Google-hosted caller, via the hint | 100 requests / minute, or the route's `config.rateLimit`             |
+| Hosting peer           | `peer:<route>:<ingress peer>`         | nobody; it is the connection's address | 3 × the route's client budget, per Google service address, per route |
+| Login                  | `login:<username>`                    | nobody; the subject is the target      | 20 attempts / 15 minutes, from any addresses                         |
+| Password reset         | `password reset:<email>`              | nobody; the subject is the target      | 10 emails / 15 minutes, from any requesters                          |
+| Email verification     | `email verification:<account id>`     | nobody without an eligible session     | 10 requests / 15 minutes, across the Account's sessions              |
+| Sensitive change email | `sensitive change email:<account id>` | nobody without an eligible session     | 10 requests / 15 minutes, across the Account's sessions              |
 
 The Hosting peer layer runs only for anonymous requests attributed through the hint. A caller
 who rotates `Fastly-Client-IP` from one Google service address escapes the client layer but
@@ -82,9 +91,15 @@ On the `local` service only routes with their own budget are limited, so the dev
 local hosted site behave as production does for login, registration and emails and are
 otherwise unlimited.
 
+Ably token issuance has a route budget of 60 requests per Account per minute. Verification
+email and Sensitive Change email requests each keep their route budget of 5 requests per
+Account per minute in addition to the independent fifteen-minute operation budgets above.
+
 Operation budgets are built with `operationBudget`, which keys a limiter by the operation's
-subject (a Username or Email Address, trimmed and lowercased) and answers `429` with
-`Retry-After`. They do not read the address at all, so no header rotation affects them.
+subject (a trimmed, lowercased Username or Email Address, or an authenticated Account ID) and
+answers `429` with `Retry-After`. They do not read the address at all, so no header rotation
+affects them. Account email budgets run after authorization and before the email is enqueued;
+refused attempts cannot send an email.
 
 ## Shared storage and failure policy
 
