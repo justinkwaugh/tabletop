@@ -1711,6 +1711,10 @@
           "privateCompanyId": {
             "minLength": 1,
             "type": "string"
+          },
+          "required": {
+            "const": true,
+            "type": "boolean"
           }
         },
         "required": [
