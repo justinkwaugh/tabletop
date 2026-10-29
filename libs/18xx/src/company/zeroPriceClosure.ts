@@ -47,6 +47,22 @@ export function corporationAwaitingClosure(
     )?.id
 }
 
+/** Closes every started corporation whose price has fallen to zero, one at a time. */
+export function closeZeroPriceCorporations<Closure>(
+    state: Pick<HydratedEighteenXXState, 'companies' | 'stockMarket'>,
+    market: StockMarketChart,
+    close: (companyId: string) => Closure
+): Closure[] {
+    const closures: Closure[] = []
+    for (
+        let closing = corporationAwaitingClosure(state, market);
+        closing;
+        closing = corporationAwaitingClosure(state, market)
+    )
+        closures.push(close(closing))
+    return closures
+}
+
 export type CloseCorporationSchema<Closure extends Type.TProperties = Type.TProperties> =
     Type.TObject<
         Omit<typeof GameAction.properties, 'type' | 'source'> & {

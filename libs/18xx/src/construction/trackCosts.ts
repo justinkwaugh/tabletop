@@ -1,7 +1,5 @@
 import { assertExists } from '@tabletop/common'
 import { RailwayMapState } from '../map/mapState.js'
-import type { RailwayMap } from '../map/map.js'
-import type { TileSet } from '../tiles/inventory.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
 import type { TileEdge } from '../tiles/tile.js'
 import {
@@ -67,11 +65,19 @@ export function unpaidTerrainCost(
     return (map.location(locationId).terrain?.cost ?? 0) + (tile.face.upgradeCost ?? 0)
 }
 
-/** Every lay or upgrade costs at least the minimum, or its terrain if more, plus its hexsides. */
+/**
+ * Every lay or upgrade costs at least the minimum, or its terrain if more, plus its hexsides. A
+ * title may print a lower cost for a hex's terrain, which applies only while it is unpaid.
+ */
 export function minimumLayCost(
     rules: TrackData,
-    minimum: number
+    minimum: number,
+    discountedTerrain?: (state: ConstructionState, request: TrackRequest, terrain: number) => number
 ): NonNullable<TrackRules['terrainCost']> {
-    return (state, request, cost) =>
-        cost + Math.max(0, minimum - unpaidTerrainCost(rules, state, request.locationId))
+    return (state, request, cost) => {
+        const unpaid = unpaidTerrainCost(rules, state, request.locationId)
+        const terrain =
+            unpaid && discountedTerrain ? discountedTerrain(state, request, unpaid) : unpaid
+        return cost - unpaid + Math.max(minimum, terrain)
+    }
 }

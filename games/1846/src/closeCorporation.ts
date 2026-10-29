@@ -1,10 +1,5 @@
 import * as Type from 'typebox'
-import {
-    CompanyClosure,
-    closeShareCompany,
-    corporationAwaitingClosure,
-    type ZeroPriceClosureRules
-} from '@tabletop/18xx'
+import { CompanyClosure, closeShareCompany, type ZeroPriceClosureRules } from '@tabletop/18xx'
 import { Market1846 } from './stock.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 import { RevenueMarker } from './revenueMarkers.js'
@@ -26,10 +21,6 @@ export function closeRailroad(
     if (state.steamboat?.companyId === companyId) delete state.steamboat
     state.revenueMarkers = state.revenueMarkers.filter((marker) => marker.companyId !== companyId)
     return { ...closure, removedRevenueMarkers }
-}
-
-export function zeroPriceCorporation(state: HydratedEighteenFortySixState): string | undefined {
-    return corporationAwaitingClosure(state, Market1846)
 }
 
 export const ZeroPriceClosure1846: ZeroPriceClosureRules<typeof RailroadClosure> = {

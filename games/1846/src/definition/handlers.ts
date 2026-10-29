@@ -1,21 +1,10 @@
+import { ActionSource, assertExists } from '@tabletop/common'
 import {
-    ActionSource,
-    assert,
-    assertExists,
-    type HydratedAction,
-    type MachineContext
-} from '@tabletop/common'
-import {
-    FinishStations,
     HydratedStartOperatingRound,
     HydratedStartOperatingTurn,
     HydratedStartStockRound,
-    StationPlacement,
     getCompany,
     isFinishOperatingTurn,
-    isFinishStations,
-    isFinishTrack,
-    isPlaceStation,
     nextOperatingCompany,
     canStartStockRound,
     trainsRustingAfterOperation,
@@ -30,7 +19,6 @@ import type { HydratedEighteenFortySixState } from '../state.js'
 
 type State = HydratedEighteenFortySixState
 type Handler = EighteenXXStateHandler<State>
-type Context = MachineContext<State>
 
 /** A wrapper that leaves every family decision alone except the one it overrides. */
 function wrapping(family: Handler, overrides: Partial<Handler>): Handler {
