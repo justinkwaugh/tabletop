@@ -11,6 +11,10 @@
             "import": "./esm/diagnostics/requestTimings.js",
             "types": "./src/diagnostics/requestTimings.ts"
         },
+        "./rate-limit-counter": {
+            "import": "./esm/cache/rateLimitCounter.js",
+            "types": "./src/cache/rateLimitCounter.ts"
+        },
         "./discord-commands": {
             "import": "./esm/discord/commands.js",
             "types": "./src/discord/commands.ts"

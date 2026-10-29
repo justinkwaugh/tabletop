@@ -41,6 +41,7 @@
         "fastify-raw-body": "^6.0.3",
         "fastify-sse-v2": "^4.2.1",
         "google-auth-library": "^11.3.2",
+        "ipaddr.js": "^2.5.0",
         "nanoid": "5.1.6",
         "resend": "^6.8.0",
         "sodium-native": "^5.0.10",
@@ -54,6 +55,7 @@
         "@types/node": "^24.3.1",
         "@typescript/native-preview": "7.0.0-dev.20260707.2",
         "nodemon": "^3.1.3",
+        "redis": "^5.10.0",
         "rimraf": "^6.1.0",
         "tsx": "^4.21.0",
         "typescript": "5.9.3"
