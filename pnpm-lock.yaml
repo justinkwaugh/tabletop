@@ -3917,8 +3917,8 @@ importers:
         specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
       firebase-tools:
-        specifier: 15.34.1
-        version: 15.34.1(@types/node@24.19.2)
+        specifier: 15.34.2
+        version: 15.34.2(@types/node@24.19.2)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -7091,8 +7091,8 @@ packages:
     resolution: {integrity: sha512-78/PXT1wlLLDgTzDs7sjq9hzz0vXD+zn+7wypEe4fXQxCmdmqfGsEPQxmiCSQI3ajFV91bVSsvNtrJRiW6nGng==}
     engines: {node: '>=10'}
 
-  firebase-tools@15.34.1:
-    resolution: {integrity: sha512-guAlrL5NpupsD8g0EowinzeCdAcpgiK7KjZjUUle7PAWzyfX85p5xPsGjcpT+BcfLT8ozktOYm8Etw3aFFX3sg==}
+  firebase-tools@15.34.2:
+    resolution: {integrity: sha512-Xo010+PZAj5sL6hn33p19egXDmVlowPZknbs2Rf4nxd6Ulx6gLCd76qHd9XT2lV3B0u7yi0iO0BU5qrLeY8Y+g==}
     engines: {node: '>=20.0.0 || >=22.0.0 || >=24.0.0'}
     hasBin: true
 
@@ -13429,7 +13429,7 @@ snapshots:
       locate-path: 6.0.0
       path-exists: 4.0.0
 
-  firebase-tools@15.34.1(@types/node@24.19.2):
+  firebase-tools@15.34.2(@types/node@24.19.2):
     dependencies:
       '@electric-sql/pglite': 0.3.16
       '@electric-sql/pglite-tools': 0.2.21(@electric-sql/pglite@0.3.16)
@@ -13443,7 +13443,7 @@ snapshots:
       archiver: 7.0.1
       async-lock: 1.4.1
       body-parser: 1.20.9
-      chokidar: 3.6.0
+      chokidar: 4.0.3
       cjson: 0.3.3
       cli-table3: 0.6.5
       colorette: 2.0.20
