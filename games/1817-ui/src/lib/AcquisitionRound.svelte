@@ -99,7 +99,7 @@
                     {money}
                     {amount}
                     increment={10}
-                    canBid={!busy && amount >= sale.minimum && amount <= sale.maximum}
+                    canBid={!busy && sale.allows(amount)}
                     canDecrease={amount - 10 >= sale.minimum}
                     canIncrease={amount + 10 <= sale.maximum}
                     canPass={!busy}
