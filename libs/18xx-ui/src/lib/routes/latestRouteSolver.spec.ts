@@ -47,8 +47,13 @@ class FakeWorker extends EventTarget {
     }
 }
 
-function request(name: string) {
-    return { state: { ...minimalRailwayState(), phaseId: name }, companyId: 'R', name }
+function request(name: string, key?: string) {
+    return {
+        state: { ...minimalRailwayState(), phaseId: name },
+        companyId: 'R',
+        name,
+        ...(key ? { key } : {})
+    }
 }
 
 function solver() {
@@ -155,6 +160,49 @@ describe('LatestRouteSolver', () => {
         latest.solve(request('c'))
         workers[1].answer(30)
         expect(workers).toHaveLength(2)
+    })
+
+    it('answers a request with the key of an earlier answer without solving it', () => {
+        const { latest, workers, solved } = solver()
+        latest.solve(request('a', 'network-1'))
+        workers[0].answer(10)
+        latest.solve(request('b', 'network-2'))
+        workers[0].answer(20)
+        latest.solve(request('c', 'network-1'))
+        expect(solved).toEqual([
+            ['a', 10],
+            ['b', 20],
+            ['c', 10]
+        ])
+        expect(workers[0].posted).toHaveLength(2)
+    })
+
+    it('does not show an answer overtaken by a remembered one, but keeps it', () => {
+        const { latest, workers, solved } = solver()
+        latest.solve(request('a', 'network-1'))
+        workers[0].answer(10)
+        latest.solve(request('b', 'network-2'))
+        latest.solve(request('c', 'network-1'))
+        workers[0].answer(20)
+        expect(solved).toEqual([
+            ['a', 10],
+            ['c', 10]
+        ])
+        expect(workers[0].posted).toHaveLength(2)
+        latest.solve(request('d', 'network-2'))
+        expect(solved.at(-1)).toEqual(['d', 20])
+    })
+
+    it('forgets the oldest answers beyond the most recent 64', () => {
+        const { latest, workers, solved } = solver()
+        for (let index = 0; index <= 64; index++) {
+            latest.solve(request(String(index), `network-${index}`))
+            workers[0].answer(index)
+        }
+        latest.solve(request('again', 'network-1'))
+        expect(solved.at(-1)).toEqual(['again', 1])
+        latest.solve(request('first', 'network-0'))
+        expect(workers[0].posted).toHaveLength(66)
     })
 
     it('stops its worker when destroyed', () => {

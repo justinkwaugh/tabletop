@@ -1,4 +1,4 @@
-import type { AutoroutingRequest } from '@tabletop/18xx-autorouter'
+import { routeProblemKey, type AutoroutingRequest } from '@tabletop/18xx-autorouter'
 import {
     RouteEvaluation,
     type EighteenXXState,
@@ -21,7 +21,8 @@ export type ProjectedRunMap = Pick<
     MapModule,
     'displayedTileInventory' | 'displayedStationState' | 'displayedScene'
 >
-export type RunProjectionRequest = AutoroutingRequest & { trains: readonly Train[] }
+// The key names the company's reachable network, so previews that leave it unchanged share a run.
+export type RunProjectionRequest = AutoroutingRequest & { trains: readonly Train[]; key: string }
 // Previews follow each tile and rotation tried, so they settle for the best run found quickly.
 const ProjectedRunTimeLimitMs = 1000
 export type RunProjection = { request: RunProjectionRequest; solution: RouteSolution }
@@ -61,9 +62,9 @@ export class ProjectedRunModule {
         const trains = new RouteEvaluation(state, this.session.rules.routeRules).runnableTrains(
             companyId
         )
-        return trains.length
-            ? { state, companyId, trains, timeLimitMs: ProjectedRunTimeLimitMs }
-            : undefined
+        if (!trains.length) return undefined
+        const key = routeProblemKey(state, this.session.rules.routeRules, companyId)
+        return { state, companyId, trains, key, timeLimitMs: ProjectedRunTimeLimitMs }
     })
     // Kept from one preview to the next and across the company's own actions, but a company's
     // run from an earlier turn must never show in its next one.
