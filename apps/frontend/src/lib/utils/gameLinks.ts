@@ -8,12 +8,10 @@ export function gamePlayPath(gameId: string): string {
     return `/game/${encodeURIComponent(gameId)}`
 }
 
-export function publicGameShareLink(
-    game: Game
-): { path: string; kind: 'invite' | 'game' } | undefined {
+export function gameShareLink(game: Game): { path: string; kind: 'invite' | 'game' } | undefined {
     if (
-        !game.isPublic ||
         game.deleted ||
+        game.status === GameStatus.Archived ||
         game.storage === GameStorage.Local ||
         game.storage === GameStorage.None
     )
@@ -23,12 +21,7 @@ export function publicGameShareLink(
         return { path: gamePlayPath(game.id), kind: 'game' }
     }
 
-    if (
-        !game.hotseat &&
-        !game.tournament &&
-        !game.parentId &&
-        (game.status === GameStatus.WaitingForPlayers || game.status === GameStatus.WaitingToStart)
-    ) {
+    if (game.isPublic && !game.hotseat && !game.tournament && !game.parentId) {
         return { path: publicGameInvitationPath(game.id), kind: 'invite' }
     }
     return undefined

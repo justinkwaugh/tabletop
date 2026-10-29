@@ -245,10 +245,8 @@ export class GameService {
 
         this.assertOwnerSeatedUnlessDeveloper(newGame, owner)
 
-        if (newGame.unlisted) {
-            if (!this.hasDeveloperAccess(owner))
-                throw new UnauthorizedAccessError({ user: owner, gameId: newGame.id })
-            if (!newGame.isPublic) throw new UnlistedGameNotPublicError({ id: newGame.id })
+        if (newGame.unlisted && !newGame.isPublic) {
+            throw new UnlistedGameNotPublicError({ id: newGame.id })
         }
 
         // Private games have to be full

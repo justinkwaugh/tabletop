@@ -24,7 +24,7 @@
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
-    import { publicGameShareLink } from '$lib/utils/publicGameInvitation'
+    import { gameShareLink } from '$lib/utils/gameLinks'
     import { startCountdownText } from '$lib/utils/startCountdown'
     import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
@@ -80,7 +80,7 @@
     let isExpanded = $derived(expanded ? true : false)
 
     let sessionUser = $derived(authorizationService.getSessionUser())
-    let shareLink = $derived(publicGameShareLink(game))
+    let shareLink = $derived(gameShareLink(game))
     let isOwnedByMe = $derived(sessionUser?.id === game.ownerId)
     let sortedPlayers = $derived(
         game.players.toSorted(
