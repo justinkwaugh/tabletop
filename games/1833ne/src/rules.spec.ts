@@ -8,8 +8,9 @@ import {
 import { table } from '../test/table.js'
 import { position } from '../test/position.js'
 import { buyAllPrivates, launch, passStockRound, rotationFor } from '../test/flow.js'
-import { PrivatePowerRules1833NE, privatePhaseEffects } from './privates.js'
+import { PrivatePowerRules1833NE, blockedByPrivate, privatePhaseEffects } from './privates.js'
 import { trainRetirement } from './trains.js'
+import { Map1833NE } from './map.js'
 import { TrackRules1833NE } from './track.js'
 
 describe('phases (§9)', () => {
@@ -238,5 +239,37 @@ describe('Champlain & St. Lawrence (P3)', () => {
             game.state.tileInventory.placements.C4 && game.state.tileInventory.placements.C6
         ).toBeTruthy()
         expect(game.state.companies.find((company) => company.id === 'StL&A')).toEqual(cash)
+    })
+})
+
+describe('terrain discounts (§6.49)', () => {
+    it('charges the printed lower cost to its corporation, or from its phase', () => {
+        const state = position([], [], {})
+        const cost = (companyId: string, locationId: string, phaseId = 'I') =>
+            TrackRules1833NE.terrainCost?.(
+                { ...state, phaseId },
+                { companyId, locationId, definitionId: '18xx:7', rotation: 0, nodeMapping: {} },
+                Map1833NE.location(locationId).terrain?.cost ?? 0
+            )
+        expect([cost('B&W', 'B21'), cost('B&W', 'C20'), cost('B&P', 'B21')]).toEqual([20, 20, 60])
+        expect([cost('HR', 'D23'), cost('B&W', 'D23')]).toEqual([20, 60])
+        expect([cost('B&W', 'C18', 'II'), cost('B&W', 'C18', 'III')]).toEqual([100, 40])
+        expect([cost('B&W', 'D27', 'III'), cost('B&W', 'D27', 'IV')]).toEqual([100, 60])
+    })
+})
+
+describe('private blocks (§6.46)', () => {
+    it('keeps track out of G20 until a corporation buys Lowell Merchants or it closes', () => {
+        const state = structuredClone(table(4).state)
+        const certificate = state.certificates.find(
+            (entry) => entry.companyId === 'P2' && entry.kind === 'private'
+        )!
+        certificate.owner = { kind: 'player', playerId: 'p1' }
+        expect(blockedByPrivate(state, 'G20')).toBe(true)
+        certificate.owner = { kind: 'company', companyId: 'B&L' }
+        expect(blockedByPrivate(state, 'G20')).toBe(false)
+        certificate.owner = { kind: 'player', playerId: 'p1' }
+        state.companies.find((company) => company.id === 'P2')!.closed = true
+        expect(blockedByPrivate(state, 'G20')).toBe(false)
     })
 })

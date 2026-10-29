@@ -32,8 +32,8 @@ counter sheet or corporate mats are available beyond what the rulebook pictures 
   by the user, 2026-10-29, matching GMT's 2020 sample token sheet).
 - **Golden spike.** The A&StL mat reads: "President receives $100 from bank upon first
   Montreal and Portland track connection if this Corporation has laid at least 1 yellow
-  track tile." The StL&A mat is hidden in the picture. **Assumed the same text on both
-  mats**: when Montreal and Portland are first joined by track, each of the two
+  track tile." The StL&A mat is hidden in the picture; the user confirmed both mats carry it
+  (2026-10-29): when Montreal and Portland are first joined by track, each of the two
   corporations that has launched and laid a yellow tile pays its president $100.
 - **Takeover game.** The five Variable Start corporations are not named in the rulebook
   (the end-game spreadsheet example mentions "Era" and "B+M"), and their mats, token
@@ -251,7 +251,6 @@ release is a major.
 ### Known limits
 
 - **Takeover game** not built (its five corporations are unidentified); deferred.
-- **Golden spike** text assumed on both mats.
 - **Manual route drawing** of an extension exists only in the debug route builder; the table
   relies on the autorouter for extensions.
 - **No scenarios** yet: the title is not in the 18xx playground or `games.json`.

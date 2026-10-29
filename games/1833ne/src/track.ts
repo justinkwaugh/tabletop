@@ -14,7 +14,7 @@ import {
     type TrackRequest,
     type TrackRules
 } from '@tabletop/18xx'
-import { FirstRoundReservedHexes, Map1833NE, Places } from './map.js'
+import { FirstRoundReservedHexes, Map1833NE, Places, TerrainDiscounts } from './map.js'
 import { blockedByPrivate, mapState, ownsPrivate, type LowellPurchase } from './privates.js'
 import { FallbackBrownCities, PreferredBrownCities, TileSet1833NE } from './tiles.js'
 import { Phases1833NE } from './trains.js'
@@ -33,13 +33,15 @@ export const TrackFields1833NE = {
 type SpikeState = Type.Static<Type.TObject<typeof TrackFields1833NE>>
 type State = ConstructionState & SpikeState
 
-/** Terrain the rulebook discounts, by hex and, where it says so, corporation or phase (§6.49). */
+/** The printed lower cost of a hex's terrain for this corporation in this phase, if any (§6.49). */
 function discountedTerrain(state: ConstructionState, request: TrackRequest, terrain: number) {
-    if (request.companyId === 'B&W' && ['B21', 'C20'].includes(request.locationId)) return 20
-    if (request.companyId === 'HR' && request.locationId === 'D23') return 20
-    if (request.locationId === 'C18' && Phases1833NE.isAtLeast(state.phaseId, 'III')) return 40
-    if (request.locationId === 'D27' && Phases1833NE.isAtLeast(state.phaseId, 'IV')) return 60
-    return terrain
+    const discount = TerrainDiscounts.find(
+        (entry) =>
+            entry.locationIds.includes(request.locationId) &&
+            (!entry.companyId || entry.companyId === request.companyId) &&
+            (!entry.fromPhaseId || Phases1833NE.isAtLeast(state.phaseId, entry.fromPhaseId))
+    )
+    return discount ? discount.cost : terrain
 }
 
 type RoundState = ConstructionState & {

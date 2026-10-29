@@ -116,7 +116,7 @@ for (const [privateId, locationIds] of Object.entries(PrivateBlocks))
                 id: `blocks-${privateId}`,
                 label: PrivateInitials[privateId],
                 privateCompanyId: privateId,
-                description: `No track until a corporation buys ${PrivateInitials[privateId]}.`
+                description: `No track until a corporation buys ${PrivateInitials[privateId]} or it closes.`
             }
         ]
 for (const [locationId, companyId] of Object.entries(FirstRoundReservedHexes))
@@ -127,6 +127,35 @@ for (const [locationId, companyId] of Object.entries(FirstRoundReservedHexes))
             description: `Only the ${companyId} may lay a tile here in the first operating round.`
         }
     ]
+
+/**
+ * Terrain the board prints a lower cost for, for one corporation or from a phase (§6.49):
+ * historical subsidies, the first use of dynamite in C18, and bridge building in D27.
+ */
+export const TerrainDiscounts: readonly {
+    locationIds: readonly string[]
+    cost: number
+    companyId?: string
+    fromPhaseId?: string
+    label: string
+}[] = [
+    { locationIds: ['B21', 'C20'], cost: 20, companyId: 'B&W', label: 'B&W $20' },
+    { locationIds: ['D23'], cost: 20, companyId: 'HR', label: 'HAR $20' },
+    { locationIds: ['C18'], cost: 40, fromPhaseId: 'III', label: 'III+ $40' },
+    { locationIds: ['D27'], cost: 60, fromPhaseId: 'IV', label: 'IV+ $60' }
+]
+for (const discount of TerrainDiscounts)
+    for (const locationId of discount.locationIds)
+        Markers[locationId] = [
+            ...(Markers[locationId] ?? []),
+            {
+                id: 'terrain-discount',
+                label: discount.label,
+                description: discount.companyId
+                    ? `The ${discount.companyId} pays $${discount.cost} for this hex’s terrain.`
+                    : `From phase ${discount.fromPhaseId}, this hex’s terrain costs $${discount.cost}.`
+            }
+        ]
 
 /** The five ferries' cities and values (setup, p. 3). */
 export const FerryPorts: Readonly<Record<string, { name: string; value: number }>> = {
@@ -364,7 +393,8 @@ export const Map1833NE = new RailwayMap({
         ...locations('D27', blank, water(100)),
         ...locations('B19 C16', blank, mountain(120)),
         ...locations('F11', blank, mountain(100)),
-        ...locations('C18 D7 D11 H11', blank, mountain(80)),
+        ...locations('D7 D11 H11', blank, mountain(80)),
+        ...locations('C18', blank, mountain(100)),
         ...locations('B21 F13 G16', blank, mountain(60)),
         ...locations('B27 C4 F21 G24 I10', emptyTown),
         ...locations('I26', { ...emptyTown, labels: ['Hy'] }),
