@@ -631,23 +631,61 @@ fn a_second_pass_above_the_first_answer_proves_a_two_train_fleet_cut_for_memory(
 }
 
 #[test]
-fn a_fleet_cut_for_memory_in_both_passes_reports_it_and_stays_legal() {
+fn a_fleet_cut_for_memory_in_both_passes_reports_it_and_keeps_a_legal_operation() {
+    // The longest-route bonus makes every route valuable enough that the second pass is cut too,
+    // after compilation completed.
     let edges: Vec<_> = (0..8)
         .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
         .collect();
     for trains in [&[5, 4][..], &[4, 4]] {
-        let full = solve(&graph(8, &edges, trains));
         let mut p = graph(8, &edges, trains);
-        p["memory_budget_bytes"] = json!(32 * 1024);
+        p["longest_route_bonus_per_stop"] = json!(101);
+        let full = solve(&p);
+        p["memory_budget_bytes"] = json!(64 * 1024);
         let limited: Value =
             serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
         assert!(limited.get("error").is_none(), "{limited}");
         assert_eq!(full["memory_limited"], false);
-        assert_eq!(limited["memory_limited"], true);
+        assert_eq!(limited["memory_limited"], true, "{trains:?}");
         assert_eq!(limited["exhaustive"], false);
-        assert_eq!(limited["path_exhaustive"], false);
         assert!(limited["revenue"].as_i64().unwrap() > 0);
         assert!(limited["revenue"].as_i64() <= full["revenue"].as_i64());
+        // Each train runs at most once and no piece of track is used twice.
+        let routes = limited["routes"].as_array().unwrap();
+        let mut trains_run: Vec<_> = routes
+            .iter()
+            .map(|r| r["train"].as_u64().unwrap())
+            .collect();
+        trains_run.dedup();
+        assert_eq!(trains_run.len(), routes.len());
+        let mut paths: Vec<_> = routes
+            .iter()
+            .flat_map(|r| r["connections"].as_array().unwrap())
+            .flat_map(|c| c["paths"].as_array().unwrap())
+            .map(|path| path.as_u64().unwrap())
+            .collect();
+        let used = paths.len();
+        paths.sort_unstable();
+        paths.dedup();
+        assert_eq!(paths.len(), used);
+    }
+}
+
+#[test]
+fn a_second_pass_bounds_a_stored_train_when_the_other_cannot_run() {
+    // The distance-5 train pays 3 for every stop, so it cannot reach a second stop; it adds
+    // nothing, and the stored train's best route alone is proven best.
+    let edges: Vec<_> = (0..8)
+        .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
+        .collect();
+    for (trains, idle) in [(&[4, 5][..], 1), (&[5, 4], 0)] {
+        let mut p = graph(8, &edges, trains);
+        p["trains"][idle]["visit_costs"] = json!(vec![3; 8]);
+        let full = solve(&p);
+        p["memory_budget_bytes"] = json!(64 * 1024);
+        let proven = solve(&p);
+        assert_eq!(proven["memory_limited"], false, "{trains:?}");
+        assert_eq!(proven["revenue"], full["revenue"], "{trains:?}");
     }
 }
 

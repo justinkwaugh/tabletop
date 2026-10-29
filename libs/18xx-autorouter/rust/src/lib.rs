@@ -558,7 +558,7 @@ struct Search<'a> {
     // Once the budget is reached, only candidates worth more than the weakest one kept are stored.
     floor: Option<i32>,
     limited: bool,
-    // The most valuable route the train can run, once the search has finished.
+    // The most valuable route the train can run (0 when it has none), once the search has finished.
     max_value: i32,
 }
 
@@ -1777,7 +1777,8 @@ impl<'a> Network<'a> {
             selection_bytes_per_candidate: plan.selection_bytes_per_candidate,
             floor: plan.floor,
             limited: false,
-            max_value: i32::MIN,
+            // A train may stay idle, so its best is never below nothing.
+            max_value: 0,
         };
         for (id, stop) in problem.stops.iter().enumerate() {
             if stop.allowed && stop.endpoint {
