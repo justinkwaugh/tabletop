@@ -33,7 +33,20 @@ Tournament game links are cached per Tournament. A write that changes a Tourname
 
 - Magna Grecia: `Round n of m`, with turns within the round counted towards the fraction. `Last round` is final.
 - Fresh Fish: `n tiles left`. The bag's total isn't stored, so it is rebuilt from what was drawn: markets on the board, stalls placed (less final stalls) and a drawn tile still waiting. While the last tile drawn is still being auctioned or placed, the label is `Last tile`. Placing the final stalls counts as the last steps, labelled `Final stalls` and final from the moment that placement begins.
+- Oath: `Round n of 8`, or `Round n · end die k+` in rounds 5–7 while the end die is rolled. `Last round` (round 8) is final. Turns taken count within a round.
+- Napoleon's Triumph: the game's clock, `2 December · 3:00PM`, out of the scenario's rounds, with half a round for the French turn. The last round adds ` · Last hour` and is final.
+- Railheads: `Opening auction`, then `Round r of N · k left` (timer steps). `Last round · k left` is final. Every round is measured against the edition's full timer, so the shortened final round counts its cut as played and the bar never shrinks.
+- MarraCash: `n visitors waiting`, out of the starting queue. `Final round` is final.
+- Sol: `Instability n`, counting down from 13. `Last flare` (instability 1 or 0) is final.
+- Santiago: `Round n of T`, where T comes from the bag size and tiles per round for the player count. `Last round` is final. The fraction counts completed rounds.
+- Estates: `n roofs left`, out of 12. `Last roof` is final. Two completed rows can end the game first.
+- Kaivai: `Round n of T`, where T is cult tiles left plus god moves made: 10 rounds in the 1st edition, 8 in the 2nd. `Last round` and `Final scoring` are final.
+- Löwenherz: `n action cards left`. `King may die` (only E cards left) is final. Whether the A cards were dealt is configuration, not state, so the fraction measures the B–E deck only.
+- Bridges of Shangri-La: `n stones left`. `Last stone` is final. Stones fall in late bursts, so the fraction is bridges broken out of the starting bridges for the player count.
+- Indonesia: `Era X · n deeds left`, as the era's place plus its share of deeds used. Once the era-end check holds in Era C, `Era C · last operations` is final.
 - 18xx family (every title through `createEighteenXXRuntime`): the fraction is the current phase's place in the phase table. The label is `Phase X · Bank $N`, or just `Phase X` when the bank is unlimited (TOP, 1817). Once a game end is scheduled, the label is `Final OR set`, prefixed `Bank broken · ` when the broken bank is what scheduled it, and it is final. The hook checks and reads only `phaseId`, `cash` and `gameEnding` from the stored state. It does not hydrate, which takes milliseconds on every move. Titles declare `currencySymbol` in their rules as a printed fact of the game. `moneyFormat` in `@tabletop/18xx` turns it into text for both the progress label and the title's UI presentation.
+
+Not reporting progress yet: Bus, Hill Country Grocers, Reef Encounter and Urbino. Each ends on a race or a blocked board rather than a clock.
 
 ### 18xx survey
 

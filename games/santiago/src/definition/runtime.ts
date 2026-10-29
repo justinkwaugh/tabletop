@@ -12,6 +12,7 @@ import { SantiagoApiActions } from './apiActions.js'
 import { SantiagoStateHandlers } from './stateHandlers.js'
 import { SantiagoColors } from './colors.js'
 import { SantiagoScoring } from './scoring.js'
+import { SantiagoProgression } from './progression.js'
 
 export const SantiagoRuntime = {
     randomnessVersion: 1,
@@ -23,6 +24,7 @@ export const SantiagoRuntime = {
     apiActions: SantiagoApiActions,
     playerColors: SantiagoColors,
     scoring: new SantiagoScoring(),
+    progression: new SantiagoProgression(),
     visibility: {
         state: Visibility.createProjector(SantiagoGameState),
         actions: Visibility.createActionProjector(SantiagoApiActions)
