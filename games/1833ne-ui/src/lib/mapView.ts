@@ -55,11 +55,38 @@ const Portland: TileLayout = {
     }
 }
 
+// Tokens the tiles print (p. 21): the D&H's mark on Westport's track to A12, the St. Lawrence
+// corporations' joint token in Sherbrooke, and the B&P's reserved space in Boston's green tile.
+const DelawareHudsonMark = {
+    imageUrl: DHToken,
+    at: towardTileEdge(1, 29),
+    radius: 8.5,
+    title: 'Delaware & Hudson RR: its corporation lays track and runs from A12'
+}
+const JointSpace = {
+    imageUrl: JointToken,
+    nodeId: 'city',
+    slot: 0,
+    title: 'The St. Lawrence corporations’ joint token'
+}
+const Westport: TileLayout = { printedTokens: [DelawareHudsonMark] }
+
 /** Tile layouts are given before the tile's rotation, toward each stop's own track. */
 export const TileLayouts1833NE: Readonly<Record<string, TileLayout>> = {
     ...StandardTileLayouts,
+    '1833ne:N11': { printedTokens: [JointSpace] },
+    '1833ne:N21': { printedTokens: [JointSpace] },
+    '1833ne:N26': Westport,
     '1833ne:N23': {
         spikeReach: TerminalSpikeReach,
+        printedTokens: [
+            {
+                imageUrl: BPToken,
+                nodeId: 'city-0',
+                slot: 1,
+                title: 'Reserved for the B&P until phase IV'
+            }
+        ],
         hideRevenue: ['city-0', 'city-1'],
         revenuePositions: { terminal: towardTileEdge(1.58, 30) },
         nodePositions: {
@@ -242,6 +269,7 @@ export const MapView1833NE: MapViewDefinition = {
         // Cape Cod's tip prints a spike out of Hyannis, not track.
         J25: { printedPaths: { 'edge-1': 'spike' } },
         F25: { labelPosition: { x: -22, y: 22 }, revenuePositions: { city: { x: -33, y: 0 } } },
+        B11: Westport,
         H25: { nodePositions: { 'city-0': towardTileEdge(3, 20), 'city-1': towardTileEdge(0, 14) } }
     },
     cityNames: {
@@ -306,16 +334,5 @@ export const MapView1833NE: MapViewDefinition = {
         joint: { color: '#8d807d', label: 'StL&A / A&StL', imageUrl: JointToken }
     },
     // The board prints it in Sherbrooke, where it goes with the city's yellow tile.
-    printedReservations: [{ locationId: 'F5', nodeId: 'city', companyId: 'joint' }],
-    // The D&H's mark where Westport's track runs to its off-board area, A12.
-    printedTokens: {
-        B11: [
-            {
-                imageUrl: DHToken,
-                at: towardTileEdge(1, 29),
-                radius: 8.5,
-                title: 'Delaware & Hudson RR: its corporation lays track and runs from A12'
-            }
-        ]
-    }
+    printedReservations: [{ locationId: 'F5', nodeId: 'city', companyId: 'joint' }]
 }
