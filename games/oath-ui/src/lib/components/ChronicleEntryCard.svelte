@@ -83,7 +83,9 @@
         {#if entry.citizens && entry.citizens.length > 0}
             <dt>Citizens</dt>
             <dd class="flex flex-wrap gap-1">
-                {#each entry.citizens as citizen (citizen.name)}<RecordChip seat={citizen} />{/each}
+                {#each entry.citizens as citizen (citizen.color)}
+                    <RecordChip seat={citizen} />
+                {/each}
             </dd>
         {/if}
         {#if entry.built}

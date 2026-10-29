@@ -127,7 +127,13 @@ import {
     ruinedTempleTable,
     squalidAskedTable
 } from './edificeTables.js'
-import { gameOneAt, gameThreeContinued, gameThreeOpen, gameTwoAt } from './chronicleTables.js'
+import {
+    gameOneAt,
+    gameThreeContinued,
+    gameThreeOpen,
+    gameThreeOpenSameNames,
+    gameTwoAt
+} from './chronicleTables.js'
 import {
     rehearsalOpen,
     rehearsalPinnedOpen,
@@ -382,6 +388,7 @@ export type TableName =
     | 'chronicleSuit'
     | 'chronicleHeal'
     | 'chronicleRecord'
+    | 'chronicleSameNames'
     | 'chronicleOpen'
     | 'rehearsalResult'
     | 'rehearsalOpen'
@@ -5783,6 +5790,7 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     chronicleSuit: () => gameTwoAt('suit'),
     chronicleHeal: () => gameTwoAt('heal'),
     chronicleRecord: () => gameThreeOpen(),
+    chronicleSameNames: () => gameThreeOpenSameNames(),
     chronicleOpen: () => gameThreeContinued(),
     rehearsalResult,
     rehearsalOpen,

@@ -457,6 +457,25 @@ export function gameThreeOpen(): PlayedTable {
     return tableOf(state)
 }
 
+/**
+ * Game 3 at its start, game 1's two Citizens both named Ann (blue and yellow): two seats may share a
+ * name, so the record tells them apart by the colour each played.
+ */
+export function gameThreeOpenSameNames(): PlayedTable {
+    const table = gameThreeOpen()
+    table.state.chronicleRecord = [
+        {
+            ...GAME_ONE_ENTRY,
+            citizens: [
+                { name: 'Ann', color: Color.Blue },
+                { name: 'Ann', color: Color.Yellow }
+            ]
+        },
+        GAME_TWO_ENTRY
+    ]
+    return table
+}
+
 /** Ann's story skipped, so game 2 ends: no story row. */
 export function gameTwoSkipped(): PlayedTable {
     return played(gameTwoAt('story'), [buildAction(SkipChronicleStory, { playerId: ANN })])

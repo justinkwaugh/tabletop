@@ -307,6 +307,23 @@ for (const viewport of [
             await shot(page, 'record-rows')
         })
 
+        test('two Citizens of one name: both chips, each in the colour they played', async ({
+            page
+        }) => {
+            const errors: string[] = []
+            page.on('pageerror', (error) => errors.push(error.message))
+            await openTable(page, 'chronicleSameNames')
+            await openTab(page, 'Chronicle')
+            const citizens = page
+                .locator('.chronicle-tab article')
+                .last()
+                .locator('dt:text-is("Citizens") + dd')
+            await expect(citizens.locator('[data-record-chip]')).toHaveText(['Ann', 'Ann'])
+            await expect(citizens.locator('[data-record-chip="blue"]')).toHaveCount(1)
+            await expect(citizens.locator('[data-record-chip="yellow"]')).toHaveCount(1)
+            expect(errors).toEqual([])
+        })
+
         test('a game with no record has the three tabs of today', async ({ page }) => {
             await openTable(page, 'chronicleVow')
             await expect(page.getByRole('tab')).toHaveText(['Players', 'History', 'Chat'])
