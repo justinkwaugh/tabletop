@@ -40,6 +40,7 @@ export const SharePurchaseDetails = Type.Object(
         shares: Type.Integer({ minimum: 1 }),
         buyer: Owner,
         seller: Owner,
+        poolId: Type.Optional(Type.String()),
         price: Type.Integer({ minimum: 1 }),
         payments: Type.Array(CashPayment),
         presidency: Type.Optional(PresidencyChange),
@@ -51,27 +52,23 @@ export const SharePurchaseDetails = Type.Object(
 export type SharePurchaseDetails = Type.Static<typeof SharePurchaseDetails>
 export type SharePurchaseResult =
     { details: SharePurchaseDetails; reason?: never } | { details?: never; reason: string }
-export type ShareBuyResult =
-    | { details: SharePurchaseDetails; poolId?: string; reason?: never }
-    | { details?: never; reason: string }
 export type SharePurchaseTerms = { price: number; recipient: Owner; payers: Owner[] }
 export function evaluateSharePurchase(
     state: StockState,
     request: PurchaseRequest,
     rules: StockRules
-): ShareBuyResult {
+): SharePurchaseResult {
     const certificate = state.certificates.find((item) => item.id === request.certificateId)
     if (!certificate || certificate.kind !== 'share')
         return { reason: 'This is not an available share certificate.' }
     if (state.stockRound.turn.bought && !furtherShareAllowed(state, certificate, rules))
         return { reason: 'Only one purchase is allowed this turn.' }
-    const result = evaluateShareAcquisition(
+    return evaluateShareAcquisition(
         state,
         request,
         rules,
         rules.purchaseTerms(state, certificate, request.buyer)
     )
-    return result.details && certificate.poolId ? { ...result, poolId: certificate.poolId } : result
 }
 
 export function evaluateShareAcquisition(
@@ -170,6 +167,7 @@ export function evaluateShareTransfer(
             shares: certificate.shares,
             buyer,
             seller: certificate.owner,
+            ...(certificate.poolId ? { poolId: certificate.poolId } : {}),
             price: terms.price,
             payments,
             ...(presidency.change ? { presidency: presidency.change } : {}),

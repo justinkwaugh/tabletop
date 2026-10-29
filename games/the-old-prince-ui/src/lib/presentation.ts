@@ -99,6 +99,7 @@ import Peir6Card from './images/published/peirs/v2/peir-6-georgetown.webp'
 import Peir6Thumb from './images/published/peirs/v2/peir-6-georgetown-600.webp'
 import Peir7Card from './images/published/peirs/v2/peir-7-charlottetown.webp'
 import Peir7Thumb from './images/published/peirs/v2/peir-7-charlottetown-600.webp'
+import { isTreasuryPoolId } from '@tabletop/18xx'
 import { TheOldPrinceCompanies, TheOldPrinceNames } from '@tabletop/the-old-prince'
 import { TheOldPrinceCompanyNames } from './companyPresentation.js'
 import { TheOldPrincePhaseChart } from './phaseChart.js'
@@ -131,12 +132,12 @@ export const TheOldPrincePresentation: TitlePresentation = {
     includedPortfolioCompanyIds: ['UB'],
     // The printed Union Bank card cannot name the railway drawn for it at setup.
     publishedCardPlates: ['UB'],
-    poolName: (pool) =>
-        pool.id === 'reserved'
+    poolName: (poolId) =>
+        poolId === 'reserved'
             ? 'Exchange'
-            : pool.owner.kind === 'company'
+            : isTreasuryPoolId(poolId)
               ? 'Treasury'
-              : TheOldPrinceNames.pool(pool.id),
+              : TheOldPrinceNames.pool(poolId),
     privatePurchaseLabel: 'Buy Hunslet',
     privatePurchaseEmpty: 'You don’t own the Hunslet',
     // Second-variant share and president certificates for the seven charters and six branches.

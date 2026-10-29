@@ -7,7 +7,7 @@
         DefaultCompanyPricePresentation,
         type CompanyPricePresentation
     } from './companyPresentation.js'
-    import { assertExists, type GameAction } from '@tabletop/common'
+    import type { GameAction } from '@tabletop/common'
     import {
         cashOwnedBy,
         certificatesOwnedBy,
@@ -18,8 +18,7 @@
         trainsOwnedBy,
         sharesOwned,
         type Company,
-        type Owner,
-        type CertificatePool
+        type Owner
     } from '@tabletop/18xx'
     import type {
         CompanyShareStatus,
@@ -41,8 +40,7 @@
         unavailable = false,
         purchaseSources,
         canPurchase,
-        trainColors,
-        poolName = (pool) => session.poolName(pool.id)
+        trainColors
     }: {
         pricePresentation?: CompanyPricePresentation
         unavailable?: boolean
@@ -54,7 +52,6 @@
         session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
         company: Company
-        poolName?: (pool: CertificatePool) => string
     } = $props()
     const vertical = $derived(layout === 'vertical')
     const shareStatusLabels: Record<CompanyShareStatus, string> = {
@@ -139,13 +136,8 @@
                 : []
         })
     )
-    function poolLabel(poolId: string): string {
-        const pool = gameState.certificatePools.find((entry) => entry.id === poolId)
-        assertExists(pool, 'Unknown certificate pool')
-        return poolName(pool)
-    }
     function ownershipName(entry: (typeof ownership)[number]): string {
-        if (entry.poolId) return poolLabel(entry.poolId)
+        if (entry.poolId) return session.poolName(entry.poolId)
         return sameOwner(entry.owner, owner) ? 'Treasury' : session.ownerName(entry.owner)
     }
 </script>
