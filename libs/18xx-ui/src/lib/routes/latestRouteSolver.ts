@@ -36,7 +36,12 @@ export class LatestRouteSolver<Request extends AutoroutingRequest> {
         const request = this.wanted
         this.wanted = undefined
         if (!request) return
-        const solve: AutoroutingRequest = { state: request.state, companyId: request.companyId }
+        const { state, companyId, timeLimitMs } = request
+        const solve: AutoroutingRequest = {
+            state,
+            companyId,
+            ...(timeLimitMs ? { timeLimitMs } : {})
+        }
         this.inFlight = request
         try {
             this.running().postMessage(solve)

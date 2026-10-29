@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::rc::Rc;
 
 #[derive(Deserialize)]
@@ -15,6 +14,7 @@ pub struct Problem {
     #[serde(default)]
     longest_route_bonus_per_stop: i32,
     budget_ms: f64,
+    memory_budget_bytes: usize,
 }
 
 #[derive(Deserialize)]
@@ -214,6 +214,7 @@ pub struct Solution {
     path_exhaustive: bool,
     combination_exhaustive: bool,
     candidates: Vec<usize>,
+    memory_limited: bool,
     expansions: u64,
     connections: usize,
     compile_ms: f64,
@@ -259,7 +260,11 @@ fn milliseconds() -> f64 {
 
 fn validate(problem: &Problem) -> Result<(), String> {
     let n = problem.stops.len();
-    if problem.version != 5 || !problem.budget_ms.is_finite() || problem.budget_ms <= 0.0 {
+    if problem.version != 6
+        || !problem.budget_ms.is_finite()
+        || problem.budget_ms <= 0.0
+        || problem.memory_budget_bytes == 0
+    {
         return Err("Unsupported problem version or budget".into());
     }
     for stop in &problem.stops {
@@ -348,6 +353,10 @@ struct Compiler<'a> {
     deadline: f64,
     expansions: u64,
     exhausted: bool,
+    // Bytes the connections and their adjacency entries may take before compilation stops.
+    memory_budget: usize,
+    stored_bytes: usize,
+    limited: bool,
 }
 
 impl Compiler<'_> {
@@ -400,7 +409,7 @@ impl Compiler<'_> {
                         .collect();
                     hexes.sort_unstable();
                     hexes.dedup();
-                    self.connections.push(Connection {
+                    let connection = Connection {
                         from,
                         to,
                         resources,
@@ -417,7 +426,20 @@ impl Compiler<'_> {
                             .iter()
                             .map(|&a| self.problem.arcs[a].crossings)
                             .sum(),
-                    });
+                    };
+                    let bytes = connection_bytes(&connection);
+                    let grown = if self.connections.len() == self.connections.capacity() {
+                        self.connections.capacity().max(4) * std::mem::size_of::<Connection>()
+                    } else {
+                        0
+                    };
+                    if self.stored_bytes + bytes + grown > self.memory_budget {
+                        self.limited = true;
+                        self.exhausted = true;
+                    } else {
+                        self.stored_bytes += bytes + grown;
+                        self.connections.push(connection);
+                    }
                 }
             }
         } else {
@@ -467,6 +489,12 @@ struct Search<'a> {
     best_only: bool,
     deadline: f64,
     exhausted: bool,
+    // Bytes the stored candidates may take, counting their share of the selection's tables.
+    memory_budget: usize,
+    stored_bytes: usize,
+    // Once the budget is reached, only candidates worth more than the weakest one kept are stored.
+    floor: Option<i32>,
+    limited: bool,
 }
 
 const UNREACHED: usize = usize::MAX;
@@ -660,7 +688,25 @@ impl Search<'_> {
         let fleet_bonus = self.problem.longest_route_bonus_per_stop;
         let value = |c: &Candidate| c.revenue + c.visits as i32 * fleet_bonus;
         if !self.best_only {
+            if self.floor.is_some_and(|floor| value(&candidate) <= floor) {
+                return;
+            }
+            // Growing the candidate vector briefly holds the old and the new allocation.
+            let header = std::mem::size_of::<Candidate>();
+            if self.candidates.len() == self.candidates.capacity()
+                && self.stored_bytes + 3 * self.candidates.capacity().max(4) * header
+                    > self.memory_budget
+            {
+                self.keep_most_valuable_half();
+                if self.floor.is_some_and(|floor| value(&candidate) <= floor) {
+                    return;
+                }
+            }
+            self.stored_bytes += candidate_bytes(self.problem, &candidate) - header;
             self.candidates.push(candidate);
+            if self.stored_bytes + self.candidates.capacity() * header > self.memory_budget {
+                self.keep_most_valuable_half();
+            }
         } else if self
             .candidates
             .first()
@@ -669,6 +715,23 @@ impl Search<'_> {
             self.candidates.clear();
             self.candidates.push(candidate);
         }
+    }
+
+    fn keep_most_valuable_half(&mut self) {
+        let fleet_bonus = self.problem.longest_route_bonus_per_stop;
+        let value = |c: &Candidate| c.revenue + c.visits as i32 * fleet_bonus;
+        self.candidates
+            .sort_unstable_by_key(|c| std::cmp::Reverse(value(c)));
+        self.candidates.truncate(self.candidates.len() / 2);
+        self.candidates.shrink_to_fit();
+        self.floor = self.candidates.last().map(value);
+        let header = std::mem::size_of::<Candidate>();
+        self.stored_bytes = self
+            .candidates
+            .iter()
+            .map(|c| candidate_bytes(self.problem, c) - header)
+            .sum();
+        self.limited = true;
     }
 
     fn shortest_extensions(&mut self, from: usize) -> Vec<Vec<usize>> {
@@ -743,6 +806,31 @@ impl Search<'_> {
     }
 }
 
+// What one compiled connection costs: itself, its lists with allocator overhead, and its entry in
+// the stop adjacency built from them.
+fn connection_bytes(connection: &Connection) -> usize {
+    const ALLOCATION: usize = 16;
+    std::mem::size_of::<Connection>()
+        + (connection.paths.len() + connection.resources.len() + connection.hexes.len())
+            * std::mem::size_of::<usize>()
+        + 3 * ALLOCATION
+        + std::mem::size_of::<usize>()
+}
+
+// What one stored candidate costs: the candidate and its lists with allocator overhead, its entry
+// in the selection's per-candidate vectors, and its column in the resource compatibility table.
+fn candidate_bytes(problem: &Problem, candidate: &Candidate) -> usize {
+    const ALLOCATION: usize = 16;
+    std::mem::size_of::<Candidate>()
+        + candidate.connections.len() * std::mem::size_of::<usize>()
+        + candidate.resources.len() * std::mem::size_of::<u64>()
+        + candidate.extension.len() * std::mem::size_of::<usize>()
+        + 3 * ALLOCATION
+        + std::mem::size_of::<Option<Vec<u64>>>()
+        + std::mem::size_of::<usize>()
+        + problem.resource_count.div_ceil(8)
+}
+
 fn is_simple_extension(problem: &Problem, extension: &[usize]) -> bool {
     let arcs = extension.iter().map(|&arc| &problem.arcs[arc]);
     let mut resources: Vec<_> = arcs.clone().flat_map(|arc| arc.resources.iter()).collect();
@@ -777,15 +865,25 @@ struct Compatibility {
     resource_candidates: Vec<Vec<u64>>,
     rows: Vec<Option<Vec<u64>>>,
     words: usize,
+    // Cached rows are dropped together once they would exceed this many bytes.
+    row_budget: usize,
+    row_bytes: usize,
 }
 
 impl Compatibility {
-    fn new(groups: &[CandidateGroup<'_>], resource_count: usize, words: usize) -> Self {
+    fn new(
+        groups: &[CandidateGroup<'_>],
+        resource_count: usize,
+        words: usize,
+        row_budget: usize,
+    ) -> Self {
         if groups.last().is_none_or(|group| group.trains.end <= 1) {
             return Self {
                 resource_candidates: vec![],
                 rows: vec![],
                 words,
+                row_budget,
+                row_bytes: 0,
             };
         }
         let mut resource_candidates = vec![vec![0; words]; resource_count];
@@ -806,10 +904,20 @@ impl Compatibility {
             resource_candidates,
             rows: vec![None; words * 64],
             words,
+            row_budget,
+            row_bytes: 0,
         }
     }
 
     fn row(&mut self, id: usize, candidate: &Candidate, start: usize) -> &[u64] {
+        if self.rows[id].is_none() {
+            let bytes = (self.words - start) * std::mem::size_of::<u64>();
+            if self.row_bytes + bytes > self.row_budget {
+                self.rows.iter_mut().for_each(|row| *row = None);
+                self.row_bytes = 0;
+            }
+            self.row_bytes += bytes;
+        }
         self.rows[id].get_or_insert_with(|| {
             let mut compatible = vec![u64::MAX; self.words - start];
             for (word, &resources) in candidate.resources.iter().enumerate() {
@@ -843,6 +951,9 @@ struct Selection<'a> {
     expansions: u64,
     deadline: f64,
     exhausted: bool,
+    // The first descent picks each train's best compatible candidate and ends at the first leaf or
+    // bound; it always finishes, so an interrupted selection still returns a legal operation.
+    descended: bool,
 }
 
 impl<'a> Selection<'a> {
@@ -851,6 +962,7 @@ impl<'a> Selection<'a> {
         resource_count: usize,
         longest_bonus: i32,
         deadline: f64,
+        row_budget: usize,
     ) -> Self {
         let mut profiles: Vec<Vec<usize>> = vec![];
         for train in 0..candidates.len() {
@@ -894,7 +1006,7 @@ impl<'a> Selection<'a> {
                 longest_suffix,
             });
         }
-        let compatibility = Compatibility::new(&groups, resource_count, initial.len());
+        let compatibility = Compatibility::new(&groups, resource_count, initial.len(), row_budget);
         let mut available = vec![vec![0; initial.len()]; order.len() + 1];
         available[0] = initial;
         let first_words =
@@ -912,6 +1024,7 @@ impl<'a> Selection<'a> {
             expansions: 0,
             deadline,
             exhausted: false,
+            descended: false,
         }
     }
 
@@ -942,7 +1055,8 @@ impl<'a> Selection<'a> {
 
     fn timed_out(&mut self) -> bool {
         self.expansions += 1;
-        if (self.expansions == 1 || self.expansions.is_multiple_of(1024))
+        if self.descended
+            && (self.expansions == 1 || self.expansions.is_multiple_of(1024))
             && milliseconds() > self.deadline
         {
             self.exhausted = true;
@@ -960,11 +1074,13 @@ impl<'a> Selection<'a> {
             self.best.clone_from(&self.current);
         }
         if depth == self.order.len() {
+            self.descended = true;
             return;
         }
         let (train, group) = self.order[depth];
         let (upper, longest_upper) = self.upper(depth, group, longest);
         if revenue + upper + longest_upper as i32 * self.longest_bonus <= self.revenue {
+            self.descended = true;
             return;
         }
         let (remaining_upper, remaining_longest) = self.upper(depth, group + 1, longest);
@@ -987,6 +1103,7 @@ impl<'a> Selection<'a> {
                 if revenue + candidate.revenue * copies as i32 + remaining_upper + bonus_upper
                     <= self.revenue
                 {
+                    self.descended = true;
                     return;
                 }
                 self.current.push((train, index));
@@ -1044,6 +1161,9 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         deadline: started + problem.budget_ms,
         expansions: 0,
         exhausted: false,
+        memory_budget: problem.memory_budget_bytes / 4,
+        stored_bytes: 0,
+        limited: false,
     };
     for (arc_id, arc) in problem.arcs.iter().enumerate() {
         if let Some(from) = arc.from
@@ -1052,7 +1172,10 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
             compiler.walk(from, arc_id);
         }
     }
-    let connections = compiler.connections;
+    let compiled_bytes = compiler.stored_bytes;
+    let compiler_limited = compiler.limited;
+    let mut connections = compiler.connections;
+    connections.shrink_to_fit();
     let mut adjacency = vec![vec![]; problem.stops.len()];
     for (id, connection) in connections.iter().enumerate() {
         adjacency[connection.from].push(id);
@@ -1068,24 +1191,38 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
     let mut counts = Vec::new();
     let mut expansions = 0;
     let mut path_exhaustive = !compiler.exhausted;
+    let mut memory_limited = compiler_limited;
+    let previous_profile: Vec<Option<usize>> = (0..problem.trains.len())
+        .map(|train_id| same_profile(problem, train_id))
+        .collect();
+    let mut profiles_left = previous_profile.iter().filter(|p| p.is_none()).count();
+    // One deadline covers the whole solve. A fleet's candidate search leaves a quarter of it for
+    // combining them, and each distinct train gets an equal share of what remains; time a train
+    // does not use passes to the next. Memory is shared out the same way.
+    let fleet = problem.trains.len() > 1;
+    let deadline = started + problem.budget_ms;
+    let path_deadline = if fleet {
+        started + problem.budget_ms * 0.75
+    } else {
+        deadline
+    };
+    // Compilation may use a quarter of the memory budget, and cached compatibility rows a quarter;
+    // candidates get what compilation left of the rest.
+    let row_budget = problem.memory_budget_bytes / 4;
+    let mut candidate_budget = problem.memory_budget_bytes - row_budget - compiled_bytes;
     for (train_id, train) in problem.trains.iter().enumerate() {
-        if let Some(previous) = problem.trains[..train_id].iter().position(|other| {
-            other.distance == train.distance
-                && other.visit_costs == train.visit_costs
-                && other.counts_crossings == train.counts_crossings
-                && other.requires_city == train.requires_city
-                && other.revenues == train.revenues
-                && other.first_bonus == train.first_bonus
-                && other.paying_stop_limit == train.paying_stop_limit
-                && other.require_paying_token == train.require_paying_token
-                && other.connection_bonuses == train.connection_bonuses
-                && other.major_limit == train.major_limit
-                && other.interconnections == train.interconnections
-        }) {
+        if let Some(previous) = previous_profile[train_id] {
             candidates.push(Rc::clone(&candidates[previous]));
             counts.push(counts[previous]);
             continue;
         }
+        let share = 1.0 / profiles_left as f64;
+        let train_deadline = {
+            let now = milliseconds();
+            now + (path_deadline - now).max(0.0) * share
+        };
+        let train_memory = candidate_budget / profiles_left;
+        profiles_left -= 1;
         let mut token_distance = vec![u32::MAX; problem.stops.len()];
         for (id, stop) in problem.stops.iter().enumerate() {
             if stop.token {
@@ -1136,9 +1273,13 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
             candidates: vec![],
             count: 0,
             expansions: 0,
-            best_only: problem.trains.len() == 1,
-            deadline: started + problem.budget_ms,
+            best_only: !fleet,
+            deadline: train_deadline,
             exhausted: false,
+            memory_budget: train_memory,
+            stored_bytes: 0,
+            floor: None,
+            limited: false,
         };
         for (id, stop) in problem.stops.iter().enumerate() {
             if stop.allowed && stop.endpoint {
@@ -1160,23 +1301,37 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
                 break;
             }
         }
+        // Of candidates using the same track, only the most valuable can be best. Sorting groups
+        // them in place, without copying every resource set into a lookup.
+        let visits = |c: &Candidate| {
+            if problem.longest_route_bonus_per_stop > 0 {
+                c.visits
+            } else {
+                0
+            }
+        };
+        search.candidates.sort_unstable_by(|a, b| {
+            (&a.resources, visits(a))
+                .cmp(&(&b.resources, visits(b)))
+                .then(b.revenue.cmp(&a.revenue))
+        });
+        search.candidates.dedup_by(|later, kept| {
+            later.resources == kept.resources && visits(later) == visits(kept)
+        });
         search
             .candidates
             .sort_unstable_by_key(|a| std::cmp::Reverse(a.revenue));
-        let mut seen = HashSet::new();
-        search.candidates.retain(|c| {
-            seen.insert((
-                c.resources.clone(),
-                if problem.longest_route_bonus_per_stop > 0 {
-                    c.visits
-                } else {
-                    0
-                },
-            ))
-        });
+        search.candidates.shrink_to_fit();
+        candidate_budget -= search
+            .candidates
+            .iter()
+            .map(|c| candidate_bytes(problem, c))
+            .sum::<usize>()
+            .min(candidate_budget);
         counts.push(search.count);
         expansions += search.expansions;
-        path_exhaustive &= !search.exhausted;
+        path_exhaustive &= !search.exhausted && !search.limited;
+        memory_limited |= search.limited;
         candidates.push(Rc::new(search.candidates));
     }
     let path_finished = milliseconds();
@@ -1184,7 +1339,8 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         &candidates,
         problem.resource_count,
         problem.longest_route_bonus_per_stop,
-        path_finished + problem.budget_ms,
+        deadline,
+        row_budget,
     );
     selection.walk(0, 0, 0);
     selection.best.sort_unstable_by_key(|&(train, _)| train);
@@ -1230,11 +1386,30 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         path_exhaustive,
         combination_exhaustive: !selection.exhausted,
         candidates: counts,
+        memory_limited,
         expansions,
         connections: connections.len(),
         compile_ms,
         path_ms: path_finished - started - compile_ms,
         combination_ms: milliseconds() - path_finished,
+    })
+}
+
+// An earlier train whose candidates are the same as this one's.
+fn same_profile(problem: &Problem, train_id: usize) -> Option<usize> {
+    let train = &problem.trains[train_id];
+    problem.trains[..train_id].iter().position(|other| {
+        other.distance == train.distance
+            && other.visit_costs == train.visit_costs
+            && other.counts_crossings == train.counts_crossings
+            && other.requires_city == train.requires_city
+            && other.revenues == train.revenues
+            && other.first_bonus == train.first_bonus
+            && other.paying_stop_limit == train.paying_stop_limit
+            && other.require_paying_token == train.require_paying_token
+            && other.connection_bonuses == train.connection_bonuses
+            && other.major_limit == train.major_limit
+            && other.interconnections == train.interconnections
     })
 }
 
@@ -1258,3 +1433,35 @@ pub fn solve_json(input: &[u8]) -> Vec<u8> {
 
 #[cfg(target_arch = "wasm32")]
 mod wasm;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn interrupted_selection_stops_after_a_first_descent_that_ends_at_a_bound() {
+        // Two identical trains whose candidates all share one piece of track: after the first
+        // pick nothing else fits, so the first descent ends at a bound, not at a full fleet.
+        let routes: Vec<_> = (0..4096)
+            .map(|index| Candidate {
+                revenue: 10_000 - index,
+                visits: 2,
+                connections: vec![],
+                resources: vec![1],
+                reversed: false,
+                extension: vec![],
+            })
+            .collect();
+        let shared = Rc::new(routes);
+        let candidates = [Rc::clone(&shared), shared];
+        let mut selection = Selection::new(&candidates, 1, 0, -1.0, usize::MAX);
+        selection.walk(0, 0, 0);
+        assert!(selection.exhausted);
+        assert_eq!(selection.revenue, 10_000);
+        assert!(
+            selection.expansions < 2048,
+            "{} expansions",
+            selection.expansions
+        );
+    }
+}

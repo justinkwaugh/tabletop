@@ -22,6 +22,8 @@ export type ProjectedRunMap = Pick<
     'displayedTileInventory' | 'displayedStationState' | 'displayedScene'
 >
 export type RunProjectionRequest = AutoroutingRequest & { trains: readonly Train[] }
+// Previews follow each tile and rotation tried, so they settle for the best run found quickly.
+const ProjectedRunTimeLimitMs = 1000
 export type RunProjection = { request: RunProjectionRequest; solution: RouteSolution }
 
 export class ProjectedRunModule {
@@ -59,7 +61,9 @@ export class ProjectedRunModule {
         const trains = new RouteEvaluation(state, this.session.rules.routeRules).runnableTrains(
             companyId
         )
-        return trains.length ? { state, companyId, trains } : undefined
+        return trains.length
+            ? { state, companyId, trains, timeLimitMs: ProjectedRunTimeLimitMs }
+            : undefined
     })
     // Kept from one preview to the next and across the company's own actions, but a company's
     // run from an earlier turn must never show in its next one.

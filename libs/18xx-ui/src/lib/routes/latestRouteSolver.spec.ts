@@ -28,6 +28,8 @@ class FakeWorker extends EventTarget {
                     combinationMs: 0,
                     pathExhaustive: true,
                     combinationExhaustive: true,
+                    memoryLimited: false,
+                    memoryBytes: 0,
                     candidates: [],
                     expansions: 0,
                     connections: 0
@@ -69,11 +71,20 @@ function solver() {
 }
 
 describe('LatestRouteSolver', () => {
-    it('sends only the state and company of a request', () => {
+    it('sends only the state, company and time limit of a request', () => {
         const { latest, workers } = solver()
         const sent = request('a')
         latest.solve(sent)
         expect(workers[0].posted).toEqual([{ state: sent.state, companyId: 'R' }])
+    })
+
+    it("passes on a request's time limit", () => {
+        const { latest, workers } = solver()
+        const sent = { ...request('a'), timeLimitMs: 1000 }
+        latest.solve(sent)
+        expect(workers[0].posted).toEqual([
+            { state: sent.state, companyId: 'R', timeLimitMs: 1000 }
+        ])
     })
 
     it('solves only the newest request made while one is in flight, on the same worker', () => {

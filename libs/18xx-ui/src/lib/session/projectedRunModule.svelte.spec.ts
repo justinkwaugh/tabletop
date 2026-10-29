@@ -118,10 +118,11 @@ describe('ProjectedRunModule', () => {
         expect(projected({ trains: [] }).module.request).toBeUndefined()
     })
 
-    it('asks for the run of the operating company with its trains', () => {
+    it('asks for the run of the operating company with its trains, within a second', () => {
         expect(projected().module.request).toMatchObject({
             companyId: TestCompanyId,
             trains: [train],
+            timeLimitMs: 1000,
             state: { routeStep: { companyId: TestCompanyId } }
         })
     })

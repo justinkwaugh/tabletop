@@ -11,7 +11,7 @@ fn solve(problem: &Value) -> Value {
 
 fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
     json!({
-        "version": 5, "junction_count": 1, "budget_ms": 30000,
+        "version": 6, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
         "resource_count": edges.len(), "group_count": 1, "hex_bonuses": vec![0; edges.len()],
         "stops": (0..nodes).map(|id| json!({
             "token": id == 0, "blocked": false, "endpoint": true, "allowed": true,
@@ -590,4 +590,82 @@ fn extensions_hang_off_either_end_and_consume_fleet_track() {
     let mut p = interconnected(&[(0, 1), (1, 2), (0, 3)], &[2]);
     p["trains"][0]["interconnections"][0]["from"] = json!([2]);
     assert_eq!(solve(&p)["revenue"], 50);
+}
+
+#[test]
+fn memory_budget_keeps_the_most_valuable_candidates() {
+    let edges: Vec<_> = (0..8)
+        .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
+        .collect();
+    let full = solve(&graph(8, &edges, &[4, 3]));
+    let mut p = graph(8, &edges, &[4, 3]);
+    p["memory_budget_bytes"] = json!(64 * 1024);
+    let limited: Value =
+        serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
+    assert!(limited.get("error").is_none(), "{limited}");
+    assert_eq!(full["memory_limited"], false);
+    assert_eq!(limited["memory_limited"], true);
+    assert_eq!(limited["exhaustive"], false);
+    assert_eq!(limited["path_exhaustive"], false);
+    assert_eq!(limited["revenue"], full["revenue"]);
+}
+
+// Two stations joined by `k` diamonds of junction track: 2^k distinct paths each way.
+fn diamonds(k: usize) -> Value {
+    let edges: Vec<_> = (0..k).flat_map(|level| [(level, level + 1); 2]).collect();
+    let stop = |level: usize| match level {
+        0 => json!(0),
+        l if l == k => json!(1),
+        _ => Value::Null,
+    };
+    let ends = |arc: usize| {
+        let (a, b) = edges[arc / 2];
+        if arc.is_multiple_of(2) {
+            (a, b)
+        } else {
+            (b, a)
+        }
+    };
+    let arcs: Vec<_> = (0..edges.len() * 2)
+        .map(|arc| {
+            let (from, to) = ends(arc);
+            let next: Vec<_> = if stop(to).is_null() {
+                (0..edges.len() * 2)
+                    .filter(|&other| other != arc ^ 1 && ends(other).0 == to)
+                    .collect()
+            } else {
+                vec![]
+            };
+            let junctions: Vec<_> = [from.min(to), from.max(to)]
+                .into_iter()
+                .filter(|&level| level > 0 && level < k)
+                .map(|level| level - 1)
+                .collect();
+            json!({
+                "from": stop(from), "to": stop(to), "next": next, "junctions": junctions,
+                "resources": [arc / 2], "path": arc / 2, "hex": 0, "crossings": 0, "terminal": false,
+            })
+        })
+        .collect();
+    let mut p = graph(2, &[], &[2]);
+    p["resource_count"] = json!(edges.len());
+    p["junction_count"] = json!(k - 1);
+    p["hex_bonuses"] = json!([0]);
+    p["arcs"] = json!(arcs);
+    p
+}
+
+#[test]
+fn compilation_stops_at_its_share_of_the_memory_budget() {
+    let full = solve(&diamonds(10));
+    assert_eq!(full["connections"], 2 * 1024);
+    let mut p = diamonds(14);
+    p["memory_budget_bytes"] = json!(256 * 1024);
+    let limited: Value =
+        serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
+    assert!(limited.get("error").is_none(), "{limited}");
+    assert_eq!(limited["memory_limited"], true);
+    assert_eq!(limited["exhaustive"], false);
+    assert!(limited["connections"].as_u64().unwrap() < 2 * 16384);
+    assert_eq!(limited["revenue"], full["revenue"]);
 }

@@ -33,11 +33,21 @@ operation remains the Game Session's responsibility.
 `solve` is synchronous; run it in a Web Worker to keep longer searches off the UI
 thread. Import the title's rules inside that worker and send it the state data.
 
-`exhaustive` means the encoded search finished. If the time limit interrupts
-candidate generation or fleet selection, the best found legal operation is
-returned with `exhaustive: false`. The limit applies separately to each search
-stage and is checked periodically; it is not a hard wall-clock deadline. Metrics
-separate encoding, solving, final validation and the Rust search stages.
+`exhaustive` means the encoded search finished. One time limit covers the whole
+search: a fleet's candidate generation may use three quarters of it, shared
+between its distinct trains, and fleet selection the rest. Selection always
+completes its first, greedy pass, so an interrupted search still returns a legal
+operation. The limit is checked periodically; it is not a hard wall-clock deadline.
+
+The solver also limits the memory its compiled track paths, candidates and
+selection tables use to 40 MiB. Compilation stops at a quarter of it; a train
+whose candidates reach their share keeps only its most valuable ones. Either is
+reported with `metrics.memoryLimited` and `exhaustive: false`.
+WebAssembly memory never shrinks, so after a solve that left the instance above
+64 MiB, or one that failed, the `Autorouter` replaces its instance. Either way
+an interrupted search returns the best legal operation found. Metrics separate
+encoding, solving, final validation and the Rust search stages, and report the
+instance's memory after the solve.
 
 ## Rules supported by the repository encoder
 
@@ -72,7 +82,7 @@ core's exclusive stop groups, so a route visits one of them. The core's additive
 traversal/first-stop bonuses have no consumer in the current repository models and
 are not invented as title policies here.
 
-The internal wire format is version 5. It is private to this package; callers use
+The internal wire format is version 6. It is private to this package; callers use
 the shared game models. Other distance, gauge, payment-selection or fleet-coupled
 rules need explicit encoding support before another title can use this solver.
 See the [design review](../../research/18xx/autorouter-design.md).
