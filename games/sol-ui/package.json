@@ -54,7 +54,7 @@
         "@tabletop/rolldown-config": "workspace:*",
         "@tabletop/vitest-config": "workspace:*",
         "@tailwindcss/postcss": "^4.1.18",
-        "eslint": "^9.39.2",
+        "eslint": "^10.13.0",
         "flowbite": "^3.1.2",
         "flowbite-svelte": "^1.31.0",
         "flowbite-svelte-icons": "^3.1.0",

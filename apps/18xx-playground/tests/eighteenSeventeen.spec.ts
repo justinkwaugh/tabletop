@@ -36,6 +36,50 @@ test('1817 opens with a selection auction and starts companies by auction', asyn
     )
 })
 
+test('1817 auction bids can be typed', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('opening')
+    const lots = page.getByRole('region', { name: 'Private auction' })
+    await lots.getByRole('button', { name: 'Auction Minor Coal Mine' }).click()
+    await lots.getByRole('spinbutton', { name: 'Bid amount' }).fill('100')
+    await lots.getByRole('button', { name: 'Bid', exact: true }).click()
+    const bidding = page.getByRole('article', { name: 'Current auction' })
+    await expect(bidding).toContainText('High bid $100')
+    const raise = bidding.getByRole('spinbutton', { name: 'Bid amount' })
+    await raise.fill('103')
+    await expect(bidding.getByRole('button', { name: 'Bid', exact: true })).toBeDisabled()
+    await raise.fill('125')
+    await expect(bidding.getByRole('button', { name: 'Bid', exact: true })).toBeEnabled()
+    // A cleared field must not bid the amount it last held.
+    await raise.fill('')
+    await expect(bidding.getByRole('button', { name: 'Bid', exact: true })).toBeDisabled()
+    await raise.fill('125')
+    await raise.press('Enter')
+    await expect(bidding).toContainText('High bid $125')
+    for (let pass = 0; pass < 2; pass++)
+        await bidding.getByRole('button', { name: 'Pass', exact: true }).click()
+    for (let pass = 0; pass < 3; pass++)
+        await lots.getByRole('button', { name: 'Pass', exact: true }).click()
+
+    await page.getByRole('button', { name: 'Auction', exact: true }).click()
+    await page.getByRole('button', { name: 'Auction Alton & Southern' }).click()
+    await page.locator('[data-map-location="B5"]').filter({ visible: true }).first().click()
+    const opening = page.getByLabel('Auction a company')
+    await opening.getByRole('spinbutton', { name: 'Bid amount' }).fill('250')
+    await opening.getByRole('button', { name: 'Bid', exact: true }).click()
+    const auction = page.getByRole('article', { name: 'Company auction' })
+    await expect(auction).toContainText('High bid $250')
+    const companyRaise = auction.getByRole('spinbutton', { name: 'Bid amount' })
+    // Below the minimum the auction keeps its minimum as the bid, so the field must not bid.
+    await companyRaise.fill('10')
+    await expect(companyRaise).toHaveValue('10')
+    await expect(auction.getByRole('button', { name: 'Bid', exact: true })).toBeDisabled()
+    await companyRaise.fill('300')
+    await auction.getByRole('button', { name: 'Bid', exact: true }).click()
+    await expect(auction).toContainText('High bid $300')
+})
+
 test('1817 Volatility auctions its privates from the bottom tier of a pyramid', async ({
     page
 }) => {

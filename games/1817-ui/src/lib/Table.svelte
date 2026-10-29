@@ -28,6 +28,7 @@
             {
                 companyName,
                 playerName: (id) => session.getPlayerName(id),
+                poolName: (id) => session.poolName(id),
                 bankName: 'Bank'
             },
             session.presentation.money,

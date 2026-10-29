@@ -26,7 +26,6 @@ export class FirestoreTokenStore implements TokenStore {
             return dataToken
         } catch (error) {
             this.handleError(error, id)
-            throw Error('unreachable')
         }
     }
 
@@ -46,7 +45,6 @@ export class FirestoreTokenStore implements TokenStore {
             await this.tokens.doc(newToken.id).withConverter(tokenConverter).create(newToken)
         } catch (error) {
             this.handleError(error, newToken.id)
-            throw Error('unreachable')
         }
         return newToken
     }
@@ -59,7 +57,7 @@ export class FirestoreTokenStore implements TokenStore {
         return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
     }
 
-    private handleError(error: unknown, id: string) {
+    private handleError(error: unknown, id: string): never {
         console.log(error)
         if (error instanceof BaseError) {
             throw error

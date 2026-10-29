@@ -11,7 +11,7 @@ import {
     type TrainRoute
 } from '@tabletop/18xx'
 import { trainRouteOverlays } from '../routes/routePresentation.js'
-import type { MapSelection } from '../maps/mapDrawing.js'
+import type { MapRoute, MapSelection } from '../maps/mapDrawing.js'
 import { RouteEditor } from './routeEditor.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 import type { LocalSelection } from './localSelections.js'
@@ -29,7 +29,7 @@ export type RoutesSession<State extends RoutesState = RoutesState> = Pick<
     | 'createPlayerAction'
     | 'applyAction'
 >
-export type RouteOverlay = { id: string; color: string; segments: readonly RoutePath[] }
+export type RouteOverlay = MapRoute
 type SolvedRoutes<State> = { state: State; result: OperatingResult; exhaustive: boolean }
 
 export class RoutesModule<State extends RoutesState> implements LocalSelection {

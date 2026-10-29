@@ -27,9 +27,9 @@
         "lint": "eslint ."
     },
     "dependencies": {
-        "@google-cloud/firestore": "^7.9.0",
-        "@google-cloud/secret-manager": "^5.6.0",
-        "@google-cloud/tasks": "^5.4.0",
+        "@google-cloud/firestore": "^9.4.0",
+        "@google-cloud/secret-manager": "^7.2.0",
+        "@google-cloud/tasks": "^7.3.1",
         "@leeoniya/ufuzzy": "^1.0.14",
         "@react-email/components": "1.0.6",
         "typebox": "^1.0.79",
@@ -52,7 +52,7 @@
         "@tabletop/vitest-config": "workspace:*",
         "esbuild": "^0.28.2",
         "@tabletop/eslint-config": "workspace:*",
-        "@types/bcrypt": "^5.0.2",
+        "@types/bcrypt": "^6.0.0",
         "@types/glob-to-regexp": "^0.4.4",
         "@types/node": "^24.3.1",
         "@types/web-push": "^3.6.3",

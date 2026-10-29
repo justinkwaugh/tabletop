@@ -1,8 +1,13 @@
+import type { MapBonusArrow } from './bonusArrows.js'
 import { assertExists, type BoundingBox, type HexOrientation, type Point } from '@tabletop/common'
 import type { StationState, RailwayMap, TileEdge, TileFace, TileSet } from '@tabletop/18xx'
 import type { BoardArtwork, MapMarkerArt, MapPlacement, MapToken } from './mapDrawing.js'
 import type { TileDrawing, TileDrawingStyle, TileLayout } from '../tiles/tileDrawing.js'
 import type { TileAppearance } from '../tiles/tileAppearance.js'
+import type { RevenueStageColors } from '../colors/revenueStageColors.js'
+
+/** Offboard names print in the tile label face, which ships with the app, at their own size. */
+export type OffboardNameStyle = { fontSize: number; color: string }
 
 /** Tiles drawn side by side in place of a round token, at the token's height. */
 export type TokenTiles = {
@@ -24,6 +29,8 @@ export type BoardAreas = { market?: BoundingBox; depot?: BoundingBox }
 
 export type MapViewDefinition = {
     boardArtwork?: BoardArtwork
+    /** Plaques printed beside the board, such as route bonus arrows. */
+    bonusArrows?: readonly MapBonusArrow[]
     /** Empty map regions, in map units, where the board view draws table panels. */
     boardAreas?: BoardAreas
     map: RailwayMap
@@ -34,9 +41,23 @@ export type MapViewDefinition = {
      * published artwork toggle is on; companies without an entry keep their generic appearance.
      */
     publishedStations?: Readonly<Record<string, StationAppearance>>
-    revenueStageColors?: Readonly<Record<string, string>>
+    /**
+     * How a station that another company shares through station access prints, by the access's
+     * source, such as one token two corporations hold jointly.
+     */
+    sharedStations?: Readonly<Record<string, StationAppearance>>
+    /**
+     * Station spaces the board prints held beyond its homes, by company or by a shared station's
+     * source, shown until a token stands there, such as a joint token's city.
+     */
+    printedReservations?: readonly { locationId: string; nodeId: string; companyId: string }[]
+    revenueStageColors?: RevenueStageColors
     /** Printed prefixes for revenue stages that are not phases, such as D for diesel. */
     revenueStageLabels?: Readonly<Record<string, string>>
+    /** Phases printed beside each revenue stage's value, such as I-II. */
+    revenueStageCaptions?: Readonly<Record<string, string>>
+    /** How staged values line up where a location's layout does not say. */
+    revenueStack?: 'column' | 'row'
     /** Printed before terrain costs, such as ¥. */
     terrainCostPrefix?: string
     /** Baseline of a location's name, by location id; names otherwise print across the top. */
@@ -48,6 +69,8 @@ export type MapViewDefinition = {
     cityNames?: Readonly<Record<string, Readonly<Record<string, string>>>>
     /** Explicit lines for a location's name, by location id; long names otherwise split in two. */
     nameLines?: Readonly<Record<string, readonly string[]>>
+    /** Offboards' names in their own larger type, as a board printing them for its connections. */
+    offboardNames?: OffboardNameStyle
     /**
      * Where a location's revenue-sized symbols go, by location id, in place of clear space: the
      * centre of their row, or each symbol's own centre.
@@ -60,6 +83,8 @@ export type MapViewDefinition = {
     /** Centre of a location's terrain cost row, by location id, where it is not placed below the stops. */
     terrainPositions?: Readonly<Record<string, Point>>
     markerArt?: Readonly<Record<string, MapMarkerArt>>
+    /** Art for one location's markers, by location id then marker id, over ``markerArt``. */
+    locationMarkerArt?: Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>>
     /** Names for the kinds of marker private powers place during play, such as mines. */
     locationMarkerNames?: Readonly<Record<string, string>>
     layouts?: Readonly<Record<string, TileLayout>>
@@ -89,14 +114,25 @@ export type MapViewDefinition = {
      * hexes in labels and text.
      */
     hideLocationNames?: true | readonly string[]
+    /** Hexside border widths by kind, such as a heavier impassable border; 3 otherwise. */
+    borderWidths?: Readonly<Record<string, number>>
+    /** A hex whose tile prints a label, such as Pr, shows the label in place of its name. */
+    labelsReplaceNames?: true
 }
 export function stationMapTokens(
     state: StationState,
-    appearances: MapViewDefinition['stations']
+    appearances: MapViewDefinition['stations'],
+    shared: MapViewDefinition['sharedStations'] = {}
 ): MapToken[] {
     return state.stations.flatMap((station) => {
         if (station.status !== 'placed') return []
-        const appearance = appearances[station.companyId]
+        const access = (state.stationAccess ?? []).find(
+            (entry) =>
+                entry.locationId === station.position.locationId &&
+                entry.nodeId === station.position.nodeId &&
+                shared[entry.sourceId]
+        )
+        const appearance = (access && shared[access.sourceId]) ?? appearances[station.companyId]
         assertExists(appearance, `Missing station appearance: ${station.companyId}`)
         return [{ id: station.id, ...station.position, ...appearance }]
     })

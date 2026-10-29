@@ -4,6 +4,8 @@ export type SolverStop = {
     token: boolean
     blocked: boolean
     city: boolean
+    town: boolean
+    hex: number
     endpoint: boolean
     allowed: boolean
     groups: number[]
@@ -29,7 +31,10 @@ export type SolverTrain = {
     first_bonus: number[]
     paying_stop_limit: number | null
     require_paying_token: boolean
-    connection_bonuses: { from: (number | null)[]; to: (number | null)[] }[]
+    bonuses_along_route: boolean
+    major_limit: number | null
+    connection_bonuses: { from: (number | null)[]; to: (number | null)[]; ends_only: boolean }[]
+    interconnections: { from: number[]; to: number[]; amount: number }[]
 }
 export type SolverProblem = {
     version: number
@@ -52,7 +57,8 @@ export const SolverSolution = Type.Object({
             train: Index,
             connections: Type.Array(
                 Type.Object({ from: Index, to: Index, paths: Type.Array(Index) })
-            )
+            ),
+            extension: Type.Array(Index)
         })
     ),
     exhaustive: Type.Boolean(),

@@ -3,9 +3,11 @@ export { default as TileArtwork } from './tiles/TileArtwork.svelte'
 export { default as TileLibraryViewer } from './tiles/TileLibraryViewer.svelte'
 export { default as TileManifest } from './tiles/TileManifest.svelte'
 export {
+    TileRadius,
     createTileDrawing,
     type TileDrawing,
     type TileDrawnPath,
+    type TilePrintedToken,
     type TileDrawnNode,
     type TileDrawingStyle,
     type TileLayout
@@ -36,6 +38,8 @@ export { default as StockTrading } from './stock/StockTrading.svelte'
 export { default as StockMarket } from './stock/StockMarket.svelte'
 
 export * from './maps/stationPresentation.js'
+export type { BonusArrowFooter, MapBonusArrow } from './maps/bonusArrows.js'
+export type { RevenueStageColor, RevenueStageColors } from './colors/revenueStageColors.js'
 export { default as MapViewer } from './maps/MapViewer.svelte'
 export { default as FinanceMap } from './maps/FinanceMap.svelte'
 
@@ -77,19 +81,41 @@ export {
 export { trainCount, type AwaitedDecision } from './table/awaitedDecision.js'
 export type {
     CompanyColumn,
+    CompanyMark,
     MarketLedge,
     MarketZone,
     MarketZoneBanner,
     MarketZoneFill,
     PrivateTokenPresentation,
     TitleFact,
+    TitleOperatingStep,
     TitlePresentation,
     TitleRound
 } from './session/titlePresentation.js'
+export { constructionOperatingSteps } from './table/operatingStep.js'
 export type { TileSymbolName } from './tiles/tileSymbols.js'
 export { moneyFormat, type MoneyFormat } from './presentation/money.js'
 export { clickedBackdrop } from './presentation/modalDialog.js'
 export { default as OperatingActions } from './table/OperatingActions.svelte'
+export { default as OperatingModeSwitch } from './table/OperatingModeSwitch.svelte'
+export { default as CorporateFinance } from './finance/CorporateFinance.svelte'
+export { default as NothingToBuild } from './maps/NothingToBuild.svelte'
+export { default as PresidencyClaims } from './stock/PresidencyClaims.svelte'
+export {
+    CorporateFinanceModule,
+    type CorporateFinanceHoldings,
+    type CorporateFinanceSession
+} from './session/corporateFinanceModule.svelte.js'
+export {
+    OperatingModeModule,
+    type OperatingMode,
+    type OperatingModeOption,
+    type OperatingModeSession
+} from './session/operatingModeModule.svelte.js'
+export {
+    PresidencyClaimModule,
+    type PresidencyClaimSession
+} from './session/presidencyClaimModule.svelte.js'
 
 export { default as StockMarketScene } from './stock/StockMarketScene.svelte'
 

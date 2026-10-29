@@ -117,7 +117,7 @@ export class DebouncedLayout {
         const value = this.value
         this.saving = true
         this.status = 'saving'
-        let saved = false
+        let saved: boolean
         try {
             saved = await this.persist(value)
         } catch {

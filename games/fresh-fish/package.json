@@ -17,7 +17,7 @@
     "dependencies": {
         "@tabletop/common": "workspace:*",
         "typebox": "^1.0.79",
-        "uuid": "^13.0.0"
+        "uuid": "^14.0.3"
     },
     "devDependencies": {
         "@tabletop/eslint-config": "workspace:*",

@@ -60,6 +60,7 @@
     import {
         isMapRouteValid,
         mapSelectionRect,
+        mapShareOfViewport,
         mapViewport,
         routeLocationIds,
         viewportRect,
@@ -131,7 +132,6 @@
         includedCompanyIds = [],
         numberedShareNames,
         mapFocusExcludedCompanyIds = [],
-        poolName,
         trainColors,
         phaseColors,
         phaseChart: defaultPhaseChart,
@@ -375,7 +375,7 @@
         mapViewport(displayedScene, MapHexDiameter, boardArtwork, boardExtents)
     )
     const mapExtents = $derived(boardMode ? boardExtents : [])
-    type BoardFocusTarget = 'Full' | 'Market' | 'Depot'
+    type BoardFocusTarget = 'Full' | 'Map' | 'Market' | 'Depot'
     let boardFocus = $state<{
         target: BoardFocusTarget
         restore: ReturnType<ScalingWrapper['captureView']>
@@ -396,10 +396,18 @@
     const boardFocusTarget = $derived(
         boardFocus?.target ?? (boardViewer()?.isZoomedOut() ? 'Full' : undefined)
     )
+    // TOP prints its panels in the map's own corners, where Map would frame nearly the full board.
+    const MapFocusMaxBoardShare = 0.9
+    const mapFocusArea = $derived(
+        mapShareOfViewport(displayedScene, boardViewport) < MapFocusMaxBoardShare
+            ? displayedScene.bounds
+            : undefined
+    )
     const boardFocusOptions = $derived(
         (
             [
                 ['Full', undefined],
+                ['Map', mapFocusArea],
                 ['Market', boardAreas?.market],
                 ['Depot', boardAreas?.depot]
             ] as const
@@ -857,7 +865,6 @@
         {company}
         {session}
         {trainColors}
-        {poolName}
         onPreviewMap={previewHistoryMap}
     />{/snippet}
 
@@ -1197,7 +1204,6 @@
                                             {trainColors}
                                             {session}
                                             {company}
-                                            {poolName}
                                         />
                                     {/snippet}
                                 </CompanyOrder>{/if}
@@ -1218,7 +1224,10 @@
                         {#if !session.isViewingHistory}
                             <StockActionStrip
                                 {session}
-                                additionalActions={additionalStockActions}
+                                additionalActions={[
+                                    ...session.familyStockPanels.menuOptions,
+                                    ...additionalStockActions
+                                ]}
                                 readOnly={readOnlyPosition}
                             />
                             <PrivatePowerControls {session} />

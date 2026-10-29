@@ -36,7 +36,9 @@ export const WaterfallAuction = Type.Object(
                 { additionalProperties: false }
             )
         ),
-        completed: Type.Boolean()
+        completed: Type.Boolean(),
+        /** The last player who bought a lot on their own turn, where it decides the priority. */
+        lastPurchaserId: Type.Optional(Type.String())
     },
     { additionalProperties: false }
 )
@@ -51,6 +53,22 @@ export interface WaterfallAuctionRules {
     lots(state: FinancialState): readonly AuctionLot[]
     increment: number
     bidOrder: 'clockwise-from-highest' | 'lowest-bid-first'
+    /** Bids must be multiples of this amount. */
+    bidMultiple?: number
+    /** A lot's first bid may equal its price; later bids beat the highest by the increment. */
+    firstBidAtPrice?: true
+    /**
+     * When every player passes: the first lot's price falls until a lot is sold and income is
+     * paid after (the default), or pending bids resolve in lot order and then income is paid.
+     */
+    allPass?: 'discount-or-income' | 'resolve-bids-then-income'
+    /** How many times income is paid when every player passes; once unless given. */
+    incomeRounds?: number
+    /**
+     * Who starts the first stock round: the player after the last to act (the default), or
+     * after the last player who bought a lot on their turn.
+     */
+    firstStockPlayer?: 'after-last-actor' | 'after-last-purchase'
     award(state: AuctionState, award: AuctionAward): void
     payIncome(state: AuctionState): void
 }
@@ -104,14 +122,11 @@ export class ReserveBidAuction {
         return lot.price - (lotId === this.lots[0].id ? this.auction.discount : 0)
     }
     minimumBid(lotId: string): number {
-        return (
-            Math.max(
-                this.price(lotId),
-                ...this.commitments()
-                    .filter((bid) => bid.lotId === lotId)
-                    .map((bid) => bid.amount)
-            ) + this.rules.increment
-        )
+        const bids = this.commitments()
+            .filter((bid) => bid.lotId === lotId)
+            .map((bid) => bid.amount)
+        if (this.rules.firstBidAtPrice && !bids.length) return this.price(lotId)
+        return Math.max(this.price(lotId), ...bids) + this.rules.increment
     }
     canPurchase(playerId: string, lotId: string): boolean {
         return (
@@ -139,7 +154,11 @@ export class ReserveBidAuction {
                 : !this.auction.remainingLotIds.slice(1).includes(lotId)
         )
             return false
-        return amount >= this.minimumBid(lotId) && amount <= this.availableCash(playerId, lotId)
+        return (
+            amount >= this.minimumBid(lotId) &&
+            amount <= this.availableCash(playerId, lotId) &&
+            (!this.rules.bidMultiple || amount % this.rules.bidMultiple === 0)
+        )
     }
     bid(playerId: string, lotId: string, amount: number): void {
         assert(this.canBid(playerId, lotId, amount), 'Invalid auction bid')
@@ -175,6 +194,8 @@ export class ReserveBidAuction {
         assert(this.canPurchase(playerId, lotId), 'Invalid auction purchase')
         const award = { playerId, lotId, price: this.price(lotId) }
         this.award(award)
+        if (this.rules.firstStockPlayer === 'after-last-purchase')
+            this.auction.lastPurchaserId = playerId
         this.advanceOuterTurn()
         return award
     }
@@ -202,9 +223,29 @@ export class ReserveBidAuction {
                 award: { lotId, playerId: bids[0].playerId, price: bids[0].amount }
             }
         if (bids.length > 1) return { kind: 'open-bidding', lotId }
-        if (this.auction.passedPlayerIds.length === this.state.players.length)
-            return { kind: this.auction.awards.length ? 'income' : 'discount' }
-        return undefined
+        if (this.auction.passedPlayerIds.length !== this.state.players.length) return undefined
+        if (this.rules.allPass === 'resolve-bids-then-income') return this.pendingBidResolution()
+        return { kind: this.auction.awards.length ? 'income' : 'discount' }
+    }
+    /** After everyone passes, each lot's pending bids resolve in order as if it were current. */
+    private pendingBidResolution(): AuctionResolution {
+        for (const lotId of this.auction.remainingLotIds) {
+            const bids = this.auction.reservations.filter((bid) => bid.lotId === lotId)
+            if (bids.length === 1)
+                return {
+                    kind: 'award',
+                    award: { lotId, playerId: bids[0].playerId, price: bids[0].amount }
+                }
+            if (bids.length > 1) return { kind: 'open-bidding', lotId }
+        }
+        return { kind: 'income' }
+    }
+    /** The player who starts the first stock round once every lot is sold. */
+    firstStockPlayerId(): string {
+        const purchaser = this.auction.lastPurchaserId
+        return this.rules.firstStockPlayer === 'after-last-purchase' && purchaser
+            ? this.nextPlayer(purchaser)
+            : this.auction.nextPlayerId
     }
     resolve(actionId: string): AuctionResolution {
         const result = this.resolution()
@@ -253,7 +294,8 @@ export class ReserveBidAuction {
                 break
             }
             case 'income':
-                this.rules.payIncome(this.state)
+                for (let round = 0; round < (this.rules.incomeRounds ?? 1); round++)
+                    this.rules.payIncome(this.state)
                 this.auction.passedPlayerIds = []
                 break
             case 'complete':
@@ -265,7 +307,9 @@ export class ReserveBidAuction {
     private award(award: AuctionAward): void {
         this.rules.award(this.state, award)
         this.auction.awards.push(award)
-        this.auction.remainingLotIds.shift()
+        this.auction.remainingLotIds = this.auction.remainingLotIds.filter(
+            (lotId) => lotId !== award.lotId
+        )
         this.auction.reservations = this.auction.reservations.filter(
             (bid) => bid.lotId !== award.lotId
         )

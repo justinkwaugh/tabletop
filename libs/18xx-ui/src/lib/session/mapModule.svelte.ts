@@ -110,7 +110,9 @@ export class MapModule {
         })
     )
     scene = $derived.by(() => this.draw(this.tileInventory))
-    tokens = $derived.by(() => stationMapTokens(this.displayState(), this.view().stations))
+    tokens = $derived.by(() =>
+        stationMapTokens(this.displayState(), this.view().stations, this.view().sharedStations)
+    )
     tileCounts = $derived.by(() => this.view().tileSet.counts(this.session.state.tileInventory))
     private landedLay = $derived.by(() =>
         this.track.tileInFlight ? undefined : this.track.displayedPreview
@@ -130,9 +132,17 @@ export class MapModule {
     )
     displayedTokens = $derived.by(() => {
         if (this.landedLayStations)
-            return stationMapTokens(this.landedLayStations, this.view().stations)
+            return stationMapTokens(
+                this.landedLayStations,
+                this.view().stations,
+                this.view().sharedStations
+            )
         return this.stations.preview
-            ? stationMapTokens(this.stations.displayState, this.view().stations)
+            ? stationMapTokens(
+                  this.stations.displayState,
+                  this.view().stations,
+                  this.view().sharedStations
+              )
             : this.tokens
     })
     displayedReservations = $derived.by(() =>
