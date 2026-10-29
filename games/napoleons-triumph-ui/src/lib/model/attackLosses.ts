@@ -37,6 +37,8 @@ export interface SideLosses {
     /** Every point of morale the attack has cost this side so far. */
     morale: number
     taken: StepLoss[]
+    /** Of the steps, those lost retreating (rule 12) rather than in the fight. */
+    retreatSteps: number
     /** Morale paid for steps lost, which only the side that lost the fight or retreated pays. */
     paidForSteps: number
     penalties: MoralePenalty[]
@@ -50,7 +52,16 @@ export interface AttackLosses {
 type FoughtAttack = Pick<Attack, 'attackerId' | 'defenderId' | 'attackingUnitIds'>
 
 function noLosses(playerId: string): SideLosses {
-    return { playerId, steps: 0, owed: 0, morale: 0, taken: [], paidForSteps: 0, penalties: [] }
+    return {
+        playerId,
+        steps: 0,
+        owed: 0,
+        morale: 0,
+        taken: [],
+        retreatSteps: 0,
+        paidForSteps: 0,
+        penalties: []
+    }
 }
 
 export function stepsIn(losses: readonly LossEntry[]): number {
@@ -109,7 +120,9 @@ export function lossesOfAttack(
     for (const action of fought) {
         if (isRetreat(action)) {
             pay(action.metadata?.penalties)
-            defender.paidForSteps += stepsIn(action.metadata?.losses ?? [])
+            const steps = stepsIn(action.metadata?.losses ?? [])
+            defender.retreatSteps += steps
+            defender.paidForSteps += steps
         } else if (isFight(action)) {
             pay(action.metadata?.penalties)
             if (action.metadata?.loserId !== undefined) {
@@ -221,6 +234,30 @@ export function owedByDefender(
             ? [{ text: 'A step from each unit that counter-attacks', steps: counterAttackers }]
             : []),
         ...fought
+    ]
+}
+
+/**
+ * The steps a side owed for the result, then what makes its losses differ from them: steps its
+ * units in the fight did not have to lose, and steps lost retreating. The lines add up to the
+ * side's steps lost and still owed.
+ */
+export function stepLines(owedForResult: readonly OwedLine[], side: SideLosses): OwedLine[] {
+    const forResult = owedForResult.reduce((sum, line) => sum + line.steps, 0)
+    const inFight = side.steps - side.retreatSteps + side.owed
+    return [
+        ...owedForResult,
+        ...(inFight < forResult
+            ? [
+                  {
+                      text: 'Less steps with no unit left in the fight to take them',
+                      steps: inFight - forResult
+                  }
+              ]
+            : []),
+        ...(side.retreatSteps > 0
+            ? [{ text: 'Steps lost retreating', steps: side.retreatSteps }]
+            : [])
     ]
 }
 

@@ -25,7 +25,9 @@ import {
     lossSummary,
     lossesOfAttack,
     owedByAttacker,
-    owedByDefender
+    owedByDefender,
+    stepLines,
+    type SideLosses
 } from './attackLosses.js'
 import { recordedAccounts } from './resultAccount.js'
 
@@ -129,7 +131,15 @@ describe('what an attack has cost each side', () => {
             },
             []
         )
-        expect(losses.defender).toMatchObject({ steps: owed, paidForSteps: owed, morale: owed })
+        expect(losses.defender).toMatchObject({
+            steps: owed,
+            retreatSteps: owed,
+            paidForSteps: owed,
+            morale: owed
+        })
+        expect(stepLines([], losses.defender)).toEqual([
+            { text: 'Steps lost retreating', steps: owed }
+        ])
         expect(losses.defender.taken).toEqual([
             { unitId: 'A-inf', face: infantry(3), steps: owed, eliminated: false }
         ])
@@ -183,6 +193,7 @@ describe('the steps an attack still owes while a player chooses where they fall'
                 owed: 1,
                 morale: 3,
                 taken: [],
+                retreatSteps: 0,
                 paidForSteps: 2,
                 penalties: []
             })
@@ -229,5 +240,37 @@ describe('the steps a result makes each side owe (rule 11, steps 9 and 10)', () 
     it('add a step for each unit that counter-attacks', () => {
         const terms = account([infantry(3)], [infantry(2)])
         expect(sum(owedByDefender(terms, 0, 2))).toBe(sum(owedByDefender(terms, 0, 0)) + 2)
+    })
+})
+
+describe('the step lines of the losses sheet', () => {
+    const side = (steps: number, retreatSteps: number, owed = 0): SideLosses => ({
+        playerId: 'french',
+        steps,
+        owed,
+        morale: steps,
+        taken: [],
+        retreatSteps,
+        paidForSteps: steps,
+        penalties: []
+    })
+    const owedForResult = [
+        { text: 'A step for each unit leading the attack', steps: 2 },
+        { text: 'A step for each point the final result is above zero', steps: 1 }
+    ]
+    const sum = (lines: { steps: number }[]) => lines.reduce((total, line) => total + line.steps, 0)
+
+    it('add up to the steps lost when a lone leader cannot take them all and the defence then retreats', () => {
+        const lines = stepLines(owedForResult, side(5, 3))
+        expect(lines.slice(2)).toEqual([
+            { text: 'Less steps with no unit left in the fight to take them', steps: -1 },
+            { text: 'Steps lost retreating', steps: 3 }
+        ])
+        expect(sum(lines)).toBe(5)
+    })
+
+    it('are the result’s lines alone when the fight took every step it owed', () => {
+        expect(stepLines(owedForResult, side(3, 0))).toEqual(owedForResult)
+        expect(stepLines(owedForResult, side(1, 0, 2))).toEqual(owedForResult)
     })
 })
