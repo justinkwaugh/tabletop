@@ -3,6 +3,7 @@ import { assert, assertExists, type Color, type GameAction } from '@tabletop/com
 import {
     ActionType,
     AnswerChronicleCitizenship,
+    CHRONICLE_CITIZENSHIP_GROUP,
     BuildOrRepairEdifice,
     ChooseChronicleSuit,
     ChooseHealStack,
@@ -135,20 +136,11 @@ import {
     HealStackDraft,
     OathPickDraft
 } from './chronicleDrafts.js'
-import {
-    carriedEntries,
-    chronicleRowsAfter,
-    chronicleWordsOf,
-    openingRows,
-    type OpeningRow,
-    type ChronicleRowsAfter,
-    type ChronicleWords
-} from './chronicleHistory.js'
+import { carriedEntries, openingRows, type OpeningRow } from './chronicleHistory.js'
 import { phraseWarbandOwner, type HistoryNames } from './actionDescription.js'
 import { sideWarbandOwner } from './campaignLedger.js'
 import type { WarbandWhose } from './tokenText.js'
 import {
-    endingActionIndex,
     gameEndEvent,
     wonGame,
     historyRows,
@@ -379,11 +371,16 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
+    /**
+     * R-8.2-H1 — the offered Exiles answer together: an answer joins their group, so one sent
+     * against the state before another's answer is still taken, and each can undo their own.
+     */
     async answerChronicleCitizenship(accept: boolean): Promise<void> {
         await this.commit(
             this.createPlayerAction(AnswerChronicleCitizenship, {
                 type: ActionType.AnswerChronicleCitizenship,
-                accept
+                accept,
+                simultaneousGroupId: CHRONICLE_CITIZENSHIP_GROUP
             })
         )
     }
@@ -1733,16 +1730,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
 
     get historyRows(): HistoryRow[] {
         return historyRows(this.actions, this.majorEventContext)
-    }
-
-    /** R-8 — the chronicle of the state being viewed, for its choices' History sentences. */
-    get chronicleWords(): ChronicleWords | undefined {
-        return chronicleWordsOf(this.gameState)
-    }
-
-    /** R-8 — the rows the chronicle adds after each action, read from the state being viewed. */
-    get chronicleRowsAfter(): ChronicleRowsAfter {
-        return chronicleRowsAfter(this.actions, endingActionIndex(this.actions), this.gameState)
     }
 
     /** The record's entries this game carried in, newest first. */

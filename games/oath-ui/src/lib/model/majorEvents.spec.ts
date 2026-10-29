@@ -8,7 +8,9 @@ import {
     SearchPlay,
     SearchSource,
     ChronicleMark,
+    WIN_KIND_OF_RULE,
     WinKind,
+    chronicleMarkOf,
     type HydratedOathGameState,
     type OpenDeal,
     type WinRule
@@ -470,15 +472,15 @@ describe('the History’s rows and its game-end row', () => {
             mark: ChronicleMark,
             visionIds: string[]
         ) {
+            expect(WIN_KIND_OF_RULE[rule]).toBe(kind)
+            expect(chronicleMarkOf(rule)).toBe(mark)
             // R-8.5 has set every Vision aside: none is revealed when the result shows.
             const state = ended()
             state.winningPlayerIds = ['p3']
             state.chronicle = {
                 ending: {
                     winnerPlayerId: 'p3',
-                    kind,
                     rule,
-                    mark,
                     waysMet: { usurper: false, visionIds, empire: false }
                 }
             }

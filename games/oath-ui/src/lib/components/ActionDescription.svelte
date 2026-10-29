@@ -20,8 +20,7 @@
             action,
             seatsById(gameSession.historyNames),
             gameSession.myPlayer?.id,
-            campaign,
-            gameSession.chronicleWords
+            campaign
         )
     )
     let seats = $derived({ names: gameSession.historyNames, viewerId: gameSession.myPlayer?.id })

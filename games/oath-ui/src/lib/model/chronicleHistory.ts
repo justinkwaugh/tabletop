@@ -12,14 +12,23 @@ import {
     isChooseChronicleSuit,
     isChooseHealStack,
     isChooseOath,
+    isChronicleAddCards,
+    isChronicleDispossess,
+    isChronicleFlipCitizens,
+    isChronicleForcedVow,
+    isChronicleHeal,
+    isChronicleMap,
+    isChronicleRebuild,
+    isChronicleRelics,
+    isChronicleSettleSuit,
+    isChronicleStart,
     isOfferChronicleCitizenship,
     isSkipChronicleStory,
     isWriteChronicleStory,
-    type Chronicle,
     type ChronicleAdded,
     type ChronicleEntry,
-    type ChronicleMapRecord,
-    type ChronicleRelicsRecord,
+    type ChronicleMapMetadata,
+    type ChronicleRelicsMetadata,
     type HydratedOathGameState,
     type OpeningSeats,
     type Suit,
@@ -36,10 +45,9 @@ import {
 } from '$lib/model/names.js'
 import { endingParts } from '$lib/model/endings.js'
 
-// R-8 — the chronicle as the History tells it. Every fact is read from the public `chronicle` of
-// the state being viewed: a system step runs inside whichever action reaches it, so its rows are
-// placed by the Law's order after that action. Seats are named by id, for their chips; hidden cards
-// are counted, never named.
+// R-8 — the chronicle as the History tells it, each row from its own action's record: a player's
+// choice, or the System Action that ran a step the rules settle alone. Seats are named by id, for
+// their chips; hidden cards are counted, never named.
 
 /** R-2.11 — what the Oathkeeper does under each Oath, as the goal tile's top half says it. */
 const OATHKEEPER_DOES: Record<Goal, string> = {
@@ -65,15 +73,6 @@ export function wonWords(rule: WinRule): string {
     return `won ${endingParts(rule).how}`
 }
 
-/** What the History needs of the chronicle being viewed, for a chronicle action's sentence. */
-export interface ChronicleWords {
-    chronicle: Chronicle
-    /** This game's number in the record. */
-    gameNumber: number
-    /** The site card in a slot as the chronicle's choices saw it, before R-8.3.5 moved any. */
-    siteBeforeMap: (slotId: string) => string | undefined
-}
-
 /** This game's number: the record's last entry once the chronicle is written, else the next one. */
 export function gameNumberOf(state: HydratedOathGameState): number {
     const record = state.chronicleRecord ?? []
@@ -82,18 +81,6 @@ export function gameNumberOf(state: HydratedOathGameState): number {
 
 function chronicleWritten(state: HydratedOathGameState): boolean {
     return state.chronicle !== undefined && state.chronicle.step === undefined
-}
-
-export function chronicleWordsOf(state: HydratedOathGameState): ChronicleWords | undefined {
-    const chronicle = state.chronicle
-    if (!chronicle) return undefined
-    return {
-        chronicle,
-        gameNumber: gameNumberOf(state),
-        siteBeforeMap: (slotId) =>
-            chronicle.map?.moved.find((move) => move.from === slotId)?.siteCardId ??
-            state.siteCards[slotId]
-    }
 }
 
 /** R-8.4 — "3 Beast cards, 2 Nomad cards and 1 Discord card": the suit's symbol before "cards". */
@@ -107,13 +94,10 @@ function healWords(heal: NonNullable<ChronicleAdded['heal']>): string {
 }
 
 /**
- * The eight chronicle actions' sentences, after the actor's chip; `words` is the chronicle as the
- * viewed state holds it, absent where a row is read without one. Undefined for any other action.
+ * A chronicle action's sentence after the actor's chip, read from its own input and metadata: the
+ * eight choices', and a System Action's rows joined. Undefined for any other action.
  */
-export function chronicleActionWords(
-    action: GameAction,
-    words: ChronicleWords | undefined
-): string | undefined {
+export function chronicleActionWords(action: GameAction): string | undefined {
     if (isChooseOath(action)) return sworeWords(action.oathType)
     if (isOfferChronicleCitizenship(action)) {
         return action.exilePlayerIds.length === 0
@@ -122,43 +106,43 @@ export function chronicleActionWords(
     }
     if (isAnswerChronicleCitizenship(action)) {
         if (!action.accept) return 'refused Citizenship.'
-        const sites = (action.metadata?.siteIds ?? []).map(
-            (slotId) => words?.siteBeforeMap(slotId) ?? slotId
-        )
-        const winnerId = words?.chronicle.ending.winnerPlayerId
+        const metadata = action.metadata
         const replaced =
-            sites.length > 0
-                ? `; their warbands at ${listed(sites)} became ${winnerId ? `${winnerId}’s` : 'the winner’s'}`
+            metadata && metadata.siteCardIds.length > 0
+                ? `; their warbands at ${listed(metadata.siteCardIds)} became ${metadata.winnerPlayerId}’s`
                 : ''
         return `accepted Citizenship${replaced}.`
     }
     if (isBuildOrRepairEdifice(action)) {
-        const choice = action.choice
         const metadata = action.metadata
-        if (!choice || !metadata) return 'built no edifice.'
-        const site = words?.siteBeforeMap(choice.siteId) ?? choice.siteId
+        if (!action.choice || !metadata) return 'built no edifice.'
         const edifice = edificeName(metadata.edificeId, false)
-        if (metadata.repaired) return `repaired the ${edifice} at ${site}.`
+        if (metadata.repaired) return `repaired the ${edifice} at ${metadata.siteCardId}.`
         const returned = metadata.returnedDenizenId
             ? `; ${metadata.returnedDenizenId} went into the world deck`
             : ''
-        return `built ${edifice} at ${site}${returned}.`
+        return `built ${edifice} at ${metadata.siteCardId}${returned}.`
     }
     if (isChooseChronicleSuit(action)) {
-        // R-8.4 — the choice and what it added are one row.
-        const suits = words?.chronicle.added?.suits
+        // R-8.4 — the choice and what it adds are one row.
+        const suits = action.metadata?.added?.suits
         const added = suits ? `: ${addedSuitsWords(suits)} went into the world deck` : ''
         return `chose ${suitName(action.suit)} cards${added}.`
     }
     if (isChooseHealStack(action)) {
-        const heal = words?.chronicle.added?.heal
+        const heal = action.metadata?.added.heal
         return `chose the stack of ${suitName(action.suit)} cards${heal ? `: ${healWords(heal)}` : ''}.`
     }
     if (isWriteChronicleStory(action)) {
-        return words ? `wrote the story of ${ageName(words.gameNumber)}.` : 'wrote the story.'
+        const gameNumber = action.metadata?.gameNumber
+        return gameNumber !== undefined
+            ? `wrote the story of ${ageName(gameNumber)}.`
+            : 'wrote the story.'
     }
     if (isSkipChronicleStory(action)) return 'skipped the story.'
-    return undefined
+    return chronicleRowsOf(action)
+        ?.map((row) => row.text)
+        .join(' ')
 }
 
 /** A skipped story has no row. */
@@ -181,7 +165,7 @@ const KEPT_WORDS: Record<ChronicleKeptFor, (winnerId: string, count: number) => 
 }
 
 /** "Kept Plains and Steppe, ruled by <Dana>; Deep Woods, by Forest Temple." */
-function keptWords(map: ChronicleMapRecord, winnerId: string): string {
+function keptWords(map: ChronicleMapMetadata, winnerId: string): string {
     if (map.kept.length === 0) return 'Kept no site.'
     const keptFor = map.keptFor
     if (!keptFor) return `Kept ${listed(map.kept)}.`
@@ -196,7 +180,7 @@ function keptWords(map: ChronicleMapRecord, winnerId: string): string {
 }
 
 /** "River, Wastes and 1 facedown site went back to the site deck; 2 denizens to the discards." */
-function discardedWords(map: ChronicleMapRecord): string | undefined {
+function discardedWords(map: ChronicleMapMetadata): string | undefined {
     const sites = [
         ...map.discarded,
         ...(map.discardedFacedown > 0 ? [plural(map.discardedFacedown, 'facedown site')] : [])
@@ -210,7 +194,7 @@ function discardedWords(map: ChronicleMapRecord): string | undefined {
 }
 
 /** R-8.3.3 — "Festival District at Ancient City became a ruin; 1 denizen to the discards." */
-function ruinsWords(map: ChronicleMapRecord): string | undefined {
+function ruinsWords(map: ChronicleMapMetadata): string | undefined {
     if (map.ruins.length === 0) return undefined
     const ruins = map.ruins.map(
         (ruin) =>
@@ -225,11 +209,11 @@ function slotIndex(slotId: string): number {
 }
 
 /** "Cleared the map; moved Steppe and Deep Woods up the Provinces; dealt 4 facedown sites; flipped Mountain." */
-function clearedWords(map: ChronicleMapRecord, state: HydratedOathGameState): string {
+function clearedWords(map: ChronicleMapMetadata): string {
     const ways = new Map<string, string[]>()
     for (const move of map.moved) {
-        const from = state.regionOf(move.from)
-        const to = state.regionOf(move.to)
+        const from = move.fromRegion
+        const to = move.toRegion
         const way =
             from !== to
                 ? `to the ${regionName(to)}`
@@ -249,30 +233,28 @@ function clearedWords(map: ChronicleMapRecord, state: HydratedOathGameState): st
     return `${clauses.join('; ')}.`
 }
 
-function mapRows(chronicle: Chronicle, state: HydratedOathGameState): ChronicleRow[] {
-    const map = chronicle.map
-    if (!map) return []
-    const winnerId = chronicle.ending.winnerPlayerId
-    const kept = [keptWords(map, winnerId), discardedWords(map)].filter(Boolean).join(' ')
-    return [kept, ruinsWords(map), clearedWords(map, state)].flatMap((text) =>
-        text ? [{ kind: 'step' as const, text }] : []
-    )
+function mapRows(map: ChronicleMapMetadata): ChronicleRow[] {
+    const kept = [keptWords(map, map.winnerPlayerId), discardedWords(map)].filter(Boolean).join(' ')
+    return steps(kept, ruinsWords(map), clearedWords(map))
+}
+
+/** Rows the rules settled, with no chip; an absent sentence is no row. */
+function steps(...texts: (string | undefined)[]): ChronicleRow[] {
+    return texts.flatMap((text) => (text ? [{ kind: 'step' as const, text }] : []))
 }
 
 // ---------------------------------------------------------------------------------------------
 // R-8.4 to R-8.8
 
-/** R-8.4, R-8.4.a — the cards added, unless the winner's choice of suit or stack already says so. */
-function addRows(chronicle: Chronicle, suitChosen: boolean): ChronicleRow[] {
-    const added = chronicle.added
-    if (added?.suits && !suitChosen) {
-        return [{ kind: 'step', text: `${addedSuitsWords(added.suits)} went into the world deck.` }]
+/**
+ * R-8.4, R-8.4.a — the cards added, unless the winner's choice of suit already says so; a tie for
+ * the largest stack adds nothing yet, and the winner's pick says what it took (R-8.4.a-H1).
+ */
+function addRows(added: ChronicleAdded | undefined, suitChosen: boolean): ChronicleRow[] {
+    if (added?.suits) {
+        return suitChosen ? [] : steps(`${addedSuitsWords(added.suits)} went into the world deck.`)
     }
-    // R-8.4.a-H1 — a tied heal is the winner's pick, and their row says what it took.
-    if (added?.heal && !chronicle.healTie) {
-        return [{ kind: 'step', text: `The Archive was short: ${healWords(added.heal)}.` }]
-    }
-    return []
+    return added?.heal ? steps(`The Archive was short: ${healWords(added.heal)}.`) : []
 }
 
 function relicCount(count: number): string {
@@ -290,16 +272,12 @@ function holdersWords(holders: readonly { name: string; count: number }[]): stri
 }
 
 /** R-8.6 — counts only (R-9.4); the Grand Scepter's row reads the same wherever it was. */
-function relicsWords(
-    relics: ChronicleRelicsRecord,
-    winnerId: string,
-    state: HydratedOathGameState
-): string {
+function relicsWords(relics: ChronicleRelicsMetadata): string {
+    const winnerId = relics.winnerPlayerId
     const returned = relics.returned.filter((entry) => entry.count > 0)
     const placedBy = new Map<number, string[]>()
-    for (const { slotId, count } of relics.placed) {
-        const site = state.siteCards[slotId] ?? slotId
-        placedBy.set(count, [...(placedBy.get(count) ?? []), site])
+    for (const { siteCardId, count } of relics.placed) {
+        placedBy.set(count, [...(placedBy.get(count) ?? []), siteCardId])
     }
     const placed = [...placedBy].map(
         ([count, sites]) =>
@@ -326,79 +304,54 @@ function relicsWords(
     )
 }
 
-function restRows(chronicle: Chronicle, state: HydratedOathGameState): ChronicleRow[] {
-    const winnerId = chronicle.ending.winnerPlayerId
-    return [
-        chronicle.dispossessed !== undefined
-            ? `Set ${plural(chronicle.dispossessed, 'card')} aside as the Dispossessed, unseen.`
-            : undefined,
-        chronicle.relics ? relicsWords(chronicle.relics, winnerId, state) : undefined,
-        chronicle.rebuilt ? 'Rebuilt the world deck.' : undefined
-    ].flatMap((text) => (text ? [{ kind: 'step' as const, text }] : []))
-}
-
 // ---------------------------------------------------------------------------------------------
-// Where the rows go
-
-/** The rows each action is followed by, oldest first, keyed by action id. */
-export type ChronicleRowsAfter = ReadonlyMap<string, readonly ChronicleRow[]>
+// Each System Action's rows
 
 /**
- * R-8, in `writeChronicleFrom`'s order: the start and a forced Vow after the action that won; the
- * map after the last of the win, the Vow, the offers, the answers and the build; the cards added
- * after the suit's choice, else in the same place; the Dispossessed to the rebuild after the heal's
- * choice, else in the same place.
+ * The rows a chronicle System Action adds to the History, oldest first, from its own record: none
+ * for a step that shows nothing on its own (the flip, a single leading suit, a chosen stack's draw,
+ * which the winner's own row tells). Undefined for any other action.
  */
-export function chronicleRowsAfter(
-    actions: readonly GameAction[],
-    wonAt: number,
-    state: HydratedOathGameState
-): ChronicleRowsAfter {
-    const chronicle = state.chronicle
-    const rows = new Map<string, ChronicleRow[]>()
-    if (!chronicle || wonAt < 0) return rows
-    const lastOf = (from: number, matches: (action: GameAction) => boolean): number =>
-        actions.findLastIndex((action, index) => index >= from && matches(action))
-    const mapAt = Math.max(
-        wonAt,
-        lastOf(
-            wonAt,
-            (action) =>
-                isChooseOath(action) ||
-                isOfferChronicleCitizenship(action) ||
-                isAnswerChronicleCitizenship(action) ||
-                isBuildOrRepairEdifice(action)
-        )
-    )
-    const suitAt = lastOf(wonAt, isChooseChronicleSuit)
-    const addAt = suitAt >= 0 ? suitAt : mapAt
-    const healAt = lastOf(wonAt, isChooseHealStack)
-    const restAt = healAt >= 0 ? healAt : addAt
-
-    const add = (at: number, more: readonly ChronicleRow[]) => {
-        const id = actions[at].id
-        rows.set(id, [...(rows.get(id) ?? []), ...more])
+export function chronicleRowsOf(action: GameAction): ChronicleRow[] | undefined {
+    if (isChronicleStart(action)) {
+        return [
+            {
+                kind: 'begins',
+                text: `${action.winnerPlayerId} ${wonWords(action.rule)}. The Chronicle begins.`
+            }
+        ]
     }
-    const { ending, vowedOath, vowedByVisionId } = chronicle
-    add(wonAt, [
-        {
-            kind: 'begins',
-            text: `${ending.winnerPlayerId} ${wonWords(ending.rule)}. The Chronicle begins.`
-        }
-    ])
-    if (vowedOath !== undefined && vowedByVisionId !== undefined) {
-        add(wonAt, [
+    if (isChronicleForcedVow(action)) {
+        const metadata = action.metadata
+        if (!metadata) return []
+        return [
             {
                 kind: 'step',
-                text: sworeWords(vowedOath, vowedByVisionId),
-                actorId: ending.winnerPlayerId
+                text: sworeWords(metadata.oathType, metadata.visionId),
+                actorId: metadata.winnerPlayerId
             }
-        ])
+        ]
     }
-    add(mapAt, mapRows(chronicle, state))
-    add(addAt, addRows(chronicle, suitAt >= 0))
-    add(restAt, restRows(chronicle, state))
-    return rows
+    if (isChronicleMap(action)) return action.metadata ? mapRows(action.metadata) : []
+    if (isChronicleAddCards(action)) {
+        return addRows(action.metadata?.added, action.metadata?.chosen === true)
+    }
+    if (isChronicleDispossess(action)) {
+        const count = action.metadata?.count
+        return count !== undefined
+            ? steps(`Set ${plural(count, 'card')} aside as the Dispossessed, unseen.`)
+            : []
+    }
+    if (isChronicleRelics(action)) return action.metadata ? steps(relicsWords(action.metadata)) : []
+    if (isChronicleRebuild(action)) return steps('Rebuilt the world deck.')
+    if (
+        isChronicleFlipCitizens(action) ||
+        isChronicleSettleSuit(action) ||
+        isChronicleHeal(action)
+    ) {
+        return []
+    }
+    return undefined
 }
 
 /**

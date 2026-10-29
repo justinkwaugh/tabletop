@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { ChronicleEntry } from '@tabletop/oath'
+    import { chronicleMarkOf, type ChronicleEntry } from '@tabletop/oath'
     import RecordChip from '$lib/components/RecordChip.svelte'
     import { goalSymbolImage } from '$lib/images/goalImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
@@ -13,6 +13,9 @@
     // table's name and the game's number, the date and the Oath it was played under, the winner's
     // story, then how it was won and what it left the next game. Names keep that game's colours.
     let { entry }: { entry: ChronicleEntry } = $props()
+
+    // The journal's letter follows from how the game was won.
+    let mark = $derived(chronicleMarkOf(entry.rule))
 
     let added = $derived(
         entry.added?.suits
@@ -60,7 +63,7 @@
             {endingParts(entry.rule).how}
             <span
                 class="mark border-2 border-oath-heading text-oath-heading"
-                aria-label="mark {entry.mark}">{entry.mark}</span
+                aria-label="mark {mark}">{mark}</span
             >
         </dd>
         {#if entry.nextOath !== undefined}

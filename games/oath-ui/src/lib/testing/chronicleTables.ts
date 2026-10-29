@@ -15,13 +15,11 @@ import {
 } from '@tabletop/common'
 import {
     ActionType,
-    AnswerChronicleCitizenship,
     Banner,
     BuildOrRepairEdifice,
     CURRENT_OATH_REVISION,
     ChooseChronicleSuit,
     ChooseOath,
-    ChronicleMark,
     Definition,
     HydratedOathGameState,
     IMPERIAL_WARBANDS,
@@ -48,13 +46,14 @@ import {
 } from '@tabletop/oath'
 import {
     buildAction,
+    chronicleAnswer,
     openTurn,
     testBanners,
     testPlayer,
     testState,
     testVaultWithRelics,
     wholeWorld,
-    wonTable
+    wonWithActions
 } from '@tabletop/oath/testing'
 import { played, tableOf, type PlayedTable } from './sessionHarness.js'
 
@@ -219,9 +218,7 @@ export function gameOneAt(step: GameOneStep): PlayedTable {
     if (step === 'offer') return played(won, steps)
     steps.push(buildAction(OfferChronicleCitizenship, { playerId: DANA, exilePlayerIds: [ANN] }))
     if (step === 'answer') return played(won, steps)
-    steps.push(
-        buildAction(AnswerChronicleCitizenship, { playerId: ANN, accept: step !== 'refused' })
-    )
+    steps.push(chronicleAnswer(ANN, step !== 'refused'))
     if (step === 'story' || step === 'refused') return played(won, steps)
     steps.push(buildAction(WriteChronicleStory, { playerId: DANA, text: GAME_ONE_STORY }))
     return played(won, steps)
@@ -291,20 +288,16 @@ const SUCCESSOR = { winnerPlayerId: ANN, kind: WinKind.Successor, rule: 'R-3.3.1
 const VISIONARY = { winnerPlayerId: DANA, kind: WinKind.Visionary, rule: 'R-3.2' } as const
 
 /**
- * A table that starts from the win: `wonTable` writes the chronicle up to its first stop, and the
- * action that recorded the win is written into the log with it, as the History finds it.
+ * A table that starts from the win: the action that recorded it is the log's first, and the
+ * chronicle's System Actions follow it up to the first stop, as the History finds them.
  */
 function wonWith(state: HydratedOathGameState, outcome: GameOutcome, won: GameAction): PlayedTable {
     const action = { ...won, id: 'won', index: 0, createdAt: new Date() }
-    // The log's one action, so its history is whole from the start: count and checksum agree.
-    return {
-        state: {
-            ...wonTable(state, outcome),
-            actionCount: 1,
-            actionChecksum: calculateActionChecksum(0, [action])
-        },
-        actions: [action]
-    }
+    // The log is whole from the start: count and checksum agree with it.
+    state.actionCount = 1
+    state.actionChecksum = calculateActionChecksum(0, [action])
+    const { final, actions } = wonWithActions(state, outcome)
+    return { state: final, actions: [action, ...actions] }
 }
 
 /** R-3.3.1 — the Chancellor's end die ends round 6, and Ann, a Citizen, takes the empire. */
@@ -402,8 +395,6 @@ export const GAME_ONE_ENTRY: ChronicleEntry = {
     sessionName: 'Thursday table',
     date: '2026-10-15',
     startingOath: OathType.Supremacy,
-    mark: ChronicleMark.Oathkeeper,
-    kind: WinKind.Usurper,
     rule: 'R-3.1',
     winner: { name: 'Dana', color: Color.Red },
     nextOath: OathType.Protection,
@@ -417,8 +408,6 @@ export const GAME_TWO_ENTRY: ChronicleEntry = {
     sessionName: 'Thursday table',
     date: '2026-10-22',
     startingOath: OathType.Protection,
-    mark: ChronicleMark.Successor,
-    kind: WinKind.Successor,
     rule: 'R-3.3.1',
     winner: { name: 'Ann', color: Color.Blue },
     nextOath: OathType.Devotion,

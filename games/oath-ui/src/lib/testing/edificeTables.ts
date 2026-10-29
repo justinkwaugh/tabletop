@@ -273,9 +273,7 @@ export function squalidAskedTable(): PlayedTable {
                 kind: PowerQuestionKind.AdjustEndDie,
                 cardId: DISTRICT,
                 askedPlayerId: 'rhys',
-                roll: 5,
-                round: 6,
-                threshold: 5
+                roll: 5
             }
         ],
         askingPlayerId: 'dana',

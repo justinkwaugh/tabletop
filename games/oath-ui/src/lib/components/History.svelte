@@ -8,6 +8,7 @@
     import TokenText from './TokenText.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { historyText, rowActorOf } from '$lib/model/actionDescription.js'
+    import { chronicleRowsOf } from '$lib/model/chronicleHistory.js'
     import RecordRow from './RecordRow.svelte'
     import { quotedPromise } from '$lib/model/tribunalDeals.js'
 
@@ -18,9 +19,8 @@
     let rows = $derived(gameSession.historyRows)
     let ending = $derived(gameSession.isViewingHistory ? undefined : gameSession.gameEndRow)
     let dropped = $derived(gameSession.droppedDeals)
-    // R-8 — the chronicle's rows after the actions that ran its steps, newest first, and the record
-    // this game carried in, under its start.
-    let chronicleRows = $derived(gameSession.chronicleRowsAfter)
+    // R-8 — the record this game carried in, under its start. Each chronicle step the rules settled
+    // is its own System Action, whose rows come from its record.
     let carried = $derived(gameSession.carriedEntries)
     // R-1.7-H1, R-1.9-H1 — a continued game's seats as it opened, just after its start, newest first.
     let opening = $derived(gameSession.openingRows.toReversed())
@@ -111,7 +111,8 @@
             {/if}
             {#each rows as row (row.action.id)}
                 {@const actorId = rowActorOf(row.action)}
-                {#each (chronicleRows.get(row.action.id) ?? []).toReversed() as added, index (index)}
+                {@const chronicleRows = chronicleRowsOf(row.action)}
+                {#each (chronicleRows ?? []).toReversed() as added, index (index)}
                     {@const text = historyText(added.text, gameSession.historyNames)}
                     <div data-chronicle-row={added.kind}>
                         {#if added.kind === 'begins'}{@render ringedDot(
@@ -142,7 +143,9 @@
                         </TimelineItem>
                     </div>
                 {/each}
-                {#if row.event}
+                {#if chronicleRows}
+                    <!-- A chronicle System Action is told by its own rows above, or by none. -->
+                {:else if row.event}
                     <div>
                         {@render ringedDot(row.event.tone === 'danger')}
                         <TimelineItem
@@ -167,7 +170,7 @@
                     </div>
                 {/if}
                 <!-- R-5.5 — the step that closes a Campaign stays a row below its card, as every step does. -->
-                {#if !row.event || row.campaignSteps}
+                {#if !chronicleRows && (!row.event || row.campaignSteps)}
                     <div>
                         {@render dot()}
                         <TimelineItem

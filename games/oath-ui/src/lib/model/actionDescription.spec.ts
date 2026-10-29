@@ -47,7 +47,7 @@ import { tokenParts } from './tokenText.js'
 import { ActionSource, Color, type GameAction } from '@tabletop/common'
 import { buildAction, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { siteName, slotLabel } from './names.js'
-import { shownInHistory } from './chronicleHistory.js'
+import { chronicleRowsOf, shownInHistory } from './chronicleHistory.js'
 
 const nameOf = {
     player: (playerId: string) => ({ p1: 'Alice', p2: 'Bob', p3: 'Cass' })[playerId] ?? playerId,
@@ -113,7 +113,18 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.ChooseChronicleSuit]: { suit: 'order' },
     [ActionType.ChooseHealStack]: { suit: 'beast' },
     [ActionType.WriteChronicleStory]: { text: 'The Usurper held.' },
-    [ActionType.SkipChronicleStory]: {}
+    [ActionType.SkipChronicleStory]: {},
+    // R-8 — the steps the rules settle alone, each a System Action told by its own rows.
+    [ActionType.ChronicleStart]: { source: 'system', winnerPlayerId: 'p1', rule: 'R-3.1' },
+    [ActionType.ChronicleForcedVow]: { source: 'system' },
+    [ActionType.ChronicleFlipCitizens]: { source: 'system' },
+    [ActionType.ChronicleMap]: { source: 'system' },
+    [ActionType.ChronicleSettleSuit]: { source: 'system' },
+    [ActionType.ChronicleAddCards]: { source: 'system' },
+    [ActionType.ChronicleHeal]: { source: 'system' },
+    [ActionType.ChronicleDispossess]: { source: 'system' },
+    [ActionType.ChronicleRelics]: { source: 'system' },
+    [ActionType.ChronicleRebuild]: { source: 'system' }
 }
 
 describe('a history line names a site by its printed name', () => {
@@ -199,14 +210,16 @@ describe('a skipped story has no History row (R-8)', () => {
 })
 
 describe('the history tab describes every action', () => {
-    it('has a sentence for all 44 action types, and reaches no fallback but the ones awaiting theirs', () => {
+    it('has a sentence for all 54 action types, or rows of its own, and reaches no fallback', () => {
         const types = Object.values(ActionType)
         // Pinned rather than read off the enum, so adding an action type fails here.
-        expect(types).toHaveLength(44)
+        expect(types).toHaveLength(54)
 
         for (const type of types) {
             const fields = MINIMAL[type]
             expect(fields, `no fixture for ${type}`).toBeDefined()
+            // A chronicle step the rules settle alone is told by its rows, or by none (R-8).
+            if (chronicleRowsOf(action({ type, ...fields })) !== undefined) continue
             const text = describeAction(action({ type, playerId: 'p1', ...fields }), nameOf)
             expect(text, `${type} fell through to the fallback`).not.toBe(UNDESCRIBED)
             expect(text.length, `${type} described as empty`).toBeGreaterThan(3)

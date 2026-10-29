@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { Color, type GameAction, type Visibility } from '@tabletop/common'
 import {
+    ActionSource,
+    Color,
+    assertExists,
+    withoutActionPatches,
+    type GameAction,
+    type Visibility
+} from '@tabletop/common'
+import {
+    ActionType,
     BoardSide,
     BuildOrRepairEdifice,
+    OathRuntime,
     OpeningChancellor,
     ChooseChronicleSuit,
     ChooseHealStack,
@@ -19,13 +28,11 @@ import { buildAction, served, spectator } from '@tabletop/oath/testing'
 import {
     carriedEntries,
     chronicleActionWords,
-    chronicleRowsAfter,
-    chronicleWordsOf,
+    chronicleRowsOf,
     openingRows,
     recordRowWords,
     shownInHistory
 } from './chronicleHistory.js'
-import { endingActionIndex } from './majorEvents.js'
 import { nameIds } from './names.js'
 import {
     ANN,
@@ -42,36 +49,50 @@ import {
 } from '$lib/testing/chronicleTables.js'
 import { played, setupTable, type PlayedTable } from '$lib/testing/sessionHarness.js'
 
+/** The actions as `perspective` is served them; the host's whole. */
+function servedActions(table: PlayedTable, perspective?: Visibility.Perspective): GameAction[] {
+    if (!perspective) return table.actions
+    const visibility = OathRuntime.visibility
+    assertExists(visibility, 'Oath registers its visibility')
+    return table.actions.map((action) =>
+        visibility.actions.project(action, perspective, { config: {} })
+    )
+}
+
 /**
- * The History's chronicle lines, oldest first, as `view` serves the state: each chronicle action's
- * sentence after its actor, then the rows placed after that action; framed rows in brackets. Seats
- * are their ids (each the reader's chip), cards their names.
+ * The History's chronicle lines, oldest first, as `perspective` is served the actions, each from
+ * its own record: a choice's sentence after its actor, a System Action's rows; framed rows in
+ * brackets. Seats are their ids (each the reader's chip), cards their names.
  */
-function lines(table: PlayedTable, view: OathProjectedState = table.state): string[] {
-    const state = new HydratedOathGameState(view)
-    const words = chronicleWordsOf(state)
-    const after = chronicleRowsAfter(table.actions, endingActionIndex(table.actions), state)
+function lines(table: PlayedTable, perspective?: Visibility.Perspective): string[] {
     const out: string[] = []
-    for (const action of table.actions) {
-        const own = chronicleActionWords(action, words)
-        if (own !== undefined && shownInHistory(action)) out.push(`${action.playerId} ${own}`)
-        for (const row of after.get(action.id) ?? []) {
-            if (row.kind === 'begins') out.push(`[${row.text}]`)
-            else out.push(row.actorId ? `${row.actorId} ${row.text}` : row.text)
+    for (const action of servedActions(table, perspective)) {
+        const rows = chronicleRowsOf(action)
+        if (rows) {
+            for (const row of rows) {
+                if (row.kind === 'begins') out.push(`[${row.text}]`)
+                else out.push(row.actorId ? `${row.actorId} ${row.text}` : row.text)
+            }
+            continue
         }
+        const own = chronicleActionWords(action)
+        if (own !== undefined && shownInHistory(action)) out.push(`${action.playerId} ${own}`)
     }
     return out.map((line) => nameIds(line, (slotId) => slotId))
 }
 
-/** The rows placed after the one action `matches` picks out, by their first words. */
-function rowsAfter(table: PlayedTable, matches: (action: GameAction) => boolean): string[] {
-    const state = new HydratedOathGameState(table.state)
-    const after = chronicleRowsAfter(table.actions, endingActionIndex(table.actions), state)
-    const action = table.actions.find(matches)
-    expect(action, 'the action is in the log').toBeDefined()
-    return (after.get(action?.id ?? '') ?? []).map(
-        (row) => nameIds(row.text, (slotId) => slotId).split(/[;:.,]/)[0]
-    )
+/**
+ * The rows of the History Step `matches` picks out: the System Actions that follow that action
+ * before the next player's action, by their first words.
+ */
+function rowsOfStep(table: PlayedTable, matches: (action: GameAction) => boolean): string[] {
+    const at = table.actions.findIndex(matches)
+    expect(at, 'the action is in the log').toBeGreaterThanOrEqual(0)
+    const after = table.actions.slice(at + 1)
+    const next = after.findIndex((action) => action.source !== ActionSource.System)
+    return (next < 0 ? after : after.slice(0, next))
+        .flatMap((action) => chronicleRowsOf(action) ?? [])
+        .map((row) => nameIds(row.text, (slotId) => slotId).split(/[;:.,]/)[0])
 }
 
 const views = (table: PlayedTable): Visibility.Perspective[] => [
@@ -105,15 +126,26 @@ describe('game 1 at its result, as the History tells it', () => {
         ])
     })
 
-    it('every line is the same on each seat’s view and the spectator’s', () => {
+    it('every line is the same on each seat’s view and the spectator’s: each System Action is served whole', () => {
         for (const table of [gameOneAt('story'), gameOneAt('result'), gameTwoAt('heal')]) {
             const host = lines(table)
             for (const perspective of views(table)) {
-                expect(lines(table, served(table.state, perspective)), perspective.kind).toEqual(
-                    host
+                expect(lines(table, perspective), perspective.kind).toEqual(host)
+                const system = table.actions.filter(
+                    (action) => action.source === ActionSource.System
                 )
+                for (const action of servedActions({ ...table, actions: system }, perspective)) {
+                    expect(action).toEqual(
+                        withoutActionPatches(system.find((each) => each.id === action.id) ?? action)
+                    )
+                }
             }
         }
+    })
+
+    it('reads no State: the same lines from the actions alone, whatever state is on screen', () => {
+        const table = gameOneAt('result')
+        expect(lines({ ...table, state: gameOneAt('vow').state })).toEqual(lines(table))
     })
 
     it('a refusal reads so, and the warbands stay where they were', () => {
@@ -129,12 +161,31 @@ describe('game 1 at its result, as the History tells it', () => {
     })
 })
 
-describe('where the rows the rules settle go (writeChronicleFrom’s order)', () => {
+describe('the steps the rules settle: each its own System Action, in its History Step', () => {
     it('an Exile winner with no stop after a forced Vow: the start, the Vow and Map to Rebuild follow the win', () => {
         const table = gameOneVisionWon()
-        const state = new HydratedOathGameState(table.state)
-        const after = chronicleRowsAfter(table.actions, 0, state)
-        expect([...after.keys()]).toEqual(['won'])
+        expect(table.actions.map((action) => action.type)).toEqual([
+            ActionType.ResolveWake,
+            ActionType.ChronicleStart,
+            ActionType.ChronicleForcedVow,
+            ActionType.ChronicleFlipCitizens,
+            ActionType.ChronicleMap,
+            ActionType.ChronicleSettleSuit,
+            ActionType.ChronicleAddCards,
+            ActionType.ChronicleDispossess,
+            ActionType.ChronicleRelics,
+            ActionType.ChronicleRebuild
+        ])
+        expect(rowsOfStep(table, (action) => action.id === 'won')).toEqual([
+            'dana won as Visionary',
+            'swore the Oath of Devotion',
+            expect.stringMatching(/^Kept /),
+            'Cleared the map',
+            '3 Beast cards',
+            expect.stringMatching(/^Set \d+ cards aside as the Dispossessed$/),
+            'The Grand Scepter went to the box',
+            'Rebuilt the world deck'
+        ])
         expect(lines(table)).toEqual([
             '[dana won as Visionary. The Chronicle begins.]',
             'dana swore the Oath of Devotion, by the Vision of Faith: the Oathkeeper holds the Darkest Secret.',
@@ -155,9 +206,12 @@ describe('where the rows the rules settle go (writeChronicleFrom’s order)', ()
             }),
             buildAction(ChooseChronicleSuit, { playerId: ANN, suit: Suit.Hearth })
         ])
-        expect(rowsAfter(table, isChooseOath)).toEqual([])
-        expect(rowsAfter(table, isBuildOrRepairEdifice)).toEqual(['Kept Plains', 'Cleared the map'])
-        expect(rowsAfter(table, isChooseChronicleSuit)).toEqual([
+        expect(rowsOfStep(table, isChooseOath)).toEqual([])
+        expect(rowsOfStep(table, isBuildOrRepairEdifice)).toEqual([
+            'Kept Plains',
+            'Cleared the map'
+        ])
+        expect(rowsOfStep(table, isChooseChronicleSuit)).toEqual([
             'Set 5 cards aside as the Dispossessed',
             'The Grand Scepter went to the box',
             'Rebuilt the world deck'
@@ -177,8 +231,8 @@ describe('where the rows the rules settle go (writeChronicleFrom’s order)', ()
         expect(lines(table)).toContain(
             'ann chose the stack of Beast cards: 5 Beast cards from the Dispossessed went into the world deck.'
         )
-        expect(rowsAfter(table, isChooseChronicleSuit)).toEqual([])
-        expect(rowsAfter(table, isChooseHealStack)).toEqual([
+        expect(rowsOfStep(table, isChooseChronicleSuit)).toEqual([])
+        expect(rowsOfStep(table, isChooseHealStack)).toEqual([
             'Set 5 cards aside as the Dispossessed',
             'The Grand Scepter went to the box',
             'Rebuilt the world deck'
@@ -191,8 +245,8 @@ describe('where the rows the rules settle go (writeChronicleFrom’s order)', ()
         expect(skipped.some((line) => line.includes('story'))).toBe(false)
     })
 
-    it('the answer that ran the map is the map’s anchor', () => {
-        expect(rowsAfter(gameOneAt('story'), isAnswerChronicleCitizenship)[0]).toBe('Kept Plains')
+    it('the map step follows the answer that completed the offers, in its History Step', () => {
+        expect(rowsOfStep(gameOneAt('story'), isAnswerChronicleCitizenship)[0]).toBe('Kept Plains')
     })
 })
 
