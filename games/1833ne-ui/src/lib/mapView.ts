@@ -18,8 +18,13 @@ import { PhaseColors1833NE } from './trainPresentation.js'
 // Boston's and Portland's terminals print spikes running all the way in to them.
 const TerminalSpikeReach = 1
 
+// A tile whose stops all pay alike prints its value once, as the board does.
 const Boston: TileLayout = {
     spikeReach: TerminalSpikeReach,
+    hideRevenue: ['city-0', 'city-1'],
+    // The value sits by the spike, the label east of the cities.
+    revenuePositions: { terminal: { x: 22, y: 24 } },
+    labelPosition: { x: 32, y: 0 },
     nodePositions: {
         'city-0': towardTileEdge(1, 20),
         'city-1': towardTileEdge(3, 20),
@@ -27,16 +32,14 @@ const Boston: TileLayout = {
     }
 }
 const Montreal: TileLayout = {
+    hideRevenue: ['city-1'],
     nodePositions: { 'city-0': towardTileEdge(5, 20), 'city-1': towardTileEdge(2, 20) }
 }
 const Portland: TileLayout = {
     spikeReach: TerminalSpikeReach,
-    // The city's value sits west, between the terminals' spikes; theirs stay at the top.
-    revenuePositions: {
-        'city-0': { x: -34, y: 0 },
-        'terminal-0': { x: 16, y: -27.7 },
-        'terminal-1': { x: -16, y: -27.7 }
-    },
+    hideRevenue: ['terminal-0', 'terminal-1'],
+    // The value sits west, between the terminals' spikes.
+    revenuePositions: { 'city-0': { x: -34, y: 0 } },
     nodePositions: {
         'city-0': towardTileEdge(4.5, 18),
         'terminal-0': towardTileEdge(1, 26),
@@ -49,6 +52,8 @@ export const TileLayouts1833NE: Readonly<Record<string, TileLayout>> = {
     ...StandardTileLayouts,
     '1833ne:N23': {
         spikeReach: TerminalSpikeReach,
+        hideRevenue: ['city-0', 'city-1'],
+        revenuePositions: { terminal: towardTileEdge(1.58, 30) },
         nodePositions: {
             'city-0': towardTileEdge(0, 18),
             'city-1': towardTileEdge(3.5, 20),
@@ -57,6 +62,7 @@ export const TileLayouts1833NE: Readonly<Record<string, TileLayout>> = {
     },
     '1833ne:N24': {
         spikeReach: TerminalSpikeReach,
+        hideRevenue: ['city-0', 'city-1'],
         nodePositions: {
             'city-0': towardTileEdge(1, 20),
             'city-1': towardTileEdge(3, 20),
@@ -64,6 +70,7 @@ export const TileLayouts1833NE: Readonly<Record<string, TileLayout>> = {
         }
     },
     '1833ne:N25': {
+        hideRevenue: ['city-1'],
         nodePositions: { 'city-0': towardTileEdge(5.5, 18), 'city-1': towardTileEdge(4, 20) }
     }
 }
@@ -270,9 +277,13 @@ export const MapView1833NE: MapViewDefinition = {
         brown: [PhaseColors1833NE.III, PhaseColors1833NE.IV],
         gray: PhaseColors1833NE.V
     },
-    markerArt: Object.fromEntries(
-        ['P1', 'P2', 'P3'].map((id) => [`blocks-${id}`, { localLine: true, above: true }])
-    ),
+    markerArt: {
+        ...Object.fromEntries(
+            ['P1', 'P2', 'P3'].map((id) => [`blocks-${id}`, { localLine: true, above: true }])
+        ),
+        // Only the B&W, or the B&P, may build here in the first operating round (§6.46).
+        'first-round': { notice: true }
+    },
     stations: {
         'B&W': { color: '#ffffff', label: 'B&W' },
         'B&P': { color: '#eacd93', label: 'B&P' },
