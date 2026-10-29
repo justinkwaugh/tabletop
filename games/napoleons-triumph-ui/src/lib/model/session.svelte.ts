@@ -63,7 +63,7 @@ import {
 } from '$lib/map/boardGeometry.js'
 import { shadeOf, type ArmyColors } from '$lib/utils/armyColors.js'
 import { BoardView, viewRotation } from '$lib/utils/boardView.js'
-import { commandDiscs } from '$lib/utils/commandTrack.js'
+import { commandDiscs, fallenCommanderEmblems, type CommandDisc } from '$lib/utils/commandTrack.js'
 import { describeAction, fightsOf, type Fight } from '$lib/utils/describeAction.js'
 import { sameIds } from '$lib/utils/ids.js'
 import { moraleMarkers, type MoraleMarker } from '$lib/utils/moraleTrack.js'
@@ -583,11 +583,13 @@ export class NapoleonsTriumphGameSession extends GameSession<
             : []
     )
 
-    commandDiscs: Point[] = $derived(commandDiscs(this.gameState))
+    commandDiscs: CommandDisc[] = $derived(commandDiscs(this.gameState))
+
+    fallenCommanderEmblems: Point[] = $derived(fallenCommanderEmblems(this.gameState))
 
     timeMarker: Point = $derived(timeMarker(this.gameState))
 
-    moraleMarkers: MoraleMarker[] = $derived(moraleMarkers(this.gameState))
+    moraleMarkers: MoraleMarker[] = $derived(moraleMarkers(this.gameState, this.boardRotation))
 
     heldApproaches: HeldApproach[] = $derived(heldApproaches(this.sprites))
 
