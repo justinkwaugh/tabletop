@@ -346,16 +346,43 @@ it.each([false, true])('excludes trains barred by title rules (custom scoring %s
     expect(state).toEqual(before)
 })
 
-it('returns a legal partial result when the scoring search runs out of time', () => {
-    const { state, rules } = position(
-        [city('yellow', [0], 20, 1), city('yellow', [3], 30, 1)],
-        [{ measure: 'revenue-centers', maximum: 2 }],
-        {},
-        { revenuePolicy: () => ({ payingStopLimit: 2 }) }
-    )
-    const result = router.solve(state, rules, 'A', { timeLimitMs: 0.000001 })
-    expect(result.exhaustive).toBe(false)
-    expect(result.result.routes).toEqual([])
+it.each([false, true])(
+    'returns a legal partial result when the scoring search runs out of time (mixed %s)',
+    (mixed) => {
+        const { state, rules } = position(
+            [city('yellow', [0], 20, 1), city('yellow', [3], 30, 1)],
+            mixed
+                ? [
+                      { measure: 'revenue-centers', maximum: 2 },
+                      { measure: 'revenue-centers', maximum: 3 }
+                  ]
+                : [{ measure: 'revenue-centers', maximum: 2 }],
+            {},
+            { revenuePolicy: () => ({ payingStopLimit: 2 }) }
+        )
+        const result = router.solve(state, rules, 'A', { timeLimitMs: 0.000001 })
+        expect(result.exhaustive).toBe(false)
+        expect(result.result.routes).toEqual([])
+    }
+)
+
+it.each([10, 40])('streams mixed profiles with a longest-route bonus of %s', (bonus) => {
+    for (const capacities of [
+        [2, 3],
+        [3, 2]
+    ]) {
+        const { state, rules } = position(
+            [city('yellow', [0], 20, 1), city('yellow', [3, 0], 30, 1), city('yellow', [3], 40, 1)],
+            capacities.map((maximum) => ({ measure: 'revenue-centers', maximum })),
+            {},
+            { longestRouteBonusPerStop: () => bonus }
+        )
+        state.stations[0].position = { locationId: '1', nodeId: 'city', slot: 0 }
+        const result = router.solve(state, rules, 'A')
+        expect(result.exhaustive).toBe(true)
+        expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+        expect(result.result.revenue).toBe(bonus === 10 ? 140 : 210)
+    }
 })
 
 it.each([

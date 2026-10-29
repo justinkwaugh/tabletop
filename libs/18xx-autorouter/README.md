@@ -34,22 +34,43 @@ operation remains the Game Session's responsibility.
 thread. Import the title's rules inside that worker and send it the state data.
 
 `exhaustive` means the encoded search finished. One time limit covers the whole
-search: a fleet's candidate generation may use three quarters of it, shared
-between its distinct trains, and fleet selection the rest. Selection always
-completes its first, greedy pass, so an interrupted search still returns a legal
-operation. The limit is checked periodically; it is not a hard wall-clock deadline.
+search. With exactly two distinct train profiles, the solver stores the
+shorter-distance train's routes, sorted by revenue, then streams the other's
+routes through a partner search. A tighter major-stop limit breaks distance ties;
+input order breaks remaining ties. This is a candidate-count heuristic, including
+when the trains use different distance measures; the choice does not affect
+exactness. The stored profile gets half the remaining time, and streaming gets
+the rest, including time the first train did not use. Only an improving streamed
+route is copied. Either train may run alone. Resource bitsets include extension
+track, and bounds account for the longest-route bonus once for the fleet.
+
+Identical-profile pairs and fleets of three or more keep candidate enumeration
+followed by branch-and-bound selection: enumeration may use three quarters of
+the deadline, shared between distinct profiles, and selection the rest. Selection
+always completes its first descent; streaming similarly completes its first
+partner search and starts with the best stored route alone. An interrupted search
+returns the best legal operation found with `exhaustive: false`. The limit is
+checked periodically; it is not a hard wall-clock deadline.
 
 The solver also limits the memory its compiled track paths, candidates and
-selection tables use to 40 MiB. Compilation stops at a quarter of it; a train
-whose candidates reach their share keeps only its most valuable ones. Either is
-reported with `metrics.memoryLimited` and `exhaustive: false`.
+selection tables use to 40 MiB. Compilation stops at a quarter of it. Ordinary
+fleet selection reserves another quarter for cached compatibility rows; streaming
+needs no such rows or resource-to-candidate matrix, so its stored profile can use
+the remaining budget. A train whose candidates reach their share first discards
+duplicates; if the remainder still exceeds half its budget, it keeps the most
+valuable half. Cutting candidates or compiled connections is reported with
+`metrics.memoryLimited` and `exhaustive: false`. Streaming alone does not make a
+completed enumeration non-exhaustive.
 The WebAssembly instance is built with a 64 MiB memory maximum, so an
 allocation beyond it traps instead of growing the tab. WebAssembly memory never
 shrinks, so after a solve that left the instance above 32 MiB, or one that
 failed, the `Autorouter` replaces its instance. Either way
 an interrupted search returns the best legal operation found. Metrics separate
 encoding, solving, final validation and the Rust search stages, and report the
-instance's memory after the solve.
+instance's memory after the solve. In streaming mode, path-search time includes
+partner searches performed during enumeration; combination time excludes those
+searches. Candidate counts still count enumerated routes, including those
+discarded immediately by streaming.
 
 ## Rules supported by the repository encoder
 

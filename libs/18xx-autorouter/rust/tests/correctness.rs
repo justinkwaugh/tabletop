@@ -137,6 +137,26 @@ fn longest_route_bonus_can_outweigh_all_higher_revenue_candidates() {
 }
 
 #[test]
+fn different_bonus_spans_do_not_share_candidates() {
+    let mut p = graph(3, &[(0, 1), (1, 2)], &[3, 3]);
+    for train in p["trains"].as_array_mut().unwrap() {
+        train["revenues"] = json!([100, 0, 100]);
+        train["paying_stop_limit"] = json!(2);
+        train["connection_bonuses"] = json!([{
+            "from": [null, 50, null], "to": [null, null, 0],
+        }]);
+    }
+    p["trains"][1]["bonuses_along_route"] = json!(true);
+    let result = solve(&p);
+    assert_eq!(result["revenue"], 250);
+    assert_eq!(result["routes"][0]["train"], 1);
+    p["trains"].as_array_mut().unwrap().reverse();
+    let result = solve(&p);
+    assert_eq!(result["revenue"], 250);
+    assert_eq!(result["routes"][0]["train"], 0);
+}
+
+#[test]
 fn blocked_city_is_an_endpoint_and_cannot_be_crossed() {
     let mut p = graph(3, &[(0, 1), (1, 2)], &[3]);
     p["stops"][1]["blocked"] = json!(true);
@@ -449,13 +469,16 @@ fn interrupted_search_does_not_claim_exhaustion() {
     let edges: Vec<_> = (0..9)
         .flat_map(|a| (a + 1..9).map(move |b| (a, b)))
         .collect();
-    let mut p = graph(9, &edges, &[9, 9]);
-    p["budget_ms"] = json!(0.001);
-    let result: Value =
-        serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
-    assert!(result.get("error").is_none());
-    assert_eq!(result["exhaustive"], false);
-    assert_eq!(result["path_exhaustive"], false);
+    for trains in [&[9, 9][..], &[3, 9], &[9, 3]] {
+        let mut p = graph(9, &edges, trains);
+        p["budget_ms"] = json!(0.001);
+        let result: Value =
+            serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
+        assert!(result.get("error").is_none());
+        assert_eq!(result["exhaustive"], false);
+        assert_eq!(result["path_exhaustive"], false);
+        assert_eq!(result["memory_limited"], false);
+    }
 }
 
 #[test]
@@ -597,17 +620,60 @@ fn memory_budget_keeps_the_most_valuable_candidates() {
     let edges: Vec<_> = (0..8)
         .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
         .collect();
-    let full = solve(&graph(8, &edges, &[4, 3]));
-    let mut p = graph(8, &edges, &[4, 3]);
-    p["memory_budget_bytes"] = json!(64 * 1024);
-    let limited: Value =
-        serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
-    assert!(limited.get("error").is_none(), "{limited}");
-    assert_eq!(full["memory_limited"], false);
-    assert_eq!(limited["memory_limited"], true);
-    assert_eq!(limited["exhaustive"], false);
-    assert_eq!(limited["path_exhaustive"], false);
-    assert_eq!(limited["revenue"], full["revenue"]);
+    for trains in [&[5, 4][..], &[4, 4]] {
+        let full = solve(&graph(8, &edges, trains));
+        let mut p = graph(8, &edges, trains);
+        p["memory_budget_bytes"] = json!(64 * 1024);
+        let limited: Value =
+            serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
+        assert!(limited.get("error").is_none(), "{limited}");
+        assert_eq!(full["memory_limited"], false);
+        assert_eq!(limited["memory_limited"], true);
+        assert_eq!(limited["exhaustive"], false);
+        assert_eq!(limited["path_exhaustive"], false);
+        assert_eq!(limited["revenue"], full["revenue"]);
+    }
+}
+
+#[test]
+fn streaming_retains_the_smaller_profile_in_either_input_order() {
+    let edges: Vec<_> = (0..8)
+        .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
+        .collect();
+    for trains in [&[4, 3][..], &[3, 4]] {
+        let mut p = graph(8, &edges, trains);
+        let full = solve(&p);
+        p["memory_budget_bytes"] = json!(64 * 1024);
+        let streamed = solve(&p);
+        assert_eq!(streamed["memory_limited"], false);
+        assert_eq!(streamed["revenue"], full["revenue"]);
+        assert_eq!(streamed["candidates"], full["candidates"]);
+    }
+}
+
+#[test]
+fn streaming_mixed_profiles_allow_either_train_to_run_alone() {
+    let edges = [(0, 1), (1, 2), (2, 3)];
+    for trains in [&[2, 4][..], &[4, 2]] {
+        let mut p = graph(4, &edges, trains);
+        for revenues in [[100, 0], [0, 100]] {
+            for (id, train) in p["trains"].as_array_mut().unwrap().iter_mut().enumerate() {
+                train["revenues"] = json!(vec![revenues[id]; 4]);
+            }
+            for bonus in [0, 10, 100] {
+                p["longest_route_bonus_per_stop"] = json!(bonus);
+                assert_eq!(
+                    solve(&p)["revenue"].as_i64().unwrap(),
+                    exhaustive_oracle(&p, &edges)
+                );
+            }
+        }
+        p["trains"][0]["distance"] = json!(1);
+        assert_eq!(
+            solve(&p)["revenue"].as_i64().unwrap(),
+            exhaustive_oracle(&p, &edges)
+        );
+    }
 }
 
 // Two stations joined by `k` diamonds of junction track: 2^k distinct paths each way.

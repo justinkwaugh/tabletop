@@ -198,6 +198,42 @@ does not overflow by counting the fleet bonus twice. The recorded six-title corp
 provides an additional differential check against the preserved native executable; benchmark
 inputs and generated measurements remain outside the repository.
 
+## Two-train streaming
+
+For exactly two distinct candidate profiles, the solver materializes the train
+with the smaller distance (then the tighter major-stop limit, then input order)
+and streams the other through the stored routes in descending revenue order.
+Distance is a heuristic for candidate count, especially across different distance
+measures. Choosing the less favorable side affects memory and runtime, not the
+completed search's optimum. The stored list retains the existing deduplication and
+memory-cut policy, with no reservation for unused compatibility matrices or rows.
+Identical profiles and larger fleets retain the previous selection algorithm.
+
+This uses the same route generation and scoring as the full-catalog survey above:
+TOP's crossing and zero-cost-town measures, 1889's revenue profiles, and 1846's
+paid-stop and longest-route policies remain distinct. Profiles include whether
+connection bonuses apply along the route or only at paid stops. Interconnection
+extensions use the same encoded alternatives and consume their track during
+partner selection. No additional family rules or wire fields are introduced;
+the private protocol remains version 6. The existing limits for connected service
+sets, shared track and shared-stop payment still apply.
+
+Each streamed route is paired with the best compatible stored route or runs
+alone. With no fleet bonus, the first compatible partner in revenue order is
+optimal. With a longest-route bonus, suffix maxima bound the remaining partners;
+the search can continue past the first compatible one to find a longer partner.
+Bounds add the maximum route length's bonus once. Only incumbent improvements
+copy the streamed route. Stored routes alone seed the incumbent; the first
+partner search finishes even if the deadline passes. Later partner scans and DFS
+steps check the same solve deadline. Interruptions and stored-candidate cuts
+remain non-exhaustive.
+
+Verification covers both input orders, trains running alone, memory cuts and a
+previously memory-limited fixture that now completes, longest-route bounds after
+a compatible partner, deterministic interruption during partner selection, the
+200-graph permutation oracle, and canonical exhaustive extension tests. Recorded
+1817 positions compare both completed and deadline-interrupted results.
+
 ## N+s trains, end-only destinations and interconnections
 
 The family route model added three mechanisms that the encoder and native core
