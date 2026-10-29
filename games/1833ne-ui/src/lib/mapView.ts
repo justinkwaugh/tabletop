@@ -285,7 +285,9 @@ export const MapView1833NE: MapViewDefinition = {
             ['P1', 'P2', 'P3'].map((id) => [`blocks-${id}`, { localLine: true, above: true }])
         ),
         // Only the B&W, or the B&P, may build here in the first operating round (§6.46).
-        'first-round': { notice: true }
+        'first-round': { notice: true },
+        // The lower cost a hex prints under its terrain, for a corporation or from a phase.
+        'terrain-discount': { terrainNote: true }
     },
     // The corporations' tokens, from GMT's sample token sheet.
     stations: {
