@@ -42,6 +42,8 @@ export default fp(
             keyScope = 'rate-limit:'
         }: RateLimitPluginOptions
     ) {
+        if (service === 'tasks') return
+
         const limitsEveryRoute = service !== 'local'
         await fastify.register(fastifyRateLimit, {
             global: limitsEveryRoute,

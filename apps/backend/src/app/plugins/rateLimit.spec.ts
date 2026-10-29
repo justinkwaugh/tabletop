@@ -1,6 +1,10 @@
 import Fastify from 'fastify'
 import SecureSession from '@fastify/secure-session'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+    LocalRateLimitCounter,
+    type RateLimitCounter
+} from '@tabletop/backend-services/rate-limit-counter'
 import { trustedProxyChain } from '../../runtime/clientAddress.js'
 import RateLimitPlugin, { anonymousRequestsPerMinute, browsersPerHostingPeer } from './rateLimit.js'
 
@@ -18,7 +22,7 @@ describe('request rate limiting', () => {
         servers.clear()
     })
 
-    async function createServer(service: string) {
+    async function createServer(service: string, counter?: RateLimitCounter) {
         const server = Fastify({ trustProxy: trustedProxyChain(service) })
         await server.register(SecureSession, {
             sessionName: 'session',
@@ -29,7 +33,7 @@ describe('request rate limiting', () => {
             const userId = request.headers['x-test-user']
             if (typeof userId === 'string') request.session.set('userId', userId)
         })
-        await server.register(RateLimitPlugin, { service })
+        await server.register(RateLimitPlugin, { service, counter })
         server.get(
             '/probe',
             { config: { rateLimit: { max: PROBE_MAX, timeWindow: '1 minute' } } },
@@ -265,6 +269,25 @@ describe('request rate limiting', () => {
         )
         expect(results[anonymousRequestsPerMinute]).toBe(429)
     })
+
+    it.each(['/unlimited', '/probe'])(
+        'leaves %s unlimited on the tasks service without spending any budget',
+        async (url) => {
+            const counter = new LocalRateLimitCounter()
+            const increment = vi.spyOn(counter, 'increment')
+            const server = await createServer('tasks', counter)
+            const results = await statuses(
+                server,
+                Array.from(
+                    { length: anonymousRequestsPerMinute * browsersPerHostingPeer + 1 },
+                    () => viaHosting('203.0.113.1')
+                ),
+                url
+            )
+            expect(results.every((status) => status === 200)).toBe(true)
+            expect(increment).not.toHaveBeenCalled()
+        }
+    )
 
     it('leaves unconfigured routes unlimited on the local service', async () => {
         const server = await createServer('local')

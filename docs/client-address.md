@@ -91,6 +91,11 @@ On the `local` service only routes with their own budget are limited, so the dev
 local hosted site behave as production does for login, registration and emails and are
 otherwise unlimited.
 
+The dedicated `tasks` service installs no application rate limiter. Task deliveries spend no
+client, Account, Hosting-peer or route-specific budget and do not increment rate-limit counters.
+Public API requests that enqueue tasks keep their caller and operation budgets. Cloud Tasks
+queue dispatch and concurrency settings are independent and unchanged.
+
 Ably token issuance has a route budget of 60 requests per Account per minute. Verification
 email and Sensitive Change email requests each keep their route budget of 5 requests per
 Account per minute in addition to the independent fifteen-minute operation budgets above.
@@ -136,8 +141,9 @@ the Cloud Run Admin API with the same viewer key; no infrastructure was changed.
   `Fastly-Client-IP` was logged with the sender's real address (round 1), so Hosting's edge
   overwrites the header for traffic that really comes through Hosting. That protects Hosting
   users' attribution; it says nothing about callers that bypass Hosting.
-- No request in the seven days before 2026-10-27 hit the old limit on the `tasks` service, so
-  keying Cloud Tasks deliveries by their Google ingress peer changes nothing in practice.
+- No request in the seven days before 2026-10-27 hit the old limit on the `tasks` service.
+  That observation does not establish capacity under a shared counter. Task deliveries are
+  now explicitly exempt from application rate limiting.
 - Cloud Run appending the connecting address to `X-Forwarded-For` is documented by Google for
   Cloud Run functions (`docs.cloud.google.com/functions/docs/reference/headers`: "a
   comma-delimited list of IP addresses through which the client request has been routed"),
