@@ -125,7 +125,7 @@ export type MapMarkerArt =
      * A token placed during play, drawn whole: in the clear corner farthest from the hex's
      * revenue, in its centre, or over a symbol the hex shows (in a corner where it shows none).
      */
-    | { token: { imageUrl: string; place: TokenPlacement } }
+    | { token: { imageUrl: string; place: TokenPlacement; tab?: TokenTab } }
     /**
      * A marker placed during play: the hex is outlined in the colour, with a badge on its top
      * corner showing the owning company's token and the marker's icon.
@@ -139,17 +139,20 @@ export type MapMarkerArt =
       }
 
 export type TokenPlacement = 'corner' | 'centre' | { covers: TileSymbolName }
+/** A tab tucked behind a token's right side, such as a bonus marker that moves between tokens. */
+export type TokenTab = { label: string; caption: string; fill?: string; left?: true }
 
 export type RevenueAnnotation = { markerId: string; label: string; x: number; y: number } & (
     | { kind: 'badge'; width: number; height: number; arrows: boolean }
     | { kind: 'symbol'; symbol: TileSymbolName; radius: number }
-    | { kind: 'token'; imageUrl: string; radius: number }
+    | { kind: 'token'; imageUrl: string; radius: number; tab?: TokenTab }
     | { kind: 'caption'; caption: string }
 )
 type RevenueBadge = Extract<RevenueAnnotation, { kind: 'badge' }>
 type RevenueCaption = Extract<RevenueAnnotation, { kind: 'caption' }>
 const RevenueRadius = 8.7
 const TokenRadius = 10.5
+export const TokenTabReach = 18
 // Between a station circle and the baseline of the name curved over it.
 const NameArcGap = 2.2
 const NameArcCapHeight = 4.6
@@ -1066,17 +1069,28 @@ function placedTokens(
     for (const marker of markers) {
         const art = markerArt[marker.id]
         if (!art || !('token' in art)) continue
-        const { place, imageUrl } = art.token
+        const { place, imageUrl, tab } = art.token
+        // A tab's room is kept as a second token's beside the first, on its right where clear.
+        const row =
+            (side: 1 | -1) =>
+            (at: Point): Point[] =>
+                tab ? [at, { x: at.x + side * TokenTabReach, y: at.y }] : [at]
         const covered =
             typeof place === 'object'
                 ? shownSymbols.find(({ symbol }) => symbol === place.covers)
                 : undefined
+        const right = cornerSpot(space, row(1), TokenRadius, revenues, TokenEdgeGap)
+        const left =
+            tab && !(right && isClearSpot(right))
+                ? cornerSpot(space, row(-1), TokenRadius, revenues, TokenEdgeGap)
+                : undefined
+        const side: 1 | -1 = left && isClearSpot(left) ? -1 : 1
         const point =
             place === 'centre'
                 ? { x: 0, y: 0 }
                 : covered
                   ? { x: covered.x, y: covered.y }
-                  : cornerSpot(space, (at) => [at], TokenRadius, revenues, TokenEdgeGap)?.points[0]
+                  : (side === 1 ? right : left)?.points[0]
         if (!point) continue
         tokens.push({
             kind: 'token',
@@ -1084,9 +1098,10 @@ function placedTokens(
             label: marker.label,
             imageUrl,
             ...point,
-            radius: TokenRadius
+            radius: TokenRadius,
+            ...(tab ? { tab: side === 1 ? tab : { ...tab, left: true as const } } : {})
         })
-        space.obstacles.push(disc(point, TokenRadius))
+        for (const at of row(side)(point)) space.obstacles.push(disc(at, TokenRadius))
     }
     return tokens
 }

@@ -80,6 +80,7 @@ export {
 export { trainCount, type AwaitedDecision } from './table/awaitedDecision.js'
 export type {
     CompanyColumn,
+    CompanyMark,
     MarketLedge,
     MarketZone,
     MarketZoneBanner,

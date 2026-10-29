@@ -45,7 +45,8 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
 /** A labelled fact of the title's own, about the game or one of its companies. */
 export type TitleFact = { label: string; value: string }
 /** A right or marker a company holds, shown beside its trains, such as access to coal fields. */
-export type CompanyMark = { label: string; description: string }
+/** A mark beside a company's name; one with an image, such as a ferry it owns, shows the image. */
+export type CompanyMark = { label: string; description: string; imageUrl?: string }
 /** The companies a company was formed from, shown under its header, such as a System's shells. */
 export type CompanyOrigin = { text: string; companyIds: readonly string[] }
 

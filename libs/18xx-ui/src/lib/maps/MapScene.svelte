@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import type { RevenueStageColors } from '../colors/revenueStageColors.js'
     // A medium city's ring stands clear of its town dot by the track's half-width.
     const TownRingGap = 3.4
@@ -26,6 +27,7 @@
         type MapToken,
         type MapRoute,
         CaptionFontSize,
+        TokenTabReach,
         NoticeFontSize,
         NoticeY
     } from './mapDrawing.js'
@@ -88,6 +90,10 @@
                 )
         )
     ])
+    // A token's tab tucks behind its right side and reaches out to the room kept for it.
+    const TabTuck = 3
+    const TabHeight = 13
+    const TabWidth = TokenTabReach
     const reservedAppearances = $derived({ ...scene.sharedStations, ...stationAppearances })
     const entries = $derived.by(() => {
         assertMapOverlays(scene, tokens, routes, currentReservations)
@@ -535,6 +541,49 @@
                                     ><title>{annotation.label}</title>{annotation.caption}</text
                                 >
                             {:else if annotation.kind === 'token'}
+                                {#if annotation.tab}
+                                    {@const side = annotation.tab.left ? -1 : 1}
+                                    {@const reach =
+                                        annotation.radius - TabTuck + (TabWidth + TabTuck) / 2}
+                                    {@const middle = annotation.x + side * reach}
+                                    {@const text =
+                                        annotation.x + side * (annotation.radius + TabWidth / 2)}
+                                    <g data-map-token-tab={annotation.markerId}>
+                                        <rect
+                                            x={middle - (TabWidth + TabTuck) / 2}
+                                            y={annotation.y - TabHeight / 2}
+                                            width={TabWidth + TabTuck}
+                                            height={TabHeight}
+                                            rx="2.5"
+                                            fill={annotation.tab.fill ?? '#ffffff'}
+                                            stroke={appearance.ink}
+                                            stroke-width="0.7"
+                                        ></rect>
+                                        <text
+                                            x={text}
+                                            y={annotation.y - 1.3}
+                                            text-anchor="middle"
+                                            dominant-baseline="central"
+                                            font-size="6.6"
+                                            font-weight="800"
+                                            fill={contrastingTextColor(
+                                                annotation.tab.fill ?? '#ffffff'
+                                            )}>{annotation.tab.label}</text
+                                        >
+                                        <text
+                                            x={text}
+                                            y={annotation.y + 3.9}
+                                            text-anchor="middle"
+                                            dominant-baseline="central"
+                                            font-size="3.6"
+                                            font-weight="800"
+                                            letter-spacing="0.25"
+                                            fill={contrastingTextColor(
+                                                annotation.tab.fill ?? '#ffffff'
+                                            )}>{annotation.tab.caption}</text
+                                        >
+                                    </g>
+                                {/if}
                                 <image
                                     data-map-placed-token={annotation.markerId}
                                     href={annotation.imageUrl}

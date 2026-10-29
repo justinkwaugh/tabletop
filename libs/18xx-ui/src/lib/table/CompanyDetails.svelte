@@ -185,11 +185,16 @@
                                 ? 'Must buy a train when operating'
                                 : undefined}>No trains</span
                         >{/each}
-                    {#each marks as mark (mark.label)}<span
-                            class="company-mark"
-                            title={mark.description}
-                            aria-label={mark.description}>{mark.label}</span
-                        >{/each}
+                    {#each marks as mark (mark.label)}{#if mark.imageUrl}<img
+                                class="company-mark-image"
+                                src={mark.imageUrl}
+                                alt={mark.description}
+                                title={mark.description}
+                            />{:else}<span
+                                class="company-mark"
+                                title={mark.description}
+                                aria-label={mark.description}>{mark.label}</span
+                            >{/if}{/each}
                 </div>
                 {#if company.closed}<p class="subtitle">Closed</p>{/if}
             </div>
@@ -549,6 +554,11 @@
         font-weight: 650;
         line-height: 1.2;
         white-space: nowrap;
+    }
+    .company-mark-image {
+        width: 24px;
+        height: 24px;
+        cursor: help;
     }
     .company-mark {
         padding: 0 5px;
