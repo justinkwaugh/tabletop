@@ -1,9 +1,5 @@
 import { calculateHexGeometry, HexOrientation, type Point } from '@tabletop/common'
-import AllynsPointFerry from './images/ferries/allyns-point.svg'
-import FallRiverFerry from './images/ferries/fall-river.svg'
-import NewHavenFerry from './images/ferries/new-haven.svg'
-import ProvidenceFerry from './images/ferries/providence.svg'
-import StoningtonFerry from './images/ferries/stonington.svg'
+import { FerryArt } from './ferryArt.js'
 import AStLToken from './images/tokens/AStL.png'
 import BLToken from './images/tokens/BL.png'
 import BPToken from './images/tokens/BP.png'
@@ -253,13 +249,7 @@ export const MapView1833NE: MapViewDefinition = {
     },
     // Each ferry's marker sits in its hex, as the board prints them (setup, p. 3).
     locationMarkerArt: Object.fromEntries(
-        Object.entries({
-            C26: NewHavenFerry,
-            E26: AllynsPointFerry,
-            F27: StoningtonFerry,
-            F25: ProvidenceFerry,
-            G26: FallRiverFerry
-        }).map(([id, imageUrl]) => [
+        Object.entries(FerryArt).map(([id, imageUrl]) => [
             id,
             { ferry: { token: { imageUrl, place: 'corner' as const } } }
         ])
