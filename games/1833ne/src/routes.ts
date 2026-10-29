@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import type {
     Interconnection,
     PaidConnectionBonus,
@@ -9,65 +10,170 @@ import { ferryValue, type FerryState } from './ferries.js'
 import { Map1833NE, Places } from './map.js'
 import { ownsPrivate } from './privates.js'
 import { TileSet1833NE } from './tiles.js'
-import { PayingStopLimits, Phases1833NE, TrainDepot1833NE, revenueStage } from './trains.js'
-
-type Period = 'I-II' | 'III-IV' | 'V'
-type PeriodValues = Partial<Record<Period, number>>
-
-export function bonusPeriod(phaseId: string): Period {
-    if (Phases1833NE.isAtLeast(phaseId, 'V')) return 'V'
-    if (Phases1833NE.isAtLeast(phaseId, 'III')) return 'III-IV'
-    return 'I-II'
-}
+import {
+    PayingStopLimits,
+    TrainDepot1833NE,
+    ValuePeriods,
+    revenueStage,
+    valuePeriod,
+    type PeriodValues
+} from './trains.js'
 
 const list = (locations: string | readonly string[]): readonly string[] =>
     typeof locations === 'string' ? [locations] : locations
 
+type Place = string | readonly string[]
+
+/**
+ * The route bonus arrows printed beside the board (p. 24). A direct arrow pays a route that
+ * includes both its places; an interconnection pays a route from one place extended to the
+ * other. One arrow may serve several pairs, as Boston and Montreal or Ogdensburg.
+ */
+export type BonusArrow =
+    | {
+          id: string
+          kind: 'direct'
+          pairs: readonly (readonly [Place, Place])[]
+          values: PeriodValues
+          destinationAtEnd?: true
+      }
+    | { id: string; kind: 'interconnection'; from: Place; to: Place; values: PeriodValues }
+
+export const BonusArrows: readonly BonusArrow[] = [
+    {
+        id: 'boston-and-albany-troy',
+        kind: 'direct',
+        pairs: [[Places.albanyTroy, Places.boston]],
+        values: { 'I-II': 50 }
+    },
+    {
+        id: 'boston-and-new-york',
+        kind: 'direct',
+        pairs: [[Places.boston, Places.newYork]],
+        values: { 'III-IV': 60, V: 80 }
+    },
+    {
+        id: 'boston-and-north',
+        kind: 'direct',
+        pairs: [
+            [Places.boston, Places.montreal],
+            [Places.ogdensburg, Places.boston]
+        ],
+        values: { 'I-II': 50, 'III-IV': 60 }
+    },
+    {
+        id: 'montreal-port-city',
+        kind: 'direct',
+        pairs: [[Places.montreal, Places.portCities]],
+        values: { 'III-IV': 50, V: 80 },
+        destinationAtEnd: true
+    },
+    {
+        id: 'albany-troy-to-boston',
+        kind: 'interconnection',
+        from: Places.albanyTroy,
+        to: Places.boston,
+        values: { 'I-II': 50 }
+    },
+    {
+        id: 'boston-to-montreal',
+        kind: 'interconnection',
+        from: Places.boston,
+        to: Places.montreal,
+        values: { 'I-II': 30, 'III-IV': 50 }
+    },
+    {
+        id: 'montreal-to-boston',
+        kind: 'interconnection',
+        from: Places.montreal,
+        to: Places.boston,
+        values: { 'I-II': 70, 'III-IV': 90 }
+    },
+    {
+        id: 'boston-to-ogdensburg',
+        kind: 'interconnection',
+        from: Places.boston,
+        to: Places.ogdensburg,
+        values: { 'I-II': 30, 'III-IV': 50 }
+    },
+    {
+        id: 'ogdensburg-to-boston',
+        kind: 'interconnection',
+        from: Places.ogdensburg,
+        to: Places.boston,
+        values: { 'I-II': 40, 'III-IV': 70 }
+    },
+    {
+        id: 'montreal-to-portland',
+        kind: 'interconnection',
+        from: Places.montreal,
+        to: Places.portland,
+        values: { 'I-II': 30, 'III-IV': 60, V: 40 }
+    },
+    {
+        id: 'portland-to-montreal',
+        kind: 'interconnection',
+        from: Places.portland,
+        to: Places.montreal,
+        values: { 'I-II': 30, 'III-IV': 60, V: 40 }
+    }
+]
+
+export function bonusArrow(id: string): BonusArrow {
+    const arrow = BonusArrows.find((entry) => entry.id === id)
+    assertExists(arrow, `Unknown bonus arrow ${id}`)
+    return arrow
+}
+
+type Pair = readonly [Place, Place]
+const samePlace = (a: Place, b: Place) => list(a).join() === list(b).join()
+const samePair = (a: Pair, b: Pair) =>
+    (samePlace(a[0], b[0]) && samePlace(a[1], b[1])) ||
+    (samePlace(a[0], b[1]) && samePlace(a[1], b[0]))
+const interconnections = BonusArrows.flatMap((arrow) =>
+    arrow.kind === 'interconnection' ? [arrow] : []
+)
+
 type DirectBonus = {
-    between: readonly [string | readonly string[], string | readonly string[]]
+    between: Pair
     values: PeriodValues
     destinationAtEnd?: true
     sourceId: string
-    ogdensburg?: true
 }
 
 /**
- * Direct connection bonuses: the chart's totals, each the pair's direct arrow plus both its
- * interconnection arrows (rulebook p. 19).
+ * A route including both places of a pair earns its direct value plus the pair's
+ * interconnections both ways (§6.66): every pair a direct arrow or an interconnection names.
  */
-export const DirectBonuses: readonly DirectBonus[] = [
-    {
-        between: [Places.albanyTroy, Places.boston],
-        values: { 'I-II': 100 },
-        sourceId: 'direct'
-    },
-    {
-        between: [Places.boston, Places.newYork],
-        values: { 'III-IV': 60, V: 80 },
-        sourceId: 'direct'
-    },
-    {
-        between: [Places.boston, Places.montreal],
-        values: { 'I-II': 150, 'III-IV': 200 },
-        sourceId: 'direct'
-    },
-    {
-        between: [Places.ogdensburg, Places.boston],
-        values: { 'I-II': 120, 'III-IV': 180 },
+function directBonus(between: Pair): DirectBonus {
+    const direct = BonusArrows.find(
+        (arrow) => arrow.kind === 'direct' && arrow.pairs.some((pair) => samePair(pair, between))
+    )
+    const both = interconnections.filter((arrow) => samePair([arrow.from, arrow.to], between))
+    const values = Object.fromEntries(
+        ValuePeriods.flatMap(({ id }) => {
+            const total =
+                (direct?.values[id] ?? 0) +
+                both.reduce((sum, arrow) => sum + (arrow.values[id] ?? 0), 0)
+            return total ? [[id, total]] : []
+        })
+    )
+    return {
+        between,
+        values,
         sourceId: 'direct',
-        ogdensburg: true
-    },
-    {
-        between: [Places.montreal, Places.portland],
-        values: { 'I-II': 60, 'III-IV': 120, V: 80 },
-        sourceId: 'direct'
-    },
-    {
-        between: [Places.montreal, Places.portCities],
-        values: { 'III-IV': 50, V: 80 },
-        destinationAtEnd: true,
-        sourceId: 'direct'
-    },
+        ...(direct?.kind === 'direct' && direct.destinationAtEnd
+            ? { destinationAtEnd: true as const }
+            : {})
+    }
+}
+
+const DirectBonuses: readonly DirectBonus[] = [
+    ...BonusArrows.flatMap((arrow): Pair[] =>
+        arrow.kind === 'direct' ? [...arrow.pairs] : [[arrow.from, arrow.to]]
+    )
+        .filter((pair, index, all) => all.findIndex((other) => samePair(other, pair)) === index)
+        .map(directBonus),
     // The D&H hauls coal to Montreal: A12 is worth its value only with Montreal (p. 13).
     {
         between: [Places.delawareHudson, Places.montreal],
@@ -76,73 +182,49 @@ export const DirectBonuses: readonly DirectBonus[] = [
     }
 ]
 
-type InterconnectionBonus = {
-    from: string | readonly string[]
-    to: string | readonly string[]
-    values: PeriodValues
-    ogdensburg?: true
-}
-
-export const InterconnectionBonuses: readonly InterconnectionBonus[] = [
-    { from: Places.albanyTroy, to: Places.boston, values: { 'I-II': 50 } },
-    { from: Places.boston, to: Places.montreal, values: { 'I-II': 30, 'III-IV': 50 } },
-    { from: Places.montreal, to: Places.boston, values: { 'I-II': 70, 'III-IV': 90 } },
-    { from: Places.boston, to: Places.ogdensburg, values: { 'I-II': 30, 'III-IV': 50 } },
-    {
-        from: Places.ogdensburg,
-        to: Places.boston,
-        values: { 'I-II': 40, 'III-IV': 70 },
-        ogdensburg: true
-    },
-    {
-        from: Places.montreal,
-        to: Places.portland,
-        values: { 'I-II': 30, 'III-IV': 60, V: 40 }
-    },
-    {
-        from: Places.portland,
-        to: Places.montreal,
-        values: { 'I-II': 30, 'III-IV': 60, V: 40 }
-    }
-]
-
 /** The Ogdensburg's owner doubles its bonuses to Boston until the private leaves in phase IV. */
 function ogdensburgMultiplier(state: TrainRunningState, companyId: string): number {
     return ownsPrivate(state, companyId, 'P4') ? 2 : 1
 }
 
+const fromOgdensburgToBoston = (from: Place, to: Place) =>
+    samePlace(from, Places.ogdensburg) && samePlace(to, Places.boston)
+
 export function routeBonusPolicy(
     state: TrainRunningState,
     companyId: string
 ): Pick<RouteRevenuePolicy, 'connectionBonuses' | 'interconnections'> {
-    const period = bonusPeriod(state.phaseId)
+    const period = valuePeriod(state.phaseId)
     const doubled = ogdensburgMultiplier(state, companyId)
+    const scaled = (from: Place, to: Place, value: number, sourceId: string) =>
+        fromOgdensburgToBoston(from, to) && doubled > 1
+            ? { amount: value * doubled, sourceId: 'P4' }
+            : { amount: value, sourceId }
     const connectionBonuses = DirectBonuses.flatMap((bonus): PaidConnectionBonus[] => {
         const value = bonus.values[period]
         if (!value) return []
-        const amount = value * (bonus.ogdensburg ? doubled : 1)
+        const { amount, sourceId } = scaled(...bonus.between, value, bonus.sourceId)
         return [
             {
                 from: Object.fromEntries(list(bonus.between[0]).map((id) => [id, amount])),
                 to: Object.fromEntries(list(bonus.between[1]).map((id) => [id, 0])),
-                sourceId: bonus.ogdensburg && doubled > 1 ? 'P4' : bonus.sourceId,
+                sourceId,
                 ...(bonus.destinationAtEnd ? { destinationAtEnd: true } : {})
             }
         ]
     })
-    const interconnections = InterconnectionBonuses.flatMap((bonus): Interconnection[] => {
-        const value = bonus.values[period]
+    const interconnectionBonuses = interconnections.flatMap((arrow): Interconnection[] => {
+        const value = arrow.values[period]
         if (!value) return []
         return [
             {
-                from: list(bonus.from),
-                to: list(bonus.to),
-                amount: value * (bonus.ogdensburg ? doubled : 1),
-                sourceId: bonus.ogdensburg && doubled > 1 ? 'P4' : 'interconnection'
+                from: list(arrow.from),
+                to: list(arrow.to),
+                ...scaled(arrow.from, arrow.to, value, 'interconnection')
             }
         ]
     })
-    return { connectionBonuses, interconnections }
+    return { connectionBonuses, interconnections: interconnectionBonuses }
 }
 
 export const RouteRules1833NE: RouteRules = {
@@ -157,7 +239,9 @@ export const RouteRules1833NE: RouteRules = {
         ...(PayingStopLimits[train.id]
             ? { payingStopLimit: PayingStopLimits[train.id], requirePayingStation: true }
             : {}),
-        ...routeBonusPolicy(state, companyId)
+        ...routeBonusPolicy(state, companyId),
+        // A stop an N/M train passes without counting stays on its route for bonuses (§6.66).
+        bonusesAlongRoute: true
     }),
     // Only the D&H's corporation may run to its offboard (§6.63).
     stopAllowed: (state, companyId, center) =>

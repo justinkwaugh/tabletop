@@ -130,7 +130,7 @@ export const TileCatalog1833NE = new TileCatalog(
     }))
 )
 
-/** Rulebook p. 21; #8 and #9 are printed back to back with unlimited supply, plus four #7. */
+/** Rulebook p. 21; the unlimited #7, #8 and #9 are listed with the set below (§6.47). */
 const StandardCounts: Readonly<Record<string, number>> = {
     '3': 4,
     '4': 4,

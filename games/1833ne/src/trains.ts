@@ -94,11 +94,28 @@ export function trainRetirement(
     return undefined
 }
 
-/** Off-board values change at phases III and V. */
+/**
+ * The periods the board prints values for, changing at phases III and V: off-board values and
+ * route bonuses, each drawn as a revenue stage.
+ */
+export const ValuePeriods = [
+    { id: 'I-II', from: 'I', stage: 'yellow' },
+    { id: 'III-IV', from: 'III', stage: 'brown' },
+    { id: 'V', from: 'V', stage: 'gray' }
+] as const
+export type ValuePeriod = (typeof ValuePeriods)[number]['id']
+export type PeriodValues = Partial<Record<ValuePeriod, number>>
+
+function periodsReached(phaseId: string) {
+    return ValuePeriods.filter((period) => Phases1833NE.isAtLeast(phaseId, period.from))
+}
+
+export function valuePeriod(phaseId: string): ValuePeriod {
+    return periodsReached(phaseId).at(-1)?.id ?? 'I-II'
+}
+
 export function revenueStage(phaseId: string): readonly string[] {
-    if (Phases1833NE.isAtLeast(phaseId, 'V')) return ['yellow', 'brown', 'gray']
-    if (Phases1833NE.isAtLeast(phaseId, 'III')) return ['yellow', 'brown']
-    return ['yellow']
+    return periodsReached(phaseId).map((period) => period.stage)
 }
 
 export const TrainRules1833NE: TrainRules = {

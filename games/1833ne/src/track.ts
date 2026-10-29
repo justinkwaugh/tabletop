@@ -6,7 +6,7 @@ import {
     completedCrossingCost,
     controllingOwner,
     getCompany,
-    unpaidTerrainCost,
+    minimumLayCost,
     yellowPlusOneAllowance,
     type CashPayment,
     type ConstructionState,
@@ -15,7 +15,7 @@ import {
     type TrackRules
 } from '@tabletop/18xx'
 import { FirstRoundReservedHexes, Map1833NE, Places, TerrainDiscounts } from './map.js'
-import { blockedByPrivate, mapState, ownsPrivate, type LowellPurchase } from './privates.js'
+import { blockedByPrivate, mapState, type LowellPurchase } from './privates.js'
 import { FallbackBrownCities, PreferredBrownCities, TileSet1833NE } from './tiles.js'
 import { Phases1833NE } from './trains.js'
 
@@ -24,6 +24,8 @@ const SherbrookeTile = '1833ne:N11'
 
 /** The two corporations of the golden spike and their joint Sherbrooke token. */
 export const StLawrenceCompanies = ['StL&A', 'A&StL'] as const
+/** The station access source of the A&StL's share of the joint Sherbrooke token. */
+export const JointTokenSource = 'joint'
 export const GoldenSpikeBonus = 100
 
 export const TrackFields1833NE = {
@@ -44,6 +46,8 @@ function discountedTerrain(state: ConstructionState, request: TrackRequest, terr
     )
     return discount ? discount.cost : terrain
 }
+
+const MinimumLayCost = minimumLayCost(TrackData, 20, discountedTerrain)
 
 type RoundState = ConstructionState & {
     operatingSet?: { number: number; roundNumber: number }
@@ -115,12 +119,8 @@ export const TrackRules1833NE: TrackRules = {
     },
     borderCost: (state, request, edge, cost) =>
         completedCrossingCost(TrackData, state, request, edge, cost),
-    terrainCost(state, request, cost) {
-        if (lowellLayIsFree(state, request)) return 0
-        const terrain = unpaidTerrainCost(TrackData, state, request.locationId)
-        const hexsides = cost - terrain
-        return Math.max(20, discountedTerrain(state, request, terrain)) + hexsides
-    },
+    terrainCost: (state, request, cost) =>
+        lowellLayIsFree(state, request) ? 0 : MinimumLayCost(state, request, cost),
     afterLay(state: State, details) {
         const face = mapState(state).tile(details.locationId).face
         if (face.color === 'yellow' && StLawrenceCompanies.some((id) => id === details.companyId))
@@ -162,7 +162,12 @@ function placeJointToken(state: State): void {
     }
     state.stationAccess = [
         ...(state.stationAccess ?? []),
-        { companyId: 'A&StL', locationId: Places.sherbrooke, nodeId: 'city', sourceId: 'joint' }
+        {
+            companyId: 'A&StL',
+            locationId: Places.sherbrooke,
+            nodeId: 'city',
+            sourceId: JointTokenSource
+        }
     ]
 }
 
@@ -194,8 +199,4 @@ function joined(state: ConstructionState): boolean {
         .face.nodes.some((node) =>
             network.reaches(Places.portland, { kind: 'node', nodeId: node.id })
         )
-}
-
-export function lowellPurchaseOwner(state: ConstructionState, companyId: string): boolean {
-    return ownsPrivate(state, companyId, 'P2')
 }

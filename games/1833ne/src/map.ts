@@ -13,6 +13,7 @@ import {
     type TileEdge,
     type TileFace
 } from '@tabletop/18xx'
+import { ValuePeriods } from './trains.js'
 
 const Names: Readonly<Record<string, string>> = {
     A6: 'Ogdensburg RR',
@@ -198,12 +199,8 @@ const emptyTown = town('white', [[]], 0)
 const emptyCity = city('white', [], 0, 1)
 
 /** Off-board values for phases I–II, III–IV and V. */
-const phased = (early: number, middle: number, late: number) =>
-    revenue([
-        ['yellow', early],
-        ['brown', middle],
-        ['gray', late]
-    ])
+const phased = (...values: readonly [number, number, number]) =>
+    revenue(ValuePeriods.map((period, index) => [period.stage, values[index]]))
 
 // Boston's and Portland's triangles end the track in their hex and are worth their city.
 const Boston: TileFace = {

@@ -328,6 +328,25 @@ describe('terrain discounts (§6.49)', () => {
         expect([cost('B&W', 'C18', 'II'), cost('B&W', 'C18', 'III')]).toEqual([100, 40])
         expect([cost('B&W', 'D27', 'III'), cost('B&W', 'D27', 'IV')]).toEqual([100, 60])
     })
+
+    it('charges only $20 to upgrade a hex whose terrain is paid, discount or not', () => {
+        const state = position(
+            [
+                { locationId: 'C18', definitionId: '18xx:9', rotation: 0 },
+                { locationId: 'B21', definitionId: '18xx:9', rotation: 0 }
+            ],
+            [],
+            {},
+            'III'
+        )
+        const cost = (companyId: string, locationId: string) =>
+            TrackRules1833NE.terrainCost?.(
+                state,
+                { companyId, locationId, definitionId: '18xx:23', rotation: 0, nodeMapping: {} },
+                0
+            )
+        expect([cost('B&W', 'C18'), cost('B&W', 'B21')]).toEqual([20, 20])
+    })
 })
 
 describe('private blocks (§6.46)', () => {

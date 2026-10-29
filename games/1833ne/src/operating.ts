@@ -8,7 +8,7 @@ import {
     certificatesOwnedBy,
     closePrivate,
     closeShareCompany,
-    corporationAwaitingClosure,
+    closeZeroPriceCorporations,
     floatedCompaniesInMarketOrder,
     getCompany,
     inReceivership,
@@ -30,6 +30,7 @@ import {
 } from '@tabletop/18xx'
 import { Charters1833NE, Corporations1833NE, Privates1833NE } from './companies.js'
 import { IssuingCorporations1833NE, Market1833NE, MarketPoolId, StockRules1833NE } from './stock.js'
+import { JointTokenSource } from './track.js'
 import { Phases1833NE } from './trains.js'
 
 export const Names1833NE = titleNames(
@@ -138,7 +139,7 @@ export function closeCorporation(
     if (shared && heir) {
         shared.companyId = heir
         state.stationAccess = state.stationAccess?.filter(
-            (access) => access.companyId !== heir || access.sourceId !== 'joint'
+            (access) => access.companyId !== heir || access.sourceId !== JointTokenSource
         )
     }
     return closeShareCompany(state, companyId, 'removed')
@@ -173,12 +174,9 @@ export const Elimination1833NE: EliminationRules<typeof BankruptcyChanges1833NE>
             .filter((certificate) => certificate.kind === 'private')
             .map((certificate) => certificate.companyId)
         for (const id of closedPrivateIds) closePrivate(state, id)
-        const closedCorporations: CompanyClosure[] = []
-        let closing = corporationAwaitingClosure(state, Market1833NE)
-        while (closing) {
-            closedCorporations.push(closeCorporation(state, closing))
-            closing = corporationAwaitingClosure(state, Market1833NE)
-        }
+        const closedCorporations = closeZeroPriceCorporations(state, Market1833NE, (companyId) =>
+            closeCorporation(state, companyId)
+        )
         reorderPendingOperatingCompanies(state, OperatingRules1833NE.companyOrder(state))
         return {
             forcedSales,

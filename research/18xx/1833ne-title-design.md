@@ -228,6 +228,13 @@ Built on branch `feat/implement-1833ne`. Family changes beyond the plan above:
 - **Lays made together** (`PrivateTrackTerms.together`): the C&StL starts only when C4 and C6
   both have a lay, and once one is laid the other is a required `privateTrackLay` the player may
   not decline.
+- **Bonuses along the route** (`RouteRevenuePolicy.bonusesAlongRoute`): §6.66 keeps stops an
+  N/M train passes without counting on its route for direct, interconnection and D&H bonuses,
+  and drops those skipped off an end, which then no longer end it. Evaluation and the solver
+  share the reading; 1846's east–west bonus keeps counting paid stops only.
+- **Printed bonus arrows** (`BonusArrows`) are the rules' source: each pair's direct total is
+  its listed direct value plus its interconnections both ways, and the map draws the arrows
+  from the same values.
 - **Autorouter wire version 5:** N+s budgets, end-only destinations and interconnection
   extensions; the shortest extension per end and destination is tried.
 - **UI:** route overlays draw extensions. 1846's finance panel and construction modes are
@@ -251,6 +258,6 @@ release is a major.
 ### Known limits
 
 - **Takeover game** not built (its five corporations are unidentified); deferred.
-- **Manual route drawing** of an extension exists only in the debug route builder; the table
-  relies on the autorouter for extensions.
-- **No scenarios** yet: the title is not in the 18xx playground or `games.json`.
+- **Routes come from the autorouter only**, as for every 18xx table; the debug route builder
+  can draw an extension by hand.
+- **Not yet in the 18xx playground or `games.json`**; the harness has three scenarios.
