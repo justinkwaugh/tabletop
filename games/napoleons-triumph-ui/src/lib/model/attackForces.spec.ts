@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { attackEndedBy } from '@tabletop/napoleons-triumph'
+import { attackEndedBy, isThreatenAttack } from '@tabletop/napoleons-triumph'
 import {
     infantry,
     repulsedByBlockers,
@@ -11,12 +11,12 @@ import {
 import { lossesOfAttack } from './attackLosses.js'
 import { unitsAsTheyEnteredTheAttack } from './attackForces.js'
 
-function entered(game: BattleGame) {
+function entered(game: BattleGame, actions = game.played) {
     const attack = game.state.attack ?? attackEndedBy(game.played.at(-1))
     assertExists(attack, 'Expected an attack being fought or just ended')
     return unitsAsTheyEnteredTheAttack(
-        { state: game.state, actions: game.played },
-        lossesOfAttack(game.played, attack, game.state.attack?.pending ?? [])
+        { state: game.state, actions },
+        lossesOfAttack(actions, attack, game.state.attack?.pending ?? [])
     )
 }
 
@@ -52,13 +52,13 @@ describe('the units of an attack as they entered it', () => {
 
     it('stand as they are on the board until the history is loaded', () => {
         const game = wonBeforeTheRetreat()
-        const attack = game.state.attack
-        assertExists(attack, 'Expected an attack being fought')
-        const entered = unitsAsTheyEnteredTheAttack(
-            { state: game.state, actions: [] },
-            lossesOfAttack([], attack, attack.pending)
-        )
-        expect(entered.get('F01')).toEqual(game.hydrated.findUnit('F01'))
+        expect(entered(game, []).get('F01')).toEqual(game.hydrated.findUnit('F01'))
+    })
+
+    it('keep the units destroyed in the actions loaded after the threat', () => {
+        const game = wonBeforeTheRetreat()
+        const sinceTheThreat = game.played.slice(game.played.findIndex(isThreatenAttack) + 1)
+        expect(entered(game, sinceTheThreat).get('A01')?.face).toEqual(infantry(2))
     })
 
     it('leave the units that lost nothing as they stand', () => {

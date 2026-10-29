@@ -5,12 +5,12 @@ import { actionsOfTheLastAttack } from './lastAttack.js'
 import type { RecordedGame } from './moveReplay.js'
 
 // Last seen rather than as the attack opened, which would hide the faces the fight revealed; a loss record is public, so it also reveals.
-// The site opens a game before its history, so until the history arrives the units stand as they are on the board.
+// The site opens a game before its history, so the actions recorded may begin after the threat, or not at all.
 export function unitsAsTheyEnteredTheAttack(
     game: RecordedGame,
     losses: AttackLosses
 ): ReadonlyMap<string, ProjectedUnit> {
-    const units = unitsLastSeen(game, actionsOfTheLastAttack(game.actions) ?? [])
+    const units = unitsLastSeen(game, actionsOfTheLastAttack(game.actions) ?? game.actions)
     for (const loss of [...losses.attacker.taken, ...losses.defender.taken]) {
         const unit = units.get(loss.unitId)
         if (unit) {
