@@ -22,7 +22,8 @@ import {
     placeEdifice,
     testPlayer,
     testState,
-    testVaultWithRelics
+    testVaultWithRelics,
+    wholeWorld
 } from '@tabletop/oath/testing'
 import { played, tableOf, type PlayedTable } from './sessionHarness.js'
 
@@ -36,6 +37,7 @@ export const DISTRICT = 'edifice.discord.festival-district'
 export const RAMPART = 'edifice.order.sprawling-rampart'
 export const TEMPLE = 'edifice.beast.forest-temple'
 const CUP = 'relic.cup-of-plenty'
+const GRAND_SCEPTER = 'relic.grand-scepter'
 
 export const [PLAINS, VALLEY] = mapSlotsFor(Region.Cradle)
 export const [WOOD, SLUM, RIVER] = mapSlotsFor(Region.Provinces)
@@ -249,16 +251,20 @@ export function fallenSpireTable(pile = 5): PlayedTable {
 
 /**
  * Game 5, the end of round 6: Dana, Chancellor and Oathkeeper, rolled a 5; Rhys rules Squalid
- * District at Fertile Valley, so they are asked (R-3.3; its Q&A). Hotseat shows Rhys.
+ * District at Fertile Valley, so they are asked (R-3.3; its Q&A). Hotseat shows Rhys. Dana holds
+ * the Grand Scepter and every card of the game is somewhere, so a win runs the chronicle to its
+ * result (R-8.5, R-8.6.1).
  */
 export function squalidAskedTable(): PlayedTable {
     const state = scene({
         on: 'dana',
         at: { rhys: VALLEY },
         round: 6,
-        warbands: { [VALLEY]: { rhys: 2 } }
+        warbands: { [VALLEY]: { rhys: 2 } },
+        over: { dana: { relicIds: [GRAND_SCEPTER] } }
     })
     placeEdifice(state, VALLEY, DISTRICT, { ruined: true })
+    wholeWorld(state)
     state.oathkeeperPlayerId = 'dana'
     state.machineState = MachineState.PowerQuestion
     state.pendingQuestions = {

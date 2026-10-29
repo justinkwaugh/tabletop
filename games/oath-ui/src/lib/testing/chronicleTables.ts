@@ -347,9 +347,12 @@ export type GameTwoStep = 'build' | 'ruin' | 'suit' | 'heal' | 'story'
 
 /**
  * Game 2's chronicle as far as `step`: Ann vows Devotion, then builds, picks a suit or a stack.
- * `record`: the entries game 2 carried in.
+ * `record`: the entries game 2 carried in, game 1's unless given.
  */
-export function gameTwoAt(step: GameTwoStep, record?: ChronicleEntry[]): PlayedTable {
+export function gameTwoAt(
+    step: GameTwoStep,
+    record: ChronicleEntry[] = [GAME_ONE_ENTRY]
+): PlayedTable {
     const state = gameTwoEnd(step === 'ruin', record)
     if (step === 'heal') shortOfOrder(state)
     const vowed = played(gameTwoWon(state), [
