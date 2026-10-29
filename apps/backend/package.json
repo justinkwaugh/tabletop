@@ -27,7 +27,7 @@
         "@fastify/static": "^10.1.5",
         "@google-cloud/firestore": "^9.4.0",
         "@react-email/components": "^1.0.6",
-        "@react-email/render": "^2.0.4",
+        "@react-email/render": "^2.2.0",
         "@tabletop/backend-services": "workspace:*",
         "@tabletop/common": "workspace:*",
         "@tabletop/email": "workspace:*",
