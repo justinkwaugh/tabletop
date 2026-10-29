@@ -22,7 +22,8 @@ export const Ferries1833NE: readonly FerryDefinition[] = Object.entries(FerryPor
     ([locationId, ferry]) => ({ locationId, ...ferry })
 )
 export const FerryPrice = 40
-export const FerryBonus = { new: 20, last: 20 } as const
+/** The New/Last ferry bonus marker's two sides. */
+export const FerryBonus = { new: 20, last: 10 } as const
 
 export const OwnedFerry = Type.Object(
     {

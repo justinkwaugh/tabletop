@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { RouteEvaluation, type TrainRoute } from '@tabletop/18xx'
 import { position, type Placement } from '../test/position.js'
 import { rotationFor, route } from '../test/flow.js'
+import { ferryValue } from './ferries.js'
 import { RouteRules1833NE } from './routes.js'
 
 const tile = (locationId: string, definitionId: string, edges: number[]): Placement => ({
@@ -124,5 +125,35 @@ describe('direct connections (§6.66)', () => {
             expect(result.reason).toBeUndefined()
             expect(result.result?.revenue).toBe(revenue)
         }
+    })
+})
+
+describe('ferry bonus (§6.56–6.57)', () => {
+    it('adds +20 on its New side and +10 on its Last, doubled by the Luxury Ferry Service', () => {
+        const state = {
+            phaseId: 'II',
+            ferries: [{ locationId: 'F27', companyId: 'B&P' }],
+            ferryBonus: { locationId: 'F27', side: 'new' as const }
+        }
+        expect(ferryValue(state, 'B&P', 'F27')).toBe(40)
+        expect(
+            ferryValue(
+                { ...state, ferryBonus: { ...state.ferryBonus, side: 'last' } },
+                'B&P',
+                'F27'
+            )
+        ).toBe(30)
+        expect(
+            ferryValue(
+                {
+                    ...state,
+                    ferries: [{ locationId: 'F27', companyId: 'B&P', luxury: true as const }],
+                    ferryBonus: { locationId: 'F27', side: 'last' }
+                },
+                'B&P',
+                'F27'
+            )
+        ).toBe(60)
+        expect(ferryValue({ ...state, phaseId: 'IV' }, 'B&P', 'F27')).toBe(0)
     })
 })

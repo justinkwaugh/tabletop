@@ -28,8 +28,8 @@ counter sheet or corporate mats are available beyond what the rulebook pictures 
 ### Evidence gaps
 
 - **Last ferry bonus.** The New ferry bonus markers are +20 (setup picture). The value on
-  their Last side is not printed anywhere in the rulebook. **Assumed +20** until known;
-  it is one constant.
+  their Last side is not printed in the rulebook; it is +10, as the marker reads (confirmed
+  by the user, 2026-10-29, matching GMT's 2020 sample token sheet).
 - **Golden spike.** The A&StL mat reads: "President receives $100 from bank upon first
   Montreal and Portland track connection if this Corporation has laid at least 1 yellow
   track tile." The StL&A mat is hidden in the picture. **Assumed the same text on both
@@ -251,7 +251,7 @@ release is a major.
 ### Known limits
 
 - **Takeover game** not built (its five corporations are unidentified); deferred.
-- **Last ferry bonus** assumed +20; **golden spike** text assumed on both mats.
+- **Golden spike** text assumed on both mats.
 - **Manual route drawing** of an extension exists only in the debug route builder; the table
   relies on the autorouter for extensions.
 - **No scenarios** yet: the title is not in the 18xx playground or `games.json`.
