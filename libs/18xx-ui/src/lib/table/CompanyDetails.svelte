@@ -408,7 +408,13 @@
                         class="private-power"><PrivateTrackPowerButton {session} {power} /></span
                     >{/each}
             </div>
-            <span>{purchasePrice ?? (item.closed ? 'Closed' : `${money(item.revenue)} / OR`)}</span>
+            <span
+                >{purchasePrice ??
+                    (item.closed
+                        ? 'Closed'
+                        : (session.presentation.privateStatus?.(gameState, item.id) ??
+                          `${money(item.revenue)} / OR`))}</span
+            >
         </div>
         {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span
             >{/if}

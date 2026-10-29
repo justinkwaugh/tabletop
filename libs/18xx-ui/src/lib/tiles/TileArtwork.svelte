@@ -498,8 +498,10 @@
                                 {#if cell.caption}
                                     <text
                                         data-revenue-caption
-                                        x={-cell.width / 2 - 2.5}
-                                        style:text-anchor="end"
+                                        x={cell.captionAfter
+                                            ? cell.width / 2 + 2.5
+                                            : -cell.width / 2 - 2.5}
+                                        style:text-anchor={cell.captionAfter ? 'start' : 'end'}
                                         fill={contrastingTextColor(fill)}
                                         font-size="7.5"
                                         font-weight="700">{cell.caption}</text

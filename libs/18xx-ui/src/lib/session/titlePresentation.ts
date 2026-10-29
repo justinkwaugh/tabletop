@@ -150,6 +150,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
     companyMarks?(state: State, companyId: string): readonly CompanyMark[]
+    /** A word for an open private's state in place of its income, such as Flipped. */
+    privateStatus?(state: State, privateCompanyId: string): string | undefined
     companyOrigin?(state: State, companyId: string): CompanyOrigin | undefined
     /**
      * What an operating company takes off printed terrain and border costs, by terrain kind, such
