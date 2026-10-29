@@ -4,6 +4,9 @@ export const VitestConfig = defineProject({
     // Vite 8 resolves an SSR-externalized CSS @import as a relative file (vitejs/vite#23096).
     ssr: { noExternal: ['tailwindcss'] },
     test: {
+        // Specs never run on Google Cloud; without this, every Firestore client waits 3 s for
+        // google-auth-library's metadata server probe before reaching the emulator.
+        env: { METADATA_SERVER_DETECTION: 'none' },
         include: ['src/**/*.{test,spec}.{js,ts}'],
         exclude: [
             '**/node_modules/**',
