@@ -15,7 +15,7 @@ export default async function (fastify: FastifyInstance) {
             schema: { body: ResetPasswordRequest },
             preHandler: operationBudget<{ Body: ResetPasswordRequest }>(fastify, {
                 operation: 'password reset',
-                max: 3,
+                max: 10,
                 timeWindow: '15 minutes',
                 subject: (request) => caseInsensitiveSubject(request.body.email)
             })

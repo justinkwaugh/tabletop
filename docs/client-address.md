@@ -65,7 +65,7 @@ Every budget is a fixed window counted in the shared store described below.
 | Client         | `client:<client>`             | any Google-hosted caller, via the hint | 100 requests / minute, or the route's `config.rateLimit`             |
 | Hosting peer   | `peer:<route>:<ingress peer>` | nobody; it is the connection's address | 3 × the route's client budget, per Google service address, per route |
 | Login          | `login:<username>`            | nobody; the subject is the target      | 20 attempts / 15 minutes, from any addresses                         |
-| Password reset | `password reset:<email>`      | nobody; the subject is the target      | 3 emails / 15 minutes, from any requesters                           |
+| Password reset | `password reset:<email>`      | nobody; the subject is the target      | 10 emails / 15 minutes, from any requesters                          |
 
 The Hosting peer layer runs only for anonymous requests attributed through the hint. A caller
 who rotates `Fastly-Client-IP` from one Google service address escapes the client layer but

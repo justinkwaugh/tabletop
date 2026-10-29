@@ -58,13 +58,16 @@ describe('POST /sendPasswordReset', () => {
         expect((await request(server, victim.email)).statusCode).toBe(200)
         expect((await request(server, 'Victim@Example.test')).statusCode).toBe(200)
         expect((await request(server, ` ${victim.email} `)).statusCode).toBe(200)
+        for (let index = 3; index < 10; index += 1) {
+            expect((await request(server, victim.email)).statusCode).toBe(200)
+        }
         expect((await request(server, victim.email)).statusCode).toBe(429)
-        expect(sendPasswordResetEmail).toHaveBeenCalledTimes(3)
+        expect(sendPasswordResetEmail).toHaveBeenCalledTimes(10)
     })
 
     it('keeps other addresses unaffected by an exhausted budget', async () => {
         const { server } = await createServer()
-        for (let index = 0; index < 4; index += 1) await request(server, victim.email)
+        for (let index = 0; index < 11; index += 1) await request(server, victim.email)
         expect((await request(server, 'other@example.test')).statusCode).toBe(200)
     })
 })
