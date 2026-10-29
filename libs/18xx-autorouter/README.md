@@ -61,6 +61,15 @@ duplicates; if the remainder still exceeds half its budget, it keeps the most
 valuable half. Cutting candidates or compiled connections is reported with
 `metrics.memoryLimited` and `exhaustive: false`. Streaming alone does not make a
 completed enumeration non-exhaustive.
+
+A two-train fleet cut for memory, with time left, is solved again exactly above
+what its first answer proves. A better pair needs a route worth more than half
+the first answer when the trains are alike, or a stored route worth more than the
+first answer less the other train's best route (known once its streaming pass
+finished). Only those routes are stored, and every route of the other train is
+streamed through them; route values include the longest-route bonus, so the
+bound holds with it. When that pass completes, the result is exhaustive and not
+memory-limited; if it is cut or interrupted, the first answer stands.
 The WebAssembly instance is built with a 64 MiB memory maximum, so an
 allocation beyond it traps instead of growing the tab. WebAssembly memory never
 shrinks, so after a solve that left the instance above 32 MiB, or one that

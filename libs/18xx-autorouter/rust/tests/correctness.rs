@@ -616,14 +616,29 @@ fn extensions_hang_off_either_end_and_consume_fleet_track() {
 }
 
 #[test]
-fn memory_budget_keeps_the_most_valuable_candidates() {
+fn a_second_pass_above_the_first_answer_proves_a_two_train_fleet_cut_for_memory() {
+    let edges: Vec<_> = (0..8)
+        .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
+        .collect();
+    for trains in [&[5, 4][..], &[4, 5], &[4, 4], &[5, 5]] {
+        let full = solve(&graph(8, &edges, trains));
+        let mut p = graph(8, &edges, trains);
+        p["memory_budget_bytes"] = json!(64 * 1024);
+        let proven = solve(&p);
+        assert_eq!(proven["memory_limited"], false, "{trains:?}");
+        assert_eq!(proven["revenue"], full["revenue"], "{trains:?}");
+    }
+}
+
+#[test]
+fn a_fleet_cut_for_memory_in_both_passes_reports_it_and_stays_legal() {
     let edges: Vec<_> = (0..8)
         .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
         .collect();
     for trains in [&[5, 4][..], &[4, 4]] {
         let full = solve(&graph(8, &edges, trains));
         let mut p = graph(8, &edges, trains);
-        p["memory_budget_bytes"] = json!(64 * 1024);
+        p["memory_budget_bytes"] = json!(32 * 1024);
         let limited: Value =
             serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
         assert!(limited.get("error").is_none(), "{limited}");
@@ -631,7 +646,8 @@ fn memory_budget_keeps_the_most_valuable_candidates() {
         assert_eq!(limited["memory_limited"], true);
         assert_eq!(limited["exhaustive"], false);
         assert_eq!(limited["path_exhaustive"], false);
-        assert_eq!(limited["revenue"], full["revenue"]);
+        assert!(limited["revenue"].as_i64().unwrap() > 0);
+        assert!(limited["revenue"].as_i64() <= full["revenue"].as_i64());
     }
 }
 
