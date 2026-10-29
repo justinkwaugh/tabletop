@@ -31,7 +31,7 @@ export class EncodedRoutes {
         rules: RouteRules,
         companyId: string,
         network: RouteNetwork,
-        timeLimitMs: number
+        budget: { timeLimitMs: number; memoryBudgetBytes: number }
     ) {
         this.centers = network.centers()
         const centerIds = new Map(
@@ -219,7 +219,7 @@ export class EncodedRoutes {
         this.junctionKeys = [...junctions.keys()]
         this.groupKeys = [...groupIds.keys()]
         this.problem = {
-            version: 5,
+            version: 6,
             stops,
             arcs,
             trains,
@@ -228,7 +228,8 @@ export class EncodedRoutes {
             group_count: groupIds.size,
             hex_bonuses: locations.map((location) => rules.hexBonus?.(state, location.id) ?? 0),
             longest_route_bonus_per_stop: rules.longestRouteBonusPerStop?.(state, companyId) ?? 0,
-            budget_ms: timeLimitMs
+            budget_ms: budget.timeLimitMs,
+            memory_budget_bytes: budget.memoryBudgetBytes
         }
     }
 

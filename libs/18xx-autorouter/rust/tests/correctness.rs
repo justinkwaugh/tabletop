@@ -11,7 +11,7 @@ fn solve(problem: &Value) -> Value {
 
 fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
     json!({
-        "version": 5, "junction_count": 1, "budget_ms": 30000,
+        "version": 6, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
         "resource_count": edges.len(), "group_count": 1, "hex_bonuses": vec![0; edges.len()],
         "stops": (0..nodes).map(|id| json!({
             "token": id == 0, "blocked": false, "endpoint": true, "allowed": true,
@@ -134,6 +134,26 @@ fn longest_route_bonus_can_outweigh_all_higher_revenue_candidates() {
         solve(&p)["revenue"].as_i64().unwrap(),
         exhaustive_oracle(&p, &[(0, 1), (0, 2), (0, 3), (3, 4), (4, 5)])
     );
+}
+
+#[test]
+fn different_bonus_spans_do_not_share_candidates() {
+    let mut p = graph(3, &[(0, 1), (1, 2)], &[3, 3]);
+    for train in p["trains"].as_array_mut().unwrap() {
+        train["revenues"] = json!([100, 0, 100]);
+        train["paying_stop_limit"] = json!(2);
+        train["connection_bonuses"] = json!([{
+            "from": [null, 50, null], "to": [null, null, 0],
+        }]);
+    }
+    p["trains"][1]["bonuses_along_route"] = json!(true);
+    let result = solve(&p);
+    assert_eq!(result["revenue"], 250);
+    assert_eq!(result["routes"][0]["train"], 1);
+    p["trains"].as_array_mut().unwrap().reverse();
+    let result = solve(&p);
+    assert_eq!(result["revenue"], 250);
+    assert_eq!(result["routes"][0]["train"], 0);
 }
 
 #[test]
@@ -449,13 +469,16 @@ fn interrupted_search_does_not_claim_exhaustion() {
     let edges: Vec<_> = (0..9)
         .flat_map(|a| (a + 1..9).map(move |b| (a, b)))
         .collect();
-    let mut p = graph(9, &edges, &[9, 9]);
-    p["budget_ms"] = json!(0.001);
-    let result: Value =
-        serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
-    assert!(result.get("error").is_none());
-    assert_eq!(result["exhaustive"], false);
-    assert_eq!(result["path_exhaustive"], false);
+    for trains in [&[9, 9][..], &[3, 9], &[9, 3]] {
+        let mut p = graph(9, &edges, trains);
+        p["budget_ms"] = json!(0.001);
+        let result: Value =
+            serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
+        assert!(result.get("error").is_none());
+        assert_eq!(result["exhaustive"], false);
+        assert_eq!(result["path_exhaustive"], false);
+        assert_eq!(result["memory_limited"], false);
+    }
 }
 
 #[test]
@@ -590,4 +613,206 @@ fn extensions_hang_off_either_end_and_consume_fleet_track() {
     let mut p = interconnected(&[(0, 1), (1, 2), (0, 3)], &[2]);
     p["trains"][0]["interconnections"][0]["from"] = json!([2]);
     assert_eq!(solve(&p)["revenue"], 50);
+}
+
+#[test]
+fn a_second_pass_above_the_first_answer_proves_a_two_train_fleet_cut_for_memory() {
+    let edges: Vec<_> = (0..8)
+        .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
+        .collect();
+    for trains in [&[5, 4][..], &[4, 5], &[4, 4], &[5, 5]] {
+        let full = solve(&graph(8, &edges, trains));
+        let mut p = graph(8, &edges, trains);
+        p["memory_budget_bytes"] = json!(64 * 1024);
+        let proven = solve(&p);
+        assert_eq!(proven["memory_limited"], false, "{trains:?}");
+        assert_eq!(proven["revenue"], full["revenue"], "{trains:?}");
+    }
+}
+
+#[test]
+fn a_fleet_cut_for_memory_in_both_passes_reports_it_and_keeps_a_legal_operation() {
+    // The longest-route bonus makes every route valuable enough that the second pass is cut too,
+    // after compilation completed.
+    let edges: Vec<_> = (0..8)
+        .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
+        .collect();
+    for trains in [&[6, 5][..], &[5, 5]] {
+        let mut p = graph(8, &edges, trains);
+        p["longest_route_bonus_per_stop"] = json!(101);
+        let full = solve(&p);
+        p["memory_budget_bytes"] = json!(64 * 1024);
+        let limited: Value =
+            serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
+        assert!(limited.get("error").is_none(), "{limited}");
+        assert_eq!(full["memory_limited"], false);
+        assert_eq!(limited["memory_limited"], true, "{trains:?}");
+        assert_eq!(limited["exhaustive"], false);
+        assert!(limited["revenue"].as_i64().unwrap() > 0);
+        assert!(limited["revenue"].as_i64() <= full["revenue"].as_i64());
+        // Each train runs at most once and no piece of track is used twice.
+        let routes = limited["routes"].as_array().unwrap();
+        let mut trains_run: Vec<_> = routes
+            .iter()
+            .map(|r| r["train"].as_u64().unwrap())
+            .collect();
+        trains_run.dedup();
+        assert_eq!(trains_run.len(), routes.len());
+        let mut paths: Vec<_> = routes
+            .iter()
+            .flat_map(|r| r["connections"].as_array().unwrap())
+            .flat_map(|c| c["paths"].as_array().unwrap())
+            .map(|path| path.as_u64().unwrap())
+            .collect();
+        let used = paths.len();
+        paths.sort_unstable();
+        paths.dedup();
+        assert_eq!(paths.len(), used);
+    }
+}
+
+#[test]
+fn a_second_pass_bounds_a_stored_train_when_the_other_cannot_run() {
+    // The distance-5 train pays 3 for every stop, so it cannot reach a second stop; it adds
+    // nothing, and the stored train's best route alone is proven best.
+    let edges: Vec<_> = (0..8)
+        .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
+        .collect();
+    for (trains, idle) in [(&[4, 5][..], 1), (&[5, 4], 0)] {
+        let mut p = graph(8, &edges, trains);
+        p["trains"][idle]["visit_costs"] = json!(vec![3; 8]);
+        let full = solve(&p);
+        p["memory_budget_bytes"] = json!(64 * 1024);
+        let proven = solve(&p);
+        assert_eq!(proven["memory_limited"], false, "{trains:?}");
+        assert_eq!(proven["revenue"], full["revenue"], "{trains:?}");
+    }
+}
+
+#[test]
+fn streaming_retains_the_smaller_profile_in_either_input_order() {
+    let edges: Vec<_> = (0..8)
+        .flat_map(|a| (a + 1..8).map(move |b| (a, b)))
+        .collect();
+    for trains in [&[4, 3][..], &[3, 4]] {
+        let mut p = graph(8, &edges, trains);
+        let full = solve(&p);
+        p["memory_budget_bytes"] = json!(64 * 1024);
+        let streamed = solve(&p);
+        assert_eq!(streamed["memory_limited"], false);
+        assert_eq!(streamed["revenue"], full["revenue"]);
+        assert_eq!(streamed["candidates"], full["candidates"]);
+    }
+}
+
+#[test]
+fn streaming_mixed_profiles_allow_either_train_to_run_alone() {
+    let edges = [(0, 1), (1, 2), (2, 3)];
+    for trains in [&[2, 4][..], &[4, 2]] {
+        let mut p = graph(4, &edges, trains);
+        for revenues in [[100, 0], [0, 100]] {
+            for (id, train) in p["trains"].as_array_mut().unwrap().iter_mut().enumerate() {
+                train["revenues"] = json!(vec![revenues[id]; 4]);
+            }
+            for bonus in [0, 10, 100] {
+                p["longest_route_bonus_per_stop"] = json!(bonus);
+                assert_eq!(
+                    solve(&p)["revenue"].as_i64().unwrap(),
+                    exhaustive_oracle(&p, &edges)
+                );
+            }
+        }
+        p["trains"][0]["distance"] = json!(1);
+        assert_eq!(
+            solve(&p)["revenue"].as_i64().unwrap(),
+            exhaustive_oracle(&p, &edges)
+        );
+    }
+}
+
+// Two stations joined by `k` diamonds of junction track: 2^k distinct paths each way.
+fn diamonds(k: usize) -> Value {
+    let edges: Vec<_> = (0..k).flat_map(|level| [(level, level + 1); 2]).collect();
+    let stop = |level: usize| match level {
+        0 => json!(0),
+        l if l == k => json!(1),
+        _ => Value::Null,
+    };
+    let ends = |arc: usize| {
+        let (a, b) = edges[arc / 2];
+        if arc.is_multiple_of(2) {
+            (a, b)
+        } else {
+            (b, a)
+        }
+    };
+    let arcs: Vec<_> = (0..edges.len() * 2)
+        .map(|arc| {
+            let (from, to) = ends(arc);
+            let next: Vec<_> = if stop(to).is_null() {
+                (0..edges.len() * 2)
+                    .filter(|&other| other != arc ^ 1 && ends(other).0 == to)
+                    .collect()
+            } else {
+                vec![]
+            };
+            let junctions: Vec<_> = [from.min(to), from.max(to)]
+                .into_iter()
+                .filter(|&level| level > 0 && level < k)
+                .map(|level| level - 1)
+                .collect();
+            json!({
+                "from": stop(from), "to": stop(to), "next": next, "junctions": junctions,
+                "resources": [arc / 2], "path": arc / 2, "hex": 0, "crossings": 0, "terminal": false,
+            })
+        })
+        .collect();
+    let mut p = graph(2, &[], &[2]);
+    p["resource_count"] = json!(edges.len());
+    p["junction_count"] = json!(k - 1);
+    p["hex_bonuses"] = json!([0]);
+    p["arcs"] = json!(arcs);
+    p
+}
+
+#[test]
+fn compilation_stops_at_its_share_of_the_memory_budget() {
+    let full = solve(&diamonds(10));
+    assert_eq!(full["connections"], 2 * 1024);
+    let mut p = diamonds(14);
+    p["memory_budget_bytes"] = json!(256 * 1024);
+    let limited: Value =
+        serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
+    assert!(limited.get("error").is_none(), "{limited}");
+    assert_eq!(limited["memory_limited"], true);
+    assert_eq!(limited["exhaustive"], false);
+    assert!(limited["connections"].as_u64().unwrap() < 2 * 16384);
+    assert_eq!(limited["revenue"], full["revenue"]);
+}
+
+#[test]
+fn wide_connection_ids_preserve_the_small_graph_oracle() {
+    let edges = [(0, 1), (0, 2)];
+    let mut p = graph(3, &edges, &[2, 2]);
+    let optimum = exhaustive_oracle(&p, &edges);
+    let arcs = p["arcs"].as_array().unwrap();
+    let mut wide = Vec::with_capacity(65538);
+    for _ in 0..32768 {
+        wide.extend_from_slice(&arcs[..2]);
+    }
+    wide.extend_from_slice(&arcs[2..]);
+    p["arcs"] = json!(wide);
+    p["memory_budget_bytes"] = json!(128 * 1024 * 1024);
+    let result = solve(&p);
+    assert_eq!(result["connections"], 65538);
+    assert_eq!(result["revenue"], optimum);
+    assert_eq!(result["exhaustive"], true);
+    assert_eq!(result["memory_limited"], false);
+    assert!(result["routes"].as_array().unwrap().iter().any(|route| {
+        route["connections"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|connection| connection["paths"] == json!([1]))
+    }));
 }

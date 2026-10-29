@@ -47,6 +47,7 @@ export type SolverProblem = {
     hex_bonuses: number[]
     longest_route_bonus_per_stop: number
     budget_ms: number
+    memory_budget_bytes: number
 }
 const Index = Type.Integer({ minimum: 0 })
 const Time = Type.Number({ minimum: 0 })
@@ -65,6 +66,7 @@ export const SolverSolution = Type.Object({
     path_exhaustive: Type.Boolean(),
     combination_exhaustive: Type.Boolean(),
     candidates: Type.Array(Index),
+    memory_limited: Type.Boolean(),
     expansions: Index,
     connections: Index,
     compile_ms: Time,
