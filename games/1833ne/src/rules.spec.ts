@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+    TileUpgrades,
     TrackConstruction,
     rotateTileFace,
     type TileFace,
@@ -153,6 +154,17 @@ describe('brown cities (p. 21)', () => {
         expect(upgrades('18xx:619')).toEqual(['N50', 'N53', 'N54'])
         expect(upgrades('1833ne:N27')).toEqual(['N50', 'N52', 'N54'])
         expect(upgrades('1833ne:N28')).toEqual(['N50', 'N51', 'N54'])
+    })
+
+    it('lists Manchester’s green tiles’ brown upgrades, which drop its label', () => {
+        const upgrades = new TileUpgrades(TrackRules1833NE)
+        const brown = (id: string) =>
+            upgrades
+                .upgradesTo(id)
+                .map((entry) => entry.replace('1833ne:', ''))
+                .sort()
+        expect(brown('1833ne:N27')).toEqual(['N50', 'N52', 'N54'])
+        expect(brown('1833ne:N28')).toEqual(['N50', 'N51', 'N54'])
     })
 
     it('offers the 50 once no 60 or 70 is left', () => {
