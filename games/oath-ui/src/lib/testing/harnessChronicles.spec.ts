@@ -50,7 +50,7 @@ describe('the harness’s chronicle tables play through to the result', () => {
         })
     }
 
-    it('game 2’s story step reads “The story of game 2”', () => {
+    it('game 2’s story step is numbered 2, so its label reads “The story of Age II”', () => {
         const story = gameTwoAt('story').state
         expect(story.chronicle?.step).toBe(ChronicleStep.Story)
         expect(gameNumberOf(new HydratedOathGameState(story))).toBe(2)

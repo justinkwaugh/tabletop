@@ -1,5 +1,6 @@
 <script lang="ts">
     import { gameNumberOf } from '$lib/model/chronicleHistory.js'
+    import { ageName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // The winner's own entry, written once as the chronicle's last step: plain text, capped in
@@ -23,7 +24,7 @@
         'rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-3 py-1.5 text-sm font-semibold'
 </script>
 
-<label class="block text-sm" for="chronicle-story">The story of game {gameNumber}:</label>
+<label class="block text-sm" for="chronicle-story">The story of {ageName(gameNumber)}:</label>
 <div class="story mt-2">
     <textarea
         id="chronicle-story"

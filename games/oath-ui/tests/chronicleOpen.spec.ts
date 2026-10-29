@@ -45,7 +45,7 @@ for (const viewport of [
             await expect(rows).toHaveText([
                 /bea\s*was dealt the yellow board, Exile side up\.$/i,
                 /dana\s*was dealt the blue board, Citizen side up\.$/i,
-                /you\s*are the Chancellor, as the winner of game 2\.$/i
+                /you\s*are the Chancellor, as the winner of Age II\.$/i
             ])
             const text = await history(page).innerText()
             const at = (words: string) => text.indexOf(words)

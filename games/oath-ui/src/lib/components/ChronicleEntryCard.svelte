@@ -7,7 +7,7 @@
     import { addedBySuit } from '$lib/model/chronicleDrafts.js'
     import { endingParts } from '$lib/model/endings.js'
     import { oathGoalKind } from '$lib/model/goalBoard.js'
-    import { listed, oathName, suitName } from '$lib/model/names.js'
+    import { ageName, listed, oathName, suitName } from '$lib/model/names.js'
 
     // One game of the chronicle, as the journal page keeps it but with only what happened: the
     // table's name and the game's number, the date and the Oath it was played under, the winner's
@@ -42,7 +42,7 @@
     <p
         class="border-b border-oath-divider pb-1.5 text-center text-sm font-semibold uppercase tracking-[0.2em] text-oath-heading"
     >
-        Game {entry.gameNumber} · {entry.sessionName}
+        {ageName(entry.gameNumber)} · {entry.sessionName}
     </p>
     <p class="mt-1.5 text-oath-text-muted">
         {entryDate(entry.date)} · {@render oath(

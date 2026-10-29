@@ -3,6 +3,7 @@
     import ChronicleEntryCard from '$lib/components/ChronicleEntryCard.svelte'
     import RecordChip from '$lib/components/RecordChip.svelte'
     import { recordRowWords } from '$lib/model/chronicleHistory.js'
+    import { ageName } from '$lib/model/names.js'
 
     // A game this one carried in, framed under "The game was started"; a tap opens its entry.
     let { entry }: { entry: ChronicleEntry } = $props()
@@ -18,7 +19,7 @@
     onclick={() => (open = !open)}
 >
     <span class="grow">
-        Game {entry.gameNumber}: <RecordChip seat={entry.winner} />
+        {ageName(entry.gameNumber)}: <RecordChip seat={entry.winner} />
         {recordRowWords(entry)}
     </span>
     <span class="caret text-oath-text-muted" class:caret--open={open} aria-hidden="true">▸</span>

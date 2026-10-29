@@ -216,7 +216,7 @@ for (const viewport of [
         }) => {
             await openTable(page, 'chronicleStory')
             const box = panel(page).getByPlaceholder('Tell your story in your own way.')
-            await expect(panel(page)).toContainText('The story of game 1:')
+            await expect(panel(page)).toContainText('The story of Age I:')
             await expect(button(page, 'Skip')).toBeVisible()
             await expect(button(page, 'Write')).toHaveCount(0)
             await shot(page, 'story-empty')
@@ -265,7 +265,7 @@ for (const viewport of [
                 'Kept Plains, Ancient City, Steppe and Deep Woods'
             )
             await expect(history(page)).toContainText('Rebuilt the world deck.')
-            await expect(history(page)).toContainText('wrote the story of game 1.')
+            await expect(history(page)).toContainText('wrote the story of Age I.')
             await noOverflow(page, viewport.width)
             await shot(page, 'history')
         })
@@ -287,9 +287,9 @@ for (const viewport of [
             await openTab(page, 'Chronicle')
             const entries = page.locator('.chronicle-tab article')
             await expect(entries).toHaveCount(2)
-            await expect(entries.first()).toContainText('Game 2 · Thursday table')
+            await expect(entries.first()).toContainText('Age II · Thursday table')
             await expect(entries.first()).toContainText('Sprawling Rampart at Plains')
-            await expect(entries.last()).toContainText('Game 1 · Thursday table')
+            await expect(entries.last()).toContainText('Age I · Thursday table')
             await expect(entries.last()).toContainText('Rhys held the Cradle')
             // Game 1's Dana keeps the red they played then, though Dana sits blue now.
             await expect(entries.last().locator('[data-record-chip="red"]').first()).toHaveText(
@@ -299,8 +299,10 @@ for (const viewport of [
             await shot(page, 'tab')
             await openTab(page, 'History')
             await expect(page.locator('[data-record-row]')).toHaveCount(2)
+            await expect(page.locator('[data-record-row="2"]')).toContainText('Age II:')
+            await expect(page.locator('[data-record-row="1"]')).toContainText('Age I:')
             await page.locator('[data-record-row="1"]').click()
-            await expect(history(page).locator('article')).toContainText('Game 1 · Thursday table')
+            await expect(history(page).locator('article')).toContainText('Age I · Thursday table')
             await noOverflow(page, viewport.width)
             await shot(page, 'record-rows')
         })

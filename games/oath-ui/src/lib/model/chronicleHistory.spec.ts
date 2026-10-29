@@ -101,7 +101,7 @@ describe('game 1 at its result, as the History tells it', () => {
                 'placed a facedown relic at Ancient City, Steppe, Deep Woods and The Tribunal; ' +
                 'dana’s 2 relics and the Reliquary’s 4 relics went on top of the relic deck.',
             'Rebuilt the world deck.',
-            'dana wrote the story of game 1.'
+            'dana wrote the story of Age I.'
         ])
     })
 
@@ -237,7 +237,7 @@ const openingLines = (state: OathProjectedState, viewerId?: string) =>
 describe('R-1.7-H1, R-1.9-H1 — how a continued game’s seats were settled', () => {
     it('game 3 opens: Ann the Chancellor as game 2’s winner, then Dana and Bea in turn order', () => {
         expect(openingLines(gameThreeContinued().state)).toEqual([
-            'ann is the Chancellor, as the winner of game 2.',
+            'ann is the Chancellor, as the winner of Age II.',
             'dana was dealt the blue board, Citizen side up.',
             'bea was dealt the yellow board, Exile side up.'
         ])
@@ -263,7 +263,7 @@ describe('R-1.7-H1, R-1.9-H1 — how a continued game’s seats were settled', (
     it('the viewer’s own row agrees with their chip’s “you”', () => {
         const state = gameThreeContinued().state
         expect(openingLines(state, 'ann')[0]).toBe(
-            'ann are the Chancellor, as the winner of game 2.'
+            'ann are the Chancellor, as the winner of Age II.'
         )
         expect(openingLines(state, 'dana')[1]).toBe(
             'dana were dealt the blue board, Citizen side up.'

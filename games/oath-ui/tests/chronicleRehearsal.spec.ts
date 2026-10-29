@@ -55,7 +55,7 @@ for (const viewport of [
             await noOverflow(page, viewport.width)
             await shot(page, 'result')
             await openTab(page, 'History')
-            await expect(history(page)).toContainText('wrote the story of game 1.')
+            await expect(history(page)).toContainText('wrote the story of Age I.')
             await noOverflow(page, viewport.width)
             await shot(page, 'result-history')
         })
@@ -72,7 +72,7 @@ for (const viewport of [
                 /Bea\s*was dealt the black board, Exile side up\.$/,
                 /Rhys\s*kept the red board, Exile side up\.$/,
                 /Ann\s*kept the white board, Exile side up\.$/,
-                /you\s*are the Chancellor, as the winner of game 1\.$/i
+                /you\s*are the Chancellor, as the winner of Age I\.$/i
             ])
             await expect(page.locator('[data-record-row]')).toHaveCount(1)
             await expect(rows.locator('button')).toHaveCount(0)
@@ -93,7 +93,7 @@ for (const viewport of [
             await openTab(page, 'Chronicle')
             const entries = page.locator('.chronicle-tab article')
             await expect(entries).toHaveCount(1)
-            await expect(entries.first()).toContainText('Game 1 · The long table')
+            await expect(entries.first()).toContainText('Age I · The long table')
             await expect(entries.first()).toContainText('Dana held the Cradle.')
             await expect(entries.first().locator('[data-record-chip="purple"]').first()).toHaveText(
                 'Dana'
@@ -119,7 +119,7 @@ for (const viewport of [
                 /Rhys\s*kept the red board, Exile side up\.$/,
                 /Ann\s*kept the yellow board, Exile side up\.$/,
                 /Bea\s*was dealt the white board, Exile side up\.$/,
-                /you\s*are the Chancellor, as the winner of game 1\.$/i
+                /you\s*are the Chancellor, as the winner of Age I\.$/i
             ])
             await noOverflow(page, viewport.width)
             await shot(page, 'pinned-history')

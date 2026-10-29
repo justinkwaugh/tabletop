@@ -110,6 +110,38 @@ export function oathName(oathType: OathType): string {
     return OATH_NAMES[oathType]
 }
 
+const NUMERALS: readonly (readonly [number, string])[] = [
+    [1000, 'M'],
+    [900, 'CM'],
+    [500, 'D'],
+    [400, 'CD'],
+    [100, 'C'],
+    [90, 'XC'],
+    [50, 'L'],
+    [40, 'XL'],
+    [10, 'X'],
+    [9, 'IX'],
+    [5, 'V'],
+    [4, 'IV'],
+    [1, 'I']
+]
+
+/** A whole number from one up in standard subtractive Roman numerals: IV, IX, XL, XC; no cap. */
+export function romanNumeral(n: number): string {
+    if (!Number.isInteger(n) || n < 1) throw Error(`No Roman numeral for ${n}`)
+    let rest = n
+    let numeral = ''
+    for (const [value, letters] of NUMERALS) {
+        for (; rest >= value; rest -= value) numeral += letters
+    }
+    return numeral
+}
+
+/** R-8 — each game of a chronicle is an Age: game 1 is "Age I", game 2 "Age II". */
+export function ageName(gameNumber: number): string {
+    return `Age ${romanNumeral(gameNumber)}`
+}
+
 export function suitName(suit: Suit): string {
     return SUIT_NAMES[suit]
 }

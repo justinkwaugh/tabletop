@@ -1,4 +1,4 @@
-import type { GameAction } from '@tabletop/common'
+import { assertExists, type GameAction } from '@tabletop/common'
 import {
     BoardSide,
     ChronicleKeptFor,
@@ -25,7 +25,15 @@ import {
     type Suit,
     type WinRule
 } from '@tabletop/oath'
-import { cardName, listed, oathName, plural, regionName, suitName } from '$lib/model/names.js'
+import {
+    ageName,
+    cardName,
+    listed,
+    oathName,
+    plural,
+    regionName,
+    suitName
+} from '$lib/model/names.js'
 import { endingParts } from '$lib/model/endings.js'
 
 // R-8 — the chronicle as the History tells it. Every fact is read from the public `chronicle` of
@@ -147,7 +155,7 @@ export function chronicleActionWords(
         return `chose the stack of ${suitName(action.suit)} cards${heal ? `: ${healWords(heal)}` : ''}.`
     }
     if (isWriteChronicleStory(action)) {
-        return words ? `wrote the story of game ${words.gameNumber}.` : 'wrote the story.'
+        return words ? `wrote the story of ${ageName(words.gameNumber)}.` : 'wrote the story.'
     }
     if (isSkipChronicleStory(action)) return 'skipped the story.'
     return undefined
@@ -419,8 +427,11 @@ const CHANCELLOR_WORDS: Record<
     OpeningChancellor,
     (seat: OpeningSeats['chancellor'], words: SeatWords) => string
 > = {
-    [OpeningChancellor.Winner]: (seat, { is }) =>
-        `${is} the Chancellor, as the winner of game ${seat.gameNumber}.`,
+    [OpeningChancellor.Winner]: (seat, { is }) => {
+        // The engine writes the game the winner won with every Winner opening.
+        assertExists(seat.gameNumber, 'R-1.7-H1 — the winner Chancellor names the game they won')
+        return `${is} the Chancellor, as the winner of ${ageName(seat.gameNumber)}.`
+    },
     [OpeningChancellor.Citizen]: (_, { is, their }) =>
         `${is} the Chancellor: ${their} board was on its Citizen side.`,
     [OpeningChancellor.Random]: (_, { is }) => `${is} the Chancellor, chosen at random.`
