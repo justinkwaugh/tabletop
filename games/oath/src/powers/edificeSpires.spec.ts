@@ -22,6 +22,7 @@ import {
 import { served, spectator } from '../testing/projection.js'
 import { usableModifiers, type ModifierUse } from '../util/modifiers.js'
 import { PowerChoiceKind } from '../util/powerChoice.js'
+import { OathRevision } from '../util/revision.js'
 import { legalPowers, reasonCannotUsePower } from '../util/powerDoorway.js'
 import './index.js'
 
@@ -53,7 +54,8 @@ function setPile(s: HydratedOathGameState, region: Region, cardIds: string[]): v
 
 /**
  * Dana, the Chancellor, at the Plains (the Cradle) with Great Spire, or Fallen Spire when `ruined`;
- * the Dispossessed holds `dispossessed`, and the world deck `deck`, top first.
+ * the Dispossessed holds `dispossessed`, and the world deck `deck`, top first. A game created at revision 29,
+ * the first that can hold an edifice.
  */
 function spireTable({
     ruined = false,
@@ -66,7 +68,11 @@ function spireTable({
     dispossessed?: string[]
     over?: Record<string, Record<string, unknown>>
 } = {}): HydratedOathGameState {
-    const s = edificeTable(over, {}, { plains: GREAT_SPIRE, ruined })
+    const s = edificeTable(
+        over,
+        { oathRevision: OathRevision.EngineFixes25 },
+        { plains: GREAT_SPIRE, ruined }
+    )
     s.requireVault().worldDeck = [...deck]
     s.worldDeckExhausted = deck.length === 0
     fillDispossessed(s, dispossessed)

@@ -45,6 +45,7 @@ import type { PowerChoice } from './powerChoice.js'
 import { homelandRelicSlot } from './sitePowers.js'
 import { pawnSiteId } from './pawn.js'
 import { grandScepterHolderId } from './imperial.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 type HiddenOutputAction =
     | UseActionPower
@@ -248,10 +249,17 @@ export function commitHiddenOutputs(
         case ActionType.SearchResolve:
             if (!action.metadata) return
             {
-                // Truthful Harp — the table saw the cards drawn, so it knows which went down, not their order
-                // (the hand's own witnesses: never a card Great Spire swapped in), and the kept card is shown.
+                // Truthful Harp — the table saw the cards drawn, so it knows which went down, not their order,
+                // and the kept card is shown. From revision 29 (R-X.4) the discards' witnesses are the hand's own
+                // (`discardWitnesses`: never a card Great Spire swapped in); before it, every card discarded.
                 const harp = action.metadata.revealedKeptCardId
-                const shown = new Set(harp === undefined ? [] : [harp])
+                const shown = new Set(
+                    harp === undefined
+                        ? []
+                        : isAtLeastOathRevision(state, OathRevision.EngineFixes25)
+                          ? [harp]
+                          : [...action.discardOrder, harp]
+                )
                 const discards: Deposit = {
                     ...deposit,
                     setWitnessesOf: (cardId) => [

@@ -11,6 +11,7 @@ import { PowerQuestionKind } from '../model/question.js'
 import type { HiddenReveal } from '../model/hidden.js'
 import { isVision, kindOf } from '../data/cardRegistry.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 import {
     discardOnto,
     drawFirstVision,
@@ -228,8 +229,10 @@ export function discardWitnesses(state: HydratedOathGameState): DiscardWitnesses
             byCard.set(cardId, [player.playerId])
         for (const entry of player.handSeen)
             if (typeof entry === 'string') alsoKnows(handSetsByCard, entry, 'everyone')
-        // Truthful Harp — the table saw the whole hand drawn.
-        if (player.handShown)
+        // Truthful Harp — the table saw the whole hand drawn, so it knows each card wherever the Search sends
+        // it. From revision 29 (R-X.4); before it the table knew only the Search's discards and its kept card
+        // (`commitHiddenOutputs`), not a drawn card its own When Played power discarded.
+        if (player.handShown && isAtLeastOathRevision(state, OathRevision.EngineFixes25))
             for (const cardId of player.knownHand()) alsoKnows(handSetsByCard, cardId, 'everyone')
         for (const other of state.players) {
             if (other.playerId === player.playerId) continue
