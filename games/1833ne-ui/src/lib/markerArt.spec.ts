@@ -68,4 +68,12 @@ describe('the board as play leaves it', () => {
         expect(marks[1].description).toContain('$60')
         expect(Presentation1833NE.companyMarks?.({ ...state, phaseId: 'IV' }, 'B&P')).toEqual([])
     })
+
+    it('calls a corporation’s private flipped from phase III', () => {
+        const state = scenario('first-operating-round')
+        expect(Presentation1833NE.privateStatus?.(state, 'P6')).toBeUndefined()
+        expect(Presentation1833NE.privateStatus?.({ ...state, phaseId: 'III' }, 'P6')).toBe(
+            'Flipped'
+        )
+    })
 })

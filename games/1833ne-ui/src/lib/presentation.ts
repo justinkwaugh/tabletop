@@ -26,6 +26,9 @@ export const Presentation1833NE: TitlePresentation<State1833NE> = {
     phaseChart: PhaseChart1833NE,
     markerArtFor: playedMarkerArt,
     companyMarks: ferryMarks,
+    // Phase III flips the privates corporations hold: no more income, abilities kept (§9).
+    privateStatus: (state) =>
+        Phases1833NE.isAtLeast(state.phaseId, 'III') ? 'Flipped' : undefined,
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: { P3: 'Lay free tiles in St. Jean (C4) and C6' },
     marketCell: { width: 36, height: 96 },

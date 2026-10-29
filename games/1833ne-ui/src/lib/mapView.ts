@@ -113,9 +113,11 @@ export const TileLayouts1833NE: Readonly<Record<string, TileLayout>> = {
 /**
  * Where each offboard prints its name, on one line, and the stack of its values beneath, beside
  * its spikes as the printed board has them. Eastern Townships prints one name across its two
- * hexes and one stack.
+ * hexes and one stack. The east edge prints its phases after the values.
  */
-const OffboardPrinting: Readonly<Record<string, { name?: Point; stack?: Point }>> = {
+const OffboardPrinting: Readonly<
+    Record<string, { name?: Point; stack?: Point; captionsAfter?: true }>
+> = {
     A6: { name: { x: 0, y: -20 }, stack: { x: -14, y: 3.5 } },
     A12: { name: { x: -4, y: -20 }, stack: { x: -14, y: 3.5 } },
     A20: { name: { x: -6, y: -20 }, stack: { x: -14, y: 3.5 } },
@@ -123,8 +125,8 @@ const OffboardPrinting: Readonly<Record<string, { name?: Point; stack?: Point }>
     A28: { name: { x: -4, y: -20 }, stack: { x: -14, y: 3.5 } },
     B17: { name: { x: -18, y: -24 }, stack: { x: -23, y: 0 } },
     F1: { name: { x: 45, y: 12 } },
-    G2: { stack: { x: 4, y: -6 } },
-    J11: { name: { x: 10, y: -20 }, stack: { x: 10, y: 6 } }
+    G2: { stack: { x: -4, y: -6 }, captionsAfter: true },
+    J11: { name: { x: 10, y: -20 }, stack: { x: 8, y: 6 }, captionsAfter: true }
 }
 
 /** A point beside the board by column (A = 0) and row number, as the printed map numbers them. */
@@ -258,9 +260,14 @@ export const MapView1833NE: MapViewDefinition = {
         B3: Montreal,
         I14: Portland,
         ...Object.fromEntries(
-            Object.entries(OffboardPrinting).map(([id, { stack }]) => [
+            Object.entries(OffboardPrinting).map(([id, { stack, captionsAfter }]) => [
                 id,
-                stack ? { revenuePositions: { offboard: stack } } : { hideRevenue: true as const }
+                stack
+                    ? {
+                          revenuePositions: { offboard: stack },
+                          ...(captionsAfter ? { revenueCaptionsAfter: true } : {})
+                      }
+                    : { hideRevenue: true as const }
             ])
         ),
         // The port connections below New Haven and Norwich pay nothing and print an anchor.
