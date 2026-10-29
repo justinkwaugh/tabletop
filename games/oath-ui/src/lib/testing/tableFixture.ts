@@ -128,6 +128,12 @@ import {
     squalidAskedTable
 } from './edificeTables.js'
 import { gameOneAt, gameThreeContinued, gameThreeOpen, gameTwoAt } from './chronicleTables.js'
+import {
+    rehearsalOpen,
+    rehearsalPinnedOpen,
+    rehearsalResult,
+    rehearsalSearch
+} from './rehearsalTables.js'
 
 export type TableName =
     | 'setup'
@@ -377,6 +383,10 @@ export type TableName =
     | 'chronicleHeal'
     | 'chronicleRecord'
     | 'chronicleOpen'
+    | 'rehearsalResult'
+    | 'rehearsalOpen'
+    | 'rehearsalSearch'
+    | 'rehearsalPinnedOpen'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -5483,7 +5493,7 @@ function historyWordsTable(scene: HistoryScene): PlayedTable {
     return { state: recordedState, actions }
 }
 
-const TABLES: Record<TableName, () => PlayedTable> = {
+const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     drumAsked: () => drumTable('whistle'),
     drumAskedCitizen: () => drumTable('citizen'),
     drumAfterToll: () => drumTable('toll'),
@@ -5773,7 +5783,11 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     chronicleSuit: () => gameTwoAt('suit'),
     chronicleHeal: () => gameTwoAt('heal'),
     chronicleRecord: () => gameThreeOpen(),
-    chronicleOpen: () => gameThreeContinued()
+    chronicleOpen: () => gameThreeContinued(),
+    rehearsalResult,
+    rehearsalOpen,
+    rehearsalSearch,
+    rehearsalPinnedOpen
 }
 
 /** Every table a scenario can open. */
@@ -5802,7 +5816,7 @@ async function settled(): Promise<void> {
 export async function open(name: TableName): Promise<{ seatId: string | undefined }> {
     if (component) await unmount(component)
     disposeSessions()
-    session = await openSessionOn(TABLES[name]())
+    session = await openSessionOn(await TABLES[name]())
     const target = document.createElement('div')
     target.style.height = '100vh'
     document.body.replaceChildren(target)
