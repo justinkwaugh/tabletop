@@ -1,12 +1,16 @@
 import { assert, assertExists } from '@tabletop/common'
-import type { HydratedOathGameState } from '../model/gameState.js'
+import type { HydratedOathGameState, OathProjectedState } from '../model/gameState.js'
 import { Region, Suit } from '../model/oathEnums.js'
 import { topBackType } from '../model/vault.js'
 import { PRINTED_DENIZENS_BY_SUIT, isVision, kindOf } from '../data/cardRegistry.js'
 import { FAVOR_BANK_ORDER } from '../data/favorBanks.js'
 import { bySuit } from '../data/typedData.js'
-import { CIRCULATING_DENIZENS, stackWorldDeck } from '../data/worldDeck.js'
-import type { ChronicleEntry } from '../model/chronicle.js'
+import {
+    CIRCULATING_DENIZENS,
+    DENIZENS_PER_SUIT_IN_PLAY,
+    stackWorldDeck
+} from '../data/worldDeck.js'
+import type { ChronicleAdded, ChronicleEntry } from '../model/chronicle.js'
 import { chronicleOf, chronicleWinnerOf } from './chronicleChoices.js'
 import { ChronicleShuffle, chronicleShuffles } from './chronicleRandom.js'
 import { clearPiecesOn } from './chronicleMap.js'
@@ -28,6 +32,38 @@ export function denizensInCirculation(record: readonly ChronicleEntry[]): number
         (total, entry) => total - (entry.added?.heal ? SIX - entry.added.heal.count : 0),
         CIRCULATING_DENIZENS
     )
+}
+
+/**
+ * The denizens this game holds, the Dispossessed included (every one not in the Archive), from
+ * the public record and the chronicle being written: a first game's nine of each suit (R-1.21)
+ * and each 3/2/1 (R-8.4), so the count of each suit is public. A heal (R-8.4.a) returns the
+ * Dispossessed, whose suits no one saw, to the Archive: from then on only the number is.
+ */
+export function denizensHeld(
+    state: Pick<OathProjectedState, 'chronicle' | 'chronicleRecord' | 'dispossessedCount'>
+): { bySuit: Record<Suit, number> } | { count: number } {
+    const record = state.chronicleRecord ?? []
+    // Once written, the chronicle's entry is the record's last.
+    const writing = state.chronicle?.step !== undefined ? state.chronicle : undefined
+    const added = [...record.map((entry) => entry.added), writing?.added]
+    if (added.some((each) => each?.heal !== undefined)) {
+        // The chronicle being written: what R-8.4 added, less what R-8.5 moved on to the Dispossessed.
+        const moved = writing ? addedCount(writing.added) - (writing.dispossessed ?? 0) : 0
+        return { count: denizensInCirculation(record) + moved + state.dispossessedCount }
+    }
+    // R-8.4 — 3, 2 and 1 of the suits in the order the chronicle added them.
+    const addedOf = (suit: Suit) =>
+        added.reduce(
+            (total, each) => total + (ADDED_BY_SUIT[each?.suits?.indexOf(suit) ?? -1] ?? 0),
+            0
+        )
+    return { bySuit: bySuit((suit) => DENIZENS_PER_SUIT_IN_PLAY + addedOf(suit)) }
+}
+
+function addedCount(added: ChronicleAdded | undefined): number {
+    if (added?.heal) return added.heal.count
+    return added?.suits ? SIX : 0
 }
 
 /** R-8.4 — the Archive: every printed denizen in no zone of this game, by the suit it prints. */

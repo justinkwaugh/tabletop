@@ -28,7 +28,8 @@ import {
     OathType,
     PlayerStatus,
     Region,
-    SetupVariant
+    SetupVariant,
+    Suit
 } from '../model/oathEnums.js'
 import { BoardSide, OpeningChancellor, type ChronicleEntry } from '../model/chronicle.js'
 import { WinKind } from '../model/ending.js'
@@ -914,8 +915,17 @@ describe('hidden information at open (R-9.4)', () => {
         expect(ann.getPlayerState(idOf(DANA)).handIds).toBeUndefined()
     })
 
-    it('an exploration from a seat’s view deals only what that seat cannot see, with no suit quota', () => {
-        const state = open()
+    it('an exploration from a seat’s view deals only what that seat cannot see, each suit to the count the record gives', () => {
+        // The pinned game 2 records its own entry only; its world holds game 1's 3/2/1 too
+        // (Order, Hearth, Beast: R-8.4), so the record here starts with game 1's entry.
+        const previous = finished()
+        const [own] = previous.chronicleRecord as ChronicleEntry[]
+        const { built: _built, ruined: _ruined, story: _story, ...plain } = own
+        previous.chronicleRecord = [
+            { ...plain, gameNumber: 1, added: { suits: [Suit.Order, Suit.Hearth, Suit.Beast] } },
+            { ...own, gameNumber: 2 }
+        ]
+        const state = open([DANA, RHYS, ANN], previous)
         const view = served(state, { kind: 'player', playerId: idOf(ANN) })
         const explored = new OathGameExploration().createFromProjectedState({
             state: view,
@@ -931,6 +941,18 @@ describe('hidden information at open (R-9.4)', () => {
         expect(vaultOf(explored).worldDeck).toHaveLength(41)
         expect(vaultOf(explored).dispossessed).toHaveLength(12)
         expect(openingCensus(s)).toEqual([])
+        const suits = (game: HydratedOathGameState) =>
+            Object.values(Suit).map(
+                (suit) =>
+                    [
+                        ...game.requireVault().worldDeck,
+                        ...Object.values(game.requireVault().discardPiles).flat(),
+                        ...game.requireVault().dispossessed,
+                        ...Object.values(game.denizensBySite).flat(),
+                        ...game.players.flatMap((p) => [...p.knownAdviserIds(), ...p.knownHand()])
+                    ].filter((cardId) => cardId.startsWith(`denizen.${suit}.`)).length
+            )
+        expect(suits(s)).toEqual(suits(hydrated(state)))
     })
 })
 

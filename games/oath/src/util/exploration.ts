@@ -14,14 +14,13 @@ import { LEGACY_CURATED_DENIZENS, LEGACY_CURATED_SITES } from '../data/legacyCur
 import { RELIC_DECK_IDS } from '../data/relics.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
 import {
-    DENIZENS_PER_SUIT_IN_PLAY,
     SECOND_PILE_DENIZENS,
     SECOND_PILE_VISIONS,
     TOP_PILE_DENIZENS,
     TOP_PILE_VISIONS
 } from '../data/worldDeck.js'
 import { noKnownDiscardPiles } from './knowledge.js'
-import { denizensInCirculation } from './chronicleCards.js'
+import { denizensHeld } from './chronicleCards.js'
 
 type ProjectedQuestion = NonNullable<OathProjectedState['pendingQuestions']>['queue'][number]
 
@@ -250,6 +249,8 @@ function namedWorldCards(
     questions: readonly ProjectedQuestion[]
 ): Set<string> {
     const named = new Set<string>([...Object.values(state.denizensBySite).flat(), ...state.boxIds])
+    // R-8.3.1 — the denizen a build replaced waits, public, for R-8.8.
+    if (state.chronicle?.returnedDenizenId) named.add(state.chronicle.returnedDenizenId)
     for (const player of state.players) {
         for (const row of player.advisers) {
             if (row.cardId) named.add(row.cardId)
@@ -292,16 +293,19 @@ function unnamedWorldCards(
 ): { visions: string[]; denizens: string[] } {
     const visions = cardIdsOfKind(CardKind.Vision).filter((cardId) => !named.has(cardId))
     const pools = explorationPools(state)
-    const denizens = state.openingSeats
-        ? continuedWorldDenizens(state, pools.denizens, named, random)
-        : firstGameWorldDenizens(pools.denizens, named, random)
+    const held = denizensHeld(state)
+    const denizens =
+        'bySuit' in held
+            ? unseenDenizensBySuit(held.bySuit, pools.denizens, named, random)
+            : unseenDenizens(held.count, pools.denizens, named, random)
     shuffle(visions, random)
     shuffle(denizens, random)
     return { visions, denizens }
 }
 
-/** R-1.21 — nine denizens of each suit, some of which the table has not seen. */
-function firstGameWorldDenizens(
+/** R-1.21, R-8.4 — each suit's count in the game, some of which the table has not seen. */
+function unseenDenizensBySuit(
+    held: Record<Suit, number>,
     pool: readonly string[],
     named: ReadonlySet<string>,
     random: RandomFunction
@@ -309,33 +313,25 @@ function firstGameWorldDenizens(
     return Object.values(Suit).flatMap((suit) => {
         const ofSuit = pool.filter((cardId) => suitOf(cardId) === suit)
         const inPlay = ofSuit.filter((cardId) => named.has(cardId)).length
-        assert(
-            inPlay <= DENIZENS_PER_SUIT_IN_PLAY,
-            `More than ${DENIZENS_PER_SUIT_IN_PLAY} ${suit} denizens are in play`
-        )
+        assert(inPlay <= held[suit], `More than ${held[suit]} ${suit} denizens are in play`)
         const unseen = ofSuit.filter((cardId) => !named.has(cardId))
         shuffle(unseen, random)
-        return unseen.slice(0, DENIZENS_PER_SUIT_IN_PLAY - inPlay)
+        return unseen.slice(0, held[suit] - inPlay)
     })
 }
 
-/**
- * A continued game: the chronicle changed each suit's share (R-8.4), so no suit has a quota. The
- * hidden denizens are the circulation the public record gives (R-1.19.a-H1, R-8.5) and the
- * Dispossessed, less every one the table can name; the rest of the 198 are the Archive.
- */
-function continuedWorldDenizens(
-    state: OathProjectedState,
+/** R-8.4.a — after a heal, only how many the game holds; the rest of the 198 are the Archive. */
+function unseenDenizens(
+    held: number,
     pool: readonly string[],
     named: ReadonlySet<string>,
     random: RandomFunction
 ): string[] {
-    const inGame = denizensInCirculation(state.chronicleRecord ?? []) + state.dispossessedCount
-    const hidden = inGame - pool.filter((cardId) => named.has(cardId)).length
+    const hidden = held - pool.filter((cardId) => named.has(cardId)).length
     const unseen = pool.filter((cardId) => !named.has(cardId))
     assert(
         hidden >= 0 && hidden <= unseen.length,
-        `The table names more denizens than the ${inGame} a continued game holds`
+        `The table names more denizens than the ${held} the game holds`
     )
     shuffle(unseen, random)
     return unseen.slice(0, hidden)
