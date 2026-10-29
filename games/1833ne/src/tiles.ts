@@ -136,7 +136,6 @@ const StandardCounts: Readonly<Record<string, number>> = {
     '4': 4,
     '5': 3,
     '6': 6,
-    '7': 4,
     '57': 5,
     '58': 7,
     '14': 4,
@@ -209,6 +208,8 @@ export const TileSet1833NE = new TileSet(
                 faceDefinitionIds: [`18xx:${number}`],
                 count
             })),
+            // The basic yellow track tiles #7, #8 and #9 are unlimited (§6.47).
+            { id: '7', faceDefinitionIds: ['18xx:7'], count: 'unlimited' as const },
             {
                 id: '8/9',
                 faceDefinitionIds: ['18xx:8', '18xx:9'],

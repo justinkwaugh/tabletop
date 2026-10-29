@@ -333,3 +333,27 @@ describe('private blocks (§6.46)', () => {
         expect(blockedByPrivate(state, 'G20')).toBe(false)
     })
 })
+
+describe('tile supply and orientation (§6.46–6.47)', () => {
+    it('never runs out of the basic yellow track tiles #7, #8 and #9', () => {
+        const inventory = TileSet1833NE.createInventory([])
+        const retired = Array.from({ length: 12 }, (_, index) => `1833ne/7/${index + 1}`)
+        for (const id of ['18xx:7', '18xx:8', '18xx:9'])
+            expect(
+                TileSet1833NE.availablePieces({ ...inventory, retiredPieceIds: retired }, id).length
+            ).toBeGreaterThan(0)
+    })
+
+    it('lays Sherbrooke’s tile only as its arrow shows: north, north-east and south', () => {
+        const state = position([], [], {})
+        const request = (rotation: 0 | 1) => ({
+            companyId: 'StL&A',
+            locationId: 'F5',
+            definitionId: '1833ne:N11',
+            rotation,
+            nodeMapping: {}
+        })
+        expect(TrackRules1833NE.restriction?.(state, request(0))).toBeUndefined()
+        expect(TrackRules1833NE.restriction?.(state, request(1))).toContain('arrow')
+    })
+})
