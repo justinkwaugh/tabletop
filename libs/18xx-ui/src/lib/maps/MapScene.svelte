@@ -27,6 +27,7 @@
         type MapToken,
         type MapRoute,
         CaptionFontSize,
+        TerrainNoteDrop,
         TokenTabReach,
         NoticeFontSize,
         NoticeY
@@ -437,6 +438,22 @@
                                     font-weight="750">{cost}</text
                                 >
                             </g>
+                            {#each (entry.location.markers ?? []).filter((marker) => {
+                                const art = entry.markerArt[marker.id]
+                                return !!art && 'terrainNote' in art
+                            }) as marker (marker.id)}
+                                <text
+                                    data-map-terrain-note={marker.id}
+                                    x={entry.terrainPosition.x}
+                                    y={entry.terrainPosition.y + TerrainNoteDrop}
+                                    font-size="7"
+                                    font-weight="750"
+                                    fill={terrain.kinds[0] === 'mountain'
+                                        ? MountainIcon.fill
+                                        : '#287fab'}
+                                    ><title>{marker.description}</title>{marker.label}</text
+                                >
+                            {/each}
                         {/if}
                         {#if (!entry.placed || entry.face.color === 'yellow') && overlayLabels.length}
                             {@const text = overlayLabels.map((label) => label.label).join(' ')}

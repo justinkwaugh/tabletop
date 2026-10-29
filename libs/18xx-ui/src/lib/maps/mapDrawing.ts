@@ -102,6 +102,8 @@ export type MapMarkerArt =
     | { localLine: true; above?: true }
     /** The marker's label, large in the centre of an unbuilt hex. */
     | { centeredLabel: true }
+    /** The marker's label under an unbuilt hex's terrain cost, such as a lower cost it prints. */
+    | { terrainNote: true }
     /** The marker's label as a printed note across an unbuilt hex's lower half, such as a reservation. */
     | { notice: true }
     /** A ring around the hex's towns, drawn as dots, as a medium city is printed. */
@@ -643,6 +645,14 @@ export function createMapDrawing(
                         ...(!placement && location.terrain
                             ? [terrainBox(location.terrain, terrainCostPrefix, terrainRow)]
                             : []),
+                        ...(!placement &&
+                        location.terrain &&
+                        markers.some((marker) => {
+                            const art = markerArt[marker.id]
+                            return !!art && 'terrainNote' in art
+                        })
+                            ? [box({ x: terrainRow.x, y: terrainRow.y + TerrainNoteDrop }, 16, 4)]
+                            : []),
                         ...(markers.some((marker) => !markerArt[marker.id])
                             ? [box({ x: 0, y: 36 }, 24, 4)]
                             : []),
@@ -767,6 +777,7 @@ function withRevenueLeads(face: TileFace, leads: readonly RevenueLead[]): TileFa
 }
 
 export const CaptionFontSize = 5
+export const TerrainNoteDrop = 12
 export const NoticeFontSize = 9
 export const NoticeY = 24
 
