@@ -100,7 +100,7 @@ describe('OathGameSession — Undo and the history gate', () => {
         const session = await openSession()
         const [first] = session.search.drawn
         session.search.keep(first)
-        session.beforeNewState()
+        session.beforeNewState({ kind: 'other-action', actions: [], intent: 'silent' })
         expect(session.search.kept).toBeUndefined()
         expect(session.hasManualDraft).toBe(false)
     })
@@ -675,7 +675,7 @@ describe('R-6.1, R-9.4 — letting another player peek', () => {
 
         session.toggleLetPeek()
         expect(session.letPeekOpen).toBe(true)
-        session.beforeNewState()
+        session.beforeNewState({ kind: 'other-action', actions: [], intent: 'silent' })
         expect(session.letPeekOpen).toBe(false)
 
         session.toggleLetPeek()

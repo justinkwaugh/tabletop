@@ -1,4 +1,8 @@
-import { GameSession } from '@tabletop/frontend-components'
+import {
+    GameSession,
+    type PresentedTransition,
+    type TransitionKind
+} from '@tabletop/frontend-components'
 import { assert, assertExists, type Color, type GameAction } from '@tabletop/common'
 import {
     ActionType,
@@ -216,6 +220,9 @@ import {
     type TakePrizeOption
 } from './conspiracyTake.js'
 
+/** Transitions that leave the live game as it was: the winner's story survives them. */
+const KEEPS_THE_STORY: ReadonlySet<TransitionKind> = new Set(['history', 'view-switch'])
+
 export class OathGameSession extends GameSession<OathProjectedState, HydratedOathGameState> {
     selection = new OathSelection()
     readonly search = new SearchDraft(this)
@@ -296,13 +303,22 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     resetAction(): void {
-        this.selection.reset()
-        this.clearActionDrafts()
-        for (const draft of this.panelDrafts) draft.reset()
+        this.resetDraftsBut()
     }
 
-    override beforeNewState(): void {
-        this.resetAction()
+    private resetDraftsBut(kept?: PanelDraft): void {
+        this.selection.reset()
+        this.clearActionDrafts()
+        for (const draft of this.panelDrafts) if (draft !== kept) draft.reset()
+    }
+
+    /**
+     * Policy item 33 — each draft's lifetime by the transition kind. Stepping into History and back,
+     * or toggling full screen, leaves the live game as it was, so the winner's story stays; any
+     * other transition resets every draft.
+     */
+    override beforeNewState(transition: PresentedTransition): void {
+        this.resetDraftsBut(KEEPS_THE_STORY.has(transition.kind) ? this.chronicleStory : undefined)
     }
 
     // docs/user-interactions.md — a manual pick absorbs the press; an auto pick never does.
