@@ -59,7 +59,7 @@ export class HydratedBuyShares extends HydratableAction<typeof BuyShares> implem
         recordTurnPurchase(state, this.#rules, {
             kind: 'share',
             companyId: result.details.companyId,
-            ...(result.poolId ? { poolId: result.poolId } : {})
+            ...(result.details.poolId ? { poolId: result.details.poolId } : {})
         })
         applySharePurchase(state, result.details)
         this.#rules.afterSharePurchase?.(state, result.details)

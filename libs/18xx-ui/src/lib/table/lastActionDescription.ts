@@ -35,7 +35,8 @@ export function describeLastAction(
             money,
             (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
             (id) => session.names.routeBonus(id),
-            placeReference
+            placeReference,
+            (id) => session.poolName(id)
         )
     return describeAction?.(action, { companyName, place: placeReference }, shared) ?? shared()
 }

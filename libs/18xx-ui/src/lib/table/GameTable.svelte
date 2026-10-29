@@ -131,7 +131,6 @@
         includedCompanyIds = [],
         numberedShareNames,
         mapFocusExcludedCompanyIds = [],
-        poolName,
         trainColors,
         phaseColors,
         phaseChart: defaultPhaseChart,
@@ -857,7 +856,6 @@
         {company}
         {session}
         {trainColors}
-        {poolName}
         onPreviewMap={previewHistoryMap}
     />{/snippet}
 
@@ -1197,7 +1195,6 @@
                                             {trainColors}
                                             {session}
                                             {company}
-                                            {poolName}
                                         />
                                     {/snippet}
                                 </CompanyOrder>{/if}

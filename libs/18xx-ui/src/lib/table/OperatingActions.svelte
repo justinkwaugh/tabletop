@@ -25,7 +25,7 @@
         privateOperationDescription: (id: string, companyId: string) => string | undefined
         session: EighteenXXSessionView
     } = $props()
-    const { trainColors, poolName, privateTilePrompts } = $derived(session.presentation)
+    const { trainColors, privateTilePrompts } = $derived(session.presentation)
     const gameState = $derived(session.gameState)
     const trainBuying = $derived(gameState.machineState === 'BuyingTrains')
     const trainOffer = $derived(trainBuying && gameState.purchaseOffer?.asset.kind === 'train')
@@ -47,7 +47,7 @@
         {:else if gameState.machineState === 'StockRound' && session.companyAuction.auction}
             <CompanyAuctionBidding {session} />
         {:else if gameState.machineState === 'StockRound'}
-            <StockRoundActions {session} {poolName} />
+            <StockRoundActions {session} />
         {:else if session.stations.homeChoice}<HomeStationChoice {session} />
         {:else if session.stations.privateStation}<PrivateStationChoice {session} />
         {:else if gameState.machineState === 'LayingTrack'}<TrackBuilding
