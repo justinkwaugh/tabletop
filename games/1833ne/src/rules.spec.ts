@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { TrackConstruction, usesStationAt, type TrackLayDetails } from '@tabletop/18xx'
+import {
+    TrackConstruction,
+    privateTrackConstruction,
+    usesStationAt,
+    type TrackLayDetails
+} from '@tabletop/18xx'
 import { table } from '../test/table.js'
 import { position } from '../test/position.js'
-import { rotationFor } from '../test/flow.js'
-import { privatePhaseEffects } from './privates.js'
+import { buyAllPrivates, launch, passStockRound, rotationFor } from '../test/flow.js'
+import { PrivatePowerRules1833NE, privatePhaseEffects } from './privates.js'
 import { trainRetirement } from './trains.js'
 import { TrackRules1833NE } from './track.js'
 
@@ -179,5 +184,59 @@ describe('Lowell Merchants (P2)', () => {
         }
         expect(TrackRules1833NE.terrainCost?.(state, request, 0)).toBe(0)
         expect(TrackRules1833NE.terrainCost?.(state, { ...request, companyId: 'B&P' }, 0)).toBe(20)
+    })
+})
+
+describe('Champlain & St. Lawrence (P3)', () => {
+    it('once used lays both its tiles, C4 to Montreal and C6 to C4, without a decline', () => {
+        const game = table()
+        buyAllPrivates(game)
+        launch(game, 'StL&A', 100)
+        passStockRound(game)
+        const certificate = game.state.certificates.find(
+            (entry) => entry.companyId === 'P3' && entry.kind === 'private'
+        )!
+        certificate.owner = { kind: 'company', companyId: 'StL&A' }
+        const president = game.player
+        const layChamplain = (locationId: string) => {
+            const terms = PrivatePowerRules1833NE.trackTerms(game.hydrated, 'P3', president)!
+            const [choice] = privateTrackConstruction(
+                game.hydrated,
+                terms,
+                TrackRules1833NE
+            ).choices(locationId)
+            game.act('LayPrivateTile', {
+                privateCompanyId: 'P3',
+                companyId: 'StL&A',
+                locationId,
+                definitionId: choice.definitionId,
+                rotation: choice.rotation,
+                nodeMapping: choice.nodeMapping,
+                expectedCost: choice.cost
+            })
+        }
+        expect(game.valid(president)).toContain('LayPrivateTile')
+        const cash = game.state.companies.find((company) => company.id === 'StL&A')
+        layChamplain('C4')
+        expect(game.state.privateTrackLay).toEqual({
+            privateCompanyId: 'P3',
+            playerId: president,
+            required: true
+        })
+        // A standing run instruction is no move, so it stays open.
+        expect(game.valid(president).filter((type) => type !== 'SetRunInstruction')).toEqual([
+            'LayPrivateTile'
+        ])
+        expect(() => game.act('DeclinePrivateTile', { privateCompanyId: 'P3' })).toThrow()
+        expect(
+            PrivatePowerRules1833NE.trackTerms(game.hydrated, 'P3', president)?.locationIds
+        ).toEqual(['C6'])
+        layChamplain('C6')
+        expect(game.state.privateTrackLay).toBeUndefined()
+        expect(game.valid(president)).not.toContain('LayPrivateTile')
+        expect(
+            game.state.tileInventory.placements.C4 && game.state.tileInventory.placements.C6
+        ).toBeTruthy()
+        expect(game.state.companies.find((company) => company.id === 'StL&A')).toEqual(cash)
     })
 })

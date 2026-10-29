@@ -4,6 +4,7 @@ import {
     CashCrisisFields,
     CorporateFinanceFields,
     PrivatePowerFields,
+    PrivateTrackFields,
     RailwayFields,
     composeEighteenXXState,
     defineEighteenXXState,
@@ -19,6 +20,8 @@ export const State1833NE = composeEighteenXXState(
     {
         ...RailwayFields,
         ...PrivatePowerFields,
+        // The C&StL's second tile, laid once its first is.
+        ...PrivateTrackFields,
         ...AuctionFields,
         ...CorporateFinanceFields,
         bankruptPlayerIds: CashCrisisFields.bankruptPlayerIds,

@@ -225,6 +225,9 @@ Built on branch `feat/implement-1833ne`. Family changes beyond the plan above:
   leaves the joint piece to the other.
 - **Several homes per hex** in the location factory (Boston: B&W and B&L).
 - **Purchase charges** (`PurchaseEffects.charges`) record the D&H's $40 to the bank.
+- **Lays made together** (`PrivateTrackTerms.together`): the C&StL starts only when C4 and C6
+  both have a lay, and once one is laid the other is a required `privateTrackLay` the player may
+  not decline.
 - **Autorouter wire version 5:** N+s budgets, end-only destinations and interconnection
   extensions; the shortest extension per end and destination is tried.
 - **UI:** route overlays draw extensions. 1846's finance panel and construction modes are
@@ -247,9 +250,8 @@ release is a major.
 
 ### Known limits
 
-- **Takeover game** not built (its five corporations are unidentified).
+- **Takeover game** not built (its five corporations are unidentified); deferred.
 - **Last ferry bonus** assumed +20; **golden spike** text assumed on both mats.
-- **P3** may lay one of its two tiles and stop; the rulebook says both must be laid.
 - **Manual route drawing** of an extension exists only in the debug route builder; the table
   relies on the autorouter for extensions.
 - **No scenarios** yet: the title is not in the 18xx playground or `games.json`.

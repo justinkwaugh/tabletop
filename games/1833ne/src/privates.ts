@@ -184,6 +184,8 @@ export const PrivatePowerRules1833NE: PrivatePowerRules = {
             payer: { kind: 'company', companyId },
             connected: false,
             reusable: true,
+            // Once used, both tiles must be laid (rulebook p. 13).
+            together: true,
             free: true,
             restriction(request) {
                 const lay = ChamplainLays[request.locationId]

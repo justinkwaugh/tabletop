@@ -1782,6 +1782,28 @@
         },
         "type": "array"
       },
+      "privateTrackLay": {
+        "additionalProperties": false,
+        "properties": {
+          "playerId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "privateCompanyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "required": {
+            "const": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "playerId",
+          "privateCompanyId"
+        ],
+        "type": "object"
+      },
       "prng": {
         "properties": {
           "invocations": {
