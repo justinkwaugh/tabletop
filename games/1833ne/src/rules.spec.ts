@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
     TrackConstruction,
+    rotateTileFace,
+    type TileFace,
     privateTrackConstruction,
     usesStationAt,
     type TrackLayDetails
@@ -11,6 +13,7 @@ import { buyAllPrivates, launch, passStockRound, rotationFor } from '../test/flo
 import { PrivatePowerRules1833NE, blockedByPrivate, privatePhaseEffects } from './privates.js'
 import { trainRetirement } from './trains.js'
 import { Map1833NE } from './map.js'
+import { TileSet1833NE } from './tiles.js'
 import { TrackRules1833NE } from './track.js'
 
 describe('phases (§9)', () => {
@@ -82,7 +85,12 @@ describe('the St. Lawrence corporations', () => {
 })
 
 describe('brown cities (p. 21)', () => {
-    const brownChoices = (locationId: string, definitionId: string, edges: number[]) => {
+    const brownChoices = (
+        locationId: string,
+        definitionId: string,
+        edges: number[],
+        retiredPieceIds: string[] = []
+    ) => {
         const state = position(
             [{ locationId, definitionId, rotation: rotationFor(definitionId, edges) }],
             [{ companyId: 'CV', locationId }],
@@ -90,6 +98,7 @@ describe('brown cities (p. 21)', () => {
             'IV'
         )
         state.trackStep = { companyId: 'CV', lays: [], completed: false }
+        state.tileInventory.retiredPieceIds.push(...retiredPieceIds)
         const account = state.cash.find(
             (entry) => entry.owner.kind === 'company' && entry.owner.companyId === 'CV'
         )!
@@ -106,6 +115,49 @@ describe('brown cities (p. 21)', () => {
 
     it('offers only 60 and 70 cities where they fit', () => {
         expect(brownChoices('F19', '18xx:619', [0, 2, 3, 4])).toEqual(['N50', 'N54'])
+    })
+
+    it('upgrades each green city to its own 50 as the manifest lists (p. 21)', () => {
+        const definition = (id: string) =>
+            TileSet1833NE.definitions.find((entry) => entry.id === id)!
+        const exits = (face: TileFace) =>
+            face.paths.flatMap((path) =>
+                path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
+            )
+        const upgrades = (green: string) =>
+            TileSet1833NE.definitions
+                .filter(
+                    (brown) =>
+                        brown.face.color === 'brown' &&
+                        brown.face.labels.length === 0 &&
+                        brown.face.nodes.some((node) => node.kind === 'city')
+                )
+                .filter((brown) =>
+                    ([0, 1, 2, 3, 4, 5] as const).some((rotation) => {
+                        const after = exits(rotateTileFace(brown.face, rotation))
+                        return exits(definition(green).face).every((edge) => after.includes(edge))
+                    })
+                )
+                .map((brown) => brown.id.replace('1833ne:', ''))
+                .sort()
+        expect(upgrades('18xx:14')).toEqual(['N50', 'N51', 'N54'])
+        expect(upgrades('18xx:15')).toEqual(['N50', 'N52', 'N54'])
+        expect(upgrades('18xx:619')).toEqual(['N50', 'N53', 'N54'])
+        expect(upgrades('1833ne:N27')).toEqual(['N50', 'N52', 'N54'])
+        expect(upgrades('1833ne:N28')).toEqual(['N50', 'N51', 'N54'])
+    })
+
+    it('offers the 50 once no 60 or 70 is left', () => {
+        const pieces = (id: string, count: number) =>
+            Array.from({ length: count }, (_, index) => `1833ne/${id}/${index + 1}`)
+        expect(
+            brownChoices(
+                'F19',
+                '18xx:619',
+                [0, 2, 3, 4],
+                [...pieces('N50', 5), ...pieces('N54', 2)]
+            )
+        ).toEqual(['N53'])
     })
 
     it('offers a 50 where no 60 or 70 fits, as in Portsmouth', () => {

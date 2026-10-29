@@ -111,7 +111,7 @@ const TitleFaces: Readonly<Record<string, TileFace>> = {
     N34: city('brown', [1, 2, 3], 70, 3, ['Po']),
     N35: city('brown', [0, 4, 5], 80, 3, ['Mo']),
     N50: city('brown', all, 60, 2),
-    N51: city('brown', [0, 2, 3, 4], 50, 2),
+    N51: city('brown', [0, 1, 3, 4], 50, 2),
     N52: city('brown', [0, 3, 4, 5], 50, 2),
     N53: city('brown', [0, 1, 3, 5], 50, 2),
     N54: city('brown', all, 70, 3),
