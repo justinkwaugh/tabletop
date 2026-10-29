@@ -159,6 +159,11 @@ export const OathGameState = Type.Object({
     ruinedEdificeIds: Type.Optional(Type.Array(Type.String(), { maxItems: 6 })),
     /** From the chronicle revision: the table as it started, read by the record. */
     table: Type.Optional(TableRecord),
+    /**
+     * From the chronicle revision: present on a tournament's game, whose result comes at the win
+     * with no chronicle (R-8-H1); absent on every other game.
+     */
+    tournamentGame: Type.Optional(Type.Literal(true)),
     /** R-8 — from the chronicle revision, present once the game is won. */
     chronicle: Type.Optional(Chronicle),
     /** R-8 — one entry per game, oldest first; absent until the first chronicle ends. */
@@ -241,6 +246,7 @@ export class HydratedOathGameState
     declare chancellorPlayerId?: string
     declare ruinedEdificeIds?: string[]
     declare table?: TableRecord
+    declare tournamentGame?: true
     declare chronicle?: Chronicle
     declare chronicleRecord?: ChronicleEntry[]
     declare boxedCitizenColors?: Color[]

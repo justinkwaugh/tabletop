@@ -1,5 +1,5 @@
 import { assert, assertExists, type Game, type GameAction } from '@tabletop/common'
-import type { HydratedOathGameState } from '../model/gameState.js'
+import type { HydratedOathGameState, OathGameState } from '../model/gameState.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import {
     ChronicleStep,
@@ -134,10 +134,20 @@ const LEAVES_ITS_STEP_OPEN: ReadonlySet<string> = new Set([
     ActionType.ChooseHealStack
 ])
 
-/** R-3 — the one winner, and from the chronicle revision the ending R-8 reads. */
+/**
+ * R-8 — whether a won game writes its chronicle: from its revision, unless a tournament plays it
+ * (R-8-H1). A tournament game is never continued, and the chronicle's waits would hold its result.
+ */
+export function writesChronicle(
+    state: Pick<OathGameState, 'oathRevision' | 'tournamentGame'>
+): boolean {
+    return isAtLeastOathRevision(state, OathRevision.Chronicle) && state.tournamentGame !== true
+}
+
+/** R-3 — the one winner, and in a game that writes its chronicle the ending R-8 reads. */
 export function recordWin(state: HydratedOathGameState, outcome: GameOutcome): void {
     state.winningPlayerIds = [outcome.winnerPlayerId]
-    if (!isAtLeastOathRevision(state, OathRevision.Chronicle)) return
+    if (!writesChronicle(state)) return
     state.chronicle = {
         ending: {
             winnerPlayerId: outcome.winnerPlayerId,
@@ -159,11 +169,11 @@ function waysMetBy(state: HydratedOathGameState, playerId: string): ChronicleWay
 }
 
 /**
- * R-3, R-8 — where the action that won goes: the result, or from its revision the chronicle, whose
- * steps the Chronicle phase runs as System Actions of their own.
+ * R-3, R-8 — where the action that won goes: the result, or in a game that writes its chronicle
+ * the chronicle, whose steps the Chronicle phase runs as System Actions of their own.
  */
 export function stateAfterWin(state: HydratedOathGameState): MachineState {
-    if (!isAtLeastOathRevision(state, OathRevision.Chronicle)) return MachineState.EndOfGame
+    if (!writesChronicle(state)) return MachineState.EndOfGame
     const chronicle = state.chronicle
     assertExists(chronicle, 'R-3 — the action that won stored its ending')
     assert(

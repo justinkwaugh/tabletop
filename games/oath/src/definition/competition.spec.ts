@@ -26,7 +26,6 @@ import { ResolveWake, type WakeFavorStep } from '../actions/resolveWake.js'
 import { EndActPhase } from '../actions/endActPhase.js'
 import { CompleteRest } from '../actions/completeRest.js'
 import { RollEndDie } from '../actions/rollEndDie.js'
-import { writeChronicleThrough } from '../testing/chronicle.js'
 import { TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import {
     applyPeoplesFavorStep,
@@ -38,9 +37,26 @@ import { OathImperialColor } from './colors.js'
 
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
+/** The master seed numbered `n`, for setups drawn across seeds. */
+function masterSeed(n: number): string {
+    return n.toString(16).padStart(32, '0')
+}
+
+/** Enough seeds to draw each of the four Oaths at every player count. */
+const SEEDS = Array.from({ length: 40 }, (_, index) => index + 1)
+
+/** A game the tournament provisions: the platform names its table before setup. */
+function tournamentGame(count: number, config: GameConfig = {}): Game {
+    return {
+        ...waitingGame(count, config),
+        tournament: { tournamentId: 'spring-cup', stageId: 'main', tableId: '1', scheduleId: 's' }
+    }
+}
+
 /**
- * A new game has no options, so its config is empty (the Oath of Supremacy, R-1.13); a stored or
- * provisioned one may still name its Oath, which changes setup: who holds a banner.
+ * A new game has no options, so its config is empty, and a tournament game's Oath is drawn at
+ * random; a stored or provisioned config may still name its Oath. The Oath changes setup: who
+ * holds a banner.
  */
 const CONFIGS: { oathType?: OathType }[] = [
     {},
@@ -58,9 +74,9 @@ function rotations(ids: readonly string[]): string[][] {
     return ids.map((_, start) => [...ids.slice(start), ...ids.slice(0, start)])
 }
 
-function start(game: Game, order?: string[]): OathProjectedState {
+function start(game: Game, order?: string[], seed = MASTER_SEED): OathProjectedState {
     return engine.startGame(game, {
-        masterSeed: MASTER_SEED,
+        masterSeed: seed,
         ...(order ? { startingPositions: { playerIds: order } } : {})
     }).initialState
 }
@@ -94,15 +110,17 @@ function playSetup(game: Game, initial: OathProjectedState) {
 describe.each(CONFIG_CASES)('Oath tournaments, %s', (_name, config) => {
     describe.each([2, 3, 4, 5, 6])('with %i players', (count) => {
         it('R-1.7 — position zero is the Chancellor, and every seat keeps its assigned place through setup', () => {
-            const game = waitingGame(count, config)
+            const game = tournamentGame(count, config)
             expect(new OathGameInitializer().supportsStartingPositions).toBe(true)
             const unassigned = start(game)
-            const banner = config.oathType ? OATH_BANNER[config.oathType] : undefined
+            if (config.oathType) expect(unassigned.oathType).toBe(config.oathType)
+            const banner = OATH_BANNER[unassigned.oathType]
             for (const order of rotations(game.players.map((player) => player.id))) {
                 const initial = start(game, order)
                 expect(initial.turnManager.turnOrder).toEqual(order)
                 expect(initial.players.map((player) => player.playerId)).toEqual(order)
                 expect(initial.chancellorPlayerId).toBe(order[0])
+                expect(initial.oathType).toBe(unassigned.oathType)
                 expect(initial.players[0]).toMatchObject({
                     status: PlayerStatus.Chancellor,
                     color: OathImperialColor
@@ -122,7 +140,7 @@ describe.each(CONFIG_CASES)('Oath tournaments, %s', (_name, config) => {
         })
 
         it('an assignment moves no seeded draw: the deal and the colour each seat takes stay as an unassigned game deals them', () => {
-            const game = waitingGame(count, config)
+            const game = tournamentGame(count, config)
             const uninitialized = engine.generateUninitializedState(game)
             const initialize = (order?: string[]) =>
                 new OathGameInitializer()
@@ -168,10 +186,6 @@ function peoplesFavorSteps(state: OathProjectedState, playerId: string): WakeFav
 /** R-4.1 to R-4.3 — the active seat's Wake, a turn of no actions, and its Rest; a Wake that wins ends there. R-3.3 — the Chancellor's end die between rounds. */
 function playTurn(game: Game, state: OathProjectedState): OathProjectedState {
     const [playerId] = state.activePlayerIds
-    // R-8 — a won game's chronicle is written before the result.
-    if (state.machineState === MachineState.Chronicle) {
-        return writeChronicleThrough(game, state).final
-    }
     if (state.machineState === MachineState.EndOfRound) {
         return engine.runNext(buildAction(RollEndDie, { playerId }), state, game).updatedState
     }
@@ -194,15 +208,16 @@ function playTurn(game: Game, state: OathProjectedState): OathProjectedState {
         : next
 }
 
+/** Turns until one wins; the result must come with that win, so a game held open stops here too. */
 function playUntilTheEnd(game: Game, initial: OathProjectedState): OathProjectedState {
     let state = initial
-    while (state.machineState !== MachineState.EndOfGame) state = playTurn(game, state)
+    while (state.winningPlayerIds.length === 0) state = playTurn(game, state)
     return state
 }
 
 /** Setup under a reversed assignment; `seed` fixes R-3.3's end die, which is the only protected draw after setup. */
 function assignedGame(count: number, config: GameConfig, seed?: number) {
-    const game = waitingGame(count, config)
+    const game = tournamentGame(count, config)
     const order = game.players.map((player) => player.id).reverse()
     const initial = start(game, order)
     if (seed !== undefined) initial.protectedPrng = { seed, invocations: 0 }
@@ -214,6 +229,10 @@ function expectOneScoredWinner(game: Game, finished: OathProjectedState, winnerI
     expect(finished.machineState).toBe(MachineState.EndOfGame)
     expect(finished.result).toBe(GameResult.Win)
     expect(finished.winningPlayerIds).toEqual([winnerId])
+    // No Chronicle: the result comes at the win, and a tournament game is never continued.
+    expect(finished.canContinue).toBeUndefined()
+    expect(Object.keys(finished)).not.toContain('chronicle')
+    expect(Object.keys(finished)).not.toContain('chronicleRecord')
     expect(() => validateGameResult(finished)).not.toThrow()
 
     const scoring = required(OathRuntime.scoring, 'Oath declares its final scores')
@@ -264,10 +283,55 @@ describe('Oath tournament results', () => {
 })
 
 describe.each([2, 3, 4, 5, 6])('Oath tournament results with %i players', (count) => {
-    it('a game with no options plays through the Chronicle to its result and scores its one winner', () => {
+    it('a game with no options records its result at the win, with no Chronicle, and scores its one winner', () => {
         const { game, order, finished } = finishedWithin(count, () => true)
         expect(game.config).toEqual({})
-        expect(finished.chronicleRecord).toHaveLength(1)
         expectOneScoredWinner(game, finished, order[0])
     })
+
+    it('its Oath is drawn from all four across seeds; an ordinary game’s is Supremacy on every one', () => {
+        const drawn = new Set<OathType>()
+        for (const n of SEEDS) {
+            const tournament = start(tournamentGame(count), undefined, masterSeed(n))
+            expect(tournament.tournamentGame).toBe(true)
+            drawn.add(tournament.oathType)
+            const ordinary = start(waitingGame(count), undefined, masterSeed(n))
+            expect(ordinary.oathType).toBe(OathType.Supremacy)
+            expect(Object.keys(ordinary)).not.toContain('tournamentGame')
+        }
+        expect([...drawn].sort()).toEqual(Object.values(OathType).sort())
+    })
+
+    it.each(Object.values(OathType))(
+        'drawn as %s, it sets up under that Oath and plays its first round',
+        (oathType) => {
+            const game = tournamentGame(count)
+            const order = game.players.map((player) => player.id)
+            const n = SEEDS.find(
+                (seed) => start(game, order, masterSeed(seed)).oathType === oathType
+            )
+            assert(n !== undefined, `no seed up to ${SEEDS.length} draws ${oathType}`)
+            const initial = start(game, order, masterSeed(n))
+            // R-1.13, R-1.14 — the Chancellor holds the Oath's banner, if it gives one, and the title.
+            const banner = OATH_BANNER[oathType]
+            if (banner) expect(initial.banners[banner].holderPlayerId).toBe(order[0])
+            for (const other of Object.values(Banner).filter((b) => b !== banner)) {
+                expect(initial.banners[other].holderPlayerId).toBeUndefined()
+            }
+            expect(initial.oathkeeperPlayerId).toBe(order[0])
+
+            let state = playSetup(game, initial).state
+            const turns: string[] = []
+            while (state.round === 1) {
+                turns.push(state.activePlayerIds[0])
+                state = playTurn(game, state)
+            }
+            expect(turns).toEqual(order)
+            expect(state.round).toBe(2)
+            expect(state.oathType).toBe(oathType)
+            // R-1.7 — the second round opens with the Chancellor's turn.
+            expect(state.activePlayerIds).toEqual([order[0]])
+            expect(state.winningPlayerIds).toEqual([])
+        }
+    )
 })
