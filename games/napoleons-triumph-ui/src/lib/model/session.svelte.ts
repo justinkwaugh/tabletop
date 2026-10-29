@@ -268,6 +268,7 @@ import {
     type WayTarget
 } from './targets.js'
 import { WayStepKind, traceWays, type Way, type WayChoice, type WayStep } from './ways.js'
+import { unitsAsTheyEnteredTheAttack } from './attackForces.js'
 import { concludedBattleOf, type ConcludedBattle } from './concludedBattle.js'
 
 type ZoomSource = () => number | undefined
@@ -742,6 +743,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
                   this.attack?.pending ?? []
               )
             : undefined
+    )
+
+    unitsAsTheyEnteredTheShownAttack: ReadonlyMap<string, ProjectedUnit> = $derived(
+        this.attackLosses
+            ? unitsAsTheyEnteredTheAttack(this.history.visibleContext, this.attackLosses)
+            : new Map()
     )
 
     attackMark: AttackMark | undefined = $derived(

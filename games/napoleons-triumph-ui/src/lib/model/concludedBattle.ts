@@ -1,21 +1,18 @@
-import { RecordedHistory, type GameAction } from '@tabletop/common'
 import {
     AUSTERLITZ,
     Side,
     attackEndedBy,
     isRetreat,
-    isThreatenAttack,
     opposingSide,
     type EndedAttack,
-    type LocaleId,
-    type ProjectedUnit
+    type LocaleId
 } from '@tabletop/napoleons-triumph'
+import { actionsOfTheLastAttack } from './attackForces.js'
 import type { RecordedGame } from './moveReplay.js'
 
 export interface ConcludedBattle {
     openedBy: string
     attack: EndedAttack
-    unitsLastSeen: ReadonlyMap<string, ProjectedUnit>
     retreatedTo: LocaleId[]
     taken: boolean
 }
@@ -25,16 +22,14 @@ export function concludedBattleOf(game: RecordedGame): ConcludedBattle | undefin
     if (!attack) {
         return undefined
     }
-    const openedAt = game.actions.findLastIndex((action) => isThreatenAttack(action))
-    if (openedAt < 0) {
+    const fought = actionsOfTheLastAttack(game.actions)
+    if (!fought) {
         return undefined
     }
-    const fought = game.actions.slice(openedAt)
     const attacked = AUSTERLITZ.approach(attack.defenseApproach).locale
     return {
         openedBy: fought[0].id,
         attack,
-        unitsLastSeen: unitsLastSeen(game, fought),
         retreatedTo: [
             ...new Set(
                 fought.flatMap((action) =>
@@ -46,21 +41,6 @@ export function concludedBattleOf(game: RecordedGame): ConcludedBattle | undefin
             (piece) => piece.playerId === attack.attackerId && piece.position?.locale === attacked
         )
     }
-}
-
-function unitsLastSeen(
-    game: RecordedGame,
-    fought: readonly GameAction[]
-): Map<string, ProjectedUnit> {
-    const transitions = new RecordedHistory(game.state, fought).select((state) => state.units)
-    const units = new Map<string, ProjectedUnit>()
-    for (const action of fought) {
-        const transition = transitions.get(action.id)
-        for (const unit of [...(transition?.before ?? []), ...(transition?.after ?? [])]) {
-            units.set(unit.id, unit)
-        }
-    }
-    return units
 }
 
 export const ARMIES: Record<Side, { name: string; adjective: string }> = {

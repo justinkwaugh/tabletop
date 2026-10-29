@@ -8,7 +8,6 @@ import {
     isDeclareAttack,
     isLossDecision,
     isRetreat,
-    isThreatenAttack,
     lossOwnerOf,
     stepsOwed,
     type Attack,
@@ -18,6 +17,7 @@ import {
     type PendingDecision,
     type ResultTerm
 } from '@tabletop/napoleons-triumph'
+import { actionsOfTheLastAttack } from './attackForces.js'
 
 export interface StepLoss {
     unitId: string
@@ -81,12 +81,7 @@ export function lossesOfAttack(
             sideOf(penalty.playerId).penalties.push(penalty)
         }
     }
-    const fought = actions.slice(
-        Math.max(
-            0,
-            actions.findLastIndex((action) => isThreatenAttack(action))
-        )
-    )
+    const fought = actionsOfTheLastAttack(actions) ?? actions
     for (const action of fought) {
         if (isRetreat(action) && action.metadata) {
             take(action.metadata.losses)
