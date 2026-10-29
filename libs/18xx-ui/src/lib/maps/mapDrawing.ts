@@ -234,6 +234,12 @@ export function viewportRect(viewport: MapViewport, rect: BoundingBox): Bounding
     }
 }
 
+/** Share of the viewport's area the hexes span; above 1 where artwork crops the map. */
+export function mapShareOfViewport(scene: MapDrawing, viewport: MapViewport) {
+    const { bounds } = scene
+    return (bounds.width * bounds.height) / (viewport.bounds.width * viewport.bounds.height)
+}
+
 function enclosingBounds(first: BoundingBox, second: BoundingBox): BoundingBox {
     const x = Math.min(first.x, second.x)
     const y = Math.min(first.y, second.y)

@@ -1059,8 +1059,10 @@ route focus, history steps and their restores) applies to every open map view,
 Map and Board, each with its own bounds. A flow that brings the map forward
 selects Map only when Board is not already visible.
 
-A Full / Market / Depot sliding toggle, labelled in sentence case and listing
-Market and Depot only when their areas exist, focuses the board. In the paned Board tab it overlays the upper-left
+A Full / Map / Market / Depot sliding toggle, labelled in sentence case, focuses the
+board. It lists Market and Depot only when their areas exist, and Map, which frames
+the hexes, only when they span less than nine tenths of the board, so a board that
+prints its panels in the map's own corners, such as TOP's, has no Map. In the paned Board tab it overlays the upper-left
 corner at a fixed size, and the view keeps a 44px screen-space inset at the top so
 the fitted board rests below it; the board still pans beneath it when zoomed.
 Below the paned breakpoint it sits centered in a tight strip above the board.
