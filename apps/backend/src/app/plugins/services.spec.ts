@@ -12,6 +12,8 @@ vi.mock('@tabletop/backend-services', async () => {
         await import('../../../../../libs/backend-services/src/pubsub/redisPubSubService.js')
     const { RedisCacheService } =
         await import('../../../../../libs/backend-services/src/cache/cacheService.js')
+    const { RedisRateLimitCounter } =
+        await import('../../../../../libs/backend-services/src/cache/rateLimitCounter.js')
     class Empty {}
     return {
         ...Object.fromEntries(
@@ -57,6 +59,7 @@ vi.mock('@tabletop/backend-services', async () => {
         RedisService,
         RedisPubSubService,
         RedisCacheService,
+        RedisRateLimitCounter,
         LOCAL_WORKSPACE_ROOT: process.cwd(),
         STATIC_ROOT: process.cwd(),
         createLocalManifest: vi.fn(),

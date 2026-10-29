@@ -11,11 +11,11 @@ fn solve(problem: &Value) -> Value {
 
 fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
     json!({
-        "version": 4, "junction_count": 1, "budget_ms": 30000,
+        "version": 5, "junction_count": 1, "budget_ms": 30000,
         "resource_count": edges.len(), "group_count": 1, "hex_bonuses": vec![0; edges.len()],
         "stops": (0..nodes).map(|id| json!({
             "token": id == 0, "blocked": false, "endpoint": true, "allowed": true,
-            "city": true, "groups": [],
+            "city": true, "town": false, "hex": 0, "groups": [],
         })).collect::<Vec<_>>(),
         "trains": trains.iter().enumerate().map(|(id, distance)| json!({
             "id": id.to_string(), "distance": distance, "counts_crossings": false, "requires_city": false, "visit_costs": vec![1; nodes],
@@ -242,6 +242,9 @@ fn exhaustive_oracle(p: &Value, edges: &[(usize, usize)]) -> i64 {
                     .map(|&n| train["visit_costs"][n].as_u64().unwrap())
                     .sum::<u64>()
                     > train["distance"].as_u64().unwrap()
+                || train["major_limit"].as_u64().is_some_and(|limit| {
+                    path.iter().filter(|&&n| stops[n]["town"] != true).count() as u64 > limit
+                })
             {
                 continue;
             }
@@ -304,6 +307,11 @@ fn exhaustive_oracle(p: &Value, edges: &[(usize, usize)]) -> i64 {
                                 .max();
                             let to = paid
                                 .iter()
+                                .filter(|&&node| {
+                                    bonus["ends_only"] != true
+                                        || node == path[0]
+                                        || node == path[path.len() - 1]
+                                })
                                 .filter_map(|&node| bonus["to"][node].as_i64())
                                 .max();
                             if let (Some(from), Some(to)) = (from, to) {
@@ -381,6 +389,7 @@ fn agrees_with_unpruned_permutation_oracle_on_200_graphs() {
             stop["blocked"] = json!(random() % 5 == 0);
             stop["endpoint"] = json!(random() % 5 != 0);
             stop["allowed"] = json!(random() % 8 != 0);
+            stop["town"] = json!(random() % 3 == 0);
 
             if random() % 3 == 0 {
                 stop["groups"] = json!([0]);
@@ -412,7 +421,11 @@ fn agrees_with_unpruned_permutation_oracle_on_200_graphs() {
             train["connection_bonuses"] = json!([{
                 "from": [0, 30, null, null, null],
                 "to": [null, null, 20, null, 50],
+                "ends_only": (case + id) % 3 == 0,
             }]);
+            if (case + id) % 2 == 0 {
+                train["major_limit"] = json!(1 + case % 3);
+            }
         }
         assert_eq!(
             solve(&p)["revenue"].as_i64().unwrap(),
@@ -511,4 +524,70 @@ fn junction_can_be_revisited_after_another_stop_and_by_another_train() {
         arc["junctions"] = json!([0]);
     }
     assert_eq!(solve(&p)["revenue"], 70);
+}
+
+#[test]
+fn extra_town_trains_limit_stops_other_than_towns() {
+    let mut p = graph(5, &[(0, 1), (1, 2), (2, 3), (3, 4)], &[5]);
+    p["stops"][1]["town"] = json!(true);
+    p["stops"][3]["town"] = json!(true);
+    assert_eq!(solve(&p)["revenue"], 150);
+    p["trains"][0]["major_limit"] = json!(2);
+    assert_eq!(solve(&p)["revenue"], 100);
+    p["trains"][0]["major_limit"] = json!(3);
+    assert_eq!(solve(&p)["revenue"], 150);
+}
+
+#[test]
+fn end_only_destinations_pay_at_a_route_end() {
+    let mut p = graph(3, &[(0, 1), (1, 2)], &[3]);
+    p["trains"][0]["connection_bonuses"] = json!([{
+        "from": [50, null, null],
+        "to": [null, 0, null],
+    }]);
+    assert_eq!(solve(&p)["revenue"], 110);
+    p["trains"][0]["connection_bonuses"][0]["ends_only"] = json!(true);
+    assert_eq!(solve(&p)["revenue"], 80);
+}
+
+fn interconnected(edges: &[(usize, usize)], trains: &[u32]) -> Value {
+    let mut p = graph(4, edges, trains);
+    for (id, stop) in p["stops"].as_array_mut().unwrap().iter_mut().enumerate() {
+        stop["hex"] = json!(id);
+    }
+    p["hex_bonuses"] = json!([0, 0, 0, 0]);
+    for train in p["trains"].as_array_mut().unwrap() {
+        train["interconnections"] = json!([{ "from": [0], "to": [3], "amount": 100 }]);
+    }
+    p
+}
+
+#[test]
+fn extensions_pass_blocked_cities_to_an_interconnection() {
+    let mut p = interconnected(&[(0, 1), (1, 2), (2, 3)], &[2]);
+    let result = solve(&p);
+    assert_eq!(result["revenue"], 130);
+    assert_eq!(result["routes"][0]["extension"], json!([1, 2]));
+    p["stops"][2]["blocked"] = json!(true);
+    assert_eq!(solve(&p)["revenue"], 130);
+    p["stops"][2]["city"] = json!(false);
+    assert_eq!(solve(&p)["revenue"], 30);
+    p["stops"][2]["town"] = json!(true);
+    assert_eq!(solve(&p)["revenue"], 130);
+    p["stops"][2]["allowed"] = json!(false);
+    assert_eq!(solve(&p)["revenue"], 30);
+}
+
+#[test]
+fn extensions_hang_off_either_end_and_consume_fleet_track() {
+    let p = interconnected(&[(0, 1), (1, 2), (0, 3)], &[2]);
+    let result = solve(&p);
+    assert_eq!(result["revenue"], 130);
+    assert_eq!(result["routes"][0]["connections"][0]["from"], 1);
+    assert_eq!(result["routes"][0]["extension"], json!([2]));
+    let p = interconnected(&[(0, 1), (1, 2), (0, 3)], &[2, 2]);
+    assert_eq!(solve(&p)["revenue"], 130);
+    let mut p = interconnected(&[(0, 1), (1, 2), (0, 3)], &[2]);
+    p["trains"][0]["interconnections"][0]["from"] = json!([2]);
+    assert_eq!(solve(&p)["revenue"], 50);
 }

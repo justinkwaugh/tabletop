@@ -10,7 +10,10 @@ import {
     isRetreat,
     lossOwnerOf,
     stepsOwed,
+    type AssignLosses,
     type Attack,
+    type CounterAttack,
+    type DeclareAttack,
     type Face,
     type LossEntry,
     type MoralePenalty,
@@ -34,6 +37,8 @@ export interface SideLosses {
     /** Every point of morale the attack has cost this side so far. */
     morale: number
     taken: StepLoss[]
+    /** Of the steps, those lost retreating (rule 12) rather than in the fight. */
+    retreatSteps: number
     /** Morale paid for steps lost, which only the side that lost the fight or retreated pays. */
     paidForSteps: number
     penalties: MoralePenalty[]
@@ -47,11 +52,49 @@ export interface AttackLosses {
 type FoughtAttack = Pick<Attack, 'attackerId' | 'defenderId' | 'attackingUnitIds'>
 
 function noLosses(playerId: string): SideLosses {
-    return { playerId, steps: 0, owed: 0, morale: 0, taken: [], paidForSteps: 0, penalties: [] }
+    return {
+        playerId,
+        steps: 0,
+        owed: 0,
+        morale: 0,
+        taken: [],
+        retreatSteps: 0,
+        paidForSteps: 0,
+        penalties: []
+    }
 }
 
 export function stepsIn(losses: readonly LossEntry[]): number {
     return losses.reduce((sum, loss) => sum + loss.steps, 0)
+}
+
+function isFight(action: GameAction): action is DeclareAttack | CounterAttack | AssignLosses {
+    return isDeclareAttack(action) || isCounterAttack(action) || isAssignLosses(action)
+}
+
+function lossesRecordedBy(action: GameAction): readonly LossEntry[] {
+    return isRetreat(action) || isFight(action) ? (action.metadata?.losses ?? []) : []
+}
+
+export function stepLossesIn(actions: readonly GameAction[]): StepLoss[] {
+    const taken = new Map<string, StepLoss>()
+    for (const loss of actions.flatMap(lossesRecordedBy)) {
+        const earlier = taken.get(loss.unitId)
+        if (earlier) {
+            earlier.steps += loss.steps
+            earlier.eliminated ||= loss.eliminated
+        } else {
+            taken.set(loss.unitId, { ...loss, face: { ...loss.face } })
+        }
+    }
+    return [...taken.values()]
+}
+
+export function firstLossOf(
+    unitId: string,
+    actions: readonly GameAction[]
+): GameAction | undefined {
+    return actions.find((action) => lossesRecordedBy(action).some((loss) => loss.unitId === unitId))
 }
 
 /** What the attack in progress has cost each side, from what its actions recorded since it was threatened. */
@@ -63,37 +106,26 @@ export function lossesOfAttack(
     const attacker = noLosses(attack.attackerId)
     const defender = noLosses(attack.defenderId)
     const sideOf = (playerId: string) => (playerId === attack.attackerId ? attacker : defender)
-    const take = (losses: readonly LossEntry[]) => {
-        for (const loss of losses) {
-            const side = attack.attackingUnitIds.includes(loss.unitId) ? attacker : defender
-            const earlier = side.taken.find((taken) => taken.unitId === loss.unitId)
-            if (earlier) {
-                earlier.steps += loss.steps
-                earlier.eliminated ||= loss.eliminated
-            } else {
-                side.taken.push({ ...loss, face: { ...loss.face } })
-            }
-            side.steps += loss.steps
-        }
-    }
     const pay = (penalties: readonly MoralePenalty[] | undefined) => {
         for (const penalty of penalties ?? []) {
             sideOf(penalty.playerId).penalties.push(penalty)
         }
     }
     const fought = actionsOfTheLastAttack(actions) ?? actions
+    for (const loss of stepLossesIn(fought)) {
+        const side = attack.attackingUnitIds.includes(loss.unitId) ? attacker : defender
+        side.taken.push(loss)
+        side.steps += loss.steps
+    }
     for (const action of fought) {
-        if (isRetreat(action) && action.metadata) {
-            take(action.metadata.losses)
-            pay(action.metadata.penalties)
-            defender.paidForSteps += stepsIn(action.metadata.losses)
-        } else if (
-            (isDeclareAttack(action) || isCounterAttack(action) || isAssignLosses(action)) &&
-            action.metadata
-        ) {
-            take(action.metadata.losses)
-            pay(action.metadata.penalties)
-            if (action.metadata.loserId !== undefined) {
+        if (isRetreat(action)) {
+            pay(action.metadata?.penalties)
+            const steps = stepsIn(action.metadata?.losses ?? [])
+            defender.retreatSteps += steps
+            defender.paidForSteps += steps
+        } else if (isFight(action)) {
+            pay(action.metadata?.penalties)
+            if (action.metadata?.loserId !== undefined) {
                 sideOf(action.metadata.loserId).paidForSteps += action.metadata.moraleLost ?? 0
             }
         }
@@ -202,6 +234,30 @@ export function owedByDefender(
             ? [{ text: 'A step from each unit that counter-attacks', steps: counterAttackers }]
             : []),
         ...fought
+    ]
+}
+
+/**
+ * The steps a side owed for the result, then what makes its losses differ from them: steps its
+ * units in the fight did not have to lose, and steps lost retreating. The lines add up to the
+ * side's steps lost and still owed.
+ */
+export function stepLines(owedForResult: readonly OwedLine[], side: SideLosses): OwedLine[] {
+    const forResult = owedForResult.reduce((sum, line) => sum + line.steps, 0)
+    const inFight = side.steps - side.retreatSteps + side.owed
+    return [
+        ...owedForResult,
+        ...(inFight < forResult
+            ? [
+                  {
+                      text: 'Less steps with no unit left in the fight to take them',
+                      steps: inFight - forResult
+                  }
+              ]
+            : []),
+        ...(side.retreatSteps > 0
+            ? [{ text: 'Steps lost retreating', steps: side.retreatSteps }]
+            : [])
     ]
 }
 

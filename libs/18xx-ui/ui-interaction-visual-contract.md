@@ -734,6 +734,47 @@ the price, with Allow and Refuse committed at once; other players see who is dec
 president deciding whether to protect a sale sees the seller, the shares and their proceeds and
 the price the protection restores, with Protect and Decline committed at once.
 
+### Combined construction, share issues and presidency claims
+
+These switch on from the title rules the session is created with; a title renders them through
+`OperatingActions` and the table's stock strip, with no title UI code.
+
+- **Operating mode** (`session.operatingMode`). For a title with `stationsWithTrack` or
+  `corporateFinanceRules`, the operating actions show one of track building, station placement
+  or issuing/redeeming shares, chosen with the operating-mode switch above them. The switch
+  lists only modes available now ("Lay track", "Place station", and "Issue shares", "Redeem
+  shares" or "Issue / redeem") and appears when there are at least two, or when share issues
+  are selected; before routes are run, share issues also sit beside "Run trains". It hides for a
+  purchase offer, a company decision or a private selection. Choosing a mode clears the other
+  mode's pending selection. Meaning: which construction panel and map targets are active.
+  Produced from the legal actions, with the player's choice taking priority while that mode
+  stays available; a selected private tile power always selects track. Lifetime: the choice
+  lasts through the step's actions and resets on leaving the step, on a change of perspective or
+  in history; a choice no longer available falls back to the derived mode. A view choice, not a
+  step: Undo never changes it, and a derived mode consumes no Undo step.
+- **Combined construction.** With `stationsWithTrack`, track and station placement share the
+  track step and the step bar shows Build, Run, Payout and Trains (and Loans), Build's status
+  joining shares issued or redeemed, tiles laid and a station placed. Placing a station does
+  not end construction, and the player can return to track. Station mode never offers
+  `FinishStations`; skip and finish submit `FinishTrack`, which ends the whole construction
+  window, and skipping ahead from Build stops at Run. When nothing can be laid, placed, issued
+  or redeemed but another decision remains (buying a private or company), the station panel
+  shows the decisions above "<company> can't lay track or place a station" with an inline
+  **finish**; a selection in progress replaces the message.
+- **Share issues** (`session.corporateFinance`). The panel shows the company's cash, treasury
+  and market shares, and one button per legal count to issue or redeem, each committed at once;
+  the first locks the turn to issuing or to redeeming. When share issues are all that is left
+  in construction, the switch selects them and the panel offers skip to end construction. The
+  panel gives way to a purchase offer, a private-power selection, a private track-power
+  selection and a company decision.
+- **Receivership** (`session.presidencyClaims`, `session.familyStockPanels`). With a
+  `receivershipRules.presidencyClaim`, when the player may take a company out of receivership
+  the stock strip offers **Receivership** beside Buy and Sell, before any of the title's own
+  panels. Its panel lists each claim as "buy 10% for price and become president", committed at
+  once. At most one stock panel is open: choosing Buy, Sell or a title panel closes
+  Receivership, and choosing Receivership closes them. The open panel is a local selection that
+  Undo closes, chosen only while it has claims for the acting player.
+
 ### Cash crisis and bankruptcy
 
 A player who owes the bank more than they have gets a Cash crisis panel in the
@@ -1059,8 +1100,10 @@ route focus, history steps and their restores) applies to every open map view,
 Map and Board, each with its own bounds. A flow that brings the map forward
 selects Map only when Board is not already visible.
 
-A Full / Market / Depot sliding toggle, labelled in sentence case and listing
-Market and Depot only when their areas exist, focuses the board. In the paned Board tab it overlays the upper-left
+A Full / Map / Market / Depot sliding toggle, labelled in sentence case, focuses the
+board. It lists Market and Depot only when their areas exist, and Map, which frames
+the hexes, only when they span less than nine tenths of the board, so a board that
+prints its panels in the map's own corners, such as TOP's, has no Map. In the paned Board tab it overlays the upper-left
 corner at a fixed size, and the view keeps a 44px screen-space inset at the top so
 the fitted board rests below it; the board still pans beneath it when zoomed.
 Below the paned breakpoint it sits centered in a tight strip above the board.

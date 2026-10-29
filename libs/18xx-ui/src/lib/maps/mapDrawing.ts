@@ -1,4 +1,10 @@
-import type { MapViewDefinition, StationAppearance, SymbolPosition } from './stationPresentation.js'
+import { bonusArrowBounds, drawBonusArrow, type DrawnBonusArrow } from './bonusArrows.js'
+import type {
+    MapViewDefinition,
+    OffboardNameStyle,
+    StationAppearance,
+    SymbolPosition
+} from './stationPresentation.js'
 import {
     assert,
     assertExists,
@@ -50,12 +56,21 @@ export type MapRoute = {
     id: string
     color: string
     segments: readonly RoutePath[]
+    /** Track the route runs on past its counted stops for an interconnection, drawn dashed. */
+    extension?: readonly RoutePath[]
+}
+
+/** Every piece of track a route draws: its own and its extension's. */
+export function mapRouteTrack(route: MapRoute): readonly RoutePath[] {
+    return [...route.segments, ...(route.extension ?? [])]
 }
 export function routeLocationIds(
     routes: readonly MapRoute[],
     { map, joinedEdges = {} }: Pick<MapViewDefinition, 'map' | 'joinedEdges'>
 ): string[] {
-    const ids = new Set(routes.flatMap((route) => route.segments.map((path) => path.locationId)))
+    const ids = new Set(
+        routes.flatMap((route) => mapRouteTrack(route).map((path) => path.locationId))
+    )
     const pending = [...ids]
     for (let id = pending.pop(); id !== undefined; id = pending.pop())
         for (const edge of joinedEdges[id] ?? []) {
@@ -87,6 +102,10 @@ export type MapMarkerArt =
     | { localLine: true; above?: true }
     /** The marker's label, large in the centre of an unbuilt hex. */
     | { centeredLabel: true }
+    /** The marker's label under an unbuilt hex's terrain cost, such as a lower cost it prints. */
+    | { terrainNote: true }
+    /** The marker's label as a printed note across an unbuilt hex's lower half, such as a reservation. */
+    | { notice: true }
     /** A ring around the hex's towns, drawn as dots, as a medium city is printed. */
     | { townRing: true }
     /**
@@ -108,7 +127,7 @@ export type MapMarkerArt =
      * A token placed during play, drawn whole: in the clear corner farthest from the hex's
      * revenue, in its centre, or over a symbol the hex shows (in a corner where it shows none).
      */
-    | { token: { imageUrl: string; place: TokenPlacement } }
+    | { token: { imageUrl: string; place: TokenPlacement; tab?: TokenTab } }
     /**
      * A marker placed during play: the hex is outlined in the colour, with a badge on its top
      * corner showing the owning company's token and the marker's icon.
@@ -122,17 +141,20 @@ export type MapMarkerArt =
       }
 
 export type TokenPlacement = 'corner' | 'centre' | { covers: TileSymbolName }
+/** A tab tucked behind a token's right side, such as a bonus marker that moves between tokens. */
+export type TokenTab = { label: string; caption: string; fill?: string; left?: true }
 
 export type RevenueAnnotation = { markerId: string; label: string; x: number; y: number } & (
     | { kind: 'badge'; width: number; height: number; arrows: boolean }
     | { kind: 'symbol'; symbol: TileSymbolName; radius: number }
-    | { kind: 'token'; imageUrl: string; radius: number }
+    | { kind: 'token'; imageUrl: string; radius: number; tab?: TokenTab }
     | { kind: 'caption'; caption: string }
 )
 type RevenueBadge = Extract<RevenueAnnotation, { kind: 'badge' }>
 type RevenueCaption = Extract<RevenueAnnotation, { kind: 'caption' }>
 const RevenueRadius = 8.7
 const TokenRadius = 10.5
+export const TokenTabReach = 18
 // Between a station circle and the baseline of the name curved over it.
 const NameArcGap = 2.2
 const NameArcCapHeight = 4.6
@@ -170,6 +192,8 @@ export type MapDrawnLocation = {
     nameBaseline: Point
     /** The name's lines where it prints straight. */
     nameRows: readonly string[]
+    /** An offboard's own type for its name, where the view sets one. */
+    nameStyle?: OffboardNameStyle
     /**
      * True where the title places a city or town's name itself rather than across the top. An
      * offboard's name is never curved, so it keeps the plain style wherever it is placed.
@@ -234,6 +258,12 @@ export function viewportRect(viewport: MapViewport, rect: BoundingBox): Bounding
     }
 }
 
+/** Share of the viewport's area the hexes span; above 1 where artwork crops the map. */
+export function mapShareOfViewport(scene: MapDrawing, viewport: MapViewport) {
+    const { bounds } = scene
+    return (bounds.width * bounds.height) / (viewport.bounds.width * viewport.bounds.height)
+}
+
 function enclosingBounds(first: BoundingBox, second: BoundingBox): BoundingBox {
     const x = Math.min(first.x, second.x)
     const y = Math.min(first.y, second.y)
@@ -248,9 +278,14 @@ function enclosingBounds(first: BoundingBox, second: BoundingBox): BoundingBox {
 export type MapDrawing = {
     map: RailwayMap
     locations: readonly MapDrawnLocation[]
+    bonusArrows: readonly DrawnBonusArrow[]
     bounds: BoundingBox
     /** Printed before terrain costs, such as ¥. */
     terrainCostPrefix: string
+    /** Hexside border widths by kind, where the view sets one. */
+    borderWidths: Readonly<Record<string, number>>
+    printedReservations: NonNullable<MapViewDefinition['printedReservations']>
+    sharedStations: NonNullable<MapViewDefinition['sharedStations']>
 }
 
 function remapFaceEdges(face: TileFace, edges: Readonly<Record<number, number>>): TileFace {
@@ -297,37 +332,55 @@ export function createMapDrawing(
     },
     {
         layouts = {},
-        markerArt = {},
+        markerArt: sharedMarkerArt = {},
+        locationMarkerArt = {},
         placements = {},
         joinedEdges = {},
         locationMarkerNames = {},
         hideLocationNames,
+        labelsReplaceNames,
         drawingStyle,
         revenueStageLabels,
+        revenueStageCaptions,
+        revenueStack,
         terrainCostPrefix = '',
+        borderWidths = {},
+        printedReservations = [],
+        sharedStations = {},
         namePositions = {},
         cityNames = {},
         namesBelow = [],
         symbolPositions = {},
         nameLines = {},
-        terrainPositions = {}
+        offboardNames,
+        terrainPositions = {},
+        bonusArrows = []
     }: Pick<
         MapViewDefinition,
         | 'layouts'
         | 'markerArt'
+        | 'locationMarkerArt'
         | 'placements'
         | 'joinedEdges'
         | 'locationMarkerNames'
         | 'hideLocationNames'
+        | 'labelsReplaceNames'
         | 'drawingStyle'
         | 'revenueStageLabels'
+        | 'revenueStageCaptions'
+        | 'revenueStack'
         | 'terrainCostPrefix'
+        | 'borderWidths'
+        | 'printedReservations'
+        | 'sharedStations'
         | 'namePositions'
         | 'cityNames'
         | 'namesBelow'
         | 'symbolPositions'
         | 'nameLines'
+        | 'offboardNames'
         | 'terrainPositions'
+        | 'bonusArrows'
     > = {}
 ): MapDrawing {
     const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
@@ -342,6 +395,7 @@ export function createMapDrawing(
     const blockLifted = (marker: NonNullable<MapLocation['markers']>[number]) =>
         !!marker.privateCompanyId && liftedPrivateBlocks.includes(marker.privateCompanyId)
     const locations = map.definition.locations.map((printed): MapDrawnLocation => {
+        const markerArt = { ...sharedMarkerArt, ...locationMarkerArt[printed.id] }
         const placed = placedMarkers(printed.id)
         const location =
             placed.length || printed.markers?.some(blockLifted)
@@ -386,10 +440,16 @@ export function createMapDrawing(
         const nameShown =
             hideLocationNames !== true &&
             !hideLocationNames?.includes(location.id) &&
+            !(labelsReplaceNames && face.labels.length) &&
             !placement &&
             !!location.name
+        const nameStyle =
+            face.nodes.length && face.nodes.every((node) => node.kind === 'offboard')
+                ? offboardNames
+                : undefined
+        const nameScale = (nameStyle?.fontSize ?? NameFontSize) / NameFontSize
         const nameBaseline = namePositions[location.id] ?? { x: 0, y: -35 }
-        const nameRows = nameLines[location.id] ?? splitName(location.name ?? '')
+        const nameRows = nameLines[location.id] ?? splitName(location.name ?? '', 18 / nameScale)
         const townRing = (location.markers ?? []).some((marker) => {
             const art = markerArt[marker.id]
             return !!art && 'townRing' in art
@@ -460,10 +520,12 @@ export function createMapDrawing(
                     ...(tileLayout.annotationExclusions ?? []),
                     ...nameArcPoints,
                     ...(nameShown && !curvedName
-                        ? [-18, 0, 18].map((x) => ({
-                              x: nameBaseline.x + x,
-                              y: nameBaseline.y - 3
-                          }))
+                        ? nameRows.flatMap((_, row) =>
+                              [-18, 0, 18].map((x) => ({
+                                  x: nameBaseline.x + x * nameScale,
+                                  y: nameBaseline.y + (row * NameLineHeight - 3) * nameScale
+                              }))
+                          )
                         : []),
                     ...(!placement && location.terrain
                         ? face.nodes.length
@@ -475,10 +537,13 @@ export function createMapDrawing(
                         : []),
                     ...((location.markers ?? []).some((marker) => !markerArt[marker.id])
                         ? [{ x: 0, y: 36 }]
+                        : []),
+                    ...(!placement && noticeShown(location.markers ?? [], markerArt)
+                        ? [-18, 0, 18].map((x) => ({ x, y: NoticeY }))
                         : [])
                 ]
             },
-            { ...locationStyle, revenueStageLabels }
+            { ...locationStyle, revenueStageLabels, revenueStageCaptions, revenueStack }
         )
         const markers = location.markers ?? []
         const lifted = markers.some((marker) => {
@@ -540,6 +605,7 @@ export function createMapDrawing(
             nameShown,
             nameBaseline,
             nameRows,
+            ...(nameStyle ? { nameStyle } : {}),
             namePlaced:
                 !!namePositions[location.id] &&
                 !face.nodes.some((node) => node.kind === 'offboard'),
@@ -577,13 +643,24 @@ export function createMapDrawing(
                         ...(curvedName
                             ? nameArcPoints.map((point) => disc(point, 3))
                             : nameShown && location.name
-                              ? [nameBox(nameRows, nameBaseline)]
+                              ? [nameBox(nameRows, nameBaseline, nameScale)]
                               : []),
                         ...(!placement && location.terrain
                             ? [terrainBox(location.terrain, terrainCostPrefix, terrainRow)]
                             : []),
+                        ...(!placement &&
+                        location.terrain &&
+                        markers.some((marker) => {
+                            const art = markerArt[marker.id]
+                            return !!art && 'terrainNote' in art
+                        })
+                            ? [box({ x: terrainRow.x, y: terrainRow.y + TerrainNoteDrop }, 16, 4)]
+                            : []),
                         ...(markers.some((marker) => !markerArt[marker.id])
                             ? [box({ x: 0, y: 36 }, 24, 4)]
+                            : []),
+                        ...(!placement && noticeShown(markers, markerArt)
+                            ? [box({ x: 0, y: NoticeY }, 26, NoticeFontSize / 2 + 1)]
                             : []),
                         ...(!placement &&
                         markers.some((marker) => {
@@ -609,16 +686,21 @@ export function createMapDrawing(
     )
     const x = Math.min(...vertices.map((point) => point.x)) - 26
     const y = Math.min(...vertices.map((point) => point.y)) - 26
+    const drawnArrows = bonusArrows.map(drawBonusArrow)
     return {
         map,
         locations,
+        bonusArrows: drawnArrows,
         terrainCostPrefix,
-        bounds: {
+        borderWidths,
+        printedReservations,
+        sharedStations,
+        bounds: drawnArrows.map(bonusArrowBounds).reduce(enclosingBounds, {
             x,
             y,
             width: Math.max(...vertices.map((point) => point.x)) - x + 26,
             height: Math.max(...vertices.map((point) => point.y)) - y + 26
-        }
+        })
     }
 }
 
@@ -697,6 +779,19 @@ function withRevenueLeads(face: TileFace, leads: readonly RevenueLead[]): TileFa
 }
 
 export const CaptionFontSize = 5
+export const TerrainNoteDrop = 12
+export const NoticeFontSize = 9
+export const NoticeY = 24
+
+function noticeShown(
+    markers: NonNullable<MapLocation['markers']>,
+    markerArt: Readonly<Record<string, MapMarkerArt>>
+): boolean {
+    return markers.some((marker) => {
+        const art = markerArt[marker.id]
+        return !!art && 'notice' in art
+    })
+}
 const CaptionCharacterWidth = 3.4
 // From the top of a lead's box to the middle of its caption.
 const CaptionRise = 3
@@ -799,8 +894,8 @@ function terrainBox(
 }
 
 // Long names split at the space nearest their middle.
-function splitName(name: string): string[] {
-    if (name.length <= 18) return [name]
+function splitName(name: string, longest: number): string[] {
+    if (name.length <= longest) return [name]
     const breaks = [...name.matchAll(/\s+/g)].map((match) => match.index)
     if (!breaks.length) return [name]
     const split = breaks.reduce((best, index) =>
@@ -810,13 +905,15 @@ function splitName(name: string): string[] {
 }
 
 // Names print in small type, a line beneath the baseline per row, with room for descenders.
-function nameBox(rows: readonly string[], baseline: Point): Obstacle {
+const NameFontSize = 5
+const NameLineHeight = 6
+function nameBox(rows: readonly string[], baseline: Point, scale = 1): Obstacle {
     const lines = rows.length
     const longest = Math.max(...rows.map((row) => row.length))
     return box(
-        { x: baseline.x, y: baseline.y - 1.4 + (lines - 1) * 3 },
-        longest * 1.6 + 2,
-        2.6 + (lines - 1) * 3
+        { x: baseline.x, y: baseline.y + (-1.4 + (lines - 1) * 3) * scale },
+        (longest * 1.6 + 2) * scale,
+        (2.6 + (lines - 1) * 3) * scale
     )
 }
 
@@ -985,17 +1082,28 @@ function placedTokens(
     for (const marker of markers) {
         const art = markerArt[marker.id]
         if (!art || !('token' in art)) continue
-        const { place, imageUrl } = art.token
+        const { place, imageUrl, tab } = art.token
+        // A tab's room is kept as a second token's beside the first, on its right where clear.
+        const row =
+            (side: 1 | -1) =>
+            (at: Point): Point[] =>
+                tab ? [at, { x: at.x + side * TokenTabReach, y: at.y }] : [at]
         const covered =
             typeof place === 'object'
                 ? shownSymbols.find(({ symbol }) => symbol === place.covers)
                 : undefined
+        const right = cornerSpot(space, row(1), TokenRadius, revenues, TokenEdgeGap)
+        const left =
+            tab && !(right && isClearSpot(right))
+                ? cornerSpot(space, row(-1), TokenRadius, revenues, TokenEdgeGap)
+                : undefined
+        const side: 1 | -1 = left && isClearSpot(left) ? -1 : 1
         const point =
             place === 'centre'
                 ? { x: 0, y: 0 }
                 : covered
                   ? { x: covered.x, y: covered.y }
-                  : cornerSpot(space, (at) => [at], TokenRadius, revenues)?.points[0]
+                  : (side === 1 ? right : left)?.points[0]
         if (!point) continue
         tokens.push({
             kind: 'token',
@@ -1003,9 +1111,10 @@ function placedTokens(
             label: marker.label,
             imageUrl,
             ...point,
-            radius: TokenRadius
+            radius: TokenRadius,
+            ...(tab ? { tab: side === 1 ? tab : { ...tab, left: true as const } } : {})
         })
-        space.obstacles.push(disc(point, TokenRadius))
+        for (const at of row(side)(point)) space.obstacles.push(disc(at, TokenRadius))
     }
     return tokens
 }
@@ -1015,22 +1124,30 @@ function cornerSpot(
     space: HexSpace,
     row: (at: Point) => Point[],
     radius: number,
-    revenues: readonly Point[]
+    revenues: readonly Point[],
+    edgeGap = EdgeGap
 ): Spot | undefined {
     const farness = (corner: Point) =>
         Math.min(...revenues.map((revenue) => distanceBetween(corner, revenue)))
     const corners = [...space.vertices].sort((a, b) => farness(b) - farness(a))
     for (const corner of corners) {
-        const spot = searchSpot(space, row, radius, (at) => distanceBetween(at, corner))
+        const spot = searchSpot(space, row, radius, (at) => distanceBetween(at, corner), edgeGap)
         if (spot && isClearSpot(spot) && spot.distance <= CornerReach) return spot
     }
-    return searchSpot(space, row, radius, (at) =>
-        Math.min(...corners.map((corner) => distanceBetween(at, corner)))
+    return searchSpot(
+        space,
+        row,
+        radius,
+        (at) => Math.min(...corners.map((corner) => distanceBetween(at, corner))),
+        edgeGap
     )
 }
 
 type Spot = { points: Point[]; clearance: number; trackClearance: number; distance: number }
 const SpotGap = 2.5
+// How far a mark keeps inside the hex's edge; a whole token, outlined, keeps further.
+const EdgeGap = 1.5
+const TokenEdgeGap = 4
 // Beyond this a mark reads as in the middle of the hex rather than in a corner.
 const CornerReach = 20
 const distanceBetween = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
@@ -1039,13 +1156,14 @@ function searchSpot(
     space: HexSpace,
     row: (at: Point) => Point[],
     radius: number,
-    distance: (at: Point) => number
+    distance: (at: Point) => number,
+    edgeGap = EdgeGap
 ): Spot | undefined {
     let best: Spot | undefined
     for (let x = -40; x <= 40; x += 2)
         for (let y = -40; y <= 40; y += 2) {
             const points = row({ x, y })
-            if (points.some((point) => space.inset(point) < radius + 1.5)) continue
+            if (points.some((point) => space.inset(point) < radius + edgeGap)) continue
             const spare = (among: readonly Obstacle[]) =>
                 Math.min(
                     ...points.flatMap((point) =>
@@ -1302,11 +1420,12 @@ export function assertMapOverlays(
         )
     }
     for (const route of routes)
-        for (const segment of route.segments) mapSelectionPoint(scene, { kind: 'path', ...segment })
+        for (const segment of mapRouteTrack(route))
+            mapSelectionPoint(scene, { kind: 'path', ...segment })
 }
 
 export function isMapRouteValid(scene: MapDrawing, route: MapRoute): boolean {
-    return route.segments.every((segment) =>
+    return mapRouteTrack(route).every((segment) =>
         isMapSelectionValid(scene, { kind: 'path', ...segment })
     )
 }

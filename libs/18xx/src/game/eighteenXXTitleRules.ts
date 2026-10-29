@@ -25,6 +25,8 @@ import type * as Type from 'typebox'
 import type { ExplorationPopulation, Visibility } from '@tabletop/common'
 import type { OperatingStepState } from '../operating/operatingSteps.js'
 import type { ReceivershipRules } from '../finance/receivership.js'
+import type { CorporateFinanceRules } from '../finance/corporateFinance.js'
+import type { ZeroPriceClosureRules } from '../company/zeroPriceClosure.js'
 import type {
     EighteenXXMachineState,
     EighteenXXRuntimeSchema,
@@ -91,11 +93,23 @@ export interface EighteenXXTitleRules<
     trackRules: TrackRules
     /** The family operating steps the title runs, in order; all of them unless given. */
     operatingSteps?: readonly OperatingStepState[]
+    /**
+     * Stations are placed in the track step, in any order with track, rather than in a step of
+     * their own; the operating steps then leave out `PlacingStation`.
+     */
+    stationsWithTrack?: true
     /** Title actions in the track step that keep it open while one is still possible. */
     additionalConstructionActions?: readonly string[]
     loanRules?: LoanRules
     cashCrisisRules?: CashCrisisRules
     /** How a company without a president keeps operating, and how a presidency is reclaimed. */
     receivershipRules?: ReceivershipRules
+    /** Issuing and redeeming treasury shares while laying track or before running trains. */
+    corporateFinanceRules?: CorporateFinanceRules
+    /**
+     * Corporations close when their price reaches zero; the title declares the
+     * `ClosingOperatingCorporation` machine state for a closure on the corporation's own turn.
+     */
+    zeroPriceClosure?: ZeroPriceClosureRules
     runInstructions?: true
 }

@@ -227,7 +227,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             )
         } catch (error) {
             this.handleError(error, game.id)
-            throw Error('unreachable')
         }
     }
 
@@ -413,7 +412,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -473,7 +471,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             )
         } catch (error) {
             this.handleError(error, game.id)
-            throw Error('unreachable')
         }
     }
 
@@ -586,7 +583,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         } catch (error) {
             console.log(error)
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -639,7 +635,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             })
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -656,7 +651,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 return game
             } catch (error) {
                 this.handleError(error, gameId)
-                throw Error('unreachable')
             }
         }
 
@@ -686,7 +680,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 return querySnapshot.map((doc) => doc.data()) as Game[]
             } catch (error) {
                 this.handleError(error, ids.join(','))
-                throw Error('unreachable')
             }
         }
 
@@ -837,7 +830,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             return games
         } catch (error) {
             this.handleError(error, user.id)
-            throw Error('unreachable')
         }
     }
 
@@ -872,7 +864,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             return games
         } catch (error) {
             this.handleError(error, titleId)
-            throw Error('unreachable')
         }
     }
 
@@ -888,7 +879,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             return games
         } catch (error) {
             this.handleError(error, titleId)
-            throw Error('unreachable')
         }
     }
 
@@ -908,7 +898,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             return snapshot.docs.map((document) => this.normalizeGame(document.data()))
         } catch (error) {
             this.handleError(error, afterGameId ?? 'finished')
-            throw Error('unreachable')
         }
     }
 
@@ -958,7 +947,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 : await this.findLegacyPlayActions(game.id, window)
         } catch (error) {
             this.handleError(error, game.id)
-            throw Error('unreachable')
         }
     }
 
@@ -1027,7 +1015,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             return snapshot.docs.map((document) => this.normalizeGame(document.data()))
         } catch (error) {
             this.handleError(error, label)
-            throw Error('unreachable')
         }
     }
 
@@ -1038,7 +1025,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             return snapshot.data().count
         } catch (error) {
             this.handleError(error, label)
-            throw Error('unreachable')
         }
     }
 
@@ -1047,7 +1033,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             return await this.getGameState(gameId)
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -1085,7 +1070,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -1246,7 +1230,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -1332,7 +1315,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -1381,7 +1363,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -1718,7 +1699,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -1741,7 +1721,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 return actions
             } catch (error) {
                 this.handleError(error, game.id)
-                throw Error('unreachable')
             }
         } else {
             const actionCollection = this.getActionCollection(game.id)
@@ -1751,7 +1730,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 return querySnapshot.docs.map((doc) => doc.data()) as GameAction[]
             } catch (error) {
                 this.handleError(error, game.id)
-                throw Error('unreachable')
             }
         }
     }
@@ -1784,7 +1762,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             )
         } catch (error) {
             this.handleError(error, game.id)
-            throw Error('unreachable')
         }
     }
 
@@ -2005,7 +1982,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 )
             } catch (error) {
                 this.handleError(error, storedGame.id)
-                throw Error('unreachable')
             }
         } else {
             const actionCollection = this.getActionCollection(storedGame.id)
@@ -2024,7 +2000,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 return results
             } catch (error) {
                 this.handleError(error, storedGame.id)
-                throw Error('unreachable')
             }
         }
     }
@@ -2067,7 +2042,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -2094,7 +2068,6 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -2213,7 +2186,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             .withConverter(this.stateConverter)
     }
 
-    private handleError(error: unknown, id: string) {
+    private handleError(error: unknown, id: string): never {
         console.log(error)
         if (error instanceof BaseError) {
             throw error

@@ -12,6 +12,7 @@ import type {
 import type { TileSymbolName } from '../tiles/tileSymbols.js'
 import type { TerrainIconName } from '../maps/terrainIcons.js'
 import type { HistoryMapPlacement } from '../maps/historicalMap.js'
+import type { MapMarkerArt } from '../maps/mapDrawing.js'
 
 export type PrivateTokenPresentation =
     | { companyId: string }
@@ -39,7 +40,8 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
 /** A labelled fact of the title's own, about the game or one of its companies. */
 export type TitleFact = { label: string; value: string }
 /** A right or marker a company holds, shown beside its trains, such as access to coal fields. */
-export type CompanyMark = { label: string; description: string }
+/** A mark beside a company's name; one with an image, such as a ferry it owns, shows the image. */
+export type CompanyMark = { label: string; description: string; imageUrl?: string }
 /** The companies a company was formed from, shown under its header, such as a System's shells. */
 export type CompanyOrigin = { text: string; companyIds: readonly string[] }
 
@@ -89,6 +91,18 @@ export type CompanyColumn<State extends GameState = EighteenXXState> = {
     text(state: State, companyId: string): string
 }
 
+/** A step of the operating turn as the step bar shows it, with the states and Actions it covers. */
+export type TitleOperatingStep<State extends GameState = EighteenXXState> = {
+    label: string
+    states: readonly string[]
+    actions: readonly string[]
+    status?(
+        state: State,
+        actions: readonly GameAction[],
+        summaries: OperatingStepStatuses
+    ): string | undefined
+}
+
 export type TitlePresentation<State extends GameState = EighteenXXState> = {
     money: MoneyFormat
     phaseChart: PhaseChartData
@@ -117,24 +131,22 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     privateTokens?: Readonly<Record<string, PrivateTokenPresentation>>
     /** Lists minor companies a player owns among their privates, as 1846 sells them in its draft. */
     minorsAsPrivates?: true
-    operatingSteps?: readonly {
-        label: string
-        states: readonly string[]
-        actions: readonly string[]
-        status?(
-            state: State,
-            actions: readonly GameAction[],
-            summaries: OperatingStepStatuses
-        ): string | undefined
-    }[]
+    operatingSteps?: readonly TitleOperatingStep<State>[]
     openingRound?: Pick<TitleRound<State>, 'name' | 'abbreviation' | 'inProgress'>
     titleRounds?: readonly TitleRound<State>[]
     /** Facts of the title's own for the game information, such as money left to subsidise. */
     gameFacts?(state: State): readonly TitleFact[]
+    /**
+     * Marker art that changes with play, by location id then marker id, over the map view's:
+     * such as a marker hidden once its rule lapses, or one a private has marked.
+     */
+    markerArtFor?(state: State): Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>>
     companyColumns?: readonly CompanyColumn<State>[]
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
     companyMarks?(state: State, companyId: string): readonly CompanyMark[]
+    /** A word for an open private's state in place of its income, such as Flipped. */
+    privateStatus?(state: State, privateCompanyId: string): string | undefined
     companyOrigin?(state: State, companyId: string): CompanyOrigin | undefined
     /**
      * What an operating company takes off printed terrain and border costs, by terrain kind, such

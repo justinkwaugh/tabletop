@@ -43,6 +43,8 @@ import {
     parseRealtimeSigningKey,
     RealtimeTokenIssuer,
     RedisCacheService,
+    RedisRateLimitCounter,
+    type RateLimitCounter,
     RedisPublisher,
     RedisPubSubService,
     RedisService,
@@ -84,6 +86,7 @@ declare module 'fastify' {
         ablyService: AblyService
         chatService: ChatService
         cacheService: RedisCacheService
+        rateLimitCounter: RateLimitCounter
         libraryService: LibraryService
         titleValidation: TitleValidation
         catalogService: CatalogService
@@ -290,6 +293,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     fastify.decorate('discordService', discordService)
     fastify.decorate('chatService', chatService)
     fastify.decorate('cacheService', redisCacheService)
+    fastify.decorate('rateLimitCounter', new RedisRateLimitCounter(redisService.client))
     const charityTallyStore = new FirestoreCharityTallyStore(fastify.firestore)
     fastify.decorate(
         'charityTallyService',

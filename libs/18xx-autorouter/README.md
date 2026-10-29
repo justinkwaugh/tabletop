@@ -48,6 +48,19 @@ separate encoding, solving, final validation and the Rust search stages.
   values. A 6-train still uses ordinary offboard values during the diesel phase.
 - 1846: express visit/payment limits with a paid company station, connection
   bonuses on paid stops, and a per-stop bonus on the fleet's longest route.
+- N+s trains (`extraTowns`): at most N+s stops, of which at most N are not towns.
+  Only revenue-center trains may carry extra towns.
+- Revenue policies chosen from the state and operating company, and connection
+  bonuses whose destination pays only at a route's first or last stop
+  (`destinationAtEnd`).
+- Interconnections: a route may continue past its counted stops on track of its
+  own, through any stops except an offboard, to a destination location, and earns
+  the best interconnection from one of its paid stops. The solver may reverse a
+  route so the extension leaves either end. It tries only the shortest extension
+  (fewest paths) from each end of each route to each destination location, over
+  track the route does not use; it skips one that would reuse its own track or
+  revisit a junction between stops, and never tries a longer extension that would
+  leave track free for another train. `exhaustive` covers this encoding only.
 - All: station inclusion, continuous track, no edge reversal or track/border
   reuse within or between routes, no repeated revenue center or repeated junction
   between consecutive stops, blocked cities at endpoints only, and terminal offboards. Station reservations do not block runs.
@@ -59,7 +72,7 @@ core's exclusive stop groups, so a route visits one of them. The core's additive
 traversal/first-stop bonuses have no consumer in the current repository models and
 are not invented as title policies here.
 
-The internal wire format is version 4. It is private to this package; callers use
+The internal wire format is version 5. It is private to this package; callers use
 the shared game models. Other distance, gauge, payment-selection or fleet-coupled
 rules need explicit encoding support before another title can use this solver.
 See the [design review](../../research/18xx/autorouter-design.md).

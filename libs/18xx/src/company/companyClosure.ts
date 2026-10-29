@@ -7,7 +7,7 @@ import {
     removeCertificates,
     type FinancialState
 } from '../finance/finance.js'
-import { StationReservation, type StationState } from '../map/station.js'
+import { StationAccess, StationReservation, type StationState } from '../map/station.js'
 import { closePrivate, privateOwningCompany } from '../privates/privateCompany.js'
 import { companyMarketSpaceId, removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
 import { trainsOwnedBy, releaseTrains, TrainDestination, type TrainState } from '../trains/train.js'
@@ -20,6 +20,7 @@ export const CompanyClosure = Type.Object(
         retiredCertificateIds: Type.Array(Type.String()),
         closedPrivateIds: Type.Array(Type.String()),
         removedReservations: Type.Array(StationReservation),
+        removedStationAccess: Type.Optional(Type.Array(StationAccess)),
         removedStationIds: Type.Array(Type.String()),
         removedTrainIds: Type.Array(Type.String()),
         /** Where the removed trains went, and their types in `removedTrainIds` order. */
@@ -67,6 +68,9 @@ export function closeShareCompany(
     const removedStationIds = state.stations
         .filter((station) => station.companyId === companyId && station.status !== 'removed')
         .map((station) => station.id)
+    const removedStationAccess = structuredClone(
+        (state.stationAccess ?? []).filter((access) => access.companyId === companyId)
+    )
     const removedTrains = trainsOwnedBy(state, owner)
     const removedTrainIds = removedTrains.map((train) => train.id)
     const details: CompanyClosure = {
@@ -84,6 +88,7 @@ export function closeShareCompany(
         removedReservations: structuredClone(
             state.stationReservations.filter((reservation) => reservation.companyId === companyId)
         ),
+        ...(removedStationAccess.length ? { removedStationAccess } : {}),
         ...(company.kind === 'major'
             ? { removedMarketSpaceId: companyMarketSpaceId(state.stockMarket, companyId) }
             : {})
@@ -104,6 +109,10 @@ export function closeShareCompany(
     state.stationReservations = state.stationReservations.filter(
         (reservation) => reservation.companyId !== companyId
     )
+    if (removedStationAccess.length)
+        state.stationAccess = state.stationAccess?.filter(
+            (access) => access.companyId !== companyId
+        )
     releaseTrains(state.trainInventory, removedTrainIds, trainDestination)
     if (company.kind === 'major') removeStockMarker(state.stockMarket, companyId)
     return details

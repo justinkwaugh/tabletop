@@ -1,5 +1,5 @@
 import type { EighteenXXRuntimeSchema, TitleStateSchema } from '@tabletop/18xx'
-import { operatingStepIndex } from '../table/operatingStep.js'
+import { constructionOperatingSteps, operatingStepIndex } from '../table/operatingStep.js'
 import {
     cashOwnedBy,
     EighteenXXPreferenceDefinition,
@@ -51,6 +51,7 @@ import {
 } from '../finance/draftedCompanies.js'
 import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import { terrainIconAppearance } from '../maps/terrainIcons.js'
+import type { MapMarkerArt } from '../maps/mapDrawing.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
 import {
@@ -77,7 +78,7 @@ import { TitleStockPanels, type TitleStockPanel } from './titleStockPanels.svelt
 import { MapModule, MapStyleAppearances } from './mapModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
-import { OperatingTurnModule } from './operatingTurnModule.svelte.js'
+import { OperatingTurnModule, type OperatingStepCompletion } from './operatingTurnModule.svelte.js'
 import {
     PrivateActionsModule,
     type PrivateTrackPower,
@@ -91,10 +92,17 @@ import { StationsModule } from './stationsModule.svelte.js'
 import { StockInstructionModule } from './stockInstructionModule.svelte.js'
 import { StockModule } from './stockModule.svelte.js'
 import { TableNotices } from './tableNotices.svelte.js'
-import type { PrivateTokenPresentation, TitlePresentation } from './titlePresentation.js'
+import type {
+    PrivateTokenPresentation,
+    TitleOperatingStep,
+    TitlePresentation
+} from './titlePresentation.js'
 import { TrackModule } from './trackModule.svelte.js'
 import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule } from './trainFundingModule.svelte.js'
+import { CorporateFinanceModule } from './corporateFinanceModule.svelte.js'
+import { OperatingModeModule } from './operatingModeModule.svelte.js'
+import { PresidencyClaimModule } from './presidencyClaimModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
 
 export type EighteenXXSessionRules<
@@ -330,6 +338,20 @@ export class EighteenXXSession<
         () => this.requiresStationTokenChoice,
         () => this.stationPlacementActive
     )
+    readonly corporateFinance = new CorporateFinanceModule(this.moduleSession)
+    readonly operatingMode: OperatingModeModule = new OperatingModeModule(
+        this.moduleSession,
+        this.corporateFinance,
+        this.privateActions,
+        this.decisions,
+        {
+            clearSelections: () => {
+                this.track.stages.clear()
+                this.stations.stages.clear()
+            },
+            finishTrack: () => this.track.finish()
+        }
+    )
     readonly routes = new RoutesModule(
         this.moduleSession,
         (selection) => {
@@ -360,7 +382,7 @@ export class EighteenXXSession<
         },
         () => this.operatingStepCompletion,
         (state) => {
-            const steps = this.presentation.operatingSteps
+            const steps = this.operatingSteps
             if (!steps) return operatingStepIndex(state)
             const index = steps.findIndex((step) => step.states.includes(state))
             return index < 0 ? undefined : index
@@ -373,6 +395,20 @@ export class EighteenXXSession<
             this.onStockSelectionCancelled()
         },
         () => this.privates.exchangeOffers.length > 0
+    )
+    readonly presidencyClaims = new PresidencyClaimModule(this.moduleSession)
+    /** The family's panels beside Buy and Sell, such as taking over a company in receivership. */
+    readonly familyStockPanels: TitleStockPanels<FamilyStockPanel> = new TitleStockPanels(
+        this.stock,
+        [
+            {
+                id: 'receivership',
+                label: 'Receivership',
+                available: () =>
+                    this.gameState.machineState === 'StockRound' &&
+                    this.presidencyClaims.offers.length > 0
+            }
+        ]
     )
     #titleStockPanels?: TitleStockPanels<string>
     /** The title's panels beside Buy and Sell, registered for Undo and the stock menu. */
@@ -488,9 +524,35 @@ export class EighteenXXSession<
         tileColors: this.tileAppearance.colors,
         tileColorNames: this.tileAppearance.colorNames ?? {}
     }))
+    // Held as text, so the map redraws when the art changes rather than on every action.
+    private playedMarkerArt = $derived.by(() =>
+        JSON.stringify(this.presentationDefinition.markerArtFor?.(this.gameState) ?? {})
+    )
     /** The map view for the current presentation: published token art replaces the generic set when selected. */
     readonly mapView: MapViewDefinition = $derived.by(() => {
-        const base = this.mapViewDefinition
+        const printed = this.mapViewDefinition
+        const played: Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>> = JSON.parse(
+            this.playedMarkerArt
+        )
+        const base = Object.keys(played).length
+            ? {
+                  ...printed,
+                  locationMarkerArt: Object.fromEntries(
+                      [
+                          ...new Set([
+                              ...Object.keys(printed.locationMarkerArt ?? {}),
+                              ...Object.keys(played)
+                          ])
+                      ].map((locationId) => [
+                          locationId,
+                          {
+                              ...printed.locationMarkerArt?.[locationId],
+                              ...played[locationId]
+                          }
+                      ])
+                  )
+              }
+            : printed
         const overrides = this.stationAppearanceOverrides
         const definition = overrides
             ? { ...base, stations: { ...base.stations, ...overrides } }
@@ -573,21 +635,32 @@ export class EighteenXXSession<
             this.game.players.filter((player) => player.id === id)
         )
     }
-    protected get operatingStepCompletion() {
-        if (this.presentation.operatingSteps) return undefined
+    /** The operating turn's steps when a title or the family lays them out other than one per family step. */
+    get operatingSteps(): readonly TitleOperatingStep<EighteenXXState<Schema>>[] | undefined {
+        return this.presentation.operatingSteps ?? this.familyOperatingSteps
+    }
+    private readonly familyOperatingSteps = $derived.by(() =>
+        this.rules.stationsWithTrack
+            ? constructionOperatingSteps<EighteenXXState<Schema>>(this.rules)
+            : undefined
+    )
+    protected get operatingStepCompletion(): OperatingStepCompletion | undefined {
+        if (this.rules.stationsWithTrack) return this.operatingMode.completion
+        if (this.operatingSteps) return undefined
         return OperatingTurnModule.defaultCompletion(this.moduleSession, {
             finishTrack: () => this.track.finish(),
             finishStations: () => this.stations.finish()
         })
     }
     protected onStockSelectionCancelled() {
+        this.familyStockPanels.clear()
         this.#titleStockPanels?.clear()
     }
     protected get trackBuildingActive(): boolean {
-        return true
+        return this.operatingMode.trackActive
     }
     protected get stationPlacementActive(): boolean {
-        return this.gameState.machineState === 'PlacingStation'
+        return this.operatingMode.stationsActive
     }
     protected get sharedActionsBlocked(): boolean {
         return false
@@ -908,6 +981,7 @@ export class EighteenXXSession<
         localSelections.register(this.stations.stages)
         localSelections.register(this.track.stages)
         localSelections.register(this.stock)
+        localSelections.register(this.familyStockPanels, 'first')
         localSelections.register(this.cashCrisis.bankruptcy)
     }
 }
@@ -936,6 +1010,8 @@ export function requireEighteenXXSession(
 export type PublishedCardPlate = { tokens: readonly StationAppearance[]; text: string }
 
 export type CompanyShareStatus = 'unfloated' | 'soldOut'
+
+export type FamilyStockPanel = 'receivership'
 
 export type MapLocationChoice = {
     locationIds: readonly string[]

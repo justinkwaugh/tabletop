@@ -1,0 +1,43 @@
+{
+    "name": "@tabletop/1833ne",
+    "version": "0.2.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": {
+            "types": "./esm/index.d.ts",
+            "import": "./esm/index.js"
+        },
+        "./scenarios": {
+            "types": "./esm/scenarios/index.d.ts",
+            "import": "./esm/scenarios/index.js"
+        }
+    },
+    "sideEffects": false,
+    "files": [
+        "esm"
+    ],
+    "scripts": {
+        "clean": "rimraf esm",
+        "build": "node ../../tools/scripts/write-game-version.cjs && tsgo",
+        "check": "tsgo --noEmit",
+        "test": "vitest run",
+        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rolldown -c ./rolldown.config.ts",
+        "lint": "eslint ."
+    },
+    "dependencies": {
+        "@tabletop/18xx": "workspace:*",
+        "@tabletop/common": "workspace:*"
+    },
+    "devDependencies": {
+        "@typescript/native-preview": "7.0.0-dev.20260707.2",
+        "rimraf": "^6.1.0",
+        "typescript": "5.9.3",
+        "@tabletop/vitest-config": "workspace:*",
+        "vitest": "^5.0.5",
+        "@tabletop/rolldown-config": "workspace:*",
+        "rolldown": "^1.2.15",
+        "typebox": "^1.0.79",
+        "@tabletop/eslint-config": "workspace:*"
+    }
+}

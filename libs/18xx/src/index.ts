@@ -247,6 +247,17 @@ export * from './construction/automaticTrackCompletionHandler.js'
 export {
     payingRouteStops,
     routeConnectionBonuses,
+    routeInterconnectionBonus,
+    routeStopBonuses,
+    type Interconnection,
     type PaidConnectionBonus,
-    type RouteRevenuePolicy
+    type RouteRevenuePolicy,
+    type RouteShape
 } from './routes/routeScoring.js'
+export * from './earnings/payoutJumps.js'
+export * from './finance/corporateFinance.js'
+export * from './stations/stationsWithTrackHandler.js'
+export * from './construction/trackCosts.js'
+export * from './company/zeroPriceClosure.js'
+export * from './funding/issueFirstFunding.js'
+export * from './stock/treasuryShareTrading.js'

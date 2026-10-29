@@ -141,6 +141,7 @@
                                         colors={gameSession.armyColors(block.unit.playerId)}
                                         {...gameSession.lookOf(block.unit)}
                                         roleMark={role && roleMarkOf(role)}
+                                        viewRotation={rotation}
                                         dimmed={scene.bystanderIds.includes(block.unit.id)}
                                     />
                                 {/each}

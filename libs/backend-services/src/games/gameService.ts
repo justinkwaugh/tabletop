@@ -1246,11 +1246,10 @@ export class GameService {
                     relatedActions.push(...reconciledRace)
 
                     // Lookup and verify the missing actions
-                    let missingActions: GameAction[] = []
                     if (indexOffset > 0 && initialIndex !== undefined) {
                         const startIndex = initialIndex
                         const endIndex = initialIndex + indexOffset
-                        missingActions = await this.gameStore.findActionRangeForGame({
+                        const missingActions = await this.gameStore.findActionRangeForGame({
                             game: existingGame,
                             startIndex,
                             endIndex
