@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { defineProject } from 'vitest/config'
 
 export const VitestConfig = defineProject({
@@ -19,3 +20,15 @@ export const VitestConfig = defineProject({
         ]
     }
 })
+
+/**
+ * The directory of the config file at `configUrl` (its `import.meta.url`), for a project's `root`.
+ *
+ * Vitest 5 sets a project's root only after plugins have configured, so when the suite runs from
+ * the repo root, vite-plugin-svelte reads the root package.json and misses the package's Svelte
+ * libraries (runed, flowbite-svelte, ...). Vitest then hands them to Node uncompiled. A project
+ * that loads the Svelte plugin sets `root` itself.
+ */
+export function projectRoot(configUrl: string): string {
+    return fileURLToPath(new URL('.', configUrl))
+}

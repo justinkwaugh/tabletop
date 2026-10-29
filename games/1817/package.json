@@ -34,7 +34,7 @@
         "rimraf": "^6.1.0",
         "typescript": "5.9.3",
         "@tabletop/vitest-config": "workspace:*",
-        "vitest": "^4.0.12",
+        "vitest": "^5.0.5",
         "@tabletop/rolldown-config": "workspace:*",
         "rolldown": "^1.2.15",
         "@tabletop/18xx-autorouter": "workspace:*",
