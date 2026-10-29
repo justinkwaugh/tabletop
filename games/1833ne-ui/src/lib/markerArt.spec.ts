@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import type { State1833NE } from '@tabletop/1833ne'
-import { LuxuryFerryArt } from './ferryArt.js'
+import { FerryArt, LuxuryFerryArt } from './ferryArt.js'
 import { Presentation1833NE } from './presentation.js'
 
 const scenario = (name: string): State1833NE =>
@@ -29,5 +29,43 @@ describe('the board as play leaves it', () => {
         expect(['C26', 'E26', 'F27', 'F25', 'G26'].map((id) => art(state)[id]?.ferry)).toEqual(
             Array(5).fill({ hidden: true })
         )
+    })
+
+    it('tabs the ferry the New/Last bonus marker sits by', () => {
+        const state = scenario('first-operating-round')
+        state.ferries = [{ locationId: 'F25', companyId: 'B&P' }]
+        state.ferryBonus = { locationId: 'F25', side: 'new' }
+        expect(art(state).F25?.ferry).toEqual({
+            token: {
+                imageUrl: FerryArt.F25,
+                place: 'corner',
+                tab: { label: '+20', caption: 'NEW', fill: '#231f20' }
+            }
+        })
+        state.ferryBonus = { locationId: 'F25', side: 'last' }
+        expect(art(state).F25?.ferry).toEqual({
+            token: {
+                imageUrl: FerryArt.F25,
+                place: 'corner',
+                tab: { label: '+10', caption: 'LAST', fill: '#4f4a45' }
+            }
+        })
+    })
+
+    it('marks a corporation’s card with its ferries and the bonus beside one', () => {
+        const state = scenario('first-operating-round')
+        state.ferries = [
+            { locationId: 'F25', companyId: 'B&P' },
+            { locationId: 'F27', companyId: 'B&P', luxury: true }
+        ]
+        state.ferryBonus = { locationId: 'F27', side: 'last' }
+        const marks = Presentation1833NE.companyMarks?.(state, 'B&P') ?? []
+        expect(marks.map((mark) => [mark.label, mark.imageUrl])).toEqual([
+            ['Providence', FerryArt.F25],
+            ['Stonington', LuxuryFerryArt.F27],
+            ['+10 Last', undefined]
+        ])
+        expect(marks[1].description).toContain('$60')
+        expect(Presentation1833NE.companyMarks?.({ ...state, phaseId: 'IV' }, 'B&P')).toEqual([])
     })
 })
