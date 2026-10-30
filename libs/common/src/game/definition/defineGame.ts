@@ -39,13 +39,15 @@ function configureRuntime<T extends GameState, U extends HydratedGameState<T>>(
         configuration,
         initializer: {
             supportsStartingPositions: initializer.supportsStartingPositions,
+            supportsContinuation: initializer.supportsContinuation,
             initializeGame: (game, definition) =>
                 initializer.initializeGame(normalizeGame(game, configuration), definition),
-            initializeGameState: (game, state, assignment) =>
+            initializeGameState: (game, state, assignment, continuation) =>
                 initializer.initializeGameState(
                     normalizeGame(game, configuration),
                     state,
-                    assignment
+                    assignment,
+                    continuation
                 )
         },
         exploration: configureExploration(runtime.exploration, configuration),

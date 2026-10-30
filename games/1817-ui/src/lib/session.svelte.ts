@@ -1,3 +1,4 @@
+import { DiscardMergedTrain } from '@tabletop/18xx'
 import type { EighteenSeventeenState, HydratedEighteenSeventeenState } from '@tabletop/1817'
 import {
     AcquireCompany,
@@ -17,9 +18,9 @@ import {
     minimumBid,
     openingBid,
     bidCeiling,
+    bidRejection,
     BuyConvertedShare,
     ConvertCompany,
-    DiscardMergedTrain,
     EighteenSeventeenTitleRules,
     FinishConversionLoans,
     MergeCompanies,
@@ -180,7 +181,8 @@ export class EighteenSeventeenSession extends BaseSession {
                     ? bidCeiling(state, sale, playerId)
                     : undefined,
             /** The bidder's companies that could pay this amount. */
-            payers: (amount: number) => (playerId ? buyersFor(state, playerId, sale, amount) : [])
+            payers: (amount: number) => (playerId ? buyersFor(state, playerId, sale, amount) : []),
+            allows: (amount: number) => !!playerId && !bidRejection(state, sale, playerId, amount)
         }
     })
     acquirerChoice = $derived(

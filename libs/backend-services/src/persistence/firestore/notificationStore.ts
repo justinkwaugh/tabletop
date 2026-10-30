@@ -146,7 +146,6 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
             })
         } catch (error) {
             this.handleError(error, subscriptionId, 'StoredSubscription | PushTopic')
-            throw Error('unreachable')
         }
     }
 
@@ -189,7 +188,6 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
             })
         } catch (error) {
             this.handleError(error, subscriptionId, 'NotificationSubscription | PushTopic')
-            throw Error('unreachable')
         }
     }
 
@@ -211,7 +209,6 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
             return storedTopic.clients
         } catch (error) {
             this.handleError(error, topic, 'PushTopic')
-            throw Error('unreachable')
         }
     }
 
@@ -225,11 +222,10 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
             return snapshot.data().count
         } catch (error) {
             this.handleError(error, transport, 'NotificationSubscription')
-            throw Error('unreachable')
         }
     }
 
-    private handleError(error: unknown, id: string, type: string) {
+    private handleError(error: unknown, id: string, type: string): never {
         console.log(error)
         if (error instanceof BaseError) {
             throw error

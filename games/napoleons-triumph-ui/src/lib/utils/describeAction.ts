@@ -3,6 +3,7 @@ import {
     CommandKind,
     FeintEnd,
     MoralePenaltyKind,
+    ResultTermKind,
     Side,
     commanderDefinition,
     isAdvance,
@@ -34,6 +35,7 @@ import {
     type Position
 } from '@tabletop/napoleons-triumph'
 import { counted, lossesOfAttack, stepsIn } from '$lib/model/attackLosses.js'
+import { faceName } from './faceName.js'
 import { signed } from './signed.js'
 import { corpsName } from './groupNames.js'
 
@@ -81,6 +83,22 @@ function force(order: MoveOrder, armyToName?: Side): string {
         return `${count(order.unitIds.length)} detached by ${commanderDefinition(order.commanderId).name}`
     }
     return armyToName ? UNIT_OF[armyToName] : 'a unit'
+}
+
+// Leading and counter-attacking units are turned face-up, so the faces the result counted can be told.
+function shown(
+    unitIds: readonly string[],
+    metadata: CombatMetadata | undefined,
+    kind: ResultTermKind
+): string {
+    const faces = metadata?.account?.find((term) => term.kind === kind)?.faces
+    if (faces?.length !== unitIds.length) {
+        return count(unitIds.length)
+    }
+    return faces
+        .map((face) => faceName(face))
+        .map((name) => `${/^[aeiou]/.test(name) ? 'an' : 'a'} ${name} unit`)
+        .join(' and ')
 }
 
 function sentence(text: string): string {
@@ -279,7 +297,7 @@ export function describeAction(action: GameAction, game: DescribedGame, fight?: 
         const led =
             action.leaderIds.length === 0
                 ? 'with no leading unit'
-                : `led by ${count(action.leaderIds.length)}`
+                : `led by ${shown(action.leaderIds, action.metadata, ResultTermKind.AttackLeaders)}`
         const width = action.wide ? 'a wide' : 'a narrow'
         const initial = action.metadata?.initialResult
         const result = initial === undefined ? '' : ` Initial result ${signed(initial)}.`
@@ -290,7 +308,7 @@ export function describeAction(action: GameAction, game: DescribedGame, fight?: 
         const opening =
             action.unitIds.length === 0
                 ? `${army} do not counter-attack.`
-                : `${army} counter-attack with ${count(action.unitIds.length)}.`
+                : `${army} counter-attack with ${shown(action.unitIds, action.metadata, ResultTermKind.CounterAttack)}.`
         return `${opening} ${combat(action, game, fight)}`.trim()
     }
     if (isAssignLosses(action)) {

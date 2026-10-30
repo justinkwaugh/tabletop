@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS } from '@tabletop/common'
+import { caseInsensitiveSubject, operationBudget } from '../../../../lib/operationBudget.js'
 
 type ResetPasswordRequest = Static<typeof ResetPasswordRequest>
 const ResetPasswordRequest = Type.Object({
@@ -12,7 +13,13 @@ export default async function (fastify: FastifyInstance) {
         '/sendPasswordReset',
         {
             config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
-            schema: { body: ResetPasswordRequest }
+            schema: { body: ResetPasswordRequest },
+            preHandler: operationBudget<{ Body: ResetPasswordRequest }>(fastify, {
+                operation: 'password reset',
+                max: 10,
+                timeWindow: '15 minutes',
+                subject: (request) => caseInsensitiveSubject(request.body.email)
+            })
         },
         async function (request, _reply) {
             // The same answer whether or not an eligible Account exists, so nothing is enumerated

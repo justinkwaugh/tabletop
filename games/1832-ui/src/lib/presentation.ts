@@ -3,7 +3,8 @@ import {
     isCompleteMergerPhase,
     isStartMergerPhase,
     EighteenThirtyTwoSoftLedge,
-    type EighteenThirtyTwoState
+    type EighteenThirtyTwoState,
+    EighteenThirtyTwoTitleRules
 } from '@tabletop/1832'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyTwoCompanyNames } from './companyPresentation.js'
@@ -16,7 +17,7 @@ import UnknownToken from './images/tokens/unknown.svg'
 
 // A System names its letter and the two companies it was formed from (§11.6).
 export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoState> = {
-    money: moneyFormat('$'),
+    money: moneyFormat(EighteenThirtyTwoTitleRules.currencySymbol),
     phaseChart: EighteenThirtyTwoPhaseChart,
     phaseChartFor: eighteenThirtyTwoPhaseChart,
     trainColors: EighteenThirtyTwoTrainColors,

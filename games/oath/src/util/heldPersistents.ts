@@ -1,6 +1,7 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
-import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
+import { PowerTiming } from '../data/cardPowers.js'
+import { powersInPlay } from './powersInPlay.js'
 import { effectFor } from '../powers/registry.js'
 import type { PersistentInPlay } from './persistent.js'
 import type { ImperialScope } from './rule.js'
@@ -13,7 +14,7 @@ export function persistentsOfCard(
     { siteId, scope }: { siteId?: string; scope?: ImperialScope } = {}
 ): PersistentInPlay[] {
     const found: PersistentInPlay[] = []
-    for (const power of powersWithTiming(cardId, PowerTiming.Persistent)) {
+    for (const power of powersInPlay(state, cardId, PowerTiming.Persistent)) {
         const hooks = effectFor(power)?.persistent
         if (hooks) found.push({ ctx: { state, cardId, power, ownerIds, siteId, scope }, hooks })
     }

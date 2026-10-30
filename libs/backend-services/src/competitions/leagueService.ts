@@ -602,6 +602,7 @@ export class LeagueService {
                     tournamentStatus: result.tournament.status,
                     finishedGames: result.tournament.stages[0]?.dispatch?.finished.length ?? 0,
                     activeGames: result.activeTableIds.length,
+                    activeProgress: result.activeProgress,
                     totalGames:
                         (group.entrantIds.length * season.rules.gamesPerEntrant) /
                             season.rules.tableSize -

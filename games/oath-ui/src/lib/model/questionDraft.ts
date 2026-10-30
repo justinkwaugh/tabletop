@@ -509,6 +509,11 @@ export class QuestionDraft implements PanelDraft {
     }
 
     /** R-7.1.3-H2 — one tap takes Gambling Hall's favor from that bank. */
+    /** Squalid District — lower the end die by one, raise it, or leave it (`by` −1, 1 or 0). */
+    async adjustEndDie(by: -1 | 0 | 1): Promise<void> {
+        await this.send({ kind: PowerQuestionKind.AdjustEndDie, by })
+    }
+
     async takeGamblingHallFavor(suit: Suit): Promise<void> {
         await this.send({ kind: PowerQuestionKind.GamblingHallBank, suit })
     }

@@ -8,6 +8,7 @@ import {
     isFinishStockTurn,
     isFloatCompany,
     isEndGame,
+    isDeclareBankruptcy,
     isResolveAuction,
     isResolveSelectionAuction,
     isStartOperatingRound,
@@ -140,6 +141,7 @@ export function historyRounds(
                           (move) => move.fromMarketSpaceId !== move.toMarketSpaceId
                       )) ||
                   isGameEndAction(action) ||
+                  isDeclareBankruptcy(action) ||
                   isExportTrains(action) ||
                   isPayInterest(action) ||
                   !!title.isEvent?.(action) ||

@@ -122,7 +122,11 @@ export class StationPlacement {
             return { reason: 'This city slot is occupied, reserved, or unavailable.' }
         const network = new TrackNetwork(
             this.mapState,
-            this.state,
+            stateWith(this.state, {
+                stationAccess: this.state.stationAccess?.filter(
+                    (access) => access.placesStations !== false
+                )
+            }),
             companyId,
             undefined,
             undefined,
@@ -153,6 +157,9 @@ export class StationPlacement {
                     station.status === 'placed' &&
                     station.companyId === companyId &&
                     station.position.locationId === locationId
+            ) ||
+            (this.state.stationAccess ?? []).some(
+                (access) => access.companyId === companyId && access.locationId === locationId
             )
         )
             return []

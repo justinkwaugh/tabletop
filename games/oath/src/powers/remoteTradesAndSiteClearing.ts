@@ -27,7 +27,7 @@ import {
     faceupSitesWithCardOfSuit
 } from './vocabulary.js'
 import { bargainChoicesAtYourSite, playerChoicesAtYourSite } from './choiceDomains.js'
-import { SALT_THE_EARTH } from '../util/capacity.js'
+import { SALT_THE_EARTH, SALTED_SITE_CAPACITY } from '../util/capacity.js'
 import { reasonPersistentForbidsGivingSecrets } from '../util/persistent.js'
 import { siteHolding } from '../util/access.js'
 import { handedOver } from '../model/playerState.js'
@@ -329,7 +329,10 @@ registerEffect(SALT_THE_EARTH, powerIndexOf(SALT_THE_EARTH, PowerTiming.WhenPlay
             (id) => id !== SALT_THE_EARTH,
             ctx.power.cardId
         )
-        ctx.state.siteCapacityOverrides = { ...ctx.state.siteCapacityOverrides, [siteId]: 1 }
+        ctx.state.siteCapacityOverrides = {
+            ...ctx.state.siteCapacityOverrides,
+            [siteId]: SALTED_SITE_CAPACITY
+        }
         return {
             summary: `Salt the Earth: discarded ${discarded.length} denizens at ${siteId}; its capacity is now 1`,
             pileDeposits

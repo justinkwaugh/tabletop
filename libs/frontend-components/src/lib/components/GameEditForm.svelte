@@ -28,6 +28,7 @@
         GameStorage,
         isBooleanConfigOption,
         isListConfigOption,
+        isListedPublicGame,
         listOptionDescription,
         isNumberInputConfigOption,
         isStringInputConfigOption,
@@ -47,17 +48,34 @@
     import { APIError } from '$lib/network/errors.js'
     import { trim } from '$lib/utils/trimInput.js'
     import Typeahead from '$lib/components/Typeahead.svelte'
+    import SegmentedControl from '$lib/components/SegmentedControl.svelte'
     import { getAppContext } from '$lib/model/appContext.js'
 
     type EditableGame = Pick<
         Game,
-        'id' | 'typeId' | 'name' | 'players' | 'isPublic' | 'hotseat' | 'ownerId' | 'config'
+        | 'id'
+        | 'typeId'
+        | 'name'
+        | 'players'
+        | 'isPublic'
+        | 'unlisted'
+        | 'hotseat'
+        | 'ownerId'
+        | 'config'
     >
     const EditMode = {
         Create: 'create',
         Edit: 'edit'
     } as const
     type EditMode = (typeof EditMode)[keyof typeof EditMode]
+    const GameAccess = {
+        Private: 'private',
+        Public: 'public',
+        Unlisted: 'unlisted',
+        Hotseat: 'hotseat'
+    } as const
+    type GameAccess = (typeof GameAccess)[keyof typeof GameAccess]
+    type GameAccessOption = { value: GameAccess; label: string; description: string }
 
     let {
         game,
@@ -121,21 +139,39 @@
             : (gameTitle.info.metadata.defaultPlayerCount ?? 1)
     )
     let players: Player[] = $state(editedGame.players)
-    let isPublic: boolean = $state(editedGame.isPublic)
-    let isHotseat: boolean = $state(hotseatOnly || editedGame.hotseat)
-    let isUnlisted: boolean = $state(false)
+    let access: GameAccess = $state(initialAccess())
     let includeOwner: boolean = $state(true)
-    let publicGame = $derived(isPublic || isUnlisted)
-    let showUnlistedToggle = $derived(
-        authorizationService.canUseDeveloperTools && mode === EditMode.Create && !isHotseat
+    let isHotseat = $derived(access === GameAccess.Hotseat)
+    let publicGame = $derived(access === GameAccess.Public || access === GameAccess.Unlisted)
+    let accessOptions = $derived.by(() => {
+        const options: GameAccessOption[] = []
+        if (canListPublicly()) {
+            options.push({
+                value: GameAccess.Public,
+                label: 'Public',
+                description: 'Listed for anyone to join'
+            })
+        }
+        options.push({
+            value: GameAccess.Unlisted,
+            label: 'Unlisted',
+            description: 'Not listed; anyone with the link can join'
+        })
+        if (!continueFrom && includeOwner) {
+            options.push({
+                value: GameAccess.Hotseat,
+                label: 'Hotseat',
+                description: 'Everyone plays on this device'
+            })
+        }
+        return options
+    })
+    let accessDescription = $derived(
+        accessOptions.find((option) => option.value === access)?.description
     )
-    let showPublicToggle = $derived(
-        getTitleVisibility(gameTitle.info.metadata) === GameVisibility.Public &&
-            mode === EditMode.Create &&
-            !isHotseat &&
-            !isUnlisted
+    let showAccessControl = $derived(
+        mode === EditMode.Create && !hotseatOnly && !continueFrom?.hotseat
     )
-    let showHotseatToggle = $derived(!hotseatOnly && !continueFrom && !publicGame && includeOwner)
     let reclaimableOwnerSeat = $derived.by(() => {
         const ownNameSeat = players.findIndex((player) => player.name === sessionUser?.username)
         return ownNameSeat !== -1
@@ -151,6 +187,22 @@
     )
     let minPlayers: number = $derived(gameTitle?.info.metadata.minPlayers ?? 1)
     let maxPlayers: number = $derived(gameTitle?.info.metadata.maxPlayers ?? 1)
+
+    function initialAccess(): GameAccess {
+        if (hotseatOnly || editedGame.hotseat) return GameAccess.Hotseat
+        if (mode === EditMode.Edit) return existingGameAccess()
+        if (continueFrom && !isListedPublicGame(continueFrom)) return GameAccess.Unlisted
+        return canListPublicly() ? GameAccess.Public : GameAccess.Unlisted
+    }
+
+    function existingGameAccess(): GameAccess {
+        if (!editedGame.isPublic) return GameAccess.Private
+        return editedGame.unlisted ? GameAccess.Unlisted : GameAccess.Public
+    }
+
+    function canListPublicly(): boolean {
+        return getTitleVisibility(gameTitle.info.metadata) === GameVisibility.Public
+    }
 
     function generateDefaultOptions() {
         return defaultGameConfig(gameTitle.info.configurator?.options ?? [])
@@ -198,6 +250,7 @@
                 isUsersSeat(source, player, user) ? ownerPlayer() : continuedPlayer(source, player)
             ),
             isPublic: source.isPublic,
+            ...(source.unlisted ? { unlisted: true } : {}),
             hotseat: source.hotseat,
             ownerId: sessionUser.id,
             config: structuredClone(source.config)
@@ -290,9 +343,9 @@
             name: (formData.get('name') as string).trim(),
             players: playersToUpload,
             isPublic: publicGame,
-            ...(isUnlisted ? { unlisted: true } : {}),
-            hotseat: !publicGame && isHotseat,
-            storage: !publicGame && isHotseat ? GameStorage.Local : GameStorage.Remote,
+            ...(access === GameAccess.Unlisted ? { unlisted: true } : {}),
+            hotseat: isHotseat,
+            storage: isHotseat ? GameStorage.Local : GameStorage.Remote,
             ownerId: editedGame.ownerId,
             config: mergedConfig
         }
@@ -563,26 +616,25 @@
             {/if}
         {/each}
     </div>
-    {#if showPublicToggle || showUnlistedToggle || showHotseatToggle || showIncludeOwnerToggle}
-        <div class="flex flex-row items-center gap-6">
-            {#if showIncludeOwnerToggle}
-                <Toggle
-                    bind:checked={includeOwner}
-                    disabled={!canIncludeOwner}
-                    onchange={() => setOwnerIncluded(includeOwner)}>Include me</Toggle
-                >
-            {/if}
-            {#if showPublicToggle}
-                <Toggle bind:checked={isPublic}>Public</Toggle>
-            {/if}
-            {#if showUnlistedToggle}
-                <Toggle bind:checked={isUnlisted}>Unlisted</Toggle>
-            {/if}
-            {#if showHotseatToggle}
-                <Toggle bind:checked={isHotseat}>Hotseat</Toggle>
-            {/if}
+    {#if showAccessControl}
+        <div class="flex flex-col gap-2">
+            <Label>Game type</Label>
+            <SegmentedControl
+                name="access"
+                ariaLabel="Game type"
+                options={accessOptions}
+                bind:value={access}
+            />
+            <Helper class="dark:text-gray-400">{accessDescription}</Helper>
         </div>
-        {#if showIncludeOwnerToggle && !canIncludeOwner}
+    {/if}
+    {#if showIncludeOwnerToggle}
+        <Toggle
+            bind:checked={includeOwner}
+            disabled={!canIncludeOwner}
+            onchange={() => setOwnerIncluded(includeOwner)}>Include me</Toggle
+        >
+        {#if !canIncludeOwner}
             <Helper>Clear a seat to include yourself</Helper>
         {/if}
     {/if}

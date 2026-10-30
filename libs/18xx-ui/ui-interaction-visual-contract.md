@@ -734,6 +734,47 @@ the price, with Allow and Refuse committed at once; other players see who is dec
 president deciding whether to protect a sale sees the seller, the shares and their proceeds and
 the price the protection restores, with Protect and Decline committed at once.
 
+### Combined construction, share issues and presidency claims
+
+These switch on from the title rules the session is created with; a title renders them through
+`OperatingActions` and the table's stock strip, with no title UI code.
+
+- **Operating mode** (`session.operatingMode`). For a title with `stationsWithTrack` or
+  `corporateFinanceRules`, the operating actions show one of track building, station placement
+  or issuing/redeeming shares, chosen with the operating-mode switch above them. The switch
+  lists only modes available now ("Lay track", "Place station", and "Issue shares", "Redeem
+  shares" or "Issue / redeem") and appears when there are at least two, or when share issues
+  are selected; before routes are run, share issues also sit beside "Run trains". It hides for a
+  purchase offer, a company decision or a private selection. Choosing a mode clears the other
+  mode's pending selection. Meaning: which construction panel and map targets are active.
+  Produced from the legal actions, with the player's choice taking priority while that mode
+  stays available; a selected private tile power always selects track. Lifetime: the choice
+  lasts through the step's actions and resets on leaving the step, on a change of perspective or
+  in history; a choice no longer available falls back to the derived mode. A view choice, not a
+  step: Undo never changes it, and a derived mode consumes no Undo step.
+- **Combined construction.** With `stationsWithTrack`, track and station placement share the
+  track step and the step bar shows Build, Run, Payout and Trains (and Loans), Build's status
+  joining shares issued or redeemed, tiles laid and a station placed. Placing a station does
+  not end construction, and the player can return to track. Station mode never offers
+  `FinishStations`; skip and finish submit `FinishTrack`, which ends the whole construction
+  window, and skipping ahead from Build stops at Run. When nothing can be laid, placed, issued
+  or redeemed but another decision remains (buying a private or company), the station panel
+  shows the decisions above "<company> can't lay track or place a station" with an inline
+  **finish**; a selection in progress replaces the message.
+- **Share issues** (`session.corporateFinance`). The panel shows the company's cash, treasury
+  and market shares, and one button per legal count to issue or redeem, each committed at once;
+  the first locks the turn to issuing or to redeeming. When share issues are all that is left
+  in construction, the switch selects them and the panel offers skip to end construction. The
+  panel gives way to a purchase offer, a private-power selection, a private track-power
+  selection and a company decision.
+- **Receivership** (`session.presidencyClaims`, `session.familyStockPanels`). With a
+  `receivershipRules.presidencyClaim`, when the player may take a company out of receivership
+  the stock strip offers **Receivership** beside Buy and Sell, before any of the title's own
+  panels. Its panel lists each claim as "buy 10% for price and become president", committed at
+  once. At most one stock panel is open: choosing Buy, Sell or a title panel closes
+  Receivership, and choosing Receivership closes them. The open panel is a local selection that
+  Undo closes, chosen only while it has claims for the acting player.
+
 ### Cash crisis and bankruptcy
 
 A player who owes the bank more than they have gets a Cash crisis panel in the
@@ -1059,8 +1100,10 @@ route focus, history steps and their restores) applies to every open map view,
 Map and Board, each with its own bounds. A flow that brings the map forward
 selects Map only when Board is not already visible.
 
-A Full / Market / Depot sliding toggle, labelled in sentence case and listing
-Market and Depot only when their areas exist, focuses the board. In the paned Board tab it overlays the upper-left
+A Full / Map / Market / Depot sliding toggle, labelled in sentence case, focuses the
+board. It lists Market and Depot only when their areas exist, and Map, which frames
+the hexes, only when they span less than nine tenths of the board, so a board that
+prints its panels in the map's own corners, such as TOP's, has no Map. In the paned Board tab it overlays the upper-left
 corner at a fixed size, and the view keeps a 44px screen-space inset at the top so
 the fitted board rests below it; the board still pans beneath it when zoomed.
 Below the paned breakpoint it sits centered in a tight strip above the board.
@@ -1309,6 +1352,8 @@ Operating pills always render as detailed chips. The Tokens only / Detailed chip
 Company cash follows Market, separated by the same stronger divider as the ownership pools. It is a column in Company view and a row in Player view, sourced from displayed company cash accounts. Intersections with owner statistics are not applicable and show dashes.
 
 During TOP offer bidding the action panel shows the lot/value, current bid if present, next bidder, a minus/amount/plus control, Bid and Pass. Increment and affordability come from the auction model; disabled controls prevent stepping below the legal minimum or above available cash. Initial amount is the minimum without a staged selection. Amount changes use the session selection; Bid commits through the session and Pass clears the selection before passing. The next turn resets to its legal minimum through the normal session lifecycle. The bidding controls replace the prototype pile/award summaries in the table only.
+
+Every minus/amount/plus control (offer, selection, waterfall, company and 1817 acquisition bids) shows the amount as a number field in the title's currency, so a bid can be typed as well as stepped. A typed number becomes the staged amount at once; the field keeps the player's text until they step, bid or pass, and Bid (or Enter in the field) is enabled only while the caller allows the amount and the field reads exactly the amount Bid would send, so a blank field or a value the auction replaces with its minimum cannot bid a hidden amount. The steppers move from the staged amount and stay bounded by the auction model.
 
 During a waterfall opening auction (1830, 1889, 1832) the action panel lists every private in waterfall order: action, private abbreviation or token with name, income, price and bids. Won privates stay in the table, muted and without an action: the price is what the winner paid, with the face value struck through when they paid less, and the Bids column names the winner beside their colour dot. Only the first remaining row offers Buy, which commits through the session in one step at the current price without staging a selection, discarding any staged bid; a discounted price shows the face value struck through. Other remaining rows offer Bid, which stages a manual bid selection at the model's legal minimum. The staged row loses its Bid button and opens as a rounded card: the row, then an inset strip spanning the table with the minus/amount/plus control, Bid, and the player's cash available after reservations and any amount reserved, all centered. There is no Back: choosing Bid on another row replaces the staged lot, Buy and Pass discard it, and Undo clears it before undoing committed actions. Beside the table the turn column shows the same cash figures while no bid is staged, and Pass. Reserved bids appear as player-colour dots with amounts, highest first, with the viewer's own bid emphasised; names are available to assistive technology and on hover. Rows open the standard PrivateCard popover like offer rows, excluding the action button. The Bids column has a fixed width only in wide panels so reservations do not shift the table. Below 720px of panel width the turn column moves beneath the table and its text and Pass center horizontally. At 420px or less the table keeps within the panel: income drops its "/ OR" suffix and a winner shows only as a dot, named on hover and to assistive technology.
 
@@ -1609,6 +1654,8 @@ Station placement masks map hexes without legal placements. Clicking anywhere on
 A pending home choice (a title's homeChoice hook, before the company's operating turn) uses the same placement mask and focus with the offered hexes as the legal set. The action panel only prompts "[company]: choose a highlighted city on the map for its home station." A city or slot click on an offered city submits ChooseHomeStation directly, as does any click on a hex with only one offered city; other clicks do nothing. The home choice takes precedence over station placement and inspection while pending. There is no confirmation stage; a committed choice is undone through action history.
 
 Company auctions (a title's `stockRules.companyAuction`, such as 1817) replace Start with an Auction stock menu. It lists the auctionable companies as tokens; choosing one is a manual stage that offers home cities with the same placement mask and focus as a pending home choice. A click on an offered city, or anywhere on a hex with one offered city, records the home as a second manual stage; the home choice takes precedence over private stations, station placement and inspection, but follows a pending homeChoice. The opening-bid control then appears. Its amount is derived as the lowest bid the player can make and form a company with, and becomes a manual selection only when the player changes it; there is no auto-sourced stage. Choosing the selected company again clears the company, home and bid; there is no Back. Undo unwinds the bid, the home and the company in that order before game history. Changing stock menu clears all three. Bid submits AuctionCompany directly.
+
+Companies whose president chooses their home as they start them (a title's `companyRules.startHomes`, such as 1833NE's Variable Start railroads) add a home stage to Start between the company and its price. Choosing such a company offers its home cities, at every price it may start at, with the same placement mask and focus as a pending home choice; the action panel prompts "Choose a highlighted city on the map for [company]'s home." A click on an offered city, or anywhere on a hex with one offered city, records the home as a manual stage, and the price buttons then appear, each priced with that home; the panel names the home and what it costs the company's treasury. A price click submits StartCompany with the home. Undo unwinds the home, then the company. Choosing the company again clears its home and price. The map offers one set of cities at a time, in this precedence: a pending homeChoice, a company auction's home, a starting company's home, a private's station; `MapModule.offeredCityLocationIds` is that set, which both the click handling and the placement mask read.
 
 While a company auction stands, the stock action panel shows only the auction: the company, its home, opener, high bidder, high bid with its starting price, and the current bidder's limit. The bid amount is derived in the same way and becomes manual when changed; Bid and Pass submit directly. The winner then sees the formation panel: one button per allowed size and one per private that could be contributed toward the price. A size is pre-chosen only when the phase allows exactly one; otherwise none is pressed and Form stays disabled with "Choose a size". The formation is applied without the panel when there is one size and nothing to contribute. Size and contribution choices are manual and unwind before game history.
 

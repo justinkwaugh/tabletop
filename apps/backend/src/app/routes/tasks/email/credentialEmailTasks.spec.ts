@@ -10,7 +10,7 @@ vi.hoisted(() => {
 import { LoggingBoundary } from '../../../lib/logging.js'
 import {
     apiErrorShape,
-    memoryChallenges,
+    memoryTokens,
     memoryUserStore,
     recordingTasks
 } from '../../../tests/accountFixture.js'
@@ -90,7 +90,7 @@ async function taskServer() {
     const emails = new RecordingEmailService()
     server.decorate(
         'userService',
-        new UserService(store, memoryChallenges().challengeService, recordingTasks().tasks)
+        new UserService(store, memoryTokens().tokenService, recordingTasks().tasks)
     )
     server.decorate('emailService', emails)
     await server.register(sendPasswordResetEmail, { prefix: '/tasks' })

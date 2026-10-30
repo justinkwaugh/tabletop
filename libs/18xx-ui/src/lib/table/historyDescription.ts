@@ -67,6 +67,7 @@ import {
     isTakeLoan,
     isSellSharesToPay,
     isGoBankrupt,
+    isDeclareBankruptcy,
     isDiscardTrain,
     isRustTrains,
     isPlaceHomeStations,
@@ -257,7 +258,10 @@ export function historyDescription(
     routeBonusName: (sourceId: string) => string = (sourceId) => {
         throw new Error(`Route bonus ${sourceId} needs the title's names`)
     },
-    place: (locationId: string) => string = (locationId) => locationId
+    place: (locationId: string) => string = (locationId) => locationId,
+    poolName: (poolId: string) => string = (poolId) => {
+        throw new Error(`Certificate pool ${poolId} needs the title's names`)
+    }
 ): HistoryDescription {
     const description = describeShared(
         action,
@@ -269,7 +273,8 @@ export function historyDescription(
         money,
         lotName,
         routeBonusName,
-        place
+        place,
+        poolName
     )
     const paid = departurePaymentsDetail(
         departurePayments(action),
@@ -289,7 +294,8 @@ function describeShared(
     money: MoneyFormat,
     lotName: (id: string) => string,
     routeBonusName: (sourceId: string) => string,
-    place: (locationId: string) => string
+    place: (locationId: string) => string,
+    poolName: (poolId: string) => string
 ): HistoryDescription {
     const layEffects = (effects: TrackLayEffects | undefined) =>
         effects
@@ -497,6 +503,16 @@ function describeShared(
             important: true
         }
     }
+    // The System records it, so the row has no actor of its own to name.
+    if (isDeclareBankruptcy(action)) {
+        assertExists(action.metadata, 'Recorded bankruptcy requires its company and shortfall')
+        const { playerId, companyId, shortfall } = action.metadata
+        return {
+            text: `${playerName(playerId)} went bankrupt`,
+            detail: `${money(shortfall)} short of ${companyName(companyId)}’s train`,
+            important: true
+        }
+    }
     if (isDiscardTrain(action)) {
         assertExists(action.metadata, 'Recorded discard requires its destination')
         return {
@@ -519,8 +535,10 @@ function describeShared(
     }
     if (isBuyShares(action)) {
         assertExists(action.metadata, 'Recorded share purchase requires its company')
+        const { poolId } = action.metadata
+        const source = poolId ? ` from ${poolName(poolId)}` : ''
         return {
-            text: `Bought ${action.metadata.shares} ${companyName(action.metadata.companyId)} for ${money(action.expectedPrice)}`,
+            text: `Bought ${action.metadata.shares} ${companyName(action.metadata.companyId)}${source} for ${money(action.expectedPrice)}`,
             detail:
                 [
                     action.buyer.kind === 'company'

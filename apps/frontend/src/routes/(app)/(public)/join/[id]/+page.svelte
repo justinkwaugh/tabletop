@@ -3,7 +3,7 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { getLoginModal } from '$lib/stores/loginModal'
     import { clearLoginContinuation, saveLoginContinuation } from '$lib/utils/loginContinuation'
-    import { gamePlayPath, publicGameInvitationPath } from '$lib/utils/publicGameInvitation'
+    import { gamePlayPath, publicGameInvitationPath } from '$lib/utils/gameLinks'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'

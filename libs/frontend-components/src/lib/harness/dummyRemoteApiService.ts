@@ -5,6 +5,7 @@ import type {
     GameCatalogEntry,
     CharityTally,
     GameHistoryPage,
+    TitleActivity,
     UserGameStats,
     CanonicalActionReplay,
     Game,
@@ -284,6 +285,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async getOpenGames(_titleId: string): Promise<Game[]> {
         return this.fail('getOpenGames')
+    }
+
+    async getTitleActivity(_titleId: string): Promise<TitleActivity> {
+        return this.fail('getTitleActivity')
     }
 
     async getGame(

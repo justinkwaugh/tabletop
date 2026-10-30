@@ -2,13 +2,8 @@ import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import {
-    cardPowers,
-    PowerTiming,
-    powersWithTiming,
-    type CardPower,
-    powerKey
-} from '../data/cardPowers.js'
+import { PowerTiming, type CardPower, powerKey } from '../data/cardPowers.js'
+import { powerInPlay, powersInPlay, reasonSideFaceDown } from './powersInPlay.js'
 import {
     hasAccessAt,
     hasAccessToCard,
@@ -47,7 +42,7 @@ export function reachableSitesFor(
     const sites = new Set<string>()
     for (const cardId of cardsWithinReach(state, playerId)) {
         if (!hasAccessToCard(state, playerId, cardId)) continue
-        for (const power of powersWithTiming(cardId, PowerTiming.Modifier)) {
+        for (const power of powersInPlay(state, cardId, PowerTiming.Modifier)) {
             const hook = effectFor(power)?.modifier?.actsAsAtSites
             if (!hook) continue
             for (const siteId of hook({ state, playerId, power, choices: [] })) sites.add(siteId)
@@ -86,7 +81,7 @@ function actingSite(
     if (!isAtLeastOathRevision(state, OathRevision.EngineFixes15)) return undefined
     const disguise = disguisedAs(action, uses)
     for (const use of uses ?? []) {
-        const power = cardPowers(use.cardId)[use.powerIndex]
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
         if (power?.timing !== PowerTiming.Modifier || power.modifiesAction !== action) continue
         const hook = effectFor(power)?.modifier?.actsAsAtSites
         if (!hook || !mayDeclare(state, playerId, use.cardId, disguise)) continue
@@ -182,7 +177,7 @@ export function mandatoryModifiers(
 ): ActiveModifier[] {
     const found: ActiveModifier[] = []
     for (const cardId of modifierCandidates(state, playerId, action)) {
-        for (const power of powersWithTiming(cardId, PowerTiming.Modifier)) {
+        for (const power of powersInPlay(state, cardId, PowerTiming.Modifier)) {
             if (power.modifiesAction !== action) continue
             const effect = effectFor(power)
             if (!effect?.modifier || !effect.mandatory) continue
@@ -222,7 +217,7 @@ export function usableModifiers(
     // Master of Disguise — a cost is paid as `resolveModifiers` judges it, under the lent Vow of Kinship.
     const advisersOf = disguisedAs(action, uses)
     for (const cardId of modifierCandidates(state, playerId, action, uses)) {
-        for (const power of powersWithTiming(cardId, PowerTiming.Modifier)) {
+        for (const power of powersInPlay(state, cardId, PowerTiming.Modifier)) {
             if (power.modifiesAction !== action) continue
             const effect = effectFor(power)
             if (!effect?.modifier || effect.mandatory) continue
@@ -305,7 +300,9 @@ export function resolveModifiers(
                 active
             }
         }
-        const power = cardPowers(use.cardId)[use.powerIndex]
+        const faceDown = reasonSideFaceDown(state, use.cardId, use.powerIndex)
+        if (faceDown) return { reason: faceDown, active }
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
         if (!power)
             return { reason: `${use.cardId} has no power at index ${use.powerIndex}`, active }
         if (power.timing !== PowerTiming.Modifier) {
@@ -396,8 +393,8 @@ export function carriedModifiers(
 ): ActiveModifier[] {
     const active: ActiveModifier[] = []
     for (const use of carried ?? []) {
-        const power = cardPowers(use.cardId)[use.powerIndex]
-        assertExists(power, `${use.cardId} prints no power ${use.powerIndex}`)
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
+        assertExists(power, `${use.cardId} has no power ${use.powerIndex} in play`)
         const hooks = effectFor(power)?.modifier
         assertExists(hooks, `${use.cardId} power ${use.powerIndex} is not a modifier`)
         active.push({ power, hooks, choices: use.choices ?? [], mandatory: false })

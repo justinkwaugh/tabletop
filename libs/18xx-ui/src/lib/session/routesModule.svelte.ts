@@ -10,8 +10,8 @@ import {
     type RoutePath,
     type TrainRoute
 } from '@tabletop/18xx'
-import { trainRouteOverlays } from '../routes/routePresentation.js'
-import type { MapSelection } from '../maps/mapDrawing.js'
+import { routeBonusArrows, trainRouteOverlays } from '../routes/routePresentation.js'
+import type { MapRoute, MapSelection } from '../maps/mapDrawing.js'
 import { RouteEditor } from './routeEditor.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 import type { LocalSelection } from './localSelections.js'
@@ -29,7 +29,7 @@ export type RoutesSession<State extends RoutesState = RoutesState> = Pick<
     | 'createPlayerAction'
     | 'applyAction'
 >
-export type RouteOverlay = { id: string; color: string; segments: readonly RoutePath[] }
+export type RouteOverlay = MapRoute
 type SolvedRoutes<State> = { state: State; result: OperatingResult; exhaustive: boolean }
 
 export class RoutesModule<State extends RoutesState> implements LocalSelection {
@@ -65,11 +65,16 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
     overlays = $derived.by((): RouteOverlay[] => {
         if (this.session.publishing) return []
         const routes = this.editorVisible
-            ? (this.solved?.result.routes ?? this.editor.routes)
+            ? (this.solved?.result.routes ?? this.savedRoutesWithBonuses())
             : (this.session.state.routeStep?.result?.routes ?? [])
         const overlays: RouteOverlay[] = trainRouteOverlays(routes)
         if (this.editorVisible && this.editor.route)
-            overlays.push({ id: 'route-selection', color: '#d58400', segments: this.editor.paths })
+            overlays.push({
+                id: 'route-selection',
+                color: '#d58400',
+                segments: this.editor.paths,
+                ...routeBonusArrows(this.editor.preview?.result?.bonuses)
+            })
         return overlays
     })
     displayed = $derived.by(() =>
@@ -155,6 +160,13 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         this.editor.clear()
     }
 
+    private savedRoutesWithBonuses() {
+        const results = this.editor.savedResults
+        return this.editor.routes.map((route) => ({
+            ...route,
+            bonuses: results.find((result) => result.trainId === route.trainId)?.bonuses
+        }))
+    }
     private assertActive() {
         assert(this.canRun, 'Routes are not active')
     }

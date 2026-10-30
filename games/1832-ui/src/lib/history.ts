@@ -1,8 +1,8 @@
+import { isDiscardMergedTrain } from '@tabletop/18xx'
 import {
     isAnswerMerger,
     isCompleteMergerPhase,
     isCompleteTakeover,
-    isDiscardMergedTrain,
     isPassMerger,
     isProposeMerger,
     isSellTakeoverShares,

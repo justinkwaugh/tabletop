@@ -4,10 +4,13 @@ import {
     Goal,
     CampaignTargetKind,
     cardDefinition,
+    cardPower,
+    EdificeFace,
+    edificeName,
+    regionName,
     type CampaignTarget,
     type Transfer,
     type HydratedOathGameState,
-    Region,
     RELIQUARY_MODIFIERS,
     Suit,
     IMPERIAL_WARBANDS,
@@ -16,6 +19,22 @@ import {
     type LossSource,
     type WarbandOwner
 } from '@tabletop/oath'
+
+/** R-2.9 — a card in play by the side that is up: an edifice's ruin has its own name. */
+export function cardNameInPlay(
+    gameState: Pick<HydratedOathGameState, 'isEdifice' | 'isRuined'>,
+    cardId: string
+): string {
+    return gameState.isEdifice(cardId)
+        ? edificeName(cardId, gameState.isRuined(cardId))
+        : cardName(cardId)
+}
+
+/** R-2.9 — the card a power is printed on, by its side: the History names the side used, whatever is up now. */
+export function powerCardName(cardId: string, powerIndex: number): string {
+    const face = cardPower(cardId, powerIndex)?.face
+    return face === undefined ? cardName(cardId) : edificeName(cardId, face === EdificeFace.Ruined)
+}
 
 export function cardName(cardId: string): string {
     // R-6.6.2.a — a Reliquary trait rides the modifier framework under its own id.
@@ -56,15 +75,7 @@ export function relicSiteName(gameState: HydratedOathGameState, slotId: string):
     return siteName(gameState, found.siteId)
 }
 
-const REGION_NAMES: Record<Region, string> = {
-    [Region.Cradle]: 'Cradle',
-    [Region.Provinces]: 'Provinces',
-    [Region.Hinterland]: 'Hinterland'
-}
-
-export function regionName(region: Region): string {
-    return REGION_NAMES[region]
-}
+export { regionName }
 
 const SUIT_NAMES: Record<Suit, string> = {
     [Suit.Discord]: 'Discord',
@@ -97,6 +108,38 @@ export function goalText(goal: Goal): string {
 /** R-2.10 — the Oath as the goal tile prints it, "the Oath of …". */
 export function oathName(oathType: OathType): string {
     return OATH_NAMES[oathType]
+}
+
+const NUMERALS: readonly (readonly [number, string])[] = [
+    [1000, 'M'],
+    [900, 'CM'],
+    [500, 'D'],
+    [400, 'CD'],
+    [100, 'C'],
+    [90, 'XC'],
+    [50, 'L'],
+    [40, 'XL'],
+    [10, 'X'],
+    [9, 'IX'],
+    [5, 'V'],
+    [4, 'IV'],
+    [1, 'I']
+]
+
+/** A whole number from one up in standard subtractive Roman numerals: IV, IX, XL, XC; no cap. */
+export function romanNumeral(n: number): string {
+    if (!Number.isInteger(n) || n < 1) throw Error(`No Roman numeral for ${n}`)
+    let rest = n
+    let numeral = ''
+    for (const [value, letters] of NUMERALS) {
+        for (; rest >= value; rest -= value) numeral += letters
+    }
+    return numeral
+}
+
+/** R-8 — each game of a chronicle is an Age: game 1 is "Age I", game 2 "Age II". */
+export function ageName(gameNumber: number): string {
+    return `Age ${romanNumeral(gameNumber)}`
 }
 
 export function suitName(suit: Suit): string {

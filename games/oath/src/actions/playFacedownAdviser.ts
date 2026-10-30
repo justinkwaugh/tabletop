@@ -21,7 +21,7 @@ import {
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses } from '../util/knowledge.js'
 import { regionOfPawn } from '../powers/vocabulary.js'
-import { cardPowers } from '../data/cardPowers.js'
+import { powerInPlay } from '../util/powersInPlay.js'
 import { effectFor, type ModifierHooks, type PlayMapChanges } from '../powers/registry.js'
 import {
     discardTargetOf,
@@ -346,7 +346,7 @@ export class HydratedPlayFacedownAdviser
                 : { active: [] }
         }
         for (const use of uses ?? []) {
-            const power = cardPowers(use.cardId)[use.powerIndex]
+            const power = powerInPlay(state, use.cardId, use.powerIndex)
             const hooks = power ? effectFor(power)?.modifier : undefined
             if (hooks && HydratedPlayFacedownAdviser.changesTheDraw(hooks)) {
                 return {

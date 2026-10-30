@@ -11,7 +11,8 @@ import {
     trainsOwnedBy
 } from '@tabletop/18xx'
 import { buyTrain, constructionGame, emergencyBuyingGame, stockGame } from '../test/testSupport.js'
-import { corporateFinanceChoices } from './corporateFinance.js'
+import { corporateFinanceChoices } from '@tabletop/18xx'
+import { CorporateFinanceRules1846 } from './corporateFinance.js'
 import { EndingRules1846 } from './ending.js'
 import { Names1846 } from './names.js'
 import { Runtime } from './definition/gameDefinition.js'
@@ -147,11 +148,11 @@ describe('1846 game endings', () => {
             playUntil(
                 table,
                 () =>
-                    corporateFinanceChoices(table.hydrated).some(
+                    corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846).some(
                         (choice) => choice.operation === 'issue'
                     ) && table.state.operatingSet?.roundNumber === 2
             )
-            const choice = corporateFinanceChoices(table.hydrated).find(
+            const choice = corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846).find(
                 (choice) => choice.operation === 'issue'
             )
             assertExists(choice)

@@ -7,6 +7,7 @@ import {
     Suit,
     TradeOption,
     cardDefinitions,
+    hasEffect,
     isFreeGain,
     isMandatoryModifier,
     isMuster,
@@ -380,8 +381,11 @@ describe('R-7.4 — an action only two cards together make possible is one entry
     })
 })
 
+/** The built ones: a printed modifier with no effect yet is never offered (R-7.4). */
 function allModifiers() {
-    return cardDefinitions().flatMap((card) => powersWithTiming(card.id, PowerTiming.Modifier))
+    return cardDefinitions()
+        .flatMap((card) => powersWithTiming(card.id, PowerTiming.Modifier))
+        .filter(hasEffect)
 }
 
 describe('R-7.4 — one line per card, read by the menu rows and Use a power alike', () => {

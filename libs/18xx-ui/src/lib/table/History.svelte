@@ -90,7 +90,8 @@
             session.presentation.money,
             (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
             (id) => session.names.routeBonus(id),
-            session.placeName
+            session.placeName,
+            (id) => session.poolName(id)
         )
     }
     function describe(action: GameAction) {

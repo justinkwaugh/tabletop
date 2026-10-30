@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { assertExists, shuffle, type RandomFunction } from '@tabletop/common'
+import { assert, assertExists, shuffle, type RandomFunction } from '@tabletop/common'
 import { CardKind, Region } from './oathEnums.js'
 import { kindOf } from '../data/cardRegistry.js'
 
@@ -61,6 +61,27 @@ export function createOathVault(
         relicDeck,
         siteDeck,
         dispossessed: []
+    }
+}
+
+/**
+ * R-8.7, R-1.1 — a continued game's vault: each list exactly as given, in its order, and nothing
+ * shuffled. R-8.8 built the world deck and R-8.6.3 stacked the relic deck; setup reads both as
+ * they lie.
+ */
+export function carriedOathVault(contents: Partial<OathVault>): OathVault {
+    return {
+        worldDeck: [...(contents.worldDeck ?? [])],
+        discardPiles: {
+            [Region.Cradle]: [...(contents.discardPiles?.[Region.Cradle] ?? [])],
+            [Region.Provinces]: [...(contents.discardPiles?.[Region.Provinces] ?? [])],
+            [Region.Hinterland]: [...(contents.discardPiles?.[Region.Hinterland] ?? [])]
+        },
+        siteFacedown: { ...(contents.siteFacedown ?? {}) },
+        relicFacedown: { ...(contents.relicFacedown ?? {}) },
+        relicDeck: [...(contents.relicDeck ?? [])],
+        siteDeck: [...(contents.siteDeck ?? [])],
+        dispossessed: [...(contents.dispossessed ?? [])]
     }
 }
 
@@ -172,6 +193,25 @@ export function exchangeWithDispossessed(
     vault.dispossessed.push(...cardIds)
     shuffle(vault.dispossessed, random)
     return vault.dispossessed.splice(0, cardIds.length)
+}
+
+/**
+ * Great Spire, Fallen Spire — R-10.25: each card trades places with a random card from the
+ * Dispossessed. The random cards are taken before the swapped ones go in, so none comes straight back.
+ */
+export function swapWithDispossessed(
+    vault: OathVault,
+    cardIds: readonly string[],
+    random: RandomFunction
+): string[] {
+    assert(
+        cardIds.length <= vault.dispossessed.length,
+        `${cardIds.length} cards cannot swap with a Dispossessed of ${vault.dispossessed.length}`
+    )
+    shuffle(vault.dispossessed, random)
+    const taken = vault.dispossessed.splice(0, cardIds.length)
+    vault.dispossessed.push(...cardIds)
+    return taken
 }
 
 /** R-1.1, R-8.3.5.6 */

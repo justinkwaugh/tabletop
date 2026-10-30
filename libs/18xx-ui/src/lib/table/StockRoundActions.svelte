@@ -8,18 +8,11 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
-    import type { CertificatePool } from '@tabletop/18xx'
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivatePurchaseOffers from '../stock/PrivatePurchaseOffers.svelte'
     import CompanyAuctionOpening from '../stock/CompanyAuctionOpening.svelte'
-    let {
-        session,
-        poolName
-    }: {
-        session: EighteenXXSessionView
-        poolName?: (pool: CertificatePool) => string
-    } = $props()
+    let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
     const disabled = $derived(
         session.busy ||
@@ -208,9 +201,9 @@
                                                 (pool) => pool.id === choice.certificate.poolId
                                             )}
                                             {@const source = pool
-                                                ? (
-                                                      poolName?.(pool) ?? session.poolName(pool.id)
-                                                  ).replace('Treasury shares', 'Treasury')
+                                                ? session
+                                                      .poolName(pool.id)
+                                                      .replace('Treasury shares', 'Treasury')
                                                 : sameOwner(choice.certificate.owner, {
                                                         kind: 'company',
                                                         companyId: company.id
@@ -283,10 +276,23 @@
                                 </button>
                             {/each}
                         </div>
-                        {#if session.stock.selectedStartCompany}
+                        {#if session.stock.selectedStartCompany && session.stock.awaitingStartHome}
+                            <p class="start-home">
+                                Choose a highlighted city on the map for {session.companyName(
+                                    session.stock.selectedStartCompany.companyId
+                                )}’s home.
+                            </p>
+                        {:else if session.stock.selectedStartCompany}
                             {@const sharesToFloat = session.sharesToFloat(
                                 session.stock.selectedStartCompany.companyId
                             )}
+                            {@const home = session.stock.selectedStartHomeChoice}
+                            {#if home}
+                                <p class="start-home">
+                                    Home: {session.placeName(home.locationId)}, {money(home.cost)} from
+                                    its treasury
+                                </p>
+                            {/if}
                             <div class="choices par-choices">
                                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                                     {#if price.result.details}

@@ -1,3 +1,4 @@
+import { TokenType } from '../tokens/dataToken.js'
 import { describe, expect, it, vi } from 'vitest'
 import { ExternalAuthService, Role, UserStatus, type User } from '@tabletop/common'
 import { UserService } from './userService.js'
@@ -7,9 +8,9 @@ import type { TaskService } from '../tasks/taskService.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import type { StoredUser } from '../persistence/model/storedUser.js'
 import type { Transaction } from '@google-cloud/firestore'
-import { AuthenticationChallengeService } from '../challenges/authenticationChallengeService.js'
-import { InvalidChallengeError } from '../challenges/authenticationChallenge.js'
-import { MemoryAuthenticationChallengeStore } from '../persistence/memory/authenticationChallengeStore.js'
+import { TokenService } from '../tokens/tokenService.js'
+import { InvalidChallengeError } from '../tokens/authenticationChallenge.js'
+import { MemoryTokenStore } from '../persistence/memory/tokenStore.js'
 import { LocalTaskService } from '../tasks/localTasksService.js'
 
 const user: User = {
@@ -33,11 +34,7 @@ function fixture(existing: User = user) {
     })
     const store: UserStore = Object.create(null)
     store.updateUser = updateUser
-    const service = new UserService(
-        store,
-        AuthenticationChallengeService.prototype,
-        LocalTaskService.prototype
-    )
+    const service = new UserService(store, TokenService.prototype, LocalTaskService.prototype)
     return { service, updateUser }
 }
 
@@ -89,11 +86,7 @@ describe('external provider authentication', () => {
         store.findByEmail = async () => byEmail
         store.addExternalId = addExternalId
         store.createUser = createUser
-        const service = new UserService(
-            store,
-            AuthenticationChallengeService.prototype,
-            LocalTaskService.prototype
-        )
+        const service = new UserService(store, TokenService.prototype, LocalTaskService.prototype)
         return { service, addExternalId, createUser }
     }
 
@@ -158,9 +151,7 @@ describe('Password Credential changes', () => {
     const account: User = { ...user, email: 'a@example.test', emailVerified: true }
 
     function passwordFixture(existing: User = account) {
-        const challenges = new AuthenticationChallengeService(
-            new MemoryAuthenticationChallengeStore()
-        )
+        const challenges = new TokenService(new MemoryTokenStore())
         const updatePassword = vi.fn<UserStore['updatePassword']>(
             async (_userId, _password, options) => {
                 const stored: StoredUser = {
@@ -168,7 +159,7 @@ describe('Password Credential changes', () => {
                     createdAt: undefined,
                     updatedAt: undefined
                 }
-                options?.validator?.(stored, {})
+                options?.validate?.(stored)
                 await options?.participant?.(transaction, locks)
                 return { ...existing, sessionGeneration: 1 }
             }
@@ -192,8 +183,8 @@ describe('Password Credential changes', () => {
         }
         const service = new UserService(store, challenges, tasks)
         const issueReset = async () => {
-            const issued = await challenges.issue({
-                purpose: 'set-password',
+            const issued = await challenges.issueChallenge({
+                type: TokenType.PasswordReset,
                 userId: existing.id,
                 email: existing.email ?? ''
             })
@@ -243,7 +234,7 @@ describe('Password Credential changes', () => {
             'a',
             'a-new-password-value',
             expect.objectContaining({
-                validator: expect.any(Function),
+                validate: expect.any(Function),
                 participant: expect.any(Function)
             })
         )

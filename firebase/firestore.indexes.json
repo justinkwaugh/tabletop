@@ -87,6 +87,32 @@
             "queryScope": "COLLECTION",
             "fields": [
                 {
+                    "fieldPath": "typeId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "isPublic",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "finishedAt",
+                    "order": "DESCENDING"
+                },
+                {
+                    "fieldPath": "__name__",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "games",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
                     "fieldPath": "lastActionAt",
                     "order": "ASCENDING"
                 },

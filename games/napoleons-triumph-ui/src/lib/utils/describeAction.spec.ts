@@ -1,9 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { ActionType, CommandKind, FeintEnd, Side } from '@tabletop/napoleons-triumph'
+import { assertExists, type GameAction } from '@tabletop/common'
 import {
+    ActionType,
+    CommandKind,
+    FeintEnd,
+    Side,
+    type CombatMetadata
+} from '@tabletop/napoleons-triumph'
+import {
+    BATTLE_FROM,
+    BattleGame,
     TestGame,
     alliedTurn,
+    attacker,
+    bombardment,
     cavalry,
+    defender,
+    repulsedByBlockers,
+    stHilaire,
     frenchTurn,
     guard,
     infantry,
@@ -147,7 +161,7 @@ describe('how morale paid beyond the losses is told', () => {
 
     it('says what committing the Guard cost, and what the defeat of its Guard Attack cost after the losses', () => {
         expect(guardAttackUpTheSlope(23)).toBe(
-            'The French make a narrow attack with a unit, led by a unit. Initial result 0. ' +
+            'The French make a narrow attack with a unit, led by a guard infantry unit. Initial result 0. ' +
                 'The French commit the Guard and lose 4 morale. ' +
                 'Final result 0: the attack is defeated. The French lose 1 step and 1 morale. ' +
                 'The Allies lose 1 step. ' +
@@ -253,6 +267,69 @@ describe('how the losses of an attack are told', () => {
             })
         ).toBe(
             'The French retreat from locale 94, losing 2 steps (a unit destroyed) and as much morale.'
+        )
+    })
+})
+
+describe('how the units shown in an attack are told', () => {
+    function declarationOf(game: BattleGame) {
+        const declaration = game.played.find((action) => action.type === ActionType.DeclareAttack)
+        assertExists(declaration, 'The attack was declared')
+        return declaration
+    }
+
+    it('names the face of the unit that leads the attack', () => {
+        const game = repulsedByBlockers()
+        expect(describeAction(declarationOf(game), game.hydrated)).toContain(
+            'The French make a wide attack with St. Hilaire’s corps, led by a 2-strength infantry unit.'
+        )
+    })
+
+    it('names both units of a pair that leads the attack', () => {
+        const game = new BattleGame([
+            attacker('F01', infantry(3)),
+            attacker('F02', infantry(2)),
+            defender('A01', infantry(3), { facing: BATTLE_FROM })
+        ])
+        game.threaten()
+        game.pressAgainst(['A01'])
+        game.declare(stHilaire(['F01', 'F02']), ['F01', 'F02'])
+        expect(describeAction(declarationOf(game), game.hydrated)).toContain(
+            'led by a 3-strength infantry unit and a 2-strength infantry unit.'
+        )
+    })
+
+    it('names a leading battery as artillery', () => {
+        const game = bombardment()
+        expect(describeAction(declarationOf(game), game.hydrated)).toContain(
+            'led by an artillery unit.'
+        )
+    })
+
+    it('counts the leading units of an attack recorded without its account', () => {
+        const game = repulsedByBlockers()
+        const declaration = declarationOf(game) as GameAction & { metadata: CombatMetadata }
+        const unaccounted = {
+            ...declaration,
+            metadata: { ...declaration.metadata, account: undefined }
+        }
+        expect(describeAction(unaccounted, game.hydrated)).toContain(', led by a unit.')
+    })
+
+    it('names the faces of the counter-attacking units as they were shown', () => {
+        const game = new BattleGame([
+            attacker('F01', infantry(3)),
+            defender('A01', infantry(2)),
+            defender('A02', cavalry(2))
+        ])
+        game.threaten()
+        game.by(Side.Allied, ActionType.DeclareDefense, { unitIds: ['A01', 'A02'] })
+        game.pressAgainst(['A01'])
+        game.declare(stHilaire(['F01']), ['F01'], false)
+        const [counter] = game.by(Side.Allied, ActionType.CounterAttack, { unitIds: ['A02'] })
+        const fight = fightsOf(game.played).get(counter.id)
+        expect(describeAction(counter, game.hydrated, fight)).toMatch(
+            /^The Allies counter-attack with a 2-strength cavalry unit\. /
         )
     })
 })

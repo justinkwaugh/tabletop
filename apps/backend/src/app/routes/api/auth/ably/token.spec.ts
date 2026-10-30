@@ -1,8 +1,10 @@
 import fastifyAuth from '@fastify/auth'
+import SecureSession from '@fastify/secure-session'
 import { Role, type User, UserStatus } from '@tabletop/common'
-import Fastify from 'fastify'
+import Fastify, { type FastifyRequest } from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import tokenRoute from './token.js'
+import RateLimitPlugin from '../../../../plugins/rateLimit.js'
 
 vi.mock('@tabletop/backend-services', () => ({
     GLOBAL_TOPIC: 'global',
@@ -20,11 +22,19 @@ const user: User = {
 
 async function createServer({ roles = [Role.User] }: { roles?: Role[] } = {}) {
     const server = Fastify()
-    await server.register(fastifyAuth)
-    Reflect.set(server, 'verifyActiveUser', async (request: { user?: User }) => {
-        request.user = { ...user, roles }
+    await server.register(SecureSession, {
+        sessionName: 'session',
+        cookieName: '__session',
+        key: Buffer.alloc(32, 7)
     })
-    Reflect.set(server, 'verifyRoleUser', async () => undefined)
+    await server.register(fastifyAuth)
+    await server.register(RateLimitPlugin, { service: 'local' })
+    server.decorate('verifyActiveUser', async (request: FastifyRequest) => {
+        const accountId = request.headers['x-test-user']
+        request.user = { ...user, roles, id: typeof accountId === 'string' ? accountId : user.id }
+        request.session.set('userId', request.user.id)
+    })
+    server.decorate('verifyRoleUser', async () => undefined)
     const createTokenRequest = vi.fn(
         async ({ userId, topics }: { userId: string; topics: string[] }) => ({
             clientId: userId,
@@ -33,7 +43,7 @@ async function createServer({ roles = [Role.User] }: { roles?: Role[] } = {}) {
             )
         })
     )
-    Reflect.set(server, 'ablyService', { createTokenRequest })
+    server.decorate('ablyService', { createTokenRequest })
     await server.register(tokenRoute)
     return { server, createTokenRequest }
 }
@@ -100,5 +110,30 @@ describe('GET /auth/ably/token', () => {
             url: '/token?game=g1&game=g2&game=g3&game=g4&game=g5'
         })
         expect(response.statusCode).toBe(400)
+    })
+
+    it('bounds token signing per account across games and client addresses', async () => {
+        const { server, createTokenRequest } = await createServer()
+        servers.push(server)
+        for (let index = 0; index < 60; index += 1) {
+            const response = await server.inject({
+                method: 'GET',
+                url: `/token?game=game-${index}`,
+                remoteAddress: `203.0.113.${index + 1}`
+            })
+            expect(response.statusCode).toBe(200)
+        }
+        const exceeded = await server.inject({ method: 'GET', url: '/token' })
+        expect(exceeded.statusCode).toBe(429)
+        expect(Number(exceeded.headers['retry-after'])).toBeGreaterThan(0)
+        expect(createTokenRequest).toHaveBeenCalledTimes(60)
+
+        const other = await server.inject({
+            method: 'GET',
+            url: '/token',
+            headers: { 'x-test-user': 'u2' }
+        })
+        expect(other.statusCode).toBe(200)
+        expect(createTokenRequest).toHaveBeenCalledTimes(61)
     })
 })

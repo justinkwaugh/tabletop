@@ -34,7 +34,6 @@ export class FirestoreChatStore implements ChatStore {
             return (await doc.get()).data()
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -70,7 +69,6 @@ export class FirestoreChatStore implements ChatStore {
         } catch (error) {
             console.log(error)
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -98,7 +96,6 @@ export class FirestoreChatStore implements ChatStore {
                 return bookmark
             } catch (error) {
                 this.handleError(error, gameId)
-                throw Error('unreachable')
             }
         }
 
@@ -126,7 +123,6 @@ export class FirestoreChatStore implements ChatStore {
         } catch (error) {
             console.log(error)
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -143,7 +139,7 @@ export class FirestoreChatStore implements ChatStore {
         return gameChatBookmarks(this.firestore, gameId).withConverter(bookmarkConverter)
     }
 
-    private handleError(error: unknown, id: string) {
+    private handleError(error: unknown, id: string): never {
         console.log(error)
         if (error instanceof BaseError) {
             throw error
