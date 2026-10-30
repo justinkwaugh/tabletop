@@ -32,7 +32,7 @@ const RANGERS = 'denizen.beast.rangers'
 const LONGBOWS = 'denizen.order.longbows'
 
 const FIXED = OathRevision.EngineFixes26
-const BEFORE = OathRevision.EngineFixes25
+const BEFORE = OathRevision.Chronicle
 
 const dana: Visibility.Perspective = { kind: 'player', playerId: 'dana' }
 const rhys: Visibility.Perspective = { kind: 'player', playerId: 'rhys' }

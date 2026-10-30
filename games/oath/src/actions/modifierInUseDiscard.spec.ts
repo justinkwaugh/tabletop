@@ -55,7 +55,7 @@ const TWIN = 'denizen.nomad.twin-brother'
 const WELCOMING = 'denizen.hearth.welcoming-party'
 
 const FIXED = OathRevision.EngineFixes26
-const BEFORE = OathRevision.EngineFixes25
+const BEFORE = OathRevision.Chronicle
 
 const dana: Visibility.Perspective = { kind: 'player', playerId: 'dana' }
 

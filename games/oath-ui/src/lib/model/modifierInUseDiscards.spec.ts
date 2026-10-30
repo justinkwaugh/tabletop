@@ -42,7 +42,7 @@ const TWIN = 'denizen.nomad.twin-brother'
 const WAGON = 'denizen.nomad.family-wagon'
 
 const FIXED = OathRevision.EngineFixes26
-const BEFORE = OathRevision.EngineFixes25
+const BEFORE = OathRevision.Chronicle
 
 const use = (cardId: string): ModifierUse => ({
     cardId,

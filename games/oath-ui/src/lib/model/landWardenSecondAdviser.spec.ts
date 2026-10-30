@@ -36,7 +36,7 @@ const WRESTLERS = 'denizen.order.wrestlers'
 const FABLED_FEAST = 'denizen.hearth.fabled-feast'
 
 const FIXED = OathRevision.EngineFixes26
-const BEFORE = OathRevision.EngineFixes25
+const BEFORE = OathRevision.Chronicle
 
 const AT_LIMIT = [LAND_WARDEN, WOLVES, RANGERS]
 

@@ -45,7 +45,7 @@ const LONGBOWS = 'denizen.order.longbows'
 const VOW_OF_UNION = 'denizen.beast.vow-of-union'
 
 const FIXED = OathRevision.EngineFixes26
-const BEFORE = OathRevision.EngineFixes25
+const BEFORE = OathRevision.Chronicle
 
 const dana: Visibility.Perspective = { kind: 'player', playerId: 'dana' }
 
