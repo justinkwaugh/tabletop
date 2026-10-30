@@ -11,8 +11,9 @@ import type { NapoleonsTriumphProjectedState } from '../model/gameState.js'
 export class NapoleonsTriumphProgression implements GameProgression<NapoleonsTriumphProjectedState> {
     progress(state: NapoleonsTriumphProjectedState): GameProgress {
         const latest = state.rounds.series.at(-1)
-        const round = latest ? latest.number - 1 : 0
-        const lastRound = latest !== undefined && isLastRound(state.scenario, round)
+        if (latest === undefined) return { fraction: 0, label: 'Setup' }
+        const round = latest.number - 1
+        const lastRound = isLastRound(state.scenario, round)
         const clock = roundLabel(roundDefinition(state.scenario, round), true)
         return {
             fraction: (round + this.sharePlayed(state, latest)) / ROUNDS[state.scenario].length,
@@ -21,8 +22,7 @@ export class NapoleonsTriumphProgression implements GameProgression<NapoleonsTri
         }
     }
 
-    private sharePlayed(state: NapoleonsTriumphProjectedState, latest?: Round): number {
-        if (latest === undefined) return 0
+    private sharePlayed(state: NapoleonsTriumphProjectedState, latest: Round): number {
         if (latest.end !== undefined) return 1
         const turn = new HydratedTurnManager(state.turnManager).currentTurn()
         const side = state.players.find((player) => player.playerId === turn?.playerId)?.side

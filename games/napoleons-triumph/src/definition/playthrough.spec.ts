@@ -69,7 +69,8 @@ describe.each([
         }
 
         const rounds = ROUNDS[scenario].length
-        expect(reports.slice(0, 3)).toEqual(Array(3).fill({ fraction: 0, label: opening }))
+        expect(reports.slice(0, 2)).toEqual(Array(2).fill({ fraction: 0, label: 'Setup' }))
+        expect(reports[2]).toEqual({ fraction: 0, label: opening })
         expect(reports[3]).toEqual({ fraction: Math.round(500 / rounds) / 1000, label: opening })
         for (const [index, report] of reports.entries())
             expect(report.fraction).toBeGreaterThanOrEqual(reports[index - 1]?.fraction ?? 0)
