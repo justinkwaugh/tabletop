@@ -38,7 +38,7 @@ import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { mapSlotsFor, TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { SetupChoice, reasonCannotSetupChoice } from '../actions/setupChoice.js'
-import { OathRevision } from '../util/revision.js'
+import { CURRENT_OATH_REVISION, OathRevision } from '../util/revision.js'
 import GAME_TWO_FINISHED from './tests/chronicle-game-2-finished.json'
 import '../powers/index.js'
 
@@ -293,7 +293,7 @@ describe('The Law’s example — game 3 opens on the world game 2 saved', () =>
         expect(state.dispossessedCount).toBe(12)
         expect(vault.dispossessed).toEqual(vaultOf(previous).dispossessed)
         expect(state.machineState).toBe(MachineState.Setup)
-        expect(state.oathRevision).toBe(OathRevision.Chronicle)
+        expect(state.oathRevision).toBe(CURRENT_OATH_REVISION)
         expect(state.round).toBe(1)
         // Knowledge is not carried: what anyone saw starts empty, but for what this game's setup
         // shows — the Grand Scepter's holder knows the Reliquary (R-6.4-H1).
