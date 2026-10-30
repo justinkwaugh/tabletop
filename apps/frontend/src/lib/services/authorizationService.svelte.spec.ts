@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Role, UserStatus, type User } from '@tabletop/common'
 import { TabletopApi } from '@tabletop/frontend-components'
-import { invalidateAll } from '$app/navigation'
+import { goto, invalidateAll } from '$app/navigation'
 import { AuthorizationService } from './authorizationService.svelte.js'
-import { stubLocalStorage } from '$lib/test/localStorageStub'
+import { stubLocalStorage, stubSessionStorage } from '$lib/test/localStorageStub'
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }))
 
 beforeEach(() => {
     stubLocalStorage()
+    stubSessionStorage()
     vi.mocked(invalidateAll).mockClear()
 })
 
@@ -59,6 +60,26 @@ describe('AuthorizationService session lifecycle', () => {
         expect(onSessionUserSet).toHaveBeenCalledTimes(1)
         service.setSessionUser(createUser([Role.User]))
         expect(onSessionUserSet).toHaveBeenCalledTimes(2)
+    })
+
+    it('forgets the user before the session ends when signing out', async () => {
+        const api = new TabletopApi()
+        let endSession: () => void = () => {}
+        vi.spyOn(api, 'logout').mockReturnValue(
+            new Promise((resolve) => {
+                endSession = resolve
+            })
+        )
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
+        service.setSessionUser(createUser([Role.User]))
+
+        const signingOut = service.logout()
+        expect(service.getSessionUser()).toBeUndefined()
+        expect(api.logout).toHaveBeenCalledTimes(1)
+
+        endSession()
+        await signingOut
+        expect(goto).toHaveBeenCalledWith('/')
     })
 
     it.each([true, false])(

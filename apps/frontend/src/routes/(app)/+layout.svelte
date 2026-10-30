@@ -227,8 +227,7 @@
     )
 
     async function onLogout() {
-        await api.logout()
-        await authorizationService.onLogout()
+        await authorizationService.logout()
     }
 
     onLogoutBroadcast(() => {
