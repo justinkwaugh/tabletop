@@ -25,24 +25,17 @@ export type Disc = { tone: Tone; kind: PieceKind; turn?: number }
 
 export const TONES: readonly Tone[] = ['light', 'dark']
 
-// Looks are drawn every 15°, so a disc can spin as it flies; on the board discs lie turned
-// every which way in steps of two of them, twelfths of a turn.
-const TURN_STEP = 15
-const BOARD_STEP = 2
-// The different ways round each kind's mark can be drawn: ZÈRTZ's three notches look the same
-// again after a third of a turn, PÜNCT's six after a sixth; plain and round marks after none.
+// Discs lie on the board turned every which way, in twelfths of a turn.
+const TURN_STEP = 30
+// The different ways round each kind's mark can lie: ZÈRTZ's three notches look the same again
+// after a third of a turn, PÜNCT's six after a sixth; plain and round marks after none.
 const TURNS: Record<PieceKind, number> = {
     [PieceKind.Gipf]: 1,
     [PieceKind.Tamsk]: 1,
-    [PieceKind.Zertz]: 8,
+    [PieceKind.Zertz]: 4,
     [PieceKind.Dvonn]: 1,
-    [PieceKind.Yinsh]: 24,
-    [PieceKind.Punct]: 4
-}
-
-// How many steps round a kind's look takes before it looks the same again.
-export function turnsOf(kind: PieceKind): number {
-    return TURNS[kind]
+    [PieceKind.Yinsh]: 12,
+    [PieceKind.Punct]: 2
 }
 
 // Which way round a disc lies, from its id, so it lies the same way wherever it goes and whoever
@@ -53,8 +46,7 @@ export function turnOf(kind: PieceKind, id: number | undefined): number {
     let hash = Math.imul(id ^ (id >>> 16), 0x85ebca6b)
     hash = Math.imul(hash ^ (hash >>> 13), 0xc2b2ae35)
     hash ^= hash >>> 16
-    const steps = Math.max(1, TURNS[kind] / BOARD_STEP)
-    return ((hash >>> 0) % steps) * BOARD_STEP
+    return (hash >>> 0) % TURNS[kind]
 }
 
 // Every disc there is: each kind in each tone, each way round its mark can lie.

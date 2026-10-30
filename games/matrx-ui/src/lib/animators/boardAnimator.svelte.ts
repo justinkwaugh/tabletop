@@ -1,7 +1,7 @@
 import { tick } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
-import { Color, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import type {
     AnimationContext,
     TransitionKind,
@@ -24,8 +24,6 @@ import {
     type PushChange
 } from '$lib/board/boardChange.js'
 import { coordsKey, SPACING } from '$lib/board/geometry.js'
-import { lookUrl, preloadLooks } from '$lib/board/looks.js'
-import { turnOf, turnsOf } from '$lib/board/pieceShape.js'
 import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE, skidAt, skidDuration } from '$lib/board/hop.js'
 import { dropCrease, dropDisc, dropShadow, landing, LIFT_OFF, type PieceParts } from './drop.js'
 
@@ -70,8 +68,6 @@ const BOUNCES = {
         { height: 1.2, duration: 0.08, reach: 1 }
     ]
 }
-// How many times round a sliding YINSH piece spins, in 15° steps of 24 to the turn.
-const SPIN = { turns: 1 }
 
 export type DrawnStack = { key: string; coords: AxialCoordinates; discs: BoardDisc[] }
 
@@ -128,7 +124,6 @@ export class BoardAnimator {
     constructor(private readonly session: MatrxGameSession) {}
 
     readonly attach: Attachment = () => {
-        preloadLooks([PieceKind.Yinsh])
         this.session.addGameStateChangeListener(this.listener)
         return () => this.session.removeGameStateChangeListener(this.listener)
     }
@@ -541,30 +536,13 @@ export class BoardAnimator {
 
     // A YINSH piece slides as YINSH's rings do: off its stack, over, touching down short of its
     // place, a skip and a slide in. Its shadow shows once it is off the stack it left, paler the
-    // higher it is. It spins as it goes, slowing to a stop the way round it lies; its look is
-    // swapped on the image itself, each step round, rather than redrawn.
+    // higher it is.
     private skid(move: MoveChange, spaces: number, startLift: number, timeline: Timeline) {
         const { whole: node, body, shadow } = this.flierNodes
         if (node === undefined || body === undefined || shadow === undefined) return
         const offset = this.offset(move.from, move.to)
         const start = this.session.view.center(move.from)
-        const { kind, playerId, id } = move.disc
-        const tone =
-            this.session.gameState.getPlayerState(playerId).color === Color.White ? 'light' : 'dark'
-        const steps = turnsOf(kind)
-        const rest = turnOf(kind, id)
-        const image = body.querySelector('image')
-        let shown = rest
-        const spin = (u: number) => {
-            // Clockwise, seen from above: counting down to the way round it lies.
-            const left = Math.round(SPIN.turns * 24 * (1 - (1 - (1 - u) ** 2)))
-            const turn = (((rest + left) % steps) + steps) % steps
-            if (turn === shown || image === null) return
-            shown = turn
-            image.setAttribute('href', lookUrl({ tone, kind, turn }))
-        }
         const pose = (u: number) => {
-            spin(u)
             const { along, lift } = skidAt(u, spaces, startLift)
             const y = offset.y * along
             gsap.set(node, { x: offset.x * along, y })
