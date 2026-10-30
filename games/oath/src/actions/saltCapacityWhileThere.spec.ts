@@ -4,7 +4,6 @@ import {
     GameEngine,
     GameStatus,
     PlayerStatus as SeatStatus,
-    type Game,
     type GameAction,
     type Player
 } from '@tabletop/common'
