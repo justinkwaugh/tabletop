@@ -65,7 +65,7 @@ _Avoid_: Social account, provider email
 A provider whose verified-email assertion is accepted as proof of email control for Account linking. Google and Discord are currently trusted; additional providers require an explicit trust decision.
 
 **Set Password**:
-The operation that establishes a new Password Credential, replacing any existing one. It advances the Account's Session Generation in the same commit, which terminates every Authenticated Session of the Account.
+The operation that establishes a new Password Credential, replacing any existing one, authorized by Recent Authentication or a Set Password Challenge. It advances the Account's Session Generation in the same commit, which terminates every earlier Authenticated Session of the Account.
 _Avoid_: Password Recovery
 
 **Authentication Challenge**:
@@ -77,9 +77,6 @@ An Authentication Challenge proving control of its exact target Email Address.
 
 **Set Password Challenge**:
 An Authentication Challenge, bound to the Email Address it was sent to, authorizing Set Password for an Incomplete or Active Account without establishing an Authenticated Session. It changes neither Account Status nor email verification; the person signs in afterwards through an Authentication Method.
-
-**Sensitive Change Challenge**:
-An Authentication Challenge, bound to the Email Address it was sent to and to the exact requested change (the proposed Email Address and whether a Password Credential is being set), through which an Account without a Password Credential authorizes that change. An Account with a Password Credential proves the change with that password instead.
 
 **Authenticated Session**:
 Ongoing authorization associated with a User Account, recorded server-side under an unguessable Session ID that the session cookie carries. It has a thirty-day absolute lifetime and no sliding extension from ordinary activity, and it ends early through Logout, Logout All, or Set Password. A cookie without a live record authorizes nothing. An Account may have multiple concurrent sessions.
@@ -96,7 +93,7 @@ _Avoid_: Masked token, session hash
 A counter on the User Account that every Authenticated Session records when it is established. A session authorizes only while its recorded generation equals the Account's. A Password Credential change advances the generation in the same commit as the new credential, so no session established from the old credential survives it, including one established concurrently.
 
 **Recent Authentication**:
-Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session. Ordinary activity does not refresh it, and a session re-established after a Sensitive Change Challenge has none until the person Reauthenticates.
+Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session, required to change an Email Address or Password Credential or link an External Identity. Ordinary activity and renewing a session after a Password Credential change do not refresh that proof.
 
 **Reauthentication**:
 Proof through an Authentication Method of the Account that already holds the current Authenticated Session, which refreshes that session's Recent Authentication. It establishes no session, extends no lifetime, and cannot switch the session to another Account: a Password Credential must be the Account's own and an External Identity must already be linked to it.

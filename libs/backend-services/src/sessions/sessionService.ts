@@ -42,12 +42,18 @@ export class SessionService {
     async establish(user: User, proof: AuthenticationProof): Promise<AuthenticatedSession> {
         requireSessionEligibleAccount(user)
         const createdAt = this.now()
+        const authenticatedAt =
+            proof === 'authentication-method'
+                ? createdAt
+                : proof === 'challenge'
+                  ? undefined
+                  : proof.authenticatedAt
         const session: AuthenticatedSession = {
             id: sessionId(),
             userId: user.id,
             generation: sessionGenerationOf(user),
             createdAt,
-            ...(proof === 'authentication-method' ? { authenticatedAt: createdAt } : {}),
+            ...(authenticatedAt ? { authenticatedAt } : {}),
             expiresAt: new Date(createdAt.getTime() + this.lifetimeSeconds() * 1000)
         }
         await this.sessionStore.create(session)

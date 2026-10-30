@@ -123,9 +123,10 @@
             {/if}
             {#if !canUsePassword && !canUseGoogle && !canUseDiscord}
                 <P class="text-sm text-gray-600 dark:text-gray-300">
-                    This account has no password or linked account to confirm with. Set a password
-                    from your profile first.
+                    This account has no password or linked account to confirm with. Use Forgot
+                    password on the sign-in page to set one, then sign in again.
                 </P>
+                <Button color="light" href="/login/username" onclick={cancel}>Go to sign in</Button>
             {/if}
             <Button color="light" type="button" onclick={cancel}>Cancel</Button>
         </div>

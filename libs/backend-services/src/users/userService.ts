@@ -5,20 +5,14 @@ import {
     ExternalAuthService,
     remove,
     Role,
-    type SensitiveChangeRequest,
-    sensitiveChangeOperation,
+    sessionGenerationOf,
     User,
     UserPreferences,
     UserStatus,
     withAssignedRoles
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
-import {
-    EmailVerificationError,
-    InvalidPasswordError,
-    InvalidTimeZoneError,
-    UnauthenticatedUpdateError
-} from './errors.js'
+import { EmailVerificationError, InvalidPasswordError, InvalidTimeZoneError } from './errors.js'
 import { requireSessionEligibleAccount } from './accountEligibility.js'
 import { AccountChangeType } from '../email/emailService.js'
 import { nanoid } from 'nanoid'
@@ -32,10 +26,13 @@ import {
 import type { StoredUser } from '../persistence/model/storedUser.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { NotFoundError } from '../persistence/stores/errors.js'
-import type { TransactionParticipant } from '../persistence/stores/transaction.js'
+import type { AuthenticatedSession } from '../sessions/authenticatedSession.js'
+import { SessionNotLiveError } from '../sessions/sessionService.js'
+import {
+    hasRecentAuthentication,
+    RecentAuthenticationRequiredError
+} from '../sessions/recentAuthentication.js'
 import uFuzzy from '@leeoniya/ufuzzy'
-
-type ChallengeProof = { claim: AuthenticationChallengeClaim; consume: TransactionParticipant }
 
 export class UserService {
     private readonly uFuzzy: uFuzzy
@@ -178,45 +175,32 @@ export class UserService {
     }
 
     async updateUser(
-        userId: string,
+        session: AuthenticatedSession,
         fields: Partial<User>,
-        password?: string,
-        currentPassword?: string,
-        challenge?: string
+        password?: string
     ): Promise<User> {
-        const proof = challenge
-            ? await this.sensitiveChangeProof(userId, challenge, fields, password)
-            : undefined
-
+        const userId = session.userId
         const [updatedUser, updatedFields, originalUser] = await this.userStore.updateUser({
             userId,
             fields,
             password,
-            currentPassword,
             validator: (existingUser, fieldsToUpdate) => {
-                if (proof && existingUser.email !== proof.claim.email) {
-                    throw new InvalidChallengeError('binding')
-                }
-
-                // No password set on user, and no verification means no sensitive updates
+                requireSessionEligibleAccount(existingUser)
+                const now = new Date()
                 if (
-                    (!existingUser.passwordHash && !proof) ||
-                    (existingUser.passwordHash && !currentPassword)
+                    session.expiresAt <= now ||
+                    session.generation !== sessionGenerationOf(existingUser)
                 ) {
-                    // Cannot change email
-                    if (fieldsToUpdate.email && existingUser.email) {
-                        throw new UnauthenticatedUpdateError('email')
-                    }
-
-                    // Cannot set or change password
-                    if (fieldsToUpdate.passwordHash) {
-                        throw new UnauthenticatedUpdateError('password')
-                    }
+                    throw new SessionNotLiveError()
                 }
-
+                const changesCredentials =
+                    fieldsToUpdate.passwordHash ||
+                    (fieldsToUpdate.email && fieldsToUpdate.email !== existingUser.email)
+                if (changesCredentials && !hasRecentAuthentication(session, now)) {
+                    throw new RecentAuthenticationRequiredError()
+                }
                 return UpdateValidationResult.Proceed
-            },
-            participant: proof?.consume
+            }
         })
 
         const updateTimestamp = updatedUser.updatedAt ?? new Date()
@@ -246,28 +230,6 @@ export class UserService {
         }
 
         return updatedUser
-    }
-
-    private async sensitiveChangeProof(
-        userId: string,
-        challenge: string,
-        fields: Partial<User>,
-        password: string | undefined
-    ): Promise<ChallengeProof> {
-        const account = await this.userStore.findById(userId)
-        if (!account?.email) {
-            throw new InvalidChallengeError('account')
-        }
-        const claim: AuthenticationChallengeClaim = {
-            type: TokenType.SensitiveChange,
-            userId,
-            email: account.email,
-            operation: sensitiveChangeOperation({
-                email: fields.email,
-                password: Boolean(password)
-            })
-        }
-        return { claim, consume: this.tokenService.consumeChallenge(challenge, claim) }
     }
 
     async linkExternalAccount({
@@ -447,23 +409,6 @@ export class UserService {
             changeType: AccountChangeType.PasswordReset,
             timestamp: new Date()
         })
-        return issued
-    }
-
-    async sendSensitiveChangeChallenge(
-        user: User,
-        request: SensitiveChangeRequest
-    ): Promise<IssuedChallenge> {
-        if (!user.email) {
-            throw new EmailVerificationError()
-        }
-        const issued = await this.tokenService.issueChallenge({
-            type: TokenType.SensitiveChange,
-            userId: user.id,
-            email: user.email,
-            operation: sensitiveChangeOperation(request)
-        })
-        await this.taskService.sendAuthVerificationEmail({ userId: user.id, token: issued.secret })
         return issued
     }
 

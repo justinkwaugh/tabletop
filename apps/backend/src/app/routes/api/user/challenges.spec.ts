@@ -308,76 +308,24 @@ describe('Email Verification through a code', () => {
     })
 })
 
-describe('Sensitive Change through a code', () => {
-    const servers = new Set<FastifyInstance>()
-    afterEach(async () => {
-        await Promise.all([...servers].map((server) => server.close()))
-        servers.clear()
-    })
-    async function providerOnly() {
-        const user = person({ externalIds: ['google:g-1'] })
-        const created = await createServer(user, { withPassword: false })
-        servers.add(created.server)
-        const passwordLogin = await created.server.inject({
-            method: 'POST',
-            url: '/auth/login',
-            payload: { username: 'Person', password: 'none' }
-        })
-        expect(passwordLogin.statusCode).toBe(401)
-        return created
-    }
-
-    it('binds the code to the requested change and the current address', async () => {
-        const { post, lastMail, account, adoptSession } = await providerOnly()
-        const cookie = await adoptSession()
-
-        const issued = await post(
-            '/user/sendEmailAuthVerification',
-            { email: 'Next@Example.test', password: true },
-            cookie
+describe('retired Sensitive Change codes', () => {
+    it('tells an older client to reload without issuing an email', async () => {
+        const { server, post, adoptSession, mails } = await createServer(
+            person({ externalIds: ['discord:linked-user'] }),
+            { withPassword: false }
         )
-        expect(issued.statusCode).toBe(200)
-        expect(Date.parse(issued.json().payload.expiresAt)).toBeGreaterThan(Date.now())
-        const code = lastMail('sensitive').token
-
-        const otherAddress = await post(
-            '/user/update',
-            { email: 'else@example.test', password: NEW_PASSWORD, challenge: code },
-            cookie
-        )
-        expect(otherAddress.statusCode).toBe(400)
-        expect(otherAddress.json().error.name).toBe('InvalidChallengeError')
-        const withoutPassword = await post(
-            '/user/update',
-            { email: 'next@example.test', challenge: code },
-            cookie
-        )
-        expect(withoutPassword.statusCode).toBe(400)
-        const withoutProof = await post(
-            '/user/update',
-            { email: 'next@example.test', password: NEW_PASSWORD },
-            cookie
-        )
-        expect(withoutProof.statusCode).toBe(400)
-        expect(withoutProof.json().error.name).toBe('UnauthenticatedUpdateError')
-        expect(account().email).toBe('person@example.test')
-        expect(account().hasPassword).toBeFalsy()
-
-        const exact = await post(
-            '/user/update',
-            { email: 'next@example.test', password: NEW_PASSWORD, challenge: code },
-            cookie
-        )
-        expect(exact.statusCode).toBe(200)
-        expect(account()).toMatchObject({
-            email: 'next@example.test',
-            hasPassword: true,
-            sessionGeneration: 1
-        })
-        expect(sessionCookieHeader(exact)).toBeDefined()
-        expect(lastMail('verification').userId).toBe('account-1')
-        expect(
-            (await post('/auth/login', { username: 'Person', password: NEW_PASSWORD })).statusCode
-        ).toBe(200)
+        try {
+            const cookie = await adoptSession()
+            const response = await post(
+                '/user/sendEmailAuthVerification',
+                { email: 'next@example.test', password: true },
+                cookie
+            )
+            expect(response.statusCode).toBe(410)
+            expect(response.json().error.message).toContain('Reload the site')
+            expect(mails).toEqual([])
+        } finally {
+            await server.close()
+        }
     })
 })

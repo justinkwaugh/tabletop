@@ -1,16 +1,60 @@
 import { expect, test, type Page } from '@playwright/test'
+import { Role, UserStatus, type User } from '@tabletop/common'
 import { mockLibrary } from './fixtures/library'
 
-const user = {
+const user: User = {
     id: 'confirmation-player',
     username: 'confirmation-player',
     email: 'confirmation@example.test',
     emailVerified: true,
-    status: 'active',
-    roles: ['user'],
+    status: UserStatus.Active,
+    roles: [Role.User],
     externalIds: [],
     timeZone: 'UTC',
     hasPassword: true
+}
+
+async function profileSubmissions(page: Page, { recent = false, account = user } = {}) {
+    const submissions: unknown[] = []
+    let current = account
+    const confirm = () => {
+        recent = true
+    }
+    await page.route('**/api/v1/user/self', (route) =>
+        route.fulfill({ json: { payload: { user: current } } })
+    )
+    await page.route('**/api/v1/user/update', (route) => {
+        const fields: { email?: string; password?: string; username?: string } = route
+            .request()
+            .postDataJSON()
+        submissions.push(fields)
+        if ((fields.email || fields.password) && !recent) {
+            return route.fulfill({
+                status: 403,
+                json: {
+                    error: {
+                        name: 'RecentAuthenticationRequiredError',
+                        message: 'This operation requires Recent Authentication'
+                    }
+                }
+            })
+        }
+        current = {
+            ...current,
+            ...(fields.username ? { username: fields.username } : {}),
+            ...(fields.password ? { hasPassword: true } : {}),
+            ...(fields.email
+                ? { email: fields.email, emailVerified: false, status: UserStatus.Incomplete }
+                : {})
+        }
+        return route.fulfill({ json: { payload: { user: current } } })
+    })
+    await page.route('**/api/v1/auth/reauthenticate', (route) => {
+        confirm()
+        return route.fulfill({ json: { payload: {} } })
+    })
+    await page.reload()
+    return { submissions, confirm }
 }
 
 async function requireConfirmation(page: Page) {
@@ -169,4 +213,108 @@ test('a logout broadcast dismisses confirmation before the logout request comple
     await expect(prompt).toHaveCount(0)
     response.resolve()
     await expect(page).toHaveURL(/\/$/)
+})
+
+for (const field of ['email', 'password']) {
+    test(`an expired ${field} change prompts only on Submit and resumes the same change`, async ({
+        page
+    }) => {
+        const { submissions } = await profileSubmissions(page)
+        const value = field === 'email' ? 'updated@example.test' : 'replacement-password-value'
+        await page.locator(`input[name="${field}"]`).fill(value)
+        const prompt = page.getByRole('dialog', { name: "Confirm it's you" })
+        await expect(prompt).toHaveCount(0)
+        await expect(page.locator('input[name="currentPassword"]')).toHaveCount(0)
+        await expect(page.locator('input[name="challenge"]')).toHaveCount(0)
+        expect(submissions).toEqual([])
+
+        await page.getByRole('button', { name: 'Submit', exact: true }).click()
+        await expect(prompt).toBeVisible()
+        expect(submissions).toEqual([{ [field]: value }])
+        await prompt.getByLabel('Password', { exact: true }).fill('existing-password-value')
+        await prompt.getByRole('button', { name: 'Confirm', exact: true }).click()
+        await expect(prompt).toHaveCount(0)
+        expect(submissions).toEqual([{ [field]: value }, { [field]: value }])
+        if (field === 'email') {
+            await expect(page).toHaveURL(/\/onboarding$/)
+            await expect(page.getByText('updated@example.test', { exact: true })).toBeVisible()
+        } else {
+            await expect(page.getByText('Profile Updated', { exact: true })).toBeVisible()
+            await expect(page.locator('input[name="password"]')).toHaveValue('')
+        }
+    })
+}
+
+test('a recent password change saves without asking again', async ({ page }) => {
+    const { submissions } = await profileSubmissions(page, { recent: true })
+    await page.locator('input[name="password"]').fill('replacement-password-value')
+    await page.getByRole('button', { name: 'Submit', exact: true }).click()
+    await expect(page.getByText('Profile Updated', { exact: true })).toBeVisible()
+    await expect(page.getByRole('dialog', { name: "Confirm it's you" })).toHaveCount(0)
+    expect(submissions).toEqual([{ password: 'replacement-password-value' }])
+})
+
+test('cancelling confirmation leaves the draft intact and does not retry the update', async ({
+    page
+}) => {
+    const { submissions } = await profileSubmissions(page)
+    await page.locator('input[name="password"]').fill('replacement-password-value')
+    await page.getByRole('button', { name: 'Submit', exact: true }).click()
+    const prompt = page.getByRole('dialog', { name: "Confirm it's you" })
+    await expect(prompt).toBeVisible()
+    await prompt.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect(prompt).toHaveCount(0)
+    await expect(page.locator('input[name="password"]')).toHaveValue('replacement-password-value')
+    expect(submissions).toHaveLength(1)
+    await expect(page.getByText('Profile Updated', { exact: true })).toHaveCount(0)
+})
+
+test('a username-only change needs no recent proof', async ({ page }) => {
+    const { submissions } = await profileSubmissions(page)
+    await page.locator('input[name="username"]').fill('renamed-player')
+    await page.getByRole('button', { name: 'Submit', exact: true }).click()
+    await expect(page.getByText('Profile Updated', { exact: true })).toBeVisible()
+    await expect(page.getByRole('dialog', { name: "Confirm it's you" })).toHaveCount(0)
+    expect(submissions).toEqual([{ username: 'renamed-player' }])
+})
+
+test('a Discord-only account confirms through Discord before setting its first password', async ({
+    page,
+    context
+}) => {
+    const { submissions, confirm } = await profileSubmissions(page, {
+        account: { ...user, hasPassword: false, externalIds: ['discord:linked-user'] }
+    })
+    await page.route('**/api/v1/auth/discord/begin/reauthenticate', (route) =>
+        route.fulfill({
+            json: {
+                payload: {
+                    state: 'reauthenticate.profile-change',
+                    authorizationUrl: new URL(
+                        '/oauth/discord/link?code=synthetic&state=reauthenticate.profile-change',
+                        page.url()
+                    ).href,
+                    expiresInSeconds: 600
+                }
+            }
+        })
+    )
+    await context.route('**/api/v1/auth/discord/reauthenticate', (route) => {
+        confirm()
+        return route.fulfill({ json: { payload: {} } })
+    })
+    await page.locator('input[name="password"]').fill('replacement-password-value')
+    await page.getByRole('button', { name: 'Submit', exact: true }).click()
+    const prompt = page.getByRole('dialog', { name: "Confirm it's you" })
+    await expect(prompt).toBeVisible()
+    await expect(prompt.getByLabel('Password', { exact: true })).toHaveCount(0)
+    const popup = page.waitForEvent('popup')
+    await prompt.getByRole('button', { name: 'Continue with Discord' }).click()
+    const authorization = await popup
+    await expect(page.getByText('Profile Updated', { exact: true })).toBeVisible()
+    expect(submissions).toEqual([
+        { password: 'replacement-password-value' },
+        { password: 'replacement-password-value' }
+    ])
+    await authorization.close()
 })

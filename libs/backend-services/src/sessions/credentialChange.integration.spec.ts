@@ -171,7 +171,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const copied = await login(account.username, ORIGINAL_PASSWORD)
             await expectEveryOldSessionEnded(
                 account,
-                () => users.updateUser(account.id, {}, NEW_PASSWORD, ORIGINAL_PASSWORD),
+                () => users.updateUser(copied, {}, NEW_PASSWORD),
                 copied
             )
         })

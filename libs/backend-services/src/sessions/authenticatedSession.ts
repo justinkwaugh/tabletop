@@ -13,4 +13,5 @@ export const AuthenticatedSession = Type.Object({
     providerAuthorization: Type.Optional(ProviderAuthorizationAttempt)
 })
 
-export type AuthenticationProof = 'authentication-method' | 'challenge'
+export type AuthenticationProof =
+    'authentication-method' | 'challenge' | Pick<AuthenticatedSession, 'authenticatedAt'>

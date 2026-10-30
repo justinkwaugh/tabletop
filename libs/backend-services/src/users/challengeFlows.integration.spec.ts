@@ -15,9 +15,9 @@ import { FirestoreUserStore } from '../persistence/firestore/userStore.js'
 import { isolatedFirestore } from '../persistence/firestore/tests/isolatedFirestore.js'
 import type { TokenStore } from '../persistence/stores/tokenStore.js'
 import { UnknownStorageError } from '../persistence/stores/errors.js'
-import { SessionService } from '../sessions/sessionService.js'
+import { SessionNotLiveError, SessionService } from '../sessions/sessionService.js'
+import { RecentAuthenticationRequiredError } from '../sessions/recentAuthentication.js'
 import type { TaskService } from '../tasks/taskService.js'
-import { UnauthenticatedUpdateError } from './errors.js'
 import { UserService } from './userService.js'
 
 const ORIGINAL_PASSWORD = 'original-password-value'
@@ -403,10 +403,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 await users.sendVerificationEmail(account)
                 const stale = lastMail('verification').token
                 const moved = await users.updateUser(
-                    account.id,
-                    { email: `moved-${account.id}@example.test` },
-                    undefined,
-                    ORIGINAL_PASSWORD
+                    await sessions.establish(account, 'authentication-method'),
+                    { email: `moved-${account.id}@example.test` }
                 )
                 const fresh = lastMail('verification').token
                 expect(fresh).not.toBe(stale)
@@ -418,50 +416,18 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             })
         })
 
-        describe('Sensitive Change', () => {
-            it('commits the bound email and password change, the uniqueness entries and the challenge together', async () => {
+        describe('profile changes with Recent Authentication', () => {
+            it('commits email, password, uniqueness entries and session revocation together for a provider Account', async () => {
                 const account = await createAccount(
                     { externalIds: ['google:g-2'] },
                     { withPassword: false }
                 )
                 const copied = await sessions.establish(account, 'authentication-method')
                 const newEmail = `next-${account.id}@example.test`
-                const issued = await users.sendSensitiveChangeChallenge(account, {
-                    email: newEmail.toUpperCase(),
-                    password: true
-                })
-                expect(issued.expiresAt).toEqual(new Date('2026-10-27T12:15:00.000Z'))
-                const code = lastMail('sensitive').token
-
-                await expect(
-                    users.updateUser(
-                        account.id,
-                        { email: newEmail },
-                        NEW_PASSWORD,
-                        undefined,
-                        undefined
-                    )
-                ).rejects.toThrow(UnauthenticatedUpdateError)
-                await expect(
-                    users.updateUser(
-                        account.id,
-                        { email: `else-${account.id}@example.test` },
-                        NEW_PASSWORD,
-                        undefined,
-                        code
-                    )
-                ).rejects.toThrow(InvalidChallengeError)
-                await expect(
-                    users.updateUser(account.id, { email: newEmail }, undefined, undefined, code)
-                ).rejects.toThrow(InvalidChallengeError)
-                expect(await stored(account.id)).toMatchObject({ email: account.email })
-
                 const updated = await users.updateUser(
-                    account.id,
-                    { email: newEmail },
-                    NEW_PASSWORD,
-                    undefined,
-                    code
+                    copied,
+                    { email: newEmail.toUpperCase() },
+                    NEW_PASSWORD
                 )
                 expect(updated).toMatchObject({
                     email: newEmail,
@@ -480,32 +446,48 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 ).toBe(false)
                 await expect(authorize(copied.id)).resolves.toBeUndefined()
                 await expect(login(account.username, NEW_PASSWORD)).resolves.toBeDefined()
-                await expect(
-                    users.updateUser(account.id, {}, 'another-password-value-1', undefined, code)
-                ).rejects.toThrow(UnauthenticatedUpdateError)
+                expect(notifications).toContainEqual({ email: account.email, changeType: 'email' })
+                expect(notifications).toContainEqual({
+                    email: account.email,
+                    changeType: 'password'
+                })
             })
 
-            it('does not accept a Set Password or verification challenge as a Sensitive Change proof', async () => {
-                const account = await createAccount(
-                    { externalIds: ['google:g-3'] },
-                    { withPassword: false }
-                )
-                await users.sendPasswordResetEmail(account)
-                const { secret } = lastResetSecret()
-                await expect(
-                    users.updateUser(account.id, {}, NEW_PASSWORD, undefined, secret)
-                ).rejects.toThrow(InvalidChallengeError)
-                await users.sendVerificationEmail(account)
+            it('leaves the Account, uniqueness entries and sessions unchanged when proof is stale', async () => {
+                const account = await createAccount()
+                const session = await sessions.establish(account, 'authentication-method')
+                const original = await stored(account.id)
+                const email = `refused-${account.id}@example.test`
                 await expect(
                     users.updateUser(
-                        account.id,
-                        {},
-                        NEW_PASSWORD,
-                        undefined,
-                        lastMail('verification').token
+                        { ...session, authenticatedAt: new Date(Date.now() - 16 * 60_000) },
+                        { email, username: `Refused-${account.id}` },
+                        NEW_PASSWORD
                     )
-                ).rejects.toThrow(InvalidChallengeError)
-                expect((await stored(account.id))?.passwordHash).toBeUndefined()
+                ).rejects.toThrow(RecentAuthenticationRequiredError)
+                expect(await stored(account.id)).toEqual(original)
+                expect((await firestore.collection('userEmails').doc(email).get()).exists).toBe(
+                    false
+                )
+                expect(
+                    (await firestore.collection('userEmails').doc(account.email).get()).exists
+                ).toBe(true)
+                await expect(authorize(session.id)).resolves.toBeDefined()
+            })
+
+            it('refuses an update authorized before another credential change committed', async () => {
+                const account = await createAccount()
+                const staleRequest = await sessions.establish(account, 'authentication-method')
+                await users.updateUser(staleRequest, {}, NEW_PASSWORD)
+                const committed = await stored(account.id)
+                const email = `late-${account.id}@example.test`
+                await expect(
+                    users.updateUser(staleRequest, { email }, ORIGINAL_PASSWORD)
+                ).rejects.toThrow(SessionNotLiveError)
+                expect(await stored(account.id)).toEqual(committed)
+                expect((await firestore.collection('userEmails').doc(email).get()).exists).toBe(
+                    false
+                )
             })
         })
 

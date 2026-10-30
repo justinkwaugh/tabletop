@@ -14,11 +14,9 @@ import authorization from '../../../plugins/authorization.js'
 import { authSession } from '../../../lib/session.js'
 import { sessionCookieHeader, sessionServer } from '../../../tests/sessionFixture.js'
 import resendEmailVerification from './resendEmailVerification.js'
-import sendEmailAuthVerification from './sendEmailAuthVerification.js'
 
 describe.each([
-    { url: '/resendEmailVerification', status: UserStatus.Incomplete, payload: undefined },
-    { url: '/sendEmailAuthVerification', status: UserStatus.Active, payload: { password: true } }
+    { url: '/resendEmailVerification', status: UserStatus.Incomplete, payload: undefined }
 ])('account email budget for $url', ({ url, status, payload }) => {
     const servers = new Set<FastifyInstance>()
     let now: number
@@ -48,12 +46,10 @@ describe.each([
         }))
         server.decorate('userService', {
             getUser: async (id: string) => users.get(id),
-            sendVerificationEmail: sendEmail,
-            sendSensitiveChangeChallenge: sendEmail
+            sendVerificationEmail: sendEmail
         })
         await server.register(authorization)
         await server.register(resendEmailVerification)
-        await server.register(sendEmailAuthVerification)
         server.post<{ Body: Pick<User, 'id'> }>('/session', async (request) => {
             const user = users.get(request.body.id)
             assertExists(user, 'The fixture account must exist')

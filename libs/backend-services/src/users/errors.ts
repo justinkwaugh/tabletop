@@ -4,7 +4,6 @@ enum UserServiceError {
     AccountUnavailable = 'AccountUnavailableError',
     InvalidPassword = 'InvalidPasswordError',
     EmailVerification = 'EmailVerificationError',
-    UnauthenticatedUpdate = 'UnauthenticatedUpdateError',
     InvalidTimeZone = 'InvalidTimeZoneError'
 }
 
@@ -34,16 +33,6 @@ export class EmailVerificationError extends BaseError {
         super({
             name: UserServiceError.EmailVerification,
             message: 'User has no email address'
-        })
-    }
-}
-
-export class UnauthenticatedUpdateError extends BaseError {
-    constructor(field: string) {
-        super({
-            name: UserServiceError.UnauthenticatedUpdate,
-            message: `Current password required to update ${field}`,
-            metadata: { field }
         })
     }
 }
