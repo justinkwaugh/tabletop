@@ -92,6 +92,38 @@ test('Discord linking waits for a Continue click after identity confirmation', a
     await authorization.close()
 })
 
+test('closing Discord after Continue cancels linking without an error toast', async ({ page }) => {
+    const prompt = await requireConfirmation(page)
+    await page.route('**/api/v1/auth/discord/begin/link', (route) =>
+        route.fulfill({
+            json: {
+                payload: {
+                    state: 'link.cancelled-attempt',
+                    authorizationUrl: 'about:blank',
+                    expiresInSeconds: 600
+                }
+            }
+        })
+    )
+    await page.route('**/api/v1/auth/reauthenticate', (route) =>
+        route.fulfill({ json: { payload: {} } })
+    )
+    await prompt.getByLabel('Password', { exact: true }).fill('synthetic-password')
+    await prompt.getByRole('button', { name: 'Confirm', exact: true }).click()
+    await expect(prompt.getByRole('button', { name: 'Continue', exact: true })).toBeVisible()
+
+    await page.clock.install()
+    const popup = page.waitForEvent('popup')
+    await prompt.getByRole('button', { name: 'Continue', exact: true }).click()
+    await (await popup).close()
+    await page.clock.runFor(3000)
+
+    await expect(page.getByText('The Discord window was closed', { exact: true })).toHaveCount(0)
+    await expect(page.locator('[data-sonner-toast][data-type="error"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Link', exact: true })).toBeEnabled()
+    await expect(page.getByRole('button', { name: 'Unlink', exact: true })).toHaveCount(0)
+})
+
 test('a late password confirmation cannot complete the replacement prompt', async ({ page }) => {
     const response = Promise.withResolvers<void>()
     const requested = Promise.withResolvers<void>()

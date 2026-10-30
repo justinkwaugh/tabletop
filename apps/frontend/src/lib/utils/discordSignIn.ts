@@ -5,6 +5,7 @@ import {
     openPreparedDiscordAuthorization,
     prepareDiscordLink,
     type DiscordAuthorizationApi,
+    type DiscordAuthorizationOutcome,
     type DiscordAuthorizationSuccess
 } from './discordAuthorization'
 
@@ -23,9 +24,11 @@ export async function signInWithDiscord({
     oncomplete?: (result: DiscordAuthorizationSuccess) => void
     report: (message: string) => void
 }): Promise<void> {
+    const notifyCompletion = (result: DiscordAuthorizationOutcome) => {
+        if (result.outcome === 'success') oncomplete?.(result)
+    }
     const attempt = async () => {
-        const result = await openDiscordAuthorization({ purpose, api })
-        oncomplete?.(result)
+        notifyCompletion(await openDiscordAuthorization({ purpose, api }))
     }
     try {
         if (purpose === 'link') {
@@ -40,8 +43,7 @@ export async function signInWithDiscord({
                     return {
                         requiresUserGesture: !navigator.userActivation?.isActive,
                         run: async () => {
-                            const result = await openPreparedDiscordAuthorization(started)
-                            oncomplete?.(result)
+                            notifyCompletion(await openPreparedDiscordAuthorization(started))
                         }
                     }
                 }

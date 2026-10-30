@@ -199,7 +199,7 @@ describe('opening a Discord authorization', () => {
             authorizationUrl: 'https://discord.test/authorize',
             expiresInSeconds: LIFETIME_SECONDS
         })
-        await expect(pending).rejects.toThrow('The Discord window was closed')
+        await expect(pending).resolves.toEqual({ outcome: 'cancelled' })
         expect(popup.location.href).toBe('about:blank')
         expect(addListener).not.toHaveBeenCalled()
         expect(vi.getTimerCount()).toBe(0)
@@ -221,7 +221,7 @@ describe('opening a Discord authorization', () => {
         const { popup, start, pending, outcome } = openWhileBeginPends('login')
         popup.close()
         await vi.advanceTimersByTimeAsync(POPUP_CLOSE_WATCH_MS)
-        await expect(pending).rejects.toThrow('The Discord window was closed')
+        await expect(pending).resolves.toEqual({ outcome: 'cancelled' })
         expect(vi.getTimerCount()).toBe(0)
 
         start.resolve({
@@ -243,12 +243,12 @@ describe('opening a Discord authorization', () => {
         const { popup, start, pending, outcome } = openWhileBeginPends('link')
         popup.close()
         await vi.advanceTimersByTimeAsync(POPUP_CLOSE_WATCH_MS)
-        await expect(pending).rejects.toThrow('The Discord window was closed')
+        await expect(pending).resolves.toEqual({ outcome: 'cancelled' })
 
         start.reject(new Error('RecentAuthenticationRequired'))
         await delivered()
         expect(outcome).toHaveBeenCalledTimes(1)
-        expect(outcome.mock.calls[0][0]).toMatchObject({ message: 'The Discord window was closed' })
+        expect(outcome.mock.calls[0][0]).toEqual({ outcome: 'cancelled' })
         expect(vi.getTimerCount()).toBe(0)
     })
 
@@ -284,7 +284,7 @@ describe('opening a Discord authorization', () => {
         expectNoLeakedListener()
     })
 
-    it('settles once as abandoned when the popup is closed and nothing arrives in the grace period', async () => {
+    it('settles once as cancelled when the popup is closed and nothing arrives in the grace period', async () => {
         const { popup, pending } = await openAndStart('link')
         const outcome = vi.fn()
         pending.then(outcome, outcome)
@@ -292,7 +292,7 @@ describe('opening a Discord authorization', () => {
         await vi.advanceTimersByTimeAsync(POPUP_CLOSE_WATCH_MS + POPUP_CLOSE_GRACE_MS - 1)
         expect(outcome).not.toHaveBeenCalled()
         await vi.advanceTimersByTimeAsync(1)
-        await expect(pending).rejects.toThrow('The Discord window was closed')
+        await expect(pending).resolves.toEqual({ outcome: 'cancelled' })
         expect(vi.getTimerCount()).toBe(0)
         expectNoLeakedListener()
         fromPopup({ state: 'link.nonce', purpose: 'link', outcome: 'success', user })

@@ -13,6 +13,8 @@ vi.mock('@tabletop/frontend-components', () => ({
 import { APIError } from '@tabletop/frontend-components'
 import { reauthentication } from '$lib/stores/reauthentication.svelte'
 import {
+    POPUP_CLOSE_GRACE_MS,
+    POPUP_CLOSE_WATCH_MS,
     POPUP_START_TIMEOUT_MS,
     type DiscordAuthorizationApi,
     type DiscordAuthorizationResult
@@ -52,13 +54,20 @@ function fakeApi() {
     return { api, remote }
 }
 
-const popup = { location: { href: 'about:blank' }, closed: false, close: () => {} }
+const popup = {
+    location: { href: 'about:blank' },
+    closed: false,
+    close: () => {
+        popup.closed = true
+    }
+}
 const otherTab = new BroadcastChannel('discord-authorization')
 const fromPopup = (result: DiscordAuthorizationResult) => otherTab.postMessage(result)
 const delivered = () => new Promise((resolve) => setImmediate(resolve))
 
 beforeEach(() => {
     popup.location.href = 'about:blank'
+    popup.closed = false
     reauthentication.cancel()
     vi.stubGlobal('window', { open: vi.fn(() => popup) })
     vi.stubGlobal('screen', { width: 1600, height: 900 })
@@ -87,6 +96,49 @@ function flowWithoutCallback(purpose: 'login' | 'link') {
     const run = () => signInWithDiscord({ purpose, api: remote, report })
     return { api, report, run }
 }
+
+describe('closing the Discord window', () => {
+    it.each(['login', 'link', 'reauthenticate'] as const)(
+        'cancels %s without reporting an error or completing authentication',
+        async (purpose) => {
+            const { oncomplete, report, run } = flow(purpose)
+            if (purpose === 'reauthenticate') {
+                reauthentication.request({ description: 'add Google', retry: vi.fn() })
+            }
+            const confirmation = reauthentication.pending
+            const pending = run()
+            await delivered()
+            popup.close()
+            await vi.advanceTimersByTimeAsync(POPUP_CLOSE_WATCH_MS + POPUP_CLOSE_GRACE_MS)
+            await pending
+            expect(report).not.toHaveBeenCalled()
+            expect(oncomplete).not.toHaveBeenCalled()
+            expect(reauthentication.pending).toBe(confirmation)
+            expect(reauthentication.confirmed).toBe(false)
+            expect(vi.getTimerCount()).toBe(0)
+        }
+    )
+
+    it('cancels the linking popup opened by Continue without rejecting the confirmation action', async () => {
+        const { api, oncomplete, run } = flow('link')
+        api.beginDiscordAuthorization.mockRejectedValueOnce(recentAuthenticationRequired())
+        await run()
+        const confirmation = reauthentication.pending
+        assertExists(confirmation, 'Discord linking requested confirmation')
+        await reauthentication.complete(confirmation)
+        const pending = reauthentication.resume(confirmation)
+        const outcome = pending.then(
+            () => 'completed',
+            () => 'rejected'
+        )
+        await delivered()
+        popup.close()
+        await vi.advanceTimersByTimeAsync(POPUP_CLOSE_WATCH_MS + POPUP_CLOSE_GRACE_MS)
+        expect(await outcome).toBe('completed')
+        expect(oncomplete).not.toHaveBeenCalled()
+        expect(reauthentication.pending).toBeUndefined()
+    })
+})
 
 describe('a button with no completion callback', () => {
     it('still begins the attempt, opens Discord and finishes a login', async () => {
