@@ -22,6 +22,7 @@
         requiredMessage
     } from '$lib/utils/accountFormValidation'
     import { broadcastLogout } from '$lib/utils/logoutChannel'
+    import { challengeExpiryText } from '$lib/utils/challengeExpiry'
 
     let { authorizationService, api } = getAppContext()
 
@@ -44,6 +45,7 @@
     let passwordToggle = $state(false)
     let currentPasswordToggle = $state(false)
     let newEmailSent = $state(false)
+    let codeExpiresAt: Date | undefined = $state(undefined)
 
     let sessionUser = authorizationService.getSessionUser()
 
@@ -65,7 +67,7 @@
     let password: string | undefined = $state(undefined)
     let email: string | undefined = $state(sessionUser?.email)
     let currentPassword: string | undefined = $state(undefined)
-    let token: string | undefined = $state(undefined)
+    let challenge: string | undefined = $state(undefined)
 
     let reauthType: ReauthType = $derived.by(() => {
         if (email == user?.email && !password) {
@@ -134,7 +136,8 @@
             success = true
             password = undefined
             currentPassword = undefined
-            token = undefined
+            challenge = undefined
+            newEmailSent = false
 
             authorizationService.setSessionUser(newUser)
 
@@ -145,6 +148,9 @@
             console.log(e)
             if (e instanceof Error && e.name === 'AuthenticationVerificationFailedError') {
                 errorMessage = 'Invalid password, could not update profile.'
+            } else if (e instanceof Error && e.name === 'InvalidChallengeError') {
+                errorMessage =
+                    'The code does not match this change, has expired, or was replaced. Send a new code for exactly the change you are making.'
             } else if (e instanceof Error && e.name === 'AlreadyExistsError') {
                 if (e.message.includes('username')) {
                     errors.username = ['Username already exists']
@@ -159,8 +165,13 @@
         }
     }
 
+    // The code is bound to exactly this change; editing the form afterwards needs a new one
     async function sendVerificationEmail() {
-        await api.sendAuthVerificationEmail()
+        const emailChanged = email?.trim() && email.trim() !== user?.email
+        codeExpiresAt = await api.sendSensitiveChangeChallenge({
+            ...(emailChanged ? { email: email?.trim() } : {}),
+            password: Boolean(password)
+        })
         newEmailSent = true
     }
 
@@ -340,22 +351,24 @@
                     In order to change sensitive information you must verify your authenticity.<br
                     /><br />
                     {#if !newEmailSent}
-                        Click here to send a verification email with a token
+                        Enter the change you want to make, then send yourself a verification code
+                        for it.
                     {:else}
-                        Email Sent! Check your inbox and enter the token below.
+                        Email sent! Check your inbox and enter the code below.
+                        {#if codeExpiresAt}{challengeExpiryText(codeExpiresAt)}{/if}
                     {/if}
                     <div class="flex justify-center">
                         <Button class="mt-4" onclick={sendVerificationEmail} color="blue"
-                            >Send Token</Button
+                            >Send Code</Button
                         >
                     </div>
                 </Alert>
 
-                <Label class="space-y-2">Token</Label>
+                <Label class="space-y-2">Code</Label>
                 <Input
-                    bind:value={token}
+                    bind:value={challenge}
                     oninput={trim}
-                    name="token"
+                    name="challenge"
                     placeholder="abcDeF"
                     required
                 />

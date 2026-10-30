@@ -69,17 +69,17 @@ The operation that establishes a new Password Credential, replacing any existing
 _Avoid_: Password Recovery
 
 **Authentication Challenge**:
-A purpose-bound, single-use proof with a fifteen-minute lifetime. Issuing a replacement invalidates earlier challenges for the same Account and purpose.
+A purpose-bound, single-use proof with a fifteen-minute lifetime, consumed in the same commit as the operation it authorizes. Issuing a replacement invalidates earlier challenges for the same Account and purpose. A challenge never establishes an Authenticated Session.
 _Avoid_: Authentication token, verification token
 
 **Email Verification Challenge**:
 An Authentication Challenge proving control of its exact target Email Address.
 
 **Set Password Challenge**:
-An Authentication Challenge authorizing Set Password for an Incomplete or Active Account without establishing an Authenticated Session. It changes neither Account Status nor email verification.
+An Authentication Challenge, bound to the Email Address it was sent to, authorizing Set Password for an Incomplete or Active Account without establishing an Authenticated Session. It changes neither Account Status nor email verification; the person signs in afterwards through an Authentication Method.
 
 **Sensitive Change Challenge**:
-An Authentication Challenge authorizing its specified sensitive Account operation.
+An Authentication Challenge, bound to the Email Address it was sent to and to the exact requested change (the proposed Email Address and whether a Password Credential is being set), through which an Account without a Password Credential authorizes that change. An Account with a Password Credential proves the change with that password instead.
 
 **Authenticated Session**:
 Ongoing authorization associated with a User Account, recorded server-side under an unguessable Session ID that the session cookie carries. It has a thirty-day absolute lifetime and no sliding extension from ordinary activity, and it ends early through Logout, Logout All, or Set Password. A cookie without a live record authorizes nothing. An Account may have multiple concurrent sessions.

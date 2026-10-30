@@ -3,6 +3,11 @@ import { StoredUser } from '../model/storedUser'
 import { UpdateValidator } from './validator'
 import { TransactionParticipant } from './transaction'
 
+export type PasswordUpdateOptions = {
+    validate?: (existing: StoredUser) => void
+    participant?: TransactionParticipant
+}
+
 export interface UserStore {
     findByUsername(username: string): Promise<User | undefined>
     findByEmail(email: string): Promise<User | undefined>
@@ -13,11 +18,7 @@ export interface UserStore {
     findAllUsernames(): Promise<string[]>
 
     createUser(user: User, password?: string): Promise<User>
-    updatePassword(
-        userId: string,
-        password: string,
-        options?: { participant?: TransactionParticipant }
-    ): Promise<User>
+    updatePassword(userId: string, password: string, options?: PasswordUpdateOptions): Promise<User>
 
     updateUser({
         userId,

@@ -11,7 +11,7 @@ const UserUpdateRequest = Type.Evaluate(
             Type.Object({
                 password: Type.Optional(Type.String()),
                 currentPassword: Type.Optional(Type.String()),
-                token: Type.Optional(Type.String())
+                challenge: Type.Optional(Type.String())
             })
         ],
         { additionalProperties: false }
@@ -29,12 +29,12 @@ export default async function (fastify: FastifyInstance) {
                 throw Error('No user found for create request')
             }
 
-            let { username, email, password, currentPassword, token } = request.body
+            let { username, email, password, currentPassword, challenge } = request.body
             username = username?.trim()
             email = email?.trim()
             password = password?.trim()
             currentPassword = currentPassword?.trim()
-            token = token?.trim()
+            challenge = challenge?.trim()
 
             const updates = {
                 username,
@@ -46,7 +46,7 @@ export default async function (fastify: FastifyInstance) {
                 updates,
                 password,
                 currentPassword,
-                token
+                challenge
             )
             if (password) {
                 await authSession({

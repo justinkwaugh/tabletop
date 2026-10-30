@@ -1,4 +1,10 @@
-import { assertExists, Role, UserStatus, type User } from '@tabletop/common'
+import {
+    assertExists,
+    AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS,
+    Role,
+    UserStatus,
+    type User
+} from '@tabletop/common'
 import type { FastifyInstance } from 'fastify'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -11,9 +17,9 @@ import resendEmailVerification from './resendEmailVerification.js'
 import sendEmailAuthVerification from './sendEmailAuthVerification.js'
 
 describe.each([
-    { url: '/resendEmailVerification', status: UserStatus.Incomplete },
-    { url: '/sendEmailAuthVerification', status: UserStatus.Active }
-])('account email budget for $url', ({ url, status }) => {
+    { url: '/resendEmailVerification', status: UserStatus.Incomplete, payload: undefined },
+    { url: '/sendEmailAuthVerification', status: UserStatus.Active, payload: { password: true } }
+])('account email budget for $url', ({ url, status, payload }) => {
     const servers = new Set<FastifyInstance>()
     let now: number
 
@@ -37,11 +43,13 @@ describe.each([
                 { id, status, roles: [Role.User], externalIds: [] }
             ])
         )
-        const sendEmail = vi.fn(async () => undefined)
+        const sendEmail = vi.fn(async () => ({
+            expiresAt: new Date(now + AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS * 1000)
+        }))
         server.decorate('userService', {
             getUser: async (id: string) => users.get(id),
             sendVerificationEmail: sendEmail,
-            sendEmailAuthVerification: sendEmail
+            sendSensitiveChangeChallenge: sendEmail
         })
         await server.register(authorization)
         await server.register(resendEmailVerification)
@@ -69,7 +77,13 @@ describe.each([
             return cookie
         }
         const request = (cookie: string, address = '198.51.100.1') =>
-            server.inject({ method: 'POST', url, remoteAddress: address, headers: { cookie } })
+            server.inject({
+                method: 'POST',
+                url,
+                payload,
+                remoteAddress: address,
+                headers: { cookie }
+            })
         return { server, signIn, request, sendEmail }
     }
 
@@ -105,7 +119,7 @@ describe.each([
 
     it('refuses an unsigned request before spending an account budget', async () => {
         const { server, sendEmail } = await createServer()
-        const response = await server.inject({ method: 'POST', url })
+        const response = await server.inject({ method: 'POST', url, payload })
         expect(response.statusCode).toBe(401)
         expect(sendEmail).not.toHaveBeenCalled()
     })

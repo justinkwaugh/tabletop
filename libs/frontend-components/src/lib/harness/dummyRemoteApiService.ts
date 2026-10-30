@@ -30,6 +30,7 @@ import type {
     LeagueList,
     LeagueSeasonDetail,
     LeagueState,
+    SensitiveChangeRequest,
     SiteStatsNow,
     SiteStatsReport,
     UtcDayRange
@@ -213,10 +214,6 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('linkDiscord')
     }
 
-    async loginToken(_token: string): Promise<User> {
-        return this.fail('loginToken')
-    }
-
     async logout(): Promise<void> {
         return this.fail('logout')
     }
@@ -252,30 +249,30 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('unlinkExternalAccount')
     }
 
-    async updatePassword({
+    async setPassword({
         password: _password,
-        token: _token
+        challenge: _challenge
     }: {
         password: string
-        token: string
+        challenge: string
     }): Promise<void> {
-        return this.fail('updatePassword')
+        return this.fail('setPassword')
     }
 
-    async sendVerificationEmail(): Promise<void> {
+    async sendVerificationEmail(): Promise<Date> {
         return this.fail('sendVerificationEmail')
     }
 
-    async sendAuthVerificationEmail(): Promise<void> {
-        return this.fail('sendAuthVerificationEmail')
+    async sendSensitiveChangeChallenge(_request: SensitiveChangeRequest): Promise<Date> {
+        return this.fail('sendSensitiveChangeChallenge')
     }
 
-    async sendPasswordResetEmail(_email: string): Promise<void> {
+    async sendPasswordResetEmail(_email: string): Promise<Date> {
         return this.fail('sendPasswordResetEmail')
     }
 
-    async verifyToken(_token: string): Promise<User> {
-        return this.fail('verifyToken')
+    async verifyEmail(_code: string): Promise<User> {
+        return this.fail('verifyEmail')
     }
 
     async hasActiveGames(): Promise<boolean> {

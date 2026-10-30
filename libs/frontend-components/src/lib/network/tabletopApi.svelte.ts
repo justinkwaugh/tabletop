@@ -30,6 +30,7 @@ import {
     CharityTally,
     SiteStatsReport,
     type UtcDayRange,
+    type SensitiveChangeRequest,
     User,
     UserPreferences,
     Visibility,
@@ -75,6 +76,7 @@ import type {
     UndoVotePreviewResponse,
     UsernameSearchResponse,
     UserResponse,
+    ChallengeIssuedResponse,
     DiscordAuthorizationPurpose,
     DiscordAuthorizationStart,
     DiscordAuthorizationStartResponse,
@@ -287,15 +289,6 @@ export class TabletopApi {
         return response.payload.user
     }
 
-    async loginToken(token: string) {
-        const response = await this.wretch
-            .post({ token }, '/auth/token/login')
-            .badRequest(this.handleError)
-            .json<UserResponse>()
-
-        return response.payload.user
-    }
-
     async logout() {
         await this.wretch.get('/auth/logout').json()
     }
@@ -366,41 +359,49 @@ export class TabletopApi {
         return response.payload.user
     }
 
-    async updatePassword({ password, token }: { password: string; token: string }): Promise<void> {
+    // Authorized by the emailed Set Password Challenge alone: no session is held or established
+    async setPassword({
+        password,
+        challenge
+    }: {
+        password: string
+        challenge: string
+    }): Promise<void> {
         await this.wretch
-            .post({ password, token }, '/user/setPassword')
-            .unauthorized(this.on401)
+            .post({ password, challenge }, '/user/setPassword')
             .badRequest(this.handleError)
             .json<void>()
     }
 
-    async sendVerificationEmail(): Promise<void> {
-        await this.wretch
+    async sendVerificationEmail(): Promise<Date> {
+        const response = await this.wretch
             .post(undefined, '/user/resendEmailVerification')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
-            .json<void>()
+            .json<ChallengeIssuedResponse>()
+        return new Date(response.payload.expiresAt)
     }
 
-    async sendAuthVerificationEmail(): Promise<void> {
-        await this.wretch
-            .post(undefined, '/user/sendEmailAuthVerification')
-            .unauthorized(this.on401)
-            .badRequest(this.handleError)
-            .json<void>()
-    }
-
-    async sendPasswordResetEmail(email: string): Promise<void> {
-        await this.wretch
-            .post({ email }, '/user/email/sendPasswordReset')
-            .unauthorized(this.on401)
-            .badRequest(this.handleError)
-            .json<void>()
-    }
-
-    async verifyToken(token: string): Promise<User> {
+    async sendSensitiveChangeChallenge(request: SensitiveChangeRequest): Promise<Date> {
         const response = await this.wretch
-            .get(`/user/email/verify/${token}`)
+            .post(request, '/user/sendEmailAuthVerification')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<ChallengeIssuedResponse>()
+        return new Date(response.payload.expiresAt)
+    }
+
+    async sendPasswordResetEmail(email: string): Promise<Date> {
+        const response = await this.wretch
+            .post({ email }, '/user/email/sendPasswordReset')
+            .badRequest(this.handleError)
+            .json<ChallengeIssuedResponse>()
+        return new Date(response.payload.expiresAt)
+    }
+
+    async verifyEmail(code: string): Promise<User> {
+        const response = await this.wretch
+            .post({ code }, '/user/email/verify')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()

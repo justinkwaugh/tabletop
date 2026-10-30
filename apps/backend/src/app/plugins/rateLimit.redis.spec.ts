@@ -9,6 +9,8 @@ import { trustedProxyChain } from '../../runtime/clientAddress.js'
 import loginRoute from '../routes/api/auth/login.js'
 import RateLimitPlugin, { browsersPerHostingPeer } from './rateLimit.js'
 
+vi.hoisted(() => vi.stubEnv('GCLOUD_PROJECT', 'demo-tabletop'))
+
 const CLOUD_RUN_INGRESS = '169.254.169.126'
 const HOSTING_PROXY = '66.249.80.9'
 const DIRECT_CALLER = '198.51.100.7'

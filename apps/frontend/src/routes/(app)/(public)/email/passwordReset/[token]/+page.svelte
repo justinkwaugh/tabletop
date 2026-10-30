@@ -14,6 +14,7 @@
     let password = $state('')
     let submitting = $state(false)
     let resetFailed = $state(false)
+    let linkRejected = $state(false)
     let resetSuccess = $state(false)
     let passwordError = $state(false)
 
@@ -25,11 +26,17 @@
         submitting = true
         resetFailed = false
         try {
-            await api.updatePassword({ password: password.trim(), token: data.token })
+            await api.setPassword({ password: password.trim(), challenge: data.challenge })
             password = ''
+            // Set Password ends every session of the Account, including one this browser held
+            authorizationService.clearSessionUser()
             resetSuccess = true
-        } catch {
-            resetFailed = true
+        } catch (error) {
+            if (error instanceof Error && error.name === 'InvalidChallengeError') {
+                linkRejected = true
+            } else {
+                resetFailed = true
+            }
         } finally {
             submitting = false
         }
@@ -52,17 +59,18 @@
     variant="form"
     oncancel={close}
 >
-    {#if !data.verified}
+    {#if linkRejected}
         <Alert color="red" class="mb-4" role="alert">
-            This reset link couldn’t be verified. Try opening it again, or request a new one below.
+            This reset link has expired, was replaced by a newer one, or has already been used.
+            Request a new one below.
         </Alert>
         <ForgotPasswordForm onback={() => goto('/login/username')} />
     {:else if resetSuccess}
         <p role="status" tabindex="-1" {@attach (node) => node.focus()}>
-            Your password has been updated. You’re ready to play.
+            Your password has been updated. Sign in with it to continue.
         </p>
         <div class="flex justify-end mt-8">
-            <Button color="blue" onclick={() => goto('/dashboard')}>Continue to Dashboard</Button>
+            <Button color="blue" onclick={() => goto('/login/username')}>Sign in</Button>
         </div>
     {:else}
         {#if resetFailed}

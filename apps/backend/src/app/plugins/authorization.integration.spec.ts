@@ -2,11 +2,12 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { assertExists, Role, sessionGenerationOf, UserStatus, type User } from '@tabletop/common'
 import {
-    FirestoreTokenStore,
-    FirestoreUserStore,
-    LocalTaskService,
     TokenService,
     TokenType,
+    FirestoreTokenStore,
+    FirestoreUserStore,
+    formatSetPasswordChallenge,
+    LocalTaskService,
     UserService
 } from '@tabletop/backend-services'
 import { isolatedFirestore } from '../../../../../libs/backend-services/src/persistence/firestore/tests/isolatedFirestore.js'
@@ -16,8 +17,9 @@ vi.hoisted(() => {
     vi.stubEnv('REDIS_HOST', process.env.CACHE_TEST_REDIS_HOST ?? '')
 })
 import authorization from './authorization.js'
-import tokenLogin from '../routes/api/auth/token/login.js'
+import setPassword from '../routes/api/user/setPassword.js'
 import { authSession } from '../lib/session.js'
+import { apiErrorShape } from '../tests/accountFixture.js'
 import { sessionCookieHeader, sessionServer } from '../tests/sessionFixture.js'
 import { spanCount, traceRequests, type RequestTrace } from '../tests/requestTraces.js'
 import { connectedRedisCache } from '../tests/redisCache.js'
@@ -28,7 +30,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
     () => {
         const run = `cached-auth-${Date.now()}`
         const firestore = isolatedFirestore()
-        const tokenService = new TokenService(new FirestoreTokenStore(firestore))
+        const challenges = new TokenService(new FirestoreTokenStore(firestore))
         const taskService = new LocalTaskService('')
         const servers = new Set<FastifyInstance>()
         let redis: Awaited<ReturnType<typeof connectedRedisCache>>
@@ -41,7 +43,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             redis = await connectedRedisCache()
             client = redis.client
             store = new FirestoreUserStore(redis.cache, firestore)
-            userService = new UserService(store, tokenService, taskService)
+            userService = new UserService(store, challenges, taskService)
         })
         afterEach(async () => {
             await Promise.all([...servers].map((server) => server.close()))
@@ -78,9 +80,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const server = await sessionServer()
             const lastTrace = traceRequests(server)
             server.decorate('userService', userService)
-            server.decorate('tokenService', tokenService)
+            apiErrorShape(server)
             await server.register(authorization)
-            await server.register(tokenLogin, { prefix: '/auth/token' })
+            await server.register(setPassword, { prefix: '/user' })
             server.post<{ Body: { userId: string } }>('/session', async (request) => {
                 const user = await userService.getUser(request.body.userId)
                 assertExists(user, 'Account to log in')
@@ -129,12 +131,26 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             return (url: string) => server.inject({ url, headers: { cookie } })
         }
 
-        async function challengeLogin(server: FastifyInstance, account: User) {
-            const token = await tokenService.createToken({
-                type: TokenType.Authentication,
-                data: { userId: account.id, email: account.email }
+        async function issueSetPasswordChallenge(account: User) {
+            assertExists(account.email, 'Account email')
+            const issued = await challenges.issueChallenge({
+                type: TokenType.PasswordReset,
+                userId: account.id,
+                email: account.email
             })
-            return server.inject({ method: 'POST', url: '/auth/token/login', payload: { token } })
+            return formatSetPasswordChallenge({ userId: account.id, secret: issued.secret })
+        }
+
+        function completeSetPassword(server: FastifyInstance, challenge: string) {
+            return server.inject({
+                method: 'POST',
+                url: '/user/setPassword',
+                payload: { password: 'replacement-password-value', challenge }
+            })
+        }
+
+        function storedRecord(id: string) {
+            return firestore.collection('users').doc(id)
         }
 
         async function cachedAccount(id: string): Promise<User> {
@@ -176,7 +192,6 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect((await asActive('/active')).statusCode).toBe(200)
             expect((await asActive('/incomplete')).statusCode).toBe(401)
             expect((await asActive('/admin')).statusCode).toBe(403)
-            expect((await challengeLogin(server, active)).statusCode).toBe(200)
 
             const incomplete = await createAccount(UserStatus.Incomplete)
             const asIncomplete = await login(server, incomplete.id)
@@ -206,15 +221,24 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expectCacheHit(lastTrace())
         })
 
-        it('refuses every earlier session once a password change advances the Session Generation', async () => {
+        it('refuses every earlier session once a profile password change advances the Session Generation', async () => {
             const { server, lastTrace } = await createServer()
-            const account = await createAccount(UserStatus.Active)
+            const draft = newAccount(UserStatus.Active, [Role.User])
+            const account = await store.createUser(
+                { ...draft, username: `Person${draft.id}` },
+                'original-password-value'
+            )
             const get = await login(server, account.id)
             expect((await cachedAccount(account.id)).id).toBe(account.id)
             expect((await get('/any')).statusCode).toBe(200)
             expectCacheHit(lastTrace())
 
-            await userService.updatePassword(account.id, 'replacement-password-value')
+            await userService.updateUser(
+                account.id,
+                {},
+                'replacement-password-value',
+                'original-password-value'
+            )
 
             await expectNoCachedAccount(account.id)
             expect((await get('/any')).statusCode).toBe(401)
@@ -226,6 +250,31 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const renewed = await login(server, account.id)
             expect((await renewed('/any')).statusCode).toBe(200)
             expectCacheHit(lastTrace())
+        })
+
+        it('ends every earlier session in the commit that completes a Set Password challenge', async () => {
+            const { server, lastTrace } = await createServer()
+            const account = await createAccount(UserStatus.Active)
+            const get = await login(server, account.id)
+            expect((await cachedAccount(account.id)).id).toBe(account.id)
+            expect((await get('/any')).statusCode).toBe(200)
+            expectCacheHit(lastTrace())
+            const challenge = await issueSetPasswordChallenge(account)
+
+            const completed = await completeSetPassword(server, challenge)
+            expect(completed.statusCode).toBe(200)
+            expect(sessionCookieHeader(completed)).toBeUndefined()
+
+            await expectNoCachedAccount(account.id)
+            expect((await get('/any')).statusCode).toBe(401)
+            expectCacheMiss(lastTrace())
+            const stored = (await storedRecord(account.id).get()).data()
+            assertExists(stored, 'stored Account')
+            expect(stored.passwordHash).toEqual(expect.any(String))
+            expect(sessionGenerationOf(stored)).toBe(sessionGenerationOf(account) + 1)
+            expect((await completeSetPassword(server, challenge)).statusCode).toBe(400)
+            const renewed = await login(server, account.id)
+            expect((await renewed('/any')).statusCode).toBe(200)
         })
 
         it('applies a role change written through the store on the next request', async () => {
