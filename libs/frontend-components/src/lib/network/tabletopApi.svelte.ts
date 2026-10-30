@@ -711,6 +711,12 @@ export class TabletopApi {
             .post(report, '/game/reportBug')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
+            .error(429, () => {
+                throw new APIError({
+                    name: 'RateLimited',
+                    message: 'Too many bug reports were sent recently'
+                })
+            })
             .json<void>()
     }
 
