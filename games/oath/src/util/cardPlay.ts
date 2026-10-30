@@ -35,6 +35,7 @@ import { isFaceupPlay, powerOutcomeOf } from './powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
 import { modifierContext, reasonModifierInUse, type ActiveModifier } from './modifiers.js'
 import {
+    adviserExcessAfterPlay,
     advisersTowardLimit,
     arrivesIgnoringAdviserLimit,
     cannotPlayVisionsFaceup,
@@ -693,6 +694,52 @@ export function adviserDiscardable(
     return reasonAdviserNotDiscardable(state, playerId, adviserId) === undefined
 }
 
+/**
+ * R-5.1.4.II, R-7.6.4 — the discards an adviser play may make, in row order: as many advisers as it needs, each one
+ * that may go, and from revision 31 together leaving the player within their limit once the card is played. With
+ * room, one discard of nothing.
+ */
+export function adviserPlayDiscardSets(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    options: Pick<CardPlayOptions, 'faceUp' | 'fromAdvisers'>
+): string[][] {
+    const needed = adviserDiscardsNeeded(state, playerId, cardId, options)
+    const discardable = state
+        .getPlayerState(playerId)
+        .knownAdviserIds()
+        .filter((id) => id !== cardId && adviserDiscardable(state, playerId, id))
+    return subsetsOf(discardable, needed).filter(
+        (discards) =>
+            reasonAdviserPlayOverLimit(state, playerId, cardId, options, discards) === undefined
+    )
+}
+
+function subsetsOf(ids: readonly string[], size: number): string[][] {
+    if (size === 0) return [[]]
+    return ids.flatMap((id, index) =>
+        subsetsOf(ids.slice(index + 1), size - 1).map((rest) => [id, ...rest])
+    )
+}
+
+/**
+ * R-5.1.4.II — from revision 31 an adviser play's discards must leave the player within their limit once the card
+ * is played, judged as a swap's or an exchange's discard is (R-7.6.4: Family Wagon's Nomads count again once it
+ * goes). Before it (R-X.4), only how many went was judged.
+ */
+function reasonAdviserPlayOverLimit(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    options: Pick<CardPlayOptions, 'faceUp' | 'fromAdvisers'>,
+    discards: readonly string[]
+): string | undefined {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes26)) return undefined
+    const left = adviserExcessAfterPlay(state, playerId, cardId, options, discards)
+    return left > 0 ? `still over the adviser limit by ${left} after the play` : undefined
+}
+
 function holdsPeoplesFavor(state: HydratedOathGameState, playerId: string): boolean {
     return bannerHolder(state, Banner.PeoplesFavor) === playerId
 }
@@ -875,7 +922,7 @@ export function reasonCannotPlaceCard(
                 const notDiscardable = reasonAdviserNotDiscardable(state, playerId, discardedId)
                 if (notDiscardable) return notDiscardable
             }
-            return undefined
+            return reasonAdviserPlayOverLimit(state, playerId, cardId, options, discards)
         }
 
         case SearchPlay.RevealedVision: {

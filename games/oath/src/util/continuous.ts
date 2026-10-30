@@ -168,6 +168,35 @@ export function adviserExcess(
     )
 }
 
+/**
+ * R-5.1.4.II, R-7.6.4 — how many advisers a player holds above their limit once `discarded` are gone and `cardId`
+ * is played as an adviser, faceup or facedown; `fromAdvisers` when it was one of their facedown advisers (R-6.1).
+ * The card played is just received, so Pied Piper played faceup is not counted on its arrival.
+ */
+export function adviserExcessAfterPlay(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    options: { faceUp?: boolean; fromAdvisers?: boolean },
+    discarded: readonly string[]
+): number {
+    const player = state.getPlayerState(playerId)
+    const faceupLeaving = discarded.filter((id) => player.isFaceupAdviser(id))
+    const facedownLeaving = discarded.length - faceupLeaving.length + (options.fromAdvisers ? 1 : 0)
+    const faceup = player.faceupAdviserIds().filter((id) => !faceupLeaving.includes(id))
+    const facedown = player.advisers.filter((row) => !row.faceUp).length - facedownLeaving
+    return holdingExcess(
+        state,
+        {
+            faceup: options.faceUp ? [...faceup, cardId] : faceup,
+            facedown: options.faceUp ? facedown : facedown + 1,
+            relicIds: player.relicIds,
+            baseLimit: player.adviserLimit
+        },
+        [cardId]
+    )
+}
+
 /** R-7.6.4 — a player's advisers as the public rows show them, and the relics held beside them. */
 export interface AdviserHolding {
     faceup: readonly string[]
