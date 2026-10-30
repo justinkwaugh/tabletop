@@ -120,7 +120,11 @@ describe('the adviser-limit picker of a Search play leaves out a modifier in use
         const { session, draft, sent } = await searchDraftOn(searched(FIXED, WARDEN))
         draft.keep(LONGBOWS)
         const faceup = draft.placements.find((o) => o.play === SearchPlay.Adviser && o.faceUp)
-        expect(faceup?.room).toEqual({ needed: 1, discardable: [WOLVES, RANGERS] })
+        expect(faceup?.room).toEqual({
+            needed: 1,
+            discardable: [WOLVES, RANGERS],
+            discards: [[WOLVES], [RANGERS]]
+        })
         await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
         await draft.chooseDisplaced(LAND_WARDEN)
         expect(sent).not.toHaveBeenCalled()
@@ -138,7 +142,11 @@ describe('the adviser-limit picker of a Search play leaves out a modifier in use
         const { draft } = await searchDraftOn(searched(BEFORE, WARDEN))
         draft.keep(LONGBOWS)
         const faceup = draft.placements.find((o) => o.play === SearchPlay.Adviser && o.faceUp)
-        expect(faceup?.room).toEqual({ needed: 1, discardable: [LAND_WARDEN, WOLVES, RANGERS] })
+        expect(faceup?.room).toEqual({
+            needed: 1,
+            discardable: [LAND_WARDEN, WOLVES, RANGERS],
+            discards: [[LAND_WARDEN], [WOLVES], [RANGERS]]
+        })
     })
 })
 

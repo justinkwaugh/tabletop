@@ -20,7 +20,7 @@ import {
     type Region,
     type SitePlayGain
 } from '@tabletop/oath'
-import { adviserRoom, type AdviserRoom } from './adviserDiscards.js'
+import { adviserRoom, firstDiscard, NO_ROOM, type AdviserRoom } from './adviserDiscards.js'
 import {
     FIRST_BRANCH,
     emptyPicks,
@@ -340,14 +340,14 @@ export function adviserPlacements(
         const room =
             option.play === SearchPlay.Adviser
                 ? adviserRoom(state, playerId, cardId, { faceUp: true, fromAdvisers: true })
-                : { needed: 0, discardable: [] }
+                : NO_ROOM
         const cards = facedownPlayCards(state, playerId, cardId, option.play)
         const carried = rowsAtStart(cards)
         // R-7.3.3 — the When Played choices, and any discards, are asked after the placement.
         const refused = HydratedPlayFacedownAdviser.reasonCannotPlace(state, playerId, {
             cardId,
             play: option.play,
-            discardedAdviserCardIds: room.discardable.slice(0, room.needed),
+            discardedAdviserCardIds: firstDiscard(room),
             modifiers: carried
         })
         const openElsewhere =

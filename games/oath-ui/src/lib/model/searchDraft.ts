@@ -29,7 +29,14 @@ import {
     type PowerChoicePicks
 } from './powerChoices.js'
 import { whenPlayedBanks, whenPlayedChoices } from './whenPlayed.js'
-import { adviserRoom, toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
+import {
+    adviserRoom,
+    firstDiscard,
+    NO_ROOM,
+    offeredDiscards,
+    toggledDiscard,
+    type AdviserRoom
+} from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
     conspiracyNoTake,
@@ -58,8 +65,6 @@ export type SecondPlay = SearchSecondPlay & {
     /** R-5.1.4.II — at the adviser limit, how many must go and which may, as for the kept card. */
     room: AdviserRoom
 }
-
-const NO_ROOM: AdviserRoom = { needed: 0, discardable: [] }
 
 /** Chosen beside the placement: another site, a Great Slum discard, a Land Warden second play. */
 type SearchExtras = { toSiteId?: string; discardFirstCardId?: string; secondKey?: string }
@@ -235,11 +240,13 @@ export class SearchDraft implements PanelDraft {
     }
 
     get displaceable(): string[] {
-        return this.room.discardable
+        return offeredDiscards(this.room, this.displaced)
     }
 
     get displaced(): string[] {
-        return (this.flow.value('displaced') ?? []).filter((id) => this.displaceable.includes(id))
+        return (this.flow.value('displaced') ?? []).filter((id) =>
+            this.room.discardable.includes(id)
+        )
     }
 
     get needsDisplaced(): boolean {
@@ -463,12 +470,12 @@ export class SearchDraft implements PanelDraft {
     }
 
     get secondDisplaceable(): string[] {
-        return this.secondRoom.discardable
+        return offeredDiscards(this.secondRoom, this.secondDisplaced)
     }
 
     get secondDisplaced(): string[] {
         return (this.flow.value('secondDisplaced') ?? []).filter((id) =>
-            this.secondDisplaceable.includes(id)
+            this.secondRoom.discardable.includes(id)
         )
     }
 
@@ -721,7 +728,7 @@ export class SearchDraft implements PanelDraft {
                 : NO_ROOM
         const refused = reasonCannotPlaceCard(state, playerId, cardId, option.play, {
             faceUp: option.faceUp,
-            discardedAdviserCardIds: room.discardable.slice(0, room.needed)
+            discardedAdviserCardIds: firstDiscard(room)
         })
         const openElsewhere =
             option.play === SearchPlay.Site &&
@@ -762,9 +769,7 @@ export class SearchDraft implements PanelDraft {
             cardId: option.cardId,
             play: option.play,
             faceUp: option.faceUp,
-            ...(room.needed > 0
-                ? { discardedAdviserCardIds: room.discardable.slice(0, room.needed) }
-                : {})
+            ...(room.needed > 0 ? { discardedAdviserCardIds: firstDiscard(room) } : {})
         }
         // R-5.1.4.I — the kept card may go to another site, which leaves your site's room to the second card.
         const keptTo = first.play === SearchPlay.Site ? this.toSite : undefined

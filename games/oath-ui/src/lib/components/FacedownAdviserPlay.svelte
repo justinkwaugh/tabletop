@@ -193,7 +193,7 @@
                         Over the adviser limit: discard {gameSession.adviserPlayRoom.needed}.
                     </p>
                     <CardChoiceRow
-                        choices={cardChoices(gameSession.adviserPlayRoom.discardable)}
+                        choices={cardChoices(gameSession.adviserPlayDiscardable)}
                         picked={gameSession.adviserPlayDiscards}
                         onpick={(adviserId) => gameSession.toggleAdviserPlayDiscard(adviserId)}
                         {busy}

@@ -116,7 +116,11 @@ describe("from revision 31, Land Warden's second card as an adviser at the advis
             const { draft, sent } = await searchDraftOn(searched(FIXED))
             draft.keep(INN)
             draft.setSecondPlay(keyOf(faceUp))
-            expect(draft.second?.room).toEqual({ needed: 1, discardable: [WOLVES, RANGERS] })
+            expect(draft.second?.room).toEqual({
+                needed: 1,
+                discardable: [WOLVES, RANGERS],
+                discards: [[WOLVES], [RANGERS]]
+            })
             // The kept card's own picker is not asked: the Inn goes to the site.
             await draft.choosePlacement({ play: SearchPlay.Site })
             expect(draft.needsDisplaced).toBe(false)
@@ -171,7 +175,7 @@ describe("from revision 31, Land Warden's second card as an adviser at the advis
         const { draft, sent } = await searchDraftOn(searched(FIXED))
         draft.keep(INN)
         draft.setSecondPlay(`${LONGBOWS}|${SearchPlay.Site}|`)
-        expect(draft.second?.room).toEqual({ needed: 0, discardable: [] })
+        expect(draft.second?.room).toEqual({ needed: 0, discardable: [], discards: [] })
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(draft.needsSecondDisplaced).toBe(false)
         expect(sent).toHaveBeenCalledTimes(1)

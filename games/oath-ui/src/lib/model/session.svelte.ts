@@ -207,7 +207,7 @@ import {
     type PowerChoicePicks
 } from './powerChoices.js'
 import { whenPlayedBanks, whenPlayedChoices } from './whenPlayed.js'
-import { toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
+import { NO_ROOM, offeredDiscards, toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
     conspiracyNoTake,
@@ -897,7 +897,12 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
 
     /** R-6.1, R-7.6.4 — the advisers a limiter turned faceup must discard. */
     get adviserPlayRoom(): AdviserRoom {
-        return this.stagedAdviserPlacement?.room ?? { needed: 0, discardable: [] }
+        return this.stagedAdviserPlacement?.room ?? NO_ROOM
+    }
+
+    /** The advisers offered to discard for the staged play, as the picks so far leave them. */
+    get adviserPlayDiscardable(): string[] {
+        return offeredDiscards(this.adviserPlayRoom, this.adviserPlayDiscards)
     }
 
     get adviserPlayDiscards(): string[] {

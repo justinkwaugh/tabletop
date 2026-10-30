@@ -121,7 +121,11 @@ describe('a Search play at the adviser limit (R-5.1.4.II)', () => {
         draft.keep(TENTS)
         const faceup = draft.placements.find((o) => o.play === SearchPlay.Adviser && o.faceUp)
         expect(faceup).toBeDefined()
-        expect(faceup?.room).toEqual({ needed: 1, discardable: HELD })
+        expect(faceup?.room).toEqual({
+            needed: 1,
+            discardable: HELD,
+            discards: HELD.map((id) => [id])
+        })
 
         await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
         expect(draft.needsDisplaced).toBe(true)
