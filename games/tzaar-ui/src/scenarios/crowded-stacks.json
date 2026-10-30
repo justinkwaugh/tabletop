@@ -1,0 +1,765 @@
+{
+    "game": {
+        "id": "scenario-crowded-stacks",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "tzaar",
+        "deleted": false,
+        "name": "Crowded stacks",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Alice",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Bob",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "version": "Fixed",
+            "whitePlayer": "Random"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 1,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-10-30T04:43:18.883Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-10-30T04:43:18.883Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "A2TebfwO62Dnw6jYIszAb",
+        "gameId": "scenario-crowded-stacks",
+        "seed": 1,
+        "prng": {
+            "seed": 1,
+            "invocations": 1
+        },
+        "protectedPrng": {
+            "seed": 1493616109,
+            "invocations": 0
+        },
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "white"
+            },
+            {
+                "playerId": "player-2",
+                "color": "black"
+            }
+        ],
+        "machineState": "Capturing",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            }
+        },
+        "version": "Fixed",
+        "board": {
+            "spaces": [
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "stack": [
+                        {
+                            "id": 0,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 1,
+                            "playerId": "player-1",
+                            "kind": "tzaar"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 2
+                    },
+                    "stack": [
+                        {
+                            "id": 2,
+                            "playerId": "player-2",
+                            "kind": "tzarra"
+                        },
+                        {
+                            "id": 3,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 2
+                    },
+                    "stack": [
+                        {
+                            "id": 4,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 5,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 6,
+                            "playerId": "player-2",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 2
+                    },
+                    "stack": [
+                        {
+                            "id": 7,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 8,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 9,
+                            "playerId": "player-1",
+                            "kind": "tzaar"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 1
+                    },
+                    "stack": [
+                        {
+                            "id": 10,
+                            "playerId": "player-2",
+                            "kind": "tzarra"
+                        },
+                        {
+                            "id": 11,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 3
+                    },
+                    "stack": [
+                        {
+                            "id": 12,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 13,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 14,
+                            "playerId": "player-2",
+                            "kind": "tzaar"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 3
+                    },
+                    "stack": [
+                        {
+                            "id": 15,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 16,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 17,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 3
+                    },
+                    "stack": [
+                        {
+                            "id": 18,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 19,
+                            "playerId": "player-2",
+                            "kind": "tzaar"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 3
+                    },
+                    "stack": [
+                        {
+                            "id": 20,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 21,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 22,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 23,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 2
+                    },
+                    "stack": [
+                        {
+                            "id": 24,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 25,
+                            "playerId": "player-2",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 1
+                    },
+                    "stack": [
+                        {
+                            "id": 26,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 27,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -4
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 4,
+                        "r": -4
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 4,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 4,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 4,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 4,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 4
+                    },
+                    "stack": [
+                        {
+                            "id": 28,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 29,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 4
+                    },
+                    "stack": [
+                        {
+                            "id": 30,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 31,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 32,
+                            "playerId": "player-2",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 4
+                    },
+                    "stack": [
+                        {
+                            "id": 33,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 34,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 4
+                    },
+                    "stack": [
+                        {
+                            "id": 35,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 36,
+                            "playerId": "player-2",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -4,
+                        "r": 4
+                    },
+                    "stack": [
+                        {
+                            "id": 37,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 38,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 39,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -4,
+                        "r": 3
+                    },
+                    "stack": [
+                        {
+                            "id": 40,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 41,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 42,
+                            "playerId": "player-2",
+                            "kind": "tzaar"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -4,
+                        "r": 2
+                    },
+                    "stack": [
+                        {
+                            "id": 43,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 44,
+                            "playerId": "player-1",
+                            "kind": "tzaar"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -4,
+                        "r": 1
+                    },
+                    "stack": [
+                        {
+                            "id": 45,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 46,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 47,
+                            "playerId": "player-2",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -4,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -4
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -4
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -4
+                    },
+                    "stack": []
+                }
+            ]
+        }
+    },
+    "actions": []
+}
