@@ -310,18 +310,25 @@ test.describe('an upright phone at 375 by 812: pinning never changes the height 
         expect(first.scrollHeight).toBe(first.clientHeight)
     })
 
-    test('the Tribunal exchange with a long promise: pinned, its row and panel are as tall as unpinned', async ({
-        page
-    }) => {
-        await openScene(page, TALL[0])
-        await expect(answerRow(page)).toHaveCSS('position', 'sticky')
-        const heights = await answerRow(page).evaluate((row) => {
+    /**
+     * The answer row's height with its margins, the panel's natural height as FitBox reads it, and
+     * the gap from the line above the row to its buttons: as drawn, with the box's `fit--more` on,
+     * with it off, and as drawn again once it is put back.
+     */
+    const heightsPinnedAndUnpinned = (page: Page) =>
+        answerRow(page).evaluate((row) => {
             const box = row.closest('.fit')
             const inner = box?.querySelector('.fit__inner')
-            if (!box || !(inner instanceof HTMLElement) || !(row instanceof HTMLElement)) {
+            const button = row.querySelector('button')
+            if (
+                !box ||
+                !(inner instanceof HTMLElement) ||
+                !(row instanceof HTMLElement) ||
+                !button
+            ) {
                 throw new Error('no fitted panel')
             }
-            // The row's height with its margins, and the panel's natural height as FitBox reads it.
+            const above = row.previousElementSibling
             const read = () => {
                 const style = getComputedStyle(row)
                 return {
@@ -329,19 +336,54 @@ test.describe('an upright phone at 375 by 812: pinning never changes the height 
                         row.offsetHeight +
                         parseFloat(style.marginTop) +
                         parseFloat(style.marginBottom),
-                    content: inner.scrollHeight
+                    content: inner.scrollHeight,
+                    gap: above
+                        ? button.getBoundingClientRect().top - above.getBoundingClientRect().bottom
+                        : undefined,
+                    position: style.position
                 }
             }
+            const more = box.classList.contains('fit--more')
+            const drawn = read()
+            box.classList.add('fit--more')
             const pinned = read()
             box.classList.remove('fit--more')
-            const unpinned = { ...read(), position: getComputedStyle(row).position }
-            box.classList.add('fit--more')
-            return { pinned, unpinned, again: read() }
+            const unpinned = read()
+            box.classList.toggle('fit--more', more)
+            return { drawn, pinned, unpinned, again: read() }
         })
+
+    test('the Tribunal exchange with a long promise: pinned, its row and panel are as tall as unpinned', async ({
+        page
+    }) => {
+        await openScene(page, TALL[0])
+        await expect(answerRow(page)).toHaveCSS('position', 'sticky')
+        const heights = await heightsPinnedAndUnpinned(page)
+        expect(heights.pinned.position).toBe('sticky')
         expect(heights.unpinned.position).toBe('static')
         expect(heights.pinned.row).toBe(heights.unpinned.row)
         expect(heights.pinned.content).toBe(heights.unpinned.content)
-        expect(heights.again).toEqual(heights.pinned)
+        expect(heights.again).toEqual(heights.drawn)
+    })
+
+    test('the Chronicle’s Oath with one picked: pinned, its row and panel are as tall as unpinned, 8 px under the words', async ({
+        page
+    }) => {
+        await openScene(page, { name: 'the Chronicle’s Oath', table: 'chronicleVow' })
+        await panel(page)
+            .getByRole('button', { name: /^Oath of / })
+            .first()
+            .click()
+        await expect(answerRow(page).getByRole('button', { name: 'Confirm' })).toBeVisible()
+        await settled(page)
+        const heights = await heightsPinnedAndUnpinned(page)
+        expect(heights.pinned.position).toBe('sticky')
+        expect(heights.unpinned.position).toBe('static')
+        expect(heights.pinned.row).toBe(heights.unpinned.row)
+        expect(heights.pinned.content).toBe(heights.unpinned.content)
+        expect(heights.unpinned.gap).toBe(8)
+        expect(heights.pinned.gap).toBe(8)
+        expect(heights.again).toEqual(heights.drawn)
     })
 })
 

@@ -30,9 +30,10 @@
         </button>
     {/each}
 </div>
-<p class="text-sm">Choose the Oath.</p>
+<!-- The gap above the answer row is the line's, since a pinned row sets its own margins (FitBox). -->
+<p class="text-sm" class:mb-2={picked !== undefined}>Choose the Oath.</p>
 {#if picked !== undefined}
-    <div class="mt-2 flex flex-wrap gap-2" data-answer-row>
+    <div class="flex flex-wrap gap-2" data-answer-row>
         <button
             type="button"
             class="shrink-0 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
