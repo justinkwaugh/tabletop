@@ -31,7 +31,7 @@ export class SeededPlayer {
     nextAction(game: Game, state: PromontoryPointGameState): GameAction {
         const [playerId] = state.activePlayerIds
         assertExists(playerId, 'A seat is active while the game goes on')
-        const type = this.pick(engine.getValidActionTypesForPlayer(game, state, playerId))
+        const type = this.chooseType(engine.getValidActionTypesForPlayer(game, state, playerId))
         const hydrated = Definition.runtime.hydrator.hydrateState(structuredClone(state))
         switch (type) {
             case ActionType.BuyShare:
@@ -55,7 +55,10 @@ export class SeededPlayer {
                     )
                 })
             case ActionType.PlaceTrack: {
-                const [railroadId, spaceId] = this.pick(this.placements(hydrated, playerId))
+                const [railroadId, spaceId] = this.choosePlacement(
+                    hydrated,
+                    this.placements(hydrated, playerId)
+                )
                 return action(PlaceTrack, state, { playerId, railroadId, spaceId })
             }
             case ActionType.ScrapTrack:
@@ -78,12 +81,28 @@ export class SeededPlayer {
                 return action(EndTurn, state, {
                     playerId,
                     returnKeptPiece:
-                        fourPieceVariant && hasLeftover ? this.prng.random() < 0.5 : undefined
+                        fourPieceVariant && hasLeftover ? this.chooseReturnKeptPiece() : undefined
                 })
             }
             default:
                 throw new Error(`No seeded choice for ${type}`)
         }
+    }
+
+    protected chooseType(types: string[]): string {
+        return this.pick(types)
+    }
+
+    protected choosePlacement(
+        state: HydratedPromontoryPointGameState,
+        placements: [RailroadId, SpaceId][]
+    ): [RailroadId, SpaceId] {
+        return this.pick(placements)
+    }
+
+    // R-6.3: in the variant, a leftover piece is kept or returned to the bag.
+    protected chooseReturnKeptPiece(): boolean {
+        return this.prng.random() < 0.5
     }
 
     private placements(
@@ -116,7 +135,7 @@ export class SeededPlayer {
         return sales
     }
 
-    private pick<Choice>(choices: readonly Choice[]): Choice {
+    protected pick<Choice>(choices: readonly Choice[]): Choice {
         const choice = choices[this.prng.randInt(choices.length)]
         assertExists(choice, 'The seat has a legal choice')
         return choice
