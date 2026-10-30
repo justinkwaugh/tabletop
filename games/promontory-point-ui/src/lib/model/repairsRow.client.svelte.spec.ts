@@ -228,6 +228,7 @@ describe('Repairs panel (R-4.3, R-4.3-H1 to H3)', () => {
             ['Central Pacific', 'you hold 2', 'price $5 → $2 each', 'Sell one +$2', false],
             ['Southern Pacific', 'you hold 5', 'price $6 → $3 each', 'Sell one +$3', false]
         ])
+        expect(panel.entries.map((entry) => entry.short)).toEqual(['CP ×2', 'SP ×5'])
         expect(panel.billNote).toContain('Selling SP does not lower the bill')
         expect(panel.runningLine).toBe('Have $7 of $10 · short $3')
         expect(panel.send).toEqual({ label: 'Pay $10', ready: false })

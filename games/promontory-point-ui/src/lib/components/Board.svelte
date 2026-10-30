@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { BOARD_DRAWN_SCALE as DRAWN_SCALE } from '$lib/model/boardFraming.js'
     import { MAP_SIZE } from '$lib/utils/boardGeometry.js'
     import ChipLayer from './board/ChipLayer.svelte'
     import HitTargetLayer from './board/HitTargetLayer.svelte'
@@ -10,9 +11,6 @@
     import ThisTurnLayer from './board/ThisTurnLayer.svelte'
     import TownTileLayer from './board/TownTileLayer.svelte'
     import TrackPieceLayer from './board/TrackPieceLayer.svelte'
-
-    // Drawn at half the map's pixels; the scaling wrapper zooms up to them.
-    const DRAWN_SCALE = 0.5
 </script>
 
 <svg

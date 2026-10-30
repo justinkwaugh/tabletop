@@ -30,8 +30,9 @@
                 <tr>
                     <th>Seat</th>
                     <th>Money</th>
+                    <!-- Contract, "Phone layout": four columns; the open seat breaks the shares down. -->
                     {#each score.columns as column (column.railroadId)}
-                        <th>{column.label}</th>
+                        <th class="max-sm:hidden">{column.label}</th>
                     {/each}
                     <th>Shares</th>
                     <th>Total</th>
@@ -49,7 +50,7 @@
                         </td>
                         <td>${row.money}</td>
                         {#each row.holdings as holding (holding.railroadId)}
-                            <td>{holding.text}</td>
+                            <td class="max-sm:hidden">{holding.text}</td>
                         {/each}
                         <td>${row.shareValue}</td>
                         <td class="total">${row.total}</td>
@@ -58,6 +59,9 @@
             </tbody>
         </table>
     </div>
+    <p class="mt-1 text-xs text-pp-muted sm:hidden">
+        Press a seat below for its shares at the final prices.
+    </p>
 </div>
 
 <style>
@@ -98,13 +102,32 @@
         font-weight: 700;
     }
 
+    @media (width < 40rem) {
+        .score {
+            width: 100%;
+            font-size: 13px;
+        }
+
+        .score th {
+            padding: 3px 6px;
+        }
+
+        .score td {
+            padding: 5px 6px;
+        }
+
+        .score .total {
+            font-size: 16px;
+        }
+    }
+
     .swatch {
         display: inline-block;
         width: 11px;
         height: 11px;
         margin-right: 6px;
         border-radius: 50%;
-        border: 1px solid #000;
+        border: 1px solid var(--pp-halo);
         vertical-align: -1px;
     }
 </style>

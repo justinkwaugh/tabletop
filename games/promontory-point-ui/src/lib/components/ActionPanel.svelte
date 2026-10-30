@@ -9,6 +9,7 @@
     import RepairsRow from './RepairsRow.svelte'
     import ScoreTable from './ScoreTable.svelte'
     import ShareBlock from './ShareBlock.svelte'
+    import StatusStrip from './StatusStrip.svelte'
     import TurnHeader from './TurnHeader.svelte'
     import TurnPieces from './TurnPieces.svelte'
     import WaitingView from './WaitingView.svelte'
@@ -40,27 +41,32 @@
 
 <div class="bg-pp-panel text-pp-text">
     <TurnHeader />
+    <StatusStrip />
     {#if score}
         <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
             <ScoreTable {score} />
         </div>
     {:else if repairs && row}
         <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
-            <div class="mb-2">
+            <!-- A phone shows the deciding seat's ring and the turn's dashed chip in the seat strip. -->
+            <div class="mb-2 max-sm:hidden">
                 <RepairsRow {row} />
             </div>
             <RepairsPanel panel={repairs} />
         </div>
     {:else if panel}
         <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
-            <p class="mb-2 text-[15px]">
+            <p class="mb-2 text-[15px] max-sm:mb-1 max-sm:text-[13.5px] max-sm:leading-snug">
                 <b class="font-semibold">{panel.prompt.lead}</b>
                 {panel.prompt.text}
                 {#if panel.prompt.note}
-                    <span class="ml-2 text-[13px] text-pp-muted">{panel.prompt.note}</span>
+                    <!-- A phone keeps the action area to the decision; the share block tells the lock. -->
+                    <span class="ml-2 text-[13px] text-pp-muted max-sm:hidden"
+                        >{panel.prompt.note}</span
+                    >
                 {/if}
             </p>
-            <div class="flex flex-wrap items-stretch gap-4">
+            <div class="flex flex-wrap items-stretch gap-4 max-sm:flex-col max-sm:gap-2">
                 <TurnPieces {panel} />
                 <ShareBlock shares={panel.shares} />
             </div>
@@ -126,5 +132,30 @@
     .action-area :global(.pp-button.big) {
         padding: 7px 16px;
         font-size: 14px;
+    }
+
+    /* Contract, "Phone layout": the action area takes at most 36 % of the column and scrolls
+       within it past that; every button is a 44 px target. */
+    @media (width < 40rem) {
+        .action-area {
+            /* The column: the viewport less the site's bars, the history controls and padding. */
+            max-height: calc(0.36 * (100dvh - var(--app-shell-height, 0px) - 60px));
+            overflow-y: auto;
+            padding-top: 6px;
+            padding-bottom: 8px;
+        }
+
+        .action-area :global(.pp-block) {
+            padding: 4px 6px;
+        }
+
+        .action-area :global(.pp-block-heading) {
+            margin-bottom: 2px;
+        }
+
+        .action-area :global(.pp-button) {
+            min-height: 44px;
+            justify-content: center;
+        }
     }
 </style>

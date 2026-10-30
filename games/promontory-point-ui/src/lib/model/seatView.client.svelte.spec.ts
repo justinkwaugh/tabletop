@@ -153,6 +153,24 @@ describe('seat view', () => {
         })
     })
 
+    it('R-6.1-H2: a seat left with no hand when the bag ran out reads empty, never "0 hidden"', () => {
+        const dealt = dealtTable()
+        const next = structuredClone(dealt.state)
+        const emptied = next.players.find((seat) => seat.playerId === seatOf(next, 2))
+        assertExists(emptied, 'seat 3')
+        next.bag.items.push(...(emptied.hand ?? []))
+        next.bag.remaining += emptied.handCount
+        emptied.hand = []
+        emptied.handCount = 0
+        const state = hydrated(canonical(next))
+        const third = seatAt(state, 2)
+
+        const asOther = seatView(state, third, seatAt(state, 1)).hand
+        expect(asOther.pieces).toEqual([])
+        expect(asOther.caption).toBe('hand: empty')
+        expect(seatView(state, third, third).hand.caption).toBe('yours, empty')
+    })
+
     it('R-1.3-H1, O-9: money, each stack with count and price, a faint ×0, and the worth', () => {
         const dealt = dealtTable()
         const state = hydrated(

@@ -102,14 +102,15 @@ function handView(
                 perspective,
                 pieces: player.knownHand().map(faceUp),
                 ...kept,
-                caption: `yours, hidden${keptNote}`
+                caption: `${player.handCount === 0 ? 'yours, empty' : 'yours, hidden'}${keptNote}`
             }
         case HandPerspective.Hidden:
             return {
                 perspective,
                 pieces: Array.from({ length: player.handCount }, () => ({ faceShown: false })),
                 ...kept,
-                caption: `hand: ${player.handCount} hidden${keptNote}`
+                // R-6.1-H2: the bag can run out, leaving a seat with nothing in hand.
+                caption: `${player.handCount === 0 ? 'hand: empty' : `hand: ${player.handCount} hidden`}${keptNote}`
             }
     }
 }

@@ -13,6 +13,8 @@ export type RepairsEntryView = {
     railroadId: RailroadId
     name: string
     holding: string
+    // The phone's one-button entry: "SP ×5 · +$3 each".
+    short: string
     priceLine: { price: string; proceeds: string }
     sellLabel: string
     stagedNote: string | undefined
@@ -66,6 +68,7 @@ export function repairsPanel(
             railroadId: entry.railroadId,
             name: RAILROADS[entry.railroadId].name,
             holding: `you hold ${entry.held}`,
+            short: `${RAILROAD_TAGS[entry.railroadId]} ×${entry.held}`,
             priceLine: { price: `$${entry.price}`, proceeds: `$${entry.proceedsEach}` },
             sellLabel: `+$${entry.proceedsEach}`,
             stagedNote: entry.staged > 0 ? `${entry.staged} picked` : undefined,

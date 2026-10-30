@@ -28,8 +28,8 @@
     </svg>
 {/snippet}
 
-<section class="pp-block shrink-0">
-    <div class="pp-block-heading">{panel.piecesHeading}</div>
+<section class="pieces pp-block shrink-0">
+    <div class="pp-block-heading max-sm:hidden">{panel.piecesHeading}</div>
     <!-- O-2: a press picks a piece and lights its hexes; R-3.3: "no room" marks one with none. -->
     <div class="flex items-start gap-3" role="group" aria-label="Turn pieces">
         {#each { length: panel.placedCount }, index (index)}
@@ -45,6 +45,7 @@
                 type="button"
                 class="pp-piece-slot"
                 class:picked={turnPiece.picked}
+                data-turn-piece={turnPiece.railroadId}
                 disabled={!turnPiece.pickable}
                 aria-pressed={turnPiece.picked}
                 aria-label="{turnPiece.tag} piece{turnPiece.noRoom ? ', no room' : ''}"
@@ -98,6 +99,27 @@
 </section>
 
 <style>
+    /* Contract, "Phone layout": the hand as a row of pieces with labels, without the block. */
+    @media (width < 40rem) {
+        section.pieces.pp-block {
+            padding: 0;
+            border: 0;
+            background: none;
+        }
+
+        /* 34 px pieces. */
+        .pp-piece-slot :global(svg) {
+            width: 34px;
+            height: auto;
+        }
+
+        .pp-piece-slot {
+            min-height: 44px;
+            font-size: 10.5px;
+            line-height: 1.1;
+        }
+    }
+
     .pp-piece-slot {
         display: flex;
         flex-direction: column;

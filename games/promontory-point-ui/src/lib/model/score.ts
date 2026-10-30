@@ -7,8 +7,8 @@ export type ScoreColumn = { railroadId: RailroadId; label: string }
 export type ScoreRow = {
     playerId: string
     money: number
-    // Per railroad, "count × final price", or "—" when none are held.
-    holdings: { railroadId: RailroadId; text: string }[]
+    // Per railroad, "count × final price", or "—" when none are held, and what they are worth.
+    holdings: { railroadId: RailroadId; text: string; value: number }[]
     shareValue: number
     total: number
     winner: boolean
@@ -34,7 +34,11 @@ export function scoreView(state: Parameters<typeof endSummary>[0]): ScoreView | 
         money: total.money,
         holdings: RAILROAD_IDS.map((railroadId) => {
             const { shares, price } = total.holdings[railroadId]
-            return { railroadId, text: shares > 0 ? `${shares} × $${price}` : '—' }
+            return {
+                railroadId,
+                text: shares > 0 ? `${shares} × $${price}` : '—',
+                value: shares * price
+            }
         }),
         shareValue: total.shareValue,
         total: total.total,

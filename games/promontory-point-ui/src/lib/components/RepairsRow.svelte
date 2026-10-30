@@ -9,7 +9,7 @@
 </script>
 
 <!-- R-4.3, R-4.3-H4: one chip per seat, from the placing seat in seat order. -->
-<ul class="flex flex-wrap gap-2" data-repairs-row>
+<ul class="flex flex-wrap gap-2 max-sm:gap-1" data-repairs-row>
     {#each row.entries as entry (entry.playerId)}
         <li
             class="seat-chip"
@@ -56,11 +56,24 @@
         padding: 3px 9px;
     }
 
+    /* Contract, "Phone layout": two settled seats to a line. */
+    @media (width < 40rem) {
+        .seat-chip {
+            gap: 4px;
+            padding: 1px 6px;
+            font-size: 11.5px;
+        }
+
+        .seat-chip.deciding {
+            padding: 0 5px;
+        }
+    }
+
     .swatch {
         width: 11px;
         height: 11px;
         border-radius: 50%;
-        border: 1px solid #000;
+        border: 1px solid var(--pp-halo);
     }
 
     .short {

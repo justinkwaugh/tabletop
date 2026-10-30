@@ -51,6 +51,8 @@ describe('score (R-6.1, R-6.2, R-6.2-H1)', () => {
         ])
         expect(score.winnerIds).toEqual([seatOf(state, 2)])
         expect(score.winningTotal).toBe(34)
+        // The open seat's breakdown on a phone: each railroad's worth, summing to the share value.
+        expect(score.rows[0]?.holdings.map((holding) => holding.value)).toEqual([10, 0, 20, 0])
     })
 
     it('R-6.1: the end reason stands above the score', () => {
