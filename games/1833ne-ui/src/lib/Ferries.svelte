@@ -1,60 +1,86 @@
 <script lang="ts">
-    import type { Session1833NE } from './session.svelte.js'
+    import { FerryPrice } from '@tabletop/1833ne'
+    import { ConstructionPrompt } from '@tabletop/18xx-ui'
+    import { FerryArt, LuxuryFerryArt } from './ferryArt.js'
+    import type { FerryOffer, Session1833NE } from './session.svelte.js'
     let { session }: { session: Session1833NE } = $props()
     const money = $derived(session.presentation.money)
+    const luxuryPrompt = 'Luxury Ferry Service: double one ferry'
 </script>
 
-{#if session.ferryOffers.length || session.luxuryOffers.length}
-    <section class="ferries" aria-label="Ferries">
-        {#if session.ferryOffers.length}
-            <h3>Buy a ferry for {money(40)}</h3>
-            <div class="choices">
-                {#each session.ferryOffers as ferry (ferry.locationId)}
-                    <button
-                        disabled={!session.canChooseAction}
-                        onclick={() => session.buyFerry(ferry.locationId)}
-                        >{ferry.name} <span>+{money(ferry.value)}</span></button
-                    >
-                {/each}
-            </div>
-        {/if}
-        {#if session.luxuryOffers.length}
-            <h3>Luxury Ferry Service: double one ferry</h3>
-            <div class="choices">
-                {#each session.luxuryOffers as ferry (ferry.locationId)}
-                    <button
-                        disabled={!session.canChooseAction}
-                        onclick={() => session.assignLuxuryFerry(ferry.locationId)}
-                        >{ferry.name}</button
-                    >
-                {/each}
-            </div>
-        {/if}
-    </section>
-{/if}
+{#snippet choices(
+    offers: readonly FerryOffer[],
+    art: Readonly<Record<string, string>>,
+    label: (ferry: FerryOffer) => string,
+    choose: (locationId: string) => Promise<void>
+)}
+    <div class="choices">
+        {#each offers as ferry (ferry.locationId)}
+            <button
+                class="ferry"
+                disabled={!session.canChooseAction}
+                aria-label={label(ferry)}
+                title={label(ferry)}
+                onclick={() => choose(ferry.locationId)}
+                ><img src={art[ferry.locationId]} alt="" /></button
+            >
+        {/each}
+    </div>
+{/snippet}
+
+<section class="ferries centered-panel" aria-label="Ferries">
+    {#if session.ferryOffers.length}
+        <ConstructionPrompt {session} prompt={`Buy a ferry for ${money(FerryPrice)}`} />
+        {@render choices(
+            session.ferryOffers,
+            FerryArt,
+            (ferry) => `${ferry.name} ferry, ${money(ferry.value)} on its routes`,
+            (locationId) => session.buyFerry(locationId)
+        )}
+    {/if}
+    {#if session.luxuryOffers.length}
+        {#if session.ferryOffers.length}<header>{luxuryPrompt}</header>
+        {:else}<ConstructionPrompt {session} prompt={luxuryPrompt} />{/if}
+        {@render choices(
+            session.luxuryOffers,
+            LuxuryFerryArt,
+            (ferry) => `Double the ${ferry.name} ferry`,
+            (locationId) => session.assignLuxuryFerry(locationId)
+        )}
+    {/if}
+</section>
 
 <style>
     .ferries {
         display: flex;
         flex-direction: column;
-        gap: 0.4rem;
-        padding: 0.5rem 0.75rem;
-    }
-    h3 {
-        font-weight: 600;
-        font-size: 0.9rem;
+        align-items: center;
+        gap: 14px;
     }
     .choices {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.4rem;
+        justify-content: center;
+        gap: 12px;
     }
-    button {
-        border: 1px solid currentColor;
-        border-radius: 0.375rem;
-        padding: 0.2rem 0.6rem;
+    button.ferry {
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        cursor: pointer;
     }
-    button span {
-        opacity: 0.75;
+    button.ferry:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+    button.ferry:focus-visible {
+        outline: 2px solid #a87948;
+        outline-offset: 3px;
+    }
+    img {
+        display: block;
+        width: 56px;
+        height: 56px;
     }
 </style>

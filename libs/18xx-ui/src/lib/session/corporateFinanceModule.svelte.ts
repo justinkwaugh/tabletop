@@ -8,6 +8,7 @@ import {
     type FinanceChoice
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
+import type { ModeLabel } from './operatingModeModule.svelte.js'
 
 export type CorporateFinanceSession = ModuleSession<
     Parameters<typeof corporateFinanceChoices>[0],
@@ -28,12 +29,16 @@ export class CorporateFinanceModule {
         const rules = this.session.rules.corporateFinanceRules
         return rules ? corporateFinanceChoices(this.session.state, rules) : []
     })
-    label = $derived.by(() => {
-        const operations = new Set(this.choices.map((choice) => choice.operation))
-        if (operations.size > 1) return 'Issue / redeem'
-        return operations.has('issue') ? 'Issue shares' : 'Redeem shares'
+    private operations = $derived.by(() => new Set(this.choices.map((choice) => choice.operation)))
+    /** The switch's labels; each short one is part of its long one, so it still names it. */
+    modeLabel = $derived.by((): ModeLabel => {
+        if (this.operations.size > 1)
+            return { label: 'Issue / redeem', shortLabel: 'Issue / redeem' }
+        return this.operations.has('issue')
+            ? { label: 'Issue shares', shortLabel: 'Issue' }
+            : { label: 'Redeem shares', shortLabel: 'Redeem' }
     })
-    prompt = $derived(this.label === 'Issue / redeem' ? 'Issue or redeem shares' : this.label)
+    prompt = $derived(this.operations.size > 1 ? 'Issue or redeem shares' : this.modeLabel.label)
     holdings = $derived.by((): CorporateFinanceHoldings | undefined => {
         const rules = this.session.rules.corporateFinanceRules
         const companyId = this.choices[0]?.companyId
