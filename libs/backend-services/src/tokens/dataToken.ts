@@ -4,6 +4,7 @@ import { DateType } from '@tabletop/common'
 export enum TokenType {
     PasswordReset = 'passwordReset',
     EmailVerification = 'emailVerification',
+    EmailChange = 'emailChange',
     SensitiveChange = 'sensitiveChange',
     GameInvitation = 'gameInvitation',
     SSEAuthorization = 'sseAuthorization'

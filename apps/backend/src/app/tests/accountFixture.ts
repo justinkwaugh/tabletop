@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify'
 import {
     accountStatusAfterCompletionCheck,
     normalizeEmailAddress,
-    sessionGenerationOf,
+    nextSessionGeneration,
     type User
 } from '@tabletop/common'
 import {
@@ -15,16 +15,14 @@ import {
     type UserStore
 } from '@tabletop/backend-services'
 
-import { errorStatusCode } from '../lib/errorStatusCode.js'
+import { replyStatusCode } from '../lib/errorStatusCode.js'
 
 export const ORIGINAL_PASSWORD = 'original-password-value'
 
 // The same error shape the application error handler sends, so specs can read error names
 export function apiErrorShape(server: FastifyInstance): void {
     server.setErrorHandler(async (error: Error, request, reply) => {
-        if (reply.statusCode < 400) {
-            void reply.code(errorStatusCode(error))
-        }
+        void reply.code(replyStatusCode(error, reply.statusCode))
         if (reply.statusCode >= 500) {
             request.log.error({ err: error }, 'Request failed')
         }
@@ -50,7 +48,7 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
         current = {
             ...current,
             hasPassword: true,
-            sessionGeneration: sessionGenerationOf(current) + 1
+            sessionGeneration: nextSessionGeneration(current)
         }
         return current
     }
@@ -97,7 +95,10 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
             current = {
                 ...current,
                 email: normalizeEmailAddress(fields.email),
-                emailVerified: false
+                emailVerified: fields.emailVerified ?? false,
+                ...(original.emailVerified && fields.emailVerified
+                    ? { sessionGeneration: nextSessionGeneration(original) }
+                    : {})
             }
         }
         if (candidate) {
@@ -138,6 +139,7 @@ export type SentMail = {
     kind: 'reset' | 'verification' | 'sensitive'
     userId: string
     token: string
+    email?: string
 }
 
 export function recordingTasks() {
@@ -148,6 +150,9 @@ export function recordingTasks() {
         mails.push({ kind: 'reset', ...mail })
     }
     tasks.sendVerificationEmail = async (mail) => {
+        mails.push({ kind: 'verification', ...mail })
+    }
+    tasks.sendEmailChangeVerificationEmail = async (mail) => {
         mails.push({ kind: 'verification', ...mail })
     }
     tasks.sendAuthVerificationEmail = async (mail) => {

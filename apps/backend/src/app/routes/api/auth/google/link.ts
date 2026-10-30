@@ -14,7 +14,9 @@ export default async function (fastify: FastifyInstance) {
         {
             config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
             schema: { body: LoginRequest },
-            onRequest: fastify.auth([fastify.verifyUser], { relation: 'and' })
+            onRequest: fastify.auth([fastify.verifyUser, fastify.verifyRecentAuthentication], {
+                relation: 'and'
+            })
         },
         async function (request, _reply) {
             if (!request.user) {

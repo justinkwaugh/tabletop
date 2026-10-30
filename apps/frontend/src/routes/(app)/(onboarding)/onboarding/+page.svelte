@@ -1,8 +1,12 @@
 <script lang="ts">
     import { Card, Label, Input, Button, Helper, Alert, P, Hr } from 'flowbite-svelte'
-    import { UserStatus } from '@tabletop/common'
+    import { UserStatus, type User } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
     import { challengeExpiryText } from '$lib/utils/challengeExpiry'
+    import {
+        reauthentication,
+        requiresRecentAuthentication
+    } from '$lib/stores/reauthentication.svelte'
 
     let { authorizationService, api } = getAppContext()
 
@@ -22,11 +26,17 @@
         username = username?.trim()
         email = email?.trim()
 
-        let payload = {
+        const payload = {
             username,
             email
         }
+        await reauthentication.run({
+            description: email ? 'update your email address' : 'complete your profile',
+            retry: () => saveProfile(payload)
+        })
+    }
 
+    async function saveProfile(payload: Pick<User, 'username' | 'email'>) {
         try {
             let updatedUser = await api.updateUser(payload)
             authorizationService.setSessionUser(updatedUser)
@@ -38,6 +48,7 @@
                 await authorizationService.onLogin(updatedUser)
             }
         } catch (e) {
+            if (requiresRecentAuthentication(e)) throw e
             if (e instanceof Error && e.name === 'AlreadyExistsError') {
                 if (e.message.includes('username')) {
                     errors.username = ['Username already exists']

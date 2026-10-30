@@ -12,6 +12,8 @@ import { TokenService } from '../tokens/tokenService.js'
 import { InvalidChallengeError } from '../tokens/authenticationChallenge.js'
 import { MemoryTokenStore } from '../persistence/memory/tokenStore.js'
 import { LocalTaskService } from '../tasks/localTasksService.js'
+import { SessionService } from '../sessions/sessionService.js'
+import { MemorySessionStore } from '../persistence/memory/sessionStore.js'
 
 const user: User = {
     id: 'a',
@@ -182,6 +184,13 @@ describe('Password Credential changes', () => {
             resetMails.push(mail)
         }
         const service = new UserService(store, challenges, tasks)
+        const sessions = new SessionService(new MemorySessionStore())
+        const updateProfile = async () =>
+            service.updateUser(
+                await sessions.establish(existing, 'authentication-method'),
+                {},
+                'a-new-password-value'
+            )
         const issueReset = async () => {
             const issued = await challenges.issueChallenge({
                 type: TokenType.PasswordReset,
@@ -190,11 +199,20 @@ describe('Password Credential changes', () => {
             })
             return issued.secret
         }
-        return { service, updatePassword, issueReset, notifications, resetMails, tasks }
+        return {
+            service,
+            updatePassword,
+            updateProfile,
+            issueReset,
+            notifications,
+            resetMails,
+            tasks
+        }
     }
 
     it('reports a committed reset even when its change notice cannot be queued', async () => {
-        const { service, updatePassword, issueReset, notifications, tasks } = passwordFixture()
+        const { service, updatePassword, updateProfile, issueReset, notifications, tasks } =
+            passwordFixture()
         tasks.sendAccountChangeNotificationEmail = async ({ email }) => {
             throw new Error(`synthetic queue rejection for ${email}`)
         }
@@ -208,9 +226,9 @@ describe('Password Credential changes', () => {
             await expect(
                 service.setPassword({ userId: 'a', secret, password: 'a-new-password-value' })
             ).rejects.toThrow(InvalidChallengeError)
-            await expect(
-                service.updateUser('a', {}, 'a-new-password-value', 'the-current-password')
-            ).resolves.toEqual(expect.objectContaining({ id: 'a', sessionGeneration: 1 }))
+            await expect(updateProfile()).resolves.toEqual(
+                expect.objectContaining({ id: 'a', sessionGeneration: 1 })
+            )
             expect(notifications).toEqual([])
             expect(logged).toHaveBeenCalledTimes(2)
             const diagnostics = JSON.stringify(logged.mock.calls)
@@ -225,7 +243,8 @@ describe('Password Credential changes', () => {
     })
 
     it('returns the Account as the store committed it, Session Generation included', async () => {
-        const { service, updatePassword, issueReset, notifications } = passwordFixture()
+        const { service, updatePassword, updateProfile, issueReset, notifications } =
+            passwordFixture()
         const secret = await issueReset()
         await expect(
             service.setPassword({ userId: 'a', secret, password: '  a-new-password-value  ' })
@@ -241,9 +260,9 @@ describe('Password Credential changes', () => {
         expect(notifications).toEqual([
             expect.objectContaining({ email: 'a@example.test', changeType: 'password' })
         ])
-        await expect(
-            service.updateUser('a', {}, 'a-new-password-value', 'the-current-password')
-        ).resolves.toEqual(expect.objectContaining({ id: 'a', sessionGeneration: 1 }))
+        await expect(updateProfile()).resolves.toEqual(
+            expect.objectContaining({ id: 'a', sessionGeneration: 1 })
+        )
     })
 
     it('refuses a short password before reaching the store', async () => {
