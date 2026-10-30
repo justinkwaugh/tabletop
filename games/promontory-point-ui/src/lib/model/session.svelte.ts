@@ -1,4 +1,4 @@
-import { GameSession } from '@tabletop/frontend-components'
+import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
 import { assert, assertExists } from '@tabletop/common'
 import {
     ActionType,
@@ -6,6 +6,7 @@ import {
     EndTurn,
     PayRepairs,
     PlaceTrack,
+    SaleListRefusal,
     ScrapTrack,
     SellShare,
     buyShareRefusal,
@@ -13,6 +14,7 @@ import {
     hasOpenSpace,
     normalizePromontoryPointConfig,
     payRepairsRefusal,
+    saleListRefusal,
     scrapTrackRefusal,
     sellShareRefusal,
     type HydratedPromontoryPointGameState,
@@ -22,7 +24,24 @@ import {
     type TradeRefusal
 } from '@tabletop/promontory-point'
 import { boardOffer, OfferView, type BoardOffer } from './boardOffer.js'
-import { repairsTownBeingDecided, thisTurnPlacements } from './thisTurn.js'
+import {
+    emptyRepairsDraft,
+    everySaleStartingWith,
+    hasManualRepairsDraft,
+    popRepairsDraft,
+    repairsDraftView,
+    stageEverySale,
+    stageSale,
+    stagedSales,
+    type RepairsDecision,
+    type RepairsDraft,
+    type RepairsDraftView
+} from './repairsDraft.js'
+import {
+    repairsPlacementBeingDecided,
+    repairsTownBeingDecided,
+    thisTurnPlacements
+} from './thisTurn.js'
 import {
     emptyTurnDraft,
     piecePick,
@@ -88,7 +107,58 @@ export class PromontoryPointGameSession extends GameSession<
         this.pickedPiece !== undefined && !hasOpenSpace(this.gameState.track, this.pickedPiece)
     )
 
-    hasManualSelection: boolean = $derived(this.piecePick?.source === 'manual')
+    // R-4.3: staged sales, tied to the debtor and the placement whose Repairs they answer.
+    private stagedRepairs: { stepKey: string; draft: RepairsDraft } | undefined = $state()
+
+    // R-4.3-H4, R-X.1: the Repairs step when the seat on screen is the debtor deciding it.
+    private repairsStep: { key: string; decision: RepairsDecision } | undefined = $derived.by(
+        () => {
+            const playerId = this.decidingPlayerId
+            const pending = this.gameState.pendingRepairs
+            const debtor = pending?.debtors[0]
+            if (pending === undefined || debtor === undefined || debtor.playerId !== playerId) {
+                return undefined
+            }
+            const placement = repairsPlacementBeingDecided(this.gameState, this.actions)
+            return {
+                key: `${debtor.playerId}:${placement?.id}`,
+                decision: {
+                    railroadId: pending.railroadId,
+                    owed: debtor.owed,
+                    holdings: this.gameState.getPlayerState(debtor.playerId),
+                    priceIndex: this.gameState.priceIndex
+                }
+            }
+        }
+    )
+
+    // R-4.3: the staged sales while their step is the one on screen and every share is still held.
+    private liveRepairsDraft: RepairsDraft = $derived.by(() => {
+        const step = this.repairsStep
+        const staged = this.stagedRepairs
+        if (step === undefined || staged === undefined || staged.stepKey !== step.key) {
+            return emptyRepairsDraft()
+        }
+        const { holdings, owed, priceIndex } = step.decision
+        return saleListRefusal(holdings, owed, priceIndex, stagedSales(staged.draft)) ===
+            SaleListRefusal.NotHeld
+            ? emptyRepairsDraft()
+            : staged.draft
+    })
+
+    // R-4.3, R-4.3-H1 to H3: the deciding debtor's draft, running line and send.
+    repairsDraft: RepairsDraftView | undefined = $derived.by(() => {
+        const step = this.repairsStep
+        return step === undefined
+            ? undefined
+            : repairsDraftView(step.decision, stagedSales(this.liveRepairsDraft))
+    })
+
+    private hasStagedRepairsSale: boolean = $derived(hasManualRepairsDraft(this.liveRepairsDraft))
+
+    hasManualSelection: boolean = $derived(
+        this.piecePick?.source === 'manual' || this.hasStagedRepairsSale
+    )
 
     // R-X.2: Undo pops a manual pick, else undoes the Undo Candidate; a draw leaves no candidate.
     canUndo: boolean = $derived(
@@ -147,6 +217,14 @@ export class PromontoryPointGameSession extends GameSession<
     }
 
     override async undo() {
+        const step = this.repairsStep
+        if (this.hasStagedRepairsSale && step !== undefined) {
+            this.stagedRepairs = {
+                stepKey: step.key,
+                draft: popRepairsDraft(this.liveRepairsDraft)
+            }
+            return
+        }
         if (this.hasManualSelection) {
             this.turnDraft = popTurnDraft(this.turnDraft)
             return
@@ -154,9 +232,39 @@ export class PromontoryPointGameSession extends GameSession<
         await super.undo()
     }
 
-    // The turn draft lives until the next shown state, whatever brought it.
-    override beforeNewState() {
+    // The turn draft lives until the next shown state, whatever brought it; the Repairs draft
+    // survives a reconciliation, and its step key drops it once the step or the debtor changes.
+    override beforeNewState(transition: PresentedTransition) {
         this.turnDraft = emptyTurnDraft()
+        if (transition.kind !== 'reconciliation') {
+            this.stagedRepairs = undefined
+        }
+    }
+
+    // R-4.3, R-4.3-H2: Sell one stages one more share; R-4.3-H3: short after every sale, one
+    // press stages them all.
+    stageRepairsSale(railroadId: RailroadId) {
+        const step = this.repairsStep
+        const view = this.repairsDraft
+        assertExists(step, 'Only the deciding debtor stages a sale')
+        assertExists(view, 'Only the deciding debtor stages a sale')
+        const entry = view.entries.find((held) => held.railroadId === railroadId)
+        assertExists(entry, `The debtor holds no ${railroadId} share to sell`)
+        assert(!entry.locked, `Sell ${railroadId} is locked`)
+        this.stagedRepairs = {
+            stepKey: step.key,
+            draft: view.shortAfterEverySale
+                ? stageEverySale(everySaleStartingWith(step.decision.holdings.shares, railroadId))
+                : stageSale(this.liveRepairsDraft, railroadId)
+        }
+    }
+
+    // R-4.3, R-X.1: the debtor's own press sends the staged sales, even a forced payment.
+    async sendRepairs() {
+        const view = this.repairsDraft
+        assertExists(view, 'Only the deciding debtor sends a Repairs payment')
+        assert(view.send.ready, 'The send is offered only for a legal sale list')
+        await this.payRepairs(view.send.sales)
     }
 
     // R-3.1
@@ -220,6 +328,7 @@ export class PromontoryPointGameSession extends GameSession<
             payRepairsRefusal(this.gameState, playerId, sales) === undefined,
             'A Repairs payment is sent only with a legal sale list'
         )
+        this.stagedRepairs = undefined
         await this.applyAction(this.createPlayerAction(PayRepairs, { sales }))
     }
 }

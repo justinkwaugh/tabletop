@@ -41,13 +41,20 @@ export function repairsTownBeingDecided(
     state: HydratedPromontoryPointGameState,
     actions: readonly GameAction[]
 ): RepairsTown | undefined {
-    if (state.pendingRepairs === undefined) {
-        return undefined
-    }
-    const placement: PlaceTrack | undefined = thisTurnActions(actions).filter(isPlaceTrack).at(-1)
-    return placement === undefined
+    const placement = repairsPlacementBeingDecided(state, actions)
+    return placement === undefined || state.pendingRepairs === undefined
         ? undefined
         : { spaceId: placement.spaceId, railroadId: state.pendingRepairs.railroadId }
+}
+
+// R-4.3: the placement that billed the Repairs still being paid.
+export function repairsPlacementBeingDecided(
+    state: HydratedPromontoryPointGameState,
+    actions: readonly GameAction[]
+): PlaceTrack | undefined {
+    return state.pendingRepairs === undefined
+        ? undefined
+        : thisTurnActions(actions).filter(isPlaceTrack).at(-1)
 }
 
 function thisTurnActions(actions: readonly GameAction[]): GameAction[] {
