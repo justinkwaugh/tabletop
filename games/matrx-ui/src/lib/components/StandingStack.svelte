@@ -1,0 +1,46 @@
+<svelte:options namespace="svg" />
+
+<script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
+    import { PIECE_RADIUS, type BoardView } from '$lib/board/geometry.js'
+    import type { Disc } from '$lib/board/pieceShape.js'
+    import type { PieceParts } from '$lib/animators/drop.js'
+    import PieceShape from './PieceShape.svelte'
+
+    // A stack on the board with its shadow under it. The body is the whole stack, which rises off
+    // the board; its discs can move on their own.
+    let {
+        discs,
+        view,
+        body,
+        shadow,
+        parts
+    }: {
+        discs: readonly Disc[]
+        view: BoardView
+        body?: Attachment<SVGGElement>
+        shadow?: Attachment<SVGGElement>
+        parts?: PieceParts
+    } = $props()
+</script>
+
+<g {@attach shadow}>
+    <ellipse
+        rx={PIECE_RADIUS}
+        ry={PIECE_RADIUS * view.tilt}
+        cy={2}
+        class="shadow"
+        filter="url(#matrx-soft)"
+    ></ellipse>
+    <ellipse rx={PIECE_RADIUS} ry={PIECE_RADIUS * view.tilt} fill="url(#matrx-board-contact)"
+    ></ellipse>
+</g>
+<g {@attach body}>
+    <PieceShape {discs} radius={PIECE_RADIUS} prefix="matrx-board" {view} {parts} />
+</g>
+
+<style>
+    .shadow {
+        fill: rgb(0 0 0 / 0.3);
+    }
+</style>
