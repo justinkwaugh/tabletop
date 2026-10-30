@@ -101,7 +101,7 @@ import { TrackModule } from './trackModule.svelte.js'
 import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule } from './trainFundingModule.svelte.js'
 import { CorporateFinanceModule } from './corporateFinanceModule.svelte.js'
-import { OperatingModeModule } from './operatingModeModule.svelte.js'
+import { OperatingModeModule, type TitleOperatingMode } from './operatingModeModule.svelte.js'
 import { PresidencyClaimModule } from './presidencyClaimModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
 
@@ -350,7 +350,8 @@ export class EighteenXXSession<
                 this.stations.stages.clear()
             },
             finishTrack: () => this.track.finish()
-        }
+        },
+        () => this.titleOperatingModes
     )
     readonly routes = new RoutesModule(
         this.moduleSession,
@@ -697,6 +698,13 @@ export class EighteenXXSession<
         const train = state.trainInventory.trains.find((train) => train.id === trainId)
         assertExists(train, `Train ${trainId} requires its inventory record`)
         return this.trainDepot.trainDefinition(train.definitionId).name
+    }
+    /**
+     * A title's own optional actions in the operating turn, each an entry in the operating mode
+     * switch whose panel the table's `titleMode` snippet draws. List only those open now.
+     */
+    get titleOperatingModes(): readonly TitleOperatingMode[] {
+        return []
     }
     /** A title's own placements in the station step, offered as buttons beside its stations. */
     get titleStationActions(): readonly TitleStationAction[] {

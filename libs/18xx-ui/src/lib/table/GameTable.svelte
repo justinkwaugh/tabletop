@@ -1846,8 +1846,13 @@
         border-radius: 0;
         background: transparent;
     }
+    /* Its bottom padding keeps the panel clear of the instruction bar's rule on short panes. */
     .action-panel :global(.centered-panel) {
         margin-block: auto;
+        padding-bottom: 16px;
+    }
+    .action-panel :global(.centered-panel .centered-panel) {
+        padding-bottom: 0;
     }
     @container action-pane (min-width: 500px) {
         .action-panel:has(:global(.sales-sidebar)) {

@@ -742,7 +742,8 @@ the price the protection restores, with Protect and Decline committed at once.
 ### Combined construction, share issues and presidency claims
 
 These switch on from the title rules the session is created with; a title renders them through
-`OperatingActions` and the table's stock strip, with no title UI code.
+`OperatingActions` and the table's stock strip, with no title UI code, except for its own title
+modes.
 
 - **Operating mode** (`session.operatingMode`). For a title with `stationsWithTrack` or
   `corporateFinanceRules`, the operating actions show one of track building, station placement
@@ -756,7 +757,20 @@ These switch on from the title rules the session is created with; a title render
   stays available; a selected private tile power always selects track. Lifetime: the choice
   lasts through the step's actions and resets on leaving the step, on a change of perspective or
   in history; a choice no longer available falls back to the derived mode. A view choice, not a
-  step: Undo never changes it, and a derived mode consumes no Undo step.
+  step: Undo never changes it, and a derived mode consumes no Undo step. When the switch has
+  three entries and its width is at most 360px, or four or more at 460px, each entry shows its
+  short label ("Track", "Station", "Ferry", "Issue", "Redeem", "Run"); every short label is part
+  of its full label, which stays the button's accessible name.
+- **Title modes** (`session.titleOperatingModes`, `OperatingActions`' `titleMode` snippet). A
+  title's own optional actions in the operating turn are entries in the same switch, between
+  construction (or "Run trains") and share issues, listed only while legal; 1833NE's "Buy ferry"
+  (or "Luxury ferry" when only the Luxury Ferry Service is open) is the first. The snippet draws
+  the chosen mode's panel by id, and a title listing a mode must pass it. When a title mode is
+  all that is left in construction, the switch selects it. A construction panel's prompt comes
+  from `ConstructionPrompt`, which offers skip while construction can finish. Design survey:
+  optional purchases beside construction also appear as 1894's ferry markers (bought access to
+  London), 1849's purchasable tokens option and 18Scan's ferries; each is a title-owned action
+  with its own panel, so the family supplies the switch entry and panel slot, not the action.
 - **Combined construction.** With `stationsWithTrack`, track and station placement share the
   track step and the step bar shows Build, Run, Payout and Trains (and Loans), Build's status
   joining shares issued or redeemed, tiles laid and a station placed. Placing a station does
@@ -769,7 +783,8 @@ These switch on from the title rules the session is created with; a title render
 - **Share issues** (`session.corporateFinance`). The panel shows the company's cash, treasury
   and market shares, and one button per legal count to issue or redeem, each committed at once;
   the first locks the turn to issuing or to redeeming. When share issues are all that is left
-  in construction, the switch selects them and the panel offers skip to end construction. The
+  in construction, the switch selects them and the panel offers skip to end construction (its
+  prompt reads "Issue shares or skip", without a comma). The
   panel gives way to a purchase offer, a private-power selection, a private track-power
   selection and a company decision.
 - **Receivership** (`session.presidencyClaims`, `session.familyStockPanels`). With a
