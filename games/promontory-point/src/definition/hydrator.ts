@@ -1,5 +1,6 @@
 import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
 import { HydratedBuyShare, isBuyShare } from '../actions/buyShare.js'
+import { HydratedPlaceTrack, isPlaceTrack } from '../actions/placeTrack.js'
 import { HydratedRevealHand, isRevealHand } from '../actions/revealHand.js'
 import { HydratedSellShare, isSellShare } from '../actions/sellShare.js'
 import {
@@ -19,6 +20,8 @@ export class PromontoryPointHydrator implements GameHydrator<
                 return new HydratedBuyShare(data)
             case isSellShare(data):
                 return new HydratedSellShare(data)
+            case isPlaceTrack(data):
+                return new HydratedPlaceTrack(data)
             default:
                 throw new Error(`Unknown action type ${data.type}`)
         }

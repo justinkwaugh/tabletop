@@ -9,6 +9,7 @@ export * from './effects/townEffectOutcome.js'
 export * from './effects/townEffects.js'
 
 export * from './actions/buyShare.js'
+export * from './actions/placeTrack.js'
 export * from './actions/revealHand.js'
 export * from './actions/sellShare.js'
 
