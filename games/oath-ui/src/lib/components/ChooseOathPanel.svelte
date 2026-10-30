@@ -32,7 +32,7 @@
 </div>
 <p class="text-sm">Choose the Oath.</p>
 {#if picked !== undefined}
-    <div class="mt-2 flex flex-wrap gap-2">
+    <div class="mt-2 flex flex-wrap gap-2" data-answer-row>
         <button
             type="button"
             class="shrink-0 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40

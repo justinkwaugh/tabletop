@@ -417,7 +417,7 @@
              one button per bank, "+1 [favor] [suit]" as on any Travel; one tap gains. -->
             <QuestionForm cardId={mine.cardId}>
                 {#snippet line()}<TokenText text="Gain 1 favor from:" />{/snippet}
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap gap-2" data-answer-row>
                     {#each mine.banks as suit (suit)}
                         <AnswerButton
                             width={bankWidth}
@@ -444,7 +444,7 @@
                     <DefenseDice faces={mine.faces} />
                 </div>
                 <p class="mb-2 text-base"><TokenText text="Gain {mine.shields} favor from:" /></p>
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap gap-2" data-answer-row>
                     {#each draft.gamblingHallGains as { suit, gain } (suit)}
                         <AnswerButton
                             width={bankWidth}
@@ -480,7 +480,7 @@
                         <EndDieStakes {stakes} viewerId={gameSession.myPlayer?.id} />
                     </p>
                 {/if}
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap gap-2" data-answer-row>
                     <AnswerButton
                         primary
                         width={adjustWidth}

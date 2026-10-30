@@ -37,7 +37,7 @@
         <TokenText text={gameSession.humanizeReason(refused) ?? ''} />
     </p>
 {/if}
-<div class="flex flex-wrap gap-2">
+<div class="flex flex-wrap gap-2" data-answer-row>
     {#if draft.acceptComplete && !refused}
         <AnswerButton
             primary

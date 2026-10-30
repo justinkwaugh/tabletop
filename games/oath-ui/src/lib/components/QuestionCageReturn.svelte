@@ -25,7 +25,7 @@
             onpick={(row, count) => draft.setCageCount(row, count)}
         />
     </div>
-    <div class="flex flex-wrap gap-2">
+    <div class="flex flex-wrap gap-2" data-answer-row>
         <AnswerButton
             primary
             {width}

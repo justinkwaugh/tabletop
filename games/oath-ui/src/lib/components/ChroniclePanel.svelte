@@ -33,8 +33,10 @@
 </script>
 
 {#snippet confirm(onclick: () => void)}
-    <div class="buttons mt-2">
-        <button type="button" class={PRIMARY} disabled={busy} {onclick}>Confirm</button>
+    <div data-answer-row>
+        <div class="buttons mt-2">
+            <button type="button" class={PRIMARY} disabled={busy} {onclick}>Confirm</button>
+        </div>
     </div>
 {/snippet}
 
@@ -50,21 +52,23 @@
                 onpick={(playerId) => offer.toggle(playerId)}
                 {busy}
             />
-            <div class="buttons mt-2">
-                {#if offer.picked.length > 0}
+            <div data-answer-row>
+                <div class="buttons mt-2">
+                    {#if offer.picked.length > 0}
+                        <button
+                            type="button"
+                            class={PRIMARY}
+                            disabled={busy}
+                            onclick={() => offer.offer()}>Offer</button
+                        >
+                    {/if}
                     <button
                         type="button"
-                        class={PRIMARY}
+                        class={SECONDARY}
                         disabled={busy}
-                        onclick={() => offer.offer()}>Offer</button
+                        onclick={() => offer.noOffer()}>No offer</button
                     >
-                {/if}
-                <button
-                    type="button"
-                    class={SECONDARY}
-                    disabled={busy}
-                    onclick={() => offer.noOffer()}>No offer</button
-                >
+                </div>
             </div>
         {:else}
             <!-- R-8.2 sets the usual terms aside (R-6.6.1): the offer alone. -->
@@ -87,18 +91,21 @@
                 <CardImage cardId={pointed.edificeId} intact inspect width={96} />
             </div>
         {/if}
-        <div class="buttons">
-            {#if pointed}
-                <button
-                    type="button"
-                    class={PRIMARY}
-                    disabled={busy}
-                    onclick={() => build.confirm()}>{pointed.repair ? 'Repair' : 'Build'}</button
+        <div data-answer-row>
+            <div class="buttons">
+                {#if pointed}
+                    <button
+                        type="button"
+                        class={PRIMARY}
+                        disabled={busy}
+                        onclick={() => build.confirm()}
+                        >{pointed.repair ? 'Repair' : 'Build'}</button
+                    >
+                {/if}
+                <button type="button" class={SECONDARY} disabled={busy} onclick={() => build.none()}
+                    >None</button
                 >
-            {/if}
-            <button type="button" class={SECONDARY} disabled={busy} onclick={() => build.none()}
-                >None</button
-            >
+            </div>
         </div>
     {:else if chronicle?.step === ChronicleStep.Suit}
         <p class="mb-2 text-sm">Add to the world deck:</p>

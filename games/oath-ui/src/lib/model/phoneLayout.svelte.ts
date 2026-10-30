@@ -1,6 +1,6 @@
 import { MediaQuery } from 'svelte/reactivity'
 
-/** A phone held upright: FitBox gives the panel a larger share of the column here. */
+/** A phone held upright: FitBox gives the panel a larger share of the column here, and scrolls it there instead of scaling it. */
 export const PHONE_UPRIGHT = '(max-width: 640px) and (orientation: portrait)'
 
 /** A phone held sideways: GameTable hides the information line here. */
