@@ -575,6 +575,14 @@ export function firstForbid(
     return undefined
 }
 
+/**
+ * R-7.3.3-H3 — from revision 31 a Search's modifiers resolve once its played card has made its gains, before that
+ * card's When Played power; before it (R-X.4), after the power and any second play.
+ */
+export function modifiersResolveBeforePower(state: HydratedOathGameState): boolean {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes26)
+}
+
 export function runAfter(
     state: HydratedOathGameState,
     playerId: string,

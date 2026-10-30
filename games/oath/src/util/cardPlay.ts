@@ -33,7 +33,12 @@ import { pawnSiteId } from './pawn.js'
 import { denizensAfterPlay } from '../powers/vocabulary.js'
 import { isFaceupPlay, powerOutcomeOf } from './powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
-import { modifierContext, reasonModifierInUse, type ActiveModifier } from './modifiers.js'
+import {
+    modifierContext,
+    modifiersResolveBeforePower,
+    reasonModifierInUse,
+    type ActiveModifier
+} from './modifiers.js'
 import {
     adviserExcessAfterPlay,
     advisersTowardLimit,
@@ -299,8 +304,9 @@ export function playMapChanges(
  * R-7.3.3 — the play's own gains, planned from the steps `playCard` takes and in its order, on the state before
  * the play: the card discarded first gives its tokens back (R-10.5) and writes the Homeland ledger (R-11.2), the
  * site gives its favor (Book of Records: a secret instead), then the Homeland pays. An adviser play gives back the
- * tokens of the advisers it discards. Land Warden's second card starts from the kept card's gains. The relic a
- * Homeland gives is not planned: no check reads it, and its identity is the vault's.
+ * tokens of the advisers it discards. From revision 31 a faceup play's carried modifiers then pay (R-7.3.3-H3).
+ * Land Warden's second card starts from the kept card's gains. The relic a Homeland gives is not planned: no check
+ * reads it, and its identity is the vault's.
  */
 function playGains(
     state: HydratedOathGameState,
@@ -348,20 +354,26 @@ function playGains(
     } else if (play === SearchPlay.Adviser) {
         for (const id of options.discardedAdviserCardIds ?? []) giveBack(id)
     }
-    const favorAfter =
-        siteId !== undefined && !earlier && kindOf(cardId) === CardKind.Denizen
-            ? favorGainedAfterPlay(favorBank, homeBank, options.carried ?? [])
-            : 0
+    const carried = options.carried ?? []
+    const paysAfterPlay = !earlier && kindOf(cardId) === CardKind.Denizen
+    let favorAfter = 0
+    if (paysAfterPlay && modifiersResolveBeforePower(state)) {
+        // R-7.3.3-H3 — taken before the power, so the banks its check reads hold it taken.
+        if (isFaceupPlay(play, options.faceUp))
+            favorAfter = takeFavorAfterPlay(favorBank, homeBank, carried)
+    } else if (paysAfterPlay && siteId !== undefined) {
+        // R-X.4 — before revision 31, taken after the power, from banks the power had already read.
+        favorAfter = takeFavorAfterPlay({ ...favorBank }, homeBank, carried)
+    }
     return { secrets, returning, favorBank, favorTaken, favorAfter }
 }
 
-/** R-7.4 — Welcoming Party's favor once the play is made, each carried card's bank in turn, from the banks given. */
-function favorGainedAfterPlay(
-    banks: Readonly<Record<Suit, number>>,
+/** R-7.4 — Welcoming Party's favor once the play is made, each carried card's bank in turn, from `favorBank`. */
+function takeFavorAfterPlay(
+    favorBank: Record<Suit, number>,
     homeBank: Suit | undefined,
     carried: readonly ActiveModifier[]
 ): number {
-    const favorBank = { ...banks }
     let gained = 0
     for (const suit of carried.flatMap((m) => m.hooks.playFavorFrom ?? [])) {
         const taken = favorTakenFrom(favorBank[suit], 1)
@@ -423,6 +435,19 @@ export interface CardPlayResult {
     outcome: PowerOutcome
 }
 
+/** R-7.3.3 — a play up to its When Played power: the card where it goes, and what the play gained first. */
+export interface BegunCardPlay {
+    favorGained: number
+    secretsGained: number
+    favorTaken: readonly FavorTake[]
+    discarded: string[]
+    sitePower?: string
+    /** Saddle Makers' Q&A — paid once the card is played, before its power (undefined before revision 4). */
+    triggeredFirst?: string[]
+    /** Read before the play changed the map, as the check reads it. */
+    mapChanges: PlayMapChanges
+}
+
 export function playCard(
     state: HydratedOathGameState,
     playerId: string,
@@ -431,6 +456,22 @@ export function playCard(
     region: Region,
     options: CardPlayOptions = {}
 ): CardPlayResult {
+    const begun = beginCardPlay(state, playerId, cardId, play, region, options)
+    return finishCardPlay(state, playerId, cardId, play, begun, options)
+}
+
+/**
+ * R-7.3.3 — "Gain favor from playing to site, resolve Homeland site powers, and resolve modifiers before resolving
+ * this": the play up to its power. A Search's modifiers resolve before `finishCardPlay` (R-7.3.3-H3).
+ */
+export function beginCardPlay(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    region: Region,
+    options: CardPlayOptions = {}
+): BegunCardPlay {
     const player = state.getPlayerState(playerId)
     const discarded: string[] = []
     const discard = (id: string) => {
@@ -509,18 +550,50 @@ export function playCard(
         }
     }
 
-    const faceupPlay = isFaceupPlay(play, options.faceUp)
-    // R-7.1.4 — "After another player plays a … card" (Saddle Makers). Faceup only: a facedown card has no suit.
-    // A Vision revealed, or the Conspiracy played, is a faceup play too (Book Binders).
-    const playedFaceup =
-        faceupPlay || play === SearchPlay.RevealedVision || play === SearchPlay.Conspiracy
-    const cardPlayedTriggers = () =>
-        playedFaceup ? afterCardPlayedPersistent(state, playerId, cardId) : []
     // Saddle Makers' Q&A — it pays once the card is played, before its When Played power.
     const triggeredFirst = isAtLeastOathRevision(state, OathRevision.CardFixes1)
-        ? cardPlayedTriggers()
+        ? cardPlayedTriggers(state, playerId, cardId, play, options)
         : undefined
+    return {
+        favorGained,
+        secretsGained,
+        favorTaken,
+        discarded,
+        sitePower,
+        triggeredFirst,
+        mapChanges
+    }
+}
 
+/**
+ * R-7.1.4 — "After another player plays a … card" (Saddle Makers). Faceup only: a facedown card has no suit. A
+ * Vision revealed, or the Conspiracy played, is a faceup play too (Book Binders).
+ */
+function cardPlayedTriggers(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    options: CardPlayOptions
+): string[] {
+    const playedFaceup =
+        isFaceupPlay(play, options.faceUp) ||
+        play === SearchPlay.RevealedVision ||
+        play === SearchPlay.Conspiracy
+    return playedFaceup ? afterCardPlayedPersistent(state, playerId, cardId) : []
+}
+
+/** R-7.3.3 — the rest of a play begun: its When Played power, then the triggers that wait for it. */
+export function finishCardPlay(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    begun: BegunCardPlay,
+    options: CardPlayOptions = {}
+): CardPlayResult {
+    const faceupPlay = isFaceupPlay(play, options.faceUp)
+    const { mapChanges } = begun
     let whenPlayed: string | undefined
     let endsActPhase = false
     let outcome: PowerOutcome = {}
@@ -547,14 +620,15 @@ export function playCard(
         }
     }
 
-    const triggered = triggeredFirst ?? cardPlayedTriggers()
+    const triggered =
+        begun.triggeredFirst ?? cardPlayedTriggers(state, playerId, cardId, play, options)
     return {
-        favorGained,
-        secretsGained,
-        favorTaken,
-        discarded,
+        favorGained: begun.favorGained,
+        secretsGained: begun.secretsGained,
+        favorTaken: begun.favorTaken,
+        discarded: begun.discarded,
         whenPlayed,
-        sitePower,
+        sitePower: begun.sitePower,
         triggered: triggered.length > 0 ? triggered : undefined,
         endsActPhase: endsActPhase || undefined,
         outcome

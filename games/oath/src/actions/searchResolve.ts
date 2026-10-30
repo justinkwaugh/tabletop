@@ -13,12 +13,20 @@ import { discardCards } from '../util/discard.js'
 import { regionOfPawn, pawnSiteId } from '../util/pawn.js'
 import { isFaceupPlay, isIrreversible } from '../util/powerDoorway.js'
 import { PowerChoice } from '../util/powerChoice.js'
-import { discardTargetOf, runAfter, searchPlayModifiers } from '../util/modifiers.js'
+import {
+    discardTargetOf,
+    modifiersResolveBeforePower,
+    runAfter,
+    searchPlayModifiers
+} from '../util/modifiers.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses, forgetHand } from '../util/knowledge.js'
 import {
+    beginCardPlay,
+    type CardPlayOptions,
     FavorShort,
     favorShortOf,
+    finishCardPlay,
     playCard,
     playMapChanges,
     reasonCannotPlayCard,
@@ -197,7 +205,7 @@ export class HydratedSearchResolve
         // R-5.1.4
         // Truthful Harp — "you must reveal every card you draw and the card you keep".
         const shown = carried.some((m) => m.hooks.revealsDraw)
-        const played = playCard(state, this.playerId, this.keptCardId, this.play, region, {
+        const keptOptions: CardPlayOptions = {
             faceUp: this.faceUp,
             seen: shown,
             conspiracy: this.conspiracy,
@@ -208,7 +216,32 @@ export class HydratedSearchResolve
             carried,
             discardFirstCardId: this.discardFirstCardId,
             toSiteId: this.toSiteId
-        })
+        }
+        // R-5.1.4, R-9.4 — a facedown adviser has no suit, so only a shown card reaches the hooks.
+        const runModifiers = () =>
+            runAfter(state, this.playerId, carried, {
+                playedCardId: playShowsCard(this.play, this.faceUp) ? this.keptCardId : undefined,
+                playedTo: this.play,
+                secondPlayedCardId: shownSecondCardForAfter(state, this.secondPlay)
+            })
+        const begun = beginCardPlay(
+            state,
+            this.playerId,
+            this.keptCardId,
+            this.play,
+            region,
+            keptOptions
+        )
+        // R-7.3.3-H3 — once, reading both cards, before the kept card's power and the second card's play.
+        const before = modifiersResolveBeforePower(state) ? runModifiers() : undefined
+        const played = finishCardPlay(
+            state,
+            this.playerId,
+            this.keptCardId,
+            this.play,
+            begun,
+            keptOptions
+        )
 
         // HIDDEN-016 — a hand of one card has nowhere else to go: whoever knew it knows the row it took.
         if (
@@ -234,12 +267,8 @@ export class HydratedSearchResolve
               })
             : undefined
 
-        // R-5.1.4, R-9.4 — a facedown adviser has no suit, so only a shown card reaches the hooks.
-        const after = runAfter(state, this.playerId, carried, {
-            playedCardId: playShowsCard(this.play, this.faceUp) ? this.keptCardId : undefined,
-            playedTo: this.play,
-            secondPlayedCardId: shownSecondCardForAfter(state, this.secondPlay)
-        })
+        // R-X.4 — before revision 31, after both plays.
+        const after = before ?? runModifiers()
 
         const pileDeposits = [
             ...(played.outcome.pileDeposits ?? []),

@@ -99,8 +99,9 @@ export interface PlayGains {
      */
     favorTaken: readonly FavorTake[]
     /**
-     * R-7.4 — the favor a carried modifier gains once a site play is made (Welcoming Party), from the banks this
-     * plan leaves. It is gained after the power, so it is not taken from `favorBank`; a modifier gains once per
+     * R-7.4 — the favor a carried modifier gains once the play is made (Welcoming Party), from the banks this plan
+     * leaves. From revision 31 it is gained before the power (R-7.3.3-H3), on a faceup play, and taken from
+     * `favorBank`; before it, on a site play, after the power, so not taken from it. A modifier gains once per
      * action (R-7.4.2), so Land Warden's second card plans none.
      */
     favorAfter: number

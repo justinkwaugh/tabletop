@@ -11,9 +11,11 @@ import { Region } from '../model/oathEnums.js'
 import { ConspiracyPlay } from '../model/conspiracy.js'
 import { playShowsCard, SearchPlay } from './searchResolve.js'
 import {
+    beginCardPlay,
+    type CardPlayOptions,
     FavorShort,
     favorShortOf,
-    playCard,
+    finishCardPlay,
     playMapChanges,
     reasonCannotPlaceCard,
     reasonCannotPlayCard
@@ -27,6 +29,7 @@ import {
     discardTargetOf,
     ModifierUse,
     ModifierUses,
+    modifiersResolveBeforePower,
     payModifierCosts,
     resolveModifiers,
     runAfter,
@@ -162,7 +165,7 @@ export class HydratedPlayFacedownAdviser
         player.removeAdviser(this.cardId)
 
         // R-6.1: "as if you searched" (R-5.1.4), faceup.
-        const played = playCard(state, this.playerId, this.cardId, this.play, region, {
+        const options: CardPlayOptions = {
             faceUp: true,
             conspiracy: this.conspiracy,
             choices: this.choices,
@@ -172,9 +175,15 @@ export class HydratedPlayFacedownAdviser
             discardFirstCardId: this.discardFirstCardId,
             carried: active,
             discardTarget
-        })
+        }
         const playedCardId = playShowsCard(this.play, true) ? this.cardId : undefined
-        const after = runAfter(state, this.playerId, active, { playedCardId, playedTo: this.play })
+        const runModifiers = () =>
+            runAfter(state, this.playerId, active, { playedCardId, playedTo: this.play })
+        const begun = beginCardPlay(state, this.playerId, this.cardId, this.play, region, options)
+        // R-7.3.3-H3 — before its When Played power; before revision 31 (R-X.4), after it.
+        const before = modifiersResolveBeforePower(state) ? runModifiers() : undefined
+        const played = finishCardPlay(state, this.playerId, this.cardId, this.play, begun, options)
+        const after = before ?? runModifiers()
         const short = favorShortOf(played.favorTaken)
 
         this.metadata = {
