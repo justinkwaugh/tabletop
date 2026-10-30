@@ -90,7 +90,7 @@
         <Button color="light" type="button" onclick={cancel}>Cancel</Button>
     {:else}
         <P class="mb-4 text-sm text-gray-600 dark:text-gray-300">
-            To {initiatingAction.description}, sign in again first.
+            For your security, confirm it's you before you {initiatingAction.description}.
         </P>
         {#if failed}
             <Alert color="red" class="mb-4" role="alert">That password was not accepted.</Alert>

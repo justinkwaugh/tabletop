@@ -6,7 +6,7 @@ import {
     type DiscordAuthorizationSuccess
 } from './discordAuthorization'
 
-export const DISCORD_LINK_DESCRIPTION = 'link your Discord account'
+export const DISCORD_LINK_DESCRIPTION = 'add Discord as another way to sign in to your account'
 
 // Linking goes through the Recent Authentication prompt: a refusal at either end of the popup
 // round trip asks the person to confirm, and the retry begins a fresh authorization attempt.
