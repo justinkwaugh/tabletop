@@ -82,7 +82,9 @@ const ZERTZ_LIP = 0.04
 // along it, for its shading.
 const ZERTZ_FROM = TROUGH.outer - (TROUGH.outer - TROUGH.inner) * 0.6
 const ZERTZ_ACROSS = 32
-const ZERTZ_ALONG = 6
+const ZERTZ_ALONG = 24
+// Rows from the ring groove's edge out to where the notch leaves the disc.
+const ZERTZ_MOUTH_ROWS = 4
 // How far a carving must lower the top before it is drawn, and before it is drawn solid.
 const CARVE_MIN = 0.006
 const CARVE_FADE = 0.012
@@ -407,20 +409,27 @@ function rimNotch(
     const groove = (out: number) => THICKNESS - grooveDepth(out, TROUGH)
     const surface = (out: number, side: number) => smoothMin(groove(out), notch(side), ZERTZ_FILLET)
 
-    const outs = [
-        ...Array.from(
-            { length: ZERTZ_ALONG },
-            (_, step) => ZERTZ_FROM + ((TROUGH.outer - ZERTZ_FROM) * step) / ZERTZ_ALONG
-        ),
-        TROUGH.outer,
-        (TROUGH.outer + reach) / 2,
-        reach
-    ]
     const width = filletCentre
     const sides = Array.from(
         { length: ZERTZ_ACROSS + 1 },
         (_, step) => -width + (2 * width * step) / ZERTZ_ACROSS
     )
+    // Where the notch leaves the disc: facing you, through the side where the disc is solid at
+    // the notch's height, which is further in towards its lips, where the edge rounds over.
+    const mouth = (side: number) => (facesYou ? profile(notch(side)).radius : reach)
+    // Rows across the notch, each a distance out at every point across: through the groove,
+    // then on out to the mouth.
+    const rows = [
+        ...Array.from(
+            { length: ZERTZ_ALONG },
+            (_, step) => () => ZERTZ_FROM + ((TROUGH.outer - ZERTZ_FROM) * step) / ZERTZ_ALONG
+        ),
+        ...Array.from(
+            { length: ZERTZ_MOUTH_ROWS + 1 },
+            (_, step) => (side: number) =>
+                TROUGH.outer + ((mouth(side) - TROUGH.outer) * step) / ZERTZ_MOUTH_ROWS
+        )
+    ]
     const toFlat = (out: number, side: number) => ({
         u: along.u * out + across.u * side,
         v: along.v * out + across.v * side
@@ -430,19 +439,12 @@ function rimNotch(
     const cells = carvedCells(
         flat,
         tone,
-        outs.map((out) => sides.map((side) => toFlat(out, side))),
+        rows.map((row) => sides.map((side) => toFlat(row(side), side))),
         (u, v) => surface(outOf(u, v), sideOf(u, v)),
         (u, v) => groove(outOf(u, v)),
         // Every cell the notch lowers, however little, so its lips round smoothly into the top.
         1e-5
     )
-    const opening = (from: number, out: number) =>
-        polygon([
-            at(from, width, THICKNESS),
-            at(out, width, THICKNESS),
-            at(out, -width, THICKNESS),
-            at(from, -width, THICKNESS)
-        ])
     const rim = TROUGH.outer - 0.02
     const floorHeight = THICKNESS - TROUGH_DEPTH
     // Inside the groove, the notch shows wherever its surface lies, down to the groove's floor.
@@ -462,13 +464,19 @@ function rimNotch(
     // its rounded profile there. On the far side the board shows through above that profile.
     const footprint = polygon([
         at(rim, width, THICKNESS),
-        ...sides.toReversed().map((side) => at(reach, side, notch(side))),
+        ...sides.toReversed().map((side) => at(mouth(side), side, notch(side))),
         at(rim, -width, THICKNESS)
     ])
+    // On the far side the rim is open above the notch's profile, where the board shows through.
+    const beyond = polygon([
+        at(1.3, width, THICKNESS),
+        ...sides.toReversed().map((side) => at(reach, side, notch(side))),
+        at(1.3, -width, THICKNESS)
+    ])
     return {
-        // Facing you, the cut is the notch itself; on the far side it also opens the rim above
-        // the notch's profile, where the board shows through.
-        through: [facesYou ? footprint : opening(rim, 1.03)],
+        // Facing you, nothing is cut: the backing and the notch's surface cover all it takes
+        // away, and a cut's soft edge under them showed as a seam.
+        through: facesYou ? [] : [beyond],
         clip: [footprint, inGroove],
         backing: [footprint],
         cells

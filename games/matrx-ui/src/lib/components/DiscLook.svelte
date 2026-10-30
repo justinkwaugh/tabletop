@@ -144,7 +144,7 @@
                         <path d={clip}></path>
                     {/each}
                 </clipPath>
-                <!-- Unclipped and edged, the backing covers the cut's soft edge. -->
+                <!-- Unclipped, the backing covers the cut's soft edge. -->
                 {#each mark.backings as backing, backingIndex (backingIndex)}
                     <path d={backing} class="notch-backing {tone}"></path>
                 {/each}
@@ -159,20 +159,13 @@
 </g>
 
 <style>
-    .notch-backing {
-        stroke-width: 0.8;
-        stroke-linejoin: round;
-    }
-
     /* The top's own colour, where the notch's lips meet it. */
     .notch-backing.light {
         fill: #ece6d0;
-        stroke: #ece6d0;
     }
 
     .notch-backing.dark {
         fill: #2c2829;
-        stroke: #2c2829;
     }
 
     .hole-wall.light {
