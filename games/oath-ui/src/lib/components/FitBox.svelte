@@ -146,7 +146,7 @@
     /* More below: a line in the frame's colour at full opacity along the box's bottom, and a fade
        over its last 36 px that goes once scrolled to the end. A browser without scroll-driven
        animation keeps the line and has no fade. */
-    @property --fit-fade {
+    @property --oath-fit-fade {
         syntax: '<length>';
         inherits: false;
         initial-value: 0px;
@@ -154,15 +154,19 @@
     @keyframes fit-more {
         0%,
         92% {
-            --fit-fade: 36px;
+            --oath-fit-fade: 36px;
         }
         100% {
-            --fit-fade: 0px;
+            --oath-fit-fade: 0px;
         }
     }
     .fit--more {
         border-bottom: 2px solid var(--oath-frame);
-        mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fit-fade)), rgb(0 0 0 / 0.2));
+        mask-image: linear-gradient(
+            to bottom,
+            #000 calc(100% - var(--oath-fit-fade)),
+            rgb(0 0 0 / 0.2)
+        );
         animation: fit-more linear both;
         animation-timeline: scroll(self);
     }

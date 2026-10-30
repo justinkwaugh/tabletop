@@ -108,7 +108,7 @@ function measureFit() {
 }
 
 const fitFade = (page: Page) =>
-    fit(page).evaluate((box) => getComputedStyle(box).getPropertyValue('--fit-fade').trim())
+    fit(page).evaluate((box) => getComputedStyle(box).getPropertyValue('--oath-fit-fade').trim())
 
 async function scrollToEnd(page: Page) {
     await fit(page).evaluate((box) => (box.scrollTop = box.scrollHeight))
