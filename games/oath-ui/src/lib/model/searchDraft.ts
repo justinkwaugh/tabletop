@@ -47,7 +47,15 @@ export type SearchPlacementOption = SearchPlacement & {
     room: AdviserRoom
 }
 type JudgedPlacement = SearchPlacementOption & { blockedBecause: string | undefined }
-export type SecondPlay = SearchSecondPlay & { label: string; mode: string; key: string }
+export type SecondPlay = SearchSecondPlay & {
+    label: string
+    mode: string
+    key: string
+    /** R-5.1.4.II — at the adviser limit, how many must go and which may, as for the kept card. */
+    room: AdviserRoom
+}
+
+const NO_ROOM: AdviserRoom = { needed: 0, discardable: [] }
 
 /** Chosen beside the placement: another site, a Great Slum discard, a Land Warden second play. */
 type SearchExtras = { toSiteId?: string; discardFirstCardId?: string; secondKey?: string }
@@ -62,6 +70,7 @@ type SearchValueByStage = {
     displaced: string[]
     whenPlayed: WhenPlayedPicks
     conspiracy: ConspiracyPick
+    secondDisplaced: string[]
     discardOrder: string[]
 }
 
@@ -72,6 +81,7 @@ const SEARCH_STAGE_ORDER = [
     'displaced',
     'whenPlayed',
     'conspiracy',
+    'secondDisplaced',
     'discardOrder'
 ] as const
 const _searchStagesAreCovered: StagesCover<SearchValueByStage, typeof SEARCH_STAGE_ORDER> = true
@@ -165,7 +175,7 @@ export class SearchDraft implements PanelDraft {
 
     /** R-5.1.4.II — the advisers the chosen play may discard; empty when there is room. */
     get room(): AdviserRoom {
-        return this.chosenOption?.room ?? { needed: 0, discardable: [] }
+        return this.chosenOption?.room ?? NO_ROOM
     }
 
     get displaceable(): string[] {
@@ -350,8 +360,13 @@ export class SearchDraft implements PanelDraft {
             : { carried }
     }
 
-    /** The placement and the picks it asks for are all made; the discard order is next. */
+    /** The placement and the picks both plays ask for are all made; the discard order is next. */
     get placed(): boolean {
+        return this.keptPlayPicked && !this.needsSecondDisplaced
+    }
+
+    /** The kept card's placement and the picks its play asks for are all made. */
+    private get keptPlayPicked(): boolean {
         return (
             this.placement !== undefined &&
             !this.needsDisplaced &&
@@ -375,15 +390,35 @@ export class SearchDraft implements PanelDraft {
         return this.drawn
             .filter((id) => id !== kept)
             .flatMap((cardId) => [
-                this.secondPlay(cardId, SearchPlay.Site, 'to your site'),
-                this.secondPlay(cardId, SearchPlay.Adviser, 'adviser, faceup', true),
-                this.secondPlay(cardId, SearchPlay.Adviser, 'adviser, facedown', false)
+                this.secondPlay(playerId, cardId, SearchPlay.Site, 'to your site'),
+                this.secondPlay(playerId, cardId, SearchPlay.Adviser, 'adviser, faceup', true),
+                this.secondPlay(playerId, cardId, SearchPlay.Adviser, 'adviser, facedown', false)
             ])
             .filter((option) => this.pairsWithAnOpenPlacement(playerId, kept, option))
     }
 
     get second() {
         return this.secondPlays.find((option) => option.key === this.extras.secondKey)
+    }
+
+    /** Land Warden, R-5.1.4.II — the advisers the second card's play may discard; empty when there is room. */
+    get secondRoom(): AdviserRoom {
+        return this.second?.room ?? NO_ROOM
+    }
+
+    get secondDisplaceable(): string[] {
+        return this.secondRoom.discardable
+    }
+
+    get secondDisplaced(): string[] {
+        return (this.flow.value('secondDisplaced') ?? []).filter((id) =>
+            this.secondDisplaceable.includes(id)
+        )
+    }
+
+    // The kept card is played first, with its own picks; the second card's adviser is asked after them.
+    get needsSecondDisplaced(): boolean {
+        return this.keptPlayPicked && this.secondDisplaced.length < this.secondRoom.needed
     }
 
     get others() {
@@ -496,6 +531,15 @@ export class SearchDraft implements PanelDraft {
         await this.resolveWhenOrdered()
     }
 
+    async chooseSecondDisplaced(cardId: string): Promise<void> {
+        if (!this.secondDisplaceable.includes(cardId)) return
+        this.flow.set(
+            'secondDisplaced',
+            toggledDiscard(this.secondDisplaced, this.secondRoom, cardId)
+        )
+        await this.resolveWhenOrdered()
+    }
+
     setPicks(picks: PowerChoicePicks): void {
         if (this.whenPlayed.length > 0) this.flow.set('whenPlayed', { picks, confirmed: false })
     }
@@ -554,6 +598,7 @@ export class SearchDraft implements PanelDraft {
         const second = this.second
         const choices = this.choices
         const displaced = this.displaced
+        const secondDisplaced = this.secondDisplaced
         const conspiracy = this.conspiracy
         await this.session.resolveSearch({
             keptCardId: kept,
@@ -572,23 +617,34 @@ export class SearchDraft implements PanelDraft {
                       secondPlay: {
                           cardId: second.cardId,
                           play: second.play,
-                          ...(second.faceUp === undefined ? {} : { faceUp: second.faceUp })
+                          ...(second.faceUp === undefined ? {} : { faceUp: second.faceUp }),
+                          ...(secondDisplaced.length > 0
+                              ? { discardedAdviserCardIds: secondDisplaced }
+                              : {})
                       }
                   }
                 : {})
         })
     }
 
+    // R-5.1.4.II — at the limit the second card's adviser play is offered when some adviser could make room, as
+    // the kept card's is; the kept card's play leaves the advisers as they are, since only one of the two is one.
     private secondPlay(
+        playerId: string,
         cardId: string,
         play: SearchPlay,
         mode: string,
         faceUp?: boolean
     ): SecondPlay {
+        const room =
+            play === SearchPlay.Adviser
+                ? adviserRoom(this.session.gameState, playerId, cardId, { faceUp })
+                : NO_ROOM
         return {
             cardId,
             play,
             faceUp,
+            room,
             mode,
             label: `${cardName(cardId)} — ${mode}`,
             key: `${cardId}|${play}|${faceUp ?? ''}`
@@ -606,7 +662,7 @@ export class SearchDraft implements PanelDraft {
         const room =
             option.play === SearchPlay.Adviser
                 ? adviserRoom(state, playerId, cardId, { faceUp: option.faceUp })
-                : { needed: 0, discardable: [] }
+                : NO_ROOM
         const refused = reasonCannotPlaceCard(state, playerId, cardId, option.play, {
             faceUp: option.faceUp,
             discardedAdviserCardIds: room.discardable.slice(0, room.needed)
@@ -618,7 +674,7 @@ export class SearchDraft implements PanelDraft {
         return { ...option, room, blockedBecause: openElsewhere ? undefined : refused }
     }
 
-    private pairsWithAnOpenPlacement(playerId: string, kept: string, second: SearchSecondPlay) {
+    private pairsWithAnOpenPlacement(playerId: string, kept: string, second: SecondPlay) {
         return PLACEMENTS.some(
             (option) =>
                 this.placementOption(playerId, kept, option).blockedBecause === undefined &&
@@ -636,14 +692,23 @@ export class SearchDraft implements PanelDraft {
 
     // Land Warden — the second card as the engine judges it after the kept card's play: its When Played
     // power counts the map that play leaves (Riots), and the kept card's own When Played power when it is
-    // played faceup.
+    // played faceup. At the adviser limit it is judged with the first advisers that may go, as a placement is.
     private reasonSecondCannotFollow(
         playerId: string,
         kept: string,
         first: SearchPlacement,
-        second: SearchSecondPlay
+        option: SecondPlay
     ): string | undefined {
         const state = this.session.gameState
+        const { room } = option
+        const second: SearchSecondPlay = {
+            cardId: option.cardId,
+            play: option.play,
+            faceUp: option.faceUp,
+            ...(room.needed > 0
+                ? { discardedAdviserCardIds: room.discardable.slice(0, room.needed) }
+                : {})
+        }
         // R-5.1.4.I — the kept card may go to another site, which leaves your site's room to the second card.
         const keptTo = first.play === SearchPlay.Site ? this.toSite : undefined
         // R-5.1.4.I, R-11.10 — a card the kept card discards first at your site leaves its space.

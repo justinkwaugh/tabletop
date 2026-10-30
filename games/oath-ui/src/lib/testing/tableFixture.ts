@@ -95,6 +95,7 @@ import {
 import { shroudedWoodState } from './shroudedWoodTable.js'
 import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
+import { landWardenSecondAdviser } from './landWardenTable.js'
 import { facedownPickerTable } from './facedownPickerTables.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
 import { campaignLedgerTable } from './campaignLedgerTable.js'
@@ -317,6 +318,7 @@ export type TableName =
     | 'gamblingHallJinx'
     | 'wrestlersPick'
     | 'wrestlersOnePlace'
+    | 'landWardenSecondAdviser'
     | 'facedownDreamThief'
     | 'facedownInquisitor'
     | 'facedownIvoryEye'
@@ -5638,6 +5640,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     // R-10.22 — Ann answers Dana's Campaign at the Plains with Wrestlers; Rhys is their Ally.
     wrestlersPick: () => wrestlersDefends(),
     wrestlersOnePlace: () => wrestlersDefends({ annBoard: 0, rhysBoard: 0 }),
+    // R-5.1.4.II — Dana searched with Land Warden at 3 of 3 advisers: the Inn, Longbows and Wrestlers drawn.
+    landWardenSecondAdviser,
     // R-9.4 — Dana's facedown adviser picks: Dream Thief, Inquisitor (all at the Plains), the Ivory Eye.
     facedownDreamThief: () => facedownPickerTable('dreamThief'),
     facedownInquisitor: () => facedownPickerTable('inquisitor'),
@@ -5955,4 +5959,15 @@ export function defeatPicks(): { required: number; picked: number[]; blockedBeca
 
 export function cardTokens(cardId: string): { favor: number; secrets: number } {
     return current().gameState.tokensOn(cardId)
+}
+
+/** R-5.1.4.II — the open seat's advisers as it knows them, in order. */
+export function myAdvisers(): { cardId: string; faceUp: boolean }[] {
+    const table = current()
+    const seatId = table.myPlayer?.id
+    assertExists(seatId, 'A seat is open')
+    return table.gameState
+        .getPlayerState(seatId)
+        .knownAdvisers()
+        .map((adviser) => ({ cardId: adviser.cardId, faceUp: adviser.faceUp }))
 }
