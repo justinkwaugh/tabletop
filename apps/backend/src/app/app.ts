@@ -95,7 +95,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         origin: [FRONTEND_HOST],
         credentials: true,
         methods: ['GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-        exposedHeaders: ['X-Tabletop-Version', 'ETag']
+        exposedHeaders: ['X-Tabletop-Version', 'ETag', 'Retry-After']
     })
 
     assertExists(SESSION_KEY, 'The backend supervisor provides SESSION_KEY')

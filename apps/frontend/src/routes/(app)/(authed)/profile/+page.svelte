@@ -3,8 +3,12 @@
     import { EyeSolid, EyeSlashSolid } from 'flowbite-svelte-icons'
     import { z } from 'zod'
     import { zfd } from 'zod-form-data'
-    import { assert, ExternalAuthService, UserStatus } from '@tabletop/common'
-    import { onDestroy } from 'svelte'
+    import {
+        assert,
+        ExternalAuthService,
+        externalIdentityProvider,
+        UserStatus
+    } from '@tabletop/common'
     import { goto } from '$app/navigation'
     import googleLogo from '$lib/components/images/google.jpg'
     import discordLogo from '$lib/components/images/discord.png'
@@ -48,19 +52,12 @@
     })
 
     let linkedAccountIdsByType: Map<string, string> = $derived.by(() => {
-        return new Map(
-            user?.externalIds?.map((id) => {
-                const split = id.split(':', 2)
-                const type = split[0]
-                return [type, id]
-            }) ?? []
-        )
+        return new Map(user?.externalIds?.map((id) => [externalIdentityProvider(id), id]) ?? [])
     })
 
     let username: string | undefined = $state(sessionUser?.username)
     let password: string | undefined = $state(undefined)
     let email: string | undefined = $state(sessionUser?.email)
-    onDestroy(() => reauthentication.cancel())
 
     const updateProfileSchema = zfd.formData({
         username: zfd.text(z.string(requiredMessage)),

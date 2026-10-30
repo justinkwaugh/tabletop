@@ -304,7 +304,8 @@ export class TabletopApi {
     async reauthenticateWithPassword(password: string): Promise<void> {
         await this.wretch
             .post({ password }, '/auth/reauthenticate')
-            .unauthorized(this.handleError)
+            .unauthorized(this.onPasswordReauthenticationUnauthorized)
+            .error(429, this.onReauthenticationRateLimit)
             .badRequest(this.handleError)
             .json()
     }
@@ -1240,6 +1241,23 @@ export class TabletopApi {
         } else {
             throw new APIError({ name: 'UnknownError', message: 'An unknown error occurred' })
         }
+    }
+
+    private onPasswordReauthenticationUnauthorized = async (error: WretchError) => {
+        if (error.json?.error?.name === 'ReauthenticationFailedError') {
+            return this.handleError(error)
+        }
+        return this.on401()
+    }
+
+    private onReauthenticationRateLimit = (error: WretchError) => {
+        const retryAfter = error.response?.headers.get('retry-after')
+        throw new APIError({
+            name: 'ReauthenticationRateLimitError',
+            message: retryAfter
+                ? `Too many confirmation attempts. Try again in ${retryAfter} seconds.`
+                : 'Too many confirmation attempts. Please wait before trying again.'
+        })
     }
 
     private on401 = async () => {

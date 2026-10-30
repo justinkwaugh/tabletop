@@ -75,6 +75,89 @@ async function requireConfirmation(page: Page) {
     return prompt
 }
 
+test('throttled password confirmation explains when to retry', async ({ page }) => {
+    await page.route('**/api/v1/auth/reauthenticate', (route) =>
+        route.fulfill({
+            status: 429,
+            headers: { 'retry-after': '60', 'access-control-expose-headers': 'Retry-After' },
+            json: {
+                error: {
+                    name: 'BudgetExceededError',
+                    message: 'Too many login attempts, retry in 60 seconds'
+                }
+            }
+        })
+    )
+    const prompt = await requireConfirmation(page)
+    await prompt.getByLabel('Password', { exact: true }).fill('correct-synthetic-password')
+    await prompt.getByRole('button', { name: 'Confirm', exact: true }).click()
+    await expect(
+        prompt.getByText('Too many confirmation attempts. Try again in 60 seconds.', {
+            exact: true
+        })
+    ).toBeVisible()
+    await expect(prompt.getByText('That password was not accepted.', { exact: true })).toHaveCount(
+        0
+    )
+})
+
+test('a failed confirmation request does not blame the password', async ({ page }) => {
+    await page.route('**/api/v1/auth/reauthenticate', (route) => route.abort('failed'))
+    const prompt = await requireConfirmation(page)
+    await prompt.getByLabel('Password', { exact: true }).fill('correct-synthetic-password')
+    await prompt.getByRole('button', { name: 'Confirm', exact: true }).click()
+    await expect(
+        prompt.getByText('We could not confirm your identity. Please try again.', { exact: true })
+    ).toBeVisible()
+})
+
+test('a revoked session during confirmation returns to sign-in', async ({ page }) => {
+    await page.route('**/api/v1/auth/reauthenticate', (route) =>
+        route.fulfill({
+            status: 401,
+            json: { error: { name: 'Error', message: 'Session is not live' } }
+        })
+    )
+    const prompt = await requireConfirmation(page)
+    await page.route('**/api/v1/user/self', (route) => route.fulfill({ status: 401 }))
+    await prompt.getByLabel('Password', { exact: true }).fill('correct-synthetic-password')
+    await prompt.getByRole('button', { name: 'Confirm', exact: true }).click()
+    await expect(page).toHaveURL(/\/login$/)
+    await expect(prompt).toHaveCount(0)
+})
+
+test('expired confirmation on Continue asks again without opening a popup', async ({ page }) => {
+    const popups: Page[] = []
+    page.on('popup', (popup) => popups.push(popup))
+    await page.route('**/api/v1/auth/reauthenticate', (route) =>
+        route.fulfill({ json: { payload: {} } })
+    )
+    const prompt = await requireConfirmation(page)
+    await prompt.getByLabel('Password', { exact: true }).fill('correct-synthetic-password')
+    await prompt.getByRole('button', { name: 'Confirm', exact: true }).click()
+    await expect(prompt.getByRole('button', { name: 'Continue', exact: true })).toBeVisible()
+    await prompt.getByRole('button', { name: 'Continue', exact: true }).click()
+    await expect(prompt.getByLabel('Password', { exact: true })).toBeVisible()
+    await expect(page.locator('[data-sonner-toast][data-type="error"]')).toHaveCount(0)
+    expect(popups).toHaveLength(0)
+})
+
+test('leaving Notifications cancels its pending link', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: 'Edit your profile...' })).toBeVisible()
+    await page.evaluate(() => {
+        const link = document.createElement('a')
+        link.href = '/notifications'
+        document.body.append(link)
+        link.click()
+        link.remove()
+    })
+    await expect(page).toHaveURL(/\/notifications$/)
+    const prompt = await requireConfirmation(page)
+    await page.goBack()
+    await expect(page).toHaveURL(/\/profile$/)
+    await expect(prompt).toHaveCount(0)
+})
+
 test.beforeEach(async ({ page, context }) => {
     await context.route('https://discord.com/**', (route) => route.abort())
     await context.route('https://accounts.google.com/**', (route) => route.abort())

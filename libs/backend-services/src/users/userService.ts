@@ -5,7 +5,6 @@ import {
     ExternalAuthService,
     remove,
     Role,
-    sessionGenerationOf,
     User,
     UserPreferences,
     UserStatus,
@@ -26,7 +25,10 @@ import {
 import type { StoredUser } from '../persistence/model/storedUser.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { NotFoundError } from '../persistence/stores/errors.js'
-import type { AuthenticatedSession } from '../sessions/authenticatedSession.js'
+import {
+    isSessionLiveForAccount,
+    type AuthenticatedSession
+} from '../sessions/authenticatedSession.js'
 import { SessionNotLiveError } from '../sessions/sessionService.js'
 import {
     hasRecentAuthentication,
@@ -187,10 +189,7 @@ export class UserService {
             validator: (existingUser, fieldsToUpdate) => {
                 requireSessionEligibleAccount(existingUser)
                 const now = new Date()
-                if (
-                    session.expiresAt <= now ||
-                    session.generation !== sessionGenerationOf(existingUser)
-                ) {
+                if (!isSessionLiveForAccount(session, existingUser, now)) {
                     throw new SessionNotLiveError()
                 }
                 const changesCredentials =

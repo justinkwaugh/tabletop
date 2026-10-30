@@ -1,7 +1,8 @@
 <script module lang="ts">
     import { PUBLIC_ENABLE_DISCORD_LOGIN } from '$env/static/public'
+    import type { DiscordAuthorizationPurpose } from '@tabletop/frontend-components'
     export const isEnabled: boolean = !!PUBLIC_ENABLE_DISCORD_LOGIN
-    export type DiscordSignInMode = 'login' | 'link' | 'reauthenticate' | 'bot'
+    export type DiscordSignInMode = DiscordAuthorizationPurpose | 'bot'
 </script>
 
 <script lang="ts">

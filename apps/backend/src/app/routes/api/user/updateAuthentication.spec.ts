@@ -68,7 +68,7 @@ describe('Recent Authentication for profile submissions', () => {
         const signIn = async (ageMinutes = 0, withoutProof = false) => {
             const established = await sessions.establish(
                 account(),
-                withoutProof ? 'challenge' : 'authentication-method'
+                withoutProof ? { authenticatedAt: undefined } : 'authentication-method'
             )
             const session = await sessionStore.update(established.id, (stored) => ({
                 ...stored,

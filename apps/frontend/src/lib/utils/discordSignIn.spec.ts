@@ -228,13 +228,55 @@ describe('linking a Discord account', () => {
             const pending = reauthentication.resume(continuation)
             expect(window.open).toHaveBeenCalledTimes(1)
             await delivered()
-            expect(api.beginDiscordAuthorization).toHaveBeenCalledTimes(2)
-            fromPopup({ state: 'link.attempt-2', purpose: 'link', outcome: 'success', user })
+            expect(api.beginDiscordAuthorization).toHaveBeenCalledTimes(1)
+            fromPopup({ state: 'link.attempt-1', purpose: 'link', outcome: 'success', user })
             await pending
             expect(oncomplete).toHaveBeenCalledTimes(1)
             expect(report).not.toHaveBeenCalled()
         }
     )
+
+    it('rechecks an expired prepared attempt without opening a popup when proof has lapsed', async () => {
+        vi.stubGlobal('navigator', { userActivation: { isActive: false } })
+        const now = Date.now()
+        const clock = vi.spyOn(Date, 'now').mockReturnValue(now)
+        try {
+            const { api, report, run } = flow('link')
+            await run()
+            const ready = reauthentication.pending
+            assertExists(ready, 'The link is ready for a click')
+            clock.mockReturnValue(now + 600_000)
+            api.beginDiscordAuthorization.mockRejectedValueOnce(recentAuthenticationRequired())
+            await reauthentication.resume(ready)
+            expect(window.open).not.toHaveBeenCalled()
+            expect(api.beginDiscordAuthorization).toHaveBeenCalledTimes(2)
+            expect(reauthentication.pending?.description).toBe(DISCORD_LINK_DESCRIPTION)
+            expect(reauthentication.confirmed).toBe(false)
+            expect(report).not.toHaveBeenCalled()
+        } finally {
+            clock.mockRestore()
+        }
+    })
+
+    it('requests proof again if the callback of a prepared Continue is refused', async () => {
+        vi.stubGlobal('navigator', { userActivation: { isActive: false } })
+        const { run, report } = flow('link')
+        await run()
+        const ready = reauthentication.pending
+        assertExists(ready, 'The link is ready for a click')
+        const continuing = reauthentication.resume(ready)
+        await delivered()
+        fromPopup({
+            state: 'link.attempt-1',
+            purpose: 'link',
+            outcome: 'error',
+            error: { name: 'RecentAuthenticationRequiredError', message: 'Confirm again' }
+        })
+        await continuing
+        expect(reauthentication.pending?.description).toBe(DISCORD_LINK_DESCRIPTION)
+        expect(reauthentication.confirmed).toBe(false)
+        expect(report).not.toHaveBeenCalled()
+    })
 
     it.each(['allowed', 'confirmation-required'] as const)(
         'ignores a %s preparation response after the account or session changes',

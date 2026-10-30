@@ -162,15 +162,17 @@ describe('Session Generation', () => {
 })
 
 describe('Recent Authentication on an Authenticated Session', () => {
-    it('records proof through an Authentication Method at establishment but not a challenge', async () => {
+    it('records new proof at establishment and preserves an absent proof when renewing', async () => {
         const { sessions } = fixture()
         const now = new Date('2026-10-27T12:00:00.000Z')
         const proved = await sessions.establish(account(UserStatus.Active), 'authentication-method')
         expect(proved.authenticatedAt).toEqual(proved.createdAt)
         expect(hasRecentAuthentication(proved, now)).toBe(true)
-        const challenged = await sessions.establish(account(UserStatus.Active), 'challenge')
-        expect(challenged.authenticatedAt).toBeUndefined()
-        expect(hasRecentAuthentication(challenged, now)).toBe(false)
+        const unproved = await sessions.establish(account(UserStatus.Active), {
+            authenticatedAt: undefined
+        })
+        expect(unproved.authenticatedAt).toBeUndefined()
+        expect(hasRecentAuthentication(unproved, now)).toBe(false)
     })
 
     it('lasts fifteen minutes and is not refreshed by ordinary authorization', async () => {
@@ -189,7 +191,9 @@ describe('Recent Authentication on an Authenticated Session', () => {
 
     it('refreshes only authenticatedAt when proof is recorded again', async () => {
         const { sessions, store, advance } = fixture()
-        const session = await sessions.establish(account(UserStatus.Active), 'challenge')
+        const session = await sessions.establish(account(UserStatus.Active), {
+            authenticatedAt: undefined
+        })
         const later = advance(60 * 60)
         const refreshed = await sessions.recordAuthentication(session)
         expect(refreshed.authenticatedAt).toEqual(later)

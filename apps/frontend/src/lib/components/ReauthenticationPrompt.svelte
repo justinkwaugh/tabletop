@@ -2,8 +2,8 @@
     import { Alert, Button, Label, P } from 'flowbite-svelte'
     import { toast } from 'svelte-sonner'
     import { untrack } from 'svelte'
-    import { ExternalAuthService } from '@tabletop/common'
-    import { getAppContext } from '@tabletop/frontend-components'
+    import { ExternalAuthService, externalIdentityProvider } from '@tabletop/common'
+    import { APIError, getAppContext } from '@tabletop/frontend-components'
     import AuthModal from '$lib/components/AuthModal.svelte'
     import PasswordInput from '$lib/components/PasswordInput.svelte'
     import GoogleSignIn, {
@@ -26,9 +26,7 @@
 
     let open = $derived(reauthentication.pending === initiatingAction)
     let user = $derived(authorizationService.getSessionUser())
-    let linkedProviders = $derived(
-        new Set(user?.externalIds.map((externalId) => externalId.split(':', 2)[0]) ?? [])
-    )
+    let linkedProviders = $derived(new Set(user?.externalIds.map(externalIdentityProvider) ?? []))
     let canUsePassword = $derived(Boolean(user?.hasPassword))
     let canUseGoogle = $derived(
         isGoogleSigninEnabled && linkedProviders.has(ExternalAuthService.Google)
@@ -38,12 +36,12 @@
     )
 
     let password = $state('')
-    let failed = $state(false)
+    let failure: string | undefined = $state(undefined)
     let submitting = $state(false)
 
     async function confirmed() {
         password = ''
-        failed = false
+        failure = undefined
         try {
             await reauthentication.complete(initiatingAction)
         } catch (error) {
@@ -53,7 +51,7 @@
 
     function cancel() {
         password = ''
-        failed = false
+        failure = undefined
         reauthentication.cancel(initiatingAction)
     }
 
@@ -69,12 +67,21 @@
         event.preventDefault()
         if (submitting) return
         submitting = true
-        failed = false
+        failure = undefined
         try {
             await api.reauthenticateWithPassword(password.trim())
             await confirmed()
-        } catch {
-            failed = true
+        } catch (error) {
+            if (error instanceof APIError && error.name === 'ReauthenticationFailedError') {
+                failure = 'That password was not accepted.'
+            } else if (
+                error instanceof APIError &&
+                error.name === 'ReauthenticationRateLimitError'
+            ) {
+                failure = error.message
+            } else {
+                failure = 'We could not confirm your identity. Please try again.'
+            }
         } finally {
             submitting = false
         }
@@ -92,8 +99,8 @@
         <P class="mb-4 text-sm text-gray-600 dark:text-gray-300">
             For your security, confirm it's you before you {initiatingAction.description}.
         </P>
-        {#if failed}
-            <Alert color="red" class="mb-4" role="alert">That password was not accepted.</Alert>
+        {#if failure}
+            <Alert color="red" class="mb-4" role="alert">{failure}</Alert>
         {/if}
         <div class="flex flex-col gap-4">
             {#if canUsePassword}

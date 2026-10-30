@@ -8,7 +8,11 @@ import {
     type ProviderAuthorizationRequest,
     verifyProviderAuthorization
 } from '../oauth/providerAuthorization.js'
-import type { AuthenticatedSession, AuthenticationProof } from './authenticatedSession.js'
+import {
+    isSessionLiveForAccount,
+    type AuthenticatedSession,
+    type AuthenticationProof
+} from './authenticatedSession.js'
 import { hasRecentAuthentication } from './recentAuthentication.js'
 
 export const SESSION_LIFETIME_SECONDS = 30 * 24 * 60 * 60
@@ -43,11 +47,7 @@ export class SessionService {
         requireSessionEligibleAccount(user)
         const createdAt = this.now()
         const authenticatedAt =
-            proof === 'authentication-method'
-                ? createdAt
-                : proof === 'challenge'
-                  ? undefined
-                  : proof.authenticatedAt
+            proof === 'authentication-method' ? createdAt : proof.authenticatedAt
         const session: AuthenticatedSession = {
             id: sessionId(),
             userId: user.id,
@@ -68,15 +68,11 @@ export class SessionService {
         if (!session) {
             return undefined
         }
-        if (session.expiresAt <= this.now()) {
-            await this.sessionStore.delete(id)
-            return undefined
-        }
         const user = await findAccount(session.userId)
         if (!user) {
             return undefined
         }
-        if (session.generation !== sessionGenerationOf(user)) {
+        if (!isSessionLiveForAccount(session, user, this.now())) {
             await this.sessionStore.delete(id)
             return undefined
         }

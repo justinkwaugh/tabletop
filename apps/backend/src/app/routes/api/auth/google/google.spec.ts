@@ -35,7 +35,7 @@ async function fixture(): Promise<DiscordFixture> {
 describe('Google linking and reauthentication', () => {
     it('requires Recent Authentication to link a Google identity', async () => {
         const f = await fixture()
-        const stale = await f.signIn('victim', 'challenge')
+        const stale = await f.signIn('victim', { authenticatedAt: undefined })
         const refused = await f.post(
             '/auth/google/link',
             { credential: 'victim-credential' },
@@ -59,7 +59,7 @@ describe('Google linking and reauthentication', () => {
             ...f.users.get('victim')!,
             externalIds: ['google:victim-google-sub']
         })
-        const victim = await f.signIn('victim', 'challenge')
+        const victim = await f.signIn('victim', { authenticatedAt: undefined })
         const foreign = await f.post(
             '/auth/google/reauthenticate',
             { credential: 'attacker-credential' },

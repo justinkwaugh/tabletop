@@ -1,7 +1,6 @@
 <script lang="ts">
     import { Card, Label, Input, Button, Helper, Alert, P, Hr } from 'flowbite-svelte'
     import { UserStatus, type User } from '@tabletop/common'
-    import { onDestroy } from 'svelte'
     import { getAppContext } from '@tabletop/frontend-components'
     import { challengeExpiryText } from '$lib/utils/challengeExpiry'
     import {
@@ -21,7 +20,6 @@
     let codeExpiresAt: Date | undefined = $state(undefined)
 
     let user = $derived(authorizationService.getSessionUser())
-    onDestroy(() => reauthentication.cancel())
 
     async function updateUser(event: SubmitEvent) {
         event.preventDefault()

@@ -23,6 +23,10 @@ export enum ExternalAuthService {
     Discord = 'discord'
 }
 
+export function externalIdentityProvider(externalId: string): string {
+    return externalId.split(':', 2)[0]
+}
+
 export const REMINDER_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
 export type ReminderDay = (typeof REMINDER_DAYS)[number]
 
