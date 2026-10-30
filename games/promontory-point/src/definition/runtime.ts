@@ -7,6 +7,7 @@ import {
 } from '../model/gameState.js'
 import { PromontoryPointApiActions } from './apiActions.js'
 import { PromontoryPointColors } from './colors.js'
+import { PromontoryPointGameExploration } from './exploration.js'
 import { PromontoryPointHydrator } from './hydrator.js'
 import { PromontoryPointGameInitializer } from './initializer.js'
 import { PromontoryPointProgression } from './progression.js'
@@ -24,6 +25,8 @@ export const PromontoryPointRuntime = {
     scoring: new PromontoryPointScoring(),
     progression: new PromontoryPointProgression(),
     stateLogger: new DefaultStateLogger(),
+    // R-5: a branch deals afresh only what its explorer cannot see.
+    exploration: new PromontoryPointGameExploration(),
     // R-5: the bag and the concealed hands stay off every client that may not see them.
     visibility: {
         state: Visibility.createProjector(PromontoryPointGameState),

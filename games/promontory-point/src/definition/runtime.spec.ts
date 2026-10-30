@@ -7,6 +7,7 @@ import { ActionType } from './actions.js'
 import { PromontoryPointApiActions } from './apiActions.js'
 import { PromontoryPointConfigurator } from './config.js'
 import { Definition } from './definition.js'
+import { PromontoryPointGameExploration } from './exploration.js'
 import { PromontoryPointGameInitializer } from './initializer.js'
 import { PromontoryPointProgression } from './progression.js'
 import { PromontoryPointRuntime } from './runtime.js'
@@ -25,6 +26,11 @@ describe('Promontory Point definition', () => {
         expect(PromontoryPointRuntime.scoring).toBeInstanceOf(PromontoryPointScoring)
         expect(PromontoryPointRuntime.progression).toBeInstanceOf(PromontoryPointProgression)
         expect(Definition.info.metadata.hasScores).toBe(true)
+    })
+
+    it('R-5: registers exploration from projected and from canonical state', () => {
+        expect(PromontoryPointRuntime.exploration).toBeInstanceOf(PromontoryPointGameExploration)
+        expect(Definition.runtime.exploration?.createFromProjectedState).toBeDefined()
     })
 
     it('R-6.3-H1: registers the configurator with the four-piece variant', () => {
