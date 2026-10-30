@@ -28,7 +28,19 @@
     let lightbox = $state(false)
 </script>
 
-<!-- An auction lot as a card: the published image (click to enlarge) or the generated card, which also stands in while the image loads. -->
+<!-- An auction lot as a card: the published image (click to enlarge) or the generated card. -->
+{#snippet card(cardImageUrl?: string)}
+    <PrivateCard
+        {money}
+        phaseColors={session.presentation.phaseColors}
+        {tokens}
+        {name}
+        description={cardImageUrl ? '' : description}
+        value={price}
+        {income}
+        imageUrl={cardImageUrl}
+    />
+{/snippet}
 {#if imageUrl}
     <button
         class="card-button"
@@ -37,16 +49,7 @@
             lightbox = true
         }}
     >
-        <PrivateCard
-            {money}
-            phaseColors={session.presentation.phaseColors}
-            {tokens}
-            {name}
-            description=""
-            value={price}
-            {income}
-            imageUrl={thumbnailUrl}
-        />
+        {@render card(thumbnailUrl)}
     </button>
     {#if lightbox}
         <CardLightbox
@@ -59,15 +62,7 @@
         />
     {/if}
 {:else}
-    <PrivateCard
-        {money}
-        phaseColors={session.presentation.phaseColors}
-        {tokens}
-        {name}
-        {description}
-        value={price}
-        {income}
-    />
+    {@render card()}
 {/if}
 
 <style>

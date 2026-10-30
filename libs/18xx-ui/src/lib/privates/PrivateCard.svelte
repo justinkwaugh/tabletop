@@ -26,11 +26,15 @@
         /** Published card artwork; once it has loaded it replaces the generated card. */
         imageUrl?: string
     } = $props()
-    // The generated card names the company until the artwork arrives, or for good if it fails.
     let loadedUrl: string | undefined = $state()
     const showImage = $derived(!!imageUrl && loadedUrl === imageUrl)
-    function markLoaded(image: HTMLImageElement) {
-        if (image.complete && image.naturalWidth > 0) loadedUrl = imageUrl
+    const awaitingImage = $derived(!!imageUrl && !showImage)
+    function markLoaded() {
+        loadedUrl = imageUrl
+    }
+    function markLoadedIfCached(image: HTMLImageElement) {
+        const url = imageUrl
+        if (image.complete && image.naturalWidth > 0) loadedUrl = url
     }
     const paragraphs = $derived(description.split('\n\n'))
     const phaseReference = /\b(?:phases?|at)\s$/i
@@ -44,14 +48,19 @@
                 color={phaseColors[part]}
             />{:else}{part}{/if}{/each}{/snippet}
 
-<div class="private-card" class:image={showImage} data-card-image={imageUrl ? true : undefined}>
+<div
+    class="private-card"
+    class:image={showImage}
+    class:awaiting-image={awaitingImage}
+    data-card-image={imageUrl ? true : undefined}
+>
     {#if imageUrl}
         <img
             src={imageUrl}
             alt={name}
             hidden={!showImage}
-            onload={() => (loadedUrl = imageUrl)}
-            {@attach markLoaded}
+            onload={markLoaded}
+            {@attach markLoadedIfCached}
         />
     {/if}
     {#if !showImage}
@@ -102,6 +111,15 @@
 </div>
 
 <style>
+    /* Held back so artwork that arrives quickly from cache replaces it unseen. */
+    .private-card.awaiting-image {
+        animation: reveal-stand-in 1ms 200ms backwards;
+    }
+    @keyframes reveal-stand-in {
+        from {
+            visibility: hidden;
+        }
+    }
     .private-card.image {
         border: 0;
         border-radius: 10px;

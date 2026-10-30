@@ -165,5 +165,8 @@
             gap: 3px;
             pointer-events: none;
         }
+        .lot:has(:global(.private-card.awaiting-image)) .badge {
+            display: none;
+        }
     }
 </style>

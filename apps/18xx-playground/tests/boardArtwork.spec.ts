@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 for (const width of [1280, 390]) {
     test(`published board preserves tile selections, history and Undo at ${width}px`, async ({
@@ -124,6 +124,18 @@ test('published artwork swaps token art and private cards', async ({ page }) => 
     expect(errors).toEqual([])
 })
 
+async function offerPeirShare(page: Page) {
+    await page.goto('/table')
+    await page.getByLabel('Position', { exact: true }).selectOption('opening')
+    await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
+    const offers = page.getByRole('region', { name: 'Auction offers' })
+    const peirOffer = offers.getByRole('button', { name: /^Offer PEIR / }).first()
+    const peirName = (await peirOffer.getAttribute('aria-label'))?.replace(/^Offer /, '')
+    if (!peirName) throw new Error('The opening offers a PEIR share')
+    await peirOffer.click()
+    return { peirName, bidding: page.getByRole('article', { name: 'Current auction' }) }
+}
+
 test('published auction card names its lot until the image arrives', async ({ page }) => {
     let releaseCards = () => {}
     const cardsHeld = new Promise<void>((resolve) => {
@@ -133,19 +145,22 @@ test('published auction card names its lot until the image arrives', async ({ pa
         if (route.request().resourceType() === 'image') await cardsHeld
         await route.continue()
     })
-    await page.goto('/table')
-    await page.getByLabel('Position', { exact: true }).selectOption('opening')
-    await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
-    const offers = page.getByRole('region', { name: 'Auction offers' })
-    const peirOffer = offers.getByRole('button', { name: /^Offer PEIR / }).first()
-    const peirName = (await peirOffer.getAttribute('aria-label'))?.replace(/^Offer /, '')
-    if (!peirName) throw new Error('The opening offers a PEIR share')
-    await peirOffer.click()
-    const bidding = page.getByRole('article', { name: 'Current auction' })
+    const { peirName, bidding } = await offerPeirShare(page)
+    await expect(bidding.locator('.private-card h3')).toBeVisible()
     await expect(bidding.locator('.private-card h3')).toHaveText(peirName)
     await expect(bidding.locator('[data-card-image] img')).toBeHidden()
 
     releaseCards()
     await expect(bidding.locator('[data-card-image] img')).toBeVisible()
     await expect(bidding.locator('.private-card h3')).toHaveCount(0)
+})
+
+test('published auction card keeps naming its lot when the image fails', async ({ page }) => {
+    await page.route(/published\/(peirs|privates)\//, (route) =>
+        route.request().resourceType() === 'image' ? route.abort() : route.continue()
+    )
+    const { peirName, bidding } = await offerPeirShare(page)
+    await expect(bidding.locator('.private-card h3')).toBeVisible()
+    await expect(bidding.locator('.private-card h3')).toHaveText(peirName)
+    await expect(bidding.locator('[data-card-image] img')).toBeHidden()
 })
