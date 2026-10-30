@@ -19,6 +19,7 @@
         userId?: string
     } = $props()
     let showTiebreak = $derived(group.standings.some((row) => row.tiebreak !== undefined))
+    const share = (games: number) => (group.totalGames ? (games / group.totalGames) * 100 : 0)
     const movementLabel = { promoted: 'Promoted', relegated: 'Relegated' }
 
     function gameStates(row: LeagueGroupStanding) {
@@ -60,7 +61,7 @@
     </div>
     <div class="mb-2 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
         <div
-            class="h-1 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+            class="flex h-1 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
             role="progressbar"
             aria-label={`Group ${group.groupId} games finished`}
             aria-valuemin={0}
@@ -68,10 +69,15 @@
             aria-valuenow={group.finishedGames}
         >
             <div
-                class="h-full rounded-full {group.finishedGames === group.totalGames
+                class="h-full {group.finishedGames === group.totalGames
                     ? 'bg-green-600'
                     : 'bg-blue-600'}"
-                style:width={`${group.totalGames ? (group.finishedGames / group.totalGames) * 100 : 0}%`}
+                style:width={`${share(group.finishedGames)}%`}
+            ></div>
+            <div
+                class="h-full bg-blue-300 dark:bg-blue-800"
+                title="In progress"
+                style:width={`${share(group.activeProgress ?? 0)}%`}
             ></div>
         </div>
         <span class="tabular-nums">{group.finishedGames} of {group.totalGames} games</span>

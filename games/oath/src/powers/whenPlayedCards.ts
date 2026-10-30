@@ -3,7 +3,6 @@ import { assert } from '@tabletop/common'
 import { Suit } from '../model/oathEnums.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply } from '../util/rest.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
@@ -102,7 +101,8 @@ registerEffect(
  * are the ones its play leaves there, so Land Warden's second card sees them gone.
  */
 function registerRegionDiscard(cardId: string, suits: readonly [Suit, Suit]): void {
-    const matches = (id: string) => suits.some((suit) => suitOf(id) === suit)
+    const matches = (state: HydratedOathGameState) => (id: string) =>
+        suits.some((suit) => state.suitInPlay(id) === suit)
     registerEffect(cardId, powerIndexOf(cardId, PowerTiming.WhenPlayed), {
         choices: [],
         mapLeaving: (ctx) =>
@@ -110,7 +110,7 @@ function registerRegionDiscard(cardId: string, suits: readonly [Suit, Suit]): vo
                 ctx.state,
                 ctx.playerId,
                 faceupSitesInYourRegion(ctx.state, ctx.playerId),
-                matches,
+                matches(ctx.state),
                 ctx.mapChanges
             ),
         resolve: (ctx) => {
@@ -118,7 +118,7 @@ function registerRegionDiscard(cardId: string, suits: readonly [Suit, Suit]): vo
                 ctx.state,
                 ctx.playerId,
                 faceupSitesInYourRegion(ctx.state, ctx.playerId),
-                matches,
+                matches(ctx.state),
                 ctx.power.cardId
             )
             return {

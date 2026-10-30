@@ -5,6 +5,7 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import type { LightMyRequestResponse } from 'fastify'
 import { randomBytes } from 'node:crypto'
 import { MemorySessionStore, SessionService } from '@tabletop/backend-services'
+import RateLimitPlugin from '../plugins/rateLimit.js'
 
 const SESSION_COOKIE = '__session'
 
@@ -20,6 +21,7 @@ export async function sessionServer(
     })
     await server.register(Auth)
     await server.register(Sensible)
+    await server.register(RateLimitPlugin, { service: 'local' })
     server.decorate('sessionService', sessions)
     return server
 }

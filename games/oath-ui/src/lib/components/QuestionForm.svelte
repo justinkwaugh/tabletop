@@ -4,7 +4,8 @@
     import CardImage from '$lib/components/CardImage.svelte'
     import Magnifier from '$lib/components/Magnifier.svelte'
     import { CARD_ASPECT, cardAspect } from '$lib/images/cardShape.js'
-    import { cardName } from '$lib/model/names.js'
+    import { cardNameInPlay } from '$lib/model/names.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // R-X.1 — a question is its card, one short line and its answers; the History holds the rest.
     let {
@@ -22,6 +23,8 @@
     // The small card keeps its own shape: an upright card 40 px wide, and a wide one (a Vision's
     // face, printed landscape) as wide as that card is tall, so it shows whole.
     const UPRIGHT_WIDTH = 40
+    // R-2.9 — an edifice by the side that is up (Squalid District).
+    let gameSession = getGameSession()
     let width = $derived(
         cardId && cardAspect({ cardId }) > 1
             ? Math.round(UPRIGHT_WIDTH / CARD_ASPECT[CardKind.Denizen])
@@ -31,7 +34,7 @@
 
 <div class="question-form flex items-start gap-3">
     {#if cardId}
-        {@const name = cardName(cardId)}
+        {@const name = cardNameInPlay(gameSession.gameState, cardId)}
         <span class="relative inline-flex shrink-0">
             <CardImage {cardId} {width} label={name} inspect />
             <Magnifier preview={{ cardId, label: name }} label={name} size="small" />

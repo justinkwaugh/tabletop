@@ -1,73 +1,49 @@
 import { describe, expect, it } from 'vitest'
-import { defaultGameConfig, isListConfigOption } from '@tabletop/common'
+import { defaultGameConfig, type GameConfig } from '@tabletop/common'
 import { OathType } from '../model/oathEnums.js'
 import { SetupVariant } from '../model/oathEnums.js'
 import { OathGameConfigOptions, normalizeOathConfig } from './config.js'
 import { readOathGameConfig } from './initializer.js'
 import { OathConfigurator } from './configurator.js'
-import { required } from '../testing/required.js'
 import { engine } from '../testing/engine.js'
 import { waitingGame } from '../testing/game.js'
 import { OathRuntime } from './runtime.js'
 import { OathGameStateValidator } from '../model/gameState.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 
-describe('OathGameConfigOptions — the lobby configurator', () => {
-    it('defaults to the random deck and the Oath of Supremacy', () => {
-        expect(defaultGameConfig(OathGameConfigOptions)).toEqual({
-            setupVariant: SetupVariant.Randomized,
-            oathType: OathType.Supremacy
-        })
+const SEED = '0123456789abcdef0123456789abcdef'
+
+describe('OathGameConfigOptions — Oath shows no game options', () => {
+    it('offers none: a new game’s config is empty', () => {
+        expect(OathGameConfigOptions).toEqual([])
+        expect(defaultGameConfig(OathGameConfigOptions)).toEqual({})
     })
 
-    it('offers the random deck only', () => {
-        const deckOption = required(
-            OathGameConfigOptions.find((option) => option.id === 'setupVariant'),
-            'the deck option'
-        )
-        expect(isListConfigOption(deckOption)).toBe(true)
-        if (isListConfigOption(deckOption)) {
-            expect(deckOption.options.map((option) => option.value)).toEqual([
-                SetupVariant.Randomized
-            ])
-        }
+    it('the configurator validates a new game’s empty config', () => {
+        const configurator = new OathConfigurator()
+        const config = defaultGameConfig(OathGameConfigOptions)
+        expect(() => configurator.validateConfig(config)).not.toThrow()
+        expect(readOathGameConfig(config)).toEqual({})
     })
 
-    it('offers every Oath', () => {
-        const oathOption = required(
-            OathGameConfigOptions.find((option) => option.id === 'oathType'),
-            'the Oath option'
-        )
-        expect(isListConfigOption(oathOption)).toBe(true)
-        if (isListConfigOption(oathOption)) {
-            expect(new Set(oathOption.options.map((option) => option.value))).toEqual(
-                new Set(Object.values(OathType))
+    it('R-1.13 — a first game set up without options is the Oath of Supremacy on a random deck, byte for byte as when the form named them', () => {
+        // The state's own id is drawn fresh at every start; everything else is set up from the seed.
+        const start = (config: GameConfig) => {
+            const { initialState } = engine.startGame(
+                { ...waitingGame(3, config), createdAt: new Date('2026-10-29T12:00:00Z') },
+                { masterSeed: SEED }
             )
+            return JSON.stringify({ ...initialState, id: 'state' })
         }
-    })
-
-    it('the configurator validates a config built from its own defaults', () => {
-        const configurator = new OathConfigurator()
-        const config = defaultGameConfig(OathGameConfigOptions)
-        expect(() => configurator.validateConfig(config)).not.toThrow()
-        expect(readOathGameConfig(config)).toEqual(config)
-    })
-
-    const casesByOptionId = OathGameConfigOptions.flatMap((option) =>
-        isListConfigOption(option)
-            ? option.options.map((choice) => ({
-                  id: option.id,
-                  name: choice.name,
-                  value: choice.value
-              }))
-            : []
-    )
-
-    it.each(casesByOptionId)('the configurator validates $id = $name', ({ id, value }) => {
-        const configurator = new OathConfigurator()
-        const config = defaultGameConfig(OathGameConfigOptions)
-        configurator.updateConfig(config, { id, value })
-        expect(() => configurator.validateConfig(config)).not.toThrow()
+        const empty = start({})
+        expect(start({ oathType: OathType.Supremacy })).toBe(empty)
+        expect(start({ setupVariant: SetupVariant.Randomized })).toBe(empty)
+        expect(start({ setupVariant: SetupVariant.Randomized, oathType: OathType.Supremacy })).toBe(
+            empty
+        )
+        const state = JSON.parse(empty) as { oathType: OathType; setupVariant: SetupVariant }
+        expect(state.oathType).toBe(OathType.Supremacy)
+        expect(state.setupVariant).toBe(SetupVariant.Randomized)
     })
 })
 
@@ -89,6 +65,28 @@ describe('normalizeOathConfig — stored configuration', () => {
             setupVariant: SetupVariant.Randomized
         })
         expect(normalizeOathConfig({})).toEqual({})
+    })
+
+    it.each(Object.values(OathType))(
+        'a stored config naming %s still normalizes, and its game starts under that Oath',
+        (oathType) => {
+            const stored = { setupVariant: SetupVariant.Randomized, oathType }
+            expect(normalizeOathConfig(stored)).toEqual(stored)
+            expect(normalizeOathConfig({ oathType })).toEqual({ oathType })
+            const { initialState } = engine.startGame(waitingGame(3, stored), {
+                masterSeed: SEED
+            })
+            expect(initialState.oathType).toBe(oathType)
+        }
+    )
+
+    it('a stored config naming either deck still normalizes', () => {
+        expect(normalizeOathConfig({ setupVariant: SetupVariant.Randomized })).toEqual({
+            setupVariant: SetupVariant.Randomized
+        })
+        expect(normalizeOathConfig({ setupVariant: SetupVariant.Curated })).toEqual({
+            setupVariant: SetupVariant.Randomized
+        })
     })
 
     it('rejects a value no version ever stored, rather than defaulting it', () => {

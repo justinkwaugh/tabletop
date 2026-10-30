@@ -21,6 +21,7 @@ export * from './tiles/topology.js'
 export { parseTileDefinition, parseTileFace } from './tiles/validation.js'
 
 export * from './finance/cashPayments.js'
+export * from './finance/money.js'
 export * from './stock/auctionCompany.js'
 export * from './stock/automaticStockTurnHandler.js'
 export * from './stock/bidForCompany.js'
@@ -217,6 +218,7 @@ export * from './ending/finalScores.js'
 export * from './ending/finalWealth.js'
 export * from './ending/roundEnd.js'
 export * from './ending/gameEnding.js'
+export * from './ending/gameProgress.js'
 export * from './ending/endingActions.js'
 export * from './ending/gameEndingHandler.js'
 export * from './ending/scheduleGameEnd.js'
@@ -247,6 +249,17 @@ export * from './construction/automaticTrackCompletionHandler.js'
 export {
     payingRouteStops,
     routeConnectionBonuses,
+    routeInterconnectionBonus,
+    routeStopBonuses,
+    type Interconnection,
     type PaidConnectionBonus,
-    type RouteRevenuePolicy
+    type RouteRevenuePolicy,
+    type RouteShape
 } from './routes/routeScoring.js'
+export * from './earnings/payoutJumps.js'
+export * from './finance/corporateFinance.js'
+export * from './stations/stationsWithTrackHandler.js'
+export * from './construction/trackCosts.js'
+export * from './company/zeroPriceClosure.js'
+export * from './funding/issueFirstFunding.js'
+export * from './stock/treasuryShareTrading.js'

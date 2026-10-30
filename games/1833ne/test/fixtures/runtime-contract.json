@@ -1,0 +1,4101 @@
+{
+  "actionSchemaDigests": {
+    "AdvancePhase": "50b97eee115bd31b0d245cf2877505da2dc30df6d3071d2eabe2a436fb22f25a",
+    "AssignLuxuryFerry": "134271b0dabfad3c3b0a1d59403606fa72ee721bacf12e9ed1abe1ffd3b13eb7",
+    "BuyAuctionLot": "df80f4b640533164abba9db13143745a1855e1b333d6df8899119feef8a2ed9b",
+    "BuyFerry": "ff6a5607ecddc0c0ed9b5587f88287b2c5c4da681a29916f639fa6884e619f19",
+    "BuyPrivateTrain": "91b0b0052458f1f6cbbcfce68ed22baafbb1410e69ca6ac86263a0b4318d3ce0",
+    "BuyShares": "ea32f0c8f1d4ef09bcfceae831c752c10cc989a03646740d5987a8b841342e0e",
+    "BuyTrain": "2b1b48783347c512fdd3039030e89ccaf804882b5cceaa84a4f9ec825a5afafa",
+    "ClaimPresidency": "f54aaf668be0b8213b1c4b4e351565787a85a29dcce81ee79327f98c817a5578",
+    "CloseCorporation": "c7ec0bd7c056a7469fff39aec185106abf005f8ad24efcdf7f9e49e6421a0c42",
+    "CompleteStockRound": "612936ae4c03965571f07d451d3d418d0b6bae3ddd2e0ea2ae898239e3245712",
+    "ContinueOperatingRound": "d7859bd006d0cf1a3bf6b0d3424ab8d61dcbe1741a5ee6943bdc0a5bd90b3fa7",
+    "ContributeTrainFunds": "9aab8e3d874a342cd810be78376e00d627c1e1ee8e0cb71079b7ef9e4068d9bd",
+    "CorporateFinance": "3bde49d283bb67f4cc501080324f37e99f25340ac0b810ec1d588b549dc31398",
+    "DeclareBankruptcy": "e3c3bf27e3f255ea9251723e3280ce9fe1b7b6b60638c004bb834126207aabe0",
+    "DeclinePrivateTile": "9d347b9c716993c5f027fe1e6acdc8e0f4d65d71d9a74d391e40d06e1f6115dd",
+    "DiscardTrain": "5d1a970100fabffbe644562b9d090a757dc8600817bcace18db3ee3e5537bf13",
+    "DistributeEarnings": "6e8cc02305a328ea8536f0a64e471b0aa9c529dfad9bcd54b79abae8200a5d23",
+    "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
+    "ExchangePrivate": "76b79fb406c20ba82571b7229e89be58c907d89279e82a4ca1f2dd5f2dca21ab",
+    "ExchangePrivateOutOfTurn": "ac5fa669747210a6c4d990a38a28b7702706544803b33f82d100e4160efa5685",
+    "FinishOperatingTurn": "ed2e5d16e5d43034d795bf090e4191321de52f53c29e8dfd2a2bf6055b8363e1",
+    "FinishStations": "3056f1dcfaefad0851d0bf9eeab23f295e9263c47574f766b21b5634cff2c0b1",
+    "FinishStockTurn": "739e1c6386055439b031b34dae3f9cb9fd2b8b8901c100395b0f675e201733a5",
+    "FinishTrack": "a8d4d639efc90d8243838a817fa16bcdaf67397a569c897508b4c6cc8c092fae",
+    "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
+    "FundTrain": "e7c9d823dbfac75958205395e0042a381fdd600d3251714a052b40306b30dd7b",
+    "IssueTreasuryShares": "279bff01f9fccd7d55c16a13b95aad4074974d1b87ae8bfd3052380b36af1786",
+    "LayPrivateTile": "1404c555285a822cb1983d86deb8ec815c268ee852f6f6809c549414c55207c5",
+    "LayPrivateTileOutOfTurn": "0efef215e5b2359eeaaf73fb4383f73be0d95a9e64e497ac8d69ba359784c1b8",
+    "LayTile": "174dc0d6144f117b548a9b4dee01e7434e13d0e7c43c35877dba1bfb41bcd172",
+    "OfferPurchase": "f7caacc23e89f905a0e2ce7d92d19ebe53eccb67a00217c020476a772abc61ec",
+    "PassAuction": "8f80db14291be75adbc7a2ac100d007b389a0f925a9bdca6308769d9b093ec87",
+    "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
+    "PlaceStation": "642f3ab37cd70c2294fd3704f13f035b5678061c83c47ab5318f791c9d8cfee1",
+    "RaiseAuctionBid": "b7a3c42f3ba48036ce2e086754d8e398190b772e6d4dc7c3d2f380d626b4941e",
+    "RequestTrackConsent": "d707e81670fcfd54f376f8cc7d602a7a9b1b3c964f0fc61238601ab1446d0118",
+    "ReserveBid": "33f9b477a99277d658ca91a7568b99e0ac319b1251ff8a0c7575c0eaf3b81ea1",
+    "ResolveAuction": "17f217f0d6d8ccb679367f808f25537025483cd896b49ebd30ec593a10eed7d9",
+    "RespondToPurchaseOffer": "3750e29e4505cbce5f65efe310687f638d05f3123780dd6a0779679ea7657e00",
+    "RespondToTrackConsent": "723a0508d5a63c9693fc24e8fc5647bd2ad1dfe098daa711345a3ce9870a6f10",
+    "RunTrains": "63aad66060b22710c17da2893ff8afe2a7f8991cfb9639a1993692e7a065e80c",
+    "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
+    "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
+    "SellFundingShares": "72facb9a9d838d543e5e1f61184ab4f3ca8fb3a377763d8ea20c893ca4387509",
+    "SellShares": "12ad7d2f39119fad1870bd79cb358bc94720b7d0175f3996ad8116ad42429eb6",
+    "SetRunInstruction": "946c1b1b93fbd52d503152557b345c324e364bf3d407284b36298dc558757cf1",
+    "SetRunInstructionStops": "f01dcdba5d0007e117089cba572ff07cbe68c2f5ee65a2ff95c34a2f9968689a",
+    "SetStockInstruction": "f9e0135eb86ac336732583b340948e7cab9329226323428ec0d39aca77037ae5",
+    "SetStockInstructionStops": "724aa6a19020cdd568fefb89be3f6a307970bbd79977565045d21485eec2a1df",
+    "StartCompany": "d503f9c1dca4fbd0648f7f1d2006b88a7518402c5422eca316d16d79860e1db7",
+    "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
+    "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
+    "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
+    "StartStockRound": "34c29c0862740d39c48906e26c643428eba3c9bd284795e5322a156118e878d5",
+    "StopRunInstruction": "7dcf5bbf14792352693bd5f3a98620696252e9bd57da315c4dea3595e33f4fd2",
+    "StopStockInstruction": "78a2288c361e0ab3de8d2919d4ceaab5cc933ba29512128afba3b4ef9512d1a2"
+  },
+  "canonicalState": {
+    "additionalProperties": false,
+    "properties": {
+      "actionChecksum": {
+        "type": "number"
+      },
+      "actionCount": {
+        "type": "number"
+      },
+      "activePlayerIds": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "bank": {
+        "additionalProperties": false,
+        "properties": {
+          "broken": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "bankruptcy": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "playerId": {
+            "type": "string"
+          },
+          "shortfall": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "companyId",
+          "playerId",
+          "shortfall"
+        ],
+        "type": "object"
+      },
+      "bankruptPlayerIds": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "minItems": 1,
+        "type": "array",
+        "uniqueItems": true
+      },
+      "canContinue": {
+        "type": "boolean"
+      },
+      "cash": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "amount": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "const": "unlimited",
+                  "type": "string"
+                }
+              ]
+            },
+            "owner": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "player",
+                          "type": "string"
+                        },
+                        "playerId": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "playerId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "companyId": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "kind": {
+                          "const": "company",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "companyId",
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "bank",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "required": [
+            "amount",
+            "owner"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "certificatePools": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "owner": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "player",
+                          "type": "string"
+                        },
+                        "playerId": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "playerId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "companyId": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "kind": {
+                          "const": "company",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "companyId",
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "bank",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "owner"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "certificates": {
+        "items": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "share",
+                  "type": "string"
+                },
+                "owner": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "player",
+                              "type": "string"
+                            },
+                            "playerId": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "playerId"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "companyId": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "kind": {
+                              "const": "company",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "companyId",
+                            "kind"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "bank",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "poolId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "president": {
+                  "const": true,
+                  "type": "boolean"
+                },
+                "shares": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "companyId",
+                "id",
+                "kind",
+                "owner",
+                "shares"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "private",
+                  "type": "string"
+                },
+                "owner": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "player",
+                              "type": "string"
+                            },
+                            "playerId": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "playerId"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "companyId": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "kind": {
+                              "const": "company",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "companyId",
+                            "kind"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "bank",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "poolId": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "companyId",
+                "id",
+                "kind",
+                "owner"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        "type": "array"
+      },
+      "companies": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "closed": {
+              "type": "boolean"
+            },
+            "floated": {
+              "type": "boolean"
+            },
+            "funded": {
+              "type": "boolean"
+            },
+            "id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "kind": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "lastIssuedNumber": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "lastRunRevenue": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "operated": {
+              "type": "boolean"
+            },
+            "parPrice": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "president": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "player",
+                      "type": "string"
+                    },
+                    "playerId": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "playerId"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "companyId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "kind": {
+                      "const": "company",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "companyId",
+                    "kind"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "privateRevenue": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "shareCount": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "started": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "kind"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "earningsDistribution": {
+        "additionalProperties": false,
+        "properties": {
+          "bankAdjustment": {
+            "type": "integer"
+          },
+          "bonusPerShare": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "charges": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "amount": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "from": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "player",
+                              "type": "string"
+                            },
+                            "playerId": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "playerId"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "companyId": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "kind": {
+                              "const": "company",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "companyId",
+                            "kind"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "bank",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "to": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "player",
+                              "type": "string"
+                            },
+                            "playerId": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "playerId"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "companyId": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "kind": {
+                              "const": "company",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "companyId",
+                            "kind"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "bank",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "amount",
+                "from",
+                "to"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "choice": {
+            "anyOf": [
+              {
+                "const": "pay",
+                "type": "string"
+              },
+              {
+                "const": "withhold",
+                "type": "string"
+              },
+              {
+                "const": "half-pay",
+                "type": "string"
+              }
+            ]
+          },
+          "companyId": {
+            "type": "string"
+          },
+          "dividendPerShare": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "marketMove": {
+            "additionalProperties": false,
+            "properties": {
+              "companyId": {
+                "type": "string"
+              },
+              "fromMarketSpaceId": {
+                "type": "string"
+              },
+              "toMarketSpaceId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "companyId",
+              "fromMarketSpaceId",
+              "toMarketSpaceId"
+            ],
+            "type": "object"
+          },
+          "payments": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "amount": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "from": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "player",
+                              "type": "string"
+                            },
+                            "playerId": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "playerId"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "companyId": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "kind": {
+                              "const": "company",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "companyId",
+                            "kind"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "bank",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "to": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "player",
+                              "type": "string"
+                            },
+                            "playerId": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "playerId"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "companyId": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "kind": {
+                              "const": "company",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "companyId",
+                            "kind"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "bank",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "amount",
+                "from",
+                "to"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "retained": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "revenue": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bankAdjustment",
+          "bonusPerShare",
+          "choice",
+          "companyId",
+          "dividendPerShare",
+          "payments",
+          "retained",
+          "revenue"
+        ],
+        "type": "object"
+      },
+      "explorationState": {
+        "properties": {
+          "actionCount": {
+            "type": "number"
+          },
+          "checkpoint": {
+            "properties": {
+              "canonicalSource": {
+                "const": true,
+                "type": "boolean"
+              },
+              "hypothetical": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "op": {
+                          "const": "add",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "value": {}
+                      },
+                      "required": [
+                        "op",
+                        "path",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "op": {
+                          "const": "remove",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "op",
+                        "path"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "op": {
+                          "const": "replace",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "value": {}
+                      },
+                      "required": [
+                        "op",
+                        "path",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "from": {
+                          "type": "string"
+                        },
+                        "op": {
+                          "const": "move",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "from",
+                        "op",
+                        "path"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "from": {
+                          "type": "string"
+                        },
+                        "op": {
+                          "const": "copy",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "from",
+                        "op",
+                        "path"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "op": {
+                          "const": "test",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "value": {}
+                      },
+                      "required": [
+                        "op",
+                        "path",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "op": {
+                          "const": "_get",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "value": {}
+                      },
+                      "required": [
+                        "op",
+                        "path",
+                        "value"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "source": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "op": {
+                          "const": "add",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "value": {}
+                      },
+                      "required": [
+                        "op",
+                        "path",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "op": {
+                          "const": "remove",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "op",
+                        "path"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "op": {
+                          "const": "replace",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "value": {}
+                      },
+                      "required": [
+                        "op",
+                        "path",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "from": {
+                          "type": "string"
+                        },
+                        "op": {
+                          "const": "move",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "from",
+                        "op",
+                        "path"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "from": {
+                          "type": "string"
+                        },
+                        "op": {
+                          "const": "copy",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "from",
+                        "op",
+                        "path"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "op": {
+                          "const": "test",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "value": {}
+                      },
+                      "required": [
+                        "op",
+                        "path",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "op": {
+                          "const": "_get",
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "value": {}
+                      },
+                      "required": [
+                        "op",
+                        "path",
+                        "value"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "undoLimit": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "hypothetical",
+              "source",
+              "undoLimit"
+            ],
+            "type": "object"
+          },
+          "invocations": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "actionCount",
+          "invocations"
+        ],
+        "type": "object"
+      },
+      "ferries": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "companyId": {
+              "type": "string"
+            },
+            "locationId": {
+              "type": "string"
+            },
+            "luxury": {
+              "const": true,
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "companyId",
+            "locationId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "ferryBonus": {
+        "additionalProperties": false,
+        "properties": {
+          "lastAfterRunOf": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "side": {
+            "anyOf": [
+              {
+                "const": "new",
+                "type": "string"
+              },
+              {
+                "const": "last",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "locationId",
+          "side"
+        ],
+        "type": "object"
+      },
+      "ferryBuyerId": {
+        "type": "string"
+      },
+      "finalWealth": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "items": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "assetId": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "assetId",
+                  "label",
+                  "value"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "playerId": {
+              "type": "string"
+            },
+            "total": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "items",
+            "playerId",
+            "total"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "financeStep": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "operation": {
+            "anyOf": [
+              {
+                "const": "issue",
+                "type": "string"
+              },
+              {
+                "const": "redeem",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "companyId",
+          "operation"
+        ],
+        "type": "object"
+      },
+      "gameEnding": {
+        "additionalProperties": false,
+        "properties": {
+          "finalOperatingRounds": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "finalOperatingSet": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
+      "gameId": {
+        "type": "string"
+      },
+      "goldenSpike": {
+        "const": true,
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "lowellPurchase": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "operatingSet": {
+            "type": "integer"
+          },
+          "round": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "companyId",
+          "operatingSet",
+          "round"
+        ],
+        "type": "object"
+      },
+      "machineState": {
+        "anyOf": [
+          {
+            "const": "WaterfallAuction",
+            "type": "string"
+          },
+          {
+            "const": "AuctionBidding",
+            "type": "string"
+          },
+          {
+            "const": "StockRound",
+            "type": "string"
+          },
+          {
+            "const": "StartingOperatingSet",
+            "type": "string"
+          },
+          {
+            "const": "OperatingSet",
+            "type": "string"
+          },
+          {
+            "const": "LayingTrack",
+            "type": "string"
+          },
+          {
+            "const": "RunningTrains",
+            "type": "string"
+          },
+          {
+            "const": "DistributingEarnings",
+            "type": "string"
+          },
+          {
+            "const": "ClosingOperatingCorporation",
+            "type": "string"
+          },
+          {
+            "const": "BuyingTrains",
+            "type": "string"
+          },
+          {
+            "const": "FundingTrain",
+            "type": "string"
+          },
+          {
+            "const": "GameOver",
+            "type": "string"
+          },
+          {
+            "const": "AdvancingPhase",
+            "type": "string"
+          },
+          {
+            "const": "DiscardingTrains",
+            "type": "string"
+          },
+          {
+            "const": "RustingTrains",
+            "type": "string"
+          }
+        ]
+      },
+      "masterSeed": {
+        "pattern": "^[0-9a-f]{32}$",
+        "type": "string",
+        "x-tabletop-visibility": {
+          "policy": "tabletop.host-only",
+          "redaction": {
+            "kind": "omit"
+          }
+        }
+      },
+      "openingAuction": {
+        "additionalProperties": false,
+        "properties": {
+          "awards": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "lotId": {
+                  "type": "string"
+                },
+                "playerId": {
+                  "type": "string"
+                },
+                "price": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "lotId",
+                "playerId",
+                "price"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "bidding": {
+            "additionalProperties": false,
+            "properties": {
+              "auction": {
+                "properties": {
+                  "auctioneerId": {
+                    "type": "string"
+                  },
+                  "highBid": {
+                    "type": "number"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "participants": {
+                    "items": {
+                      "properties": {
+                        "bid": {
+                          "type": "number"
+                        },
+                        "passed": {
+                          "default": false,
+                          "type": "boolean"
+                        },
+                        "playerId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "passed",
+                        "playerId"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "type": {
+                    "const": "simple",
+                    "type": "string"
+                  },
+                  "winnerId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "participants",
+                  "type"
+                ],
+                "type": "object"
+              },
+              "lotId": {
+                "type": "string"
+              },
+              "playerId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "auction",
+              "lotId",
+              "playerId"
+            ],
+            "type": "object"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "discount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "lastPurchaserId": {
+            "type": "string"
+          },
+          "nextPlayerId": {
+            "type": "string"
+          },
+          "passedPlayerIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "remainingLotIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reservations": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "amount": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "lotId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "playerId": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amount",
+                "lotId",
+                "playerId"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "awards",
+          "completed",
+          "discount",
+          "nextPlayerId",
+          "passedPlayerIds",
+          "remainingLotIds",
+          "reservations"
+        ],
+        "type": "object"
+      },
+      "operatingSet": {
+        "additionalProperties": false,
+        "properties": {
+          "companyOrder": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "completedCompanyIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "exportedRound": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "number": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "privateIncomePaid": {
+            "type": "boolean"
+          },
+          "roundCount": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "roundNumber": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "companyOrder",
+          "completed",
+          "completedCompanyIds",
+          "number",
+          "privateIncomePaid",
+          "roundCount",
+          "roundNumber"
+        ],
+        "type": "object"
+      },
+      "phaseChange": {
+        "additionalProperties": false,
+        "properties": {
+          "continuation": {
+            "additionalProperties": false,
+            "properties": {
+              "companyId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "machineState": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "machineState"
+            ],
+            "type": "object"
+          },
+          "discardCompanyIds": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "event": {
+            "additionalProperties": false,
+            "properties": {
+              "definitionId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "fromPhaseId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "toPhaseId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "trainId": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "definitionId",
+              "fromPhaseId",
+              "id",
+              "toPhaseId",
+              "trainId"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "continuation",
+          "discardCompanyIds",
+          "event"
+        ],
+        "type": "object"
+      },
+      "phaseEvents": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "definitionId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "fromPhaseId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "toPhaseId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "trainId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "definitionId",
+            "fromPhaseId",
+            "id",
+            "toPhaseId",
+            "trainId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "phaseId": {
+        "type": "string"
+      },
+      "players": {
+        "items": {
+          "properties": {
+            "color": {
+              "enum": [
+                "red",
+                "orange",
+                "yellow",
+                "green",
+                "blue",
+                "purple",
+                "pink",
+                "brown",
+                "gray",
+                "black",
+                "white"
+              ]
+            },
+            "playerId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "color",
+            "playerId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "privateTrackLay": {
+        "additionalProperties": false,
+        "properties": {
+          "playerId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "privateCompanyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "required": {
+            "const": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "playerId",
+          "privateCompanyId"
+        ],
+        "type": "object"
+      },
+      "prng": {
+        "properties": {
+          "invocations": {
+            "type": "number"
+          },
+          "seed": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "invocations",
+          "seed"
+        ],
+        "type": "object"
+      },
+      "protectedPrng": {
+        "anyOf": [
+          {
+            "properties": {
+              "algorithm": {
+                "not": {}
+              },
+              "invocations": {
+                "type": "number"
+              },
+              "seed": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "invocations",
+              "seed"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "algorithm": {
+                "const": "chacha20-v1",
+                "type": "string"
+              },
+              "invocations": {
+                "maximum": 68719476720,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "seed": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "algorithm",
+              "invocations",
+              "seed"
+            ],
+            "type": "object"
+          }
+        ],
+        "x-tabletop-visibility": {
+          "policy": "tabletop.host-only",
+          "redaction": {
+            "adapter": "tabletop.neutral-prng",
+            "kind": "replace",
+            "schema": {
+              "properties": {
+                "invocations": {
+                  "const": 0,
+                  "type": "number"
+                },
+                "seed": {
+                  "const": 0,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "invocations",
+                "seed"
+              ],
+              "type": "object"
+            }
+          }
+        }
+      },
+      "purchaseOffer": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "asset": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "train",
+                        "type": "string"
+                      },
+                      "trainId": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "trainId"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "private",
+                        "type": "string"
+                      },
+                      "privateCompanyId": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "privateCompanyId"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "buyer": {
+                "additionalProperties": false,
+                "properties": {
+                  "companyId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "company",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "companyId",
+                  "kind"
+                ],
+                "type": "object"
+              },
+              "buyerPlayerId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "price": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "seller": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "player",
+                            "type": "string"
+                          },
+                          "playerId": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "playerId"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "companyId": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "kind": {
+                            "const": "company",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "companyId",
+                          "kind"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "bank",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "sellerPlayerId": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "asset",
+              "buyer",
+              "buyerPlayerId",
+              "id",
+              "price",
+              "seller",
+              "sellerPlayerId"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "asset": {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "private",
+                    "type": "string"
+                  },
+                  "privateCompanyId": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "privateCompanyId"
+                ],
+                "type": "object"
+              },
+              "buyer": {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "player",
+                    "type": "string"
+                  },
+                  "playerId": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "playerId"
+                ],
+                "type": "object"
+              },
+              "buyerPlayerId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "price": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "seller": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "player",
+                            "type": "string"
+                          },
+                          "playerId": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "playerId"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "companyId": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "kind": {
+                            "const": "company",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "companyId",
+                          "kind"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "bank",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "sellerPlayerId": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "asset",
+              "buyer",
+              "buyerPlayerId",
+              "id",
+              "price",
+              "seller",
+              "sellerPlayerId"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "result": {
+        "enum": [
+          "Abandoned",
+          "Draw",
+          "Win"
+        ]
+      },
+      "routeStep": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "result": {
+            "additionalProperties": false,
+            "properties": {
+              "companyId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "revenue": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "routes": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "bonuses": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "amount": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "arrowIds": {
+                            "items": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "locationId": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "sourceIds": {
+                            "items": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "type": "array",
+                            "uniqueItems": true
+                          }
+                        },
+                        "required": [
+                          "amount",
+                          "locationId"
+                        ],
+                        "type": "object"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "definitionId": {
+                      "type": "string"
+                    },
+                    "distance": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "extension": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "locationId": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "pathId": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "locationId",
+                          "pathId"
+                        ],
+                        "type": "object"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "paths": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "locationId": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "pathId": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "locationId",
+                          "pathId"
+                        ],
+                        "type": "object"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "payments": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "amount": {
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "locationId": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "nodeId": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "amount",
+                          "locationId",
+                          "nodeId"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "revenue": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "start": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "locationId": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "nodeId": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "locationId",
+                        "nodeId"
+                      ],
+                      "type": "object"
+                    },
+                    "trainId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "visits": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "locationId": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "nodeId": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "locationId",
+                          "nodeId"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "definitionId",
+                    "distance",
+                    "paths",
+                    "payments",
+                    "revenue",
+                    "start",
+                    "trainId",
+                    "visits"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "companyId",
+              "revenue",
+              "routes"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "companyId"
+        ],
+        "type": "object"
+      },
+      "runInstructions": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "companyId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "declaredRevenue": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "declaredTrainIds": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "ignoredStops": {
+              "items": {
+                "enum": [
+                  "train-lost",
+                  "run-lowered"
+                ]
+              },
+              "type": "array"
+            },
+            "payout": {
+              "anyOf": [
+                {
+                  "const": "pay",
+                  "type": "string"
+                },
+                {
+                  "const": "withhold",
+                  "type": "string"
+                },
+                {
+                  "const": "half-pay",
+                  "type": "string"
+                }
+              ]
+            },
+            "playerId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "runs": {
+              "items": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "key": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "routes": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "extension": {
+                              "items": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "locationId": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                  },
+                                  "pathId": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "locationId",
+                                  "pathId"
+                                ],
+                                "type": "object"
+                              },
+                              "minItems": 1,
+                              "type": "array"
+                            },
+                            "paths": {
+                              "items": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "locationId": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                  },
+                                  "pathId": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "locationId",
+                                  "pathId"
+                                ],
+                                "type": "object"
+                              },
+                              "minItems": 1,
+                              "type": "array"
+                            },
+                            "start": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "locationId": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "nodeId": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "locationId",
+                                "nodeId"
+                              ],
+                              "type": "object"
+                            },
+                            "trainId": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "paths",
+                            "start",
+                            "trainId"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "routes"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "key": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "unsolved": {
+                        "const": true,
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "unsolved"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "stopReason": {
+              "enum": [
+                "train-lost",
+                "run-lowered",
+                "routes-unsolved",
+                "routes-stale",
+                "payout-unavailable",
+                "must-buy-train",
+                "president-changed"
+              ]
+            }
+          },
+          "required": [
+            "companyId",
+            "declaredRevenue",
+            "declaredTrainIds",
+            "payout",
+            "playerId",
+            "runs"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "seed": {
+        "type": "number"
+      },
+      "spikeLayers": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
+      "stationAccess": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "companyId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "locationId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "nodeId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "placesStations": {
+              "const": false,
+              "type": "boolean"
+            },
+            "sourceId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "companyId",
+            "locationId",
+            "nodeId",
+            "sourceId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "stationReservations": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "companyId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "locationId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "nodeId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "companyId",
+            "locationId",
+            "nodeId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "stations": {
+        "items": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "status": {
+                  "const": "available",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "companyId",
+                "id",
+                "status"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "position": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "locationId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "nodeId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "slot": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "locationId",
+                    "nodeId",
+                    "slot"
+                  ],
+                  "type": "object"
+                },
+                "status": {
+                  "const": "placed",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "companyId",
+                "id",
+                "position",
+                "status"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "status": {
+                  "const": "removed",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "companyId",
+                "id",
+                "status"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        "type": "array"
+      },
+      "stationStep": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "placedStationIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "companyId",
+          "completed",
+          "placedStationIds"
+        ],
+        "type": "object"
+      },
+      "stockMarket": {
+        "additionalProperties": false,
+        "properties": {
+          "stacks": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "companyIds": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "spaceId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "companyIds",
+                "spaceId"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "stacks"
+        ],
+        "type": "object"
+      },
+      "stockRound": {
+        "additionalProperties": false,
+        "properties": {
+          "companyPurchases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "instructions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "instruction": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "ignoredStops": {
+                          "items": {
+                            "enum": [
+                              "company-started",
+                              "president-changed",
+                              "shares-sold",
+                              "presidency-threatened"
+                            ]
+                          },
+                          "type": "array"
+                        },
+                        "kind": {
+                          "const": "pass",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "companyId": {
+                          "type": "string"
+                        },
+                        "ignoredStops": {
+                          "items": {
+                            "enum": [
+                              "company-started",
+                              "president-changed",
+                              "shares-sold",
+                              "presidency-threatened"
+                            ]
+                          },
+                          "type": "array"
+                        },
+                        "kind": {
+                          "const": "buy",
+                          "type": "string"
+                        },
+                        "preferredPoolId": {
+                          "type": "string"
+                        },
+                        "thenPass": {
+                          "type": "boolean"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "floated",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "count": {
+                                  "minimum": 1,
+                                  "type": "integer"
+                                },
+                                "kind": {
+                                  "const": "shares",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "count",
+                                "kind"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "companyId",
+                        "kind",
+                        "preferredPoolId",
+                        "thenPass",
+                        "until"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "playerId": {
+                  "type": "string"
+                },
+                "snapshot": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "bankShares": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "companyId": {
+                        "type": "string"
+                      },
+                      "ownerShares": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "president": {
+                        "anyOf": [
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "const": "player",
+                                "type": "string"
+                              },
+                              "playerId": {
+                                "minLength": 1,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "playerId"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "companyId": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "company",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "companyId",
+                              "kind"
+                            ],
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "rivalShares": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "started": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "bankShares",
+                      "companyId",
+                      "ownerShares",
+                      "rivalShares",
+                      "started"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "stopReason": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "limits",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "cannot-finish",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "company-started",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "president-changed",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "shares-sold",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "presidency-threatened",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "goal-met",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "no-shares",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "cannot-afford",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "ownership-limit",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "certificate-limit",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "mixed-certificates",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        },
+                        "poolId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId",
+                        "poolId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "purchase-rejected",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        },
+                        "poolId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "companyId",
+                        "poolId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "const": "title",
+                          "type": "string"
+                        },
+                        "companyId": {
+                          "type": "string"
+                        },
+                        "key": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "key"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "titleSnapshot": {
+                  "patternProperties": {
+                    "^.*$": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "required": [
+                "instruction",
+                "playerId",
+                "snapshot"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "number": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "passedPlayerIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "sales": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "type": "string"
+                },
+                "owner": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "player",
+                              "type": "string"
+                            },
+                            "playerId": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "playerId"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "companyId": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "kind": {
+                              "const": "company",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "companyId",
+                            "kind"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "bank",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "companyId",
+                "owner"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "turn": {
+            "additionalProperties": false,
+            "properties": {
+              "acted": {
+                "type": "boolean"
+              },
+              "bought": {
+                "type": "boolean"
+              },
+              "companiesSold": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "corporateAction": {
+                "additionalProperties": false,
+                "properties": {
+                  "boughtBack": {
+                    "const": true,
+                    "type": "boolean"
+                  },
+                  "companyId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "companyId"
+                ],
+                "type": "object"
+              },
+              "saleBlocks": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "companyId": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "movement": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "price": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "seller": {
+                      "anyOf": [
+                        {
+                          "anyOf": [
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "player",
+                                  "type": "string"
+                                },
+                                "playerId": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "playerId"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "companyId": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "const": "company",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "companyId",
+                                "kind"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "bank",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "shares": {
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "companyId",
+                    "direction",
+                    "id",
+                    "movement",
+                    "price",
+                    "seller",
+                    "shares"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "shorted": {
+                "const": true,
+                "type": "boolean"
+              },
+              "soldBeforeBuying": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "acted",
+              "bought",
+              "companiesSold",
+              "soldBeforeBuying"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "companyPurchases",
+          "completed",
+          "number",
+          "passedPlayerIds",
+          "sales",
+          "turn"
+        ],
+        "type": "object"
+      },
+      "systemVersion": {
+        "type": "number"
+      },
+      "tileInventory": {
+        "additionalProperties": false,
+        "properties": {
+          "placements": {
+            "patternProperties": {
+              "^.*$": {
+                "additionalProperties": false,
+                "properties": {
+                  "definitionId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "pieceId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rotation": {
+                    "anyOf": [
+                      {
+                        "const": 0,
+                        "type": "number"
+                      },
+                      {
+                        "const": 1,
+                        "type": "number"
+                      },
+                      {
+                        "const": 2,
+                        "type": "number"
+                      },
+                      {
+                        "const": 3,
+                        "type": "number"
+                      },
+                      {
+                        "const": 4,
+                        "type": "number"
+                      },
+                      {
+                        "const": 5,
+                        "type": "number"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "definitionId",
+                  "pieceId",
+                  "rotation"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "retiredPieceIds": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "tileSetId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "placements",
+          "retiredPieceIds"
+        ],
+        "type": "object"
+      },
+      "trackStep": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "lays": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "color": {
+                  "type": "string"
+                },
+                "cost": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "definitionId": {
+                  "type": "string"
+                },
+                "locationId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "locationId"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "companyId",
+          "completed",
+          "lays"
+        ],
+        "type": "object"
+      },
+      "trainFunding": {
+        "additionalProperties": false,
+        "properties": {
+          "contributors": {
+            "items": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "player",
+                          "type": "string"
+                        },
+                        "playerId": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "playerId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "companyId": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "kind": {
+                          "const": "company",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "companyId",
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "bank",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "playerId": {
+            "type": "string"
+          },
+          "purchase": {
+            "additionalProperties": false,
+            "properties": {
+              "companyId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "definitionId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "exchangeTrainId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "price": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "trainId": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "companyId",
+              "definitionId",
+              "price",
+              "trainId"
+            ],
+            "type": "object"
+          },
+          "sales": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "type": "string"
+                },
+                "seller": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "player",
+                              "type": "string"
+                            },
+                            "playerId": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "playerId"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "companyId": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "kind": {
+                              "const": "company",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "companyId",
+                            "kind"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "bank",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "shares": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "companyId",
+                "seller"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contributors",
+          "playerId",
+          "purchase",
+          "sales"
+        ],
+        "type": "object"
+      },
+      "trainInventory": {
+        "additionalProperties": false,
+        "properties": {
+          "depotId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "nextTrainNumber": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "trains": {
+            "items": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "definitionId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "status": {
+                      "const": "depot",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "definitionId",
+                    "id",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "definitionId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "status": {
+                      "const": "market",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "definitionId",
+                    "id",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "definitionId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "owner": {
+                      "anyOf": [
+                        {
+                          "anyOf": [
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "player",
+                                  "type": "string"
+                                },
+                                "playerId": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "playerId"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "companyId": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "const": "company",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "companyId",
+                                "kind"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "bank",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "rustsAfterOperation": {
+                      "const": true,
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "const": "owned",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "definitionId",
+                    "id",
+                    "owner",
+                    "status"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "nextTrainNumber",
+          "trains"
+        ],
+        "type": "object"
+      },
+      "trainPurchaseStep": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "purchasedTrainIds": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "companyId",
+          "purchasedTrainIds"
+        ],
+        "type": "object"
+      },
+      "turnManager": {
+        "properties": {
+          "series": {
+            "items": {
+              "properties": {
+                "end": {
+                  "type": "number"
+                },
+                "playerId": {
+                  "type": "string"
+                },
+                "start": {
+                  "type": "number"
+                },
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "playerId",
+                "start",
+                "type"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "turnCounts": {
+            "patternProperties": {
+              "^.*$": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "turnOrder": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "series",
+          "turnCounts",
+          "turnOrder"
+        ],
+        "type": "object"
+      },
+      "usedPrivatePowerIds": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
+      "winningPlayerIds": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "actionChecksum",
+      "actionCount",
+      "activePlayerIds",
+      "bank",
+      "cash",
+      "certificatePools",
+      "certificates",
+      "companies",
+      "ferries",
+      "gameId",
+      "id",
+      "machineState",
+      "phaseEvents",
+      "phaseId",
+      "players",
+      "prng",
+      "spikeLayers",
+      "stationReservations",
+      "stations",
+      "stockMarket",
+      "stockRound",
+      "tileInventory",
+      "trainInventory",
+      "turnManager",
+      "usedPrivatePowerIds",
+      "winningPlayerIds"
+    ],
+    "type": "object"
+  },
+  "handledMachineStates": [
+    "AdvancingPhase",
+    "AuctionBidding",
+    "BuyingTrains",
+    "ClosingOperatingCorporation",
+    "DiscardingTrains",
+    "DistributingEarnings",
+    "FundingTrain",
+    "GameOver",
+    "LayingTrack",
+    "OperatingSet",
+    "RunningTrains",
+    "RustingTrains",
+    "StartingOperatingSet",
+    "StockRound",
+    "WaterfallAuction"
+  ]
+}

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { nextTabIndex } from '$lib/utils/tabNavigation'
     import { everyCompetition, listenForCompetitionChanges } from '$lib/services/competitionUpdates'
     import { LatestRequest } from '$lib/utils/latestRequest'
     import CompetitionHeading from '$lib/components/CompetitionHeading.svelte'
@@ -113,12 +114,8 @@
     }
 
     function moveTab(event: KeyboardEvent, index: number) {
-        let next: number
-        if (event.key === 'ArrowRight') next = (index + 1) % tabs.length
-        else if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length
-        else if (event.key === 'Home') next = 0
-        else if (event.key === 'End') next = tabs.length - 1
-        else return
+        const next = nextTabIndex(event.key, index, tabs.length)
+        if (next === undefined) return
         event.preventDefault()
         selectTab(tabs[next].scope)
         document.getElementById(`tournament-tab-${scope}`)?.focus()

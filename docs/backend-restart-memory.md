@@ -72,7 +72,8 @@ Fastify application runs in `worker.ts`, a child process listening on an ephemer
 loopback port. Production backend ingress remains HTTP/2; tasks and local ingress
 remain HTTP/1. Both stream requests to the child over HTTP/1, preserving request
 bodies, authorization, cookies, status codes and streaming responses. The parent
-sets the forwarded client address; the child trusts only its loopback proxy.
+appends its peer to the forwarded address chain; the child trusts only its loopback proxy and,
+on Cloud Run, the ingress behind it ([client address](./client-address.md)).
 
 Firebase Hosting serves the site files, so a frontend publication needs no
 replacement: only a logic change in the manifest triggers one. `X-Tabletop-Version`

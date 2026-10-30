@@ -3,6 +3,7 @@ import type { HydratedOathGameState } from '../model/gameState.js'
 import {
     exchangeWithDispossessed,
     peekDiscard,
+    swapWithDispossessed,
     topBackType,
     type OathVault
 } from '../model/vault.js'
@@ -14,6 +15,7 @@ import {
     putUnderWorldDeckKnown,
     rememberRelicAt,
     sendRelicToBottom,
+    swapDiscardPileWithDispossessed,
     type Deposit,
     type DiscardWitnesses,
     type Witness
@@ -43,6 +45,7 @@ import type { PowerChoice } from './powerChoice.js'
 import { homelandRelicSlot } from './sitePowers.js'
 import { pawnSiteId } from './pawn.js'
 import { grandScepterHolderId } from './imperial.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 type HiddenOutputAction =
     | UseActionPower
@@ -133,6 +136,15 @@ export function revealForPower(
 ): HiddenReveal | undefined {
     const request = hiddenRequestFor(state, playerId, cardId, powerIndex, choices)
     return request ? fulfil(request, state, playerId) : undefined
+}
+
+/** Great Spire — the drawn denizens named go to the Dispossessed, and as many random cards come out of it. */
+export function revealForSearchSwap(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardIds: readonly string[]
+): HiddenReveal {
+    return fulfil({ kind: 'dispossessedSwap', cardIds: [...cardIds] }, state, playerId)
 }
 
 /** R-7.3.3 — a card played faceup reads the vault for its When Played power; R-11.2-H1, a Homeland's relic. */
@@ -237,9 +249,17 @@ export function commitHiddenOutputs(
         case ActionType.SearchResolve:
             if (!action.metadata) return
             {
-                // Truthful Harp — the table saw the cards drawn, so it knows which went down, not their order.
+                // Truthful Harp — the table saw the cards drawn, so it knows which went down, not their order,
+                // and the kept card is shown. From revision 29 (R-X.4) the discards' witnesses are the hand's own
+                // (`discardWitnesses`: never a card Great Spire swapped in); before it, every card discarded.
                 const harp = action.metadata.revealedKeptCardId
-                const shown = new Set(harp === undefined ? [] : [...action.discardOrder, harp])
+                const shown = new Set(
+                    harp === undefined
+                        ? []
+                        : isAtLeastOathRevision(state, OathRevision.EngineFixes25)
+                          ? [harp]
+                          : [...action.discardOrder, harp]
+                )
                 const discards: Deposit = {
                     ...deposit,
                     setWitnessesOf: (cardId) => [
@@ -447,6 +467,20 @@ function fulfil(
                     request.cardIds,
                     state.getProtectedPrng().random
                 )
+            }
+        case 'dispossessedSwap':
+            return {
+                kind: 'peek',
+                cardIds: swapWithDispossessed(
+                    vault,
+                    request.cardIds,
+                    state.getProtectedPrng().random
+                )
+            }
+        case 'discardPileSwap':
+            return {
+                kind: 'swapped',
+                count: swapDiscardPileWithDispossessed(state, request.region, request.count)
             }
     }
 }

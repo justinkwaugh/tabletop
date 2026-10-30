@@ -127,6 +127,29 @@ export const IndonesiaGameState = Type.Evaluate(
 
 export const IndonesiaGameStateValidator = Compile(IndonesiaGameState)
 
+export function deedsEndEra(deeds: AnyDeed[]): boolean {
+    if (deeds.length === 0) {
+        return true
+    }
+
+    const allShipping = deeds.every((deed) => deed.type === CompanyType.Shipping)
+    if (allShipping) {
+        return true
+    }
+
+    const productionDeeds = deeds.filter((deed) => deed.type === CompanyType.Production)
+    if (productionDeeds.length !== deeds.length) {
+        return false
+    }
+
+    const firstGood = productionDeeds[0]?.good
+    if (!firstGood) {
+        return false
+    }
+
+    return productionDeeds.every((deed) => deed.good === firstGood)
+}
+
 export class HydratedIndonesiaGameState
     extends HydratableGameState<typeof IndonesiaGameState, HydratedIndonesiaPlayerState>
     implements IndonesiaGameState
@@ -528,28 +551,7 @@ export class HydratedIndonesiaGameState
     }
 
     public shouldStartNewEra(): boolean {
-        if (this.availableDeeds.length === 0) {
-            return true
-        }
-
-        const allShipping = this.availableDeeds.every((deed) => deed.type === CompanyType.Shipping)
-        if (allShipping) {
-            return true
-        }
-
-        const productionDeeds = this.availableDeeds.filter(
-            (deed) => deed.type === CompanyType.Production
-        )
-        if (productionDeeds.length !== this.availableDeeds.length) {
-            return false
-        }
-
-        const firstGood = productionDeeds[0]?.good
-        if (!firstGood) {
-            return false
-        }
-
-        return productionDeeds.every((deed) => deed.good === firstGood)
+        return deedsEndEra(this.availableDeeds)
     }
 
     public incrementEra(): void {

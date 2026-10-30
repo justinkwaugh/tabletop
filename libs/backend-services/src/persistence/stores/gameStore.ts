@@ -7,7 +7,8 @@ import {
     GameStatusCategory,
     GameHistoryPage,
     GameHistoryCursor,
-    UserGameStats
+    UserGameStats,
+    TitleActivity
 } from '@tabletop/common'
 import { UpdateValidationResult, UpdateValidator } from './validator.js'
 import type { TournamentSeatHandover, TournamentTableRelease } from '../../games/tournamentGames.js'
@@ -72,6 +73,7 @@ export interface GameStore {
     findGameStats(user: User): Promise<UserGameStats>
     findOpenGamesForTitle(titleId: string): Promise<Game[]>
     findActiveGamesForTitle(titleId: string): Promise<Game[]>
+    findTitleActivity(titleId: string): Promise<TitleActivity>
     findFinishedGames(afterGameId: string | undefined, limit: number): Promise<Game[]>
     findStartedGames(): Promise<Game[]>
     readStateFromStorage(gameId: string): Promise<GameState | undefined>

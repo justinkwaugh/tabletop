@@ -8,7 +8,6 @@ import { ActionType } from '../definition/actions.js'
 import { PlayerStatus, Region } from '../model/oathEnums.js'
 import { NO_COST, PowerTiming, type CardPower } from '../data/cardPowers.js'
 import { RELIQUARY_MODIFIERS, type ReliquaryModifier } from '../data/reliquary.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { RELIQUARY_SPACES, reliquarySlot } from './imperial.js'
 import { reliquarySlotId } from './setup.js'
 import type { EffectContext, ModifierHooks } from '../powers/registry.js'
@@ -118,7 +117,7 @@ export function reasonTradeForSecretsGainsNoFavor(
 
 function gainOneFavor(ctx: EffectContext): string | undefined {
     const cardId = ctx.particulars?.cardId
-    const suit = cardId ? suitOf(cardId) : undefined
+    const suit = cardId ? ctx.state.suitInPlay(cardId) : undefined
     if (!suit) return undefined
     const withheld = reasonTradeForSecretsGainsNoFavor(
         ctx.state,

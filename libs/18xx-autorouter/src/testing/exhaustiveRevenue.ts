@@ -1,5 +1,6 @@
 import {
     RouteEvaluation,
+    type RoutePath,
     type RouteRules,
     type TrainRoute,
     type TrainRunningState,
@@ -13,9 +14,26 @@ export function exhaustiveRevenue(
 ): number {
     const evaluation = new RouteEvaluation(state, rules)
     const candidates = trainsOwnedBy(state, { kind: 'company', companyId }).map((train) => {
+        const definition = rules.depot.trainDefinition(train.definitionId)
+        const earnsInterconnections = Boolean(
+            rules.revenuePolicy?.(definition, state, companyId).interconnections?.length
+        )
         const routes: TrainRoute[] = []
+        const extend = (route: TrainRoute, extension: RoutePath[]) => {
+            for (const path of evaluation.network.extensions(route.start, [
+                ...route.paths,
+                ...extension
+            ])) {
+                const extended = { ...route, extension: [...extension, path] }
+                if (evaluation.evaluateRoute(companyId, extended).result) routes.push(extended)
+                extend(route, extended.extension)
+            }
+        }
         const walk = (route: TrainRoute) => {
-            if (evaluation.evaluateRoute(companyId, route).result) routes.push(route)
+            if (evaluation.evaluateRoute(companyId, route).result) {
+                routes.push(route)
+                if (earnsInterconnections) extend(route, [])
+            }
             for (const path of evaluation.network.extensions(route.start, route.paths)) {
                 const next = { ...route, paths: [...route.paths, path] }
                 if (evaluation.evaluateRoute(companyId, next, false).result) walk(next)

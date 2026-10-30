@@ -17,13 +17,17 @@
     import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { withSiteGain } from '$lib/model/siteGain.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
 
     let gameSession = getGameSession()
     let search = $derived(gameSession.search)
     let busy = $derived(gameSession.busy)
+    // Great Spire — Swap and No swap share the wider one's width.
+    const swapWidth = new ChoiceWidth()
 
     // One short line per step under the bar; the cards and rings show the rest.
     let step = $derived.by(() => {
+        if (search.swapping) return 'Great Spire: swap which?'
         if (!search.kept) return 'Keep one.'
         if (!search.placement) return 'How do you play it?'
         if (search.needsDisplaced) {
@@ -43,7 +47,62 @@
     </div>
     <p class="mb-2 text-sm font-semibold">{step}</p>
 
-    {#if !search.kept}
+    {#if search.swapping}
+        <!-- Great Spire: tap the drawn denizens to swap (gold ring), up to the Dispossessed's
+             count; a Vision stays in the row and cannot be picked. -->
+        {@const picked = search.swapPicked}
+        <div class="mb-2 flex flex-wrap gap-2">
+            {#each search.drawn as cardId (cardId)}
+                {@const on = picked.includes(cardId)}
+                {@const pickable = search.canSwap(cardId)}
+                <div class="relative" class:opacity-40={!pickable} data-swap-card={cardId}>
+                    <button
+                        type="button"
+                        class="rounded-[5px] {on
+                            ? 'ring-2 ring-oath-accent'
+                            : 'ring-1 ring-oath-control-hover'} {pickable
+                            ? 'hover:ring-oath-accent'
+                            : ''}"
+                        aria-pressed={on}
+                        disabled={busy || !pickable}
+                        onclick={() => search.tapSwap(cardId)}
+                    >
+                        <CardImage
+                            {cardId}
+                            width={widthAtHeight(112, { cardId })}
+                            label={cardName(cardId)}
+                        />
+                    </button>
+                    <Magnifier
+                        preview={{ cardId, label: cardName(cardId) }}
+                        label={cardName(cardId)}
+                    />
+                </div>
+            {/each}
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {#if picked.length > 0}
+                <button
+                    class="shrink-0 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
+                           border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                    style:min-width="{swapWidth.widest}px"
+                    disabled={busy}
+                    onclick={() => search.swap()}
+                >
+                    <span class="inline-block w-max" {@attach swapWidth.measure}>Swap</span>
+                </button>
+            {/if}
+            <button
+                class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-3 py-1.5 text-sm
+                       max-sm:min-h-11"
+                style:min-width="{swapWidth.widest}px"
+                disabled={busy}
+                onclick={() => search.skipSwap()}
+            >
+                <span class="inline-block w-max" {@attach swapWidth.measure}>No swap</span>
+            </button>
+        </div>
+    {:else if !search.kept}
         <div class="flex flex-wrap gap-2">
             {#each search.drawn as cardId (cardId)}
                 <div class="relative">

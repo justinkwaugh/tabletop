@@ -5,6 +5,7 @@ import { assert, assertExists } from '../../util/assertions.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
 import { BaseError } from '../../util/errors.js'
 import type { GameRuntime } from '../definition/gameDefinition.js'
+import { reportGameProgress } from '../definition/gameProgression.js'
 import { GameStatus, type Game } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
 import type { GameAction, Patch } from './gameAction.js'
@@ -93,6 +94,7 @@ export function createGameFork<T extends GameState, U extends HydratedGameState<
         resetCopiedGameVoting(fork, inherited)
         fork.winningPlayerIds = []
         fork.activePlayerIds = [...state.activePlayerIds]
+        fork.progress = reportGameProgress(runtime, state)
         fork.lastActionAt = inherited.at(-1)?.createdAt
         fork.lastActionPlayerId = inherited.at(-1)?.playerId
         state.gameId = fork.id

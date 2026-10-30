@@ -24,6 +24,7 @@ import {
     GameSyncStatus,
     GameValidator,
     GameHistoryPage,
+    TitleActivity,
     UserGameStats,
     SiteStatsNow,
     CharityTally,
@@ -87,6 +88,7 @@ import { checkVersion, resolveVersionChange, VersionChange } from './versionChec
 import { toast } from 'svelte-sonner'
 
 const DEFAULT_HOST = 'http://localhost:3000'
+const TITLE_ACTIVITY_TIMEOUT_MS = 10_000
 
 export type GameLoadResult = {
     game?: Game
@@ -459,6 +461,39 @@ export class TabletopApi {
             .json<GamesResponse>()
 
         return response.payload.games.map((game) => this.validateGame(game))
+    }
+
+    async getTitleActivity(titleId: string): Promise<TitleActivity> {
+        const request = new AbortController()
+        const timeout = setTimeout(() => request.abort(), TITLE_ACTIVITY_TIMEOUT_MS)
+        try {
+            const response = await this.wretch
+                .options({ signal: request.signal })
+                .get(`/games/activity/${encodeURIComponent(titleId)}`)
+                .unauthorized(this.on401)
+                .badRequest(this.handleError)
+                .error(503, this.handleError)
+                .json<unknown>()
+            Value.Assert(
+                Type.Object({ payload: Type.Object({ activity: Type.Unknown() }) }),
+                response
+            )
+            const activity = Value.Default(
+                TitleActivity,
+                Value.Convert(TitleActivity, response.payload.activity)
+            )
+            Value.Assert(TitleActivity, activity)
+            return activity
+        } catch (error) {
+            if (request.signal.aborted)
+                throw new APIError({
+                    name: 'TitleActivityUnavailable',
+                    message: 'Games of this title are temporarily unavailable'
+                })
+            throw error
+        } finally {
+            clearTimeout(timeout)
+        }
     }
 
     listTournaments(query: TournamentListQuery) {

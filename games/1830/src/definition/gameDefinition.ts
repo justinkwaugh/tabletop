@@ -41,6 +41,7 @@ export const EighteenThirtyTitleRules: EighteenXXTitleRules<
     outOfTurnPrivatePowers: true,
     createOpening: createEighteenThirtyOpening,
     startingCash: eighteenThirtyStartingCash,
+    currencySymbol: '$',
     stockRules: EighteenThirtyStockRules,
     companyRules: EighteenThirtyCompanyRules,
     operatingRules: EighteenThirtyOperatingRules,

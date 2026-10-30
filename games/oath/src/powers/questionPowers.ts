@@ -133,8 +133,12 @@ registerPersistent(BOOK_BINDERS, powerIndexOf(BOOK_BINDERS, PowerTiming.Persiste
     }
 })
 
-/** "Action: Negotiate a binding exchange of … with any player." */
-function negotiator(cardId: string, allows: ExchangeAllowance): EffectDefinition {
+/** "Action: Negotiate a binding exchange of … with any player." `name` begins its summary. */
+export function negotiator(
+    cardId: string,
+    allows: ExchangeAllowance,
+    name = cardId
+): EffectDefinition {
     return {
         choices: [one(PowerChoiceKind.Exchange, { what: 'a player and the terms', allows })],
         reasonCannotResolve: (ctx) => {
@@ -156,7 +160,7 @@ function negotiator(cardId: string, allows: ExchangeAllowance): EffectDefinition
             })
             return {
                 summary: note
-                    ? `${cardId}: ${note}`
+                    ? `${name}: ${note}`
                     : `proposed a binding exchange to ${ex.withPlayerId}`
             }
         }

@@ -28,6 +28,7 @@ import {
 import { MachineContext } from './machineContext.js'
 import type { MachineStateHandler } from './machineStateHandler.js'
 import type { GameRuntime } from '../definition/gameDefinition.js'
+import { reportGameProgress } from '../definition/gameProgression.js'
 import { undoRecordedAction } from './recordedHistory.js'
 import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
@@ -202,6 +203,7 @@ export class GameEngine<
 
         const state = initialState.dehydrate()
         this.validateCanonicalState(state)
+        startedGame.progress = reportGameProgress(this.runtime, state)
         return { startedGame, initialState: state }
     }
 

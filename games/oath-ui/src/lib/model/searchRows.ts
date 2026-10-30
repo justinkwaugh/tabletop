@@ -1,6 +1,8 @@
 import {
     ActionType,
     HydratedSearch,
+    addCosts,
+    cardPower,
     SearchSource,
     defaultTolls,
     tollsFor,
@@ -23,7 +25,10 @@ export type SearchRow = {
     fromBottom: boolean
     favorTo: (string | undefined)[]
     variant?: number
-    /** R-7.1.2 — a pile another card names (Errand Boy) costs what that card costs, beside the Supply. */
+    /**
+     * R-7.1.2 — what is paid beside the Supply: a pile another card names (Errand Boy) costs what
+     * that card costs, and Great Spire in use places its secret whichever source is searched.
+     */
     cardCost?: PowerCost
     /** The cards in use that fit this source: the row is priced and sent with them. */
     modifiers: ModifierUse[]
@@ -34,6 +39,21 @@ export type PileVariant = {
     use: PowerUseKey
     modifiers: readonly ModifierUse[]
     cost: PowerCost
+}
+
+const GREAT_SPIRE = 'edifice.arcane.great-spire'
+
+/** Great Spire — its secret is placed with the Search, so each source's gold line adds it. */
+function spireCost(modifiers: readonly ModifierUse[]): PowerCost | undefined {
+    const spire = modifiers.find((use) => use.cardId === GREAT_SPIRE)
+    return spire ? cardPower(spire.cardId, spire.powerIndex)?.cost : undefined
+}
+
+/** The costs a row adds beside its Supply, summed; none when there are none. */
+function withCardCost(...costs: (PowerCost | undefined)[]): { cardCost?: PowerCost } {
+    const paid = costs.filter((cost): cost is PowerCost => cost !== undefined)
+    const [first, ...rest] = paid
+    return first ? { cardCost: rest.reduce(addCosts, first) } : {}
 }
 
 /** R-7.4 — the cards in use a Search of this source is judged and sent with. */
@@ -81,9 +101,8 @@ export function searchRows(
                     source === SearchSource.Discard &&
                     HydratedSearch.drawsFromBottom(state, playerId, modifiers),
                 favorTo,
-                ...(variant === undefined
-                    ? {}
-                    : { variant: variant.index, cardCost: variant.cost }),
+                ...(variant === undefined ? {} : { variant: variant.index }),
+                ...withCardCost(variant?.cost, spireCost(modifiers)),
                 modifiers
             }
         ]

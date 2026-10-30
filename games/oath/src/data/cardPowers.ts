@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import arcane from './denizens.arcane.data.js'
 import beast from './denizens.beast.data.js'
@@ -8,6 +8,7 @@ import nomad from './denizens.nomad.data.js'
 import order from './denizens.order.data.js'
 import relics from './relics.data.js'
 import visions from './visions.data.js'
+import { EDIFICE_RECORDS } from './edifices.js'
 
 export enum PowerTiming {
     /** R-7.3.1 */
@@ -33,6 +34,18 @@ export enum BattlePlanSide {
     Attacker = 'attacker',
     Defender = 'defender',
     Either = 'either'
+}
+
+/** R-2.9 — the side of an edifice a power is printed on. */
+export enum EdificeFace {
+    Intact = 'intact',
+    Ruined = 'ruined'
+}
+
+/** R-2.9 — where each side's power stands in an edifice's `cardPowers`. */
+export const EDIFICE_POWER_INDEX: Readonly<Record<EdificeFace, number>> = {
+    [EdificeFace.Intact]: 0,
+    [EdificeFace.Ruined]: 1
 }
 
 /** R-7.1.2, R-10.4 — placing and burning have different destinations, so four counts. */
@@ -68,6 +81,8 @@ export interface CardPower extends PowerUseKey {
     modifiesAction?: ActionType
     /** R-7.5 */
     battlePlanSide?: BattlePlanSide
+    /** R-2.9 — an edifice's side; every other card's powers have none. */
+    face?: EdificeFace
 }
 
 // R-7.4 — declared at the start of the major action, so `search` is Search, not SearchResolve.
@@ -185,6 +200,23 @@ byCard.set(TRIBUNAL_ID, [
         cost: NO_COST
     }
 ])
+
+/**
+ * R-2.9 — an edifice is one card with two sides, so one card with two powers, the intact side's and
+ * the ruined side's (`EDIFICE_POWER_INDEX`). Only the side showing acts (`powersInPlay`).
+ */
+for (const rec of EDIFICE_RECORDS) {
+    registerCardPowers(rec.id, [
+        edificeSidePower(rec.id, rec.intact, EdificeFace.Intact),
+        edificeSidePower(rec.id, rec.ruined, EdificeFace.Ruined)
+    ])
+}
+
+function edificeSidePower(cardId: string, side: PowerRecord, face: EdificeFace): CardPower {
+    const powers = parsePowers(cardId, side)
+    assert(powers.length === 1, `${cardId}: each side of an edifice prints one power`)
+    return { ...powers[0], face }
+}
 
 export function cardPowers(cardId: string): CardPower[] {
     return byCard.get(cardId) ?? []

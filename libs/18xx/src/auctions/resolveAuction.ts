@@ -89,7 +89,7 @@ export class HydratedResolveAuction
             if (model instanceof OfferAuction)
                 startFirstStockRound(state, model.rules.firstStockOrder(state))
             else {
-                state.turnManager.newFirstPlayer(model.auction.nextPlayerId)
+                state.turnManager.newFirstPlayer(model.firstStockPlayerId())
                 startFirstStockRound(state, state.turnManager.turnOrder)
             }
             this.metadata = {

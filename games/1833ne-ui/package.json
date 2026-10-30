@@ -1,0 +1,68 @@
+{
+    "name": "@tabletop/1833ne-ui",
+    "version": "1.1.0",
+    "private": true,
+    "type": "module",
+    "prettier": "@tabletop/prettier-config",
+    "svelte": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "svelte": "./dist/index.js",
+            "import": "./dist/index.js"
+        },
+        "./playground": {
+            "types": "./dist/playground.d.ts",
+            "svelte": "./dist/playground.js",
+            "import": "./dist/playground.js"
+        }
+    },
+    "files": [
+        "dist",
+        "!dist/**/*.test.*",
+        "!dist/**/*.spec.*"
+    ],
+    "scripts": {
+        "clean": "rimraf .svelte-kit dist",
+        "build": "pnpm run package",
+        "package": "svelte-kit sync && svelte-package",
+        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+        "bundle": "svelte-kit sync && rimraf bundle && rolldown -c ./rolldown.config.ts",
+        "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs",
+        "dev": "vite dev",
+        "lint": "eslint ."
+    },
+    "peerDependencies": {
+        "@sveltejs/kit": "^2.48.4",
+        "svelte": "^5.0.0"
+    },
+    "dependencies": {
+        "@tabletop/18xx": "workspace:*",
+        "@tabletop/18xx-autorouter": "workspace:*",
+        "@tabletop/18xx-ui": "workspace:*",
+        "@tabletop/common": "workspace:*",
+        "@tabletop/frontend-components": "workspace:*",
+        "@tabletop/1833ne": "workspace:*"
+    },
+    "devDependencies": {
+        "@sveltejs/kit": "^2.70.3",
+        "@sveltejs/package": "^2.5.7",
+        "@sveltejs/vite-plugin-svelte": "^7.3.1",
+        "@tailwindcss/postcss": "^4.1.18",
+        "flowbite": "^3.1.2",
+        "flowbite-svelte": "^1.31.0",
+        "flowbite-svelte-icons": "^3.1.0",
+        "rimraf": "^6.1.0",
+        "svelte": "^5.0.0",
+        "svelte-check": "^4.3.5",
+        "tailwindcss": "^4.1.18",
+        "typescript": "5.9.3",
+        "vite": "^8.3.5",
+        "@tabletop/rolldown-config": "workspace:*",
+        "rolldown": "^1.2.15",
+        "@tabletop/eslint-config": "workspace:*",
+        "@tabletop/prettier-config": "workspace:*",
+        "@tabletop/vitest-config": "workspace:*"
+    }
+}
