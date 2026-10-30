@@ -725,6 +725,24 @@ function reasonDiscardFirstInvalid(
     return reasonModifierInUse(state, cardId)
 }
 
+/**
+ * R-2.8.1 — a site play needs a space at `siteId` on the map `mapChanges` leaves (Land Warden's kept card's play,
+ * and Salt the Earth's capacity of 1 after it). A card the play discards first there leaves its space.
+ */
+export function reasonSiteFull(
+    state: HydratedOathGameState,
+    siteId: string,
+    mapChanges: PlayMapChanges | undefined,
+    discardFirstCardId?: string
+): string | undefined {
+    const atSite = denizensAfterPlay(state, siteId, mapChanges)
+    const freed = discardFirstCardId !== undefined && atSite.includes(discardFirstCardId) ? 1 : 0
+    const capacity = siteCapacityAfterPlay(state, siteId, mapChanges)
+    return atSite.length - freed >= capacity
+        ? `site ${siteId} is at its capacity of ${capacity}`
+        : undefined
+}
+
 export function reasonCannotPlaceCard(
     state: HydratedOathGameState,
     playerId: string,
@@ -797,17 +815,14 @@ export function reasonCannotPlaceCard(
             const earlier = isAtLeastOathRevision(state, OathRevision.EngineFixes25)
                 ? options.earlierMapChanges
                 : undefined
-            const atTarget = denizensAfterPlay(state, target, earlier)
             if (saltTheEarth) {
+                const atTarget = denizensAfterPlay(state, target, earlier)
                 if (atTarget.some((id) => isLockedFor(state, playerId, id, target))) {
                     return 'Salt the Earth cannot be played to a site with any locked cards'
                 }
             } else {
-                const freed = first !== undefined && atTarget.includes(first) ? 1 : 0
-                const capacity = siteCapacityAfterPlay(state, target, earlier)
-                if (atTarget.length - freed >= capacity) {
-                    return `site ${target} is at its capacity of ${capacity}`
-                }
+                const full = reasonSiteFull(state, target, earlier, first)
+                if (full) return full
             }
             if (!state.suitInPlay(cardId)) {
                 return `${cardId} has no suit, so no favor bank matches it`

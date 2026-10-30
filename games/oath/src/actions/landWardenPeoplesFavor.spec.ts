@@ -108,7 +108,7 @@ describe("Land Warden with the People's Favor: the kept card to another site lea
     it('both cards to your site with one space: no room for two, as before', () => {
         const s = searched(NOW, 1)
         expect(
-            reasonCannotPairSecondPlay(s, 'dana', SearchPlay.Site, {
+            reasonCannotPairSecondPlay(s, 'dana', keptTo(undefined), {
                 cardId: INN,
                 play: SearchPlay.Site
             })
@@ -142,21 +142,15 @@ describe("Land Warden with the People's Favor: the kept card to another site lea
                 dana
             )
             expect(
-                reasonCannotPairSecondPlay(
-                    own,
-                    'dana',
-                    SearchPlay.Site,
-                    { cardId: INN, play: SearchPlay.Site },
-                    toSiteId
-                )
+                reasonCannotPairSecondPlay(own, 'dana', keptTo(toSiteId), {
+                    cardId: INN,
+                    play: SearchPlay.Site
+                })
             ).toBe(
-                reasonCannotPairSecondPlay(
-                    s,
-                    'dana',
-                    SearchPlay.Site,
-                    { cardId: INN, play: SearchPlay.Site },
-                    toSiteId
-                )
+                reasonCannotPairSecondPlay(s, 'dana', keptTo(toSiteId), {
+                    cardId: INN,
+                    play: SearchPlay.Site
+                })
             )
             expect(HydratedSearchResolve.reasonCannotResolve(own, 'dana', keptTo(toSiteId))).toBe(
                 expected

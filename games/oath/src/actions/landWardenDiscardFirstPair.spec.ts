@@ -176,10 +176,8 @@ describe("Land Warden from revision 31: the kept card's card discarded first at 
     it("the pair check alone counts the kept card's discard first at your site", () => {
         const s = searched(FIXED, PLAINS_WITH_FAVOR)
         const second = { cardId: LONGBOWS, play: SearchPlay.Site }
-        expect(
-            reasonCannotPairSecondPlay(s, 'dana', SearchPlay.Site, second, undefined, WOLVES)
-        ).toBeUndefined()
-        expect(reasonCannotPairSecondPlay(s, 'dana', SearchPlay.Site, second)).toBe(
+        expect(reasonCannotPairSecondPlay(s, 'dana', innFirst(WOLVES), second)).toBeUndefined()
+        expect(reasonCannotPairSecondPlay(s, 'dana', innFirst(undefined), second)).toBe(
             'no room at your site for two cards'
         )
     })
@@ -210,14 +208,10 @@ describe("Land Warden from revision 31: the kept card's card discarded first at 
             'second card: site c1 is at its capacity of 3'
         )
         expect(
-            reasonCannotPairSecondPlay(
-                s,
-                'dana',
-                SearchPlay.Site,
-                { cardId: LONGBOWS, play: SearchPlay.Site },
-                undefined,
-                STORYTELLER
-            )
+            reasonCannotPairSecondPlay(s, 'dana', innFirst(STORYTELLER), {
+                cardId: LONGBOWS,
+                play: SearchPlay.Site
+            })
         ).toBe('no room at your site for two cards')
     })
 

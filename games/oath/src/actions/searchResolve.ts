@@ -22,6 +22,7 @@ import {
     playCard,
     playMapChanges,
     reasonCannotPlayCard,
+    reasonSiteFull,
     whenPlayedMapLeaving
 } from '../util/cardPlay.js'
 import type { PlayMapChanges } from '../powers/registry.js'
@@ -322,14 +323,7 @@ export class HydratedSearchResolve
         if (second) {
             const secondReason =
                 reasonCannotPlaySecondCard(state, playerId, choice.keptCardId, second, choice) ??
-                reasonCannotPairSecondPlay(
-                    state,
-                    playerId,
-                    choice.play,
-                    second,
-                    choice.toSiteId,
-                    choice.discardFirstCardId
-                )
+                reasonCannotPairSecondPlay(state, playerId, choice, second)
             if (secondReason) return secondReason
         }
         const expected = player
@@ -410,6 +404,9 @@ type KeptPlay = Pick<
     'play' | 'discardFirstCardId' | 'toSiteId' | 'faceUp' | 'discardedAdviserCardIds'
 >
 
+/** Land Warden — the kept card, and its play. */
+type KeptCard = KeptPlay & Pick<SearchResolveChoice, 'keptCardId'>
+
 /**
  * Land Warden — the kept card's play lands before the second card's When Played power resolves: its map changes,
  * and what it gains first (R-7.3.3), with the Search's carried modifiers, as `playCard` plays it. From revision 26
@@ -461,48 +458,38 @@ function shownSecondCardForAfter(
 
 /**
  * Land Warden — "if you play at least one card to a site", with room for both at your site when both go there.
- * `keptToSiteId` is where the kept card goes: the People's Favor may send it to another site (R-5.1.4.I), and its
- * Q&A lets both cards use it. `keptDiscardFirstCardId` is the card the kept card's play discards first (the People's
- * Favor, the Great Slum, Crop Rotation); the kept card's own check judges whether it may.
+ * `kept` is the kept card and its play: the People's Favor may send it to another site (R-5.1.4.I), and its Q&A
+ * lets both cards use it; it may discard a card first (the People's Favor, the Great Slum, Crop Rotation), which
+ * the kept card's own check judges.
  */
 export function reasonCannotPairSecondPlay(
     state: HydratedOathGameState,
     playerId: string,
-    firstPlay: SearchPlay,
-    second: SearchSecondPlay,
-    keptToSiteId?: string,
-    keptDiscardFirstCardId?: string
+    kept: KeptCard,
+    second: SearchSecondPlay
 ): string | undefined {
-    if (firstPlay !== SearchPlay.Site && second.play !== SearchPlay.Site)
+    if (kept.play !== SearchPlay.Site && second.play !== SearchPlay.Site)
         return 'Land Warden: at least one of the two cards must be played to a site'
-    if (firstPlay === SearchPlay.Site && second.play === SearchPlay.Site) {
-        const here = pawnSiteId(state, playerId)
-        // Each site's room counts the cards that go there; the second card's own check counts it alone. Before
-        // revision 16 (R-X.4), both counted at your site wherever the kept card went.
-        const keptHere =
-            keptToSiteId === undefined ||
-            keptToSiteId === here ||
-            !isAtLeastOathRevision(state, OathRevision.EngineFixes12)
-        // Salt the Earth: "When Played, ignore this site's capacity." From revision 31 its own check, on the site
-        // the kept card leaves, decides; before it (R-X.4), Salt the Earth second needed room for both too.
-        const ignoresCapacity =
-            second.cardId === SALT_THE_EARTH &&
-            isAtLeastOathRevision(state, OathRevision.EngineFixes26)
-        // The kept card plays first, so a card it discards first at your site leaves its space to the second
-        // card. From revision 31 the pair is counted on your site as the kept play leaves it; before it (R-X.4),
-        // the card discarded first was counted as staying.
-        const freed =
-            keptDiscardFirstCardId !== undefined &&
-            state.denizensAt(here).includes(keptDiscardFirstCardId) &&
-            isAtLeastOathRevision(state, OathRevision.EngineFixes26)
-                ? 1
-                : 0
-        if (
-            keptHere &&
-            !ignoresCapacity &&
-            state.denizensAt(here).length - freed + 2 > effectiveSiteCapacity(state, here)
-        )
-            return 'no room at your site for two cards'
+    if (kept.play !== SearchPlay.Site || second.play !== SearchPlay.Site) return undefined
+    const here = pawnSiteId(state, playerId)
+    // Each site's room counts the cards that go there; the second card's own check counts it alone. Before
+    // revision 16 (R-X.4), both counted at your site wherever the kept card went.
+    const keptHere =
+        kept.toSiteId === undefined ||
+        kept.toSiteId === here ||
+        !isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+    if (!keptHere) return undefined
+    if (isAtLeastOathRevision(state, OathRevision.EngineFixes26)) {
+        // The kept card plays first, so the second card needs a space at your site as that play leaves it: the
+        // map its own check counts, after the card discarded first and the kept card's When Played power. Salt
+        // the Earth: "When Played, ignore this site's capacity."
+        const left = keptPlayMapChanges(state, playerId, kept.keptCardId, kept)
+        return second.cardId !== SALT_THE_EARTH && reasonSiteFull(state, here, left)
+            ? 'no room at your site for two cards'
+            : undefined
     }
-    return undefined
+    // R-X.4 — before revision 31, both were counted on your site as it stood before the kept card's play.
+    return state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here)
+        ? 'no room at your site for two cards'
+        : undefined
 }

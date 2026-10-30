@@ -690,18 +690,28 @@ describe('Land Warden — the second card is played without a hidden draw', () =
         expect(second(SearchPlay.Adviser, true)).toMatch(/^second card: /)
         expect(second(SearchPlay.Adviser, false)).toBeUndefined()
         expect(
-            reasonCannotPairSecondPlay(state, 'p1', SearchPlay.Discard, {
-                cardId: VISION,
-                play: SearchPlay.Adviser,
-                faceUp: false
-            })
+            reasonCannotPairSecondPlay(
+                state,
+                'p1',
+                { keptCardId: ORDER, play: SearchPlay.Discard },
+                {
+                    cardId: VISION,
+                    play: SearchPlay.Adviser,
+                    faceUp: false
+                }
+            )
         ).toMatch(/at least one of the two cards/)
         expect(
-            reasonCannotPairSecondPlay(state, 'p1', SearchPlay.Site, {
-                cardId: VISION,
-                play: SearchPlay.Adviser,
-                faceUp: false
-            })
+            reasonCannotPairSecondPlay(
+                state,
+                'p1',
+                { keptCardId: ORDER, play: SearchPlay.Site },
+                {
+                    cardId: VISION,
+                    play: SearchPlay.Adviser,
+                    faceUp: false
+                }
+            )
         ).toBeUndefined()
     })
 })
