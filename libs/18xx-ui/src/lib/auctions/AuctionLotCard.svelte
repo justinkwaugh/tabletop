@@ -28,7 +28,7 @@
     let lightbox = $state(false)
 </script>
 
-<!-- An auction lot as a card: the published image (click to enlarge) or the generated card. -->
+<!-- An auction lot as a card: the published image (click to enlarge) or the generated card, which also stands in while the image loads. -->
 {#if imageUrl}
     <button
         class="card-button"
@@ -37,7 +37,16 @@
             lightbox = true
         }}
     >
-        <PrivateCard {money} {name} description="" imageUrl={thumbnailUrl} />
+        <PrivateCard
+            {money}
+            phaseColors={session.presentation.phaseColors}
+            {tokens}
+            {name}
+            description=""
+            value={price}
+            {income}
+            imageUrl={thumbnailUrl}
+        />
     </button>
     {#if lightbox}
         <CardLightbox

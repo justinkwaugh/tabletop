@@ -123,3 +123,29 @@ test('published artwork swaps token art and private cards', async ({ page }) => 
     await expect(bidding.locator('.private-card h3')).toHaveText(privateName)
     expect(errors).toEqual([])
 })
+
+test('published auction card names its lot until the image arrives', async ({ page }) => {
+    let releaseCards = () => {}
+    const cardsHeld = new Promise<void>((resolve) => {
+        releaseCards = resolve
+    })
+    await page.route(/published\/(peirs|privates)\//, async (route) => {
+        if (route.request().resourceType() === 'image') await cardsHeld
+        await route.continue()
+    })
+    await page.goto('/table')
+    await page.getByLabel('Position', { exact: true }).selectOption('opening')
+    await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
+    const offers = page.getByRole('region', { name: 'Auction offers' })
+    const peirOffer = offers.getByRole('button', { name: /^Offer PEIR / }).first()
+    const peirName = (await peirOffer.getAttribute('aria-label'))?.replace(/^Offer /, '')
+    if (!peirName) throw new Error('The opening offers a PEIR share')
+    await peirOffer.click()
+    const bidding = page.getByRole('article', { name: 'Current auction' })
+    await expect(bidding.locator('.private-card h3')).toHaveText(peirName)
+    await expect(bidding.locator('[data-card-image] img')).toBeHidden()
+
+    releaseCards()
+    await expect(bidding.locator('[data-card-image] img')).toBeVisible()
+    await expect(bidding.locator('.private-card h3')).toHaveCount(0)
+})

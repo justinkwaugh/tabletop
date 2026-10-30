@@ -23,9 +23,15 @@
         tokens?: readonly StationAppearance[]
         phaseColors?: Readonly<Record<string, string>>
         purchaseRange?: { minimum: number; maximum?: number }
-        /** Published card artwork; when present it replaces the generated card. */
+        /** Published card artwork; once it has loaded it replaces the generated card. */
         imageUrl?: string
     } = $props()
+    // The generated card names the company until the artwork arrives, or for good if it fails.
+    let loadedUrl: string | undefined = $state()
+    const showImage = $derived(!!imageUrl && loadedUrl === imageUrl)
+    function markLoaded(image: HTMLImageElement) {
+        if (image.complete && image.naturalWidth > 0) loadedUrl = imageUrl
+    }
     const paragraphs = $derived(description.split('\n\n'))
     const phaseReference = /\b(?:phases?|at)\s$/i
 </script>
@@ -38,10 +44,17 @@
                 color={phaseColors[part]}
             />{:else}{part}{/if}{/each}{/snippet}
 
-<div class="private-card" class:image={!!imageUrl} data-card-image={imageUrl ? true : undefined}>
+<div class="private-card" class:image={showImage} data-card-image={imageUrl ? true : undefined}>
     {#if imageUrl}
-        <img src={imageUrl} alt={name} />
-    {:else}
+        <img
+            src={imageUrl}
+            alt={name}
+            hidden={!showImage}
+            onload={() => (loadedUrl = imageUrl)}
+            {@attach markLoaded}
+        />
+    {/if}
+    {#if !showImage}
         <header>
             <div class="heading">
                 <h3>{name}</h3>
