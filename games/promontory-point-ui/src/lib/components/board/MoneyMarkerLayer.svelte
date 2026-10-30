@@ -1,9 +1,18 @@
 <script lang="ts">
+    import { onMount } from 'svelte'
+    import { restMarker } from '$lib/animators/markerMotion.js'
+    import { MoneyMarkerAnimator, moneyMarkerSize } from '$lib/animators/moneyMarkerAnimator.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { boxCentre } from '$lib/utils/boardGeometry.js'
     import { moneyMarkers, seatInitials } from '$lib/utils/boardLayout.js'
 
     const gameSession = getGameSession()
+
+    const animator = new MoneyMarkerAnimator(gameSession, gameSession.moneyChips)
+    onMount(() => {
+        animator.register()
+        return () => animator.unregister()
+    })
 
     const markers = $derived(
         moneyMarkers(
@@ -14,7 +23,7 @@
         ).map((marker) => ({
             ...marker,
             centre: boxCentre(marker.box),
-            size: Math.min(marker.box.width, marker.box.height) * (marker.shared ? 0.88 : 0.6)
+            size: moneyMarkerSize(marker)
         }))
     )
 </script>
@@ -26,7 +35,14 @@
         data-money-marker={playerId}
         data-plus-100={plus100}
     >
-        <g class="motion">
+        <g
+            class="motion"
+            use:restMarker={{
+                motion: animator.motion,
+                key: playerId,
+                rest: { ...centre, size }
+            }}
+        >
             <rect
                 x={-size / 2}
                 y={-size / 2}

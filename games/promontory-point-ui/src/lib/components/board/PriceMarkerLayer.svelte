@@ -1,5 +1,8 @@
 <script lang="ts">
+    import { onMount } from 'svelte'
     import { RAILROAD_IDS } from '@tabletop/promontory-point'
+    import { restMarker } from '$lib/animators/markerMotion.js'
+    import { PriceMarkerAnimator, priceMarkerPose } from '$lib/animators/priceMarkerAnimator.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { RAILROAD_TAGS } from '$lib/model/railroadTags.js'
     import { boxCentre } from '$lib/utils/boardGeometry.js'
@@ -8,6 +11,12 @@
 
     const gameSession = getGameSession()
     const RADIUS = 38
+
+    const animator = new PriceMarkerAnimator(gameSession)
+    onMount(() => {
+        animator.register()
+        return () => animator.unregister()
+    })
 
     const markers = $derived(
         RAILROAD_IDS.map((railroadId) => {
@@ -28,7 +37,14 @@
         data-price-marker={railroadId}
         data-price-index={priceIndex}
     >
-        <g class="motion">
+        <g
+            class="motion"
+            use:restMarker={{
+                motion: animator.motion,
+                key: railroadId,
+                rest: priceMarkerPose(railroadId, priceIndex)
+            }}
+        >
             <circle cy="5" r={RADIUS} fill="var(--pp-halo)" opacity="0.4"></circle>
             <circle
                 r={RADIUS}

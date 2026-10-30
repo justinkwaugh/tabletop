@@ -6,6 +6,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { RAILROAD_TAGS } from '$lib/model/railroadTags.js'
     import HandPiece from './HandPiece.svelte'
+    import MoneyChange from './MoneyChange.svelte'
 
     let {
         view,
@@ -52,7 +53,9 @@
                 {/if}
             </span>
             <!-- R-1.3-H1: money is public. -->
-            <span class="m" data-seat-money={view.money}>${view.money}</span>
+            <span class="m" data-seat-money={view.money}
+                >${view.money}{#if !large}<MoneyChange playerId={view.playerId} />{/if}</span
+            >
         </header>
 
         <div class="shares">

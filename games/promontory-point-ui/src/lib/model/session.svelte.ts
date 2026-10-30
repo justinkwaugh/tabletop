@@ -25,6 +25,7 @@ import {
 } from '@tabletop/promontory-point'
 import { boardOffer, OfferView, type BoardOffer } from './boardOffer.js'
 import { CardPreview } from './cardPreview.svelte.js'
+import { MoneyChips } from '$lib/animators/moneyChips.svelte.js'
 import { OpenSeat } from './openSeat.svelte.js'
 import {
     emptyRepairsDraft,
@@ -62,6 +63,14 @@ export class PromontoryPointGameSession extends GameSession<
     readonly cardPreview = new CardPreview()
 
     readonly openSeat = new OpenSeat()
+
+    // R-1.3-H1: the money changes rising from the seat cards while a transition plays.
+    readonly moneyChips = new MoneyChips()
+
+    // While a transition plays, the panel and board show the state it leaves, so no press acts.
+    private get settling(): boolean {
+        return this.updatingVisibleState
+    }
 
     // A hand piece's pointer hover or keyboard focus; never set by touch.
     hoveredPiece: RailroadId | undefined = $state()
@@ -192,6 +201,7 @@ export class PromontoryPointGameSession extends GameSession<
     })
 
     pressPiece(railroadId: RailroadId) {
+        if (this.settling) return
         assert(
             this.pickablePieces.includes(railroadId),
             `${railroadId} is not a piece the seat may pick now`
@@ -223,6 +233,7 @@ export class PromontoryPointGameSession extends GameSession<
     }
 
     override async undo() {
+        if (this.settling) return
         const step = this.repairsStep
         if (this.hasStagedRepairsSale && step !== undefined) {
             this.stagedRepairs = {
@@ -250,6 +261,7 @@ export class PromontoryPointGameSession extends GameSession<
     // R-4.3, R-4.3-H2: Sell one stages one more share; R-4.3-H3: short after every sale, one
     // press stages them all.
     stageRepairsSale(railroadId: RailroadId) {
+        if (this.settling) return
         const step = this.repairsStep
         const view = this.repairsDraft
         assertExists(step, 'Only the deciding debtor stages a sale')
@@ -275,6 +287,7 @@ export class PromontoryPointGameSession extends GameSession<
 
     // R-3.1
     async buyShare(railroadId: RailroadId) {
+        if (this.settling) return
         if (this.decidingPlayerId === undefined || this.buyRefusal(railroadId) !== undefined) {
             return
         }
@@ -283,6 +296,7 @@ export class PromontoryPointGameSession extends GameSession<
 
     // R-3.2, R-3.2-H1
     async sellShare(railroadId: RailroadId) {
+        if (this.settling) return
         if (this.decidingPlayerId === undefined || this.sellRefusal(railroadId) !== undefined) {
             return
         }
@@ -291,6 +305,7 @@ export class PromontoryPointGameSession extends GameSession<
 
     // R-3.3: a press on a lit hex sends; a press on an unlit hex places nothing.
     async placeTrack(spaceId: SpaceId) {
+        if (this.settling) return
         const railroadId = this.pickedPiece
         assertExists(railroadId, 'A hex is pressed to place only once a piece is picked')
         if (!this.boardOffer.lit.includes(spaceId)) {
@@ -302,6 +317,7 @@ export class PromontoryPointGameSession extends GameSession<
 
     // R-3.3, R-3.3-H1, R-2.2-H2
     async scrapTrack() {
+        if (this.settling) return
         const railroadId = this.pickedPiece
         assertExists(railroadId, 'A piece is set aside only once it is picked')
         assert(this.pickedPieceHasNoRoom, `${railroadId} has a legal hex, so it is placed`)
@@ -311,6 +327,7 @@ export class PromontoryPointGameSession extends GameSession<
 
     // R-2.2 step 4, R-6.3: `returnKeptPiece` only in the variant with a piece left over.
     async endTurn(returnKeptPiece?: boolean) {
+        if (this.settling) return
         const playerId = this.decidingPlayerId
         assertExists(playerId, 'Only the deciding seat ends its turn')
         assert(
@@ -328,6 +345,7 @@ export class PromontoryPointGameSession extends GameSession<
 
     // R-4.3, R-4.3-H1 to H4: the first debtor's sales, in order.
     async payRepairs(sales: RailroadId[]) {
+        if (this.settling) return
         const playerId = this.decidingPlayerId
         assertExists(playerId, 'Only the deciding debtor pays')
         assert(
