@@ -16,6 +16,8 @@ import { earningsActions } from '../earnings/earningsActions.js'
 import { endingActions } from '../ending/endingActions.js'
 import { FinalWealthScoring } from '../ending/finalScores.js'
 import { GameEndingHandler } from '../ending/gameEndingHandler.js'
+import { eighteenXXProgress, ProgressStateValidator } from '../ending/gameProgress.js'
+import { moneyFormat } from '../finance/money.js'
 import { BankruptHandler } from '../funding/bankruptHandler.js'
 import { cashCrisisActions } from '../funding/cashCrisisActions.js'
 import { fundingActions } from '../funding/fundingActions.js'
@@ -156,6 +158,7 @@ export function createEighteenXXRuntime<
 >(options: EighteenXXTitleRules<Schema, State>): GameRuntime<Type.Static<Schema>, State> {
     const { stockRules: rules, companyRules, operatingRules } = options
     const components = titleComponents(options)
+    const money = moneyFormat(options.currencySymbol)
     type Handler = EighteenXXStateHandler<State>
     const stateDefinition = options.state
     const decides = (machineState: EighteenXXMachineState, family: Handler): Handler =>
@@ -634,6 +637,12 @@ export function createEighteenXXRuntime<
         scoring: {
             finalScores: (state) =>
                 FinalWealthScoring.finalScores(stateDefinition.hydrate(state, components))
+        },
+        progression: {
+            progress: (state) => {
+                assert(ProgressStateValidator.Check(state), 'Progress requires a railway state')
+                return eighteenXXProgress(state, options.phases, money)
+            }
         },
         apiActions: actions.schemas,
         exploration: new EighteenXXGameExploration<Type.Static<Schema>>(

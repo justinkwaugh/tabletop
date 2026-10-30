@@ -25,6 +25,7 @@ import {
     GameState,
     type HydratedGameState,
     GameEngine,
+    reportGameProgress,
     createGameFork,
     linkGameContinuation,
     GameForkError,
@@ -412,7 +413,8 @@ export class GameService implements GameServiceInterface {
             throw new Error('Can only save local games locally')
         }
 
-        await validateLocalGameState(this.libraryService, gameData, stateData)
+        const runtime = await validateLocalGameState(this.libraryService, gameData, stateData)
+        gameData.progress = reportGameProgress(runtime, stateData)
         await this.localGameStore.storeGameData({
             game: gameData,
             actions: actionsData,
@@ -520,11 +522,10 @@ export class GameService implements GameServiceInterface {
             ) {
                 this.removeFromPublicCache(game.id)
             } else {
-                const titleGames = (this.openGamesByTitleId.get(game.typeId) || []).filter(
-                    (g) => g.id !== game.id
-                )
-
-                titleGames.push(game)
+                const titleGames = [...(this.openGamesByTitleId.get(game.typeId) ?? [])]
+                const index = titleGames.findIndex((existing) => existing.id === game.id)
+                if (index === -1) titleGames.push(game)
+                else titleGames[index] = game
                 this.openGamesByTitleId.set(game.typeId, titleGames)
             }
 

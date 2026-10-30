@@ -139,6 +139,7 @@ type DirectBonus = {
     values: PeriodValues
     destinationAtEnd?: true
     sourceId: string
+    arrows: readonly BonusArrow[]
 }
 
 /**
@@ -149,12 +150,13 @@ function directBonus(between: Pair): DirectBonus {
     const direct = BonusArrows.find(
         (arrow) => arrow.kind === 'direct' && arrow.pairs.some((pair) => samePair(pair, between))
     )
-    const both = interconnections.filter((arrow) => samePair([arrow.from, arrow.to], between))
+    const arrows = [
+        ...(direct ? [direct] : []),
+        ...interconnections.filter((arrow) => samePair([arrow.from, arrow.to], between))
+    ]
     const values = Object.fromEntries(
         ValuePeriods.flatMap(({ id }) => {
-            const total =
-                (direct?.values[id] ?? 0) +
-                both.reduce((sum, arrow) => sum + (arrow.values[id] ?? 0), 0)
+            const total = arrows.reduce((sum, arrow) => sum + (arrow.values[id] ?? 0), 0)
             return total ? [[id, total]] : []
         })
     )
@@ -162,6 +164,7 @@ function directBonus(between: Pair): DirectBonus {
         between,
         values,
         sourceId: 'direct',
+        arrows,
         ...(direct?.kind === 'direct' && direct.destinationAtEnd
             ? { destinationAtEnd: true as const }
             : {})
@@ -178,7 +181,8 @@ const DirectBonuses: readonly DirectBonus[] = [
     {
         between: [Places.delawareHudson, Places.montreal],
         values: { 'I-II': 40, 'III-IV': 70, V: 80 },
-        sourceId: 'P6'
+        sourceId: 'P6',
+        arrows: []
     }
 ]
 
@@ -209,6 +213,7 @@ export function routeBonusPolicy(
                 from: Object.fromEntries(list(bonus.between[0]).map((id) => [id, amount])),
                 to: Object.fromEntries(list(bonus.between[1]).map((id) => [id, 0])),
                 sourceId,
+                arrowIds: bonus.arrows.flatMap((arrow) => (arrow.values[period] ? [arrow.id] : [])),
                 ...(bonus.destinationAtEnd ? { destinationAtEnd: true } : {})
             }
         ]
@@ -220,7 +225,8 @@ export function routeBonusPolicy(
             {
                 from: list(arrow.from),
                 to: list(arrow.to),
-                ...scaled(arrow.from, arrow.to, value, 'interconnection')
+                ...scaled(arrow.from, arrow.to, value, 'interconnection'),
+                arrowIds: [arrow.id]
             }
         ]
     })

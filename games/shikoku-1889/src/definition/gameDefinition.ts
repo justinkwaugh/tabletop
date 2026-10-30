@@ -42,6 +42,7 @@ export const Shikoku1889TitleRules: EighteenXXTitleRules<
     runInstructions: true,
     createOpening: createShikoku1889Opening,
     startingCash: shikoku1889StartingCash,
+    currencySymbol: '¥',
     stockRules: Shikoku1889StockRules,
     companyRules: Shikoku1889CompanyRules,
     operatingRules: Shikoku1889OperatingRules,

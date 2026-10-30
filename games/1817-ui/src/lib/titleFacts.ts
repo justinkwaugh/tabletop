@@ -7,10 +7,11 @@ import {
     closingZone,
     corporationShareCount,
     seedMoneyLeft,
-    stationsOwed
+    stationsOwed,
+    EighteenSeventeenTitleRules
 } from '@tabletop/1817'
 
-const money = moneyFormat('$')
+const money = moneyFormat(EighteenSeventeenTitleRules.currencySymbol)
 
 const started = (state: EighteenSeventeenState, companyId: string) => {
     const company = getCompany(state, companyId)

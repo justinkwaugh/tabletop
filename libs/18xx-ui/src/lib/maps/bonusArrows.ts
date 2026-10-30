@@ -1,13 +1,14 @@
 import type { Point } from '@tabletop/common'
 import type { TileSymbolName } from '../tiles/tileSymbols.js'
+import type { MapRoute } from './mapDrawing.js'
 
 /**
- * A plaque printed beside the board, as 1833NE's route bonus arrows: values by phase band under
+ * A board arrow printed beside the map, as 1833NE's route bonus arrows: values by phase band under
  * a heading, pointed at one end or both.
  */
 export type MapBonusArrow = {
     id: string
-    /** The plaque's centre in board units. */
+    /** The board arrow's centre in board units. */
     center: Point
     heading: string
     footer: string | BonusArrowFooter
@@ -15,6 +16,8 @@ export type MapBonusArrow = {
     values: readonly { label: string; amount: number; stage: string }[]
     /** The pointed ends; a single point's other end is notched, like an arrow's tail. */
     points: 'left' | 'right' | 'both'
+    /** The rules' arrows it stands for when it prints several; otherwise its own id. */
+    arrowIds?: readonly string[]
 }
 
 /** A footer printing a symbol between its words, such as a port city's anchor; ``spoken`` reads it. */
@@ -30,10 +33,21 @@ export function bonusArrowFooterText(footer: MapBonusArrow['footer']): string {
     return typeof footer === 'string' ? footer : `${footer.before}    ${footer.after}`
 }
 
+/** The colours of the routes its rules' arrows paid, in route order. */
+export function payingRouteColors(
+    arrow: MapBonusArrow,
+    routes: readonly Pick<MapRoute, 'color' | 'bonusArrowIds'>[]
+): string[] {
+    const arrowIds = arrow.arrowIds ?? [arrow.id]
+    return routes.flatMap((route) =>
+        route.bonusArrowIds?.some((id) => arrowIds.includes(id)) ? [route.color] : []
+    )
+}
+
 export type DrawnBonusArrow = MapBonusArrow & { width: number; height: number; outline: string }
 
 const ValueHeight = 14
-// A point is an arrowhead, its shoulders standing clear of the plaque; a tail is notched.
+// A point is an arrowhead, its shoulders standing clear of the board arrow's body; a tail is notched.
 const HeadLength = 26
 const HeadFlare = 11
 const TailNotch = 12
@@ -78,7 +92,7 @@ export function drawBonusArrow(arrow: MapBonusArrow): DrawnBonusArrow {
     return { ...arrow, width, height, outline }
 }
 
-/** A plaque's convex outline in board units, its tail notch filled. */
+/** A board arrow's convex outline in board units, its tail notch filled. */
 export function bonusArrowHull(arrow: DrawnBonusArrow): Point[] {
     const { x, y } = arrow.center
     const left = x - arrow.width / 2
@@ -98,7 +112,7 @@ export function bonusArrowHull(arrow: DrawnBonusArrow): Point[] {
     ]
 }
 
-/** The board area a plaque covers, points included. */
+/** The board area a board arrow covers, points included. */
 export function bonusArrowBounds(arrow: DrawnBonusArrow) {
     const hull = bonusArrowHull(arrow)
     const xs = hull.map((point) => point.x)

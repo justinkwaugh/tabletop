@@ -7,7 +7,8 @@ import {
     FirstRoundReservedHexes,
     MarketZones1833NE,
     Phases1833NE,
-    type State1833NE
+    type State1833NE,
+    TitleRules1833NE
 } from '@tabletop/1833ne'
 import {
     moneyFormat,
@@ -20,7 +21,7 @@ import { CompanyNames1833NE } from './companyPresentation.js'
 import { PhaseChart1833NE } from './phaseChart.js'
 import { PhaseColors1833NE, TrainColors1833NE } from './trainPresentation.js'
 
-const Money = moneyFormat('$')
+const Money = moneyFormat(TitleRules1833NE.currencySymbol)
 
 export const Presentation1833NE: TitlePresentation<State1833NE> = {
     money: Money,

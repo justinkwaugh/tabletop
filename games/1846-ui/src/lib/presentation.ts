@@ -24,7 +24,7 @@ const StraightTilePair = [
     { definitionId: '18xx:9', rotation: 1 }
 ] as const
 export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState> = {
-    money: moneyFormat('$'),
+    money: moneyFormat(TitleRules1846.currencySymbol),
     companyNames: CompanyNames1846,
     marketPoolId: 'open-market',
     historyMapPlacement: mapPlacement1846,

@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import { GameResult } from '../game/model/gameResult.js'
+import { GameProgress } from '../game/model/gameProgress.js'
 import { GameConfig } from '../game/model/gameConfig.js'
 import { TournamentGameReference } from './tournamentGameReference.js'
 import { LeagueGroupReference } from './leagueGroupReference.js'
@@ -350,7 +351,8 @@ export const TournamentGameLink = Type.Object({
     // The accounts seated at the Game, by position.
     userIds: Type.Optional(Type.Array(Type.String())),
     result: Type.Optional(Type.Enum(GameResult)),
-    winningUserIds: Type.Optional(Type.Array(Type.String()))
+    winningUserIds: Type.Optional(Type.Array(Type.String())),
+    progress: Type.Optional(GameProgress)
 })
 export type TournamentGameLink = Type.Static<typeof TournamentGameLink>
 

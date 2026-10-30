@@ -11,6 +11,7 @@ export type PaidConnectionBonus = {
     from: Readonly<Record<string, number>>
     to: Readonly<Record<string, number>>
     sourceId?: string
+    arrowIds?: readonly string[]
     /** The destination counts only as a paid end of the route, such as a port it ends in. */
     destinationAtEnd?: true
 }
@@ -24,6 +25,7 @@ export type Interconnection = {
     to: readonly string[]
     amount: number
     sourceId?: string
+    arrowIds?: readonly string[]
 }
 
 export type RouteRevenuePolicy = {
@@ -52,6 +54,16 @@ function isEnd(stop: RevenueCenter, shape: RouteShape | undefined): boolean {
     )
 }
 
+function bonusSources(
+    sourceId: string | undefined,
+    arrowIds: readonly string[] | undefined
+): Pick<RouteBonus, 'sourceIds' | 'arrowIds'> {
+    return {
+        ...(sourceId ? { sourceIds: [sourceId] } : {}),
+        ...(arrowIds?.length ? { arrowIds: [...arrowIds] } : {})
+    }
+}
+
 /** The best interconnection a route's paid stops and extension earn; one per route. */
 export function routeInterconnectionBonus(
     stops: readonly RouteRevenueStop[],
@@ -69,7 +81,7 @@ export function routeInterconnectionBonus(
                 ? {
                       locationId: destination,
                       amount: interconnection.amount,
-                      ...(interconnection.sourceId ? { sourceIds: [interconnection.sourceId] } : {})
+                      ...bonusSources(interconnection.sourceId, interconnection.arrowIds)
                   }
                 : best,
         undefined
@@ -81,25 +93,27 @@ export function routeConnectionBonuses(
     policy: RouteRevenuePolicy,
     shape?: RouteShape
 ): RouteBonus[] {
-    return (policy.connectionBonuses ?? []).flatMap(({ from, to, sourceId, destinationAtEnd }) => {
-        const best = (values: Readonly<Record<string, number>>, atEnd?: true) =>
-            stops.reduce<RouteBonus | undefined>((selected, stop) => {
-                if (atEnd && !isEnd(stop, shape)) return selected
-                const amount = values[stop.locationId]
-                return amount !== undefined && (!selected || amount > selected.amount)
-                    ? {
-                          locationId: stop.locationId,
-                          amount,
-                          ...(sourceId ? { sourceIds: [sourceId] } : {})
-                      }
-                    : selected
-            }, undefined)
-        const origin = best(from)
-        const destination = best(to, destinationAtEnd)
-        return origin && destination
-            ? [origin, destination].filter((bonus) => bonus.amount > 0)
-            : []
-    })
+    return (policy.connectionBonuses ?? []).flatMap(
+        ({ from, to, sourceId, arrowIds, destinationAtEnd }) => {
+            const best = (values: Readonly<Record<string, number>>, atEnd?: true) =>
+                stops.reduce<RouteBonus | undefined>((selected, stop) => {
+                    if (atEnd && !isEnd(stop, shape)) return selected
+                    const amount = values[stop.locationId]
+                    return amount !== undefined && (!selected || amount > selected.amount)
+                        ? {
+                              locationId: stop.locationId,
+                              amount,
+                              ...bonusSources(sourceId, arrowIds)
+                          }
+                        : selected
+                }, undefined)
+            const origin = best(from)
+            const destination = best(to, destinationAtEnd)
+            return origin && destination
+                ? [origin, destination].filter((bonus) => bonus.amount > 0)
+                : []
+        }
+    )
 }
 
 /** Every bonus a route's paid stops earn: its connection bonuses and its interconnection. */

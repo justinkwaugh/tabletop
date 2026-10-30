@@ -98,13 +98,8 @@ import {
 import { capacityTags, type CapacityTag } from '$lib/utils/capacityTags.js'
 import { printedStarSquare, starTags, type StarTag } from '$lib/utils/starTags.js'
 import { gunTags, type GunTag } from '$lib/utils/gunTags.js'
-import {
-    SYMBOL_TAGS,
-    approachSymbolScale,
-    placeSymbolTags,
-    printedMarksCovered,
-    type PlacedSymbolTag
-} from '$lib/utils/approachSymbols.js'
+import { approachSymbolScale, type PlacedSymbolTag } from '$lib/utils/approachSymbols.js'
+import { shownSymbolTags } from '$lib/utils/shownSymbolTags.js'
 import { THREAT_ARROW, arrowOutlines, attackMarkerScale } from '$lib/utils/attackMarker.js'
 import type { ConvexOutline } from '$lib/utils/convexOutline.js'
 import { boxSamples, cornersOf } from '$lib/utils/orientedBox.js'
@@ -595,16 +590,14 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     approachPlates: ApproachPlate[] = $derived(approachPlates(this.heldApproaches))
 
-    approachSymbolTags: PlacedSymbolTag[] = $derived.by(() => {
-        const onPlates = this.approachPlates.map((plate) => plate.side)
-        const arrows = this.arrowOutlines
-        const shown = SYMBOL_TAGS.filter(
-            (tag) =>
-                !onPlates.includes(tag.key) &&
-                (this.approachSymbolsShown || printedMarksCovered(tag, arrows))
-        )
-        return placeSymbolTags(shown, approachSymbolScale(this.zoom), arrows)
-    })
+    approachSymbolTags: PlacedSymbolTag[] = $derived.by(() =>
+        shownSymbolTags({
+            switchedOn: this.approachSymbolsShown,
+            scale: approachSymbolScale(this.zoom),
+            arrows: this.arrowOutlines,
+            plates: this.unitsHidden ? [] : this.approachPlates
+        })
+    )
 
     private threatArrowApproaches: number[] = $derived.by(() => [
         ...threatenedApproaches(this.targets),

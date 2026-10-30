@@ -39,6 +39,7 @@ export const TitleRules1833NE: EighteenXXTitleRules<typeof State1833NE, Hydrated
     auctionRules: AuctionRules1833NE,
     createOpening: createOpening1833NE,
     startingCash: startingCash1833NE,
+    currencySymbol: '$',
     stockRules: StockRules1833NE,
     companyRules: CompanyRules1833NE,
     operatingRules: OperatingRules1833NE,

@@ -8,6 +8,48 @@ afterEach(() => {
     vi.unstubAllGlobals()
 })
 
+describe('TabletopApi title activity', () => {
+    test('aborts an unanswered request and permits a successful retry', async () => {
+        vi.useFakeTimers()
+        try {
+            const fetch = vi.fn<typeof globalThis.fetch>()
+            fetch.mockImplementationOnce((_input, init) => {
+                const signal = init?.signal
+                return new Promise<Response>((_resolve, reject) => {
+                    signal?.addEventListener('abort', () => reject(signal.reason), { once: true })
+                })
+            })
+            fetch.mockResolvedValueOnce(
+                new Response(
+                    JSON.stringify({
+                        payload: { activity: { inProgress: [], recentlyFinished: [] } }
+                    })
+                )
+            )
+            vi.stubGlobal('fetch', fetch)
+            const api = new TabletopApi()
+            let rejection: unknown
+            let settled = false
+            const request = api
+                .getTitleActivity('freshfish')
+                .catch((error: unknown) => (rejection = error))
+                .finally(() => (settled = true))
+            await vi.advanceTimersByTimeAsync(10_000)
+            expect(settled).toBe(true)
+            await request
+            expect(rejection).toMatchObject({ name: 'TitleActivityUnavailable' })
+            expect(fetch.mock.calls[0][1]?.signal?.aborted).toBe(true)
+            await expect(api.getTitleActivity('freshfish')).resolves.toEqual({
+                inProgress: [],
+                recentlyFinished: []
+            })
+            expect(vi.getTimerCount()).toBe(0)
+        } finally {
+            vi.useRealTimers()
+        }
+    })
+})
+
 describe('TabletopApi undo compatibility', () => {
     test('derives the processed replay when an older host omits it', async () => {
         const game = Value.Create(Game)

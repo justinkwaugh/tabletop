@@ -3,7 +3,7 @@ import { RouteEvaluation, type TrainRoute } from '@tabletop/18xx'
 import { position, type Placement } from '../test/position.js'
 import { rotationFor, route } from '../test/flow.js'
 import { ferryValue } from './ferries.js'
-import { RouteRules1833NE } from './routes.js'
+import { RouteRules1833NE, routeBonusPolicy } from './routes.js'
 
 const tile = (locationId: string, definitionId: string, edges: number[]): Placement => ({
     locationId,
@@ -69,7 +69,12 @@ describe('interconnections (§6.66)', () => {
         expect(result.reason).toBeUndefined()
         expect(result.result?.routes.map((entry) => entry.revenue)).toEqual([120, 50])
         expect(result.result?.routes[0].bonuses).toEqual([
-            { locationId: 'G22', amount: 50, sourceIds: ['interconnection'] }
+            {
+                locationId: 'G22',
+                amount: 50,
+                sourceIds: ['interconnection'],
+                arrowIds: ['albany-troy-to-boston']
+            }
         ])
     })
 
@@ -125,6 +130,73 @@ describe('direct connections (§6.66)', () => {
             expect(result.reason).toBeUndefined()
             expect(result.result?.revenue).toBe(revenue)
         }
+    })
+
+    it('names the direct arrow and the interconnection it adds as paying the bonus', () => {
+        const state = troyToBoston('II')
+        const [train] = trainIds(state, 'FRR')
+        const result = run(state, 'FRR', [
+            route(state, train, { locationId: 'B17', nodeId: 'offboard' }, [
+                'C18',
+                'D19',
+                'E20',
+                'F21',
+                'G22'
+            ])
+        ])
+        expect(result.result?.routes[0].bonuses).toEqual([
+            {
+                locationId: 'B17',
+                amount: 100,
+                sourceIds: ['direct'],
+                arrowIds: ['boston-and-albany-troy', 'albany-troy-to-boston']
+            }
+        ])
+    })
+})
+
+describe('bonus arrows paying each bonus', () => {
+    const policy = (phaseId: string, owned: Record<string, string> = {}) => {
+        const state = position([], [], {}, phaseId)
+        for (const [privateId, companyId] of Object.entries(owned)) {
+            const certificate = state.certificates.find(
+                (entry) => entry.companyId === privateId && entry.kind === 'private'
+            )!
+            certificate.owner = { kind: 'company', companyId }
+        }
+        return routeBonusPolicy(state, 'FRR')
+    }
+
+    it('names only the arrows with a value in the phase', () => {
+        const { connectionBonuses, interconnections } = policy('III')
+        expect(connectionBonuses?.map((bonus) => bonus.arrowIds)).toEqual([
+            ['boston-and-new-york'],
+            ['boston-and-north', 'boston-to-montreal', 'montreal-to-boston'],
+            ['boston-and-north', 'boston-to-ogdensburg', 'ogdensburg-to-boston'],
+            ['montreal-port-city'],
+            ['montreal-to-portland', 'portland-to-montreal'],
+            []
+        ])
+        expect(interconnections?.map((bonus) => bonus.arrowIds)).toEqual([
+            ['boston-to-montreal'],
+            ['montreal-to-boston'],
+            ['boston-to-ogdensburg'],
+            ['ogdensburg-to-boston'],
+            ['montreal-to-portland'],
+            ['portland-to-montreal']
+        ])
+    })
+
+    it('keeps the arrows when the Ogdensburg private doubles them', () => {
+        const { connectionBonuses, interconnections } = policy('II', { P4: 'FRR' })
+        expect(connectionBonuses?.find((bonus) => bonus.sourceId === 'P4')).toMatchObject({
+            arrowIds: ['boston-and-north', 'boston-to-ogdensburg', 'ogdensburg-to-boston'],
+            from: { A6: (50 + 30 + 40) * 2 }
+        })
+        expect(interconnections?.find((bonus) => bonus.sourceId === 'P4')).toMatchObject({
+            amount: 40 * 2,
+            arrowIds: ['ogdensburg-to-boston']
+        })
     })
 })
 

@@ -92,6 +92,7 @@ export const TitleRules1846: EighteenXXTitleRules<
     names: Names1846,
     createOpening: createOpening1846,
     startingCash: startingCash1846,
+    currencySymbol: '$',
     stockRules: StockRules1846,
     companyRules: CompanyRules1846,
     operatingRules: OperatingRules1846,

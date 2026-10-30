@@ -27,6 +27,7 @@ import {
     banditsHoldSiteFor,
     banditsRuleSite,
     isImperialPlayer,
+    isImperialStatus,
     rulersOfSite,
     rulesSite,
     rulingWarbandOwners,
@@ -80,10 +81,7 @@ export function suspendedImperialsFor(
     const attacker = state.getPlayerState(attackerId)
     const defender = state.getPlayerState(defenderId)
 
-    if (
-        attacker.status === PlayerStatus.Citizen &&
-        (defender.status === PlayerStatus.Chancellor || defender.status === PlayerStatus.Citizen)
-    ) {
+    if (attacker.status === PlayerStatus.Citizen && isImperialStatus(defender.status)) {
         return [attackerId]
     }
     if (attacker.status === PlayerStatus.Chancellor && defender.status === PlayerStatus.Citizen) {

@@ -975,7 +975,7 @@
         </g>
     {/if}
     {#if !artwork && scene.bonusArrows.length}
-        <MapBonusArrows arrows={scene.bonusArrows} {appearance} {revenueStageColors} />
+        <MapBonusArrows arrows={scene.bonusArrows} {routes} {appearance} {revenueStageColors} />
     {/if}
     <g
         data-map-layer="highlights"

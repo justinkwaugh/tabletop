@@ -14,6 +14,7 @@ import { FreshFishApiActions } from './apiActions.js'
 import { FreshFishStateHandlers } from './stateHandlers.js'
 import { FreshFishColors } from './colors.js'
 import { FreshFishScoring } from './scoring.js'
+import { FreshFishProgression } from './progression.js'
 
 export const FreshFishVisibility = {
     state: Visibility.createProjector(FreshFishGameState),
@@ -30,6 +31,7 @@ const runtime = {
     apiActions: FreshFishApiActions,
     playerColors: FreshFishColors,
     scoring: new FreshFishScoring(),
+    progression: new FreshFishProgression(),
     visibility: FreshFishVisibility
 } satisfies Omit<GameRuntime<FreshFishProjectedState, HydratedFreshFishGameState>, 'configuration'>
 

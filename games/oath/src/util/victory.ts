@@ -1,5 +1,5 @@
 import { assert } from '@tabletop/common'
-import { HydratedOathGameState } from '../model/gameState.js'
+import type { HydratedOathGameState, OathProjectedState } from '../model/gameState.js'
 import { OathType, PlayerStatus } from '../model/oathEnums.js'
 import { OATH_NAMES } from '../definition/config.js'
 import {
@@ -8,7 +8,7 @@ import {
     revealedVisionGoal,
     visionsMetBy
 } from './oathkeeper.js'
-import { isImperialPlayer } from './rule.js'
+import { isImperialPlayer, isImperialStatus } from './rule.js'
 import { GOAL_VISION_IDS } from '../data/visions.js'
 import { WinKind, type WinRule } from '../model/ending.js'
 
@@ -37,12 +37,13 @@ export function endDieThreshold(round: number): number | undefined {
 }
 
 /** R-3.3 — "if the Chancellor or a Citizen is the Oathkeeper". */
-export function endDieIsRolled(state: HydratedOathGameState): boolean {
+export function endDieIsRolled(
+    state: Pick<OathProjectedState, 'round' | 'oathkeeperPlayerId' | 'players'>
+): boolean {
     if (endDieThreshold(state.round) === undefined) return false
 
-    const holderId = state.oathkeeperPlayerId
-    if (!holderId) return false
-    return isImperialPlayer(state, holderId)
+    const holder = state.players.find((player) => player.playerId === state.oathkeeperPlayerId)
+    return holder !== undefined && isImperialStatus(holder.status)
 }
 
 /** R-3.3.1 — wherever "the Chancellor would win"; at most one Citizen qualifies. */

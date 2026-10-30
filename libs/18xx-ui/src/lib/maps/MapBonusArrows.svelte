@@ -10,18 +10,24 @@
     import {
         BonusArrowValueHeight,
         bonusArrowFooterText,
+        payingRouteColors,
         type DrawnBonusArrow
     } from './bonusArrows.js'
+    import type { MapRoute } from './mapDrawing.js'
     let {
         arrows,
+        routes,
         appearance,
         revenueStageColors = {}
     }: {
         arrows: readonly DrawnBonusArrow[]
+        routes: readonly MapRoute[]
         appearance: TileAppearance
         revenueStageColors?: RevenueStageColors
     } = $props()
-    // A footer's symbol sits between its words, small enough to stay within the plaque.
+    const OutlineWidth = 1.4
+    const PayingBand = 4
+    // A footer's symbol sits between its words, small enough to stay within the board arrow.
     const FooterSymbolScale = 0.6
     const FooterSymbolRoom = 6.5
     const PortPaper = '#cfe8f3'
@@ -32,17 +38,28 @@
         {@const top = -arrow.height / 2}
         {@const footer = arrow.footer}
         {@const footerSize = bonusArrowFooterText(footer).length > 16 ? 5.6 : 6.5}
+        {@const colors = payingRouteColors(arrow, routes)}
         <g
             data-map-bonus-arrow={arrow.id}
             transform={`translate(${arrow.center.x} ${arrow.center.y})`}
             role="img"
             aria-label={`${arrow.heading} ${arrow.values.map((value) => `${value.label} ${value.amount}`).join(', ')} ${typeof arrow.footer === 'string' ? arrow.footer : arrow.footer.spoken}`}
         >
+            {#each colors as color, index (index)}
+                <path
+                    data-map-bonus-arrow-paid={arrow.id}
+                    d={arrow.outline}
+                    fill="none"
+                    stroke={color}
+                    stroke-width={OutlineWidth + 2 * PayingBand * (colors.length - index)}
+                    stroke-linejoin="round"
+                ></path>
+            {/each}
             <path
                 d={arrow.outline}
                 fill="#ffffff"
                 stroke={appearance.ink}
-                stroke-width="1.4"
+                stroke-width={OutlineWidth}
                 stroke-linejoin="round"
             ></path>
             <text
