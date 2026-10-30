@@ -12,7 +12,7 @@ import type { DvonnGameSession } from '$lib/model/session.svelte.js'
 import { boardDiff, spacesBetween, type StackMotion } from '$lib/board/boardDiff.js'
 import { coordsKey, type BoardView } from '$lib/board/geometry.js'
 import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE } from '$lib/board/hop.js'
-import { PIECE_MODEL, restingLift } from '$lib/board/pieceGeometry.js'
+import { PIECE_MODEL, restingLift, type PieceModel } from '$lib/board/pieceGeometry.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
@@ -40,6 +40,10 @@ const BOUNCE = {
     along: [1, -0.4, 0],
     step: 0.08
 }
+const BOUNCE_TIME = BOUNCE.lift.reduce((total, { duration }) => total + duration, 0)
+// A stack grown past the full height settles at its new height, then shrinks to the full
+// height as the pieces between its bottom and top thin out.
+const SHRINK = { duration: 0.3, ease: 'power2.inOut' }
 // Stacks cut off from the DVONN pieces float straight up as they fade, one after another, as the
 // moving stack lands; their shadows shrink where they stood.
 const CUT_OFF = { delay: 0.04, duration: 0.35, rise: -34, stagger: 0.03, shadow: 0.7 }
@@ -79,6 +83,8 @@ export class BoardAnimator {
     // up, so each animated action leaves the board as it ended until that state lands.
     stacks: DrawnStack[] = $derived.by(() => drawnStacks(this.session.gameState))
     flier: Flier | undefined = $state()
+    // The stack shrinking to the full height, and the height it stands at so far.
+    private shrinking: { key: string; cap: number } | undefined = $state()
 
     private readonly stackParts = new Map<string, Parts>()
     private flierParts: Parts = {}
@@ -188,6 +194,7 @@ export class BoardAnimator {
         animationContext.afterAnimations(() => {
             this.stacks = drawnStacks(to)
             this.flier = undefined
+            this.shrinking = undefined
             for (const node of touched) {
                 gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
             }
@@ -290,13 +297,10 @@ export class BoardAnimator {
         const landed = at + plan.duration
         timeline.to({}, { duration: plan.duration, onUpdate: occlude }, at)
 
-        // A stack grown past the full height is thinned the moment it lands, so it does not
-        // bounce: the board takes over the whole stack at once.
-        const thinned = moved.landingOn + moved.pieces.length > PIECE_MODEL.cap
-        if (thinned) {
-            timeline.call(() => this.land(before, moved), undefined, landed)
+        if (!quick) this.bounce(node, body, offset, plan.endLift, timeline, landed)
+        if (moved.landingOn + moved.pieces.length > PIECE_MODEL.cap) {
+            this.shrink(before, moved, timeline, quick ? landed : landed + BOUNCE_TIME, quick)
         }
-        if (!quick && !thinned) this.bounce(node, body, offset, plan.endLift, timeline, landed)
         return landed
     }
 
@@ -306,6 +310,48 @@ export class BoardAnimator {
         for (const [use, { y, top }] of this.occluders) {
             use.style.display = y > groundY + 0.5 && lift > top ? '' : 'none'
         }
+    }
+
+    // Once the moving stack has settled, the board takes over the whole stack, drawn as tall as
+    // the two stood, and shrinks it to the full height; quickly, it is drawn thinned at once.
+    private shrink(
+        before: HydratedDvonnGameState,
+        moved: StackMotion,
+        timeline: Timeline,
+        at: number,
+        quick: boolean
+    ) {
+        const key = coordsKey(moved.to)
+        const { cap } = PIECE_MODEL
+        const height = { cap: quick ? cap : Math.min(moved.landingOn, cap) + moved.pieces.length }
+        timeline.call(
+            () => {
+                this.land(before, moved)
+                this.shrinking = { key, cap: height.cap }
+            },
+            undefined,
+            at
+        )
+        if (quick) return
+        timeline.to(
+            height,
+            {
+                cap,
+                ...SHRINK,
+                onUpdate: () => {
+                    this.shrinking = { key, cap: height.cap }
+                }
+            },
+            at
+        )
+    }
+
+    // The model a stack is drawn with: the board's, or while it shrinks, one at the height it
+    // has shrunk to. Other stacks keep the board's own model, so they are not redrawn.
+    modelAt(key: string): PieceModel {
+        return this.shrinking?.key === key
+            ? { ...PIECE_MODEL, cap: this.shrinking.cap }
+            : PIECE_MODEL
     }
 
     // The landed stack drawn whole on its space.

@@ -149,6 +149,7 @@
                     seedKeys={stack.pieces.map((piece) => coordsKey(piece.placedAt))}
                     {radius}
                     prefix="dvonn-board"
+                    model={animator.modelAt(stack.key)}
                 />
             </g>
         </g>
