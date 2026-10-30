@@ -5,12 +5,14 @@ import {
     Banner,
     CardKind,
     OathType,
+    PlayerStatus,
     Region,
     SetupVariant,
     TOTAL_FAVOR
 } from '../model/oathEnums.js'
 import { TOTAL_VISIONS } from '../data/worldDeck.js'
 import {
+    carriedOathVault,
     createOathVault,
     drawFromBottomOfWorldDeck,
     drawRelics,
@@ -30,7 +32,12 @@ import { siteRevealPrompt } from '../data/cardRegistry.js'
 import { bySuit } from '../data/typedData.js'
 import { visionsDrawnAfter } from '../data/visionsDrawnTrack.js'
 import { MAX_SUPPLY } from './rest.js'
-import { addWarbandsToSite, gainWarbandsToBoard, takeWarbandsFromBank } from './force.js'
+import {
+    addWarbandsToBoard,
+    addWarbandsToSite,
+    gainWarbandsToBoard,
+    takeWarbandsFromBank
+} from './force.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 /** R-1.6 — 3 favor per bank, or 4 each at five or six players. */
@@ -46,8 +53,12 @@ export const EXILE_WARBANDS = 14
 export const CHANCELLOR_BOARD_WARBANDS = 3
 /** R-1.12 */
 export const TOP_CRADLE_WARBANDS = 2
+/** R-1.12 */
+export const SITE_GARRISON_WARBANDS = 1
 /** R-1.15 */
 export const EXILE_BOARD_WARBANDS = 3
+/** R-1.15 — purple, from the Imperial bank. */
+export const CITIZEN_BOARD_WARBANDS = 3
 /** R-1.11 */
 export const CHANCELLOR_START_FAVOR = 2
 export const CHANCELLOR_START_SECRETS = 1
@@ -87,6 +98,41 @@ export interface SetupContext {
     /** The state's public stream; never the deck (R-9.4). */
     random: RandomFunction
     setupVariant?: SetupVariant
+    /** A continued game's map, dealt as the last game saved it; absent in a first game. */
+    carried?: CarriedMap
+}
+
+/**
+ * R-8.7.1, R-1.1 — the eight slots as the last game saved them: each slot's site with its
+ * facing, its denizens and edifice, its relic slots, and the capacity a Salt the Earth still on it
+ * sets (R-7-H1). The facedown sites' identities stay in the vault.
+ */
+export interface CarriedMap {
+    map: Record<Region, string[]>
+    siteCards: Record<string, string>
+    denizensBySite: Record<string, string[]>
+    relicsBySite: Record<string, RelicSlot[]>
+    ruinedEdificeIds?: string[]
+    siteCapacityOverrides: Record<string, number>
+}
+
+/** R-1.1 with R-8.7.1 — the stack is dealt as it was stacked: no site moves and none flips. */
+function dealCarriedSites(state: HydratedOathGameState, carried: CarriedMap): void {
+    state.map = structuredClone(carried.map)
+    state.siteCards = { ...carried.siteCards }
+    state.denizensBySite = structuredClone(carried.denizensBySite)
+    state.relicsBySite = structuredClone(carried.relicsBySite)
+    if (carried.ruinedEdificeIds) state.ruinedEdificeIds = [...carried.ruinedEdificeIds]
+    state.siteCapacityOverrides = { ...carried.siteCapacityOverrides }
+    // R-8.3.5 step 7 runs inside the chronicle, so a first game's flip never runs here.
+    for (const region of Object.values(Region)) {
+        if (!state.map[region].some((slotId) => state.isSiteFaceup(slotId))) {
+            throw Error(
+                `R-8.3.5 step 7 leaves a faceup site in every region, but the carried ${region} ` +
+                    'has none'
+            )
+        }
+    }
 }
 
 /** R-1.2 and the public halves of R-1.4 through R-1.18, in the Law's order. */
@@ -111,12 +157,16 @@ export function buildInitialPublicState(
     }
 
     // R-1.1
-    const { map, siteCards } = dealFaceupSites(context.random, ALL_SITE_IDS)
-    state.map = map
-    state.siteCards = siteCards
+    if (context.carried) {
+        dealCarriedSites(state, context.carried)
+    } else {
+        const { map, siteCards } = dealFaceupSites(context.random, ALL_SITE_IDS)
+        state.map = map
+        state.siteCards = siteCards
 
-    state.denizensBySite = {}
-    state.relicsBySite = {}
+        state.denizensBySite = {}
+        state.relicsBySite = {}
+    }
     state.warbandsBySite = {}
     state.cardTokens = {}
 
@@ -161,14 +211,27 @@ export function buildInitialPublicState(
         }
         player.secretsFacedown = 0
 
-        // R-1.15 — each Exile's own warbands; the Chancellor's are placed by R-1.12.
-        if (!isChancellor) {
+        // R-1.15 — each Exile's own warbands; the Chancellor's are placed by R-1.12, and a
+        // Citizen's after it.
+        if (!isChancellor && player.status !== PlayerStatus.Citizen) {
             gainWarbandsToBoard(state, player.playerId, EXILE_BOARD_WARBANDS)
         }
     }
 
     // R-1.12
     placeChancellorWarbands(state, chancellor)
+
+    // R-1.15 — "Each Citizen places 3 purple warbands on their board": a continued game's Citizen
+    // side (R-1.9-H1), from what R-1.12 left in the Imperial bank (R-9.3).
+    for (const player of orderedPlayers) {
+        if (player.status !== PlayerStatus.Citizen) continue
+        addWarbandsToBoard(
+            state,
+            player.playerId,
+            IMPERIAL_WARBANDS,
+            takeWarbandsFromBank(state, IMPERIAL_WARBANDS, CITIZEN_BOARD_WARBANDS)
+        )
+    }
 
     // R-1.13
     state.oathType = oathType
@@ -206,8 +269,16 @@ export function buildInitialPublicState(
     return state
 }
 
-/** R-1.12 — 3 on the board and 2 on the topmost faceup Cradle site; setup deals no denizen, so no other site is occupied. */
-function placeChancellorWarbands(
+/** R-1.12 — a faceup site holding a denizen or an intact edifice. */
+export function takesSetupGarrison(state: HydratedOathGameState, slotId: string): boolean {
+    return (
+        state.isSiteFaceup(slotId) &&
+        state.denizensAt(slotId).some((cardId) => !state.isRuined(cardId))
+    )
+}
+
+/** R-1.12 — 3 on the board, 2 on the topmost faceup Cradle site and 1 on each other garrisoned site. */
+export function placeChancellorWarbands(
     state: HydratedOathGameState,
     chancellor: HydratedOathPlayerState
 ): void {
@@ -226,6 +297,15 @@ function placeChancellorWarbands(
         IMPERIAL_WARBANDS,
         takeWarbandsFromBank(state, IMPERIAL_WARBANDS, TOP_CRADLE_WARBANDS)
     )
+    for (const slotId of state.faceupSiteIds()) {
+        if (slotId === topCradle || !takesSetupGarrison(state, slotId)) continue
+        addWarbandsToSite(
+            state,
+            slotId,
+            IMPERIAL_WARBANDS,
+            takeWarbandsFromBank(state, IMPERIAL_WARBANDS, SITE_GARRISON_WARBANDS)
+        )
+    }
 }
 
 /** R-1.16 — "if there is not enough favor, the Chancellor chooses how to place it": the favor then waits for their setup choice. */
@@ -248,14 +328,22 @@ export function placeSetupSiteTokens(state: HydratedOathGameState): void {
         .map(({ siteCardId, prompt }) => ({ siteCardId, wanted: prompt.favor }))
 }
 
-/** R-2.8.2, R-9.4 — the identity is dealt by `buildSetupVault`. */
+/**
+ * R-2.8.2, R-9.4 — the identity is dealt by `buildSetupVault`. A carried site already holds the
+ * relics R-8.6.2 gave it, and is given only what it lacks.
+ */
 export function placeSiteRevealRelicSlots(state: HydratedOathGameState): void {
     for (const slotId of state.faceupSiteIds()) {
         const count = siteRevealPrompt(state.siteCardAt(slotId))?.relics ?? 0
-        if (count === 0) continue
-        state.relicsBySite[slotId] = Array.from({ length: count }, (_, i) => ({
-            slotId: `${slotId}.relic.${i}`
-        }))
+        const held = state.relicsBySite[slotId] ?? []
+        if (count <= held.length) continue
+        const named = new Set(held.map((slot) => slot.slotId))
+        const added: RelicSlot[] = []
+        for (let i = 0; held.length + added.length < count; i++) {
+            const relicSlotId = `${slotId}.relic.${i}`
+            if (!named.has(relicSlotId)) added.push({ slotId: relicSlotId })
+        }
+        state.relicsBySite[slotId] = [...held, ...added]
     }
 }
 
@@ -308,6 +396,66 @@ export function buildSetupVault(state: HydratedOathGameState, random: RandomFunc
         vault.siteFacedown[slotId] = siteCardId
     }
 
+    drawSetupRelics(state, vault)
+
+    // R-8.8, R-1.19 to R-1.22 read as written — a first game's bottom pile is denizens only
+    // (29 cards, more than six seats draw), so its setup draws no Vision.
+    const tail = visionFreeTailLength(vault.worldDeck)
+    const needed = setupDrawTotal(state.players.length)
+    if (tail < needed) {
+        throw Error(
+            `The world deck's Vision-free tail is ${tail} cards and setup draws ` +
+                `${needed} from the bottom (R-1.19, R-1.20); no Visions are drawn at setup.`
+        )
+    }
+
+    return vault
+}
+
+/**
+ * R-8.7, R-1.1, R-1.17, R-1.18 — a continued game's vault: the facedown sites in their slots, the
+ * relics at the sites, the world deck, the relic deck and the Dispossessed exactly as the last game
+ * saved them. Only the site deck is new: the sites in no slot, shuffled from this game's protected
+ * stream (R-9.4). R-1.19's and R-1.20's draws may reach a Vision (R-1.19 to R-1.22, read
+ * as written).
+ */
+export function buildContinuedVault(
+    state: HydratedOathGameState,
+    saved: OathVault,
+    random: RandomFunction
+): OathVault {
+    const siteFacedown: Record<string, string> = {}
+    for (const slotId of state.allSiteIds()) {
+        if (state.isSiteFaceup(slotId)) continue
+        const siteCardId = saved.siteFacedown[slotId]
+        if (siteCardId === undefined) {
+            throw Error(`R-8.3.5 step 6 fills every slot, but the carried ${slotId} holds no site`)
+        }
+        siteFacedown[slotId] = siteCardId
+    }
+    const relicFacedown: Record<string, string> = {}
+    for (const slot of Object.values(state.relicsBySite).flat()) {
+        const relicCardId = saved.relicFacedown[slot.slotId]
+        if (relicCardId !== undefined) relicFacedown[slot.slotId] = relicCardId
+    }
+    const inSlots = new Set([...Object.values(state.siteCards), ...Object.values(siteFacedown)])
+    const siteDeck = ALL_SITE_IDS.filter((siteCardId) => !inSlots.has(siteCardId))
+    shuffle(siteDeck, random)
+
+    const vault = carriedOathVault({
+        worldDeck: saved.worldDeck,
+        siteFacedown,
+        relicFacedown,
+        relicDeck: saved.relicDeck,
+        siteDeck,
+        dispossessed: saved.dispossessed
+    })
+    drawSetupRelics(state, vault)
+    return vault
+}
+
+/** R-1.17, then R-2.8.2's relics for the faceup sites' empty relic slots. */
+function drawSetupRelics(state: HydratedOathGameState, vault: OathVault): void {
     // R-1.17
     const reliquaryRelics = drawRelics(vault, RELIQUARY_SIZE)
     if (reliquaryRelics.length < RELIQUARY_SIZE) {
@@ -324,6 +472,8 @@ export function buildSetupVault(state: HydratedOathGameState, random: RandomFunc
     for (const slotId of state.allSiteIds()) {
         if (!state.isSiteFaceup(slotId)) continue
         for (const slot of state.relicSlotsAt(slotId)) {
+            // A carried site's relics are already there (R-8.6.2).
+            if (vault.relicFacedown[slot.slotId] !== undefined) continue
             const [relicCardId] = drawRelics(vault, 1)
             if (!relicCardId) {
                 throw Error(`R-2.8.2: the relic deck ran out seeding faceup site ${slotId}`)
@@ -331,18 +481,6 @@ export function buildSetupVault(state: HydratedOathGameState, random: RandomFunc
             vault.relicFacedown[slot.slotId] = relicCardId
         }
     }
-
-    // R-8.8 — no Visions are drawn at setup, so the bottom draws must fit the Vision-free tail.
-    const tail = visionFreeTailLength(vault.worldDeck)
-    const needed = setupDrawTotal(state.players.length)
-    if (tail < needed) {
-        throw Error(
-            `The world deck's Vision-free tail is ${tail} cards and setup draws ` +
-                `${needed} from the bottom (R-1.19, R-1.20); no Visions are drawn at setup.`
-        )
-    }
-
-    return vault
 }
 
 /** R-1.20 */
@@ -412,17 +550,20 @@ function backTypeOf(cardId: string): CardKind {
 /** R-1.19–R-1.22's public half; reads nothing from the vault. */
 export function applySetupDeal(state: HydratedOathGameState, result: SetupDealResult): void {
     // R-1.19
+    let seededVisions = 0
     for (const region of Object.values(Region)) {
         const seeded = result.discardSeedCounts[region] ?? 0
         state.discardPileCounts[region] += seeded
-        // R-1.19, R-8.8 — drawn from the Vision-free tail, so every seed shows a denizen's back.
-        state.seenDiscardPiles[region] = Array.from({ length: seeded }, () => ({
-            back: CardKind.Denizen
-        }))
+        // R-1.19 seeds each pile with one card, so its back is the top's: a denizen's in a first
+        // game, and a continued game's may be a Vision's.
         const back = result.discardSeedTopBackType?.[region]
+        state.seenDiscardPiles[region] = Array.from({ length: seeded }, () => ({
+            back: back ?? CardKind.Denizen
+        }))
         if (back) {
             state.discardTopBackType = { ...state.discardTopBackType, [region]: back }
         }
+        if (back === CardKind.Vision) seededVisions += seeded
     }
 
     // R-1.20
@@ -430,8 +571,11 @@ export function applySetupDeal(state: HydratedOathGameState, result: SetupDealRe
         state.getPlayerState(hand.playerId).setHand(hand.cardIds)
     }
 
-    // R-1.22
+    // R-1.22 — a Vision in a hand moves the marker; one in R-1.19's piles is unseen and does not
+    // (R-1.19 to R-1.22, read as written). Every Vision dealt left the world deck, as its back
+    // showed.
     state.visionsDrawn = visionsDrawnAfter(state.visionsDrawn, result.visionsDrawn)
+    state.worldDeckVisions -= result.visionsDrawn + seededVisions
 
     state.topCardBackType = result.topCardBackType
     state.worldDeckExhausted = result.worldDeckExhausted

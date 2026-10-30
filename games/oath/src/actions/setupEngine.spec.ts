@@ -22,6 +22,7 @@ import { CHANCELLOR_WARBANDS, EXILE_WARBANDS } from '../util/setup.js'
 import { SetupVariant } from '../model/oathEnums.js'
 import { testGame } from '../testing/game.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { writeChronicleThrough } from '../testing/chronicle.js'
 
 const MASTER_SEED = '00000000000000000000000000000004'
 const PLAYERS = ['p1', 'p2', 'p3']
@@ -111,6 +112,15 @@ describe('setup through GameEngine.run() (R-1.19–R-1.23.3)', () => {
             ActionType.SetupChoice
         ])
         expect(engine.getValidActionTypesForPlayer(game, state, exile)).toEqual([])
+    })
+
+    it('R-2.9 — a first game holds no edifice: no ruin key and no edifice id, before or after setup', () => {
+        const before = startGame().state
+        const after = runSetup().state
+        for (const state of [before, after]) {
+            expect('ruinedEdificeIds' in state).toBe(false)
+            expect(JSON.stringify(state)).not.toContain('edifice.')
+        }
     })
 
     it('R-1.23 — every pawn is placed and the machine hands over to the Wake Phase', () => {
@@ -262,9 +272,9 @@ function playFullGame(seed: number) {
     const order = state.turnManager.turnOrder
     let searched = false
 
-    for (let round = 1; round <= 8 && !state.result; round++) {
+    for (let round = 1; round <= 8 && state.winningPlayerIds.length === 0; round++) {
         for (const playerId of order) {
-            if (state.result) break
+            if (state.winningPlayerIds.length > 0) break
             expect(state.activePlayerIds).toEqual([playerId])
 
             state = wake(game, state, vault, playerId)
@@ -318,6 +328,10 @@ function playFullGame(seed: number) {
         }
     }
 
+    // R-8 — the chronicle is written before the result.
+    if (state.machineState === MachineState.Chronicle) {
+        state = writeChronicleThrough(game, state).final
+    }
     return { state, chancellorId, warbandsBefore }
 }
 

@@ -13,7 +13,6 @@ import {
 import { Banner, Suit } from '../model/oathEnums.js'
 import { type CampaignKillPath, CampaignTargetKind, type WarbandGroup } from '../model/campaign.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import {
     battleScopeOf,
     collectAttackingForce,
@@ -238,7 +237,7 @@ registerBattlePlan(
             dice: (ctx) => {
                 const suits = new Set(
                     ruledFaceupCardIds(ctx.state, planUser(ctx), scope(ctx))
-                        .map((id) => suitOf(id))
+                        .map((id) => ctx.state.suitInPlay(id))
                         .filter((s) => s !== undefined && s !== Suit.Arcane)
                 )
                 return pm(ctx, suits.size)
@@ -285,7 +284,7 @@ registerBattlePlan(
                     ctx.state
                         .getPlayerState(planUser(ctx))
                         .faceupAdviserIds()
-                        .filter((cardId) => suitOf(cardId) === Suit.Beast).length
+                        .filter((cardId) => ctx.state.suitInPlay(cardId) === Suit.Beast).length
                 )
         }
     }
@@ -466,7 +465,11 @@ registerBattlePlan(
     {
         hooks: {
             dice: (ctx) =>
-                pm(ctx, cardsRuledByUser(ctx).filter((id) => suitOf(id) === Suit.Nomad).length),
+                pm(
+                    ctx,
+                    cardsRuledByUser(ctx).filter((id) => ctx.state.suitInPlay(id) === Suit.Nomad)
+                        .length
+                ),
             discardAtEnd: true
         }
     }
@@ -572,7 +575,7 @@ function militaryParade(ctx: BattlePlanContext, victorious: boolean): string | u
     let gained = 0
     for (const id of enemies(ctx)) {
         for (const cardId of ctx.state.getPlayerState(id).faceupAdviserIds()) {
-            const suit = suitOf(cardId)
+            const suit = ctx.state.suitInPlay(cardId)
             if (suit) gained += gainFavorFromBankFor(ctx, suit, 1)
         }
         // Its Q&A pays one favor per adviser of a suit, and Marriage counts as two (R-X.4: from revision 5).

@@ -305,12 +305,17 @@
         gap: 10px;
         margin-bottom: 8px;
     }
+    /* A long name wraps inside the row, where the phone reads the whole of it. */
     .head h2 {
         font-size: 18px;
         font-weight: 700;
         margin: 0;
+        overflow-wrap: anywhere;
     }
+    /* From no width of its own, the status takes the room the name leaves and wraps down to its
+       longest word before the name gives up any: a name that fits is never split. */
     .status {
+        flex: 1 1 0;
         color: #a8a29e;
         font-size: 13px;
     }

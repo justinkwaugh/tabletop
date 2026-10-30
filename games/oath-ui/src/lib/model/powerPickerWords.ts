@@ -26,6 +26,8 @@ export type PickerWords = {
     may?: MayWords
     /** Two facedown adviser picks over the same advisers, answered in one area: its heading. */
     advisers?: string
+    /** A count picked from a row of card backs: its words and how many backs the card prints. */
+    count?: { label: string; backs: number }
 }
 
 export type MayWords = {
@@ -55,6 +57,8 @@ const CITIZEN_WITH_RELIC: MayWords = {
 
 const WORDS: Record<string, PickerWords> = {
     'relic.whistle': { player: 'Call:', tone: 'gold' },
+    // Fallen Spire: "Swap up to five denizens".
+    'edifice.arcane.great-spire': { count: { label: 'Swap:', backs: 5 }, tone: 'gold' },
     'denizen.arcane.terror-spells': { warbands: (total) => `Kill ${total}:`, tone: 'rose' },
     'denizen.arcane.blood-pact': { warbands: () => 'Sacrifice:', tone: 'rose', ownPlace: true },
     'denizen.order.wrestlers': { place: 'the warband you sacrifice:', tone: 'rose' },

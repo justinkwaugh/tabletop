@@ -15,14 +15,15 @@ import {
     peoplesFavorStepCount
 } from '../util/wake.js'
 import { buildAction } from './actions.js'
+import { plainestChronicleAnswer } from './chronicle.js'
 import { engine } from './engine.js'
 import { waitingGame } from './game.js'
 
 export const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
-export function start(game: Game, order?: string[]): OathProjectedState {
+export function start(game: Game, order?: string[], seed = MASTER_SEED): OathProjectedState {
     return engine.startGame(game, {
-        masterSeed: MASTER_SEED,
+        masterSeed: seed,
         ...(order ? { startingPositions: { playerIds: order } } : {})
     }).initialState
 }
@@ -56,7 +57,7 @@ function peoplesFavorSteps(state: OathProjectedState, playerId: string): WakeFav
     return steps
 }
 
-/** R-4.1 to R-4.3 — a Wake, a turn of no actions, and a Rest; R-4.3.5 — the Rest waits on the seat only while it holds a Rest power it can use. R-3.3 — the Chancellor's end die between rounds. */
+/** R-4.1 to R-4.3 — a Wake, a turn of no actions, and a Rest; R-4.3.5 — the Rest waits on the seat only while it holds a Rest power it can use. R-3.3 — the Chancellor's end die between rounds. R-8 — each chronicle step's plainest answer. */
 function passiveAction(state: OathProjectedState): GameAction {
     const [playerId] = state.activePlayerIds
     switch (state.machineState) {
@@ -71,6 +72,8 @@ function passiveAction(state: OathProjectedState): GameAction {
             return buildAction(CompleteRest, { playerId })
         case MachineState.EndOfRound:
             return buildAction(RollEndDie, { playerId })
+        case MachineState.Chronicle:
+            return plainestChronicleAnswer(state)
         default:
             return buildAction(EndActPhase, { playerId })
     }
@@ -97,9 +100,17 @@ export function playUntilTheEnd(game: Game, initial: OathProjectedState): OathPr
     return state
 }
 
-/** Setup under a reversed assignment; `seed` fixes R-3.3's end die, which is the only protected draw after setup. */
+/** A game the tournament provisions: the platform names its table before setup. */
+export function tournamentGame(count: number, config: GameConfig = {}): Game {
+    return {
+        ...waitingGame(count, config),
+        tournament: { tournamentId: 'spring-cup', stageId: 'main', tableId: '1', scheduleId: 's' }
+    }
+}
+
+/** A tournament's setup under a reversed assignment; `seed` fixes R-3.3's end die, which is the only protected draw after setup. */
 export function assignedGame(count: number, config: GameConfig, seed?: number) {
-    const game = waitingGame(count, config)
+    const game = tournamentGame(count, config)
     const order = game.players.map((player) => player.id).reverse()
     const initial = start(game, order)
     if (seed !== undefined) initial.protectedPrng = { seed, invocations: 0 }

@@ -1,7 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import { Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { CONSPIRACY_ID, suitOf } from '../data/cardRegistry.js'
+import { CONSPIRACY_ID } from '../data/cardRegistry.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import {
@@ -119,7 +119,7 @@ registerModifier(NEW_GROWTH, powerIndexOf(NEW_GROWTH, PowerTiming.Modifier), {
     hooks: {
         playAnywhere: (ctx) => {
             const suit = ctx.particulars?.playedCardId
-                ? suitOf(ctx.particulars.playedCardId)
+                ? ctx.state.suitInPlay(ctx.particulars.playedCardId)
                 : undefined
             return suit === Suit.Beast || suit === Suit.Hearth
         }

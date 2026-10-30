@@ -10,35 +10,11 @@ import {
 } from './oathkeeper.js'
 import { isImperialPlayer, isImperialStatus } from './rule.js'
 import { GOAL_VISION_IDS } from '../data/visions.js'
+import { WinKind, type WinRule } from '../model/ending.js'
 
 /** R-3 — pure: R-3.3's die is rolled by the caller in `apply()` from the protected stream. */
 
-export enum WinKind {
-    /** R-3.1 */
-    Usurper = 'usurper',
-    /** R-3.2 */
-    Visionary = 'visionary',
-    /** R-3.3 */
-    StableRegime = 'stableRegime',
-    /** R-3.3.1 */
-    Successor = 'successor',
-    /** R-3.4 */
-    WarExhaustion = 'warExhaustion'
-}
-
-/** R-3.4 has its own four steps, and R-3.3.1 fires under R-3.3, R-3.4.1 or R-3.4.4. */
-export const WIN_RULES = [
-    'R-3.1',
-    'R-3.2',
-    'R-3.3',
-    'R-3.3.1',
-    'R-3.4.1',
-    'R-3.4.2',
-    'R-3.4.3',
-    'R-3.4.4'
-] as const
-
-export type WinRule = (typeof WIN_RULES)[number]
+export { WIN_KIND_OF_RULE, WinKind, WIN_RULES, type WinRule } from '../model/ending.js'
 
 export interface GameOutcome {
     winnerPlayerId: string

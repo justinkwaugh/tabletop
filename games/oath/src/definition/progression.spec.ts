@@ -8,12 +8,15 @@ import {
 import * as Value from 'typebox/value'
 import { describe, expect, it } from 'vitest'
 import { FINAL_ROUND } from '../actions/completeRest.js'
-import type { OathProjectedState } from '../model/gameState.js'
+import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
+import { WIN_KIND_OF_RULE, WIN_RULES } from '../model/ending.js'
 import { PlayerStatus } from '../model/oathEnums.js'
+import { wonTable } from '../testing/chronicle.js'
 import { engine } from '../testing/engine.js'
 import { openTurn } from '../testing/fixture.js'
 import { testGame, waitingGame } from '../testing/game.js'
-import { playPassiveMove, start } from '../testing/playthrough.js'
+import { finishedWithin, playPassiveMove, start } from '../testing/playthrough.js'
+import { OathRevision } from '../util/revision.js'
 import { OathRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 
@@ -43,11 +46,15 @@ function inRound(round: number, turnOf: number): OathProjectedState {
     return state
 }
 
-/** Every state of a three-seat game whose seats take no actions, played to its end; `seed` fixes R-3.3's end die. */
-function passiveGame(seed: number): OathProjectedState[] {
+/**
+ * Every state of a three-seat game whose seats take no actions, played to its end and through its
+ * chronicle; `seed` fixes R-3.3's end die, and `revision` plays a game stored under an earlier one.
+ */
+function passiveGame(seed: number, revision?: OathRevision): OathProjectedState[] {
     const game = waitingGame(PLAYERS.length)
     const initial = start(game)
     initial.protectedPrng = { seed, invocations: 0 }
+    if (revision !== undefined) initial.oathRevision = revision
     const states = [initial]
     let state = initial
     while (state.machineState !== MachineState.EndOfGame) {
@@ -142,9 +149,58 @@ describe('Oath Game Progress', () => {
         it('names the end die only in rounds five to seven, and the last round only in the eighth', () => {
             states.forEach((state, index) => {
                 const { label, final } = reports[index]
+                if (state.chronicle !== undefined) return
                 expect(label).toBe(ROUND_LABELS[state.round - 1])
                 expect(final === true).toBe(label === 'Last round')
             })
+        })
+
+        it('reports the game complete from the win, through every chronicle step, to its result', () => {
+            const won = states.findIndex((state) => state.winningPlayerIds.length > 0)
+            expect(won).toBeGreaterThan(0)
+            expect(states[won - 1].chronicle).toBeUndefined()
+            expect(reports[won - 1].label).toBe(ROUND_LABELS[lastRound - 1])
+            const steps = new Set<string>()
+            states.slice(won).forEach((state, index) => {
+                expect(state.chronicle).toBeDefined()
+                if (state.chronicle?.step) steps.add(state.chronicle.step)
+                expect(reports[won + index]).toEqual(CHRONICLE)
+            })
+            expect(states.at(-1)?.machineState).toBe(MachineState.EndOfGame)
+            expect(states.some((state) => state.machineState === MachineState.Chronicle)).toBe(true)
+            expect(steps.size).toBeGreaterThan(0)
+        })
+    })
+})
+
+/** R-8 — a won game writes its chronicle before the result: no round is left to play. */
+const CHRONICLE = { fraction: 1, label: 'Chronicle', final: true }
+
+describe('Oath Game Progress once the game is won', () => {
+    it.each(WIN_RULES)('a win under %s reports the chronicle, complete and final', (rule) => {
+        const state = new HydratedOathGameState(inRound(3, 1))
+        const [winnerPlayerId] = state.turnManager.turnOrder
+        const table = wonTable(state, { winnerPlayerId, kind: WIN_KIND_OF_RULE[rule], rule })
+        expect(table.machineState).toBe(MachineState.Chronicle)
+        expect(progressOf(table)).toEqual(CHRONICLE)
+    })
+
+    it('a tournament game records its result at the win with no chronicle, and keeps the round it was won in', () => {
+        const { finished } = finishedWithin(3, (round) => round < FINAL_ROUND)
+        expect(finished.machineState).toBe(MachineState.EndOfGame)
+        expect(finished.chronicle).toBeUndefined()
+        const { fraction, label, final } = progressOf(finished)
+        expect(label).toBe(ROUND_LABELS[finished.round - 1])
+        expect(final).toBeUndefined()
+        expect(fraction).toBeLessThan(1)
+    })
+
+    it('a game stored under an earlier revision reports its rounds to its result, as before the chronicle', () => {
+        const states = passiveGame(7, OathRevision.EngineFixes25)
+        expect(states.some((state) => state.machineState === MachineState.Chronicle)).toBe(false)
+        states.forEach((state) => {
+            expect(state.chronicle).toBeUndefined()
+            expect(progressOf(state).label).toBe(ROUND_LABELS[state.round - 1])
         })
     })
 })
