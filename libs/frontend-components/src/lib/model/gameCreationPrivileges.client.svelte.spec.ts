@@ -34,20 +34,6 @@ describe('GameCreationPrivileges', () => {
         expect(privileges.seed).toBe('0123456789ABCDEF0123456789abcdef')
     })
 
-    test('an unlisted choice applies only while developer access is held', () => {
-        const access = adminInMode()
-        const privileges = new GameCreationPrivileges(access)
-        privileges.unlistedChoice = true
-        expect(privileges.unlisted).toBe(true)
-
-        adminModeEnds(access)
-        expect(privileges.canChooseUnlisted).toBe(false)
-        expect(privileges.unlisted).toBe(false)
-
-        access.canUseDeveloperTools = true
-        expect(privileges.unlisted).toBe(true)
-    })
-
     test('an unseated owner is flagged once the access lapses and clears when seated again', () => {
         const access = adminInMode()
         const privileges = new GameCreationPrivileges(access)
@@ -62,14 +48,12 @@ describe('GameCreationPrivileges', () => {
         expect(privileges.ownerExclusionLapsed).toBe(false)
     })
 
-    test('a Developer outside Admin Mode keeps the unlisted and owner choices but not the seed', () => {
+    test('a Developer outside Admin Mode keeps the owner choice but not the seed', () => {
         const access = new Access()
         access.canUseDeveloperTools = true
         const privileges = new GameCreationPrivileges(access)
-        privileges.unlistedChoice = true
         privileges.ownerIncluded = false
         privileges.seedEntry = '42'
-        expect(privileges.unlisted).toBe(true)
         expect(privileges.ownerExclusionLapsed).toBe(false)
         expect(privileges.canEnterSeed).toBe(false)
         expect(privileges.seed).toBe('')

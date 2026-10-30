@@ -2,14 +2,15 @@ import type { DiscordAuthorizationPurpose } from '@tabletop/frontend-components'
 import { reauthentication } from '$lib/stores/reauthentication.svelte'
 import {
     openDiscordAuthorization,
+    openPreparedDiscordAuthorization,
+    prepareDiscordLink,
     type DiscordAuthorizationApi,
+    type DiscordAuthorizationOutcome,
     type DiscordAuthorizationSuccess
 } from './discordAuthorization'
 
-export const DISCORD_LINK_DESCRIPTION = 'link your Discord account'
+export const DISCORD_LINK_DESCRIPTION = 'add Discord as another way to sign in to your account'
 
-// Linking goes through the Recent Authentication prompt: a refusal at either end of the popup
-// round trip asks the person to confirm, and the retry begins a fresh authorization attempt.
 export async function signInWithDiscord({
     purpose,
     api,
@@ -21,16 +22,29 @@ export async function signInWithDiscord({
     oncomplete?: (result: DiscordAuthorizationSuccess) => void
     report: (message: string) => void
 }): Promise<void> {
+    const notifyCompletion = (result: DiscordAuthorizationOutcome) => {
+        if (result.outcome === 'success') oncomplete?.(result)
+    }
     const attempt = async () => {
-        const result = await openDiscordAuthorization({ purpose, api })
-        oncomplete?.(result)
+        notifyCompletion(await openDiscordAuthorization({ purpose, api }))
     }
     try {
         if (purpose === 'link') {
             await reauthentication.run({
                 description: DISCORD_LINK_DESCRIPTION,
                 retry: attempt,
-                requiresUserGesture: true
+                requiresUserGesture: true,
+                prepare: async () => {
+                    const startedAt = Date.now()
+                    const started = await prepareDiscordLink(api)
+                    return {
+                        requiresUserGesture: !navigator.userActivation?.isActive,
+                        expiresAt: startedAt + started.expiresInSeconds * 1000,
+                        run: async () => {
+                            notifyCompletion(await openPreparedDiscordAuthorization(started))
+                        }
+                    }
+                }
             })
         } else {
             await attempt()

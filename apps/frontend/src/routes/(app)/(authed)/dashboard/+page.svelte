@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { nextTabIndex } from '$lib/utils/tabNavigation'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import DashboardGameList from '$lib/components/DashboardGameList.svelte'
     import DashboardHistory from '$lib/components/DashboardHistory.svelte'
@@ -28,15 +29,10 @@
         if (selected === 'history') historyOpened = true
     }
     function moveTab(event: KeyboardEvent) {
-        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
-        event.preventDefault()
         const current = TABS.findIndex((choice) => choice.id === tab)
-        const target =
-            event.key === 'Home'
-                ? 0
-                : event.key === 'End'
-                  ? TABS.length - 1
-                  : (current + (event.key === 'ArrowLeft' ? -1 : 1) + TABS.length) % TABS.length
+        const target = nextTabIndex(event.key, current, TABS.length)
+        if (target === undefined) return
+        event.preventDefault()
         selectTab(TABS[target].id)
         document.getElementById(`dashboard-tab-${tab}`)?.focus()
     }

@@ -10,6 +10,7 @@ import { BridgesApiActions } from './apiActions.js'
 import { BridgesStateHandlers } from './stateHandlers.js'
 import { BridgesColors } from './colors.js'
 import { BridgesScoring } from './scoring.js'
+import { BridgesProgression } from './progression.js'
 import { DefaultStateLogger } from '@tabletop/common'
 
 export const BridgesRuntime: GameRuntime<BridgesGameState, HydratedBridgesGameState> = {
@@ -20,6 +21,7 @@ export const BridgesRuntime: GameRuntime<BridgesGameState, HydratedBridgesGameSt
     stateHandlers: BridgesStateHandlers,
     playerColors: BridgesColors,
     scoring: new BridgesScoring(),
+    progression: new BridgesProgression(),
     apiActions: BridgesApiActions,
 
     stateLogger: new DefaultStateLogger()

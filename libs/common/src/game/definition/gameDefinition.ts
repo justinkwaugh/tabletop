@@ -14,6 +14,7 @@ import type { Color } from '../model/colors.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
 import type { GameVisibility } from '../visibility/gameVisibility.js'
 import type { GameScoring } from './gameScoring.js'
+import type { GameProgression } from './gameProgression.js'
 
 export interface GameInfo {
     id: string
@@ -38,6 +39,7 @@ export interface GameRuntime<
     stateLogger?: GameStateLogger
     visibility?: GameVisibility<T, T>
     scoring?: GameScoring<T>
+    progression?: GameProgression<T>
 }
 
 export interface GameDefinition<

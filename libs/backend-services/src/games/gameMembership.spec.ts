@@ -224,19 +224,15 @@ describe('game auto-start', () => {
         })
     })
 
-    it('schedules a start for an invite-only game whose owner holds no seat', async () => {
-        const { read, tasks } = await fillLobby({ isPublic: false, ownerId: 'developer' })
+    it.each([
+        ['the owner plays in', 'a'],
+        ['whose owner holds no seat', 'developer']
+    ])('schedules a start for an invite-only game %s', async (_case, ownerId) => {
+        const { read, tasks } = await fillLobby({ isPublic: false, ownerId })
         expect(read().autoStartAt).toEqual(new Date(autoStartAt))
         expect(tasks.createPushTask).toHaveBeenCalledExactlyOnceWith(
             expect.objectContaining({ payload: { gameId: 'lobby', autoStartAt } })
         )
-    })
-
-    it('does not schedule a start for an invite-only game the owner plays in', async () => {
-        const { read, tasks } = await fillLobby({ isPublic: false })
-        expect(read().status).toBe(GameStatus.WaitingToStart)
-        expect(read().autoStartAt).toBeUndefined()
-        expect(tasks.createPushTask).not.toHaveBeenCalled()
     })
 
     it('cancels the countdown when a player leaves and restarts it when the game refills', async () => {
@@ -252,16 +248,6 @@ describe('game auto-start', () => {
                 payload: { gameId: 'lobby', autoStartAt: autoStartAt + 5_000 }
             })
         )
-    })
-
-    it('cancels the countdown when the owner makes the game invite-only', async () => {
-        const { service, read } = await fillLobby()
-        await service.updateGame({
-            gameId: 'lobby',
-            principal: ordinaryPrincipal(users[0]),
-            fields: { isPublic: false }
-        })
-        expect(read().autoStartAt).toBeUndefined()
     })
 
     it('reports a scheduling failure and reschedules when the join is retried', async () => {

@@ -1,3 +1,4 @@
+import { TokenType } from '../tokens/dataToken.js'
 import { describe, expect, it, vi } from 'vitest'
 import { ExternalAuthService, Role, UserStatus, type User } from '@tabletop/common'
 import { UserService } from './userService.js'
@@ -7,10 +8,12 @@ import type { TaskService } from '../tasks/taskService.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import type { StoredUser } from '../persistence/model/storedUser.js'
 import type { Transaction } from '@google-cloud/firestore'
-import { AuthenticationChallengeService } from '../challenges/authenticationChallengeService.js'
-import { InvalidChallengeError } from '../challenges/authenticationChallenge.js'
-import { MemoryAuthenticationChallengeStore } from '../persistence/memory/authenticationChallengeStore.js'
+import { TokenService } from '../tokens/tokenService.js'
+import { InvalidChallengeError } from '../tokens/authenticationChallenge.js'
+import { MemoryTokenStore } from '../persistence/memory/tokenStore.js'
 import { LocalTaskService } from '../tasks/localTasksService.js'
+import { SessionService } from '../sessions/sessionService.js'
+import { MemorySessionStore } from '../persistence/memory/sessionStore.js'
 
 const user: User = {
     id: 'a',
@@ -40,11 +43,7 @@ function fixture(existing: User = user) {
     const store: UserStore = Object.create(null)
     store.updateUser = updateUser
     store.transitionAccountStatus = transitionAccountStatus
-    const service = new UserService(
-        store,
-        AuthenticationChallengeService.prototype,
-        LocalTaskService.prototype
-    )
+    const service = new UserService(store, TokenService.prototype, LocalTaskService.prototype)
     return { service, updateUser, transitionAccountStatus }
 }
 
@@ -107,11 +106,7 @@ describe('external provider authentication', () => {
         store.findByEmail = async () => byEmail
         store.addExternalId = addExternalId
         store.createUser = createUser
-        const service = new UserService(
-            store,
-            AuthenticationChallengeService.prototype,
-            LocalTaskService.prototype
-        )
+        const service = new UserService(store, TokenService.prototype, LocalTaskService.prototype)
         return { service, addExternalId, createUser }
     }
 
@@ -176,9 +171,7 @@ describe('Password Credential changes', () => {
     const account: User = { ...user, email: 'a@example.test', emailVerified: true }
 
     function passwordFixture(existing: User = account) {
-        const challenges = new AuthenticationChallengeService(
-            new MemoryAuthenticationChallengeStore()
-        )
+        const challenges = new TokenService(new MemoryTokenStore())
         const updatePassword = vi.fn<UserStore['updatePassword']>(
             async (_userId, _password, options) => {
                 const stored: StoredUser = {
@@ -186,7 +179,7 @@ describe('Password Credential changes', () => {
                     createdAt: undefined,
                     updatedAt: undefined
                 }
-                options?.validator?.(stored, {})
+                options?.validate?.(stored)
                 await options?.participant?.(transaction, locks)
                 return { ...existing, sessionGeneration: 1 }
             }
@@ -209,19 +202,35 @@ describe('Password Credential changes', () => {
             resetMails.push(mail)
         }
         const service = new UserService(store, challenges, tasks)
+        const sessions = new SessionService(new MemorySessionStore())
+        const updateProfile = async () =>
+            service.updateUser(
+                await sessions.establish(existing, 'authentication-method'),
+                {},
+                'a-new-password-value'
+            )
         const issueReset = async () => {
-            const issued = await challenges.issue({
-                purpose: 'set-password',
+            const issued = await challenges.issueChallenge({
+                type: TokenType.PasswordReset,
                 userId: existing.id,
                 email: existing.email ?? ''
             })
             return issued.secret
         }
-        return { service, updatePassword, issueReset, notifications, resetMails, tasks }
+        return {
+            service,
+            updatePassword,
+            updateProfile,
+            issueReset,
+            notifications,
+            resetMails,
+            tasks
+        }
     }
 
     it('reports a committed reset even when its change notice cannot be queued', async () => {
-        const { service, updatePassword, issueReset, notifications, tasks } = passwordFixture()
+        const { service, updatePassword, updateProfile, issueReset, notifications, tasks } =
+            passwordFixture()
         tasks.sendAccountChangeNotificationEmail = async ({ email }) => {
             throw new Error(`synthetic queue rejection for ${email}`)
         }
@@ -235,9 +244,9 @@ describe('Password Credential changes', () => {
             await expect(
                 service.setPassword({ userId: 'a', secret, password: 'a-new-password-value' })
             ).rejects.toThrow(InvalidChallengeError)
-            await expect(
-                service.updateUser('a', {}, 'a-new-password-value', 'the-current-password')
-            ).resolves.toEqual(expect.objectContaining({ id: 'a', sessionGeneration: 1 }))
+            await expect(updateProfile()).resolves.toEqual(
+                expect.objectContaining({ id: 'a', sessionGeneration: 1 })
+            )
             expect(notifications).toEqual([])
             expect(logged).toHaveBeenCalledTimes(2)
             const diagnostics = JSON.stringify(logged.mock.calls)
@@ -252,7 +261,8 @@ describe('Password Credential changes', () => {
     })
 
     it('returns the Account as the store committed it, Session Generation included', async () => {
-        const { service, updatePassword, issueReset, notifications } = passwordFixture()
+        const { service, updatePassword, updateProfile, issueReset, notifications } =
+            passwordFixture()
         const secret = await issueReset()
         await expect(
             service.setPassword({ userId: 'a', secret, password: '  a-new-password-value  ' })
@@ -261,16 +271,16 @@ describe('Password Credential changes', () => {
             'a',
             'a-new-password-value',
             expect.objectContaining({
-                validator: expect.any(Function),
+                validate: expect.any(Function),
                 participant: expect.any(Function)
             })
         )
         expect(notifications).toEqual([
             expect.objectContaining({ email: 'a@example.test', changeType: 'password' })
         ])
-        await expect(
-            service.updateUser('a', {}, 'a-new-password-value', 'the-current-password')
-        ).resolves.toEqual(expect.objectContaining({ id: 'a', sessionGeneration: 1 }))
+        await expect(updateProfile()).resolves.toEqual(
+            expect.objectContaining({ id: 'a', sessionGeneration: 1 })
+        )
     })
 
     it('refuses a short password before reaching the store', async () => {

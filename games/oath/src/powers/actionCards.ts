@@ -1,7 +1,6 @@
 import { assertExists } from '@tabletop/common'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply } from '../util/rest.js'
 import { citizenshipEndsActPhase } from '../util/citizenship.js'
 import {
@@ -367,7 +366,7 @@ registerEffect(
                             .faceupAdviserIds()
                             .filter(
                                 (cardId) =>
-                                    suitOf(cardId) === Suit.Nomad &&
+                                    state.suitInPlay(cardId) === Suit.Nomad &&
                                     reasonCannotMoveCardTo(state, playerId, cardId, 'site') ===
                                         undefined
                             )

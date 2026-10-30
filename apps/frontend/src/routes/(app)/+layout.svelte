@@ -152,6 +152,7 @@
     }
 
     onNavigate((navigation) => {
+        reauthentication.cancel()
         const from = navigation.from?.url.pathname
         const to = navigation.to?.url.pathname
         const libraryMove =
@@ -230,8 +231,7 @@
 
     async function onLogout() {
         reauthentication.cancel()
-        await api.logout()
-        await authorizationService.onLogout()
+        await authorizationService.logout()
     }
 
     onLogoutBroadcast(() => {

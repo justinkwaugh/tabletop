@@ -14,7 +14,11 @@ import {
     type ProviderAuthorizationRequest,
     verifyProviderAuthorization
 } from '../oauth/providerAuthorization.js'
-import type { AuthenticatedSession, AuthenticationProof } from './authenticatedSession.js'
+import {
+    isSessionLiveForAccount,
+    type AuthenticatedSession,
+    type AuthenticationProof
+} from './authenticatedSession.js'
 import {
     hasRecentAuthentication,
     RecentAuthenticationRequiredError
@@ -23,7 +27,7 @@ import { adminModeExpiry, AdministratorRequiredError, hasAdminMode } from './adm
 import { RELAY_STATS_TOPIC } from '../notifications/topics.js'
 import type { RealtimeControl } from '../realtime/realtimeControl.js'
 
-export const SESSION_LIFETIME_SECONDS = 30 * 24 * 60 * 60
+export const SESSION_LIFETIME_SECONDS = 180 * 24 * 60 * 60
 
 const SESSION_ID_LENGTH = 32
 const sessionId = customAlphabet(
@@ -61,12 +65,14 @@ export class SessionService {
     async establish(user: User, proof: AuthenticationProof): Promise<AuthenticatedSession> {
         requireSessionEligibleAccount(user)
         const createdAt = this.now()
+        const authenticatedAt =
+            proof === 'authentication-method' ? createdAt : proof.authenticatedAt
         const session: AuthenticatedSession = {
             id: sessionId(),
             userId: user.id,
             generation: sessionGenerationOf(user),
             createdAt,
-            ...(proof === 'authentication-method' ? { authenticatedAt: createdAt } : {}),
+            ...(authenticatedAt ? { authenticatedAt } : {}),
             expiresAt: new Date(createdAt.getTime() + this.lifetimeSeconds() * 1000)
         }
         await this.sessionStore.create(session)
@@ -81,15 +87,11 @@ export class SessionService {
         if (!session) {
             return undefined
         }
-        if (session.expiresAt <= this.now()) {
-            await this.sessionStore.delete(id)
-            return undefined
-        }
         const user = await findAccount(session.userId)
         if (!user) {
             return undefined
         }
-        if (session.generation !== sessionGenerationOf(user)) {
+        if (!isSessionLiveForAccount(session, user, this.now())) {
             await this.sessionStore.delete(id)
             return undefined
         }

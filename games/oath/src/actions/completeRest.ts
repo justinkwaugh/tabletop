@@ -9,6 +9,7 @@ import { reasonNotYourTurn } from '../util/turn.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { OpenDealsDropped } from '../model/question.js'
 import { dropOpenDealsAtGameEnd } from '../util/deals.js'
+import { recordWin } from '../util/chronicle.js'
 
 // R-3.4
 export const FINAL_ROUND = 8
@@ -99,7 +100,7 @@ export class HydratedCompleteRest
 
             const outcome = stableRegimeWinner(state, roll)
             if (outcome) {
-                state.winningPlayerIds = [outcome.winnerPlayerId]
+                recordWin(state, outcome)
                 metadata.wonBy = outcome.rule
                 Object.assign(metadata, dropOpenDealsAtGameEnd(state))
                 this.metadata = metadata
@@ -110,7 +111,7 @@ export class HydratedCompleteRest
         // R-3.4: the eighth round ends the game automatically, with no roll.
         if (state.round >= FINAL_ROUND) {
             const outcome = warExhaustionWinner(state)
-            state.winningPlayerIds = [outcome.winnerPlayerId]
+            recordWin(state, outcome)
             metadata.wonBy = outcome.rule
             Object.assign(metadata, dropOpenDealsAtGameEnd(state))
             this.metadata = metadata

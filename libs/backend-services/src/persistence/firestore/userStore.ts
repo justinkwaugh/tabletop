@@ -1,3 +1,4 @@
+import { isValidStorageId } from '../stores/storageId.js'
 import { Timed, measure } from '../../diagnostics/requestTimings.js'
 import {
     accountStatusAfterCompletionCheck,
@@ -6,7 +7,7 @@ import {
     BaseError,
     ExternalAuthService,
     Role,
-    sessionGenerationOf,
+    nextSessionGeneration,
     User,
     UserStatus,
     type TimeWindow
@@ -32,7 +33,7 @@ import {
     UnknownStorageError
 } from '../stores/errors.js'
 
-import { UserStore } from '../stores/userStore.js'
+import { UserStore, type PasswordUpdateOptions } from '../stores/userStore.js'
 import type { SiteStatsUserSource } from '../stores/siteStatsStore.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
@@ -65,7 +66,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, username)
-            throw Error('unreachable')
         }
     }
 
@@ -78,7 +78,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, email)
-            throw Error('unreachable')
         }
     }
 
@@ -110,7 +109,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             }).length
         } catch (error) {
             this.handleError(error, 'activated')
-            throw Error('unreachable')
         }
     }
 
@@ -125,7 +123,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return snapshot.data().count
         } catch (error) {
             this.handleError(error, label)
-            throw Error('unreachable')
         }
     }
 
@@ -143,7 +140,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, externalId)
-            throw Error('unreachable')
         }
     }
 
@@ -181,7 +177,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, id)
-            throw Error('unreachable')
         }
     }
 
@@ -205,7 +200,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return usernames.map((doc) => doc.id)
         } catch (error) {
             this.handleError(error, 'all')
-            throw Error('unreachable')
         }
     }
 
@@ -229,16 +223,16 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
 
         // Ensure fields can be used for unique constraints
-        if (newStoredUser.cleanUsername && !this.isValidId(newStoredUser.cleanUsername)) {
+        if (newStoredUser.cleanUsername && !isValidStorageId(newStoredUser.cleanUsername)) {
             throw new InvalidIdError({ type: 'username', id: newStoredUser.cleanUsername })
         }
 
-        if (newStoredUser.email && !this.isValidId(newStoredUser.email)) {
+        if (newStoredUser.email && !isValidStorageId(newStoredUser.email)) {
             throw new InvalidIdError({ type: 'email', id: newStoredUser.email })
         }
 
         newStoredUser.externalIds.forEach((externalId: string) => {
-            if (!this.isValidId(externalId)) {
+            if (!isValidStorageId(externalId)) {
                 throw new InvalidIdError({ type: 'externalId', id: externalId })
             }
         })
@@ -286,17 +280,13 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, user.id)
-            throw Error('unreachable')
         }
     }
 
     async updatePassword(
         userId: string,
         password: string,
-        {
-            validator,
-            participant
-        }: { validator?: UpdateValidator<StoredUser>; participant?: TransactionParticipant } = {}
+        { validate, participant }: PasswordUpdateOptions = {}
     ): Promise<User> {
         try {
             const passwordHash = await this.hashPassword(password)
@@ -309,9 +299,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                         if (!existingUser) {
                             throw new NotFoundError({ type: 'User', id: userId })
                         }
-                        if (validator?.(existingUser, {}) === UpdateValidationResult.Cancel) {
-                            return existingUser
-                        }
+                        validate?.(existingUser)
                         await participant?.(transaction, locks)
                         const credentialFields = {
                             ...this.replacedCredentialFields(existingUser, passwordHash),
@@ -324,7 +312,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(updatedUser)
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
     }
 
@@ -332,13 +319,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         existingUser: StoredUser,
         passwordHash: string
     ): Required<Pick<StoredUser, 'passwordHash' | 'sessionGeneration'>> {
-        return { passwordHash, ...this.advancedSessionGenerationFields(existingUser) }
-    }
-
-    private advancedSessionGenerationFields(
-        existingUser: StoredUser
-    ): Required<Pick<StoredUser, 'sessionGeneration'>> {
-        return { sessionGeneration: sessionGenerationOf(existingUser) + 1 }
+        return { passwordHash, sessionGeneration: nextSessionGeneration(existingUser) }
     }
 
     // Deactivation advances the Session Generation in the same write as the status, so every
@@ -380,7 +361,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                             status,
                             updatedAt,
                             ...(status === UserStatus.Inactive
-                                ? this.advancedSessionGenerationFields(existingUser)
+                                ? { sessionGeneration: nextSessionGeneration(existingUser) }
                                 : {}),
                             ...(activatedAt ? { activatedAt } : {})
                         }
@@ -391,7 +372,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(updatedUser)
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
     }
 
@@ -431,21 +411,21 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             updateFields.username = updateFields.username.trim()
             updateFields.cleanUsername = this.trimLowerString(updateFields.username)
 
-            if (!this.isValidId(updateFields.username)) {
+            if (!isValidStorageId(updateFields.username)) {
                 throw new InvalidIdError({ type: 'username', id: updateFields.username })
             }
         }
 
         if (updateFields.email) {
             updateFields.email = this.trimLowerString(updateFields.email)
-            if (!this.isValidId(updateFields.email)) {
+            if (!isValidStorageId(updateFields.email)) {
                 throw new InvalidIdError({ type: 'email', id: updateFields.email })
             }
         }
 
         if (updateFields.externalIds) {
             updateFields.externalIds.forEach((externalId: string) => {
-                if (!this.isValidId(externalId)) {
+                if (!isValidStorageId(externalId)) {
                     throw new InvalidIdError({ type: 'externalId', id: externalId })
                 }
             })
@@ -497,7 +477,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
 
             if (fieldsToUpdate.email && existingUser.email !== fieldsToUpdate.email) {
                 updatedUser.email = fieldsToUpdate.email
-                fieldsToUpdate.emailVerified = false
+                fieldsToUpdate.emailVerified ??= false
 
                 updatedFields.push('email')
             }
@@ -545,6 +525,15 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 updatedUser.passwordHash = credentialFields.passwordHash
                 updatedUser.sessionGeneration = credentialFields.sessionGeneration
                 updatedFields.push('password')
+            }
+
+            if (
+                updatedFields.includes('email') &&
+                existingUser.emailVerified &&
+                updatedUser.emailVerified
+            ) {
+                fieldsToUpdate.sessionGeneration = nextSessionGeneration(existingUser)
+                updatedUser.sessionGeneration = fieldsToUpdate.sessionGeneration
             }
 
             const status = accountStatusAfterCompletionCheck(
@@ -595,7 +584,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return [this.sanitize(updatedUser), updatedFields, this.sanitize(existingUser)]
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
     }
 
@@ -608,7 +596,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         externalId: string
         service: ExternalAuthService
     }): Promise<User> {
-        if (!this.isValidId(externalId)) {
+        if (!isValidStorageId(externalId)) {
             throw new InvalidIdError({ type: 'externalId', id: externalId })
         }
 
@@ -649,7 +637,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
     }
 
@@ -683,7 +670,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
     }
 
@@ -724,7 +710,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.onlyOne(userDocs.docs, 'username')
         } catch (error) {
             this.handleError(error, username)
-            throw Error('unreachable')
         }
     }
 
@@ -736,10 +721,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             throw Error(`Multiple entries with the same ${fieldName}`)
         }
         return docs[0].data() as T
-    }
-
-    private isValidId(id: string): boolean {
-        return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
     }
 
     private sanitize(user: StoredUser): User
@@ -776,7 +757,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
     }
 
-    private handleError(error: unknown, id: string) {
+    private handleError(error: unknown, id: string): never {
         console.log(error)
         if (error instanceof BaseError) {
             throw error

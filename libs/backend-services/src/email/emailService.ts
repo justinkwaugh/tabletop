@@ -3,13 +3,15 @@ import type {
     LeagueSeasonStartProps,
     LeagueSignUpProps
 } from '@tabletop/email'
-import { Game, GameDefinition, TournamentDetail, User } from '@tabletop/common'
+import {
+    type AccountChangeType,
+    Game,
+    GameDefinition,
+    TournamentDetail,
+    User
+} from '@tabletop/common'
 
-export enum AccountChangeType {
-    Email = 'email',
-    Password = 'password',
-    PasswordReset = 'passwordReset'
-}
+export { AccountChangeType } from '@tabletop/common'
 
 export type LeagueSignUpEmail = LeagueSignUpProps & { url: string; toEmail: string }
 

@@ -26,6 +26,8 @@ export type DiscordAuthorizationSuccess =
     | { state: string; purpose: 'login' | 'link'; outcome: 'success'; user: User }
     | { state: string; purpose: 'reauthenticate'; outcome: 'success' }
 
+export type DiscordAuthorizationOutcome = DiscordAuthorizationSuccess | { outcome: 'cancelled' }
+
 export type DiscordAuthorizationResult =
     | DiscordAuthorizationSuccess
     | {
@@ -121,13 +123,51 @@ export async function openDiscordAuthorization({
 }: {
     purpose: DiscordAuthorizationPurpose
     api: DiscordAuthorizationApi
-}): Promise<DiscordAuthorizationSuccess> {
+}): Promise<DiscordAuthorizationOutcome> {
+    return openPopup(() => api.beginDiscordAuthorization(purpose))
+}
+
+export function openPreparedDiscordAuthorization(
+    started: DiscordAuthorizationStart
+): Promise<DiscordAuthorizationOutcome> {
+    return openPopup(() => Promise.resolve(started))
+}
+
+export async function prepareDiscordLink(
+    api: DiscordAuthorizationApi
+): Promise<DiscordAuthorizationStart> {
+    let deadline: Timer | undefined
+    try {
+        return await Promise.race([
+            api.beginDiscordAuthorization('link'),
+            new Promise<never>((_resolve, reject) => {
+                deadline = setTimeout(
+                    () =>
+                        reject(
+                            new DiscordAuthorizationError(
+                                'The Discord authorization could not start in time'
+                            )
+                        ),
+                    POPUP_START_TIMEOUT_MS
+                )
+            })
+        ])
+    } finally {
+        clearTimeout(deadline)
+    }
+}
+
+function openPopup(
+    begin: () => Promise<DiscordAuthorizationStart>
+): Promise<DiscordAuthorizationOutcome> {
     const popup = window.open('about:blank', 'Discord Authorization', popupFeatures())
     if (!popup) {
-        throw new DiscordAuthorizationError('The browser blocked the Discord window')
+        return Promise.reject(
+            new DiscordAuthorizationError('The browser blocked the Discord window')
+        )
     }
     return new Promise((resolve, reject) => {
-        new PopupAttempt(popup, resolve, reject).start(() => api.beginDiscordAuthorization(purpose))
+        new PopupAttempt(popup, resolve, reject).start(begin)
     })
 }
 
@@ -145,7 +185,7 @@ class PopupAttempt {
 
     constructor(
         private readonly popup: Popup,
-        private readonly resolve: (result: DiscordAuthorizationSuccess) => void,
+        private readonly resolve: (result: DiscordAuthorizationOutcome) => void,
         private readonly reject: (error: unknown) => void
     ) {
         this.closeWatch = setInterval(() => this.noticeClose(), POPUP_CLOSE_WATCH_MS)
@@ -167,7 +207,7 @@ class PopupAttempt {
             return
         }
         if (this.popup.closed) {
-            this.abandon('The Discord window was closed')
+            this.cancel()
             return
         }
         clearTimeout(this.startWait)
@@ -198,13 +238,14 @@ class PopupAttempt {
         }
         clearInterval(this.closeWatch)
         if (this.navigated) {
-            this.closeGrace = setTimeout(
-                () => this.abandon('The Discord window was closed'),
-                POPUP_CLOSE_GRACE_MS
-            )
+            this.closeGrace = setTimeout(() => this.cancel(), POPUP_CLOSE_GRACE_MS)
         } else {
-            this.abandon('The Discord window was closed')
+            this.cancel()
         }
+    }
+
+    private cancel(): void {
+        this.finish(() => this.resolve({ outcome: 'cancelled' }))
     }
 
     private settleWith(result: DiscordAuthorizationResult): void {

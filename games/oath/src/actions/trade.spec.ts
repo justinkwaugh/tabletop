@@ -21,11 +21,13 @@ function ready(playerOverrides = {}, stateOverrides = {}) {
 }
 
 describe('card registry', () => {
-    it('loads all 198 denizens and the five Visions', () => {
+    it('loads all 198 denizens, the five Visions and the six edifices', () => {
         expect(cardIdsOfKind(CardKind.Denizen)).toHaveLength(198)
         expect(cardIdsOfKind(CardKind.Vision)).toHaveLength(5)
+        // R-2.9 — the edifices are cards of their own kind, so they add to the count, not to the denizens.
+        expect(cardIdsOfKind(CardKind.Edifice)).toHaveLength(6)
         expect(registeredCardCount()).toBe(
-            198 + 5 + cardIdsOfKind(CardKind.Site).length + cardIdsOfKind(CardKind.Relic).length
+            198 + 5 + 6 + cardIdsOfKind(CardKind.Site).length + cardIdsOfKind(CardKind.Relic).length
         )
     })
 

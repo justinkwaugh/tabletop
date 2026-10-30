@@ -229,8 +229,11 @@ export function createLetterNumberLocationFactory(options: {
     numberOffset: number
     fixedColors: readonly string[]
     names: Readonly<Record<string, string>>
-    /** A company id reserving every city of a location, or the company and one city node. */
-    homes: Readonly<Record<string, string | CityReservation>>
+    /**
+     * A company id reserving every city of a location, or companies each reserving one city
+     * node.
+     */
+    homes: Readonly<Record<string, string | CityReservation | readonly CityReservation[]>>
     markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>>
 }) {
     return (
@@ -254,8 +257,12 @@ export function createLetterNumberLocationFactory(options: {
         }))
 }
 
-function homeReservations(home: string | CityReservation, tile: TileFace): CityReservation[] {
-    if (typeof home !== 'string') return [{ ...home }]
+function homeReservations(
+    home: string | CityReservation | readonly CityReservation[],
+    tile: TileFace
+): CityReservation[] {
+    if (typeof home !== 'string')
+        return 'companyId' in home ? [{ ...home }] : home.map((reservation) => ({ ...reservation }))
     const cities = tile.nodes.filter((node) => node.kind === 'city')
     assert(cities.length > 0, 'A home requires a city')
     return cities.map((node) => ({ companyId: home, nodeId: node.id }))

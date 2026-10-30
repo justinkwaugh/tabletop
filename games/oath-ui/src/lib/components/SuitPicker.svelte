@@ -11,7 +11,8 @@
     // place, faded and untappable. `framed`: each bank a framed button, its favor beside the
     // symbol (several banks picked in one row, Salad Days'). `counts`: each bank's favor as the
     // state the pick is judged on holds it, when that is not the table's (the Wake's later steps, a
-    // When Played power's after the play's own gains).
+    // When Played power's after the play's own gains). `adds`: with `framed`, each button shows the
+    // cards it adds in place of its favor (R-8.4's "3 Order 2 Hearth 1 Beast", R-8.4.a's stack).
     let {
         suits,
         picked,
@@ -19,7 +20,8 @@
         busy = false,
         open = () => true,
         framed = false,
-        counts
+        counts,
+        adds
     }: {
         suits: readonly Suit[]
         picked: readonly Suit[]
@@ -28,6 +30,7 @@
         open?: (suit: Suit) => boolean
         framed?: boolean
         counts?: Readonly<Record<Suit, number>>
+        adds?: (suit: Suit) => readonly { suit: Suit; count: number }[]
     } = $props()
 
     let gameSession = getGameSession()
@@ -35,6 +38,11 @@
     let ordered = $derived(FAVOR_BANK_ORDER.filter((suit) => suits.includes(suit)))
 
     function bankName(suit: Suit): string {
+        if (adds) {
+            return adds(suit)
+                .map((part) => `${part.count} ${suitName(part.suit)}`)
+                .join(', ')
+        }
         return `${suitName(suit)} bank, ${favorBank[suit]} favor`
     }
 </script>
@@ -54,8 +62,20 @@
                 disabled={busy || closed}
                 onclick={() => onpick(suit)}
             >
-                <img class="h-7 w-7 max-sm:h-8 max-sm:w-8" src={suitImage(suit)} alt="" />
-                <TokenText text="{favorBank[suit]} favor" />
+                {#if adds}
+                    {#each adds(suit) as part (part.suit)}
+                        <span class="inline-flex items-center gap-1">
+                            {part.count}<img
+                                class="h-7 w-7 max-sm:h-8 max-sm:w-8"
+                                src={suitImage(part.suit)}
+                                alt=""
+                            />
+                        </span>
+                    {/each}
+                {:else}
+                    <img class="h-7 w-7 max-sm:h-8 max-sm:w-8" src={suitImage(suit)} alt="" />
+                    <TokenText text="{favorBank[suit]} favor" />
+                {/if}
             </button>
         {:else}
             <button

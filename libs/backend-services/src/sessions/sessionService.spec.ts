@@ -62,9 +62,7 @@ describe('Authenticated Session lifecycle', () => {
             expect(session.id).toMatch(/^[0-9A-Za-z]{32}$/)
             expect(session.userId).toBe('account-1')
             expect(session.generation).toBe(0)
-            expect(session.expiresAt.getTime() - session.createdAt.getTime()).toBe(
-                SESSION_LIFETIME_SECONDS * 1000
-            )
+            expect(session.expiresAt).toEqual(new Date('2027-04-25T12:00:00.000Z'))
             expect(session.authenticatedAt).toEqual(session.createdAt)
             await expect(authorize(session.id)).resolves.toEqual({ session, user })
         }
@@ -115,7 +113,7 @@ describe('Authenticated Session lifecycle', () => {
         await expect(authorize(second.id)).resolves.toMatchObject({ session: second })
     })
 
-    it('expires a session thirty days after it was established, with no sliding extension', async () => {
+    it('expires a session 180 days after it was established, with no sliding extension', async () => {
         const { sessions, authorize, advance, store } = fixture()
         const session = await sessions.establish(
             account(UserStatus.Active),
@@ -179,15 +177,17 @@ describe('Session Generation', () => {
 })
 
 describe('Recent Authentication on an Authenticated Session', () => {
-    it('records proof through an Authentication Method at establishment but not a challenge', async () => {
+    it('records new proof at establishment and preserves an absent proof when renewing', async () => {
         const { sessions } = fixture()
         const now = new Date('2026-10-27T12:00:00.000Z')
         const proved = await sessions.establish(account(UserStatus.Active), 'authentication-method')
         expect(proved.authenticatedAt).toEqual(proved.createdAt)
         expect(hasRecentAuthentication(proved, now)).toBe(true)
-        const challenged = await sessions.establish(account(UserStatus.Active), 'challenge')
-        expect(challenged.authenticatedAt).toBeUndefined()
-        expect(hasRecentAuthentication(challenged, now)).toBe(false)
+        const unproved = await sessions.establish(account(UserStatus.Active), {
+            authenticatedAt: undefined
+        })
+        expect(unproved.authenticatedAt).toBeUndefined()
+        expect(hasRecentAuthentication(unproved, now)).toBe(false)
     })
 
     it('lasts fifteen minutes and is not refreshed by ordinary authorization', async () => {
@@ -206,7 +206,9 @@ describe('Recent Authentication on an Authenticated Session', () => {
 
     it('refreshes only authenticatedAt when proof is recorded again', async () => {
         const { sessions, store, advance } = fixture()
-        const session = await sessions.establish(account(UserStatus.Active), 'challenge')
+        const session = await sessions.establish(account(UserStatus.Active), {
+            authenticatedAt: undefined
+        })
         const later = advance(60 * 60)
         const refreshed = await sessions.recordAuthentication(session)
         expect(refreshed.authenticatedAt).toEqual(later)
@@ -371,9 +373,11 @@ describe('Admin Mode on an Authenticated Session', () => {
 
     it('refuses activation without Recent Authentication', async () => {
         const { sessions, store, advance } = fixture()
-        const challenged = await sessions.establish(administrator(), 'challenge')
+        const withoutProof = await sessions.establish(administrator(), {
+            authenticatedAt: undefined
+        })
         await expect(
-            sessions.activateAdminMode(challenged, administrator())
+            sessions.activateAdminMode(withoutProof, administrator())
         ).rejects.toBeInstanceOf(RecentAuthenticationRequiredError)
         const stale = await sessions.establish(administrator(), 'authentication-method')
         advance(RECENT_AUTHENTICATION_SECONDS)

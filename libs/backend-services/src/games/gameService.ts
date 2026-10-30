@@ -51,6 +51,7 @@ import {
     GameAction,
     GameDefinition,
     GameEngine,
+    reportGameProgress,
     type ActionCascadeResult,
     GameNotificationAction,
     type GameNotificationData,
@@ -59,6 +60,7 @@ import {
     GameStatus,
     GameStatusCategory,
     type GameHistoryCursor,
+    type TitleActivity,
     GameStorage,
     GameSyncStatus,
     IsYourTurnNotification,
@@ -247,10 +249,8 @@ export class GameService {
 
         this.assertOwnerSeatedUnlessDeveloper(newGame, creator)
 
-        if (newGame.unlisted) {
-            if (!hasDeveloperAccess(creator))
-                throw new UnauthorizedAccessError({ user: owner, gameId: newGame.id })
-            if (!newGame.isPublic) throw new UnlistedGameNotPublicError({ id: newGame.id })
+        if (newGame.unlisted && !newGame.isPublic) {
+            throw new UnlistedGameNotPublicError({ id: newGame.id })
         }
 
         // Private games have to be full
@@ -623,6 +623,10 @@ export class GameService {
 
     async getOpenGamesForTitle(titleId: string): Promise<Game[]> {
         return await this.gameStore.findOpenGamesForTitle(titleId)
+    }
+
+    async getTitleActivity(titleId: string): Promise<TitleActivity> {
+        return this.gameStore.findTitleActivity(titleId)
     }
 
     async getCompletedGamesForUser(user: User): Promise<Game[]> {
@@ -1130,6 +1134,7 @@ export class GameService {
                     status: GameStatus.Started,
                     seed: initializedGame.seed,
                     ...(initializedGame.protectedInformation ? { protectedInformation: true } : {}),
+                    progress: initializedGame.progress,
                     state: initialState
                 },
                 validator: (existingGame, fieldsToUpdate) => {
@@ -1257,11 +1262,10 @@ export class GameService {
                     relatedActions.push(...reconciledRace)
 
                     // Lookup and verify the missing actions
-                    let missingActions: GameAction[] = []
                     if (indexOffset > 0 && initialIndex !== undefined) {
                         const startIndex = initialIndex
                         const endIndex = initialIndex + indexOffset
-                        missingActions = await this.gameStore.findActionRangeForGame({
+                        const missingActions = await this.gameStore.findActionRangeForGame({
                             game: existingGame,
                             startIndex,
                             endIndex
@@ -1286,6 +1290,7 @@ export class GameService {
                     }
 
                     gameUpdates.activePlayerIds = newState.activePlayerIds
+                    gameUpdates.progress = reportGameProgress(definition.runtime, newState)
                     const lastPlayerAction = findLast(actions, (a) => a.playerId != undefined)
                     if (lastPlayerAction) {
                         gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
@@ -2338,6 +2343,7 @@ export class GameService {
                 }
 
                 gameUpdates.activePlayerIds = newState.activePlayerIds
+                gameUpdates.progress = reportGameProgress(definition.runtime, newState)
                 if (resolvingVoteId !== undefined && existingGame.vote?.id !== resolvingVoteId) {
                     throw new DisallowedPlayerVoteError({ gameId, reason: 'the vote is closed' })
                 }

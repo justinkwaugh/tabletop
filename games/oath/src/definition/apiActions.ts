@@ -5,6 +5,7 @@ import { Muster } from '../actions/muster.js'
 import { Trade } from '../actions/trade.js'
 import { Search } from '../actions/search.js'
 import { SearchResolve } from '../actions/searchResolve.js'
+import { SearchSwap } from '../actions/searchSwap.js'
 import { Recover } from '../actions/recover.js'
 import { Campaign } from '../actions/campaign.js'
 import { CampaignDefend } from '../actions/campaignDefend.js'
@@ -35,6 +36,24 @@ import { ExileCitizen } from '../actions/exileCitizen.js'
 import { SelfExile } from '../actions/selfExile.js'
 import { ClaimDealKept } from '../actions/claimDealKept.js'
 import { LeaveDealUnconfirmed } from '../actions/leaveDealUnconfirmed.js'
+import { ChooseOath } from '../actions/chooseOath.js'
+import { OfferChronicleCitizenship } from '../actions/offerChronicleCitizenship.js'
+import { AnswerChronicleCitizenship } from '../actions/answerChronicleCitizenship.js'
+import { BuildOrRepairEdifice } from '../actions/buildOrRepairEdifice.js'
+import { ChooseChronicleSuit } from '../actions/chooseChronicleSuit.js'
+import { ChooseHealStack } from '../actions/chooseHealStack.js'
+import { WriteChronicleStory } from '../actions/writeChronicleStory.js'
+import { SkipChronicleStory } from '../actions/skipChronicleStory.js'
+import { ChronicleStart } from '../actions/chronicleStart.js'
+import { ChronicleForcedVow } from '../actions/chronicleForcedVow.js'
+import { ChronicleFlipCitizens } from '../actions/chronicleFlipCitizens.js'
+import { ChronicleMap } from '../actions/chronicleMap.js'
+import { ChronicleSettleSuit } from '../actions/chronicleSettleSuit.js'
+import { ChronicleAddCards } from '../actions/chronicleAddCards.js'
+import { ChronicleHeal } from '../actions/chronicleHeal.js'
+import { ChronicleDispossess } from '../actions/chronicleDispossess.js'
+import { ChronicleRelics } from '../actions/chronicleRelics.js'
+import { ChronicleRebuild } from '../actions/chronicleRebuild.js'
 
 // The backend generates a validated endpoint for each entry.
 export const OathApiActions = {
@@ -58,6 +77,7 @@ export const OathApiActions = {
     [ActionType.Trade]: Trade,
     [ActionType.Search]: Search,
     [ActionType.SearchResolve]: SearchResolve,
+    [ActionType.SearchSwap]: SearchSwap,
     [ActionType.Recover]: Recover,
     [ActionType.Campaign]: Campaign,
     [ActionType.CampaignAttackPlans]: CampaignAttackPlans,
@@ -73,5 +93,24 @@ export const OathApiActions = {
     [ActionType.CompleteRest]: CompleteRest,
     [ActionType.RollEndDie]: RollEndDie,
     [ActionType.ResolveOathkeeper]: ResolveOathkeeper,
-    [ActionType.TransferOathkeeper]: TransferOathkeeper
+    [ActionType.TransferOathkeeper]: TransferOathkeeper,
+
+    [ActionType.ChooseOath]: ChooseOath,
+    [ActionType.OfferChronicleCitizenship]: OfferChronicleCitizenship,
+    [ActionType.AnswerChronicleCitizenship]: AnswerChronicleCitizenship,
+    [ActionType.BuildOrRepairEdifice]: BuildOrRepairEdifice,
+    [ActionType.ChooseChronicleSuit]: ChooseChronicleSuit,
+    [ActionType.ChooseHealStack]: ChooseHealStack,
+    [ActionType.WriteChronicleStory]: WriteChronicleStory,
+    [ActionType.SkipChronicleStory]: SkipChronicleStory,
+    [ActionType.ChronicleStart]: ChronicleStart,
+    [ActionType.ChronicleForcedVow]: ChronicleForcedVow,
+    [ActionType.ChronicleFlipCitizens]: ChronicleFlipCitizens,
+    [ActionType.ChronicleMap]: ChronicleMap,
+    [ActionType.ChronicleSettleSuit]: ChronicleSettleSuit,
+    [ActionType.ChronicleAddCards]: ChronicleAddCards,
+    [ActionType.ChronicleHeal]: ChronicleHeal,
+    [ActionType.ChronicleDispossess]: ChronicleDispossess,
+    [ActionType.ChronicleRelics]: ChronicleRelics,
+    [ActionType.ChronicleRebuild]: ChronicleRebuild
 }

@@ -17,7 +17,6 @@ import FastifyFormbody from '@fastify/formbody'
 import fastifyPrintRoutes from 'fastify-print-routes'
 import fastifyStatic from '@fastify/static'
 import { replyStatusCode } from './lib/errorStatusCode.js'
-import { installRequestLimits } from './lib/requestLimits.js'
 import { FastifySSEPlugin } from 'fastify-sse-v2'
 import AuthorizationPlugin from './plugins/authorization.js'
 import FirestorePlugin from './plugins/firestore.js'
@@ -25,6 +24,7 @@ import SensiblePlugin from './plugins/sensible.js'
 import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import GameAssetRedirectPlugin from './plugins/gameAssetRedirect.js'
+import RateLimitPlugin from './plugins/rateLimit.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
 
 const __dirname = import.meta.dirname
@@ -63,8 +63,6 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         return newPayload
     })
 
-    await installRequestLimits(fastify, { global: service !== 'local' })
-
     fastify.setErrorHandler(async function (error, req, rep) {
         void rep.code(replyStatusCode(error, rep.statusCode))
 
@@ -97,7 +95,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         origin: [FRONTEND_HOST],
         credentials: true,
         methods: ['GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-        exposedHeaders: ['X-Tabletop-Version', 'ETag']
+        exposedHeaders: ['X-Tabletop-Version', 'ETag', 'Retry-After']
     })
 
     assertExists(SESSION_KEY, 'The backend supervisor provides SESSION_KEY')
@@ -129,6 +127,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin, { projectId: GCLOUD_PROJECT })
     await fastify.register(ServicesPlugin, { whileLoadingTitle: opts.whileLoadingTitle })
+    await fastify.register(RateLimitPlugin, { service, counter: fastify.rateLimitCounter })
     installTitleScope(fastify)
 
     if (service !== 'local') installManifestRefresh(fastify, [API_PREFIX, TASKS_PREFIX])
@@ -223,7 +222,6 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             if (request.url.startsWith(API_PREFIX) || request.url.startsWith(TASKS_PREFIX)) {
                 await reply.code(404).send({ message: 'Not Found' })
             } else if (service === 'local') {
-                // The request line under the same request id names the path
                 request.log.info('Serving index.html for an unknown frontend path')
                 setNoCacheHeaders(reply)
                 await reply.sendFile('index.html', { cacheControl: false })

@@ -320,7 +320,7 @@ describe('Discord login callbacks are bound to the browser that began them', () 
 describe('linking requires Recent Authentication', () => {
     it('refuses to begin or complete a link from a session without recent proof', async () => {
         const f = await fixture()
-        const victim = await f.signIn('victim', 'challenge')
+        const victim = await f.signIn('victim', { authenticatedAt: undefined })
         const begun = await f.begin('link', victim.cookie)
         expect(begun.response.statusCode).toBe(403)
         expect((await f.sessionStore.find(victim.sessionId))?.providerAuthorization).toBeUndefined()
@@ -338,7 +338,7 @@ describe('linking requires Recent Authentication', () => {
 
     it('lets a password reauthentication unlock linking for the same session', async () => {
         const f = await fixture()
-        const victim = await f.signIn('victim', 'challenge')
+        const victim = await f.signIn('victim', { authenticatedAt: undefined })
         const wrong = await f.post(
             '/auth/reauthenticate',
             { password: 'not-the-password' },
@@ -362,7 +362,7 @@ describe('linking requires Recent Authentication', () => {
 
     it('does not treat a password reauthentication as a new sign-in', async () => {
         const f = await fixture()
-        const victim = await f.signIn('victim', 'challenge')
+        const victim = await f.signIn('victim', { authenticatedAt: undefined })
         const before = await f.sessionStore.find(victim.sessionId)
         f.advance(60)
         const response = await f.post('/auth/reauthenticate', { password: PASSWORD }, victim.cookie)
@@ -382,7 +382,7 @@ describe('Discord reauthentication proves the signed-in Account only', () => {
             ...f.users.get('victim')!,
             externalIds: ['discord:victim-discord-id']
         })
-        const victim = await f.signIn('victim', 'challenge')
+        const victim = await f.signIn('victim', { authenticatedAt: undefined })
         const { state } = await f.begin('reauthenticate', victim.cookie)
         expect(state).toMatch(/^reauthenticate\./)
         f.advance(30)
@@ -400,7 +400,7 @@ describe('Discord reauthentication proves the signed-in Account only', () => {
 
     it('rejects an identity that is not linked to the Account without linking or switching it', async () => {
         const f = await fixture()
-        const victim = await f.signIn('victim', 'challenge')
+        const victim = await f.signIn('victim', { authenticatedAt: undefined })
         const { state } = await f.begin('reauthenticate', victim.cookie)
         const response = await f.post(
             '/auth/discord/reauthenticate',
@@ -423,7 +423,7 @@ describe('Discord reauthentication proves the signed-in Account only', () => {
             externalIds: ['discord:victim-discord-id']
         })
         const victim = await f.signIn('victim')
-        const attacker = await f.signIn('attacker', 'challenge')
+        const attacker = await f.signIn('attacker', { authenticatedAt: undefined })
         const { state } = await f.begin('reauthenticate', victim.cookie)
         const asLink = await f.post(
             '/auth/discord/link',

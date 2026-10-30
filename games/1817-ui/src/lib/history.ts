@@ -1,4 +1,9 @@
-import { isFormCompany, type CashPayment, type DeparturePayment } from '@tabletop/18xx'
+import {
+    isFormCompany,
+    type CashPayment,
+    type DeparturePayment,
+    isDiscardMergedTrain
+} from '@tabletop/18xx'
 import {
     departurePaymentsDetail,
     joinDetails,
@@ -27,7 +32,6 @@ import {
     isBuyOwedStations,
     isCloseMarketShorts,
     isConvertCompany,
-    isDiscardMergedTrain,
     isEighteenSeventeenGoBankrupt,
     isFinishConversionLoans,
     isLiquidateCompany,
@@ -48,11 +52,11 @@ const reasons = {
 /** 1817's own history rows, and the shared ones it adds to. */
 export function eighteenSeventeenHistoryDescription(
     action: GameAction,
-    names: HistoryNames,
+    names: HistoryNames & { poolName: (poolId: string) => string },
     money: MoneyFormat,
     shared: () => HistoryDescription
 ): HistoryDescription | undefined {
-    const { companyName, playerName } = names
+    const { companyName, playerName, poolName } = names
     const parachute = (payment: CashPayment | undefined) =>
         payment && payment.to.kind === 'player'
             ? `Golden Parachute paid ${playerName(payment.to.playerId)} ${money(payment.amount)}`
@@ -117,11 +121,13 @@ export function eighteenSeventeenHistoryDescription(
         }
     if (isPassMerger(action) && action.source === ActionSource.User)
         return { text: `Passed with ${companyName(action.companyId)}`, routine: true }
-    if (isBuyConvertedShare(action))
+    if (isBuyConvertedShare(action)) {
+        const poolId = action.metadata?.poolId
         return {
-            text: `Bought a ${companyName(action.companyId)} share`,
+            text: `Bought a ${companyName(action.companyId)} share${poolId ? ` from ${poolName(poolId)}` : ''}`,
             value: money(action.expectedPrice)
         }
+    }
     if (isSellConvertedShares(action))
         return {
             text: `Sold ${plural(action.shares, `${companyName(action.companyId)} share`)}`,

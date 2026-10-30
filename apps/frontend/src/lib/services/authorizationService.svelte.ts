@@ -235,10 +235,21 @@ export class AuthorizationService {
         await goto(takeLoginContinuation() ?? '/library')
     }
 
+    public async logout() {
+        // Forget the user before the session ends so a request it refuses never reads as an expiry
+        this.forgetSessionUser()
+        await this.api.logout()
+        await goto('/')
+    }
+
     public async onLogout() {
+        this.forgetSessionUser()
+        await goto('/')
+    }
+
+    private forgetSessionUser() {
         clearLoginContinuation()
         this.clearSessionUser()
-        await goto('/')
     }
 
     private async loadSessionUser() {

@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { authSession } from '../../../lib/session.js'
+import { passwordAuthenticationBudget } from '../../../lib/operationBudget.js'
 
 type LoginRequest = Static<typeof LoginRequest>
 const LoginRequest = Type.Object({
@@ -13,7 +14,11 @@ export default async function (fastify: FastifyInstance) {
         '/login',
         {
             config: { rateLimit: { max: 50, timeWindow: '1 minute' } },
-            schema: { body: LoginRequest }
+            schema: { body: LoginRequest },
+            preHandler: passwordAuthenticationBudget<{ Body: LoginRequest }>(
+                fastify,
+                (request) => request.body.username
+            )
         },
         async function (request, reply) {
             const { username, password } = request.body

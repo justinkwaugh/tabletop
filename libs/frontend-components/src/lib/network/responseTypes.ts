@@ -9,6 +9,7 @@ import {
     GameChat,
     GameChatMessage,
     GameSyncStatus,
+    PendingEmailChange,
     User,
     Visibility
 } from '@tabletop/common'
@@ -27,6 +28,24 @@ export const UserResponse = Type.Evaluate(
         Type.Object({
             payload: Type.Object({ user: User })
         })
+    ])
+)
+
+export type PendingEmailChangeResponse = Static<typeof PendingEmailChangeResponse>
+export const PendingEmailChangeResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({
+            payload: Type.Object({ pending: Type.Union([PendingEmailChange, Type.Null()]) })
+        })
+    ])
+)
+
+export type EmailChangeRequestedResponse = Static<typeof EmailChangeRequestedResponse>
+export const EmailChangeRequestedResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({ payload: Type.Object({ pending: PendingEmailChange }) })
     ])
 )
 

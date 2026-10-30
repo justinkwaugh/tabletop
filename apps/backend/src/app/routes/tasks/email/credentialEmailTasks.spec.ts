@@ -10,13 +10,14 @@ vi.hoisted(() => {
 import { LoggingBoundary } from '../../../lib/logging.js'
 import {
     apiErrorShape,
-    memoryChallenges,
+    memoryTokens,
     memoryUserStore,
     recordingTasks
 } from '../../../tests/accountFixture.js'
 import sendPasswordResetEmail from './sendPasswordResetEmail.js'
 import sendAuthVerificationEmail from './sendAuthVerificationEmail.js'
 import sendVerificationEmail from './sendVerificationEmail.js'
+import sendEmailChangeVerification from './sendEmailChangeVerification.js'
 
 const SECRET = 'SYNTHETIC-AUDIT-SECRET-5d2e'
 const RESET_CHALLENGE = `account-1.${SECRET}`
@@ -90,18 +91,40 @@ async function taskServer() {
     const emails = new RecordingEmailService()
     server.decorate(
         'userService',
-        new UserService(store, memoryChallenges().challengeService, recordingTasks().tasks)
+        new UserService(store, memoryTokens().tokenService, recordingTasks().tasks)
     )
     server.decorate('emailService', emails)
     await server.register(sendPasswordResetEmail, { prefix: '/tasks' })
     await server.register(sendAuthVerificationEmail, { prefix: '/tasks' })
     await server.register(sendVerificationEmail, { prefix: '/tasks' })
-    const run = (task: string, userId: string, token: string) =>
-        server.inject({ method: 'POST', url: `/tasks/${task}`, payload: { userId, token } })
+    await server.register(sendEmailChangeVerification, { prefix: '/tasks' })
+    const run = (task: string, userId: string, token: string, email?: string) =>
+        server.inject({ method: 'POST', url: `/tasks/${task}`, payload: { userId, token, email } })
     return { run, emails, logged: () => [...lines, ...consoleLines].join('') }
 }
 
 describe('credential email tasks', () => {
+    it('delivers an address-change code to its explicit destination while the Account retains its old email', async () => {
+        const { run, emails, logged } = await taskServer()
+        const response = await run(
+            'sendEmailChangeVerification',
+            'account-1',
+            SECRET,
+            'pending@example.test'
+        )
+        expect(response.statusCode).toBe(200)
+        expect(emails.deliveries).toEqual([
+            { kind: 'verification', token: SECRET, toEmail: 'pending@example.test' }
+        ])
+        expect(logged()).not.toContain(SECRET)
+    })
+
+    it('never falls back to the current address when an email-change task has no destination', async () => {
+        const { run, emails } = await taskServer()
+        const response = await run('sendEmailChangeVerification', 'account-1', SECRET)
+        expect(response.statusCode).toBe(400)
+        expect(emails.deliveries).toEqual([])
+    })
     it('deliver the Set Password link without writing the challenge to the log', async () => {
         const { run, emails, logged } = await taskServer()
 

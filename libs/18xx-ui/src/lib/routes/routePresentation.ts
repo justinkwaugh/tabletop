@@ -1,4 +1,4 @@
-import type { TrainRoute } from '@tabletop/18xx'
+import type { RouteBonus, RouteResult, RunTrains, TrainRoute } from '@tabletop/18xx'
 import type { MapRoute } from '../maps/mapDrawing.js'
 
 const RouteColors = ['#b24bce', '#ed9226', '#d34b38', '#325aba']
@@ -6,12 +6,28 @@ export function routeColor(index: number): string {
     return RouteColors[index % RouteColors.length]
 }
 
+export function routeBonusArrows(
+    bonuses: readonly RouteBonus[] = []
+): Pick<MapRoute, 'bonusArrowIds'> {
+    const bonusArrowIds = [...new Set(bonuses.flatMap((bonus) => bonus.arrowIds ?? []))]
+    return bonusArrowIds.length ? { bonusArrowIds } : {}
+}
+
+// The run's metadata holds each route as evaluated, with the bonuses it earned.
+export function recordedRunRoutes(run: RunTrains): readonly (TrainRoute | RouteResult)[] {
+    return run.metadata?.routes ?? run.routes
+}
+
+/** Each train's track, and apart from it any interconnection extension beyond its stops. */
 export function trainRouteOverlays(
-    routes: readonly Pick<TrainRoute, 'trainId' | 'paths'>[]
+    routes: readonly (Pick<TrainRoute, 'trainId' | 'paths' | 'extension'> &
+        Pick<RouteResult, 'bonuses'>)[]
 ): MapRoute[] {
     return routes.map((route, index) => ({
         id: route.trainId,
         color: routeColor(index),
-        segments: route.paths
+        segments: route.paths,
+        ...(route.extension ? { extension: route.extension } : {}),
+        ...routeBonusArrows(route.bonuses)
     }))
 }

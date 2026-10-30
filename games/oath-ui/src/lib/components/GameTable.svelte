@@ -3,13 +3,14 @@
     import {
         ScalingWrapper,
         HistoryControls,
-        DefaultTabs,
         GameChat,
         DefaultTableLayout,
         GameSession
     } from '@tabletop/frontend-components'
 
     import History from '$lib/components/History.svelte'
+    import OathTabs from '$lib/components/OathTabs.svelte'
+    import ChronicleTab from '$lib/components/ChronicleTab.svelte'
     import InformationPanel from '$lib/components/InformationPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
@@ -165,6 +166,10 @@
 
 <svelte:window bind:innerHeight={windowHeight} />
 
+{#snippet chronicleTab()}
+    <ChronicleTab />
+{/snippet}
+
 {#snippet panel()}
     {#if gameSession.gameState.result}
         <GameEndPanel />
@@ -193,7 +198,10 @@
                     borderClass="border-b border-oath-divider"
                 />
             </div>
-            <DefaultTabs
+            <!-- The platform's three tabs, and the chronicle's record once it holds an entry. -->
+            <OathTabs
+                chronicle={chronicleTab}
+                chronicleShown={(oath.gameState.chronicleRecord?.length ?? 0) > 0}
                 activeTabClass="py-1 px-3 bg-oath-accent-soft border-2 border-oath-frame rounded-lg text-oath-text font-semibold"
                 inactiveTabClass="py-1 px-3 border-2 border-transparent rounded-lg text-oath-text-muted hover:text-oath-text hover:border-oath-frame"
             >
@@ -215,7 +223,7 @@
                         borderColor="border-oath-frame"
                     />
                 {/snippet}
-            </DefaultTabs>
+            </OathTabs>
         {/snippet}
         {#snippet gameContent()}
             <!-- The panel is capped at a fraction of the column so the map keeps

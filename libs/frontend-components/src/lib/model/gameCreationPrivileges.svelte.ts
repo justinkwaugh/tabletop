@@ -8,21 +8,15 @@ import type { AuthorizationService } from '$lib/services/authorizationService.js
 
 export type GameCreationAccess = Pick<AuthorizationService, 'canUseDeveloperTools' | 'actAsAdmin'>
 
-// The server grants an unlisted game, an unseated owner and a reproduction seed only to a
-// Principal that holds the access at the moment of creation, so a choice made earlier stops
-// applying while the access has lapsed and applies again once it is held.
 export class GameCreationPrivileges {
     private readonly access: GameCreationAccess
     seedEntry: string = $state('')
-    unlistedChoice: boolean = $state(false)
     ownerIncluded: boolean = $state(true)
 
     constructor(access: GameCreationAccess) {
         this.access = access
     }
 
-    canChooseUnlisted: boolean = $derived.by(() => this.access.canUseDeveloperTools)
-    unlisted: boolean = $derived(this.canChooseUnlisted && this.unlistedChoice)
     canExcludeOwner: boolean = $derived.by(() => this.access.canUseDeveloperTools)
     ownerExclusionLapsed: boolean = $derived(!this.ownerIncluded && !this.canExcludeOwner)
     canEnterSeed: boolean = $derived.by(() => this.access.actAsAdmin)

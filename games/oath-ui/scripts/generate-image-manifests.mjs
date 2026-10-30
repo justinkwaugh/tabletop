@@ -11,7 +11,7 @@ const imagesDir = path.join(here, '..', 'src', 'lib', 'images')
 const outFile = path.join(imagesDir, 'imageManifest.generated.ts')
 
 const GROUPS = [
-    { name: 'cardFiles', dir: 'cards', exts: ['.jpg'], recursive: true },
+    { name: 'cardFiles', dir: 'cards', exts: ['.jpg', '.webp'], recursive: true },
     { name: 'backFiles', dir: 'backs', exts: ['.jpg'], recursive: false },
     { name: 'pieceFiles', dir: 'pieces', exts: ['.svg'], recursive: false },
     { name: 'actionFiles', dir: 'actions', exts: ['.svg'], recursive: false },

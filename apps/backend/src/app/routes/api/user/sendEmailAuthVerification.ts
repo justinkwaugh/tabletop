@@ -9,16 +9,10 @@ export default async function (fastify: FastifyInstance) {
             schema: { body: SensitiveChangeRequest },
             onRequest: fastify.auth([fastify.verifyActiveUser], { relation: 'and' })
         },
-        async function (request, _reply) {
-            if (!request.user) {
-                throw Error('No user found for create request')
-            }
-            const { expiresAt } = await fastify.userService.sendSensitiveChangeChallenge(
-                request.user,
-                request.body
+        async function () {
+            throw fastify.httpErrors.gone(
+                'Profile changes now use identity confirmation. Reload the site and submit your change again.'
             )
-
-            return { status: 'ok', payload: { expiresAt } }
         }
     )
 }

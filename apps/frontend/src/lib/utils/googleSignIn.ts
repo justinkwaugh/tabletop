@@ -9,7 +9,7 @@ export type GoogleSignInApi = Pick<
 >
 export type GoogleSignInSession = Pick<AuthorizationService, 'onLogin' | 'setSessionUser'>
 
-export const GOOGLE_LINK_DESCRIPTION = 'link your Google account'
+export const GOOGLE_LINK_DESCRIPTION = 'add Google as another way to sign in to your account'
 
 export async function signInWithGoogle({
     credential,

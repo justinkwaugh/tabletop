@@ -25,12 +25,14 @@ import {
     GameSyncStatus,
     GameValidator,
     GameHistoryPage,
+    TitleActivity,
     UserGameStats,
     SiteStatsNow,
     CharityTally,
     SiteStatsReport,
     type UtcDayRange,
     type SensitiveChangeRequest,
+    type PendingEmailChange,
     User,
     UserPreferences,
     Visibility,
@@ -78,6 +80,8 @@ import type {
     UserResponse,
     AdminModeResponse,
     ChallengeIssuedResponse,
+    PendingEmailChangeResponse,
+    EmailChangeRequestedResponse,
     DiscordAuthorizationPurpose,
     DiscordAuthorizationStart,
     DiscordAuthorizationStartResponse,
@@ -89,6 +93,7 @@ import { checkVersion, resolveVersionChange, VersionChange } from './versionChec
 import { toast } from 'svelte-sonner'
 
 const DEFAULT_HOST = 'http://localhost:3000'
+const TITLE_ACTIVITY_TIMEOUT_MS = 10_000
 
 export type GameLoadResult = {
     game?: Game
@@ -120,7 +125,8 @@ export class TabletopApi {
         host: string = DEFAULT_HOST,
         sseHost: string = DEFAULT_HOST,
         private readonly version?: string,
-        private readonly onUnauthorized?: () => void
+        private readonly onUnauthorized?: () => void,
+        private readonly isSignedIn?: () => boolean
     ) {
         this.host = host
         this.sseHost = sseHost
@@ -303,7 +309,8 @@ export class TabletopApi {
     async reauthenticateWithPassword(password: string): Promise<void> {
         await this.wretch
             .post({ password }, '/auth/reauthenticate')
-            .unauthorized(this.handleError)
+            .unauthorized(this.onPasswordReauthenticationUnauthorized)
+            .error(429, this.onReauthenticationRateLimit)
             .badRequest(this.handleError)
             .json()
     }
@@ -381,6 +388,7 @@ export class TabletopApi {
         const response = await this.wretch
             .post(user, '/user/update')
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
@@ -395,6 +403,40 @@ export class TabletopApi {
             .json<UserResponse>()
 
         return response.payload.user
+    }
+
+    async pendingEmailChange(): Promise<PendingEmailChange | undefined> {
+        const response = await this.wretch
+            .get('/user/email/change')
+            .unauthorized(this.on401)
+            .json<PendingEmailChangeResponse>()
+        const pending = response.payload.pending
+        return pending ? { ...pending, expiresAt: new Date(pending.expiresAt) } : undefined
+    }
+
+    async requestEmailChange(email: string): Promise<PendingEmailChange> {
+        const response = await this.wretch
+            .post({ email }, '/user/email/change')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json<EmailChangeRequestedResponse>()
+        const pending = response.payload.pending
+        return { ...pending, expiresAt: new Date(pending.expiresAt) }
+    }
+
+    async confirmEmailChange(email: string, code: string): Promise<User> {
+        const response = await this.wretch
+            .post({ email, code }, '/user/email/change/confirm')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+        return response.payload.user
+    }
+
+    async cancelEmailChange(): Promise<void> {
+        await this.wretch.delete('/user/email/change').unauthorized(this.on401).json()
     }
 
     async updateUserTimeZone(
@@ -523,6 +565,39 @@ export class TabletopApi {
             .json<GamesResponse>()
 
         return response.payload.games.map((game) => this.validateGame(game))
+    }
+
+    async getTitleActivity(titleId: string): Promise<TitleActivity> {
+        const request = new AbortController()
+        const timeout = setTimeout(() => request.abort(), TITLE_ACTIVITY_TIMEOUT_MS)
+        try {
+            const response = await this.wretch
+                .options({ signal: request.signal })
+                .get(`/games/activity/${encodeURIComponent(titleId)}`)
+                .unauthorized(this.on401)
+                .badRequest(this.handleError)
+                .error(503, this.handleError)
+                .json<unknown>()
+            Value.Assert(
+                Type.Object({ payload: Type.Object({ activity: Type.Unknown() }) }),
+                response
+            )
+            const activity = Value.Default(
+                TitleActivity,
+                Value.Convert(TitleActivity, response.payload.activity)
+            )
+            Value.Assert(TitleActivity, activity)
+            return activity
+        } catch (error) {
+            if (request.signal.aborted)
+                throw new APIError({
+                    name: 'TitleActivityUnavailable',
+                    message: 'Games of this title are temporarily unavailable'
+                })
+            throw error
+        } finally {
+            clearTimeout(timeout)
+        }
     }
 
     listTournaments(query: TournamentListQuery) {
@@ -1263,7 +1338,28 @@ export class TabletopApi {
         }
     }
 
+    private onPasswordReauthenticationUnauthorized = async (error: WretchError) => {
+        if (error.json?.error?.name === 'ReauthenticationFailedError') {
+            return this.handleError(error)
+        }
+        return this.on401()
+    }
+
+    private onReauthenticationRateLimit = (error: WretchError) => {
+        const retryAfter = error.response?.headers.get('retry-after')
+        throw new APIError({
+            name: 'ReauthenticationRateLimitError',
+            message: retryAfter
+                ? `Too many confirmation attempts. Try again in ${retryAfter} seconds.`
+                : 'Too many confirmation attempts. Please wait before trying again.'
+        })
+    }
+
     private on401 = async () => {
+        // Signing out ends the session before the site stops the requests that need it
+        if (this.isSignedIn?.() === false) {
+            throw new APIError({ name: 'Unauthorized', message: 'No one is signed in' })
+        }
         this.onUnauthorized?.()
         toast.error('Your session has timed out.  Rerouting to login page.')
         window.location.reload()

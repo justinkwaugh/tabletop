@@ -52,7 +52,7 @@ A Reserved Player whose associated User declined. In a Public Game the position 
 A Game Instance with Open Players that eligible Users may claim. It is listed for public discovery unless it is an Unlisted Game.
 
 **Unlisted Game**:
-A Public Game absent from public discovery, whose Open Players any User holding its link may claim. An Administrator or Developer creates one to recruit Players for a Game Title of any catalog visibility.
+A Public Game absent from public discovery, whose Open Players any User holding its link may claim. Any User may create one, for a Game Title of any catalog visibility.
 _Avoid_: Hidden public game, private game
 
 **Invite-Only Game**:
@@ -74,10 +74,14 @@ The pre-play state in which at least one configured Player is not Joined.
 The pre-play state in which every configured Player is Joined. Readiness is derived from Player participation.
 
 **Automatic Start**:
-A Public or Unlisted Game, or a game whose Game Owner is not a Player, starts one minute after it becomes Ready. The countdown is cancelled if the game first stops being Ready or stops qualifying, and restarts in full if it becomes Ready again. The Game Owner may start it sooner. Changing Game Configuration does not affect the countdown.
+A Game Instance starts one minute after it becomes Ready. The countdown is cancelled if the game first stops being Ready, and restarts in full if it becomes Ready again. The Game Owner may start it sooner. Changing Game Configuration does not affect the countdown.
 
 **In Progress**:
 The lifecycle state of a Game Instance after it starts and before its Game State contains a result.
+
+**Game Progress**:
+How far an In Progress Game has come, as its Game Title reports it from public information: a rough share of the game played, a short description in the title's own terms, and whether the game's end has begun. It is recorded with every change to Game State. A Game Title that does not report it leaves its games without one.
+_Avoid_: Completion, percent done
 
 **Finished**:
 The lifecycle state derived from a Game State containing a result. Authorized Undo may return a Finished Game to In Progress, except that Players cannot reopen a Finished Tournament Game.

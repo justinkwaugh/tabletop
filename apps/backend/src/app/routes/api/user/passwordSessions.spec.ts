@@ -1,11 +1,5 @@
 import { Role, UserStatus, type User } from '@tabletop/common'
-import {
-    MemorySessionStore,
-    RealtimeControl,
-    type RealtimeRevocation,
-    SessionService,
-    UserService
-} from '@tabletop/backend-services'
+import { MemorySessionStore, SessionService, UserService } from '@tabletop/backend-services'
 import type { FastifyInstance } from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -17,9 +11,10 @@ import setPassword from './setPassword.js'
 import update from './update.js'
 import { sessionCookieHeader, sessionServer } from '../../../tests/sessionFixture.js'
 import {
-    memoryChallenges,
+    memoryTokens,
     memoryUserStore,
     ORIGINAL_PASSWORD,
+    recordingRealtime,
     recordingTasks
 } from '../../../tests/accountFixture.js'
 
@@ -43,21 +38,14 @@ async function createServer() {
     }
     const sessionStore = new UndeletableSessionStore()
     const sessionService = new SessionService(sessionStore)
-    const { challengeService } = memoryChallenges()
+    const { tokenService } = memoryTokens()
     const { tasks, lastMail } = recordingTasks()
     const { store, holdLoginsAfterCredentialCheck } = memoryUserStore(user, ORIGINAL_PASSWORD)
-    const userService = new UserService(store, challengeService, tasks)
+    const userService = new UserService(store, tokenService, tasks)
     const server = await sessionServer(sessionService)
     server.decorate('userService', userService)
-    const revocations: RealtimeRevocation[] = []
-    server.decorate(
-        'realtimeControl',
-        new RealtimeControl({
-            publishMessage: async ({ message }) => {
-                revocations.push(JSON.parse(message))
-            }
-        })
-    )
+    const { realtimeControl, revocations } = recordingRealtime()
+    server.decorate('realtimeControl', realtimeControl)
     await server.register(authorization)
     await server.register(login, { prefix: '/auth' })
     await server.register(logout, { prefix: '/auth' })
@@ -130,7 +118,7 @@ describe('sessions across a Password Credential change', () => {
         expect(await signIn(NEW_PASSWORD)).toBeDefined()
     })
 
-    it('revokes a copied session when the password is changed with the current password', async () => {
+    it('revokes a copied session when the password is changed with Recent Authentication', async () => {
         const { server, sessionStore, signIn, active } = await fixture()
         const copied = await signIn()
         const victim = await signIn()
@@ -139,7 +127,7 @@ describe('sessions across a Password Credential change', () => {
             method: 'POST',
             url: '/user/update',
             headers: { cookie: victim },
-            payload: { password: NEW_PASSWORD, currentPassword: ORIGINAL_PASSWORD }
+            payload: { password: NEW_PASSWORD }
         })
         expect(change.statusCode).toBe(200)
         const renewed = sessionCookieHeader(change)
@@ -178,7 +166,7 @@ describe('sessions across a Password Credential change', () => {
             method: 'POST',
             url: '/user/update',
             headers: { cookie: victim },
-            payload: { password: NEW_PASSWORD, currentPassword: ORIGINAL_PASSWORD }
+            payload: { password: NEW_PASSWORD }
         })
         expect(change.statusCode).toBe(200)
         expect(await active(copied)).toBe(401)
@@ -198,7 +186,7 @@ describe('sessions across a Password Credential change', () => {
             method: 'POST',
             url: '/user/update',
             headers: { cookie: victim },
-            payload: { password: NEW_PASSWORD, currentPassword: ORIGINAL_PASSWORD }
+            payload: { password: NEW_PASSWORD }
         })
         expect(change.statusCode).toBe(200)
 
@@ -228,7 +216,7 @@ describe('sessions across a Password Credential change', () => {
             method: 'POST',
             url: '/user/update',
             headers: { cookie },
-            payload: { password: NEW_PASSWORD, currentPassword: ORIGINAL_PASSWORD }
+            payload: { password: NEW_PASSWORD }
         })
         expect(changed.statusCode).toBe(200)
         expect(revocations).toEqual([{ revoke: 'account-1', at: expect.any(Number) }])

@@ -2,8 +2,9 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { assertExists, Role, sessionGenerationOf, UserStatus, type User } from '@tabletop/common'
 import {
-    AuthenticationChallengeService,
-    FirestoreAuthenticationChallengeStore,
+    TokenService,
+    TokenType,
+    FirestoreTokenStore,
     FirestoreUserStore,
     formatSetPasswordChallenge,
     LocalTaskService,
@@ -36,9 +37,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         const run = `cached-auth-${Date.now()}`
         const PASSWORD = 'original-password-value'
         const firestore = isolatedFirestore()
-        const challenges = new AuthenticationChallengeService(
-            new FirestoreAuthenticationChallengeStore(firestore)
-        )
+        const challenges = new TokenService(new FirestoreTokenStore(firestore))
         const taskService = new LocalTaskService('')
         const servers = new Set<FastifyInstance>()
         const revocations: RealtimeRevocation[] = []
@@ -200,8 +199,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
 
         async function issueSetPasswordChallenge(account: User) {
             assertExists(account.email, 'Account email')
-            const issued = await challenges.issue({
-                purpose: 'set-password',
+            const issued = await challenges.issueChallenge({
+                type: TokenType.PasswordReset,
                 userId: account.id,
                 email: account.email
             })
@@ -297,7 +296,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expectCacheHit(lastTrace())
             await activateAdminMode(get)
 
-            await userService.updateUser(account.id, {}, 'replacement-password-value', PASSWORD)
+            await userService.updateUser(
+                await server.sessionService.establish(account, 'authentication-method'),
+                {},
+                'replacement-password-value'
+            )
 
             await expectNoCachedAccount(account.id)
             expect((await get('/any')).statusCode).toBe(401)

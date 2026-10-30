@@ -2,6 +2,7 @@
     import { Button, P } from 'flowbite-svelte'
     import { toast } from 'svelte-sonner'
     import { getAppContext } from '$lib/stores/appContext.svelte'
+    import { nextTabIndex } from '$lib/utils/tabNavigation'
     import AdminUsersTab from '$lib/components/admin/AdminUsersTab.svelte'
     import AdminGamesTab from '$lib/components/admin/AdminGamesTab.svelte'
     import AdminStatsTab from '$lib/components/admin/AdminStatsTab.svelte'
@@ -30,12 +31,8 @@
     let tab = $state<AdminTab>('users')
 
     function moveTab(event: KeyboardEvent, index: number) {
-        let next: number
-        if (event.key === 'ArrowRight') next = (index + 1) % tabs.length
-        else if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length
-        else if (event.key === 'Home') next = 0
-        else if (event.key === 'End') next = tabs.length - 1
-        else return
+        const next = nextTabIndex(event.key, index, tabs.length)
+        if (next === undefined) return
         event.preventDefault()
         tab = tabs[next].id
         document.getElementById(`admin-tab-${tab}`)?.focus()

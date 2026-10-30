@@ -1,17 +1,13 @@
 import { Section, Text } from '@react-email/components'
 import type { CSSProperties } from 'react'
+import { AccountChangeType } from '@tabletop/common'
 import { DarkCardEmail, darkStyles } from '../components/darkCard.js'
+
+export { AccountChangeType } from '@tabletop/common'
 
 interface AccountChangeNotificationProps {
     changeType: string
     timestamp: Date
-}
-
-// I don't want to redefine this here, but I wasn't sure of a good place to put it
-export enum AccountChangeType {
-    Email = 'email',
-    Password = 'password',
-    PasswordReset = 'passwordReset',
 }
 
 const styles = {
@@ -38,6 +34,11 @@ export const AccountChangeNotification = ({
     let change = ''
     let detailText = ''
     switch (changeType) {
+        case AccountChangeType.EmailChangeRequested:
+            change =
+                'A request was made to change your email address; your current address remains active until the new address is verified'
+            detailText = 'Email address change requested'
+            break
         case AccountChangeType.PasswordReset:
             change = 'A request was made to reset the password for your account'
             detailText = 'Password reset requested'

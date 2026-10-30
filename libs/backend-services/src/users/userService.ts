@@ -2,12 +2,14 @@ import { UserStore } from '../persistence/stores/userStore.js'
 import {
     type AccountStatusTransition,
     type AdminAssignableRole,
+    assertExists,
     canHoldAuthenticatedSession,
     ExternalAuthService,
+    normalizeEmailAddress,
+    type PendingEmailChange,
     remove,
     Role,
-    type SensitiveChangeRequest,
-    sensitiveChangeOperation,
+    sessionGenerationOf,
     User,
     UserPreferences,
     UserStatus,
@@ -15,28 +17,37 @@ import {
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import {
+    EmailChangeError,
     EmailVerificationError,
     InvalidPasswordError,
-    InvalidTimeZoneError,
-    UnauthenticatedUpdateError
+    InvalidTimeZoneError
 } from './errors.js'
 import { requireSessionEligibleAccount } from './accountEligibility.js'
 import { AccountChangeType } from '../email/emailService.js'
 import { nanoid } from 'nanoid'
-import { AuthenticationChallengeService } from '../challenges/authenticationChallengeService.js'
+import { TokenService, TokenType } from '../tokens/tokenService.js'
 import {
     type AuthenticationChallengeClaim,
+    type EmailChangeClaim,
     formatSetPasswordChallenge,
     InvalidChallengeError,
     type IssuedChallenge
-} from '../challenges/authenticationChallenge.js'
+} from '../tokens/authenticationChallenge.js'
 import type { StoredUser } from '../persistence/model/storedUser.js'
-import { UpdateValidationResult, UpdateValidator } from '../persistence/stores/validator.js'
-import { NotFoundError } from '../persistence/stores/errors.js'
-import type { TransactionParticipant } from '../persistence/stores/transaction.js'
+import { UpdateValidationResult } from '../persistence/stores/validator.js'
+import { AlreadyExistsError, InvalidIdError, NotFoundError } from '../persistence/stores/errors.js'
+import { isValidStorageId } from '../persistence/stores/storageId.js'
+import {
+    isSessionLiveForAccount,
+    type AuthenticatedSession
+} from '../sessions/authenticatedSession.js'
+import { SessionNotLiveError } from '../sessions/sessionService.js'
+import {
+    hasRecentAuthentication,
+    RecentAuthenticationRequiredError
+} from '../sessions/recentAuthentication.js'
 import uFuzzy from '@leeoniya/ufuzzy'
-
-type ChallengeProof = { claim: AuthenticationChallengeClaim; consume: TransactionParticipant }
+import { Value } from 'typebox/value'
 
 export class UserService {
     private readonly uFuzzy: uFuzzy
@@ -45,7 +56,7 @@ export class UserService {
 
     constructor(
         private readonly userStore: UserStore,
-        private readonly challenges: AuthenticationChallengeService,
+        private readonly tokenService: TokenService,
         private readonly taskService: TaskService
     ) {
         const cmp = new Intl.Collator('en').compare
@@ -179,45 +190,30 @@ export class UserService {
     }
 
     async updateUser(
-        userId: string,
+        session: AuthenticatedSession,
         fields: Partial<User>,
-        password?: string,
-        currentPassword?: string,
-        challenge?: string
+        password?: string
     ): Promise<User> {
-        const proof = challenge
-            ? await this.sensitiveChangeProof(userId, challenge, fields, password)
-            : undefined
-
+        const userId = session.userId
         const [updatedUser, updatedFields, originalUser] = await this.userStore.updateUser({
             userId,
             fields,
             password,
-            currentPassword,
             validator: (existingUser, fieldsToUpdate) => {
-                if (proof && existingUser.email !== proof.claim.email) {
-                    throw new InvalidChallengeError('binding')
+                const changesEmail = Boolean(
+                    fieldsToUpdate.email && fieldsToUpdate.email !== existingUser.email
+                )
+                this.requireAuthenticatedSession(session, existingUser, {
+                    requireRecentAuthentication:
+                        Boolean(fieldsToUpdate.passwordHash) || changesEmail
+                })
+                if (changesEmail && existingUser.emailVerified) {
+                    throw new EmailChangeError(
+                        'Verify the new email address from your profile before changing it. Please reload the page.'
+                    )
                 }
-
-                // No password set on user, and no verification means no sensitive updates
-                if (
-                    (!existingUser.passwordHash && !proof) ||
-                    (existingUser.passwordHash && !currentPassword)
-                ) {
-                    // Cannot change email
-                    if (fieldsToUpdate.email && existingUser.email) {
-                        throw new UnauthenticatedUpdateError('email')
-                    }
-
-                    // Cannot set or change password
-                    if (fieldsToUpdate.passwordHash) {
-                        throw new UnauthenticatedUpdateError('password')
-                    }
-                }
-
                 return UpdateValidationResult.Proceed
-            },
-            participant: proof?.consume
+            }
         })
 
         const updateTimestamp = updatedUser.updatedAt ?? new Date()
@@ -249,26 +245,114 @@ export class UserService {
         return updatedUser
     }
 
-    private async sensitiveChangeProof(
-        userId: string,
-        challenge: string,
-        fields: Partial<User>,
-        password: string | undefined
-    ): Promise<ChallengeProof> {
-        const account = await this.userStore.findById(userId)
-        if (!account?.email) {
-            throw new InvalidChallengeError('account')
+    async requestEmailChange(
+        session: AuthenticatedSession,
+        email: string
+    ): Promise<PendingEmailChange> {
+        const user = await this.getUser(session.userId)
+        if (!user) throw new SessionNotLiveError()
+        this.requireAuthenticatedSession(session, user, { requireRecentAuthentication: true })
+        if (!user.email || !user.emailVerified) {
+            throw new EmailChangeError('Complete verification of your current email address first.')
         }
-        const claim: AuthenticationChallengeClaim = {
-            purpose: 'sensitive-change',
-            userId,
-            email: account.email,
-            operation: sensitiveChangeOperation({
-                email: fields.email,
-                password: Boolean(password)
+        const newEmail = normalizeEmailAddress(email)
+        if (!isValidStorageId(newEmail)) {
+            throw new InvalidIdError({ type: 'email', id: newEmail })
+        }
+        if (newEmail === user.email) {
+            throw new EmailChangeError('Enter a different email address.')
+        }
+        if (await this.userStore.findByEmail(newEmail)) {
+            throw new AlreadyExistsError({ type: 'User', id: user.id, field: 'email' })
+        }
+        const issued = await this.tokenService.issueChallenge(this.emailChangeClaim(user, newEmail))
+        await this.taskService.sendEmailChangeVerificationEmail({
+            userId: user.id,
+            token: issued.secret,
+            email: newEmail
+        })
+        await this.notifyAccountChange(user.id, {
+            email: user.email,
+            changeType: AccountChangeType.EmailChangeRequested,
+            timestamp: new Date()
+        })
+        return { email: newEmail, expiresAt: issued.expiresAt }
+    }
+
+    async pendingEmailChange(user: User): Promise<PendingEmailChange | undefined> {
+        const pending = await this.tokenService.findChallenge({
+            type: TokenType.EmailChange,
+            userId: user.id
+        })
+        if (
+            !pending ||
+            pending.claim.type !== TokenType.EmailChange ||
+            !user.email ||
+            !Value.Equal(pending.claim, this.emailChangeClaim(user, pending.claim.newEmail))
+        )
+            return undefined
+        return { email: pending.claim.newEmail, expiresAt: pending.expiresAt }
+    }
+
+    async cancelEmailChange(userId: string): Promise<void> {
+        await this.tokenService.cancelChallenge({ type: TokenType.EmailChange, userId })
+    }
+
+    async confirmEmailChange(
+        session: AuthenticatedSession,
+        email: string,
+        code: string
+    ): Promise<User> {
+        let claim: EmailChangeClaim | undefined
+        const [updatedUser, , originalUser] = await this.userStore.updateUser({
+            userId: session.userId,
+            fields: { email: normalizeEmailAddress(email), emailVerified: true },
+            validator: (existingUser, fieldsToUpdate) => {
+                this.requireAuthenticatedSession(session, existingUser, {
+                    requireRecentAuthentication: true
+                })
+                if (!existingUser.email || !existingUser.emailVerified || !fieldsToUpdate.email) {
+                    throw new InvalidChallengeError('account')
+                }
+                claim = this.emailChangeClaim(existingUser, fieldsToUpdate.email)
+                return UpdateValidationResult.Proceed
+            },
+            participant: async (transaction, locks) => {
+                assertExists(claim, 'Email change validation precedes challenge consumption')
+                await this.tokenService.consumeChallenge(code, claim)(transaction, locks)
+            }
+        })
+        if (originalUser.email) {
+            await this.notifyAccountChange(updatedUser.id, {
+                email: originalUser.email,
+                changeType: AccountChangeType.Email,
+                timestamp: updatedUser.updatedAt ?? new Date()
             })
         }
-        return { claim, consume: this.challenges.consumption(challenge, claim) }
+        return updatedUser
+    }
+
+    private emailChangeClaim(user: User, newEmail: string): EmailChangeClaim {
+        assertExists(user.email, 'An email change requires a current email address')
+        return {
+            type: TokenType.EmailChange,
+            userId: user.id,
+            email: user.email,
+            newEmail,
+            sessionGeneration: sessionGenerationOf(user)
+        }
+    }
+
+    private requireAuthenticatedSession(
+        session: AuthenticatedSession,
+        user: User,
+        { requireRecentAuthentication }: { requireRecentAuthentication: boolean }
+    ): void {
+        requireSessionEligibleAccount(user)
+        const now = new Date()
+        if (!isSessionLiveForAccount(session, user, now)) throw new SessionNotLiveError()
+        if (requireRecentAuthentication && !hasRecentAuthentication(session, now))
+            throw new RecentAuthenticationRequiredError()
     }
 
     async linkExternalAccount({
@@ -313,13 +397,13 @@ export class UserService {
             throw new InvalidChallengeError('account')
         }
         const claim: AuthenticationChallengeClaim = {
-            purpose: 'set-password',
+            type: TokenType.PasswordReset,
             userId,
             email: account.email
         }
         const updatedUser = await this.userStore.updatePassword(userId, cleanPassword, {
-            validator: this.requireChallengeAccount(claim),
-            participant: this.challenges.consumption(secret, claim)
+            validate: (existingUser) => this.requireChallengeAccount(existingUser, claim),
+            participant: this.tokenService.consumeChallenge(secret, claim)
         })
         await this.notifyAccountChange(userId, {
             email: claim.email,
@@ -347,13 +431,11 @@ export class UserService {
     }
 
     private requireChallengeAccount(
+        existingUser: StoredUser,
         claim: AuthenticationChallengeClaim
-    ): UpdateValidator<StoredUser> {
-        return (existingUser) => {
-            if (!canHoldAuthenticatedSession(existingUser) || existingUser.email !== claim.email) {
-                throw new InvalidChallengeError('account')
-            }
-            return UpdateValidationResult.Proceed
+    ): void {
+        if (!canHoldAuthenticatedSession(existingUser) || existingUser.email !== claim.email) {
+            throw new InvalidChallengeError('account')
         }
     }
 
@@ -403,15 +485,18 @@ export class UserService {
             throw new InvalidChallengeError('account')
         }
         const claim: AuthenticationChallengeClaim = {
-            purpose: 'email-verification',
+            type: TokenType.EmailVerification,
             userId: user.id,
             email: user.email
         }
         const [updatedUser] = await this.userStore.updateUser({
             userId: user.id,
             fields: { emailVerified: true },
-            validator: this.requireChallengeAccount(claim),
-            participant: this.challenges.consumption(code, claim)
+            validator: (existingUser) => {
+                this.requireChallengeAccount(existingUser, claim)
+                return UpdateValidationResult.Proceed
+            },
+            participant: this.tokenService.consumeChallenge(code, claim)
         })
         return updatedUser
     }
@@ -420,8 +505,8 @@ export class UserService {
         if (!user.email) {
             throw new EmailVerificationError()
         }
-        const issued = await this.challenges.issue({
-            purpose: 'email-verification',
+        const issued = await this.tokenService.issueChallenge({
+            type: TokenType.EmailVerification,
             userId: user.id,
             email: user.email
         })
@@ -433,8 +518,8 @@ export class UserService {
         if (!user.email || !canHoldAuthenticatedSession(user)) {
             return undefined
         }
-        const issued = await this.challenges.issue({
-            purpose: 'set-password',
+        const issued = await this.tokenService.issueChallenge({
+            type: TokenType.PasswordReset,
             userId: user.id,
             email: user.email
         })
@@ -447,23 +532,6 @@ export class UserService {
             changeType: AccountChangeType.PasswordReset,
             timestamp: new Date()
         })
-        return issued
-    }
-
-    async sendSensitiveChangeChallenge(
-        user: User,
-        request: SensitiveChangeRequest
-    ): Promise<IssuedChallenge> {
-        if (!user.email) {
-            throw new EmailVerificationError()
-        }
-        const issued = await this.challenges.issue({
-            purpose: 'sensitive-change',
-            userId: user.id,
-            email: user.email,
-            operation: sensitiveChangeOperation(request)
-        })
-        await this.taskService.sendAuthVerificationEmail({ userId: user.id, token: issued.secret })
         return issued
     }
 

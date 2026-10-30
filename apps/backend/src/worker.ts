@@ -6,6 +6,7 @@ import { installHandlerDrain } from './runtime/handlerDrain.js'
 import { ajvOptions } from './runtime/ajvOptions.js'
 import { lazyValidatorCompiler } from './runtime/lazyValidation.js'
 import type { TitleLoadMessage } from './runtime/backendChild.js'
+import { trustedProxyChain } from './runtime/clientAddress.js'
 
 if (!process.send) throw new Error('Backend worker requires a supervisor IPC channel')
 const send = process.send.bind(process)
@@ -28,7 +29,7 @@ async function whileLoadingTitle<T>(load: () => Promise<T>): Promise<T> {
 const logging = new LoggingBoundary()
 const server = Fastify({
     logger: logging.loggerOptions,
-    trustProxy: '127.0.0.1',
+    trustProxy: trustedProxyChain(process.env['K_SERVICE'] ?? 'local'),
     ajv: ajvOptions,
     // The supervisor bounds startup; a replacement starting beside a serving child on a
     // throttled CPU can take far longer than a fresh instance.

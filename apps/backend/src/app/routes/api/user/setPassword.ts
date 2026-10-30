@@ -21,13 +21,24 @@ export default async function (fastify: FastifyInstance) {
             schema: { body: SetPasswordRequest }
         },
         async function (request, _reply) {
-            const presented = parseSetPasswordChallenge(request.body.challenge)
-            if (!presented) {
-                throw new InvalidChallengeError('format')
+            try {
+                const presented = parseSetPasswordChallenge(request.body.challenge)
+                if (!presented) {
+                    throw new InvalidChallengeError('format')
+                }
+                await fastify.userService.setPassword({
+                    ...presented,
+                    password: request.body.password
+                })
+                await fastify.realtimeControl.revokeAccount(presented.userId)
+            } catch (error) {
+                if (!(error instanceof InvalidChallengeError)) throw error
+                request.log.debug(
+                    { reason: error.metadata.reason },
+                    'Password reset challenge refused'
+                )
+                throw new InvalidChallengeError()
             }
-            await fastify.userService.setPassword({ ...presented, password: request.body.password })
-            // Every session died with the Session Generation; their realtime connections end too
-            await fastify.realtimeControl.revokeAccount(presented.userId)
             return { status: 'ok', payload: {} }
         }
     )

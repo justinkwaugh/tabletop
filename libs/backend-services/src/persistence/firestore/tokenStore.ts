@@ -1,9 +1,11 @@
+import { isValidStorageId } from '../stores/storageId.js'
 import {
     CollectionReference,
     Firestore,
     PartialWithFieldValue,
     QueryDocumentSnapshot,
-    Timestamp
+    Timestamp,
+    type Transaction
 } from '@google-cloud/firestore'
 import { StoredDataToken } from '../model/storedToken.js'
 import { DataToken } from '../../tokens/dataToken.js'
@@ -20,46 +22,53 @@ export class FirestoreTokenStore implements TokenStore {
         this.tokens = firestore.collection('tokens')
     }
 
-    async find(id: string): Promise<DataToken | undefined> {
-        const doc = this.tokens.doc(id)
+    async find(id: string, transaction?: Transaction): Promise<DataToken | undefined> {
+        const doc = this.tokens.doc(id).withConverter(tokenConverter)
         try {
-            const dataToken = (await doc.withConverter(tokenConverter).get()).data()
-            return dataToken
+            const snapshot = transaction ? await transaction.get(doc) : await doc.get()
+            return snapshot.data()
         } catch (error) {
             this.handleError(error, id)
         }
     }
 
     async create(token: DataToken): Promise<DataToken> {
-        const newToken = structuredClone(token) as DataToken
+        return this.write(token, 'create')
+    }
 
-        // Set dates
+    async replace(token: DataToken): Promise<void> {
+        await this.write(token, 'set')
+    }
+
+    private async write(token: DataToken, operation: 'create' | 'set'): Promise<DataToken> {
+        const newToken = structuredClone(token)
+
         newToken.createdAt = new Date()
         newToken.updatedAt = new Date()
 
-        // Ensure fields can be used as id
-        if (!this.isValidId(newToken.id)) {
+        if (!isValidStorageId(newToken.id)) {
             throw new InvalidIdError({ type: 'DataToken', id: secretReference(newToken.id) })
         }
 
         try {
-            await this.tokens.doc(newToken.id).withConverter(tokenConverter).create(newToken)
+            await this.tokens.doc(newToken.id).withConverter(tokenConverter)[operation](newToken)
         } catch (error) {
             this.handleError(error, newToken.id)
         }
         return newToken
     }
 
-    async delete(id: string): Promise<void> {
+    async delete(id: string, transaction?: Transaction): Promise<void> {
         try {
-            await this.tokens.doc(id).delete()
+            const doc = this.tokens.doc(id)
+            if (transaction) {
+                transaction.delete(doc)
+            } else {
+                await doc.delete()
+            }
         } catch (error) {
             this.handleError(error, id)
         }
-    }
-
-    private isValidId(id: string): boolean {
-        return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
     }
 
     private handleError(error: unknown, token: string): never {

@@ -1,6 +1,6 @@
 import type { RevenueCenter } from '../routes/route.js'
 import type { RailwayMapState } from '../map/mapState.js'
-import { cityIsBlocked, type StationState } from '../map/station.js'
+import { cityIsBlocked, companyStationCenters, type StationState } from '../map/station.js'
 import type { TileFace } from '../tiles/tile.js'
 import { ConnectedTrack } from './connectedTrack.js'
 
@@ -13,14 +13,10 @@ export class TrackNetwork extends ConnectedTrack {
         origin?: RevenueCenter,
         closedStop: (locationId: string, nodeId: string) => boolean = () => false
     ) {
-        const origins = state.stations.flatMap((station) =>
-            station.status === 'placed' &&
-            station.companyId === companyId &&
-            (!origin ||
-                (origin.locationId === station.position.locationId &&
-                    origin.nodeId === station.position.nodeId))
-                ? [{ locationId: station.position.locationId, nodeId: station.position.nodeId }]
-                : []
+        const origins = companyStationCenters(state, companyId).filter(
+            (center) =>
+                !origin ||
+                (origin.locationId === center.locationId && origin.nodeId === center.nodeId)
         )
         super(
             mapState,

@@ -9,7 +9,7 @@ import { authSession } from '../../../lib/session.js'
 import unlinkExternalAccount from './unlinkExternalAccount.js'
 import {
     apiErrorShape,
-    memoryChallenges,
+    memoryTokens,
     memoryUserStore,
     recordingTasks
 } from '../../../tests/accountFixture.js'
@@ -36,7 +36,7 @@ async function createServer() {
     apiErrorShape(server)
     const userService = new UserService(
         memoryUserStore(user).store,
-        memoryChallenges().challengeService,
+        memoryTokens().tokenService,
         recordingTasks().tasks
     )
     const unlink = vi

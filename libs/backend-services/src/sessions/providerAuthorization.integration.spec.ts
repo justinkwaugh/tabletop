@@ -175,7 +175,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(store.find(revoked.id)).resolves.toBeUndefined()
 
             const started = now
-            const expired = await sessions.establish(account(), 'challenge')
+            const expired = await sessions.establish(account(), { authenticatedAt: undefined })
             const pending = await sessions.beginProviderAuthorization(expired, link)
             now = new Date(started.getTime() + SESSION_LIFETIME_SECONDS * 1000)
             try {

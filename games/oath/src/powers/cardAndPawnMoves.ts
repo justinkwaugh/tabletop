@@ -4,7 +4,7 @@ import { Banner, Suit } from '../model/oathEnums.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import type { PileDeposit } from '../model/hidden.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { cardDefinition, suitOf } from '../data/cardRegistry.js'
+import { cardDefinition } from '../data/cardRegistry.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import {
     registerContinuous,
@@ -72,7 +72,7 @@ const ownFaceupDenizenAdvisers: ChoiceDomain = (state, playerId) =>
             (cardId) =>
                 !isLockedFor(state, playerId, cardId) &&
                 cardDefinition(cardId)?.placement !== 'adviser' &&
-                suitOf(cardId) !== undefined
+                state.suitInPlay(cardId) !== undefined
         )
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 
@@ -244,7 +244,7 @@ const RIOTS = 'denizen.discord.riots'
 function riotSuits(ctx: EffectContext): { most: Suit[]; count: number } {
     const counts = new Map<Suit, number>()
     const tally = (id: string) => {
-        const suit = suitOf(id)
+        const suit = ctx.state.suitInPlay(id)
         if (suit) counts.set(suit, (counts.get(suit) ?? 0) + 1)
     }
     if (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6)) {
@@ -301,7 +301,7 @@ registerEffect(RIOTS, powerIndexOf(RIOTS, PowerTiming.WhenPlayed), {
             ctx.state,
             ctx.playerId,
             ctx.state.faceupSiteIds(),
-            (id) => id !== RIOTS && suitOf(id) === suit,
+            (id) => id !== RIOTS && ctx.state.suitInPlay(id) === suit,
             ctx.power.cardId
         )
         return {
@@ -340,7 +340,8 @@ const othersFaceupNomadAdvisers: ChoiceDomain = (state, playerId) =>
                 .faceupAdviserIds()
                 .filter(
                     (cardId) =>
-                        suitOf(cardId) === Suit.Nomad && !isLockedFor(state, playerId, cardId)
+                        state.suitInPlay(cardId) === Suit.Nomad &&
+                        !isLockedFor(state, playerId, cardId)
                 )
                 .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
         )

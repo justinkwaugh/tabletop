@@ -1,3 +1,4 @@
+import { TokenType } from '../tokens/dataToken.js'
 import { createClient, type RedisClientType } from 'redis'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Role, UserStatus, type User } from '@tabletop/common'
@@ -7,8 +8,8 @@ import { FirestoreUserStore } from '../persistence/firestore/userStore.js'
 import { FirestoreSessionStore } from '../persistence/firestore/sessionStore.js'
 import type { TransactionParticipant } from '../persistence/stores/transaction.js'
 import type { TaskService } from '../tasks/taskService.js'
-import { AuthenticationChallengeService } from '../challenges/authenticationChallengeService.js'
-import { FirestoreAuthenticationChallengeStore } from '../persistence/firestore/authenticationChallengeStore.js'
+import { TokenService } from '../tokens/tokenService.js'
+import { FirestoreTokenStore } from '../persistence/firestore/tokenStore.js'
 import { UserService } from '../users/userService.js'
 import { SessionService } from './sessionService.js'
 
@@ -36,9 +37,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         const sessions = new SessionService(sessionStore)
         const tasks: TaskService = Object.create(null)
         tasks.sendAccountChangeNotificationEmail = async () => {}
-        const challenges = new AuthenticationChallengeService(
-            new FirestoreAuthenticationChallengeStore(firestore)
-        )
+        const challenges = new TokenService(new FirestoreTokenStore(firestore))
         const users = new UserService(userStore, challenges, tasks)
         const findAccount = (id: string) => users.getUser(id)
         const authorize = (sessionId: string) => sessions.authorize(sessionId, findAccount)
@@ -103,8 +102,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         }
 
         async function setPassword(account: { id: string; email: string }, password: string) {
-            const { secret } = await challenges.issue({
-                purpose: 'set-password',
+            const { secret } = await challenges.issueChallenge({
+                type: TokenType.PasswordReset,
                 userId: account.id,
                 email: account.email
             })
@@ -172,7 +171,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const copied = await login(account.username, ORIGINAL_PASSWORD)
             await expectEveryOldSessionEnded(
                 account,
-                () => users.updateUser(account.id, {}, NEW_PASSWORD, ORIGINAL_PASSWORD),
+                () => users.updateUser(copied, {}, NEW_PASSWORD),
                 copied
             )
         })
@@ -207,6 +206,32 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(await storedGeneration(account.id)).toBeUndefined()
             await expect(tryLogin(account.username, NEW_PASSWORD)).resolves.toBeUndefined()
             await expect(authorize(copied.id)).resolves.toMatchObject({ session: copied })
+        })
+
+        it('refuses validation before consuming the challenge or changing credentials', async () => {
+            const account = await createAccount()
+            const copied = await login(account.username, ORIGINAL_PASSWORD)
+            const claim = {
+                type: TokenType.PasswordReset,
+                userId: account.id,
+                email: account.email
+            } as const
+            const { secret } = await challenges.issueChallenge(claim)
+            await expect(
+                userStore.updatePassword(account.id, NEW_PASSWORD, {
+                    validate: () => {
+                        throw new Error('synthetic validation refusal')
+                    },
+                    participant: challenges.consumeChallenge(secret, claim)
+                })
+            ).rejects.toThrow()
+            expect(await storedGeneration(account.id)).toBeUndefined()
+            await expect(authorize(copied.id)).resolves.toMatchObject({ session: copied })
+            await expect(tryLogin(account.username, NEW_PASSWORD)).resolves.toBeUndefined()
+            await expect(
+                users.setPassword({ userId: account.id, secret, password: NEW_PASSWORD })
+            ).resolves.toBeDefined()
+            await expect(authorize(copied.id)).resolves.toBeUndefined()
         })
 
         it('commits a transaction participant together with the new credential', async () => {

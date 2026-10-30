@@ -19,7 +19,14 @@ import {
     type ExchangeTerms,
     type OpenDeal
 } from '@tabletop/oath'
-import { openTurn, testPlayer, testState, testVaultWithRelics } from '@tabletop/oath/testing'
+import {
+    openTurn,
+    plainestChronicleAnswer,
+    testPlayer,
+    testState,
+    wholeWorld,
+    testVaultWithRelics
+} from '@tabletop/oath/testing'
 import { played, tableOf, type PlayedTable } from './sessionHarness.js'
 
 /**
@@ -189,6 +196,12 @@ export function tribunalDealsTable(scene: TribunalDealsScene, long = false): Pla
     const state = testState(seats(home), {
         machineState: ending ? MachineState.WakePhase : MachineState.ActPhase,
         oathRevision: CURRENT_OATH_REVISION,
+        // A game started at this revision carries its table record, which R-8's record reads.
+        table: {
+            name: 'Thursday table',
+            date: '2026-10-22',
+            seatNames: { dana: 'Dana', rhys: 'Rhys', ann: 'Ann' }
+        },
         chancellorPlayerId: 'dana',
         round: 4,
         map: allMapSlots(),
@@ -207,6 +220,8 @@ export function tribunalDealsTable(scene: TribunalDealsScene, long = false): Pla
     openTurn(state, seat)
     state.activePlayerIds = [seat]
     state.vault = testVaultWithRelics({})
+    // R-8 — Rhys's win runs the chronicle's steps, which deal with every card of the game.
+    if (ending) wholeWorld(state)
     const table = tableOf(state)
     const envelope = { gameId: table.state.gameId, source: ActionSource.User }
     if (scene === 'asked') {
@@ -220,7 +235,7 @@ export function tribunalDealsTable(scene: TribunalDealsScene, long = false): Pla
         ])
     }
     if (ending) {
-        return played(table, [
+        let won = played(table, [
             createAction(ResolveWake, {
                 ...envelope,
                 type: ActionType.ResolveWake,
@@ -228,6 +243,11 @@ export function tribunalDealsTable(scene: TribunalDealsScene, long = false): Pla
                 favorSteps: []
             })
         ])
+        // R-8 — the game shows its end once Rhys has written the chronicle, as plainly as it can be.
+        while (won.state.machineState === MachineState.Chronicle) {
+            won = played(won, [plainestChronicleAnswer(won.state)])
+        }
+        return won
     }
     return table
 }

@@ -16,7 +16,6 @@ import {
     boardGroupToKill,
     boardWarbandGroups
 } from '../util/force.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { warbandsAt, warbandsFreeToLeave } from '../util/rule.js'
 import { ruledFaceupCardIds, siteHolding } from '../util/access.js'
 import { burnFromBanner } from '../util/seize.js'
@@ -36,8 +35,12 @@ export {
 export { denizensOnMap } from '../util/access.js'
 export { rollDefenseShields } from '../data/dice.js'
 
-export function cardSuitIsOneOf(cardId: string, suits: readonly Suit[]): boolean {
-    const suit = suitOf(cardId)
+export function cardSuitIsOneOf(
+    state: HydratedOathGameState,
+    cardId: string,
+    suits: readonly Suit[]
+): boolean {
+    const suit = state.suitInPlay(cardId)
     return suit !== undefined && suits.includes(suit)
 }
 
@@ -46,7 +49,7 @@ export function siteHasCardOfSuit(
     siteId: string,
     suit: Suit
 ): boolean {
-    return state.denizensAt(siteId).some((id) => suitOf(id) === suit)
+    return state.denizensAt(siteId).some((id) => state.suitInPlay(id) === suit)
 }
 
 export function faceupSitesWithCardOfSuit(state: HydratedOathGameState, suit: Suit): string[] {
@@ -61,7 +64,7 @@ export function hasFaceupAdviserOfSuit(
     return state
         .getPlayerState(playerId)
         .faceupAdviserIds()
-        .some((cardId) => suitOf(cardId) === suit)
+        .some((cardId) => state.suitInPlay(cardId) === suit)
 }
 
 /** R-10.10 — secrets are not component-limited (R-9.3), so this never falls short. */
@@ -305,7 +308,7 @@ export function ruledCardsOfSuit(
     playerId: string,
     suit: Suit
 ): string[] {
-    return ruledFaceupCardIds(state, playerId).filter((id) => suitOf(id) === suit)
+    return ruledFaceupCardIds(state, playerId).filter((id) => state.suitInPlay(id) === suit)
 }
 
 export function moveFavorBetweenBanks(

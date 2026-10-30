@@ -3,12 +3,14 @@ import type { FastifyInstance } from 'fastify'
 import {
     accountStatusAfterCompletionCheck,
     normalizeEmailAddress,
-    sessionGenerationOf,
+    nextSessionGeneration,
     type User
 } from '@tabletop/common'
 import {
-    AuthenticationChallengeService,
-    MemoryAuthenticationChallengeStore,
+    TokenService,
+    MemoryTokenStore,
+    RealtimeControl,
+    type RealtimeRevocation,
     UpdateValidationResult,
     type StoredUser,
     type TaskService,
@@ -19,15 +21,24 @@ import { replyStatusCode } from '../lib/errorStatusCode.js'
 
 export const ORIGINAL_PASSWORD = 'original-password-value'
 
-// The same error shape and failure log line as the application error handler, so specs can
-// read error names and what a failure writes to the log
+export function recordingRealtime() {
+    const revocations: RealtimeRevocation[] = []
+    const realtimeControl = new RealtimeControl({
+        publishMessage: async ({ message }) => {
+            revocations.push(JSON.parse(message))
+        }
+    })
+    return { realtimeControl, revocations }
+}
+
+// The same error shape the application error handler sends, so specs can read error names
 export function apiErrorShape(server: FastifyInstance): void {
     server.setErrorHandler(async (error: Error, request, reply) => {
         void reply.code(replyStatusCode(error, reply.statusCode))
         if (reply.statusCode >= 500) {
             request.log.error({ err: error }, 'Request failed')
         }
-        return { status: 'error', error: { name: error.name, message: error.message } }
+        return { status: 'error', error: { ...error, name: error.name, message: error.message } }
     })
 }
 
@@ -49,7 +60,7 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
         current = {
             ...current,
             hasPassword: true,
-            sessionGeneration: sessionGenerationOf(current) + 1
+            sessionGeneration: nextSessionGeneration(current)
         }
         return current
     }
@@ -64,9 +75,7 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
         return holder
     }
     store.updatePassword = async (_userId, candidate, options) => {
-        if (options?.validator?.(stored(), {}) === UpdateValidationResult.Cancel) {
-            return current
-        }
+        options?.validate?.(stored())
         await options?.participant?.(transaction, locks)
         return replaceCredential(candidate)
     }
@@ -98,7 +107,10 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
             current = {
                 ...current,
                 email: normalizeEmailAddress(fields.email),
-                emailVerified: false
+                emailVerified: fields.emailVerified ?? false,
+                ...(original.emailVerified && fields.emailVerified
+                    ? { sessionGeneration: nextSessionGeneration(original) }
+                    : {})
             }
         }
         if (candidate) {
@@ -129,16 +141,17 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
     }
 }
 
-export function memoryChallenges(options: { now?: () => Date } = {}) {
-    const challengeStore = new MemoryAuthenticationChallengeStore()
-    const challengeService = new AuthenticationChallengeService(challengeStore, options)
-    return { challengeStore, challengeService }
+export function memoryTokens(options: { now?: () => Date } = {}) {
+    const tokenStore = new MemoryTokenStore()
+    const tokenService = new TokenService(tokenStore, options)
+    return { tokenStore, tokenService }
 }
 
 export type SentMail = {
     kind: 'reset' | 'verification' | 'sensitive'
     userId: string
     token: string
+    email?: string
 }
 
 export function recordingTasks() {
@@ -149,6 +162,9 @@ export function recordingTasks() {
         mails.push({ kind: 'reset', ...mail })
     }
     tasks.sendVerificationEmail = async (mail) => {
+        mails.push({ kind: 'verification', ...mail })
+    }
+    tasks.sendEmailChangeVerificationEmail = async (mail) => {
         mails.push({ kind: 'verification', ...mail })
     }
     tasks.sendAuthVerificationEmail = async (mail) => {

@@ -19,13 +19,15 @@ type Phase =
     | MachineState.RestPhase
     | MachineState.EndOfRound
     | MachineState.EndOfGame
+    | MachineState.Chronicle
 
 const PHASE_NAMES: Record<Exclude<Phase, MachineState.EndOfRound>, string> = {
     [MachineState.Setup]: 'Setup',
     [MachineState.WakePhase]: 'Wake Phase',
     [MachineState.ActPhase]: 'Act Phase',
     [MachineState.RestPhase]: 'Rest Phase',
-    [MachineState.EndOfGame]: 'Game over'
+    [MachineState.EndOfGame]: 'Game over',
+    [MachineState.Chronicle]: 'Chronicle'
 }
 
 type Step = { phase: Phase } | { resumes: MachineState }
@@ -38,6 +40,8 @@ function stepOf(state: HydratedOathGameState, at: MachineState): Step {
         case MachineState.RestPhase:
         case MachineState.EndOfRound:
         case MachineState.EndOfGame:
+        case MachineState.Chronicle:
+            // R-8 — the won game's chronicle, written before its result, is a phase of its own.
             return { phase: at }
         case MachineState.Searching:
         case MachineState.CampaignPlans:
@@ -84,6 +88,10 @@ export function turnBarOf(state: HydratedOathGameState): TurnBar {
             paused: false,
             phase: `End of round ${state.round}`
         }
+    }
+    // R-8 — the chronicle is no one's turn; the action panel names whom it waits on.
+    if (phase === MachineState.Chronicle) {
+        return { playerId: undefined, roll: false, paused: false, phase: PHASE_NAMES[phase] }
     }
     return {
         playerId: state.turnManager.currentTurn()?.playerId,

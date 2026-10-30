@@ -168,7 +168,7 @@
                                     >{privateTilePrompts[power.privateCompanyId] ??
                                         `Place a tile using ${session.companyName(power.privateCompanyId)}`}</span
                                 >
-                                {#if gameState.privateTrackLay}
+                                {#if gameState.privateTrackLay && !gameState.privateTrackLay.required}
                                     <span>or</span>
                                     <button
                                         class="action-button inline-action"

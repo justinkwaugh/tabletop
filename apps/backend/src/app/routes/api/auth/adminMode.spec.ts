@@ -25,7 +25,7 @@ import roles from '../admin/users/roles.js'
 import realtimeToken from '../realtime/token.js'
 import {
     apiErrorShape,
-    memoryChallenges,
+    memoryTokens,
     memoryUserStore,
     recordingTasks
 } from '../../../tests/accountFixture.js'
@@ -81,7 +81,7 @@ async function createServer(initial: User = administrator()) {
     const { store, account } = memoryUserStore(initial, PASSWORD)
     const userService = new UserService(
         store,
-        memoryChallenges({ now: () => now }).challengeService,
+        memoryTokens({ now: () => now }).tokenService,
         recordingTasks().tasks
     )
     const assignRoles = vi.spyOn(userService, 'assignRoles')
@@ -349,9 +349,9 @@ describe('Admin Mode', () => {
         expect((await reauthenticate()).statusCode).toBe(200)
         const late = await activate()
         expect(late.statusCode).toBe(200)
-        expect(late.json().payload.adminMode.expiresAt).toBe('2026-11-26T12:00:00.000Z')
+        expect(late.json().payload.adminMode.expiresAt).toBe('2027-04-25T12:00:00.000Z')
         expect((await relayToken()).until).toEqual({
-            'relay-stats': Date.parse('2026-11-26T12:00:00.000Z') / 1000
+            'relay-stats': Date.parse('2027-04-25T12:00:00.000Z') / 1000
         })
         advance(30)
         expect((await invalidate()).statusCode).toBe(401)

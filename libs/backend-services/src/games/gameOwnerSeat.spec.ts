@@ -54,6 +54,7 @@ function fixture() {
     const tasks: TaskService = {
         createPushTask: unused,
         sendVerificationEmail: unused,
+        sendEmailChangeVerificationEmail: unused,
         sendPasswordResetEmail: unused,
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,
@@ -330,21 +331,20 @@ describe('unlisted games', () => {
         ).rejects.toThrow('must be public')
     })
 
-    it('rejects one from a regular user', async () => {
+    it('lets a regular user create one', async () => {
         const { service, write } = fixture()
-        await expect(
-            service.createGame({
-                definition: SyntheticDefinition,
-                game: {
-                    ...inviteesOnly(),
-                    isPublic: true,
-                    unlisted: true,
-                    players: [seat(regular.id), ...openSeats.slice(1)]
-                },
-                owner: ordinaryPrincipal(regular)
-            })
-        ).rejects.toThrow('is not authorized')
-        expect(write).not.toHaveBeenCalled()
+        const created = await service.createGame({
+            definition: SyntheticDefinition,
+            game: {
+                ...inviteesOnly(),
+                isPublic: true,
+                unlisted: true,
+                players: [seat(regular.id), ...openSeats.slice(1)]
+            },
+            owner: ordinaryPrincipal(regular)
+        })
+        expect(write).toHaveBeenCalled()
+        expect(created).toMatchObject({ isPublic: true, unlisted: true })
     })
 
     it('rejects one that is not public', async () => {

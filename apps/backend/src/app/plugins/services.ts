@@ -23,8 +23,6 @@ import {
     FirestoreNotificationStore,
     FirestorePreferenceStore,
     FirestoreSessionStore,
-    FirestoreAuthenticationChallengeStore,
-    AuthenticationChallengeService,
     FirestoreTokenStore,
     FirestoreTournamentStore,
     FirestoreLeagueStore,
@@ -32,6 +30,7 @@ import {
     FirestoreUserStore,
     GameService,
     ProjectedHistoryCache,
+    TitleActivityCache,
     LibraryService,
     type LibraryServiceOptions,
     TitleLibrary,
@@ -46,6 +45,8 @@ import {
     RealtimeTokenIssuer,
     RealtimeControl,
     RedisCacheService,
+    RedisRateLimitCounter,
+    type RateLimitCounter,
     RedisPublisher,
     RedisPubSubService,
     RedisService,
@@ -90,6 +91,7 @@ declare module 'fastify' {
         ablyService: AblyService
         chatService: ChatService
         cacheService: RedisCacheService
+        rateLimitCounter: RateLimitCounter
         libraryService: LibraryService
         titleValidation: TitleValidation
         catalogService: CatalogService
@@ -163,10 +165,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         new FirestoreSessionStore(redisCacheService, fastify.firestore),
         { realtime: realtimeControl }
     )
-    const challengeService = new AuthenticationChallengeService(
-        new FirestoreAuthenticationChallengeStore(fastify.firestore)
-    )
-    const userService = new UserService(userStore, challengeService, taskService)
+    const userService = new UserService(userStore, tokenService, taskService)
     const discordOAuth = new DiscordOAuthClient({
         clientId: process.env['DISCORD_CLIENT_ID'] ?? '',
         clientSecret: () => secretsService.getSecret('DISCORD_SECRET')
@@ -185,7 +184,9 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         pubSubService
     )
 
-    const gameStore = new FirestoreGameStore(redisCacheService, fastify.firestore)
+    const gameStore = new FirestoreGameStore(redisCacheService, fastify.firestore, {
+        titleActivity: new TitleActivityCache(redisService.client)
+    })
     const gameService = new GameService(
         gameStore,
         userService,
@@ -311,6 +312,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     fastify.decorate('discordService', discordService)
     fastify.decorate('chatService', chatService)
     fastify.decorate('cacheService', redisCacheService)
+    fastify.decorate('rateLimitCounter', new RedisRateLimitCounter(redisService.client))
     const charityTallyStore = new FirestoreCharityTallyStore(fastify.firestore)
     fastify.decorate(
         'charityTallyService',

@@ -84,17 +84,16 @@ test('the legacy numeric seed is sent again once Admin Mode is back', async ({ p
     expect(reproduced[0].seed).toBe(42)
 })
 
-test('an unlisted choice no longer applies once Admin Mode ends', async ({ page }) => {
+test('an unlisted choice stays available after Admin Mode ends', async ({ page }) => {
     await mountForm(page, false)
-    await page.getByText('Unlisted', { exact: true }).click()
+    await page.getByRole('radio', { name: 'Unlisted', exact: true }).check()
     await expect(openSeat(page)).not.toHaveAttribute('required', '')
 
     await setAdminMode(page, false)
-    await expect(page.getByText('Unlisted', { exact: true })).toHaveCount(0)
-    await expect(openSeat(page)).toHaveAttribute('required', '')
-    await openSeat(page).fill('Guest')
+    await expect(page.getByRole('radio', { name: 'Unlisted', exact: true })).toBeChecked()
+    await expect(openSeat(page)).not.toHaveAttribute('required', '')
     const ordinary = await createAndWait(page, 1)
-    expect(ordinary[0]).toMatchObject({ unlisted: undefined, isPublic: false })
+    expect(ordinary[0]).toMatchObject({ unlisted: true, isPublic: true })
 })
 
 test('an unseated owner must be seated again once Admin Mode ends', async ({ page }) => {
@@ -143,12 +142,12 @@ async function resumeRuntimeLoad(page: Page) {
 }
 
 for (const reproductionSeeds of [true, false]) {
-    test(`expiry during runtime loading removes the ${reproductionSeeds ? 'master' : 'legacy'} seed and unlisted option`, async ({
+    test(`expiry during runtime loading removes the ${reproductionSeeds ? 'master' : 'legacy'} seed but preserves the unlisted option`, async ({
         page
     }) => {
         await mountForm(page, reproductionSeeds)
         await openSeat(page).fill('Guest')
-        await page.getByText('Unlisted', { exact: true }).click()
+        await page.getByRole('radio', { name: 'Unlisted', exact: true }).check()
         await seedField(page).fill(reproductionSeeds ? '0123456789abcdef0123456789abcdef' : '42')
         await holdRuntimeLoad(page)
         await createButton(page).click()
@@ -160,8 +159,8 @@ for (const reproductionSeeds of [true, false]) {
         expect((await recordedCreations(page))[0]).toMatchObject({
             masterSeed: undefined,
             seed: undefined,
-            unlisted: undefined,
-            isPublic: false
+            unlisted: true,
+            isPublic: true
         })
     })
 }
@@ -183,13 +182,15 @@ test('expiry during runtime loading requires the excluded owner to reclaim a sea
     expect(await recordedCreations(page)).toEqual([])
 })
 
-test('expiry during runtime loading rechecks seats that have become required', async ({ page }) => {
+test('hotseat still requires player names after Admin Mode expires during runtime loading', async ({
+    page
+}) => {
     await mountForm(page, false)
-    await page.getByText('Unlisted', { exact: true }).click()
     await seedField(page).fill('42')
     await holdRuntimeLoad(page)
     await createButton(page).click()
     await waitForRuntimeLoad(page)
+    await page.getByRole('radio', { name: 'Hotseat', exact: true }).check()
     await setAdminMode(page, false)
     await resumeRuntimeLoad(page)
     await expect(openSeat(page)).toHaveAttribute('required', '')
