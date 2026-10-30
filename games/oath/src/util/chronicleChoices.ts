@@ -17,6 +17,8 @@ import {
 } from './force.js'
 import { countOf } from './warbands.js'
 import { returnTokensFrom } from './discard.js'
+import { printedSiteCapacity, SALT_THE_EARTH } from './capacity.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 // Every offer here reads public state only: a player's projection computes the same offer.
 
@@ -298,6 +300,14 @@ function edificeChoiceAt(
     if (kindOf(cardId) !== CardKind.Denizen) return `${cardName(state, cardId)} is not a denizen`
     if (state.denizensAt(siteId).some((id) => state.isEdifice(id))) {
         return `${site} already holds an edifice`
+    }
+    // R-7-H1, Salt the Earth's Q&A — from revision 31 its capacity leaves with it, so the site's own must hold the row.
+    if (
+        cardId === SALT_THE_EARTH &&
+        isAtLeastOathRevision(state, OathRevision.EngineFixes26) &&
+        state.denizensAt(siteId).length > printedSiteCapacity(state, siteId)
+    ) {
+        return `${site} has no room for an edifice once Salt the Earth is gone`
     }
     const suit = state.suitInPlay(cardId)
     assertExists(suit, `R-2.2.2 — ${cardId} shows a suit`)
