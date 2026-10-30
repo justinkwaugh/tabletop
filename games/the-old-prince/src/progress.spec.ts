@@ -13,8 +13,30 @@ it('measures progress through the phase table to the D that ends the game', () =
     expect(progressAt({ phaseId: 'D' })?.fraction).toBe(1)
 })
 
-it('reports the last set once the game end is scheduled', () => {
-    expect(
-        progressAt({ phaseId: 'D', gameEnding: { reason: 'First D', finalOperatingSet: 7 } })
-    ).toEqual({ fraction: 1, label: 'Final OR set', final: true })
+const firstD = { phaseId: 'D', gameEnding: { reason: 'First D', finalOperatingSet: 9 } }
+const operatingSet = (number: number, completed: boolean) => ({
+    number,
+    roundNumber: 1,
+    roundCount: 3,
+    companyOrder: [],
+    completedCompanyIds: [],
+    privateIncomePaid: true,
+    completed
+})
+
+it('names the last set while the sets before it are still to play', () => {
+    for (const set of [operatingSet(8, false), operatingSet(8, true)])
+        expect(progressAt({ ...firstD, operatingSet: set })).toEqual({
+            fraction: 1,
+            label: 'Ends after OR 9',
+            final: true
+        })
+})
+
+it('reports the final set once it starts', () => {
+    expect(progressAt({ ...firstD, operatingSet: operatingSet(9, false) })).toEqual({
+        fraction: 1,
+        label: 'Final OR set',
+        final: true
+    })
 })
