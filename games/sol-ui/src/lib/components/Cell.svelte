@@ -157,7 +157,8 @@
                             destination: cell.coords,
                             cluster: gameSession.clusterChoice,
                             juggernaut: gameSession.juggernautStationId !== undefined,
-                            catapult: gameSession.catapultChoice ?? false
+                            catapult: gameSession.catapultChoice ?? false,
+                            hurling: isCenterCell
                         })
                     }
                 }
