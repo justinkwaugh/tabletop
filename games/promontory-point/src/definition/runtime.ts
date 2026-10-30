@@ -1,5 +1,6 @@
-import { DefaultStateLogger, type GameRuntime } from '@tabletop/common'
+import { DefaultStateLogger, Visibility, type GameRuntime } from '@tabletop/common'
 import {
+    PromontoryPointGameState,
     PromontoryPointGameStateValidator,
     type HydratedPromontoryPointGameState,
     type PromontoryPointProjectedState
@@ -22,5 +23,10 @@ export const PromontoryPointRuntime = {
     playerColors: PromontoryPointColors,
     scoring: new PromontoryPointScoring(),
     progression: new PromontoryPointProgression(),
-    stateLogger: new DefaultStateLogger()
+    stateLogger: new DefaultStateLogger(),
+    // R-5: the bag and the concealed hands stay off every client that may not see them.
+    visibility: {
+        state: Visibility.createProjector(PromontoryPointGameState),
+        actions: Visibility.createActionProjector(PromontoryPointApiActions)
+    }
 } satisfies GameRuntime<PromontoryPointProjectedState, HydratedPromontoryPointGameState>

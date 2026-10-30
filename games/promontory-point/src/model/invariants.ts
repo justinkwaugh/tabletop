@@ -14,7 +14,7 @@ export function invariantsHold(state: PromontoryPointGameState): boolean {
 }
 
 // R-1.1: 24 = bag + hands + kept pieces + turn pieces + board + scrapped, per railroad.
-function piecesConserved(state: PromontoryPointGameState): boolean {
+export function piecesConserved(state: PromontoryPointGameState): boolean {
     if (state.bag.items.length !== state.bag.remaining) {
         return false
     }

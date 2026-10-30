@@ -39,7 +39,7 @@ R-X.2: an action that draws from the bag, reshuffles it, or moves a piece into o
 - A barrier by outcome: `ScrapTrack` when it draws a replacement. With the bag empty it draws nothing and is not a barrier.
 - Not a barrier: `BuyShare`, `SellShare`, `PlaceTrack` and `PayRepairs`. Town tiles are face up from setup and every event is deterministic, so a turn's trades and placements are undoable, latest first, back to the turn's reveal or its latest replacement draw.
 
-`EndTurn` and a drawing `ScrapTrack` read the bag, so they defer to the host. Every other action reads only public state and runs optimistically. Action discovery needs only public state.
+`EndTurn` and a drawing `ScrapTrack` read the bag, so they defer to the host. An `EndTurn` on an empty bag reads nothing hidden, but as a barrier its prediction is not shown until the host confirms it. Every other action reads only public state and runs optimistically. Action discovery needs only public state.
 
 ## Exploration
 

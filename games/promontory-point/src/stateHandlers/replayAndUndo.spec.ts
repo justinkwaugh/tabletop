@@ -1,100 +1,20 @@
 import {
     ActionSource,
-    assert,
     assertExists,
     latestPlayerUndoTarget,
     playerUndoReach,
-    type GameAction,
-    type GameConfig
+    type GameAction
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import { isScrapTrack } from '../actions/scrapTrack.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import type { PromontoryPointGameState } from '../model/gameState.js'
-import { perRailroad } from '../components/railroads.js'
-import { withHoldings } from '../testing/fixtures.js'
-import { SeededPlayer } from '../testing/seededPlayer.js'
-import { canonical, engine, startGame } from '../testing/startGame.js'
-import { withNoRoomFor } from '../testing/turnPieces.js'
-
-// Far more than any game takes: the bag of 96 runs out within a few dozen turns.
-const ACTION_LIMIT = 2000
-
-type Step = {
-    submitted: GameAction
-    processedActions: GameAction[]
-    states: PromontoryPointGameState[]
-}
-
-type Walk = { initial: PromontoryPointGameState; steps: Step[] }
-
-const WALKS: { name: string; playerCount: number; config: GameConfig; seed: number }[] = [
-    { name: '2 players', playerCount: 2, config: {}, seed: 11 },
-    { name: '3 players', playerCount: 3, config: {}, seed: 24 },
-    {
-        name: '4 players, four-piece variant',
-        playerCount: 4,
-        config: { fourPieceVariant: true },
-        seed: 37
-    }
-]
-
-// R-3.3, R-4.3: the Kansas Pacific boxed in from the start and every seat nearly out of money, so
-// a seeded game scraps, draws replacements and queues debtors as well as trading and placing.
-function fixture(state: PromontoryPointGameState): PromontoryPointGameState {
-    const boxedIn = withNoRoomFor(state, 'railroad.kp', 'railroad.up')
-    return withHoldings(
-        boxedIn,
-        boxedIn.turnManager.turnOrder.map(() => ({
-            money: 1,
-            shares: perRailroad(() => 1)
-        }))
-    )
-}
-
-function walk(playerCount: number, config: GameConfig, seed: number) {
-    const started = startGame({ playerCount, config })
-    const game = started.game
-    const initial = fixture(started.state)
-    const player = new SeededPlayer(seed)
-    const steps: Step[] = []
-    let state = initial
-    while (state.machineState !== MachineState.EndOfGame) {
-        assert(steps.length < ACTION_LIMIT, 'A seeded game ends')
-        const submitted = player.nextAction(game, state)
-        const { processedActions, actionCascade } = engine.executeCanonicalAction({
-            action: submitted,
-            state,
-            game
-        })
-        const states = actionCascade.transitions.map(({ after }) => canonical(after))
-        steps.push({ submitted, processedActions, states })
-        state = states[states.length - 1]
-    }
-    return { game, walked: { initial, steps } }
-}
-
-function history(walked: Walk): GameAction[] {
-    return walked.steps.flatMap(({ processedActions }) => processedActions)
-}
-
-function finalState(walked: Walk): PromontoryPointGameState {
-    return walked.steps.at(-1)?.states.at(-1) ?? walked.initial
-}
-
-// R-X.2: the barriers a reveal or a draw from the bag sets.
-function isBarrier(action: GameAction): boolean {
-    return (
-        action.type === ActionType.RevealHand ||
-        action.type === ActionType.EndTurn ||
-        (isScrapTrack(action) && action.metadata?.bagEmpty === false)
-    )
-}
+import { WALKS, finalState, history, isUndoBarrier, walk } from '../testing/seededWalk.js'
+import { canonical, engine } from '../testing/startGame.js'
 
 describe('Promontory Point seeded replay and Undo', () => {
-    describe.each(WALKS)('$name', ({ playerCount, config, seed }) => {
-        const { game, walked } = walk(playerCount, config, seed)
+    describe.each(WALKS)('$name', (setting) => {
+        const walked = walk(setting)
+        const { game } = walked
         const actions = history(walked)
         const states = walked.steps.flatMap((step) => step.states)
 
@@ -153,7 +73,7 @@ describe('Promontory Point seeded replay and Undo', () => {
 
         it('R-X.2: exactly the reveals, the end-of-turn draws and the drawing scraps are barriers', () => {
             for (const action of actions) {
-                expect(action.revealsInfo === true).toBe(isBarrier(action))
+                expect(action.revealsInfo === true).toBe(isUndoBarrier(action))
             }
         })
 
@@ -162,8 +82,8 @@ describe('Promontory Point seeded replay and Undo', () => {
             let done: GameAction[] = []
             for (const step of walked.steps) {
                 done = [...done, ...step.processedActions]
-                const lastBarrier = done.findLastIndex(isBarrier)
-                if (step.processedActions.some(isBarrier)) {
+                const lastBarrier = done.findLastIndex(isUndoBarrier)
+                if (step.processedActions.some(isUndoBarrier)) {
                     for (const playerId of playerIds) {
                         expect(playerUndoReach(done, playerId)).toBeUndefined()
                     }
