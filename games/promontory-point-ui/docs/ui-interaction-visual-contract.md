@@ -26,7 +26,7 @@ Oath's principle, with one stated departure:
 | **Track pieces** (on the map)                                           | every placed piece, as a round token in its railroad's colour; no rails between hexes (O-5)                                                           | drawn in code in the railroad's colour (R-X.4)                   |
 | **Share-price track** (on the map, left)                                | one marker per railroad on the printed 30-space track, 25 down to the fifth 0 (R-1.2)                                                                 | printed track; markers drawn                                     |
 | **Border track** (on the map, edge)                                     | one money marker per seat on the printed 0–99 track, wrapping past 99 (R-1.3-H1)                                                                      | printed track; markers drawn                                     |
-| **The sea** (on the map, in the open sea right of the price track, O-8) | the four share decks with counts (R-1.3), the bag with its count, the end tracker: red towns open and Promontory open or taken (R-6.1, R-6.1-H1)      | share faces from the supplied art; bag, counts and tracker drawn |
+| **The sea** (on the map, in the open sea right of the price track, O-8) | the four share decks with counts (R-1.3), the bag with its count, the end tracker: red tiles uncovered and Promontory open or taken (R-6.1, R-6.1-H1) | share faces from the supplied art; bag, counts and tracker drawn |
 | **Players column** (the sidebar's Players tab, desktop)                 | one seat card per seat, in seat order                                                                                                                 | drawn; share faces from the supplied art                         |
 | **Seat strip** (phone)                                                  | one chip per seat (see [Phone layout](#phone-layout))                                                                                                 | drawn                                                            |
 
@@ -52,6 +52,7 @@ The hand follows R-5 by perspective, never by what the client holds:
 - the deciding seat's hand is revealed from the start of its turn (R-2.2 step 1), drawn in railroad colours, captioned "hand, revealed";
 - the viewer's own concealed hand is drawn in colour, captioned "yours, hidden";
 - every other concealed hand is grey discs marked "?", captioned "hand: 3 hidden".
+- a seat holding a kept piece (R-6.3-H2) adds " · 1 kept" to its caption ("hand: 3 hidden · 1 kept").
 
 A press on a share stack enlarges that share card. The name opens the seat at a readable size over the table (the same card larger, with the money history of the turn); the backdrop, Escape or the name again closes it. The seat card, the seat strip and the open seat read one derivation of the seat, so they never differ. The active seat's card carries the amber ring.
 
@@ -102,10 +103,10 @@ All follow the placement at once, for every seat, and are written into the place
 
 - When a piece reaches a Repairs town, each holder's bill is fixed at $2 per share of that railroad held at that moment (R-4.3-H1). Every holder who can pay pays at once, inside `PlaceTrack`. Every holder whose money is below the bill is short and sends one `PayRepairs`. If no one is short, play goes on with no stop.
 - **Short seats decide one at a time**, the placing seat first if short, then the others in seat order from the placing seat (R-4.3-H4). The deciding short seat may be any seat: it decides out of turn.
-- **Every seat** sees the **Repairs row** above its action area: one chip per seat in that order with its bill and its state: "paid $6 ✓", "no shares", "short $3 · choosing shares to sell" (dashed outline, the deciding seat), or "waiting" for a short seat later in the order. The Repairs town carries the being-decided outline and a rose chip naming it ("Repairs · SP").
+- **Every seat** sees the **Repairs row** above its action area: one chip per seat in that order with its bill and its state: "paid $6 ✓", "no shares", "short $3 · choosing shares to sell" (dashed outline, the deciding seat), "waiting" for a short seat later in the order, and once a short seat has sent, "paid $10 ✓" or "paid $5 · $3 forgiven". The viewer's own chip is named "You". The Repairs town carries the being-decided outline and a rose chip naming it ("Repairs · SP").
 - **The deciding short seat**: its turn header reads "Your turn" and its seat card the "repairs" tag. Its panel reads "Repairs on Southern Pacific. Mara placed SP on a Repairs town. You owe $10 (5 SP shares × $2) and have $7. Sell shares at half price, rounded down, one at a time, until you can pay." It lists one entry per railroad the seat holds: the card face, the holding, "price $6 → $3 each", and **Sell one**. Each press stages one more share of that railroad (a tap list; Undo pops the last). A running line reads "Have $7 + sale $3 = $10 of $10 · enough". Once the staged sales cover the bill, every other Sell is locked, since selling stops as soon as the seat can pay (R-4.3-H2). The note "Selling SP does not lower the bill" stands whenever the seat holds the railroad that caused it (R-4.3-H1).
 - **The send** names the result: "Sell 1 SP share · pay $10". When every share sold would still leave the seat short, the panel stages every share in one press and the button reads "Sell all 4 · pay $5 · $5 forgiven" (R-4.3-H3); a short seat with no shares reads "Pay $3 · $5 forgiven". Every outcome is the seat's own press (R-X.1).
-- **Every other seat** (the placing seat included) reads "‹Name›'s turn" in the header and, in the waiting view: "Repairs on Southern Pacific. Royce owes $10 and has $7: he is choosing shares to sell at half price. Mara's turn continues once he has paid." What the seat has staged is not shown until it sends.
+- **Every other seat** (the placing seat included) reads "‹Name›'s turn" in the header and, in the waiting view: "Repairs on Southern Pacific. Royce owes $10 and has $7, and is choosing shares to sell at half price. Mara's turn continues once the bill is paid." (With two short seats: "once the bills are paid".) What the seat has staged is not shown until it sends.
 - Once the last short seat has paid, the placing seat's turn continues where it stood (R-4.3-H4).
 
 ### After the third placement and ending the turn (`EndTurn`)
@@ -120,7 +121,7 @@ The waiting view says who decides and what, then the live state of a shared step
 
 ### Game end
 
-- After a turn ends with at most one red town open and Promontory taken, or with the last piece drawn from the bag, the game ends (R-6.1, R-6.1-H1, R-6.1-H2). The header reads "End of game".
+- After a turn ends with at most one red tile uncovered and Promontory taken, or with the last piece drawn from the bag, the game ends (R-6.1, R-6.1-H1, R-6.1-H2). The header reads "End of game".
 - The action area becomes the **score**: one row per seat, money, each railroad as "count × final price", share value and total (R-6.2), sorted by total, the winner first and in amber. A tie names every winner (R-6.2-H1). The line above names why the game ended.
 - The board keeps the final table. Hands stay as they were, hidden from others.
 
@@ -219,7 +220,7 @@ Target: 390 × 844, held upright. Budget, top to bottom:
 
 - **Board.** The map is about 1.55:1. Fitted to 390 px a hex would be 20 px wide. The board rests fitted to the hex field's width (about 30 px a hex), the price track and sea off to the left; a pan reaches them.
 - **Pick framing.** When a piece is picked, the board frames its lit hexes (up to 2×, a lit hex about 45 px at most framings). This is the one place a choice moves the focus. A hand pan clears it.
-- **Status strip** (O-4): one line drawn from data: the four prices with their railroad colours, the bag count, the red towns open.
+- **Status strip** (O-4): one line drawn from data: the four prices with their railroad colours, the bag count, the red tiles uncovered.
 - **Action area.** The hand as 34 px pieces with labels; the share block as four entries in two columns, each with Buy and Sell at 44 px; the Repairs panel as one button per railroad held in two columns, then the running line and the send on one row; the score as a four-column table (seat, money, shares, total), the per-railroad breakdown in the open seat.
 - **Seat strip.** Each chip shows the seat colour, money and name. The deciding seat's chip carries the amber ring; during Repairs the seat whose turn it is carries the dashed outline. A press opens that seat card as a bottom sheet, up to 85 % of the dynamic viewport.
 - **Full screen** keeps play going: the action panel in the toolbar.
@@ -230,7 +231,7 @@ Target: 390 × 844, held upright. Budget, top to bottom:
 - **O-1 Seat colours.** The title's colour list is green, orange, black, white (then pink, brown), never blue, purple, red or yellow, so a seat is never mistaken for a railroad. _Alternative:_ the site's usual list, railroad colours included.
 - **O-2 Placing.** Piece first in the panel, then a lit hex on the board; a lone railroad in hand is auto-picked. _Alternative:_ light every hex any hand piece reaches and ask which piece after the hex.
 - **O-3 Effect chips.** Lit Dividend and Repairs towns carry the deciding seat's own payout or bill; price towns carry none. _Alternative:_ no chips.
-- **O-4 Phone status strip.** Yes: prices, bag and red towns open in one line. _Alternative:_ none; pan to the track.
+- **O-4 Phone status strip.** Yes: prices, bag and red tiles uncovered in one line. _Alternative:_ none; pan to the track.
 - **O-5 Rails.** Decided: no rails between hexes; each piece is the round token alone.
 - **O-6 Number tiles upright.** The supplied +/− tiles print the number sideways; the board turns them a quarter turn. _Alternative:_ as supplied.
 - **O-7 Backs.** The tile back and the share back are not used or shipped: tiles are always face up (R-1.3) and the decks are face up (R-1.3). _Alternative:_ the tile back as the concealed hand piece.
@@ -275,11 +276,11 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 
 23. **Money wrap.** A seat passing 99 moves forward through 0 and shows "+100" beside its marker; its seat card shows the true amount. Auto.
 24. **Shared spaces.** Two seats on one money space sit side by side; four as a 2×2 grid. Two railroads at one price sit in their fixed slots. Manual.
-25. **Red tiles stay readable.** A covered Dividend or Repairs town shows its red border around the piece; the end tracker's count matches the uncovered red towns on the board. Manual.
+25. **Red tiles stay readable.** A covered Dividend or Repairs town shows its red border around the piece; the end tracker's count matches the uncovered red tiles on the board. Manual.
 26. **Enlarge.** Press a share stack in a seat card: the share card enlarges; the next press closes it and does nothing else. Same for a deck in the sea and a town tile. Escape closes it. Auto.
 27. **Open seat.** Press a seat's name: the seat opens over the table; Escape closes it; a share inside enlarges above it. Auto.
 28. **History.** Each turn is one entry growing line by line, with round markers. Jump on a turn shows the table as it ended; Replay plays its placements and payments and returns. History View shows no panel, no lit hex, and keeps the Repairs row and outline. Auto.
-29. **Game end.** A turn ends with one red town open and Promontory taken: the header reads "End of game", the score lists money, shares × final prices and totals, the winner in amber; a tie names both (R-6.2-H1). The bag running out ends it the same way (R-6.1-H2). Auto.
+29. **Game end.** A turn ends with one red tile uncovered and Promontory taken: the header reads "End of game", the score lists money, shares × final prices and totals, the winner in amber; a tie names both (R-6.2-H1). The bag running out ends it the same way (R-6.1-H2). Auto.
 30. **Undo walk.** A turn with a buy, two placements and a picked piece: Undo unpicks the piece, then undoes the second placement, the first, the buy; after the end-turn draw Undo is hidden. Auto.
 31. **Interruption.** Press a lit hex and, during the flight, step backward in history: the motion stops at once, the displayed state is the earlier one, no piece is left in flight. Auto.
 32. **Phone pick framing.** On a 390 px phone, picking a piece frames its lit hexes; a hand pan clears the framing; the status strip and seat strip stay in place; every panel button is at least 44 px tall. Manual.

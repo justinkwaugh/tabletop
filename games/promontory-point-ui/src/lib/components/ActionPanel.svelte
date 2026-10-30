@@ -1,18 +1,57 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { turnPanel } from '$lib/model/turnPanel.js'
+    import { repairsPanel } from '$lib/model/repairsPanel.js'
+    import { repairsRow } from '$lib/model/repairsRow.js'
+    import { scoreView } from '$lib/model/score.js'
+    import { waitingView } from '$lib/model/waitingView.js'
+    import RepairsPanel from './RepairsPanel.svelte'
+    import RepairsRow from './RepairsRow.svelte'
+    import ScoreTable from './ScoreTable.svelte'
     import ShareBlock from './ShareBlock.svelte'
     import TurnHeader from './TurnHeader.svelte'
     import TurnPieces from './TurnPieces.svelte'
+    import WaitingView from './WaitingView.svelte'
 
     const gameSession = getGameSession()
 
     const panel = $derived(turnPanel(gameSession))
+
+    // R-6.2: the action area becomes the score once the game has ended.
+    const score = $derived(scoreView(gameSession.gameState))
+
+    // R-4.3: every seat's bill while a Repairs is being paid, from the displayed state.
+    const row = $derived(repairsRow(gameSession.gameState, gameSession.actions))
+
+    // R-4.3, R-X.1: the deciding short seat's own panel.
+    const repairs = $derived.by(() => {
+        const draft = gameSession.repairsDraft
+        const viewerId = gameSession.decidingPlayerId
+        return draft === undefined || row === undefined || viewerId === undefined
+            ? undefined
+            : repairsPanel(draft, row.placingPlayerId, viewerId)
+    })
+
+    // Contract, "Watching": every seat without a decision of its own.
+    const waiting = $derived(
+        waitingView(gameSession.gameState, gameSession.actions, gameSession.myPlayer?.id)
+    )
 </script>
 
 <div class="bg-pp-panel text-pp-text">
     <TurnHeader />
-    {#if panel}
+    {#if score}
+        <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
+            <ScoreTable {score} />
+        </div>
+    {:else if repairs && row}
+        <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
+            <div class="mb-2">
+                <RepairsRow {row} />
+            </div>
+            <RepairsPanel panel={repairs} />
+        </div>
+    {:else if panel}
         <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
             <p class="mb-2 text-[15px]">
                 <b class="font-semibold">{panel.prompt.lead}</b>
@@ -25,6 +64,10 @@
                 <TurnPieces {panel} />
                 <ShareBlock shares={panel.shares} />
             </div>
+        </div>
+    {:else if waiting}
+        <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
+            <WaitingView view={waiting} {row} />
         </div>
     {/if}
 </div>

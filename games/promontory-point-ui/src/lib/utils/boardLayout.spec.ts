@@ -130,21 +130,21 @@ describe('end tracker (R-6.1, R-6.1-H1)', () => {
         ['space.2.-5', 'tile.price.plus-2']
     ])
 
-    it('counts the red towns no piece covers and says Promontory is open', () => {
+    it('counts the red tiles no piece covers and says Promontory is open', () => {
         expect(endTrackerStatus({ towns, track: { 'space.2.-6': CP, 'space.2.-5': KP } })).toEqual({
-            redTownsOpen: 2,
-            redTownsMet: false,
+            redTilesUncovered: 2,
+            redTilesMet: false,
             promontoryTaken: false
         })
     })
 
-    it('meets the red line at one open red town and reads Promontory taken from the board', () => {
+    it('meets the red line at one uncovered red tile and reads Promontory taken from the board', () => {
         expect(
             endTrackerStatus({
                 towns,
                 track: { 'space.2.-6': CP, 'space.4.-6': KP, [PROMONTORY.spaceId]: KP }
             })
-        ).toEqual({ redTownsOpen: 1, redTownsMet: true, promontoryTaken: true })
+        ).toEqual({ redTilesUncovered: 1, redTilesMet: true, promontoryTaken: true })
     })
 })
 

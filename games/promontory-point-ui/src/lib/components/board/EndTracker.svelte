@@ -13,13 +13,16 @@
     const iconX = 44
     const textX = 80
     const redTile = townTileImage('tile.red.dividend')
+    const redLine = $derived(
+        `${status.redTilesUncovered} red ${status.redTilesUncovered === 1 ? 'tile' : 'tiles'} uncovered (≤ 1)${status.redTilesMet ? ' ✓' : ''}`
+    )
 </script>
 
 <!-- R-6.1, R-6.1-H1: the game ends after a turn once both lines are met. -->
 <g
     transform="translate({box.x} {box.y})"
     data-end-tracker
-    data-red-towns-open={status.redTownsOpen}
+    data-red-tiles-uncovered={status.redTilesUncovered}
     data-promontory-taken={status.promontoryTaken}
 >
     <defs>
@@ -45,7 +48,7 @@
         </g>
     </g>
     <text x={textX} y={rows.red} class="pp-board-line" font-size="29" fill="var(--pp-text)">
-        {status.redTownsOpen} red towns open (≤ 1){status.redTownsMet ? ' ✓' : ''}
+        {redLine}
     </text>
     <g transform="translate({iconX} {rows.promontory})">
         <polygon points={icon} fill="var(--pp-table)" stroke="var(--pp-paper)" stroke-width="4"

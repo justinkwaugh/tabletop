@@ -16,7 +16,7 @@ export type EndSummary = {
 
 // R-6.1
 export const END_REASON_TEXT: Record<GameEndReason, string> = {
-    [GameEndReason.RedTilesCovered]: 'Promontory is reached and all but one red town is covered',
+    [GameEndReason.RedTilesCovered]: 'Promontory is taken and at most one red tile is uncovered',
     [GameEndReason.BagEmpty]: 'The bag is empty'
 }
 

@@ -109,8 +109,8 @@ export function moneyMarkers(seats: readonly { playerId: string; money: number }
 }
 
 export type EndTrackerStatus = {
-    redTownsOpen: number
-    redTownsMet: boolean
+    redTilesUncovered: number
+    redTilesMet: boolean
     promontoryTaken: boolean
 }
 
@@ -118,10 +118,10 @@ export type EndTrackerStatus = {
 export function endTrackerStatus(
     state: Pick<PromontoryPointProjectedState, 'towns' | 'track'>
 ): EndTrackerStatus {
-    const redTownsOpen = uncoveredRedTileCount(state)
+    const redTilesUncovered = uncoveredRedTileCount(state)
     return {
-        redTownsOpen,
-        redTownsMet: redTownsOpen <= UNCOVERED_RED_TILES_AT_END,
+        redTilesUncovered,
+        redTilesMet: redTilesUncovered <= UNCOVERED_RED_TILES_AT_END,
         promontoryTaken: PROMONTORY.spaceId in state.track
     }
 }

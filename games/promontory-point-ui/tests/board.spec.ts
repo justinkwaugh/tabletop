@@ -157,7 +157,7 @@ test('R-1.2, R-1.3-H1, R-6.1: markers and the sea read the displayed state', asy
     await expect(board(page).locator('[data-money-marker]')).toHaveCount(state.seats)
     await expect(board(page).locator('[data-bag]')).toHaveAttribute('data-bag', String(state.bag))
     const tracker = board(page).locator('[data-end-tracker]')
-    await expect(tracker).toHaveAttribute('data-red-towns-open', String(state.redTowns))
+    await expect(tracker).toHaveAttribute('data-red-tiles-uncovered', String(state.redTowns))
     await expect(tracker).toHaveAttribute('data-promontory-taken', 'false')
 })
 

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { shareFaceImage } from '$lib/images/cardImages.js'
+    import { PreviewKind } from '$lib/model/cardPreview.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { ShareBlockView } from '$lib/model/turnPanel.js'
 
@@ -18,13 +19,26 @@
         {#each shares.entries as share (share.railroadId)}
             {@const face = shareFaceImage(share.railroadId)}
             <div class="flex items-center gap-2" class:dimmed={shares.lockedNote !== undefined}>
-                <img
-                    src={face.src}
-                    width={38}
-                    height={Math.round((38 * face.height) / face.width)}
-                    alt="{share.name} share"
-                    class="block shrink-0 rounded-[3px]"
-                />
+                <!-- Contract, "The principle": a press on a share face enlarges it and does nothing else. -->
+                <button
+                    type="button"
+                    class="shrink-0"
+                    aria-label="Enlarge the {share.name} share"
+                    data-share-face={share.railroadId}
+                    onclick={() =>
+                        gameSession.cardPreview.show({
+                            kind: PreviewKind.Share,
+                            railroadId: share.railroadId
+                        })}
+                >
+                    <img
+                        src={face.src}
+                        width={38}
+                        height={Math.round((38 * face.height) / face.width)}
+                        alt="{share.name} share"
+                        class="block rounded-[3px]"
+                    />
+                </button>
                 <div class="min-w-0 text-xs leading-tight text-pp-muted">
                     <div class="text-[13px] font-semibold text-pp-text">{share.name}</div>
                     <span class="pp-price">${share.price}</span>
