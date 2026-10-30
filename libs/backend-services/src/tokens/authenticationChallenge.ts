@@ -63,11 +63,11 @@ export type InvalidChallengeReason =
 export class InvalidChallengeError extends BaseError {
     readonly statusCode = 400
 
-    constructor(reason: InvalidChallengeReason) {
+    constructor(reason?: InvalidChallengeReason) {
         super({
             name: 'InvalidChallengeError',
             message: 'The challenge does not authorize this operation',
-            metadata: { reason }
+            metadata: reason === undefined ? undefined : { reason }
         })
     }
 }

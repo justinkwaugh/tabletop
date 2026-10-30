@@ -30,7 +30,7 @@ import {
     type IssuedChallenge
 } from '../tokens/authenticationChallenge.js'
 import type { StoredUser } from '../persistence/model/storedUser.js'
-import { UpdateValidationResult, UpdateValidator } from '../persistence/stores/validator.js'
+import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { NotFoundError } from '../persistence/stores/errors.js'
 import type { TransactionParticipant } from '../persistence/stores/transaction.js'
 import uFuzzy from '@leeoniya/ufuzzy'
@@ -317,7 +317,7 @@ export class UserService {
             email: account.email
         }
         const updatedUser = await this.userStore.updatePassword(userId, cleanPassword, {
-            validator: this.requireChallengeAccount(claim),
+            validate: (existingUser) => this.requireChallengeAccount(existingUser, claim),
             participant: this.tokenService.consumeChallenge(secret, claim)
         })
         await this.notifyAccountChange(userId, {
@@ -346,13 +346,11 @@ export class UserService {
     }
 
     private requireChallengeAccount(
+        existingUser: StoredUser,
         claim: AuthenticationChallengeClaim
-    ): UpdateValidator<StoredUser> {
-        return (existingUser) => {
-            if (!canHoldAuthenticatedSession(existingUser) || existingUser.email !== claim.email) {
-                throw new InvalidChallengeError('account')
-            }
-            return UpdateValidationResult.Proceed
+    ): void {
+        if (!canHoldAuthenticatedSession(existingUser) || existingUser.email !== claim.email) {
+            throw new InvalidChallengeError('account')
         }
     }
 
@@ -409,7 +407,10 @@ export class UserService {
         const [updatedUser] = await this.userStore.updateUser({
             userId: user.id,
             fields: { emailVerified: true },
-            validator: this.requireChallengeAccount(claim),
+            validator: (existingUser) => {
+                this.requireChallengeAccount(existingUser, claim)
+                return UpdateValidationResult.Proceed
+            },
             participant: this.tokenService.consumeChallenge(code, claim)
         })
         return updatedUser

@@ -41,11 +41,14 @@ function person(overrides: Partial<User> = {}): User {
     }
 }
 
-async function createServer(user: User, { withPassword = true }: { withPassword?: boolean } = {}) {
+async function createServer(
+    user: User,
+    { withPassword = true, now }: { withPassword?: boolean; now?: () => Date } = {}
+) {
     const password = withPassword ? ORIGINAL_PASSWORD : undefined
     const sessionStore = new MemorySessionStore()
     const sessionService = new SessionService(sessionStore)
-    const { tokenService } = memoryTokens()
+    const { tokenService } = memoryTokens({ now })
     const { tasks, mails, lastMail } = recordingTasks()
     const { store, account } = memoryUserStore(user, password)
     const userService = new UserService(store, tokenService, tasks)
@@ -108,8 +111,8 @@ describe('Set Password through an emailed challenge', () => {
         await Promise.all([...servers].map((server) => server.close()))
         servers.clear()
     })
-    async function fixture(user = person()) {
-        const created = await createServer(user)
+    async function fixture(user = person(), options: { now?: () => Date } = {}) {
+        const created = await createServer(user, options)
         servers.add(created.server)
         return created
     }
@@ -161,6 +164,38 @@ describe('Set Password through an emailed challenge', () => {
         expect(await cookieFor().catch(() => undefined)).toBeUndefined()
         const fresh = await post('/auth/login', { username: 'Person', password: NEW_PASSWORD })
         expect(fresh.statusCode).toBe(200)
+    })
+
+    it('does not expose Account or challenge state through a refused public reset', async () => {
+        let now = new Date()
+        const { post, requestReset, lastMail } = await fixture(person(), { now: () => now })
+        const refused = async (challenge: string) => {
+            const response = await post('/user/setPassword', { password: NEW_PASSWORD, challenge })
+            expect(response.statusCode).toBe(400)
+            return response.json()
+        }
+        const expected = await refused('legacy-token')
+        expect(expected.error.name).toBe('InvalidChallengeError')
+        expect(expected.error.metadata).toEqual({})
+        expect(await refused('unknown-account.secret')).toEqual(expected)
+        expect(await refused('account-1.secret')).toEqual(expected)
+        await requestReset()
+        expect(await refused('account-1.wrong-secret')).toEqual(expected)
+        now = new Date(now.getTime() + AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS * 1000)
+        expect(await refused(lastMail('reset').token)).toEqual(expected)
+        for (const overrides of [
+            { status: UserStatus.Inactive },
+            { status: UserStatus.Deleted },
+            { email: undefined }
+        ]) {
+            const other = await fixture(person(overrides))
+            const response = await other.post('/user/setPassword', {
+                password: NEW_PASSWORD,
+                challenge: 'account-1.secret'
+            })
+            expect(response.statusCode).toBe(400)
+            expect(response.json()).toEqual(expected)
+        }
     })
 
     it('rejects a legacy token, a forged secret, another Account and a replayed challenge', async () => {

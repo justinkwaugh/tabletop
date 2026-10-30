@@ -159,7 +159,7 @@ describe('Password Credential changes', () => {
                     createdAt: undefined,
                     updatedAt: undefined
                 }
-                options?.validator?.(stored, {})
+                options?.validate?.(stored)
                 await options?.participant?.(transaction, locks)
                 return { ...existing, sessionGeneration: 1 }
             }
@@ -234,7 +234,7 @@ describe('Password Credential changes', () => {
             'a',
             'a-new-password-value',
             expect.objectContaining({
-                validator: expect.any(Function),
+                validate: expect.any(Function),
                 participant: expect.any(Function)
             })
         )

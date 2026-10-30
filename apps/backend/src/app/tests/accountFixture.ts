@@ -25,7 +25,7 @@ export function apiErrorShape(server: FastifyInstance): void {
         if (reply.statusCode < 400) {
             void reply.code(errorStatusCode(error))
         }
-        return { status: 'error', error: { name: error.name, message: error.message } }
+        return { status: 'error', error: { ...error, name: error.name, message: error.message } }
     })
 }
 
@@ -62,9 +62,7 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
         return holder
     }
     store.updatePassword = async (_userId, candidate, options) => {
-        if (options?.validator?.(stored(), {}) === UpdateValidationResult.Cancel) {
-            return current
-        }
+        options?.validate?.(stored())
         await options?.participant?.(transaction, locks)
         return replaceCredential(candidate)
     }

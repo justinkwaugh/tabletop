@@ -208,6 +208,32 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(authorize(copied.id)).resolves.toMatchObject({ session: copied })
         })
 
+        it('refuses validation before consuming the challenge or changing credentials', async () => {
+            const account = await createAccount()
+            const copied = await login(account.username, ORIGINAL_PASSWORD)
+            const claim = {
+                type: TokenType.PasswordReset,
+                userId: account.id,
+                email: account.email
+            } as const
+            const { secret } = await challenges.issueChallenge(claim)
+            await expect(
+                userStore.updatePassword(account.id, NEW_PASSWORD, {
+                    validate: () => {
+                        throw new Error('synthetic validation refusal')
+                    },
+                    participant: challenges.consumeChallenge(secret, claim)
+                })
+            ).rejects.toThrow()
+            expect(await storedGeneration(account.id)).toBeUndefined()
+            await expect(authorize(copied.id)).resolves.toMatchObject({ session: copied })
+            await expect(tryLogin(account.username, NEW_PASSWORD)).resolves.toBeUndefined()
+            await expect(
+                users.setPassword({ userId: account.id, secret, password: NEW_PASSWORD })
+            ).resolves.toBeDefined()
+            await expect(authorize(copied.id)).resolves.toBeUndefined()
+        })
+
         it('commits a transaction participant together with the new credential', async () => {
             const account = await createAccount()
             const challenges = firestore.collection('challenges')

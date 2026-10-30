@@ -29,7 +29,7 @@ import {
     UnknownStorageError
 } from '../stores/errors.js'
 
-import { UserStore } from '../stores/userStore.js'
+import { UserStore, type PasswordUpdateOptions } from '../stores/userStore.js'
 import type { SiteStatsUserSource } from '../stores/siteStatsStore.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
@@ -282,10 +282,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
     async updatePassword(
         userId: string,
         password: string,
-        {
-            validator,
-            participant
-        }: { validator?: UpdateValidator<StoredUser>; participant?: TransactionParticipant } = {}
+        { validate, participant }: PasswordUpdateOptions = {}
     ): Promise<User> {
         try {
             const passwordHash = await this.hashPassword(password)
@@ -298,9 +295,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                         if (!existingUser) {
                             throw new NotFoundError({ type: 'User', id: userId })
                         }
-                        if (validator?.(existingUser, {}) === UpdateValidationResult.Cancel) {
-                            return existingUser
-                        }
+                        validate?.(existingUser)
                         await participant?.(transaction, locks)
                         const credentialFields = {
                             ...this.replacedCredentialFields(existingUser, passwordHash),
