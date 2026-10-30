@@ -170,3 +170,15 @@ describe('the second move', () => {
         expect(session.gameState.activePlayerIds).toEqual(['player-2'])
     })
 })
+
+describe('the pieces drawn', () => {
+    it('keep their specks as a stack moves, seeded by each piece', async () => {
+        const session = await aliceSession()
+        const before = session.gameState.board.stackAt(D1).map((piece) => session.shapeOf(piece))
+        await session.chooseSpace(D1)
+        await settled(session.chooseSpace(D2))
+        const after = session.gameState.board.stackAt(D2).map((piece) => session.shapeOf(piece))
+        expect(after).toEqual(before)
+        expect(new Set(after.map((shape) => shape.seedKey)).size).toBe(after.length)
+    })
+})

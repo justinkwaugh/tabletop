@@ -63,4 +63,27 @@ describe('boardDiff', () => {
         expect(diff.moved).toBeUndefined()
         expect(diff.appeared).toHaveLength(1)
     })
+
+    it('follows the move the session knows, and reads the boards when it does not fit', () => {
+        const before = board({ A1: [w1], A3: [b1] })
+        const after = board({ A3: [w1] })
+        const known = { from: spaceFromName('A1'), to: spaceFromName('A3') }
+        expect(boardDiff(before, after, known).moved).toMatchObject({ captured: [b1] })
+        const wrong = { from: spaceFromName('B1'), to: spaceFromName('B2') }
+        expect(boardDiff(before, after, wrong).moved).toMatchObject({
+            from: spaceFromName('A1'),
+            to: spaceFromName('A3')
+        })
+    })
+
+    it('reads a known move taken back', () => {
+        const known = { from: spaceFromName('A1'), to: spaceFromName('A2') }
+        const diff = boardDiff(board({ A2: [w2, w1] }), board({ A1: [w1], A2: [w2] }), known)
+        expect(diff.moved).toMatchObject({
+            from: spaceFromName('A2'),
+            to: spaceFromName('A1'),
+            leftBelow: 1,
+            forward: false
+        })
+    })
 })
