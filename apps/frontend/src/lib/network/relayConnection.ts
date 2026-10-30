@@ -260,6 +260,16 @@ export class RelayConnection implements RealtimeConnection {
         this.changingTopics = false
 
         const carried = new Set(event.topics)
+        // The relay can withdraw a Topic the client did not give up: a grant that ended
+        const withdrawn = [...stream.synced].filter((name) => !carried.has(name))
+        for (const name of withdrawn) {
+            stream.synced.delete(name)
+        }
+        for (const channel of new Set(
+            withdrawn.flatMap((name) => this.channels.get(name)?.channel ?? [])
+        )) {
+            this.handler?.({ type: RealtimeEventType.Interrupted, channel })
+        }
         const newlySynced = [...this.channels.values()].filter(
             (identifier) =>
                 carried.has(identifier.channelName) && !stream.synced.has(identifier.channelName)

@@ -30,6 +30,7 @@ export default async function (fastify: FastifyInstance) {
                     ...presented,
                     password: request.body.password
                 })
+                await fastify.realtimeControl.revokeAccount(presented.userId)
             } catch (error) {
                 if (!(error instanceof InvalidChallengeError)) throw error
                 request.log.debug(

@@ -221,6 +221,21 @@ describe('RelayConnection', () => {
         expect(post).toHaveBeenCalledOnce()
     })
 
+    it('reports a channel as interrupted when the relay withdraws its topic, without asking again', async () => {
+        const relayStats = new ChannelIdentifier(NotificationChannel.RelayStats)
+        const { events, post, getRealtimeToken } = await connected(user, global, relayStats)
+        getRealtimeToken.mockClear()
+        FakeEventSource.latest().ready(['global', 'user-u1'])
+        await settle()
+        expect(events).toEqual([interrupted(NotificationChannel.RelayStats)])
+        expect(post).not.toHaveBeenCalled()
+        expect(getRealtimeToken).not.toHaveBeenCalled()
+
+        events.length = 0
+        FakeEventSource.latest().ready(['global', 'relay-stats', 'user-u1'])
+        expect(events).toEqual([discontinuity(NotificationChannel.RelayStats)])
+    })
+
     it('waits for the first ready before changing topics', async () => {
         const { connection, post } = setup()
         await connection.addChannel(user)

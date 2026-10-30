@@ -39,7 +39,7 @@ async function fixture() {
     cleanups.push(() => server.close())
     server.decorate('libraryService', library)
     server.decorate('verifyActiveUser', async () => {})
-    server.decorate('verifyRoleAdmin', async () => {})
+    server.decorate('verifyAdminMode', async () => {})
     await server.register(auth)
     await server.register(invalidate)
     return { ...f, library, server }

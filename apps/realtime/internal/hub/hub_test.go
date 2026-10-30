@@ -51,9 +51,12 @@ type harness struct {
 	hub           *Hub
 	subscriptions *fakeSubscriptions
 	nextToken     int
+	mu            sync.Mutex
+	now           time.Time
 }
 
 func newHarness(t *testing.T, configure ...func(*Config)) *harness {
+	h := &harness{t: t, subscriptions: &fakeSubscriptions{}, now: connectedAt}
 	config := Config{
 		MaxConnections:           100,
 		MaxConnectionsPerAccount: 50,
@@ -61,18 +64,33 @@ func newHarness(t *testing.T, configure ...func(*Config)) *harness {
 		RevocationMemory:         time.Minute,
 		SweepInterval:            time.Hour,
 		StatsInterval:            time.Hour,
-		Now:                      func() time.Time { return connectedAt },
+		Now:                      h.currentTime,
 	}
 	for _, change := range configure {
 		change(&config)
 	}
-	subscriptions := &fakeSubscriptions{}
-	h := New(config, subscriptions)
+	h.hub = New(config, h.subscriptions)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go h.Run(ctx)
-	h.RedisConnected(connectedAt)
-	return &harness{t: t, hub: h, subscriptions: subscriptions}
+	go h.hub.Run(ctx)
+	h.hub.RedisConnected(connectedAt)
+	return h
+}
+
+func (h *harness) currentTime() time.Time {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.now
+}
+
+func (h *harness) advance(d time.Duration) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.now = h.now.Add(d)
+}
+
+func (h *harness) sweep() {
+	h.hub.await(h.hub.sweep)
 }
 
 func (h *harness) registration(account string, topics ...string) token.Registration {

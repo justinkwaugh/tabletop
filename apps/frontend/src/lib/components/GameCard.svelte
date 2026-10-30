@@ -136,7 +136,7 @@
     let canContinue = $derived(!loading && isMine && game.canContinue === true)
     let canDelete = $derived(
         !game.tournament &&
-            (authorizationService.isAdmin || (isOwnedByMe && ownerMayDeleteGame(game)))
+            (authorizationService.actAsAdmin || (isOwnedByMe && ownerMayDeleteGame(game)))
     )
 
     let confirmDelete = $state(false)
@@ -179,7 +179,7 @@
     let explorations = $derived(gameService.getExplorations(game.id))
 
     let seed = $derived.by(() => {
-        if (!authorizationService.isAdmin) {
+        if (!authorizationService.actAsAdmin) {
             return undefined
         }
 

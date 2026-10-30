@@ -14,6 +14,7 @@ import {
     memoryTokens,
     memoryUserStore,
     ORIGINAL_PASSWORD,
+    recordingRealtime,
     recordingTasks
 } from '../../../tests/accountFixture.js'
 
@@ -43,6 +44,8 @@ async function createServer() {
     const userService = new UserService(store, tokenService, tasks)
     const server = await sessionServer(sessionService)
     server.decorate('userService', userService)
+    const { realtimeControl, revocations } = recordingRealtime()
+    server.decorate('realtimeControl', realtimeControl)
     await server.register(authorization)
     await server.register(login, { prefix: '/auth' })
     await server.register(logout, { prefix: '/auth' })
@@ -72,6 +75,7 @@ async function createServer() {
     return {
         server,
         sessionStore,
+        revocations,
         signIn,
         startSignIn,
         active,
@@ -201,5 +205,28 @@ describe('sessions across a Password Credential change', () => {
             (await server.inject({ url: '/auth/logout', headers: { cookie: copied } })).statusCode
         ).toBe(200)
         expect(await active(copied)).toBe(401)
+    })
+
+    it('tells the relay to close every realtime connection of the Account when the password changes', async () => {
+        const { server, signIn, resetChallenge, revocations } = await createServer()
+        servers.add(server)
+        const cookie = await signIn()
+        expect(revocations).toEqual([])
+        const changed = await server.inject({
+            method: 'POST',
+            url: '/user/update',
+            headers: { cookie },
+            payload: { password: NEW_PASSWORD }
+        })
+        expect(changed.statusCode).toBe(200)
+        expect(revocations).toEqual([{ revoke: 'account-1', at: expect.any(Number) }])
+
+        const reset = await server.inject({
+            method: 'POST',
+            url: '/user/setPassword',
+            payload: { password: ORIGINAL_PASSWORD, challenge: await resetChallenge() }
+        })
+        expect(reset.statusCode).toBe(200)
+        expect(revocations).toHaveLength(2)
     })
 })

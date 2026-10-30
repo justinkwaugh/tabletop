@@ -43,6 +43,9 @@ export default async function (fastify: FastifyInstance) {
                     proof: { authenticatedAt: session.authenticatedAt },
                     sessions: fastify.sessionService
                 })
+                // Every other session died with the Session Generation; their realtime
+                // connections end too, and this one reconnects with a fresh token
+                await fastify.realtimeControl.revokeAccount(updatedUser.id)
             }
             return { status: 'ok', payload: { user: updatedUser } }
         }

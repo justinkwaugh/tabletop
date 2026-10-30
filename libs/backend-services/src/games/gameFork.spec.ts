@@ -11,7 +11,8 @@ import {
     GameStorage,
     UserStatus,
     Role,
-    type User
+    type User,
+    ordinaryPrincipal
 } from '@tabletop/common'
 import {
     SyntheticDefinition as Definition,
@@ -286,7 +287,7 @@ describe('State-only Game loading', () => {
         const readActions = vi.mocked(store.findActionsForGame)
         const result = await service.getGameForUser({
             gameId: source.game.id,
-            user: owner,
+            principal: ordinaryPrincipal(owner),
             includeActions: false
         })
         expect(readActions).not.toHaveBeenCalled()
@@ -313,7 +314,7 @@ describe('Hosted Fork service', () => {
                     ...Definition,
                     runtime: { ...SyntheticRuntime, visibility: undefined }
                 },
-                user: { ...owner, roles: [Role.Admin] },
+                principal: { user: { ...owner, roles: [Role.Admin] }, adminMode: true },
                 gameId: source.game.id,
                 actionId: source.actions[0].id
             })
@@ -347,13 +348,13 @@ describe('Hosted Fork service', () => {
         const source = createSource()
         source.actions[0].undoPatch?.push({ op: 'remove', path: '/board' })
         const { service } = createService(source)
-        const admin = { ...owner, roles: [Role.Admin] }
+        const admin = { user: { ...owner, roles: [Role.Admin] }, adminMode: true }
         await expect(
-            service.getGameForUser({ gameId: source.game.id, user: admin, hostView: true })
+            service.getGameForUser({ gameId: source.game.id, principal: admin, hostView: true })
         ).resolves.toBeDefined()
         Reflect.deleteProperty(source.state, 'board')
         await expect(
-            service.getGameForUser({ gameId: source.game.id, user: admin, hostView: true })
+            service.getGameForUser({ gameId: source.game.id, principal: admin, hostView: true })
         ).rejects.toThrow('Complete canonical state is required')
     })
 
@@ -374,7 +375,7 @@ describe('Hosted Fork service', () => {
                 gameId: source.game.id,
                 actionIndex: 0,
                 name: 'Fork',
-                owner
+                owner: ordinaryPrincipal(owner)
             })
             expect(reads).toHaveBeenCalledWith(source.game.id, true)
             const written = writes.mock.calls[0]
@@ -401,7 +402,7 @@ describe('Hosted Fork service', () => {
                 definition: Definition,
                 gameId: source.game.id,
                 actionIndex: 0,
-                owner
+                owner: ordinaryPrincipal(owner)
             })
         ).rejects.toThrow(GameForkError)
         expect(writes).not.toHaveBeenCalled()

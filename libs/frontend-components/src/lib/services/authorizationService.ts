@@ -16,6 +16,8 @@ export type AuthorizationService = {
     adminCapabilitiesEnabled: boolean
 
     initialize(): Promise<void>
+    requestAdminMode(): Promise<void>
+    deactivateAdminMode(): Promise<void>
 
     authorizeRoute({
         category,

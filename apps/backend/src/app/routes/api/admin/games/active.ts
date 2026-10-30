@@ -9,7 +9,7 @@ export default async function (fastify: FastifyInstance) {
         '/active',
         {
             schema: { querystring: ActiveGamesQuery },
-            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleAdmin], {
+            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyAdminMode], {
                 relation: 'and'
             })
         },

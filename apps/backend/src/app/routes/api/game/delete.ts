@@ -17,11 +17,11 @@ export default async function (fastify: FastifyInstance) {
             onRequest: fastify.auth([fastify.verifyUser], { relation: 'and' })
         },
         async function (request, _reply) {
-            if (!request.user) {
-                throw Error('No user found for create request')
+            if (!request.principal) {
+                throw Error('No principal found for delete request')
             }
 
-            await fastify.gameService.deleteGame(request.user, request.body.gameId)
+            await fastify.gameService.deleteGame(request.principal, request.body.gameId)
             return { status: 'ok', payload: {} }
         }
     )

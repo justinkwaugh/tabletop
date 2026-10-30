@@ -25,13 +25,13 @@ export default async function (fastify: FastifyInstance) {
             })
         },
         async function (request, _reply) {
-            const user = request.user
-            if (!user) {
-                throw Error('No user found for create request')
+            const principal = request.principal
+            if (!principal) {
+                throw Error('No principal found for message request')
             }
 
             const message = Value.Convert(GameChatMessage, request.body.message) as GameChatMessage
-            message.userId = user.id
+            message.userId = principal.user.id
 
             // Trim message to 500 characters
             message.text = message.text.trim().slice(0, 500)
@@ -41,7 +41,7 @@ export default async function (fastify: FastifyInstance) {
             }
 
             const chat = await fastify.chatService.addGameChatMessage(
-                user,
+                principal,
                 message,
                 request.body.gameId
             )

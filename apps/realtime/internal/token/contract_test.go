@@ -11,10 +11,11 @@ import (
 )
 
 type tokenContract struct {
-	SigningKey string   `json:"signingKey"`
-	UserID     string   `json:"userId"`
-	Topics     []string `json:"topics"`
-	NowMillis  int64    `json:"nowMillis"`
+	SigningKey   string           `json:"signingKey"`
+	UserID       string           `json:"userId"`
+	Topics       []string         `json:"topics"`
+	UntilSeconds map[string]int64 `json:"untilSeconds"`
+	NowMillis    int64            `json:"nowMillis"`
 	TokenID    string   `json:"tokenId"`
 	Token      string   `json:"token"`
 }
@@ -47,5 +48,13 @@ func TestVerifiesTheTokenTheBackendSigns(t *testing.T) {
 	}
 	if !registration.IssuedAt.Equal(now.Truncate(time.Second)) || registration.ExpiresAt.Sub(registration.IssuedAt) != MaxLifetime {
 		t.Fatalf("unexpected times %+v", registration)
+	}
+	if len(registration.Until) != len(contract.UntilSeconds) {
+		t.Fatalf("grant ends %v, want %v", registration.Until, contract.UntilSeconds)
+	}
+	for topic, seconds := range contract.UntilSeconds {
+		if !registration.Until[topic].Equal(time.Unix(seconds, 0)) {
+			t.Fatalf("grant end of %s %v, want %v", topic, registration.Until[topic], time.Unix(seconds, 0))
+		}
 	}
 }

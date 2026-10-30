@@ -5,6 +5,12 @@ export const REALTIME_TOKEN_AUDIENCE = 'realtime'
 export const REALTIME_TOKEN_LIFETIME_SECONDS = 60
 const MINIMUM_KEY_BYTES = 32
 
+export type RealtimeTokenGrant = {
+    userId: string
+    topics: string[]
+    until?: Record<string, Date>
+}
+
 export type RealtimeSigningKey = {
     kid: string
     key: Buffer
@@ -29,12 +35,18 @@ export class RealtimeTokenIssuer {
         private readonly newTokenId: () => string = nanoid
     ) {}
 
-    issue({ userId, topics }: { userId: string; topics: string[] }): string {
+    // A token admits a connection for a minute; a Topic in `until` is granted only up to
+    // that moment, however long the connection lives, and the relay retires it then.
+    issue({ userId, topics, until = {} }: RealtimeTokenGrant): string {
         const issuedAt = Math.floor(this.now() / 1000)
         const header = { alg: 'HS256', typ: 'JWT', kid: this.signingKey.kid }
+        const grantEnds = Object.entries(until).map(
+            ([topic, end]) => [topic, Math.floor(end.getTime() / 1000)] as const
+        )
         const payload = {
             sub: userId,
             topics,
+            ...(grantEnds.length > 0 ? { until: Object.fromEntries(grantEnds) } : {}),
             aud: REALTIME_TOKEN_AUDIENCE,
             iat: issuedAt,
             exp: issuedAt + REALTIME_TOKEN_LIFETIME_SECONDS,

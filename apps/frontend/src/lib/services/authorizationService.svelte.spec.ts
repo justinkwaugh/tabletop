@@ -28,9 +28,10 @@ function createUser(roles: Role[]): User {
 describe('AuthorizationService developer tools', () => {
     it.each([
         { roles: [Role.Developer], expected: true },
-        { roles: [Role.Admin], expected: true },
+        { roles: [Role.Admin, Role.Developer], expected: true },
+        { roles: [Role.Admin], expected: false },
         { roles: [Role.User], expected: false }
-    ])('allows developer tools for $roles', ({ roles, expected }) => {
+    ])('allows developer tools outside Admin Mode for $roles', ({ roles, expected }) => {
         const service = new AuthorizationService(new TabletopApi(), vi.fn(), vi.fn())
         service.setSessionUser(createUser(roles))
 
@@ -40,14 +41,20 @@ describe('AuthorizationService developer tools', () => {
         expect(service.showDebug).toBe(expected)
     })
 
-    it('does not grant admin capabilities to a developer', () => {
-        const service = new AuthorizationService(new TabletopApi(), vi.fn(), vi.fn())
+    it('does not grant admin capabilities to a developer', async () => {
+        const api = new TabletopApi()
+        const activate = vi
+            .spyOn(api, 'activateAdminMode')
+            .mockResolvedValue(new Date(Date.now() + 60_000))
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
         service.setSessionUser(createUser([Role.Developer]))
-        service.adminCapabilitiesEnabled = true
+        await service.requestAdminMode()
 
         expect(service.isDeveloper).toBe(true)
         expect(service.isAdmin).toBe(false)
+        expect(service.adminCapabilitiesEnabled).toBe(false)
         expect(service.actAsAdmin).toBe(false)
+        expect(activate).not.toHaveBeenCalled()
     })
 })
 

@@ -44,6 +44,7 @@ vi.mock('@tabletop/backend-services', async () => {
                 'PreferenceService',
                 'ProjectedHistoryCache',
                 'PubSubTransport',
+                'RealtimeControl',
                 'RedisPublisher',
                 'SessionService',
                 'SiteStatsService',

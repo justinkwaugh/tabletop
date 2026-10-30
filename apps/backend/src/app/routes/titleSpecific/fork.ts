@@ -18,8 +18,8 @@ export default async function (title: TitleResolver, fastify: FastifyInstance) {
         },
         async function (request, _reply) {
             const definition = title(request)
-            if (!request.user) {
-                throw Error('No user found for create request')
+            if (!request.principal) {
+                throw Error('No principal found for fork request')
             }
 
             const { gameId, actionIndex, name } = request.body
@@ -29,7 +29,7 @@ export default async function (title: TitleResolver, fastify: FastifyInstance) {
                 gameId,
                 actionIndex,
                 name,
-                owner: request.user
+                owner: request.principal
             })
 
             console.log(`Forked this game ${JSON.stringify(forkedGame)}`)

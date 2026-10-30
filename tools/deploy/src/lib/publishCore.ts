@@ -113,6 +113,7 @@ export const invalidateBackendManifest = (
             context.log(
                 `invalidate-manifest: ${describeReplacement(
                     await invalidateBackendManifestCache(context.deployConfig, {
+                        warn: (message) => context.log(`invalidate-manifest: WARNING ${message}`),
                         expectedPublication: manifestPublicationSignature(
                             expectedManifest ?? (await fetchBucketManifest(context.deployConfig))
                         )

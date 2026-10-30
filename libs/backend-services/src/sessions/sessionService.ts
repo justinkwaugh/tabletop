@@ -1,5 +1,11 @@
 import { customAlphabet } from 'nanoid'
-import { BaseError, sessionGenerationOf, User } from '@tabletop/common'
+import {
+    assertExists,
+    BaseError,
+    isAdministrator,
+    sessionGenerationOf,
+    User
+} from '@tabletop/common'
 import type { SessionStore } from '../persistence/stores/sessionStore.js'
 import { requireSessionEligibleAccount } from '../users/accountEligibility.js'
 import {
@@ -13,7 +19,13 @@ import {
     type AuthenticatedSession,
     type AuthenticationProof
 } from './authenticatedSession.js'
-import { hasRecentAuthentication } from './recentAuthentication.js'
+import {
+    hasRecentAuthentication,
+    RecentAuthenticationRequiredError
+} from './recentAuthentication.js'
+import { adminModeExpiry, AdministratorRequiredError, hasAdminMode } from './adminMode.js'
+import { RELAY_STATS_TOPIC } from '../notifications/topics.js'
+import type { RealtimeControl } from '../realtime/realtimeControl.js'
 
 export const SESSION_LIFETIME_SECONDS = 180 * 24 * 60 * 60
 
@@ -37,10 +49,17 @@ export class SessionNotLiveError extends BaseError {
     }
 }
 
+export type SessionServiceOptions = {
+    lifetimeSeconds?: number
+    now?: () => Date
+    // Told when a session's administrative grants on the realtime relay must end
+    realtime?: RealtimeControl
+}
+
 export class SessionService {
     constructor(
         private readonly sessionStore: SessionStore,
-        private readonly options: { lifetimeSeconds?: number; now?: () => Date } = {}
+        private readonly options: SessionServiceOptions = {}
     ) {}
 
     async establish(user: User, proof: AuthenticationProof): Promise<AuthenticatedSession> {
@@ -122,12 +141,60 @@ export class SessionService {
         })
     }
 
-    async revoke(id: string): Promise<void> {
-        await this.sessionStore.delete(id)
+    isInAdminMode(session: AuthenticatedSession): boolean {
+        return hasAdminMode(session, this.now())
     }
 
+    async activateAdminMode(
+        session: AuthenticatedSession,
+        account: User
+    ): Promise<AuthenticatedSession> {
+        if (session.userId !== account.id) {
+            throw new SessionNotLiveError()
+        }
+        if (!isAdministrator(account)) {
+            throw new AdministratorRequiredError()
+        }
+        const now = this.now()
+        return this.updateLive(session.id, (live) => {
+            if (!hasRecentAuthentication(live, now)) {
+                throw new RecentAuthenticationRequiredError()
+            }
+            const adminModeExpiresAt = adminModeExpiry(live)
+            assertExists(adminModeExpiresAt, 'Recent Authentication implies an authentication time')
+            return { ...live, adminModeExpiresAt }
+        })
+    }
+
+    async deactivateAdminMode(session: AuthenticatedSession): Promise<void> {
+        await this.sessionStore.update(
+            session.id,
+            ({ adminModeExpiresAt: _ended, ...live }) => live
+        )
+        await this.endAdminGrants(session.userId)
+    }
+
+    // Ends the session. A session that held Admin Mode also loses its administrative grants
+    // on the relay, which the relay bounds by the mode's end in any case.
+    async revoke(id: string): Promise<void> {
+        const session = await this.sessionStore.find(id)
+        await this.sessionStore.delete(id)
+        if (session && session.adminModeExpiresAt && session.adminModeExpiresAt > this.now()) {
+            await this.endAdminGrants(session.userId)
+        }
+    }
+
+    // Ends every session of the Account; every realtime connection of the Account closes and
+    // the clients of the sessions that remain, if any, reconnect with fresh tokens.
     async revokeAll(userId: string, options: { except?: string } = {}): Promise<void> {
         await this.sessionStore.deleteForUser(userId, options)
+        await this.options.realtime?.revokeAccount(userId)
+    }
+
+    // Relay grants that only Admin Mode confers; the relay keeps the Account's connections
+    // and their ordinary Topics.
+    async endAdminGrants(userId: string): Promise<void> {
+        await this.options.realtime?.revokeTopics(userId, [RELAY_STATS_TOPIC])
     }
 
     private async updateLive(

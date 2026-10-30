@@ -4,7 +4,7 @@ export default async function (fastify: FastifyInstance) {
     fastify.get(
         '/repair',
         {
-            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleAdmin], {
+            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyAdminMode], {
                 relation: 'and'
             })
         },

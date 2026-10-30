@@ -16,7 +16,7 @@ export default async function (fastify: FastifyInstance) {
         '/:userId/roles',
         {
             schema: { params: AssignRolesParams, body: AssignRolesRequest },
-            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleAdmin], {
+            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyAdminMode], {
                 relation: 'and'
             })
         },

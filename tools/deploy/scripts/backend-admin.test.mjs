@@ -15,9 +15,12 @@ const PASSWORD = 'correct horse battery staple'
 const LEGACY_TOKEN = 'legacy-challenge-token-value'
 
 // A backend without the challenge-token login route: username/password login issues the session
-// cookie and manifest invalidation accepts only that cookie.
-async function withBackend(invalidateResponse, run) {
+// cookie, Admin Mode activation needs that cookie (and, for a provided cookie, Recent
+// Authentication the fixture can refuse), manifest invalidation needs the activated session, and
+// logout ends it.
+async function withBackend(invalidateResponse, run, { activation = { status: 200 } } = {}) {
     const requests = []
+    let adminMode = false
     const server = createServer((request, response) => {
         let body = ''
         request.on('data', (chunk) => (body += chunk))
@@ -44,11 +47,53 @@ async function withBackend(invalidateResponse, run) {
                 }
                 return
             }
+            if (request.method === 'POST' && request.url === '/api/v1/auth/admin-mode/activate') {
+                if (request.headers.cookie !== SESSION_COOKIE) {
+                    response.writeHead(401, { 'content-type': 'application/json' })
+                    response.end(
+                        JSON.stringify({ status: 'error', error: { name: 'Unauthorized' } })
+                    )
+                    return
+                }
+                if (activation.status !== 200) {
+                    response.writeHead(activation.status, { 'content-type': 'application/json' })
+                    response.end(JSON.stringify(activation.body))
+                    return
+                }
+                adminMode = true
+                response.writeHead(200, { 'content-type': 'application/json' })
+                response.end(
+                    JSON.stringify({
+                        status: 'ok',
+                        payload: { adminMode: { expiresAt: '2026-10-27T12:15:00Z' } }
+                    })
+                )
+                return
+            }
+            if (request.method === 'GET' && request.url === '/api/v1/auth/logout') {
+                adminMode = false
+                response.writeHead(200, { 'content-type': 'application/json' })
+                response.end(JSON.stringify({ status: 'ok', payload: {} }))
+                return
+            }
             if (request.method === 'POST' && request.url === '/api/v1/admin/manifest/invalidate') {
                 if (request.headers.cookie !== SESSION_COOKIE) {
                     response.writeHead(401, { 'content-type': 'application/json' })
                     response.end(
                         JSON.stringify({ status: 'error', error: { name: 'Unauthorized' } })
+                    )
+                    return
+                }
+                if (!adminMode) {
+                    response.writeHead(403, { 'content-type': 'application/json' })
+                    response.end(
+                        JSON.stringify({
+                            status: 'error',
+                            error: {
+                                name: 'AdminModeRequiredError',
+                                message: 'This operation requires Admin Mode'
+                            }
+                        })
                     )
                     return
                 }
@@ -84,7 +129,14 @@ const activated = {
     body: { status: 'ok', replacement: 'none', activation: 'complete' }
 }
 
-test('username and password sign in once and invalidate with the issued session cookie', async () => {
+const SIGNED_IN_FLOW = [
+    '/api/v1/auth/login',
+    '/api/v1/auth/admin-mode/activate',
+    '/api/v1/admin/manifest/invalidate',
+    '/api/v1/auth/logout'
+]
+
+test('username and password sign in once, enter Admin Mode, invalidate with the issued session cookie and sign out', async () => {
     await withBackend(activated, async ({ requests, config }) => {
         const result = await invalidateBackendManifestCache(
             config({ username: 'admin', password: PASSWORD })
@@ -92,13 +144,15 @@ test('username and password sign in once and invalidate with the issued session 
         assert.equal(result, 'activated')
         assert.deepEqual(
             requests.map((request) => request.path),
-            ['/api/v1/auth/login', '/api/v1/admin/manifest/invalidate']
+            SIGNED_IN_FLOW
         )
-        assert.equal(requests[1].headers.cookie, SESSION_COOKIE)
+        for (const request of requests.slice(1)) {
+            assert.equal(request.headers.cookie, SESSION_COOKIE)
+        }
     })
 })
 
-test('a configured cookie is sent as it is without signing in', async () => {
+test('a configured cookie is sent as it is without signing in or out, and still enters Admin Mode', async () => {
     await withBackend(
         { status: 200, body: { status: 'ok', replacement: 'superseded' } },
         async ({ requests, config }) => {
@@ -106,10 +160,64 @@ test('a configured cookie is sent as it is without signing in', async () => {
             assert.equal(result, 'superseded')
             assert.deepEqual(
                 requests.map((request) => request.path),
-                ['/api/v1/admin/manifest/invalidate']
+                ['/api/v1/auth/admin-mode/activate', '/api/v1/admin/manifest/invalidate']
             )
+            for (const request of requests) {
+                assert.equal(request.headers.cookie, SESSION_COOKIE)
+            }
         }
     )
+})
+
+test('a configured cookie older than Recent Authentication is refused before the invalidation', async () => {
+    await withBackend(
+        activated,
+        async ({ requests, config }) => {
+            await assert.rejects(
+                invalidateBackendManifestCache(config({ cookie: SESSION_COOKIE })),
+                /admin-mode activation 403 Forbidden .*did not sign in within the last 15 minutes.*backendAdmin\.username and password/
+            )
+            assert.deepEqual(
+                requests.map((request) => request.path),
+                ['/api/v1/auth/admin-mode/activate']
+            )
+        },
+        {
+            activation: {
+                status: 403,
+                body: {
+                    status: 'error',
+                    error: {
+                        name: 'RecentAuthenticationRequiredError',
+                        message: 'This operation requires Recent Authentication'
+                    }
+                }
+            }
+        }
+    )
+})
+
+test('the invalidation is refused without Admin Mode', async () => {
+    // Proves the fixture models the S10 backend: a session that signed in but never activated
+    // the mode gets 403 AdminModeRequiredError from the invalidation.
+    await withBackend(activated, async ({ origin, requests }) => {
+        const login = await fetch(`${origin}/api/v1/auth/login`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ username: 'admin', password: PASSWORD })
+        })
+        assert.equal(login.status, 200)
+        const refused = await fetch(`${origin}/api/v1/admin/manifest/invalidate`, {
+            method: 'POST',
+            headers: { cookie: SESSION_COOKIE }
+        })
+        assert.equal(refused.status, 403)
+        assert.equal((await refused.json()).error.name, 'AdminModeRequiredError')
+        assert.deepEqual(
+            requests.map((request) => request.path),
+            ['/api/v1/auth/login', '/api/v1/admin/manifest/invalidate']
+        )
+    })
 })
 
 test('a token-only config is refused before any request, with migration guidance and no value', async () => {
@@ -180,23 +288,32 @@ test('supported credentials beside a leftover token sign in normally and never c
         assert.ok(!requests.some((request) => request.path.includes('/auth/token/login')))
         assert.deepEqual(
             requests.map((request) => request.path),
-            ['/api/v1/auth/login', '/api/v1/admin/manifest/invalidate']
+            SIGNED_IN_FLOW
         )
         assert.equal(describeIgnoredBackendAdminSettings({ cookie: SESSION_COOKIE }), undefined)
     })
 })
 
-test('a refused invalidation reports the status, and a wrong password reports the login', async () => {
+test('a refused invalidation reports the status and still signs out, and a wrong password reports the login', async () => {
     await withBackend(
-        { status: 403, body: { status: 'error', error: { name: 'AdminModeRequiredError' } } },
-        async ({ config }) => {
+        { status: 503, body: { status: 'error', error: { name: 'ServiceUnavailable' } } },
+        async ({ requests, config }) => {
             await assert.rejects(
                 invalidateBackendManifestCache(config({ username: 'admin', password: PASSWORD })),
-                /manifest invalidate 403/
+                /manifest invalidate 503/
             )
+            assert.deepEqual(
+                requests.map((request) => request.path),
+                SIGNED_IN_FLOW
+            )
+            requests.length = 0
             await assert.rejects(
                 invalidateBackendManifestCache(config({ username: 'admin', password: 'wrong' })),
                 /backend login 401/
+            )
+            assert.deepEqual(
+                requests.map((request) => request.path),
+                ['/api/v1/auth/login']
             )
         }
     )

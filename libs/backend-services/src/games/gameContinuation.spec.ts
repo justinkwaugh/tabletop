@@ -10,7 +10,8 @@ import {
     UserStatus,
     type Game,
     type GameContinuation,
-    type User
+    type User,
+    ordinaryPrincipal
 } from '@tabletop/common'
 import { ContinuationDefinition, finishForContinuation } from './tests/continuationGame.js'
 import { GameService } from './gameService.js'
@@ -108,7 +109,7 @@ describe('hosted game continuation', () => {
         const created = await service.createGame({
             definition,
             game: lobby('next', ['n1', 'n2']),
-            owner: alice,
+            owner: ordinaryPrincipal(alice),
             options: { continueFromGameId: source.id }
         })
 
@@ -131,7 +132,7 @@ describe('hosted game continuation', () => {
                 service.createGame({
                     definition,
                     game: lobby(id, [`${id}-1`, `${id}-2`]),
-                    owner: alice,
+                    owner: ordinaryPrincipal(alice),
                     options: { continueFromGameId: source.id }
                 })
             )
@@ -156,7 +157,7 @@ describe('hosted game continuation', () => {
         const created = await service.createGame({
             definition,
             game,
-            owner: admin,
+            owner: { user: admin, adminMode: true },
             options: { continueFromGameId: 'source' }
         })
 
@@ -175,7 +176,7 @@ describe('hosted game continuation', () => {
             service.createGame({
                 definition,
                 game,
-                owner: stranger,
+                owner: ordinaryPrincipal(stranger),
                 options: { continueFromGameId: 'source' }
             })
         ).rejects.toThrow()
@@ -197,7 +198,7 @@ describe('hosted game continuation', () => {
             service.createGame({
                 definition,
                 game: lobby('next', ['n1', 'n2']),
-                owner: alice,
+                owner: ordinaryPrincipal(alice),
                 options: { continueFromGameId: source.id }
             })
         ).rejects.toThrow()
@@ -213,7 +214,7 @@ describe('hosted game continuation', () => {
             service.createGame({
                 definition: { ...definition, runtime: { ...definition.runtime, initializer } },
                 game: lobby('next', ['n1', 'n2']),
-                owner: alice,
+                owner: ordinaryPrincipal(alice),
                 options: { continueFromGameId: 'source' }
             })
         ).rejects.toThrow('does not support continuation')
@@ -233,7 +234,11 @@ describe('hosted game continuation', () => {
             game
         ])
 
-        const started = await service.startGame({ definition, gameId: game.id, user: alice })
+        const started = await service.startGame({
+            definition,
+            gameId: game.id,
+            principal: ordinaryPrincipal(alice)
+        })
 
         expect(started.state).toMatchObject({ board: [7, 8, 9], gameId: game.id })
         expect(started.state?.result).toBeUndefined()

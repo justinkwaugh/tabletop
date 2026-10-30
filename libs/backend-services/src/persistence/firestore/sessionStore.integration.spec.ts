@@ -171,6 +171,28 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(restarted.find(session.id)).resolves.toEqual(cleared)
         })
 
+        it('stores, reads back and clears Admin Mode, through the cache and after a restart', async () => {
+            const session = newSession(`${run}-admin-mode`)
+            await store.create(session)
+            await expect(store.find(session.id)).resolves.toEqual(session)
+            expect(await cachedAfterFill(session.id)).toBe(true)
+            const activated = {
+                ...session,
+                adminModeExpiresAt: new Date('2026-10-27T12:15:00.000Z')
+            }
+            await expect(store.update(session.id, () => activated)).resolves.toEqual(activated)
+            await expect(store.find(session.id)).resolves.toEqual(activated)
+            const restarted = new FirestoreSessionStore(cache, firestore)
+            await expect(restarted.find(session.id)).resolves.toEqual(activated)
+            await expect(
+                store.update(session.id, ({ adminModeExpiresAt: _ended, ...live }) => live)
+            ).resolves.toEqual(session)
+            await expect(store.find(session.id)).resolves.toEqual(session)
+            await expect(restarted.find(session.id)).resolves.toEqual(session)
+            const stored = (await firestore.collection('sessions').doc(session.id).get()).data()
+            expect(stored).not.toHaveProperty('adminModeExpiresAt')
+        })
+
         it('does not change or recreate a session that no longer exists', async () => {
             const session = newSession(`${run}-gone`)
             await store.create(session)

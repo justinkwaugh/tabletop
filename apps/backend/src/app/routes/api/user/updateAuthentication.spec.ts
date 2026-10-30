@@ -11,6 +11,7 @@ import {
     memoryTokens,
     memoryUserStore,
     ORIGINAL_PASSWORD,
+    recordingRealtime,
     recordingTasks
 } from '../../../tests/accountFixture.js'
 import reauthenticate from '../auth/reauthenticate.js'
@@ -50,6 +51,7 @@ describe('Recent Authentication for profile submissions', () => {
         const server = await sessionServer(sessions)
         servers.add(server)
         server.decorate('userService', users)
+        server.decorate('realtimeControl', recordingRealtime().realtimeControl)
         apiErrorShape(server)
         await server.register(authorization)
         await server.register(update, { prefix: '/user' })

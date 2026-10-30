@@ -96,7 +96,7 @@
     let bugReportSession = $derived(
         sessionUser &&
             gameService.currentGameSession &&
-            (authorizationService.isAdmin ||
+            (authorizationService.actAsAdmin ||
                 findPlayerForUserId(gameService.currentGameSession.primaryGame, sessionUser.id))
             ? gameService.currentGameSession
             : undefined
@@ -278,13 +278,24 @@
         await pwaInstallPrompt.prompt()
     }
 
-    function setAdminCapabilities(event: Event) {
-        if (!(event.currentTarget instanceof HTMLInputElement)) {
+    async function setAdminCapabilities(event: Event) {
+        const toggle = event.currentTarget
+        if (!(toggle instanceof HTMLInputElement)) {
             return
         }
 
         gameService.currentGameSession?.bridge.setChosenAdminPlayerId(undefined)
-        authorizationService.adminCapabilitiesEnabled = event.currentTarget.checked
+        try {
+            if (toggle.checked) {
+                await authorizationService.requestAdminMode()
+            } else {
+                await authorizationService.deactivateAdminMode()
+            }
+        } catch (error) {
+            console.error('Could not change Admin Mode', error)
+            toast.error('Could not change Admin Mode')
+        }
+        toggle.checked = authorizationService.adminCapabilitiesEnabled
     }
 
     function createGame() {

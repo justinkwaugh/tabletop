@@ -43,6 +43,7 @@ import {
     PubSubTransport,
     parseRealtimeSigningKey,
     RealtimeTokenIssuer,
+    RealtimeControl,
     RedisCacheService,
     RedisRateLimitCounter,
     type RateLimitCounter,
@@ -101,6 +102,7 @@ declare module 'fastify' {
         siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
         realtimeTokenIssuer: RealtimeTokenIssuer | undefined
+        realtimeControl: RealtimeControl
         charityTallyService: CharityTallyService
         charityTallyRefresher: CharityTallyRefresher | undefined
     }
@@ -154,8 +156,14 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         fastify.firestore,
         service === 'local'
     )
+    // The relay listens to Redis wherever the backend publishes Realtime Updates there
+    const realtimeControl = new RealtimeControl(
+        !useAbly || useRealtimeRelay ? new RedisPublisher(redisService) : undefined
+    )
+    fastify.decorate('realtimeControl', realtimeControl)
     const sessionService = new SessionService(
-        new FirestoreSessionStore(redisCacheService, fastify.firestore)
+        new FirestoreSessionStore(redisCacheService, fastify.firestore),
+        { realtime: realtimeControl }
     )
     const userService = new UserService(userStore, tokenService, taskService)
     const discordOAuth = new DiscordOAuthClient({

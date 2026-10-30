@@ -9,6 +9,7 @@ export const AuthenticatedSession = Type.Object({
     generation: Type.Integer({ minimum: 0 }),
     createdAt: DateType(),
     authenticatedAt: Type.Optional(DateType()),
+    adminModeExpiresAt: Type.Optional(DateType()),
     expiresAt: DateType(),
     providerAuthorization: Type.Optional(ProviderAuthorizationAttempt)
 })

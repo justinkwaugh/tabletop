@@ -124,7 +124,10 @@ The role making an Active Account eligible to exercise administrative authority.
 An Active User Account assigned the Admin Role.
 
 **Admin Mode**:
-An explicit, recently authenticated session mode in which an Administrator may exercise administrative bypasses. Outside Admin Mode, the Administrator behaves as an ordinary Active Account.
+An explicit mode of one Authenticated Session in which an Administrator may exercise administrative bypasses. An Administrator activates it with Recent Authentication, and it lasts until that Recent Authentication lapses, the Administrator deactivates it, or the session ends; reauthentication alone neither activates nor revives it. A capability issued from the mode, such as a Realtime Update grant, carries the mode's end and lapses with it, and ends earlier when the mode is deactivated or the session ends. Outside Admin Mode, the Administrator behaves as an ordinary Active Account.
+
+**Principal**:
+The identity a request acts with: the User Account holding the Authenticated Session and whether that session is in Admin Mode. Consuming contexts grant administrative bypasses to a Principal in Admin Mode, never to the Admin Role alone.
 
 **Beta Catalog Visibility Grant**:
 An additive grant that makes Beta Game Titles visible to an Active Account in catalog discovery. It does not authorize access to a Game or confer administrative authority.

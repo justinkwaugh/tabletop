@@ -12,7 +12,6 @@
         RadioButton
     } from 'flowbite-svelte'
     import {
-        normalizeMasterSeed,
         GameVisibility,
         getTitleVisibility,
         defaultGameConfig,
@@ -50,6 +49,11 @@
     import Typeahead from '$lib/components/Typeahead.svelte'
     import SegmentedControl from '$lib/components/SegmentedControl.svelte'
     import { getAppContext } from '$lib/model/appContext.js'
+    import {
+        GameCreationPrivileges,
+        parseReproductionSeed,
+        type ReproductionSeed
+    } from '$lib/model/gameCreationPrivileges.svelte.js'
 
     type EditableGame = Pick<
         Game,
@@ -132,7 +136,7 @@
     let config = $state(
         untrack(() => normalizeGameConfig(editedGame.config, gameTitle.info.configurator))
     )
-    let seed = $state('')
+    const privileges = new GameCreationPrivileges(authorizationService)
     let numPlayers = $state(
         mode === EditMode.Edit || continueFrom
             ? editedGame.players.length
@@ -140,7 +144,6 @@
     )
     let players: Player[] = $state(editedGame.players)
     let access: GameAccess = $state(initialAccess())
-    let includeOwner: boolean = $state(true)
     let isHotseat = $derived(access === GameAccess.Hotseat)
     let publicGame = $derived(access === GameAccess.Public || access === GameAccess.Unlisted)
     let accessOptions = $derived.by(() => {
@@ -157,7 +160,7 @@
             label: 'Unlisted',
             description: 'Not listed; anyone with the link can join'
         })
-        if (!continueFrom && includeOwner) {
+        if (!continueFrom && privileges.ownerIncluded) {
             options.push({
                 value: GameAccess.Hotseat,
                 label: 'Hotseat',
@@ -178,9 +181,9 @@
             ? ownNameSeat
             : players.findIndex((player) => player.status === PlayerStatus.Open)
     })
-    let canIncludeOwner = $derived(includeOwner || reclaimableOwnerSeat !== -1)
+    let canIncludeOwner = $derived(privileges.ownerIncluded || reclaimableOwnerSeat !== -1)
     let showIncludeOwnerToggle = $derived(
-        authorizationService.canUseDeveloperTools &&
+        (privileges.canExcludeOwner || !privileges.ownerIncluded) &&
             mode === EditMode.Create &&
             !hotseatOnly &&
             !isHotseat
@@ -323,8 +326,28 @@
         event.stopPropagation()
 
         clearErrors()
+        let reproduction: ReproductionSeed | undefined
+        if (mode === EditMode.Create && privileges.seed.length > 0) {
+            try {
+                const runtime = await gameTitle.runtime()
+                if (privileges.seed.length > 0) {
+                    reproduction = parseReproductionSeed(privileges.seed, runtime)
+                }
+            } catch {
+                errors['seed'] = [
+                    'Use a 32-digit hexadecimal reproduction seed, or a number for legacy titles'
+                ]
+                return
+            }
+        }
+        if (privileges.ownerExclusionLapsed) {
+            return
+        }
 
         const form = event.target as HTMLFormElement
+        if (!form.reportValidity()) {
+            return
+        }
         const formData = new FormData(form)
 
         const playersToUpload = $state.snapshot(players)
@@ -355,25 +378,15 @@
             : undefined
         if (mode === EditMode.Create) {
             gameData.typeId = gameTitle.info.id
-            if (seed.trim().length > 0) {
-                try {
-                    const runtime = await gameTitle.runtime()
-                    if (runtime.randomnessVersion === 1) {
-                        if (gameService.supportsReproductionSeed !== true) {
-                            errors['seed'] = ['Reload the site to use reproduction seeds']
-                            return
-                        }
-                        options = { ...options, masterSeed: normalizeMasterSeed(seed) }
-                    } else {
-                        const numericSeed = Number(seed)
-                        if (!Number.isInteger(numericSeed)) throw Error('Invalid numeric seed')
-                        gameData.seed = numericSeed
+            if (reproduction) {
+                if ('masterSeed' in reproduction) {
+                    if (gameService.supportsReproductionSeed !== true) {
+                        errors['seed'] = ['Reload the site to use reproduction seeds']
+                        return
                     }
-                } catch {
-                    errors['seed'] = [
-                        'Use a 32-digit hexadecimal reproduction seed, or a number for legacy titles'
-                    ]
-                    return
+                    options = { ...options, masterSeed: reproduction.masterSeed }
+                } else {
+                    gameData.seed = reproduction.seed
                 }
             }
         }
@@ -630,12 +643,18 @@
     {/if}
     {#if showIncludeOwnerToggle}
         <Toggle
-            bind:checked={includeOwner}
+            bind:checked={privileges.ownerIncluded}
             disabled={!canIncludeOwner}
-            onchange={() => setOwnerIncluded(includeOwner)}>Include me</Toggle
+            onchange={() => setOwnerIncluded(privileges.ownerIncluded)}>Include me</Toggle
         >
         {#if !canIncludeOwner}
             <Helper>Clear a seat to include yourself</Helper>
+        {/if}
+        {#if privileges.ownerExclusionLapsed}
+            <Helper color="red"
+                >Admin Mode has ended, so the game needs your seat. Include yourself, or enter Admin
+                Mode again.</Helper
+            >
         {/if}
     {/if}
     {#if gameTitle.info.configurator && gameTitle.info.configurator.options.length > 0}
@@ -655,9 +674,14 @@
             {/each}
         </div>
     {/if}
-    {#if authorizationService.isAdmin && mode === EditMode.Create}
+    {#if privileges.canEnterSeed && mode === EditMode.Create}
         <Label class="mb-2">Reproduction seed</Label>
-        <Input type="text" name="seed" bind:value={seed} placeholder="optional reproduction seed" />
+        <Input
+            type="text"
+            name="seed"
+            bind:value={privileges.seedEntry}
+            placeholder="optional reproduction seed"
+        />
         {#each errors['seed'] ?? [] as error, i (i)}
             <Helper color="red">{error}</Helper>
         {/each}

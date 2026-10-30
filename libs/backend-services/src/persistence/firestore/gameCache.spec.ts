@@ -14,7 +14,8 @@ import {
     type Game,
     type GameAction,
     type GameState,
-    type User
+    type User,
+    ordinaryPrincipal
 } from '@tabletop/common'
 import { cacheFixture } from '../../cache/tests/cacheFixture.js'
 import { FirestoreGameStore } from './gameStore.js'
@@ -912,7 +913,10 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                         return read(current, transaction)
                     }
                 )
-                const loaded = await service.getGameForUser({ gameId: game.id, user: owner })
+                const loaded = await service.getGameForUser({
+                    gameId: game.id,
+                    principal: ordinaryPrincipal(owner)
+                })
                 expect(loaded?.game.state?.actionCount).toBe(loaded?.actions.length)
                 expect(loaded?.actions).toHaveLength(1)
                 expect(loaded?.game.state?.players[1]).not.toHaveProperty('hand')

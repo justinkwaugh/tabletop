@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Firestore } from '@google-cloud/firestore'
-import { GameStatus, PlayerStatus, Role, UserStatus, type Game, type User } from '@tabletop/common'
+import {
+    GameStatus,
+    PlayerStatus,
+    Role,
+    UserStatus,
+    ordinaryPrincipal,
+    type Game,
+    type User
+} from '@tabletop/common'
 import { GameService } from './gameService.js'
 import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
 import { RedisCacheService } from '../cache/cacheService.js'
@@ -77,14 +85,14 @@ describe('deleting a Hosted Game', () => {
         'lets the Game Owner delete a game that is %s',
         async (status) => {
             const { service, deleted, game } = fixture({ status })
-            await service.deleteGame(owner, game.id)
+            await service.deleteGame(ordinaryPrincipal(owner), game.id)
             expect(deleted).toHaveBeenCalledTimes(1)
         }
     )
 
     it('refuses to let the Game Owner delete a Finished game', async () => {
         const { service, deleted, game } = fixture({ status: GameStatus.Finished })
-        await expect(service.deleteGame(owner, game.id)).rejects.toThrow(REFUSAL)
+        await expect(service.deleteGame(ordinaryPrincipal(owner), game.id)).rejects.toThrow(REFUSAL)
         expect(deleted).not.toHaveBeenCalled()
     })
 
@@ -93,7 +101,7 @@ describe('deleting a Hosted Game', () => {
             status: GameStatus.Started,
             everFinished: true
         })
-        await expect(service.deleteGame(owner, game.id)).rejects.toThrow(REFUSAL)
+        await expect(service.deleteGame(ordinaryPrincipal(owner), game.id)).rejects.toThrow(REFUSAL)
         expect(deleted).not.toHaveBeenCalled()
     })
 
@@ -102,7 +110,7 @@ describe('deleting a Hosted Game', () => {
             { status: GameStatus.Started },
             { status: GameStatus.Finished, everFinished: true }
         )
-        await expect(service.deleteGame(owner, game.id)).rejects.toThrow(REFUSAL)
+        await expect(service.deleteGame(ordinaryPrincipal(owner), game.id)).rejects.toThrow(REFUSAL)
         expect(deleted).not.toHaveBeenCalled()
     })
 
@@ -111,13 +119,15 @@ describe('deleting a Hosted Game', () => {
         { status: GameStatus.Started, everFinished: true } as const
     ])('lets an Administrator delete a game that has been Finished ($status)', async (read) => {
         const { service, deleted, game } = fixture(read)
-        await service.deleteGame(admin, game.id)
+        await service.deleteGame({ user: admin, adminMode: true }, game.id)
         expect(deleted).toHaveBeenCalledTimes(1)
     })
 
     it('refuses a Player who is neither the Game Owner nor an Administrator', async () => {
         const { service, deleteGame, game } = fixture({ status: GameStatus.Started })
-        await expect(service.deleteGame(opponent, game.id)).rejects.toThrow('not authorized')
+        await expect(service.deleteGame(ordinaryPrincipal(opponent), game.id)).rejects.toThrow(
+            'not authorized'
+        )
         expect(deleteGame).not.toHaveBeenCalled()
     })
 })

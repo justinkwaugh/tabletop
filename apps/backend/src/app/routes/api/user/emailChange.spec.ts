@@ -11,6 +11,7 @@ import {
     apiErrorShape,
     memoryTokens,
     memoryUserStore,
+    recordingRealtime,
     recordingTasks
 } from '../../../tests/accountFixture.js'
 import emailChange from './emailChange.js'
@@ -41,6 +42,8 @@ async function fixture() {
     servers.add(server)
     apiErrorShape(server)
     server.decorate('userService', new UserService(store, tokenService, tasks))
+    const { realtimeControl, revocations } = recordingRealtime()
+    server.decorate('realtimeControl', realtimeControl)
     await server.register(authorization)
     await server.register(emailChange, { prefix: '/user' })
     await server.register(update, { prefix: '/user' })
@@ -78,7 +81,7 @@ async function fixture() {
             headers: { cookie },
             payload: { email }
         })
-    return { server, account, mails, lastMail, signIn, request }
+    return { server, account, mails, lastMail, signIn, request, revocations }
 }
 
 describe('verified email replacement', () => {
@@ -100,7 +103,7 @@ describe('verified email replacement', () => {
     })
 
     it('keeps Active access while pending and retains only the confirming session after verification', async () => {
-        const { server, signIn, request, lastMail, account } = await fixture()
+        const { server, signIn, request, lastMail, account, revocations } = await fixture()
         const current = await signIn()
         const copied = await signIn()
         const start = await request(current)
@@ -122,6 +125,7 @@ describe('verified email replacement', () => {
             headers: { cookie: current }
         })
         expect(lookup.json().payload.pending).toEqual(start.json().payload.pending)
+        expect(revocations).toEqual([])
         const confirmed = await server.inject({
             method: 'POST',
             url: '/user/email/change/confirm',
@@ -129,6 +133,7 @@ describe('verified email replacement', () => {
             payload: { email: 'new@example.test', code: mail.token }
         })
         expect(confirmed.statusCode).toBe(200)
+        expect(revocations).toEqual([{ revoke: account().id, at: expect.any(Number) }])
         expect(confirmed.json().payload.user).toMatchObject({
             email: 'new@example.test',
             emailVerified: true,
@@ -147,7 +152,7 @@ describe('verified email replacement', () => {
     })
 
     it('requires Recent Authentication to request or confirm and ordinary authorization to inspect or cancel', async () => {
-        const { server, signIn, request, mails, lastMail } = await fixture()
+        const { server, signIn, request, mails, lastMail, revocations } = await fixture()
         const stale = await signIn(false)
         expect((await request(stale)).statusCode).toBe(403)
         expect(mails).toHaveLength(0)
@@ -181,6 +186,7 @@ describe('verified email replacement', () => {
                 await server.inject({ url: '/user/email/change', headers: { cookie: current } })
             ).json().payload.pending
         ).toBeNull()
+        expect(revocations).toEqual([])
     })
 
     it('refuses old clients replacing the verified address through a profile update', async () => {

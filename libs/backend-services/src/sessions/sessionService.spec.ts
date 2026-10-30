@@ -8,7 +8,13 @@ import {
     OAUTH_STATE_LIFETIME_SECONDS,
     type ProviderAuthorizationRequest
 } from '../oauth/providerAuthorization.js'
-import { hasRecentAuthentication, RECENT_AUTHENTICATION_SECONDS } from './recentAuthentication.js'
+import {
+    hasRecentAuthentication,
+    RECENT_AUTHENTICATION_SECONDS,
+    RecentAuthenticationRequiredError
+} from './recentAuthentication.js'
+import { AdministratorRequiredError } from './adminMode.js'
+import { RealtimeControl, REALTIME_CONTROL_CHANNEL } from '../realtime/realtimeControl.js'
 
 function account(status: UserStatus, id = 'account-1', sessionGeneration?: number): User {
     return { id, status, roles: [Role.User], externalIds: [], sessionGeneration }
@@ -17,7 +23,17 @@ function account(status: UserStatus, id = 'account-1', sessionGeneration?: numbe
 function fixture(start = new Date('2026-10-27T12:00:00.000Z')) {
     let now = start
     const store = new MemorySessionStore()
-    const sessions = new SessionService(store, { now: () => now })
+    const revocations: { revoke: string; topics?: string[]; at: number }[] = []
+    const realtime = new RealtimeControl(
+        {
+            publishMessage: async ({ topic, message }) => {
+                expect(topic).toBe(REALTIME_CONTROL_CHANNEL)
+                revocations.push(JSON.parse(message))
+            }
+        },
+        () => now
+    )
+    const sessions = new SessionService(store, { now: () => now, realtime })
     const accounts = new Map<string, User>()
     const register = (user: User) => {
         accounts.set(user.id, user)
@@ -29,6 +45,7 @@ function fixture(start = new Date('2026-10-27T12:00:00.000Z')) {
     return {
         store,
         sessions,
+        revocations,
         authorize,
         register,
         forget: (id: string) => accounts.delete(id),
@@ -316,5 +333,168 @@ describe('Provider Authorization Attempts on an Authenticated Session', () => {
             SessionNotLiveError
         )
         await expect(store.find(expired.id)).resolves.toEqual(expired)
+    })
+})
+
+describe('Admin Mode on an Authenticated Session', () => {
+    const administrator = (status = UserStatus.Active): User => ({
+        ...account(status),
+        roles: [Role.User, Role.Admin]
+    })
+
+    it('is off for every new session, even an Administrator proved moments ago', async () => {
+        const { sessions } = fixture()
+        const session = await sessions.establish(administrator(), 'authentication-method')
+        expect(session.adminModeExpiresAt).toBeUndefined()
+        expect(sessions.isInAdminMode(session)).toBe(false)
+    })
+
+    it('activates for an Administrator with Recent Authentication until that proof lapses', async () => {
+        const { sessions, store, advance } = fixture()
+        const session = await sessions.establish(administrator(), 'authentication-method')
+        advance(60)
+        const activated = await sessions.activateAdminMode(session, administrator())
+        expect(activated.adminModeExpiresAt).toEqual(
+            new Date(session.createdAt.getTime() + RECENT_AUTHENTICATION_SECONDS * 1000)
+        )
+        expect(activated).toMatchObject({
+            id: session.id,
+            generation: session.generation,
+            authenticatedAt: session.authenticatedAt,
+            expiresAt: session.expiresAt
+        })
+        await expect(store.find(session.id)).resolves.toEqual(activated)
+        expect(sessions.isInAdminMode(activated)).toBe(true)
+        advance(RECENT_AUTHENTICATION_SECONDS - 60 - 1)
+        expect(sessions.isInAdminMode(activated)).toBe(true)
+        advance(1)
+        expect(sessions.isInAdminMode(activated)).toBe(false)
+    })
+
+    it('refuses activation without Recent Authentication', async () => {
+        const { sessions, store, advance } = fixture()
+        const withoutProof = await sessions.establish(administrator(), {
+            authenticatedAt: undefined
+        })
+        await expect(
+            sessions.activateAdminMode(withoutProof, administrator())
+        ).rejects.toBeInstanceOf(RecentAuthenticationRequiredError)
+        const stale = await sessions.establish(administrator(), 'authentication-method')
+        advance(RECENT_AUTHENTICATION_SECONDS)
+        await expect(sessions.activateAdminMode(stale, administrator())).rejects.toBeInstanceOf(
+            RecentAuthenticationRequiredError
+        )
+        await expect(store.find(stale.id)).resolves.toEqual(stale)
+    })
+
+    it('refuses activation for an Account that is not an Administrator', async () => {
+        const { sessions } = fixture()
+        const session = await sessions.establish(
+            account(UserStatus.Active),
+            'authentication-method'
+        )
+        await expect(
+            sessions.activateAdminMode(session, account(UserStatus.Active))
+        ).rejects.toBeInstanceOf(AdministratorRequiredError)
+        await expect(
+            sessions.activateAdminMode(session, administrator(UserStatus.Incomplete))
+        ).rejects.toBeInstanceOf(AdministratorRequiredError)
+        await expect(
+            sessions.activateAdminMode(session, { ...administrator(), id: 'account-2' })
+        ).rejects.toBeInstanceOf(SessionNotLiveError)
+    })
+
+    it('never activates a revoked or expired session', async () => {
+        const { sessions, store, advance } = fixture()
+        const revoked = await sessions.establish(administrator(), 'authentication-method')
+        await sessions.revoke(revoked.id)
+        await expect(sessions.activateAdminMode(revoked, administrator())).rejects.toBeInstanceOf(
+            SessionNotLiveError
+        )
+        expect(store.size).toBe(0)
+        const expiring = await sessions.establish(
+            { ...administrator(), id: 'account-1' },
+            'authentication-method'
+        )
+        advance(SESSION_LIFETIME_SECONDS)
+        await expect(sessions.activateAdminMode(expiring, administrator())).rejects.toBeInstanceOf(
+            SessionNotLiveError
+        )
+    })
+
+    it('does not revive an expired mode through reauthentication alone', async () => {
+        const { sessions, advance } = fixture()
+        const session = await sessions.establish(administrator(), 'authentication-method')
+        const activated = await sessions.activateAdminMode(session, administrator())
+        advance(RECENT_AUTHENTICATION_SECONDS)
+        expect(sessions.isInAdminMode(activated)).toBe(false)
+        const reproved = await sessions.recordAuthentication(activated)
+        expect(reproved.adminModeExpiresAt).toEqual(activated.adminModeExpiresAt)
+        expect(sessions.isInAdminMode(reproved)).toBe(false)
+        const reactivated = await sessions.activateAdminMode(reproved, administrator())
+        expect(sessions.isInAdminMode(reactivated)).toBe(true)
+    })
+
+    it('does not extend an active mode when proof is recorded again', async () => {
+        const { sessions, advance } = fixture()
+        const session = await sessions.establish(administrator(), 'authentication-method')
+        const activated = await sessions.activateAdminMode(session, administrator())
+        advance(RECENT_AUTHENTICATION_SECONDS - 10)
+        const reproved = await sessions.recordAuthentication(activated)
+        expect(reproved.adminModeExpiresAt).toEqual(activated.adminModeExpiresAt)
+        const afterModeExpiry = advance(10)
+        expect(hasRecentAuthentication(reproved, afterModeExpiry)).toBe(true)
+        expect(sessions.isInAdminMode(reproved)).toBe(false)
+    })
+
+    it('ends with deactivation and is bounded by the session lifetime', async () => {
+        const { sessions, store, advance } = fixture()
+        const session = await sessions.establish(administrator(), 'authentication-method')
+        const activated = await sessions.activateAdminMode(session, administrator())
+        await sessions.deactivateAdminMode(activated)
+        const deactivated = await store.find(session.id)
+        expect(deactivated?.adminModeExpiresAt).toBeUndefined()
+        expect(deactivated && sessions.isInAdminMode(deactivated)).toBe(false)
+        advance(SESSION_LIFETIME_SECONDS - 60)
+        const reproved = await sessions.recordAuthentication(activated)
+        const lateActivation = await sessions.activateAdminMode(reproved, administrator())
+        expect(lateActivation.adminModeExpiresAt).toEqual(session.expiresAt)
+    })
+
+    it('tells the relay to end the stats grant when the mode is deactivated', async () => {
+        const { sessions, revocations, advance } = fixture()
+        const session = await sessions.establish(administrator(), 'authentication-method')
+        const activated = await sessions.activateAdminMode(session, administrator())
+        expect(revocations).toEqual([])
+        advance(30)
+        await sessions.deactivateAdminMode(activated)
+        expect(revocations).toEqual([
+            { revoke: 'account-1', topics: ['relay-stats'], at: 1793102430 }
+        ])
+    })
+
+    it('tells the relay to end the stats grant when a session in the mode is revoked, and nothing for an ordinary one', async () => {
+        const { sessions, revocations, advance } = fixture()
+        const session = await sessions.establish(administrator(), 'authentication-method')
+        const ordinary = await sessions.establish(administrator(), 'authentication-method')
+        await sessions.activateAdminMode(session, administrator())
+        await sessions.revoke(ordinary.id)
+        expect(revocations).toEqual([])
+        await sessions.revoke(session.id)
+        expect(revocations).toEqual([
+            { revoke: 'account-1', topics: ['relay-stats'], at: 1793102400 }
+        ])
+        const lapsed = await sessions.establish(administrator(), 'authentication-method')
+        await sessions.activateAdminMode(lapsed, administrator())
+        advance(RECENT_AUTHENTICATION_SECONDS)
+        await sessions.revoke(lapsed.id)
+        expect(revocations).toHaveLength(1)
+    })
+
+    it('tells the relay to close every connection of an Account whose sessions are all revoked', async () => {
+        const { sessions, revocations } = fixture()
+        await sessions.establish(administrator(), 'authentication-method')
+        await sessions.revokeAll('account-1')
+        expect(revocations).toEqual([{ revoke: 'account-1', at: 1793102400 }])
     })
 })

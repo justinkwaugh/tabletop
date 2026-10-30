@@ -111,6 +111,39 @@ export function accountStatusAfterCompletionCheck(
     return satisfiesCompletion ? UserStatus.Active : UserStatus.Incomplete
 }
 
+export const ACCOUNT_STATUS_TRANSITIONS = ['deactivate', 'reactivate'] as const
+export type AccountStatusTransition = (typeof ACCOUNT_STATUS_TRANSITIONS)[number]
+
+export function offeredAccountStatusTransition(
+    status: UserStatus
+): AccountStatusTransition | undefined {
+    switch (status) {
+        case UserStatus.Active:
+        case UserStatus.Incomplete:
+            return 'deactivate'
+        case UserStatus.Inactive:
+            return 'reactivate'
+        case UserStatus.Deleted:
+            return undefined
+    }
+}
+
+// Deleted is terminal. Reactivation lands on Account Completion's verdict, and a transition
+// that leaves the status as it is costs nothing.
+export function accountStatusAfterTransition(
+    status: UserStatus,
+    transition: AccountStatusTransition,
+    satisfiesCompletion: boolean
+): UserStatus | undefined {
+    if (status === UserStatus.Deleted) {
+        return undefined
+    }
+    if (transition === 'deactivate') {
+        return UserStatus.Inactive
+    }
+    return accountStatusAfterCompletionCheck(UserStatus.Incomplete, satisfiesCompletion)
+}
+
 export const ADMIN_ASSIGNABLE_ROLES = [Role.AlphaTester, Role.BetaTester, Role.Developer] as const
 export type AdminAssignableRole = (typeof ADMIN_ASSIGNABLE_ROLES)[number]
 

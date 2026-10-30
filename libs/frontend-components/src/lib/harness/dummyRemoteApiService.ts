@@ -1,5 +1,6 @@
 import type {
     BugReportRequest,
+    AccountStatusTransition,
     AdminAssignableRole,
     Bookmark,
     GameCatalogEntry,
@@ -225,6 +226,18 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async reauthenticateGoogle(_credential: string): Promise<void> {
         return this.fail('reauthenticateGoogle')
+    }
+
+    async getAdminMode(): Promise<Date | undefined> {
+        return this.fail('getAdminMode')
+    }
+
+    async activateAdminMode(): Promise<Date> {
+        return this.fail('activateAdminMode')
+    }
+
+    async deactivateAdminMode(): Promise<void> {
+        return this.fail('deactivateAdminMode')
     }
 
     async logout(): Promise<void> {
@@ -461,6 +474,13 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async assignUserRoles(_userId: string, _roles: AdminAssignableRole[]): Promise<User> {
         return this.fail('assignUserRoles')
+    }
+
+    async transitionUserAccountStatus(
+        _userId: string,
+        _transition: AccountStatusTransition
+    ): Promise<User> {
+        return this.fail('transitionUserAccountStatus')
     }
 
     async getActiveGamesForTitle(_titleId: string): Promise<Game[]> {

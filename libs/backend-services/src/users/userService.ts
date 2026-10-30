@@ -1,5 +1,6 @@
 import { UserStore } from '../persistence/stores/userStore.js'
 import {
+    type AccountStatusTransition,
     type AdminAssignableRole,
     assertExists,
     canHoldAuthenticatedSession,
@@ -558,6 +559,13 @@ export class UserService {
             fields: { roles: withAssignedRoles(user.roles, assignedRoles) }
         })
         return updatedUser
+    }
+
+    async transitionAccountStatus(
+        userId: string,
+        transition: AccountStatusTransition
+    ): Promise<User> {
+        return await this.userStore.transitionAccountStatus(userId, transition)
     }
 
     async searchUsernames(query: string): Promise<string[]> {

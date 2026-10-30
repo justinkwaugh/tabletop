@@ -4,7 +4,12 @@ import {
     UserStatus,
     type User
 } from '@tabletop/common'
-import { MemorySessionStore, SessionService, UserService } from '@tabletop/backend-services'
+import {
+    MemorySessionStore,
+    SessionService,
+    UserService,
+    RealtimeControl
+} from '@tabletop/backend-services'
 import type { FastifyInstance } from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -55,6 +60,7 @@ async function createServer(
     const server = await sessionServer(sessionService)
     apiErrorShape(server)
     Reflect.set(server, 'userService', userService)
+    server.decorate('realtimeControl', new RealtimeControl(undefined))
     await server.register(authorization)
     server.post<{ Body: { sessionId: string } }>('/adopt', async (request) => {
         request.session.set('sessionId', request.body.sessionId)

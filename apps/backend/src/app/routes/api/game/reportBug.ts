@@ -21,14 +21,15 @@ export default async function (fastify: FastifyInstance) {
             })
         },
         async function (request, reply) {
-            if (!request.user) {
-                throw Error('No user found for token request')
+            const principal = request.principal
+            if (!principal) {
+                throw Error('No principal found for bug report request')
             }
             if (!fastify.bugReportService) {
                 return reply.code(503).send()
             }
 
-            await fastify.bugReportService.reportBug({ user: request.user, report: request.body })
+            await fastify.bugReportService.reportBug({ principal, report: request.body })
             return { status: 'ok' }
         }
     )

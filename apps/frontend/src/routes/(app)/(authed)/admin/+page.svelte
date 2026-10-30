@@ -1,8 +1,26 @@
 <script lang="ts">
+    import { Button, P } from 'flowbite-svelte'
+    import { toast } from 'svelte-sonner'
+    import { getAppContext } from '$lib/stores/appContext.svelte'
     import { nextTabIndex } from '$lib/utils/tabNavigation'
     import AdminUsersTab from '$lib/components/admin/AdminUsersTab.svelte'
     import AdminGamesTab from '$lib/components/admin/AdminGamesTab.svelte'
     import AdminStatsTab from '$lib/components/admin/AdminStatsTab.svelte'
+
+    const { authorizationService } = getAppContext()
+    let entering = $state(false)
+
+    async function enterAdminMode() {
+        entering = true
+        try {
+            await authorizationService.requestAdminMode()
+        } catch (error) {
+            console.error('Could not enter Admin Mode', error)
+            toast.error('Could not enter Admin Mode')
+        } finally {
+            entering = false
+        }
+    }
 
     type AdminTab = 'users' | 'games' | 'stats'
     const tabs: { id: AdminTab; label: string }[] = [
@@ -46,7 +64,17 @@
         </div>
     </div>
     <div id="admin-panel" role="tabpanel" aria-labelledby={`admin-tab-${tab}`} class="pt-5">
-        {#if tab === 'users'}
+        {#if !authorizationService.actAsAdmin}
+            <div class="flex flex-col items-start gap-3">
+                <P class="text-gray-700 dark:text-gray-300"
+                    >Administration needs Admin Mode, which lasts fifteen minutes from your latest
+                    sign-in confirmation.</P
+                >
+                <Button color="primary" disabled={entering} onclick={enterAdminMode}
+                    >Enter Admin Mode</Button
+                >
+            </div>
+        {:else if tab === 'users'}
             <AdminUsersTab />
         {:else if tab === 'games'}
             <AdminGamesTab />

@@ -59,8 +59,13 @@
     }
 
     async function unlink(externalId: string) {
-        const newUser = await api.unlinkExternalAccount(externalId)
-        authorizationService.setSessionUser(newUser)
+        await reauthentication.run({
+            description: 'Unlinking a sign-in method',
+            retry: async () => {
+                const newUser = await api.unlinkExternalAccount(externalId)
+                authorizationService.setSessionUser(newUser)
+            }
+        })
     }
 
     async function submit(event: SubmitEvent) {

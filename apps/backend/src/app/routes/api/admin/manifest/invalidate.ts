@@ -5,7 +5,7 @@ export default async function (fastify: FastifyInstance) {
     fastify.post(
         '/invalidate',
         {
-            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleAdmin], {
+            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyAdminMode], {
                 relation: 'and'
             })
         },

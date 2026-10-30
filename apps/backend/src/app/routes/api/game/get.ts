@@ -26,21 +26,21 @@ export default async function (fastify: FastifyInstance) {
             })
         },
         async function (request, reply) {
-            if (!request.user) {
-                throw Error('No user found for token request')
+            const principal = request.principal
+            if (!principal) {
+                throw Error('No principal found for game request')
             }
 
             const { gameId } = request.params
             const hostView = request.query.view === 'host'
             const includeActions = request.query.includeActions !== false
-            if (hostView && !fastify.gameService.canAccessHostView(request.user)) {
+            if (hostView && !fastify.gameService.canAccessHostView(principal)) {
                 await reply.code(403).send()
                 return
             }
 
-            const user = request.user
             const gameEtag = await measure('game.load.etag', () =>
-                fastify.gameService.getGameEtagForUser({ gameId, hostView, user })
+                fastify.gameService.getGameEtagForUser({ gameId, hostView, principal })
             )
 
             if (gameEtag === undefined) {
@@ -67,7 +67,12 @@ export default async function (fastify: FastifyInstance) {
             }
 
             const representation = await measure('game.load.representation', () =>
-                fastify.gameService.getGameForUser({ gameId, hostView, user, includeActions })
+                fastify.gameService.getGameForUser({
+                    gameId,
+                    hostView,
+                    principal,
+                    includeActions
+                })
             )
 
             if (representation === undefined) {

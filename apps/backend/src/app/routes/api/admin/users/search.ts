@@ -9,7 +9,7 @@ export default async function (fastify: FastifyInstance) {
         '/search',
         {
             schema: { querystring: UserSearchQuery },
-            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleAdmin], {
+            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyAdminMode], {
                 relation: 'and'
             })
         },

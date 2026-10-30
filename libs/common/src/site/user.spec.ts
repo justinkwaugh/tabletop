@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
     accountStatusAfterCompletionCheck,
+    accountStatusAfterTransition,
     canHoldAuthenticatedSession,
+    offeredAccountStatusTransition,
     Role,
     UserStatus,
     withAssignedRoles
@@ -65,5 +67,45 @@ describe('accountStatusAfterCompletionCheck', () => {
                 UserStatus.Deleted
             )
         }
+    })
+})
+
+describe('accountStatusAfterTransition', () => {
+    it('deactivates an Active or Incomplete Account to Inactive', () => {
+        expect(accountStatusAfterTransition(UserStatus.Active, 'deactivate', true)).toBe(
+            UserStatus.Inactive
+        )
+        expect(accountStatusAfterTransition(UserStatus.Incomplete, 'deactivate', false)).toBe(
+            UserStatus.Inactive
+        )
+    })
+
+    it('leaves an Inactive Account Inactive when deactivated again', () => {
+        expect(accountStatusAfterTransition(UserStatus.Inactive, 'deactivate', true)).toBe(
+            UserStatus.Inactive
+        )
+    })
+
+    it('reactivates to the status Account Completion decides', () => {
+        expect(accountStatusAfterTransition(UserStatus.Inactive, 'reactivate', true)).toBe(
+            UserStatus.Active
+        )
+        expect(accountStatusAfterTransition(UserStatus.Inactive, 'reactivate', false)).toBe(
+            UserStatus.Incomplete
+        )
+    })
+
+    it('refuses every transition of a Deleted Account', () => {
+        expect(accountStatusAfterTransition(UserStatus.Deleted, 'deactivate', true)).toBeUndefined()
+        expect(accountStatusAfterTransition(UserStatus.Deleted, 'reactivate', true)).toBeUndefined()
+    })
+})
+
+describe('offeredAccountStatusTransition', () => {
+    it('offers deactivation to Active and Incomplete, reactivation to Inactive, nothing to Deleted', () => {
+        expect(offeredAccountStatusTransition(UserStatus.Active)).toBe('deactivate')
+        expect(offeredAccountStatusTransition(UserStatus.Incomplete)).toBe('deactivate')
+        expect(offeredAccountStatusTransition(UserStatus.Inactive)).toBe('reactivate')
+        expect(offeredAccountStatusTransition(UserStatus.Deleted)).toBeUndefined()
     })
 })

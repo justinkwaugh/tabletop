@@ -34,11 +34,29 @@ function fixture(existing: User = user) {
         }
         return [{ ...existing, ...fields }, Object.keys(fields), existing]
     })
+    const transitionAccountStatus = vi.fn<UserStore['transitionAccountStatus']>(
+        async (_userId, transition) => ({
+            ...existing,
+            status: transition === 'deactivate' ? UserStatus.Inactive : UserStatus.Active
+        })
+    )
     const store: UserStore = Object.create(null)
     store.updateUser = updateUser
+    store.transitionAccountStatus = transitionAccountStatus
     const service = new UserService(store, TokenService.prototype, LocalTaskService.prototype)
-    return { service, updateUser }
+    return { service, updateUser, transitionAccountStatus }
 }
+
+describe('account status transitions', () => {
+    it('applies the transition through the store, apart from profile updates', async () => {
+        const { service, updateUser, transitionAccountStatus } = fixture()
+        await expect(service.transitionAccountStatus('a', 'deactivate')).resolves.toEqual(
+            expect.objectContaining({ id: 'a', status: UserStatus.Inactive })
+        )
+        expect(transitionAccountStatus).toHaveBeenCalledExactlyOnceWith('a', 'deactivate')
+        expect(updateUser).not.toHaveBeenCalled()
+    })
+})
 
 describe('user time zone', () => {
     it('stores a known time zone', async () => {

@@ -7,7 +7,9 @@ import {
     PlayerStatus,
     Role,
     UserStatus,
-    type User
+    type User,
+    ordinaryPrincipal,
+    type Principal
 } from '@tabletop/common'
 import { SyntheticDefinition, SyntheticRuntime } from './tests/syntheticGame.js'
 import { GameService } from './gameService.js'
@@ -24,6 +26,7 @@ const definition = {
     runtime: { ...SyntheticRuntime, randomnessVersion: 1 as const }
 }
 const admin: User = { id: 'admin', status: UserStatus.Active, roles: [Role.Admin], externalIds: [] }
+const administering: Principal = { user: admin, adminMode: true }
 afterEach(() => vi.restoreAllMocks())
 
 function fixture() {
@@ -90,7 +93,7 @@ describe('hosted reproduction seeds', () => {
             await expect(
                 service.updateGame({
                     gameId: game.id,
-                    user: admin,
+                    principal: ordinaryPrincipal(admin),
                     fields: { protectedInformation }
                 })
             ).rejects.toThrow('protection cannot be changed')
@@ -105,7 +108,7 @@ describe('hosted reproduction seeds', () => {
         const created = await service.createGame({
             definition,
             game,
-            owner: admin,
+            owner: administering,
             options: { masterSeed }
         })
         expect(write).toHaveBeenCalledWith(
@@ -119,22 +122,30 @@ describe('hosted reproduction seeds', () => {
         )
     })
 
-    it('rejects a supplied seed from a non-admin and from an older runtime before writing', async () => {
+    it('rejects a supplied seed from a non-admin, from an admin outside Admin Mode and from an older runtime before writing', async () => {
         const { service, store, game } = fixture()
         const write = vi.spyOn(store, 'createGame')
         await expect(
             service.createGame({
                 definition,
                 game,
-                owner: { ...admin, roles: [Role.User] },
+                owner: ordinaryPrincipal({ ...admin, roles: [Role.User] }),
                 options: { masterSeed }
             })
         ).rejects.toThrow()
         await expect(
             service.createGame({
+                definition,
+                game,
+                owner: ordinaryPrincipal(admin),
+                options: { masterSeed }
+            })
+        ).rejects.toThrow('not authorized')
+        await expect(
+            service.createGame({
                 definition: SyntheticDefinition,
                 game,
-                owner: admin,
+                owner: administering,
                 options: { masterSeed }
             })
         ).rejects.toThrow('does not support')
@@ -149,7 +160,11 @@ describe('hosted reproduction seeds', () => {
         const write = vi
             .spyOn(store, 'updateGame')
             .mockImplementation(async ({ fields }) => [{ ...game, ...fields }, [], game])
-        const started = await service.startGame({ definition, gameId: game.id, user: admin })
+        const started = await service.startGame({
+            definition,
+            gameId: game.id,
+            principal: ordinaryPrincipal(admin)
+        })
         expect(write.mock.calls[0]?.[0].fields.seed).toBe(deriveGameSeeds(masterSeed).publicSeed)
         expect(started.protectedInformation).toBe(true)
         expect(write.mock.calls[0]?.[0].fields.protectedInformation).toBe(true)
@@ -173,7 +188,11 @@ describe('hosted reproduction seeds', () => {
             const write = vi
                 .spyOn(store, 'updateGame')
                 .mockImplementation(async ({ fields }) => [{ ...game, ...fields }, [], game])
-            const started = await service.startGame({ definition, gameId: game.id, user: admin })
+            const started = await service.startGame({
+                definition,
+                gameId: game.id,
+                principal: ordinaryPrincipal(admin)
+            })
             expect(started.protectedInformation).toBe(protectedInformation)
             expect(read).not.toHaveBeenCalled()
             expect(write.mock.calls[0]?.[0].fields).not.toHaveProperty('state')

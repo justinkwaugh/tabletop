@@ -1,5 +1,14 @@
 import fastifyAuth from '@fastify/auth'
-import { PlayerStatus, Role, type Game, type User, UserStatus } from '@tabletop/common'
+import {
+    PlayerStatus,
+    Role,
+    type Game,
+    type Principal,
+    type User,
+    UserStatus,
+    ordinaryPrincipal
+} from '@tabletop/common'
+import { authorizedAs } from '../../../tests/principalFixture.js'
 import Fastify from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import updateRoute from './update.js'
@@ -15,12 +24,10 @@ async function createServer() {
     const server = Fastify()
     await server.register(fastifyAuth)
 
-    Reflect.set(server, 'verifyUser', async (request: { user?: User }) => {
-        request.user = user
-    })
+    Reflect.set(server, 'verifyUser', authorizedAs(ordinaryPrincipal(user)))
 
     const updateGame = vi.fn(
-        async (_update: { gameId: string; fields: Partial<Game>; user: User }) => ({
+        async (_update: { gameId: string; fields: Partial<Game>; principal: Principal }) => ({
             id: 'game-1'
         })
     )

@@ -9,6 +9,8 @@ import {
 import {
     TokenService,
     MemoryTokenStore,
+    RealtimeControl,
+    type RealtimeRevocation,
     UpdateValidationResult,
     type StoredUser,
     type TaskService,
@@ -18,6 +20,16 @@ import {
 import { replyStatusCode } from '../lib/errorStatusCode.js'
 
 export const ORIGINAL_PASSWORD = 'original-password-value'
+
+export function recordingRealtime() {
+    const revocations: RealtimeRevocation[] = []
+    const realtimeControl = new RealtimeControl({
+        publishMessage: async ({ message }) => {
+            revocations.push(JSON.parse(message))
+        }
+    })
+    return { realtimeControl, revocations }
+}
 
 // The same error shape the application error handler sends, so specs can read error names
 export function apiErrorShape(server: FastifyInstance): void {

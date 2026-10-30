@@ -76,6 +76,7 @@ export default async function (fastify: FastifyInstance) {
                 proof: { authenticatedAt: session.authenticatedAt },
                 sessions: fastify.sessionService
             })
+            await fastify.realtimeControl.revokeAccount(user.id)
             return { status: 'ok', payload: { user } }
         }
     )
