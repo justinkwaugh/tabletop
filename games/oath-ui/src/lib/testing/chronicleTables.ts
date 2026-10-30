@@ -24,6 +24,7 @@ import {
     HydratedOathGameState,
     IMPERIAL_WARBANDS,
     MachineState,
+    OathRevision,
     OathType,
     OfferChronicleCitizenship,
     PRINTED_DENIZENS_BY_SUIT,
@@ -75,6 +76,7 @@ export const FAE_MERCHANT = 'denizen.beast.fae-merchant'
 export const ALCHEMIST = 'denizen.arcane.alchemist'
 export const GREAT_SPIRE = 'edifice.arcane.great-spire'
 export const SPRAWLING_RAMPART = 'edifice.order.sprawling-rampart'
+export const SALT_THE_EARTH = 'denizen.discord.salt-the-earth'
 
 const TABLE: TableRecord = {
     name: 'Thursday table',
@@ -229,8 +231,13 @@ export function gameOneAt(step: GameOneStep): PlayedTable {
  * the Chancellor; Rhys (red) an Exile. Purple holds Plains, Ancient City and Steppe, so Ann rules
  * them (R-6.6.3); red River and Lush Coast. Ann's faceup advisers are one Order and one Hearth.
  * `ruin`: the Great Spire stands ruined at Steppe. `record`: the entries game 2 carried in.
+ * `salted`: the Drowned City holds Salt the Earth, capacity 1, in Steppe's place, at that revision.
  */
-function gameTwoEnd(ruin: boolean, record?: ChronicleEntry[]): HydratedOathGameState {
+function gameTwoEnd(
+    ruin: boolean,
+    record?: ChronicleEntry[],
+    salted?: OathRevision
+): HydratedOathGameState {
     const state = atTheEnd(
         [
             seat(DANA, Color.Purple, PlayerStatus.Chancellor, {
@@ -257,7 +264,7 @@ function gameTwoEnd(ruin: boolean, record?: ChronicleEntry[]): HydratedOathGameS
                 [CRADLE_1]: 'site.plains',
                 [CRADLE_2]: 'site.ancient-city',
                 [PROVINCES_1]: 'site.river',
-                [PROVINCES_2]: 'site.steppe',
+                [PROVINCES_2]: salted === undefined ? 'site.steppe' : 'site.drowned-city',
                 [PROVINCES_3]: 'site.deep-woods',
                 [HINTERLAND_1]: 'site.mountain',
                 [HINTERLAND_2]: 'site.lush-coast'
@@ -266,11 +273,19 @@ function gameTwoEnd(ruin: boolean, record?: ChronicleEntry[]): HydratedOathGameS
                 [CRADLE_1]: [LONGBOWS, HERALD],
                 [CRADLE_2]: [FAE_MERCHANT],
                 [PROVINCES_1]: ['denizen.discord.charlatan'],
-                [PROVINCES_2]: ruin ? [GREAT_SPIRE, ALCHEMIST] : [ALCHEMIST],
+                [PROVINCES_2]:
+                    salted !== undefined
+                        ? [SALT_THE_EARTH]
+                        : ruin
+                          ? [GREAT_SPIRE, ALCHEMIST]
+                          : [ALCHEMIST],
                 [PROVINCES_3]: ['denizen.beast.forest-council'],
                 [HINTERLAND_2]: ['denizen.order.toll-roads']
             },
             ...(ruin ? { ruinedEdificeIds: [GREAT_SPIRE] } : {}),
+            ...(salted === undefined
+                ? {}
+                : { oathRevision: salted, siteCapacityOverrides: { [PROVINCES_2]: 1 } }),
             warbandsBySite: {
                 [CRADLE_1]: { [IMPERIAL_WARBANDS]: 2 },
                 [CRADLE_2]: { [IMPERIAL_WARBANDS]: 1 },
@@ -359,6 +374,13 @@ export function gameTwoAt(
     ])
     // 'heal' waits on the tied stacks; 'story' on Ann's story.
     return chosen
+}
+
+/** Game 2's build at `revision`, with Salt the Earth on the Drowned City, which Ann rules: Ann has vowed Devotion. */
+export function gameTwoSaltedAtBuild(revision: OathRevision): PlayedTable {
+    return played(gameTwoWon(gameTwoEnd(false, [GAME_ONE_ENTRY], revision)), [
+        buildAction(ChooseOath, { playerId: ANN, oathType: OathType.Devotion })
+    ])
 }
 
 /**
