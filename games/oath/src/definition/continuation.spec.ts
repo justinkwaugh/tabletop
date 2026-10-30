@@ -7,6 +7,7 @@ import {
     PlayerStatus as SeatStatus,
     captureGameContinuation,
     latestPlayerUndoTarget,
+    reportGameProgress,
     type Game,
     type GameConfig,
     type GameContinuation,
@@ -21,6 +22,7 @@ import { buildAction } from '../testing/actions.js'
 import { seatIds, testGame } from '../testing/game.js'
 import { served, spectator } from '../testing/projection.js'
 import { openingCensus } from '../testing/chronicleWorld.js'
+import { playPassiveMove } from '../testing/playthrough.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import {
     Banner,
@@ -347,6 +349,29 @@ describe('the carried sites’ own facts', () => {
 describe('through the platform, as Continue opens it', () => {
     it('Oath supports continuation through defineGame’s configured runtime', () => {
         expect(Definition.runtime.initializer.supportsContinuation).toBe(true)
+    })
+
+    it('Game Progress: the finished game stays complete, and the next opens at its first round through setup', () => {
+        const previous = finished()
+        expect(reportGameProgress(Definition.runtime, previous)).toEqual({
+            fraction: 1,
+            label: 'Chronicle',
+            final: true
+        })
+        const game = nextGame([DANA, RHYS, ANN])
+        const { startedGame, initialState } = new GameEngine(Definition.runtime).startGame(game, {
+            masterSeed: SEED,
+            continuation: continuationOf(previous)
+        })
+        const opening = { fraction: 0, label: 'Round 1 of 8' }
+        expect(startedGame.progress).toEqual(opening)
+        let state = initialState
+        while (state.machineState === MachineState.Setup) {
+            expect(reportGameProgress(Definition.runtime, state)).toEqual(opening)
+            state = playPassiveMove(game, state)
+        }
+        expect(state.chronicle).toBeUndefined()
+        expect(reportGameProgress(Definition.runtime, state)?.label).toBe('Round 1 of 8')
     })
 
     it('hosted: each player matched by account, whatever their id or place in the list', () => {
