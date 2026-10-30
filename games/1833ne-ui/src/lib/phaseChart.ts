@@ -1,5 +1,5 @@
 import { createPhaseChart } from '@tabletop/18xx-ui'
-import { Phases1833NE, TrainDepot1833NE } from '@tabletop/1833ne'
+import { Phases1833NE, TrainDepot1833NE, phaseTrainLimit, type State1833NE } from '@tabletop/1833ne'
 
 const phaseOut = (trains: string, phase: string, removal: string) =>
     `${trains} trains are phased out in phase ${phase}: they run once more and leave, and any left are removed in phase ${removal}.`
@@ -27,3 +27,20 @@ export const PhaseChart1833NE = createPhaseChart({
         'An N/M train counts N of the M stops it visits, one of them its token. An N+s train visits N stops and up to s more small cities.'
     ]
 })
+
+/** The Takeover game's lower limits from phase III, before each corporation's takeovers (§6.82). */
+export const TakeoverPhaseChart1833NE = {
+    ...PhaseChart1833NE,
+    phases: PhaseChart1833NE.phases.map((phase) => ({
+        ...phase,
+        trainLimit: phaseTrainLimit(phase.id, true)
+    })),
+    notes: [
+        ...PhaseChart1833NE.notes,
+        'Takeover game: a corporation’s train limit is one higher for each takeover it has done. Phase II and later: Variable Start railroads may start, and takeovers follow each second operating round.'
+    ]
+}
+
+export function phaseChartFor1833NE(state: State1833NE) {
+    return state.takeoverGame ? TakeoverPhaseChart1833NE : PhaseChart1833NE
+}

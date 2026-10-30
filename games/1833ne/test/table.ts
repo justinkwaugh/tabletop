@@ -10,7 +10,7 @@ import { Definition } from '../src/definition/gameDefinition.js'
 import type { HydratedState1833NE, State1833NE } from '../src/state.js'
 
 /** A game driven Action by Action as its active player, checking canonical state after each. */
-export function table(count = 4, seed = 7) {
+export function table(count = 4, seed = 7, config?: Record<string, boolean>) {
     const runtime = Definition.runtime
     const engine = new GameEngine<State1833NE, HydratedState1833NE>(runtime)
     const game: Game = runtime.initializer.initializeGame(
@@ -19,6 +19,7 @@ export function table(count = 4, seed = 7) {
             typeId: '1833ne',
             ownerId: 'p1',
             seed,
+            ...(config ? { config } : {}),
             players: Array.from({ length: count }, (_, index) => ({
                 id: `p${index + 1}`,
                 userId: `p${index + 1}`,

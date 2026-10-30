@@ -276,10 +276,23 @@
                                 </button>
                             {/each}
                         </div>
-                        {#if session.stock.selectedStartCompany}
+                        {#if session.stock.selectedStartCompany && session.stock.awaitingStartHome}
+                            <p class="start-home">
+                                Choose a highlighted city on the map for {session.companyName(
+                                    session.stock.selectedStartCompany.companyId
+                                )}’s home.
+                            </p>
+                        {:else if session.stock.selectedStartCompany}
                             {@const sharesToFloat = session.sharesToFloat(
                                 session.stock.selectedStartCompany.companyId
                             )}
+                            {@const home = session.stock.selectedStartHomeChoice}
+                            {#if home}
+                                <p class="start-home">
+                                    Home: {session.placeName(home.locationId)}, {money(home.cost)} from
+                                    its treasury
+                                </p>
+                            {/if}
                             <div class="choices par-choices">
                                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                                     {#if price.result.details}

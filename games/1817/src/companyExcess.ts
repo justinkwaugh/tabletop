@@ -15,8 +15,11 @@ import {
     type HydratedGameState,
     type MachineContext
 } from '@tabletop/common'
-import { DeparturePayments, discardTrainToMarket, EighteenXXPlayerAction } from '@tabletop/18xx'
-import { EighteenSeventeenTrainRules } from './trains.js'
+import {
+    EighteenXXPlayerAction,
+    HydratedDiscardMergedTrain,
+    type MergedTrainDiscardRules
+} from '@tabletop/18xx'
 import { stateAfterAcquisition } from './acquisitionRound.js'
 import { stateAfterConversion } from './mergerRound.js'
 import { discardableTrains, presidentOf, removableStations, trimStations } from './mergerRules.js'
@@ -111,69 +114,21 @@ export class HydratedRemoveStation
     }
 }
 
-export const DiscardMergedTrain = Type.Object(
-    {
-        ...CompanyFields,
-        type: Type.Literal('DiscardMergedTrain'),
-        trainId: Type.String(),
-        metadata: Type.Optional(
-            Type.Object({ departurePayments: DeparturePayments }, { additionalProperties: false })
-        )
-    },
-    { additionalProperties: false }
-)
-export type DiscardMergedTrain = Type.Static<typeof DiscardMergedTrain>
-const DiscardValidator = Compile(DiscardMergedTrain)
-export function isDiscardMergedTrain(action: GameAction): action is DiscardMergedTrain {
-    return (
-        action instanceof HydratedDiscardMergedTrain ||
-        (action.type === 'DiscardMergedTrain' && DiscardValidator.Check(action))
-    )
-}
-export class HydratedDiscardMergedTrain
-    extends HydratableAction<typeof DiscardMergedTrain>
-    implements DiscardMergedTrain
-{
-    declare type: 'DiscardMergedTrain'
-    declare playerId: string
-    declare companyId: string
-    declare trainId: string
-    declare metadata?: DiscardMergedTrain['metadata']
-    constructor(data: DiscardMergedTrain) {
-        super(
-            data instanceof HydratedDiscardMergedTrain ? data.dehydrate() : data,
-            DiscardValidator
-        )
-    }
-    isValidFor(state: EighteenSeventeenState): boolean {
-        return (
-            state.machineState === 'DiscardingMergedTrains' &&
-            excessCompanyFor(state, this.playerId) === this.companyId &&
-            discardableTrains(state, this.companyId).some((train) => train.id === this.trainId)
-        )
-    }
-    apply(state: State): void {
-        assert(
-            this.source === ActionSource.User && this.isValidFor(state),
-            'Only the president of the company over its limit discards its trains'
-        )
-        const payments = discardTrainToMarket(
-            state,
-            EighteenSeventeenTrainRules,
-            this.companyId,
-            this.trainId
-        )
-        if (payments.length) this.metadata = { departurePayments: payments }
+/** The president of the company over its train limit discards its trains. */
+export const MergedTrainDiscards1817: MergedTrainDiscardRules<EighteenSeventeenState> = {
+    discards(state, playerId) {
+        if (state.machineState !== 'DiscardingMergedTrains') return undefined
+        const companyId = excessCompanyFor(state, playerId)
+        const trains = companyId ? discardableTrains(state, companyId) : []
+        return companyId && trains.length ? { companyId, trains } : undefined
     }
 }
 
 /** The president resolves duplicate stations before station and train limits. */
 export class CompanyExcessHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
-        return action instanceof HydratedRemoveStation ||
-            action instanceof HydratedDiscardMergedTrain
-            ? action.isValidFor(context.gameState)
-            : false
+        if (action instanceof HydratedRemoveStation) return action.isValidFor(context.gameState)
+        return action instanceof HydratedDiscardMergedTrain && action.isValid(context.gameState)
     }
     validActionsForPlayer(playerId: string, context: Context): string[] {
         const companyId = excessCompanyFor(context.gameState, playerId)

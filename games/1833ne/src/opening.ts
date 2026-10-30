@@ -14,13 +14,14 @@ import {
     type OpeningSetup,
     type WaterfallAuctionRules
 } from '@tabletop/18xx'
-import { Charters1833NE, Corporations1833NE, Privates1833NE, StationCount } from './companies.js'
+import { Charters1833NE, Privates1833NE, StationCount, corporationIds } from './companies.js'
+import { GameConfig1833NE } from './definition/gameConfig.js'
 import { Map1833NE } from './map.js'
 import { PrivateCatalog1833NE } from './privates.js'
 import { MarketPoolId } from './stock.js'
 import { ReservedCitySpots } from './stations.js'
 import { TileSet1833NE } from './tiles.js'
-import { TrainDepot1833NE } from './trains.js'
+import { TakeoverDepot, TrainDepot1833NE } from './trains.js'
 import type { HydratedState1833NE, State1833NE } from './state.js'
 
 export const Bank1833NE = 10000
@@ -52,21 +53,19 @@ export function createOpening1833NE({
 }: OpeningSetup): Opening<typeof State1833NE, HydratedState1833NE> {
     assert(players.length >= 3 && players.length <= 5, '1833NE supports three to five players')
     const capital = startingCash1833NE({ playerCount: players.length, config })
+    const takeoverGame = GameConfig1833NE.takeoverGame(config)
+    const corporations = corporationIds(takeoverGame)
     const position: InitialPosition = {
         phaseId: 'I',
         stockMarket: { stacks: [] },
         bank: {},
         companies: [
-            ...Corporations1833NE.map((company) => ({
-                id: company.id,
-                kind: 'major',
-                started: false
-            })),
+            ...corporations.map((id) => ({ id, kind: 'major', started: false })),
             ...Privates1833NE.map((company) => ({ id: company.id, kind: 'private' }))
         ],
         certificatePools: [
             { id: MarketPoolId, owner: { kind: 'bank' } },
-            ...Corporations1833NE.map((company) => treasuryPool(company.id))
+            ...corporations.map((id) => treasuryPool(id))
         ],
         cash: [
             { owner: { kind: 'bank' }, amount: Bank1833NE - players.length * capital },
@@ -74,19 +73,19 @@ export function createOpening1833NE({
                 owner: { kind: 'player' as const, playerId: player.playerId },
                 amount: capital
             })),
-            ...Corporations1833NE.map((company) => ({
-                owner: { kind: 'company' as const, companyId: company.id },
+            ...corporations.map((companyId) => ({
+                owner: { kind: 'company' as const, companyId },
                 amount: 0
             }))
         ],
         certificates: [
-            ...Corporations1833NE.flatMap((company) => {
+            ...corporations.flatMap((companyId) => {
                 const treasury = {
-                    owner: { kind: 'company' as const, companyId: company.id },
-                    poolId: treasuryPoolId(company.id)
+                    owner: { kind: 'company' as const, companyId },
+                    poolId: treasuryPoolId(companyId)
                 }
                 return createOrdinaryShareCertificates(
-                    company.id,
+                    companyId,
                     Array.from({ length: 8 }, () => treasury),
                     treasury
                 )
@@ -98,16 +97,18 @@ export function createOpening1833NE({
                 owner: { kind: 'bank' as const }
             }))
         ],
-        stations: Corporations1833NE.flatMap((company) =>
-            createCompanyStations(company.id, StationCount)
-        ),
+        stations: corporations.flatMap((id) => createCompanyStations(id, StationCount)),
         stationReservations: [...Map1833NE.stationReservations(), ...ReservedCitySpots],
         tileInventory: TileSet1833NE.createInventory(),
-        trainInventory: TrainDepot1833NE.createInventory()
+        trainInventory: TrainDepot1833NE.createInventory(takeoverGame ? TakeoverDepot : undefined)
     }
     return {
         position,
-        titleState: { ferries: [], spikeLayers: [] },
+        titleState: {
+            ferries: [],
+            spikeLayers: [],
+            ...(takeoverGame ? { takeoverGame: true as const, takeovers: [] } : {})
+        },
         begin: beginWaterfallAuction(AuctionRules1833NE, startingPositions)
     }
 }

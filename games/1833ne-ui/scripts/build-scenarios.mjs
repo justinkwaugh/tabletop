@@ -9,6 +9,7 @@ import { StationPlacement, TrackConstruction, TrainPurchase } from '@tabletop/18
 import {
     Definition,
     Market1833NE,
+    TrainDepot1833NE,
     Privates1833NE,
     StationRules1833NE,
     TileSet1833NE,
@@ -20,7 +21,7 @@ const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'scenario
 const SEED = 7
 const runtime = Definition.runtime
 
-function start() {
+function start(config) {
     const engine = new GameEngine(runtime)
     const prepared = runtime.initializer.initializeGame(
         {
@@ -28,6 +29,7 @@ function start() {
             typeId: '1833ne',
             ownerId: 'p1',
             seed: SEED,
+            ...(config ? { config } : {}),
             players: Array.from({ length: 4 }, (_, index) => ({
                 id: `p${index + 1}`,
                 userId: `p${index + 1}`,
@@ -204,6 +206,80 @@ function interconnectionToBoston() {
     return position
 }
 
+function setTreasury(position, companyId, amount) {
+    const account = position.state.cash.find(
+        (entry) => entry.owner.kind === 'company' && entry.owner.companyId === companyId
+    )
+    const bank = position.state.cash.find((entry) => entry.owner.kind === 'bank')
+    bank.amount -= amount - account.amount
+    account.amount = amount
+}
+
+const operatingCompany = (state) =>
+    state.trackStep?.companyId ??
+    state.routeStep?.companyId ??
+    state.earningsStep?.companyId ??
+    state.trainPurchaseStep?.companyId
+
+/** Plays the rest of the set's turns without runs, withholding. */
+function finishSet(position) {
+    for (let companyId = operatingCompany(position.state); companyId;) {
+        const state = position.state
+        if (state.machineState === 'LayingTrack') play(position, 'FinishTrack', { companyId })
+        else if (state.machineState === 'RunningTrains')
+            play(position, 'RunTrains', { companyId, routes: [] })
+        else if (state.machineState === 'DistributingEarnings')
+            play(position, 'DistributeEarnings', { companyId, choice: 'withhold' })
+        else play(position, 'FinishOperatingTurn', { companyId })
+        companyId = operatingCompany(position.state)
+    }
+}
+
+/**
+ * The Takeover game's example (p. 15), in outline: Player 2 launches the B&W and Player 3 the
+ * Hartford, joined west of Boston; the phase I trains sell out and the B&W has a 3/5 when OR2
+ * ends, so the takeover step follows.
+ */
+function takeoverStep() {
+    const position = start({ takeover: true })
+    for (const company of Privates1833NE)
+        play(position, 'BuyAuctionLot', { lotId: company.id, expectedPrice: company.faceValue })
+    launch(position, 'B&W', 80)
+    play(position, 'FinishStockTurn')
+    launch(position, 'HR', 40)
+    while (position.state.machineState === 'StockRound') play(position, 'FinishStockTurn')
+    setTreasury(position, 'HR', 200)
+    lay(position, 'D23', '18xx:9', [1, 4])
+    play(position, 'FinishTrack', { companyId: 'HR' })
+    buyTrain(position, '2')
+    finishTurn(position, 'HR')
+    lay(position, 'F23', '18xx:58', [2, 4])
+    lay(position, 'E22', '18xx:6', [5, 1])
+    play(position, 'FinishTrack', { companyId: 'B&W' })
+    buyTrain(position, '2+1')
+    finishTurn(position, 'B&W')
+    const state = position.state
+    state.phaseId = 'II'
+    while (TrainDepot1833NE.remaining(state.trainInventory, '2') !== 0)
+        TrainDepot1833NE.export(state.trainInventory, '2')
+    const train = TrainDepot1833NE.nextTrain(state.trainInventory, '3/5')
+    TrainDepot1833NE.purchase(state.trainInventory, train.id, '3/5', {
+        kind: 'company',
+        companyId: 'B&W'
+    })
+    setTreasury(position, 'B&W', 100)
+    finishSet(position)
+    return position
+}
+
+/** After the takeover step both pass, and the second stock round opens in phase II. */
+function variableStart() {
+    const position = takeoverStep()
+    play(position, 'PassTakeover', { companyId: 'B&W' })
+    play(position, 'PassTakeover', { companyId: 'HR' })
+    return position
+}
+
 function write(slug, name, { game, state }) {
     const file = startingPositionFile({ slug, name, game, state })
     writeFileSync(join(OUT, file.fileName), file.contents)
@@ -213,3 +289,5 @@ mkdirSync(OUT, { recursive: true })
 write('first-operating-round', 'First operating round', firstOperatingRound())
 write('ferries-in-the-second-round', 'Ferries in the second round', secondOperatingRound())
 write('interconnection-to-boston', 'Interconnection to Boston', interconnectionToBoston())
+write('takeover-step', 'Takeover step', takeoverStep())
+write('variable-start-railroads', 'Variable Start railroads', variableStart())

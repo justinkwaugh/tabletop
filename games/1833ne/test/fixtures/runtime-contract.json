@@ -1,6 +1,7 @@
 {
   "actionSchemaDigests": {
     "AdvancePhase": "50b97eee115bd31b0d245cf2877505da2dc30df6d3071d2eabe2a436fb22f25a",
+    "AnswerTakeover": "a87a8e015cd3bd1b57d36c45147343a812974e5e089e2baddb80dcf237e96cf4",
     "AssignLuxuryFerry": "134271b0dabfad3c3b0a1d59403606fa72ee721bacf12e9ed1abe1ffd3b13eb7",
     "BuyAuctionLot": "df80f4b640533164abba9db13143745a1855e1b333d6df8899119feef8a2ed9b",
     "BuyFerry": "ff6a5607ecddc0c0ed9b5587f88287b2c5c4da681a29916f639fa6884e619f19",
@@ -15,9 +16,11 @@
     "CorporateFinance": "3bde49d283bb67f4cc501080324f37e99f25340ac0b810ec1d588b549dc31398",
     "DeclareBankruptcy": "e3c3bf27e3f255ea9251723e3280ce9fe1b7b6b60638c004bb834126207aabe0",
     "DeclinePrivateTile": "9d347b9c716993c5f027fe1e6acdc8e0f4d65d71d9a74d391e40d06e1f6115dd",
+    "DiscardMergedTrain": "9a85475c4dda87b8ec4a6ee919d11f06e3a95385da0755359a70be39d16ba95a",
     "DiscardTrain": "5d1a970100fabffbe644562b9d090a757dc8600817bcace18db3ee3e5537bf13",
     "DistributeEarnings": "6e8cc02305a328ea8536f0a64e471b0aa9c529dfad9bcd54b79abae8200a5d23",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
+    "EndTakeoverStep": "32d4072fd0bab88a1f3f5bcac1d3ad9cce19d526f9f991903db69b7fd6661f4c",
     "ExchangePrivate": "76b79fb406c20ba82571b7229e89be58c907d89279e82a4ca1f2dd5f2dca21ab",
     "ExchangePrivateOutOfTurn": "ac5fa669747210a6c4d990a38a28b7702706544803b33f82d100e4160efa5685",
     "FinishOperatingTurn": "ed2e5d16e5d43034d795bf090e4191321de52f53c29e8dfd2a2bf6055b8363e1",
@@ -31,7 +34,9 @@
     "LayPrivateTileOutOfTurn": "0efef215e5b2359eeaaf73fb4383f73be0d95a9e64e497ac8d69ba359784c1b8",
     "LayTile": "174dc0d6144f117b548a9b4dee01e7434e13d0e7c43c35877dba1bfb41bcd172",
     "OfferPurchase": "f7caacc23e89f905a0e2ce7d92d19ebe53eccb67a00217c020476a772abc61ec",
+    "OfferTakeover": "9b7e33b079d3a7a93cb1733203456cc2f094fc600a639c706a1bc301ad11b61f",
     "PassAuction": "8f80db14291be75adbc7a2ac100d007b389a0f925a9bdca6308769d9b093ec87",
+    "PassTakeover": "ad12232eca7124e8ea122b180acf3065a5dba3d1e42f9dc009b3c06e233a1b1a",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
     "PlaceStation": "642f3ab37cd70c2294fd3704f13f035b5678061c83c47ab5318f791c9d8cfee1",
     "RaiseAuctionBid": "b7a3c42f3ba48036ce2e086754d8e398190b772e6d4dc7c3d2f380d626b4941e",
@@ -49,11 +54,12 @@
     "SetRunInstructionStops": "f01dcdba5d0007e117089cba572ff07cbe68c2f5ee65a2ff95c34a2f9968689a",
     "SetStockInstruction": "f9e0135eb86ac336732583b340948e7cab9329226323428ec0d39aca77037ae5",
     "SetStockInstructionStops": "724aa6a19020cdd568fefb89be3f6a307970bbd79977565045d21485eec2a1df",
-    "StartCompany": "d503f9c1dca4fbd0648f7f1d2006b88a7518402c5422eca316d16d79860e1db7",
+    "StartCompany": "47a6be63272f16b03da62bcc77e5f27d2056f9a7c10eaf3d88dad21a58d9ab91",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
     "StartStockRound": "34c29c0862740d39c48906e26c643428eba3c9bd284795e5322a156118e878d5",
+    "StartTakeoverStep": "3f3b41650bac2893f2575a1734c150ef31d267e454beeed6f1eef71c5342f235",
     "StopRunInstruction": "7dcf5bbf14792352693bd5f3a98620696252e9bd57da315c4dea3595e33f4fd2",
     "StopStockInstruction": "78a2288c361e0ab3de8d2919d4ceaab5cc933ba29512128afba3b4ef9512d1a2"
   },
@@ -1424,6 +1430,10 @@
           },
           {
             "const": "RustingTrains",
+            "type": "string"
+          },
+          {
+            "const": "TakingOver",
             "type": "string"
           }
         ]
@@ -3509,6 +3519,149 @@
       "systemVersion": {
         "type": "number"
       },
+      "takeoverGame": {
+        "const": true,
+        "type": "boolean"
+      },
+      "takeovers": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "acquirerId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "targetId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "acquirerId",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "takeoverSet": {
+        "minimum": 1,
+        "type": "integer"
+      },
+      "takeoverStep": {
+        "additionalProperties": false,
+        "properties": {
+          "companyIds": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "discardCompanyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "offer": {
+            "additionalProperties": false,
+            "properties": {
+              "companyId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "swaps": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "holder": {
+                      "anyOf": [
+                        {
+                          "anyOf": [
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "player",
+                                  "type": "string"
+                                },
+                                "playerId": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "playerId"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "companyId": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "const": "company",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "companyId",
+                                "kind"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "bank",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "shares": {
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "holder",
+                    "shares"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "targetId": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "companyId",
+              "swaps",
+              "targetId"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "companyIds"
+        ],
+        "type": "object"
+      },
       "tileInventory": {
         "additionalProperties": false,
         "properties": {
@@ -4096,6 +4249,7 @@
     "RustingTrains",
     "StartingOperatingSet",
     "StockRound",
+    "TakingOver",
     "WaterfallAuction"
   ]
 }

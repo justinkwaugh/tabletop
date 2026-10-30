@@ -11,6 +11,7 @@ import { TileSet1833NE } from './tiles.js'
 import { Market1833NE } from './stock.js'
 import { TrainRetirementRules } from './trains.js'
 import { FerryBonusMarker, OwnedFerry, type FerryState } from './ferries.js'
+import { holdsRightsOf } from './takeoverState.js'
 
 /**
  * The B&W's spot in Worcester and the B&P's in Boston's green tile, kept from others until
@@ -30,8 +31,10 @@ export const StationRules1833NE: StationRules = {
     tileSet: TileSet1833NE,
     pendingHomes: () => [],
     placementLimit: () => 1,
-    placementCost(_state, _stationId, context) {
-        return context?.companyId === 'B&W' && context.position.locationId === Places.worcester
+    placementCost(state, _stationId, context) {
+        return context &&
+            holdsRightsOf(state, context.companyId, 'B&W') &&
+            context.position.locationId === Places.worcester
             ? WorcesterCost
             : StationCost
     }
@@ -64,11 +67,12 @@ export const PhaseRules1833NE: PhaseRules = {
             const removedFerryBonus = state.ferryBonus
             state.ferries = []
             delete state.ferryBonus
+            // A taken-over corporation's spot is its acquirer's until then (§11.7).
             const removedReservations = state.stationReservations.filter((reservation) =>
                 ReservedCitySpots.some(
                     (spot) =>
-                        spot.companyId === reservation.companyId &&
-                        spot.locationId === reservation.locationId
+                        spot.locationId === reservation.locationId &&
+                        spot.nodeId === reservation.nodeId
                 )
             )
             state.stationReservations = state.stationReservations.filter(

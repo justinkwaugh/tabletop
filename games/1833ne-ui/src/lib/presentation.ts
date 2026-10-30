@@ -7,6 +7,8 @@ import {
     FirstRoundReservedHexes,
     MarketZones1833NE,
     Phases1833NE,
+    isEndTakeoverStep,
+    isStartTakeoverStep,
     type State1833NE,
     TitleRules1833NE
 } from '@tabletop/1833ne'
@@ -18,7 +20,7 @@ import {
 } from '@tabletop/18xx-ui'
 import { FerryArt, LuxuryFerryArt } from './ferryArt.js'
 import { CompanyNames1833NE } from './companyPresentation.js'
-import { PhaseChart1833NE } from './phaseChart.js'
+import { PhaseChart1833NE, phaseChartFor1833NE } from './phaseChart.js'
 import { PhaseColors1833NE, TrainColors1833NE } from './trainPresentation.js'
 
 const Money = moneyFormat(TitleRules1833NE.currencySymbol)
@@ -30,12 +32,25 @@ export const Presentation1833NE: TitlePresentation<State1833NE> = {
     trainColors: TrainColors1833NE,
     phaseColors: PhaseColors1833NE,
     phaseChart: PhaseChart1833NE,
+    phaseChartFor: phaseChartFor1833NE,
     markerArtFor: playedMarkerArt,
-    companyMarks: ferryMarks,
+    companyMarks: (state, companyId) => [
+        ...ferryMarks(state, companyId),
+        ...takeoverMarks(state, companyId)
+    ],
     // Phase III flips the privates corporations hold: no more income, abilities kept (§9).
     privateStatus: (state) =>
         Phases1833NE.isAtLeast(state.phaseId, 'III') ? 'Flipped' : undefined,
     privatePurchaseHeading: 'Available privates',
+    titleRounds: [
+        {
+            name: 'Takeover step',
+            abbreviation: 'TO',
+            inProgress: (state) => !!state.takeoverStep,
+            starts: isStartTakeoverStep,
+            ends: isEndTakeoverStep
+        }
+    ],
     privateTilePrompts: { P3: 'Lay free tiles in St. Jean (C4) and C6' },
     marketCell: { width: 36, height: 96 },
     marketZones: [
@@ -141,4 +156,14 @@ function ferryMarks(state: State1833NE, companyId: string): CompanyMark[] {
                     : [])
             ]
         })
+}
+
+/** The mats of the corporations it took over, tucked behind its own (§11.5.4). */
+function takeoverMarks(state: State1833NE, companyId: string): CompanyMark[] {
+    return (state.takeovers ?? [])
+        .filter((takeover) => takeover.acquirerId === companyId)
+        .map((takeover) => ({
+            label: CompanyNames1833NE[takeover.targetId].initials,
+            description: `Took over the ${CompanyNames1833NE[takeover.targetId].full}: one more train, and its reserved spaces and discounts`
+        }))
 }

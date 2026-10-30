@@ -1,6 +1,6 @@
 {
   "actionSchemaDigests": {
-    "AcquireCompany": "5313c1ad31b8f238509f7e5cd156f9e9f849310d04fe8c7ce30a0b9bc37e6653",
+    "AcquireCompany": "986bc269eb6da810ab85c7bbcae9908547df75ebc3e6495784f3b137d9af86db",
     "AdvancePhase": "013a149f604147b529e1bc9ee94806b4697070f2d18e1e1a15c0a4d9c2fbc0c6",
     "AuctionCompany": "10734b645bee30ed32f614c73bc170b9c330545fcb0f6735b7e65fe4b6228c4f",
     "BidForCompany": "00e229954b1cd5541f49a62da3ba6574f56a252c9dd3619a2c1fe64d48b46b9c",
@@ -45,7 +45,7 @@
     "LayPrivateTile": "1404c555285a822cb1983d86deb8ec815c268ee852f6f6809c549414c55207c5",
     "LayTile": "174dc0d6144f117b548a9b4dee01e7434e13d0e7c43c35877dba1bfb41bcd172",
     "LiquidateCompany": "62319e8597d96c810a27cc70db0d00fca760500bde8cdcfcfc09dca32045dfc3",
-    "MergeCompanies": "6bc94eaeebd3d4992cac9c3fcb7ed700248d21ddb88cdfe1a90404a0446efc6b",
+    "MergeCompanies": "88e57b6725942a4c3bf36772f00e3e9b6afdadc327ec1bca723a7197437086d4",
     "NominateLot": "74f86095aacba94aa5304cd2729b21aeef0fc5fefef5a09a3485f089c7d9a765",
     "OfferCompany": "46e5769e0d319cd5cbd94ecbfe6d0bf7bd2bf9a28fd3f590e2211951d74db987",
     "OfferPurchase": "f7caacc23e89f905a0e2ce7d92d19ebe53eccb67a00217c020476a772abc61ec",
@@ -80,7 +80,7 @@
     "ShortShare": "216a256c036318c0c0c9778f11f832c1fa98b87bf6567d401a3d3bd312a93432",
     "SkipCompanySale": "c477b0804b42f31b194672a2a080683065938d4bd037adfbec47a6bba6f81a07",
     "StartAcquisitionRound": "65ae9860c83b368e1609b9f2ae1ef1101f9e15536b87e201918d2534250e8f33",
-    "StartCompany": "d503f9c1dca4fbd0648f7f1d2006b88a7518402c5422eca316d16d79860e1db7",
+    "StartCompany": "47a6be63272f16b03da62bcc77e5f27d2056f9a7c10eaf3d88dad21a58d9ab91",
     "StartMergerRound": "6ac2ea9acde1449a22f4add9d41b850ab2baac0af212bd6d3a275b1ef6e629be",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",

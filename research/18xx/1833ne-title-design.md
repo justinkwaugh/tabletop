@@ -36,8 +36,10 @@ counter sheet or corporate mats are available beyond what the rulebook pictures 
   (2026-10-29): when Montreal and Portland are first joined by track, each of the two
   corporations that has launched and laid a yellow tile pays its president $100.
 - **Takeover game.** The five Variable Start corporations are not named in the rulebook
-  (the end-game spreadsheet example mentions "Era" and "B+M"), and their mats, token
-  counts and colours are not shown. See [Scope](#scope).
+  (the end-game spreadsheet example mentions "Era" and "B+M"), and their mats are not
+  shown. GMT's 2020 sample token sheet prints five tokens beyond the nine Standard
+  corporations: Boston and Maine, New York New Haven & Hartford, New Era, Uncertain
+  Prospects and LSL. The implementation uses those five; LSL's full name is unknown.
 
 ### Corrections to the research site's data
 
@@ -257,7 +259,99 @@ release is a major.
 
 ### Known limits
 
-- **Takeover game** not built (its five corporations are unidentified); deferred.
 - **Routes come from the autorouter only**, as for every 18xx table; the debug route builder
   can draw an extension by hand.
 - **Not yet in the 18xx playground or `games.json`**; the harness has three scenarios.
+
+## Takeover game (2026-10-30)
+
+The `takeover` game option (§2.4, §5.34, §6.82–6.83, §11).
+
+### Survey
+
+Family takeovers so far: 1832's takeover (§11.7 there) pays every outside share in cash at the
+market price, the buyer's president making up a shortfall by selling shares; 1817 and 1846
+acquire through acquisition rounds and private sales. 1833NE differs: shares are redeemed one
+for one with the acquirer's unissued shares or cash, at the acquirer president's choice; the
+target may refuse unless it is vulnerable; the acquirer's price moves one box toward the
+target's; tokens are replaced, duplicates and unplaced ones discarded. The shared pieces are
+`transferCompanyAssets`, `moveCompanyStations` (now with `duplicates: 'discard'`),
+`closeShareCompany`, `evaluatePresidency` and the `SystemActionFirstHandler` step pattern 1817
+and 1832 use; the step, offer and settlement are title-owned.
+
+**Home chosen at start.** The research traits record 35 titles under
+`home-establishment: eligible-location-choice` (`data/title-traits.json`, "Companies using
+the home-selection procedure"); the research snapshot lists 1833NE as `fixed-home` because it
+predates the Takeover game. Their variations:
+
+- _When the home is chosen._ As the company starts (1861, 1867 minors, 18USA, 18Hiawatha,
+  1877, 1817's family through its auction opening), or before its first operating turn
+  (1849's designated company, here `StationRules.homeChoice`, used by 1830's variant hook).
+- _Which cities._ Any tokenable city (1817, 18FR, 18USA), a listed candidate set (1824, 1837,
+  18Dixie, 18LosAngeles), cities on existing track (18Ireland, 1868WY), cities without other
+  tokens or unconnected ones (1861, 1867, 1807), regions by phase (1841, 18OE).
+- _Cost._ Free in every surveyed title but 1833NE, whose $80/$120 depends on the hex's track
+  and whose $120 home needs a starting price of at least $60.
+- _Counterexamples._ 18CZ and 1862 lay the home tile before choosing; 1858 and 18EU derive
+  the choice from a predecessor; 1817 chooses within an auction rather than at a price.
+
+`CompanyRules.startHomes(state, companyId, marketSpaceId)` returns the cities offered with
+their cost to the treasury. Keying it by the starting price covers 1833NE's price minimum; a
+cost of 0 covers the free titles; the city set is title policy. `StartCompany` carries an
+optional `home`, placed after the purchase and paid from the treasury. The stock round's Start
+menu asks for the home on the map before the price. **Limit:** a home tile laid as part of the
+start (18CZ, 1862) and predecessor-derived homes are not covered; 1817's auction keeps its own
+home stage. Every 18xx title's runtime contract changed (the `StartCompany` hash), so each
+title's next logic release is a major.
+
+The step's train turn-in is the family's `DiscardMergedTrain`, lifted from the copies 1817
+and 1832 had; each title supplies `MergedTrainDiscardRules` (whose discard is due, and what
+follows once the company is within its limit).
+
+### What is built
+
+- Five Variable Start railroads in the Takeover game, startable from phase II in any open city
+  spot: not reserved and not the home of a corporation yet to start. A home in a gray hex or a
+  hex without track costs $80, otherwise $120 with a starting price of at least $60.
+- Five phase IV trains; train limits 3/3/2/1/1, plus one per takeover the corporation has done.
+- The takeover step after the second operating round of each set from phase II, in stock price
+  order: `OfferTakeover` (target and swaps per holder), `AnswerTakeover`, `PassTakeover`,
+  `DiscardMergedTrain` for an acquirer over its new limit.
+- Settlement (§11.5): shares redeemed by swap or cash, presidency rechecked, price moved, tokens
+  replaced (duplicates and unplaced discarded), cash, trains, privates, ferries and station
+  access transferred, an unsold phase IV train removed on the 1st, 3rd, 5th takeover. The
+  certificate limit counts corporations not closed, so it drops a row with each takeover.
+- §11.6–11.7: the joint Sherbrooke token stays in place with the target's share passing to the
+  acquirer; reserved spaces, terrain discounts and the B&W's $40 Worcester token follow the
+  acquirer (`successorOf`, transitively).
+
+### Rulings (not settled by the rulebook)
+
+- A refused offer ends that corporation's attempt for the step (§11: "may attempt one
+  takeover").
+- The step's order is the stock price order when it begins.
+- A share in the Stock Market may be redeemed by swap; the acquirer's share then goes to the
+  Stock Market.
+- A target with no president (receivership) cannot refuse.
+- Only takeovers a corporation does itself raise its train limit; rights (§11.7) pass on
+  through later takeovers.
+- The golden spike payment does not pass to an acquirer.
+- No takeover step follows the last set: the game ends after the round sequence (§10.1).
+- No step is held when no corporation can attempt a takeover.
+- A corporation whose President certificate is in the Stock Market cannot attempt a takeover
+  (§7.4: it does not redeem shares).
+- When one player presides over both corporations, the offer needs no answer.
+- Sherbrooke's city spot is not offered as a Variable Start home: the joint token is placed
+  there free with the city's yellow tile (§6.53).
+
+### Verified by tests
+
+`src/takeovers.spec.ts`: the rulebook example played through the engine with its figures
+(B&W $80 with $40, Hartford $30 with $19, the president $126; after the takeover the B&W at
+$70 with 2, 2+1, 2+1 and 3/5, the president with 6 shares, the certificate limit 25 and a
+phase IV train removed). Two of the example's figures do not follow from its own: it gives the
+B&W "4 unissued shares, $69 cash" afterwards, where it had 4 and $40, swapped 2 and took the
+Hartford's $19 (2 and $59). Also: cash redemption, offer limits, refusal and acceptance,
+vulnerable targets, turning in trains, Variable Start homes and costs, train limits, and the
+joint token, reservations and discounts passing on. Harness scenarios: Takeover step, Variable
+Start railroads.

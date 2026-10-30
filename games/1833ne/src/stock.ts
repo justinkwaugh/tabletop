@@ -63,7 +63,7 @@ const Trading1833NE: TreasuryShareTrading = {
 
 export const StockRules1833NE: StockRules = treasuryShareStockRules(Trading1833NE)
 
-export const CompanyRules1833NE: CompanyRules = {
+export const StandardCompanyRules1833NE: CompanyRules = {
     ...treasuryShareCompanyRules(Trading1833NE, (id) => {
         const home = CorporationHomes[id]
         assertExists(home, 'A corporation has a home')

@@ -2,14 +2,19 @@ import { calculateHexGeometry, HexOrientation, type Point } from '@tabletop/comm
 import { FerryArt } from './ferryArt.js'
 import AStLToken from './images/tokens/AStL.png'
 import BLToken from './images/tokens/BL.png'
+import BMToken from './images/tokens/BM.png'
 import BPToken from './images/tokens/BP.png'
 import BWToken from './images/tokens/BW.png'
 import CVToken from './images/tokens/CV.png'
 import DHToken from './images/tokens/DH.png'
+import EraToken from './images/tokens/Era.png'
 import FRRToken from './images/tokens/FRR.png'
 import HRToken from './images/tokens/HR.png'
 import JointToken from './images/tokens/joint.png'
+import LSLToken from './images/tokens/LSL.png'
+import NYNHHToken from './images/tokens/NYNHH.png'
 import RRToken from './images/tokens/RR.png'
+import UPToken from './images/tokens/UP.png'
 import StLAToken from './images/tokens/StLA.png'
 import {
     JointTokenSource,
@@ -286,7 +291,12 @@ export const MapView1833NE: MapViewDefinition = {
         RR: { color: '#2f7146', label: 'Rut', imageUrl: RRToken },
         CV: { color: '#0095da', label: 'CV', imageUrl: CVToken },
         'StL&A': { color: '#f38221', label: 'StL&A', imageUrl: StLAToken },
-        'A&StL': { color: '#8d807d', label: 'A&StL', imageUrl: AStLToken }
+        'A&StL': { color: '#8d807d', label: 'A&StL', imageUrl: AStLToken },
+        'B&M': { color: '#76090f', label: 'B&M', imageUrl: BMToken },
+        'NYNH&H': { color: '#33ee33', label: 'NH', imageUrl: NYNHHToken },
+        Era: { color: '#a2633f', label: 'Era', imageUrl: EraToken },
+        UP: { color: '#ff0000', label: 'UP', imageUrl: UPToken },
+        LSL: { color: '#6a6afa', label: 'LSL', imageUrl: LSLToken }
     },
     // The St. Lawrence corporations' one Sherbrooke token prints both their marks (§6.53).
     sharedStations: {

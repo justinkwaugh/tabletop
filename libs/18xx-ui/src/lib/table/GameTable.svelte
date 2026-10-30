@@ -450,13 +450,7 @@
         wrapper.focusRect({ x, y, width: right - x, height: bottom - y }, { animate })
     }
     const consentPreview = $derived(session.gameState.trackConsent)
-    const offeredCityLocationIds = $derived(
-        session.stations.homeLocationIds.length
-            ? session.stations.homeLocationIds
-            : session.companyAuction.homeLocationIds.length
-              ? session.companyAuction.homeLocationIds
-              : session.stations.privateStationLocationIds
-    )
+    const offeredCityLocationIds = $derived(session.map.offeredCityLocationIds)
     const choosingCity = $derived(offeredCityLocationIds.length > 0)
     const locationChoice = $derived(session.mapLocationChoice)
     const powerReservations = $derived.by(() => {

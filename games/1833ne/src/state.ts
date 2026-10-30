@@ -10,11 +10,13 @@ import {
     defineEighteenXXState,
     validateRailwayState,
     validateWaterfallAuction,
+    type EighteenXXStateHandler,
     type HydratedEighteenXXState
 } from '@tabletop/18xx'
 import { FerryFields } from './ferries.js'
 import { PrivateFields1833NE } from './privates.js'
 import { TrackFields1833NE } from './track.js'
+import { TakeoverFields1833NE, TakingOverState } from './takeoverState.js'
 
 export const State1833NE = composeEighteenXXState(
     {
@@ -27,7 +29,8 @@ export const State1833NE = composeEighteenXXState(
         bankruptPlayerIds: CashCrisisFields.bankruptPlayerIds,
         ...FerryFields,
         ...TrackFields1833NE,
-        ...PrivateFields1833NE
+        ...PrivateFields1833NE,
+        ...TakeoverFields1833NE
     },
     [
         'WaterfallAuction',
@@ -44,11 +47,13 @@ export const State1833NE = composeEighteenXXState(
         'GameOver',
         'AdvancingPhase',
         'DiscardingTrains',
-        'RustingTrains'
+        'RustingTrains',
+        TakingOverState
     ]
 )
 export type State1833NE = Type.Static<typeof State1833NE>
 export type HydratedState1833NE = HydratedEighteenXXState<typeof State1833NE>
+export type StateHandler1833NE = EighteenXXStateHandler<HydratedState1833NE>
 export const StateDefinition1833NE = defineEighteenXXState(State1833NE, [
     validateRailwayState,
     validateWaterfallAuction

@@ -28,14 +28,22 @@ import {
     type ValuationRules,
     type ZeroPriceClosureRules
 } from '@tabletop/18xx'
-import { Charters1833NE, Corporations1833NE, Privates1833NE } from './companies.js'
+import {
+    Charters1833NE,
+    Corporations1833NE,
+    Privates1833NE,
+    VariableStartCorporations1833NE
+} from './companies.js'
 import { IssuingCorporations1833NE, Market1833NE, MarketPoolId, StockRules1833NE } from './stock.js'
 import { JointTokenSource } from './track.js'
 import { Phases1833NE } from './trains.js'
 
 export const Names1833NE = titleNames(
     Object.fromEntries([
-        ...Corporations1833NE.map((company) => [company.id, company.name]),
+        ...[...Corporations1833NE, ...VariableStartCorporations1833NE].map((company) => [
+            company.id,
+            company.name
+        ]),
         ...Privates1833NE.map((company) => [company.id, company.name])
     ]),
     (poolId) =>

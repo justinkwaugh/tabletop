@@ -155,6 +155,7 @@ export * from './phases/advancePhase.js'
 export * from './phases/phaseChange.js'
 export * from './phases/phaseTable.js'
 export * from './trains/discardTrain.js'
+export * from './trains/discardMergedTrain.js'
 export * from './trains/rustTrains.js'
 
 export * from './privates/exchangePrivate.js'

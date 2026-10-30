@@ -3,14 +3,19 @@ import {
     TrainDepot,
     trainCanBeTraded,
     type PhaseRules,
+    type TrainPurchaseState,
     type TrainRules
 } from '@tabletop/18xx'
+import { takeoversBy, type TakeoverState } from './takeoverState.js'
 
 const revenueCenters = (maximum: number, extraTowns?: number) => ({
     measure: 'revenue-centers' as const,
     maximum,
     ...(extraTowns ? { extraTowns } : {})
 })
+
+export const TakeoverDepot = '1833ne-takeover'
+export const PhaseIVTrain = '6/9'
 
 /** Each certificate before phase V has two sides at different prices (§6.85). */
 export const TrainDepot1833NE = new TrainDepot({
@@ -32,7 +37,9 @@ export const TrainDepot1833NE = new TrainDepot({
         { definitionId: '4/7', variantDefinitionIds: ['3+3'], count: 6 },
         { definitionId: '6/9', variantDefinitionIds: ['5+3'], count: 3 },
         { definitionId: '7+3', count: 'unlimited' }
-    ]
+    ],
+    // The Takeover game adds two phase IV trains (§2.4).
+    supplyVariants: { [TakeoverDepot]: { '6/9': 5 } }
 })
 
 /** The paying stops of N/M trains: up to N of the M visited. */
@@ -132,8 +139,26 @@ export const TrainRules1833NE: TrainRules = {
     phaseAfterPurchase: (state, definitionId) =>
         Phases1833NE.phaseAfterPurchase(state.phaseId, definitionId),
     countsForLimit: (_state, train) => trainCanBeTraded(train),
-    trainLimit: (state) => Phases1833NE.phase(state.phaseId).trainLimit,
+    trainLimit: (state: TrainPurchaseState & TakeoverState, companyId) =>
+        trainLimit(state, companyId),
     purchaseLimit: () => 'unlimited'
+}
+
+/**
+ * The Takeover game's limits are one lower from phase III, and one higher for each takeover the
+ * corporation has done (§6.82–6.83).
+ */
+const TakeoverTrainLimits: Readonly<Record<string, number>> = { I: 3, II: 3, III: 2, IV: 1, V: 1 }
+
+/** A phase's train limit before any takeovers. */
+export function phaseTrainLimit(phaseId: string, takeoverGame: boolean): number {
+    return takeoverGame ? TakeoverTrainLimits[phaseId] : Phases1833NE.phase(phaseId).trainLimit
+}
+
+export function trainLimit(state: { phaseId: string } & TakeoverState, companyId: string): number {
+    return state.takeoverGame
+        ? phaseTrainLimit(state.phaseId, true) + takeoversBy(state, companyId)
+        : phaseTrainLimit(state.phaseId, false)
 }
 
 export const TrainRetirementRules: Pick<PhaseRules, 'rustTiming'> = {

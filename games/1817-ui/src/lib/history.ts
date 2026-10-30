@@ -1,4 +1,9 @@
-import { isFormCompany, type CashPayment, type DeparturePayment } from '@tabletop/18xx'
+import {
+    isFormCompany,
+    type CashPayment,
+    type DeparturePayment,
+    isDiscardMergedTrain
+} from '@tabletop/18xx'
 import {
     departurePaymentsDetail,
     joinDetails,
@@ -27,7 +32,6 @@ import {
     isBuyOwedStations,
     isCloseMarketShorts,
     isConvertCompany,
-    isDiscardMergedTrain,
     isEighteenSeventeenGoBankrupt,
     isFinishConversionLoans,
     isLiquidateCompany,

@@ -1,6 +1,13 @@
 import { EighteenSeventeenNames } from '../names.js'
 import type { GameDefinition } from '@tabletop/common'
-import { createEighteenXXRuntime, defineAction, type EighteenXXTitleRules } from '@tabletop/18xx'
+import {
+    createEighteenXXRuntime,
+    defineAction,
+    DiscardMergedTrain,
+    HydratedDiscardMergedTrain,
+    isDiscardMergedTrain,
+    type EighteenXXTitleRules
+} from '@tabletop/18xx'
 import { EighteenSeventeenEndingRules } from '../endingRules.js'
 import {
     EighteenSeventeenAuctionRules,
@@ -63,11 +70,9 @@ import {
 } from '../mergerRound.js'
 import {
     CompanyExcessHandler,
-    DiscardMergedTrain,
-    HydratedDiscardMergedTrain,
     HydratedRemoveStation,
+    MergedTrainDiscards1817,
     RemoveStation,
-    isDiscardMergedTrain,
     isRemoveStation
 } from '../companyExcess.js'
 import {
@@ -242,7 +247,12 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules<
         defineAction(
             DiscardMergedTrain,
             isDiscardMergedTrain,
-            (action) => new HydratedDiscardMergedTrain(action)
+            (action) =>
+                new HydratedDiscardMergedTrain(
+                    action,
+                    EighteenSeventeenTrainRules,
+                    MergedTrainDiscards1817
+                )
         ),
         defineAction(
             StartAcquisitionRound,

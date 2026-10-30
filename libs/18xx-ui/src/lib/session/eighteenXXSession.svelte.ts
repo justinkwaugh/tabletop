@@ -359,13 +359,21 @@ export class EighteenXXSession<
         },
         () => this.map.networkRoutes
     )
+    readonly stock = new StockModule(
+        this.moduleSession,
+        () => {
+            this.companyAuction.clearOpening()
+            this.onStockSelectionCancelled()
+        },
+        () => this.privates.exchangeOffers.length > 0
+    )
     readonly map: MapModule = new MapModule(
         this.moduleSession,
         () => this.mapView,
         this.track,
         this.stations,
         this.routes,
-        this.companyAuction,
+        [this.companyAuction, this.stock],
         () => this.mapDisplayState
     )
     readonly projectedRun = new ProjectedRunModule(this.moduleSession, this.map, () => {
@@ -387,14 +395,6 @@ export class EighteenXXSession<
             const index = steps.findIndex((step) => step.states.includes(state))
             return index < 0 ? undefined : index
         }
-    )
-    readonly stock = new StockModule(
-        this.moduleSession,
-        () => {
-            this.companyAuction.clearOpening()
-            this.onStockSelectionCancelled()
-        },
-        () => this.privates.exchangeOffers.length > 0
     )
     readonly presidencyClaims = new PresidencyClaimModule(this.moduleSession)
     /** The family's panels beside Buy and Sell, such as taking over a company in receivership. */

@@ -74,10 +74,11 @@ type Stations = Pick<
     | 'homeLocationIds'
     | 'chooseHome'
     | 'privateStationPositions'
-    | 'privateStationLocationIds'
     | 'placePrivateStation'
 >
-type CompanyAuction = Pick<CompanyAuctionModule, 'homeLocationIds' | 'homePositions' | 'chooseHome'>
+/** A module offering home cities on the map: a company auction's opening, a company's start. */
+export type HomeOffer = Pick<CompanyAuctionModule, 'homePositions' | 'chooseHome'>
+type CityOffer = { locationIds: readonly string[]; select(selection: MapSelection): void }
 type Routes = Pick<
     RoutesModule<RoutesSession['state']>,
     'canRun' | 'editor' | 'appendPath' | 'selectStart'
@@ -94,9 +95,33 @@ export class MapModule {
         private readonly track: Track,
         private readonly stations: Stations,
         private readonly routes: Routes,
-        private readonly companyAuction: CompanyAuction,
+        private readonly homeOffers: readonly HomeOffer[],
         private readonly displayState: () => MapState = () => session.state
     ) {}
+
+    /**
+     * The cities offered for a choice, the first that offers any taking precedence: a home
+     * before the company's turn, a home as a company opens or starts, a private's token.
+     */
+    private cityOffers = $derived.by((): CityOffer[] => {
+        const stations = this.stations
+        const homeChoice = stations.homeLocationIds.length ? stations.homeChoice : undefined
+        return [
+            cityOffer(
+                homeChoice?.positions ?? [],
+                (position) => void stations.chooseHome(position)
+            ),
+            ...this.homeOffers.map((offer) =>
+                cityOffer(offer.homePositions, (position) => offer.chooseHome(position))
+            ),
+            cityOffer(
+                stations.privateStationPositions,
+                (position) => void stations.placePrivateStation(position)
+            )
+        ]
+    })
+    private cityOffer = $derived(this.cityOffers.find((offer) => offer.locationIds.length))
+    offeredCityLocationIds = $derived(this.cityOffer?.locationIds ?? [])
 
     // Held apart so a display state that only moves tokens doesn't redraw the board.
     private tileInventory = $derived.by(() => this.displayState().tileInventory)
@@ -277,29 +302,13 @@ export class MapModule {
             )
         )
             this.routes.selectStart({ locationId: selection.locationId, nodeId: selection.nodeId })
-        else if (this.stations.homeLocationIds.includes(selection.locationId))
-            this.chooseHome(selection)
-        else if (this.companyAuction.homeLocationIds.includes(selection.locationId))
-            this.chooseAuctionHome(selection)
-        else if (this.stations.privateStationLocationIds.includes(selection.locationId))
-            this.placePrivateStation(selection)
+        else if (this.cityOffer?.locationIds.includes(selection.locationId))
+            this.cityOffer.select(selection)
         else if (this.stations.canPlace && this.stations.locationIds.includes(selection.locationId))
             this.placeStation(selection)
         else if (allowInspection) this.inspect(selection)
     }
 
-    private chooseHome(selection: MapSelection) {
-        const position = offeredCity(this.stations.homeChoice?.positions ?? [], selection)
-        if (position) void this.stations.chooseHome(position)
-    }
-    private chooseAuctionHome(selection: MapSelection) {
-        const position = offeredCity(this.companyAuction.homePositions, selection)
-        if (position) this.companyAuction.chooseHome(position)
-    }
-    private placePrivateStation(selection: MapSelection) {
-        const position = offeredCity(this.stations.privateStationPositions, selection)
-        if (position) void this.stations.placePrivateStation(position)
-    }
     private placeStation(selection: MapSelection) {
         const location = this.scene.locations.find(
             (entry) => entry.location.id === selection.locationId
@@ -330,6 +339,19 @@ export class MapModule {
             },
             view
         )
+    }
+}
+
+function cityOffer<Position extends { locationId: string; nodeId: string }>(
+    positions: readonly Position[],
+    choose: (position: Position) => void
+): CityOffer {
+    return {
+        locationIds: [...new Set(positions.map((position) => position.locationId))],
+        select(selection) {
+            const position = offeredCity(positions, selection)
+            if (position) choose(position)
+        }
     }
 }
 

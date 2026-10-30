@@ -1,5 +1,12 @@
 import type { GameDefinition } from '@tabletop/common'
-import { createEighteenXXRuntime, defineAction, type EighteenXXTitleRules } from '@tabletop/18xx'
+import {
+    createEighteenXXRuntime,
+    defineAction,
+    DiscardMergedTrain,
+    HydratedDiscardMergedTrain,
+    isDiscardMergedTrain,
+    type EighteenXXTitleRules
+} from '@tabletop/18xx'
 import {
     AssignLuxuryFerry,
     AssignLuxuryFerryAction,
@@ -21,14 +28,31 @@ import { PrivatePowerRules1833NE, PrivateRules1833NE, TransferRules1833NE } from
 import { RouteRules1833NE } from '../routes.js'
 import { StateDefinition1833NE, type HydratedState1833NE, type State1833NE } from '../state.js'
 import { PhaseRules1833NE, StationRules1833NE } from '../stations.js'
-import {
-    CompanyRules1833NE,
-    CorporateFinanceRules1833NE,
-    EarningsRules1833NE,
-    StockRules1833NE
-} from '../stock.js'
+import { CorporateFinanceRules1833NE, EarningsRules1833NE, StockRules1833NE } from '../stock.js'
 import { TrackRules1833NE } from '../track.js'
+import { CompanyRules1833NE } from '../variableStart.js'
 import { Phases1833NE, TrainRules1833NE } from '../trains.js'
+import {
+    AnswerTakeover,
+    EndTakeoverStep,
+    HydratedAnswerTakeover,
+    HydratedEndTakeoverStep,
+    HydratedOfferTakeover,
+    HydratedPassTakeover,
+    HydratedStartTakeoverStep,
+    OfferTakeover,
+    PassTakeover,
+    StartTakeoverStep,
+    TakeoverStepHandler,
+    isAnswerTakeover,
+    isEndTakeoverStep,
+    isOfferTakeover,
+    isPassTakeover,
+    isStartTakeoverStep,
+    MergedTrainDiscards1833NE,
+    startsTakeoverSteps
+} from '../takeoverStep.js'
+import { TakingOverState } from '../takeoverState.js'
 import { layingTrack1833NE, operatingSet1833NE, runningTrains1833NE } from './handlers.js'
 import { Info1833NE } from './info.js'
 
@@ -63,11 +87,35 @@ export const TitleRules1833NE: EighteenXXTitleRules<typeof State1833NE, Hydrated
     operatingSteps: ['LayingTrack', 'RunningTrains', 'DistributingEarnings', 'BuyingTrains'],
     additionalConstructionActions: ['BuyFerry', 'AssignLuxuryFerry'],
     decisionHandlers: {
-        OperatingSet: operatingSet1833NE,
+        OperatingSet: (family) => operatingSet1833NE(startsTakeoverSteps(family)),
         LayingTrack: layingTrack1833NE,
         RunningTrains: runningTrains1833NE
     },
+    titleStateHandlers: { [TakingOverState]: new TakeoverStepHandler() },
     titleActions: [
+        defineAction(
+            StartTakeoverStep,
+            isStartTakeoverStep,
+            (action) => new HydratedStartTakeoverStep(action)
+        ),
+        defineAction(
+            EndTakeoverStep,
+            isEndTakeoverStep,
+            (action) => new HydratedEndTakeoverStep(action, EndingRules1833NE)
+        ),
+        defineAction(OfferTakeover, isOfferTakeover, (action) => new HydratedOfferTakeover(action)),
+        defineAction(
+            AnswerTakeover,
+            isAnswerTakeover,
+            (action) => new HydratedAnswerTakeover(action)
+        ),
+        defineAction(PassTakeover, isPassTakeover, (action) => new HydratedPassTakeover(action)),
+        defineAction(
+            DiscardMergedTrain,
+            isDiscardMergedTrain,
+            (action) =>
+                new HydratedDiscardMergedTrain(action, TrainRules1833NE, MergedTrainDiscards1833NE)
+        ),
         defineAction(
             BuyFerry,
             (data) => BuyFerryValidator.Check(data),

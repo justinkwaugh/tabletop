@@ -82,14 +82,21 @@ export function companyStationCenters(
     ]
 }
 
+type CenterPosition = { locationId: string; nodeId: string }
+
+/** Whether two positions name the same city or stop. */
+export function sameCenter(a: CenterPosition, b: CenterPosition): boolean {
+    return a.locationId === b.locationId && a.nodeId === b.nodeId
+}
+
 export function usesStationAt(
     state: StationState,
     companyId: string,
     locationId: string,
     nodeId: string
 ): boolean {
-    return companyStationCenters(state, companyId).some(
-        (center) => center.locationId === locationId && center.nodeId === nodeId
+    return companyStationCenters(state, companyId).some((center) =>
+        sameCenter(center, { locationId, nodeId })
     )
 }
 

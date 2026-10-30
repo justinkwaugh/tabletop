@@ -18,6 +18,7 @@ import { FirstRoundReservedHexes, Map1833NE, Places, TerrainDiscounts } from './
 import { blockedByPrivate, mapState, type LowellPurchase } from './privates.js'
 import { FallbackBrownCities, PreferredBrownCities, TileSet1833NE } from './tiles.js'
 import { Phases1833NE } from './trains.js'
+import { holdsRightsOf } from './takeoverState.js'
 
 const TrackData = { map: Map1833NE, tileSet: TileSet1833NE }
 const SherbrookeTile = '1833ne:N11'
@@ -27,6 +28,8 @@ export const StLawrenceCompanies = ['StL&A', 'A&StL'] as const
 /** The station access source of the A&StL's share of the joint Sherbrooke token. */
 export const JointTokenSource = 'joint'
 export const GoldenSpikeBonus = 100
+/** Sherbrooke's one city spot, where the joint token goes with the city's yellow tile (§6.53). */
+export const JointTokenSpot = { locationId: Places.sherbrooke, nodeId: 'city' } as const
 
 export const TrackFields1833NE = {
     /** Which St. Lawrence corporations have laid a yellow tile, toward the golden spike. */
@@ -41,7 +44,7 @@ function discountedTerrain(state: ConstructionState, request: TrackRequest, terr
     const discount = TerrainDiscounts.find(
         (entry) =>
             entry.locationIds.includes(request.locationId) &&
-            (!entry.companyId || entry.companyId === request.companyId) &&
+            (!entry.companyId || holdsRightsOf(state, request.companyId, entry.companyId)) &&
             (!entry.fromPhaseId || Phases1833NE.isAtLeast(state.phaseId, entry.fromPhaseId))
     )
     return discount ? discount.cost : terrain
@@ -158,14 +161,13 @@ function placeJointToken(state: State): void {
         id: station.id,
         companyId: 'StL&A',
         status: 'placed',
-        position: { locationId: Places.sherbrooke, nodeId: 'city', slot: 0 }
+        position: { ...JointTokenSpot, slot: 0 }
     }
     state.stationAccess = [
         ...(state.stationAccess ?? []),
         {
             companyId: 'A&StL',
-            locationId: Places.sherbrooke,
-            nodeId: 'city',
+            ...JointTokenSpot,
             sourceId: JointTokenSource
         }
     ]

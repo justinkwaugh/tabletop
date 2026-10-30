@@ -23,6 +23,30 @@ export const Corporations1833NE: readonly Corporation1833NE[] = [
     { id: 'A&StL', name: 'Atlantic & St. Lawrence', home: 'I14' }
 ]
 
+/**
+ * The Takeover game's five Variable Start railroads (§11), named as the 2020 token sheet prints
+ * them; each starts in phase II or later in a city its president chooses (§5.34).
+ */
+export const VariableStartCorporations1833NE: readonly { id: string; name: string }[] = [
+    { id: 'B&M', name: 'Boston & Maine' },
+    { id: 'NYNH&H', name: 'New York, New Haven & Hartford' },
+    { id: 'Era', name: 'New Era' },
+    { id: 'UP', name: 'Uncertain Prospects' },
+    { id: 'LSL', name: 'LSL' }
+]
+
+export function isVariableStart(companyId: string): boolean {
+    return VariableStartCorporations1833NE.some((company) => company.id === companyId)
+}
+
+/** The corporations in play: the Standard game's nine, and the Takeover game's five more. */
+export function corporationIds(takeoverGame: boolean): string[] {
+    return [
+        ...Corporations1833NE.map((company) => company.id),
+        ...(takeoverGame ? VariableStartCorporations1833NE.map((company) => company.id) : [])
+    ]
+}
+
 export const CorporationHomes: Readonly<Record<string, string>> = {
     'B&W': 'G22',
     'B&P': 'F25',
@@ -62,7 +86,7 @@ export const Privates1833NE: readonly Private1833NE[] = [
 ]
 
 export const Charters1833NE = companyCharters(() => ({
-    shareCounts: Object.fromEntries(Corporations1833NE.map((company) => [company.id, 10])),
+    shareCounts: Object.fromEntries(corporationIds(true).map((id) => [id, 10])),
     privateRevenues: Object.fromEntries(
         Privates1833NE.map((company) => [company.id, company.revenue])
     )

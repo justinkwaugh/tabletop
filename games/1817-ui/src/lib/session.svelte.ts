@@ -1,3 +1,4 @@
+import { DiscardMergedTrain } from '@tabletop/18xx'
 import type { EighteenSeventeenState, HydratedEighteenSeventeenState } from '@tabletop/1817'
 import {
     AcquireCompany,
@@ -20,7 +21,6 @@ import {
     bidRejection,
     BuyConvertedShare,
     ConvertCompany,
-    DiscardMergedTrain,
     EighteenSeventeenTitleRules,
     FinishConversionLoans,
     MergeCompanies,
