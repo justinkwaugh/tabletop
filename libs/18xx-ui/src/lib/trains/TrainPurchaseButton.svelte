@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { MoneyFormat } from '../presentation/money.js'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
+    import { ArtworkLoad } from '../presentation/artworkLoad.svelte.js'
     let {
         money,
         name,
@@ -23,42 +24,51 @@
         market?: boolean
         definitionId: string
         onclick: () => void
-        /** Published card art; when present it replaces the coloured button. */
+        /** Published card art; once it has loaded it replaces the coloured button. */
         imageUrl?: string
         /** The printed price on the card; the price is overlaid only when it differs. */
         listPrice?: number
     } = $props()
+    const artwork = new ArtworkLoad(() => imageUrl)
 </script>
 
-{#if imageUrl}
-    <button
-        class="card"
-        class:upcoming
-        data-depot-train={market ? undefined : definitionId}
-        aria-label={`${name} for ${money(price)}${upcoming ? ', upcoming' : market ? ' from Market' : ''}`}
-        disabled={disabled || upcoming}
-        {onclick}
-    >
-        <img src={imageUrl} alt="" />
-        {#if listPrice === undefined || price !== listPrice}<span class="card-price"
-                >{money(price)}</span
-            >{/if}
-    </button>
-{:else}
-    <button
-        class:upcoming
-        style:background={color}
-        style:color={contrastingTextColor(color)}
-        data-depot-train={market ? undefined : definitionId}
-        aria-label={`${name} for ${money(price)}${upcoming ? ', upcoming' : market ? ' from Market' : ''}`}
-        disabled={disabled || upcoming}
-        {onclick}
-    >
+<button
+    class:card={artwork.shown}
+    class:awaiting-image={artwork.awaiting}
+    class:upcoming
+    style:background={artwork.shown ? undefined : color}
+    style:color={artwork.shown ? undefined : contrastingTextColor(color)}
+    data-depot-train={market ? undefined : definitionId}
+    aria-label={`${name} for ${money(price)}${upcoming ? ', upcoming' : market ? ' from Market' : ''}`}
+    disabled={disabled || upcoming}
+    {onclick}
+>
+    {#if imageUrl}
+        <img
+            src={imageUrl}
+            alt=""
+            hidden={!artwork.shown}
+            onload={artwork.markLoaded}
+            {@attach artwork.markLoadedIfCached}
+        />
+    {/if}
+    {#if !artwork.shown}
         <span>{name}</span><span class="price">{money(price)}</span>
-    </button>
-{/if}
+    {:else if listPrice === undefined || price !== listPrice}
+        <span class="card-price">{money(price)}</span>
+    {/if}
+</button>
 
 <style>
+    /* Held back so artwork that arrives quickly from cache replaces it unseen. */
+    button.awaiting-image {
+        animation: reveal-stand-in 1ms 200ms backwards;
+    }
+    @keyframes reveal-stand-in {
+        from {
+            visibility: hidden;
+        }
+    }
     button {
         display: flex;
         align-items: baseline;

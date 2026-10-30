@@ -4,6 +4,7 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import PlaceText from '../places/PlaceText.svelte'
+    import { ArtworkLoad } from '../presentation/artworkLoad.svelte.js'
     let {
         money,
         name,
@@ -26,16 +27,7 @@
         /** Published card artwork; once it has loaded it replaces the generated card. */
         imageUrl?: string
     } = $props()
-    let loadedUrl: string | undefined = $state()
-    const showImage = $derived(!!imageUrl && loadedUrl === imageUrl)
-    const awaitingImage = $derived(!!imageUrl && !showImage)
-    function markLoaded() {
-        loadedUrl = imageUrl
-    }
-    function markLoadedIfCached(image: HTMLImageElement) {
-        const url = imageUrl
-        if (image.complete && image.naturalWidth > 0) loadedUrl = url
-    }
+    const artwork = new ArtworkLoad(() => imageUrl)
     const paragraphs = $derived(description.split('\n\n'))
     const phaseReference = /\b(?:phases?|at)\s$/i
 </script>
@@ -50,20 +42,20 @@
 
 <div
     class="private-card"
-    class:image={showImage}
-    class:awaiting-image={awaitingImage}
+    class:image={artwork.shown}
+    class:awaiting-image={artwork.awaiting}
     data-card-image={imageUrl ? true : undefined}
 >
     {#if imageUrl}
         <img
             src={imageUrl}
             alt={name}
-            hidden={!showImage}
-            onload={markLoaded}
-            {@attach markLoadedIfCached}
+            hidden={!artwork.shown}
+            onload={artwork.markLoaded}
+            {@attach artwork.markLoadedIfCached}
         />
     {/if}
-    {#if !showImage}
+    {#if !artwork.shown}
         <header>
             <div class="heading">
                 <h3>{name}</h3>

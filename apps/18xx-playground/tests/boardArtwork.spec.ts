@@ -164,3 +164,26 @@ test('published auction card keeps naming its lot when the image fails', async (
     await expect(bidding.locator('.private-card h3')).toHaveText(peirName)
     await expect(bidding.locator('[data-card-image] img')).toBeHidden()
 })
+
+test('published train cards name their train until the image arrives', async ({ page }) => {
+    let releaseCards = () => {}
+    const cardsHeld = new Promise<void>((resolve) => {
+        releaseCards = resolve
+    })
+    await page.route(/published\/trains\//, async (route) => {
+        if (route.request().resourceType() === 'image') await cardsHeld
+        await route.continue()
+    })
+    await page.goto('/table')
+    await page.getByLabel('Position', { exact: true }).selectOption('trains')
+    await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
+    const train = page.locator('[data-depot-train]').first()
+    const trainName = (await train.getAttribute('aria-label'))?.split(' for ')[0]
+    if (!trainName) throw new Error('The depot offers a train')
+    await expect(train.getByText(trainName, { exact: true })).toBeVisible()
+    await expect(train.locator('img')).toBeHidden()
+
+    releaseCards()
+    await expect(train.locator('img')).toBeVisible()
+    await expect(train.getByText(trainName, { exact: true })).toHaveCount(0)
+})
