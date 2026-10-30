@@ -17,6 +17,7 @@
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import EnlargedView from '$lib/components/EnlargedView.svelte'
+    import OpenSeat from '$lib/components/OpenSeat.svelte'
     import { PromontoryPointGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import Oswald500 from '$lib/fonts/Oswald-500.woff2'
@@ -92,6 +93,7 @@
         {/snippet}
     </DefaultTableLayout>
     {#if !expanded}
+        <OpenSeat />
         <EnlargedView />
     {/if}
 </div>

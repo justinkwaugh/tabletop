@@ -5,7 +5,7 @@ import type {
 } from '@tabletop/promontory-point'
 import { PromontoryPointRuntime } from '@tabletop/promontory-point'
 import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynamicComponent'
-import { PromontoryPointGameColorizer } from './colorizer.js'
+import { PROMONTORY_POINT_PLAYER_COLOR_PALETTE, PromontoryPointGameColorizer } from './colorizer.js'
 import GameTable from '../components/GameTable.svelte'
 import { PromontoryPointGameSession } from '$lib/model/session.svelte.js'
 import '../../app.css'
@@ -21,5 +21,6 @@ export const PromontoryPointUiRuntime: GameUIRuntime<
         mount: mountDynamicComponent
     },
     sessionClass: PromontoryPointGameSession,
-    colorizer: new PromontoryPointGameColorizer()
+    colorizer: new PromontoryPointGameColorizer(),
+    playerColorPalette: PROMONTORY_POINT_PLAYER_COLOR_PALETTE
 }
