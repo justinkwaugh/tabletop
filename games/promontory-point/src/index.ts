@@ -9,8 +9,11 @@ export * from './effects/townEffectOutcome.js'
 export * from './effects/townEffects.js'
 
 export * from './actions/buyShare.js'
+export * from './actions/endTurn.js'
+export * from './actions/payRepairs.js'
 export * from './actions/placeTrack.js'
 export * from './actions/revealHand.js'
+export * from './actions/scrapTrack.js'
 export * from './actions/sellShare.js'
 
 export * from './definition/actions.js'

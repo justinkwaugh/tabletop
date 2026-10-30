@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { placingHasEnded } from './placing.js'
+import { MachineState } from '../definition/states.js'
+import { placingHasEnded, stateAfterPlacingStep } from './placing.js'
 
 describe('Promontory Point placing', () => {
     it('R-3.3-H1: placing goes on while a placement is left and a turn piece remains', () => {
@@ -45,5 +46,35 @@ describe('Promontory Point placing', () => {
         expect(
             placingHasEnded({ pieces: [], tradesUsed: 1, placementsMade: 2, placementsLeft: 1 })
         ).toBe(true)
+    })
+
+    it('R-2.2-H2: a scrap or a placement leads to placing while a placement is left, never back to trading', () => {
+        expect(
+            stateAfterPlacingStep({
+                pieces: ['railroad.cp', 'railroad.up', 'railroad.kp'],
+                tradesUsed: 1,
+                placementsMade: 0,
+                placementsLeft: 3
+            })
+        ).toBe(MachineState.Placing)
+    })
+
+    it('R-2.2-H1, R-3.3-H1: trading reopens once placing has ended', () => {
+        expect(
+            stateAfterPlacingStep({
+                pieces: [],
+                tradesUsed: 0,
+                placementsMade: 0,
+                placementsLeft: 0
+            })
+        ).toBe(MachineState.TradingAfterPlacing)
+        expect(
+            stateAfterPlacingStep({
+                pieces: ['railroad.sp'],
+                tradesUsed: 0,
+                placementsMade: 3,
+                placementsLeft: 0
+            })
+        ).toBe(MachineState.TradingAfterPlacing)
     })
 })

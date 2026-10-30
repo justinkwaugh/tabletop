@@ -2,5 +2,8 @@ export enum ActionType {
     RevealHand = 'RevealHand',
     BuyShare = 'BuyShare',
     SellShare = 'SellShare',
-    PlaceTrack = 'PlaceTrack'
+    PlaceTrack = 'PlaceTrack',
+    PayRepairs = 'PayRepairs',
+    ScrapTrack = 'ScrapTrack',
+    EndTurn = 'EndTurn'
 }
