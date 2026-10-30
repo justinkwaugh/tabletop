@@ -224,7 +224,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             if (request.url.startsWith(API_PREFIX) || request.url.startsWith(TASKS_PREFIX)) {
                 await reply.code(404).send({ message: 'Not Found' })
             } else if (service === 'local') {
-                console.log('Serving index.html for unknown frontend path:', request.url)
+                request.log.info('Serving index.html for an unknown frontend path')
                 setNoCacheHeaders(reply)
                 await reply.sendFile('index.html', { cacheControl: false })
             } else {

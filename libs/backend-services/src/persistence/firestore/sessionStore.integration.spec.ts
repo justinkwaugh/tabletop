@@ -1,10 +1,13 @@
 import { createClient, type RedisClientType } from 'redis'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { inspect } from 'node:util'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { ExternalAuthService } from '@tabletop/common'
 import { cacheFixture } from '../../cache/tests/cacheFixture.js'
 import { isolatedFirestore } from './tests/isolatedFirestore.js'
-import { FirestoreSessionStore } from './sessionStore.js'
+import { FirestoreSessionStore, sessionCacheKey } from './sessionStore.js'
 import type { AuthenticatedSession } from '../../sessions/authenticatedSession.js'
+import { secretReference } from '../../security/secretReference.js'
+import { errorText } from './tests/errorText.js'
 
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_REDIS_HOST)(
     'Authenticated Sessions in the Firestore session store',
@@ -17,27 +20,28 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         })
         const { cache } = cacheFixture(client)
         const store = new FirestoreSessionStore(cache, firestore)
+        const cacheKeys: string[] = []
         let sequence = 0
 
         beforeAll(async () => {
             await client.connect()
         })
+        afterEach(() => {
+            vi.restoreAllMocks()
+        })
         afterAll(async () => {
             cache.destroy()
-            for await (const keys of client.scanIterator({
-                MATCH: `session-${run}-*`,
-                COUNT: 100
-            })) {
-                if (keys.length) await client.del(keys)
-            }
+            if (cacheKeys.length) await client.del(cacheKeys)
             client.destroy()
             await firestore.terminate()
         })
 
         function newSession(userId: string): AuthenticatedSession {
             const createdAt = new Date('2026-10-27T12:00:00.000Z')
+            const id = `${run}-${sequence++}`
+            cacheKeys.push(sessionCacheKey(id))
             return {
-                id: `${run}-${sequence++}`,
+                id,
                 userId,
                 generation: 0,
                 createdAt,
@@ -47,7 +51,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         }
 
         async function cachedAfterFill(id: string) {
-            const key = `session-${id}`
+            const key = sessionCacheKey(id)
             for (let attempt = 0; attempt < 40; attempt++) {
                 if ((await cache.cacheGet(key)).cached) return true
                 await new Promise((resolve) => setTimeout(resolve, 50))
@@ -72,10 +76,43 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(store.find(session.id)).resolves.toEqual(session)
         })
 
-        it('refuses to create the same session id twice', async () => {
+        it('refuses to create the same session id twice and reports it only by reference', async () => {
             const session = newSession(`${run}-twice`)
             await store.create(session)
+            const failure = await store.create(session).catch((error: unknown) => error)
+            expect(failure).toBeInstanceOf(Error)
+            if (!(failure instanceof Error)) throw new Error('unexpected')
+            expect(failure.name).toBe('AlreadyExistsError')
+            expect(errorText(failure)).toContain('ALREADY_EXISTS')
+            expect(errorText(failure)).toContain(secretReference(session.id))
+            expect(errorText(failure)).not.toContain(session.id)
+        })
+
+        it('keeps the cache identity every compatible revision derives', () => {
+            const session = newSession(`${run}-identity`)
+            expect(sessionCacheKey(session.id)).toBe(`session-${session.id}`)
+        })
+
+        it('keeps the Session ID out of cache diagnostics for a failed write and a malformed entry', async () => {
+            const session = newSession(`${run}-diagnostics`)
+            const reported: string[] = []
+            const record = (...args: unknown[]) => {
+                reported.push(inspect(args, { depth: 20 }))
+            }
+            vi.spyOn(console, 'log').mockImplementation(record)
+            vi.spyOn(console, 'error').mockImplementation(record)
+
+            await store.create(session)
             await expect(store.create(session)).rejects.toThrow()
+            await client.set(sessionCacheKey(session.id), `V:{"id":"${session.id}"`)
+            await expect(store.find(session.id)).resolves.toEqual(session)
+
+            const text = reported.join('\n')
+            expect(text).toContain('Cache write outcome is uncertain')
+            expect(text).toContain("keyFamilies: [ 'session' ]")
+            expect(text).toContain('unable to parse cache value')
+            expect(text).toContain("name: 'SyntaxError'")
+            expect(text).not.toContain(session.id)
         })
 
         it('does not resurrect a deleted session from the cache or after a restart', async () => {

@@ -24,11 +24,10 @@ export type AccountLookup = (userId: string) => Promise<User | undefined>
 export class SessionNotLiveError extends BaseError {
     readonly statusCode = 401
 
-    constructor(sessionId: string) {
+    constructor() {
         super({
             name: 'SessionNotLiveError',
-            message: 'The Authenticated Session is no longer live',
-            metadata: { sessionId }
+            message: 'The Authenticated Session is no longer live'
         })
     }
 }
@@ -126,12 +125,12 @@ export class SessionService {
         const now = this.now()
         const updated = await this.sessionStore.update(id, (stored) => {
             if (stored.expiresAt <= now) {
-                throw new SessionNotLiveError(id)
+                throw new SessionNotLiveError()
             }
             return change(stored)
         })
         if (!updated) {
-            throw new SessionNotLiveError(id)
+            throw new SessionNotLiveError()
         }
         return updated
     }

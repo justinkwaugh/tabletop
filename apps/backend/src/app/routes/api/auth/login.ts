@@ -34,7 +34,7 @@ export default async function (fastify: FastifyInstance) {
                 user,
                 sessions: fastify.sessionService
             })
-            fastify.log.info(`Found authed user ${JSON.stringify(user)}`)
+            request.log.info({ userId: user.id }, 'Password login succeeded')
 
             return { status: 'ok', payload: { user } }
         }

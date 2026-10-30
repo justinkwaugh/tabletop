@@ -43,6 +43,7 @@
         "google-auth-library": "^11.3.2",
         "ipaddr.js": "^2.5.0",
         "nanoid": "5.1.6",
+        "pino": "^10.4.0",
         "resend": "^6.8.0",
         "sodium-native": "^5.0.10",
         "typebox": "^1.0.79",

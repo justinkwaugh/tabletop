@@ -86,7 +86,11 @@ Ongoing authorization associated with a User Account, recorded server-side under
 _Avoid_: Login cookie, stateless session
 
 **Session ID**:
-The unguessable identifier of one Authenticated Session. It is the only authorization the session cookie carries and is never derived from Account data.
+The unguessable identifier of one Authenticated Session. It is the only authorization the session cookie carries and is never derived from Account data. It is a bearer secret: logs and error reports carry its Secret Reference instead, and the cache service keeps its cache key, which embeds the Session ID, out of its diagnostics.
+
+**Secret Reference**:
+A one-way digest of a bearer value with enough entropy to defeat enumeration: a Session ID, an Authorization State or a data token. It is stable for the same value and useless for presenting it, and application logs and error reports name such a value only through it. The secrets and codes of Authentication Challenges, passwords, provider credentials and any other supplied secret are redacted outright, never digested, because a digest of a short code is an offline verifier for it.
+_Avoid_: Masked token, session hash
 
 **Session Generation**:
 A counter on the User Account that every Authenticated Session records when it is established. A session authorizes only while its recorded generation equals the Account's. A Password Credential change advances the generation in the same commit as the new credential, so no session established from the old credential survives it, including one established concurrently.
