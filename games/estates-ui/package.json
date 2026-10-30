@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/estates-ui",
-    "version": "4.0.1",
+    "version": "4.1.0",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",
