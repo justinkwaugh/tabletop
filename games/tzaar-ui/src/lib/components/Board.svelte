@@ -117,7 +117,7 @@
                     pieces={stack.pieces.map((piece) => session.shapeOf(piece))}
                     {radius}
                     prefix="tzaar-board"
-                    model={layout.model}
+                    model={animator.modelAt(stack.key, layout.model)}
                 >
                     <!-- A mark recolors a ring on the top piece, under the count, so the count
                          stays whole. The animator fades it with the move. -->

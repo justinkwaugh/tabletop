@@ -49,7 +49,9 @@
                 <PieceIcon {tone} {kind} size={34} />
             </div>
         {/each}
-        <span class="caption">{placing ? 'left' : 'on top'}</span>
+        {#if placing}
+            <span class="caption">left</span>
+        {/if}
     </div>
 </div>
 

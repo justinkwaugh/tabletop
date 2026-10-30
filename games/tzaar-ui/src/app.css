@@ -40,10 +40,11 @@
 }
 
 :root {
-    /* The 2016 rulebook's golden sand, glowing lighter towards the middle. */
-    --tzaar-table-glow: #f2d867;
-    --tzaar-table: #e2bd45;
-    --tzaar-table-deep: #c49a2a;
+    /* The 2016 rulebook's golden sand, sampled from its cover (the board's own gold in photos
+       matches it), glowing lighter towards the middle. */
+    --tzaar-table-glow: #ddc15d;
+    --tzaar-table: #cca848;
+    --tzaar-table-deep: #b88f38;
     /* Controls and cards sit on cream like the play area's, lifted by a soft shadow. */
     --tzaar-panel: #f3ecd8;
     --tzaar-panel-edge: rgb(80 60 10 / 0.18);
