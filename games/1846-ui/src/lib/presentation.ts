@@ -6,8 +6,7 @@ import {
     ownsTunnelBlasting,
     TunnelBlastingDiscount,
     TitleRules1846,
-    type EighteenFortySixProjectedState,
-    TitleRules1846
+    type EighteenFortySixProjectedState
 } from '@tabletop/1846'
 import {
     constructionOperatingSteps,
