@@ -4,7 +4,7 @@
     import AuctionLotCard from './AuctionLotCard.svelte'
     import PublishedCardPlate from '../privates/PublishedCardPlate.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import AuctionBidControl from './AuctionBidControl.svelte'
+    import AuctionBidTurn from './AuctionBidTurn.svelte'
 
     let {
         session,
@@ -63,25 +63,18 @@
         </div>
         {#if plate}<PublishedCardPlate {plate} compact />{/if}
         <div class="turn">
-            <div class="bid-summary">
-                {#each summary as line (line.label)}
-                    <span class="value">{line.label} <strong>{line.value}</strong></span>
-                {/each}
-            </div>
-            {#if ownTurn}
-                <AuctionBidControl
-                    money={session.presentation.money}
-                    {amount}
-                    {increment}
-                    canBid={canBid(amount)}
-                    canDecrease={canBid(amount - increment)}
-                    canIncrease={canBid(amount + increment)}
-                    {canPass}
-                    {onChange}
-                    {onBid}
-                    {onPass}
-                />
-            {/if}
+            <AuctionBidTurn
+                money={session.presentation.money}
+                {summary}
+                {amount}
+                {increment}
+                {ownTurn}
+                {canBid}
+                {canPass}
+                {onChange}
+                {onBid}
+                {onPass}
+            />
         </div>
     </div>
 </article>
@@ -127,16 +120,6 @@
             --auction-card-height: clamp(180px, 100cqh - 16px, 280px);
         }
     }
-    .bid-summary {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        line-height: 1.3;
-    }
-    .value {
-        font-size: 12px;
-        color: var(--rail-text, #786550);
-    }
     .turn {
         flex: none;
         display: flex;
@@ -148,7 +131,7 @@
         .layout:not(:has(.lot.image)) {
             flex-direction: column;
         }
-        .layout:not(:has(.lot.image)) :is(.turn, .bid-summary) {
+        .layout:not(:has(.lot.image)) .turn {
             align-items: center;
             text-align: center;
         }
@@ -158,7 +141,7 @@
         .layout:has(.lot.image) {
             flex-direction: column;
         }
-        .layout:has(.lot.image) :is(.turn, .bid-summary) {
+        .layout:has(.lot.image) .turn {
             align-items: center;
             text-align: center;
         }
@@ -181,6 +164,9 @@
             display: flex;
             gap: 3px;
             pointer-events: none;
+        }
+        .lot:has(:global(.artwork-stand-in)) .badge {
+            display: none;
         }
     }
 </style>

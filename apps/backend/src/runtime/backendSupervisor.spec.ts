@@ -355,7 +355,7 @@ describe('supervised backend worker', () => {
             expect(result.body).toBe('{"value":1}')
             expect(result.url).toBe('/echo?x=1')
             expect(result.headers.authorization).toBe('Bearer test')
-            expect(result.headers['x-forwarded-for']).toBe('127.0.0.1')
+            expect(result.headers['x-forwarded-for']).toBe('forged, 127.0.0.1')
             expect(responseHeaders['set-cookie']).toEqual(['one=1', 'two=2'])
             const oldPort = supervisor.port
             const crash = client.request({ ':path': '/crash' })

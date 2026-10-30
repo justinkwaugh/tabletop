@@ -6,6 +6,7 @@ import {
     PowerQuestionValidator,
     type Answered,
     type AnswerOf,
+    type EndDieAdjusted,
     type OpenDeal,
     type QuestionAnswer,
     type QuestionOf,
@@ -76,6 +77,8 @@ export interface AnswerOutcome {
     openedDeal?: OpenDeal
     /** R-7.6.3-H1 — the deal a claim asked about, as it stood when answered. */
     answeredDeal?: OpenDeal
+    /** Squalid District — the end die as rolled and as the answer left it, and what it decided. */
+    endDie?: EndDieAdjusted
 }
 
 function rulesOf<K extends PowerQuestionKind>(kind: K): QuestionRules<K> {

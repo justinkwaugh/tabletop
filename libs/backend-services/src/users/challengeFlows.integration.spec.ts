@@ -4,16 +4,16 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Role, UserStatus, type User } from '@tabletop/common'
 import { cacheFixture } from '../cache/tests/cacheFixture.js'
 import {
-    type AuthenticationChallengeRecord,
     InvalidChallengeError,
     parseSetPasswordChallenge
-} from '../challenges/authenticationChallenge.js'
-import { AuthenticationChallengeService } from '../challenges/authenticationChallengeService.js'
-import { FirestoreAuthenticationChallengeStore } from '../persistence/firestore/authenticationChallengeStore.js'
+} from '../tokens/authenticationChallenge.js'
+import { TokenType, type DataToken } from '../tokens/dataToken.js'
+import { TokenService } from '../tokens/tokenService.js'
+import { FirestoreTokenStore } from '../persistence/firestore/tokenStore.js'
 import { FirestoreSessionStore } from '../persistence/firestore/sessionStore.js'
 import { FirestoreUserStore } from '../persistence/firestore/userStore.js'
 import { isolatedFirestore } from '../persistence/firestore/tests/isolatedFirestore.js'
-import type { AuthenticationChallengeStore } from '../persistence/stores/authenticationChallengeStore.js'
+import type { TokenStore } from '../persistence/stores/tokenStore.js'
 import { UnknownStorageError } from '../persistence/stores/errors.js'
 import { SessionService } from '../sessions/sessionService.js'
 import type { TaskService } from '../tasks/taskService.js'
@@ -23,18 +23,15 @@ import { UserService } from './userService.js'
 const ORIGINAL_PASSWORD = 'original-password-value'
 const NEW_PASSWORD = 'replacement-password-value'
 
-class FailingOnceChallengeStore extends FirestoreAuthenticationChallengeStore {
+class FailingOnceTokenStore extends FirestoreTokenStore {
     failNextFind = false
 
-    override async find(
-        transaction: Transaction,
-        key: string
-    ): Promise<AuthenticationChallengeRecord | undefined> {
+    override async find(key: string, transaction?: Transaction): Promise<DataToken | undefined> {
         if (this.failNextFind) {
             this.failNextFind = false
             throw new Error('synthetic challenge storage failure')
         }
-        return super.find(transaction, key)
+        return super.find(key, transaction)
     }
 }
 
@@ -50,9 +47,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         const { cache } = cacheFixture(client)
         const userStore = new FirestoreUserStore(cache, firestore)
         const sessions = new SessionService(new FirestoreSessionStore(cache, firestore))
-        const challengeStore: FailingOnceChallengeStore = new FailingOnceChallengeStore(firestore)
+        const tokenStore = new FailingOnceTokenStore(firestore)
         let now = new Date('2026-10-27T12:00:00.000Z')
-        const challenges = new AuthenticationChallengeService(challengeStore, { now: () => now })
+        const challenges = new TokenService(tokenStore, { now: () => now })
         const mails: { kind: string; userId: string; token: string }[] = []
         const notifications: { email: string; changeType: string }[] = []
         let noticeQueueRejects = false
@@ -132,11 +129,14 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         }
 
         async function challengeDocuments(userId: string) {
-            const snapshot = await firestore
-                .collection('authenticationChallenges')
-                .where('userId', '==', userId)
-                .get()
-            return snapshot.docs.map((doc) => doc.id)
+            const documents = await Promise.all(
+                [
+                    TokenType.PasswordReset,
+                    TokenType.EmailVerification,
+                    TokenType.SensitiveChange
+                ].map((type) => firestore.collection('tokens').doc(`${type}:${userId}`).get())
+            )
+            return documents.filter((doc) => doc.exists).map((doc) => doc.id)
         }
 
         describe('Set Password', () => {
@@ -146,7 +146,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 expect(copied).toBeDefined()
                 const issued = await users.sendPasswordResetEmail(account)
                 expect(issued?.expiresAt).toEqual(new Date('2026-10-27T12:15:00.000Z'))
-                expect(await challengeDocuments(account.id)).toEqual([`set-password:${account.id}`])
+                expect(await challengeDocuments(account.id)).toEqual([
+                    `${TokenType.PasswordReset}:${account.id}`
+                ])
                 const { userId, secret } = lastResetSecret()
                 expect(userId).toBe(account.id)
                 expect(notifications).toContainEqual({
@@ -176,7 +178,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 const noticesBefore = notifications.length
                 const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
                 noticeQueueRejects = true
-                let diagnostics = ''
+                let diagnostics: string
                 try {
                     const updated = await users.setPassword({
                         ...presented,
@@ -250,7 +252,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 await users.sendPasswordResetEmail(account)
                 const second = lastResetSecret()
                 expect(second.secret).not.toBe(first.secret)
-                expect(await challengeDocuments(account.id)).toEqual([`set-password:${account.id}`])
+                expect(await challengeDocuments(account.id)).toEqual([
+                    `${TokenType.PasswordReset}:${account.id}`
+                ])
                 await expect(
                     users.setPassword({ ...first, password: NEW_PASSWORD })
                 ).rejects.toThrow(InvalidChallengeError)
@@ -312,7 +316,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 const account = await createAccount()
                 await users.sendPasswordResetEmail(account)
                 const presented = lastResetSecret()
-                challengeStore.failNextFind = true
+                tokenStore.failNextFind = true
                 await expect(
                     users.setPassword({ ...presented, password: NEW_PASSWORD })
                 ).rejects.toThrow()
@@ -466,7 +470,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                     sessionGeneration: 1
                 })
                 expect(await challengeDocuments(account.id)).toEqual([
-                    `email-verification:${account.id}`
+                    `${TokenType.EmailVerification}:${account.id}`
                 ])
                 expect((await firestore.collection('userEmails').doc(newEmail).get()).exists).toBe(
                     true
@@ -506,18 +510,15 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         })
 
         it('keeps a failing store from granting anything', async () => {
-            const failing: AuthenticationChallengeStore = {
+            const failing: TokenStore = {
+                create: async (token) => token,
                 replace: async () => {
                     throw new Error('synthetic replace failure')
                 },
                 find: async () => undefined,
-                delete: () => {}
+                delete: async () => {}
             }
-            const brokenUsers = new UserService(
-                userStore,
-                new AuthenticationChallengeService(failing),
-                tasks
-            )
+            const brokenUsers = new UserService(userStore, new TokenService(failing), tasks)
             const account = await createAccount()
             const mailsBefore = mails.length
             await expect(brokenUsers.sendPasswordResetEmail(account)).rejects.toThrow(

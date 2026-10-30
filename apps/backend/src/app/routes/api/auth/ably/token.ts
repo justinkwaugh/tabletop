@@ -6,7 +6,7 @@ export default async function (fastify: FastifyInstance) {
         '/token',
         {
             schema: { querystring: RealtimeGameTopicsQuery },
-            config: { rateLimit: { max: 1000, timeWindow: '1 minute' } },
+            config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
             onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
                 relation: 'and'
             })

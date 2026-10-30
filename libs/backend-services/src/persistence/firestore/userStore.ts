@@ -29,7 +29,7 @@ import {
     UnknownStorageError
 } from '../stores/errors.js'
 
-import { UserStore } from '../stores/userStore.js'
+import { UserStore, type PasswordUpdateOptions } from '../stores/userStore.js'
 import type { SiteStatsUserSource } from '../stores/siteStatsStore.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
@@ -62,7 +62,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, username)
-            throw Error('unreachable')
         }
     }
 
@@ -75,7 +74,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, email)
-            throw Error('unreachable')
         }
     }
 
@@ -107,7 +105,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             }).length
         } catch (error) {
             this.handleError(error, 'activated')
-            throw Error('unreachable')
         }
     }
 
@@ -122,7 +119,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return snapshot.data().count
         } catch (error) {
             this.handleError(error, label)
-            throw Error('unreachable')
         }
     }
 
@@ -140,7 +136,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, externalId)
-            throw Error('unreachable')
         }
     }
 
@@ -178,7 +173,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, id)
-            throw Error('unreachable')
         }
     }
 
@@ -202,7 +196,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return usernames.map((doc) => doc.id)
         } catch (error) {
             this.handleError(error, 'all')
-            throw Error('unreachable')
         }
     }
 
@@ -283,17 +276,13 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, user.id)
-            throw Error('unreachable')
         }
     }
 
     async updatePassword(
         userId: string,
         password: string,
-        {
-            validator,
-            participant
-        }: { validator?: UpdateValidator<StoredUser>; participant?: TransactionParticipant } = {}
+        { validate, participant }: PasswordUpdateOptions = {}
     ): Promise<User> {
         try {
             const passwordHash = await this.hashPassword(password)
@@ -306,9 +295,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                         if (!existingUser) {
                             throw new NotFoundError({ type: 'User', id: userId })
                         }
-                        if (validator?.(existingUser, {}) === UpdateValidationResult.Cancel) {
-                            return existingUser
-                        }
+                        validate?.(existingUser)
                         await participant?.(transaction, locks)
                         const credentialFields = {
                             ...this.replacedCredentialFields(existingUser, passwordHash),
@@ -321,7 +308,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(updatedUser)
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
     }
 
@@ -521,7 +507,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return [this.sanitize(updatedUser), updatedFields, this.sanitize(existingUser)]
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
     }
 
@@ -575,7 +560,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
     }
 
@@ -609,7 +593,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
     }
 
@@ -650,7 +633,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.onlyOne(userDocs.docs, 'username')
         } catch (error) {
             this.handleError(error, username)
-            throw Error('unreachable')
         }
     }
 
@@ -702,7 +684,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
     }
 
-    private handleError(error: unknown, id: string) {
+    private handleError(error: unknown, id: string): never {
         console.log(error)
         if (error instanceof BaseError) {
             throw error

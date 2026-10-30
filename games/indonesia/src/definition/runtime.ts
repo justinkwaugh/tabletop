@@ -10,6 +10,7 @@ import { IndonesiaApiActions } from './apiActions.js'
 import { IndonesiaStateHandlers } from './stateHandlers.js'
 import { IndonesiaColors } from './colors.js'
 import { IndonesiaScoring } from './scoring.js'
+import { IndonesiaProgression } from './progression.js'
 
 export const IndonesiaRuntime: GameRuntime<IndonesiaGameState, HydratedIndonesiaGameState> = {
     initializer: new IndonesiaGameInitializer(),
@@ -19,5 +20,6 @@ export const IndonesiaRuntime: GameRuntime<IndonesiaGameState, HydratedIndonesia
     apiActions: IndonesiaApiActions,
     playerColors: IndonesiaColors,
     scoring: new IndonesiaScoring(),
+    progression: new IndonesiaProgression(),
     stateLogger: new DefaultStateLogger() // This never really got used, but it could do some custom logging if desired
 }

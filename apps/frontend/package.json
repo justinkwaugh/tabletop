@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/frontend",
-    "version": "24.7.0",
+    "version": "24.11.1",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",
@@ -43,7 +43,7 @@
         "@types/google.accounts": "^0.0.18",
         "@typescript-eslint/eslint-plugin": "^8.53.1",
         "@typescript-eslint/parser": "^8.53.1",
-        "eslint": "^9.39.2",
+        "eslint": "^10.13.0",
         "flowbite": "^3.1.2",
         "flowbite-svelte": "^1.31.0",
         "flowbite-svelte-icons": "^3.1.0",

@@ -13,6 +13,7 @@ import { OathColors } from './colors.js'
 import { OathVisibilityPolicies } from '../model/question.js'
 import { OathGameExploration } from './gameExploration.js'
 import { OathScoring } from './scoring.js'
+import { OathProgression } from './progression.js'
 import { OathInfo } from './info.js'
 // Registers every built card power wherever the runtime loads.
 import '../powers/index.js'
@@ -35,6 +36,7 @@ const runtime = {
     playerColors: OathColors,
     stateLogger: new DefaultStateLogger(),
     scoring: new OathScoring(),
+    progression: new OathProgression(),
     visibility: OathVisibility
 } satisfies Omit<GameRuntime<OathProjectedState, HydratedOathGameState>, 'configuration'>
 

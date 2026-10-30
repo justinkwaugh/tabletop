@@ -9,8 +9,8 @@
         onpick,
         busy
     }: {
-        /** The pick's few words before the chips ("With:", "Call:"). */
-        label: string
+        /** The pick's few words before the chips ("With:", "Call:"); none when the panel says them above. */
+        label?: string
         playerIds: readonly string[]
         /** The players picked: one for most picks, several for Witch's Bargain. */
         picked: readonly string[]
@@ -25,7 +25,9 @@
 <!-- A player is their chip, in a frame as wide as the widest beside it, 44 px tall on a phone: a
      tap picks them, a second tap drops them where the pick lets it. -->
 <div class="flex flex-wrap items-center gap-2 text-xs">
-    <span class="text-oath-text-muted">{label}</span>
+    {#if label}
+        <span class="text-oath-text-muted">{label}</span>
+    {/if}
     {#each playerIds as id (id)}
         {@const on = picked.includes(id)}
         <button

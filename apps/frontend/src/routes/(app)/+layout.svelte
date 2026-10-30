@@ -230,8 +230,7 @@
 
     async function onLogout() {
         reauthentication.cancel()
-        await api.logout()
-        await authorizationService.onLogout()
+        await authorizationService.logout()
     }
 
     onLogoutBroadcast(() => {

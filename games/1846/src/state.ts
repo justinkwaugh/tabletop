@@ -1,7 +1,6 @@
 import { AcquisitionFields } from './acquisitions.js'
 import { RevenueMarkerFields } from './revenueMarkers.js'
 import { SteamboatFields } from './steamboat.js'
-import { FinanceStep } from './corporateFinance.js'
 import { EighteenFortySixMap } from './map.js'
 import { EighteenFortySixTileSet } from './tiles.js'
 import { TrainDepot1846 } from './trains.js'
@@ -22,6 +21,7 @@ import {
     PrivatePowerFields,
     CompanyAcquisitionOfferFields,
     FinanceFields,
+    CorporateFinanceFields,
     EarningsFields,
     MapFields,
     RouteFields,
@@ -114,7 +114,7 @@ export const EighteenFortySixState = composeEighteenXXState(
         operatingSet: Type.Optional(OperatingSet),
         trackStep: Type.Optional(TrackStep),
         stationStep: Type.Optional(StationStep),
-        financeStep: Type.Optional(FinanceStep),
+        ...CorporateFinanceFields,
         ...StockCompanyFields,
         stockMarket: StockMarket,
         stockRound: StockRound,

@@ -10,7 +10,7 @@ import {
     straightOnlyTrackTileSet
 } from '@tabletop/18xx/testing'
 import type { MapViewDefinition } from '../maps/stationPresentation.js'
-import { MapModule } from './mapModule.svelte.js'
+import { MapModule, type HomeOffer } from './mapModule.svelte.js'
 import { RoutesModule } from './routesModule.svelte.js'
 import { StationsModule } from './stationsModule.svelte.js'
 import { TrackModule } from './trackModule.svelte.js'
@@ -30,13 +30,13 @@ const rules = {
     routeRules: { ...minimalRouteRules, map: minimalTrackMap, tileSet }
 }
 
-const noAuctionHomes = { homeLocationIds: [], homePositions: [], chooseHome: () => {} }
+const noAuctionHomes: HomeOffer = { homePositions: [], chooseHome: () => {} }
 
 function table(
     machineState: 'LayingTrack' | 'StockRound',
     valid: string[],
     availability = {},
-    companyAuction: ConstructorParameters<typeof MapModule>[5] = noAuctionHomes
+    homeOffers: readonly HomeOffer[] = [noAuctionHomes]
 ) {
     const base = minimalPlayState()
     const state = {
@@ -83,14 +83,7 @@ function table(
         },
         () => map.networkRoutes
     )
-    const map: MapModule = new MapModule(
-        session,
-        () => view,
-        track,
-        stations,
-        routes,
-        companyAuction
-    )
+    const map: MapModule = new MapModule(session, () => view, track, stations, routes, homeOffers)
     return { map, track }
 }
 
@@ -223,7 +216,7 @@ describe('MapModule', () => {
             () => {},
             () => []
         )
-        const map = new MapModule(session, () => view, track, stations, routes, noAuctionHomes)
+        const map = new MapModule(session, () => view, track, stations, routes, [noAuctionHomes])
         expect(stations.homeLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'slot', ...home, slot: 0 })
         await Promise.resolve()
@@ -235,18 +228,26 @@ describe('MapModule', () => {
     it('chooses an offered company auction home with a click on its city', () => {
         const chosen: unknown[] = []
         const home = { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
-        const { map } = table(
-            'StockRound',
-            [],
-            {},
-            {
-                homeLocationIds: [TestTrackHomeLocationId],
-                homePositions: [home],
-                chooseHome: (position) => chosen.push(position)
-            }
-        )
+        const { map } = table('StockRound', [], {}, [
+            { homePositions: [home], chooseHome: (position) => chosen.push(position) }
+        ])
+        expect(map.offeredCityLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
         expect(chosen).toEqual([home])
+    })
+
+    it('offers a starting company’s home cities when no auction offers any', () => {
+        const auctioned: unknown[] = []
+        const started: unknown[] = []
+        const home = { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
+        const { map } = table('StockRound', [], {}, [
+            { homePositions: [], chooseHome: (position) => auctioned.push(position) },
+            { homePositions: [home], chooseHome: (position) => started.push(position) }
+        ])
+        expect(map.offeredCityLocationIds).toEqual([TestTrackHomeLocationId])
+        map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
+        expect(auctioned).toEqual([])
+        expect(started).toEqual([home])
     })
 
     it('places a pending private station on a click anywhere on its one-city tile', async () => {
@@ -293,7 +294,7 @@ describe('MapModule', () => {
             () => {},
             () => []
         )
-        const map = new MapModule(session, () => view, track, stations, routes, noAuctionHomes)
+        const map = new MapModule(session, () => view, track, stations, routes, [noAuctionHomes])
         expect(stations.privateStationLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
         await Promise.resolve()

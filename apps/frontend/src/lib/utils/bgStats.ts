@@ -30,6 +30,7 @@ export function bgStatsPlayUrl(
 
     assertExists(game.finishedAt, 'Finished games require a completion timestamp')
     const scores = recordedFinalScores(game, metadata)
+    // BG Stats for Android rejects a play missing noPoints, highestWins, winner or startPlayer.
     const play = {
         sourceName: 'Tabletop',
         sourcePlayId: game.id,
@@ -38,14 +39,16 @@ export function bgStatsPlayUrl(
             name: metadata.name,
             sourceGameId: game.typeId,
             bggId: metadata.bggId,
-            noPoints: metadata.hasScores === undefined ? undefined : !metadata.hasScores,
-            highestWins: metadata.hasScores ? true : undefined
+            noPoints: metadata.hasScores === false,
+            highestWins: true
         },
         players: game.players.map((player) => ({
             name: player.name,
             sourcePlayerId: player.userId ? `user:${player.userId}` : `player:${player.id}`,
             score: scores?.[player.id],
-            winner: game.winningPlayerIds.includes(player.id)
+            winner: game.winningPlayerIds.includes(player.id),
+            // Hosted Games don't record a reliable start player.
+            startPlayer: false
         }))
     }
 

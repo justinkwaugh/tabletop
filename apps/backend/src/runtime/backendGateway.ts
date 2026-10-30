@@ -24,6 +24,11 @@ function forwardingHeaders(headers: http.IncomingHttpHeaders): http.OutgoingHttp
     )
 }
 
+function forwardedChain(forwardedFor: string | string[] | undefined, peer: string): string {
+    const received = Array.isArray(forwardedFor) ? forwardedFor : forwardedFor ? [forwardedFor] : []
+    return [...received, peer].join(', ')
+}
+
 export function createBackendGateway(http2Enabled: boolean, supervisor: BackendSupervisor) {
     const agent = new http.Agent({ keepAlive: true })
     const sockets = new Set<Socket>()
@@ -70,7 +75,10 @@ export function createBackendGateway(http2Enabled: boolean, supervisor: BackendS
             return
         }
         headers.host = host
-        headers['x-forwarded-for'] = request.socket.remoteAddress ?? ''
+        headers['x-forwarded-for'] = forwardedChain(
+            request.headers['x-forwarded-for'],
+            request.socket.remoteAddress ?? ''
+        )
         let incomingResponse: http.IncomingMessage | undefined
         const fail = () => {
             if (response.headersSent) response.destroy()

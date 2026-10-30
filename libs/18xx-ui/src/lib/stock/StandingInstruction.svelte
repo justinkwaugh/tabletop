@@ -1,9 +1,5 @@
 <script lang="ts">
-    import {
-        ignorableStop,
-        type CertificatePool,
-        type IgnorableStockInstructionStop
-    } from '@tabletop/18xx'
+    import { ignorableStop, type IgnorableStockInstructionStop } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
         ignorableStopNoun,
@@ -23,15 +19,9 @@
     let { session }: { session: EighteenXXSessionView } = $props()
     const gameState = $derived(session.gameState)
     const instructions = $derived(session.instructions)
-    function poolLabel(pool: CertificatePool): string {
-        return session.presentation.poolName?.(pool) ?? session.poolName(pool.id)
-    }
     const names = $derived({
         companyName: (id: string) => session.companyName(id),
-        poolName: (id: string) => {
-            const pool = gameState.certificatePools.find((pool) => pool.id === id)
-            return pool ? poolLabel(pool) : id
-        }
+        poolName: (id: string) => session.poolName(id)
     })
     const disabled = $derived(session.busy || session.isViewingHistory || !instructions.canDeclare)
     type InstructionDraft = {
@@ -253,12 +243,12 @@
                                         {disabled}
                                         aria-pressed={option.id === pool.id}
                                         onclick={() => updateDraft({ poolId: option.id })}
-                                        >{poolLabel(option)}</button
+                                        >{session.poolName(option.id)}</button
                                     >
                                 {/each}
                             </SlidingToggle>
                         </div>
-                    {:else}<span class="pool-name">{poolLabel(pool)}</span>{/if}
+                    {:else}<span class="pool-name">{session.poolName(pool.id)}</span>{/if}
                     <span class="label">until</span>
                     <div class="segment" role="group" aria-label="Goal">
                         <SlidingToggle

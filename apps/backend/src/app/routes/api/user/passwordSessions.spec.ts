@@ -11,7 +11,7 @@ import setPassword from './setPassword.js'
 import update from './update.js'
 import { sessionCookieHeader, sessionServer } from '../../../tests/sessionFixture.js'
 import {
-    memoryChallenges,
+    memoryTokens,
     memoryUserStore,
     ORIGINAL_PASSWORD,
     recordingTasks
@@ -37,10 +37,10 @@ async function createServer() {
     }
     const sessionStore = new UndeletableSessionStore()
     const sessionService = new SessionService(sessionStore)
-    const { challengeService } = memoryChallenges()
+    const { tokenService } = memoryTokens()
     const { tasks, lastMail } = recordingTasks()
     const { store, holdLoginsAfterCredentialCheck } = memoryUserStore(user, ORIGINAL_PASSWORD)
-    const userService = new UserService(store, challengeService, tasks)
+    const userService = new UserService(store, tokenService, tasks)
     const server = await sessionServer(sessionService)
     server.decorate('userService', userService)
     await server.register(authorization)

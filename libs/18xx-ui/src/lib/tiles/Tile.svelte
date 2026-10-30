@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { RevenueStageColors } from '../colors/revenueStageColors.js'
     import { HexOrientation } from '@tabletop/common'
     import type { TileFace, TileRotation } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
@@ -25,7 +26,7 @@
         orientation?: HexOrientation
         rotation?: TileRotation
         layout?: TileLayout
-        revenueStageColors?: Readonly<Record<string, string>>
+        revenueStageColors?: RevenueStageColors
         appearance?: TileAppearance
         size?: number | string
         label?: string

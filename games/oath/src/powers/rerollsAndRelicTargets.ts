@@ -1,5 +1,4 @@
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { askQuestion } from '../util/questions.js'
 import { registerBattlePlan, registerEffect, registerPersistent } from './registry.js'
@@ -36,7 +35,7 @@ registerEffect(BRASS_HORSE, powerIndexOf(BRASS_HORSE, PowerTiming.Action), {
         const top = ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds[0] : undefined
         // "Reveal" — the whole table sees the top card.
         if (top) seeDiscardPile(ctx.state, 'everyone', regionOfPawn(ctx.state, ctx.playerId), [top])
-        const suit = top ? suitOf(top) : undefined
+        const suit = top ? ctx.state.suitInPlay(top) : undefined
         // Its Q&A — the Travel rules bind; a site that cannot be travelled to is "unable".
         const sites = suit
             ? ctx.state

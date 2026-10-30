@@ -12,7 +12,9 @@ const git = async (repoRoot: string, args: string[]): Promise<string> => {
             typeof error === 'object' && error !== null && 'stderr' in error
                 ? String(error.stderr).trim()
                 : ''
-        throw new Error(`git ${args.join(' ')} failed${stderr ? `: ${stderr}` : ''}`)
+        throw new Error(`git ${args.join(' ')} failed${stderr ? `: ${stderr}` : ''}`, {
+            cause: error
+        })
     }
 }
 

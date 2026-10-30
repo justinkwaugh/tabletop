@@ -15,7 +15,7 @@
     } = $props()
     const money = $derived(session.presentation.money)
     const gameState = $derived(session.gameState)
-    const titleSteps = $derived(session.presentation.operatingSteps)
+    const titleSteps = $derived(session.operatingSteps)
     const currentStep = $derived.by(() => {
         if (titleSteps) {
             const action = session.isViewingHistory ? session.actions.at(-1) : undefined
@@ -46,7 +46,14 @@
         const summaries = operatingStepStatuses(gameState, session.actions, money)
         return titleSteps
             ? titleSteps.map((step) => step.status?.(gameState, session.actions, summaries))
-            : Object.values(summaries)
+            : [
+                  summaries.track,
+                  summaries.station,
+                  summaries.run,
+                  summaries.payout,
+                  summaries.trains,
+                  summaries.loans
+              ]
     })
 </script>
 

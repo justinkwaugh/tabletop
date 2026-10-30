@@ -3,7 +3,6 @@ import { gainFavorFromBank } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { sitePowerCategory, siteRecord, type HomelandReward } from '../data/sites.js'
 import type { Suit } from '../model/oathEnums.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { rulesSite } from './rule.js'
 import { gainedWarbandsWords, gainWarbandsToBoard } from './force.js'
 import { afterRelicsTakenPersistent } from './persistent.js'
@@ -92,7 +91,7 @@ export function homelandPowerFor(
 ): HomelandPower | undefined {
     const card = state.siteCardAt(siteId)
     const record = card ? siteRecord(card) : undefined
-    const suit = suitOf(cardId)
+    const suit = state.suitInPlay(cardId)
     if (!record?.homeland || !suit || record.homeland.suit !== suit) return undefined
     const key = homelandLedgerKey(siteId, suit)
     const barred =

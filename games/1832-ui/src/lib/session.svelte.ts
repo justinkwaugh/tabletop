@@ -1,7 +1,6 @@
 import {
     AnswerMerger,
     AnswerRedemption,
-    DiscardMergedTrain,
     MergingState,
     PassMerger,
     ProposeMerger,
@@ -37,7 +36,13 @@ import {
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
 import { undoableStagedSelection } from '@tabletop/frontend-components'
-import { cashOwnedBy, sameOwner, type Owner, type ShareSaleDetails } from '@tabletop/18xx'
+import {
+    cashOwnedBy,
+    sameOwner,
+    type Owner,
+    type ShareSaleDetails,
+    DiscardMergedTrain
+} from '@tabletop/18xx'
 import {
     createEighteenXXSessionClass,
     type HistoricalMapState,

@@ -7,8 +7,8 @@ import {
     type User
 } from '@tabletop/common'
 import {
-    AuthenticationChallengeService,
-    MemoryAuthenticationChallengeStore,
+    TokenService,
+    MemoryTokenStore,
     UpdateValidationResult,
     type StoredUser,
     type TaskService,
@@ -19,8 +19,7 @@ import { errorStatusCode } from '../lib/errorStatusCode.js'
 
 export const ORIGINAL_PASSWORD = 'original-password-value'
 
-// The same error shape and failure log line as the application error handler, so specs can
-// read error names and what a failure writes to the log
+// The same error shape the application error handler sends, so specs can read error names
 export function apiErrorShape(server: FastifyInstance): void {
     server.setErrorHandler(async (error: Error, request, reply) => {
         if (reply.statusCode < 400) {
@@ -29,7 +28,7 @@ export function apiErrorShape(server: FastifyInstance): void {
         if (reply.statusCode >= 500) {
             request.log.error({ err: error }, 'Request failed')
         }
-        return { status: 'error', error: { name: error.name, message: error.message } }
+        return { status: 'error', error: { ...error, name: error.name, message: error.message } }
     })
 }
 
@@ -66,9 +65,7 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
         return holder
     }
     store.updatePassword = async (_userId, candidate, options) => {
-        if (options?.validator?.(stored(), {}) === UpdateValidationResult.Cancel) {
-            return current
-        }
+        options?.validate?.(stored())
         await options?.participant?.(transaction, locks)
         return replaceCredential(candidate)
     }
@@ -131,10 +128,10 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
     }
 }
 
-export function memoryChallenges(options: { now?: () => Date } = {}) {
-    const challengeStore = new MemoryAuthenticationChallengeStore()
-    const challengeService = new AuthenticationChallengeService(challengeStore, options)
-    return { challengeStore, challengeService }
+export function memoryTokens(options: { now?: () => Date } = {}) {
+    const tokenStore = new MemoryTokenStore()
+    const tokenService = new TokenService(tokenStore, options)
+    return { tokenStore, tokenService }
 }
 
 export type SentMail = {
