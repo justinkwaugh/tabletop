@@ -57,7 +57,10 @@ const bitmaps = await page.evaluate(
                 const image = new Image()
                 image.src = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml' }))
                 await image.decode()
-                const [, , width, height] = text.match(/viewBox="([^"]+)"/)[1].split(' ').map(Number)
+                const [, , width, height] = text
+                    .match(/viewBox="([^"]+)"/)[1]
+                    .split(' ')
+                    .map(Number)
                 const canvas = document.createElement('canvas')
                 canvas.width = Math.round(width * scale)
                 canvas.height = Math.round(height * scale)
