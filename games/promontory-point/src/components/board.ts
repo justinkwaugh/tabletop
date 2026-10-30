@@ -29,7 +29,7 @@ export type BoardNode = BoardSpace | HomeHex
 type HexTuple = [q: number, r: number]
 
 // R-4.2
-export const PROMONTORY: { spaceId: SpaceId; event: PriceChangeEvent } = {
+export const PROMONTORY: { spaceId: 'space.0.0'; event: PriceChangeEvent } = {
     spaceId: 'space.0.0',
     event: { kind: TownEventKind.PriceChange, priceChange: 5 }
 }

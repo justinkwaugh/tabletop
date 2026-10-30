@@ -5,6 +5,9 @@ export * from './components/shares.js'
 export * from './components/townTiles.js'
 export * from './components/trackPieces.js'
 
+export * from './effects/townEffectOutcome.js'
+export * from './effects/townEffects.js'
+
 export * from './definition/actions.js'
 export * from './definition/config.js'
 export * from './definition/definition.js'
