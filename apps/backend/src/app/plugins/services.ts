@@ -23,8 +23,6 @@ import {
     FirestoreNotificationStore,
     FirestorePreferenceStore,
     FirestoreSessionStore,
-    FirestoreAuthenticationChallengeStore,
-    AuthenticationChallengeService,
     FirestoreTokenStore,
     FirestoreTournamentStore,
     FirestoreLeagueStore,
@@ -159,10 +157,7 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     const sessionService = new SessionService(
         new FirestoreSessionStore(redisCacheService, fastify.firestore)
     )
-    const challengeService = new AuthenticationChallengeService(
-        new FirestoreAuthenticationChallengeStore(fastify.firestore)
-    )
-    const userService = new UserService(userStore, challengeService, taskService)
+    const userService = new UserService(userStore, tokenService, taskService)
     const discordOAuth = new DiscordOAuthClient({
         clientId: process.env['DISCORD_CLIENT_ID'] ?? '',
         clientSecret: () => secretsService.getSecret('DISCORD_SECRET')

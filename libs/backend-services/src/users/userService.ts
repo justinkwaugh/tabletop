@@ -22,13 +22,13 @@ import {
 import { requireSessionEligibleAccount } from './accountEligibility.js'
 import { AccountChangeType } from '../email/emailService.js'
 import { nanoid } from 'nanoid'
-import { AuthenticationChallengeService } from '../challenges/authenticationChallengeService.js'
+import { TokenService, TokenType } from '../tokens/tokenService.js'
 import {
     type AuthenticationChallengeClaim,
     formatSetPasswordChallenge,
     InvalidChallengeError,
     type IssuedChallenge
-} from '../challenges/authenticationChallenge.js'
+} from '../tokens/authenticationChallenge.js'
 import type { StoredUser } from '../persistence/model/storedUser.js'
 import { UpdateValidationResult, UpdateValidator } from '../persistence/stores/validator.js'
 import { NotFoundError } from '../persistence/stores/errors.js'
@@ -44,7 +44,7 @@ export class UserService {
 
     constructor(
         private readonly userStore: UserStore,
-        private readonly challenges: AuthenticationChallengeService,
+        private readonly tokenService: TokenService,
         private readonly taskService: TaskService
     ) {
         const cmp = new Intl.Collator('en').compare
@@ -259,7 +259,7 @@ export class UserService {
             throw new InvalidChallengeError('account')
         }
         const claim: AuthenticationChallengeClaim = {
-            purpose: 'sensitive-change',
+            type: TokenType.SensitiveChange,
             userId,
             email: account.email,
             operation: sensitiveChangeOperation({
@@ -267,7 +267,7 @@ export class UserService {
                 password: Boolean(password)
             })
         }
-        return { claim, consume: this.challenges.consumption(challenge, claim) }
+        return { claim, consume: this.tokenService.consumeChallenge(challenge, claim) }
     }
 
     async linkExternalAccount({
@@ -312,13 +312,13 @@ export class UserService {
             throw new InvalidChallengeError('account')
         }
         const claim: AuthenticationChallengeClaim = {
-            purpose: 'set-password',
+            type: TokenType.PasswordReset,
             userId,
             email: account.email
         }
         const updatedUser = await this.userStore.updatePassword(userId, cleanPassword, {
             validator: this.requireChallengeAccount(claim),
-            participant: this.challenges.consumption(secret, claim)
+            participant: this.tokenService.consumeChallenge(secret, claim)
         })
         await this.notifyAccountChange(userId, {
             email: claim.email,
@@ -402,7 +402,7 @@ export class UserService {
             throw new InvalidChallengeError('account')
         }
         const claim: AuthenticationChallengeClaim = {
-            purpose: 'email-verification',
+            type: TokenType.EmailVerification,
             userId: user.id,
             email: user.email
         }
@@ -410,7 +410,7 @@ export class UserService {
             userId: user.id,
             fields: { emailVerified: true },
             validator: this.requireChallengeAccount(claim),
-            participant: this.challenges.consumption(code, claim)
+            participant: this.tokenService.consumeChallenge(code, claim)
         })
         return updatedUser
     }
@@ -419,8 +419,8 @@ export class UserService {
         if (!user.email) {
             throw new EmailVerificationError()
         }
-        const issued = await this.challenges.issue({
-            purpose: 'email-verification',
+        const issued = await this.tokenService.issueChallenge({
+            type: TokenType.EmailVerification,
             userId: user.id,
             email: user.email
         })
@@ -432,8 +432,8 @@ export class UserService {
         if (!user.email || !canHoldAuthenticatedSession(user)) {
             return undefined
         }
-        const issued = await this.challenges.issue({
-            purpose: 'set-password',
+        const issued = await this.tokenService.issueChallenge({
+            type: TokenType.PasswordReset,
             userId: user.id,
             email: user.email
         })
@@ -456,8 +456,8 @@ export class UserService {
         if (!user.email) {
             throw new EmailVerificationError()
         }
-        const issued = await this.challenges.issue({
-            purpose: 'sensitive-change',
+        const issued = await this.tokenService.issueChallenge({
+            type: TokenType.SensitiveChange,
             userId: user.id,
             email: user.email,
             operation: sensitiveChangeOperation(request)

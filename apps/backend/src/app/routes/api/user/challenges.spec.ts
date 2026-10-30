@@ -20,7 +20,7 @@ import verifyEmail from './verifyEmail.js'
 import { sessionCookieHeader, sessionServer } from '../../../tests/sessionFixture.js'
 import {
     apiErrorShape,
-    memoryChallenges,
+    memoryTokens,
     memoryUserStore,
     ORIGINAL_PASSWORD,
     recordingTasks
@@ -45,10 +45,10 @@ async function createServer(user: User, { withPassword = true }: { withPassword?
     const password = withPassword ? ORIGINAL_PASSWORD : undefined
     const sessionStore = new MemorySessionStore()
     const sessionService = new SessionService(sessionStore)
-    const { challengeService } = memoryChallenges()
+    const { tokenService } = memoryTokens()
     const { tasks, mails, lastMail } = recordingTasks()
     const { store, account } = memoryUserStore(user, password)
-    const userService = new UserService(store, challengeService, tasks)
+    const userService = new UserService(store, tokenService, tasks)
     const server = await sessionServer(sessionService)
     apiErrorShape(server)
     Reflect.set(server, 'userService', userService)

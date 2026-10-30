@@ -1,30 +1,24 @@
 import { type Static, Type } from 'typebox'
-import { BaseError, DateType, SensitiveChangeOperation } from '@tabletop/common'
-
-export type AuthenticationChallengePurpose = Static<typeof AuthenticationChallengePurpose>
-export const AuthenticationChallengePurpose = Type.Union([
-    Type.Literal('set-password'),
-    Type.Literal('email-verification'),
-    Type.Literal('sensitive-change')
-])
+import { BaseError, SensitiveChangeOperation } from '@tabletop/common'
+import { TokenType } from './dataToken.js'
 
 export type SetPasswordClaim = Static<typeof SetPasswordClaim>
 export const SetPasswordClaim = Type.Object({
-    purpose: Type.Literal('set-password'),
+    type: Type.Literal(TokenType.PasswordReset),
     userId: Type.String(),
     email: Type.String()
 })
 
 export type EmailVerificationClaim = Static<typeof EmailVerificationClaim>
 export const EmailVerificationClaim = Type.Object({
-    purpose: Type.Literal('email-verification'),
+    type: Type.Literal(TokenType.EmailVerification),
     userId: Type.String(),
     email: Type.String()
 })
 
 export type SensitiveChangeClaim = Static<typeof SensitiveChangeClaim>
 export const SensitiveChangeClaim = Type.Object({
-    purpose: Type.Literal('sensitive-change'),
+    type: Type.Literal(TokenType.SensitiveChange),
     userId: Type.String(),
     email: Type.String(),
     operation: SensitiveChangeOperation
@@ -37,37 +31,12 @@ export const AuthenticationChallengeClaim = Type.Union([
     SensitiveChangeClaim
 ])
 
-export type AuthenticationChallengeRecord = Static<typeof AuthenticationChallengeRecord>
-export const AuthenticationChallengeRecord = Type.Evaluate(
-    Type.Intersect([
-        AuthenticationChallengeClaim,
-        Type.Object({
-            secretHash: Type.String(),
-            expiresAt: DateType()
-        })
-    ])
-)
-
 export type IssuedChallenge = {
     secret: string
     expiresAt: Date
 }
 
-// A link challenge is typed by nobody; a code challenge is read from an email and typed by hand.
-export const CHALLENGE_SECRET_LENGTH: Record<AuthenticationChallengePurpose, number> = {
-    'set-password': 32,
-    'email-verification': 6,
-    'sensitive-change': 6
-}
-
-const KEY_SEPARATOR = ':'
 const PRESENTATION_SEPARATOR = '.'
-
-export function authenticationChallengeKey(
-    claim: Pick<AuthenticationChallengeClaim, 'purpose' | 'userId'>
-): string {
-    return `${claim.purpose}${KEY_SEPARATOR}${claim.userId}`
-}
 
 export type PresentedSetPasswordChallenge = { userId: string; secret: string }
 

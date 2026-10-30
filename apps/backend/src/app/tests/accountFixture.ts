@@ -7,8 +7,8 @@ import {
     type User
 } from '@tabletop/common'
 import {
-    AuthenticationChallengeService,
-    MemoryAuthenticationChallengeStore,
+    TokenService,
+    MemoryTokenStore,
     UpdateValidationResult,
     type StoredUser,
     type TaskService,
@@ -127,10 +127,10 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
     }
 }
 
-export function memoryChallenges(options: { now?: () => Date } = {}) {
-    const challengeStore = new MemoryAuthenticationChallengeStore()
-    const challengeService = new AuthenticationChallengeService(challengeStore, options)
-    return { challengeStore, challengeService }
+export function memoryTokens(options: { now?: () => Date } = {}) {
+    const tokenStore = new MemoryTokenStore()
+    const tokenService = new TokenService(tokenStore, options)
+    return { tokenStore, tokenService }
 }
 
 export type SentMail = {
