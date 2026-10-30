@@ -26,19 +26,13 @@
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
     import { gameShareLink } from '$lib/utils/gameLinks'
     import { startCountdownText } from '$lib/utils/startCountdown'
+    import { minuteClock, secondClock, timeSince } from '$lib/utils/clock.svelte'
     import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
     import GameProgressBar from './GameProgressBar.svelte'
-    import {
-        copyTextToClipboard,
-        createTimeAgo,
-        GameEditForm,
-        getAppContext
-    } from '@tabletop/frontend-components'
-
-    const timeAgo = createTimeAgo()
+    import { copyTextToClipboard, GameEditForm, getAppContext } from '@tabletop/frontend-components'
 
     const ending = { border: '!border-red-600', label: 'text-red-500', value: 'text-red-400' }
     const stallColors: Record<GameStallLevel, { border: string; label: string; value: string }> = {
@@ -149,27 +143,21 @@
             myPlayer?.status === PlayerStatus.Joined
     )
 
-    let now = $state(Date.now())
     let autoStartAt = $derived(
         game.status === GameStatus.WaitingToStart && game.autoStartAt
             ? new Date(game.autoStartAt).getTime()
             : undefined
     )
     let autoStartText = $derived(
-        autoStartAt === undefined ? undefined : startCountdownText(autoStartAt, now)
+        autoStartAt === undefined
+            ? undefined
+            : startCountdownText(autoStartAt, secondClock.now.getTime())
     )
-
-    $effect(() => {
-        if (autoStartAt === undefined) return
-        const tick = () => (now = Date.now())
-        tick()
-        const clock = setInterval(tick, 1000)
-        return () => clearInterval(clock)
-    })
 
     let isMyTurn = $derived(isUsersNonHotseatTurn(game, sessionUser?.id))
 
-    let stallLevel = $derived(gameStallLevel(game, new Date()))
+    let currentTime = $derived(minuteClock.now)
+    let stallLevel = $derived(gameStallLevel(game, currentTime))
     let stallColor = $derived(stallColors[stallLevel])
 
     let openSeats = $derived(
@@ -307,7 +295,7 @@
             case GameStallLevel.AtRisk:
                 return 'Stalling'
             case GameStallLevel.Ending: {
-                const days = daysUntilStalledGameEnds(game, new Date())
+                const days = daysUntilStalledGameEnds(game, currentTime)
                 return days === 1 ? 'Ends in 1 day' : `Ends in ${days} days`
             }
             default:
@@ -538,7 +526,7 @@
                                     {stallText()}
                                 </div>
                                 <div class="text-xs {stallColor.value}">
-                                    {timeAgo.format(lastMoveAt(game))}
+                                    {timeSince(lastMoveAt(game))}
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Started && game.lastActionAt}
@@ -550,7 +538,7 @@
                                     Last Action
                                 </div>
                                 <div class="text-xs text-gray-400">
-                                    {timeAgo.format(new Date(game.lastActionAt))}
+                                    {timeSince(new Date(game.lastActionAt))}
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Finished}
@@ -563,7 +551,7 @@
                                 </div>
                                 {#if game.finishedAt}
                                     <div class="text-xs text-gray-400">
-                                        {timeAgo.format(new Date(game.finishedAt))}
+                                        {timeSince(new Date(game.finishedAt))}
                                     </div>
                                 {/if}
                             </div>
