@@ -283,6 +283,68 @@ test.describe('an upright phone at 375 by 812: a panel that fits pins nothing', 
     }
 })
 
+test.describe('an upright phone at 375 by 812: pinning never changes the height it is decided on', () => {
+    test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
+
+    const answerRow = (page: Page) => panel(page).locator('[data-answer-row]').last()
+
+    test('the Citizenship answer just under its share fits, opened first or after another table', async ({
+        page
+    }) => {
+        const short: Scene = { name: 'the Citizenship answer', table: 'citizenshipShort' }
+        await openScene(page, short)
+        const first = await page.evaluate(measureFit)
+        await expect(answerRow(page)).toHaveCSS('position', 'static')
+
+        await openScene(page, TALL[0])
+        await call(page, 'open', short.table)
+        await expect(panel(page).getByRole('button', { name: 'Accept', exact: true })).toBeVisible()
+        await settled(page)
+        const after = await page.evaluate(measureFit)
+        await expect(answerRow(page)).toHaveCSS('position', 'static')
+
+        expect(first.natural).toBeLessThanOrEqual(first.column * UPRIGHT_SHARE)
+        expect(after.natural).toBe(first.natural)
+        expect(first.more).toBe(false)
+        expect(after.more).toBe(false)
+        expect(first.scrollHeight).toBe(first.clientHeight)
+    })
+
+    test('the Tribunal exchange with a long promise: pinned, its row and panel are as tall as unpinned', async ({
+        page
+    }) => {
+        await openScene(page, TALL[0])
+        await expect(answerRow(page)).toHaveCSS('position', 'sticky')
+        const heights = await answerRow(page).evaluate((row) => {
+            const box = row.closest('.fit')
+            const inner = box?.querySelector('.fit__inner')
+            if (!box || !(inner instanceof HTMLElement) || !(row instanceof HTMLElement)) {
+                throw new Error('no fitted panel')
+            }
+            // The row's height with its margins, and the panel's natural height as FitBox reads it.
+            const read = () => {
+                const style = getComputedStyle(row)
+                return {
+                    row:
+                        row.offsetHeight +
+                        parseFloat(style.marginTop) +
+                        parseFloat(style.marginBottom),
+                    content: inner.scrollHeight
+                }
+            }
+            const pinned = read()
+            box.classList.remove('fit--more')
+            const unpinned = { ...read(), position: getComputedStyle(row).position }
+            box.classList.add('fit--more')
+            return { pinned, unpinned, again: read() }
+        })
+        expect(heights.unpinned.position).toBe('static')
+        expect(heights.pinned.row).toBe(heights.unpinned.row)
+        expect(heights.pinned.content).toBe(heights.unpinned.content)
+        expect(heights.again).toEqual(heights.pinned)
+    })
+})
+
 test.describe('an upright phone at 375 by 812: the steps inside a scrolling panel', () => {
     test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
 

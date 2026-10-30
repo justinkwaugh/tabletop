@@ -181,13 +181,15 @@
     }
     /* While there is more below, the answer row on one line sticks to the box's bottom, drawn as
        the panel is drawn over the page, but opaque, with a shadow above it. In a panel that fits
-       it stays where it is, drawn as the rest. */
+       it stays where it is, drawn as the rest. Its strip reaches 6 px past the buttons each way
+       into the space around them, so pinning leaves the panel's height, which decides whether
+       it pins, unchanged. */
     .fit--more :global([data-answer-row][data-pinned]) {
         position: sticky;
         bottom: 0;
         z-index: 2;
         padding-block: 6px;
-        margin-bottom: -6px;
+        margin-block: -6px;
         background: linear-gradient(var(--oath-surface), var(--oath-surface)), var(--oath-page);
         box-shadow: 0 -10px 12px -6px rgb(0 0 0 / 0.7);
     }
