@@ -82,7 +82,7 @@ An Authentication Challenge proving control of a Pending Email Address, bound to
 An Authentication Challenge, bound to the Email Address it was sent to, authorizing Set Password for an Incomplete or Active Account without establishing an Authenticated Session. It changes neither Account Status nor email verification; the person signs in afterwards through an Authentication Method.
 
 **Authenticated Session**:
-Ongoing authorization associated with a User Account, recorded server-side under an unguessable Session ID that the session cookie carries. It has a thirty-day absolute lifetime and no sliding extension from ordinary activity, and it ends early through Logout, Logout All, Set Password, or a verified Email Address change. A cookie without a live record authorizes nothing. An Account may have multiple concurrent sessions.
+Ongoing authorization associated with a User Account, recorded server-side under an unguessable Session ID that the session cookie carries. It has a 180-day absolute lifetime and no sliding extension from ordinary activity, and it ends early through Logout, Logout All, Set Password, or a verified Email Address change. A cookie without a live record authorizes nothing. An Account may have multiple concurrent sessions.
 _Avoid_: Login cookie, stateless session
 
 **Session ID**:

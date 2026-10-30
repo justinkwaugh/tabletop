@@ -15,7 +15,7 @@ import {
 } from './authenticatedSession.js'
 import { hasRecentAuthentication } from './recentAuthentication.js'
 
-export const SESSION_LIFETIME_SECONDS = 30 * 24 * 60 * 60
+export const SESSION_LIFETIME_SECONDS = 180 * 24 * 60 * 60
 
 const SESSION_ID_LENGTH = 32
 const sessionId = customAlphabet(

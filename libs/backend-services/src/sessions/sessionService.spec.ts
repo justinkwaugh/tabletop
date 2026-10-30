@@ -45,9 +45,7 @@ describe('Authenticated Session lifecycle', () => {
             expect(session.id).toMatch(/^[0-9A-Za-z]{32}$/)
             expect(session.userId).toBe('account-1')
             expect(session.generation).toBe(0)
-            expect(session.expiresAt.getTime() - session.createdAt.getTime()).toBe(
-                SESSION_LIFETIME_SECONDS * 1000
-            )
+            expect(session.expiresAt).toEqual(new Date('2027-04-25T12:00:00.000Z'))
             expect(session.authenticatedAt).toEqual(session.createdAt)
             await expect(authorize(session.id)).resolves.toEqual({ session, user })
         }
@@ -98,7 +96,7 @@ describe('Authenticated Session lifecycle', () => {
         await expect(authorize(second.id)).resolves.toMatchObject({ session: second })
     })
 
-    it('expires a session thirty days after it was established, with no sliding extension', async () => {
+    it('expires a session 180 days after it was established, with no sliding extension', async () => {
         const { sessions, authorize, advance, store } = fixture()
         const session = await sessions.establish(
             account(UserStatus.Active),
