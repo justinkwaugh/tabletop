@@ -174,11 +174,30 @@
         return game.seed
     })
 
-    function toggleExpand() {
-        if (!canToggle) {
-            return
-        }
+    function toggleExpand(event: Event) {
+        event.stopPropagation()
         isExpanded = !isExpanded
+    }
+
+    let collapsedButton = $derived.by(() => {
+        if (canJoin) return 'join'
+        if (canStart) return 'start'
+        if (canEdit) return 'edit'
+        if (canPlay || canWatch) return 'enter'
+        if (canRevisit) return 'revisit'
+        return undefined
+    })
+    let opensFromCard = $derived(
+        !isExpanded && (collapsedButton === 'enter' || collapsedButton === 'revisit')
+    )
+
+    // Spreads the button's hit area over the card's top-right corner; the card's overflow clips it
+    const cornerHitArea =
+        'h-[20px] relative before:absolute before:-top-8 before:-right-40 before:-bottom-2 before:-left-1'
+
+    function openFromCard(event: MouseEvent) {
+        if (window.getSelection()?.isCollapsed === false) return
+        playGame(event)
     }
 
     async function joinGame(event: Event) {
@@ -358,8 +377,8 @@
 {/snippet}
 
 <Card
-    onclick={toggleExpand}
-    class={`min-w-[310px] mx-2 mb-1 ${gameCardAppearance} ${stallColor.border} ${className}`}
+    onclick={opensFromCard ? openFromCard : undefined}
+    class={`min-w-[310px] mx-2 mb-1 ${gameCardAppearance} ${stallColor.border} ${opensFromCard ? 'cursor-pointer' : ''} ${className}`}
     size="sm"
 >
     <div class="flex flex-col">
@@ -407,34 +426,34 @@
                             {/if}
                             {#if !isExpanded}
                                 <div class="text-nowrap">
-                                    {#if canJoin}
+                                    {#if collapsedButton === 'join'}
                                         <Button
                                             size="xs"
                                             color="green"
-                                            class="h-[20px]"
+                                            class={cornerHitArea}
                                             onclick={joinGame}>Join</Button
                                         >
-                                    {:else if canStart}
+                                    {:else if collapsedButton === 'start'}
                                         <Button
                                             size="xs"
                                             color="primary"
-                                            class="h-[20px]"
+                                            class={cornerHitArea}
                                             onclick={startGame}>Start</Button
                                         >
-                                    {:else if canEdit}
+                                    {:else if collapsedButton === 'edit'}
                                         <Button
                                             size="xs"
                                             color="blue"
-                                            class="h-[20px]"
+                                            class={cornerHitArea}
                                             onclick={editGame}>Edit</Button
                                         >
-                                    {:else if canPlay || canWatch}
+                                    {:else if collapsedButton === 'enter'}
                                         {@render gameEntryButton(
                                             isMyTurn ? 'Your Turn' : canPlay ? 'Enter' : 'Watch',
                                             isMyTurn ? 'yellow' : 'primary',
                                             'h-[20px]'
                                         )}
-                                    {:else if canRevisit}
+                                    {:else if collapsedButton === 'revisit'}
                                         {@render gameEntryButton(
                                             'Revisit',
                                             'light',
@@ -733,12 +752,22 @@
         {/if}
 
         <div
-            class="flex flex-row justify-center items-center text-center dark:text-gray-700 hover:dark:text-gray-200 -mt-1"
+            class="relative flex flex-row justify-center items-center text-center dark:text-gray-700 -mt-1"
         >
+            {#if canToggle}
+                <!-- Reaches past the card's padding to its edges; the card's overflow clips it -->
+                <button
+                    type="button"
+                    class="peer absolute -inset-x-8 top-3 -bottom-8 cursor-pointer focus-visible:bg-white/5 focus-visible:outline-none"
+                    aria-label={isExpanded ? 'Hide game details' : 'Show game details'}
+                    aria-expanded={isExpanded}
+                    onclick={toggleExpand}
+                ></button>
+            {/if}
             {#if !isExpanded}
                 <svg
                     in:fade={{ duration: 75, delay: 400 }}
-                    class="w-[30px] h-[30px]"
+                    class="w-[30px] h-[30px] peer-hover:dark:text-gray-200 peer-focus-visible:dark:text-gray-200"
                     aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -757,7 +786,7 @@
             {:else}
                 <svg
                     in:fade={{ duration: 75, delay: 400 }}
-                    class="w-[30px] h-[30px]"
+                    class="w-[30px] h-[30px] peer-hover:dark:text-gray-200 peer-focus-visible:dark:text-gray-200"
                     aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
