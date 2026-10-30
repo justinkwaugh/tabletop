@@ -1,5 +1,10 @@
 import { AccountChangeType } from '../email/emailService.js'
-import { CreatePushTaskOptions, TaskService, type VerificationEmailTask } from './taskService'
+import {
+    CreatePushTaskOptions,
+    TaskService,
+    type VerificationEmailTask,
+    type EmailChangeVerificationTask
+} from './taskService'
 
 export abstract class BaseTaskService implements TaskService {
     abstract createPushTask<T>(options: CreatePushTaskOptions<T>): Promise<void>
@@ -7,10 +12,16 @@ export abstract class BaseTaskService implements TaskService {
     async sendVerificationEmail(task: VerificationEmailTask) {
         await this.createPushTask({
             queue: 'verification-email',
-            // Older workers must retry, not deliver a replacement code to the current address.
-            path: task.email
-                ? '/email/sendEmailChangeVerification'
-                : '/email/sendVerificationEmail',
+            path: '/email/sendVerificationEmail',
+            payload: task
+        })
+    }
+
+    async sendEmailChangeVerificationEmail(task: EmailChangeVerificationTask) {
+        await this.createPushTask({
+            queue: 'verification-email',
+            // A distinct route makes older workers retry instead of mailing the current address.
+            path: '/email/sendEmailChangeVerification',
             payload: task
         })
     }

@@ -1,12 +1,17 @@
 import type {
-    AccountChangeType,
     LeagueSeasonResultsProps,
     LeagueSeasonStartProps,
     LeagueSignUpProps
 } from '@tabletop/email'
-import { Game, GameDefinition, TournamentDetail, User } from '@tabletop/common'
+import {
+    type AccountChangeType,
+    Game,
+    GameDefinition,
+    TournamentDetail,
+    User
+} from '@tabletop/common'
 
-export { AccountChangeType } from '@tabletop/email'
+export { AccountChangeType } from '@tabletop/common'
 
 export type LeagueSignUpEmail = LeagueSignUpProps & { url: string; toEmail: string }
 

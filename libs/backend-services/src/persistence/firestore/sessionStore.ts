@@ -1,3 +1,4 @@
+import { isValidStorageId } from '../stores/storageId.js'
 import { measure } from '../../diagnostics/requestTimings.js'
 import {
     CollectionReference,
@@ -34,7 +35,7 @@ export class FirestoreSessionStore implements SessionStore {
     }
 
     async create(session: AuthenticatedSession): Promise<void> {
-        if (!this.isValidId(session.id)) {
+        if (!isValidStorageId(session.id)) {
             throw new InvalidIdError({
                 type: 'AuthenticatedSession',
                 id: secretReference(session.id)
@@ -69,7 +70,7 @@ export class FirestoreSessionStore implements SessionStore {
         id: string,
         change: (stored: AuthenticatedSession) => AuthenticatedSession
     ): Promise<AuthenticatedSession | undefined> {
-        if (!this.isValidId(id)) {
+        if (!isValidStorageId(id)) {
             return undefined
         }
         try {
@@ -126,7 +127,7 @@ export class FirestoreSessionStore implements SessionStore {
     }
 
     private async read(id: string): Promise<AuthenticatedSession | undefined> {
-        if (!this.isValidId(id)) {
+        if (!isValidStorageId(id)) {
             return undefined
         }
         try {
@@ -138,10 +139,6 @@ export class FirestoreSessionStore implements SessionStore {
         } catch (error) {
             this.handleError(error, { reference: secretReference(id), secrets: [id] })
         }
-    }
-
-    private isValidId(id: string): boolean {
-        return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
     }
 
     private recordRead(count?: number) {

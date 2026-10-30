@@ -14,7 +14,7 @@ import { FirestoreSessionStore } from '../persistence/firestore/sessionStore.js'
 import { FirestoreUserStore } from '../persistence/firestore/userStore.js'
 import { isolatedFirestore } from '../persistence/firestore/tests/isolatedFirestore.js'
 import type { TokenStore } from '../persistence/stores/tokenStore.js'
-import { UnknownStorageError } from '../persistence/stores/errors.js'
+import { InvalidIdError, UnknownStorageError } from '../persistence/stores/errors.js'
 import { SessionNotLiveError, SessionService } from '../sessions/sessionService.js'
 import { RecentAuthenticationRequiredError } from '../sessions/recentAuthentication.js'
 import type { TaskService } from '../tasks/taskService.js'
@@ -59,6 +59,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             mails.push({ kind: 'reset', ...mail })
         }
         tasks.sendVerificationEmail = async (mail) => {
+            mails.push({ kind: 'verification', ...mail })
+        }
+        tasks.sendEmailChangeVerificationEmail = async (mail) => {
             mails.push({ kind: 'verification', ...mail })
         }
         tasks.sendAuthVerificationEmail = async (mail) => {
@@ -493,6 +496,27 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 const secret = lastMail('verification').token
                 return { account, session, email, original, pending, secret }
             }
+
+            it('refuses an unstoreable address before replacing the pending code or queuing email', async () => {
+                const { account, session, email, original, pending, secret } = await pendingChange()
+                const mailCount = mails.length
+                const noticeCount = notifications.length
+
+                await expect(
+                    users.requestEmailChange(session, 'first__middle__last@example.test')
+                ).rejects.toThrow(InvalidIdError)
+
+                expect(mails).toHaveLength(mailCount)
+                expect(notifications).toHaveLength(noticeCount)
+                expect(await stored(account.id)).toEqual(original)
+                expect(await users.pendingEmailChange(account)).toEqual(pending)
+                await expect(
+                    users.confirmEmailChange(session, email, secret)
+                ).resolves.toMatchObject({
+                    email,
+                    status: UserStatus.Active
+                })
+            })
 
             it('keeps the verified address, Active status, cache, reservation and sessions until verification', async () => {
                 const { account, session, original, pending, email } = await pendingChange()

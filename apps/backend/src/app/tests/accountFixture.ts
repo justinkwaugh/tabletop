@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify'
 import {
     accountStatusAfterCompletionCheck,
     normalizeEmailAddress,
-    sessionGenerationOf,
+    nextSessionGeneration,
     type User
 } from '@tabletop/common'
 import {
@@ -48,7 +48,7 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
         current = {
             ...current,
             hasPassword: true,
-            sessionGeneration: sessionGenerationOf(current) + 1
+            sessionGeneration: nextSessionGeneration(current)
         }
         return current
     }
@@ -97,7 +97,7 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
                 email: normalizeEmailAddress(fields.email),
                 emailVerified: fields.emailVerified ?? false,
                 ...(original.emailVerified && fields.emailVerified
-                    ? { sessionGeneration: sessionGenerationOf(original) + 1 }
+                    ? { sessionGeneration: nextSessionGeneration(original) }
                     : {})
             }
         }
@@ -150,6 +150,9 @@ export function recordingTasks() {
         mails.push({ kind: 'reset', ...mail })
     }
     tasks.sendVerificationEmail = async (mail) => {
+        mails.push({ kind: 'verification', ...mail })
+    }
+    tasks.sendEmailChangeVerificationEmail = async (mail) => {
         mails.push({ kind: 'verification', ...mail })
     }
     tasks.sendAuthVerificationEmail = async (mail) => {

@@ -1,3 +1,4 @@
+import { isValidStorageId } from '../stores/storageId.js'
 import {
     CollectionReference,
     Firestore,
@@ -45,7 +46,7 @@ export class FirestoreTokenStore implements TokenStore {
         newToken.createdAt = new Date()
         newToken.updatedAt = new Date()
 
-        if (!this.isValidId(newToken.id)) {
+        if (!isValidStorageId(newToken.id)) {
             throw new InvalidIdError({ type: 'DataToken', id: secretReference(newToken.id) })
         }
 
@@ -68,10 +69,6 @@ export class FirestoreTokenStore implements TokenStore {
         } catch (error) {
             this.handleError(error, id)
         }
-    }
-
-    private isValidId(id: string): boolean {
-        return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
     }
 
     private handleError(error: unknown, token: string): never {

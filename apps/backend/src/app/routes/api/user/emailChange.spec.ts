@@ -82,6 +82,23 @@ async function fixture() {
 }
 
 describe('verified email replacement', () => {
+    it('rejects an unstoreable proposed address before issuing a challenge or sending a code', async () => {
+        const { server, signIn, request, mails, account } = await fixture()
+        const cookie = await signIn()
+        const response = await request(cookie, 'first__middle__last@example.test')
+
+        expect(response.statusCode).toBe(400)
+        expect(response.json().error.name).toBe('InvalidIDError')
+        expect(mails).toHaveLength(0)
+        const pending = await server.inject({ url: '/user/email/change', headers: { cookie } })
+        expect(pending.json().payload.pending).toBeNull()
+        expect(account()).toMatchObject({
+            email: 'old@example.test',
+            emailVerified: true,
+            status: UserStatus.Active
+        })
+    })
+
     it('keeps Active access while pending and retains only the confirming session after verification', async () => {
         const { server, signIn, request, lastMail, account } = await fixture()
         const current = await signIn()

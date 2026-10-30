@@ -8,12 +8,14 @@ export interface CreatePushTaskOptions<T> {
     uniqueName?: string
 }
 
-export type VerificationEmailTask = { userId: string; token: string; email?: string }
+export type VerificationEmailTask = { userId: string; token: string }
+export type EmailChangeVerificationTask = VerificationEmailTask & { email: string }
 
 export interface TaskService {
     createPushTask<T>(options: CreatePushTaskOptions<T>): Promise<void>
 
     sendVerificationEmail(task: VerificationEmailTask): Promise<void>
+    sendEmailChangeVerificationEmail(task: EmailChangeVerificationTask): Promise<void>
     sendPasswordResetEmail({ userId, token }: { userId: string; token: string }): Promise<void>
     sendAuthVerificationEmail({ userId, token }: { userId: string; token: string }): Promise<void>
     sendAccountChangeNotificationEmail({

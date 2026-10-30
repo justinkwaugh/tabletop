@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import { Alert, Button, Helper, Input, Label, P } from 'flowbite-svelte'
-    import type { PendingEmailChange } from '@tabletop/common'
+    import { normalizeEmailAddress, type PendingEmailChange } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
     import { emailAddress } from '$lib/utils/accountFormValidation'
     import { challengeExpiryText } from '$lib/utils/challengeExpiry'
@@ -11,7 +11,7 @@
     } from '$lib/stores/reauthentication.svelte'
 
     const { api, authorizationService } = getAppContext()
-    const ownerId = authorizationService.getSessionUser()?.id
+    const formAccountId = authorizationService.getSessionUser()?.id
     let user = $derived(authorizationService.getSessionUser())
     let email = $state(authorizationService.getSessionUser()?.email ?? '')
     let code = $state('')
@@ -26,7 +26,7 @@
         void api
             .pendingEmailChange()
             .then((value) => {
-                if (mounted && user?.id === ownerId) pending = value
+                if (mounted && user?.id === formAccountId) pending = value
             })
             .catch(() => {
                 if (mounted)
@@ -61,15 +61,20 @@
                 busy = true
                 try {
                     const requested = await api.requestEmailChange(address)
-                    if (user?.id !== ownerId) return
+                    if (user?.id !== formAccountId) return
                     pending = requested
                     code = ''
                 } catch (failure) {
                     if (requiresRecentAuthentication(failure)) throw failure
-                    error =
-                        failure instanceof Error && failure.name === 'AlreadyExistsError'
-                            ? 'That email address is already in use.'
-                            : 'We could not send the code. Your current email address is unchanged. Please try again.'
+                    if (failure instanceof Error && failure.name === 'InvalidIDError') {
+                        error =
+                            'That email address is not supported. Please use a different address.'
+                    } else if (failure instanceof Error && failure.name === 'AlreadyExistsError') {
+                        error = 'That email address is already in use.'
+                    } else {
+                        error =
+                            'We could not send the code. Your current email address is unchanged. Please try again.'
+                    }
                 } finally {
                     busy = false
                 }
@@ -89,7 +94,7 @@
                 busy = true
                 try {
                     const updated = await api.confirmEmailChange(address, submittedCode)
-                    if (user?.id !== ownerId) return
+                    if (user?.id !== formAccountId) return
                     authorizationService.setSessionUser(updated)
                     pending = undefined
                     email = updated.email ?? ''
@@ -181,7 +186,7 @@
             >
             <Button
                 type="submit"
-                disabled={loading || busy || email.trim().toLowerCase() === user?.email}
+                disabled={loading || busy || normalizeEmailAddress(email) === user?.email}
                 >Send verification code</Button
             >
         </form>

@@ -1,10 +1,11 @@
+import { isValidStorageId } from '../stores/storageId.js'
 import { Timed, measure } from '../../diagnostics/requestTimings.js'
 import {
     accountStatusAfterCompletionCheck,
     BaseError,
     ExternalAuthService,
     Role,
-    sessionGenerationOf,
+    nextSessionGeneration,
     User,
     UserStatus,
     type TimeWindow
@@ -219,16 +220,16 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
 
         // Ensure fields can be used for unique constraints
-        if (newStoredUser.cleanUsername && !this.isValidId(newStoredUser.cleanUsername)) {
+        if (newStoredUser.cleanUsername && !isValidStorageId(newStoredUser.cleanUsername)) {
             throw new InvalidIdError({ type: 'username', id: newStoredUser.cleanUsername })
         }
 
-        if (newStoredUser.email && !this.isValidId(newStoredUser.email)) {
+        if (newStoredUser.email && !isValidStorageId(newStoredUser.email)) {
             throw new InvalidIdError({ type: 'email', id: newStoredUser.email })
         }
 
         newStoredUser.externalIds.forEach((externalId: string) => {
-            if (!this.isValidId(externalId)) {
+            if (!isValidStorageId(externalId)) {
                 throw new InvalidIdError({ type: 'externalId', id: externalId })
             }
         })
@@ -315,7 +316,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         existingUser: StoredUser,
         passwordHash: string
     ): Required<Pick<StoredUser, 'passwordHash' | 'sessionGeneration'>> {
-        return { passwordHash, sessionGeneration: sessionGenerationOf(existingUser) + 1 }
+        return { passwordHash, sessionGeneration: nextSessionGeneration(existingUser) }
     }
 
     async updateUser({
@@ -339,21 +340,21 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             updateFields.username = updateFields.username.trim()
             updateFields.cleanUsername = this.trimLowerString(updateFields.username)
 
-            if (!this.isValidId(updateFields.username)) {
+            if (!isValidStorageId(updateFields.username)) {
                 throw new InvalidIdError({ type: 'username', id: updateFields.username })
             }
         }
 
         if (updateFields.email) {
             updateFields.email = this.trimLowerString(updateFields.email)
-            if (!this.isValidId(updateFields.email)) {
+            if (!isValidStorageId(updateFields.email)) {
                 throw new InvalidIdError({ type: 'email', id: updateFields.email })
             }
         }
 
         if (updateFields.externalIds) {
             updateFields.externalIds.forEach((externalId: string) => {
-                if (!this.isValidId(externalId)) {
+                if (!isValidStorageId(externalId)) {
                     throw new InvalidIdError({ type: 'externalId', id: externalId })
                 }
             })
@@ -460,7 +461,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 existingUser.emailVerified &&
                 updatedUser.emailVerified
             ) {
-                fieldsToUpdate.sessionGeneration = sessionGenerationOf(existingUser) + 1
+                fieldsToUpdate.sessionGeneration = nextSessionGeneration(existingUser)
                 updatedUser.sessionGeneration = fieldsToUpdate.sessionGeneration
             }
 
@@ -528,7 +529,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         externalId: string
         service: ExternalAuthService
     }): Promise<User> {
-        if (!this.isValidId(externalId)) {
+        if (!isValidStorageId(externalId)) {
             throw new InvalidIdError({ type: 'externalId', id: externalId })
         }
 
@@ -653,10 +654,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             throw Error(`Multiple entries with the same ${fieldName}`)
         }
         return docs[0].data() as T
-    }
-
-    private isValidId(id: string): boolean {
-        return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
     }
 
     private sanitize(user: StoredUser): User

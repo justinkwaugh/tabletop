@@ -15,7 +15,7 @@ describe('local delayed tasks', () => {
             .mockResolvedValue(new Response('{}'))
         vi.stubGlobal('fetch', fetch)
         const tasks = new LocalTaskService('http://localhost:3000')
-        await tasks.sendVerificationEmail({
+        await tasks.sendEmailChangeVerificationEmail({
             userId: 'account',
             token: 'new-code',
             email: 'new@example.test'

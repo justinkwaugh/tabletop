@@ -370,6 +370,27 @@ for (const field of ['email', 'password']) {
     })
 }
 
+test('an unsupported address keeps the draft and offers a different address', async ({ page }) => {
+    await profileSubmissions(page, { recent: true })
+    await page.route('**/api/v1/user/email/change', async (route) => {
+        if (route.request().method() !== 'POST') return route.fallback()
+        return route.fulfill({
+            status: 400,
+            json: { error: { name: 'InvalidIDError', message: 'Unsupported email address' } }
+        })
+    })
+    await page.getByLabel('New email address').fill('first__middle__last@example.test')
+    await page.getByRole('button', { name: 'Send verification code' }).click()
+    await expect(
+        page.getByText('That email address is not supported. Please use a different address.')
+    ).toBeVisible()
+    await expect(page.getByLabel('New email address')).toHaveValue(
+        'first__middle__last@example.test'
+    )
+    await expect(page.getByLabel('Verification code')).toHaveCount(0)
+    await expect(page.getByText(user.email!, { exact: true })).toBeVisible()
+})
+
 test('pending email changes survive a reload and cancellation keeps the verified address', async ({
     page
 }) => {

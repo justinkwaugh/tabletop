@@ -93,6 +93,10 @@ export function sessionGenerationOf(user: Pick<User, 'sessionGeneration'>): numb
     return user.sessionGeneration ?? 0
 }
 
+export function nextSessionGeneration(user: Pick<User, 'sessionGeneration'>): number {
+    return sessionGenerationOf(user) + 1
+}
+
 export function canHoldAuthenticatedSession(user: Pick<User, 'status'>): boolean {
     return user.status === UserStatus.Active || user.status === UserStatus.Incomplete
 }

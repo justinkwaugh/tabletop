@@ -27,13 +27,15 @@ import { nanoid } from 'nanoid'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
 import {
     type AuthenticationChallengeClaim,
+    type EmailChangeClaim,
     formatSetPasswordChallenge,
     InvalidChallengeError,
     type IssuedChallenge
 } from '../tokens/authenticationChallenge.js'
 import type { StoredUser } from '../persistence/model/storedUser.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
-import { AlreadyExistsError, NotFoundError } from '../persistence/stores/errors.js'
+import { AlreadyExistsError, InvalidIdError, NotFoundError } from '../persistence/stores/errors.js'
+import { isValidStorageId } from '../persistence/stores/storageId.js'
 import {
     isSessionLiveForAccount,
     type AuthenticatedSession
@@ -44,6 +46,7 @@ import {
     RecentAuthenticationRequiredError
 } from '../sessions/recentAuthentication.js'
 import uFuzzy from '@leeoniya/ufuzzy'
+import { Value } from 'typebox/value'
 
 export class UserService {
     private readonly uFuzzy: uFuzzy
@@ -199,11 +202,10 @@ export class UserService {
                 const changesEmail = Boolean(
                     fieldsToUpdate.email && fieldsToUpdate.email !== existingUser.email
                 )
-                this.requireProfileSession(
-                    session,
-                    existingUser,
-                    Boolean(fieldsToUpdate.passwordHash) || changesEmail
-                )
+                this.requireAuthenticatedSession(session, existingUser, {
+                    requireRecentAuthentication:
+                        Boolean(fieldsToUpdate.passwordHash) || changesEmail
+                })
                 if (changesEmail && existingUser.emailVerified) {
                     throw new EmailChangeError(
                         'Verify the new email address from your profile before changing it. Please reload the page.'
@@ -248,25 +250,22 @@ export class UserService {
     ): Promise<PendingEmailChange> {
         const user = await this.getUser(session.userId)
         if (!user) throw new SessionNotLiveError()
-        this.requireProfileSession(session, user, true)
+        this.requireAuthenticatedSession(session, user, { requireRecentAuthentication: true })
         if (!user.email || !user.emailVerified) {
             throw new EmailChangeError('Complete verification of your current email address first.')
         }
         const newEmail = normalizeEmailAddress(email)
+        if (!isValidStorageId(newEmail)) {
+            throw new InvalidIdError({ type: 'email', id: newEmail })
+        }
         if (newEmail === user.email) {
             throw new EmailChangeError('Enter a different email address.')
         }
         if (await this.userStore.findByEmail(newEmail)) {
             throw new AlreadyExistsError({ type: 'User', id: user.id, field: 'email' })
         }
-        const issued = await this.tokenService.issueChallenge({
-            type: TokenType.EmailChange,
-            userId: user.id,
-            email: user.email,
-            newEmail,
-            sessionGeneration: sessionGenerationOf(user)
-        })
-        await this.taskService.sendVerificationEmail({
+        const issued = await this.tokenService.issueChallenge(this.emailChangeClaim(user, newEmail))
+        await this.taskService.sendEmailChangeVerificationEmail({
             userId: user.id,
             token: issued.secret,
             email: newEmail
@@ -287,8 +286,8 @@ export class UserService {
         if (
             !pending ||
             pending.claim.type !== TokenType.EmailChange ||
-            pending.claim.email !== user.email ||
-            pending.claim.sessionGeneration !== sessionGenerationOf(user)
+            !user.email ||
+            !Value.Equal(pending.claim, this.emailChangeClaim(user, pending.claim.newEmail))
         )
             return undefined
         return { email: pending.claim.newEmail, expiresAt: pending.expiresAt }
@@ -303,22 +302,18 @@ export class UserService {
         email: string,
         code: string
     ): Promise<User> {
-        let claim: AuthenticationChallengeClaim | undefined
+        let claim: EmailChangeClaim | undefined
         const [updatedUser, , originalUser] = await this.userStore.updateUser({
             userId: session.userId,
             fields: { email: normalizeEmailAddress(email), emailVerified: true },
             validator: (existingUser, fieldsToUpdate) => {
-                this.requireProfileSession(session, existingUser, true)
+                this.requireAuthenticatedSession(session, existingUser, {
+                    requireRecentAuthentication: true
+                })
                 if (!existingUser.email || !existingUser.emailVerified || !fieldsToUpdate.email) {
                     throw new InvalidChallengeError('account')
                 }
-                claim = {
-                    type: TokenType.EmailChange,
-                    userId: existingUser.id,
-                    email: existingUser.email,
-                    newEmail: fieldsToUpdate.email,
-                    sessionGeneration: sessionGenerationOf(existingUser)
-                }
+                claim = this.emailChangeClaim(existingUser, fieldsToUpdate.email)
                 return UpdateValidationResult.Proceed
             },
             participant: async (transaction, locks) => {
@@ -336,15 +331,26 @@ export class UserService {
         return updatedUser
     }
 
-    private requireProfileSession(
+    private emailChangeClaim(user: User, newEmail: string): EmailChangeClaim {
+        assertExists(user.email, 'An email change requires a current email address')
+        return {
+            type: TokenType.EmailChange,
+            userId: user.id,
+            email: user.email,
+            newEmail,
+            sessionGeneration: sessionGenerationOf(user)
+        }
+    }
+
+    private requireAuthenticatedSession(
         session: AuthenticatedSession,
         user: User,
-        recent: boolean
+        { requireRecentAuthentication }: { requireRecentAuthentication: boolean }
     ): void {
         requireSessionEligibleAccount(user)
         const now = new Date()
         if (!isSessionLiveForAccount(session, user, now)) throw new SessionNotLiveError()
-        if (recent && !hasRecentAuthentication(session, now))
+        if (requireRecentAuthentication && !hasRecentAuthentication(session, now))
             throw new RecentAuthenticationRequiredError()
     }
 

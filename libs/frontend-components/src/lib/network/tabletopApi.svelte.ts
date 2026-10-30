@@ -79,6 +79,7 @@ import type {
     UserResponse,
     ChallengeIssuedResponse,
     PendingEmailChangeResponse,
+    EmailChangeRequestedResponse,
     DiscordAuthorizationPurpose,
     DiscordAuthorizationStart,
     DiscordAuthorizationStartResponse,
@@ -383,9 +384,8 @@ export class TabletopApi {
             .unauthorized(this.on401)
             .forbidden(this.handleError)
             .badRequest(this.handleError)
-            .json<PendingEmailChangeResponse>()
+            .json<EmailChangeRequestedResponse>()
         const pending = response.payload.pending
-        assertExists(pending, 'An email change request returns its pending address')
         return { ...pending, expiresAt: new Date(pending.expiresAt) }
     }
 

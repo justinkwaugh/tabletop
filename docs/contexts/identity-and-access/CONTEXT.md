@@ -75,6 +75,9 @@ _Avoid_: Authentication token, verification token
 **Email Verification Challenge**:
 An Authentication Challenge proving control of its exact target Email Address.
 
+**Email Change Challenge**:
+An Authentication Challenge proving control of a Pending Email Address, bound to the Account, its current Verified Email Address and Session Generation. Consuming it promotes the verified replacement and ends earlier Authenticated Sessions without making the Account Incomplete.
+
 **Set Password Challenge**:
 An Authentication Challenge, bound to the Email Address it was sent to, authorizing Set Password for an Incomplete or Active Account without establishing an Authenticated Session. It changes neither Account Status nor email verification; the person signs in afterwards through an Authentication Method.
 

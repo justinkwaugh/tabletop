@@ -32,10 +32,22 @@ export const UserResponse = Type.Evaluate(
 )
 
 export type PendingEmailChangeResponse = Static<typeof PendingEmailChangeResponse>
-export const PendingEmailChangeResponse = Type.Object({
-    status: Type.String(),
-    payload: Type.Object({ pending: Type.Union([PendingEmailChange, Type.Null()]) })
-})
+export const PendingEmailChangeResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({
+            payload: Type.Object({ pending: Type.Union([PendingEmailChange, Type.Null()]) })
+        })
+    ])
+)
+
+export type EmailChangeRequestedResponse = Static<typeof EmailChangeRequestedResponse>
+export const EmailChangeRequestedResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({ payload: Type.Object({ pending: PendingEmailChange }) })
+    ])
+)
 
 export const DISCORD_AUTHORIZATION_PURPOSES = ['login', 'link', 'reauthenticate'] as const
 export type DiscordAuthorizationPurpose = (typeof DISCORD_AUTHORIZATION_PURPOSES)[number]
