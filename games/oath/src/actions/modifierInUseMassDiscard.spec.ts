@@ -168,6 +168,10 @@ const sorted = (ids: readonly string[]) => [...ids].sort()
 /** The cards on the discard piles (the Search's own drawn cards among them). */
 const piled = (s: HydratedOathGameState) => Object.values(s.requireVault().discardPiles).flat()
 
+/** The cards the resolve's record names on the piles, which the History row lists. */
+const recorded = (action: HydratedSearchResolve) =>
+    (action.metadata?.pileDeposits ?? []).flatMap((d) => d.cardIds)
+
 const WELCOMING_AT_SITE: Table = {
     top: [SALT, FILLER, FILLER],
     modifiers: [modifierUse(WELCOMING)],
@@ -183,6 +187,7 @@ describe('Salt the Earth to a site holding a Search modifier in use (Law 7.4.3, 
         expect(favor).toBe(2)
         expect(piled(s)).toContain(WOLVES)
         expect(piled(s)).not.toContain(WELCOMING)
+        expect(recorded(action)).toEqual([WOLVES])
         expect(action.metadata?.whenPlayed).toContain('discarded 1 denizens')
         expect(s.searchModifiersInUse).toBeUndefined()
     })
@@ -320,12 +325,13 @@ describe('the When Played mass discards of a card kept from the Search (Law 7.4.
 
     it('Riots on the Mob side, hearth most common: Welcoming Party in use stays, Crop Rotation goes, and it pays once', () => {
         const s = searched(FIXED, RIOTS_TABLE)
-        const { favor } = resolve(s, keeping(s, RIOTS, SearchPlay.Adviser))
+        const { action, favor } = resolve(s, keeping(s, RIOTS, SearchPlay.Adviser))
         expect(s.denizensAt('c1')).toEqual([WELCOMING, WOLVES])
         expect(s.denizensAt('c2')).toEqual([])
         expect(favor).toBe(1)
         expect(piled(s)).toContain(CROP_ROTATION)
         expect(piled(s)).not.toContain(WELCOMING)
+        expect(recorded(action)).toEqual([CROP_ROTATION])
     })
 
     it('Riots: control, Welcoming Party not declared is discarded', () => {
@@ -356,6 +362,7 @@ describe('the When Played mass discards of a card kept from the Search (Law 7.4.
         expect(favor).toBe(1)
         expect(piled(s)).toContain(CROP_ROTATION)
         expect(piled(s)).not.toContain(WELCOMING)
+        expect(recorded(action)).toEqual([CROP_ROTATION])
         expect(action.metadata?.whenPlayed).toContain('discarded 1 hearth and order cards')
     })
 
@@ -380,11 +387,12 @@ describe('the When Played mass discards of a card kept from the Search (Law 7.4.
 
     it('Threatening Roar: Wild Cry in use stays, the Wolves go, and Wild Cry pays its Supply once', () => {
         const s = searched(FIXED, ROAR_TABLE)
-        const { supply } = resolve(s, keeping(s, ROAR, SearchPlay.Adviser))
+        const { action, supply } = resolve(s, keeping(s, ROAR, SearchPlay.Adviser))
         expect(s.denizensAt('c1')).toEqual([WILD_CRY])
         expect(supply).toBe(1)
         expect(piled(s)).toContain(WOLVES)
         expect(piled(s)).not.toContain(WILD_CRY)
+        expect(recorded(action)).toEqual([WOLVES])
     })
 
     it('Threatening Roar: control, Wild Cry not declared is discarded', () => {
