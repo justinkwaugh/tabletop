@@ -57,7 +57,7 @@ const RIM_ROUND = THICKNESS * 0.3
 // Each disc rests on its underside ring, a little above the disc below, so a dark crease shows
 // between them: the lower disc's top, in the upper disc's shadow. The bottom disc stands on its
 // ring as far above the board.
-const STACK_GAP = THICKNESS * 0.32
+const STACK_GAP = THICKNESS * 0.24
 // Distances from the centre where the groove's lips start down, and its depth.
 const TROUGH = { outer: 0.84, inner: 0.62 }
 const TROUGH_DEPTH = THICKNESS * 0.4
@@ -100,14 +100,12 @@ const YINSH_END = 0.38
 // Strips across it, and steps round its rounded end.
 const YINSH_STRIPS = 24
 const YINSH_TURNS = 48
-// PÜNCT's notches cut into the edge, all the way down.
+// PÜNCT's notches cut into the edge, all the way down: half circles centred on the edge, about
+// as wide as the rim between the edge and the ring groove.
 const PUNCT_NOTCHES = 6
-const PUNCT_DEPTH = 0.1
-const PUNCT_HALF_WIDTH = 0.1
-// Strips round each notch's rounded end, for its shading.
-const PUNCT_WALL_STRIPS = 24
-// How far a notch's straight side may face away and still be drawn.
-const EDGE_ON = 0.35
+const PUNCT_RADIUS = 0.15
+// Strips round each notch's inside, for its shading.
+const PUNCT_WALL_STRIPS = 48
 
 // How many shades a slice can take, from facing straight down to facing straight up.
 export const SHADE_LEVELS = 9
@@ -127,6 +125,9 @@ export type Strip = { d: string; fill: string; opacity: number }
 // A band of a disc's side between two heights and two angles, shaded by its slice's level.
 export type SideBand = { d: string; level: number }
 
+// A part of a disc cut through its edge: a band of its side, or a strip of a cut's inside.
+export type CutPart = SideBand | Strip
+
 // A potential's mark on its disc's top face, in the disc's own coordinates.
 export type Mark =
     | {
@@ -139,14 +140,12 @@ export type Mark =
       }
     | { kind: 'hole'; wall: string; through: string }
     | { kind: 'carved'; clip: string; cells: Strip[] }
-    | { kind: 'cuts'; side: SideBand[]; topCuts: string[]; walls: Strip[]; outline: string }
+    | { kind: 'cuts'; parts: CutPart[]; topCuts: string[]; outline: string }
 
 export type PieceDrawing = {
     slices: Slice[]
     // How far up the screen each disc stands, from the bottom up.
     bases: number[]
-    // The top of a disc with another on it, in that one's shadow, where the crease shows.
-    crease: Ellipse
 }
 
 // Heights up the side, through its rounded corners, at which a cut through the side follows it.
@@ -172,6 +171,22 @@ function profile(height: number): { radius: number; facing: number } {
     return { radius: 1, facing: 0 }
 }
 
+// Between which heights the disc is solid at a distance from its centre, over its radius:
+// lower where its rounded edges curve in, and none past its edge.
+function solidAt(distance: number): { bottom: number; top: number } {
+    const rimStart = THICKNESS - RIM_ROUND
+    if (distance >= 1) {
+        const middle = (BASE_ROUND + rimStart) / 2
+        return { bottom: middle, top: middle }
+    }
+    const rounded = (corner: number) =>
+        Math.sqrt(Math.max(0, corner ** 2 - (distance - (1 - corner)) ** 2))
+    return {
+        bottom: distance > 1 - BASE_ROUND ? BASE_ROUND - rounded(BASE_ROUND) : 0,
+        top: distance > 1 - RIM_ROUND ? rimStart + rounded(RIM_ROUND) : THICKNESS
+    }
+}
+
 function level(facing: number): number {
     return Math.round(((facing + 1) / 2) * (SHADE_LEVELS - 1))
 }
@@ -195,9 +210,36 @@ export function pieceDrawing(view: BoardView, discs: number, radius: number): Pi
     })
     return {
         slices,
-        bases: discBases(discs).map((base) => -view.height(base * radius)),
-        crease: ellipse(THICKNESS, TOP_RADIUS)
+        bases: discBases(discs).map((base) => -view.height(base * radius))
     }
+}
+
+// The top of a disc with another on it, in that one's shadow, where the crease shows: PÜNCT's
+// with its notches left open, so the notches run on down through the stack.
+export function creaseOf(view: BoardView, kind: PieceKind, radius: number): string {
+    const flat = onFlat(view, radius)
+    const notches =
+        kind === PieceKind.Punct
+            ? Array.from(
+                  { length: PUNCT_NOTCHES },
+                  (_, index) => ((360 / PUNCT_NOTCHES) * (index + 0.5) * Math.PI) / 180
+              )
+            : []
+    // How far out the top reaches at an angle: to its rounded edge, or in to a notch's circle,
+    // where the angle points towards the notch and crosses it.
+    const reach = (turn: number) =>
+        notches.reduce((nearest, centre) => {
+            const along = Math.cos(turn - centre)
+            const inside = along ** 2 - 1 + PUNCT_RADIUS ** 2
+            return along > 0 && inside > 0 ? Math.min(nearest, along - Math.sqrt(inside)) : nearest
+        }, TOP_RADIUS)
+    return polygon(
+        Array.from({ length: 360 }, (_, step) => {
+            const turn = (step * Math.PI) / 180
+            const out = reach(turn)
+            return flat(out * Math.cos(turn), out * Math.sin(turn))
+        })
+    )
 }
 
 function flatEllipse(view: BoardView, radius: number) {
@@ -217,76 +259,59 @@ function onFlat(view: BoardView, radius: number) {
     })
 }
 
-// The parts of a PÜNCT notch's inside that face you, as strips from the top down to the board:
-// either straight side, from the disc's edge in, and the part of its rounded end turned towards
-// you, in narrow strips. Each is shaded by the way it faces: lit facing the light, from the left,
-// in shade facing away from it.
+// The part of a PÜNCT notch's inside that faces you, in narrow strips from the top down to the
+// board, as far as the disc's rounded edges reach at each, each shaded by the way it faces: lit facing the light, from the left, in shade facing
+// away from it.
 function notchWalls(
     flat: (u: number, v: number, height?: number) => Point,
-    angle: number,
+    centre: number,
     tone: Tone
 ): Strip[] {
-    const a = (angle * Math.PI) / 180
-    const along = { u: Math.cos(a), v: Math.sin(a) }
-    const across = { u: -Math.sin(a), v: Math.cos(a) }
-    const w = PUNCT_HALF_WIDTH
-    const end = 1 - PUNCT_DEPTH + w
-    const at = (out: number, side: number, height: number) =>
-        flat(along.u * out + across.u * side, along.v * out + across.v * side, height)
-    const strip = (
-        from: [number, number],
-        to: [number, number],
-        normal: { u: number; v: number }
-    ) => ({
-        d: polygon([
-            at(from[0], from[1], THICKNESS),
-            at(to[0], to[1], THICKNESS),
-            at(to[0], to[1], 0),
-            at(from[0], from[1], 0)
-        ]),
-        fill: wallShade(tone, normal),
-        opacity: 1
-    })
-    // A wall faces the notch's middle; it faces you when that points nearer you.
-    const facesYou = (normal: { u: number; v: number }) => normal.v < 0
-    // Out at the disc's edge, a straight side follows the side's rounded corners down.
-    const sides = [1, -1].flatMap((side) => {
-        const normal = { u: -across.u * side, v: -across.v * side }
-        // Seen nearly edge-on, a straight side still shows where the rim rounds over it.
-        if (normal.v > EDGE_ON) return []
-        const edge = (height: number) => Math.sqrt(profile(height).radius ** 2 - w * w)
+    const along = { u: Math.cos(centre), v: Math.sin(centre) }
+    const across = { u: -Math.sin(centre), v: Math.cos(centre) }
+    const r = PUNCT_RADIUS
+    const at = (point: [number, number], height: number) =>
+        flat(
+            along.u * point[0] + across.u * point[1],
+            along.v * point[0] + across.v * point[1],
+            height
+        )
+    // Round from one lip, in to the notch's deepest point and out to the other.
+    const point = (t: number): [number, number] => [1 - Math.sin(t) * r, Math.cos(t) * r]
+    const turns = Array.from(
+        { length: PUNCT_WALL_STRIPS + 1 },
+        (_, step) => (Math.PI * step) / PUNCT_WALL_STRIPS
+    )
+    return turns.slice(0, -1).flatMap((turn, index) => {
+        const next = turns[index + 1]
+        const middle = (turn + next) / 2
+        // The inside faces the notch's middle.
+        const normal = {
+            u: along.u * Math.sin(middle) - across.u * Math.cos(middle),
+            v: along.v * Math.sin(middle) - across.v * Math.cos(middle)
+        }
+        if (normal.v >= 0) return []
+        // Each strip reaches a little into the next, so no seam shows between them.
+        const overlap = (next - turn) * 0.3
+        const from = point(turn - overlap)
+        const to = point(next + overlap)
+        const fromSolid = solidAt(Math.hypot(...from))
+        const toSolid = solidAt(Math.hypot(...to))
+        // A little past the top, under its cut edge, so no seam shows there.
+        const lip = THICKNESS * 0.03
         return [
             {
                 d: polygon([
-                    at(end, w * side, THICKNESS),
-                    ...SIDE_HEIGHTS.toReversed().map((height) =>
-                        at(edge(height), w * side, height)
-                    ),
-                    at(end, w * side, 0)
+                    at(from, fromSolid.top + lip),
+                    at(to, toSolid.top + lip),
+                    at(to, toSolid.bottom),
+                    at(from, fromSolid.bottom)
                 ]),
                 fill: wallShade(tone, normal),
                 opacity: 1
             }
         ]
     })
-    const turns = Array.from(
-        { length: PUNCT_WALL_STRIPS + 1 },
-        (_, step) => (Math.PI * step) / PUNCT_WALL_STRIPS
-    )
-    const round = turns.slice(0, -1).flatMap((turn, index) => {
-        const next = turns[index + 1]
-        const middle = (turn + next) / 2
-        const normal = {
-            u: along.u * Math.sin(middle) - across.u * Math.cos(middle),
-            v: along.v * Math.sin(middle) - across.v * Math.cos(middle)
-        }
-        if (!facesYou(normal)) return []
-        // Each strip reaches a little into the next, so no seam shows between them.
-        const overlap = (next - turn) * 0.3
-        const point = (t: number): [number, number] => [end - Math.sin(t) * w, Math.cos(t) * w]
-        return [strip(point(turn - overlap), point(next + overlap), normal)]
-    })
-    return [...sides, ...round]
 }
 
 // A notch wall's colour by the way it faces: lit facing the light, from the left as on the
@@ -593,33 +618,35 @@ export function markOf(
 // PÜNCT's notches, cut through the edge from top to board. The disc's side is built from bands
 // of side between the notches rather than drawn whole and cut, so each notch's edges are exact at
 // every height: the front of the side, bottom up, and the rim behind, where it rounds over above
-// the top. Only the top is cut, by each notch's outline reaching well past the rim. The notches'
-// inner walls are drawn first, so the side and top in front of them hide them.
+// the top. Only the top is cut, by each notch's outline reaching well past the rim. The side's
+// bands and the notches' insides are drawn from the far side round to the near, so a notch's
+// inside shows in front of the side beyond it and behind the side nearer you.
 function punctNotches(view: BoardView, radius: number, tone: Tone): Mark {
     const flat = onFlat(view, radius)
-    const w = PUNCT_HALF_WIDTH
-    const end = 1 - PUNCT_DEPTH + w
+    const r = PUNCT_RADIUS
     const centres = Array.from(
         { length: PUNCT_NOTCHES },
         (_, index) => ((360 / PUNCT_NOTCHES) * (index + 0.5) * Math.PI) / 180
     )
     // How far round from its centre a notch reaches into the side at a height: where the side's
-    // circle there crosses the circle of the notch's rounded end.
+    // circle there crosses the notch's circle.
     const halfSpan = (height: number) => {
-        const r = profile(height).radius
-        return Math.acos(Math.min(1, (r * r + end * end - w * w) / (2 * r * end)))
+        const side = profile(height).radius
+        return Math.acos(Math.min(1, (side * side + 1 - r * r) / (2 * side)))
     }
     const arc = (height: number, from: number, to: number) => {
-        const r = profile(height).radius
+        const side = profile(height).radius
         const steps = Math.max(2, Math.ceil((to - from) / ((2 * Math.PI) / 360)))
         return Array.from({ length: steps + 1 }, (_, step) => {
             const turn = from + ((to - from) * step) / steps
-            return flat(r * Math.cos(turn), r * Math.sin(turn), height)
+            return flat(side * Math.cos(turn), side * Math.sin(turn), height)
         })
     }
+    // How far away a part lies, at an angle round the disc: the far side first.
+    type Placed = { part: CutPart; away: number }
     // The side between each notch and the next, within the angles given, at each pair of heights.
     // Each band reaches a little up into the next, drawn after it, so no seam shows.
-    const bands = (heights: readonly number[], within: [number, number]): SideBand[] =>
+    const bands = (heights: readonly number[], within: [number, number]): Placed[] =>
         heights.slice(0, -1).flatMap((height, index) => {
             const top = Math.min(THICKNESS, heights[index + 1] + THICKNESS * 0.01)
             const middle = (height + heights[index + 1]) / 2
@@ -635,11 +662,17 @@ function punctNotches(view: BoardView, radius: number, tone: Tone): Mark {
                 if (lowTo <= lowFrom || highTo <= highFrom) return []
                 return [
                     {
-                        d: polygon([
-                            ...arc(height, lowFrom, lowTo),
-                            ...arc(top, highFrom, highTo).toReversed()
-                        ]),
-                        level: level(profile(middle).facing)
+                        part: {
+                            d: polygon([
+                                ...arc(height, lowFrom, lowTo),
+                                ...arc(top, highFrom, highTo).toReversed()
+                            ]),
+                            level: level(profile(middle).facing)
+                        },
+                        // The same at every height, so a stretch's bands stay bottom up.
+                        away: Math.sin(
+                            (Math.max(centre, within[0]) + Math.min(next, within[1])) / 2
+                        )
                     }
                 ]
             })
@@ -647,13 +680,20 @@ function punctNotches(view: BoardView, radius: number, tone: Tone): Mark {
     const rimFrom = THICKNESS - RIM_ROUND
     const front: [number, number] = [Math.PI, 2 * Math.PI + Math.PI / 6]
     const back: [number, number] = [Math.PI / 6 - 0.4, Math.PI + 0.4]
-    const side = [
+    const walls = centres.flatMap((centre) =>
+        notchWalls(flat, centre, tone).map((part) => ({ part, away: Math.sin(centre) }))
+    )
+    // Sorted stably, so each stretch's bands stay bottom up.
+    const parts = [
         ...bands(
             SIDE_HEIGHTS.filter((height) => height >= rimFrom),
             back
         ),
-        ...bands(SIDE_HEIGHTS, front)
+        ...bands(SIDE_HEIGHTS, front),
+        ...walls
     ]
+        .toSorted((a, b) => b.away - a.away)
+        .map(({ part }) => part)
     // A notch's outline in the top: in from well past the rim, round its rounded end, and out.
     const topCuts = centres.map((centre) => {
         const along = { u: Math.cos(centre), v: Math.sin(centre) }
@@ -662,12 +702,11 @@ function punctNotches(view: BoardView, radius: number, tone: Tone): Mark {
             flat(along.u * out + across.u * sideways, along.v * out + across.v * sideways)
         const round = Array.from({ length: 49 }, (_, step) => {
             const turn = (Math.PI * step) / 48
-            return point(end - Math.sin(turn) * w, Math.cos(turn) * w)
+            return point(1 - Math.sin(turn) * r, Math.cos(turn) * r)
         })
-        return polygon([point(1.2, w), ...round, point(1.2, -w)])
+        return polygon([point(1.2, r), ...round, point(1.2, -r)])
     })
-    const walls = centres.flatMap((centre) => notchWalls(flat, (centre * 180) / Math.PI, tone))
-    return { kind: 'cuts', side, topCuts, walls, outline: discOutline(view, radius) }
+    return { kind: 'cuts', parts, topCuts, outline: discOutline(view, radius) }
 }
 
 // YINSH's channel: a groove with the ring groove's profile, from the ring groove, where the two run

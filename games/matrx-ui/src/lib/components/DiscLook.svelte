@@ -74,7 +74,7 @@
 
 <g id={lookId}>
     {#if mark?.kind === 'cuts'}
-        <!-- The notches' walls first; the side and the top in front of them hide them. -->
+        <!-- The side and the notches' insides, far to near; the top in front of them. -->
         {#each levels as level (level)}
             <linearGradient
                 id="{lookId}-side-{level}"
@@ -94,13 +94,13 @@
             <path d={mark.outline}></path>
         </clipPath>
         <g clip-path="url(#{lookId}-outline)">
-            {#each mark.walls as wall, wallIndex (wallIndex)}
-                <path d={wall.d} fill={wall.fill}></path>
+            {#each mark.parts as part, partIndex (partIndex)}
+                <path
+                    d={part.d}
+                    fill={'fill' in part ? part.fill : `url(#${lookId}-side-${part.level})`}
+                ></path>
             {/each}
         </g>
-        {#each mark.side as band, bandIndex (bandIndex)}
-            <path d={band.d} fill="url(#{lookId}-side-{band.level})"></path>
-        {/each}
         <g mask="url(#{lookId}-top)">
             {@render top()}
         </g>

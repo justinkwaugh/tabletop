@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import type { BoardView } from '$lib/board/geometry.js'
-    import { lookBox, pieceDrawing, type Disc } from '$lib/board/pieceShape.js'
+    import { creaseOf, lookBox, pieceDrawing, type Disc } from '$lib/board/pieceShape.js'
     import { lookUrl } from '$lib/board/looks.js'
     import { liftOffCrease, liftOffDisc, type PieceParts } from '$lib/animators/drop.js'
 
@@ -38,12 +38,8 @@
             ></image>
             {#if index < drawing.bases.length - 1}
                 <g {@attach parts?.crease(index)} out:liftOffCrease={{ parts }}>
-                    <ellipse
-                        cy={drawing.crease.y}
-                        rx={drawing.crease.rx}
-                        ry={drawing.crease.ry}
-                        class="crease {tone}"
-                    ></ellipse>
+                    <path d={creaseOf(view, discs[index].kind, radius)} class="crease {tone}"
+                    ></path>
                 </g>
             {/if}
         </g>
@@ -52,10 +48,10 @@
 
 <style>
     .crease.light {
-        fill: #5e5644;
+        fill: #8a8268;
     }
 
     .crease.dark {
-        fill: #000;
+        fill: #121011;
     }
 </style>
