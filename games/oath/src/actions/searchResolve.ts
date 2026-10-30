@@ -87,7 +87,13 @@ export type SearchSecondPlay = Type.Static<typeof SearchSecondPlay>
 export const SearchSecondPlay = Type.Object({
     cardId: Visibility.protect(Type.String(), { policy: Visibility.Policy.Actor }),
     play: Type.Enum(SearchPlay),
-    faceUp: Type.Optional(Type.Boolean())
+    faceUp: Type.Optional(Type.Boolean()),
+    /** R-5.1.4.II — at the adviser limit, as the kept card's; from revision 31 (R-X.4). */
+    discardedAdviserCardIds: Type.Optional(
+        Visibility.protect(Type.Array(Type.String(), { maxItems: 8 }), {
+            policy: Visibility.Policy.Actor
+        })
+    )
 })
 
 export type SearchResolve = Type.Static<typeof SearchResolve>
@@ -219,6 +225,7 @@ export class HydratedSearchResolve
         const second = this.secondPlay
             ? playCard(state, this.playerId, this.secondPlay.cardId, this.secondPlay.play, region, {
                   faceUp: this.secondPlay.faceUp,
+                  discardedAdviserCardIds: this.secondPlay.discardedAdviserCardIds,
                   seen: shown,
                   discardTarget,
                   carried: secondPlayModifiers(state, carried),
@@ -380,8 +387,17 @@ export function reasonCannotPlaySecondCard(
         return `${second.cardId} is not a second drawn card`
     if (second.play !== SearchPlay.Site && second.play !== SearchPlay.Adviser)
         return 'the second card is played to your site or as an adviser'
+    // R-X.4 — before revision 31 the second card discarded no adviser, so at the limit it could not be an adviser.
+    if (
+        second.discardedAdviserCardIds !== undefined &&
+        !isAtLeastOathRevision(state, OathRevision.EngineFixes26)
+    )
+        return 'second card: an adviser is discarded for it only in a game created from revision 31'
+    // R-5.1.4.II — the kept card is played first, and only one of the two may be an adviser, so the second card's
+    // limit is counted on the advisers the kept card's play leaves: the same as before it.
     const reason = reasonCannotPlayCard(state, playerId, second.cardId, second.play, {
         faceUp: second.faceUp,
+        discardedAdviserCardIds: second.discardedAdviserCardIds,
         carried: secondPlayModifiers(state, searchPlayModifiers(state)),
         earlierMapChanges: kept && keptPlayMapChanges(state, playerId, keptCardId, kept)
     })
