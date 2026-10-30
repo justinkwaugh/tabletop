@@ -1,10 +1,225 @@
 import { GameSession } from '@tabletop/frontend-components'
-import type {
-    HydratedPromontoryPointGameState,
-    PromontoryPointProjectedState
+import { assert, assertExists } from '@tabletop/common'
+import {
+    ActionType,
+    BuyShare,
+    EndTurn,
+    PayRepairs,
+    PlaceTrack,
+    ScrapTrack,
+    SellShare,
+    buyShareRefusal,
+    endTurnRefusal,
+    hasOpenSpace,
+    normalizePromontoryPointConfig,
+    payRepairsRefusal,
+    scrapTrackRefusal,
+    sellShareRefusal,
+    type HydratedPromontoryPointGameState,
+    type PromontoryPointProjectedState,
+    type RailroadId,
+    type SpaceId,
+    type TradeRefusal
 } from '@tabletop/promontory-point'
+import { boardOffer, OfferView, type BoardOffer } from './boardOffer.js'
+import { repairsTownBeingDecided, thisTurnPlacements } from './thisTurn.js'
+import {
+    emptyTurnDraft,
+    piecePick,
+    popTurnDraft,
+    pressPiece,
+    type PiecePick,
+    type TurnDraft
+} from './turnDraft.js'
 
 export class PromontoryPointGameSession extends GameSession<
     PromontoryPointProjectedState,
     HydratedPromontoryPointGameState
-> {}
+> {
+    private turnDraft: TurnDraft = $state(emptyTurnDraft())
+
+    // A hand piece's pointer hover or keyboard focus; never set by touch.
+    hoveredPiece: RailroadId | undefined = $state()
+
+    // R-X.1: the seat on screen when it is the one the state asks to decide.
+    decidingPlayerId: string | undefined = $derived.by(() => {
+        const playerId = this.myPlayer?.id
+        return !this.isViewingHistory &&
+            playerId !== undefined &&
+            this.gameState.activePlayerIds.includes(playerId)
+            ? playerId
+            : undefined
+    })
+
+    fourPieceVariant: boolean = $derived(
+        normalizePromontoryPointConfig(this.game.config).fourPieceVariant
+    )
+
+    // R-2.2 step 1, R-3.3-H1: the revealed turn pieces still to place.
+    handPieces: RailroadId[] = $derived(this.gameState.turn?.pieces ?? [])
+
+    private canPlaceTrack = $derived(this.validActionTypes.includes(ActionType.PlaceTrack))
+
+    private canScrapTrack = $derived(this.validActionTypes.includes(ActionType.ScrapTrack))
+
+    // R-3.3, R-3.3-H1: a piece with a legal hex to place on, or with no room and a placement left.
+    pickablePieces: RailroadId[] = $derived.by(() => {
+        const playerId = this.decidingPlayerId
+        if (playerId === undefined || (!this.canPlaceTrack && !this.canScrapTrack)) {
+            return []
+        }
+        return [...new Set(this.handPieces)].filter((railroadId) =>
+            hasOpenSpace(this.gameState.track, railroadId)
+                ? this.canPlaceTrack
+                : this.canScrapTrack &&
+                  scrapTrackRefusal(this.gameState, playerId, railroadId) === undefined
+        )
+    })
+
+    // O-2: the picked piece while it is still in hand and may be placed or set aside.
+    piecePick: PiecePick | undefined = $derived(
+        piecePick(this.turnDraft, this.pickablePieces, this.handPieces)
+    )
+
+    pickedPiece: RailroadId | undefined = $derived(this.piecePick?.railroadId)
+
+    // R-3.3: the picked piece has no legal hex, so the only way on is to scrap it.
+    pickedPieceHasNoRoom: boolean = $derived(
+        this.pickedPiece !== undefined && !hasOpenSpace(this.gameState.track, this.pickedPiece)
+    )
+
+    hasManualSelection: boolean = $derived(this.piecePick?.source === 'manual')
+
+    // R-X.2: Undo pops a manual pick, else undoes the Undo Candidate; a draw leaves no candidate.
+    canUndo: boolean = $derived(
+        !this.isViewingHistory && (this.hasManualSelection || this.undoableAction !== undefined)
+    )
+
+    boardOffer: BoardOffer = $derived.by(() => {
+        const picked = this.pickedPiece
+        const decidingPlayerId = this.decidingPlayerId
+        return boardOffer({
+            state: this.gameState,
+            view: this.updatingVisibleState
+                ? OfferView.Updating
+                : this.isViewingHistory
+                  ? OfferView.History
+                  : OfferView.Live,
+            placing:
+                picked !== undefined && decidingPlayerId !== undefined && this.canPlaceTrack
+                    ? { railroadId: picked, decidingPlayerId }
+                    : undefined,
+            hovered: this.hoveredPiece,
+            placements: thisTurnPlacements(this.gameState, this.actions),
+            repairsTown: repairsTownBeingDecided(this.gameState, this.actions)
+        })
+    })
+
+    pressPiece(railroadId: RailroadId) {
+        assert(
+            this.pickablePieces.includes(railroadId),
+            `${railroadId} is not a piece the seat may pick now`
+        )
+        if (this.piecePick?.source === 'auto' && this.piecePick.railroadId === railroadId) {
+            return
+        }
+        this.turnDraft = pressPiece(this.turnDraft, railroadId)
+    }
+
+    hoverPiece(railroadId: RailroadId | undefined) {
+        this.hoveredPiece = railroadId
+    }
+
+    // R-3.1, R-2.2, R-2.2-H1: undefined when the seat may buy one now.
+    buyRefusal(railroadId: RailroadId): TradeRefusal | undefined {
+        const playerId = this.decidingPlayerId
+        return playerId === undefined
+            ? undefined
+            : buyShareRefusal(this.gameState, playerId, railroadId)
+    }
+
+    // R-3.2, R-3.2-H1, R-2.2, R-2.2-H1: undefined when the seat may sell one now.
+    sellRefusal(railroadId: RailroadId): TradeRefusal | undefined {
+        const playerId = this.decidingPlayerId
+        return playerId === undefined
+            ? undefined
+            : sellShareRefusal(this.gameState, playerId, railroadId)
+    }
+
+    override async undo() {
+        if (this.hasManualSelection) {
+            this.turnDraft = popTurnDraft(this.turnDraft)
+            return
+        }
+        await super.undo()
+    }
+
+    // The turn draft lives until the next shown state, whatever brought it.
+    override beforeNewState() {
+        this.turnDraft = emptyTurnDraft()
+    }
+
+    // R-3.1
+    async buyShare(railroadId: RailroadId) {
+        if (this.decidingPlayerId === undefined || this.buyRefusal(railroadId) !== undefined) {
+            return
+        }
+        await this.applyAction(this.createPlayerAction(BuyShare, { railroadId }))
+    }
+
+    // R-3.2, R-3.2-H1
+    async sellShare(railroadId: RailroadId) {
+        if (this.decidingPlayerId === undefined || this.sellRefusal(railroadId) !== undefined) {
+            return
+        }
+        await this.applyAction(this.createPlayerAction(SellShare, { railroadId }))
+    }
+
+    // R-3.3: a press on a lit hex sends; a press on an unlit hex places nothing.
+    async placeTrack(spaceId: SpaceId) {
+        const railroadId = this.pickedPiece
+        assertExists(railroadId, 'A hex is pressed to place only once a piece is picked')
+        if (!this.boardOffer.lit.includes(spaceId)) {
+            return
+        }
+        this.turnDraft = emptyTurnDraft()
+        await this.applyAction(this.createPlayerAction(PlaceTrack, { railroadId, spaceId }))
+    }
+
+    // R-3.3, R-3.3-H1, R-2.2-H2
+    async scrapTrack() {
+        const railroadId = this.pickedPiece
+        assertExists(railroadId, 'A piece is set aside only once it is picked')
+        assert(this.pickedPieceHasNoRoom, `${railroadId} has a legal hex, so it is placed`)
+        this.turnDraft = emptyTurnDraft()
+        await this.applyAction(this.createPlayerAction(ScrapTrack, { railroadId }))
+    }
+
+    // R-2.2 step 4, R-6.3: `returnKeptPiece` only in the variant with a piece left over.
+    async endTurn(returnKeptPiece?: boolean) {
+        const playerId = this.decidingPlayerId
+        assertExists(playerId, 'Only the deciding seat ends its turn')
+        assert(
+            endTurnRefusal(this.gameState, playerId, returnKeptPiece, this.fourPieceVariant) ===
+                undefined,
+            'End turn is offered only when it may be sent'
+        )
+        await this.applyAction(
+            this.createPlayerAction(
+                EndTurn,
+                returnKeptPiece === undefined ? {} : { returnKeptPiece }
+            )
+        )
+    }
+
+    // R-4.3, R-4.3-H1 to H4: the first debtor's sales, in order.
+    async payRepairs(sales: RailroadId[]) {
+        const playerId = this.decidingPlayerId
+        assertExists(playerId, 'Only the deciding debtor pays')
+        assert(
+            payRepairsRefusal(this.gameState, playerId, sales) === undefined,
+            'A Repairs payment is sent only with a legal sale list'
+        )
+        await this.applyAction(this.createPlayerAction(PayRepairs, { sales }))
+    }
+}

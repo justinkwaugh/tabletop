@@ -1,6 +1,6 @@
 import devtoolsJson from 'vite-plugin-devtools-json'
 import { sveltekit } from '@sveltejs/kit/vite'
-import { defineProject, mergeConfig } from 'vitest/config'
+import { configDefaults, defineProject, mergeConfig } from 'vitest/config'
 import { VitestConfig } from '@tabletop/vitest-config'
 
 export default defineProject(
@@ -13,6 +13,7 @@ export default defineProject(
             // running perfectly well.
             host: true,
             port: 5173
-        }
+        },
+        test: { exclude: [...configDefaults.exclude, '**/*.client.svelte.spec.ts'] }
     })
 )
