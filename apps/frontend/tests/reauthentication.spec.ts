@@ -17,6 +17,7 @@ const user: User = {
 async function profileSubmissions(page: Page, { recent = false, account = user } = {}) {
     const submissions: unknown[] = []
     let current = account
+    let pending: { email: string; expiresAt: string } | null = null
     const confirm = () => {
         recent = true
     }
@@ -24,11 +25,9 @@ async function profileSubmissions(page: Page, { recent = false, account = user }
         route.fulfill({ json: { payload: { user: current } } })
     )
     await page.route('**/api/v1/user/update', (route) => {
-        const fields: { email?: string; password?: string; username?: string } = route
-            .request()
-            .postDataJSON()
+        const fields: { password?: string; username?: string } = route.request().postDataJSON()
         submissions.push(fields)
-        if ((fields.email || fields.password) && !recent) {
+        if (fields.password && !recent) {
             return route.fulfill({
                 status: 403,
                 json: {
@@ -42,11 +41,42 @@ async function profileSubmissions(page: Page, { recent = false, account = user }
         current = {
             ...current,
             ...(fields.username ? { username: fields.username } : {}),
-            ...(fields.password ? { hasPassword: true } : {}),
-            ...(fields.email
-                ? { email: fields.email, emailVerified: false, status: UserStatus.Incomplete }
-                : {})
+            ...(fields.password ? { hasPassword: true } : {})
         }
+        return route.fulfill({ json: { payload: { user: current } } })
+    })
+    await page.route('**/api/v1/user/email/change', (route) => {
+        if (route.request().method() === 'DELETE') pending = null
+        if (route.request().method() === 'POST') {
+            const fields: { email: string } = route.request().postDataJSON()
+            submissions.push(fields)
+            if (!recent)
+                return route.fulfill({
+                    status: 403,
+                    json: {
+                        error: {
+                            name: 'RecentAuthenticationRequiredError',
+                            message: 'Confirm your identity'
+                        }
+                    }
+                })
+            pending = {
+                email: fields.email,
+                expiresAt: new Date(Date.now() + 900_000).toISOString()
+            }
+        }
+        return route.fulfill({ json: { payload: { pending } } })
+    })
+    await page.route('**/api/v1/user/email/change/confirm', (route) => {
+        const fields: { email: string; code: string } = route.request().postDataJSON()
+        if (!pending || fields.email !== pending.email || fields.code !== 'mail-code') {
+            return route.fulfill({
+                status: 400,
+                json: { error: { name: 'InvalidChallengeError', message: 'Invalid code' } }
+            })
+        }
+        current = { ...current, email: pending.email }
+        pending = null
         return route.fulfill({ json: { payload: { user: current } } })
     })
     await page.route('**/api/v1/auth/reauthenticate', (route) => {
@@ -311,7 +341,12 @@ for (const field of ['email', 'password']) {
         await expect(page.locator('input[name="challenge"]')).toHaveCount(0)
         expect(submissions).toEqual([])
 
-        await page.getByRole('button', { name: 'Submit', exact: true }).click()
+        await page
+            .getByRole('button', {
+                name: field === 'email' ? 'Send verification code' : 'Submit',
+                exact: true
+            })
+            .click()
         await expect(prompt).toBeVisible()
         expect(submissions).toEqual([{ [field]: value }])
         await prompt.getByLabel('Password', { exact: true }).fill('existing-password-value')
@@ -319,14 +354,55 @@ for (const field of ['email', 'password']) {
         await expect(prompt).toHaveCount(0)
         expect(submissions).toEqual([{ [field]: value }, { [field]: value }])
         if (field === 'email') {
-            await expect(page).toHaveURL(/\/onboarding$/)
+            await expect(page).toHaveURL(/\/profile$/)
             await expect(page.getByText('updated@example.test', { exact: true })).toBeVisible()
+            await expect(page.getByText(user.email!, { exact: true })).toBeVisible()
+            await page.getByLabel('Verification code', { exact: true }).fill('mail-code')
+            await page.getByRole('button', { name: 'Verify and change email' }).click()
+            await expect(
+                page.getByText('Your email address has been changed.', { exact: false })
+            ).toBeVisible()
+            await expect(page).toHaveURL(/\/profile$/)
         } else {
             await expect(page.getByText('Profile Updated', { exact: true })).toBeVisible()
             await expect(page.locator('input[name="password"]')).toHaveValue('')
         }
     })
 }
+
+test('pending email changes survive a reload and cancellation keeps the verified address', async ({
+    page
+}) => {
+    await profileSubmissions(page, { recent: true })
+    await page.getByLabel('New email address').fill('pending@example.test')
+    await page.getByRole('button', { name: 'Send verification code' }).click()
+    await expect(page.getByLabel('Verification code')).toBeVisible()
+    await page.reload()
+    await expect(page.getByText('pending@example.test', { exact: true })).toBeVisible()
+    await expect(page.getByText(user.email!, { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Cancel email change' }).click()
+    await expect(page.getByLabel('New email address')).toBeVisible()
+    await expect(page.getByText(user.email!, { exact: true })).toBeVisible()
+    await expect(page).toHaveURL(/\/profile$/)
+})
+
+test('a wrong code leaves the current address in place and permits a retry', async ({ page }) => {
+    await profileSubmissions(page, { recent: true })
+    await page.getByLabel('New email address').fill('pending@example.test')
+    await page.getByRole('button', { name: 'Send verification code' }).click()
+    await page.getByLabel('Verification code').fill('wrong-code')
+    await page.getByRole('button', { name: 'Verify and change email' }).click()
+    await expect(
+        page.getByText('That code is incorrect or has expired.', { exact: false })
+    ).toBeVisible()
+    await expect(page.getByText(user.email!, { exact: true })).toBeVisible()
+    await page.getByLabel('Verification code').fill('mail-code')
+    await page.getByRole('button', { name: 'Verify and change email' }).click()
+    await expect(
+        page.getByText('Your email address has been changed.', { exact: false })
+    ).toBeVisible()
+    await expect(page.getByText('pending@example.test', { exact: true })).toBeVisible()
+})
 
 test('a recent password change saves without asking again', async ({ page }) => {
     const { submissions } = await profileSubmissions(page, { recent: true })
@@ -361,43 +437,54 @@ test('a username-only change needs no recent proof', async ({ page }) => {
     expect(submissions).toEqual([{ username: 'renamed-player' }])
 })
 
-test('a Discord-only account confirms through Discord before setting its first password', async ({
-    page,
-    context
-}) => {
-    const { submissions, confirm } = await profileSubmissions(page, {
-        account: { ...user, hasPassword: false, externalIds: ['discord:linked-user'] }
-    })
-    await page.route('**/api/v1/auth/discord/begin/reauthenticate', (route) =>
-        route.fulfill({
-            json: {
-                payload: {
-                    state: 'reauthenticate.profile-change',
-                    authorizationUrl: new URL(
-                        '/oauth/discord/link?code=synthetic&state=reauthenticate.profile-change',
-                        page.url()
-                    ).href,
-                    expiresInSeconds: 600
-                }
-            }
+for (const field of ['email', 'password']) {
+    test(`a Discord-only account confirms through Discord before changing its ${field}`, async ({
+        page,
+        context
+    }) => {
+        const { submissions, confirm } = await profileSubmissions(page, {
+            account: { ...user, hasPassword: false, externalIds: ['discord:linked-user'] }
         })
-    )
-    await context.route('**/api/v1/auth/discord/reauthenticate', (route) => {
-        confirm()
-        return route.fulfill({ json: { payload: {} } })
+        await page.route('**/api/v1/auth/discord/begin/reauthenticate', (route) =>
+            route.fulfill({
+                json: {
+                    payload: {
+                        state: 'reauthenticate.profile-change',
+                        authorizationUrl: new URL(
+                            '/oauth/discord/link?code=synthetic&state=reauthenticate.profile-change',
+                            page.url()
+                        ).href,
+                        expiresInSeconds: 600
+                    }
+                }
+            })
+        )
+        await context.route('**/api/v1/auth/discord/reauthenticate', (route) => {
+            confirm()
+            return route.fulfill({ json: { payload: {} } })
+        })
+        const value = field === 'email' ? 'provider-new@example.test' : 'replacement-password-value'
+        await page.locator(`input[name="${field}"]`).fill(value)
+        await page
+            .getByRole('button', {
+                name: field === 'email' ? 'Send verification code' : 'Submit',
+                exact: true
+            })
+            .click()
+        const prompt = page.getByRole('dialog', { name: "Confirm it's you" })
+        await expect(prompt).toBeVisible()
+        await expect(prompt.getByLabel('Password', { exact: true })).toHaveCount(0)
+        const popup = page.waitForEvent('popup')
+        await prompt.getByRole('button', { name: 'Continue with Discord' }).click()
+        const authorization = await popup
+        if (field === 'email') {
+            await expect(page.getByLabel('Verification code')).toBeVisible()
+            await expect(page.getByText(user.email!, { exact: true })).toBeVisible()
+            await expect(page).toHaveURL(/\/profile$/)
+        } else {
+            await expect(page.getByText('Profile Updated', { exact: true })).toBeVisible()
+        }
+        expect(submissions).toEqual([{ [field]: value }, { [field]: value }])
+        await authorization.close()
     })
-    await page.locator('input[name="password"]').fill('replacement-password-value')
-    await page.getByRole('button', { name: 'Submit', exact: true }).click()
-    const prompt = page.getByRole('dialog', { name: "Confirm it's you" })
-    await expect(prompt).toBeVisible()
-    await expect(prompt.getByLabel('Password', { exact: true })).toHaveCount(0)
-    const popup = page.waitForEvent('popup')
-    await prompt.getByRole('button', { name: 'Continue with Discord' }).click()
-    const authorization = await popup
-    await expect(page.getByText('Profile Updated', { exact: true })).toBeVisible()
-    expect(submissions).toEqual([
-        { password: 'replacement-password-value' },
-        { password: 'replacement-password-value' }
-    ])
-    await authorization.close()
-})
+}

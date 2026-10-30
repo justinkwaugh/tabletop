@@ -28,7 +28,7 @@ The private email associated with a User Account. Comparison and uniqueness are 
 An Email Address whose control has been established through an Email Verification Challenge or a trusted provider assertion.
 
 **Pending Email Address**:
-A reserved replacement awaiting verification while the existing Verified Email Address remains active. Verification atomically promotes it and releases the previous address.
+A proposed replacement awaiting verification while the existing Verified Email Address remains active and the Account retains its status. Verification atomically promotes an available address and releases the previous one; an unverified proposal reserves neither an address nor an Authentication Method.
 
 ## Account Status
 
@@ -79,7 +79,7 @@ An Authentication Challenge proving control of its exact target Email Address.
 An Authentication Challenge, bound to the Email Address it was sent to, authorizing Set Password for an Incomplete or Active Account without establishing an Authenticated Session. It changes neither Account Status nor email verification; the person signs in afterwards through an Authentication Method.
 
 **Authenticated Session**:
-Ongoing authorization associated with a User Account, recorded server-side under an unguessable Session ID that the session cookie carries. It has a thirty-day absolute lifetime and no sliding extension from ordinary activity, and it ends early through Logout, Logout All, or Set Password. A cookie without a live record authorizes nothing. An Account may have multiple concurrent sessions.
+Ongoing authorization associated with a User Account, recorded server-side under an unguessable Session ID that the session cookie carries. It has a thirty-day absolute lifetime and no sliding extension from ordinary activity, and it ends early through Logout, Logout All, Set Password, or a verified Email Address change. A cookie without a live record authorizes nothing. An Account may have multiple concurrent sessions.
 _Avoid_: Login cookie, stateless session
 
 **Session ID**:
@@ -90,7 +90,7 @@ A one-way digest of a bearer value with enough entropy to defeat enumeration: a 
 _Avoid_: Masked token, session hash
 
 **Session Generation**:
-A counter on the User Account that every Authenticated Session records when it is established. A session authorizes only while its recorded generation equals the Account's. A Password Credential change advances the generation in the same commit as the new credential, so no session established from the old credential survives it, including one established concurrently.
+A counter on the User Account that every Authenticated Session records when it is established. A session authorizes only while its recorded generation equals the Account's. A Password Credential or Verified Email Address change advances the generation in the same commit, so no earlier session survives it, including one established concurrently.
 
 **Recent Authentication**:
 Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session, required to change an Email Address or Password Credential or link an External Identity. Ordinary activity and renewing a session after a Password Credential change do not refresh that proof.

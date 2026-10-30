@@ -1,13 +1,14 @@
 import type { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
-import { BaseError, ErrorCategory } from '@tabletop/common'
+import { assertExists, BaseError, ErrorCategory } from '@tabletop/common'
 import { concealedCause } from '@tabletop/backend-services'
 
 export type CredentialEmailRequest = Static<typeof CredentialEmailRequest>
 export const CredentialEmailRequest = Type.Object(
     {
         userId: Type.String(),
-        token: Type.String()
+        token: Type.String(),
+        email: Type.Optional(Type.String())
     },
     { additionalProperties: false }
 )
@@ -31,14 +32,26 @@ export function credentialEmailTask(
     {
         path,
         kind,
-        deliver
-    }: { path: string; kind: string; deliver: (toEmail: string, token: string) => Promise<void> }
+        deliver,
+        explicitDestination = false
+    }: {
+        path: string
+        kind: string
+        deliver: (toEmail: string, token: string) => Promise<void>
+        explicitDestination?: boolean
+    }
 ): void {
     fastify.post<{ Body: CredentialEmailRequest }>(
         path,
-        { schema: { body: CredentialEmailRequest } },
+        {
+            schema: {
+                body: explicitDestination
+                    ? Type.Required(CredentialEmailRequest)
+                    : Type.Omit(CredentialEmailRequest, ['email'])
+            }
+        },
         async function (request, reply) {
-            const { userId, token } = request.body
+            const { userId, token, email } = request.body
             request.log.info({ userId, kind }, 'Sending credential email')
             const user = await fastify.userService.getUser(userId)
             if (!user || !user.email) {
@@ -48,8 +61,10 @@ export function credentialEmailTask(
                 )
                 return
             }
+            const toEmail = explicitDestination ? email : user.email
+            assertExists(toEmail, 'The credential email schema requires its destination')
             try {
-                await deliver(user.email, token)
+                await deliver(toEmail, token)
             } catch (error) {
                 throw new EmailDeliveryError(kind, concealedCause(error, [token]))
             }

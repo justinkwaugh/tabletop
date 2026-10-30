@@ -1,17 +1,26 @@
 import { UserStore } from '../persistence/stores/userStore.js'
 import {
     type AdminAssignableRole,
+    assertExists,
     canHoldAuthenticatedSession,
     ExternalAuthService,
+    normalizeEmailAddress,
+    type PendingEmailChange,
     remove,
     Role,
+    sessionGenerationOf,
     User,
     UserPreferences,
     UserStatus,
     withAssignedRoles
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
-import { EmailVerificationError, InvalidPasswordError, InvalidTimeZoneError } from './errors.js'
+import {
+    EmailChangeError,
+    EmailVerificationError,
+    InvalidPasswordError,
+    InvalidTimeZoneError
+} from './errors.js'
 import { requireSessionEligibleAccount } from './accountEligibility.js'
 import { AccountChangeType } from '../email/emailService.js'
 import { nanoid } from 'nanoid'
@@ -24,7 +33,7 @@ import {
 } from '../tokens/authenticationChallenge.js'
 import type { StoredUser } from '../persistence/model/storedUser.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
-import { NotFoundError } from '../persistence/stores/errors.js'
+import { AlreadyExistsError, NotFoundError } from '../persistence/stores/errors.js'
 import {
     isSessionLiveForAccount,
     type AuthenticatedSession
@@ -187,16 +196,18 @@ export class UserService {
             fields,
             password,
             validator: (existingUser, fieldsToUpdate) => {
-                requireSessionEligibleAccount(existingUser)
-                const now = new Date()
-                if (!isSessionLiveForAccount(session, existingUser, now)) {
-                    throw new SessionNotLiveError()
-                }
-                const changesCredentials =
-                    fieldsToUpdate.passwordHash ||
-                    (fieldsToUpdate.email && fieldsToUpdate.email !== existingUser.email)
-                if (changesCredentials && !hasRecentAuthentication(session, now)) {
-                    throw new RecentAuthenticationRequiredError()
+                const changesEmail = Boolean(
+                    fieldsToUpdate.email && fieldsToUpdate.email !== existingUser.email
+                )
+                this.requireProfileSession(
+                    session,
+                    existingUser,
+                    Boolean(fieldsToUpdate.passwordHash) || changesEmail
+                )
+                if (changesEmail && existingUser.emailVerified) {
+                    throw new EmailChangeError(
+                        'Verify the new email address from your profile before changing it. Please reload the page.'
+                    )
                 }
                 return UpdateValidationResult.Proceed
             }
@@ -229,6 +240,112 @@ export class UserService {
         }
 
         return updatedUser
+    }
+
+    async requestEmailChange(
+        session: AuthenticatedSession,
+        email: string
+    ): Promise<PendingEmailChange> {
+        const user = await this.getUser(session.userId)
+        if (!user) throw new SessionNotLiveError()
+        this.requireProfileSession(session, user, true)
+        if (!user.email || !user.emailVerified) {
+            throw new EmailChangeError('Complete verification of your current email address first.')
+        }
+        const newEmail = normalizeEmailAddress(email)
+        if (newEmail === user.email) {
+            throw new EmailChangeError('Enter a different email address.')
+        }
+        if (await this.userStore.findByEmail(newEmail)) {
+            throw new AlreadyExistsError({ type: 'User', id: user.id, field: 'email' })
+        }
+        const issued = await this.tokenService.issueChallenge({
+            type: TokenType.EmailChange,
+            userId: user.id,
+            email: user.email,
+            newEmail,
+            sessionGeneration: sessionGenerationOf(user)
+        })
+        await this.taskService.sendVerificationEmail({
+            userId: user.id,
+            token: issued.secret,
+            email: newEmail
+        })
+        await this.notifyAccountChange(user.id, {
+            email: user.email,
+            changeType: AccountChangeType.EmailChangeRequested,
+            timestamp: new Date()
+        })
+        return { email: newEmail, expiresAt: issued.expiresAt }
+    }
+
+    async pendingEmailChange(user: User): Promise<PendingEmailChange | undefined> {
+        const pending = await this.tokenService.findChallenge({
+            type: TokenType.EmailChange,
+            userId: user.id
+        })
+        if (
+            !pending ||
+            pending.claim.type !== TokenType.EmailChange ||
+            pending.claim.email !== user.email ||
+            pending.claim.sessionGeneration !== sessionGenerationOf(user)
+        )
+            return undefined
+        return { email: pending.claim.newEmail, expiresAt: pending.expiresAt }
+    }
+
+    async cancelEmailChange(userId: string): Promise<void> {
+        await this.tokenService.cancelChallenge({ type: TokenType.EmailChange, userId })
+    }
+
+    async confirmEmailChange(
+        session: AuthenticatedSession,
+        email: string,
+        code: string
+    ): Promise<User> {
+        let claim: AuthenticationChallengeClaim | undefined
+        const [updatedUser, , originalUser] = await this.userStore.updateUser({
+            userId: session.userId,
+            fields: { email: normalizeEmailAddress(email), emailVerified: true },
+            validator: (existingUser, fieldsToUpdate) => {
+                this.requireProfileSession(session, existingUser, true)
+                if (!existingUser.email || !existingUser.emailVerified || !fieldsToUpdate.email) {
+                    throw new InvalidChallengeError('account')
+                }
+                claim = {
+                    type: TokenType.EmailChange,
+                    userId: existingUser.id,
+                    email: existingUser.email,
+                    newEmail: fieldsToUpdate.email,
+                    sessionGeneration: sessionGenerationOf(existingUser)
+                }
+                return UpdateValidationResult.Proceed
+            },
+            participant: async (transaction, locks) => {
+                assertExists(claim, 'Email change validation precedes challenge consumption')
+                await this.tokenService.consumeChallenge(code, claim)(transaction, locks)
+            }
+        })
+        if (originalUser.email) {
+            await this.notifyAccountChange(updatedUser.id, {
+                email: originalUser.email,
+                changeType: AccountChangeType.Email,
+                timestamp: updatedUser.updatedAt ?? new Date()
+            })
+        }
+        return updatedUser
+    }
+
+    private requireProfileSession(
+        session: AuthenticatedSession,
+        user: User,
+        recent: boolean
+    ): void {
+        requireSessionEligibleAccount(user)
+        const now = new Date()
+        if (!isSessionLiveForAccount(session, user, now)) throw new SessionNotLiveError()
+        if (recent && !hasRecentAuthentication(session, now))
+            throw new RecentAuthenticationRequiredError()
     }
 
     async linkExternalAccount({

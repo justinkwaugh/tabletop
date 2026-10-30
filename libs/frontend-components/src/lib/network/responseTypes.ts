@@ -9,6 +9,7 @@ import {
     GameChat,
     GameChatMessage,
     GameSyncStatus,
+    PendingEmailChange,
     User,
     Visibility
 } from '@tabletop/common'
@@ -29,6 +30,12 @@ export const UserResponse = Type.Evaluate(
         })
     ])
 )
+
+export type PendingEmailChangeResponse = Static<typeof PendingEmailChangeResponse>
+export const PendingEmailChangeResponse = Type.Object({
+    status: Type.String(),
+    payload: Type.Object({ pending: Type.Union([PendingEmailChange, Type.Null()]) })
+})
 
 export const DISCORD_AUTHORIZATION_PURPOSES = ['login', 'link', 'reauthenticate'] as const
 export type DiscordAuthorizationPurpose = (typeof DISCORD_AUTHORIZATION_PURPOSES)[number]

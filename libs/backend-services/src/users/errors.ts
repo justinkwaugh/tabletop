@@ -37,6 +37,14 @@ export class EmailVerificationError extends BaseError {
     }
 }
 
+export class EmailChangeError extends BaseError {
+    readonly statusCode = 400
+
+    constructor(message: string) {
+        super({ name: 'EmailChangeError', message })
+    }
+}
+
 export class InvalidTimeZoneError extends BaseError {
     constructor(timeZone: string) {
         super({

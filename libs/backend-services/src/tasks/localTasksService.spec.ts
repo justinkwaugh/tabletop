@@ -7,6 +7,34 @@ afterEach(() => {
 })
 
 describe('local delayed tasks', () => {
+    it('retries email-change delivery on its distinct route while older workers still serve onboarding emails', async () => {
+        vi.useFakeTimers()
+        const fetch = vi
+            .fn<typeof globalThis.fetch>()
+            .mockResolvedValueOnce(new Response('{}', { status: 404 }))
+            .mockResolvedValue(new Response('{}'))
+        vi.stubGlobal('fetch', fetch)
+        const tasks = new LocalTaskService('http://localhost:3000')
+        await tasks.sendVerificationEmail({
+            userId: 'account',
+            token: 'new-code',
+            email: 'new@example.test'
+        })
+        await tasks.sendVerificationEmail({ userId: 'onboarding', token: 'first-code' })
+        await vi.advanceTimersByTimeAsync(0)
+        expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+            'http://localhost:3000/tasks/email/sendEmailChangeVerification',
+            'http://localhost:3000/tasks/email/sendVerificationEmail'
+        ])
+        expect(fetch.mock.calls[0][1]?.body).toBe(
+            JSON.stringify({ userId: 'account', token: 'new-code', email: 'new@example.test' })
+        )
+        await vi.advanceTimersByTimeAsync(30_000)
+        expect(fetch.mock.calls[2][0]).toBe(
+            'http://localhost:3000/tasks/email/sendEmailChangeVerification'
+        )
+        tasks.close()
+    })
     it('returns after enqueue and waits until the deadline before delivery', async () => {
         vi.useFakeTimers()
         const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response('{}'))

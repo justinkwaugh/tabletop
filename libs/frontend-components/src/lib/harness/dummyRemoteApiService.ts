@@ -31,6 +31,7 @@ import type {
     LeagueSeasonDetail,
     LeagueState,
     SensitiveChangeRequest,
+    PendingEmailChange,
     SiteStatsNow,
     SiteStatsReport,
     UtcDayRange
@@ -277,6 +278,22 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async sendSensitiveChangeChallenge(_request: SensitiveChangeRequest): Promise<Date> {
         return this.fail('sendSensitiveChangeChallenge')
+    }
+
+    async pendingEmailChange(): Promise<PendingEmailChange | undefined> {
+        return this.fail('pendingEmailChange')
+    }
+
+    async requestEmailChange(_email: string): Promise<PendingEmailChange> {
+        return this.fail('requestEmailChange')
+    }
+
+    async confirmEmailChange(_email: string, _code: string): Promise<User> {
+        return this.fail('confirmEmailChange')
+    }
+
+    async cancelEmailChange(): Promise<void> {
+        return this.fail('cancelEmailChange')
     }
 
     async sendPasswordResetEmail(_email: string): Promise<Date> {

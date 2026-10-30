@@ -15,6 +15,7 @@ import {
 } from '../../../tests/accountFixture.js'
 import reauthenticate from '../auth/reauthenticate.js'
 import update from './update.js'
+import emailChange from './emailChange.js'
 
 const NEW_PASSWORD = 'replacement-password-value'
 
@@ -52,6 +53,7 @@ describe('Recent Authentication for profile submissions', () => {
         apiErrorShape(server)
         await server.register(authorization)
         await server.register(update, { prefix: '/user' })
+        await server.register(emailChange, { prefix: '/user' })
         await server.register(reauthenticate, { prefix: '/auth' })
         server.get(
             '/current',
@@ -142,19 +144,36 @@ describe('Recent Authentication for profile submissions', () => {
         expect(account().sessionGeneration).toBe(1)
     })
 
-    it('allows a passwordless provider Account to change email and establish a password', async () => {
-        const { signIn, submit, account, mails } = await fixture({ withPassword: false })
+    it('allows a passwordless provider Account to verify a replacement email and establish a password', async () => {
+        const { server, signIn, submit, account, mails } = await fixture({ withPassword: false })
         const { cookie } = await signIn(5)
-        const response = await submit(cookie, {
-            email: 'next@example.test',
-            password: NEW_PASSWORD
+        const requested = await server.inject({
+            method: 'POST',
+            url: '/user/email/change',
+            headers: { cookie },
+            payload: { email: 'next@example.test' }
         })
+        expect(requested.statusCode).toBe(200)
+        expect(account()).toMatchObject({ email: 'person@example.test', status: UserStatus.Active })
+        const mail = mails.at(-1)
+        assertExists(mail, 'The replacement email must receive its code')
+        const verified = await server.inject({
+            method: 'POST',
+            url: '/user/email/change/confirm',
+            headers: { cookie },
+            payload: { email: 'next@example.test', code: mail.token }
+        })
+        expect(verified.statusCode).toBe(200)
+        const renewed = sessionCookieHeader(verified)
+        assertExists(renewed, 'Email verification keeps its caller signed in')
+        const response = await submit(renewed, { password: NEW_PASSWORD })
         expect(response.statusCode).toBe(200)
         expect(account()).toMatchObject({
             email: 'next@example.test',
-            emailVerified: false,
+            emailVerified: true,
+            status: UserStatus.Active,
             hasPassword: true,
-            sessionGeneration: 1
+            sessionGeneration: 2
         })
         expect(mails.map((mail) => mail.kind)).toEqual(['verification'])
     })

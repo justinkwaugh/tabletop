@@ -3,13 +3,7 @@
     import { EyeSolid, EyeSlashSolid } from 'flowbite-svelte-icons'
     import { z } from 'zod'
     import { zfd } from 'zod-form-data'
-    import {
-        assert,
-        ExternalAuthService,
-        externalIdentityProvider,
-        UserStatus
-    } from '@tabletop/common'
-    import { goto } from '$app/navigation'
+    import { assert, ExternalAuthService, externalIdentityProvider } from '@tabletop/common'
     import googleLogo from '$lib/components/images/google.jpg'
     import discordLogo from '$lib/components/images/discord.png'
     import GoogleSignIn, {
@@ -20,11 +14,8 @@
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext, trim } from '@tabletop/frontend-components'
     import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
-    import {
-        emailAddress,
-        minLengthMessage,
-        requiredMessage
-    } from '$lib/utils/accountFormValidation'
+    import EmailChange from '$lib/components/EmailChange.svelte'
+    import { minLengthMessage, requiredMessage } from '$lib/utils/accountFormValidation'
     import { broadcastLogout } from '$lib/utils/logoutChannel'
     import {
         reauthentication,
@@ -57,12 +48,10 @@
 
     let username: string | undefined = $state(sessionUser?.username)
     let password: string | undefined = $state(undefined)
-    let email: string | undefined = $state(sessionUser?.email)
 
     const updateProfileSchema = zfd.formData({
         username: zfd.text(z.string(requiredMessage)),
-        password: zfd.text(z.string().min(12, minLengthMessage(12)).optional()),
-        email: zfd.text(emailAddress())
+        password: zfd.text(z.string().min(12, minLengthMessage(12)).optional())
     })
 
     function togglePassword() {
@@ -90,17 +79,13 @@
 
         const data = {
             username: result.data.username !== user?.username ? result.data.username : undefined,
-            email: result.data.email !== user?.email ? result.data.email : undefined,
             password: result.data.password
         }
-        if (!data.username && !data.email && !data.password) {
+        if (!data.username && !data.password) {
             return
         }
-        const changes = [data.email && 'email address', data.password && 'password'].filter(Boolean)
         await reauthentication.run({
-            description: changes.length
-                ? `change your ${changes.join(' and ')}`
-                : 'update your profile',
+            description: data.password ? 'change your password' : 'update your profile',
             retry: () => save(data)
         })
     }
@@ -112,17 +97,11 @@
             success = true
             password = undefined
             authorizationService.setSessionUser(newUser)
-
-            if (newUser.status === UserStatus.Incomplete) {
-                goto('/onboarding')
-            }
         } catch (e) {
             if (requiresRecentAuthentication(e)) throw e
             if (e instanceof Error && e.name === 'AlreadyExistsError') {
                 if (e.message.includes('username')) {
                     errors.username = ['Username already exists']
-                } else if (e.message.includes('email')) {
-                    errors.email = ['Email already exists']
                 } else {
                     errorMessage = 'An unexpected error occurred, please try again'
                 }
@@ -209,21 +188,6 @@
                     >
                 {/each}
             {/if}
-            <Label class="mb-2">Email</Label>
-            <Input
-                bind:value={email}
-                type="email"
-                name="email"
-                placeholder="name@company.com"
-                required
-            />
-            {#if errors?.email}
-                {#each errors.email as error, i (i)}
-                    <Helper class="mb-2" color="red"
-                        ><span class="font-medium">{error}</span></Helper
-                    >
-                {/each}
-            {/if}
             <Label class="mb-2">Linked Accounts</Label>
             <div class="rounded-lg border-gray-600 border p-4">
                 {#if isGoogleSigninEnabled}
@@ -279,6 +243,7 @@
                 >
             </div>
         </form>
+        <EmailChange />
         <div class="mt-6">
             <TimeZonePicker />
         </div>

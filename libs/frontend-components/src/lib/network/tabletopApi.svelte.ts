@@ -31,6 +31,7 @@ import {
     SiteStatsReport,
     type UtcDayRange,
     type SensitiveChangeRequest,
+    type PendingEmailChange,
     User,
     UserPreferences,
     Visibility,
@@ -77,6 +78,7 @@ import type {
     UsernameSearchResponse,
     UserResponse,
     ChallengeIssuedResponse,
+    PendingEmailChangeResponse,
     DiscordAuthorizationPurpose,
     DiscordAuthorizationStart,
     DiscordAuthorizationStartResponse,
@@ -364,6 +366,41 @@ export class TabletopApi {
             .json<UserResponse>()
 
         return response.payload.user
+    }
+
+    async pendingEmailChange(): Promise<PendingEmailChange | undefined> {
+        const response = await this.wretch
+            .get('/user/email/change')
+            .unauthorized(this.on401)
+            .json<PendingEmailChangeResponse>()
+        const pending = response.payload.pending
+        return pending ? { ...pending, expiresAt: new Date(pending.expiresAt) } : undefined
+    }
+
+    async requestEmailChange(email: string): Promise<PendingEmailChange> {
+        const response = await this.wretch
+            .post({ email }, '/user/email/change')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json<PendingEmailChangeResponse>()
+        const pending = response.payload.pending
+        assertExists(pending, 'An email change request returns its pending address')
+        return { ...pending, expiresAt: new Date(pending.expiresAt) }
+    }
+
+    async confirmEmailChange(email: string, code: string): Promise<User> {
+        const response = await this.wretch
+            .post({ email, code }, '/user/email/change/confirm')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+        return response.payload.user
+    }
+
+    async cancelEmailChange(): Promise<void> {
+        await this.wretch.delete('/user/email/change').unauthorized(this.on401).json()
     }
 
     async updateUserTimeZone(

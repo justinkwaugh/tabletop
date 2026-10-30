@@ -405,7 +405,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
 
             if (fieldsToUpdate.email && existingUser.email !== fieldsToUpdate.email) {
                 updatedUser.email = fieldsToUpdate.email
-                fieldsToUpdate.emailVerified = false
+                fieldsToUpdate.emailVerified ??= false
 
                 updatedFields.push('email')
             }
@@ -453,6 +453,15 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 updatedUser.passwordHash = credentialFields.passwordHash
                 updatedUser.sessionGeneration = credentialFields.sessionGeneration
                 updatedFields.push('password')
+            }
+
+            if (
+                updatedFields.includes('email') &&
+                existingUser.emailVerified &&
+                updatedUser.emailVerified
+            ) {
+                fieldsToUpdate.sessionGeneration = sessionGenerationOf(existingUser) + 1
+                updatedUser.sessionGeneration = fieldsToUpdate.sessionGeneration
             }
 
             const status = accountStatusAfterCompletionCheck(

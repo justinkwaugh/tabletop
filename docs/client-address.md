@@ -66,14 +66,15 @@ Google proxy addresses into one subnet budget.
 
 Every budget is a fixed window counted in the shared store described below.
 
-| Layer                                 | Key                               | Who could forge the key                | Budget                                                               |
-| ------------------------------------- | --------------------------------- | -------------------------------------- | -------------------------------------------------------------------- |
-| Account                               | `user:<account id>`               | nobody without the session cookie      | 500 requests / minute                                                |
-| Client                                | `client:<normalized client>`      | any Google-hosted caller, via the hint | 100 requests / minute, or the route's `config.rateLimit`             |
-| Hosting peer                          | `peer:<route>:<ingress peer>`     | nobody; it is the connection's address | 3 × the route's client budget, per Google service address, per route |
-| Password sign-in and Reauthentication | `login:<username>`                | nobody; the subject is the target      | 20 attempts / 15 minutes shared by both routes and all sessions      |
-| Password reset                        | `password reset:<email>`          | nobody; the subject is the target      | 10 emails / 15 minutes, from any requesters                          |
-| Email verification                    | `email verification:<account id>` | nobody without an eligible session     | 10 requests / 15 minutes, across the Account's sessions              |
+| Layer                                 | Key                               | Who could forge the key                         | Budget                                                               |
+| ------------------------------------- | --------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------- |
+| Account                               | `user:<account id>`               | nobody without the session cookie               | 500 requests / minute                                                |
+| Client                                | `client:<normalized client>`      | any Google-hosted caller, via the hint          | 100 requests / minute, or the route's `config.rateLimit`             |
+| Hosting peer                          | `peer:<route>:<ingress peer>`     | nobody; it is the connection's address          | 3 × the route's client budget, per Google service address, per route |
+| Password sign-in and Reauthentication | `login:<username>`                | nobody; the subject is the target               | 20 attempts / 15 minutes shared by both routes and all sessions      |
+| Password reset                        | `password reset:<email>`          | nobody; the subject is the target               | 10 emails / 15 minutes, from any requesters                          |
+| Email change request                  | `email change:<account id>`       | nobody without a recently authenticated session | 10 requests / 15 minutes, across the Account's sessions              |
+| Email verification                    | `email verification:<account id>` | nobody without an eligible session              | 10 requests / 15 minutes, across the Account's sessions              |
 
 The Hosting peer layer runs only for anonymous requests attributed through the hint. A caller
 who rotates `Fastly-Client-IP` from one Google service address escapes the client layer but
@@ -96,8 +97,8 @@ Public API requests that enqueue tasks keep their caller and operation budgets. 
 queue dispatch and concurrency settings are independent and unchanged.
 
 Ably token issuance has a route budget of 60 requests per Account per minute. Verification
-email requests keep their route budget of 5 requests per Account per minute in addition to
-the independent fifteen-minute operation budget above. The retired Sensitive Change email
+email and pending email-change requests keep their route budget of 5 requests per Account per minute in addition to
+the independent fifteen-minute operation budget above. Email-change code submission is limited to 10 attempts per Account per minute. The retired Sensitive Change email
 endpoint returns 410 without issuing an email; profile changes now require Recent Authentication.
 
 Password Reauthentication keeps its route limit of 10 requests per Account per minute and
