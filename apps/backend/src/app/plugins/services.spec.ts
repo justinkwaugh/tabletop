@@ -24,6 +24,7 @@ vi.mock('@tabletop/backend-services', async () => {
                 'ChatService',
                 'CloudTasksTaskService',
                 'DiscordService',
+                'DiscordOAuthClient',
                 'FirestoreCharityTallyStore',
                 'FirestoreChatStore',
                 'FirestoreGameStore',

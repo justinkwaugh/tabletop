@@ -58,7 +58,7 @@ A secret used to authenticate a User Account. Leading and trailing whitespace is
 _Avoid_: Password record
 
 **External Identity**:
-A stable, provider-qualified identity linked to exactly one User Account. An Account may link at most one identity from each provider.
+A stable, provider-qualified identity linked to exactly one User Account. An Account may link at most one identity from each provider. Linking completes only a Provider Authorization Attempt the linking session began.
 _Avoid_: Social account, provider email
 
 **Trusted External Provider**:
@@ -93,6 +93,10 @@ A counter on the User Account that every Authenticated Session records when it i
 
 **Recent Authentication**:
 Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session. Ordinary activity does not refresh it.
+
+**Provider Authorization Attempt**:
+One pass through an external provider's authorization flow, begun on this platform for a stated purpose: sign-in or linking. Its Authorization State is an unpredictable value with a ten-minute lifetime, bound to the provider, the purpose and the registered return address, and held by whoever began the attempt: the Authenticated Session for linking, the browser's session cookie for sign-in. Each holder keeps at most one attempt, so beginning another replaces it. A provider callback is accepted only with the state of the live attempt its own holder keeps. An attempt held by an Authenticated Session is consumed exactly once; an attempt held by a sign-in cookie is cleared from that browser when its callback completes, and the provider's single-use authorization code is what limits a copy of the cookie taken earlier.
+_Avoid_: OAuth state parameter, CSRF token
 
 **Logout**:
 Termination of the current Authenticated Session. Any Account holding a session may log out; a copied cookie for that session stops authorizing at the same moment.
