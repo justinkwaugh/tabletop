@@ -9,7 +9,10 @@ import { beginDiscordAuthorization } from '../../../../lib/discordAuthorization.
 export default async function (fastify: FastifyInstance) {
     const guards: Record<OAuthPurpose, RouteShorthandOptions['onRequest']> = {
         login: undefined,
-        link: fastify.auth([fastify.verifyUser], { relation: 'and' })
+        link: fastify.auth([fastify.verifyUser, fastify.verifyRecentAuthentication], {
+            relation: 'and'
+        }),
+        reauthenticate: fastify.auth([fastify.verifyUser], { relation: 'and' })
     }
 
     for (const purpose of OAUTH_PURPOSES) {

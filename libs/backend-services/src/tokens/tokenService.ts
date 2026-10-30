@@ -9,7 +9,7 @@ import { DataToken, TokenType } from './dataToken.js'
 import { AlreadyExistsError } from '../persistence/stores/errors.js'
 import type { TransactionParticipant } from '../persistence/stores/transaction.js'
 import {
-    type AuthenticationChallengeClaim,
+    AuthenticationChallengeClaim,
     type IssuedChallenge,
     InvalidChallengeError
 } from './authenticationChallenge.js'
@@ -88,6 +88,31 @@ export class TokenService {
         return { secret, expiresAt }
     }
 
+    async findChallenge(identity: Pick<AuthenticationChallengeClaim, 'type' | 'userId'>) {
+        const token = await this.tokenStore.find(this.challengeKey(identity))
+        if (!token || token.expiration <= this.now()) return undefined
+
+        const data: unknown = token.data
+        if (!Value.Check(Type.Record(Type.String(), Type.Unknown()), data)) {
+            throw new InvalidChallengeError('binding')
+        }
+        const { secretHash, ...claimData } = data
+        const claim = { ...claimData, type: token.type }
+        if (
+            typeof secretHash !== 'string' ||
+            !Value.Check(AuthenticationChallengeClaim, claim) ||
+            claim.type !== identity.type ||
+            claim.userId !== identity.userId
+        ) {
+            throw new InvalidChallengeError('binding')
+        }
+        return { claim, expiresAt: token.expiration }
+    }
+
+    async cancelChallenge(identity: Pick<AuthenticationChallengeClaim, 'type' | 'userId'>) {
+        await this.tokenStore.delete(this.challengeKey(identity))
+    }
+
     consumeChallenge(
         secret: string,
         expected: AuthenticationChallengeClaim
@@ -119,7 +144,7 @@ export class TokenService {
         }
     }
 
-    private challengeKey(claim: AuthenticationChallengeClaim): string {
+    private challengeKey(claim: Pick<AuthenticationChallengeClaim, 'type' | 'userId'>): string {
         return `${claim.type}:${claim.userId}`
     }
 

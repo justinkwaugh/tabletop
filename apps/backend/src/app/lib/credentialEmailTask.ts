@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { BaseError, ErrorCategory } from '@tabletop/common'
 import { concealedCause } from '@tabletop/backend-services'
@@ -26,34 +26,45 @@ export class EmailDeliveryError extends BaseError {
 
 // The delivered token is a live credential: it reaches the email service and nothing else, so
 // the task's log lines and any delivery failure name only the Account and the kind of email.
+type CredentialEmailDelivery = {
+    kind: string
+    deliver: (accountEmail: string, token: string) => Promise<void>
+}
+
 export function credentialEmailTask(
     fastify: FastifyInstance,
-    {
-        path,
-        kind,
-        deliver
-    }: { path: string; kind: string; deliver: (toEmail: string, token: string) => Promise<void> }
+    { path, ...delivery }: CredentialEmailDelivery & { path: string }
 ): void {
     fastify.post<{ Body: CredentialEmailRequest }>(
         path,
-        { schema: { body: CredentialEmailRequest } },
+        {
+            schema: { body: CredentialEmailRequest }
+        },
         async function (request, reply) {
-            const { userId, token } = request.body
-            request.log.info({ userId, kind }, 'Sending credential email')
-            const user = await fastify.userService.getUser(userId)
-            if (!user || !user.email) {
-                request.log.error(
-                    { userId, kind },
-                    'User not found or missing email address, cannot send credential email'
-                )
-                return
-            }
-            try {
-                await deliver(user.email, token)
-            } catch (error) {
-                throw new EmailDeliveryError(kind, concealedCause(error, [token]))
-            }
+            await deliverCredentialEmail(fastify, request, delivery)
             await reply.code(200).send()
         }
     )
+}
+
+export async function deliverCredentialEmail(
+    fastify: FastifyInstance,
+    request: FastifyRequest<{ Body: CredentialEmailRequest }>,
+    { kind, deliver }: CredentialEmailDelivery
+): Promise<void> {
+    const { userId, token } = request.body
+    request.log.info({ userId, kind }, 'Sending credential email')
+    const user = await fastify.userService.getUser(userId)
+    if (!user || !user.email) {
+        request.log.error(
+            { userId, kind },
+            'User not found or missing email address, cannot send credential email'
+        )
+        return
+    }
+    try {
+        await deliver(user.email, token)
+    } catch (error) {
+        throw new EmailDeliveryError(kind, concealedCause(error, [token]))
+    }
 }

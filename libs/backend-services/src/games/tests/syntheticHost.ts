@@ -171,6 +171,7 @@ export function createSyntheticHost({ activeSeats = 1, playerIds = ['p1', 'p2', 
     const tasks: TaskService = {
         createPushTask: unused,
         sendVerificationEmail: unused,
+        sendEmailChangeVerificationEmail: unused,
         sendPasswordResetEmail: unused,
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,
