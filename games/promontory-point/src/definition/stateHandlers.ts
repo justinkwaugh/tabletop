@@ -11,5 +11,9 @@ export const PromontoryPointStateHandlers: Record<
     MachineStateHandler<HydratedAction, HydratedPromontoryPointGameState>
 > = {
     [MachineState.StartingTurn]: new TerminalStateHandler(),
+    [MachineState.TradingBeforePlacing]: new TerminalStateHandler(),
+    [MachineState.Placing]: new TerminalStateHandler(),
+    [MachineState.PayingRepairs]: new TerminalStateHandler(),
+    [MachineState.TradingAfterPlacing]: new TerminalStateHandler(),
     [MachineState.EndOfGame]: new TerminalStateHandler()
 }
