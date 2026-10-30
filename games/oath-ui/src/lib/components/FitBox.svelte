@@ -52,9 +52,10 @@
     }
 
     /**
-     * An answer row whose buttons sit on one line sticks to the bottom of an upright phone's box.
-     * Read from the buttons' tops, not the row's height, which the pin's own padding changes; and
-     * set only on a change, since every attribute change below the node is measured again.
+     * An answer row whose buttons sit on one line sticks to the bottom of an upright phone's box; a
+     * row without buttons yet is not pinned. Read from the buttons' tops, not the row's height,
+     * which the pin's own padding changes; and set only on a change, since every attribute change
+     * below the node is measured again.
      */
     function pinAnswerRows(node: HTMLElement) {
         for (const row of node.querySelectorAll<HTMLElement>('[data-answer-row]')) {
@@ -63,7 +64,7 @@
                     child instanceof HTMLElement ? child.offsetTop : 0
                 )
             )
-            const pin = tops.size <= 1
+            const pin = tops.size === 1
             if (row.hasAttribute('data-pinned') !== pin) row.toggleAttribute('data-pinned', pin)
         }
     }

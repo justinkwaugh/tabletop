@@ -385,6 +385,32 @@ test.describe('an upright phone at 375 by 812: pinning never changes the height 
         expect(heights.pinned.gap).toBe(8)
         expect(heights.again).toEqual(heights.drawn)
     })
+
+    test('the battle before its picks add up: its answer row has no buttons, so it is not pinned and the fade stays', async ({
+        page
+    }) => {
+        await openScene(page, {
+            name: 'the battle with a force of two groups',
+            table: 'sacrificeMixed'
+        })
+        await expect(fit(page)).toHaveClass(/fit--more/)
+        const row = answerRow(page)
+        expect(await row.evaluate((element) => element.children.length)).toBe(0)
+        await expect(row).not.toHaveAttribute('data-pinned')
+        await expect(row).toHaveCSS('position', 'static')
+        await expect(fit(page)).not.toHaveCSS('mask-image', 'none')
+
+        // The first button to appear is measured once and pinned while the panel has more below.
+        await panel(page)
+            .getByRole('button', { name: /^2 of the / })
+            .first()
+            .click()
+        await expect(row.getByRole('button', { name: 'Sacrifice 2 and win' })).toBeVisible()
+        await settled(page)
+        await expect(fit(page)).toHaveClass(/fit--more/)
+        await expect(row).toHaveAttribute('data-pinned')
+        await expect(row).toHaveCSS('position', 'sticky')
+    })
 })
 
 test.describe('an upright phone at 375 by 812: the steps inside a scrolling panel', () => {
