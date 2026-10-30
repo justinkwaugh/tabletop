@@ -12,3 +12,4 @@ The dev harness lists these under **Scenarios**. Alice (White) makes the first c
 - **Crowded stacks.** Stacks of two to four on neighbouring spaces in both colours, to judge how stacks and their counts read where they crowd each other.
 - **Stacks by the labels.** Stacks of two to nine on the top space of each column, where they rise over the column's coordinate label.
 - **Behind stacks.** Stacks of two to nine (A1 2, C2 3, E2 4, G2 5, I1 6, A4 7, C5 8, E6 9), each with a single piece of the other colour straight behind it up its column, and single pieces behind it to either side, to judge how much of a piece a stack in front hides.
+- **Behind tall stacks.** Stacks of 11, 9 and 10 on G2, G5 and G7; the rotated board draws stacks up to 9 at full height. Each has single pieces behind it: the two nearest, half a piece to either side (F2 and F3, F5 and F6, F7 and F8), and the one two rows straight back (E3, E5, E7), to judge how much a tall stack hides there.

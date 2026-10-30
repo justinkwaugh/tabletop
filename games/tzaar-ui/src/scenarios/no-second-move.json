@@ -29,14 +29,14 @@
         "winningPlayerIds": [],
         "seed": 1,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-30T04:43:18.877Z",
+        "createdAt": "2026-10-30T05:15:48.406Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-30T04:43:18.877Z"
+        "startedAt": "2026-10-30T05:15:48.406Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "erSe3_aEfSWaVHUEFa53r",
+        "id": "eSesXSlWmWHn6_KXN38Pe",
         "gameId": "scenario-no-second-move",
         "seed": 1,
         "prng": {
@@ -44,7 +44,7 @@
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 2852649955,
+            "seed": 1516830265,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],

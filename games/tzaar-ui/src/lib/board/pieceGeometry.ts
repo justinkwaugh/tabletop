@@ -25,6 +25,10 @@ export const PIECE_MODEL: PieceModel = {
     cap: 5
 }
 
+// On the rotated board the nearest pieces behind a stack stand half a piece to either side, so a
+// stack hides less of them and may rise higher.
+export const ROTATED_PIECE_MODEL: PieceModel = { ...PIECE_MODEL, cap: 9 }
+
 // A piece in a stack, on screen relative to the stack's space: where its underside is, and how
 // tall its side shows. A `full` piece is drawn whole; the others are thinned bands.
 export type Disc = { base: number; side: number; full: boolean }

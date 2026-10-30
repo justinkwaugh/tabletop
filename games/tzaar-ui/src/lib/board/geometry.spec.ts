@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import { SPACES } from '@tabletop/tzaar'
-import { BoardView, UNLABELLED_VIEW, VIEW } from './geometry.js'
-import { PIECE_MODEL, PIECE_RADIUS, SPACING_UNIT, stackBounds, TILT } from './pieceGeometry.js'
+import {
+    BoardView,
+    ROTATED_VIEW,
+    UNLABELLED_ROTATED_VIEW,
+    UNLABELLED_VIEW,
+    VIEW
+} from './geometry.js'
+import { PIECE_RADIUS, SPACING_UNIT, stackBounds, TILT } from './pieceGeometry.js'
 
 const VIEWS: [string, BoardView, boolean][] = [
     ['labelled', VIEW, true],
-    ['unlabelled', UNLABELLED_VIEW, false]
+    ['unlabelled', UNLABELLED_VIEW, false],
+    ['rotated, labelled', ROTATED_VIEW, true],
+    ['rotated, unlabelled', UNLABELLED_ROTATED_VIEW, false]
 ]
 
 describe.each(VIEWS)('the %s board', (_name, view, labelled) => {
@@ -14,7 +22,7 @@ describe.each(VIEWS)('the %s board', (_name, view, labelled) => {
     it('frames a full-height stack on every space', () => {
         for (const coords of SPACES) {
             const center = view.center(coords)
-            const { top, bottom } = stackBounds(PIECE_MODEL.cap, PIECE_RADIUS)
+            const { top, bottom } = stackBounds(view.model.cap, PIECE_RADIUS, view.model)
             expect(center.x - PIECE_RADIUS).toBeGreaterThanOrEqual(x)
             expect(center.x + PIECE_RADIUS).toBeLessThanOrEqual(x + width)
             expect(center.y + top).toBeGreaterThanOrEqual(y)
@@ -33,9 +41,11 @@ describe.each(VIEWS)('the %s board', (_name, view, labelled) => {
                 expect(at.x).toBeLessThan(x + width)
                 expect(at.y).toBeGreaterThan(y)
                 expect(at.y).toBeLessThan(y + height)
-                const clear = label.above
-                    ? at.y < center.y + single.top
-                    : at.y > center.y + single.bottom
+                const clear = view.rotated
+                    ? Math.abs(at.x - center.x) > PIECE_RADIUS
+                    : label.above
+                      ? at.y < center.y + single.top
+                      : at.y > center.y + single.bottom
                 expect(clear).toBe(true)
             }
         }

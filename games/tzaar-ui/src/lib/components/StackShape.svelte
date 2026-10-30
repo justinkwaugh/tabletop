@@ -178,7 +178,11 @@
                  clear of the type's markings. -->
             <g transform="translate({radius * 0.6} {drawing.face.y + radius * 0.42 * TILT})">
                 <circle r={radius * 0.27} class="badge"></circle>
-                <text font-size={radius * 0.37} class="count">{pieces.length}</text>
+                <!-- Set ten times larger and scaled down: text this small is snapped to whole
+                     pixels, which pushed the digits off the badge's centre on phones. -->
+                <text transform="scale(0.1)" font-size={radius * 3.7} dy="0.36em" class="count"
+                    >{pieces.length}</text
+                >
             </g>
         {/if}
     </g>
@@ -199,7 +203,6 @@
         fill: #000000;
         font-weight: 700;
         text-anchor: middle;
-        dominant-baseline: central;
         font-variant-numeric: tabular-nums;
         pointer-events: none;
     }

@@ -6,7 +6,15 @@ import {
 } from '@tabletop/common'
 import { BOARD_RADIUS, isSpace, SPACES } from '@tabletop/tzaar'
 import { boardLabels, type ColumnEnd } from './coordinates.js'
-import { PIECE_MODEL, PIECE_RADIUS, SPACING_UNIT, stackBounds, TILT } from './pieceGeometry.js'
+import {
+    PIECE_MODEL,
+    ROTATED_PIECE_MODEL,
+    type PieceModel,
+    PIECE_RADIUS,
+    SPACING_UNIT,
+    stackBounds,
+    TILT
+} from './pieceGeometry.js'
 
 export const SPACING = SPACING_UNIT
 
@@ -55,7 +63,9 @@ export function flatCenter(coords: AxialCoordinates): Point {
 
 // Where everything on the board is drawn, in board units. The board is seen from the near side
 // of the table: depth shrinks to `tilt` of its length, and heights show at `rise` of theirs. An
-// unlabelled view's frame leaves no room for the labels.
+// unlabelled view's frame leaves no room for the labels. A rotated view turns the board a
+// quarter turn clockwise, so its flat sides face the players and the columns run across, A at
+// the top.
 export class BoardView {
     readonly radius = PIECE_RADIUS
     readonly rise: number
@@ -64,12 +74,15 @@ export class BoardView {
     readonly lines: Line[]
     readonly labels: ColumnEnd[]
     readonly frame: { x: number; y: number; width: number; height: number }
+    readonly model: PieceModel
 
     constructor(
         readonly tilt: number,
-        labelled = true
+        labelled = true,
+        readonly rotated = false
     ) {
         this.rise = Math.sqrt(1 - tilt ** 2)
+        this.model = rotated ? ROTATED_PIECE_MODEL : PIECE_MODEL
         const outline = (distance: number) =>
             cornersAt(distance)
                 .map((corner) => this.center(corner))
@@ -80,20 +93,24 @@ export class BoardView {
 
         this.labels = boardLabels(SPACES)
 
-        const tallest = stackBounds(PIECE_MODEL.cap, this.radius)
+        const tallest = stackBounds(this.model.cap, this.radius, this.model)
         const ys = SPACES.map((coords) => this.center(coords).y)
         const xs = SPACES.map((coords) => this.center(coords).x)
-        const labelYs = this.labels.map((label) => this.labelAt(label).y)
+        const labelsAt = labelled ? this.labels.map((label) => this.labelAt(label)) : []
         const top = Math.min(
             Math.min(...ys) + tallest.top,
-            ...(labelled ? labelYs.map((y) => y - LABEL_HALF.y) : [])
+            ...labelsAt.map((at) => at.y - LABEL_HALF.y)
         )
         const bottom = Math.max(
             Math.max(...ys) + tallest.bottom,
-            ...(labelled ? labelYs.map((y) => y + LABEL_HALF.y) : [])
+            ...labelsAt.map((at) => at.y + LABEL_HALF.y)
         )
-        const left = Math.min(...xs) - this.radius - FRAME_MARGIN
-        const right = Math.max(...xs) + this.radius + FRAME_MARGIN
+        const left =
+            Math.min(Math.min(...xs) - this.radius, ...labelsAt.map((at) => at.x - LABEL_HALF.x)) -
+            FRAME_MARGIN
+        const right =
+            Math.max(Math.max(...xs) + this.radius, ...labelsAt.map((at) => at.x + LABEL_HALF.x)) +
+            FRAME_MARGIN
         const frameTop = top - FRAME_MARGIN
         const frameBottom = bottom + FRAME_MARGIN
         this.frame = {
@@ -105,9 +122,14 @@ export class BoardView {
     }
 
     // A label a gap beyond the piece at its column's end: above a single piece's top, below its
-    // near edge. A taller stack on a top space covers its label.
+    // near edge, or on a rotated board beside it, the column's start on the left. A taller stack
+    // on a top space covers its label.
     labelAt(label: ColumnEnd): Point {
         const center = this.center(label.coords)
+        if (this.rotated) {
+            const reach = this.radius + LABEL_GAP + LABEL_HALF.x
+            return { x: center.x + (label.above ? reach : -reach), y: center.y }
+        }
         const single = stackBounds(1, this.radius)
         const offset = label.above
             ? single.top - LABEL_GAP - LABEL_HALF.y
@@ -122,7 +144,8 @@ export class BoardView {
 
     // The centre of a space on the board's surface.
     center(coords: AxialCoordinates): Point {
-        return this.project(flatCenter(coords))
+        const flat = flatCenter(coords)
+        return this.project(this.rotated ? { x: -flat.y, y: flat.x } : flat)
     }
 
     // How far up the screen a height above the board shows.
@@ -159,3 +182,5 @@ export class BoardView {
 // The house angle, shared with the other GIPF project titles.
 export const VIEW = new BoardView(TILT)
 export const UNLABELLED_VIEW = new BoardView(TILT, false)
+export const ROTATED_VIEW = new BoardView(TILT, true, true)
+export const UNLABELLED_ROTATED_VIEW = new BoardView(TILT, false, true)

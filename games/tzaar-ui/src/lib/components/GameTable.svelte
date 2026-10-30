@@ -114,6 +114,12 @@
                             class="pointer-events-auto absolute right-3 bottom-2 z-10 flex items-center gap-1.5"
                         >
                             <OverlayToggle
+                                glyph="↻"
+                                label="Rotated board"
+                                pressed={gameSession.rotatedBoard}
+                                onToggle={() => gameSession.toggleRotatedBoard()}
+                            />
+                            <OverlayToggle
                                 glyph="A1"
                                 label="Coordinates"
                                 pressed={gameSession.showCoordinates}

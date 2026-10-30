@@ -298,6 +298,27 @@ write(
     })
 )
 
+// Stacks of 11, 9 and 10 on G2, G5 and G7, each with single pieces behind it on the rotated board:
+// the two nearest, half a piece to either side, and the one two rows straight back.
+write(
+    'behind-tall-stacks',
+    'Behind tall stacks',
+    position({
+        G2: 'TTTTTTTTTTR',
+        G5: 'AAAAAAAAT',
+        G7: 'tttttttttr',
+        F3: 't',
+        F2: 'A',
+        E3: 'r',
+        F6: 'a',
+        F5: 'R',
+        E5: 't',
+        F8: 'T',
+        F7: 'a',
+        E7: 'R'
+    })
+)
+
 // Rule I: in the tournament version two spaces are left; Alice places one, Bob the last, and then
 // Alice makes the opening capture.
 function placementEnds() {

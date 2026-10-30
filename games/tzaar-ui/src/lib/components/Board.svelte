@@ -4,7 +4,13 @@
     import { SPACES, spaceName } from '@tabletop/tzaar'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import { coordsKey, UNLABELLED_VIEW, VIEW } from '$lib/board/geometry.js'
+    import {
+        coordsKey,
+        ROTATED_VIEW,
+        UNLABELLED_ROTATED_VIEW,
+        UNLABELLED_VIEW,
+        VIEW
+    } from '$lib/board/geometry.js'
     import { stackDiscs, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
     import { markRing, outlinePath } from '$lib/board/pieceShape.js'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
@@ -15,7 +21,11 @@
 
     // On a phone the board grows into the labels' room while they are hidden.
     const phone = new MediaQuery('width < 40rem')
-    const layout = $derived(session.showCoordinates || !phone.current ? VIEW : UNLABELLED_VIEW)
+    const layout = $derived.by(() => {
+        const labelled = session.showCoordinates || !phone.current
+        if (session.rotatedBoard) return labelled ? ROTATED_VIEW : UNLABELLED_ROTATED_VIEW
+        return labelled ? VIEW : UNLABELLED_VIEW
+    })
     const radius = VIEW.radius
 
     const animator = new BoardAnimator(session, () => layout)
@@ -63,8 +73,8 @@
     // The outline of the stack standing there, or of a single piece on an empty space.
     function target(coords: AxialCoordinates): string {
         const height = Math.max(heightAt(coords), 1)
-        const base = stackDiscs(1, radius)[0].base
-        return outlinePath(base, topFaceY(height, radius), radius)
+        const base = stackDiscs(1, radius, layout.model)[0].base
+        return outlinePath(base, topFaceY(height, radius, layout.model), radius)
     }
 
     function describe(coords: AxialCoordinates): string {
@@ -107,6 +117,7 @@
                     pieces={stack.pieces.map((piece) => session.shapeOf(piece))}
                     {radius}
                     prefix="tzaar-board"
+                    model={layout.model}
                 >
                     <!-- A mark recolors a ring on the top piece, under the count, so the count
                          stays whole. The animator fades it with the move. -->
@@ -176,6 +187,7 @@
                         pieces={flier.pieces.map((piece) => session.shapeOf(piece))}
                         {radius}
                         prefix="tzaar-board"
+                        model={layout.model}
                     />
                 </g>
             </g>

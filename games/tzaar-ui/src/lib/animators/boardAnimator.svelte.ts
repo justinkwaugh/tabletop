@@ -12,7 +12,7 @@ import type { TzaarGameSession } from '$lib/model/session.svelte.js'
 import { boardDiff, spacesBetween, type StackMotion } from '$lib/board/boardDiff.js'
 import { coordsKey, type BoardView } from '$lib/board/geometry.js'
 import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE } from '$lib/board/hop.js'
-import { PIECE_MODEL, restingLift } from '$lib/board/pieceGeometry.js'
+import { restingLift } from '$lib/board/pieceGeometry.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
@@ -128,7 +128,7 @@ export class BoardAnimator {
             const layout = this.layout()
             this.occluders.set(node, {
                 y: layout.center(stack.coords).y,
-                top: restingLift(stack.pieces.length, layout.radius)
+                top: restingLift(stack.pieces.length, layout.radius, layout.model)
             })
             return () => {
                 this.occluders.delete(node)
@@ -245,8 +245,8 @@ export class BoardAnimator {
         const between = spacesBetween(moved.from, moved.to) ?? []
         const plan = hopPlan({
             spaces: between.length + 1,
-            startLift: restingLift(moved.leftBelow, radius),
-            endLift: restingLift(moved.landingOn, radius),
+            startLift: restingLift(moved.leftBelow, radius, layout.model),
+            endLift: restingLift(moved.landingOn, radius, layout.model),
             over: between.map(() => 0),
             quick
         })
@@ -295,7 +295,7 @@ export class BoardAnimator {
         // A stack grown past the full height is thinned the moment it lands, so it does not
         // bounce: the board takes over the whole stack at once.
         const thinned =
-            moved.landingOn > 0 && moved.landingOn + moved.pieces.length > PIECE_MODEL.cap
+            moved.landingOn > 0 && moved.landingOn + moved.pieces.length > layout.model.cap
         if (thinned) {
             timeline.call(() => this.land(before, moved), undefined, landed)
         }

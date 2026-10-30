@@ -50,6 +50,12 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
     readonly preferences: TitlePreferences<typeof TzaarPreferences> =
         this.createPreferences(TzaarPreferenceDefinition)
 
+    rotatedBoard: boolean = $derived(this.preferences.values.rotatedBoard)
+
+    toggleRotatedBoard() {
+        this.preferences.set({ rotatedBoard: !this.rotatedBoard })
+    }
+
     showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
 
     toggleCoordinates() {
