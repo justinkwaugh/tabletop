@@ -1,3 +1,10 @@
+export * from './components/board.js'
+export * from './components/priceTrack.js'
+export * from './components/railroads.js'
+export * from './components/shares.js'
+export * from './components/townTiles.js'
+export * from './components/trackPieces.js'
+
 export * from './definition/actions.js'
 export * from './definition/config.js'
 export * from './definition/definition.js'

@@ -8,12 +8,12 @@ The inventory the data files transcribe. Ids are permanent: game state stores id
 
 ## Railroads (4)
 
-| Id            | Printed name     | Count | Printed values                       | Printed text     | Digest section |
-| ------------- | ---------------- | ----- | ------------------------------------ | ---------------- | -------------- |
-| `railroad.cp` | Central Pacific  | 1     | colour blue; home hex `space.-2.-4`  | CENTRAL PACIFIC  | R-0, R-1.1     |
-| `railroad.up` | Union Pacific    | 1     | colour purple; home hex `space.6.-4` | UNION PACIFIC    | R-0, R-1.1     |
-| `railroad.kp` | Kansas Pacific   | 1     | colour red; home hex `space.2.4`     | KANSAS PACIFIC   | R-0, R-1.1     |
-| `railroad.sp` | Southern Pacific | 1     | colour yellow; home hex `space.-6.4` | SOUTHERN PACIFIC | R-0, R-1.1     |
+| Id            | Printed name     | Count | Printed values                    | Printed text     | Digest section |
+| ------------- | ---------------- | ----- | --------------------------------- | ---------------- | -------------- |
+| `railroad.cp` | Central Pacific  | 1     | colour blue; home hex at `-2,-4`  | CENTRAL PACIFIC  | R-0, R-1.1     |
+| `railroad.up` | Union Pacific    | 1     | colour purple; home hex at `6,-4` | UNION PACIFIC    | R-0, R-1.1     |
+| `railroad.kp` | Kansas Pacific   | 1     | colour red; home hex at `2,4`     | KANSAS PACIFIC   | R-0, R-1.1     |
+| `railroad.sp` | Southern Pacific | 1     | colour yellow; home hex at `-6,4` | SOUTHERN PACIFIC | R-0, R-1.1     |
 
 ## Share cards (44)
 
