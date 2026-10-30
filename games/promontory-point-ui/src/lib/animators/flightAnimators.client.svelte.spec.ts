@@ -27,7 +27,7 @@ import {
     withNoRoomFor,
     withTownsOpenTo,
     withTurnPieces
-} from '$lib/testing/tables.js'
+} from '@tabletop/promontory-point/testing'
 import { SEA_SLOTS } from '$lib/utils/boardGeometry.js'
 import { spaceCentre } from '$lib/utils/boardLayout.js'
 import { BAG_MOUTH, pieceBox, type FlightHost } from './flightAnimator.js'

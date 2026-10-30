@@ -65,6 +65,13 @@ export function shareDeckCount(
     return new HydratedPromontoryPointGameState(structuredClone(state)).shareDeckCount(railroadId)
 }
 
+// R-2.1: the seat at a position in turn order.
+export function seatOf(state: PromontoryPointProjectedState, position: number): string {
+    const playerId = state.turnManager.turnOrder[position]
+    assertExists(playerId, `No seat at position ${position}`)
+    return playerId
+}
+
 // R-2.1: the player whose turn the turn manager has open.
 export function turnPlayer(state: PromontoryPointProjectedState): string {
     const turn = state.turnManager.series.findLast((candidate) => candidate.end === undefined)

@@ -16,7 +16,7 @@ import {
     withNoRoomFor,
     withTownsOpenTo,
     withTurnPieces
-} from '$lib/testing/tables.js'
+} from '@tabletop/promontory-point/testing'
 import type { PromontoryPointGameSession } from './session.svelte.js'
 import { turnPanel, type TurnPanel } from './turnPanel.js'
 

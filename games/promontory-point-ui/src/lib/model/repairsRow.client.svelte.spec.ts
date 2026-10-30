@@ -21,7 +21,7 @@ import {
     withTownsOpenTo,
     withTurnPieces,
     type Holding
-} from '$lib/testing/tables.js'
+} from '@tabletop/promontory-point/testing'
 import { descriptionText, type DescriptionPart } from '$lib/utils/actionDescription.js'
 import { repairsPanel } from './repairsPanel.js'
 import { RepairsSeatState, repairsRow, type RepairsRowView } from './repairsRow.js'

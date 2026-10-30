@@ -24,7 +24,12 @@ import {
     openSessionOn,
     settled
 } from '$lib/testing/sessionHarness.js'
-import { seatOf, withHoldings, withTownsOpenTo, withTurnPieces } from '$lib/testing/tables.js'
+import {
+    seatOf,
+    withHoldings,
+    withTownsOpenTo,
+    withTurnPieces
+} from '@tabletop/promontory-point/testing'
 import { moneyMarkers } from '$lib/utils/boardLayout.js'
 import {
     DIRECT_SECONDS,

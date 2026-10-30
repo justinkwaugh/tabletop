@@ -24,7 +24,7 @@ import {
     withNoRoomFor,
     withTownsOpenTo,
     withTurnPieces
-} from '$lib/testing/tables.js'
+} from '@tabletop/promontory-point/testing'
 import type { PromontoryPointGameSession } from './session.svelte.js'
 
 const CP: RailroadId = 'railroad.cp'

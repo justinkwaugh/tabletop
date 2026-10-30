@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { MachineState } from '@tabletop/promontory-point'
 import { dealtTable, disposeSessions, openSessionOn } from './sessionHarness.js'
-import { seatOf } from './tables.js'
+import { seatOf } from '@tabletop/promontory-point/testing'
 
 afterEach(() => {
     disposeSessions()

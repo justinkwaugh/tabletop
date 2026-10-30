@@ -24,7 +24,7 @@ import {
 import { UiDefinition } from '$lib/definitions/definition.js'
 import { PromontoryPointUiRuntime } from '$lib/definitions/runtime.js'
 import { PromontoryPointGameSession } from '$lib/model/session.svelte.js'
-import { canonical } from './tables.js'
+import { canonical } from '@tabletop/promontory-point/testing'
 
 const HARNESS_DEFINITION: GameUiDefinition<GameState, HydratedGameState> = {
     info: UiDefinition.info,

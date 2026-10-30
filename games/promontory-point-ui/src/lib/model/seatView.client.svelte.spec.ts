@@ -23,7 +23,7 @@ import {
     withHoldings,
     withTownsOpenTo,
     withTurnPieces
-} from '$lib/testing/tables.js'
+} from '@tabletop/promontory-point/testing'
 import { aggregateTurns } from '$lib/utils/actionAggregator.js'
 import { PreviewKind } from './cardPreview.svelte.js'
 import {

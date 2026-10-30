@@ -16,6 +16,11 @@ import {
 export const VARIANT_OFF_AND_ON: GameConfig[] = [{}, { fourPieceVariant: true }]
 export const VARIANT_OFF: GameConfig[] = [{}, { fourPieceVariant: false }]
 
+// R-6.3-H1: the table option on or off.
+export function variantConfig(fourPieceVariant: boolean): GameConfig {
+    return { fourPieceVariant }
+}
+
 export const TEST_MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
 export const engine = new GameEngine(Definition.runtime)

@@ -23,7 +23,7 @@ import {
     withTownsOpenTo,
     withTurnPieces,
     type Holding
-} from '$lib/testing/tables.js'
+} from '@tabletop/promontory-point/testing'
 import { everySaleStartingWith, repairsDraftView } from './repairsDraft.js'
 import type { PromontoryPointGameSession } from './session.svelte.js'
 

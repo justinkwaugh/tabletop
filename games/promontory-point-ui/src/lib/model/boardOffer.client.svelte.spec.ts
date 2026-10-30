@@ -15,7 +15,7 @@ import {
     settled,
     type Table
 } from '$lib/testing/sessionHarness.js'
-import { withHoldings, withTownsOpenTo, withTurnPieces } from '$lib/testing/tables.js'
+import { withHoldings, withTownsOpenTo, withTurnPieces } from '@tabletop/promontory-point/testing'
 import { ChipKind, HexPick, OfferView, boardOffer, hexOffer } from './boardOffer.js'
 
 const CP: RailroadId = 'railroad.cp'

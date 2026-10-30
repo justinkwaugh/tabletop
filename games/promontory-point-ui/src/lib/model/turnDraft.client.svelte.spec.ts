@@ -8,7 +8,7 @@ import {
     openSessionOn,
     settled
 } from '$lib/testing/sessionHarness.js'
-import { withNoRoomFor, withTurnPieces } from '$lib/testing/tables.js'
+import { withNoRoomFor, withTurnPieces } from '@tabletop/promontory-point/testing'
 import { HexPick, hexOffer } from './boardOffer.js'
 import { emptyTurnDraft, hasManualTurnDraft, popTurnDraft, pressPiece } from './turnDraft.js'
 

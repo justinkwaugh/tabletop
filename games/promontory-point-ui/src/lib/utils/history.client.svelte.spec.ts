@@ -28,7 +28,7 @@ import {
     withNoRoomFor,
     withTownsOpenTo,
     withTurnPieces
-} from '$lib/testing/tables.js'
+} from '@tabletop/promontory-point/testing'
 import type { PromontoryPointGameSession } from '$lib/model/session.svelte.js'
 import { describeAction, descriptionText } from './actionDescription.js'
 import {

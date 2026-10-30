@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import { MachineState, type RailroadId } from '@tabletop/promontory-point'
 import { dealtTable, type Table } from '$lib/testing/sessionHarness.js'
-import { seatOf, withHoldings } from '$lib/testing/tables.js'
+import { seatOf, withHoldings } from '@tabletop/promontory-point/testing'
 import { scoreView } from './score.js'
 
 const CP: RailroadId = 'railroad.cp'

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { uncoveredRedTileCount, type RailroadId } from '@tabletop/promontory-point'
 import { dealtTable } from '$lib/testing/sessionHarness.js'
-import { withBagLeft } from '$lib/testing/tables.js'
+import { withBagLeft } from '@tabletop/promontory-point/testing'
 import { statusStrip } from './statusStrip.js'
 
 const CP: RailroadId = 'railroad.cp'
