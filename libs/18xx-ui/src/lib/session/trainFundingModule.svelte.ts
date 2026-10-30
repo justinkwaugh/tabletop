@@ -42,6 +42,13 @@ export class TrainFundingModule {
     purchases = $derived.by(() =>
         this.session.state.machineState === 'BuyingTrains' ? (this.model?.purchases() ?? []) : []
     )
+    marketPurchases = $derived.by(() =>
+        this.purchases.filter((purchase) => this.fromMarket(purchase))
+    )
+    /** A depot train may have no stored record yet: an unlimited supply records only bought trains. */
+    depotPurchases = $derived.by(() =>
+        this.purchases.filter((purchase) => !this.fromMarket(purchase))
+    )
     /** Whether the help is optional, offered to a company that already owns a train. */
     voluntary = $derived.by(() => {
         const companyId =
@@ -172,6 +179,11 @@ export class TrainFundingModule {
                 )
                 break
         }
+    }
+    private fromMarket(purchase: TrainPurchaseDetails) {
+        return this.session.state.trainInventory.trains.some(
+            (train) => train.id === purchase.trainId && train.status === 'market'
+        )
     }
     private continuesAutomatically(buy: boolean) {
         const kind = this.choice?.kind

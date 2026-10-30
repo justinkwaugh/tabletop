@@ -1,4 +1,4 @@
-import { UserNotification, UserNotificationAction } from '@tabletop/common'
+import { PlayerVoteKind, UserNotification, UserNotificationAction } from '@tabletop/common'
 import {
     ButtonStyle,
     ComponentType,
@@ -128,8 +128,14 @@ function notificationCopy(notification: UserNotification): NotificationCopy {
             }
         case UserNotificationAction.PlayerVoteRequested:
             return {
-                summary: `${notification.data.initiator.name} asks to go back in ${gameName}`,
-                heading: `${notification.data.initiator.name} asks everyone to go back`,
+                summary:
+                    notification.data.kind === PlayerVoteKind.Call
+                        ? `${notification.data.initiator.name} asks to end ${gameName}`
+                        : `${notification.data.initiator.name} asks to go back in ${gameName}`,
+                heading:
+                    notification.data.kind === PlayerVoteKind.Call
+                        ? `${notification.data.initiator.name} asks everyone to end the game`
+                        : `${notification.data.initiator.name} asks everyone to go back`,
                 color: Color.Vote,
                 path: gamePath,
                 buttonLabel: 'Vote'

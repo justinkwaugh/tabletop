@@ -12,7 +12,7 @@ import {
 } from '../actions/campaignResolveVictory.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { Banner, PlayerStatus, Region } from '../model/oathEnums.js'
-import { type PowerChoice } from './powerChoice.js'
+import type { PowerChoice } from './powerChoice.js'
 import { testPlayer, testState, testVaultWithRelics, openTurn } from '../testing/fixture.js'
 import '../powers/index.js'
 import { buildAction, defendingSideChooses } from '../testing/actions.js'

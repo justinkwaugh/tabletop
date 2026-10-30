@@ -177,7 +177,8 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
                     m.hooks.sitePlayGainsSecret === true ||
                     m.hooks.playAnywhere !== undefined ||
                     m.hooks.secondPlay === true ||
-                    m.hooks.revealsDraw === true
+                    m.hooks.revealsDraw === true ||
+                    m.hooks.swapsWithDispossessed === true
             )
             .map((m) => ({
                 cardId: m.power.cardId,

@@ -9,13 +9,15 @@ export const RoofBag = DrawBag(Roof)
 
 export const RoofBagValidator = Compile(RoofBag)
 
+const RoofValues = [1, 2, 3, 4, 5, 6]
+const CopiesOfEachRoof = 2
+export const RoofCount = RoofValues.length * CopiesOfEachRoof
+
 export class HydratedRoofBag extends HydratedDrawBag<Roof, typeof RoofBag> implements RoofBag {
     static create(random: RandomFunction) {
-        const roofs: Roof[] = []
-        for (let i: number = 1; i < 7; i++) {
-            roofs.push({ pieceType: PieceType.Roof, value: i })
-            roofs.push({ pieceType: PieceType.Roof, value: i })
-        }
+        const roofs: Roof[] = RoofValues.flatMap((value) =>
+            Array.from({ length: CopiesOfEachRoof }, () => ({ pieceType: PieceType.Roof, value }))
+        )
 
         const roofBag: RoofBag = {
             items: roofs,

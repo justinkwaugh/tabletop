@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
     import { boardZoom } from '$lib/model/boardZoom.js'
-    import { cardName } from '$lib/model/names.js'
+    import { cardNameInPlay } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // R-6.2 — the gold "Use" at the foot of a card whose power Use a power lists: a tap opens Use
@@ -27,7 +27,7 @@
     type="button"
     class="use-badge"
     class:use-badge--board={board}
-    aria-label="Use {cardName(cardId)}"
+    aria-label="Use {cardNameInPlay(gameSession.gameState, cardId)}"
     disabled={gameSession.busy}
     data-use-badge={cardId}
     {@attach board ? boardZoom : undefined}

@@ -128,7 +128,7 @@ export class SiteStatsService {
         const { games, users } = this.sources
         const [newUsers, createdGames, startedGames, finishedGames, gamesInPlay, earlierMonths] =
             await Promise.all([
-                users.countUsersCreatedIn(window),
+                users.countUsersActivatedIn(window),
                 games.findGamesWithTimestampIn('createdAt', window),
                 games.findGamesWithTimestampIn('startedAt', window),
                 games.findGamesWithTimestampIn('finishedAt', window),

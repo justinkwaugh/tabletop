@@ -27,6 +27,7 @@ Tournament scoring will consume the authoritative Game State's existing `result`
 - `GameResult.Win` or `GameResult.Draw` with winner IDs identifies a single or shared victory.
 - Shared winners split one tournament point, including when the result is `GameResult.Draw`. Both Win and Draw require declared winner IDs.
 - `GameResult.Abandoned` represents abandonment, not a sporting victory. Dropout resolution remains #65.
+- Tournament Games refuse Call Requests and Concede (see [player votes](player-votes.md)); a tournament ends a table early only through its own withdrawal and voiding paths.
 
 `validateGameResult(state)` checks those existing fields without returning another result object or modifying the state. It rejects a missing result, a Win or Draw without winners, duplicate or foreign winner IDs, and abandoned results with winners. The later settlement service must load authoritative canonical state and validate it before scoring; this helper does not establish provenance or finality. No new result endpoint is introduced, and titles do not need a capability to expose results they already record.
 

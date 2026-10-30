@@ -100,7 +100,7 @@ describe('share redemption', () => {
         play.act('RedeemShare', { companyId: 'ACL', certificateId: fromBlair.certificateId })
         expect(play.state.machineState).toBe('ConsentingRedemption')
         expect(play.state.activePlayerIds).toEqual(['blair'])
-        expect(play.valid('blair')).toEqual(['AnswerRedemption'])
+        expect(play.valid('blair')).toEqual(['AnswerRedemption', 'SetRunInstruction'])
         play.act('AnswerRedemption', { accept: true }, 'blair')
         expect(play.state.machineState).toBe('StockRound')
         expect(cashOwnedBy(play.state, player('blair'))).toBe(450 + 90)

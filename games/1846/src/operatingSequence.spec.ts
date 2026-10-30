@@ -17,7 +17,8 @@ import { EndingRules1846 } from './ending.js'
 import { stockGame } from '../test/testSupport.js'
 import { RouteRules1846 } from './routes.js'
 import { trainBuyingChoices1846 } from './trains.js'
-import { corporateFinanceChoices } from './corporateFinance.js'
+import { corporateFinanceChoices } from '@tabletop/18xx'
+import { CorporateFinanceRules1846 } from './corporateFinance.js'
 
 function twoMajors() {
     const table = stockGame()
@@ -101,7 +102,7 @@ describe('1846 stock and operating sequence', () => {
     })
     it("clears a corporation's issue or redeem direction when the next turn starts", () => {
         const table = twoMajors()
-        const issue = corporateFinanceChoices(table.hydrated).find(
+        const issue = corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846).find(
             (choice) => choice.operation === 'issue'
         )
         assertExists(issue)
@@ -111,7 +112,9 @@ describe('1846 stock and operating sequence', () => {
         expect(nextOperatingCompany(table.state)).toBe('NYC')
         expect(table.state.financeStep).toBeUndefined()
         expect(
-            corporateFinanceChoices(table.hydrated).some((choice) => choice.operation === 'issue')
+            corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846).some(
+                (choice) => choice.operation === 'issue'
+            )
         ).toBe(true)
     })
     it('hands off each corporation, resets the second round, and starts the next stock round', () => {

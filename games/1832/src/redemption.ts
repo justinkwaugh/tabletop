@@ -4,7 +4,6 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     assertExists,
     type GameAction,
@@ -24,7 +23,8 @@ import {
     sharesOwned,
     stepAction,
     type SharePurchaseDetails,
-    type StockState
+    type StockState,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import {
     requireEighteenThirtyTwoState,
@@ -208,7 +208,7 @@ function applyRedemption(
 
 export const RedeemShare = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('RedeemShare'),
         companyId: Type.String(),
         certificateId: Type.String(),
@@ -270,7 +270,7 @@ export class HydratedRedeemShare
 
 export const AnswerRedemption = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('AnswerRedemption'),
         accept: Type.Boolean(),
         metadata: Type.Optional(
@@ -421,7 +421,7 @@ export function reissueChoices(state: EighteenThirtyTwoState, playerId: string):
 
 export const ReissueShares = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ReissueShares'),
         companyId: Type.String(),
         metadata: Type.Optional(

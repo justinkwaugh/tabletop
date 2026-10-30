@@ -104,7 +104,7 @@ it.each(Titles)(
             ).toThrow()
             expect(
                 engine.getValidActionTypesForPlayer(game, current, current.activePlayerIds[0])
-            ).toEqual(['DiscardTrain'])
+            ).toEqual(['DiscardTrain', 'SetRunInstruction'])
             const result = engine.executeCanonicalAction({ game, state: current, action: discard })
             actions.push(...result.processedActions)
             discarded.push(train.id)

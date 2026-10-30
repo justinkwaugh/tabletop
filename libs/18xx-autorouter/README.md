@@ -33,11 +33,68 @@ operation remains the Game Session's responsibility.
 `solve` is synchronous; run it in a Web Worker to keep longer searches off the UI
 thread. Import the title's rules inside that worker and send it the state data.
 
-`exhaustive` means the encoded search finished. If the time limit interrupts
-candidate generation or fleet selection, the best found legal operation is
-returned with `exhaustive: false`. The limit applies separately to each search
-stage and is checked periodically; it is not a hard wall-clock deadline. Metrics
-separate encoding, solving, final validation and the Rust search stages.
+`exhaustive` means the encoded search finished. One time limit covers the whole
+search. With exactly two distinct train profiles, the solver stores the
+shorter-distance train's routes, sorted by revenue, then streams the other's
+routes through a partner search. A tighter major-stop limit breaks distance ties;
+input order breaks remaining ties. This is a candidate-count heuristic, including
+when the trains use different distance measures; the choice does not affect
+exactness. The stored profile gets half the remaining time, and streaming gets
+the rest, including time the first train did not use. Only an improving streamed
+route is copied. Either train may run alone. Resource conflicts include extension
+track, and bounds account for the longest-route bonus once for the fleet.
+
+Identical-profile pairs and fleets of three or more keep candidate enumeration
+followed by branch-and-bound selection: enumeration may use three quarters of
+the deadline, shared between distinct profiles, and selection the rest. Selection
+always completes its first descent; streaming similarly completes its first
+partner search and starts with the best stored route alone. An interrupted search
+returns the best legal operation found with `exhaustive: false`. The limit is
+checked periodically; it is not a hard wall-clock deadline.
+
+Stored candidates have a 24-byte descriptor on wasm32 and share an arena of
+connection and extension-arc IDs. The arena uses `u16` when both ID ranges fit,
+otherwise machine-width IDs. Candidates keep a 32-bit resource-set fingerprint,
+computed during enumeration, but no resource bitset. Deduplication checks equal
+fingerprints against exact resource sets rebuilt from the compiled connections
+and extension arcs, retaining distinct visit counts when the fleet bonus needs
+them. Cuts and deduplication compact the arena in place, reclaiming discarded IDs.
+
+The solver also limits the memory its compiled track paths, candidates and
+selection tables use to 40 MiB. Candidate accounting includes allocated capacity,
+old and new allocations during growth or shrinking, and deduplication scratch
+space. Compilation stops at a quarter of the budget. Ordinary fleet selection
+reserves another quarter for cached compatibility rows; streaming needs no cached
+rows, so its stored profile can use the remaining budget. After enumeration,
+streaming uses spare budget, up to a quarter of the total, to index resources
+against the highest-value stored candidates. It tests indexed partners 64 at a
+time and checks the rest through connection and extension resource lists, caching
+each connection or arc's conflict for the current streamed route. The index and
+cache stay within the same working budget. A train whose candidates reach their
+share first discards duplicates; if the remainder still exceeds half its budget,
+it keeps the most valuable half. Cutting candidates or compiled connections is
+reported with
+`metrics.memoryLimited` and `exhaustive: false`. Streaming alone does not make a
+completed enumeration non-exhaustive.
+
+A two-train fleet cut for memory, with time left, is solved again exactly above
+what its first answer proves. A better pair needs a route worth more than half
+the first answer when the trains are alike, or a stored route worth more than the
+first answer less the other train's best route (known once its streaming pass
+finished). Only those routes are stored, and every route of the other train is
+streamed through them; route values include the longest-route bonus, so the
+bound holds with it. When that pass completes, the result is exhaustive and not
+memory-limited; if it is cut or interrupted, the first answer stands.
+The WebAssembly instance is built with a 64 MiB memory maximum, so an
+allocation beyond it traps instead of growing the tab. WebAssembly memory never
+shrinks, so after a solve that left the instance above 32 MiB, or one that
+failed, the `Autorouter` replaces its instance. Either way
+an interrupted search returns the best legal operation found. Metrics separate
+encoding, solving, final validation and the Rust search stages, and report the
+instance's memory after the solve. In streaming mode, path-search time includes
+partner searches performed during enumeration; combination time excludes those
+searches. Candidate counts still count enumerated routes, including those
+discarded immediately by streaming.
 
 ## Rules supported by the repository encoder
 
@@ -48,6 +105,19 @@ separate encoding, solving, final validation and the Rust search stages.
   values. A 6-train still uses ordinary offboard values during the diesel phase.
 - 1846: express visit/payment limits with a paid company station, connection
   bonuses on paid stops, and a per-stop bonus on the fleet's longest route.
+- N+s trains (`extraTowns`): at most N+s stops, of which at most N are not towns.
+  Only revenue-center trains may carry extra towns.
+- Revenue policies chosen from the state and operating company, and connection
+  bonuses whose destination pays only at a route's first or last stop
+  (`destinationAtEnd`).
+- Interconnections: a route may continue past its counted stops on track of its
+  own, through any stops except an offboard, to a destination location, and earns
+  the best interconnection from one of its paid stops. The solver may reverse a
+  route so the extension leaves either end. It tries only the shortest extension
+  (fewest paths) from each end of each route to each destination location, over
+  track the route does not use; it skips one that would reuse its own track or
+  revisit a junction between stops, and never tries a longer extension that would
+  leave track free for another train. `exhaustive` covers this encoding only.
 - All: station inclusion, continuous track, no edge reversal or track/border
   reuse within or between routes, no repeated revenue center or repeated junction
   between consecutive stops, blocked cities at endpoints only, and terminal offboards. Station reservations do not block runs.
@@ -59,7 +129,7 @@ core's exclusive stop groups, so a route visits one of them. The core's additive
 traversal/first-stop bonuses have no consumer in the current repository models and
 are not invented as title policies here.
 
-The internal wire format is version 4. It is private to this package; callers use
+The internal wire format is version 6. It is private to this package; callers use
 the shared game models. Other distance, gauge, payment-selection or fleet-coupled
 rules need explicit encoding support before another title can use this solver.
 See the [design review](../../research/18xx/autorouter-design.md).

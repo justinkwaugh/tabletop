@@ -157,6 +157,13 @@ Permission to retain specified shares above the ordinary ownership limit.
 A player's declared intent, recorded in Game State as an Out-of-Turn Action, that the runtime should act for them when their Stock Turn arrives: pass for the rest of the stock round, or buy shares of one company, preferring one Certificate Pool, until a goal is met. The runtime performs the resulting pass or purchase as a System Action and stops the instruction, recording why, when the player's position has changed in a way the declaration did not anticipate. The player may tell an instruction to ignore some of those changes (a company started, a president changed, shares sold to the bank, a presidency threatened), when declaring it, while it stands, or after it stops, which resumes it against the position it was declared in; stock limits and an unreachable goal always stop it. A player holds at most one, stopped or not, and it ends with the stock round.
 _Avoid_: Auto-pass, Program, Programmed Action
 
+**Run Instruction**:
+A company president's declared intent, recorded in Game State as an Out-of-Turn Action, that the runtime should operate the company for them: build nothing, run its Instructed Run, distribute earnings by the declared choice, and buy no train. It stops, recording why, when the company loses a train or its run earns less than the run the president declared (stops the president may choose to ignore, per company), when no proven run is available, or when the turn needs a decision such as a forced train purchase. It ends when its player no longer presides. A company has at most one.
+_Avoid_: Auto-run, Program
+
+**Instructed Run**:
+The best run of a company holding a Run Instruction, as found by a client's exhaustive route solve and carried by the Action whose effects could change it. The runtime applies it without solving; a client that cannot prove a run records that instead.
+
 **Pass**:
 A decision to take no stock action on a turn, contributing to round completion
 under the title's rules.

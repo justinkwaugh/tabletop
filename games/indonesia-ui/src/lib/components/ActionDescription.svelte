@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { ActionSource, type GameAction } from '@tabletop/common'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { ActionSource, isCallGameAction, type GameAction } from '@tabletop/common'
+    import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
     import simpleOilImg from '$lib/images/simple-oil.svg'
     import simpleRiceImg from '$lib/images/simple-rice.svg'
     import simpleRubberImg from '$lib/images/simple-rubber.svg'
@@ -1483,6 +1483,8 @@
         Removed {removedDeedLabel(action)} deed from {removedDeedRegionName(action)}
     {:else if action.type === ActionType.RemoveCompanyDeed}
         Removed company deed
+    {:else if isCallGameAction(action)}
+        <CalledGameDescription {action} />
     {:else}
         performed {action.type}
     {/if}

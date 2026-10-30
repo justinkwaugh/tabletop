@@ -8,6 +8,8 @@ export type TileDrawnPath = {
     arc?: { center: Point; radius: number; sweep: number }
     d: string
     spike?: TrackSpike
+    /** A port connection: dashes from the edge toward an anchor at the tip. */
+    pier?: TrackSpike
 }
 export type TrackSpike = { base: Point; tip: Point }
 
@@ -112,7 +114,7 @@ const CrossingEndClearance = 4
 
 export function trackCrossings(paths: readonly TileDrawnPath[]): TrackCrossing[] {
     const tracks = paths
-        .filter((path) => !path.spike)
+        .filter((path) => !path.spike && !path.pier)
         .map((path) => ({
             path,
             points: Array.from({ length: CrossingSamples + 1 }, (_, index) =>

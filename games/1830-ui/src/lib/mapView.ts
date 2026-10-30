@@ -51,7 +51,7 @@ export const EighteenThirtyMapView: MapViewDefinition = {
         G19: { 'city-0': 'New York', 'city-1': 'Newark' }
     },
     // The label takes the bottom of these hexes.
-    terrainHeights: { E5: -30, D10: -30 },
+    terrainPositions: { E5: { x: 0, y: -30 }, D10: { x: 0, y: -30 } },
     joinedEdges: { A9: [4], A11: [1], I1: [5], J2: [2] },
     markerArt: Object.fromEntries(
         ['SV', 'CS', 'DH', 'MH', 'CA', 'BOP'].map((id) => [

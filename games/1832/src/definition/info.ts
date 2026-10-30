@@ -1,5 +1,5 @@
 import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
-import { GameVisibility, type GameInfo } from '@tabletop/common'
+import type { GameInfo } from '@tabletop/common'
 import { EighteenThirtyTwoConfigurator } from './gameConfig.js'
 import { GAME_VERSION } from './version.js'
 
@@ -8,6 +8,8 @@ export const EighteenThirtyTwoInfo: GameInfo = {
     id: '1832',
     metadata: {
         name: '1832: The South',
+        bggId: 23421,
+        hasScores: true,
         designer: 'W. R. Dixon',
         year: '2006',
         description:
@@ -16,8 +18,7 @@ export const EighteenThirtyTwoInfo: GameInfo = {
         maxPlayers: 7,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true,
-        visibility: GameVisibility.Beta
+        beta: false
     },
     configurator: new EighteenThirtyTwoConfigurator()
 }

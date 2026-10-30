@@ -35,7 +35,7 @@ export type MapPick = {
      * for the powers in Use a power, the Shrouded Wood ruler's pick for another player's pawn, or
      * where a site play goes (`playTo`).
      */
-    kind: 'start' | 'travel' | 'banish' | 'power' | 'ruler' | 'playTo'
+    kind: 'start' | 'travel' | 'banish' | 'power' | 'ruler' | 'playTo' | 'build'
     sites: string[]
     /** More than one site to choose among; Setup's one legal site is shown, not chosen. */
     choosing: boolean

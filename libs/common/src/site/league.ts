@@ -230,6 +230,7 @@ export const LeagueGroupDetail = Type.Object({
     tournamentStatus: Tournament.properties.status,
     finishedGames: Type.Integer({ minimum: 0 }),
     activeGames: Type.Integer({ minimum: 0 }),
+    activeProgress: Type.Optional(Type.Number({ minimum: 0 })),
     totalGames: Type.Integer({ minimum: 0 }),
     standings: Type.Array(LeagueGroupStanding)
 })

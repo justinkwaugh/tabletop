@@ -435,6 +435,8 @@
                                         <ActionPanel bind:ordersDrawerHeight />
                                     </div>
                                 {/if}
+                            {:else if session.gameState.result}
+                                <ActionPanel bind:ordersDrawerHeight />
                             {:else if session.isAuction}
                                 <AuctionPanel />
                             {:else if session.isDeploying}

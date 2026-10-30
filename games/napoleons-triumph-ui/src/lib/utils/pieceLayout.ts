@@ -426,16 +426,16 @@ function isBelow(place: Point, locale: LocaleGeometry, down: Point): boolean {
     return (place.x - locale.anchor.x) * down.x + (place.y - locale.anchor.y) * down.y > 0
 }
 
-function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBlocks[] {
+function arrangeReserve(
+    groups: PlacedGroup[],
+    options: LayoutOptions,
+    columns: number
+): PlacedBlocks[] {
     const locale = LOCALE_GEOMETRY[groups[0].position.locale]
     const { right, down } = screenAxes(options.rotation)
     const angle = uprightAngle((Math.atan2(right.y, right.x) * 180) / Math.PI, options.rotation)
     const loose = options.looseLocales?.includes(groups[0].position.locale) === true
     const room = Math.max(BLOCK_THICKNESS * 2, locale.clearance * 2.2)
-    const columns = Math.max(
-        1,
-        Math.min(groups.length, Math.floor((locale.clearance * 2.6) / (BLOCK_LENGTH + COLUMN_GAP)))
-    )
     const rows = Math.ceil(groups.length / columns)
     const tallest = Math.max(...groups.map((group) => group.units.length))
     const spacing = rankSpacing(tallest * rows, room, loose)
@@ -473,12 +473,33 @@ function moved(point: Point, shift: Point): Point {
     return { x: point.x + shift.x, y: point.y + shift.y }
 }
 
-function shiftClearOf(
+interface ReserveSpot {
+    shift: Point
+    cost: number
+    strandedBlocks: number
+}
+
+function fewerStrandedThenCheaper(a: ReserveSpot, b: ReserveSpot): number {
+    return a.strandedBlocks - b.strandedBlocks || a.cost - b.cost
+}
+
+function cheaper(a: ReserveSpot, b: ReserveSpot): number {
+    return a.cost - b.cost
+}
+
+interface ReserveSpots {
+    stay: ReserveSpot
+    stayIsClear: boolean
+    all: () => ReserveSpot[]
+}
+
+function spotsFor(
     reserve: readonly PlacedBlocks[],
     locale: LocaleGeometry,
     placed: readonly BlockFootprint[]
-): Point {
+): ReserveSpots {
     const samples = reserve.flatMap(({ blocks }) => blocks.flatMap(blockSamples))
+    const centres = reserve.flatMap(({ blocks }) => blocks.map((block) => block.centre))
     const reach = Math.max(
         ...[...locale.outline, ...samples].map((point) =>
             Math.hypot(point.x - locale.anchor.x, point.y - locale.anchor.y)
@@ -490,35 +511,89 @@ function shiftClearOf(
             reach * 2 + BLOCK_LENGTH
     )
     const onPlaced = coveredBy(near, RESERVE_CLEARANCE)
-    const covered = (shift: Point) =>
+    const outsideLocale = (points: readonly Point[], shift: Point) =>
+        points.filter((point) => !insidePolygon(moved(point, shift), locale.outline)).length
+    const coveredAt = (shift: Point) =>
         samples.filter((sample) => onPlaced(moved(sample, shift))).length
-    const stay = { x: 0, y: 0 }
-    if (covered(stay) === 0) {
-        return stay
+    const spotAt = (shift: Point): ReserveSpot => ({
+        shift,
+        cost:
+            coveredAt(shift) * OVERLAP_COST +
+            outsideLocale(samples, shift) * STRAY_COST +
+            Math.hypot(shift.x, shift.y) * DRIFT_COST,
+        strandedBlocks: outsideLocale(centres, shift)
+    })
+    const stay = spotAt({ x: 0, y: 0 })
+    let searched: ReserveSpot[] | undefined
+    const all = () => {
+        searched ??= [stay, ...shiftsInside(locale).map((shift) => spotAt(shift))]
+        return searched
     }
-    const cost = (shift: Point) =>
-        covered(shift) * OVERLAP_COST +
-        samples.filter((sample) => !insidePolygon(moved(sample, shift), locale.outline)).length *
-            STRAY_COST +
-        Math.hypot(shift.x, shift.y) * DRIFT_COST
+    return { stay, stayIsClear: coveredAt(stay.shift) === 0, all }
+}
+
+function shiftsInside(locale: LocaleGeometry): Point[] {
     const xs = locale.outline.map((corner) => corner.x)
     const ys = locale.outline.map((corner) => corner.y)
-    let best = stay
-    let lowest = cost(stay)
+    const shifts: Point[] = []
     for (let x = Math.min(...xs); x <= Math.max(...xs); x += SETTLE_STEP) {
         for (let y = Math.min(...ys); y <= Math.max(...ys); y += SETTLE_STEP) {
-            if (!insidePolygon({ x, y }, locale.outline)) {
-                continue
-            }
-            const shift = { x: x - locale.anchor.x, y: y - locale.anchor.y }
-            const candidate = cost(shift)
-            if (candidate < lowest) {
-                best = shift
-                lowest = candidate
+            if (insidePolygon({ x, y }, locale.outline)) {
+                shifts.push({ x: x - locale.anchor.x, y: y - locale.anchor.y })
             }
         }
     }
-    return best
+    return shifts
+}
+
+function lowest(spots: readonly ReserveSpot[], order: (a: ReserveSpot, b: ReserveSpot) => number) {
+    return spots.reduce((best, spot) => (order(spot, best) < 0 ? spot : best))
+}
+
+function clearestSpot(spots: ReserveSpots): ReserveSpot {
+    return spots.stayIsClear ? spots.stay : lowest(spots.all(), cheaper)
+}
+
+function columnsToTry(groupCount: number, locale: LocaleGeometry): number[] {
+    const fitted = Math.max(
+        1,
+        Math.min(groupCount, Math.floor((locale.clearance * 2.6) / (BLOCK_LENGTH + COLUMN_GAP)))
+    )
+    return Array.from({ length: groupCount - fitted + 1 }, (_, added) => fitted + added)
+}
+
+interface SettledReserve {
+    reserve: PlacedBlocks[]
+    shift: Point
+}
+
+// Deliberate: a block whose middle leaves its locale is read as standing in the next one, so a
+// reserve whose clearest spot would put one there keeps every middle inside instead, overlapping
+// other pieces if it must, and may stand in more columns than its locale's clearance gives it.
+function settleReserve(
+    groups: PlacedGroup[],
+    options: LayoutOptions,
+    placed: readonly BlockFootprint[]
+): SettledReserve {
+    const locale = LOCALE_GEOMETRY[groups[0].position.locale]
+    const arrangedIn = (columns: number) => {
+        const reserve = arrangeReserve(groups, options, columns)
+        return { reserve, spots: spotsFor(reserve, locale, placed) }
+    }
+    const [fittedColumns, ...widerColumns] = columnsToTry(groups.length, locale)
+    const fitted = arrangedIn(fittedColumns)
+    const clearest = clearestSpot(fitted.spots)
+    if (clearest.strandedBlocks === 0) {
+        return { reserve: fitted.reserve, shift: clearest.shift }
+    }
+    const keepingInside = [fitted, ...widerColumns.map(arrangedIn)].map(({ reserve, spots }) => ({
+        reserve,
+        spot: lowest(spots.all(), fewerStrandedThenCheaper)
+    }))
+    const best = keepingInside.reduce((chosen, candidate) =>
+        fewerStrandedThenCheaper(candidate.spot, chosen.spot) < 0 ? candidate : chosen
+    )
+    return { reserve: best.reserve, shift: best.spot.shift }
 }
 
 // Block-sized stand-ins laid end to end along a target bar, so the pieces placed after them keep off it.
@@ -585,9 +660,7 @@ export function layoutGroups(groups: PlacedGroup[], options: LayoutOptions): Gro
     const inReserve = byPosition
         .filter((groups) => groups[0].position.approach === undefined)
         .flatMap((groups) => {
-            const reserve = arrangeReserve(sortGroups(groups), options)
-            const locale = LOCALE_GEOMETRY[groups[0].position.locale]
-            const shift = shiftClearOf(reserve, locale, placed)
+            const { reserve, shift } = settleReserve(sortGroups(groups), options, placed)
             const settled = reserve.map(({ group, blocks, spacing }) =>
                 sprite(
                     group,

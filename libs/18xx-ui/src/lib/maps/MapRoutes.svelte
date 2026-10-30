@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { MapDrawing, MapRoute } from './mapDrawing.js'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
-    import { drawMapRoutes } from './routeDrawing.js'
+    import { ExtensionDash, drawMapRoutes } from './routeDrawing.js'
     import { spikePoints } from '../tiles/tileTrackGeometry.js'
 
     let {
@@ -14,6 +14,8 @@
     const RouteWidth = 6.5
     const RouteEdgeWidth = 9
     const RouteLayers = ['edge', 'fill'] as const
+    // An interconnection extension runs a dashed white line down its band.
+    const ExtensionLineWidth = 1.6
 </script>
 
 <g data-map-layer="routes" pointer-events="none" aria-hidden="true">
@@ -82,6 +84,17 @@
                                 {stroke}
                                 stroke-width={edge ? RouteEdgeWidth : RouteWidth}
                             ></path>
+                            {#if path.extension && !edge}
+                                <path
+                                    data-map-route-extension={path.routeId}
+                                    d={path.d}
+                                    stroke="white"
+                                    stroke-width={ExtensionLineWidth}
+                                    stroke-dasharray={`${ExtensionDash.drawn} ${ExtensionDash.gap}`}
+                                    stroke-dashoffset={path.dashOffset}
+                                    stroke-linecap="butt"
+                                ></path>
+                            {/if}
                         {/if}
                     {/each}
                 </g>

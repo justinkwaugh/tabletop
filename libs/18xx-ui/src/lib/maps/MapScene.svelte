@@ -1,8 +1,11 @@
 <script lang="ts">
+    import { contrastingTextColor } from '../colors/contrastingTextColor.js'
+    import type { RevenueStageColors } from '../colors/revenueStageColors.js'
     // A medium city's ring stands clear of its town dot by the track's half-width.
     const TownRingGap = 3.4
     import MapTrackJoins from './MapTrackJoins.svelte'
     import MapRoutes from './MapRoutes.svelte'
+    import MapBonusArrows from './MapBonusArrows.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { StationAppearance } from './stationPresentation.js'
     import type { StationReservation } from '@tabletop/18xx'
@@ -22,7 +25,12 @@
         type MapDrawing,
         type MapSelection,
         type MapToken,
-        type MapRoute
+        type MapRoute,
+        CaptionFontSize,
+        TerrainNoteDrop,
+        TokenTabReach,
+        NoticeFontSize,
+        NoticeY
     } from './mapDrawing.js'
 
     let {
@@ -59,7 +67,7 @@
         reservations?: readonly StationReservation[]
         stationAppearances?: Readonly<Record<string, StationAppearance>>
         routes?: readonly MapRoute[]
-        revenueStageColors?: Readonly<Record<string, string>>
+        revenueStageColors?: RevenueStageColors
         appearance?: TileAppearance
         hexDiameter?: number
         artwork?: BoardArtwork
@@ -71,7 +79,23 @@
     const viewport = $derived(mapViewport(scene, hexDiameter, artwork, extents))
     const perimeterMaskId = $props.id()
     const perimeterRoundingId = `${perimeterMaskId}-rounding`
-    const currentReservations = $derived(reservations ?? printedMapReservations(scene))
+    const currentReservations = $derived([
+        ...(reservations ?? printedMapReservations(scene)),
+        // A printed space stays held until any token stands in its city.
+        ...scene.printedReservations.filter(
+            (reservation) =>
+                !tokens.some(
+                    (token) =>
+                        token.locationId === reservation.locationId &&
+                        token.nodeId === reservation.nodeId
+                )
+        )
+    ])
+    // A token's tab tucks behind its right side and reaches out to the room kept for it.
+    const TabTuck = 3
+    const TabHeight = 13
+    const TabWidth = TokenTabReach
+    const reservedAppearances = $derived({ ...scene.sharedStations, ...stationAppearances })
     const entries = $derived.by(() => {
         assertMapOverlays(scene, tokens, routes, currentReservations)
         return scene.locations
@@ -256,6 +280,7 @@
                         {revenueStageColors}
                         showZeroRevenue={false}
                         joints={entry.joints}
+                        printedSpaces={false}
                     >
                         {#snippet trackOverlay()}
                             {@render selectedTrack()}
@@ -309,7 +334,7 @@
                                 />
                             </g>
                         {/if}
-                        {@const reservedAppearance = stationAppearances[reservedBySlot[slot]]}
+                        {@const reservedAppearance = reservedAppearances[reservedBySlot[slot]]}
                         {#if !token && reservedAppearance}
                             <g class="reserved-token" data-map-reservation={reservedBySlot[slot]}>
                                 <title>{`Reserved for ${reservedAppearance.label}`}</title>
@@ -320,7 +345,7 @@
                                     y={point.y - tokenSize / 2}
                                 />
                             </g>
-                        {:else if slot === 0 && reservedCompanyIds.length && !token && !stationAppearances[reservedCompanyIds[0]]}
+                        {:else if slot === 0 && reservedCompanyIds.length && !token && !reservedAppearances[reservedCompanyIds[0]]}
                             <text
                                 x={point.x}
                                 y={point.y}
@@ -364,7 +389,7 @@
                             {@const labelWidth = widths.cost}
                             <g
                                 data-map-terrain
-                                transform={`translate(${-(iconWidth + labelWidth) / 2} ${entry.terrainY})`}
+                                transform={`translate(${entry.terrainPosition.x - (iconWidth + labelWidth) / 2} ${entry.terrainPosition.y})`}
                             >
                                 {#each terrain.kinds as kind, index (kind)}
                                     <g transform={`translate(${index * 19} 0)`} stroke="none">
@@ -381,8 +406,13 @@
                                                 stroke-linecap="round"
                                             ></path>
                                         {:else if kind === 'lake'}
-                                            <ellipse cx="9" cy="0" rx="8" ry="4.5" fill="#287fab"
-                                            ></ellipse>
+                                            <path
+                                                d="M5.5 -3.2 H13.5 M1.5 0 H17.5 M5.5 3.2 H13.5"
+                                                fill="none"
+                                                stroke="#287fab"
+                                                stroke-width="1.8"
+                                                stroke-linecap="round"
+                                            ></path>
                                         {:else}
                                             <text x="8" y="4" font-size="11" font-weight="700"
                                                 >{kind}</text
@@ -398,6 +428,22 @@
                                     font-weight="750">{cost}</text
                                 >
                             </g>
+                            {#each (entry.location.markers ?? []).filter((marker) => {
+                                const art = entry.markerArt[marker.id]
+                                return !!art && 'terrainNote' in art
+                            }) as marker (marker.id)}
+                                <text
+                                    data-map-terrain-note={marker.id}
+                                    x={entry.terrainPosition.x}
+                                    y={entry.terrainPosition.y + TerrainNoteDrop}
+                                    font-size="7"
+                                    font-weight="750"
+                                    fill={terrain.kinds[0] === 'mountain'
+                                        ? MountainIcon.fill
+                                        : '#287fab'}
+                                    ><title>{marker.description}</title>{marker.label}</text
+                                >
+                            {/each}
                         {/if}
                         {#if (!entry.placed || entry.face.color === 'yellow') && overlayLabels.length}
                             {@const text = overlayLabels.map((label) => label.label).join(' ')}
@@ -425,6 +471,16 @@
                             {#if art && 'imageUrl' in art && !entry.placed}
                                 <image href={art.imageUrl} x="-25" y="-25" width="50" height="40"
                                 ></image>
+                            {:else if art && 'notice' in art && !entry.placed}
+                                <text
+                                    data-map-marker-notice={marker.id}
+                                    y={NoticeY}
+                                    dominant-baseline="central"
+                                    font-size={NoticeFontSize}
+                                    font-weight="650"
+                                    fill={appearance.ink}
+                                    ><title>{marker.description}</title>{marker.label}</text
+                                >
                             {:else if art && 'centeredLabel' in art && !entry.placed}
                                 <text
                                     data-map-marker-label={marker.id}
@@ -481,7 +537,60 @@
                                         fill={appearance.paper}>{annotation.label}</text
                                     >
                                 </g>
+                            {:else if annotation.kind === 'caption'}
+                                <text
+                                    data-map-revenue-caption={annotation.markerId}
+                                    x={annotation.x}
+                                    y={annotation.y}
+                                    dominant-baseline="central"
+                                    font-size={CaptionFontSize}
+                                    font-weight="700"
+                                    ><title>{annotation.label}</title>{annotation.caption}</text
+                                >
                             {:else if annotation.kind === 'token'}
+                                {#if annotation.tab}
+                                    {@const side = annotation.tab.left ? -1 : 1}
+                                    {@const reach =
+                                        annotation.radius - TabTuck + (TabWidth + TabTuck) / 2}
+                                    {@const middle = annotation.x + side * reach}
+                                    {@const text =
+                                        annotation.x + side * (annotation.radius + TabWidth / 2)}
+                                    <g data-map-token-tab={annotation.markerId}>
+                                        <rect
+                                            x={middle - (TabWidth + TabTuck) / 2}
+                                            y={annotation.y - TabHeight / 2}
+                                            width={TabWidth + TabTuck}
+                                            height={TabHeight}
+                                            rx="2.5"
+                                            fill={annotation.tab.fill ?? '#ffffff'}
+                                            stroke={appearance.ink}
+                                            stroke-width="0.7"
+                                        ></rect>
+                                        <text
+                                            x={text}
+                                            y={annotation.y - 1.3}
+                                            text-anchor="middle"
+                                            dominant-baseline="central"
+                                            font-size="6.6"
+                                            font-weight="800"
+                                            fill={contrastingTextColor(
+                                                annotation.tab.fill ?? '#ffffff'
+                                            )}>{annotation.tab.label}</text
+                                        >
+                                        <text
+                                            x={text}
+                                            y={annotation.y + 3.9}
+                                            text-anchor="middle"
+                                            dominant-baseline="central"
+                                            font-size="3.6"
+                                            font-weight="800"
+                                            letter-spacing="0.25"
+                                            fill={contrastingTextColor(
+                                                annotation.tab.fill ?? '#ffffff'
+                                            )}>{annotation.tab.caption}</text
+                                        >
+                                    </g>
+                                {/if}
                                 <image
                                     data-map-placed-token={annotation.markerId}
                                     href={annotation.imageUrl}
@@ -544,7 +653,7 @@
                             data-map-node={node.node.id}
                             cx={node.center.x}
                             cy={node.center.y}
-                            r="9"
+                            r={Math.max(9, node.dotRadius)}
                             fill="transparent"
                             role="button"
                             tabindex={available ? 0 : -1}
@@ -643,7 +752,7 @@
                             x2={end.x}
                             y2={end.y}
                             stroke={borderColor(border.kind)}
-                            stroke-width="3"
+                            stroke-width={scene.borderWidths[border.kind] ?? 3}
                         ></line>
                     {/each}
                 </g>
@@ -689,22 +798,27 @@
                 {@const lines = entry.nameRows}
                 <!-- A city name the title places itself matches the curved names in their styles. -->
                 {@const curved = entry.namePlaced && appearance.cityNameArcs}
+                {@const style = entry.nameStyle}
+                {@const size = style?.fontSize ?? (curved ? 6 : 5)}
                 <g
                     class="map-annotations"
+                    data-map-name={entry.location.id}
                     transform={`translate(${entry.center.x + entry.nameBaseline.x} ${entry.center.y})`}
-                    fill={curved ? appearance.ink : '#202c31'}
+                    fill={style?.color ?? (curved ? appearance.ink : '#202c31')}
                     text-anchor="middle"
                     paint-order="stroke"
                     stroke={appearance.colors[entry.face.color]}
-                    stroke-width={curved ? 1.4 : 1.7}
+                    stroke-width={style ? 1 : curved ? 1.4 : 1.7}
                 >
                     <text
-                        font-size={curved ? 6 : 5}
-                        font-weight={curved ? 700 : 650}
+                        font-size={size}
+                        font-weight={style || curved ? 700 : 650}
+                        font-family={style ? appearance.labelFont?.family : undefined}
                         letter-spacing={curved ? 0.15 : undefined}
                         >{#each lines as line, index (index)}<tspan
                                 x="0"
-                                y={entry.nameBaseline.y + index * 6}>{line}</tspan
+                                y={entry.nameBaseline.y + index * (style ? size * 1.2 : 6)}
+                                >{line}</tspan
                             >{/each}</text
                     >
                 </g>
@@ -859,6 +973,9 @@
                 ></polygon>
             {/each}
         </g>
+    {/if}
+    {#if !artwork && scene.bonusArrows.length}
+        <MapBonusArrows arrows={scene.bonusArrows} {routes} {appearance} {revenueStageColors} />
     {/if}
     <g
         data-map-layer="highlights"

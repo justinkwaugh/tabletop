@@ -460,7 +460,10 @@ it('rejects excessive contributions and sales after the shortfall is covered', (
         action: contribution
     }).updatedState
     expect(cashOwnedBy(funded, { kind: 'player', playerId: 'blair' })).toBe(770)
-    expect(engine.getValidActionTypesForPlayer(game, funded, 'blair')).toEqual(['BuyTrain'])
+    expect(engine.getValidActionTypesForPlayer(game, funded, 'blair')).toEqual([
+        'BuyTrain',
+        'SetRunInstruction'
+    ])
 })
 it('requires 1889 excess ownership sales even when they raise more than the train shortfall', () => {
     const { game, engine, state } = example(Shikoku, 'funding')

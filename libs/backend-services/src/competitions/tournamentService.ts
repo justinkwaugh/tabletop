@@ -65,6 +65,7 @@ export interface GroupTournamentResults {
     standings: EntrantScore[]
     tables: { id: string; entrantIds: string[]; winnerIds: string[] }[]
     activeTableIds: string[]
+    activeProgress: number
     voidedTableIds: string[]
 }
 
@@ -507,6 +508,7 @@ export class TournamentService {
         const linksById = new Map(played.map((tournament, index) => [tournament.id, links[index]]))
         return tournaments.map((tournament) => {
             const stage = tournament.stages[0]
+            const activeTableIds = stage?.dispatch?.active ?? []
             const games = new Map(
                 this.withCorrections(tournament, linksById.get(tournament.id) ?? []).map((game) => [
                     game.tableId,
@@ -526,7 +528,11 @@ export class TournamentService {
                         return place.userId
                     })
                 })),
-                activeTableIds: stage?.dispatch?.active ?? [],
+                activeTableIds,
+                activeProgress: activeTableIds.reduce(
+                    (total, tableId) => total + (games.get(tableId)?.progress?.fraction ?? 0),
+                    0
+                ),
                 voidedTableIds: stage?.dispatch?.voided ?? []
             }
         })
@@ -582,16 +588,7 @@ export class TournamentService {
     async rebuildStandings(id: string, revision: number, user: User) {
         requireAdministrator(user)
         const before = await this.store.read(id)
-        let tournament = await this.store.rebuildStandings(
-            id,
-            revision,
-            user,
-            this.now(),
-            async (typeId, readState) => {
-                const scoring = lookupTitle(this.titles, typeId)?.runtime.scoring
-                return scoring ? scoring.finalScores(await readState()) : undefined
-            }
-        )
+        let tournament = await this.store.rebuildStandings(id, revision, user, this.now())
         if (before?.status !== 'finished') tournament = await this.completed(tournament)
         await this.notify(tournament)
         return tournament

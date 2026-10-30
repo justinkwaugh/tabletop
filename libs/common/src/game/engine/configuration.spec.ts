@@ -262,6 +262,39 @@ describe('normalized runtime configuration', () => {
         )
     })
 
+    it('keeps continuation support and passes the continuation through', () => {
+        const { game, state } = createNoteGame()
+        const continuation = { previousState: state, previousPlayers: game.players }
+        const received: unknown[] = []
+        const initializer = noteGameRuntime.initializer
+        const runtime: GameRuntime<NoteGameState, HydratedNoteGameState> = {
+            ...noteGameRuntime,
+            initializer: {
+                supportsStartingPositions: true,
+                supportsContinuation: true,
+                initializeGame: (game, definition) => initializer.initializeGame(game, definition),
+                initializeGameState(game, state, assignment, continuation) {
+                    received.push(game.config, assignment, continuation)
+                    return initializer.initializeGameState(game, state)
+                }
+            }
+        }
+        const configured = defineGame({
+            info: { ...noteGameInfo, configurator: new Configurator() },
+            runtime
+        }).runtime.initializer
+        expect(configured.supportsStartingPositions).toBe(true)
+        expect(configured.supportsContinuation).toBe(true)
+        const assignment = { kind: 'test' } as never
+        configured.initializeGameState(
+            { ...game, config: { legacyEnabled: true } },
+            state,
+            assignment,
+            continuation
+        )
+        expect(received).toEqual([{ enabled: true }, assignment, continuation])
+    })
+
     it('leaves older runtimes without a normalizer unchanged, including null values', () => {
         const { game, state } = createNoteGame()
         game.config = { retained: null }

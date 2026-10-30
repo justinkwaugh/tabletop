@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { shuffle } from '../../util/shuffle.js'
 import { Hydratable } from '../../util/hydration.js'
-import { type RandomFunction } from '../../util/prng.js'
+import type { RandomFunction } from '../../util/prng.js'
 import * as Visibility from '../visibility/index.js'
 
 export const DrawBag = <Item extends Type.TSchema>(item: Item) =>

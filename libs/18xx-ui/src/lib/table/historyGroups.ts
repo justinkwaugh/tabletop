@@ -3,7 +3,6 @@ import {
     isFinishStockTurn,
     isAdvancePhase,
     isFloatCompany,
-    isEndGame,
     isCompleteStockRound,
     isStartOperatingSet,
     isStartOperatingRound,
@@ -11,6 +10,7 @@ import {
 } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import type { ActionHistoryEntry } from './auctionHistory.js'
+import { isGameEndAction } from './historyNavigation.js'
 
 export type HistoryGroup = {
     kind: 'operation' | 'turn' | 'event' | 'passes'
@@ -21,9 +21,14 @@ export type HistoryGroup = {
 }
 export type GroupedHistoryEntry = Extract<ActionHistoryEntry, { kind: 'auction' }> | HistoryGroup
 
+/**
+ * Groups a round's entries into operations and turns. A phase change, a flotation, or an action
+ * `isConsequence` names, such as a company closing, joins the group it happened in.
+ */
 export function historyGroups(
     entries: readonly ActionHistoryEntry[],
-    operating: boolean
+    operating: boolean,
+    isConsequence: (action: GameAction) => boolean = () => false
 ): GroupedHistoryEntry[] {
     const groups: GroupedHistoryEntry[] = []
     let current: HistoryGroup | undefined
@@ -51,8 +56,8 @@ export function historyGroups(
             isStartOperatingSet(action) ||
             isStartOperatingRound(action) ||
             isCompleteStockRound(action)
-        if (isEndGame(action) || roundEvent) current = undefined
-        const consequence = phase || isFloatCompany(action)
+        if (isGameEndAction(action) || roundEvent) current = undefined
+        const consequence = phase || isFloatCompany(action) || isConsequence(action)
         const compatible =
             current &&
             (consequence ||
@@ -60,11 +65,11 @@ export function historyGroups(
                     ? !companyId || current.companyId === companyId
                     : current.kind !== 'event' &&
                       current.playerId === action.playerId &&
-                      !isEndGame(action)))
+                      !isGameEndAction(action)))
         if (!compatible) {
             current = {
                 kind:
-                    isEndGame(action) || phase || roundEvent
+                    isGameEndAction(action) || phase || roundEvent
                         ? 'event'
                         : operating && companyId
                           ? 'operation'

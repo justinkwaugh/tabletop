@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { mockLibrary } from './fixtures/library'
 
 test.beforeEach(async ({ page }) => {
@@ -220,41 +220,43 @@ test('direct recovery links work and fit a mobile viewport', async ({ page }) =>
     await expect(dialog).toHaveCount(0)
 })
 
-test('emailed links reset the password in a modal with validation and retry', async ({ page }) => {
-    let attempts = 0
-    await page.route('**/api/v1/auth/token/login', (route) => {
-        expect(route.request().postDataJSON()).toEqual({ token: 'reset-test-token' })
-        return route.fulfill({
-            json: {
-                payload: {
-                    user: {
-                        id: 'landing-player',
-                        username: 'player',
-                        status: 'active',
-                        roles: ['user'],
-                        externalIds: []
-                    }
-                }
-            }
-        })
+const challengeExpiry = () => ({ expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() })
+
+// Every request about the Account or its sessions, except the session probe the site makes on
+// load (unauthenticated here, as a real backend would answer for a reset link).
+const accountRequests = (page: Page): string[] => {
+    const paths: string[] = []
+    page.on('request', (request) => {
+        const path = new URL(request.url()).pathname
+        if (/\/api\/v1\/(auth|user|games)\//.test(path) && path !== '/api/v1/user/self') {
+            paths.push(path)
+        }
     })
-    await page.route('**/api/v1/games/mine*', (route) =>
-        route.fulfill({ json: { payload: { games: [] } } })
-    )
+    return paths
+}
+
+test('emailed links reset the password without signing in, with validation and retry', async ({
+    page
+}) => {
+    let attempts = 0
+    const requested = accountRequests(page)
     await page.route('**/api/v1/user/setPassword', async (route) => {
         attempts += 1
         expect(route.request().postDataJSON()).toEqual({
             password: 'a-new-password',
-            token: 'reset-test-token'
+            challenge: 'landing-player.reset-test-secret'
         })
         await route.fulfill(
             attempts === 1
-                ? { status: 500, json: { message: 'Unavailable' } }
-                : { json: { payload: {} } }
+                ? {
+                      status: 500,
+                      json: { status: 'error', error: { name: 'Error', message: 'Unavailable' } }
+                  }
+                : { json: { status: 'ok', payload: {} } }
         )
     })
     await page.setViewportSize({ width: 320, height: 740 })
-    await page.goto('/email/passwordReset/reset-test-token')
+    await page.goto('/email/passwordReset/landing-player.reset-test-secret')
     const dialog = page.getByRole('dialog', { name: 'Reset password' })
     await expect(dialog).toBeInViewport()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320)
@@ -268,24 +270,61 @@ test('emailed links reset the password in a modal with validation and retry', as
     await expect(dialog.getByRole('alert')).toContainText('couldn’t update')
     await dialog.getByRole('button', { name: 'Set new password' }).click()
     await expect(dialog.getByRole('status')).toContainText('Your password has been updated')
-    await expect(page).toHaveURL(/\/email\/passwordReset\/reset-test-token$/)
-    await dialog.getByRole('button', { name: 'Continue to Dashboard' }).click()
-    await expect(page).toHaveURL(/\/dashboard$/)
+    await expect(dialog.getByRole('status')).toBeFocused()
+    await expect(dialog.getByLabel('New password', { exact: true })).toHaveCount(0)
+    await expect(page).toHaveURL(/\/email\/passwordReset\/landing-player\.reset-test-secret$/)
+    expect(attempts).toBe(2)
+    await dialog.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page).toHaveURL(/\/login\/username$/)
+    await expect(page.getByLabel('Username', { exact: true })).toBeVisible()
     await expect(dialog).toHaveCount(0)
+    expect(requested).toEqual(['/api/v1/user/setPassword', '/api/v1/user/setPassword'])
 })
 
-test('an unusable reset link offers another email without leaving the modal', async ({ page }) => {
-    await page.route('**/api/v1/auth/token/login', (route) =>
-        route.fulfill({ status: 401, json: { message: 'Invalid token' } })
-    )
-    await page.goto('/email/passwordReset/expired-token')
+test('an unusable reset link is refused on submission and offers another email in the modal', async ({
+    page
+}) => {
+    let submissions = 0
+    const requested = accountRequests(page)
+    await page.route('**/api/v1/user/setPassword', async (route) => {
+        submissions += 1
+        expect(route.request().postDataJSON()).toEqual({
+            password: 'a-new-password',
+            challenge: 'landing-player.expired-secret'
+        })
+        await route.fulfill({
+            status: 400,
+            json: {
+                status: 'error',
+                error: {
+                    name: 'InvalidChallengeError',
+                    message: 'The challenge does not authorize this operation',
+                    metadata: { reason: 'expired' }
+                }
+            }
+        })
+    })
+    await page.route('**/api/v1/user/email/sendPasswordReset', async (route) => {
+        expect(route.request().postDataJSON()).toEqual({ email: 'player@example.com' })
+        await route.fulfill({ json: { status: 'ok', payload: challengeExpiry() } })
+    })
+    await page.setViewportSize({ width: 320, height: 740 })
+    await page.goto('/email/passwordReset/landing-player.expired-secret')
     const dialog = page.getByRole('dialog', { name: 'Reset password' })
-    await expect(dialog.getByRole('alert')).toContainText('couldn’t be verified')
+    await expect(dialog.getByLabel('New password', { exact: true })).toBeVisible()
+    expect(submissions).toBe(0)
+    await dialog.getByLabel('New password', { exact: true }).fill('a-new-password')
+    await dialog.getByRole('button', { name: 'Set new password' }).click()
+    await expect(dialog.getByRole('alert')).toContainText('has expired, was replaced')
     await expect(dialog.getByLabel('New password', { exact: true })).toHaveCount(0)
+    await expect(dialog).toBeInViewport()
     await dialog.getByLabel('Email address').fill('player@example.com')
     await dialog.getByRole('button', { name: 'Send reset link' }).click()
     await expect(dialog.getByRole('status')).toContainText('Check your email')
-    await expect(page).toHaveURL(/\/email\/passwordReset\/expired-token$/)
+    await expect(dialog.getByRole('status')).toContainText('It works until')
+    await expect(page).toHaveURL(/\/email\/passwordReset\/landing-player\.expired-secret$/)
+    expect(submissions).toBe(1)
+    expect(requested).toEqual(['/api/v1/user/setPassword', '/api/v1/user/email/sendPasswordReset'])
 })
 
 test('signup validates, handles errors, prevents duplicate submissions, and signs in', async ({

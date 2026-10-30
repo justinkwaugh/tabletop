@@ -1,5 +1,5 @@
 import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
-import type { GameInfo } from '@tabletop/common'
+import { GameVisibility, type GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 import { EighteenSeventeenConfigurator } from './gameConfig.js'
 
@@ -8,15 +8,18 @@ export const EighteenSeventeenInfo: GameInfo = {
     id: '1817',
     metadata: {
         name: '1817',
+        bggId: 63170,
+        hasScores: true,
         designer: 'Craig Bartell, Tim Flowers',
         year: '2010',
         description:
             'Railway companies on the Wall Street of the north-eastern United States, with a prototype interface.',
         minPlayers: 3,
-        maxPlayers: 12,
+        maxPlayers: 7,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true
+        beta: true,
+        visibility: GameVisibility.Alpha
     },
     configurator: new EighteenSeventeenConfigurator()
 }

@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -90,7 +91,10 @@ export class HydratedExportTrains
         let phaseId = state.phaseId
         let phaseStarter: { trainId: string; definitionId: string } | undefined
         const trains = definitionIds.map((definitionId) => {
-            const next = this.#trainRules.phaseAfterPurchase({ ...state, phaseId }, definitionId)
+            const next = this.#trainRules.phaseAfterPurchase(
+                stateWith(state, { phaseId }),
+                definitionId
+            )
             const train = this.#trainRules.depot.export(state.trainInventory, definitionId)
             if (next !== phaseId) {
                 phaseId = next

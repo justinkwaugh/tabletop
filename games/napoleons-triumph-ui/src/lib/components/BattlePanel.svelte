@@ -50,7 +50,7 @@
     }
 
     function unitsOf(ids: string[]): ProjectedUnit[] {
-        return ids.flatMap((id) => game.findUnit(id) ?? concluded?.unitsLastSeen.get(id) ?? [])
+        return ids.flatMap((id) => gameSession.unitsAsTheyEnteredTheShownAttack.get(id) ?? [])
     }
 </script>
 
@@ -158,7 +158,7 @@
                 </div>
             {/if}
         {:else if !stage}
-            {#if gameSession.attack}
+            {#if gameSession.attack && !game.result}
                 <div class="nt-battle-prompt">
                     Waiting for <PlayerName playerId={game.activePlayerIds[0]} />
                     {awaitedStep(gameSession.attack, game)}.

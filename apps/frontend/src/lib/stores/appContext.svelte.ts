@@ -20,8 +20,12 @@ import { RelayConnection } from '$lib/network/relayConnection'
 import { closedWhileHidden, type RealtimeConnection } from '$lib/network/realtimeConnection'
 import { UserPreferencesEditor } from '$lib/services/userPreferencesEditor.svelte'
 import { toast } from 'svelte-sonner'
-const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, FRONTEND_VERSION, () =>
-    authorizationService.clearSessionUser()
+const api = new TabletopApi(
+    PUBLIC_API_HOST,
+    PUBLIC_SSE_HOST,
+    FRONTEND_VERSION,
+    () => authorizationService.clearSessionUser(),
+    (): boolean => authorizationService.getSessionUser() !== undefined
 )
 console.log('Initialized API with frontend version:', FRONTEND_VERSION)
 const manifestService = new ManifestService(api)

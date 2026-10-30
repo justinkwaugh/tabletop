@@ -1,6 +1,6 @@
 <script lang="ts">
     import { translateFromCenter } from '$lib/utils/boardGeometry.js'
-    import { type Point } from '@tabletop/common'
+    import type { Point } from '@tabletop/common'
     import type { Snippet } from 'svelte'
 
     let {

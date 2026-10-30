@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import type { Cash } from '@tabletop/18xx'
     import type { MoneyFormat } from '../presentation/money.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
@@ -35,7 +36,7 @@
 <div class="phase-chart-content" class:depot={depotOnly} class:on-board={onBoard}>
     <div class="charts">
         {#if !depotOnly}
-            <section aria-label="Phases">
+            <section aria-label="Phases" {@attach chainSidewaysScroll}>
                 <table>
                     <thead
                         ><tr
@@ -112,12 +113,12 @@
                         ></span
                     >{/if}
             </div>{/if}
-        <section aria-label="Train roster">
+        <section aria-label="Train roster" {@attach chainSidewaysScroll}>
             <table>
                 <thead
                     ><tr
                         ><th>Train</th><th class="money">Price</th><th class="number">Remaining</th
-                        ><th>Obsoleted / rusted by</th></tr
+                        ><th>Rusted by</th></tr
                     ></thead
                 >
                 <tbody>

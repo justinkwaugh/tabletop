@@ -546,3 +546,102 @@ it('records what earned each bonus by the ids the title names', () => {
     )
     expect(bonuses).toHaveLength(5)
 })
+
+it('lets an N+s train visit extra towns but no more than N other stops', () => {
+    const towns = [
+        city('yellow', [0], 20, 1),
+        town('yellow', [[3, 0]], 10),
+        town('yellow', [[3, 0]], 10),
+        city('yellow', [3], 30, 1)
+    ]
+    const plus = (extraTowns: number) =>
+        ({ measure: 'revenue-centers', maximum: 2, extraTowns }) as const
+    const { running, route } = fixture(towns, plus(2))
+    expect(running.evaluate('A', [route]).result?.revenue).toBe(70)
+    const short = fixture(towns, plus(1))
+    expect(short.running.evaluate('A', [short.route]).reason).toContain('distance limit')
+    const cities = fixture(
+        [
+            city('yellow', [0], 20, 1),
+            city('yellow', [3, 0], 20, 1),
+            town('yellow', [[3, 0]], 10),
+            city('yellow', [3], 30, 1)
+        ],
+        plus(2)
+    )
+    expect(cities.running.evaluate('A', [cities.route]).reason).toContain('distance limit')
+})
+
+it('pays a destination at the end only when the route ends there', () => {
+    const { state, rules, route } = fixture([
+        city('yellow', [0], 20, 1),
+        city('yellow', [3, 0], 30, 1),
+        city('yellow', [3], 40, 1)
+    ])
+    const revenue = (to: string) =>
+        new RouteEvaluation(state, {
+            ...rules,
+            revenuePolicy: () => ({
+                connectionBonuses: [{ from: { '0': 50 }, to: { [to]: 0 }, destinationAtEnd: true }]
+            })
+        }).evaluate('A', [route]).result?.revenue
+    expect(revenue('1')).toBe(90)
+    expect(revenue('2')).toBe(140)
+})
+
+it('pays an interconnection for an extension past the counted stops, through blocked cities', () => {
+    const { state, rules, route } = fixture([
+        city('yellow', [0], 20, 1),
+        city('yellow', [3, 0], 30, 1),
+        city('yellow', [3, 0], 40, 1),
+        city('yellow', [3], 60, 1)
+    ])
+    state.stations.push({
+        id: 'rival',
+        companyId: 'B',
+        status: 'placed',
+        position: { locationId: '2', nodeId: 'city', slot: 0 }
+    })
+    state.companies.push({ id: 'B', kind: 'major', shareCount: 10 })
+    const extended: TrainRoute = {
+        ...route,
+        paths: route.paths.slice(0, 2),
+        extension: route.paths.slice(2)
+    }
+    const running = (interconnections: { from: string[]; to: string[]; amount: number }[]) =>
+        new RouteEvaluation(state, { ...rules, revenuePolicy: () => ({ interconnections }) })
+    const result = running([{ from: ['0'], to: ['3'], amount: 50 }]).evaluate('A', [extended])
+    expect(result.result?.revenue).toBe(100)
+    expect(result.result?.routes[0].bonuses).toEqual([{ locationId: '3', amount: 50 }])
+    expect(
+        running([{ from: ['1'], to: ['3'], amount: 50 }]).evaluate('A', [extended]).result?.revenue
+    ).toBe(100)
+    expect(
+        running([{ from: ['0'], to: ['2'], amount: 50 }]).evaluate('A', [extended]).reason
+    ).toContain('interconnection')
+    state.stations.push({
+        id: 'east',
+        companyId: 'A',
+        status: 'placed',
+        position: { locationId: '3', nodeId: 'city', slot: 0 }
+    })
+    const second: TrainRoute = {
+        trainId: state.trainInventory.trains[1].id,
+        start: { locationId: '3', nodeId: 'city' },
+        paths: [route.paths[5], route.paths[4]]
+    }
+    expect(
+        running([{ from: ['0'], to: ['3'], amount: 50 }]).evaluate('A', [extended, second]).reason
+    ).toContain('share track')
+})
+
+it('runs from a place the company has station access to as from its own station', () => {
+    const { running, route, state } = fixture([
+        city('yellow', [0], 20, 1),
+        city('yellow', [3], 30, 1)
+    ])
+    state.stations = []
+    expect(running.evaluate('A', [route]).reason).toContain('station')
+    state.stationAccess = [{ companyId: 'A', locationId: '0', nodeId: 'city', sourceId: 'joint' }]
+    expect(running.evaluate('A', [route]).result?.revenue).toBe(50)
+})

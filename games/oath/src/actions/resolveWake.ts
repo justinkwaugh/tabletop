@@ -21,6 +21,7 @@ import { wakePhaseWin } from '../util/victory.js'
 import { holdsTheTurn, reasonNotYourTurn } from '../util/turn.js'
 import { OpenDealsDropped } from '../model/question.js'
 import { dropOpenDealsAtGameEnd } from '../util/deals.js'
+import { recordWin } from '../util/chronicle.js'
 
 export type WakeFavorStep = Type.Static<typeof WakeFavorStep>
 export const WakeFavorStep = Type.Union([
@@ -99,7 +100,7 @@ export class HydratedResolveWake
         // R-4.1.2 checks for a win before R-4.1.3 flips the title; reordering would make R-3.1 trivial.
         const win = wakePhaseWin(state, this.playerId)
         if (win) {
-            state.winningPlayerIds = [win.winnerPlayerId]
+            recordWin(state, win)
             metadata.wonBy = win.rule
             Object.assign(metadata, dropOpenDealsAtGameEnd(state))
             this.metadata = metadata

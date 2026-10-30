@@ -38,7 +38,8 @@
         return {
             finished: groups.reduce((total, group) => total + group.finishedGames, 0),
             total: groups.reduce((total, group) => total + group.totalGames, 0),
-            active: groups.reduce((total, group) => total + group.activeGames, 0)
+            active: groups.reduce((total, group) => total + group.activeGames, 0),
+            activeProgress: groups.reduce((total, group) => total + (group.activeProgress ?? 0), 0)
         }
     })
     let groupLevels = $derived.by(() => {
@@ -210,7 +211,7 @@
                                 of {seasonProgress.total} games finished
                             </p>
                             <div
-                                class="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+                                class="mt-1 flex h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
                                 role="progressbar"
                                 aria-label="Season games finished"
                                 aria-valuemin={0}
@@ -218,8 +219,13 @@
                                 aria-valuenow={seasonProgress.finished}
                             >
                                 <div
-                                    class="h-full rounded-full bg-blue-600"
+                                    class="h-full bg-blue-600"
                                     style:width={`${(seasonProgress.finished / seasonProgress.total) * 100}%`}
+                                ></div>
+                                <div
+                                    class="h-full bg-blue-300 dark:bg-blue-800"
+                                    title="In progress"
+                                    style:width={`${(seasonProgress.activeProgress / seasonProgress.total) * 100}%`}
                                 ></div>
                             </div>
                             <p class="mt-1 text-xs text-gray-500">

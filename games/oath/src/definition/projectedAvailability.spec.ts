@@ -6,8 +6,17 @@ import { testPlayer, testState, testVaultWithRelics } from '../testing/fixture.j
 import { served } from '../testing/projection.js'
 import { MachineState } from './states.js'
 import { cardDefinition, cardIdsOfKind } from '../data/cardRegistry.js'
-import { BattlePlanSide, cardPowers, PowerTiming, TRIBUNAL_ID } from '../data/cardPowers.js'
-import { CardKind, PlayerStatus } from '../model/oathEnums.js'
+import {
+    BattlePlanSide,
+    cardPowers,
+    type CardPower,
+    EdificeFace,
+    PowerTiming,
+    TRIBUNAL_ID
+} from '../data/cardPowers.js'
+import { edificeName } from '../data/edifices.js'
+import { powersInPlay } from '../util/powersInPlay.js'
+import { CardKind, PlayerStatus, Region } from '../model/oathEnums.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { CURRENT_OATH_REVISION } from '../util/revision.js'
 import { hasEffect } from '../powers/registry.js'
@@ -22,6 +31,7 @@ import { ActionType } from './actions.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { reasonExchangeInvalid } from '../util/exchange.js'
 import { Campaign, HydratedCampaign } from '../actions/campaign.js'
+import { Search, SearchSource } from '../actions/search.js'
 import { HydratedCampaignDefend } from '../actions/campaignDefend.js'
 import { buildAction } from '../testing/actions.js'
 import { siteTarget } from '../testing/choices.js'
@@ -126,6 +136,54 @@ const CARDS = [...cardIdsOfKind(CardKind.Denizen), ...cardIdsOfKind(CardKind.Rel
     (cardId) => cardPowers(cardId).some((power) => hasEffect(power) && ACTED.includes(power.timing))
 )
 
+/** R-2.9 — each side of an edifice with such a power, at the site with that side up. */
+const EDIFICE_SIDES = cardIdsOfKind(CardKind.Edifice).flatMap((cardId) =>
+    cardPowers(cardId)
+        .filter((power) => hasEffect(power) && ACTED.includes(power.timing))
+        .map((power) => ({ cardId, ruined: power.face === EdificeFace.Ruined }))
+)
+
+interface Walked {
+    cardId: string
+    name: string
+    at: 'held' | 'site'
+    ruined?: boolean
+}
+
+const WALKED: Walked[] = [
+    ...CARDS.flatMap((cardId) =>
+        (cardId.startsWith('relic.') ? (['held'] as const) : (['held', 'site'] as const)).map(
+            (at) => ({ cardId, name: cardDefinition(cardId)?.name ?? cardId, at })
+        )
+    ),
+    ...EDIFICE_SIDES.map(({ cardId, ruined }) => ({
+        cardId,
+        name: edificeName(cardId, ruined),
+        at: 'site' as const,
+        ruined
+    }))
+]
+
+/**
+ * R-8.5 — the Dispossessed filled, as the Chronicle leaves it, and the Cradle's discard pile (the
+ * Plains, my site) holding a Vision over two denizens: what the Spires swap with, host-only but for
+ * the public counts.
+ */
+function withSwapsToMake(d: ReturnType<typeof table>): void {
+    d.vault = {
+        ...required(d.vault, 'the table holds a vault'),
+        dispossessed: ['denizen.nomad.elders', 'denizen.discord.naysayers'],
+        discardPiles: {
+            [Region.Cradle]: ['vision.faith', 'denizen.order.wrestlers', 'denizen.beast.rangers'],
+            [Region.Provinces]: [],
+            [Region.Hinterland]: []
+        }
+    }
+    d.dispossessedCount = 2
+    d.discardPileCounts = { ...d.discardPileCounts, [Region.Cradle]: 3 }
+    d.discardTopBackType = { ...d.discardTopBackType, [Region.Cradle]: CardKind.Vision }
+}
+
 // The table asks for each seat's actions on that seat's own view, where host-only values and others'
 // hidden values cannot be read; an availability check that reads one empties the seat's whole list.
 describe("every Action and Rest power leaves each seat's offer the same on its own view as on the server", () => {
@@ -136,44 +194,52 @@ describe("every Action and Rest power leaves each seat's offer the same on its o
         )
     })
 
-    for (const cardId of CARDS) {
-        const name = cardDefinition(cardId)?.name ?? cardId
-        const places = cardId.startsWith('relic.')
-            ? (['held'] as const)
-            : (['held', 'site'] as const)
-        for (const at of places) {
-            it(`${name} (${at})`, () => {
-                for (const phase of [MachineState.ActPhase, MachineState.RestPhase]) {
-                    const state = table(phase, cardId, at)
-                    // A power the server skips (unaffordable, out of reach) never runs its checks,
-                    // so each must be offered there before the views are compared.
-                    const timing =
-                        phase === MachineState.ActPhase ? PowerTiming.Action : PowerTiming.Rest
-                    const offered = legalPowers(new HydratedOathGameState(state), 'me', timing)
-                    for (const power of cardPowers(cardId)) {
-                        if (!hasEffect(power) || power.timing !== timing) continue
-                        expect(
-                            offered.some(
-                                (use) =>
-                                    use.cardId === cardId && use.powerIndex === power.powerIndex
-                            ),
-                            `${phase}: power ${power.powerIndex} offered on the server`
-                        ).toBe(true)
-                    }
-                    for (const playerId of SEATS) {
-                        const view: Visibility.Perspective = { kind: 'player', playerId }
-                        const server = engine.getValidActionTypesForPlayer(game, state, playerId)
-                        const own = engine.getValidActionTypesForPlayer(
-                            game,
-                            served(state, view),
-                            playerId,
-                            { perspective: view }
-                        )
-                        expect(own, `${phase}, ${playerId}`).toEqual(server)
-                    }
+    it('walks both sides of Ancient Forge, Fallen Spire and Festival District, each with its side up', () => {
+        expect(EDIFICE_SIDES).toEqual(
+            expect.arrayContaining([
+                { cardId: 'edifice.nomad.ancient-forge', ruined: false },
+                { cardId: 'edifice.nomad.ancient-forge', ruined: true },
+                { cardId: 'edifice.arcane.great-spire', ruined: true },
+                { cardId: 'edifice.discord.festival-district', ruined: false }
+            ])
+        )
+        expect(EDIFICE_SIDES).toHaveLength(4)
+    })
+
+    for (const { cardId, name, at, ruined } of WALKED) {
+        it(`${name} (${at})`, () => {
+            for (const phase of [MachineState.ActPhase, MachineState.RestPhase]) {
+                const state = table(phase, cardId, at)
+                if (ruined) state.ruinedEdificeIds = [cardId]
+                if (cardIdsOfKind(CardKind.Edifice).includes(cardId)) withSwapsToMake(state)
+                const hydrated = new HydratedOathGameState(state)
+                // A power the server skips (unaffordable, out of reach) never runs its checks,
+                // so each must be offered there before the views are compared.
+                const timing =
+                    phase === MachineState.ActPhase ? PowerTiming.Action : PowerTiming.Rest
+                const offered = legalPowers(hydrated, 'me', timing)
+                for (const power of powersInPlay(hydrated, cardId)) {
+                    if (!hasEffect(power) || power.timing !== timing) continue
+                    expect(
+                        offered.some(
+                            (use) => use.cardId === cardId && use.powerIndex === power.powerIndex
+                        ),
+                        `${phase}: power ${power.powerIndex} offered on the server`
+                    ).toBe(true)
                 }
-            })
-        }
+                for (const playerId of SEATS) {
+                    const view: Visibility.Perspective = { kind: 'player', playerId }
+                    const server = engine.getValidActionTypesForPlayer(game, state, playerId)
+                    const own = engine.getValidActionTypesForPlayer(
+                        game,
+                        served(state, view),
+                        playerId,
+                        { perspective: view }
+                    )
+                    expect(own, `${phase}, ${playerId}`).toEqual(server)
+                }
+            }
+        })
     }
 })
 
@@ -236,25 +302,42 @@ describe("Roving Terror at a site another seat rules with Ancient Bloodline is r
     })
 })
 
+function defendingPlan(power: CardPower): boolean {
+    return (
+        hasEffect(power) &&
+        power.timing === PowerTiming.BattlePlan &&
+        (power.battlePlanSide === BattlePlanSide.Defender ||
+            power.battlePlanSide === BattlePlanSide.Either)
+    )
+}
+
 const DEFENDER_PLANS = [
     ...cardIdsOfKind(CardKind.Denizen),
-    ...cardIdsOfKind(CardKind.Relic)
-].filter((cardId) =>
-    cardPowers(cardId).some(
-        (power) =>
-            hasEffect(power) &&
-            power.timing === PowerTiming.BattlePlan &&
-            (power.battlePlanSide === BattlePlanSide.Defender ||
-                power.battlePlanSide === BattlePlanSide.Either)
-    )
-)
+    ...cardIdsOfKind(CardKind.Relic),
+    ...cardIdsOfKind(CardKind.Edifice)
+].filter((cardId) => cardPowers(cardId).some(defendingPlan))
 
-/** The sweep's table with the foe holding `cardId` faceup, and me campaigning against the foe at c1. */
+/** R-2.9 — the side of an edifice its defending plan is printed on; undefined for any other card. */
+function defendingFace(cardId: string): EdificeFace | undefined {
+    return cardPowers(cardId).find(defendingPlan)?.face
+}
+
+/**
+ * The sweep's table with the foe holding `cardId` faceup, and me campaigning against the foe at c1. An
+ * edifice lies at c1 with its plan's side up instead, and the foe rules c1.
+ */
 function defendingTable(cardId: string) {
+    const face = defendingFace(cardId)
     const d = table(MachineState.ActPhase, 'denizen.hearth.storyteller', 'site')
-    d.players = d.players.map((p) =>
-        p.playerId === 'foe' ? { ...p, advisers: [...p.advisers, { cardId, faceUp: true }] } : p
-    )
+    if (face === undefined) {
+        d.players = d.players.map((p) =>
+            p.playerId === 'foe' ? { ...p, advisers: [...p.advisers, { cardId, faceUp: true }] } : p
+        )
+    } else {
+        d.denizensBySite = { ...d.denizensBySite, c1: [cardId] }
+        d.warbandsBySite = { ...d.warbandsBySite, c1: { me: 1, foe: 2 } }
+        if (face === EdificeFace.Ruined) d.ruinedEdificeIds = [cardId]
+    }
     const s = new HydratedOathGameState(d)
     new HydratedCampaign(
         buildAction(Campaign, {
@@ -272,10 +355,16 @@ describe("every battle plan the defender can tick is judged the same on the defe
     it('walks every built card with a defending plan, Warning Signals among them', () => {
         expect(DEFENDER_PLANS.length).toBeGreaterThan(20)
         expect(DEFENDER_PLANS).toContain('denizen.nomad.warning-signals')
+        expect(DEFENDER_PLANS).toContain('edifice.order.sprawling-rampart')
     })
 
     for (const cardId of DEFENDER_PLANS) {
-        it(cardDefinition(cardId)?.name ?? cardId, () => {
+        const face = defendingFace(cardId)
+        const name =
+            face === undefined
+                ? (cardDefinition(cardId)?.name ?? cardId)
+                : edificeName(cardId, face === EdificeFace.Ruined)
+        it(name, () => {
             const state = defendingTable(cardId)
             const server = new HydratedOathGameState(state)
             const view: Visibility.Perspective = { kind: 'player', playerId: 'foe' }
@@ -287,7 +376,13 @@ describe("every battle plan the defender can tick is judged the same on the defe
                 HydratedCampaignDefend.reasonCannotDefend(server, 'foe', []),
                 'the foe answers'
             ).toBeUndefined()
-            for (const power of cardPowers(cardId)) {
+            if (face !== undefined) {
+                expect(
+                    HydratedCampaignDefend.usablePlans(server, 'foe').map((p) => p.cardId),
+                    'the side up is offered to the foe'
+                ).toContain(cardId)
+            }
+            for (const power of powersInPlay(server, cardId)) {
                 if (!hasEffect(power) || power.timing !== PowerTiming.BattlePlan) continue
                 const ticked = (choices: PowerChoice[]) => [
                     { cardId, powerIndex: power.powerIndex, choices }
@@ -470,6 +565,64 @@ describe("a Tribunal deal's claim, its leaving and its answer are offered the sa
                 HydratedAnswerQuestion.reasonCannotAnswer(s, 'foe', answer)
             expect(reason(server)).toBeUndefined()
             expect(reason(ownView(asked, 'foe'))).toBe(reason(server))
+        }
+    })
+})
+
+// R-9.4 — the Spires' offers read only the public counts: Fallen Spire's count from the pile's and the
+// Dispossessed's, Great Spire's swap step from the hand's count and the carried declaration.
+describe("the Spires are offered the same on each seat's own view as on the server", () => {
+    const SPIRE = 'edifice.arcane.great-spire'
+
+    it("Fallen Spire's counts", () => {
+        const state = table(MachineState.ActPhase, SPIRE, 'site')
+        state.ruinedEdificeIds = [SPIRE]
+        withSwapsToMake(state)
+        const offer = (s: HydratedOathGameState) =>
+            legalPowers(s, 'me', PowerTiming.Action).find((use) => use.cardId === SPIRE)
+        const server = offer(new HydratedOathGameState(state))
+        expect(server?.choices[0].options).toEqual([
+            { kind: PowerChoiceKind.Count, n: 1 },
+            { kind: PowerChoiceKind.Count, n: 2 }
+        ])
+        const view: Visibility.Perspective = { kind: 'player', playerId: 'me' }
+        expect(offer(new HydratedOathGameState(served(state, view)))).toEqual(server)
+    })
+
+    it("Great Spire's swap step, once its Search has drawn", () => {
+        const state = table(MachineState.ActPhase, SPIRE, 'site')
+        withSwapsToMake(state)
+        state.vault = {
+            ...required(state.vault, 'the table holds a vault'),
+            worldDeck: [
+                'denizen.nomad.a-fast-steed',
+                'denizen.order.scouts',
+                'denizen.hearth.herald'
+            ]
+        }
+        const searched = engine.runNext(
+            buildAction(Search, {
+                playerId: 'me',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true,
+                modifiers: [{ cardId: SPIRE, powerIndex: 0 }]
+            }),
+            state,
+            game
+        ).updatedState
+        expect(searched.machineState).toBe(MachineState.Searching)
+        expect(engine.getValidActionTypesForPlayer(game, searched, 'me')).toEqual([
+            ActionType.SearchResolve,
+            ActionType.SearchSwap
+        ])
+        for (const playerId of SEATS) {
+            const seat: Visibility.Perspective = { kind: 'player', playerId }
+            expect(
+                engine.getValidActionTypesForPlayer(game, served(searched, seat), playerId, {
+                    perspective: seat
+                }),
+                playerId
+            ).toEqual(engine.getValidActionTypesForPlayer(game, searched, playerId))
         }
     })
 })

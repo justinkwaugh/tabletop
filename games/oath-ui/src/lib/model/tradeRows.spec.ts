@@ -11,7 +11,14 @@ import {
     type PowerChoice,
     reliquarySlotId
 } from '@tabletop/oath'
-import { testPlayer, testState } from '@tabletop/oath/testing'
+import {
+    DANA,
+    HALL_OF_DEBATE,
+    WOLVES,
+    edificeTable,
+    testPlayer,
+    testState
+} from '@tabletop/oath/testing'
 import { tradeRows } from './tradeRows.js'
 
 const BINDERS = 'denizen.hearth.book-binders'
@@ -232,5 +239,20 @@ describe('Careless (R-6.6.2.a): a Trade for secrets also gains one favor', () =>
         expect(secretsAtBinders(tradeRows(bankOfOne, 'p1', declared))).toMatchObject({
             sideFavor: 1
         })
+    })
+})
+
+describe('an edifice in the Trade rows (R-2.9, R-5.3.2)', () => {
+    it('an intact edifice is listed as a denizen is, by its suit', () => {
+        const rows = tradeRows(edificeTable(), DANA, [])
+        expect(rows.map((row) => [row.cardId, row.suit])).toEqual([
+            [HALL_OF_DEBATE, Suit.Hearth],
+            [WOLVES, Suit.Beast]
+        ])
+    })
+
+    it('a ruin is never listed: it has no suit', () => {
+        const rows = tradeRows(edificeTable({}, {}, { ruined: true }), DANA, [])
+        expect(rows.map((row) => row.cardId)).toEqual([WOLVES])
     })
 })

@@ -230,6 +230,10 @@
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5" />
         <meta name="msapplication-TileColor" content="#da532c" />
         <meta name="theme-color" content="#101828" />
+        <!-- Without a declared scheme, Chrome's "Darken websites" inverts small light images,
+             turning white game pieces black. Light, not dark, keeps the browser's own controls,
+             scrollbars and default colours as they have always been. -->
+        <meta name="color-scheme" content="only light" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
             html {

@@ -57,6 +57,24 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
         })
     }
 
+    it('refreshes Redis from the authoritative source when the mounted manifest is stale', async () => {
+        let published = before
+        const service = new LibraryService(live.cache, {
+            manifestPath,
+            cacheKey,
+            readManifest: async () => published
+        })
+        await service.getTitlesMap()
+        await expectCached(before)
+
+        published = { ...before, frontend: { version: '2.0.0' } }
+        await service.invalidateManifestCache()
+        await service.refreshAndActivate()
+
+        expect(await service.getServedManifest()).toEqual(published)
+        await expectCached(published)
+    })
+
     it.each([false, true])(
         'revokes a delayed fill when invalidated (new manifest cached: %s)',
         async (cacheNewManifest) => {

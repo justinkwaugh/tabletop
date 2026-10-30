@@ -3,7 +3,8 @@ import type { HiddenRequest, HiddenReveal } from '../model/hidden.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import { assertExists } from '@tabletop/common'
 import { hasAccessToCard, isFacedownAdviserOf, poweredCardIds } from './access.js'
-import { cardPowers, powersWithTiming, PowerTiming, type CardPower } from '../data/cardPowers.js'
+import { PowerTiming, type CardPower } from '../data/cardPowers.js'
+import { powerInPlay, powersInPlay, reasonSideFaceDown } from './powersInPlay.js'
 import { SearchPlay } from '../model/oathEnums.js'
 import { payPowerCost, reasonCannotPayPowerCost } from './powerCost.js'
 import {
@@ -43,11 +44,13 @@ export function reasonCannotUsePower(
         return `${cardId} is one of your facedown advisers, which have no power (R-5.1.4.II)`
     }
 
-    if (powersWithTiming(cardId, timing).length === 0) {
-        return `${cardId} prints no ${label} power`
+    if (powersInPlay(state, cardId, timing).length === 0) {
+        return reasonSideFaceDown(state, cardId, powerIndex) ?? `${cardId} prints no ${label} power`
     }
 
-    const power = cardPowers(cardId)[powerIndex]
+    const faceDown = reasonSideFaceDown(state, cardId, powerIndex)
+    if (faceDown) return faceDown
+    const power = powerInPlay(state, cardId, powerIndex)
     if (!power) {
         return `${cardId} has no power at index ${powerIndex}`
     }
@@ -64,7 +67,7 @@ export function reasonCannotUsePower(
     if (badChoice) return badChoice
 
     // A power with no effect refuses last, after every rules check. `legalPowers` never offers one:
-    // the only such powers are the Grand Scepter's, its holder's minor actions (R-6.4, R-6.6.1, R-6.7).
+    // the Grand Scepter's, its holder's minor actions (R-6.4, R-6.6.1, R-6.7).
     const effect = effectFor(power)
     if (!effect) {
         return `${cardId}'s power ${powerIndex} cannot be used as ${article} ${label} power`
@@ -83,7 +86,8 @@ export function usePower(
     choices: readonly PowerChoice[] | undefined,
     reveal?: HiddenReveal
 ): EffectResult {
-    const power = cardPowers(cardId)[powerIndex]
+    const power = powerInPlay(state, cardId, powerIndex)
+    assertExists(power, `${cardId} has no power ${powerIndex} in play`)
     const effect = effectFor(power)
     assertExists(effect, `${cardId} power ${powerIndex} has no built effect`)
     const tolls = powerTolls(state, playerId, power)
@@ -158,7 +162,7 @@ export function hiddenRequestFor(
     powerIndex: number,
     choices: readonly PowerChoice[] | undefined
 ): HiddenRequest | undefined {
-    const power = cardPowers(cardId)[powerIndex]
+    const power = powerInPlay(state, cardId, powerIndex)
     if (!power) return undefined
     return effectFor(power)?.hidden?.({ state, playerId, power, choices: choices ?? [] })
 }
@@ -172,7 +176,7 @@ export function legalPowers(
     const candidates = poweredCardIds(state, playerId)
     const usable: LegalPowerUse[] = []
     for (const cardId of candidates) {
-        for (const power of powersWithTiming(cardId, timing)) {
+        for (const power of powersInPlay(state, cardId, timing)) {
             if (!hasEffect(power)) continue
             if (reasonCannotPayPowerCost(state, playerId, power)) continue
             if (reasonCannotPayPowerTolls(state, playerId, power)) continue

@@ -175,6 +175,7 @@ function readyAfter(
     attackApproach: ApproachId,
     lastFired: number
 ): number | undefined {
+    if (!state.roundInProgress) return undefined
     const ready = lastFired + (firesDownFromAHill(state, attackApproach) ? 1 : 2)
     return ready > state.round ? ready : undefined
 }

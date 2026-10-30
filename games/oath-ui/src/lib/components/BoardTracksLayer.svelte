@@ -60,7 +60,8 @@
         [CardKind.Denizen]: 'Denizen',
         [CardKind.Vision]: 'Vision',
         [CardKind.Relic]: 'Relic',
-        [CardKind.Site]: 'Site'
+        [CardKind.Site]: 'Site',
+        [CardKind.Edifice]: 'Edifice'
     }
 
     let roundCenter = $derived(roundMarkerCenter(gameState.round))

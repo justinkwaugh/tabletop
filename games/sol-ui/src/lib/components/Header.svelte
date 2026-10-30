@@ -42,6 +42,14 @@
             >
                 <div>HISTORY</div>
             </div>
+        {:else if gameSession.isEndOfGame}
+            <div
+                in:fade={{ duration: 300, delay: 100 }}
+                out:fade={{ duration: 100 }}
+                class="inline-flex items-center gap-x-2"
+            >
+                <div>END OF GAME</div>
+            </div>
         {:else if !gameSession.isMyTurn}
             <div
                 in:fade={{ duration: 300, delay: 100 }}
@@ -56,14 +64,6 @@
                         additionalClasses="tracking-widest pt-[2px]"
                     /> TURN
                 </div>
-            </div>
-        {:else if gameSession.isEndOfGame}
-            <div
-                in:fade={{ duration: 300, delay: 100 }}
-                out:fade={{ duration: 100 }}
-                class="inline-flex items-center gap-x-2"
-            >
-                <div>END OF GAME</div>
             </div>
         {:else if gameSession.isMoving}
             <div

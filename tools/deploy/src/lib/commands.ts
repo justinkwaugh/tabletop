@@ -710,8 +710,15 @@ export const deployBackendCommand = (
         const command = backend.deployCommand[0]
         const args = backend.deployCommand.slice(1)
         const serviceOverride = options?.service
-        if (command === 'gcloud')
-            args.push(...backendHealthProbeArgs(config, serviceOverride ?? backend.service))
+        const environmentArgs = envVarArgs(options?.envVars)
+        if (command === 'gcloud') {
+            args.push(
+                ...backendHealthProbeArgs(config, serviceOverride ?? backend.service),
+                ...environmentArgs
+            )
+        } else if (environmentArgs.length > 0) {
+            throw new Error('Environment overrides require gcloud deploy command')
+        }
 
         if (
             !allowTraffic &&

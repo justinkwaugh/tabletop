@@ -3,6 +3,7 @@
     import { availableCatalogEntries } from '$lib/utils/libraryTitles'
     import { getLoginModal } from '$lib/stores/loginModal'
     import { ArrowRightOutline, ArrowDownOutline, UsersOutline } from 'flowbite-svelte-icons'
+    import PayItForwardFooter from '$lib/components/project/PayItForwardFooter.svelte'
 
     let { signedIn = false, scrollTop = $bindable(0) }: { signedIn?: boolean; scrollTop?: number } =
         $props()
@@ -40,7 +41,10 @@
                         Explore the games <ArrowDownOutline class="h-4 w-4" />
                     </a>
                 </div>
-                <p class="small-print"><strong>Always</strong> free to play. Fully open source.</p>
+                <p class="small-print">
+                    <strong>Always</strong> free to play. Fully open source. No tip jar, but you can
+                    <a href="/pay-it-forward">pay it forward →</a>
+                </p>
             </div>
 
             <div class="showcase" aria-hidden="true">
@@ -150,6 +154,9 @@
                             />
                         </button>
                     {/if}
+                    {#if signedIn}
+                        <PayItForwardFooter />
+                    {/if}
                 {/if}
             </div>
         </div>
@@ -251,6 +258,13 @@
         margin-top: 32px;
         color: var(--color-gray-400);
         font-size: 11px;
+    }
+    .small-print a {
+        color: var(--color-blue-300);
+    }
+    .small-print a:hover {
+        text-decoration: underline;
+        text-underline-offset: 3px;
     }
 
     .showcase {

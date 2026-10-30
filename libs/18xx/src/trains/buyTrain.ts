@@ -1,3 +1,4 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
 import { inReceivership } from '../finance/receivership.js'
 import { preparePhaseChange, type PhaseState } from '../phases/phaseChange.js'
@@ -5,7 +6,6 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -28,7 +28,7 @@ import {
 } from './trainDepartures.js'
 export const BuyTrain = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         ...TrainPurchaseRequest.properties,
         type: Type.Literal('BuyTrain'),
         expectedPrice: Type.Integer({ minimum: 0 }),

@@ -21,4 +21,5 @@ export interface ModuleSession<State, Rules> {
     withSupersededAction(action: GameAction): GameAction
     createPlayerAction: BaseSession['createPlayerAction']
     applyAction: BaseSession['applyAction']
+    applyPreparedAction: BaseSession['applyPreparedAction']
 }

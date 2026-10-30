@@ -246,7 +246,7 @@ describe('Travel picked on the map, as a phone does (Choose a Travel destination
         expect(session.selection.action).toBe(ActionType.Travel)
 
         await session.pickTravelSite('c2')
-        session.beforeNewState()
+        session.beforeNewState({ kind: 'other-action', actions: [], intent: 'silent' })
         expect(session.travelWaysOpen).toBeUndefined()
     })
 

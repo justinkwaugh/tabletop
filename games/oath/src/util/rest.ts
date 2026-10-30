@@ -1,6 +1,7 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PlayerStatus } from '../model/oathEnums.js'
-import { suitOf } from '../data/cardRegistry.js'
+import { kindOf } from '../data/cardRegistry.js'
+import { CardKind } from '../model/oathEnums.js'
 import { totalWarbands } from './warbands.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
@@ -39,14 +40,14 @@ export function refreshSpaceFor(bands: readonly RefreshBand[], warbands: number)
     return band.supply
 }
 
-/** R-4.3.1, R-10.14 — "matching" is same-suit, which excludes sites. */
+/** R-4.3.1, R-10.14 — "matching" is same-suit, which excludes sites and ruins (R-2.9). */
 export function returnFavorFromCards(state: HydratedOathGameState): number {
     let moved = 0
 
     for (const [cardId, tokens] of Object.entries(state.cardTokens)) {
         if (tokens.favor <= 0) continue
 
-        const suit = suitOf(cardId)
+        const suit = state.suitInPlay(cardId)
         if (!suit) continue
 
         state.favorBank[suit] += tokens.favor
@@ -77,10 +78,10 @@ export function returnSecretsToBoard(state: HydratedOathGameState, playerId: str
     return moved
 }
 
-/** R-4.3.2 names denizens and relics, not sites; a held relic is at no site. */
+/** R-4.3.2 names denizens, edifices and relics, not sites; a held relic is at no site. */
 function isCardWithSecretsAtRest(cardId: string): boolean {
-    const kind = cardId.split('.')[0]
-    return kind === 'denizen' || kind === 'relic'
+    const kind = kindOf(cardId)
+    return kind === CardKind.Denizen || kind === CardKind.Edifice || kind === CardKind.Relic
 }
 
 /** R-4.3.4-H1 — the marker stops at the leftmost space; the excess is lost. */

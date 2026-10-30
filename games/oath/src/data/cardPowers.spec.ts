@@ -6,6 +6,7 @@ import {
     allPowersWithTiming,
     BattlePlanSide,
     cardPower,
+    EdificeFace,
     cardPowers,
     isFree,
     isPersistent,
@@ -42,6 +43,15 @@ function allUnits(): Array<{ id: string; timing: PowerRecord['timing'] }> {
     return ALL_RECORDS.map((r) => ({ id: r.id, timing: r.timing }))
 }
 
+/** R-2.6.3 — the 224 card units' powers: the edifices' sides come with the Chronicle (R-2.9). */
+function basePowers(): CardPower[] {
+    return allPowers().filter((power) => power.face === undefined)
+}
+
+function basePowersWithTiming(timing: PowerTiming): CardPower[] {
+    return allPowersWithTiming(timing).filter((power) => power.face === undefined)
+}
+
 function costTotal(power: CardPower): number {
     return (
         power.cost.placeFavor +
@@ -75,7 +85,7 @@ describe('R-7 — the corpus, counted from the cards', () => {
     })
 
     it('R-7.3.1 — no card in the game has a Wake power', () => {
-        expect(allPowersWithTiming(PowerTiming.Wake)).toEqual([])
+        expect(basePowersWithTiming(PowerTiming.Wake)).toEqual([])
 
         // R-4.1.2 — the four Oath Visions' wake records print a goal, not a power.
         const wakeRecords = ALL_RECORDS.filter((r) => r.timing === 'wake')
@@ -84,7 +94,7 @@ describe('R-7 — the corpus, counted from the cards', () => {
 
     it('231 powers, split across the seven timings with a customer; The Tribunal adds the one site Action (R-11.9)', () => {
         const census = Object.fromEntries(
-            Object.values(PowerTiming).map((t) => [t, allPowersWithTiming(t).length])
+            Object.values(PowerTiming).map((t) => [t, basePowersWithTiming(t).length])
         )
 
         expect(census).toEqual({
@@ -97,13 +107,35 @@ describe('R-7 — the corpus, counted from the cards', () => {
             [PowerTiming.Rest]: 5,
             [PowerTiming.Wake]: 0
         })
-        expect(allPowers()).toHaveLength(231)
+        expect(basePowers()).toHaveLength(231)
     })
 
     it('R-7.3.2 — 57 cards print an Action power (The Tribunal among them); the Grand Scepter prints two', () => {
-        const cards = new Set(allPowersWithTiming(PowerTiming.Action).map((p) => p.cardId))
+        const cards = new Set(basePowersWithTiming(PowerTiming.Action).map((p) => p.cardId))
         expect(cards.size).toBe(57)
         expect(powersWithTiming('relic.grand-scepter', PowerTiming.Action)).toHaveLength(2)
+    })
+})
+
+describe('R-2.9 — the six edifices add twelve sides, one power each', () => {
+    it('six intact and six ruined, split across four timings', () => {
+        const sides = allPowers().filter((power) => power.face !== undefined)
+        expect(sides.filter((p) => p.face === EdificeFace.Intact)).toHaveLength(6)
+        expect(sides.filter((p) => p.face === EdificeFace.Ruined)).toHaveLength(6)
+        const census = Object.fromEntries(
+            Object.values(PowerTiming).map((t) => [t, sides.filter((p) => p.timing === t).length])
+        )
+        expect(census).toEqual({
+            [PowerTiming.Action]: 4,
+            [PowerTiming.BattlePlan]: 1,
+            [PowerTiming.Modifier]: 1,
+            [PowerTiming.Persistent]: 6,
+            [PowerTiming.WhenPlayed]: 0,
+            [PowerTiming.Continuous]: 0,
+            [PowerTiming.Rest]: 0,
+            [PowerTiming.Wake]: 0
+        })
+        expect(allPowers()).toHaveLength(basePowers().length + 12)
     })
 })
 
@@ -160,10 +192,10 @@ describe('R-7 — one record can print more than one power', () => {
     })
 
     it('R-7.5 — a side is set on exactly the 51 battle plans', () => {
-        for (const power of allPowers()) {
+        for (const power of basePowers()) {
             expect(power.battlePlanSide !== undefined).toBe(power.timing === PowerTiming.BattlePlan)
         }
-        expect(allPowers().filter((p) => p.battlePlanSide)).toHaveLength(51)
+        expect(basePowers().filter((p) => p.battlePlanSide)).toHaveLength(51)
     })
 })
 
@@ -204,7 +236,7 @@ describe('R-7.1.2 — a printed cost reaches the power that charges it', () => {
     })
 
     it('R-7.1.2 — 19 costs exceed the legend’s singular', () => {
-        const plural = allPowers().filter((p) => costTotal(p) > 1)
+        const plural = basePowers().filter((p) => costTotal(p) > 1)
         expect(plural.length).toBe(19)
 
         expect(cardPowers('denizen.hearth.hearts-and-minds')[0]?.cost.placeFavor).toBe(3)
@@ -215,14 +247,14 @@ describe('R-7.1.2 — a printed cost reaches the power that charges it', () => {
     })
 
     it('R-5.5.3 — 28 of the 51 battle plans are free', () => {
-        const free = allPowersWithTiming(PowerTiming.BattlePlan).filter((p) => isFree(p.cost))
+        const free = basePowersWithTiming(PowerTiming.BattlePlan).filter((p) => isFree(p.cost))
         expect(free).toHaveLength(28)
     })
 })
 
 describe('R-7.4 — the modifier tab', () => {
     it('names one of the six major actions, and maps to that action type', () => {
-        const modifiers = allPowers().filter((p) => p.modifiesAction)
+        const modifiers = basePowers().filter((p) => p.modifiesAction)
         expect(modifiers).toHaveLength(61)
 
         const targets = new Set(modifiers.map((p) => p.modifiesAction))
@@ -239,13 +271,13 @@ describe('R-7.4 — the modifier tab', () => {
     })
 
     it('R-7.1.4 — 20 of them are persistent, not modifier-timed', () => {
-        const modifiers = allPowers().filter((p) => p.modifiesAction)
+        const modifiers = basePowers().filter((p) => p.modifiesAction)
         const byTiming = modifiers.filter((p) => p.timing === PowerTiming.Modifier)
         const persistent = modifiers.filter(isPersistent)
 
         expect(byTiming).toHaveLength(41)
         expect(persistent).toHaveLength(20)
-        expect(allPowersWithTiming(PowerTiming.Modifier).every((p) => p.modifiesAction)).toBe(true)
+        expect(basePowersWithTiming(PowerTiming.Modifier).every((p) => p.modifiesAction)).toBe(true)
         expect(byTiming.length + persistent.length).toBe(modifiers.length)
     })
 })

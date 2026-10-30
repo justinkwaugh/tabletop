@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { Role, withAssignedRoles } from './user.js'
+import {
+    accountStatusAfterCompletionCheck,
+    canHoldAuthenticatedSession,
+    Role,
+    UserStatus,
+    withAssignedRoles
+} from './user.js'
 
 describe('withAssignedRoles', () => {
     it('keeps non-assignable roles and replaces the assignable ones', () => {
@@ -18,5 +24,46 @@ describe('withAssignedRoles', () => {
         expect(
             withAssignedRoles([Role.User], [Role.Developer, Role.AlphaTester, Role.Developer])
         ).toEqual([Role.User, Role.AlphaTester, Role.Developer])
+    })
+})
+
+describe('canHoldAuthenticatedSession', () => {
+    it('admits Active and Incomplete Accounts', () => {
+        expect(canHoldAuthenticatedSession({ status: UserStatus.Active })).toBe(true)
+        expect(canHoldAuthenticatedSession({ status: UserStatus.Incomplete })).toBe(true)
+    })
+
+    it('refuses Inactive and Deleted Accounts', () => {
+        expect(canHoldAuthenticatedSession({ status: UserStatus.Inactive })).toBe(false)
+        expect(canHoldAuthenticatedSession({ status: UserStatus.Deleted })).toBe(false)
+    })
+})
+
+describe('accountStatusAfterCompletionCheck', () => {
+    it('promotes an Incomplete Account that satisfies Account Completion', () => {
+        expect(accountStatusAfterCompletionCheck(UserStatus.Incomplete, true)).toBe(
+            UserStatus.Active
+        )
+        expect(accountStatusAfterCompletionCheck(UserStatus.Incomplete, false)).toBe(
+            UserStatus.Incomplete
+        )
+    })
+
+    it('keeps an Active Account Active only while it satisfies Account Completion', () => {
+        expect(accountStatusAfterCompletionCheck(UserStatus.Active, true)).toBe(UserStatus.Active)
+        expect(accountStatusAfterCompletionCheck(UserStatus.Active, false)).toBe(
+            UserStatus.Incomplete
+        )
+    })
+
+    it('never moves an Inactive or Deleted Account', () => {
+        for (const satisfiesCompletion of [true, false]) {
+            expect(
+                accountStatusAfterCompletionCheck(UserStatus.Inactive, satisfiesCompletion)
+            ).toBe(UserStatus.Inactive)
+            expect(accountStatusAfterCompletionCheck(UserStatus.Deleted, satisfiesCompletion)).toBe(
+                UserStatus.Deleted
+            )
+        }
     })
 })

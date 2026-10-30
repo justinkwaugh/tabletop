@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { President, type Owner } from '../finance/finance.js'
 import type { StockState } from './stockState.js'
+import { orderedSubset } from '../game/orderedSubset.js'
 
 const BuyUntil = Type.Union([
     Type.Object({ kind: Type.Literal('floated') }, { additionalProperties: false }),
@@ -41,7 +42,7 @@ export type StockInstruction = Type.Static<typeof StockInstruction>
 export function orderedIgnorableStops(
     stops: readonly IgnorableStockInstructionStop[]
 ): IgnorableStockInstructionStop[] {
-    return ignorableStockInstructionStops.filter((stop) => stops.includes(stop))
+    return orderedSubset(ignorableStockInstructionStops, stops)
 }
 
 export function withIgnoredStops(

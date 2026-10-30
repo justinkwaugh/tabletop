@@ -6,6 +6,8 @@ import { GameState } from './gameState.js'
 import { GameResult } from './gameResult.js'
 import { GameConfig } from './gameConfig.js'
 import { PlayerVote } from './playerVote.js'
+import { GameCall } from './gameCall.js'
+import { GameProgress } from './gameProgress.js'
 import { Compile } from 'typebox/compile'
 import * as Value from 'typebox/value'
 
@@ -79,7 +81,10 @@ export const Game = Type.Object({
     activePlayerIds: Type.Optional(Type.Array(Type.String())),
     lastActionPlayerId: Type.Optional(Type.String()),
     lastActionAt: Type.Optional(DateType()),
+    progress: Type.Optional(GameProgress),
     result: Type.Optional(Type.Enum(GameResult)),
+    canContinue: Type.Optional(Type.Boolean()),
+    continuedFromGameId: Type.Optional(Type.String()),
     winningPlayerIds: Type.Array(Type.String()),
     finalScores: Type.Optional(Type.Record(Type.String(), Type.Number())),
     everFinished: Type.Optional(Type.Literal(true)),
@@ -87,7 +92,8 @@ export const Game = Type.Object({
     storage: Type.Optional(Type.Enum(GameStorage, { default: GameStorage.Remote })),
     parentId: Type.Optional(Type.String()),
     category: Type.Optional(Type.String({ default: GameCategory.Standard })),
-    vote: Type.Optional(PlayerVote)
+    vote: Type.Optional(PlayerVote),
+    call: Type.Optional(GameCall)
 })
 
 export type GameWithoutState = Type.Static<typeof GameWithoutState>

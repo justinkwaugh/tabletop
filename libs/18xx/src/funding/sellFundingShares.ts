@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     type GameAction,
     HydratableAction,
     assert,
@@ -26,7 +26,7 @@ type FundingShareSaleDetails = Type.Static<typeof FundingShareSaleDetails>
 
 export const SellFundingShares = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         ...ShareSale.properties,
         type: Type.Literal('SellFundingShares'),
         seller: Owner,

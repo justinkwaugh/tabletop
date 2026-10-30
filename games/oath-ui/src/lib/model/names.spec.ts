@@ -1,13 +1,72 @@
 import { describe, expect, it } from 'vitest'
 import {
+    ageName,
     chipCased,
     defenseWords,
     humanizeReason,
     listed,
     nameSeats,
     reasonParts,
+    romanNumeral,
     type Seats
 } from './names.js'
+
+describe('romanNumeral — standard subtractive capitals, with no cap', () => {
+    it('writes one to ten', () => {
+        expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(romanNumeral)).toEqual([
+            'I',
+            'II',
+            'III',
+            'IV',
+            'V',
+            'VI',
+            'VII',
+            'VIII',
+            'IX',
+            'X'
+        ])
+    })
+
+    it('subtracts before five and ten of each place: 14, 19, 40, 49, 90, 99', () => {
+        expect([14, 19, 40, 49, 90, 99].map(romanNumeral)).toEqual([
+            'XIV',
+            'XIX',
+            'XL',
+            'XLIX',
+            'XC',
+            'XCIX'
+        ])
+    })
+
+    it('carries on past twenty without switching to digits', () => {
+        expect([20, 21, 24, 29, 38, 50, 88, 100, 400, 944, 1994, 3999].map(romanNumeral)).toEqual([
+            'XX',
+            'XXI',
+            'XXIV',
+            'XXIX',
+            'XXXVIII',
+            'L',
+            'LXXXVIII',
+            'C',
+            'CD',
+            'CMXLIV',
+            'MCMXCIV',
+            'MMMCMXCIX'
+        ])
+    })
+
+    it('has no numeral for zero, a fraction or a negative number', () => {
+        for (const n of [0, -1, 1.5, Number.NaN]) expect(() => romanNumeral(n)).toThrow()
+    })
+})
+
+describe('ageName — a chronicle’s game by its number', () => {
+    it('is “Age” and its Roman numeral, from Age I', () => {
+        expect(ageName(1)).toBe('Age I')
+        expect(ageName(2)).toBe('Age II')
+        expect(ageName(38)).toBe('Age XXXVIII')
+    })
+})
 
 describe('chipCased — a seat named in plain words as its chip shows it', () => {
     it('capitalizes each word and leaves the rest', () => {

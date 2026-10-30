@@ -9,7 +9,7 @@ import {
 } from '@tabletop/common'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { type AnyDeed } from '../components/deed.js'
+import type { AnyDeed } from '../components/deed.js'
 import {
     Company,
     isProductionCompany,

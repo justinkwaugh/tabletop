@@ -11,7 +11,7 @@ import {
     type RolledDefenseFace,
     type WarbandGroup
 } from '../model/campaign.js'
-import { type OathProjectedState } from '../model/gameState.js'
+import type { OathProjectedState } from '../model/gameState.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { MachineState } from '../definition/states.js'

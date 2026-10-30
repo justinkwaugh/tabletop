@@ -28,7 +28,7 @@ export interface SiteStatsGameSource {
 }
 
 export interface SiteStatsUserSource {
-    countUsersCreatedIn(window: TimeWindow): Promise<number>
+    countUsersActivatedIn(window: TimeWindow): Promise<number>
     countUsersWithStatus(status: UserStatus): Promise<number>
 }
 

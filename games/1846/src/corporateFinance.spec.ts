@@ -2,7 +2,8 @@ import { Market1846 } from './stock.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists, ActionSource } from '@tabletop/common'
 import { TrackConstruction, finiteCashOwnedBy, placeStockMarker, sharesOwned } from '@tabletop/18xx'
-import { corporateFinanceChoices } from './corporateFinance.js'
+import { corporateFinanceChoices } from '@tabletop/18xx'
+import { CorporateFinanceRules1846 } from './corporateFinance.js'
 import { layTrack, stockGame } from '../test/testSupport.js'
 import { TrackRules1846 } from './track.js'
 
@@ -30,14 +31,14 @@ function choice(
     operation: 'issue' | 'redeem',
     shares: number
 ) {
-    const found = corporateFinanceChoices(table.hydrated).find(
+    const found = corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846).find(
         (c) => c.operation === operation && c.shares === shares
     )
     assertExists(found, `Expected to ${operation} ${shares}`)
     return found
 }
 function shareCounts(table: ReturnType<typeof stockGame>, operation: 'issue' | 'redeem') {
-    return corporateFinanceChoices(table.hydrated)
+    return corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846)
         .filter((c) => c.operation === operation)
         .map((c) => c.shares)
 }
@@ -62,7 +63,7 @@ describe('1846 corporate finance', () => {
             amount: 60,
             certificateIds: expect.any(Array)
         })
-        expect(corporateFinanceChoices(table.hydrated)).toEqual([])
+        expect(corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846)).toEqual([])
         expect(() => table.act('CorporateFinance', issue)).toThrow()
         let state = table.initialState
         for (const action of table.actions)
@@ -84,7 +85,7 @@ describe('1846 corporate finance', () => {
         expect(second.amount).toBe(30)
         table.act('CorporateFinance', second)
         expect(sharesOwned(table.state, 'IC', { kind: 'bank' })).toBe(2)
-        expect(corporateFinanceChoices(table.hydrated)).toEqual([])
+        expect(corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846)).toEqual([])
     })
     it('keeps a redeeming corporation from issuing in the same turn', () => {
         const table = financeGame()
@@ -100,7 +101,7 @@ describe('1846 corporate finance', () => {
         table.act('FinishTrack', { companyId: 'IC' })
         expect(table.state.machineState).not.toBe('LayingTrack')
         expect(table.state.machineState).not.toBe('RunningTrains')
-        expect(corporateFinanceChoices(table.hydrated)).toEqual([])
+        expect(corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846)).toEqual([])
     })
     it('deducts market shares from the issue limit and allows affordable redemption', () => {
         const table = financeGame()
@@ -132,7 +133,7 @@ describe('1846 corporate finance', () => {
         assertExists(cash)
         cash.amount = 1200
         expect(
-            corporateFinanceChoices(table.hydrated)
+            corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846)
                 .filter((c) => c.operation === 'redeem')
                 .map((c) => c.amount)
         ).toEqual([600, 1200])

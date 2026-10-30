@@ -3,7 +3,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
 import { PowerQuestionKind, type PowerQuestion, type QuestionOf } from '../model/question.js'
 import { CONSPIRACY_ID } from '../data/cardRegistry.js'
-import { cardPowers } from '../data/cardPowers.js'
+import { powerInPlay } from './powersInPlay.js'
 import { banksWithFavor, gainFavorFromBank, homeBankPayable, usableFavor } from './favor.js'
 import { takeNotes, takeRelicsFrom } from './relics.js'
 import { reasonExchangeInvalid } from './exchange.js'
@@ -88,7 +88,7 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
     [PowerQuestionKind.TravelFreeTo]: (_state, question) =>
         question.siteIds.length === 0 ? 'no site to travel to' : undefined,
     [PowerQuestionKind.RerollDice]: (state, question) => {
-        const power = cardPowers(question.cardId)[question.powerIndex]
+        const power = powerInPlay(state, question.cardId, question.powerIndex)
         assertExists(power, `${question.cardId} has a power at index ${question.powerIndex}`)
         const cost = reasonCannotPayPowerCost(state, question.askedPlayerId, power)
         return cost ? `${question.askedPlayerId} cannot use Jinx: ${cost}` : undefined
@@ -110,7 +110,7 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
             )
             .find((reason) => reason !== undefined)
         if (forbidden) return `${question.askedPlayerId} cannot use Relic Thief: ${forbidden}`
-        const power = cardPowers(question.cardId)[question.powerIndex]
+        const power = powerInPlay(state, question.cardId, question.powerIndex)
         const cost = power
             ? reasonCannotPayPowerCost(state, question.askedPlayerId, power)
             : 'the power is not in play'
@@ -177,7 +177,9 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
             : undefined
     },
     // R-7.6.3-H1 — a claim names an open deal; one closed meanwhile is not asked about.
-    [PowerQuestionKind.DealKept]: (state, question) => reasonDealKeptInvalid(state, question)
+    [PowerQuestionKind.DealKept]: (state, question) => reasonDealKeptInvalid(state, question),
+    // Squalid District — its ruler is always asked: each of the three answers is theirs to give.
+    [PowerQuestionKind.AdjustEndDie]: () => undefined
 }
 
 /** Second Wind out of turn — asked for the next action, so judged as that action will be: free. */

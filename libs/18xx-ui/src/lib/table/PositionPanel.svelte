@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { assert, type GameAction } from '@tabletop/common'
+    import type { GameAction } from '@tabletop/common'
     import {
         nextOperatingCompany,
         isOfferAuctionLot,
@@ -16,7 +16,6 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
         companyLabels,
-        historyDescription,
         joinDetails,
         type HistoryDescription,
         type TitleActionDescription
@@ -30,7 +29,7 @@
         lastNotableStep,
         payoutRecipients
     } from './lastAction.js'
-    import { auctionLotName } from './auctionHistory.js'
+    import { describeLastAction } from './lastActionDescription.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import TrackLayResult from './TrackLayResult.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -41,6 +40,10 @@
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import TrainCardStrip from '../trains/TrainCardStrip.svelte'
     import { shareSign } from './shareCards.js'
+    import PlaceText from '../places/PlaceText.svelte'
+    import HistoryCallout from './HistoryCallout.svelte'
+    import { bankBreakCallout, certificateLimitCallout } from './historyCallouts.js'
+    import { historyBankBreaks, historyStates } from './historyStates.js'
 
     let {
         session,
@@ -52,21 +55,10 @@
         describeAction?: TitleActionDescription
     } = $props()
     const money = $derived(session.presentation.money)
-    // While the session swaps in a new visible state, its action list already reflects the new
-    // position but its game state does not; hold the last settled pair so the heading and the
-    // summary never describe different positions.
-    let settled: { gameState: typeof session.gameState; actions: readonly GameAction[] } | undefined
-    const position = $derived.by(() => {
-        const state = session.gameState
-        // The visible context's action count leads the exposed state's while a step is applied.
-        const transitioning =
-            session.updatingVisibleState || session.currentActionIndex + 1 !== state.actionCount
-        if (transitioning && settled) return settled
-        settled = { gameState: state, actions: session.actions.slice(0, state.actionCount) }
-        return settled
-    })
-    const gameState = $derived(position.gameState)
-    const actions = $derived(position.actions)
+    const gameState = $derived(session.gameState)
+    const actions = $derived(session.actions)
+    // Stored form: callouts replay the step from a copy, which the hydrated state's functions prevent.
+    const recordedState = $derived(session.gameState.dehydrate())
     const company = $derived(
         gameState.companies.find((company) => company.id === nextOperatingCompany(gameState))
     )
@@ -116,28 +108,7 @@
         return session.companyName(id)
     }
     function describe(action: GameAction): HistoryDescription {
-        if (isOfferAuctionLot(action) || isBidOnAuctionLot(action)) {
-            const lot = session.auctionLotsFor(gameState).find((lot) => lot.id === action.lotId)
-            assert(lot, 'Recorded auction requires its lot')
-            return isOfferAuctionLot(action)
-                ? { text: `Offered ${session.lotName(lot)} for auction at ${money(lot.price)}` }
-                : { text: `Bid ${money(action.amount)} for ${session.lotName(lot)}` }
-        }
-        if (isPassAuction(action)) return { text: 'Passed' }
-        const shared = () =>
-            historyDescription(
-                action,
-                gameState,
-                session.stockMarketChart,
-                companyName,
-                (id) => session.getPlayerName(id),
-                undefined,
-                session.presentation.money,
-                (id) =>
-                    auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
-                (id) => session.names.routeBonus(id)
-            )
-        return describeAction?.(action, companyName, shared) ?? shared()
+        return describeLastAction(session, action, describeAction)
     }
     const labels = $derived(
         companyLabels(gameState.companies, (id) => session.companyInitials(id), companyName)
@@ -169,6 +140,27 @@
         return lotAction && (isOfferAuctionLot(lotAction) || isBidOnAuctionLot(lotAction))
             ? session.auctionLotsFor(gameState).find((lot) => lot.id === lotAction.lotId)
             : undefined
+    }
+    /** The table-wide events the step caused: limit changes, then the bank breaking. */
+    function stepCallouts(
+        action: GameAction,
+        description: HistoryDescription,
+        consequences: readonly GameAction[]
+    ) {
+        // Only the step's own actions are undone to find where the bank broke, from the plain
+        // displayed state; an action without its reversal data has no state before it to compare.
+        const states = historyStates(
+            actions.slice(actions.indexOf(action)),
+            recordedState,
+            session.endingRules
+        )
+        const bankBreak = [...historyBankBreaks(states)].find(([id]) => states.get(id)?.before)?.[1]
+        return [
+            ...[description, ...consequences.map(describe)].flatMap((entry) =>
+                entry.certificateLimit ? [certificateLimitCallout(entry.certificateLimit)] : []
+            ),
+            ...(bankBreak ? [bankBreakCallout(bankBreak)] : [])
+        ]
     }
     const latest = $derived.by(() => {
         const [action, ...consequences] = step
@@ -210,6 +202,7 @@
             shareCards: session.shareCards(action),
             shareSign: shareSign(action),
             trainCards,
+            callouts: stepCallouts(action, description, consequences),
             consequences: consequences.map((consequence) => {
                 const consequenceDescription = describe(consequence)
                 const phase = historyPhaseChange(consequence, session.phaseChangePalette)
@@ -256,7 +249,7 @@
                                 size={18}
                             />{/if}</span
                     >
-                    <p class="headline">{decision.text}</p>
+                    <p class="headline"><PlaceText text={decision.text} /></p>
                 </div>
             </div>
         {/if}
@@ -281,8 +274,9 @@
                     >
                     <p class="headline">
                         {#if latest.sentence.actor}<strong>{latest.sentence.actor}</strong
-                            >{' '}{/if}{latest.sentence
-                            .text}{#if latest.trainDefinitionIds.length}{' '}<span class="trains"
+                            >{' '}{/if}<PlaceText
+                            text={latest.sentence.text}
+                        />{#if latest.trainDefinitionIds.length}{' '}<span class="trains"
                                 >{#each latest.trainDefinitionIds as id, i (i)}<TrainBadge
                                         name={session.trainDepot.trainDefinition(id).name}
                                         color={trainColors[id]}
@@ -296,7 +290,7 @@
                             >{/if}
                     </p>
                     {#if latest.payments}<p class="detail">{latest.payments}</p>{/if}
-                    {#if latest.detail}<p class="detail">{latest.detail}</p>{/if}
+                    {#if latest.detail}<p class="detail"><PlaceText text={latest.detail} /></p>{/if}
                     {#each latest.consequences as consequence (consequence.id)}
                         {@const appearance = consequence.companyId
                             ? session.mapView.stations[consequence.companyId]
@@ -312,14 +306,16 @@
                                 ? contrastingTextColor(consequence.phase.color)
                                 : undefined}
                         >
-                            <strong>{consequence.description.text}</strong
+                            <strong><PlaceText text={consequence.description.text} /></strong
                             >{#if consequence.description.trainDefinitionIds?.length}{' '}<span
                                     class="trains"
                                     >{#each consequence.description.trainDefinitionIds as id, i (i)}<TrainBadge
                                             name={session.trainDepot.trainDefinition(id).name}
                                             color={trainColors[id]}
                                         />{/each}</span
-                                >{/if}{#if consequence.description.value}{` ${consequence.description.value}`}{/if}{#if consequence.detail}{` · ${consequence.detail}`}{/if}
+                                >{/if}{#if consequence.description.value}{` ${consequence.description.value}`}{/if}{#if consequence.detail}{' · '}<PlaceText
+                                    text={consequence.detail}
+                                />{/if}
                         </p>
                     {/each}
                 </div>
@@ -348,6 +344,7 @@
                     </div>
                 {/if}
             </div>
+            {#each latest.callouts as callout, index (index)}<HistoryCallout {callout} />{/each}
         {/if}
     </section>
 {/if}

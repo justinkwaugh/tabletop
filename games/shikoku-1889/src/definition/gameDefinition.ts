@@ -1,6 +1,6 @@
 import { Shikoku1889Names } from '../names.js'
 import { createEighteenXXRuntime, type EighteenXXTitleRules } from '@tabletop/18xx'
-import { type GameDefinition } from '@tabletop/common'
+import type { GameDefinition } from '@tabletop/common'
 import { Shikoku1889CompanyRules } from '../companyRules.js'
 import { Shikoku1889EarningsRules } from '../earningsRules.js'
 import { Shikoku1889EndingRules } from '../endingRules.js'
@@ -39,8 +39,10 @@ export const Shikoku1889TitleRules: EighteenXXTitleRules<
     transferRules: Shikoku1889TransferRules,
     privatePowerRules: Shikoku1889PrivatePowerRules,
     outOfTurnPrivatePowers: true,
+    runInstructions: true,
     createOpening: createShikoku1889Opening,
     startingCash: shikoku1889StartingCash,
+    currencySymbol: '¥',
     stockRules: Shikoku1889StockRules,
     companyRules: Shikoku1889CompanyRules,
     operatingRules: Shikoku1889OperatingRules,

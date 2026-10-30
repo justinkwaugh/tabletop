@@ -36,10 +36,10 @@
         const name = regionName(region)
         if (pick.kind === 'travel') return `${name}: ${count} to travel to`
         if (pick.kind === 'banish') return `${name}: ${count} to banish to`
-        if (pick.kind === 'power' || pick.kind === 'ruler' || pick.kind === 'playTo') {
-            return `${name}: ${count} lit ${count === 1 ? 'site' : 'sites'}`
-        }
-        return `${name}: ${count} start ${count === 1 ? 'site' : 'sites'}`
+        if (pick.kind === 'start')
+            return `${name}: ${count} start ${count === 1 ? 'site' : 'sites'}`
+        // The powers' sites, the ruler's pick, a site play and the chronicle's build (R-8.3.1).
+        return `${name}: ${count} lit ${count === 1 ? 'site' : 'sites'}`
     }
 
     function opening(): MapFrame | undefined {

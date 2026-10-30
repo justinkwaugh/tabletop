@@ -25,7 +25,9 @@ import {
     GameState,
     type HydratedGameState,
     GameEngine,
+    reportGameProgress,
     createGameFork,
+    linkGameContinuation,
     GameForkError,
     GameStorage,
     GameCategory,
@@ -172,7 +174,7 @@ export class GameService implements GameServiceInterface {
         }
         const sessionUser = this.authorizationService.getSessionUser()
         let fetched: { games: Game[]; localGames: Game[] } | undefined
-        let changes: GameListChange[] = []
+        let changes: GameListChange[]
         do {
             this.reloadRequested = false
             changes = []
@@ -320,12 +322,18 @@ export class GameService implements GameServiceInterface {
             const runtime = await definition.runtime()
             const gameDefinition = { info: definition.info, runtime }
             const initializedGame = runtime.initializer.initializeGame(game, gameDefinition)
+            const continuation = await linkGameContinuation(
+                initializedGame,
+                options?.continueFromGameId,
+                gameDefinition,
+                async (sourceGameId) => (await this.localGameStore.loadGameData(sourceGameId)).game
+            )
 
             const engine = new GameEngine(runtime)
-            const { startedGame, initialState } = engine.startGame(
-                initializedGame,
-                options?.masterSeed
-            )
+            const { startedGame, initialState } = engine.startGame(initializedGame, {
+                masterSeed: options?.masterSeed,
+                continuation
+            })
 
             startedGame.activePlayerIds = initialState.activePlayerIds
 
@@ -399,12 +407,14 @@ export class GameService implements GameServiceInterface {
         const actionsData = actions.map((action) => structuredClone(action))
 
         gameData.activePlayerIds = stateData.activePlayerIds
+        gameData.canContinue = stateData.canContinue
 
         if (game.storage !== GameStorage.Local) {
             throw new Error('Can only save local games locally')
         }
 
-        await validateLocalGameState(this.libraryService, gameData, stateData)
+        const runtime = await validateLocalGameState(this.libraryService, gameData, stateData)
+        gameData.progress = reportGameProgress(runtime, stateData)
         await this.localGameStore.storeGameData({
             game: gameData,
             actions: actionsData,
@@ -463,6 +473,12 @@ export class GameService implements GameServiceInterface {
         return updatedGame
     }
 
+    async requestCall(game: Game, declaredWinnerId?: string): Promise<Game> {
+        const updatedGame = await this.api.requestCall(game, declaredWinnerId)
+        this.upsertCachedGame(updatedGame)
+        return updatedGame
+    }
+
     async approveVote(game: Game, voteId: string): Promise<Game> {
         const updatedGame = await this.api.approveVote(game, voteId)
         this.upsertCachedGame(updatedGame)
@@ -506,11 +522,10 @@ export class GameService implements GameServiceInterface {
             ) {
                 this.removeFromPublicCache(game.id)
             } else {
-                const titleGames = (this.openGamesByTitleId.get(game.typeId) || []).filter(
-                    (g) => g.id !== game.id
-                )
-
-                titleGames.push(game)
+                const titleGames = [...(this.openGamesByTitleId.get(game.typeId) ?? [])]
+                const index = titleGames.findIndex((existing) => existing.id === game.id)
+                if (index === -1) titleGames.push(game)
+                else titleGames[index] = game
                 this.openGamesByTitleId.set(game.typeId, titleGames)
             }
 

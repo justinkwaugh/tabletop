@@ -17,6 +17,7 @@ export const EighteenXXPreferences = Type.Object(
         spreadsheetHeightPercent: Type.Number({ minimum: 25, maximum: 65 }),
         spreadsheetSplitPercent: Type.Number({ minimum: 25, maximum: 65 }),
         paneLayout: Type.Unknown(),
+        tabbedLayout: Type.Unknown(),
         theme: Type.Union([Type.Literal('light'), Type.Literal('dark')]),
         spreadsheetView: Type.Union([Type.Literal('player'), Type.Literal('company')])
     },
@@ -27,6 +28,7 @@ export const EighteenXXPreferenceDefinition = {
         schema: EighteenXXPreferences,
         defaults: {
             paneLayout: null,
+            tabbedLayout: null,
             operatingOrderDisplay: 'details',
             historyOrder: 'newestLast',
             spreadsheetView: 'player',
@@ -50,6 +52,7 @@ export const EighteenXXPreferenceDefinition = {
         schema: EighteenXXPreferences,
         defaults: {
             paneLayout: null,
+            tabbedLayout: null,
             operatingOrderDisplay: 'details',
             historyOrder: 'newestLast',
             spreadsheetView: 'player',

@@ -18,7 +18,7 @@ import { EighteenThirtyTrackRules } from '../trackRules.js'
 import { EighteenThirtyOperatingRules } from '../roundRules.js'
 import { EighteenThirtyCompanyRules } from '../companyRules.js'
 import { EighteenThirtyStockRules } from '../stockRules.js'
-import { type GameDefinition } from '@tabletop/common'
+import type { GameDefinition } from '@tabletop/common'
 import { EighteenThirtyInfo } from './info.js'
 import {
     EighteenThirtyStateDefinition,
@@ -41,6 +41,7 @@ export const EighteenThirtyTitleRules: EighteenXXTitleRules<
     outOfTurnPrivatePowers: true,
     createOpening: createEighteenThirtyOpening,
     startingCash: eighteenThirtyStartingCash,
+    currencySymbol: '$',
     stockRules: EighteenThirtyStockRules,
     companyRules: EighteenThirtyCompanyRules,
     operatingRules: EighteenThirtyOperatingRules,
@@ -51,7 +52,8 @@ export const EighteenThirtyTitleRules: EighteenXXTitleRules<
     privateRules: EighteenThirtyPrivateRules,
     phases: EighteenThirtyPhases,
     phaseRules: EighteenThirtyPhaseRules,
-    trainRules: EighteenThirtyTrainRules
+    trainRules: EighteenThirtyTrainRules,
+    runInstructions: true
 }
 
 export const Definition: GameDefinition<EighteenThirtyState, HydratedEighteenThirtyState> = {

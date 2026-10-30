@@ -1,4 +1,7 @@
-import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
+import {
+    gameClientCapabilities,
+    type GameUiDefinition
+} from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { OathInfo } from '@tabletop/oath'
 import type { OathProjectedState, HydratedOathGameState } from '@tabletop/oath'
 import coverImg from '$lib/images/cover.jpg'
@@ -6,7 +9,8 @@ import coverImg from '$lib/images/cover.jpg'
 export const UiDefinition: GameUiDefinition<OathProjectedState, HydratedOathGameState> = {
     info: {
         ...OathInfo,
-        thumbnailUrl: coverImg
+        thumbnailUrl: coverImg,
+        clientCapabilities: gameClientCapabilities()
     },
     runtime: async () => {
         return (await import('./runtime.js')).OathUiRuntime

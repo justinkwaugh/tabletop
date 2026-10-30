@@ -32,7 +32,7 @@ export class BridgesGameInitializer
         const numPlayers = game.players.length
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
 
-        const board = this.initializeBoard(numPlayers)
+        const board = startingBoard(numPlayers)
 
         const bridgesState: BridgesGameState = Object.assign(state, {
             players: players,
@@ -69,41 +69,41 @@ export class BridgesGameInitializer
 
         return players
     }
+}
 
-    private initializeBoard(numPlayers: number): BridgesGameBoard {
-        const board: BridgesGameBoard = {
-            villages: [
-                this.createVillage([1, 3, 4, 6], false),
-                this.createVillage(numPlayers === 3 ? [0, 5] : [0, 2, 5], false),
-                this.createVillage(numPlayers === 3 ? [] : [1, 5, 9], numPlayers === 3),
-                this.createVillage([0, 4, 6, 10], false),
-                this.createVillage([0, 3, 5, 7], false),
-                this.createVillage(numPlayers === 3 ? [1, 4, 8] : [1, 2, 4, 8], false),
-                this.createVillage([0, 3, 10], false),
-                this.createVillage([4, 8, 10, 11], false),
-                this.createVillage([5, 7, 9, 12], false),
-                this.createVillage(numPlayers === 3 ? [8, 12] : [2, 8, 12], false),
-                this.createVillage([3, 6, 7, 11], false),
-                this.createVillage([7, 10, 12], false),
-                this.createVillage([8, 9, 11], false)
-            ]
-        }
-        return board
+export function startingBoard(numPlayers: number): BridgesGameBoard {
+    const board: BridgesGameBoard = {
+        villages: [
+            createVillage([1, 3, 4, 6], false),
+            createVillage(numPlayers === 3 ? [0, 5] : [0, 2, 5], false),
+            createVillage(numPlayers === 3 ? [] : [1, 5, 9], numPlayers === 3),
+            createVillage([0, 4, 6, 10], false),
+            createVillage([0, 3, 5, 7], false),
+            createVillage(numPlayers === 3 ? [1, 4, 8] : [1, 2, 4, 8], false),
+            createVillage([0, 3, 10], false),
+            createVillage([4, 8, 10, 11], false),
+            createVillage([5, 7, 9, 12], false),
+            createVillage(numPlayers === 3 ? [8, 12] : [2, 8, 12], false),
+            createVillage([3, 6, 7, 11], false),
+            createVillage([7, 10, 12], false),
+            createVillage([8, 9, 11], false)
+        ]
     }
+    return board
+}
 
-    private createVillage(neighbors: number[], stone: boolean): Village {
-        return {
-            spaces: {
-                [MasterType.Astrologer]: undefined,
-                [MasterType.DragonBreeder]: undefined,
-                [MasterType.Firekeeper]: undefined,
-                [MasterType.Healer]: undefined,
-                [MasterType.Priest]: undefined,
-                [MasterType.Rainmaker]: undefined,
-                [MasterType.YetiWhisperer]: undefined
-            },
-            neighbors: neighbors,
-            stone: stone
-        }
+function createVillage(neighbors: number[], stone: boolean): Village {
+    return {
+        spaces: {
+            [MasterType.Astrologer]: undefined,
+            [MasterType.DragonBreeder]: undefined,
+            [MasterType.Firekeeper]: undefined,
+            [MasterType.Healer]: undefined,
+            [MasterType.Priest]: undefined,
+            [MasterType.Rainmaker]: undefined,
+            [MasterType.YetiWhisperer]: undefined
+        },
+        neighbors: neighbors,
+        stone: stone
     }
 }

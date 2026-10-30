@@ -30,7 +30,7 @@ export function campaignTargetOptions(
         kind: CampaignTargetKind.Site,
         siteId
     }))
-    const siteRelics = plansTargetSiteRelics(plans)
+    const siteRelics = plansTargetSiteRelics(state, plans)
         ? chosen.flatMap((target) =>
               target.kind === CampaignTargetKind.Site && siteIds.includes(target.siteId)
                   ? state.relicSlotsAt(target.siteId).map((slot): CampaignTarget => ({

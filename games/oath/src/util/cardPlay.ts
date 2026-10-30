@@ -9,7 +9,7 @@ import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
-import { cardDefinition, CONSPIRACY_ID, kindOf, suitOf } from '../data/cardRegistry.js'
+import { cardDefinition, CONSPIRACY_ID, kindOf } from '../data/cardRegistry.js'
 import { SALT_THE_EARTH, siteCapacityAfterPlay } from './capacity.js'
 import {
     detachFromPlay,
@@ -45,6 +45,7 @@ import {
     advisersOfSuit,
     afterCardPlayedPersistent,
     reasonPersistentForbidsFacedownAdviser,
+    reasonPersistentForbidsFaceupPlay,
     reasonPersistentForbidsFaceupVision,
     reasonPersistentForbidsSecretCost,
     reasonPersistentForbidsBannerTake,
@@ -71,7 +72,7 @@ export function conspiracyMatchCount(
     const targetSuits = new Set(
         target
             .faceupAdviserIds()
-            .map((cardId) => suitOf(cardId))
+            .map((cardId) => state.suitInPlay(cardId))
             .filter((suit) => suit !== undefined)
     )
 
@@ -253,7 +254,7 @@ function cardDiscardedFirst(
 ): string | undefined {
     const first = play === SearchPlay.Site ? options.discardFirstCardId : undefined
     const at = first ? siteHolding(state, first) : undefined
-    return first && at && state.isMusterableCard(at, first) ? first : undefined
+    return at === undefined ? undefined : first
 }
 
 /** R-5.1.4.I — the site a site play puts the card at: the pawn's, or the one the People's Favor or New Growth names. */
@@ -330,7 +331,7 @@ function playGains(
 
     if (siteId !== undefined) {
         if (first) giveBack(first)
-        const suit = suitOf(cardId)
+        const suit = state.suitInPlay(cardId)
         if (suit) {
             if (sitePlayGainsSecret(options)) secrets += 1
             else gainOneFavor(suit)
@@ -457,7 +458,7 @@ export function playCard(
             }
             state.denizensBySite[siteId] = [...state.denizensAt(siteId), cardId]
 
-            const suit = suitOf(cardId)
+            const suit = state.suitInPlay(cardId)
             assertExists(suit, `${cardId} has no suit`)
             if (sitePlayGainsSecret(options)) {
                 // Book of Records — "you must gain a secret instead of favor".
@@ -746,6 +747,9 @@ export function reasonCannotPlaceCard(
             if (definition?.placement === 'adviser') {
                 return `${cardId} can only be played to your advisers`
             }
+            // R-7.1.4 — Ruined Temple: enemies of its ruler cannot play beast cards faceup.
+            const barred = reasonPersistentForbidsFaceupPlay(state, playerId, cardId)
+            if (barred) return barred
             const target = options.toSiteId ?? here
             // R-5.1.4.I — the People's Favor's holder may play to any site in their region;
             // New Growth to another site when a carried modifier allows it for this card.
@@ -805,7 +809,7 @@ export function reasonCannotPlaceCard(
                     return `site ${target} is at its capacity of ${capacity}`
                 }
             }
-            if (!suitOf(cardId)) {
+            if (!state.suitInPlay(cardId)) {
                 return `${cardId} has no suit, so no favor bank matches it`
             }
             return undefined
@@ -820,6 +824,9 @@ export function reasonCannotPlaceCard(
                 if (definition?.placement === 'site') {
                     return `${cardId} can only be played to a site`
                 }
+                // R-7.1.4 — Ruined Temple: enemies of its ruler cannot play beast cards faceup.
+                const barred = reasonPersistentForbidsFaceupPlay(state, playerId, cardId)
+                if (barred) return barred
             } else if (kind !== CardKind.Denizen && kind !== CardKind.Vision) {
                 return 'only denizens and Visions can be advisers'
             } else {

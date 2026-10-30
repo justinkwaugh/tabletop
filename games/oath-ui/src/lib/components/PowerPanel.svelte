@@ -15,7 +15,7 @@
     import FavorCost from '$lib/components/FavorCost.svelte'
     import PowerMovesPicker from '$lib/components/PowerMovesPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName } from '$lib/model/names.js'
+    import { powerCardName } from '$lib/model/names.js'
     import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { awaitsFirstPick } from '$lib/model/powerChoices.js'
     import { MAJOR_ACTIONS } from '$lib/model/actionCatalogue.js'
@@ -72,7 +72,7 @@
     }
     function entryLine(card: ActionCard): string {
         return actionCardUses(card)
-            .map((use) => actionCardLine(use.cardId))
+            .map((use) => actionCardLine(use.cardId, gameSession.gameState))
             .filter((line) => line !== '')
             .join(' · ')
     }
@@ -122,13 +122,13 @@
         {#each group.cards as card (actionCardKey(card))}
             {@const action = actionName(card)}
             {@const uses = actionCardUses(card)}
-            {@const name = uses.map((use) => cardName(use.cardId)).join(' + ')}
+            {@const name = uses.map((use) => powerCardName(use.cardId, use.powerIndex)).join(' + ')}
             <div
                 class="border-t border-oath-divider pt-1.5 flex gap-2 items-start"
                 data-action-card={uses.map((use) => use.cardId).join(' ')}
             >
                 {#each uses as use (use.cardId)}
-                    {@const cardLabel = cardName(use.cardId)}
+                    {@const cardLabel = powerCardName(use.cardId, use.powerIndex)}
                     <span class="relative inline-flex shrink-0">
                         <CardImage cardId={use.cardId} width={64} label={cardLabel} inspect />
                         <Magnifier
@@ -167,7 +167,7 @@
     {/if}
     {#each draft.powers as p (powerKey(p.cardId, p.powerIndex))}
         {@const reason = reasonFor(p)}
-        {@const name = cardName(p.cardId)}
+        {@const name = powerCardName(p.cardId, p.powerIndex)}
         {@const cost = useCost(p)}
         {@const moves = draft.movesOf(p)}
         {@const complete = draft.picksComplete(p)}

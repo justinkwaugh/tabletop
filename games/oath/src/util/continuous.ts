@@ -1,7 +1,7 @@
 import { HydratedOathGameState } from '../model/gameState.js'
-import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
+import { PowerTiming } from '../data/cardPowers.js'
+import { powersInPlay } from './powersInPlay.js'
 import { effectFor, type ContinuousHooks } from '../powers/registry.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 /** R-7.1.4-H1 — a continuous power binds its holder: faceup advisers and held relics; Master of Disguise lends another player's advisers. */
@@ -56,7 +56,7 @@ export function cannotPlayVisionsFaceup(state: HydratedOathGameState, playerId: 
 
 function hooksOfCard(state: HydratedOathGameState, cardId: string): ContinuousHooks[] {
     const hooks: ContinuousHooks[] = []
-    for (const power of powersWithTiming(cardId, PowerTiming.Continuous)) {
+    for (const power of powersInPlay(state, cardId, PowerTiming.Continuous)) {
         const c = effectFor(power)?.continuous
         if (c) hooks.push(c)
     }
@@ -91,12 +91,16 @@ export function countsTowardAdviserLimit(
         ...continuousHooksOf(state, playerId),
         ...(withCardId ? hooksOfCard(state, withCardId) : [])
     ]
-    return !exemptFromAdviserLimit(held, cardId)
+    return !exemptFromAdviserLimit(state, held, cardId)
 }
 
 /** Family Wagon — "they ignore your adviser limit": a suit a held card exempts. */
-function exemptFromAdviserLimit(held: readonly ContinuousHooks[], cardId: string): boolean {
-    const suit = suitOf(cardId)
+function exemptFromAdviserLimit(
+    state: HydratedOathGameState,
+    held: readonly ContinuousHooks[],
+    cardId: string
+): boolean {
+    const suit = state.suitInPlay(cardId)
     return held.some(
         (h) => h.adviserLimitExemptSuit !== undefined && h.adviserLimitExemptSuit === suit
     )
@@ -191,7 +195,7 @@ export function holdingExcess(
             !(
                 arrivesIgnoringAdviserLimit(state, cardId) &&
                 (receivedCardIds.includes(cardId) || !piperCounts)
-            ) && !exemptFromAdviserLimit(held, cardId)
+            ) && !exemptFromAdviserLimit(state, held, cardId)
     ).length
     return Math.max(0, holding.facedown + counted - lowestAdviserLimit(holding.baseLimit, held))
 }

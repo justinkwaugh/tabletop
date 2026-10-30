@@ -2,6 +2,7 @@
     import { onMount } from 'svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { accountName } from '$lib/utils/accountName'
+    import GameProgressBar from '../GameProgressBar.svelte'
 
     import {
         generateSeed,
@@ -40,6 +41,7 @@
         )
     }
     let visibleTables = $derived(schedule?.tables.slice(page * 20, (page + 1) * 20) ?? [])
+    let hasProgress = $derived((detail.games ?? []).some((game) => game.progress))
     let gamesByTable = $derived(
         new Map(
             (detail.games ?? [])
@@ -136,6 +138,7 @@
                         {#each Array.from({ length: schedule.tableSize }, (_, index) => index + 1) as position (position)}<th
                                 class="px-3 py-2 font-normal whitespace-nowrap">Seat {position}</th
                             >{/each}
+                        {#if hasProgress}<th class="px-3 py-2 font-normal">Progress</th>{/if}
                         <th class="w-0 p-0"><span class="sr-only">Game</span></th>
                     </tr></thead
                 >
@@ -214,6 +217,13 @@
                                             >{@render playerName()}</span
                                         >{/if}
                                 </td>{/each}
+                            {#if hasProgress}<td class="px-3 py-2">
+                                    {#if game?.progress}<GameProgressBar
+                                            progress={game.progress}
+                                            class="w-44"
+                                            labelClass="w-20 shrink-0"
+                                        />{/if}
+                                </td>{/if}
                             <td class="sticky right-0 z-20 w-0 p-0">
                                 {#if game}<a
                                         class="game-action absolute inset-y-px right-px flex items-center gap-1 px-3 font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 {isMine

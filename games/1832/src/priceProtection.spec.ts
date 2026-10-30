@@ -14,9 +14,10 @@ import {
     EighteenThirtyTwoStockRules,
     EighteenThirtyTwoTrainFundingRules,
     EighteenThirtyTwoTrainRules,
+    isCloseCompany,
     type EighteenThirtyTwoState
 } from './index.js'
-import { EighteenThirtyTwoScenarios } from './scenarios/index.js'
+import { addUnstartedRailroads, EighteenThirtyTwoScenarios } from './scenarios/index.js'
 
 type Play = ExamplePlay<EighteenThirtyTwoState>
 const player = (playerId: string) => ({ kind: 'player' as const, playerId })
@@ -133,7 +134,11 @@ describe('share price protection', () => {
         play.act('FinishStockTurn')
         expect(play.state.machineState).toBe('ProtectingPrice')
         expect(play.state.activePlayerIds).toEqual(['blair'])
-        expect(play.valid('blair')).toEqual(['ProtectShares', 'DeclineProtection'])
+        expect(play.valid('blair')).toEqual([
+            'ProtectShares',
+            'DeclineProtection',
+            'SetRunInstruction'
+        ])
         play.act('ProtectShares', { companyId: 'CG' }, 'blair')
         expect(play.state.machineState).toBe('StockRound')
         expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('0:6')
@@ -252,7 +257,11 @@ describe('share price protection', () => {
             // With nothing left to buy, casey's turn ends with the second sale.
             sell(play, 'CG', 1)
             expect(play.state.activePlayerIds).toEqual(['alex'])
-            expect(play.valid('alex')).toEqual(['ProtectShares', 'DeclineProtection'])
+            expect(play.valid('alex')).toEqual([
+                'ProtectShares',
+                'DeclineProtection',
+                'SetRunInstruction'
+            ])
             return play
         }
         const both = caseySells()
@@ -463,6 +472,7 @@ describe('black-area closure', () => {
 
     it('sends its trains to the market and takes its rights and tokens out of play', () => {
         const play = trading((state) => {
+            addUnstartedRailroads(state)
             placeStockMarker(state.stockMarket, 'CG', '8:1')
             state.coalRights = ['CG']
             state.revenueTokens = [
@@ -494,6 +504,17 @@ describe('black-area closure', () => {
         )
         expect(play.state.coalRights).toEqual([])
         expect(play.state.revenueTokens).toEqual([])
+        const closure = play.processed.find(isCloseCompany)?.metadata
+        expect(closure?.returnedCoalRights).toBe(true)
+        expect(closure?.removedRevenueTokens).toEqual([
+            { kind: 'port', companyId: 'CG', locationId: 'U28', nodeId: 'city-0' }
+        ])
+        expect(closure?.trainRelease).toEqual({
+            destination: 'market',
+            definitionIds: [play.state.trainInventory.trains[0].definitionId]
+        })
+        // Nine of the ten railroads remain, lowering three players' limit (Table 2).
+        expect(closure?.certificateLimit).toEqual({ from: 20, to: 17 })
     })
 
     it('forfeits the president’s cash when funding sales close their own company', () => {

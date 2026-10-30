@@ -64,6 +64,8 @@ export const ACTION_CARD_CONSEQUENCES: Readonly<Record<string, string>> = {
     'relic.truthful-harp': 'reveal them'
 }
 
+const GREAT_SPIRE = 'edifice.arcane.great-spire'
+
 /**
  * R-7.4 — each optional modifier's one line, what it gives, as its menu row and its Use a power
  * entry say it: a gain the action's row then counts ("+1 warband"), a price it waives
@@ -110,12 +112,20 @@ export const ACTION_CARD_LINES: Readonly<Record<string, string>> = {
     'denizen.hearth.land-warden': 'play 2 cards',
     'denizen.hearth.crop-rotation': 'discard one there first',
     'denizen.order.hunting-party': 'then a free Campaign',
+    [GREAT_SPIRE]: 'swap with the Dispossessed',
     // Recover
     'denizen.arcane.magicians-code': '+2 secrets on the Darkest Secret'
 }
 
-/** The line a card's row says, empty for a card the table does not know. */
-export function actionCardLine(cardId: string): string {
+/**
+ * The line a card's row says, empty for a card the table does not know. Great Spire may be declared
+ * with the Dispossessed empty (R-8.5: the Chronicle fills it), so its line then says so.
+ */
+export function actionCardLine(
+    cardId: string,
+    state?: Pick<HydratedOathGameState, 'dispossessedCount'>
+): string {
+    if (cardId === GREAT_SPIRE && state?.dispossessedCount === 0) return 'the Dispossessed is empty'
     return ACTION_CARD_LINES[cardId] ?? ''
 }
 

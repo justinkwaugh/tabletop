@@ -47,6 +47,9 @@ export class PhaseTable {
         assertExists(phase, `Unknown phase ${phaseId}`)
         return phase
     }
+    share(phaseId: string): number {
+        return this.phases.length === 1 ? 1 : this.position(phaseId) / (this.phases.length - 1)
+    }
     isAtLeast(currentPhaseId: string, phaseId: string): boolean {
         return this.position(currentPhaseId) >= this.position(phaseId)
     }

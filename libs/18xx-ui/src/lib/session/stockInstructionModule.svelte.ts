@@ -24,7 +24,7 @@ import {
 import type { ModuleSession } from './moduleSession.js'
 
 type InstructionState = Parameters<typeof stockPositionChange>[0] &
-    Pick<EighteenXXState, 'machineState'>
+    Pick<EighteenXXState, 'machineState' | 'result'>
 
 export type StockInstructionSession = ModuleSession<
     InstructionState,
@@ -44,6 +44,7 @@ export class StockInstructionModule {
 
     private open = $derived.by(
         () =>
+            this.session.state.result === undefined &&
             this.session.state.machineState === 'StockRound' &&
             !this.session.state.stockRound.completed
     )
@@ -59,6 +60,7 @@ export class StockInstructionModule {
             (!this.session.ordinaryHotseatPlay || this.session.viewingAsNonActivePlayer)
     )
     canDeclare = $derived.by(() => this.available && this.session.interactive)
+    shown = $derived(!!this.mine || this.available)
     warning = $derived.by(() =>
         this.mine
             ? stockPositionChange(this.session.state, this.mine, this.session.rules.stockRules)

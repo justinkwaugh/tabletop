@@ -4,7 +4,6 @@ import {
     ActionSource,
     GameAction,
     HydratableAction,
-    PlayerAction,
     assert,
     type HydratedAction
 } from '@tabletop/common'
@@ -18,7 +17,8 @@ import {
     type RouteRules,
     type StationPlacementState,
     type TrainRunningState,
-    stepAction
+    stepAction,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import type { TitleStepAction } from './titleActions.js'
 import { EighteenThirtyTwoMap, PortLocationIds } from './map.js'
@@ -192,7 +192,7 @@ export function revenueTokenChoices(
 
 export const PlaceRevenueToken = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('PlaceRevenueToken'),
         companyId: Type.String(),
         kind: RevenueTokenKind,

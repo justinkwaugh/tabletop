@@ -42,3 +42,16 @@ export function auctionLotDetails(session: EighteenXXSessionView, lotIds: readon
             return Number(!!a.share) - Number(!!b.share) || a.name.localeCompare(b.name)
         })
 }
+
+export type PrivateLotDetail = ReturnType<typeof privateLotDetail>
+
+export function selectionLotDetail(
+    session: EighteenXXSessionView,
+    lotId: string
+): PrivateLotDetail {
+    const model = session.selectionAuction.model
+    assertExists(model, 'Selection lots require a selection auction')
+    const lot = model.lots.find((item) => item.id === lotId)
+    assertExists(lot, `Selection auction lot ${lotId} must be known`)
+    return privateLotDetail(session, lot)
+}

@@ -7,7 +7,7 @@ import {
     sharesOwned,
     treasuryPoolId
 } from '@tabletop/18xx'
-import { finishTurn, setInstruction } from '@tabletop/18xx/testing'
+import { finishTurn, ownViewActions, setInstruction } from '@tabletop/18xx/testing'
 import { stockGame } from '../test/testSupport.js'
 import { StockRules1846, Market1846 } from './stock.js'
 
@@ -179,6 +179,24 @@ describe('1846 first stock round', () => {
             playerId: second
         })
         expect(sharesOwned(table.state, 'IC', { kind: 'player', playerId: first })).toBe(2)
+    })
+    it('offers the acting player the same stock actions in their own view as in the full game', () => {
+        const table = stockGame()
+        const expectSameActions = () => {
+            const { own, full } = ownViewActions(
+                table.engine,
+                table.game,
+                table.state,
+                table.state.activePlayerIds[0]
+            )
+            expect(full).toContain('FinishStockTurn')
+            expect(own).toEqual(full)
+        }
+        expectSameActions()
+        table.launch()
+        expectSameActions()
+        table.buy('IC')
+        expectSameActions()
     })
     it('replays and reverses the stock round including automatic flotation and completion', () => {
         const table = stockGame()

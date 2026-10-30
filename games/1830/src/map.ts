@@ -89,6 +89,7 @@ function blocker(id: string, name: string) {
     return {
         id: `blocks-${id}`,
         label: PrivateInitials[id],
+        privateCompanyId: id,
         description: `No track while ${name} is player-owned.`
     }
 }

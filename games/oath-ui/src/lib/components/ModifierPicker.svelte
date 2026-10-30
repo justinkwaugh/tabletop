@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { cardName } from '$lib/model/names.js'
+    import { powerCardName } from '$lib/model/names.js'
     import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { ActionType, IMPERIAL_WARBANDS, powerKey, type CardPower } from '@tabletop/oath'
     import CardLine from '$lib/components/CardLine.svelte'
@@ -52,7 +52,7 @@
                 >
                     {#snippet line()}<CardLine
                             lender={gameSession.modifiers.lenderOf(power)}
-                            gives={actionCardLine(power.cardId)}
+                            gives={actionCardLine(power.cardId, gameSession.gameState)}
                             cost={answerCostText(power.cost)}
                             consequence={ACTION_CARD_CONSEQUENCES[power.cardId]}
                             {warbandColor}
@@ -70,7 +70,7 @@
                         <!-- A card's own few words ("To:") stand for its name. -->
                         {#if !words.pile}
                             <div class="text-oath-text-muted mb-0.5">
-                                {cardName(power.cardId)}:
+                                {powerCardName(power.cardId, power.powerIndex)}:
                             </div>
                         {/if}
                         <PowerChoicePicker

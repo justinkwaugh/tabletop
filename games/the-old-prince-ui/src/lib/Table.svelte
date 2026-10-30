@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { createRouteWorker } from './routeWorker.js'
     import {
         isSplitCompany,
         TheOldPrinceCompanies,
@@ -17,9 +18,6 @@
     import { requireTheOldPrinceSession } from './session.svelte.js'
     import BranchSplitPreview from './BranchSplitPreview.svelte'
     import Tranches from './Tranches.svelte'
-    function createRouteWorker() {
-        return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
-    }
     let {
         gameSession
     }: { gameSession: GameSession<TheOldPrinceState, HydratedTheOldPrinceState> } = $props()
@@ -67,7 +65,7 @@
               }
           ]
         : []}
-    historyDescription={(action, companyName) =>
+    historyDescription={(action, { companyName }) =>
         isSplitCompany(action)
             ? {
                   text: `Split ${companyName(action.branchId)} from ${companyName(action.parentId)}`,
@@ -80,6 +78,7 @@
     auctionLotDescription={(id) => lotInfo(id).description}
     {session}
     {privateOperationDescription}
+    {createRouteWorker}
 >
     {#snippet actions(focusLocation, focusRoute)}
         {#if session.offers.model && !session.offers.model.auction.completed}

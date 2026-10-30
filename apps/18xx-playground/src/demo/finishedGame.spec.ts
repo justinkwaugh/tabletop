@@ -305,6 +305,7 @@ it('replays the finished 1832 game, its Systems and closures, to its ending and 
     const names = {
         companyName: (id: string) => id,
         playerName: (id: string) => id,
+        place: (id: string) => id,
         bankName: 'Bank'
     }
     for (const action of actions)

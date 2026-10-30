@@ -92,7 +92,7 @@ import { restBankChoice, restRows, type RestRow } from './restRows.js'
 import { suitName } from './names.js'
 
 /** The panel drafts with one step: Undo clears the draft, and the derived default returns. */
-abstract class OneStepDraft<V> implements PanelDraft {
+export abstract class OneStepDraft<V> implements PanelDraft {
     private flow = new StagedFlow<{ draft: V }>(['draft'])
 
     constructor(protected readonly session: OathGameSession) {}

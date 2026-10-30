@@ -5,6 +5,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import {
+    EndDieAdjusted,
     OpenDeal,
     PowerQuestionKind,
     QuestionAnswer,
@@ -77,7 +78,9 @@ export const AnswerQuestionMetadata = Type.Object({
     /** R-7.6.3-H1 — the Tribunal deal this accept opened, public with its promises. */
     openedDeal: Type.Optional(OpenDeal),
     /** R-7.6.3-H1 — the deal a claim asked about, as it stood when answered: kept closes it. */
-    answeredDeal: Type.Optional(OpenDeal)
+    answeredDeal: Type.Optional(OpenDeal),
+    /** Squalid District — the end die as rolled and as the answer left it, and what it decided. */
+    endDie: Type.Optional(EndDieAdjusted)
 })
 
 export type AnswerQuestion = Type.Static<typeof AnswerQuestion>
@@ -151,7 +154,8 @@ export class HydratedAnswerQuestion
             warbandGain: outcome.warbandGain,
             titleMoment: outcome.titleMoment,
             openedDeal: outcome.openedDeal,
-            answeredDeal: outcome.answeredDeal
+            answeredDeal: outcome.answeredDeal,
+            endDie: outcome.endDie
         }
         commitHiddenOutputs(this, state, witnesses)
     }

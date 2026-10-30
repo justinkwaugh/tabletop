@@ -1,6 +1,5 @@
 import { PlayerStatus, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { assertExists } from '@tabletop/common'
 import { one, PowerChoiceKind } from '../util/powerChoice.js'
 import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
@@ -97,7 +96,9 @@ registerEffect(
                 domain: (state, playerId) => {
                     const here = denizensAtYourSite(state, playerId)
                     const suits = new Set(
-                        here.map((id) => suitOf(id)).filter((s): s is Suit => s !== undefined)
+                        here
+                            .map((id) => state.suitInPlay(id))
+                            .filter((s): s is Suit => s !== undefined)
                     )
                     // R-9.3, R-7.1.3 — an empty bank takes 0, as for the Vows above (R-X.4: before
                     // revision 18 it was left out).

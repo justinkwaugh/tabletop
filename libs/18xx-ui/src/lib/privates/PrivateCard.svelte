@@ -3,6 +3,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import type { StationAppearance } from '../maps/stationPresentation.js'
+    import PlaceText from '../places/PlaceText.svelte'
     let {
         money,
         name,
@@ -28,6 +29,14 @@
     const paragraphs = $derived(description.split('\n\n'))
     const phaseReference = /\b(?:phases?|at)\s$/i
 </script>
+
+{#snippet phaseText(text: string)}{@const parts =
+        text.split(
+            /(\b\d+(?:H|\+)?)/g
+        )}{#each parts as part, partIndex (partIndex)}{#if phaseColors[part] && phaseReference.test(parts[partIndex - 1] ?? '')}<TrainBadge
+                name={part}
+                color={phaseColors[part]}
+            />{:else}{part}{/if}{/each}{/snippet}
 
 <div class="private-card" class:image={!!imageUrl} data-card-image={imageUrl ? true : undefined}>
     {#if imageUrl}
@@ -72,13 +81,7 @@
                 <p>
                     {#if paragraph.startsWith('**') && paragraph.endsWith('**')}<strong
                             class="intro">{paragraph.slice(2, -2)}</strong
-                        >{:else}{@const parts =
-                            paragraph.split(
-                                /(\b\d+(?:H|\+)?)/g
-                            )}{#each parts as part, partIndex (partIndex)}{#if phaseColors[part] && phaseReference.test(parts[partIndex - 1] ?? '')}<TrainBadge
-                                    name={part}
-                                    color={phaseColors[part]}
-                                />{:else}{part}{/if}{/each}{/if}
+                        >{:else}<PlaceText text={paragraph} plain={phaseText} />{/if}
                 </p>
             {/each}
         {/if}

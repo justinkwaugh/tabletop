@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { sameCoordinates } from '@tabletop/common'
+import {
+    ActionSource,
+    CALL_GAME_ACTION_TYPE,
+    assert,
+    GameCallKind,
+    sameCoordinates,
+    type CallGameAction
+} from '@tabletop/common'
 import { GameSession } from '@tabletop/frontend-components'
 import {
     ActionSpaceId,
@@ -19,10 +26,13 @@ import {
     firstTurnTable,
     invest,
     layNothing,
+    onTheClock,
     openSessionOn,
+    SEATS,
+    sealedBid,
     type PlayedTable
 } from '$lib/testing/sessionHarness.js'
-import { historyEntries } from '$lib/utils/history.js'
+import { historyEntries, historyLines } from '$lib/utils/history.js'
 import {
     addPiece,
     pickBoostHex,
@@ -266,6 +276,67 @@ describe('history', () => {
             space: ActionSpaceId.LayTrackII
         })
         expect(turn?.kind === 'turn' && turn.actions).toHaveLength(2)
+    })
+
+    it('lists a turn newest first, with the revealed bids under the sale, highest first', () => {
+        const invested = invest(
+            choose(firstTurnTable(), ActionSpaceId.IndustryInvestment),
+            Industry.Grain
+        )
+        const investor = onTheClock(invested)
+        const others = SEATS.filter((playerId) => playerId !== investor)
+        const resolved = sealedBid(
+            sealedBid(sealedBid(invested, investor, 2), others[0], 5),
+            others[1],
+            3
+        )
+        const turn = historyEntries(resolved.actions).at(-1)
+        assert(turn?.kind === 'turn')
+        const lines = historyLines(turn)
+
+        expect(lines.map((line) => (line.kind === 'line' ? line.playerId : 'bids'))).toEqual([
+            others[0],
+            'bids',
+            others[1],
+            others[0],
+            investor,
+            investor
+        ])
+        expect(lines[0]).toMatchObject({ kind: 'line', tone: 'result' })
+        expect(lines[1]).toMatchObject({
+            kind: 'bids',
+            bids: [
+                { playerId: others[0], amount: 5 },
+                { playerId: others[1], amount: 3 },
+                { playerId: investor, amount: 2 }
+            ]
+        })
+        const investment = lines.at(-1)
+        assert(investment?.kind === 'line')
+        expect(investment.description.slice(0, 2)).toEqual([
+            'invested in ',
+            { industry: Industry.Grain }
+        ])
+    })
+
+    it('shows a called game as its own entry, not as a step of the turn it cut short', () => {
+        const { actions } = playedRound()
+        const call: CallGameAction = {
+            id: 'call',
+            gameId: 'game',
+            source: ActionSource.System,
+            type: CALL_GAME_ACTION_TYPE,
+            index: actions.length,
+            call: {
+                kind: GameCallKind.Called,
+                initiatorPlayerId: 'p1',
+                approvingPlayerIds: ['p1', 'p2'],
+                decliningPlayerIds: []
+            }
+        }
+        const entries = historyEntries([...actions, call])
+        expect(entries.at(-1)).toEqual({ kind: 'call', key: 'call', action: call })
+        expect(entries.at(-2)).toEqual(historyEntries(actions).at(-1))
     })
 
     it('jumps to an entry and withholds every move while viewing it', async () => {

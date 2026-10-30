@@ -3,7 +3,6 @@ import { askRestFromHomeBanks, payOwedFavor } from '../util/homeBankPayment.js'
 import { isLockedFor, ownCardLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply, returnFavorFromCards, returnSecretsToBoard } from '../util/rest.js'
 import { rulersOfSite, sitesRuledBy } from '../util/rule.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
@@ -146,7 +145,7 @@ registerModifier(
         hooks: {
             forbids: (ctx) => {
                 const cardId = ctx.particulars?.cardId
-                const suit = cardId ? suitOf(cardId) : undefined
+                const suit = cardId ? ctx.state.suitInPlay(cardId) : undefined
                 const matches =
                     suit !== undefined && hasFaceupAdviserOfSuit(ctx.state, ctx.playerId, suit)
                 return matches
@@ -165,7 +164,7 @@ const playersWithOrderOrDiscordAdviser: ChoiceDomain = (state) =>
         .filter((p) =>
             p
                 .faceupAdviserIds()
-                .some((cardId) => cardSuitIsOneOf(cardId, [Suit.Order, Suit.Discord]))
+                .some((cardId) => cardSuitIsOneOf(state, cardId, [Suit.Order, Suit.Discord]))
         )
         .map((p) => ({ kind: PowerChoiceKind.Player, playerId: p.playerId }))
 
@@ -469,7 +468,8 @@ const tameable: ChoiceDomain = (state, playerId) => {
     return denizensAtYourSite(state, playerId)
         .filter(
             (id) =>
-                cardSuitIsOneOf(id, [Suit.Beast, Suit.Nomad]) && !isLockedFor(state, playerId, id)
+                cardSuitIsOneOf(state, id, [Suit.Beast, Suit.Nomad]) &&
+                !isLockedFor(state, playerId, id)
         )
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 }
@@ -494,7 +494,7 @@ registerEffect(
                 ctx.power.cardId
             )
             assert(discarded.length > 0, `${card.cardId} is unlocked, so it is discarded`)
-            const suit = suitOf(card.cardId)
+            const suit = ctx.state.suitInPlay(card.cardId)
             assertExists(suit, `${card.cardId} prints no suit to match a favor bank`)
             const gained = gainFavorFromBank(ctx.state, ctx.playerId, suit, 2)
             return {

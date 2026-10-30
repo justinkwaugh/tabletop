@@ -6,6 +6,8 @@ export const LowenherzInfo: GameInfo = {
     id: 'lowenherz',
     metadata: {
         name: 'Löwenherz',
+        bggId: 66,
+        hasScores: true,
         designer: 'Klaus Teuber',
         description:
             'Löwenherz is a land development and territory-control game. Each round, an action card ' +

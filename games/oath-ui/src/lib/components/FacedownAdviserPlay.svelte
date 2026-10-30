@@ -272,7 +272,10 @@
                                         gameSession.toggleAdviserCardRow(powerUseKey(power))}
                                 >
                                     {#snippet line()}<CardLine
-                                            gives={actionCardLine(power.cardId)}
+                                            gives={actionCardLine(
+                                                power.cardId,
+                                                gameSession.gameState
+                                            )}
                                             cost={answerCostText(power.cost)}
                                             {warbandColor}
                                         />{/snippet}

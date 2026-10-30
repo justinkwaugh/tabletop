@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CalledGameDescription } from '@tabletop/frontend-components'
     import type { HistoryEntry } from '$lib/history/historyEntries.js'
     import { squareName } from '$lib/board/geometry.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
@@ -19,38 +20,42 @@
 {/snippet}
 
 <span class="inline">
-    <span class="font-semibold">{nameOf(entry.playerId)}</span>
-    {#if entry.kind === 'architect'}
-        placed architect {entry.architectNumber} on {@render square(entry.position)}
-        <span class="inline-block align-[-4px]"><PawnIcon size={18} /></span>
-    {:else if entry.kind === 'firstPlayer'}
-        {#if entry.startingPlayerId === entry.playerId}
-            chose to build first
-        {:else}
-            chose <span class="font-semibold">{nameOf(entry.startingPlayerId)}</span> to build first
-        {/if}
+    {#if entry.kind === 'gameCall'}
+        <CalledGameDescription action={entry.action} />
     {:else}
-        {#if entry.move}
-            moved architect {entry.move.architectNumber} to {@render square(
-                entry.move.position
-            )}{#if entry.build || entry.passed}, then{/if}
-        {/if}
-        {#if entry.build}
-            built a {entry.build.buildingType} on {@render square(entry.build.position)}
-            <span class="inline-block align-[-5px]">
-                <PieceIcon
-                    buildingType={entry.build.buildingType}
-                    color={session.colors.getPlayerUiColor(entry.playerId)}
-                    buildingStyle={session.buildingStyle}
-                    size={20}
-                />
-            </span>
-        {:else if entry.passed}
-            had nowhere to build and passed
-        {:else if entry.conceded}
-            conceded
-        {:else if !entry.move}
-            is taking a turn
+        <span class="font-semibold">{nameOf(entry.playerId)}</span>
+        {#if entry.kind === 'architect'}
+            placed architect {entry.architectNumber} on {@render square(entry.position)}
+            <span class="inline-block align-[-4px]"><PawnIcon size={18} /></span>
+        {:else if entry.kind === 'firstPlayer'}
+            {#if entry.startingPlayerId === entry.playerId}
+                chose to build first
+            {:else}
+                chose <span class="font-semibold">{nameOf(entry.startingPlayerId)}</span> to build first
+            {/if}
+        {:else}
+            {#if entry.move}
+                moved architect {entry.move.architectNumber} to {@render square(
+                    entry.move.position
+                )}{#if entry.build || entry.passed}, then{/if}
+            {/if}
+            {#if entry.build}
+                built a {entry.build.buildingType} on {@render square(entry.build.position)}
+                <span class="inline-block align-[-5px]">
+                    <PieceIcon
+                        buildingType={entry.build.buildingType}
+                        color={session.colors.getPlayerUiColor(entry.playerId)}
+                        buildingStyle={session.buildingStyle}
+                        size={20}
+                    />
+                </span>
+            {:else if entry.passed}
+                had nowhere to build and passed
+            {:else if entry.conceded}
+                conceded
+            {:else if !entry.move}
+                is taking a turn
+            {/if}
         {/if}
     {/if}
 </span>

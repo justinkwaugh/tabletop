@@ -1,7 +1,6 @@
 import {
     AnswerMerger,
     AnswerRedemption,
-    DiscardMergedTrain,
     MergingState,
     PassMerger,
     ProposeMerger,
@@ -37,13 +36,20 @@ import {
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
 import { undoableStagedSelection } from '@tabletop/frontend-components'
-import { cashOwnedBy, sameOwner, type Owner, type ShareSaleDetails } from '@tabletop/18xx'
+import {
+    cashOwnedBy,
+    sameOwner,
+    type Owner,
+    type ShareSaleDetails,
+    DiscardMergedTrain
+} from '@tabletop/18xx'
 import {
     createEighteenXXSessionClass,
     type HistoricalMapState,
     type TitlePrivatePower
 } from '@tabletop/18xx-ui'
 import { mapState1832 } from './mapState.js'
+import { createRouteWorker } from './routeWorker.js'
 import { awaitedDecision1832, mergedDiscardTerms, protectionTerms } from './awaitedDecision.js'
 import { EighteenThirtyTwoMapView } from './mapView.js'
 import { EighteenThirtyTwoPresentation } from './presentation.js'
@@ -70,7 +76,8 @@ const BaseSession: ReturnType<
 > = createEighteenXXSessionClass<typeof EighteenThirtyTwoState, HydratedEighteenThirtyTwoState>(
     EighteenThirtyTwoTitleRules,
     EighteenThirtyTwoMapView,
-    EighteenThirtyTwoPresentation
+    EighteenThirtyTwoPresentation,
+    createRouteWorker
 )
 
 const TokenPrivates = [

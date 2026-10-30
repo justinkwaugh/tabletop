@@ -11,7 +11,7 @@ import { SearchPlay, SearchResolve, isSearchResolve } from '../actions/searchRes
 import { UseActionPower, isUseActionPower } from '../actions/useActionPower.js'
 import { UseRestPower, isUseRestPower } from '../actions/useRestPower.js'
 import { PlayerStatus, Suit } from '../model/oathEnums.js'
-import { type OathProjectedState } from '../model/gameState.js'
+import type { OathProjectedState } from '../model/gameState.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { legalChoices, PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
 import '../powers/index.js'

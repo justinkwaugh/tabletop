@@ -24,6 +24,7 @@ function commanding(viewerId: string, changes: Partial<BlockMarkContext> = {}): 
         roles: {},
         pickedUnitIds: [],
         riderIds: [],
+        stepsLost: {},
         ...changes
     }
 }
@@ -168,5 +169,25 @@ describe('picking and naming a block', () => {
             role: BattleRole.PassedBy,
             roleMark: undefined
         })
+    })
+})
+
+describe('the loss mark of a block', () => {
+    it('shows the steps the attack that has just ended cost the unit, over its defence letter and moved dot', () => {
+        const { viewerId, moved } = ownUnits()
+        const unit = { ...moved, defendedApproach: 100 }
+        const mark = blockMarkOf(unit, GROUP, commanding(viewerId, { stepsLost: { [unit.id]: 2 } }))
+        expect(mark.roleMark).toEqual({ letter: '−2', heavy: true })
+        expect(mark.moved).toBe(false)
+    })
+
+    it('gives way to the letter of the unit’s part in an attack being fought', () => {
+        const { viewerId, moved } = ownUnits()
+        const context = commanding(viewerId, {
+            fighting: true,
+            roles: { [moved.id]: BattleRole.Leads },
+            stepsLost: { [moved.id]: 1 }
+        })
+        expect(blockMarkOf(moved, GROUP, context).roleMark).toEqual({ letter: 'L' })
     })
 })

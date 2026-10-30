@@ -1,14 +1,17 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { siteHolding, siteReference } from '@tabletop/oath'
+    import { edificeName, siteHolding, siteReference } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import CardWarbands from '$lib/components/CardWarbands.svelte'
     import SiteSentence from '$lib/components/SiteSentence.svelte'
     import { cardAspect } from '$lib/images/cardShape.js'
+    import { cardSideImage } from '$lib/images/cardImages.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import { siteRowCards } from '$lib/model/siteRow.js'
     import { cardPreview } from '$lib/model/cardPreview.svelte.js'
     import { previewSourceWidth, previewWidth } from '$lib/model/previewSize.js'
-    import { banditsDoing, cardName, plural } from '$lib/model/names.js'
+    import { banditsDoing, cardNameInPlay, plural } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { pawnImage, siteBanditsImage, warbandImage } from '$lib/images/pieceImages.js'
     import TokenBadge from '$lib/components/TokenBadge.svelte'
@@ -39,7 +42,8 @@
         }))
         const cardId = gameState.siteCardAt(slotId)
         const tokens = cardId ? gameState.tokensOn(cardId) : { favor: 0, secrets: 0 }
-        const denizens = (gameState.denizensBySite[slotId] ?? []).map(cardName)
+        // R-2.9 — an edifice is named with the denizens, by its face-up side.
+        const denizens = siteRowCards(gameState, slotId).map((id) => cardNameInPlay(gameState, id))
         const relics = gameState.relicSlotsAt(slotId).length
         return { ...onSite, pawns, tokens, denizens, relics }
     })
@@ -57,6 +61,30 @@
         const rulerIds = siteHolding(gameState, cardId) ? cardRulerIds(gameState, cardId) : []
         if (!hasWarbands && rulerIds.length === 0) return undefined
         return { cardId, hasWarbands, rulerIds }
+    })
+
+    // R-2.9 — both sides of an edifice are public: the other one is drawn small beside the card
+    // (under its boxes on a phone), and a ruin says what its missing suit means.
+    const OTHER_SIDE_WIDTH = 150
+    const OTHER_SIDE_WIDTH_PHONE = 96
+    const layout = new PhoneLayout()
+
+    let edifice = $derived.by(() => {
+        const cardId = preview?.cardId
+        if (!cardId || preview?.back !== undefined || preview?.slotId) return undefined
+        const gameState = gameSession.gameState
+        if (!gameState.isEdifice(cardId)) return undefined
+        const ruined = gameState.isRuined(cardId)
+        const otherWidth = layout.narrow ? OTHER_SIDE_WIDTH_PHONE : OTHER_SIDE_WIDTH
+        return {
+            ruined,
+            other: {
+                src: cardSideImage(cardId, !ruined),
+                name: edificeName(cardId, !ruined),
+                width: otherWidth,
+                height: Math.round(otherWidth / cardAspect({ cardId }))
+            }
+        }
     })
 
     const measureArea: Attachment<HTMLElement> = (node) => {
@@ -131,21 +159,41 @@
                     {@attach measureStack}
                     style="transform:{stackScale < 1 ? `scale(${stackScale})` : 'none'};"
                 >
-                    <div class="card-preview__frame">
-                        {#if preview.imageSrc}
-                            <img
-                                src={preview.imageSrc}
-                                alt={preview.label ?? ''}
-                                style="width:{width}px; height:auto; border-radius:8px;"
-                            />
-                        {:else}
-                            <CardImage
-                                cardId={preview.cardId}
-                                back={preview.back}
-                                label={preview.label}
-                                {width}
-                            />
+                    {#snippet otherSide(phone: boolean)}
+                        {#if edifice?.other.src}
+                            <figure
+                                class="card-preview__other"
+                                class:card-preview__other--beside={!phone}
+                                data-other-side
+                            >
+                                <figcaption>Other side</figcaption>
+                                <img
+                                    src={edifice.other.src}
+                                    alt={edifice.other.name}
+                                    style="width:{edifice.other.width}px; height:{edifice.other
+                                        .height}px;"
+                                />
+                            </figure>
                         {/if}
+                    {/snippet}
+                    <div class="card-preview__card">
+                        <div class="card-preview__frame">
+                            {#if preview.imageSrc}
+                                <img
+                                    src={preview.imageSrc}
+                                    alt={preview.label ?? ''}
+                                    style="width:{width}px; height:auto; border-radius:8px;"
+                                />
+                            {:else}
+                                <CardImage
+                                    cardId={preview.cardId}
+                                    back={preview.back}
+                                    label={preview.label}
+                                    {width}
+                                />
+                            {/if}
+                        </div>
+                        {#if !layout.narrow}{@render otherSide(false)}{/if}
                     </div>
                     {#if preview.badge}
                         <div class="card-preview__pieces" style="width:{width}px;">
@@ -231,6 +279,12 @@
                             {/if}
                         </div>
                     {/if}
+                    {#if edifice?.ruined}
+                        <div class="card-preview__pieces" style="width:{width}px;">
+                            <span class="piece">No suit; can’t be used to Muster or Trade.</span>
+                        </div>
+                    {/if}
+                    {#if layout.narrow}{@render otherSide(true)}{/if}
                     {#if sentence}
                         <div class="card-preview__pieces" style="width:{width}px;">
                             <SiteSentence {sentence} />
@@ -326,6 +380,36 @@
 
     .ruler {
         white-space: nowrap;
+    }
+
+    .card-preview__card {
+        position: relative;
+    }
+
+    /* Beside the card on a desktop, its foot on the card's foot, out of the stack's flow so the
+       boxes stay under the card. */
+    .card-preview__other {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        line-height: 1.2;
+    }
+    .card-preview__other--beside {
+        position: absolute;
+        width: max-content;
+        left: calc(100% + 16px);
+        bottom: 0;
+    }
+    .card-preview__other figcaption {
+        color: var(--oath-text-muted);
+        font-size: 13px;
+    }
+    .card-preview__other img {
+        max-width: none;
+        border-radius: 5px;
+        box-shadow: 0 0 0 1px var(--oath-frame);
     }
 
     .card-preview__frame {

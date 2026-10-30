@@ -10,8 +10,7 @@
         Era,
         INDONESIA_REGION_BY_AREA_ID,
         isGrowCity,
-        isIndonesiaNodeId,
-        MachineState
+        isIndonesiaNodeId
     } from '@tabletop/indonesia'
     import { ClockSolid } from 'flowbite-svelte-icons'
     import { getRegionName } from '$lib/definitions/regions.js'
@@ -48,9 +47,7 @@
         return item.type === 'phase-marker'
     }
 
-    let showEndOfGameMarker = $derived(
-        gameSession.gameState.machineState === MachineState.EndOfGame
-    )
+    let showEndOfGameMarker = $derived(gameSession.gameState.result !== undefined)
 
     let historyItems = $derived.by(() => {
         const aggregatedActions = Array.from(aggregateActions(gameSession.actions))

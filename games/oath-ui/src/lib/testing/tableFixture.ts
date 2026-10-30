@@ -117,6 +117,30 @@ import { heldAttackTable } from './heldAttackTable.js'
 import { kinshipDissentTable, kinshipPlagueTable, kinshipWakeTable } from './kinshipTables.js'
 import { RecordedStory } from './recordedStory.js'
 import { tribunalAnswerTable, tribunalDealsTable, tribunalOfferTable } from './tribunalTables.js'
+import { longSeatNameTable } from './longSeatNameTables.js'
+import {
+    banditRampartTable,
+    edificeMapTable,
+    fallenSpireTable,
+    festivalTable,
+    greatSpireMenuTable,
+    greatSpireSwapTable,
+    ruinedTempleTable,
+    squalidAskedTable
+} from './edificeTables.js'
+import {
+    gameOneAt,
+    gameThreeContinued,
+    gameThreeOpen,
+    gameThreeOpenSameNames,
+    gameTwoAt
+} from './chronicleTables.js'
+import {
+    rehearsalOpen,
+    rehearsalPinnedOpen,
+    rehearsalResult,
+    rehearsalSearch
+} from './rehearsalTables.js'
 
 export type TableName =
     | 'setup'
@@ -220,6 +244,7 @@ export type TableName =
     | 'searchConspiracy'
     | 'searchConspiracyNoTake'
     | 'searchPlayTo'
+    | 'flipConspiracy'
     | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
     | 'heldAttack'
@@ -270,6 +295,12 @@ export type TableName =
     | 'tribunalDealsLong'
     | 'tribunalDealAskedLong'
     | 'tribunalDealsEndedLong'
+    | 'longSeatLetters'
+    | 'longSeatSpaces'
+    | 'longSeatTypical'
+    | 'longSeatCitizen'
+    | 'longSeatOneWord'
+    | 'longSeatOneWordExile'
     | 'woodTraveller'
     | 'woodRuler'
     | 'woodRulerToll'
@@ -335,6 +366,36 @@ export type TableName =
     | 'historySecondWind'
     | 'historyFreeGranted'
     | 'historyDeals'
+    | 'edificeMap'
+    | 'edificeAncientForge'
+    | 'greatSpireMenu'
+    | 'greatSpireMenuEmpty'
+    | 'greatSpireSwap'
+    | 'greatSpireSwapVision'
+    | 'fallenSpire'
+    | 'fallenSpireShort'
+    | 'squalidAsked'
+    | 'festivalDistrict'
+    | 'banditRampartDefender'
+    | 'banditRampartBandits'
+    | 'ruinedTemple'
+    | 'forestTempleSearch'
+    | 'chronicleVow'
+    | 'chronicleOffer'
+    | 'chronicleAnswer'
+    | 'chronicleStory'
+    | 'chronicleResult'
+    | 'chronicleBuild'
+    | 'chronicleRepair'
+    | 'chronicleSuit'
+    | 'chronicleHeal'
+    | 'chronicleRecord'
+    | 'chronicleSameNames'
+    | 'chronicleOpen'
+    | 'rehearsalResult'
+    | 'rehearsalOpen'
+    | 'rehearsalSearch'
+    | 'rehearsalPinnedOpen'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -4183,8 +4244,35 @@ function flipConspiracyNoTakeTable(): PlayedTable {
     })
 }
 
+/** R-5.1.4.IV — this seat's two Hearth advisers, matching Rhys's one. */
+const TAKE_MATCH = ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return']
+
 /** R-5.1.4.IV: the Conspiracy drawn by a Search, with Rhys at this seat's site holding a relic. */
 function searchConspiracyTable(): PlayedTable {
+    return conspiracyTakeTable(MachineState.Searching, {
+        handIds: ['vision.conspiracy', 'denizen.arcane.tutor'],
+        advisers: TAKE_MATCH.map(faceup)
+    })
+}
+
+/** R-6.1, R-5.1.4.IV: the facedown Conspiracy turned faceup beside Rhys, holding a relic and a banner. */
+function flipConspiracyTable(): PlayedTable {
+    return conspiracyTakeTable(
+        MachineState.ActPhase,
+        { advisers: [...TAKE_MATCH.map(faceup), { cardId: 'vision.conspiracy', faceUp: false }] },
+        true
+    )
+}
+
+/**
+ * R-5.1.4.IV: the Conspiracy in this seat's play, with Rhys at its site holding a relic, and the
+ * People's Favor too when `rhysBanner`.
+ */
+function conspiracyTakeTable(
+    machineState: MachineState,
+    me: Partial<Seat>,
+    rhysBanner = false
+): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -4193,10 +4281,7 @@ function searchConspiracyTable(): PlayedTable {
                 color: Color.Red,
                 siteId: home,
                 secrets: 2,
-                handIds: ['vision.conspiracy', 'denizen.arcane.tutor'],
-                advisers: ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return'].map(
-                    (cardId) => ({ cardId, faceUp: true })
-                )
+                ...me
             }),
             testPlayer({
                 playerId: 'rhys',
@@ -4213,11 +4298,12 @@ function searchConspiracyTable(): PlayedTable {
             })
         ],
         {
-            machineState: MachineState.Searching,
+            machineState,
             chancellorPlayerId: 'ann',
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
-            denizensBySite: { [home]: [] }
+            denizensBySite: { [home]: [] },
+            banners: testBanners({ [Banner.PeoplesFavor]: rhysBanner ? 'rhys' : undefined })
         }
     )
     openTurn(state, 'me')
@@ -5416,7 +5502,7 @@ function historyWordsTable(scene: HistoryScene): PlayedTable {
     return { state: recordedState, actions }
 }
 
-const TABLES: Record<TableName, () => PlayedTable> = {
+const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     drumAsked: () => drumTable('whistle'),
     drumAskedCitizen: () => drumTable('citizen'),
     drumAfterToll: () => drumTable('toll'),
@@ -5561,6 +5647,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     searchConspiracy: searchConspiracyTable,
     searchConspiracyNoTake: searchConspiracyNoTakeTable,
     searchPlayTo: searchPlayToTable,
+    flipConspiracy: flipConspiracyTable,
     flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),
     heldAttack: () => heldAttackTable(),
@@ -5608,6 +5695,12 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     tribunalDealsLong: () => tribunalDealsTable('resolve', true),
     tribunalDealAskedLong: () => tribunalDealsTable('asked', true),
     tribunalDealsEndedLong: () => tribunalDealsTable('ended', true),
+    longSeatLetters: () => longSeatNameTable('letters'),
+    longSeatSpaces: () => longSeatNameTable('spaces'),
+    longSeatTypical: () => longSeatNameTable('typical'),
+    longSeatCitizen: () => longSeatNameTable('citizen'),
+    longSeatOneWord: () => longSeatNameTable('oneWord'),
+    longSeatOneWordExile: () => longSeatNameTable('oneWordExile'),
     woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),
     woodRuler: woodRulerTable,
     woodRulerToll: woodRulerTollTable,
@@ -5676,7 +5769,37 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     historyCampaign: () => historyWordsTable('campaign'),
     historySecondWind: () => historyWordsTable('secondWind'),
     historyFreeGranted: () => historyWordsTable('freeGranted'),
-    historyDeals: () => historyWordsTable('deals')
+    historyDeals: () => historyWordsTable('deals'),
+    edificeMap: () => edificeMapTable('broken'),
+    edificeAncientForge: () => edificeMapTable('ancient'),
+    greatSpireMenu: () => greatSpireMenuTable(),
+    greatSpireMenuEmpty: () => greatSpireMenuTable(true),
+    greatSpireSwap: () => greatSpireSwapTable(),
+    greatSpireSwapVision: () => greatSpireSwapTable(true),
+    fallenSpire: () => fallenSpireTable(),
+    fallenSpireShort: () => fallenSpireTable(2),
+    squalidAsked: () => squalidAskedTable(),
+    festivalDistrict: () => festivalTable(),
+    banditRampartDefender: () => banditRampartTable(true),
+    banditRampartBandits: () => banditRampartTable(false),
+    ruinedTemple: () => ruinedTempleTable(),
+    forestTempleSearch: () => ruinedTempleTable(true),
+    chronicleVow: () => gameOneAt('vow'),
+    chronicleOffer: () => gameOneAt('offer'),
+    chronicleAnswer: () => gameOneAt('answer'),
+    chronicleStory: () => gameOneAt('story'),
+    chronicleResult: () => gameOneAt('result'),
+    chronicleBuild: () => gameTwoAt('build'),
+    chronicleRepair: () => gameTwoAt('ruin'),
+    chronicleSuit: () => gameTwoAt('suit'),
+    chronicleHeal: () => gameTwoAt('heal'),
+    chronicleRecord: () => gameThreeOpen(),
+    chronicleSameNames: () => gameThreeOpenSameNames(),
+    chronicleOpen: () => gameThreeContinued(),
+    rehearsalResult,
+    rehearsalOpen,
+    rehearsalSearch,
+    rehearsalPinnedOpen
 }
 
 /** Every table a scenario can open. */
@@ -5705,7 +5828,7 @@ async function settled(): Promise<void> {
 export async function open(name: TableName): Promise<{ seatId: string | undefined }> {
     if (component) await unmount(component)
     disposeSessions()
-    session = await openSessionOn(TABLES[name]())
+    session = await openSessionOn(await TABLES[name]())
     const target = document.createElement('div')
     target.style.height = '100vh'
     document.body.replaceChildren(target)
@@ -5796,6 +5919,23 @@ export function offeredExchangeTerms(): ExchangeTerms | undefined {
 /** R-7.6.3-H1 — the Tribunal's deals open on the table. */
 export function openDeals(): OpenDeal[] {
     return current().gameState.openDeals ?? []
+}
+
+/** History Navigation: `steps` back from the state on screen, one at a time. */
+export async function stepHistoryBack(steps: number): Promise<void> {
+    const table = current()
+    for (let step = 0; step < steps; step++) {
+        await table.history.goToPreviousAction()
+        // The platform releases its stepping lock on the next tick.
+        await new Promise((resolve) => setTimeout(resolve))
+    }
+    await settled()
+}
+
+/** History Navigation back to the live game. */
+export async function leaveHistory(): Promise<void> {
+    current().history.goToEnd()
+    await settled()
 }
 
 export function viewOffTheClock(): string | undefined {

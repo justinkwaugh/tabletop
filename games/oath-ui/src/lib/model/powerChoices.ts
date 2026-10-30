@@ -565,6 +565,18 @@ export function withOptionPick(
     return { ...picks, option: { ...picks.option, [index]: pick }, terms }
 }
 
+/**
+ * A count whose options name each legal count (Fallen Spire's 1 to 5, read from public counts):
+ * those counts, picked from a row of tokens; a generic count (one open option) has none.
+ */
+export function countedOptions(legal: LegalChoice): number[] | undefined {
+    if (legal.spec.kind !== PowerChoiceKind.Count) return undefined
+    const counts = legal.options.flatMap((option) =>
+        option.kind === PowerChoiceKind.Count && option.n > 0 ? [option.n] : []
+    )
+    return counts.length > 0 ? counts : undefined
+}
+
 export function withCount(picks: PowerChoicePicks, index: number, count: number): PowerChoicePicks {
     return { ...picks, count: { ...picks.count, [index]: Math.max(0, count) } }
 }
@@ -590,6 +602,9 @@ export function picksComplete(choices: readonly LegalChoice[], picks: PowerChoic
         if (run && !run.distinct) {
             return index !== run.specs[0] || runSuits(run, choices, picks).length === run.total
         }
+        // A count of named options waits until one of them is picked: it starts empty.
+        const counts = countedOptions(legal)
+        if (counts) return counts.includes(picks.count[index] ?? 0)
         // An "or" waits for one of its answers; a may's own pick waits only while the may is on.
         if (isOr(legal)) return optionIndexOf(legal, index, picks) !== NO_OPTION
         if (mayOf(choices, index) !== undefined) {
@@ -630,6 +645,13 @@ export function powerChoicesFrom(
             return
         }
         if (!asked(choices, index, picks)) return
+        // A count of named options sends the count tapped, once it is one of them.
+        const counts = countedOptions(legal)
+        if (counts) {
+            const n = picks.count[index] ?? 0
+            if (counts.includes(n)) out.push({ kind: PowerChoiceKind.Count, n })
+            return
+        }
         if (allowsSeveral(legal)) {
             for (const optionIndex of picks.several[index] ?? []) {
                 const option = legal.options[optionIndex]

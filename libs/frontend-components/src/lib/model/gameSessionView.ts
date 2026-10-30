@@ -36,6 +36,7 @@ export type GameSessionView<
     | 'currentGameChat'
     | 'forkGame'
     | 'game'
+    | 'gameCall'
     | 'gameState'
     | 'getPlayerName'
     | 'hasCompleteHistory'

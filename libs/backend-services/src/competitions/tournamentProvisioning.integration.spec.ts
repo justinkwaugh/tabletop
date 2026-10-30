@@ -1,4 +1,4 @@
-import { FieldValue, Query, Transaction } from '@google-cloud/firestore'
+import { Query, Transaction } from '@google-cloud/firestore'
 import { createClient, type RedisClientType } from 'redis'
 import { randomUUID } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi, type MockInstance } from 'vitest'
@@ -14,6 +14,7 @@ import {
     UserStatus,
     createGameFork,
     type GameState,
+    type HydratedGameState,
     type Tournament,
     type TournamentDraft,
     type User
@@ -73,7 +74,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
         })
         const { cache, pool, guardPool } = cacheFixture(client)
-        const store = new FirestoreGameStore(cache, db, prefix)
+        const store = new FirestoreGameStore(cache, db, { tournamentCachePrefix: prefix })
         const tournaments = new FirestoreTournamentStore(cache, db, prefix)
         const users: User[] = Array.from({ length: 8 }, (_, index) => ({
             id: `${prefix}-user-${index}`,
@@ -468,6 +469,37 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(await tournaments.readGameLinks(tournament.id)).toEqual(links)
         })
 
+        it('shows each active game’s Game Progress as play moves on', async () => {
+            const { tournament } = await fixture()
+            await service.runTask({ tournamentId: tournament.id })
+            const [link] = await tournaments.readGameLinks(tournament.id)
+            expect(link.progress).toBeUndefined()
+            const game = await store.findGameById(link.gameId, true)
+            assertExists(game?.state)
+            const progress = { fraction: 0.25, label: 'Round 2 of 8' }
+            await store.addActionsToGame({
+                game,
+                state: game.state,
+                actions: [
+                    {
+                        id: 'move',
+                        gameId: game.id,
+                        source: ActionSource.System,
+                        type: 'move',
+                        index: 0
+                    }
+                ],
+                validator: async (_game, _existing, _next, _actions, gameUpdates) => {
+                    gameUpdates.progress = progress
+                    return UpdateValidationResult.Proceed
+                }
+            })
+            const links = await tournaments.readGameLinks(tournament.id)
+            expect(links.find((moved) => moved.gameId === link.gameId)?.progress).toEqual(progress)
+            const [group] = await service.groupResults([tournament.id])
+            expect(group.activeProgress).toBe(0.25)
+        })
+
         it('creates a league group locked with its assigned roster, starts it, and accepts retried creation', async () => {
             enqueue.mockReset()
             enqueue.mockResolvedValue(undefined)
@@ -704,7 +736,6 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             assertExists(emailed)
             const stored = await store.findGameById(links[0].gameId)
             expect(stored?.finalScores).toEqual(recordedScores.get(links[0].gameId))
-            await db.doc(`games/${links[0].gameId}`).update({ finalScores: FieldValue.delete() })
             const rebuilt = await service.rebuildStandings(tournament.id, emailed.revision, admin)
             expect(rebuilt.stages[0].standings).toEqual(emailed.stages[0].standings)
             expect(rebuilt.resultsEmailedAt).toBe(emailed.resultsEmailedAt)
@@ -758,8 +789,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(corrected.stages[0].corrections).toEqual([
                 expect.objectContaining({
                     administratorId: admin.id,
-                    reason: request.reason,
-                    gameActionCount: originalGame.state?.actionCount
+                    reason: request.reason
                 })
             ])
             expect(await store.findGameById(links[0].gameId, true)).toEqual(originalGame)
@@ -1671,7 +1701,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(
                 games.updateGame({ gameId, fields: { tournament: undefined }, user: admin })
             ).rejects.toThrow('membership cannot be changed')
-            const fork = createGameFork({
+            const fork = createGameFork<GameState, HydratedGameState>({
                 game,
                 state: game.state,
                 actions: [],

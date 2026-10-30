@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { beforeAll, expect, it } from 'vitest'
-import { HexOrientation } from '@tabletop/common'
+import { HexOrientation, assert } from '@tabletop/common'
 import {
     RailwayMap,
     TileSet,
@@ -346,14 +346,170 @@ it.each([false, true])('excludes trains barred by title rules (custom scoring %s
     expect(state).toEqual(before)
 })
 
-it('returns a legal partial result when the scoring search runs out of time', () => {
+it.each([false, true])(
+    'returns a legal partial result when the scoring search runs out of time (mixed %s)',
+    (mixed) => {
+        const { state, rules } = position(
+            [city('yellow', [0], 20, 1), city('yellow', [3], 30, 1)],
+            mixed
+                ? [
+                      { measure: 'revenue-centers', maximum: 2 },
+                      { measure: 'revenue-centers', maximum: 3 }
+                  ]
+                : [{ measure: 'revenue-centers', maximum: 2 }],
+            {},
+            { revenuePolicy: () => ({ payingStopLimit: 2 }) }
+        )
+        const result = router.solve(state, rules, 'A', { timeLimitMs: 0.000001 })
+        expect(result.exhaustive).toBe(false)
+        expect(result.result.routes).toEqual([])
+    }
+)
+
+it.each([10, 40])('streams mixed profiles with a longest-route bonus of %s', (bonus) => {
+    for (const capacities of [
+        [2, 3],
+        [3, 2]
+    ]) {
+        const { state, rules } = position(
+            [city('yellow', [0], 20, 1), city('yellow', [3, 0], 30, 1), city('yellow', [3], 40, 1)],
+            capacities.map((maximum) => ({ measure: 'revenue-centers', maximum })),
+            {},
+            { longestRouteBonusPerStop: () => bonus }
+        )
+        state.stations[0].position = { locationId: '1', nodeId: 'city', slot: 0 }
+        const result = router.solve(state, rules, 'A')
+        expect(result.exhaustive).toBe(true)
+        expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+        expect(result.result.revenue).toBe(bonus === 10 ? 140 : 210)
+    }
+})
+
+it.each([
+    [{ maximum: 2, extraTowns: 3 }, 100],
+    [{ maximum: 3, extraTowns: 1 }, 90],
+    [{ maximum: 3, extraTowns: 2 }, 110]
+])('limits an N+s train to N stops other than towns (%o)', (limits, expected) => {
     const { state, rules } = position(
-        [city('yellow', [0], 20, 1), city('yellow', [3], 30, 1)],
+        [
+            city('yellow', [0], 20, 1),
+            town('yellow', [[3, 0]], 10),
+            city('yellow', [3, 0], 30, 1),
+            town('yellow', [[3, 0]], 10),
+            city('yellow', [3, 0], 40, 1),
+            town('yellow', [[3]], 10)
+        ],
+        [{ measure: 'revenue-centers', ...limits }]
+    )
+    state.stations[0].position = { locationId: '2', nodeId: 'city', slot: 0 }
+    const result = router.solve(state, rules, 'A')
+    expect(result.exhaustive).toBe(true)
+    expect(result.result.revenue).toBe(expected)
+    expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+})
+
+it.each([
+    ['1', 100],
+    ['2', 140]
+])('pays a company’s end-only destination at %s only where a route ends', (to, expected) => {
+    const { state, rules } = position(
+        [city('yellow', [0], 20, 1), city('yellow', [3, 0], 30, 1), city('yellow', [3], 40, 1)],
+        [{ measure: 'revenue-centers', maximum: 3 }],
+        {},
+        {
+            revenuePolicy: (_train, state, companyId) =>
+                companyId === 'A' && state.phaseId === 'yellow'
+                    ? {
+                          connectionBonuses: [
+                              { from: { '0': 50 }, to: { [to]: 0 }, destinationAtEnd: true }
+                          ]
+                      }
+                    : {}
+        }
+    )
+    const result = router.solve(state, rules, 'A')
+    expect(result.exhaustive).toBe(true)
+    expect(result.result.revenue).toBe(expected)
+    expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+})
+
+it('extends a route through a blocked city to earn an interconnection', () => {
+    const { state, rules } = position(
+        [
+            city('yellow', [0], 20, 1),
+            city('yellow', [3, 0], 30, 1),
+            city('yellow', [3, 0], 40, 1),
+            city('yellow', [3], 60, 1)
+        ],
         [{ measure: 'revenue-centers', maximum: 2 }],
         {},
-        { revenuePolicy: () => ({ payingStopLimit: 2 }) }
+        { revenuePolicy: () => ({ interconnections: [{ from: ['0'], to: ['3'], amount: 50 }] }) }
     )
-    const result = router.solve(state, rules, 'A', { timeLimitMs: 0.000001 })
-    expect(result.exhaustive).toBe(false)
-    expect(result.result.routes).toEqual([])
+    state.companies.push({ id: 'B', name: 'B', kind: 'major', shareCount: 10 })
+    state.stations.push({
+        id: 'rival',
+        companyId: 'B',
+        status: 'placed',
+        position: { locationId: '2', nodeId: 'city', slot: 0 }
+    })
+    const result = router.solve(state, rules, 'A')
+    expect(result.exhaustive).toBe(true)
+    expect(result.result.revenue).toBe(100)
+    expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+    const [route] = result.result.routes
+    expect(route.visits).toHaveLength(2)
+    expect(route.extension?.map((path) => path.locationId)).toEqual(['1', '2', '2', '3'])
+    expect(route.bonuses).toEqual([{ locationId: '3', amount: 50 }])
+})
+
+it.each([
+    [undefined, 270],
+    [1, 180]
+])(
+    'hangs an extension off either end and keeps its track from other trains (paying %s)',
+    (payingStopLimit, expected) => {
+        const { state, rules } = position(
+            [
+                city('yellow', [0], 10, 1),
+                city('yellow', [3, 0], 20, 1),
+                city('yellow', [3, 0], 30, 1),
+                city('yellow', [3, 0], 40, 1),
+                city('yellow', [3], 50, 1)
+            ],
+            [
+                { measure: 'revenue-centers', maximum: 2 },
+                { measure: 'revenue-centers', maximum: 3 }
+            ],
+            {},
+            {
+                revenuePolicy: () => ({
+                    ...(payingStopLimit ? { payingStopLimit } : {}),
+                    interconnections: [
+                        { from: ['2'], to: ['0'], amount: 100 },
+                        { from: ['3'], to: ['0'], amount: 120 }
+                    ]
+                })
+            }
+        )
+        state.stations[0].position = { locationId: '2', nodeId: 'city', slot: 0 }
+        const result = router.solve(state, rules, 'A')
+        expect(result.exhaustive).toBe(true)
+        expect(result.result.revenue).toBe(expected)
+        expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+        const extended = result.result.routes.find((route) => route.extension)
+        expect(extended?.start.locationId).toBe('2')
+        expect(extended?.extension?.at(-1)?.locationId).toBe('0')
+    }
+)
+it('builds the solver with a 64 MiB memory maximum', async () => {
+    const bytes = await readFile(new URL('../esm/solver.wasm', import.meta.url))
+    const { instance } = await WebAssembly.instantiate(bytes, {
+        clock: { now: () => performance.now() }
+    })
+    const memory = instance.exports.memory
+    assert(memory instanceof WebAssembly.Memory, 'The solver exports its memory')
+    const page = 64 * 1024
+    memory.grow(64 * 16 - memory.buffer.byteLength / page)
+    expect(memory.buffer.byteLength).toBe(64 * 2 ** 20)
+    expect(() => memory.grow(1)).toThrow(RangeError)
 })

@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify'
+import { manifestPublicationSignature } from '@tabletop/games-config'
 
 export default async function (fastify: FastifyInstance) {
     fastify.post(
@@ -13,7 +14,14 @@ export default async function (fastify: FastifyInstance) {
             // Cloud Run gives an instance CPU only while a request is open, so the activation
             // the new manifest asks for runs inside this one and its outcome is reported.
             await fastify.libraryService.refreshAndActivate()
-            return { status: 'ok', replacement: 'none', activation: 'complete' }
+            return {
+                status: 'ok',
+                replacement: 'none',
+                activation: 'complete',
+                publication: manifestPublicationSignature(
+                    await fastify.libraryService.getServedManifest()
+                )
+            }
         }
     )
 }

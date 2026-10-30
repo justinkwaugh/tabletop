@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { ActionSource, type GameAction } from './gameAction.js'
 import { runs, sameRun, unprocessed } from './actionReplay.js'
-import { isSupersedableActionType } from './actionHistory.js'
+import { isSupersedableActionType, supersedesSameDeclaration } from './actionHistory.js'
 import type { GameEngine } from './gameEngine.js'
 import type { Game } from '../model/game.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
@@ -38,14 +38,10 @@ export function replaceSupersededAction<
         return { kind: 'invalid', reason: 'the Action it replaces is not in Action History' }
     if (!isSupersedableActionType(apiActions, replacement.type))
         return { kind: 'invalid', reason: `Actions of type ${replacement.type} cannot supersede` }
-    if (
-        target.source !== ActionSource.User ||
-        target.playerId !== replacement.playerId ||
-        target.type !== replacement.type
-    )
+    if (!supersedesSameDeclaration(apiActions, replacement, target))
         return {
             kind: 'invalid',
-            reason: 'it may only replace its own earlier Action of the same type'
+            reason: 'it may only replace its own earlier declaration of the same type and scope'
         }
     if (window.some((action) => action.undoPatch === undefined))
         return { kind: 'invalid', reason: 'the history since it cannot be reversed' }

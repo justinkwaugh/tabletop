@@ -45,6 +45,10 @@ export type SetValueRequest = {
     forSeconds?: number
 }
 export type MissedValueProducer = () => Promise<unknown | undefined>
+// Lets a service depend on cachingGet without the generic, so tests can fake it without a cast.
+export type CachingReader = {
+    cachingGet(key: string, produce: MissedValueProducer, forSeconds?: number): Promise<unknown>
+}
 export type MissedValuesProducer = (keys: string[]) => Promise<(unknown | undefined)[]>
 export type ValueWriter<T> = (locks: CacheWriteLocks) => Promise<T>
 

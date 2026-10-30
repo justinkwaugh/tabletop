@@ -1,12 +1,7 @@
 <script lang="ts">
     import type { MoneyFormat } from '../presentation/money.js'
     import { isTreasuryPayment, paymentsInDisplayOrder } from './earningsPayments.js'
-    import {
-        type EarningsChoice,
-        type EarningsDetails,
-        type Owner,
-        type StockMarketChart
-    } from '@tabletop/18xx'
+    import type { EarningsChoice, EarningsDetails, Owner, StockMarketChart } from '@tabletop/18xx'
     let {
         money,
         choice,

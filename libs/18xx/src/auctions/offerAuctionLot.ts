@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     type GameAction,
     HydratableAction,
     assert,
@@ -12,7 +12,11 @@ import { activeAuction, canActInAuction, type OpeningAuctionState } from './auct
 import type { OfferPileAuctionRules } from './offerPileAuction.js'
 
 export const OfferAuctionLot = Type.Object(
-    { ...PlayerAction.properties, type: Type.Literal('OfferAuctionLot'), lotId: Type.String() },
+    {
+        ...EighteenXXPlayerAction.properties,
+        type: Type.Literal('OfferAuctionLot'),
+        lotId: Type.String()
+    },
     { additionalProperties: false }
 )
 export type OfferAuctionLot = Type.Static<typeof OfferAuctionLot>

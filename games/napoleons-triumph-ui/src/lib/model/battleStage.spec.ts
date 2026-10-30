@@ -184,6 +184,53 @@ describe('naming a defence', () => {
     })
 })
 
+describe('defending with all', () => {
+    it('offers every reserve unit, the one detached unit among them, and their commander, whatever is picked or left out, and declares them', () => {
+        const game = threatened()
+        const one = tap(game, emptyBattleSelections(), 'A-inf-a')
+        const leftOut = nameDefendingCommander(
+            stageOf(game, StageKind.Defence, one),
+            one,
+            'langeron',
+            false
+        )
+        const withAll = stageOf(game, StageKind.Defence, leftOut).withAll
+        expect(withAll).toEqual({
+            unitIds: ['A-inf-a', 'A-inf-b', 'A-cav'],
+            commanderIds: ['langeron']
+        })
+        assertExists(withAll)
+
+        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), withAll)
+        expect(game.hydrated.attack?.defendingCommanderIds).toEqual(['langeron'])
+        expect(game.state.machineState).toBe(MachineState.FeintDecision)
+    })
+
+    it('leaves out a commander named against another approach this turn', () => {
+        const game = threatened()
+        game.arrange((state) => {
+            state.commander('langeron').defendedApproach = state.map.approachBetween(
+                DEFEND_IN,
+                96
+            ).id
+        })
+        expect(stageOf(game, StageKind.Defence).withAll?.commanderIds).toEqual([])
+    })
+
+    it('is not offered when two detached units could not both defend', () => {
+        const game = threatened([
+            ...PLACEMENTS,
+            { id: 'A-cav-b', side: Side.Allied, face: cavalry(1), locale: DEFEND_IN }
+        ])
+        expect(stageOf(game, StageKind.Defence).withAll).toBeUndefined()
+    })
+
+    it('is not offered for a single unit, which Defend already names', () => {
+        const game = threatened(PLACEMENTS.filter(({ id }) => id !== 'A-inf-b' && id !== 'A-cav'))
+        expect(stageOf(game, StageKind.Defence).withAll).toBeUndefined()
+    })
+})
+
 describe('naming the commanders of a defence', () => {
     const langeron = (status: CommanderStatus) => [{ commanderId: 'langeron', status }]
 

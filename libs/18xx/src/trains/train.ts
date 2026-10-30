@@ -9,7 +9,9 @@ export const TrainDistance = Type.Object(
             Type.Literal('revenue-centers'),
             Type.Literal('cities-and-offboards')
         ]),
-        maximum: Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')])
+        maximum: Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')]),
+        /** Towns a revenue-centre train may visit beyond its maximum, such as a 3+3's three. */
+        extraTowns: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )
@@ -67,6 +69,10 @@ export function trainsOwnedBy(state: TrainState, owner: Owner): Train[] {
     )
 }
 
+export function trainIdsOwnedBy(state: TrainState, owner: Owner): string[] {
+    return trainsOwnedBy(state, owner).map((train) => train.id)
+}
+
 export function isObsoleteTrain(train: Train): boolean {
     return train.status === 'owned' && train.rustsAfterOperation === true
 }
@@ -76,7 +82,8 @@ export function trainCanBeTraded(train: Train): boolean {
 }
 
 /** Where trains go when they leave a company: the bank's market, or out of play. */
-export type TrainDestination = 'market' | 'removed'
+export const TrainDestination = Type.Union([Type.Literal('market'), Type.Literal('removed')])
+export type TrainDestination = Type.Static<typeof TrainDestination>
 
 export function releaseTrains(
     inventory: TrainInventory,

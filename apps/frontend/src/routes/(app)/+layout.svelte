@@ -16,16 +16,23 @@
         Toggle,
         Heading,
         Alert,
-        DropdownGroup
+        DropdownGroup,
+        Tooltip
     } from 'flowbite-svelte'
     import darkLogo from '$lib/components/images/dark-logo.png'
     import { afterNavigate, goto, onNavigate } from '$app/navigation'
     import LoginPanel, { loginViewTitles, type LoginView } from '$lib/components/LoginPanel.svelte'
     import AuthModal from '$lib/components/AuthModal.svelte'
     import BugReportModal from '$lib/components/BugReportModal.svelte'
+    import CallGameModal from '$lib/components/CallGameModal.svelte'
+    import { callGameOffer } from '$lib/utils/callGameOffer'
+    import { bgStatsPlayUrl } from '$lib/utils/bgStats'
+    import { getAppContext as getSiteContext } from '$lib/stores/appContext.svelte'
     import PreferencesPanel from '$lib/components/PreferencesPanel.svelte'
     import AccountAvatar from '$lib/components/AccountAvatar.svelte'
     import { setLoginModal } from '$lib/stores/loginModal'
+    import { broadcastLogout, onLogoutBroadcast } from '$lib/utils/logoutChannel'
+    import { onDiscordAuthorizationResult } from '$lib/utils/discordAuthorization'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
     import {
@@ -42,7 +49,7 @@
     } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
-    import { BellSolid, DownloadOutline, RefreshOutline } from 'flowbite-svelte-icons'
+    import { BellSolid, DownloadOutline, HeartOutline, RefreshOutline } from 'flowbite-svelte-icons'
     import {
         isInstalledApp,
         pwaInstallPrompt,
@@ -82,6 +89,8 @@
               )
             : undefined
     )
+    // The header hides About Us in a game, so the menu carries it on desktop too.
+    let aboutMenuClass = $derived(gameService.currentGameSession ? '' : 'md:hidden')
     let bugReportSession = $derived(
         sessionUser &&
             gameService.currentGameSession &&
@@ -90,7 +99,25 @@
             ? gameService.currentGameSession
             : undefined
     )
+    const siteGameService = getSiteContext().gameService
+    let bgStatsUrl = $derived.by(() => {
+        const session = gameService.currentGameSession
+        if (!session) return undefined
+        const game = siteGameService.cachedGame(session.primaryGame.id) ?? session.primaryGame
+        return bgStatsPlayUrl(game, titlesById[game.typeId]?.info.metadata, sessionUser)
+    })
+    let callOffer = $derived.by(() => {
+        const session = gameService.currentGameSession
+        if (!session || !sessionUser) return undefined
+        const game = siteGameService.cachedGame(session.primaryGame.id)
+        return callGameOffer(
+            game ?? session.primaryGame,
+            sessionUser.id,
+            titlesById[session.primaryGame.typeId]?.info.clientCapabilities ?? []
+        )
+    })
     let accountMenuOpen = $state(false)
+    let showCallGame = $state(false)
     let showBugReport = $state(false)
     let showPreferences = $state(false)
     let showCreateGameModel = $state(false)
@@ -110,6 +137,7 @@
 
     afterNavigate(() => {
         showLoginModal = false
+        showCallGame = false
         showBugReport = false
         showPreferences = false
     })
@@ -199,18 +227,16 @@
     )
 
     async function onLogout() {
-        await api.logout()
-        await authorizationService.onLogout()
+        await authorizationService.logout()
     }
 
-    const logoutChannel = new BroadcastChannel('logout')
-    logoutChannel.onmessage = function (e) {
-        onLogout()
-    }
+    onLogoutBroadcast(() => {
+        void onLogout()
+    })
 
     async function logout() {
-        onLogout()
-        logoutChannel.postMessage({})
+        void onLogout()
+        broadcastLogout()
     }
 
     async function gotoProfile() {
@@ -238,6 +264,10 @@
 
     async function gotoAbout() {
         await goto('/about')
+    }
+
+    async function gotoPayItForward() {
+        await goto('/pay-it-forward')
     }
 
     async function installPwa() {
@@ -270,18 +300,16 @@
         notificationService.showPrompt()
     }
 
-    const loginChannel = new BroadcastChannel('login')
-    loginChannel.onmessage = async function (e) {
-        if (e.data.status === 'success' && e.data.user) {
-            await authorizationService.onLogin(e.data.user)
+    onDiscordAuthorizationResult((result) => {
+        if (result.outcome !== 'success') {
+            return
         }
-    }
-
-    const userUpdateChannel = new BroadcastChannel('userUpdated')
-    userUpdateChannel.onmessage = function (e) {
-        const user = e.data.user
-        authorizationService.setSessionUser(user)
-    }
+        if (result.purpose === 'login') {
+            void authorizationService.onLogin(result.user)
+        } else {
+            authorizationService.setSessionUser(result.user)
+        }
+    })
 
     async function requestNotificationPermission() {
         notificationService.hidePrompt()
@@ -397,16 +425,34 @@
                     <div class="header-links flex items-center gap-3 mr-4">
                         <a
                             href="/about"
-                            class="hidden md:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                            class="about-link hidden md:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                         >
                             About Us
                         </a>
-                        <div class="flex items-center gap-3">
+                        <a
+                            id="pay-it-forward-link"
+                            href="/pay-it-forward"
+                            class="hidden md:inline-flex items-center gap-1.5 text-sm font-medium text-amber-800 hover:text-amber-900 dark:text-[#f2dfae] dark:hover:text-[#fbefcf]"
+                        >
+                            <HeartOutline class="h-5 w-5" />
+                            <span class="pay-it-forward-label">Pay it forward</span>
+                        </a>
+                        <Tooltip triggeredBy="#pay-it-forward-link" placement="bottom" class="z-50">
+                            Help charities put games on more tables. Nothing goes to us.
+                        </Tooltip>
+                        <div class="header-icons flex items-center gap-3">
+                            <a
+                                href="/pay-it-forward"
+                                class="pay-it-forward-icon inline-flex md:hidden items-center leading-none text-amber-600 hover:text-amber-700 dark:text-[#f2dfae] dark:hover:text-[#fbefcf]"
+                            >
+                                <span class="sr-only">Pay it forward</span>
+                                <HeartOutline class="h-6 w-6" />
+                            </a>
                             <a
                                 href="https://github.com/justinkwaugh/tabletop"
                                 target="_blank"
                                 rel="noreferrer"
-                                class="community-link inline-flex items-center leading-none"
+                                class="community-link hidden md:inline-flex items-center leading-none"
                             >
                                 <span class="sr-only">GitHub</span>
                                 <svg
@@ -563,6 +609,20 @@
                                     </DropdownItem>
                                     <DropdownDivider class="mt-0" />
                                 {/if}
+                                {#if callOffer}
+                                    <DropdownItem
+                                        class="w-full text-left"
+                                        onclick={() => (showCallGame = true)}
+                                        >{callOffer.label}…</DropdownItem
+                                    >
+                                    <DropdownDivider />
+                                {/if}
+                                {#if bgStatsUrl}
+                                    <DropdownItem class="w-full text-left" href={bgStatsUrl}
+                                        >Log to BG Stats</DropdownItem
+                                    >
+                                    <DropdownDivider />
+                                {/if}
                                 <DropdownItem class="w-full text-left" onclick={gotoProfile}
                                     >Profile</DropdownItem
                                 >
@@ -578,11 +638,17 @@
                                     >
                                 {/if}
                                 <DropdownDivider />
-                                <DropdownItem onclick={gotoAbout} class="md:hidden w-full text-left"
-                                    >About us</DropdownItem
+                                <DropdownItem
+                                    onclick={gotoAbout}
+                                    class="{aboutMenuClass} w-full text-left">About us</DropdownItem
+                                >
+                                <DropdownItem
+                                    onclick={gotoPayItForward}
+                                    class="md:hidden w-full text-left whitespace-nowrap dark:text-[#f2dfae]"
+                                    >Pay it forward</DropdownItem
                                 >
 
-                                <DropdownDivider class="md:hidden" />
+                                <DropdownDivider class={aboutMenuClass} />
                                 {#if authorizationService.canUseDeveloperTools}
                                     <li>
                                         <Toggle
@@ -665,6 +731,13 @@
 {/if}
 {#if bugReportSession}
     <BugReportModal bind:open={showBugReport} session={bugReportSession} />
+{/if}
+{#if callOffer && gameService.currentGameSession}
+    <CallGameModal
+        bind:open={showCallGame}
+        session={gameService.currentGameSession}
+        concession={callOffer.concession}
+    />
 {/if}
 {#if sessionUser}
     <Modal bind:open={showPreferences} title="Preferences" size="sm" outsideclose autoclose={false}>
@@ -775,6 +848,17 @@
         outline: 2px solid currentColor;
         outline-offset: 2px;
     }
+    .game-session-header .about-link {
+        display: none;
+    }
+    .game-session-header .pay-it-forward-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
     @media (width < 640px) {
         .mobile-game-header :global(.site-navbar) {
             padding-block: 4px;
@@ -816,10 +900,17 @@
         .game-session-header .competitions-link {
             display: none;
         }
-        .mobile-game-header .bug-report-button {
+        .game-session-header .header-icons {
+            gap: 0;
+        }
+        .mobile-game-header .bug-report-button,
+        .mobile-game-header .pay-it-forward-icon {
             justify-content: center;
             width: 40px;
             height: 40px;
+        }
+        .mobile-game-header .pay-it-forward-icon {
+            width: 32px;
         }
         .mobile-game-header .game-logo {
             display: block;

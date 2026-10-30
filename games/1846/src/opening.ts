@@ -22,7 +22,7 @@ import { BlockingStationLocations } from './stations.js'
 import { EighteenFortySixMap, AdditionalReservations } from './map.js'
 import { createInitialTrainInventory } from './trains.js'
 import { EighteenFortySixTileSet } from './tiles.js'
-import { BankSize, Corporations, DraftCompanies } from './catalog.js'
+import { BankSize, Corporations, DraftCompanies, blankCardIds } from './catalog.js'
 import { dealPacket } from './distribution.js'
 import type {
     EighteenFortySixProjectedState,
@@ -194,10 +194,7 @@ export function createOpening1846({
                     ? { kind: 'public', stage: 'buying', passedPlayerIds: [] }
                     : {
                           kind: 'hidden',
-                          deck: [
-                              ...privates.map((company) => company.id),
-                              ...players.map((_, index) => `blank:${index + 1}`)
-                          ],
+                          deck: [...privates.map((company) => company.id), ...blankCardIds(count)],
                           participants: seating.map((player) => ({
                               playerId: player.playerId,
                               packet: [],

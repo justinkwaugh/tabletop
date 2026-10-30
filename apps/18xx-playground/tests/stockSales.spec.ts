@@ -70,7 +70,7 @@ test('sales summary moves to a full-height strip only in wide panes', async ({ p
                         .parentElement!.querySelector('.stock-controls')!
                         .getBoundingClientRect()
                     const standingBar = panel
-                        .querySelector('.standing-bar')!
+                        .querySelector('.instruction-bar')!
                         .getBoundingClientRect()
                     return (
                         bounds.left >= controls.right &&

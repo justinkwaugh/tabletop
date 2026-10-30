@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -27,7 +27,7 @@ import { eliminatePlayer } from './elimination.js'
 import { TitleChanges } from '../actions/titleChanges.js'
 
 export type GoBankruptSchema<Changes extends Type.TSchema = TitleChanges> = Type.TObject<
-    Omit<typeof PlayerAction.properties, 'type'> & {
+    Omit<typeof EighteenXXPlayerAction.properties, 'type'> & {
         type: Type.TLiteral<'GoBankrupt'>
         metadata: Type.TOptional<
             Type.TObject<{
@@ -46,7 +46,7 @@ export function goBankruptSchema<Changes extends Type.TSchema>(
 ): GoBankruptSchema<Changes> {
     return Type.Object(
         {
-            ...PlayerAction.properties,
+            ...EighteenXXPlayerAction.properties,
             type: Type.Literal('GoBankrupt'),
             metadata: Type.Optional(
                 Type.Object(

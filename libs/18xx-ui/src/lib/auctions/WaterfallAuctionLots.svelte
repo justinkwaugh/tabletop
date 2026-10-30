@@ -6,6 +6,7 @@
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import './auctionLotTable.css'
+    import AuctionBidRow from './AuctionBidRow.svelte'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -174,50 +175,41 @@
                         </td>
                     </tr>
                     {#if stagedBid && selectedLot?.id === lot.id}
-                        <tr class="bid-row">
-                            <td colspan={columnCount}>
-                                <div class="bid-line" role="group" aria-label="Your bid">
+                        <AuctionBidRow columns={columnCount} label="Your bid">
+                            {#snippet control()}
+                                {@render stepper(
+                                    lot.id,
+                                    stagedBid.amount,
+                                    (amount) => auction.setBid(amount),
+                                    () => auction.confirm()
+                                )}
+                            {/snippet}
+                            {#snippet figures()}
+                                {#if playerId}{@render cash(playerId)}{/if}
+                            {/snippet}
+                        </AuctionBidRow>
+                    {:else if contest?.lotId === lot.id}
+                        <AuctionBidRow columns={columnCount} label="Current auction">
+                            {#snippet control()}
+                                {#if auction.ownTurn && auction.raiseAmount !== undefined}
                                     {@render stepper(
                                         lot.id,
-                                        stagedBid.amount,
-                                        (amount) => auction.setBid(amount),
-                                        () => auction.confirm()
+                                        auction.raiseAmount,
+                                        (amount) => auction.setRaise(amount),
+                                        () => auction.raise(),
+                                        () => auction.pass()
                                     )}
-                                    {#if playerId}<span class="figures"
-                                            >{@render cash(playerId)}</span
-                                        >{/if}
-                                </div>
-                            </td>
-                        </tr>
-                    {:else if contest?.lotId === lot.id}
-                        <tr class="bid-row">
-                            <td colspan={columnCount}>
-                                <div class="bid-line" role="group" aria-label="Current auction">
-                                    {#if auction.ownTurn && auction.raiseAmount !== undefined}
-                                        {@render stepper(
-                                            lot.id,
-                                            auction.raiseAmount,
-                                            (amount) => auction.setRaise(amount),
-                                            () => auction.raise(),
-                                            () => auction.pass()
-                                        )}
-                                    {/if}
-                                    <span class="figures">
-                                        <span
-                                            >High bidder <strong
-                                                >{session.getPlayerName(
-                                                    contest.highBidderId
-                                                )}</strong
-                                            ></span
-                                        >
-                                        <span
-                                            >High bid <strong>{money(contest.highBid)}</strong
-                                            ></span
-                                        >
-                                    </span>
-                                </div>
-                            </td>
-                        </tr>
+                                {/if}
+                            {/snippet}
+                            {#snippet figures()}
+                                <span
+                                    >High bidder <strong
+                                        >{session.getPlayerName(contest.highBidderId)}</strong
+                                    ></span
+                                >
+                                <span>High bid <strong>{money(contest.highBid)}</strong></span>
+                            {/snippet}
+                        </AuctionBidRow>
                     {/if}
                 {/each}
             </tbody>
@@ -241,30 +233,6 @@
         flex: 0 1 560px;
         margin-inline: 0;
     }
-    tr.selected > *,
-    tr.bid-row > * {
-        background: var(--rail-surface-selected, #e6dccd);
-    }
-    tr.selected > :first-child {
-        border-top-left-radius: 8px;
-    }
-    tr.selected > :last-child {
-        border-top-right-radius: 8px;
-    }
-    tr.selected:not(:has(+ tr.bid-row)) > :first-child,
-    tr.bid-row > :first-child {
-        border-bottom-left-radius: 8px;
-    }
-    tr.selected:not(:has(+ tr.bid-row)) > :last-child,
-    tr.bid-row > :last-child {
-        border-bottom-right-radius: 8px;
-    }
-    .auction-lot-table tbody tr.selected > :first-child {
-        padding-left: 8px;
-    }
-    .auction-lot-table tbody tr.selected > :last-child {
-        padding-right: 8px;
-    }
     tr.won > *,
     tr.won .income {
         color: var(--rail-muted, #887664);
@@ -279,28 +247,6 @@
         max-width: 6.5em;
         overflow: hidden;
         text-overflow: ellipsis;
-    }
-    .auction-lot-table tbody tr.bid-row > * {
-        border-top: 0;
-        padding: 2px 8px 8px;
-    }
-    .bid-line {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
-        gap: 6px 14px;
-        padding: 6px 8px;
-        border: 1px solid var(--rail-border, #c7b8a6);
-        border-radius: 6px;
-        background: var(--rail-surface-inset, #1b232d);
-    }
-    .figures {
-        display: flex;
-        flex-direction: column;
-        line-height: 1.3;
-        color: var(--rail-text, #786550);
-        font-size: 12px;
     }
     @container waterfall-lots (min-width: 640px) {
         th.bids {

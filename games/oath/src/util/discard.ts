@@ -2,7 +2,7 @@ import { regionOfPawn } from './pawn.js'
 import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState, discardRegionFor } from '../model/gameState.js'
 import { Region, CardKind, type Suit } from '../model/oathEnums.js'
-import { isVision, suitOf } from '../data/cardRegistry.js'
+import { isVision } from '../data/cardRegistry.js'
 import type { PileDeposit } from '../model/hidden.js'
 import { siteHolding } from './access.js'
 
@@ -67,7 +67,7 @@ export function tokensReturnedBy(state: HydratedOathGameState, cardId: string): 
     const tokens = state.tokensOn(cardId)
     if (tokens.favor === 0) return { favor: 0, secrets: tokens.secrets }
     // R-5.2.1 and R-5.3.2 only put favor on suited cards.
-    const suit = suitOf(cardId)
+    const suit = state.suitInPlay(cardId)
     assertExists(suit, `${cardId} has no suit, so it cannot hold favor`)
     return { favor: tokens.favor, suit, secrets: tokens.secrets }
 }
@@ -100,7 +100,7 @@ export function siteDiscardLedgerKey(
     cardId: string
 ): string | undefined {
     const siteId = siteHolding(state, cardId)
-    const suit = suitOf(cardId)
+    const suit = state.suitInPlay(cardId)
     return siteId === undefined || !suit ? undefined : homelandLedgerKey(siteId, suit)
 }
 

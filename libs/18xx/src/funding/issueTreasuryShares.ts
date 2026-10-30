@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     type GameAction,
     HydratableAction,
     assert,
@@ -15,7 +15,7 @@ import { ShareSaleDetails } from '../stock/shareSale.js'
 
 export const IssueTreasuryShares = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('IssueTreasuryShares'),
         expectedProceeds: Type.Integer({ minimum: 1 }),
         metadata: Type.Optional(ShareSaleDetails)

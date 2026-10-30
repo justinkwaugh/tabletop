@@ -219,7 +219,7 @@ export function takeoverSales(
                 other.sales[0].companyId === companyId && other.sales[0].shares === shares - 1
         )
         if (smaller && smaller.proceeds >= shortfall) return false
-        const projected = { ...state, ...copyStockState(state) }
+        const projected = copyStockState(state)
         applyShareSale(projected, sale)
         return fundable(projected, funding)
     })

@@ -5,6 +5,7 @@
     import PasswordInput from '$lib/components/PasswordInput.svelte'
     import AuthLink from '$lib/components/AuthLink.svelte'
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
+    import { emailAddress, minLengthMessage } from '$lib/utils/accountFormValidation'
 
     let { onsignin }: { onsignin?: () => void } = $props()
     const { authorizationService, api } = getAppContext()
@@ -17,9 +18,9 @@
     let email = $state('')
 
     const createUserSchema = z.object({
-        username: z.string().trim().min(1),
-        password: z.string().trim().min(12),
-        email: z.string().trim().email()
+        username: z.string().trim().min(1, minLengthMessage(1)),
+        password: z.string().trim().min(12, minLengthMessage(12)),
+        email: z.string().trim().pipe(emailAddress())
     })
 
     async function submit(event: SubmitEvent) {
@@ -29,7 +30,7 @@
         errors = {}
         const result = createUserSchema.safeParse({ username, password, email })
         if (!result.success) {
-            errors = result.error.flatten().fieldErrors
+            errors = z.flattenError(result.error).fieldErrors
             return
         }
         submitting = true

@@ -1,9 +1,9 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { actsFor } from '../finance/receivership.js'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -12,7 +12,11 @@ import {
 import type { ConstructionState } from './trackConstruction.js'
 
 export const FinishTrack = Type.Object(
-    { ...PlayerAction.properties, type: Type.Literal('FinishTrack'), companyId: Type.String() },
+    {
+        ...EighteenXXPlayerAction.properties,
+        type: Type.Literal('FinishTrack'),
+        companyId: Type.String()
+    },
     { additionalProperties: false }
 )
 export type FinishTrack = Type.Static<typeof FinishTrack>

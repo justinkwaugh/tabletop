@@ -31,7 +31,8 @@
     import { avatarImage } from '$lib/images/boardImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { favorToken } from '$lib/images/tileImages.js'
-    import { noExchangePicks, type ExchangePicks } from '$lib/model/exchangeTerms.js'
+    import { denizenBackToken } from '$lib/images/cardImages.js'
+    import { noExchangePicks, tappedCount, type ExchangePicks } from '$lib/model/exchangeTerms.js'
     import { powerChoiceCards, type CardResolvers } from '$lib/model/cardChoice.js'
     import {
         adviserPairs,
@@ -59,6 +60,7 @@
         allowsSeveral,
         asked,
         bankRuns,
+        countedOptions,
         emptyPicks,
         exchangePartners,
         favorBankSuits,
@@ -506,6 +508,22 @@
                 {:else if legal.spec.min > 0}
                     <p class="text-oath-danger">no legal site right now</p>
                 {/if}
+            {:else if legal.spec.kind === PowerChoiceKind.Count && countedOptions(legal) && words.count}
+                <!-- Fallen Spire: the count tapped on card backs, none picked at first; backs past what
+                     the pile and the Dispossessed hold cannot be tapped. -->
+                {@const counts = countedOptions(legal) ?? []}
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1" data-count-backs>
+                    <span class="text-oath-text-muted">{words.count.label}</span>
+                    <TokenRow
+                        image={denizenBackToken()}
+                        held={words.count.backs}
+                        addable={Math.max(...counts)}
+                        picked={picks.count[i] ?? 0}
+                        label={(n) => `${words.count?.label ?? ''} ${n}`}
+                        ontap={(n) => setCount(i, tappedCount(picks.count[i] ?? 0, n))}
+                        {busy}
+                    />
+                </div>
             {:else if legal.spec.kind === PowerChoiceKind.Count}
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span class="text-oath-text-muted">{legal.spec.what ?? 'how many'}:</span>

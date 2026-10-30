@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -11,9 +11,10 @@ import {
 import { TrainRoute, OperatingResult, type TrainRunningState } from './route.js'
 import { RouteEvaluation, type RouteRules } from './routeEvaluation.js'
 import { getCompany } from '../finance/finance.js'
+import { isInstructedRun, type RunInstructionState } from './instructedRuns.js'
 export const RunTrains = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('RunTrains'),
         companyId: Type.String({ minLength: 1 }),
         routes: Type.Array(TrainRoute),
@@ -40,13 +41,13 @@ export class HydratedRunTrains extends HydratableAction<typeof RunTrains> implem
         super(data instanceof HydratedRunTrains ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & TrainRunningState): void {
+    apply(state: HydratedGameState & TrainRunningState & RunInstructionState): void {
         const running = new RouteEvaluation(state, this.#rules)
         assert(
             (this.source === ActionSource.User ||
                 (this.source === ActionSource.System &&
-                    this.routes.length === 0 &&
-                    running.cannotRun(this.companyId))) &&
+                    ((this.routes.length === 0 && running.cannotRun(this.companyId)) ||
+                        isInstructedRun(state, this)))) &&
                 state.activePlayerIds.includes(this.playerId) &&
                 running.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may run trains'

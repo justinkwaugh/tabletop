@@ -7,6 +7,8 @@ export const TheOldPrinceInfo: GameInfo = {
     id: 'the-old-prince',
     metadata: {
         name: 'The Old Prince 1871',
+        bggId: 359211,
+        hasScores: true,
         designer: 'Lucas Boyd',
         year: '',
         description:

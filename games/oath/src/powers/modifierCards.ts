@@ -1,7 +1,7 @@
 import { assert, assertExists } from '@tabletop/common'
 import { Suit, CardKind } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { kindOf, suitOf } from '../data/cardRegistry.js'
+import { kindOf } from '../data/cardRegistry.js'
 import { warbandsOnBoardOf } from '../util/force.js'
 import { gainSupply } from '../util/rest.js'
 import { totalWarbandsAt } from '../util/rule.js'
@@ -152,7 +152,7 @@ registerModifier(
         freeGain: true,
         hooks: {
             condition: (ctx) =>
-                suitOf(ctx.particulars?.cardId ?? '') === Suit.Beast
+                ctx.state.suitInPlay(ctx.particulars?.cardId ?? '') === Suit.Beast
                     ? undefined
                     : `${ctx.particulars?.cardId} is not a beast card`,
             spendsNoSupply: spendNoSupply
@@ -169,7 +169,7 @@ registerModifier(
         freeGain: true,
         hooks: {
             condition: (ctx) => {
-                const suit = suitOf(ctx.particulars?.cardId ?? '')
+                const suit = ctx.state.suitInPlay(ctx.particulars?.cardId ?? '')
                 if (!suit) return `${ctx.particulars?.cardId} has no favor bank`
                 const mine = ctx.state.favorBank[suit]
                 const others = Object.entries(ctx.state.favorBank)
@@ -220,7 +220,7 @@ registerModifier(
         freeGain: true,
         hooks: {
             condition: (ctx) => {
-                const suit = suitOf(ctx.particulars?.cardId ?? '')
+                const suit = ctx.state.suitInPlay(ctx.particulars?.cardId ?? '')
                 return suit === Suit.Beast || suit === Suit.Nomad
                     ? undefined
                     : `${ctx.particulars?.cardId} is neither a beast nor a nomad card`
@@ -265,7 +265,7 @@ registerModifier(
                 if (withheld) return { summary: `Secret Signal: ${withheld}` }
                 const cardId = ctx.particulars.cardId
                 assertExists(cardId, 'A Trade names the card it is made with')
-                const suit = suitOf(cardId)
+                const suit = ctx.state.suitInPlay(cardId)
                 assertExists(suit, 'A Trade is made with a card of a suit')
                 const gained = gainFavorFromBank(
                     ctx.state,
@@ -360,7 +360,8 @@ registerModifier(
         freeGain: true,
         hooks: {
             after: (ctx) => {
-                if (!playedCardIds(ctx).some((id) => suitOf(id) === Suit.Beast)) return undefined
+                if (!playedCardIds(ctx).some((id) => ctx.state.suitInPlay(id) === Suit.Beast))
+                    return undefined
                 const supply = gainSupply(ctx.state, ctx.playerId, 1)
                 const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 2)
                 const words =

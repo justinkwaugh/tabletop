@@ -29,5 +29,6 @@ export type AuthorizationService = {
     setSessionUser(user: User): void
     clearSessionUser(): void
     onLogin(user: User): Promise<void>
+    logout(): Promise<void>
     onLogout(): Promise<void>
 }

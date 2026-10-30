@@ -225,11 +225,39 @@ Verification (automated in `tests/scalingWrapper.spec.ts`):
 
 - Inside a vertically scrolling body nested in a horizontally scrolling table, a touch drag on a
   fitted board scrolls the table sideways and the body vertically.
+- A touch drag on a zoomed board that has scrolled the table scrolls it back when it reverses,
+  leaving the board still.
 
-Movement the wrapper does not consume goes, on each axis, to the nearest ancestor that scrolls
-along that axis. A phone layout's vertical body therefore cannot swallow a sideways drag meant
-for the table, and a body that stops overscroll should do so only vertically
-(`overscroll-behavior-y`), so native sideways swipes over it also reach the table.
+Touch movement the wrapper does not consume goes, on each axis, to the ancestors that scroll
+along that axis, nearest first, each taking what it can before its edge, then the window
+(`scrollAncestorsWithFinger`). A scroller that falls short by less than a pixel has not reached
+its edge, since WebKit rounds scroll positions to whole pixels, and the window takes only what it
+has room for, since iOS lets a script push the page past its edges. Wheel and trackpad movement it does not consume goes only to the
+nearest ancestor that scrolls along that axis, or the window when there is none
+(`scrollNearestAncestorWithFinger`). A phone layout's vertical body therefore cannot swallow a sideways drag meant for the table, and
+a body that stops overscroll should do so only vertically (`overscroll-behavior-y`), so native
+sideways swipes over it also reach the table.
+Once a touch drag has scrolled the scrollers around the board along an axis, the rest of that
+drag moves only them along that axis, even if the finger reverses, so the board does not pan
+back; the next touch starts afresh.
+
+A lifted finger flings the board, or the scrollers it handed off to, at its speed, slowing each
+frame (`fling` in `utils/touchFling.ts`). A finger that rested for more than 100ms before lifting
+does not fling, a cancelled touch never flings, and a new touch anywhere, or a wheel, stops a
+fling of the scrollers around the board.
+
+A native sideways scroller inside the table, such as a wide spreadsheet, takes the
+`chainSidewaysScroll` attachment, because native touch scrolling latches to the scroller a swipe
+starts in and iOS Safari does not chain it to the table. While the scroller's content is wider
+than its box, a mostly sideways swipe over it is scrolled by script and moves one scroller from
+start to lift, fling included: the scroller itself, unless the swipe starts with it at its edge in
+the swipe's direction, in which case the nearest scroller around it that can move that way. A
+swipe that reaches the scroller's edge therefore stops there, and one that starts at the edge
+keeps moving the table even if the finger reverses. The fling follows the same rules as the
+board's: none after a rest or a cancelled touch, and a touch or wheel on the flung scroller stops
+it. While the content fits, touch over it is entirely native; the check follows the scroller's
+size, its children's sizes and its DOM, so content that widens as a web font loads counts. Vertical swipes and pinches always stay native, and a nested scroller with the
+attachment handles the touch alone. `TabWorkspace`'s tab strips take it.
 The per-axis handoff is bundled rendering with no host-bridge change; every Game UI Artifact
 bundles `ScalingWrapper` (the 18xx titles through `@tabletop/18xx-ui`) and adopts it when next
 republished.
@@ -264,7 +292,7 @@ activate a tab by updating the bound selection. No host contract changes.
 
 Dropping on a tab inserts before it, including reordering within the same pane;
 dropping on remaining pane space appends. While more than one pane exists, every split-tree pane menu ends with a red
-Delete pane item after a divider; the fixed pane is never deletable, and pane headers never show a delete button. Deletion appends its
+Delete pane item after a divider; the fixed pane is deletable only when `fixedPane.deletable` is set, and pane headers never show a delete button. Deletion appends its
 tabs to its sibling (the first surviving leaf if that sibling is split), then
 collapses the split. The selected tab remains visible.
 The surviving subtree retains its contents and divider positions, and split-button
@@ -277,12 +305,26 @@ Mouse divider resizing uses mouse down with window-level move/up listeners;
 WebKit can omit the next pointerdown after native drag/drop while still delivering
 mousedown. Touch and pen resizing use pointer capture. Blur cancels resizing.
 
-Setting `splittable={false}` provides an ordinary fixed tab bar without pane
-controls or tab dragging. It is intended for an unsplit initial layout.
+Setting `splittable={false}` keeps the workspace at its unsplit initial layout:
+no split or delete-pane controls and no tab dragging between panes. Each pane
+still has its options menu to close and add tabs, so a tab moves between panes by
+closing it in one and adding it in the other. With more than one tab, each Current
+tabs row starts with a grip. Dragging a grip up or down by pointer (finger, pen or
+mouse, via pointer capture) slides the other rows aside by whole rows and reorders
+the pane's tabs on release. Arrow Up/Down on a focused grip moves its tab one
+place and keeps focus on the grip. Closing the menu, a cancelled pointer, or lost
+capture abandons a drag without reordering. An empty pane reads "Add a tab from the
+pane menu" instead of "Drag a tab here".
 
 An optional `fixedPane` supplies a target element, label, and allowed initial tab
 IDs. Its header and panels render into that target, outside the split tree; it
-cannot split or close and does not consume main-pane capacity. Only its allowed
+cannot split and does not consume main-pane capacity. With `deletable`, its menu
+ends with Delete pane, which appends its tabs to the first main pane; the caller
+binds `fixedPaneDeleted` to hide the target. While it is deleted, the menu of each
+main pane starts with a left / right split icon, in the place of split buttons,
+that brings it back with its initial tabs (`initialLayout.sidebar`, else its
+allowed tabs) that are in the main panes, moved out of them. Its parts mount
+outside the workspace element, so they carry their own header height. Only its allowed
 tabs can enter, while they may leave for any main pane. Empty fixed panes remain
 drop targets. Content nodes stay mounted across transfers. The optional
 `tabTitle` snippet adds icons or indicators before a tab label.
@@ -314,15 +356,18 @@ original narrow layout retains its operating-order strip.
 
 Pane headers consolidate splitting and adding/moving tabs into a compact options
 popover anchored below an ellipsis button. Delete remains the far-right control.
-The fixed pane exposes only allowed tab choices; it cannot split or close.
+The fixed pane exposes only allowed tab choices; it cannot split, and offers
+Delete pane only when deletable. Without splitting, the fixed pane's tab bar uses
+the narrow tab spacing at every width.
 
 The options popup uses a consistent compact width, with split icons followed by
 Current tabs and Add tabs sections. Add tabs is always visible when tabs can be added;
 there is no separate plus button.
 
 The Add list contains only tabs absent from every pane. Already placed tabs move
-via dragging, not the catalog. Hide Add tabs when no allowed absent tabs remain;
-the fixed pane needs no options button when it has no current or available tabs.
+via dragging in a splittable workspace, and by closing and re-adding without
+splitting. Hide Add tabs when no allowed absent tabs remain; the fixed pane needs no
+options button when it has no current or available tabs and cannot be deleted.
 
 The options dropdown lists the pane’s current tabs with individual close buttons.
 Actions is protected and never closeable. Closed tabs become available in Add.

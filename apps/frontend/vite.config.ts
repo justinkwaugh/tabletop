@@ -46,12 +46,12 @@ export default defineProject(
         test: { exclude: ['**/*.client.spec.ts'] },
         assetsInclude: ['**/*.gltf'],
         build: {
-            commonjsOptions: { include: [/node_modules/] },
-            rollupOptions: {
+            // Vite 7's default targets: Vite 8's would drop media-range lowering (Safari < 16.4)
+            // and hex fallbacks for lab() colours (Firefox < 113).
+            target: ['chrome107', 'edge107', 'firefox104', 'safari16'],
+            rolldownOptions: {
                 output: {
-                    manualChunks: () => {
-                        return 'my-app'
-                    }
+                    codeSplitting: { groups: [{ name: 'my-app' }] }
                 }
             }
         }

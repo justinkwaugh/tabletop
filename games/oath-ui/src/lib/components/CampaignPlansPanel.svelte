@@ -7,7 +7,7 @@
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import { powerKey } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName } from '$lib/model/names.js'
+    import { powerCardName } from '$lib/model/names.js'
     import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { movesShown } from '$lib/model/powerMoves.js'
@@ -70,7 +70,9 @@
             <!-- Warning Signals with no warband it can move asks nothing. -->
             {#if defence.isDeclared(power) && choices.length > 0 && (!moves || movesShown(moves))}
                 <div class="mb-1" data-plan-picks={power.cardId}>
-                    <div class="text-xs text-oath-text-muted">{cardName(power.cardId)}:</div>
+                    <div class="text-xs text-oath-text-muted">
+                        {powerCardName(power.cardId, power.powerIndex)}:
+                    </div>
                     <!-- Warning Signals' moves are Messenger's: one at a time, as tiles and warband pieces. -->
                     {#if moves}
                         <PowerMovesPicker

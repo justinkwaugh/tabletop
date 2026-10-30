@@ -20,7 +20,10 @@ export function participant(state: State, playerId: string) {
     assertExists(participant, 'Unknown draft participant')
     return participant
 }
-export function priceFor(state: State, cardId: string): number {
+export function priceFor(
+    state: Pick<EighteenFortySixProjectedState, 'draft'>,
+    cardId: string
+): number {
     if (isBlank(cardId)) return 0
     const offer = state.draft && 'finalOffer' in state.draft ? state.draft.finalOffer : undefined
     if (offer?.cardId === cardId) return offer.price
@@ -36,6 +39,9 @@ export function choicesFor(state: State, playerId: string): string[] {
     return buyer.packet.filter((cardId) => committed + priceFor(state, cardId) <= cash)
 }
 
+export function packetSize(playerCount: number): number {
+    return playerCount + 2
+}
 /** Every company has been chosen: only blank cards remain undealt and no packet is in hand. */
 export function draftExhausted(state: State): boolean {
     const draft = hiddenDistribution(state)
@@ -55,7 +61,7 @@ export function dealPacket(state: State): void {
     if (deck.every(isBlank)) return
     const buyer = participant(state, state.activePlayerIds[0])
     assert(buyer.packet?.length === 0, 'Previous packet must be returned before dealing')
-    buyer.packet = deck.splice(0, state.numPlayers + 2)
+    buyer.packet = deck.splice(0, packetSize(state.numPlayers))
     if (draft.remainingCount === 1) {
         const cardId = buyer.packet[0]
         draft.finalOffer = { cardId, price: priceFor(state, cardId) }

@@ -10,7 +10,6 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     GameAction,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -34,7 +33,8 @@ import {
     type OpenShare,
     SystemActionFirstHandler,
     companyShareCount,
-    recordStockRoundSale
+    recordStockRoundSale,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import { inClosingZone } from './marketZones.js'
 import { EighteenSeventeenStockRoundRules, MarketPoolId } from './roundRules.js'
@@ -100,7 +100,7 @@ export function shortOptions(
 
 export const ShortShare = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ShortShare'),
         companyId: Type.String(),
         expectedPrice: Type.Integer({ minimum: 1 }),

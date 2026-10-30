@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -20,7 +20,7 @@ import type { StockState } from './stockState.js'
 
 export const SetStockInstruction = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('SetStockInstruction'),
         outOfTurn: Type.Literal(true),
         supersedable: Type.Literal(true),

@@ -1,4 +1,4 @@
-import { type HydratedAction } from './gameAction.js'
+import type { HydratedAction } from './gameAction.js'
 import { MachineContext } from './machineContext.js'
 import type { HydratedGameState } from '../model/gameState.js'
 

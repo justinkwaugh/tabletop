@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type GameAction } from '@tabletop/common'
+    import { isCallGameAction, type GameAction } from '@tabletop/common'
     import {
         ActionType,
         PassReason,
@@ -16,7 +16,7 @@
         isVroom
     } from '@tabletop/bus'
     import { isAggregatedBusAction } from '$lib/aggregates/aggregatedBusAction.js'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
 
     let {
         action,
@@ -128,6 +128,8 @@
         {#if action.reason}
             ({passReasonLabels[action.reason] ?? action.reason})
         {/if}
+    {:else if isCallGameAction(action)}
+        <CalledGameDescription {action} />
     {:else}
         performed {action.type}
     {/if}

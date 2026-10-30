@@ -16,14 +16,22 @@
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext, trim } from '@tabletop/frontend-components'
     import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
+    import {
+        emailAddress,
+        minLengthMessage,
+        requiredMessage
+    } from '$lib/utils/accountFormValidation'
+    import { broadcastLogout } from '$lib/utils/logoutChannel'
+    import { challengeExpiryText } from '$lib/utils/challengeExpiry'
 
     let { authorizationService, api } = getAppContext()
 
-    const enum ReauthType {
-        None = 'none',
-        Password = 'password',
-        Token = 'token'
-    }
+    const ReauthType = {
+        None: 'none',
+        Password: 'password',
+        Token: 'token'
+    } as const
+    type ReauthType = (typeof ReauthType)[keyof typeof ReauthType]
 
     const imageForLinkType = new Map<string, string>([
         ['google', googleLogo],
@@ -37,6 +45,7 @@
     let passwordToggle = $state(false)
     let currentPasswordToggle = $state(false)
     let newEmailSent = $state(false)
+    let codeExpiresAt: Date | undefined = $state(undefined)
 
     let sessionUser = authorizationService.getSessionUser()
 
@@ -58,7 +67,7 @@
     let password: string | undefined = $state(undefined)
     let email: string | undefined = $state(sessionUser?.email)
     let currentPassword: string | undefined = $state(undefined)
-    let token: string | undefined = $state(undefined)
+    let challenge: string | undefined = $state(undefined)
 
     let reauthType: ReauthType = $derived.by(() => {
         if (email == user?.email && !password) {
@@ -72,10 +81,10 @@
         }
     })
 
-    const createUserSchema = zfd.formData({
-        username: zfd.text(),
-        password: zfd.text(z.string().min(12).optional()),
-        email: zfd.text(z.string().email())
+    const updateProfileSchema = zfd.formData({
+        username: zfd.text(z.string(requiredMessage)),
+        password: zfd.text(z.string().min(12, minLengthMessage(12)).optional()),
+        email: zfd.text(emailAddress())
     })
 
     function togglePassword() {
@@ -97,9 +106,9 @@
         success = false
         const form = event.target as HTMLFormElement
         const formData = new FormData(form)
-        const result = createUserSchema.safeParse(formData)
+        const result = updateProfileSchema.safeParse(formData)
         if (!result.success) {
-            errors = result.error.flatten().fieldErrors
+            errors = z.flattenError(result.error).fieldErrors
             return
         }
 
@@ -127,7 +136,8 @@
             success = true
             password = undefined
             currentPassword = undefined
-            token = undefined
+            challenge = undefined
+            newEmailSent = false
 
             authorizationService.setSessionUser(newUser)
 
@@ -138,6 +148,9 @@
             console.log(e)
             if (e instanceof Error && e.name === 'AuthenticationVerificationFailedError') {
                 errorMessage = 'Invalid password, could not update profile.'
+            } else if (e instanceof Error && e.name === 'InvalidChallengeError') {
+                errorMessage =
+                    'The code does not match this change, has expired, or was replaced. Send a new code for exactly the change you are making.'
             } else if (e instanceof Error && e.name === 'AlreadyExistsError') {
                 if (e.message.includes('username')) {
                     errors.username = ['Username already exists']
@@ -152,14 +165,33 @@
         }
     }
 
+    // The code is bound to exactly this change; editing the form afterwards needs a new one
     async function sendVerificationEmail() {
-        await api.sendAuthVerificationEmail()
+        const emailChanged = email?.trim() && email.trim() !== user?.email
+        codeExpiresAt = await api.sendSensitiveChangeChallenge({
+            ...(emailChanged ? { email: email?.trim() } : {}),
+            password: Boolean(password)
+        })
         newEmailSent = true
     }
 
     function clearErrors() {
         errorMessage = undefined
         errors = {}
+    }
+
+    let logoutEverywhereFailed = $state(false)
+
+    async function logoutEverywhere() {
+        logoutEverywhereFailed = false
+        try {
+            await api.logoutAll()
+        } catch {
+            logoutEverywhereFailed = true
+            return
+        }
+        broadcastLogout()
+        await authorizationService.onLogout()
     }
 </script>
 
@@ -319,22 +351,24 @@
                     In order to change sensitive information you must verify your authenticity.<br
                     /><br />
                     {#if !newEmailSent}
-                        Click here to send a verification email with a token
+                        Enter the change you want to make, then send yourself a verification code
+                        for it.
                     {:else}
-                        Email Sent! Check your inbox and enter the token below.
+                        Email sent! Check your inbox and enter the code below.
+                        {#if codeExpiresAt}{challengeExpiryText(codeExpiresAt)}{/if}
                     {/if}
                     <div class="flex justify-center">
                         <Button class="mt-4" onclick={sendVerificationEmail} color="blue"
-                            >Send Token</Button
+                            >Send Code</Button
                         >
                     </div>
                 </Alert>
 
-                <Label class="space-y-2">Token</Label>
+                <Label class="space-y-2">Code</Label>
                 <Input
-                    bind:value={token}
+                    bind:value={challenge}
                     oninput={trim}
-                    name="token"
+                    name="challenge"
                     placeholder="abcDeF"
                     required
                 />
@@ -344,5 +378,20 @@
         <div class="mt-6">
             <TimeZonePicker />
         </div>
+        <div class="mt-6 flex items-center justify-between gap-4">
+            <P class="text-sm text-gray-700 dark:text-gray-400"
+                >Signed in somewhere you no longer trust? Sign out of every device, including this
+                one.</P
+            >
+            <Button color="alternative" size="sm" onclick={logoutEverywhere}
+                >Sign out everywhere</Button
+            >
+        </div>
+        {#if logoutEverywhereFailed}
+            <Alert class="dark:bg-red-200 dark:text-red-700 mt-4">
+                <span class="font-bold text-lg">We could not confirm the sign-out</span><br />
+                Other sessions may still be active. Please try again.
+            </Alert>
+        {/if}
     </Card>
 </div>

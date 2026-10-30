@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { isNeutralPlacementStage, isPlantTurn } from '$lib/model/turnRules.js'
+    import { isGameOver, isNeutralPlacementStage, isPlantTurn } from '$lib/model/turnRules.js'
     import {
         ScalingWrapper,
         DefaultTableLayout,
@@ -46,7 +46,7 @@
     const deal = session.tileDeal
     const preview = session.boardPreview
     const state = $derived(session.gameState)
-    const isEndOfGame = $derived(state.machineState === MachineState.EndOfGame)
+    const gameOver = $derived(isGameOver(state))
     const isBidding = $derived(state.machineState === MachineState.Bidding)
     const isPlanting = $derived(state.machineState === MachineState.PlantingPhase)
     const isMyPlantTurn = $derived(isPlantTurn(state, session.myPlayer?.id))
@@ -123,7 +123,7 @@
                 inactiveTabClass="h-[44px] flex items-center justify-center text-amber-400 px-3 rounded-lg border-2 border-transparent hover:border-amber-700 text-sm"
             >
                 {#snippet playersPanel()}
-                    {#if isEndOfGame}
+                    {#if gameOver}
                         <div class="border-b border-stone-700/60 p-2">
                             <ActionPanel />
                         </div>

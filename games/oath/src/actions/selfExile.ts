@@ -101,11 +101,11 @@ export class HydratedSelfExile extends HydratableAction<typeof SelfExile> implem
         // R-7.1.2.a: facedown secrets are still on the board, so both counts contribute.
         const secretsOnBoard = player.secrets + player.secretsFacedown
 
-        // R-6.8 is unqualified: every denizen and relic card on the table counts, ruled or not.
+        // R-6.8 is unqualified: every denizen, relic and edifice card on the table counts, ruled or not, either side up.
         let secretsOnCards = 0
         for (const [cardId, tokens] of Object.entries(state.cardTokens)) {
             const kind = kindOf(cardId)
-            if (kind === CardKind.Denizen || kind === CardKind.Relic) {
+            if (kind === CardKind.Denizen || kind === CardKind.Relic || kind === CardKind.Edifice) {
                 secretsOnCards += tokens.secrets
             }
         }

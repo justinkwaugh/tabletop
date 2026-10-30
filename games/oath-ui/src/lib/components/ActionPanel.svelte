@@ -28,6 +28,7 @@
     import RestPanel from '$lib/components/RestPanel.svelte'
     import EndOfRoundPanel from '$lib/components/EndOfRoundPanel.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
+    import ChroniclePanel from '$lib/components/ChroniclePanel.svelte'
     import ActorOnlyNotice from '$lib/components/ActorOnlyNotice.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
@@ -179,6 +180,9 @@
         {/if}
     {:else if gameState.machineState === MachineState.RestPhase}
         <RestPanel />
+    {:else if gameState.machineState === MachineState.Chronicle}
+        <!-- R-8 — only a seat the step waits on reaches this; the rest read "Waiting on" above. -->
+        <ChroniclePanel />
     {:else if !inActPhase}
         <p class="text-sm text-oath-text-muted">
             Nothing to choose here — no panel is wired for {gameState.machineState}.

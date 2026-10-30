@@ -14,7 +14,7 @@ import {
     isIndonesiaNodeId,
     type IndonesiaNodeId
 } from '../utils/indonesiaNodes.js'
-import { type HydratedIndonesiaGameState, type MergerCompanySummary } from '../model/gameState.js'
+import type { HydratedIndonesiaGameState, MergerCompanySummary } from '../model/gameState.js'
 
 const SHIPPING_NOMINAL_VALUE_PER_UNIT = 10
 const NOMINAL_VALUE_BY_GOOD: Record<Good, number> = {

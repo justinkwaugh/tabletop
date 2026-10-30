@@ -1,5 +1,11 @@
-import type { GameAction } from '@tabletop/common'
-import { isOfferPurchase, isRespondToPurchaseOffer } from '@tabletop/18xx'
+import type { GameAction, GameState } from '@tabletop/common'
+import {
+    isOfferPurchase,
+    isRespondToPurchaseOffer,
+    type EighteenXXTitleRules
+} from '@tabletop/18xx'
+import type { TitleOperatingStep } from '../session/titlePresentation.js'
+import type { OperatingStepStatuses } from './operatingStepStatuses.js'
 
 const indices: Readonly<Record<string, number>> = {
     LayingTrack: 0,
@@ -52,4 +58,66 @@ export function historicalOperatingStepIndex(
         if (index !== undefined) return index
     }
     return operatingStepIndex(machineState)
+}
+
+type ConstructionLayoutStep = 'build' | 'run' | 'payout' | 'trains' | 'loans'
+
+/**
+ * The operating steps of a title that places stations in its track step: track, stations and
+ * share issues are one Build step.
+ */
+export function constructionOperatingSteps<State extends GameState>(
+    rules: Pick<EighteenXXTitleRules, 'additionalConstructionActions' | 'loanRules'>,
+    titleActions: Partial<Record<ConstructionLayoutStep, readonly string[]>> = {}
+): TitleOperatingStep<State>[] {
+    const step = (
+        id: ConstructionLayoutStep,
+        label: string,
+        states: readonly string[],
+        status: (summaries: OperatingStepStatuses) => string | undefined,
+        indices: readonly number[],
+        familyActions: readonly string[] = []
+    ): TitleOperatingStep<State> => ({
+        label,
+        states,
+        actions: [
+            ...Object.keys(actionIndices).filter((type) => indices.includes(actionIndices[type])),
+            ...familyActions,
+            ...(titleActions[id] ?? [])
+        ],
+        status: (_state, _actions, summaries) => status(summaries)
+    })
+    const build = (summaries: OperatingStepStatuses) =>
+        [summaries.finance, summaries.track, summaries.station].filter(Boolean).join(' · ') ||
+        undefined
+    return [
+        step(
+            'build',
+            'Build',
+            ['LayingTrack'],
+            build,
+            [0, 1],
+            ['CorporateFinance', ...(rules.additionalConstructionActions ?? [])]
+        ),
+        step('run', 'Run', ['RunningTrains', 'RustingTrains'], (summaries) => summaries.run, [2]),
+        step('payout', 'Payout', ['DistributingEarnings'], (summaries) => summaries.payout, [3]),
+        step(
+            'trains',
+            'Trains',
+            ['BuyingTrains', 'FundingTrain', 'DiscardingTrains'],
+            (summaries) => summaries.trains,
+            [4]
+        ),
+        ...(rules.loanRules
+            ? [
+                  step(
+                      'loans',
+                      'Loans',
+                      ['RepayingLoans', 'RaisingCash'],
+                      (summaries) => summaries.loans,
+                      [5]
+                  )
+              ]
+            : [])
+    ]
 }

@@ -6,11 +6,17 @@ import {
     NotificationListener,
     NotificationService
 } from './notificationService.js'
-import { NotificationTransport } from './transports/notificationTransport.js'
+import { NotificationTransport, TransportType } from './transports/notificationTransport.js'
 import { NotificationSubscription } from './subscriptions/notificationSubscription.js'
 import { NotificationSubscriptionIdentifier } from './subscriptions/notificationSubscriptionIdentifier.js'
 import { TopicTransport } from './transports/topicTransport.js'
 import { GLOBAL_TOPIC } from './topics.js'
+
+export const WEB_PUSH_REGISTRATIONS_PER_TOPIC = 20
+
+const REGISTRATION_LIMITS: Partial<Record<TransportType, number>> = {
+    [TransportType.WebPush]: WEB_PUSH_REGISTRATIONS_PER_TOPIC
+}
 
 export class DefaultNotificationService implements NotificationService {
     private transports: Record<string, NotificationTransport> = {}
@@ -138,7 +144,11 @@ export class DefaultNotificationService implements NotificationService {
         subscription: NotificationSubscription
         topic: string
     }) {
-        await this.notificationStore.upsertNotificationSubscription({ subscription, topic })
+        await this.notificationStore.upsertNotificationSubscription({
+            subscription,
+            topic,
+            registrationLimit: REGISTRATION_LIMITS[subscription.transport]
+        })
     }
 
     async unregisterNotificationSubscription(identifier: NotificationSubscriptionIdentifier) {

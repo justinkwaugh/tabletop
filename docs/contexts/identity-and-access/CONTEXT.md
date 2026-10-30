@@ -58,37 +58,51 @@ A secret used to authenticate a User Account. Leading and trailing whitespace is
 _Avoid_: Password record
 
 **External Identity**:
-A stable, provider-qualified identity linked to exactly one User Account. An Account may link at most one identity from each provider.
+A stable, provider-qualified identity linked to exactly one User Account. An Account may link at most one identity from each provider. Linking completes only a Provider Authorization Attempt the linking session began.
 _Avoid_: Social account, provider email
 
 **Trusted External Provider**:
 A provider whose verified-email assertion is accepted as proof of email control for Account linking. Google and Discord are currently trusted; additional providers require an explicit trust decision.
 
 **Set Password**:
-The operation that establishes a new Password Credential, replacing any existing one.
+The operation that establishes a new Password Credential, replacing any existing one. It advances the Account's Session Generation in the same commit, which terminates every Authenticated Session of the Account.
 _Avoid_: Password Recovery
 
 **Authentication Challenge**:
-A purpose-bound, single-use proof with a fifteen-minute lifetime. Issuing a replacement invalidates earlier challenges for the same Account and purpose.
+A purpose-bound, single-use proof with a fifteen-minute lifetime, consumed in the same commit as the operation it authorizes. Issuing a replacement invalidates earlier challenges for the same Account and purpose. A challenge never establishes an Authenticated Session.
 _Avoid_: Authentication token, verification token
 
 **Email Verification Challenge**:
 An Authentication Challenge proving control of its exact target Email Address.
 
 **Set Password Challenge**:
-An Authentication Challenge authorizing Set Password for an Incomplete or Active Account without establishing an Authenticated Session. It changes neither Account Status nor email verification.
+An Authentication Challenge, bound to the Email Address it was sent to, authorizing Set Password for an Incomplete or Active Account without establishing an Authenticated Session. It changes neither Account Status nor email verification; the person signs in afterwards through an Authentication Method.
 
 **Sensitive Change Challenge**:
-An Authentication Challenge authorizing its specified sensitive Account operation.
+An Authentication Challenge, bound to the Email Address it was sent to and to the exact requested change (the proposed Email Address and whether a Password Credential is being set), through which an Account without a Password Credential authorizes that change. An Account with a Password Credential proves the change with that password instead.
 
 **Authenticated Session**:
-Ongoing authorization associated with a User Account, with a thirty-day absolute lifetime and no sliding extension from ordinary activity. An Account may have multiple concurrent sessions.
+Ongoing authorization associated with a User Account, recorded server-side under an unguessable Session ID that the session cookie carries. It has a thirty-day absolute lifetime and no sliding extension from ordinary activity, and it ends early through Logout, Logout All, or Set Password. A cookie without a live record authorizes nothing. An Account may have multiple concurrent sessions.
+_Avoid_: Login cookie, stateless session
+
+**Session ID**:
+The unguessable identifier of one Authenticated Session. It is the only authorization the session cookie carries and is never derived from Account data.
+
+**Session Generation**:
+A counter on the User Account that every Authenticated Session records when it is established. A session authorizes only while its recorded generation equals the Account's. A Password Credential change advances the generation in the same commit as the new credential, so no session established from the old credential survives it, including one established concurrently.
 
 **Recent Authentication**:
 Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session. Ordinary activity does not refresh it.
 
+**Provider Authorization Attempt**:
+One pass through an external provider's authorization flow, begun on this platform for a stated purpose: sign-in or linking. Its Authorization State is an unpredictable value with a ten-minute lifetime, bound to the provider, the purpose and the registered return address, and held by whoever began the attempt: the Authenticated Session for linking, the browser's session cookie for sign-in. Each holder keeps at most one attempt, so beginning another replaces it. A provider callback is accepted only with the state of the live attempt its own holder keeps. An attempt held by an Authenticated Session is consumed exactly once; an attempt held by a sign-in cookie is cleared from that browser when its callback completes, and the provider's single-use authorization code is what limits a copy of the cookie taken earlier.
+_Avoid_: OAuth state parameter, CSRF token
+
+**Logout**:
+Termination of the current Authenticated Session. Any Account holding a session may log out; a copied cookie for that session stops authorizing at the same moment.
+
 **Logout All**:
-Termination of every Authenticated Session belonging to a User Account.
+Termination of every Authenticated Session belonging to a User Account, including the one requesting it.
 
 ## Authorization
 

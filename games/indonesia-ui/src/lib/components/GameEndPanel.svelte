@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CalledGameEnding } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -20,7 +21,9 @@
 
 <div class="game-end-panel">
     <div class="game-end-card">
-        {#if winningPlayer}
+        {#if gameSession.gameCall}
+            <CalledGameEnding class="text-[17px]" />
+        {:else if winningPlayer}
             <div class="game-end-title indonesia-font">Winner</div>
             <div class="game-end-winner-wrap">
                 <svg

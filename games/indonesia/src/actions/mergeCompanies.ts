@@ -11,7 +11,7 @@ import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { CompanyType } from '../definition/companyType.js'
 import { Good } from '../definition/goods.js'
-import { type Company } from '../components/company.js'
+import type { Company } from '../components/company.js'
 import { AreaType, isCultivatedArea, isSeaArea } from '../components/area.js'
 import {
     activeAuctionParticipantCount,

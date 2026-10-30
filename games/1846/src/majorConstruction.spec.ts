@@ -4,7 +4,8 @@ import { TrackConstruction, StationPlacement, finiteCashOwnedBy } from '@tableto
 import { stockGame, start } from '../test/testSupport.js'
 import { TrackRules1846 } from './track.js'
 import { StationRules1846, stationChoices1846 } from './stations.js'
-import { corporateFinanceChoices } from './corporateFinance.js'
+import { corporateFinanceChoices } from '@tabletop/18xx'
+import { CorporateFinanceRules1846 } from './corporateFinance.js'
 
 function constructionGame() {
     const table = stockGame()
@@ -95,7 +96,7 @@ describe('1846 major construction', () => {
         expect(table.state.stationStep?.placedStationIds).toHaveLength(1)
         expect(placed.processedActions.map((action) => action.type)).toEqual(['PlaceStation'])
         expect(table.state.machineState).toBe('LayingTrack')
-        const issues = corporateFinanceChoices(table.hydrated).filter(
+        const issues = corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846).filter(
             (choice) => choice.operation === 'issue'
         )
         const block = issues.at(-1)

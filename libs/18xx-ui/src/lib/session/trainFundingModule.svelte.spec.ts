@@ -40,7 +40,25 @@ const VariantDepot = new TrainDepot({
     supply: [{ definitionId: '2', variantDefinitionIds: ['3'], count: 2 }]
 })
 
-function trainlessRailway() {
+// Unlimited trains, like 1832's 12-trains, have no stored record until one is bought.
+const UnlimitedDepot = new TrainDepot({
+    id: 'unlimited',
+    trains: [
+        { id: '2', name: '2', price: 100, distance: { measure: 'revenue-centers', maximum: 2 } },
+        { id: '12', name: '12', price: 300, distance: { measure: 'revenue-centers', maximum: 12 } }
+    ],
+    supply: [
+        { definitionId: '2', count: 1 },
+        { definitionId: '12', count: 'unlimited' }
+    ]
+})
+
+function trainlessRailway({
+    depot = VariantDepot,
+    availableDefinitions = ['2', '3'],
+    marketTrainIds = []
+}: { depot?: TrainDepot; availableDefinitions?: string[]; marketTrainIds?: string[] } = {}) {
+    const inventory = depot.createInventory()
     const president = { kind: 'player' as const, playerId: TestPlayerId }
     const railway = { kind: 'company' as const, companyId: TestCompanyId }
     const base = minimalPlayState()
@@ -61,7 +79,14 @@ function trainlessRailway() {
                 owner: president
             }
         ],
-        trainInventory: VariantDepot.createInventory(),
+        trainInventory: {
+            ...inventory,
+            trains: inventory.trains.map((train) =>
+                marketTrainIds.includes(train.id)
+                    ? { id: train.id, definitionId: train.definitionId, status: 'market' }
+                    : train
+            )
+        },
         trainPurchaseStep: { companyId: TestCompanyId, purchasedTrainIds: [] },
         operatingSet: {
             number: 1,
@@ -78,13 +103,14 @@ function trainlessRailway() {
         trainFundingRules: {
             ...minimalTrainFundingRules,
             contributors: () => [president],
+            includeMarketTrains: marketTrainIds.length > 0,
             fundablePurchases: (_state, _companyId, offers) => [...offers]
         },
         trainRules: {
             ...minimalTrainRules,
-            depot: VariantDepot,
+            depot,
             requiresTrain: () => true,
-            availableDefinitions: () => ['2', '3']
+            availableDefinitions: () => availableDefinitions
         }
     }
     const harness = testSession(state, rules, ['FundTrain'])
@@ -107,6 +133,18 @@ describe('TrainFundingModule', () => {
         await module.fundOption(three.purchase)
         const [action] = applied
         expect(isFundTrain(action) && action.definitionId).toBe('3')
+    })
+
+    it('sorts funded purchases by source, an unbought unlimited train to the depot', () => {
+        const [two] = UnlimitedDepot.createInventory().trains
+        const { module } = trainlessRailway({
+            depot: UnlimitedDepot,
+            availableDefinitions: ['12'],
+            marketTrainIds: [two.id]
+        })
+        expect(module.purchases.map((purchase) => purchase.definitionId)).toEqual(['12', '2'])
+        expect(module.depotPurchases.map((purchase) => purchase.definitionId)).toEqual(['12'])
+        expect(module.marketPurchases.map((purchase) => purchase.definitionId)).toEqual(['2'])
     })
 
     it('offers no funded purchases or choice outside their machine states', () => {

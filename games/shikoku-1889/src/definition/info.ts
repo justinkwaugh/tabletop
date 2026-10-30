@@ -7,6 +7,8 @@ export const Shikoku1889Info: GameInfo = {
     id: 'shikoku-1889',
     metadata: {
         name: 'Shikoku 1889',
+        bggId: 23540,
+        hasScores: true,
         designer: 'Yasutaka Ikeda',
         year: '2004',
         description: 'Railway companies on Shikoku, with a prototype interface.',

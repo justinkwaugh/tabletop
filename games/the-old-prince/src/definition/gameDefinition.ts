@@ -46,6 +46,7 @@ export const TheOldPrinceTitleRules: EighteenXXTitleRules<
     privatePowerRules: TheOldPrincePrivatePowerRules,
     createOpening: createTheOldPrinceOpening,
     startingCash: theOldPrinceStartingCash,
+    currencySymbol: '$',
     stockRules: TheOldPrinceStockRules,
     companyRules: TheOldPrinceCompanyRules,
     operatingRules: TheOldPrinceOperatingRules,
@@ -56,7 +57,8 @@ export const TheOldPrinceTitleRules: EighteenXXTitleRules<
     privateRules: TheOldPrincePrivateRules,
     phases: TheOldPrincePhases,
     phaseRules: TheOldPrincePhaseRules,
-    trainRules: TheOldPrinceTrainRules
+    trainRules: TheOldPrinceTrainRules,
+    runInstructions: true
 }
 
 export const Definition: GameDefinition<TheOldPrinceState, HydratedTheOldPrinceState> = {

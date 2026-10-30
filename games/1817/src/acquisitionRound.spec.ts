@@ -82,10 +82,10 @@ describe('the acquisition round', () => {
         const play = acquisitionRound()
         expect(play.state.machineState).toBe('AcquisitionRound')
         expect(acquisitionRoundCompanyId(play.state)).toBe('PLE')
-        expect(play.valid('alex')).toEqual(['OfferCompany', 'DeclineOffer'])
+        expect(play.valid('alex')).toEqual(['OfferCompany', 'DeclineOffer', 'SetRunInstruction'])
         play.act('DeclineOffer', { companyId: 'PLE' })
         expect(acquisitionRoundCompanyId(play.state)).toBe('BA')
-        expect(play.valid('blair')).toEqual(['OfferCompany', 'DeclineOffer'])
+        expect(play.valid('blair')).toEqual(['OfferCompany', 'DeclineOffer', 'SetRunInstruction'])
         play.act('DeclineOffer', { companyId: 'BA' })
         expect(play.state.operatingSet?.roundNumber).toBe(2)
     })
@@ -125,7 +125,11 @@ describe('the acquisition round', () => {
         play.act('BidToAcquire', { companyId: 'PLE', amount: 120 })
         expect(getCompany(play.state, 'BA').loans).toBe(3)
         expect(price(play.state, 'BA')).toBe(100)
-        expect(play.valid('blair')).toEqual(['TakeLoan', 'FinishAcquisitionLoans'])
+        expect(play.valid('blair')).toEqual([
+            'TakeLoan',
+            'FinishAcquisitionLoans',
+            'SetRunInstruction'
+        ])
         finishAcquisition(play)
         expect(price(play.state, 'BA')).toBe(80)
     })
@@ -139,7 +143,8 @@ describe('the acquisition round', () => {
         expect(play.valid('blair')).toEqual([
             'TakeLoan',
             'RepayAcquiredLoan',
-            'FinishAcquisitionLoans'
+            'FinishAcquisitionLoans',
+            'SetRunInstruction'
         ])
         play.act('RepayAcquiredLoan', { companyId: 'BA' })
         // With nothing left to repay, and no borrowing after a repayment, the buyer is done.

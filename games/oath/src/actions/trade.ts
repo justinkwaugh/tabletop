@@ -11,7 +11,7 @@ import {
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Suit } from '../model/oathEnums.js'
-import { suitOf } from '../data/cardRegistry.js'
+import { reasonRuinCannotBeUsed } from '../data/edifices.js'
 import { reasonCannotPlaceOn } from '../util/powerCost.js'
 import { cannotGainFavorFromTrade } from '../util/continuous.js'
 import { advisersOfSuit, reasonPersistentForbidsTrade } from '../util/persistent.js'
@@ -136,7 +136,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         )
         const { cost, active } = plan
 
-        const suit = suitOf(this.cardId)
+        const suit = state.suitInPlay(this.cardId)
         assertExists(suit, `${this.cardId} has no suit`)
         const matching = HydratedTrade.matchingAdvisers(state, this.playerId, this.cardId, active)
 
@@ -194,7 +194,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         cardId: string,
         active: readonly ActiveModifier[] = []
     ): number {
-        const suit = suitOf(cardId)
+        const suit = state.suitInPlay(cardId)
         if (!suit) {
             return 0
         }
@@ -214,7 +214,12 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
                 .filter((o): o is { cardId: string; suit: Suit } => !!o)
                 .map((o) => [o.cardId, o.suit])
         )
-        return advisersOfSuit(state, sourceId, suit, (id) => overrides.get(id) ?? suitOf(id))
+        return advisersOfSuit(
+            state,
+            sourceId,
+            suit,
+            (id) => overrides.get(id) ?? state.suitInPlay(id)
+        )
     }
 
     /** R-5.3.2 — favor or secrets the trade asks for, before the favor bank's limit (R-9.3). */
@@ -250,7 +255,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         active: readonly ActiveModifier[],
         modifiers: readonly ModifierUse[] | undefined
     ): number {
-        const suit = suitOf(cardId)
+        const suit = state.suitInPlay(cardId)
         assertExists(suit, `${cardId} has no suit`)
         const particulars = HydratedTrade.particulars(state, playerId, cardId, option, modifiers)
         const wanted = foldNumber('tradeSideFavor', 0, state, playerId, active, particulars)
@@ -300,13 +305,15 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             return {
                 cost,
                 active,
-                reason: `${cardId} is not a denizen at your site`
+                reason: state.isRuined(cardId)
+                    ? reasonRuinCannotBeUsed(cardId, 'Trade')
+                    : `${cardId} is not a denizen at your site`
             }
         }
         // R-7.1.2.a
         const occupied = reasonCannotPlaceOn(state, cardId)
         if (occupied) return { cost, active, reason: occupied }
-        if (!suitOf(cardId)) {
+        if (!state.suitInPlay(cardId)) {
             return {
                 cost,
                 active,

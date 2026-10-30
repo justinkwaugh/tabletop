@@ -351,8 +351,8 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
         }
     })
 
-    // The lobby's defaults live in `OathGameConfigOptions`; the initializer must match them.
-    it('the lobby defaults to the random deck and the Oath of Supremacy', () => {
+    // Oath has no game options: a game set up from an empty config takes these.
+    it('a game set up without options has the random deck and the Oath of Supremacy', () => {
         const state = setUpState(4)
         expect(state.setupVariant).toBe(SetupVariant.Randomized)
         expect(state.oathType).toBe(OathType.Supremacy)
