@@ -189,7 +189,12 @@ describe('asset hygiene', () => {
 
     it('no source image or resizing tool enters the package', () => {
         const rasters = sources.filter((path) => /\.(png|jpe?g|gif|tiff?|psd|bmp)$/i.test(path))
-        const tools = sources.filter((path) => /\.(py|sh|mjs|cjs)$/.test(path))
+        // The harness's scenario generator writes JSON tables, not images.
+        const tools = sources.filter(
+            (path) =>
+                /\.(py|sh|mjs|cjs)$/.test(path) &&
+                posixRelative(packageDir, path) !== 'scripts/build-scenarios.mjs'
+        )
         expect(rasters.map((path) => posixRelative(packageDir, path))).toEqual([])
         expect(tools.map((path) => posixRelative(packageDir, path))).toEqual([])
     })
