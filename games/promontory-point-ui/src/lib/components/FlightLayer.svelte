@@ -81,6 +81,6 @@
 
     .flight img {
         border-radius: 3px;
-        box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
+        box-shadow: 0 2px 6px var(--pp-veil);
     }
 </style>
