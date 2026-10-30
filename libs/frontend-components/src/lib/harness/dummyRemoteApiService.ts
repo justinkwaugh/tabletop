@@ -42,6 +42,8 @@ import type {
 import type { Credentials } from '$lib/network/requestTypes.js'
 import type {
     AblyTokenRequest,
+    DiscordAuthorizationPurpose,
+    DiscordAuthorizationStart,
     GameChatMessageResponsePayload
 } from '$lib/network/responseTypes.js'
 import type { VersionChange } from '$lib/network/versionChecker.js'
@@ -197,11 +199,17 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('linkGoogle')
     }
 
-    async loginDiscord(_code: string): Promise<User> {
+    async beginDiscordAuthorization(
+        _purpose: DiscordAuthorizationPurpose
+    ): Promise<DiscordAuthorizationStart> {
+        return this.fail('beginDiscordAuthorization')
+    }
+
+    async loginDiscord(_code: string, _state: string): Promise<User> {
         return this.fail('loginDiscord')
     }
 
-    async linkDiscord(_code: string): Promise<User> {
+    async linkDiscord(_code: string, _state: string): Promise<User> {
         return this.fail('linkDiscord')
     }
 

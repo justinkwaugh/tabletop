@@ -30,6 +30,25 @@ export const UserResponse = Type.Evaluate(
     ])
 )
 
+export type DiscordAuthorizationPurpose = 'login' | 'link'
+
+export type DiscordAuthorizationStart = Static<typeof DiscordAuthorizationStart>
+export const DiscordAuthorizationStart = Type.Object({
+    state: Type.String(),
+    authorizationUrl: Type.String(),
+    expiresInSeconds: Type.Integer({ minimum: 1 })
+})
+
+export type DiscordAuthorizationStartResponse = Static<typeof DiscordAuthorizationStartResponse>
+export const DiscordAuthorizationStartResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({
+            payload: DiscordAuthorizationStart
+        })
+    ])
+)
+
 export type UsernameSearchResponse = Static<typeof UsernameSearchResponse>
 export const UsernameSearchResponse = Type.Evaluate(
     Type.Intersect([

@@ -4,26 +4,28 @@
 </script>
 
 <script lang="ts">
+    import { toast } from 'svelte-sonner'
+    import { getAppContext } from '@tabletop/frontend-components'
+    import { openDiscordAuthorization, popupFeatures } from '$lib/utils/discordAuthorization'
+
     let { mode = 'login' }: { mode: 'link' | 'login' | 'bot' } = $props()
 
-    function discordLogin() {
-        const width = 550
-        const height = 700
-        const left = (screen.width - width) / 2
-        const top = (screen.height - height) / 2
-        const FRONTEND_HOST = window.location.origin
-        const encodedHost = encodeURIComponent(FRONTEND_HOST ?? '')
-        let url = ''
-        if (mode === 'bot') {
-            url = `https://discord.com/oauth2/authorize?client_id=1260059992589865133&integration_type=1&scope=applications.commands`
-        } else {
-            url = `https://discord.com/oauth2/authorize?client_id=1260059992589865133&response_type=code&redirect_uri=${encodedHost}%2Foauth%2Fdiscord${mode === 'login' ? '' : '%2Flink'}&scope=identify+email`
-        }
+    const { api } = getAppContext()
+
+    function addBot() {
         window.open(
-            url,
+            'https://discord.com/oauth2/authorize?client_id=1260059992589865133&integration_type=1&scope=applications.commands',
             'Discord Authorization',
-            `popup=true,resizable=no, width=${width},height=${height},top=${top},left=${left}`
+            popupFeatures()
         )
+    }
+
+    function onclick() {
+        if (mode === 'bot') {
+            addBot()
+            return
+        }
+        openDiscordAuthorization({ purpose: mode, api, report: toast.error })
     }
 </script>
 
@@ -37,7 +39,7 @@
         : mode === 'link'
           ? 'w-[100px]'
           : 'w-[110px]'} {mode === 'link' || mode === 'bot' ? 'h-[30px]' : ''}"
-    onclick={discordLogin}
+    {onclick}
 >
     <svg
         class="h-6 w-6 mr-2"

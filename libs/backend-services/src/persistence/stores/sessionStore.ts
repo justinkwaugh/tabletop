@@ -3,6 +3,10 @@ import type { AuthenticatedSession } from '../../sessions/authenticatedSession.j
 export interface SessionStore {
     create(session: AuthenticatedSession): Promise<void>
     find(id: string): Promise<AuthenticatedSession | undefined>
+    update(
+        id: string,
+        change: (stored: AuthenticatedSession) => AuthenticatedSession
+    ): Promise<AuthenticatedSession | undefined>
     delete(id: string): Promise<void>
     deleteForUser(userId: string, options?: { except?: string }): Promise<void>
 }
