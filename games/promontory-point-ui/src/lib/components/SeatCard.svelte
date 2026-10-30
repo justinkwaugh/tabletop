@@ -21,6 +21,15 @@
     const headerInk = $derived(gameSession.colors.getPlayerTextColorValue(view.playerId))
     const pieceSize = $derived(large ? 30 : 16)
 
+    // While a transition plays, a hand or share count shows what has landed (Pattern C).
+    const hand = $derived(gameSession.flights.hands[view.playerId] ?? view.hand)
+    const shares = $derived(
+        view.shares.map((share) => {
+            const count = gameSession.flights.seatShareCount(view.playerId, share.railroadId)
+            return count === undefined ? share : { ...share, count, countLabel: `×${count}` }
+        })
+    )
+
     function enlargeShare(railroadId: RailroadId) {
         gameSession.cardPreview.show({ kind: PreviewKind.Share, railroadId })
     }
@@ -59,7 +68,7 @@
         </header>
 
         <div class="shares">
-            {#each view.shares as share (share.railroadId)}
+            {#each shares as share (share.railroadId)}
                 <button
                     type="button"
                     class="sh"
@@ -91,19 +100,19 @@
         </div>
 
         <footer class="foot">
-            <span class="hand" data-hand-perspective={view.hand.perspective}>
-                {#each view.hand.pieces as piece, index (index)}
+            <span class="hand" data-hand-perspective={hand.perspective} data-piece-size={pieceSize}>
+                {#each hand.pieces as piece, index (index)}
                     <HandPiece {piece} size={pieceSize} />
                 {/each}
-                {#if view.hand.keptPiece}
+                {#if hand.keptPiece}
                     <span class="kept" title="kept piece, face up">
                         <HandPiece
-                            piece={{ faceShown: true, railroadId: view.hand.keptPiece }}
+                            piece={{ faceShown: true, railroadId: hand.keptPiece }}
                             size={pieceSize}
                         />
                     </span>
                 {/if}
-                <span class="cap">{view.hand.caption}</span>
+                <span class="cap">{hand.caption}</span>
             </span>
             <!-- O-9: the shares' worth at today's prices. -->
             <span class="worth" data-seat-worth={view.worth}>shares worth ${view.worth}</span>

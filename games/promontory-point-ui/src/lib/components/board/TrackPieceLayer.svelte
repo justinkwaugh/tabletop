@@ -6,17 +6,15 @@
 
     const gameSession = getGameSession()
 
+    // A piece that has landed is drawn before the state that holds it is shown (Pattern C).
     const pieces = $derived(
-        BOARD_GRID.spaces().flatMap((space) =>
-            space.spaceId in gameSession.gameState.track
-                ? [
-                      {
-                          spaceId: space.spaceId,
-                          railroadId: gameSession.gameState.track[space.spaceId]
-                      }
-                  ]
-                : []
-        )
+        BOARD_GRID.spaces().flatMap((space) => {
+            const railroadId =
+                space.spaceId in gameSession.gameState.track
+                    ? gameSession.gameState.track[space.spaceId]
+                    : gameSession.flights.landedPieces[space.spaceId]
+            return railroadId === undefined ? [] : [{ spaceId: space.spaceId, railroadId }]
+        })
     )
 </script>
 

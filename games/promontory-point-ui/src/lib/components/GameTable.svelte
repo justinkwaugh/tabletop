@@ -17,6 +17,7 @@
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import EnlargedView from '$lib/components/EnlargedView.svelte'
+    import FlightLayer from '$lib/components/FlightLayer.svelte'
     import OpenSeat from '$lib/components/OpenSeat.svelte'
     import PickFramingWatch from '$lib/components/PickFramingWatch.svelte'
     import SeatStrip from '$lib/components/SeatStrip.svelte'
@@ -144,6 +145,7 @@
                                     <ActionPanel />
                                 </div>
                                 <EnlargedView />
+                                <FlightLayer />
                             {/if}
                         </div>
                     {/snippet}
@@ -155,5 +157,6 @@
     {#if !expanded}
         <OpenSeat />
         <EnlargedView />
+        <FlightLayer />
     {/if}
 </div>

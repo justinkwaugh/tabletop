@@ -26,6 +26,7 @@ import {
 import { boardOffer, OfferView, type BoardOffer } from './boardOffer.js'
 import { CardPreview } from './cardPreview.svelte.js'
 import { MoneyChips } from '$lib/animators/moneyChips.svelte.js'
+import { Flights } from '$lib/animators/flights.svelte.js'
 import { OpenSeat } from './openSeat.svelte.js'
 import {
     emptyRepairsDraft,
@@ -66,6 +67,9 @@ export class PromontoryPointGameSession extends GameSession<
 
     // R-1.3-H1: the money changes rising from the seat cards while a transition plays.
     readonly moneyChips = new MoneyChips()
+
+    // Contract, "In-flight pieces": the copies crossing the scaling wrapper and what has landed.
+    readonly flights = new Flights()
 
     // While a transition plays, the panel and board show the state it leaves, so no press acts.
     private get settling(): boolean {
@@ -252,6 +256,7 @@ export class PromontoryPointGameSession extends GameSession<
     // The turn draft lives until the next shown state, whatever brought it; the Repairs draft
     // survives a reconciliation, and its step key drops it once the step or the debtor changes.
     override beforeNewState(transition: PresentedTransition) {
+        this.flights.stateShown()
         this.turnDraft = emptyTurnDraft()
         if (transition.kind !== 'reconciliation') {
             this.stagedRepairs = undefined

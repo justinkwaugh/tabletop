@@ -14,6 +14,7 @@
 <circle cy={radius * 0.12} r={radius} fill="var(--pp-halo)" opacity="0.35"></circle>
 <circle
     r={radius}
+    data-piece-disc
     fill={railroadColour(railroadId)}
     stroke="var(--pp-halo)"
     stroke-width={radius * 0.14}

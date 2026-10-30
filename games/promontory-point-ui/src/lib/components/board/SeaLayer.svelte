@@ -15,7 +15,8 @@
 {#each RAILROAD_IDS as railroadId (railroadId)}
     <ShareDeck
         {railroadId}
-        count={gameSession.gameState.shareDeckCount(railroadId)}
+        count={gameSession.flights.deckCount(railroadId) ??
+            gameSession.gameState.shareDeckCount(railroadId)}
         box={SEA_SLOTS.decks[railroadId]}
     />
 {/each}

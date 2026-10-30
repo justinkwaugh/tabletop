@@ -171,7 +171,7 @@ async function playUntilChip(page: Page): Promise<void> {
         for (let step = 0; step < 40; step++) {
             if (session.pickablePieces.length === 0) {
                 await session.endTurn()
-                await settle(300)
+                await session.waitForVisibleTransitionSettled()
                 continue
             }
             for (const railroadId of session.pickablePieces) {
@@ -184,7 +184,7 @@ async function playUntilChip(page: Page): Promise<void> {
             await settle(20)
             if (session.pickedPieceHasNoRoom) await session.scrapTrack()
             else await session.placeTrack(session.boardOffer.lit[session.boardOffer.lit.length - 1])
-            await settle(200)
+            await session.waitForVisibleTransitionSettled()
         }
         return false
     })

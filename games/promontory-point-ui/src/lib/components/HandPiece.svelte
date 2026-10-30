@@ -28,6 +28,7 @@
         <!-- Art plan, "Drawn in code": a concealed piece is a grey disc marked "?". -->
         <circle
             r={TRACK_PIECE_RADIUS}
+            data-piece-disc
             fill="var(--pp-hidden)"
             stroke="var(--pp-halo)"
             stroke-width={TRACK_PIECE_RADIUS * 0.14}
