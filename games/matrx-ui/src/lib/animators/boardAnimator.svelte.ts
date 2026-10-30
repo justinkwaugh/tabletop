@@ -153,7 +153,6 @@ export class BoardAnimator {
 
     enteringShadow(): Attachment<SVGGElement> {
         return (node) => {
-            gsap.set(node, { svgOrigin: '0 0' })
             this.enteringNodes.shadow = node
             return () => {
                 if (this.enteringNodes.shadow === node) delete this.enteringNodes.shadow
@@ -573,7 +572,6 @@ export class BoardAnimator {
 
 function register(nodes: Map<number, SVGGElement>, index: number): Attachment<SVGGElement> {
     return (node) => {
-        gsap.set(node, { svgOrigin: '0 0' })
         nodes.set(index, node)
         return () => {
             if (nodes.get(index) === node) nodes.delete(index)
@@ -597,7 +595,9 @@ function spotsBetween(from: AxialCoordinates, to: AxialCoordinates): AxialCoordi
     }))
 }
 
-// Nodes about to grow or shrink, around their spot's centre.
+// Nodes about to grow or shrink, around their spot's centre. Set only on the nodes a move
+// scales, as it starts: GSAP measures each node's drawing to place the origin, and done for every
+// disc as it was drawn, that took ten seconds to open a game on a phone.
 function scaledFromCentre(...nodes: SVGGElement[]): SVGGElement[] {
     gsap.set(nodes, { svgOrigin: '0 0' })
     return nodes

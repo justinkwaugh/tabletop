@@ -1,12 +1,21 @@
 <svelte:options namespace="svg" />
 
 <script lang="ts">
-    import { SHADE_LEVELS, sideStops, type Tone } from '$lib/board/pieceShape.js'
+    import { PIECE_RADIUS, SHADOW_BLUR, type BoardView } from '$lib/board/geometry.js'
+    import { DISC_LOOKS, SHADE_LEVELS, sideStops, TONES, type Disc } from '$lib/board/pieceShape.js'
+    import DiscLook from './DiscLook.svelte'
 
-    // Shared by every piece drawn in one SVG: the side's shades, and each tone's top.
-    let { prefix }: { prefix: string } = $props()
+    // Shared by every piece drawn in one SVG: the side's shades, each tone's top, the shadows, and
+    // the look of any disc given, at one radius, for drawing it live (as the looks page does).
+    let {
+        prefix,
+        radius,
+        view,
+        looks = []
+    }: { prefix: string; radius: number; view: BoardView; looks?: readonly Disc[] } = $props()
 
-    const tones: Tone[] = ['light', 'dark']
+    const tones = TONES
+    const SHADOW_SOLID = (PIECE_RADIUS - SHADOW_BLUR) / (PIECE_RADIUS + SHADOW_BLUR)
     const levels = Array.from({ length: SHADE_LEVELS }, (_, level) => level)
 </script>
 
@@ -48,8 +57,18 @@
     <stop offset="1" stop-color="#4a4446"></stop>
 </linearGradient>
 <!-- Right under a piece, the board in its shadow, seen through the gap below it. -->
+<!-- A piece's soft shadow on the board, as a gradient rather than a blur, which is slow to paint
+     on phones. -->
+<radialGradient id="{prefix}-shadow">
+    <stop offset="0" stop-color="rgb(0 0 0 / 0.3)"></stop>
+    <stop offset={SHADOW_SOLID} stop-color="rgb(0 0 0 / 0.27)"></stop>
+    <stop offset="1" stop-color="rgb(0 0 0 / 0)"></stop>
+</radialGradient>
 <radialGradient id="{prefix}-contact">
     <stop offset="0" stop-color="rgb(0 0 0 / 0.55)"></stop>
     <stop offset="0.85" stop-color="rgb(0 0 0 / 0.45)"></stop>
     <stop offset="1" stop-color="rgb(0 0 0 / 0)"></stop>
 </radialGradient>
+{#each looks as disc (`${disc.tone}-${disc.kind}`)}
+    <DiscLook {disc} {radius} {prefix} {view} />
+{/each}

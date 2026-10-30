@@ -208,10 +208,7 @@
     {@attach animator.attach}
 >
     <defs>
-        <PieceDefs prefix="matrx-board" />
-        <filter id="matrx-soft" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="2.5"></feGaussianBlur>
-        </filter>
+        <PieceDefs prefix="matrx-board" radius={PIECE_RADIUS} {view} />
     </defs>
 
     <polygon points={playArea} class="play-area"></polygon>

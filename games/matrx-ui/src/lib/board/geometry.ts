@@ -6,6 +6,8 @@ import { hull } from './hull.js'
 export const SPACING = 60
 export const PIECE_RADIUS = SPACING * 0.428
 export const DOT_RADIUS = SPACING * 0.12
+// How far a piece's shadow softens past its edge.
+export const SHADOW_BLUR = 5
 // The tallest stack a dot holds: a pair of potentials brought in.
 const DOT_DISCS = 2
 // Beyond the silhouette of a piece on an outer dot, to the centre of its coordinate label, and

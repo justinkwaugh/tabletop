@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
-    import { PIECE_RADIUS, type BoardView } from '$lib/board/geometry.js'
+    import { PIECE_RADIUS, SHADOW_BLUR, type BoardView } from '$lib/board/geometry.js'
     import type { Disc } from '$lib/board/pieceShape.js'
     import type { PieceParts } from '$lib/animators/drop.js'
     import PieceShape from './PieceShape.svelte'
@@ -26,21 +26,14 @@
 
 <g {@attach shadow}>
     <ellipse
-        rx={PIECE_RADIUS}
-        ry={PIECE_RADIUS * view.tilt}
+        rx={PIECE_RADIUS + SHADOW_BLUR}
+        ry={PIECE_RADIUS * view.tilt + SHADOW_BLUR}
         cy={2}
-        class="shadow"
-        filter="url(#matrx-soft)"
+        fill="url(#matrx-board-shadow)"
     ></ellipse>
     <ellipse rx={PIECE_RADIUS} ry={PIECE_RADIUS * view.tilt} fill="url(#matrx-board-contact)"
     ></ellipse>
 </g>
 <g {@attach body}>
-    <PieceShape {discs} radius={PIECE_RADIUS} prefix="matrx-board" {view} {parts} />
+    <PieceShape {discs} radius={PIECE_RADIUS} {view} {parts} />
 </g>
-
-<style>
-    .shadow {
-        fill: rgb(0 0 0 / 0.3);
-    }
-</style>

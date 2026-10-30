@@ -61,7 +61,8 @@ export class MatrxGameInitializer
             board: emptyBoard(boardShapeFromConfig(game.config)),
             movedThisTurn: false,
             resolvingPlayerIds: [],
-            extraMoveOwedIds: []
+            extraMoveOwedIds: [],
+            nextDiscId: 0
         })
 
         return new HydratedMatrxGameState(matrxGameState)

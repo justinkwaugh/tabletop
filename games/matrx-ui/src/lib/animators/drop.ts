@@ -46,6 +46,7 @@ export function dropDisc(
 ) {
     const { fall, settle } = DROP
     const start = at + index * DROP.stagger
+    gsap.set(node, { svgOrigin: '0 0' })
     timeline.fromTo(
         node,
         { opacity: 0, scale: DROP.scale, y: DROP.rise },
@@ -61,6 +62,7 @@ export function dropDisc(
 }
 
 export function dropShadow(timeline: Timeline, node: SVGGElement, at = 0) {
+    gsap.set(node, { svgOrigin: '0 0' })
     timeline.fromTo(
         node,
         { opacity: 0, scale: DROP.shadow },
@@ -88,7 +90,6 @@ export class StagedDrop {
 
     readonly parts: PieceParts = {
         disc: (index) => (node) => {
-            gsap.set(node, { svgOrigin: '0 0' })
             if (this.drops) dropDisc(this.timeline, node, index)
         },
         crease: (index) => (node) => {
@@ -98,7 +99,6 @@ export class StagedDrop {
     }
 
     readonly shadow: Attachment<SVGGElement> = (node) => {
-        gsap.set(node, { svgOrigin: '0 0' })
         if (this.drops) dropShadow(this.timeline, node)
     }
 

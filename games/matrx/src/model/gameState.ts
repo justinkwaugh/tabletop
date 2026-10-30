@@ -42,6 +42,8 @@ export const MatrxGameState = Type.Evaluate(
             // Players whose TAMSK stack the opponent pushed onto the centre: an extra move to open
             // their next turn.
             extraMoveOwedIds: Type.Array(Type.String()),
+            // The id the next disc to enter the board takes.
+            nextDiscId: Type.Optional(Type.Integer({ minimum: 0 })),
             endReason: Type.Optional(Type.Enum(EndReason))
         })
     ])
@@ -68,6 +70,7 @@ export class HydratedMatrxGameState
     declare winningPlayerIds: string[]
     declare board: HydratedMatrxBoard
     declare movedThisTurn: boolean
+    declare nextDiscId?: number
     declare resolvingPlayerIds: string[]
     declare extraMoveOwedIds: string[]
     declare endReason?: EndReason
@@ -135,7 +138,19 @@ export class HydratedMatrxGameState
         } else {
             player.gipfPieces -= 1
         }
-        return this.push(entry, { playerId, kind, paired: isPotentialKind(kind) })
+        const paired = isPotentialKind(kind)
+        return this.push(entry, {
+            playerId,
+            kind,
+            paired,
+            discIds: this.newDiscIds(paired ? 2 : 1)
+        })
+    }
+
+    private newDiscIds(count: number): number[] {
+        const first = this.nextDiscId ?? 0
+        this.nextDiscId = first + count
+        return Array.from({ length: count }, (_, index) => first + index)
     }
 
     // Rule H1: the TAMSK stack on the centre gives its top piece for a push from a dot.

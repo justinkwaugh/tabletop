@@ -175,7 +175,11 @@ function withPieces(
 }
 
 const boardOf = (state: MatrxGameState) => new HydratedMatrxGameState(state).board
-const stackAt = (state: MatrxGameState, name: string) => boardOf(state).stackAt(at(name))
+// A stack's units, without their disc ids.
+const stackAt = (state: MatrxGameState, name: string) =>
+    boardOf(state)
+        .stackAt(at(name))
+        .map(({ playerId, kind, paired }) => ({ playerId, kind, paired }))
 
 describe('board', () => {
     it('MATRX: 40 spots and 25 dots, with column I three spots and column J four dots', () => {
@@ -299,6 +303,22 @@ describe('pushing', () => {
         ])
         const state = withPieces(start(game), [...KEEPERS, ...full])
         expect(() => push(game, state, W, 'E1', 'E2', PieceKind.Yinsh)).toThrow()
+    })
+})
+
+describe('disc ids', () => {
+    it('each disc pushed in gets an id, and a pair split keeps one on each half', () => {
+        const game = createGame()
+        let state = withPieces(start(game), KEEPERS)
+        state.nextDiscId = 7
+        state = push(game, state, W, 'E1', 'E2', PieceKind.Yinsh)
+        expect(boardOf(state).topAt(at('E2'))?.discIds).toEqual([7, 8])
+        expect(state.nextDiscId).toBe(9)
+        state = push(game, state, B, 'J1', 'I2', PieceKind.Zertz)
+        expect(boardOf(state).topAt(at('I2'))?.discIds).toEqual([9, 10])
+        state = move(game, state, W, 'E2', 'E5')
+        expect(boardOf(state).topAt(at('E2'))?.discIds).toEqual([7])
+        expect(boardOf(state).topAt(at('E5'))?.discIds).toEqual([8])
     })
 })
 

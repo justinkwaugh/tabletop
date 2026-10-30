@@ -41,12 +41,15 @@ export function isPotentialKind(kind: PieceKind): kind is PotentialKind {
 }
 
 // What sits on a spot, bottom to top. A paired unit is an unused stack of two potentials of one
-// kind and colour; every other unit is a single piece. Only the top unit is in play.
+// kind and colour; every other unit is a single piece. Only the top unit is in play. Each disc has
+// an id, bottom first, given as it enters the board, by which the table turns it; units from
+// before ids have none.
 export type Unit = Type.Static<typeof Unit>
 export const Unit = Type.Object({
     playerId: Type.String(),
     kind: Type.Enum(PieceKind),
-    paired: Type.Boolean()
+    paired: Type.Boolean(),
+    discIds: Type.Optional(Type.Array(Type.Integer({ minimum: 0 })))
 })
 
 export type Spot = Type.Static<typeof Spot>
@@ -221,7 +224,14 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
             throw Error('No pair to split')
         }
         unit.paired = false
-        return { playerId: unit.playerId, kind: unit.kind, paired: false }
+        const [bottom, top] = unit.discIds ?? []
+        if (bottom !== undefined) unit.discIds = [bottom]
+        return {
+            playerId: unit.playerId,
+            kind: unit.kind,
+            paired: false,
+            ...(top === undefined ? {} : { discIds: [top] })
+        }
     }
 
     rows(): Row[] {
