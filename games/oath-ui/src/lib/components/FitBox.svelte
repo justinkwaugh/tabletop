@@ -179,9 +179,10 @@
     .fit--more:has(:global([data-answer-row][data-pinned])) {
         mask-image: none;
     }
-    /* The answer row on one line sticks to the box's bottom, drawn as the panel is drawn over the
-       page, but opaque, with a shadow above it. */
-    .fit--upright :global([data-answer-row][data-pinned]) {
+    /* While there is more below, the answer row on one line sticks to the box's bottom, drawn as
+       the panel is drawn over the page, but opaque, with a shadow above it. In a panel that fits
+       it stays where it is, drawn as the rest. */
+    .fit--more :global([data-answer-row][data-pinned]) {
         position: sticky;
         bottom: 0;
         z-index: 2;

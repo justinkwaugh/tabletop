@@ -254,6 +254,35 @@ for (const height of [812, 667]) {
     })
 }
 
+test.describe('an upright phone at 375 by 812: a panel that fits pins nothing', () => {
+    test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
+
+    for (const scene of [
+        { name: 'the sneak attack’s Campaign or Pass', table: 'sneakAttack', button: 'Campaign' },
+        { name: 'the Citizenship answer', table: 'citizenshipEnough', button: 'Accept' }
+    ] as const) {
+        test(`${scene.name}: its one-line answer row stays in place, drawn as the rest`, async ({
+            page
+        }) => {
+            await openScene(page, scene)
+            const drawn = await page.evaluate(measureFit)
+            expect(drawn.scale).toBe('1')
+            expect(drawn.more).toBe(false)
+            expect(drawn.scrollHeight).toBe(drawn.clientHeight)
+            expect(Math.abs(drawn.box - drawn.natural)).toBeLessThanOrEqual(1)
+            const row = panel(page).locator('[data-answer-row]').last()
+            await expect(row.getByRole('button', { name: scene.button, exact: true })).toBeVisible()
+            // On one line, so it is marked to pin; with nothing below it to scroll, it is not pinned.
+            await expect(row).toHaveAttribute('data-pinned', '')
+            await expect(row).toHaveCSS('position', 'static')
+            await expect(row).toHaveCSS('box-shadow', 'none')
+            await expect(row).toHaveCSS('padding-top', '0px')
+            await expect(row).toHaveCSS('margin-bottom', '0px')
+            await expect(row).toHaveCSS('background-image', 'none')
+        })
+    }
+})
+
 test.describe('an upright phone at 375 by 812: the steps inside a scrolling panel', () => {
     test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
 
