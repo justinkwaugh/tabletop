@@ -1170,8 +1170,8 @@ describe('Land Warden — Salt the Earth second to your site ignores its capacit
     const placed = (draft: Awaited<ReturnType<typeof innThenSalt>>['draft']) =>
         draft.placements.map(({ play, faceUp }) => ({ play, faceUp }))
 
-    it('from revision 29, the Inn kept to the last space: its site play is offered with Salt the Earth second, and the engine accepts it', async () => {
-        const { session, draft, sent } = await innThenSalt(OathRevision.EngineFixes25)
+    it('from revision 31, the Inn kept to the last space: its site play is offered with Salt the Earth second, and the engine accepts it', async () => {
+        const { session, draft, sent } = await innThenSalt(OathRevision.EngineFixes26)
         expect(placed(draft)).toContainEqual(sitePlay)
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(sent).toHaveBeenCalledWith(
@@ -1184,11 +1184,14 @@ describe('Land Warden — Salt the Earth second to your site ignores its capacit
         expect(engineRefusal(session, sent)).toBeUndefined()
     })
 
-    it('before revision 29, the site play is not offered with Salt the Earth second, as the engine refuses it', async () => {
-        const { draft } = await innThenSalt(OathRevision.EngineFixes24)
-        expect(placed(draft)).not.toContainEqual(sitePlay)
-        expect(placed(draft)).toContainEqual({ play: SearchPlay.Adviser, faceUp: false })
-    })
+    it.each([OathRevision.EngineFixes25, OathRevision.Chronicle])(
+        'at revision %i, the site play is not offered with Salt the Earth second, as the engine refuses it',
+        async (oathRevision) => {
+            const { draft } = await innThenSalt(oathRevision)
+            expect(placed(draft)).not.toContainEqual(sitePlay)
+            expect(placed(draft)).toContainEqual({ play: SearchPlay.Adviser, faceUp: false })
+        }
+    )
 })
 
 describe('Land Warden — a card the kept card discards first at your site leaves room for the second card', () => {
@@ -1235,9 +1238,9 @@ describe('Land Warden — a card the kept card discards first at your site leave
         ['the Great Slum', { siteCards: SLUM_SITES }]
     ]
     for (const [scene, table] of scenes) {
-        it(`from revision 29, ${scene}: the Inn's site play is offered with Longbows second, and the engine accepts it`, async () => {
+        it(`from revision 31, ${scene}: the Inn's site play is offered with Longbows second, and the engine accepts it`, async () => {
             const { session, draft, sent } = await innDiscardingWolves(
-                OathRevision.EngineFixes25,
+                OathRevision.EngineFixes26,
                 TWO_OF_THREE,
                 table
             )
@@ -1255,15 +1258,14 @@ describe('Land Warden — a card the kept card discards first at your site leave
             expect(engineRefusal(session, sent)).toBeUndefined()
         })
 
-        it(`before revision 29, ${scene}: the Inn's site play is not offered with Longbows second, as the engine refuses it`, async () => {
-            const { draft } = await innDiscardingWolves(
-                OathRevision.EngineFixes24,
-                TWO_OF_THREE,
-                table
-            )
-            expect(placed(draft)).not.toContainEqual(sitePlay)
-            expect(placed(draft)).toContainEqual({ play: SearchPlay.Adviser, faceUp: false })
-        })
+        it.each([OathRevision.EngineFixes25, OathRevision.Chronicle])(
+            `at revision %i, ${scene}: the Inn's site play is not offered with Longbows second, as the engine refuses it`,
+            async (oathRevision) => {
+                const { draft } = await innDiscardingWolves(oathRevision, TWO_OF_THREE, table)
+                expect(placed(draft)).not.toContainEqual(sitePlay)
+                expect(placed(draft)).toContainEqual({ play: SearchPlay.Adviser, faceUp: false })
+            }
+        )
     }
 
     it("from revision 29, the People's Favor: the Inn discards the Wolves at your full site and goes to the River; Longbows second to your site is offered and accepted", async () => {

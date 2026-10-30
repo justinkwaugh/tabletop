@@ -34,8 +34,18 @@ const STORYTELLER = 'denizen.hearth.storyteller'
 const LONGBOWS = 'denizen.order.longbows'
 const CROP_ROTATION = 'denizen.hearth.crop-rotation'
 
-const FIXED = OathRevision.EngineFixes25
-const BEFORE = OathRevision.EngineFixes24
+// From revision 31 the pair at your site counts the kept card's card discarded first there as gone; revisions 29
+// and 30 count it as staying.
+const FIXED = OathRevision.EngineFixes26
+const BEFORE = [OathRevision.EngineFixes25, OathRevision.Chronicle]
+// From revision 29 the second card's own check reads your site as the kept card's play leaves it, and every later
+// revision keeps that.
+const SITE_AFTER_KEPT = [
+    OathRevision.EngineFixes25,
+    OathRevision.Chronicle,
+    OathRevision.EngineFixes26
+]
+const BEFORE_SITE_AFTER_KEPT = OathRevision.EngineFixes24
 
 /**
  * Dana holds Land Warden at c1 (the Plains, capacity 3, unless `site` names another) and has searched the world
@@ -130,7 +140,7 @@ const PLAINS_WITH_FAVOR = { c1: TWO_OF_THREE, favor: true }
 const GREAT_SLUM = { c1: TWO_OF_THREE, site: 'site.great-slums' }
 const CROP = { c1: TWO_OF_THREE, crop: true }
 
-describe("Land Warden from revision 29: the kept card's card discarded first at your site leaves room for the second card", () => {
+describe("Land Warden from revision 31: the kept card's card discarded first at your site leaves room for the second card", () => {
     it('setup: the Plains and the Great Slum each hold 2 of their 3', () => {
         for (const options of [PLAINS_WITH_FAVOR, GREAT_SLUM]) {
             const s = searched(FIXED, options)
@@ -258,53 +268,59 @@ describe("Land Warden from revision 29: the kept card's card discarded first at 
         }
     })
 
-    it('before revision 29 a game keeps the check it was recorded with: the pair is refused for room', () => {
-        for (const options of [PLAINS_WITH_FAVOR, GREAT_SLUM, CROP]) {
-            expect(checkOf(searched(BEFORE, options), innFirst(WOLVES))).toBe(
-                'no room at your site for two cards'
-            )
+    it.each(BEFORE)(
+        'at revision %i a game keeps the check it was recorded with: the pair is refused for room',
+        (revision) => {
+            for (const options of [PLAINS_WITH_FAVOR, GREAT_SLUM, CROP]) {
+                expect(checkOf(searched(revision, options), innFirst(WOLVES))).toBe(
+                    'no room at your site for two cards'
+                )
+            }
         }
-    })
+    )
 })
 
 // The kept card discards first at your site and is played to another site (the People's Favor): the second card's
 // own check reads your site as the kept play leaves it (revision 29), so it has the space the discard freed.
-describe('Land Warden from revision 29: the kept card discards first at your site and goes to another; the second card takes the space', () => {
-    const toRiver = innFirst(WOLVES, LONGBOWS, { toSiteId: 'c2' })
+describe.each(SITE_AFTER_KEPT)(
+    'Land Warden at revision %i: the kept card discards first at your site and goes to another; the second card takes the space',
+    (revision) => {
+        const toRiver = innFirst(WOLVES, LONGBOWS, { toSiteId: 'c2' })
 
-    it('control: the Inn alone, discarding the Wolves at your full site and going to the River, is accepted', () => {
-        const s = searched(FIXED, { c1: FULL, favor: true })
-        expect(
-            checkOf(s, {
-                keptCardId: INN,
-                discardOrder: [FILLER, LONGBOWS],
-                play: SearchPlay.Site,
-                discardFirstCardId: WOLVES,
-                toSiteId: 'c2'
-            })
-        ).toBeUndefined()
-    })
+        it('control: the Inn alone, discarding the Wolves at your full site and going to the River, is accepted', () => {
+            const s = searched(revision, { c1: FULL, favor: true })
+            expect(
+                checkOf(s, {
+                    keptCardId: INN,
+                    discardOrder: [FILLER, LONGBOWS],
+                    play: SearchPlay.Site,
+                    discardFirstCardId: WOLVES,
+                    toSiteId: 'c2'
+                })
+            ).toBeUndefined()
+        })
 
-    it('Longbows second to your site after the Wolves were discarded there: accepted, and each site holds its card', () => {
-        const s = searched(FIXED, { c1: FULL, favor: true })
-        expect(checkOf(s, toRiver)).toBeUndefined()
-        resolveOf(s, toRiver)
-        expect(sorted(s.denizensAt('c1'))).toEqual(sorted([RANGERS, STORYTELLER, LONGBOWS]))
-        expect(s.denizensAt('c2')).toEqual([INN])
-    })
+        it('Longbows second to your site after the Wolves were discarded there: accepted, and each site holds its card', () => {
+            const s = searched(revision, { c1: FULL, favor: true })
+            expect(checkOf(s, toRiver)).toBeUndefined()
+            resolveOf(s, toRiver)
+            expect(sorted(s.denizensAt('c1'))).toEqual(sorted([RANGERS, STORYTELLER, LONGBOWS]))
+            expect(s.denizensAt('c2')).toEqual([INN])
+        })
 
-    it("on Dana's own view, the same answer", () => {
-        const dana: Visibility.Perspective = { kind: 'player', playerId: 'dana' }
-        const s = searched(FIXED, { c1: FULL, favor: true })
-        const own = OathVisibility.state.guardForExecution(
-            new HydratedOathGameState(served(s, dana)),
-            dana
-        )
-        expect(checkOf(own, toRiver)).toBeUndefined()
-    })
+        it("on Dana's own view, the same answer", () => {
+            const dana: Visibility.Perspective = { kind: 'player', playerId: 'dana' }
+            const s = searched(revision, { c1: FULL, favor: true })
+            const own = OathVisibility.state.guardForExecution(
+                new HydratedOathGameState(served(s, dana)),
+                dana
+            )
+            expect(checkOf(own, toRiver)).toBeUndefined()
+        })
 
-    it('before revision 29 the second card is judged on your site as it stood: refused', () => {
-        const s = searched(BEFORE, { c1: FULL, favor: true })
-        expect(checkOf(s, toRiver)).toBe('second card: site c1 is at its capacity of 3')
-    })
-})
+        it('before revision 29 the second card is judged on your site as it stood: refused', () => {
+            const s = searched(BEFORE_SITE_AFTER_KEPT, { c1: FULL, favor: true })
+            expect(checkOf(s, toRiver)).toBe('second card: site c1 is at its capacity of 3')
+        })
+    }
+)

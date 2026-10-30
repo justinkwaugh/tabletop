@@ -483,18 +483,18 @@ export function reasonCannotPairSecondPlay(
             keptToSiteId === undefined ||
             keptToSiteId === here ||
             !isAtLeastOathRevision(state, OathRevision.EngineFixes12)
-        // Salt the Earth: "When Played, ignore this site's capacity." From revision 29 its own check, on the site
+        // Salt the Earth: "When Played, ignore this site's capacity." From revision 31 its own check, on the site
         // the kept card leaves, decides; before it (R-X.4), Salt the Earth second needed room for both too.
         const ignoresCapacity =
             second.cardId === SALT_THE_EARTH &&
-            isAtLeastOathRevision(state, OathRevision.EngineFixes25)
+            isAtLeastOathRevision(state, OathRevision.EngineFixes26)
         // The kept card plays first, so a card it discards first at your site leaves its space to the second
-        // card. From revision 29 the pair is counted on your site as the kept play leaves it; before it (R-X.4),
+        // card. From revision 31 the pair is counted on your site as the kept play leaves it; before it (R-X.4),
         // the card discarded first was counted as staying.
         const freed =
             keptDiscardFirstCardId !== undefined &&
             state.denizensAt(here).includes(keptDiscardFirstCardId) &&
-            isAtLeastOathRevision(state, OathRevision.EngineFixes25)
+            isAtLeastOathRevision(state, OathRevision.EngineFixes26)
                 ? 1
                 : 0
         if (
