@@ -8,6 +8,7 @@ import {
     type PromontoryPointGameState
 } from '../model/gameState.js'
 import {
+    type Holding,
     reaching,
     withBagLeft,
     withBoxedIn,
@@ -89,6 +90,21 @@ function withLastPieceInBag(
         draft.bag.items.unshift(...draft.bag.items.splice(index, 1))
     })
     return withBagLeft(ordered, 1)
+}
+
+// R-4.3: Southern Pacific track runs to a Repairs town with SP at the price index given, Mara
+// holds SP, CP and UP, and the seats hold the money and shares given in turn order.
+function repairsTable(spPriceIndex: number, holdings: Holding[]): Table {
+    return editedTable(dealt(), (state) =>
+        withHoldings(
+            withPriceIndex(
+                withTownsOpenTo(withTurnPieces(state, [SP, CP, UP]), SP, ['tile.red.hammer']).state,
+                SP,
+                spPriceIndex
+            ),
+            holdings
+        )
+    )
 }
 
 // The tables the contract's verification scenarios open on, by file name.
@@ -188,6 +204,51 @@ export const TABLE_FIXTURES = {
         about: 'The four-piece variant: Mara opens her turn with three pieces, so none is left over.',
         build: () =>
             editedTable(dealt(variantConfig(true)), (state) => withTurnPieces(state, [CP, UP, KP]))
+    },
+    // Scenario 16: SP at $5; bills Mara $4, Royce $2, Ines $6, and every holder can pay.
+    'repairs-all-pay': {
+        about: 'Southern Pacific track runs to a Repairs town and every SP holder can pay the bill.',
+        build: () =>
+            repairsTable(9, [
+                { money: 20, shares: { [SP]: 2, [CP]: 1 } },
+                { money: 20, shares: { [SP]: 1, [UP]: 1 } },
+                { money: 20, shares: { [SP]: 3 } },
+                { money: 20, shares: { [CP]: 1 } }
+            ])
+    },
+    // Scenarios 17, 18, 21, 22: SP at $6; Royce owes $10 (5 SP shares) and has $7.
+    'repairs-one-short': {
+        about: 'Southern Pacific track runs to a Repairs town; Royce holds five SP shares and has $7.',
+        build: () =>
+            repairsTable(10, [
+                { money: 20, shares: { [SP]: 1, [CP]: 1 } },
+                { money: 7, shares: { [SP]: 5, [CP]: 1, [UP]: 1 } },
+                { money: 20, shares: { [SP]: 2, [KP]: 1 } },
+                { money: 20, shares: { [CP]: 1 } }
+            ])
+    },
+    // Scenario 19: SP at $5; Mara owes $6 with $3 and Ines $4 with $1.
+    'repairs-two-short': {
+        about: 'Southern Pacific track runs to a Repairs town; Mara and Ines will be short of their bills.',
+        build: () =>
+            repairsTable(9, [
+                { money: 3, shares: { [SP]: 3, [CP]: 1 } },
+                { money: 20, shares: { [SP]: 1 } },
+                { money: 1, shares: { [SP]: 2, [UP]: 1 } },
+                { money: 20, shares: { [CP]: 1 } }
+            ])
+    },
+    // Scenario 20: SP at $2; Royce owes $8 (4 SP shares) and has $1, so selling all four
+    // at $1 each still leaves him short.
+    'repairs-short-after-everything': {
+        about: 'Southern Pacific track runs to a Repairs town; Royce holds four SP shares at $2 and has $1.',
+        build: () =>
+            repairsTable(6, [
+                { money: 20, shares: { [SP]: 1 } },
+                { money: 1, shares: { [SP]: 4 } },
+                { money: 20, shares: { [SP]: 1 } },
+                { money: 20 }
+            ])
     }
 } satisfies Record<string, TableFixture>
 

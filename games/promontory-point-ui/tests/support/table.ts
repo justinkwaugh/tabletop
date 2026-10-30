@@ -18,6 +18,13 @@ export type TableName =
     | 'Pieces placed'
     | 'Variant opening turn'
     | 'Variant nothing left'
+    | 'Repairs all pay'
+    | 'Repairs one short'
+    | 'Repairs two short'
+    | 'Repairs short after everything'
+
+// The invented seats every table deals, in turn order.
+export type SeatName = 'Mara' | 'Royce' | 'Ines' | 'Tobias'
 
 // Contract, "Verification scenarios": desktop width, and a 390 × 844 phone by touch.
 export const WIDTHS = [
@@ -60,6 +67,70 @@ export async function openTable(page: Page, name: TableName): Promise<void> {
     await page.getByRole('button', { name, exact: true }).click()
     await expect(page.locator('svg.board')).toBeVisible()
     await expect.poll(() => page.evaluate(() => !!window.promontoryPointTableSession)).toBe(true)
+    await settled(page)
+}
+
+// The seat's player id, read from the open game.
+export function playerIdOf(page: Page, seat: SeatName): Promise<string> {
+    return page.evaluate((seat) => {
+        const player = window.promontoryPointTableSession.primaryGame.players.find(
+            (candidate) => candidate.name === seat
+        )
+        if (player === undefined) throw Error(`No seat named ${seat}`)
+        return player.id
+    }, seat)
+}
+
+// Reloads the open game in the harness's protected mode as the seat, so the page is that seat's
+// own client: it holds only that seat's projection and decides only for that seat.
+export async function viewAs(page: Page, seat: SeatName): Promise<void> {
+    const playerId = await playerIdOf(page, seat)
+    await reloaded(page, async () => {
+        const view = page.getByLabel('Protected view')
+        if ((await view.count()) === 0) {
+            await page.locator('#harness-options').click()
+            await page.getByText('Protected mode', { exact: true }).click()
+            await page.locator('#harness-options').click()
+        }
+        await expect(view).toBeEnabled()
+        await view.selectOption({ label: seat })
+    })
+    await expect
+        .poll(() => page.evaluate(() => window.promontoryPointTableSession.myPlayer?.id))
+        .toBe(playerId)
+}
+
+// One seat's client hands the game as it now stands to another seat's client, as the host
+// would after an action: saved with Save as scenario, opened in the other page from the file.
+// What one client holds only for itself (a pick, a staged sale) never travels.
+export async function handOver(from: Page, to: Page): Promise<void> {
+    await from.getByRole('button', { name: 'Scenarios', exact: true }).click()
+    const download = from.waitForEvent('download')
+    await from.getByText('Save as scenario', { exact: true }).click()
+    const file = await (await download).path()
+    await reloaded(to, () => to.locator('input[aria-label="Scenario file"]').setInputFiles(file))
+    expect(await actionCount(to)).toBe(await actionCount(from))
+}
+
+const actionCount = (page: Page) =>
+    page.evaluate(() => window.promontoryPointTableSession.actions.length)
+
+// Runs the step and waits for the harness to open a fresh session for the game.
+async function reloaded(page: Page, step: () => Promise<void>): Promise<void> {
+    await page.evaluate(() => {
+        Object.assign(window, { promontoryPointEarlierSession: window.promontoryPointTableSession })
+    })
+    await step()
+    await expect
+        .poll(() =>
+            page.evaluate(
+                () =>
+                    window.promontoryPointTableSession !==
+                    Reflect.get(window, 'promontoryPointEarlierSession')
+            )
+        )
+        .toBe(true)
+    await expect(page.locator('svg.board')).toBeVisible()
     await settled(page)
 }
 
