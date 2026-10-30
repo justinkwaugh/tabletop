@@ -2,6 +2,8 @@ import type { DiscordAuthorizationPurpose } from '@tabletop/frontend-components'
 import { reauthentication } from '$lib/stores/reauthentication.svelte'
 import {
     openDiscordAuthorization,
+    openPreparedDiscordAuthorization,
+    prepareDiscordLink,
     type DiscordAuthorizationApi,
     type DiscordAuthorizationSuccess
 } from './discordAuthorization'
@@ -27,11 +29,23 @@ export async function signInWithDiscord({
     }
     try {
         if (purpose === 'link') {
-            await reauthentication.run({
-                description: DISCORD_LINK_DESCRIPTION,
-                retry: attempt,
-                requiresUserGesture: true
-            })
+            await reauthentication.run(
+                {
+                    description: DISCORD_LINK_DESCRIPTION,
+                    retry: attempt,
+                    requiresUserGesture: true
+                },
+                async () => {
+                    const started = await prepareDiscordLink(api)
+                    return {
+                        requiresUserGesture: !navigator.userActivation?.isActive,
+                        run: async () => {
+                            const result = await openPreparedDiscordAuthorization(started)
+                            oncomplete?.(result)
+                        }
+                    }
+                }
+            )
         } else {
             await attempt()
         }

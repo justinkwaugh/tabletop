@@ -10,6 +10,11 @@ export type PendingSensitiveAction = {
     requiresUserGesture?: boolean
 }
 
+type PreparedSensitiveAction = {
+    run: () => Promise<void>
+    requiresUserGesture: boolean
+}
+
 class ReauthenticationRequests {
     pending: PendingSensitiveAction | undefined = $state.raw(undefined)
     confirmed: boolean = $state(false)
@@ -41,11 +46,25 @@ class ReauthenticationRequests {
         this.confirmed = false
     }
 
-    async run(action: PendingSensitiveAction): Promise<void> {
+    async run(
+        action: PendingSensitiveAction,
+        prepare?: () => Promise<PreparedSensitiveAction>
+    ): Promise<void> {
         this.cancel()
         const revision = this.revision
         try {
-            await action.retry()
+            if (prepare) {
+                const prepared = await prepare()
+                if (revision !== this.revision) return
+                if (prepared.requiresUserGesture) {
+                    this.request(action)
+                    this.confirmed = true
+                    return
+                }
+                await prepared.run()
+            } else {
+                await action.retry()
+            }
         } catch (error) {
             if (revision !== this.revision) return
             if (!requiresRecentAuthentication(error)) {

@@ -122,12 +122,50 @@ export async function openDiscordAuthorization({
     purpose: DiscordAuthorizationPurpose
     api: DiscordAuthorizationApi
 }): Promise<DiscordAuthorizationSuccess> {
+    return openPopup(() => api.beginDiscordAuthorization(purpose))
+}
+
+export function openPreparedDiscordAuthorization(
+    started: DiscordAuthorizationStart
+): Promise<DiscordAuthorizationSuccess> {
+    return openPopup(() => Promise.resolve(started))
+}
+
+export async function prepareDiscordLink(
+    api: DiscordAuthorizationApi
+): Promise<DiscordAuthorizationStart> {
+    let deadline: Timer | undefined
+    try {
+        return await Promise.race([
+            api.beginDiscordAuthorization('link'),
+            new Promise<never>((_resolve, reject) => {
+                deadline = setTimeout(
+                    () =>
+                        reject(
+                            new DiscordAuthorizationError(
+                                'The Discord authorization could not start in time'
+                            )
+                        ),
+                    POPUP_START_TIMEOUT_MS
+                )
+            })
+        ])
+    } finally {
+        clearTimeout(deadline)
+    }
+}
+
+function openPopup(
+    begin: () => Promise<DiscordAuthorizationStart>
+): Promise<DiscordAuthorizationSuccess> {
     const popup = window.open('about:blank', 'Discord Authorization', popupFeatures())
     if (!popup) {
-        throw new DiscordAuthorizationError('The browser blocked the Discord window')
+        return Promise.reject(
+            new DiscordAuthorizationError('The browser blocked the Discord window')
+        )
     }
     return new Promise((resolve, reject) => {
-        new PopupAttempt(popup, resolve, reject).start(() => api.beginDiscordAuthorization(purpose))
+        new PopupAttempt(popup, resolve, reject).start(begin)
     })
 }
 

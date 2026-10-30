@@ -49,7 +49,10 @@ test('Discord linking waits for a Continue click after identity confirmation', a
     page,
     context
 }) => {
+    const popups: Page[] = []
+    page.on('popup', (popup) => popups.push(popup))
     const prompt = await requireConfirmation(page)
+    expect(popups).toHaveLength(0)
     let starts = 0
     await page.route('**/api/v1/auth/discord/begin/link', (route) => {
         starts += 1
@@ -85,6 +88,7 @@ test('Discord linking waits for a Continue click after identity confirmation', a
     await expect(page.getByRole('button', { name: 'Unlink', exact: true })).toBeVisible()
     await expect(prompt).toHaveCount(0)
     expect(starts).toBe(1)
+    expect(popups).toHaveLength(1)
     await authorization.close()
 })
 

@@ -22,6 +22,7 @@
     } = $props()
 
     const { api } = getAppContext()
+    let submitting = $state(false)
     const labels: Record<DiscordSignInMode, string> = {
         login: 'Login with Discord',
         link: 'Link',
@@ -37,17 +38,24 @@
         )
     }
 
-    function onclick() {
+    async function onclick() {
         if (mode === 'bot') {
             addBot()
             return
         }
-        void signInWithDiscord({ purpose: mode, api, oncomplete, report: toast.error })
+        if (submitting) return
+        submitting = true
+        try {
+            await signInWithDiscord({ purpose: mode, api, oncomplete, report: toast.error })
+        } finally {
+            submitting = false
+        }
     }
 </script>
 
 <button
     type="button"
+    disabled={submitting}
     class="flex items-center justify-center rounded-full bg-[#5865F2] hover:bg-[#4752C4] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#99AAFF] {mode ===
         'login' || mode === 'reauthenticate'
         ? 'px-6'
