@@ -1,15 +1,18 @@
 import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
-import { HydratedPromontoryPointGameState, PromontoryPointGameState } from '../model/gameState.js'
+import {
+    HydratedPromontoryPointGameState,
+    PromontoryPointProjectedState
+} from '../model/gameState.js'
 
 export class PromontoryPointHydrator implements GameHydrator<
-    PromontoryPointGameState,
+    PromontoryPointProjectedState,
     HydratedPromontoryPointGameState
 > {
     hydrateAction(data: GameAction): HydratedAction {
         throw new Error(`Unknown action type ${data.type}`)
     }
 
-    hydrateState(state: PromontoryPointGameState): HydratedPromontoryPointGameState {
+    hydrateState(state: PromontoryPointProjectedState): HydratedPromontoryPointGameState {
         return new HydratedPromontoryPointGameState(state)
     }
 }

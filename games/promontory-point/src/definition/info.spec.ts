@@ -1,7 +1,7 @@
-import { GameVisibility } from '@tabletop/common'
+import { GameVisibility, defaultGameConfig, normalizeGameConfig } from '@tabletop/common'
 import { Value } from 'typebox/value'
 import { describe, expect, it } from 'vitest'
-import { PromontoryPointGameConfig } from './config.js'
+import { PromontoryPointGameConfig, normalizePromontoryPointConfig } from './config.js'
 import { PromontoryPointInfo } from './info.js'
 import { GAME_VERSION } from './version.js'
 
@@ -32,5 +32,25 @@ describe('Promontory Point configuration', () => {
         expect(Value.Check(PromontoryPointGameConfig, { fourPieceVariant: true })).toBe(true)
         expect(Value.Check(PromontoryPointGameConfig, { fourPieceVariant: false })).toBe(true)
         expect(Value.Check(PromontoryPointGameConfig, { fourPieceVariant: 'yes' })).toBe(false)
+    })
+    it('R-6.3-H1: normalizes a missing four-piece variant to false and keeps a stated one', () => {
+        const configurator = PromontoryPointInfo.configurator
+        expect(configurator).toBeDefined()
+        expect(normalizeGameConfig({}, configurator)).toEqual({ fourPieceVariant: false })
+        expect(normalizeGameConfig({ fourPieceVariant: null }, configurator)).toEqual({
+            fourPieceVariant: false
+        })
+        expect(normalizePromontoryPointConfig({ fourPieceVariant: true })).toEqual({
+            fourPieceVariant: true
+        })
+        const normalized = normalizePromontoryPointConfig({})
+        expect(normalizePromontoryPointConfig(normalized)).toEqual(normalized)
+        expect(() => normalizePromontoryPointConfig({ fourPieceVariant: 'yes' })).toThrow()
+    })
+
+    it('R-6.3-H1: offers the four-piece variant, off by default', () => {
+        const configurator = PromontoryPointInfo.configurator
+        expect(configurator?.options.map((option) => option.id)).toEqual(['fourPieceVariant'])
+        expect(defaultGameConfig(configurator?.options ?? [])).toEqual({ fourPieceVariant: false })
     })
 })

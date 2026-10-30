@@ -13,14 +13,17 @@ export const RED_TILE_KIND_IDS = ['tile.red.dividend', 'tile.red.hammer'] as con
 
 export type RedTileKindId = (typeof RED_TILE_KIND_IDS)[number]
 
-export type TownTileKindId =
-    | 'tile.price.plus-1'
-    | 'tile.price.plus-2'
-    | 'tile.price.plus-3'
-    | 'tile.price.minus-1'
-    | 'tile.price.minus-2'
-    | 'tile.price.minus-3'
-    | RedTileKindId
+export const TOWN_TILE_KIND_IDS = [
+    'tile.price.plus-1',
+    'tile.price.plus-2',
+    'tile.price.plus-3',
+    'tile.price.minus-1',
+    'tile.price.minus-2',
+    'tile.price.minus-3',
+    ...RED_TILE_KIND_IDS
+] as const
+
+export type TownTileKindId = (typeof TOWN_TILE_KIND_IDS)[number]
 
 export type TownTileKind = {
     id: TownTileKindId

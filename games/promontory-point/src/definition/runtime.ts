@@ -2,7 +2,7 @@ import { DefaultStateLogger, type GameRuntime } from '@tabletop/common'
 import {
     PromontoryPointGameStateValidator,
     type HydratedPromontoryPointGameState,
-    type PromontoryPointGameState
+    type PromontoryPointProjectedState
 } from '../model/gameState.js'
 import { PromontoryPointApiActions } from './apiActions.js'
 import { PromontoryPointColors } from './colors.js'
@@ -21,4 +21,4 @@ export const PromontoryPointRuntime = {
     playerColors: PromontoryPointColors,
     scoring: new PromontoryPointScoring(),
     stateLogger: new DefaultStateLogger()
-} satisfies GameRuntime<PromontoryPointGameState, HydratedPromontoryPointGameState>
+} satisfies GameRuntime<PromontoryPointProjectedState, HydratedPromontoryPointGameState>

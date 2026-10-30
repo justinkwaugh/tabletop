@@ -1,4 +1,5 @@
 import { GameVisibility, type GameInfo } from '@tabletop/common'
+import { PromontoryPointConfigurator } from './config.js'
 import { GAME_VERSION } from './version.js'
 
 export const PromontoryPointInfo: GameInfo = {
@@ -16,5 +17,5 @@ export const PromontoryPointInfo: GameInfo = {
         beta: true,
         visibility: GameVisibility.Alpha
     },
-    configurator: undefined
+    configurator: new PromontoryPointConfigurator()
 }
