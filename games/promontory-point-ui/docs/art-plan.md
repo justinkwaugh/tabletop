@@ -90,7 +90,7 @@ Seats and railroads must never be confused (O-1). The title's colour list is gre
 
 ## Cover
 
-`cover.webp`, 544 × 680, composed once from the supplied art: a crop of the map around Promontory and two home hexes, the four share cards fanned across the lower half, and "PROMONTORY POINT" in Oswald on a tan band across the top, sized so the title reads at 150 px and 340 px tall. Rendered from an SVG composition in a browser at 2× and exported once; the composition file is not committed.
+`cover.webp`, 544 × 680, composed once from the supplied art: a crop of the map around Promontory and two home hexes, the four share cards fanned across the lower half, and "PROMONTORY POINT" in Oswald on a tan band across the top, sized so the title reads at 150 px and 340 px tall. Laid out in a browser, captured at 2× and exported once; the composition file is not committed.
 
 ## Supplied assets
 

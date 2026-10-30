@@ -23,21 +23,21 @@
 </script>
 
 <div
-    class="rounded-lg border border-[#ad9c80] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
+    class="rounded-lg border border-pp-line text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-pp-panel"
 >
     <div class="overflow-auto h-full w-full">
-        <Timeline class="ms-2 dark:border-[#ad9c80]">
+        <Timeline class="ms-2 border-pp-line">
             {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
                 <div
-                    class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
+                    class="absolute w-3 h-3 bg-pp-line rounded-full mt-1.5 -start-1.5 border border-pp-line"
                 ></div>
                 <TimelineItem
-                    timeClass="dark:text-[#ad9c80]"
+                    timeClass="text-pp-muted"
                     title=""
                     class="timeline-item text-left mb-5"
                     date={timeAgo.format(gameSession.game.finishedAt)}
                 >
-                    <p class="mt-1 text-left text-sm text-base font-normal text-[#ad9c80">
+                    <p class="mt-1 text-left text-sm text-base font-normal text-pp-muted">
                         The game has ended.
                     </p>
                 </TimelineItem>
@@ -53,15 +53,15 @@
                     animate:flip={{ duration: 100 }}
                 >
                     <div
-                        class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
+                        class="absolute w-3 h-3 bg-pp-line rounded-full mt-1.5 -start-1.5 border border-pp-line"
                     ></div>
                     <TimelineItem
-                        timeClass="dark:text-[#ad9c80]"
+                        timeClass="text-pp-muted"
                         title=""
                         class="timeline-item text-left mb-5"
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
                     >
-                        <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
+                        <p class="mt-1 text-left text-sm text-base font-normal text-pp-text">
                             {#if action.playerId}
                                 <PlayerName playerId={action.playerId} />
                             {/if}
@@ -71,15 +71,15 @@
                 </div>
             {/each}
             <div
-                class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"
+                class="absolute w-3 h-3 bg-pp-line rounded-full mt-1.5 -start-1.5 border border-pp-line"
             ></div>
             <TimelineItem
-                timeClass="dark:text-[#ad9c80]"
+                timeClass="text-pp-muted"
                 title=""
                 class="timeline-item text-left mb-5"
                 date={timeAgo.format(gameSession.game.createdAt)}
             >
-                <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
+                <p class="mt-1 text-left text-sm text-base font-normal text-pp-text">
                     The game was started
                 </p>
             </TimelineItem>

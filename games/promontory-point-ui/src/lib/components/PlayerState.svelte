@@ -1,11 +1,13 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
-    import { PromontoryPointPlayerState } from '@tabletop/promontory-point'
+    import type { HydratedPromontoryPointPlayerState } from '@tabletop/promontory-point'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
-    let { player, playerState }: { player: Player; playerState: PromontoryPointPlayerState } =
-        $props()
+    let {
+        player,
+        playerState
+    }: { player: Player; playerState: HydratedPromontoryPointPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
@@ -29,21 +31,21 @@
 <style>
     @keyframes border-pulsate {
         0% {
-            border-color: rgba(255, 255, 255, 0);
+            border-color: transparent;
         }
         25% {
-            border-color: rgba(255, 255, 255, 255);
+            border-color: var(--pp-accent);
         }
         75% {
-            border-color: rgba(255, 255, 255, 255);
+            border-color: var(--pp-accent);
         }
         100% {
-            border-color: rgba(255, 255, 255, 0);
+            border-color: transparent;
         }
     }
 
     .pulse-border {
-        border-color: white;
+        border-color: var(--pp-accent);
         animation: border-pulsate 2.5s infinite;
     }
 </style>

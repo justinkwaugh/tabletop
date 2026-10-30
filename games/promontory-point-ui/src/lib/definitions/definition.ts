@@ -1,13 +1,13 @@
 import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { PromontoryPointInfo } from '@tabletop/promontory-point'
 import type {
-    PromontoryPointGameState,
+    PromontoryPointProjectedState,
     HydratedPromontoryPointGameState
 } from '@tabletop/promontory-point'
-import coverImg from '$lib/images/cover.jpg'
+import coverImg from '$lib/images/cover.webp'
 
 export const UiDefinition: GameUiDefinition<
-    PromontoryPointGameState,
+    PromontoryPointProjectedState,
     HydratedPromontoryPointGameState
 > = {
     info: {

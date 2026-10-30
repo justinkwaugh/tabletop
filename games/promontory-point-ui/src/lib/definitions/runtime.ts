@@ -1,7 +1,7 @@
 import type { GameUIRuntime } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import type {
     HydratedPromontoryPointGameState,
-    PromontoryPointGameState
+    PromontoryPointProjectedState
 } from '@tabletop/promontory-point'
 import { PromontoryPointRuntime } from '@tabletop/promontory-point'
 import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynamicComponent'
@@ -11,7 +11,7 @@ import { PromontoryPointGameSession } from '$lib/model/session.svelte.js'
 import '../../app.css'
 
 export const PromontoryPointUiRuntime: GameUIRuntime<
-    PromontoryPointGameState,
+    PromontoryPointProjectedState,
     HydratedPromontoryPointGameState
 > = {
     ...PromontoryPointRuntime,

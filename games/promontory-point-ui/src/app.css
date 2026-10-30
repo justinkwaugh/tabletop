@@ -27,6 +27,64 @@
     --color-secondary-900: #0c4a6e;
 }
 
+/* The art plan's palette, the same in both site themes. Components name these, never a raw colour.
+   The scope plugin in postcss.config.js rewrites `:root` to the title root, `[data-game-ui="promontory-point"]`. */
+:root {
+    --pp-table: #24393c;
+    --pp-column: #1d2f31;
+    --pp-panel: #2d474a;
+    --pp-line: #48686b;
+    --pp-text: #ece6d3;
+    --pp-muted: #a9b3ad;
+    --pp-paper: #e4d7a8;
+    --pp-paper-line: #7f7043;
+    --pp-ink: #2b2a24;
+    --pp-ink-sub: #6a5f42;
+    --pp-accent: #f5a524;
+    --pp-accent-ink: #1d1404;
+    --pp-cost: #e11d48;
+    --pp-cost-ink: #ffffff;
+    --pp-gain: #e9f2e4;
+    --pp-ok: #9fd59b;
+    --pp-halo: #111111;
+    --pp-veil: #0a0c0c80;
+    --pp-decided: #e8e6e1;
+    --pp-hidden: #8d8a7e;
+    --pp-cp: #6a95a4;
+    --pp-up: #7e6479;
+    --pp-kp: #923626;
+    --pp-sp: #ecd775;
+    --pp-rr-ink: #ffffff;
+}
+
+@theme inline {
+    --color-pp-table: var(--pp-table);
+    --color-pp-column: var(--pp-column);
+    --color-pp-panel: var(--pp-panel);
+    --color-pp-line: var(--pp-line);
+    --color-pp-text: var(--pp-text);
+    --color-pp-muted: var(--pp-muted);
+    --color-pp-paper: var(--pp-paper);
+    --color-pp-paper-line: var(--pp-paper-line);
+    --color-pp-ink: var(--pp-ink);
+    --color-pp-ink-sub: var(--pp-ink-sub);
+    --color-pp-accent: var(--pp-accent);
+    --color-pp-accent-ink: var(--pp-accent-ink);
+    --color-pp-cost: var(--pp-cost);
+    --color-pp-cost-ink: var(--pp-cost-ink);
+    --color-pp-gain: var(--pp-gain);
+    --color-pp-ok: var(--pp-ok);
+    --color-pp-halo: var(--pp-halo);
+    --color-pp-veil: var(--pp-veil);
+    --color-pp-decided: var(--pp-decided);
+    --color-pp-hidden: var(--pp-hidden);
+    --color-pp-cp: var(--pp-cp);
+    --color-pp-up: var(--pp-up);
+    --color-pp-kp: var(--pp-kp);
+    --color-pp-sp: var(--pp-sp);
+    --color-pp-rr-ink: var(--pp-rr-ink);
+}
+
 @source "../node_modules/flowbite-svelte/dist";
 @source "../node_modules/flowbite-svelte-icons/dist";
 @source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";
