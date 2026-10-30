@@ -60,7 +60,7 @@ describe('a cash crisis', () => {
             debts: [{ playerId: 'alex', amount: 20 }],
             continuation: 'RepayingLoans'
         })
-        expect(play.valid('alex')).toEqual(['SellSharesToPay', 'GoBankrupt', 'SetRunInstruction'])
+        expect(play.valid('alex')).toEqual(['SellSharesToPay', 'GoBankrupt'])
     })
 
     it('is settled by selling only as many shares as needed, at no price drop', () => {

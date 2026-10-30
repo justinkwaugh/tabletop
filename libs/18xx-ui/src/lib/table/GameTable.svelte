@@ -142,7 +142,6 @@
     const phaseChart = $derived(
         session.presentation.phaseChartFor?.(session.gameState) ?? defaultPhaseChart
     )
-    const operatingRules = $derived(session.operatingRules)
     const gameOver = $derived(session.gameState.result !== undefined)
     const readOnlyPosition = $derived(
         session.isViewingHistory || gameOver || !session.myPlayer || !session.isMyTurn
@@ -699,7 +698,7 @@
     const headerPlayerId = $derived(
         gameState.activePlayerIds.length === 1 ? gameState.activePlayerIds[0] : undefined
     )
-    const operating = $derived(gameState.stockRound.completed && !!gameState.operatingSet)
+    const operating = $derived(session.operatingSetUnderway)
     const operatedCompanyIds = $derived(
         operating ? (gameState.operatingSet?.completedCompanyIds ?? []) : []
     )
@@ -712,12 +711,7 @@
             ? session.presentation.terrainDiscounts?.(gameState, operatingCompanyId)
             : undefined
     )
-    const companyOrder = $derived(
-        (operating && gameState.operatingSet
-            ? gameState.operatingSet.companyOrder
-            : operatingRules.companyOrder(gameState)
-        ).map((id) => getCompany(gameState, id))
-    )
+    const companyOrder = $derived(session.operatingOrder.map((id) => getCompany(gameState, id)))
     // Company cards and the spreadsheet follow the operating order.
     const displayedCompanyOrder = $derived(companyOrder.map((company) => company.id))
     const startedCompanies = $derived(

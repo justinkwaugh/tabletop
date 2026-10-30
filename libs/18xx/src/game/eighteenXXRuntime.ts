@@ -531,7 +531,9 @@ export function createEighteenXXRuntime<
             !(machineState in familyStateHandlers),
             `${machineState} already has a family handler; wrap its decisions instead`
         )
-    const instructedRunRules = options.runInstructions ? options.routeRules : undefined
+    const instructedRunRules = options.runInstructions
+        ? { routeRules: options.routeRules, operatingRules }
+        : undefined
     const stateHandlers: Record<string, Handler> = Object.fromEntries(
         Object.entries({ ...familyStateHandlers, ...options.titleStateHandlers }).map(
             ([machineState, handler]) => [
@@ -592,7 +594,7 @@ export function createEighteenXXRuntime<
         ...companyActions(companyRules, rules),
         ...stationActions(options.stationRules),
         ...routeActions(options.routeRules),
-        ...(options.runInstructions ? runInstructionActions(options.routeRules) : []),
+        ...(instructedRunRules ? runInstructionActions(instructedRunRules) : []),
         ...(corporateFinanceRules ? corporateFinanceActions(corporateFinanceRules) : []),
         ...(zeroPriceClosure ? zeroPriceClosureActions(zeroPriceClosure, options.endingRules) : []),
         ...earningsActions(

@@ -4,6 +4,8 @@ import { EarningsChoice } from '../earnings/earningsDistribution.js'
 import { TrainRoute } from './route.js'
 import { orderedSubset } from '../game/orderedSubset.js'
 import { controllingOwner, type FinancialState } from '../finance/finance.js'
+import type { OperatingRules } from '../operating/operatingSet.js'
+import type { RouteRules } from './routeEvaluation.js'
 
 const Id = Type.String({ minLength: 1 })
 /** Identifies the solver input a run was solved for; only clients read it. */
@@ -67,18 +69,21 @@ export const RunInstructionFields = {
 }
 export type RunInstructionState = Type.Static<Type.TObject<typeof RunInstructionFields>>
 
-export function instructableCompanyIds(
-    state: Pick<FinancialState, 'companies' | 'certificates'>,
+export type InstructedRunRules = {
+    routeRules: RouteRules
+    operatingRules: Pick<OperatingRules, 'companyOrder'>
+}
+
+export function instructableCompanyIds<
+    S extends Pick<FinancialState, 'companies' | 'certificates'>
+>(
+    state: S,
+    operatingRules: { companyOrder(state: S): readonly string[] },
     playerId: string
 ): string[] {
-    return state.companies
-        .filter(
-            (company) =>
-                company.kind !== 'private' &&
-                !company.closed &&
-                controllingOwner(state, company.id)?.playerId === playerId
-        )
-        .map((company) => company.id)
+    return operatingRules
+        .companyOrder(state)
+        .filter((companyId) => controllingOwner(state, companyId)?.playerId === playerId)
 }
 
 export function isSolvedRun(run: InstructedRun): run is SolvedRun {

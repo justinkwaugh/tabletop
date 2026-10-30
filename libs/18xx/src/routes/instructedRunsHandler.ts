@@ -11,16 +11,17 @@ import { instructedRunsOf } from '../actions/eighteenXXPlayerAction.js'
 import {
     attachInstructedRuns,
     declaredRunInstructionFor,
+    type InstructedRunRules,
     type RunInstructionState,
     instructableCompanyIds
 } from './instructedRuns.js'
 import type { TrainRunningState } from './route.js'
-import type { RouteRules } from './routeEvaluation.js'
+import type { OperatingState } from '../operating/operatingSet.js'
 import { isRunInstructionDeclaration } from './runInstructionActions.js'
 import { isSetRunInstruction, runInstructionProblem } from './setRunInstruction.js'
 import { isSetRunInstructionStops, runInstructionStopsProblem } from './setRunInstructionStops.js'
 
-type State = HydratedGameState & TrainRunningState & RunInstructionState
+type State = HydratedGameState & TrainRunningState & OperatingState & RunInstructionState
 
 /** Accepts Run Instruction declarations in every state, and stores the runs any Action carries. */
 export class InstructedRunsHandler<S extends State> implements MachineStateHandler<
@@ -29,7 +30,7 @@ export class InstructedRunsHandler<S extends State> implements MachineStateHandl
 > {
     constructor(
         private readonly handler: MachineStateHandler<HydratedAction, S>,
-        private readonly rules: RouteRules | undefined
+        private readonly rules: InstructedRunRules | undefined
     ) {}
 
     private attachmentsAllowed(action: GameAction, state: S): boolean {
@@ -71,7 +72,11 @@ export class InstructedRunsHandler<S extends State> implements MachineStateHandl
     validActionsForPlayer(playerId: string, context: MachineContext<S>): string[] {
         const actions = this.handler.validActionsForPlayer(playerId, context)
         if (!this.rules) return actions
-        const instructable = instructableCompanyIds(context.gameState, playerId)
+        const instructable = instructableCompanyIds(
+            context.gameState,
+            this.rules.operatingRules,
+            playerId
+        )
         if (instructable.length > 0) actions.push('SetRunInstruction')
         if (
             context.gameState.runInstructions?.some(

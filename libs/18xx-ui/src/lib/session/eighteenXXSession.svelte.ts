@@ -434,10 +434,14 @@ export class EighteenXXSession<
         )
         return this.#instructedRuns
     }
-    readonly runInstructions = new RunInstructionModule(this.moduleSession, () => {
-        const solver = this.instructedRuns
-        return solver ? (companyId) => solver.solveNow(this.gameState, companyId) : undefined
-    })
+    readonly runInstructions = new RunInstructionModule(
+        this.moduleSession,
+        () => {
+            const solver = this.instructedRuns
+            return solver ? (companyId) => solver.solveNow(this.gameState, companyId) : undefined
+        },
+        () => this.operatingOrder
+    )
     protected override prepareAction(action: GameAction): GameAction | Promise<GameAction> {
         return this.instructedRuns?.withRuns(action, this.actionTarget) ?? action
     }
@@ -828,6 +832,15 @@ export class EighteenXXSession<
     }
     get operatingRules() {
         return this.rules.operatingRules
+    }
+    get operatingSetUnderway(): boolean {
+        return this.gameState.stockRound.completed && !!this.gameState.operatingSet
+    }
+    get operatingOrder(): readonly string[] {
+        const state = this.gameState
+        return this.operatingSetUnderway && state.operatingSet
+            ? state.operatingSet.companyOrder
+            : this.operatingRules.companyOrder(state)
     }
     get valuationRules() {
         return this.rules.endingRules

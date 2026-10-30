@@ -42,6 +42,10 @@ it('keeps ties in item order and missing values last in either direction', () =>
     expect(sortedForSpreadsheet(items, undefined, columns)).toBe(items)
 })
 
+it('orders as listed, putting unlisted ids last in their given order', () => {
+    expect(['D', 'A', 'E', 'C'].toSorted(orderedAs(['C', 'B', 'A']))).toEqual(['C', 'A', 'D', 'E'])
+})
+
 it('orders ties by the column tie order in either direction', () => {
     const items = [
         { id: 'A', value: 20 },

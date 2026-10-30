@@ -16,12 +16,13 @@ import {
     removeRunInstruction,
     setRunInstruction,
     type RunInstructionState,
+    type InstructedRunRules,
     type StandingRunInstruction,
     instructableCompanyIds
 } from './instructedRuns.js'
 import type { TrainRunningState } from './route.js'
+import type { OperatingState } from '../operating/operatingSet.js'
 import { trainIdsOwnedBy } from '../trains/train.js'
-import type { RouteRules } from './routeEvaluation.js'
 import { evaluateInstructedRoutes } from './runInstructionEvaluation.js'
 
 export const SetRunInstruction = Type.Object(
@@ -45,19 +46,19 @@ export function isSetRunInstruction(action: GameAction): action is SetRunInstruc
     )
 }
 
-type State = TrainRunningState & RunInstructionState
+type State = TrainRunningState & OperatingState & RunInstructionState
 
 export function runInstructionProblem(
     state: State,
-    rules: RouteRules,
+    rules: InstructedRunRules,
     request: Pick<
         SetRunInstruction,
         'playerId' | 'companyId' | 'instruction' | 'supersedesActionId'
     >
 ): string | undefined {
     const { companyId } = request
-    if (!instructableCompanyIds(state, request.playerId).includes(companyId))
-        return 'Only the president of an open railway may instruct it'
+    if (!instructableCompanyIds(state, rules.operatingRules, request.playerId).includes(companyId))
+        return 'Only the president of an operating railway may instruct it'
     // A clear that names the declaration it replaces withdraws it: replaying without that
     // declaration leaves nothing to clear.
     if (!request.instruction)
@@ -65,7 +66,12 @@ export function runInstructionProblem(
             declaredRunInstructionFor(state, companyId)
             ? undefined
             : 'There is no run instruction to clear'
-    return evaluateInstructedRoutes(state, rules, companyId, request.instruction.run.routes).reason
+    return evaluateInstructedRoutes(
+        state,
+        rules.routeRules,
+        companyId,
+        request.instruction.run.routes
+    ).reason
 }
 
 export class HydratedSetRunInstruction
@@ -79,8 +85,8 @@ export class HydratedSetRunInstruction
     declare supersessionScope: 'companyId'
     declare companyId: string
     declare instruction?: RunInstruction
-    readonly #rules: RouteRules
-    constructor(data: SetRunInstruction, rules: RouteRules) {
+    readonly #rules: InstructedRunRules
+    constructor(data: SetRunInstruction, rules: InstructedRunRules) {
         super(data instanceof HydratedSetRunInstruction ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
@@ -93,7 +99,12 @@ export class HydratedSetRunInstruction
             return
         }
         const { payout, run, ignoredStops = [] } = this.instruction
-        const { result } = evaluateInstructedRoutes(state, this.#rules, this.companyId, run.routes)
+        const { result } = evaluateInstructedRoutes(
+            state,
+            this.#rules.routeRules,
+            this.companyId,
+            run.routes
+        )
         assertExists(result, 'A run instruction starts from a legal run')
         const standing: StandingRunInstruction = {
             companyId: this.companyId,

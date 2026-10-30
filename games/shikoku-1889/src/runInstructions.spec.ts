@@ -190,6 +190,15 @@ describe('Run instructions', () => {
         ).toThrow()
     })
 
+    it('rejects a declaration for a company that has not floated', () => {
+        const position = exampleGame(Shikoku1889Scenarios, 'operations')
+        const { game } = position
+        const state = structuredClone(position.state)
+        const run = solvedRun(state, 'IR')
+        getCompany(state, 'IR').floated = false
+        expect(() => execute(position, state, declare(game, 'blair', 'IR', run))).toThrow()
+    })
+
     it('stores runs attached to any action and applies them on the company’s turn', () => {
         const position = exampleGame(Shikoku1889Scenarios, 'operations')
         const { game, state } = position

@@ -1,6 +1,6 @@
 import type { GameAction } from '@tabletop/common'
 import { defineAction, type ActionDefinition } from '../actions/actionDefinition.js'
-import type { RouteRules } from './routeEvaluation.js'
+import type { InstructedRunRules } from './instructedRuns.js'
 import {
     HydratedSetRunInstruction,
     SetRunInstruction,
@@ -17,7 +17,7 @@ import {
     isStopRunInstruction
 } from './stopRunInstruction.js'
 
-export function runInstructionActions(rules: RouteRules): ActionDefinition[] {
+export function runInstructionActions(rules: InstructedRunRules): ActionDefinition[] {
     return [
         defineAction(
             SetRunInstruction,
