@@ -24,6 +24,7 @@ import {
     type TradeRefusal
 } from '@tabletop/promontory-point'
 import { boardOffer, OfferView, type BoardOffer } from './boardOffer.js'
+import { CardPreview } from './cardPreview.svelte.js'
 import {
     emptyRepairsDraft,
     everySaleStartingWith,
@@ -56,6 +57,8 @@ export class PromontoryPointGameSession extends GameSession<
     HydratedPromontoryPointGameState
 > {
     private turnDraft: TurnDraft = $state(emptyTurnDraft())
+
+    readonly cardPreview = new CardPreview()
 
     // A hand piece's pointer hover or keyboard focus; never set by touch.
     hoveredPiece: RailroadId | undefined = $state()

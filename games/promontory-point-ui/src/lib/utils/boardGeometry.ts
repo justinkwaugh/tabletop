@@ -172,7 +172,7 @@ export const BORDER_TRACK_SPACES: readonly BorderTrackSpace[] = borderBoxes().ma
     (space, value) => ({ value, box: space, sharingSlots: quarters(space) })
 )
 
-export type SupplySlots = {
+export type SeaSlots = {
     bag: BoundingBox
     endTracker: BoundingBox
     decks: Readonly<Record<RailroadId, BoundingBox>>
@@ -186,8 +186,9 @@ const DECK_ORIGINS: Record<RailroadId, Point> = {
     'railroad.sp': { x: 788, y: 964 }
 }
 
-// R-1.3: the open sea right of the price track, inside the measured coast.
-export const SUPPLY_SLOTS: SupplySlots = {
+// R-1.3, O-8: the share decks, the bag and the end tracker in the open sea right of the price
+// track, inside the measured coast.
+export const SEA_SLOTS: SeaSlots = {
     bag: { x: 642, y: 225, width: 140, height: 170 },
     endTracker: { x: 645, y: 1270, width: 380, height: 250 },
     decks: recordByRailroad((railroadId) => ({ ...DECK_ORIGINS[railroadId], ...DECK_SIZE }))

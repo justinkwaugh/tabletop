@@ -9,7 +9,7 @@ import {
     MAP_SIZE,
     PRICE_TRACK_SPACES,
     SPACE_CENTRES,
-    SUPPLY_SLOTS,
+    SEA_SLOTS,
     boxCentre,
     hexCentre
 } from './boardGeometry.js'
@@ -71,12 +71,12 @@ const borderBoxes = BORDER_TRACK_SPACES.map((space) => ({
     box: space.box
 }))
 
-const supplyBoxes = [
-    { name: 'bag', box: SUPPLY_SLOTS.bag },
-    { name: 'end tracker', box: SUPPLY_SLOTS.endTracker },
+const seaBoxes = [
+    { name: 'bag', box: SEA_SLOTS.bag },
+    { name: 'end tracker', box: SEA_SLOTS.endTracker },
     ...RAILROAD_IDS.map((railroadId) => ({
         name: `deck ${railroadId}`,
-        box: SUPPLY_SLOTS.decks[railroadId]
+        box: SEA_SLOTS.decks[railroadId]
     }))
 ]
 
@@ -105,12 +105,12 @@ describe('hex centres (R-1.1, R-1.1-H3)', () => {
         }
     })
 
-    it('keeps every hex on the map, clear of the tracks and the supply', () => {
+    it('keeps every hex on the map, clear of the tracks and the sea slots', () => {
         const centres = [...SPACE_CENTRES.values(), ...Object.values(HOME_HEX_CENTRES)]
         for (const centre of centres) {
             const box = hexBox(centre)
             expect(contains(MAP_BOX, box)).toBe(true)
-            for (const other of [...priceSlotBoxes, ...borderBoxes, ...supplyBoxes]) {
+            for (const other of [...priceSlotBoxes, ...borderBoxes, ...seaBoxes]) {
                 expect(overlaps(box, other.box), other.name).toBe(false)
             }
         }
@@ -214,11 +214,11 @@ describe('border track (R-1.3-H1)', () => {
     })
 })
 
-describe('supply slots (R-1.3)', () => {
+describe('sea slots: decks, bag and end tracker (R-1.3, O-8)', () => {
     it('sits on the map, clear of both tracks, with nothing overlapping', () => {
-        for (const { name, box } of supplyBoxes) {
+        for (const { name, box } of seaBoxes) {
             expect(contains(MAP_BOX, box), name).toBe(true)
         }
-        expect(overlappingPairs([...supplyBoxes, ...priceSlotBoxes, ...borderBoxes])).toEqual([])
+        expect(overlappingPairs([...seaBoxes, ...priceSlotBoxes, ...borderBoxes])).toEqual([])
     })
 })

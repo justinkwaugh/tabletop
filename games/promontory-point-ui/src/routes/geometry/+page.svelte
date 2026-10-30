@@ -6,7 +6,7 @@
         BORDER_TRACK_SPACES,
         MAP_SIZE,
         PRICE_TRACK_SPACES,
-        SUPPLY_SLOTS,
+        SEA_SLOTS,
         boxCentre,
         hexCentre,
         hexOutline
@@ -21,10 +21,10 @@
     const priceSlots = PRICE_TRACK_SPACES.flatMap((space) =>
         RAILROAD_IDS.map((railroadId) => space.slots[railroadId])
     )
-    const supply = [
-        SUPPLY_SLOTS.bag,
-        SUPPLY_SLOTS.endTracker,
-        ...RAILROAD_IDS.map((railroadId) => SUPPLY_SLOTS.decks[railroadId])
+    const seaSlots = [
+        SEA_SLOTS.bag,
+        SEA_SLOTS.endTracker,
+        ...RAILROAD_IDS.map((railroadId) => SEA_SLOTS.decks[railroadId])
     ]
     const points = (outline: Point[]) => outline.map(({ x, y }) => `${x},${y}`).join(' ')
 </script>
@@ -69,8 +69,8 @@
             ></rect>
             <circle cx={centre.x} cy={centre.y} r="7" class="dot"></circle>
         {/each}
-        {#each supply as box, i (i)}
-            <rect x={box.x} y={box.y} width={box.width} height={box.height} class="frame supply"
+        {#each seaSlots as box, i (i)}
+            <rect x={box.x} y={box.y} width={box.width} height={box.height} class="frame sea-slot"
             ></rect>
         {/each}
     </svg>
@@ -92,7 +92,7 @@
         stroke-width: 2;
         stroke-dasharray: 6 6;
     }
-    .supply {
+    .sea-slot {
         stroke: var(--pp-ok);
         stroke-width: 6;
     }
