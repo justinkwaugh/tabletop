@@ -124,6 +124,18 @@ test('published artwork swaps token art and private cards', async ({ page }) => 
     expect(errors).toEqual([])
 })
 
+async function holdPublishedImages(page: Page, url: RegExp) {
+    let release = () => {}
+    const held = new Promise<void>((resolve) => {
+        release = resolve
+    })
+    await page.route(url, async (route) => {
+        if (route.request().resourceType() === 'image') await held
+        await route.continue()
+    })
+    return release
+}
+
 async function offerPeirShare(page: Page) {
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('opening')
@@ -137,14 +149,7 @@ async function offerPeirShare(page: Page) {
 }
 
 test('published auction card names its lot until the image arrives', async ({ page }) => {
-    let releaseCards = () => {}
-    const cardsHeld = new Promise<void>((resolve) => {
-        releaseCards = resolve
-    })
-    await page.route(/published\/(peirs|privates)\//, async (route) => {
-        if (route.request().resourceType() === 'image') await cardsHeld
-        await route.continue()
-    })
+    const releaseCards = await holdPublishedImages(page, /published\/(peirs|privates)\//)
     const { peirName, bidding } = await offerPeirShare(page)
     await expect(bidding.locator('.private-card h3')).toBeVisible()
     await expect(bidding.locator('.private-card h3')).toHaveText(peirName)
@@ -166,14 +171,7 @@ test('published auction card keeps naming its lot when the image fails', async (
 })
 
 test('published train cards name their train until the image arrives', async ({ page }) => {
-    let releaseCards = () => {}
-    const cardsHeld = new Promise<void>((resolve) => {
-        releaseCards = resolve
-    })
-    await page.route(/published\/trains\//, async (route) => {
-        if (route.request().resourceType() === 'image') await cardsHeld
-        await route.continue()
-    })
+    const releaseCards = await holdPublishedImages(page, /published\/trains\//)
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('trains')
     await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()

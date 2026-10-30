@@ -605,6 +605,11 @@ History and updatingVisibleState hide the selection; beforeNewState clears it. A
 choice cannot confirm without passing the same evaluator as the BuyTrain Action.
 The component calls session methods; only explicit confirmation buys the train.
 
+Published card art, on depot trains and on the auction's lot card, replaces the generic
+button or card only once its image has loaded. Until then, or for good if it fails, the
+generic presentation names the train or lot. It stays invisible for its first 200 ms, so
+art that arrives from cache replaces it unseen.
+
 The preview highlights a selected depot rank and states its price. Money, supply,
 rosters and purchase history remain canonical until confirmation. History restores
 those values, and returning Live does not restore a cleared selection. Map inspection,

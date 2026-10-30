@@ -12,7 +12,7 @@ export class ArtworkLoad {
         return !!url && this.#loadedUrl === url
     }
 
-    get awaiting() {
+    get standingIn() {
         return !!this.#url() && !this.shown
     }
 

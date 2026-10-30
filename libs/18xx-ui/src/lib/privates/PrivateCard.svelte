@@ -5,6 +5,7 @@
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import PlaceText from '../places/PlaceText.svelte'
     import { ArtworkLoad } from '../presentation/artworkLoad.svelte.js'
+    import '../presentation/artworkStandIn.css'
     let {
         money,
         name,
@@ -43,7 +44,7 @@
 <div
     class="private-card"
     class:image={artwork.shown}
-    class:awaiting-image={artwork.awaiting}
+    class:artwork-stand-in={artwork.standingIn}
     data-card-image={imageUrl ? true : undefined}
 >
     {#if imageUrl}
@@ -103,15 +104,6 @@
 </div>
 
 <style>
-    /* Held back so artwork that arrives quickly from cache replaces it unseen. */
-    .private-card.awaiting-image {
-        animation: reveal-stand-in 1ms 200ms backwards;
-    }
-    @keyframes reveal-stand-in {
-        from {
-            visibility: hidden;
-        }
-    }
     .private-card.image {
         border: 0;
         border-radius: 10px;
