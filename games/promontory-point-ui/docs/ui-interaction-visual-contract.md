@@ -110,7 +110,7 @@ All follow the placement at once, for every seat, and are written into the place
 
 ### After the third placement and ending the turn (`EndTurn`)
 
-- The share block unlocks with whatever actions are left (R-2.2-H1). The panel's primary button is **End turn · draw 3**. One press sends `EndTurn`; it draws the new concealed hand and is an undo barrier (R-X.2). With fewer than three pieces in the bag it reads "End turn · draw 2" (R-6.1-H2).
+- The share block unlocks with whatever actions are left (R-2.2-H1). The panel's primary button is **End turn · draw 3**. One press sends `EndTurn`; it draws the new concealed hand and is an undo barrier (R-X.2). With fewer than three pieces in the bag it reads "End turn · draw 2" (R-6.1-H2). With the bag empty it reads "End turn · bag empty", and the variant's draws follow the bag the same way.
 - **Four-piece variant** (R-6.3, R-6.3-H1): the hand holds four and the turn places three. With a piece left over, End turn becomes two buttons: "Keep ‹UP› · draw 3" and "Return it · draw 4". With no piece left over it is one button, "End turn · draw 4".
 - The turn header passes to the next seat; that seat's hand turns face up.
 

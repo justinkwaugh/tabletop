@@ -1,71 +1,87 @@
 <script lang="ts">
-    import type { RailroadId } from '@tabletop/promontory-point'
-    import { RAILROAD_TAGS } from '$lib/model/railroadTags.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import TrackPiece from './board/TrackPiece.svelte'
+    import { turnPanel } from '$lib/model/turnPanel.js'
+    import ShareBlock from './ShareBlock.svelte'
+    import TurnHeader from './TurnHeader.svelte'
+    import TurnPieces from './TurnPieces.svelte'
 
     const gameSession = getGameSession()
 
-    const heading = $derived.by(() => {
-        if (gameSession.gameState.result) {
-            return 'End of game'
-        }
-        if (gameSession.decidingPlayerId !== undefined) {
-            return 'Your turn'
-        }
-        const activeId = gameSession.gameState.activePlayerIds.at(0)
-        return activeId === undefined ? '' : `${gameSession.getPlayerName(activeId)}'s turn`
-    })
-
-    function hover(event: PointerEvent, railroadId: RailroadId | undefined) {
-        if (event.pointerType !== 'touch') {
-            gameSession.hoverPiece(railroadId)
-        }
-    }
+    const panel = $derived(turnPanel(gameSession))
 </script>
 
-<!-- O-2: a press on a hand piece picks it, so its legal hexes light on the board (R-3.3). -->
-<div class="flex flex-wrap items-center gap-x-4 gap-y-2 bg-pp-panel px-3 py-2 text-pp-text">
-    <h2 class="pp-heading text-lg">{heading}</h2>
-    {#if gameSession.handPieces.length > 0}
-        <div class="flex gap-2" role="group" aria-label="Turn pieces">
-            {#each gameSession.handPieces as railroadId, index (index)}
-                {@const pickable = gameSession.pickablePieces.includes(railroadId)}
-                {@const picked = gameSession.pickedPiece === railroadId}
-                <button
-                    type="button"
-                    class="flex flex-col items-center rounded-md px-1 text-xs"
-                    class:picked
-                    disabled={!pickable}
-                    aria-pressed={picked}
-                    aria-label="{RAILROAD_TAGS[railroadId]} piece"
-                    onclick={() => gameSession.pressPiece(railroadId)}
-                    onpointerenter={(event) => hover(event, railroadId)}
-                    onpointerleave={(event) => hover(event, undefined)}
-                    onfocus={() => gameSession.hoverPiece(railroadId)}
-                    onblur={() => gameSession.hoverPiece(undefined)}
-                >
-                    <svg width="34" height="34" viewBox="-30 -30 60 64" aria-hidden="true">
-                        <TrackPiece {railroadId} radius={26} />
-                    </svg>
-                    {RAILROAD_TAGS[railroadId]}
-                </button>
-            {/each}
+<div class="bg-pp-panel text-pp-text">
+    <TurnHeader />
+    {#if panel}
+        <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
+            <p class="mb-2 text-[15px]">
+                <b class="font-semibold">{panel.prompt.lead}</b>
+                {panel.prompt.text}
+                {#if panel.prompt.note}
+                    <span class="ml-2 text-[13px] text-pp-muted">{panel.prompt.note}</span>
+                {/if}
+            </p>
+            <div class="flex flex-wrap items-stretch gap-4">
+                <TurnPieces {panel} />
+                <ShareBlock shares={panel.shares} />
+            </div>
         </div>
     {/if}
 </div>
 
 <style>
-    .pp-heading {
-        font-family: Oswald, sans-serif;
-        font-weight: 600;
+    .action-area {
+        background: linear-gradient(var(--pp-panel), var(--pp-table));
     }
 
-    button.picked {
-        box-shadow: 0 0 0 3px var(--pp-accent);
+    .action-area :global(.pp-block) {
+        background: color-mix(in srgb, var(--pp-halo) 14%, transparent);
+        border: 1px solid var(--pp-line);
+        border-radius: 8px;
+        padding: 8px 10px;
     }
 
-    button:disabled {
-        opacity: 0.6;
+    .action-area :global(.pp-block-heading) {
+        margin: 0 0 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--pp-muted);
+    }
+
+    .action-area :global(.pp-button) {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--pp-paper);
+        color: var(--pp-ink);
+        border: 1px solid var(--pp-paper-line);
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 13px;
+        font-weight: 650;
+        white-space: nowrap;
+    }
+
+    .action-area :global(.pp-button small) {
+        color: var(--pp-ink-sub);
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .action-area :global(.pp-button:disabled) {
+        opacity: 0.38;
+    }
+
+    .action-area :global(.pp-button.primary) {
+        background: var(--pp-accent);
+        border-color: var(--pp-accent);
+        color: var(--pp-accent-ink);
+    }
+
+    .action-area :global(.pp-button.big) {
+        padding: 7px 16px;
+        font-size: 14px;
     }
 </style>

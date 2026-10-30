@@ -159,6 +159,19 @@ function pathToNearestTown(
     throw new Error(`No town reachable by ${railroadId}`)
 }
 
+// R-6.1-H2: leaves `count` pieces in the bag; the rest are scrapped, so conservation holds.
+export function withBagLeft(
+    state: PromontoryPointGameState,
+    count: number
+): PromontoryPointGameState {
+    const next = structuredClone(state)
+    for (const railroadId of next.bag.items.splice(count)) {
+        next.scrapped[railroadId] += 1
+    }
+    next.bag.remaining = next.bag.items.length
+    return canonical(next)
+}
+
 function takeFromBag(state: PromontoryPointGameState, railroadId: RailroadId): RailroadId {
     const index = state.bag.items.lastIndexOf(railroadId)
     assert(index >= 0, `The bag holds no ${railroadId} piece`)
