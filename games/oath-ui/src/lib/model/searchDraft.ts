@@ -748,7 +748,8 @@ export class SearchDraft implements PanelDraft {
 
     // Land Warden — the second card as the engine judges it after the kept card's play: its When Played
     // power counts the map that play leaves (Riots), and the kept card's own When Played power when it is
-    // played faceup. At the adviser limit it is judged with the first advisers that may go, as a placement is.
+    // played faceup; the room for both at your site is counted on that map too. At the adviser limit it is judged
+    // with the first advisers that may go, as a placement is.
     private reasonSecondCannotFollow(
         playerId: string,
         kept: string,
@@ -769,14 +770,16 @@ export class SearchDraft implements PanelDraft {
         const keptTo = first.play === SearchPlay.Site ? this.toSite : undefined
         // R-5.1.4.I, R-11.10 — a card the kept card discards first at your site leaves its space.
         const discardFirst = first.play === SearchPlay.Site ? this.discardFirst : undefined
+        const keptPlay = {
+            keptCardId: kept,
+            play: first.play,
+            faceUp: first.faceUp,
+            discardFirstCardId: discardFirst,
+            toSiteId: keptTo
+        }
         return (
-            reasonCannotPairSecondPlay(state, playerId, first.play, second, keptTo, discardFirst) ??
-            reasonCannotPlaySecondCard(state, playerId, kept, second, {
-                play: first.play,
-                faceUp: first.faceUp,
-                discardFirstCardId: discardFirst,
-                toSiteId: keptTo
-            })
+            reasonCannotPairSecondPlay(state, playerId, keptPlay, second) ??
+            reasonCannotPlaySecondCard(state, playerId, kept, second, keptPlay)
         )
     }
 

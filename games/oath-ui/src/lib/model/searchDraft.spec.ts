@@ -1194,6 +1194,53 @@ describe('Land Warden — Salt the Earth second to your site ignores its capacit
     )
 })
 
+describe("Land Warden — the kept card's When Played discard at your site leaves its space to the second card", () => {
+    const DAZZLE = 'denizen.arcane.dazzle'
+    const RANGERS = 'denizen.beast.rangers'
+    const LONGBOWS_AND_WOLVES = ['denizen.order.longbows', 'denizen.beast.wolves']
+    const sitePlay = { play: SearchPlay.Site, faceUp: undefined }
+
+    /** The seat holds Land Warden at c1, one space short of full with Longbows there, and has drawn Dazzle, Rangers and a card to discard. */
+    async function dazzleThenRangers(oathRevision: OathRevision) {
+        const { session, draft, sent } = await searchingWith([DAZZLE, RANGERS, TUTOR], [], {
+            oathRevision,
+            denizensBySite: { c1: LONGBOWS_AND_WOLVES, c2: [], p1: [], h1: [] },
+            ...WARDEN_CARRIED
+        })
+        expect(LONGBOWS_AND_WOLVES).toHaveLength(FIXTURE_SITE_CAPACITY - 1)
+        draft.keep(DAZZLE)
+        draft.setSecondPlay(
+            draft.secondPlays.find(
+                (option) => option.cardId === RANGERS && option.play === SearchPlay.Site
+            )?.key
+        )
+        expect(draft.second).toMatchObject({ cardId: RANGERS, mode: 'to your site' })
+        return { session, draft, sent }
+    }
+    const placed = (draft: Awaited<ReturnType<typeof dazzleThenRangers>>['draft']) =>
+        draft.placements.map(({ play, faceUp }) => ({ play, faceUp }))
+
+    it('from revision 31, Dazzle kept to the last space discards Longbows: its site play is offered with Rangers second, and the engine accepts it', async () => {
+        const { session, draft, sent } = await dazzleThenRangers(OathRevision.EngineFixes26)
+        expect(placed(draft)).toContainEqual(sitePlay)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                keptCardId: DAZZLE,
+                play: SearchPlay.Site,
+                secondPlay: { cardId: RANGERS, play: SearchPlay.Site }
+            })
+        )
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('at revision 30, the site play is not offered with Rangers second, as the engine refuses it', async () => {
+        const { draft } = await dazzleThenRangers(OathRevision.Chronicle)
+        expect(placed(draft)).not.toContainEqual(sitePlay)
+        expect(placed(draft)).toContainEqual({ play: SearchPlay.Adviser, faceUp: false })
+    })
+})
+
 describe('Land Warden — a card the kept card discards first at your site leaves room for the second card', () => {
     const INN = 'denizen.hearth.wayside-inn'
     const LONGBOWS = 'denizen.order.longbows'

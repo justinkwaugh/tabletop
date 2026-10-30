@@ -2528,6 +2528,27 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             )
         })
 
+        it('Land Warden’s second card into the space the kept card’s When Played power freed: the kept play, the favor both plays gained, and what the kept card discarded', () => {
+            const row = action({
+                type: ActionType.SearchResolve,
+                playerId: 'p2',
+                keptCardId: 'denizen.arcane.dazzle',
+                discardOrder: ['denizen.order.wrestlers'],
+                play: SearchPlay.Site,
+                secondPlay: { cardId: 'denizen.beast.rangers', play: SearchPlay.Site },
+                metadata: {
+                    ...searched,
+                    favorGained: 2,
+                    playedCardId: 'denizen.arcane.dazzle',
+                    secondPlayedCardId: 'denizen.beast.rangers',
+                    whenPlayed: 'discarded 1 hearth and order cards in the region'
+                }
+            })
+            expect(describeAction(row, nameOf)).toBe(
+                'kept Dazzle and played it to their site, gaining 2 favor: discarded 1 hearth and order cards in the region'
+            )
+        })
+
         it('Land Warden’s second card after the kept card discarded a card first: the kept play, the favor both plays gained, and the cards discarded with the one discarded first', () => {
             const row = action({
                 type: ActionType.SearchResolve,
