@@ -38,8 +38,7 @@
             ></image>
             {#if index < drawing.bases.length - 1}
                 <g {@attach parts?.crease(index)} out:liftOffCrease={{ parts }}>
-                    <path d={creaseOf(view, discs[index].kind, radius)} class="crease {tone}"
-                    ></path>
+                    <path d={creaseOf(view, discs[index], radius)} class="crease {tone}"></path>
                 </g>
             {/if}
         </g>

@@ -1,13 +1,19 @@
 import { tick } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import { Color, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import type {
     AnimationContext,
     TransitionKind,
     TransitionStep
 } from '@tabletop/frontend-components'
-import { CENTRE, isExtraMove, isPushPiece, type HydratedMatrxGameState } from '@tabletop/matrx'
+import {
+    CENTRE,
+    isExtraMove,
+    isPushPiece,
+    PieceKind,
+    type HydratedMatrxGameState
+} from '@tabletop/matrx'
 import type { MatrxGameSession } from '$lib/model/session.svelte.js'
 import {
     boardChange,
@@ -17,8 +23,10 @@ import {
     type MoveChange,
     type PushChange
 } from '$lib/board/boardChange.js'
-import { coordsKey } from '$lib/board/geometry.js'
-import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE } from '$lib/board/hop.js'
+import { coordsKey, SPACING } from '$lib/board/geometry.js'
+import { lookUrl, preloadLooks } from '$lib/board/looks.js'
+import { turnOf, turnsOf } from '$lib/board/pieceShape.js'
+import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE, skidAt, skidDuration } from '$lib/board/hop.js'
 import { dropCrease, dropDisc, dropShadow, landing, LIFT_OFF, type PieceParts } from './drop.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
@@ -49,6 +57,21 @@ const BOUNCE = {
     step: 0.08
 }
 const REBOUND = { along: [2.4, -1.2, 0.45, 0], step: 0.07 }
+// How far off the stack it left, in spaces, a sliding YINSH piece's shadow takes to show.
+const SKID_SHADOW_CLEAR = 0.6
+// A ZÈRTZ piece lands this far short of its spot, on the board's plane, and bounces the rest of
+// the way, each bounce lower and shorter: how high in screen units, how long, and how much of the
+// way it has come by its end.
+const BOUNCES = {
+    short: 10,
+    steps: [
+        { height: 7, duration: 0.18, reach: 0.6 },
+        { height: 3, duration: 0.12, reach: 0.9 },
+        { height: 1.2, duration: 0.08, reach: 1 }
+    ]
+}
+// How many times round a sliding YINSH piece spins, in 15° steps of 24 to the turn.
+const SPIN = { turns: 1 }
 
 export type DrawnStack = { key: string; coords: AxialCoordinates; discs: BoardDisc[] }
 
@@ -105,6 +128,7 @@ export class BoardAnimator {
     constructor(private readonly session: MatrxGameSession) {}
 
     readonly attach: Attachment = () => {
+        preloadLooks([PieceKind.Yinsh])
         this.session.addGameStateChangeListener(this.listener)
         return () => this.session.removeGameStateChangeListener(this.listener)
     }
@@ -454,6 +478,10 @@ export class BoardAnimator {
         const view = this.session.view
         const height = (coords: AxialCoordinates) => discsOf(before.board.stackAt(coords)).length
         const between = spotsBetween(move.from, move.to)
+        if (move.disc.kind === PieceKind.Yinsh && !quick) {
+            this.skid(move, between.length + 1, view.topFace(height(move.from) - 1), timeline)
+            return
+        }
         const plan = hopPlan({
             spaces: between.length + 1,
             startLift: view.topFace(height(move.from) - 1),
@@ -464,6 +492,10 @@ export class BoardAnimator {
         const offset = this.offset(move.from, move.to)
         const start = view.center(move.from)
         const half = plan.duration / 2
+        // A ZÈRTZ piece comes down a little short and bounces the rest of the way.
+        const bounces = move.disc.kind === PieceKind.Zertz && !quick
+        const short = bounces ? Math.min(BOUNCES.short / SPACING, 0.5) / (between.length + 1) : 0
+        const landing = { x: offset.x * (1 - short), y: offset.y * (1 - short) }
 
         gsap.set(node, { x: 0, y: 0 })
         gsap.set(body, { y: plan.startLift, opacity: 1 })
@@ -471,8 +503,8 @@ export class BoardAnimator {
         timeline.to(
             node,
             {
-                x: offset.x,
-                y: offset.y,
+                x: landing.x,
+                y: landing.y,
                 duration: plan.groundEnd - plan.groundStart,
                 ease: GROUND_EASE
             },
@@ -498,11 +530,89 @@ export class BoardAnimator {
             this.occlude(start.y + y, Number(gsap.getProperty(body, 'y')))
         }
         occlude()
-        timeline.to({}, { duration: plan.duration, onUpdate: occlude }, 0)
+        const settled = bounces ? BOUNCES.steps.reduce((sum, step) => sum + step.duration, 0) : 0
+        timeline.to({}, { duration: plan.duration + settled, onUpdate: occlude }, 0)
 
         if (quick) return
-        if (plan.endLift === 0) this.rebound(node, offset, timeline, plan.duration)
+        if (bounces) this.bounceIn(node, body, landing, offset, timeline, plan.duration)
+        else if (plan.endLift === 0) this.rebound(node, offset, timeline, plan.duration)
         else this.bounce(node, body, offset, plan.endLift, timeline, plan.duration)
+    }
+
+    // A YINSH piece slides as YINSH's rings do: off its stack, over, touching down short of its
+    // place, a skip and a slide in. Its shadow shows once it is off the stack it left, paler the
+    // higher it is. It spins as it goes, slowing to a stop the way round it lies; its look is
+    // swapped on the image itself, each step round, rather than redrawn.
+    private skid(move: MoveChange, spaces: number, startLift: number, timeline: Timeline) {
+        const { whole: node, body, shadow } = this.flierNodes
+        if (node === undefined || body === undefined || shadow === undefined) return
+        const offset = this.offset(move.from, move.to)
+        const start = this.session.view.center(move.from)
+        const { kind, playerId, id } = move.disc
+        const tone =
+            this.session.gameState.getPlayerState(playerId).color === Color.White ? 'light' : 'dark'
+        const steps = turnsOf(kind)
+        const rest = turnOf(kind, id)
+        const image = body.querySelector('image')
+        let shown = rest
+        const spin = (u: number) => {
+            // Clockwise, seen from above: counting down to the way round it lies.
+            const left = Math.round(SPIN.turns * 24 * (1 - (1 - (1 - u) ** 2)))
+            const turn = (((rest + left) % steps) + steps) % steps
+            if (turn === shown || image === null) return
+            shown = turn
+            image.setAttribute('href', lookUrl({ tone, kind, turn }))
+        }
+        const pose = (u: number) => {
+            spin(u)
+            const { along, lift } = skidAt(u, spaces, startLift)
+            const y = offset.y * along
+            gsap.set(node, { x: offset.x * along, y })
+            gsap.set(body, { y: lift })
+            const away = Math.min(1, (along * spaces) / SKID_SHADOW_CLEAR)
+            gsap.set(shadow, { opacity: away * Math.max(0.35, 1 + lift / 40) })
+            this.occlude(start.y + y, lift)
+        }
+        pose(0)
+        const progress = { u: 0 }
+        timeline.to(
+            progress,
+            {
+                u: 1,
+                duration: skidDuration(spaces),
+                ease: 'none',
+                onUpdate: () => pose(progress.u)
+            },
+            0
+        )
+    }
+
+    // Bounces into place from where it came down, each lower and shorter than the last.
+    private bounceIn(
+        node: SVGGElement,
+        body: SVGGElement,
+        from: { x: number; y: number },
+        to: { x: number; y: number },
+        timeline: Timeline,
+        at: number
+    ) {
+        let time = at
+        for (const { height, duration, reach } of BOUNCES.steps) {
+            const half = duration / 2
+            timeline.to(body, { y: -height, duration: half, ease: 'power1.out' }, time)
+            timeline.to(body, { y: 0, duration: half, ease: 'power1.in' }, time + half)
+            timeline.to(
+                node,
+                {
+                    x: from.x + (to.x - from.x) * reach,
+                    y: from.y + (to.y - from.y) * reach,
+                    duration,
+                    ease: 'none'
+                },
+                time
+            )
+            time += duration
+        }
     }
 
     private occlude(groundY: number, lift: number) {

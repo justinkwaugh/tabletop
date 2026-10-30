@@ -50,10 +50,12 @@ const files = await page.evaluate(() => {
 
 // Pixels per board unit: a disc about 640 px across, sharp at the board's full zoom on a phone.
 const SCALE = 12
-const bitmaps = await page.evaluate(
-    async ({ files, scale }) =>
-        Promise.all(
-            files.map(async ({ name, text }) => {
+// One at a time: all at once, the browser ran out of memory.
+const bitmaps = []
+for (const file of files) {
+    bitmaps.push(
+        await page.evaluate(
+            async ({ name, text, scale }) => {
                 const image = new Image()
                 image.src = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml' }))
                 await image.decode()
@@ -65,11 +67,13 @@ const bitmaps = await page.evaluate(
                 canvas.width = Math.round(width * scale)
                 canvas.height = Math.round(height * scale)
                 canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height)
+                URL.revokeObjectURL(image.src)
                 return { name, data: canvas.toDataURL('image/webp', 0.9) }
-            })
-        ),
-    { files, scale: SCALE }
-)
+            },
+            { ...file, scale: SCALE }
+        )
+    )
+}
 
 mkdirSync(OUT, { recursive: true })
 for (const old of readdirSync(OUT)) rmSync(join(OUT, old))

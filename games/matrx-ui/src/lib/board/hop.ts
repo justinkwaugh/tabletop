@@ -114,3 +114,58 @@ export function hopAt(plan: HopPlan, time: number): { along: number; lift: numbe
     const progress = Math.max(0, Math.min(1, (time - groundStart) / span))
     return { along: gsap.parseEase(GROUND_EASE)(progress), lift }
 }
+
+// A YINSH piece slides along its line as YINSH's rings move: it lifts off the piece under it,
+// arcs over, touches down a little short of its place, skips once and slides in. Distances along
+// are on the board's plane, lifts in screen units above the flier's space (negative is up).
+export const SKID = {
+    base: 0.5,
+    perSpace: 0.03,
+    // Fractions of the flight: lift, fly, skip, then the slide to the end.
+    liftEnd: 0.16,
+    flyEnd: 0.68,
+    skipEnd: 0.84,
+    lift: 7,
+    arc: 9,
+    arcPerSpace: 1.2,
+    touchdown: 16,
+    skip: 3,
+    slide: 6
+}
+
+export function skidDuration(spaces: number): number {
+    return SKID.base + SKID.perSpace * spaces
+}
+
+const easeOut = (t: number) => 1 - (1 - t) ** 2
+const easeInOut = (t: number) => (1 - Math.cos(Math.PI * t)) / 2
+
+// Where the YINSH piece is at progress `u` (0 to 1) of a slide `spaces` long, starting
+// `startLift` above the board: how far along (0 to 1) and how high.
+export function skidAt(
+    u: number,
+    spaces: number,
+    startLift: number
+): { along: number; lift: number } {
+    const length = spaces * SPACING
+    const touchdown = Math.max(0, length - Math.min(SKID.touchdown, length / 3))
+    const slideStart = Math.max(0, length - Math.min(SKID.slide, length / 8))
+    const top = startLift - SKID.lift
+    if (u < SKID.liftEnd) {
+        return { along: 0, lift: startLift - SKID.lift * easeOut(u / SKID.liftEnd) }
+    }
+    if (u < SKID.flyEnd) {
+        const t = easeInOut((u - SKID.liftEnd) / (SKID.flyEnd - SKID.liftEnd))
+        const arc = SKID.arc + SKID.arcPerSpace * (spaces - 1)
+        return { along: (touchdown * t) / length, lift: top * (1 - t) - 4 * arc * t * (1 - t) }
+    }
+    if (u < SKID.skipEnd) {
+        const t = (u - SKID.flyEnd) / (SKID.skipEnd - SKID.flyEnd)
+        return {
+            along: (touchdown + (slideStart - touchdown) * t) / length,
+            lift: -SKID.skip * 4 * t * (1 - t)
+        }
+    }
+    const t = easeOut((u - SKID.skipEnd) / (1 - SKID.skipEnd))
+    return { along: (slideStart + (length - slideStart) * t) / length, lift: 0 }
+}

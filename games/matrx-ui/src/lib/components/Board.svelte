@@ -11,7 +11,7 @@
     import { includesCoords } from '$lib/model/session.svelte.js'
     import { coordsKey, DOT_RADIUS, PIECE_RADIUS, SPACING } from '$lib/board/geometry.js'
     import type { BoardDisc } from '$lib/board/boardChange.js'
-    import type { Disc } from '$lib/board/pieceShape.js'
+    import { turnOf, type Disc } from '$lib/board/pieceShape.js'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
     import PieceDefs from './PieceDefs.svelte'
     import StandingStack from './StandingStack.svelte'
@@ -50,7 +50,11 @@
     }
 
     function toned(discs: readonly BoardDisc[]): Disc[] {
-        return discs.map((disc) => ({ tone: toneOf(disc.playerId), kind: disc.kind }))
+        return discs.map((disc) => ({
+            tone: toneOf(disc.playerId),
+            kind: disc.kind,
+            turn: turnOf(disc.kind, disc.id)
+        }))
     }
 
     // Each player's GIPF pieces in reserve wait on their own dot, White's near the bottom left.

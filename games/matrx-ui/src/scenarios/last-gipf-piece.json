@@ -27,24 +27,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 3477747491,
+        "seed": 241570805,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-30T15:44:04.168Z",
+        "createdAt": "2026-10-30T21:52:55.803Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-30T15:44:04.168Z"
+        "startedAt": "2026-10-30T21:52:55.803Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "rFTVV3XsMzMxev8N4D_4i",
+        "id": "amoTYuWd9dvjmgK-89r1C",
         "gameId": "scenario-last-gipf-piece",
-        "seed": 3477747491,
+        "seed": 241570805,
         "prng": {
-            "seed": 3477747491,
+            "seed": 241570805,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 3151082254,
+            "seed": 1736952304,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -106,7 +106,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "yinsh",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [5]
                         }
                     ]
                 },
@@ -133,7 +134,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "yinsh",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [4]
                         }
                     ]
                 },
@@ -160,7 +162,8 @@
                         {
                             "playerId": "player-2",
                             "kind": "gipf",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [6]
                         }
                     ]
                 },
@@ -208,7 +211,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "yinsh",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [3]
                         }
                     ]
                 },
@@ -305,7 +309,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "gipf",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [2]
                         }
                     ]
                 },
@@ -325,7 +330,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "gipf",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [1]
                         }
                     ]
                 },
@@ -345,7 +351,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "gipf",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [0]
                         }
                     ]
                 },
@@ -423,7 +430,8 @@
         },
         "movedThisTurn": false,
         "resolvingPlayerIds": [],
-        "extraMoveOwedIds": []
+        "extraMoveOwedIds": [],
+        "nextDiscId": 7
     },
     "actions": []
 }

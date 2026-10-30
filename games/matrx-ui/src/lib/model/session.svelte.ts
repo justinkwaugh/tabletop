@@ -2,6 +2,7 @@ import { GameSession, type PresentedTransition } from '@tabletop/frontend-compon
 import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
+    CENTRE,
     ExtraMove,
     isExtraMove,
     isMovePotential,
@@ -24,7 +25,7 @@ import {
 } from './stagedSelection.js'
 import { coordsKey, viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
-import type { BoardDisc } from '$lib/board/boardChange.js'
+import { discsOf, type BoardDisc } from '$lib/board/boardChange.js'
 
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
     return list.some((candidate) => sameCoordinates(candidate, coords))
@@ -70,14 +71,24 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
             : this.pushKinds[0]
     )
 
-    // What goes onto the chosen dot: the TAMSK piece of an extra move, or the chosen kind.
+    // What goes onto the chosen dot: the TAMSK piece of an extra move, or the chosen kind, with
+    // the ids its discs will have, so they lie the same way round once in.
     stagedDiscs: BoardDisc[] = $derived.by(() => {
         const playerId = this.myPlayer?.id
         if (playerId === undefined) return []
-        if (this.canExtraMove) return [{ playerId, kind: PieceKind.Tamsk }]
+        if (this.canExtraMove) {
+            const centre = this.gameState.board.topAt(CENTRE)
+            return [(centre && discsOf([centre])[1]) ?? { playerId, kind: PieceKind.Tamsk }]
+        }
         const kind = this.chosenKind
         if (kind === undefined) return []
-        return Array<BoardDisc>(kind === PieceKind.Gipf ? 1 : 2).fill({ playerId, kind })
+        // As the logic numbers them, from 0 in a game from before ids.
+        const first = this.gameState.nextDiscId ?? 0
+        return Array.from({ length: kind === PieceKind.Gipf ? 1 : 2 }, (_, index) => ({
+            playerId,
+            kind,
+            id: first + index
+        }))
     })
 
     entries: Entry[] = $derived(

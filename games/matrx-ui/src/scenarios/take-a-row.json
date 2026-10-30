@@ -27,24 +27,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 3252591770,
+        "seed": 566149235,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-30T15:44:04.165Z",
+        "createdAt": "2026-10-30T21:52:55.801Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-30T15:44:04.165Z"
+        "startedAt": "2026-10-30T21:52:55.801Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "xhZIXlOpwvEyjm04TQSrv",
+        "id": "hTZ44swaqwwuXuHOZc1sD",
         "gameId": "scenario-take-a-row",
-        "seed": 3252591770,
+        "seed": 566149235,
         "prng": {
-            "seed": 3252591770,
+            "seed": 566149235,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 1301323167,
+            "seed": 3902541833,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -106,7 +106,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "punct",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [9]
                         }
                     ]
                 },
@@ -133,7 +134,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "dvonn",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [8]
                         }
                     ]
                 },
@@ -160,7 +162,8 @@
                         {
                             "playerId": "player-2",
                             "kind": "zertz",
-                            "paired": true
+                            "paired": true,
+                            "discIds": [10, 11]
                         }
                     ]
                 },
@@ -208,7 +211,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "yinsh",
-                            "paired": true
+                            "paired": true,
+                            "discIds": [6, 7]
                         }
                     ]
                 },
@@ -256,7 +260,8 @@
                         {
                             "playerId": "player-2",
                             "kind": "yinsh",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [12]
                         }
                     ]
                 },
@@ -276,7 +281,8 @@
                         {
                             "playerId": "player-2",
                             "kind": "gipf",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [5]
                         }
                     ]
                 },
@@ -317,7 +323,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "gipf",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [2]
                         }
                     ]
                 },
@@ -337,7 +344,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "gipf",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [1]
                         }
                     ]
                 },
@@ -357,7 +365,8 @@
                         {
                             "playerId": "player-1",
                             "kind": "gipf",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [0]
                         }
                     ]
                 },
@@ -384,7 +393,8 @@
                         {
                             "playerId": "player-2",
                             "kind": "gipf",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [3]
                         }
                     ]
                 },
@@ -404,7 +414,8 @@
                         {
                             "playerId": "player-2",
                             "kind": "gipf",
-                            "paired": false
+                            "paired": false,
+                            "discIds": [4]
                         }
                     ]
                 },
@@ -447,7 +458,8 @@
         },
         "movedThisTurn": false,
         "resolvingPlayerIds": [],
-        "extraMoveOwedIds": []
+        "extraMoveOwedIds": [],
+        "nextDiscId": 13
     },
     "actions": []
 }

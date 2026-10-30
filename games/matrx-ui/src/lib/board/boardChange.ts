@@ -2,12 +2,16 @@ import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import { CENTRE, HydratedMatrxBoard, PieceKind, type Entry, type Unit } from '@tabletop/matrx'
 import { coordsKey } from './geometry.js'
 
-// One disc of a stack, by owner and kind.
-export type BoardDisc = { playerId: string; kind: PieceKind }
+// One disc of a stack, by owner and kind, and its id where it has one.
+export type BoardDisc = { playerId: string; kind: PieceKind; id?: number }
 
 export function discsOf(stack: readonly Unit[]): BoardDisc[] {
     return stack.flatMap((unit) =>
-        Array<BoardDisc>(unit.paired ? 2 : 1).fill({ playerId: unit.playerId, kind: unit.kind })
+        Array.from({ length: unit.paired ? 2 : 1 }, (_, index) => ({
+            playerId: unit.playerId,
+            kind: unit.kind,
+            id: unit.discIds?.[index]
+        }))
     )
 }
 
@@ -103,7 +107,7 @@ function moveBetween(
             const board = new HydratedMatrxBoard(start.dehydrate())
             board.movePotential(coords, to)
             if (layout(board) === target) {
-                const disc = { playerId: unit.playerId, kind: unit.kind }
+                const disc = discsOf([unit])[1]
                 return forward
                     ? { kind: 'move', from: coords, to, disc, forward }
                     : { kind: 'move', from: to, to: coords, disc, forward }
@@ -124,7 +128,8 @@ function discsBetween(before: HydratedMatrxBoard, after: HydratedMatrxBoard): Di
             same < was.length &&
             same < now.length &&
             was[same].playerId === now[same].playerId &&
-            was[same].kind === now[same].kind
+            was[same].kind === now[same].kind &&
+            was[same].id === now[same].id
         ) {
             same += 1
         }

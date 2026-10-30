@@ -19,19 +19,54 @@ import { hull } from './hull.js'
 
 export type Tone = 'light' | 'dark'
 
-// One disc of a stack, bottom up.
-export type Disc = { tone: Tone; kind: PieceKind }
+// One disc of a stack, bottom up, its mark turned round by `turn` steps of TURN_STEP degrees
+// (none when left out).
+export type Disc = { tone: Tone; kind: PieceKind; turn?: number }
 
 export const TONES: readonly Tone[] = ['light', 'dark']
 
-// Every disc there is: each kind in each tone.
+// Looks are drawn every 15°, so a disc can spin as it flies; on the board discs lie turned
+// every which way in steps of two of them, twelfths of a turn.
+const TURN_STEP = 15
+const BOARD_STEP = 2
+// The different ways round each kind's mark can be drawn: ZÈRTZ's three notches look the same
+// again after a third of a turn, PÜNCT's six after a sixth; plain and round marks after none.
+const TURNS: Record<PieceKind, number> = {
+    [PieceKind.Gipf]: 1,
+    [PieceKind.Tamsk]: 1,
+    [PieceKind.Zertz]: 8,
+    [PieceKind.Dvonn]: 1,
+    [PieceKind.Yinsh]: 24,
+    [PieceKind.Punct]: 4
+}
+
+// How many steps round a kind's look takes before it looks the same again.
+export function turnsOf(kind: PieceKind): number {
+    return TURNS[kind]
+}
+
+// Which way round a disc lies, from its id, so it lies the same way wherever it goes and whoever
+// looks. A disc with no id lies unturned.
+export function turnOf(kind: PieceKind, id: number | undefined): number {
+    if (id === undefined) return 0
+    // Ids count up one by one; mixed, neighbours lie unrelated ways round.
+    let hash = Math.imul(id ^ (id >>> 16), 0x85ebca6b)
+    hash = Math.imul(hash ^ (hash >>> 13), 0xc2b2ae35)
+    hash ^= hash >>> 16
+    const steps = Math.max(1, TURNS[kind] / BOARD_STEP)
+    return ((hash >>> 0) % steps) * BOARD_STEP
+}
+
+// Every disc there is: each kind in each tone, each way round its mark can lie.
 export const DISC_LOOKS: readonly Disc[] = TONES.flatMap((tone) =>
-    Object.values(PieceKind).map((kind) => ({ tone, kind }))
+    Object.values(PieceKind).flatMap((kind) =>
+        Array.from({ length: TURNS[kind] }, (_, turn) => ({ tone, kind, turn }))
+    )
 )
 
 // A disc's look's name: the file it is pre-rendered to (see scripts/render-looks.mjs).
 export function lookName(disc: Disc): string {
-    return `${disc.tone}-${disc.kind}`
+    return `${disc.tone}-${disc.kind}-${disc.turn ?? 0}`
 }
 
 // The id of a disc's look, drawn in an SVG under its prefix.
@@ -99,13 +134,26 @@ const DVONN = { lip: 0.385, hole: 0.36, drop: THICKNESS * 0.1 }
 const YINSH_HALF_WIDTH = (TROUGH.outer - TROUGH.inner) / 2
 const YINSH_OFFSET = 0.04
 const YINSH_END = 0.38
-// Strips across it, and steps round its rounded end.
-const YINSH_STRIPS = 24
+// How far the edge where it cuts through the ring groove's wall is rounded off (as a smooth
+// minimum's width), reached once both cuts are this deep.
+const YINSH_ROUND = 0.05
+const YINSH_ROUND_IN = 0.01
+// Cells along and across it, for its shading, and steps round its rounded end.
+const YINSH_ALONG = 240
+const YINSH_ACROSS = 64
 const YINSH_TURNS = 48
 // PÜNCT's notches cut into the edge, all the way down: half circles centred on the edge, about
 // as wide as the rim between the edge and the ring groove.
 const PUNCT_NOTCHES = 6
 const PUNCT_RADIUS = 0.15
+
+// The angles of PÜNCT's notches round a disc turned a number of steps.
+function punctCentres(turn: number): number[] {
+    return Array.from(
+        { length: PUNCT_NOTCHES },
+        (_, index) => (((360 / PUNCT_NOTCHES) * (index + 0.5) + TURN_STEP * turn) * Math.PI) / 180
+    )
+}
 // Strips round each notch's inside, for its shading.
 const PUNCT_WALL_STRIPS = 48
 
@@ -218,15 +266,9 @@ export function pieceDrawing(view: BoardView, discs: number, radius: number): Pi
 
 // The top of a disc with another on it, in that one's shadow, where the crease shows: PÜNCT's
 // with its notches left open, so the notches run on down through the stack.
-export function creaseOf(view: BoardView, kind: PieceKind, radius: number): string {
+export function creaseOf(view: BoardView, disc: Disc, radius: number): string {
     const flat = onFlat(view, radius)
-    const notches =
-        kind === PieceKind.Punct
-            ? Array.from(
-                  { length: PUNCT_NOTCHES },
-                  (_, index) => ((360 / PUNCT_NOTCHES) * (index + 0.5) * Math.PI) / 180
-              )
-            : []
+    const notches = disc.kind === PieceKind.Punct ? punctCentres(disc.turn ?? 0) : []
     // How far out the top reaches at an angle: to its rounded edge, or in to a notch's circle,
     // where the angle points towards the notch and crosses it.
     const reach = (turn: number) =>
@@ -338,7 +380,9 @@ function carvedCells(
     grid: { u: number; v: number }[][],
     height: (u: number, v: number) => number,
     untouched: (u: number, v: number) => number,
-    carveMin = CARVE_MIN
+    carveMin = CARVE_MIN,
+    // The colour of what shows behind a cell that faces away, if not left out.
+    behind?: string
 ): Strip[] {
     const cells: (Strip & { depth: number })[] = []
     for (let i = 0; i < grid.length - 1; i++) {
@@ -350,7 +394,7 @@ function carvedCells(
             if (carve <= carveMin) continue
             const u = corners.reduce((sum, corner) => sum + corner.u, 0) / 4
             const v = corners.reduce((sum, corner) => sum + corner.v, 0) / 4
-            const color = shadeAt(tone, height, u, v)
+            const color = shadeAt(tone, height, u, v) ?? behind
             if (color === undefined) continue
             cells.push({
                 // Each cell reaches a little past its neighbours, so no seam shows between them.
@@ -389,7 +433,9 @@ function rimNotch(
     const along = { u: Math.cos(a), v: Math.sin(a) }
     const across = { u: -Math.sin(a), v: Math.cos(a) }
     const r = ZERTZ_RADIUS
-    const facesYou = along.v < 0.25
+    // Towards you, or out to the side, where the disc's outline runs past it; turned further
+    // away, the board shows through it above its profile.
+    const facesYou = along.v < 0.4
     // Drawn up to the rim, or where it faces you out to the side; cut a little past it, through
     // the rounded corner.
     const reach = facesYou ? 1 : TOP_RADIUS
@@ -590,15 +636,14 @@ function nearHalf(outer: Ellipse, inner: Ellipse): string {
     ].join(' ')
 }
 
-export function markOf(
-    view: BoardView,
-    kind: PieceKind,
-    radius: number,
-    tone: Tone
-): Mark | undefined {
+export function markOf(view: BoardView, disc: Disc, radius: number): Mark | undefined {
+    const { kind, tone } = disc
+    const turn = disc.turn ?? 0
     switch (kind) {
         case PieceKind.Zertz: {
-            const notches = ZERTZ_ANGLES.map((angle) => rimNotch(view, radius, angle, tone))
+            const notches = ZERTZ_ANGLES.map((angle) =>
+                rimNotch(view, radius, angle + TURN_STEP * turn, tone)
+            )
             return {
                 kind: 'notches',
                 through: notches.flatMap((notch) => notch.through),
@@ -615,9 +660,9 @@ export function markOf(
             return { kind: 'hole', wall: farWall(top, through), through: lens(top, through) }
         }
         case PieceKind.Yinsh:
-            return yinshChannel(view, radius, tone)
+            return yinshChannel(view, radius, tone, turn)
         case PieceKind.Punct:
-            return punctNotches(view, radius, tone)
+            return punctNotches(view, radius, tone, turn)
         default:
             return undefined
     }
@@ -629,13 +674,10 @@ export function markOf(
 // the top. Only the top is cut, by each notch's outline reaching well past the rim. The side's
 // bands and the notches' insides are drawn from the far side round to the near, so a notch's
 // inside shows in front of the side beyond it and behind the side nearer you.
-function punctNotches(view: BoardView, radius: number, tone: Tone): Mark {
+function punctNotches(view: BoardView, radius: number, tone: Tone, turn: number): Mark {
     const flat = onFlat(view, radius)
     const r = PUNCT_RADIUS
-    const centres = Array.from(
-        { length: PUNCT_NOTCHES },
-        (_, index) => ((360 / PUNCT_NOTCHES) * (index + 0.5) * Math.PI) / 180
-    )
+    const centres = punctCentres(turn)
     // How far round from its centre a notch reaches into the side at a height: where the side's
     // circle there crosses the notch's circle.
     const halfSpan = (height: number) => {
@@ -658,8 +700,13 @@ function punctNotches(view: BoardView, radius: number, tone: Tone): Mark {
         heights.slice(0, -1).flatMap((height, index) => {
             const top = Math.min(THICKNESS, heights[index + 1] + THICKNESS * 0.01)
             const middle = (height + heights[index + 1]) / 2
-            return centres.flatMap((centre, k) => {
+            // Each stretch, and the same a whole turn either way, as the angles given may run
+            // past a full turn.
+            const stretches = centres.flatMap((centre, k) => {
                 const next = k + 1 < centres.length ? centres[k + 1] : centres[0] + 2 * Math.PI
+                return [-2 * Math.PI, 0, 2 * Math.PI].map((shift) => [centre + shift, next + shift])
+            })
+            return stretches.flatMap(([centre, next]) => {
                 const range = (h: number): [number, number] => {
                     const from = Math.max(centre + halfSpan(h), within[0])
                     const to = Math.min(next - halfSpan(h), within[1])
@@ -717,92 +764,99 @@ function punctNotches(view: BoardView, radius: number, tone: Tone): Mark {
     return { kind: 'cuts', parts, topCuts, outline: discOutline(view, radius) }
 }
 
-// YINSH's channel: a groove with the ring groove's profile, from the ring groove, where the two run
-// together, to a rounded end, centred YINSH_OFFSET towards the far side. Its straight run is drawn
-// as strips along it, each starting where it meets the ring groove's inner wall; its end as rings
-// round the end's centre, as the ring groove is drawn round the disc's. All are seen only through
-// its opening, so its near lip hides what lies behind it.
-function yinshChannel(view: BoardView, radius: number, tone: Tone): Mark {
+// YINSH's channel: a groove with the ring groove's profile, from the ring groove to a rounded end,
+// centred YINSH_OFFSET towards the far side. Where its walls cut through the ring groove's inner
+// wall, the edge between them is rounded off. Drawn as cells over a grid, as ZÈRTZ's notches
+// are, with the groove's floor in its mouth too, so that turned to the far side the groove shows
+// through there rather than the top; all seen only through its opening, so its near lip hides
+// what lies behind it. It is laid out unturned, running in from the left, then turned round the
+// disc's centre.
+function yinshChannel(view: BoardView, radius: number, tone: Tone, turn: number): Mark {
     const flat = onFlat(view, radius)
+    const angle = (TURN_STEP * turn * Math.PI) / 180
+    const [cos, sin] = [Math.cos(angle), Math.sin(angle)]
+    const turned = ({ u, v }: { u: number; v: number }) => ({
+        u: u * cos - v * sin,
+        v: u * sin + v * cos
+    })
+    // A function of the channel's own frame, read where it lies on the disc.
+    const onDisc = (f: (u: number, v: number) => number) => (u: number, v: number) =>
+        f(u * cos + v * sin, v * cos - u * sin)
     const w = YINSH_HALF_WIDTH
     const end = YINSH_END - w
     const across = { outer: w, inner: -w }
-    const profile = (distance: number) => THICKNESS - grooveDepth(Math.abs(distance), across)
     const ring = (u: number, v: number) => topProfile(PieceKind.Yinsh, Math.hypot(u, v))
     const lineDistance = (u: number, v: number) =>
         Math.hypot(Math.max(0, u - end), v - YINSH_OFFSET)
-    const height = (u: number, v: number) => Math.min(ring(u, v), profile(lineDistance(u, v)))
+    // The deeper of the two cuts, rounded where they meet: only where both cut, and gently in
+    // from their lips, so the top stays flat round them.
+    const height = (u: number, v: number) => {
+        const ringDepth = THICKNESS - ring(u, v)
+        const channelDepth = grooveDepth(lineDistance(u, v), across)
+        const round = YINSH_ROUND * Math.min(1, Math.min(ringDepth, channelDepth) / YINSH_ROUND_IN)
+        return round > 0
+            ? THICKNESS + smoothMin(-ringDepth, -channelDepth, round)
+            : THICKNESS - Math.max(ringDepth, channelDepth)
+    }
+    // The top as it was before the channel, but in its mouth on the far side the ring groove's
+    // floor, which the ring's inner lip hid until the channel cut through it, so that is drawn
+    // too. On the near side the top's own bands show the floor.
+    const onFloor = (u: number, v: number) =>
+        u * sin + v * cos > 0 &&
+        grooveDepth(Math.hypot(u, v), TROUGH) >= TROUGH_DEPTH - 1e-9 &&
+        lineDistance(u, v) < w
+    const before = (u: number, v: number) => (onFloor(u, v) ? THICKNESS : ring(u, v))
     const span = (lo: number, hi: number, count: number) =>
         Array.from({ length: count + 1 }, (_, step) => lo + ((hi - lo) * step) / count)
 
-    // Where a strip at a height comes out of the ring groove's inner wall, searched from the
-    // middle of the groove's floor, where the two are equally deep.
-    const meetsRing = (v: number, h: number) => {
-        let [lo, hi] = [-(TROUGH.outer + TROUGH.inner) / 2, -TROUGH.inner + 0.01]
-        for (let step = 0; step < 30; step++) {
-            const mid = (lo + hi) / 2
-            if (ring(mid, v) <= h + 1e-6) lo = mid
-            else hi = mid
-        }
-        return lo
-    }
-    // Neighbouring pieces overlap this much, so no seam shows between them.
-    const overlap = 0.003
-    const edges = span(-w, w, YINSH_STRIPS)
-    const strips = edges.slice(0, -1).map((from, index) => {
-        const to = edges[index + 1]
-        const [v0, v1] = [YINSH_OFFSET + from - overlap, YINSH_OFFSET + to + overlap]
-        return [
-            { u: meetsRing(v0, profile(from)), v: v0 },
-            { u: end, v: v0 },
-            { u: end, v: v1 },
-            { u: meetsRing(v1, profile(to)), v: v1 }
-        ]
-    })
-    const radii = span(w, 0, YINSH_STRIPS / 2)
-    const turns = span(-Math.PI / 2, Math.PI / 2, YINSH_TURNS)
-    const point = (rho: number, phi: number) => ({
-        u: end + rho * Math.cos(phi),
-        v: YINSH_OFFSET + rho * Math.sin(phi)
-    })
-    const cap = radii.slice(0, -1).flatMap((outer, i) =>
-        turns.slice(0, -1).map((turn, j) => {
-            const [r0, r1] = [outer + overlap, Math.max(0, radii[i + 1] - overlap)]
-            const [p0, p1] = [turn - 0.01, turns[j + 1] + 0.01]
-            return [point(r0, p0), point(r0, p1), point(r1, p1), point(r1, p0)]
-        })
+    const mouth = -(TROUGH.outer + TROUGH.inner) / 2
+    const reach = w + 0.02
+    const grid = span(mouth, YINSH_END + 0.01, YINSH_ALONG).map((u) =>
+        span(YINSH_OFFSET - reach, YINSH_OFFSET + reach, YINSH_ACROSS).map((v) => turned({ u, v }))
     )
+    const turns = span(-Math.PI / 2, Math.PI / 2, YINSH_TURNS)
+    // The edge of what is drawn, on each side, at its own height: in from the lip to where the
+    // channel first cuts below the top or the ring groove's wall, so the cells' stepped edges are
+    // trimmed to a smooth line.
+    const edgeRun = (side: number) =>
+        span(mouth, end, YINSH_ALONG).map((u) => {
+            const out = w
+            const steps = 200
+            let off = 0
+            for (let step = 0; step <= steps; step++) {
+                const at = out * (1 - step / steps)
+                const v = YINSH_OFFSET + side * at
+                if (before(u, v) - height(u, v) > 1e-5) {
+                    off = at
+                    break
+                }
+            }
+            const v = YINSH_OFFSET + side * off
+            return { u, v, h: height(u, v) }
+        })
     const outline = [
-        flat(-(TROUGH.outer + TROUGH.inner) / 2, YINSH_OFFSET + w),
-        ...turns.map((turn) => flat(end + w * Math.cos(turn), YINSH_OFFSET - w * Math.sin(turn))),
-        flat(-(TROUGH.outer + TROUGH.inner) / 2, YINSH_OFFSET - w)
-    ]
+        ...edgeRun(1),
+        ...turns.map((turn) => ({
+            u: end + w * Math.cos(turn),
+            v: YINSH_OFFSET - w * Math.sin(turn),
+            h: THICKNESS
+        })),
+        ...edgeRun(-1).toReversed()
+    ].map(({ h, ...point }) => ({ ...turned(point), h }))
     return {
         kind: 'carved',
-        clip: polygon(outline),
-        cells: shadedQuads(flat, tone, [...strips, ...cap], height)
+        clip: polygon(outline.map(({ u, v, h }) => flat(u, v, h))),
+        // Where the channel's walls face away, the groove's floor beyond shows.
+        cells: carvedCells(
+            flat,
+            tone,
+            grid,
+            onDisc(height),
+            onDisc(before),
+            1e-5,
+            css(TOP_PALETTE[tone].floor)
+        )
     }
-}
-
-// Quads of a carved surface on the disc, each shaded at its middle, far ones first, leaving out
-// those that face away.
-function shadedQuads(
-    flat: (u: number, v: number, height?: number) => Point,
-    tone: Tone,
-    quads: { u: number; v: number }[][],
-    height: (u: number, v: number) => number
-): Strip[] {
-    return quads
-        .flatMap((corners) => {
-            const u = corners.reduce((sum, corner) => sum + corner.u, 0) / corners.length
-            const v = corners.reduce((sum, corner) => sum + corner.v, 0) / corners.length
-            const fill = shadeAt(tone, height, u, v)
-            if (fill === undefined) return []
-            const d = polygon(corners.map((c) => flat(c.u, c.v, height(c.u, c.v))))
-            return [{ d, fill, opacity: 1, depth: v }]
-        })
-        .toSorted((p, q) => q.depth - p.depth)
-        .map(({ d, fill, opacity }) => ({ d, fill, opacity }))
 }
 
 // A carved surface's colour at a point: by its depth, and by its slope, in shade facing you and

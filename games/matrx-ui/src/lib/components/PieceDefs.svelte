@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import { PIECE_RADIUS, SHADOW_BLUR, type BoardView } from '$lib/board/geometry.js'
-    import { DISC_LOOKS, SHADE_LEVELS, sideStops, TONES, type Disc } from '$lib/board/pieceShape.js'
+    import { lookName, SHADE_LEVELS, sideStops, TONES, type Disc } from '$lib/board/pieceShape.js'
     import DiscLook from './DiscLook.svelte'
 
     // Shared by every piece drawn in one SVG: the side's shades, each tone's top, the shadows, and
@@ -69,6 +69,6 @@
     <stop offset="0.85" stop-color="rgb(0 0 0 / 0.45)"></stop>
     <stop offset="1" stop-color="rgb(0 0 0 / 0)"></stop>
 </radialGradient>
-{#each looks as disc (`${disc.tone}-${disc.kind}`)}
+{#each looks as disc (lookName(disc))}
     <DiscLook {disc} {radius} {prefix} {view} />
 {/each}

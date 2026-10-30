@@ -51,7 +51,9 @@ function position(stacks, { board = 'Matrx', reserves = {} } = {}) {
             const player = state.players.find((p) => p.playerId === playerId)
             if (kind === 'gipf') player.gipfPieces -= 1
             else player.potentials[kind] -= paired ? 2 : 1
-            return { playerId, kind, paired }
+            // Numbered as they would have come in, so each disc lies its own way round.
+            const discIds = Array.from({ length: paired ? 2 : 1 }, () => state.nextDiscId++)
+            return { playerId, kind, paired, discIds }
         })
     }
     for (const player of state.players) {

@@ -27,7 +27,7 @@
     const lookId = $derived(discLookId(prefix, disc))
     const drawing = $derived(pieceDrawing(view, 1, radius))
     const bands = $derived(topBands(view, disc.kind, radius, disc.tone))
-    const mark = $derived(markOf(view, disc.kind, radius, disc.tone))
+    const mark = $derived(markOf(view, disc, radius))
     const cut = $derived(mark?.kind === 'hole' || mark?.kind === 'notches')
     const reach = $derived(radius * 1.3)
     const levels = Array.from({ length: SHADE_LEVELS }, (_, level) => level)
@@ -126,7 +126,9 @@
                 <clipPath id="{lookId}-carved">
                     <path d={mark.clip}></path>
                 </clipPath>
-                <g clip-path="url(#{lookId}-carved)">
+                <!-- Cells drawn edge to edge, without each edge's softening, which showed as a mesh;
+                     the clip still softens the carving's outline. -->
+                <g clip-path="url(#{lookId}-carved)" shape-rendering="crispEdges">
                     {#each mark.cells as cell, cellIndex (cellIndex)}
                         <path d={cell.d} fill={cell.fill} fill-opacity={cell.opacity}></path>
                     {/each}
