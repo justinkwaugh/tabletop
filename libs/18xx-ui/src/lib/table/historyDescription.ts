@@ -67,6 +67,7 @@ import {
     isTakeLoan,
     isSellSharesToPay,
     isGoBankrupt,
+    isDeclareBankruptcy,
     isDiscardTrain,
     isRustTrains,
     isPlaceHomeStations,
@@ -499,6 +500,16 @@ function describeShared(
         return {
             text: 'Went bankrupt',
             detail: `${money(action.metadata.forgiven)} forgiven`,
+            important: true
+        }
+    }
+    // The System records it, so the row has no actor of its own to name.
+    if (isDeclareBankruptcy(action)) {
+        assertExists(action.metadata, 'Recorded bankruptcy requires its company and shortfall')
+        const { playerId, companyId, shortfall } = action.metadata
+        return {
+            text: `${playerName(playerId)} went bankrupt`,
+            detail: `${money(shortfall)} short of ${companyName(companyId)}’s train`,
             important: true
         }
     }

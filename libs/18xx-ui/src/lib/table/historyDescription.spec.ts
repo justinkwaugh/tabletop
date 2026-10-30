@@ -4,6 +4,7 @@ import type {
     AuctionAwardDetails,
     BuyAuctionLot,
     BuyShares,
+    DeclareBankruptcy,
     DiscardTrain,
     FundTrain,
     LayTile,
@@ -281,6 +282,21 @@ it('treats the stock round opening after an operating set as routine', () => {
         text: 'Started stock round',
         routine: true
     })
+})
+
+it('names who went bankrupt, and for which company’s train', () => {
+    const bankruptcy: DeclareBankruptcy = {
+        id: 'bankrupt',
+        gameId: 'history',
+        source: ActionSource.System,
+        type: 'DeclareBankruptcy',
+        metadata: { companyId: 'R', playerId: 'alex', shortfall: 139 }
+    }
+    expect(
+        historyDescription(bankruptcy, historyStateFixture(), TestMarket, undefined, (id) =>
+            id.toUpperCase()
+        )
+    ).toEqual({ text: 'ALEX went bankrupt', detail: '$139 short of R’s train', important: true })
 })
 
 it('names the company that discarded a train and where the train went', () => {
