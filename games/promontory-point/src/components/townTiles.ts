@@ -9,6 +9,9 @@ export type DividendEvent = { kind: TownEventKind.Dividend; dollarsPerShare: num
 export type RepairsEvent = { kind: TownEventKind.Repairs; dollarsPerShare: number }
 export type TownEvent = PriceChangeEvent | DividendEvent | RepairsEvent
 
+// R-4.2, R-4.3-H1
+export const REPAIRS_EVENT: RepairsEvent = { kind: TownEventKind.Repairs, dollarsPerShare: 2 }
+
 export const RED_TILE_KIND_IDS = ['tile.red.dividend', 'tile.red.hammer'] as const
 
 export type RedTileKindId = (typeof RED_TILE_KIND_IDS)[number]
@@ -59,7 +62,7 @@ export const TOWN_TILE_KINDS: Record<TownTileKindId, TownTileKind> = {
         id: 'tile.red.hammer',
         name: 'Repairs',
         count: 8,
-        event: { kind: TownEventKind.Repairs, dollarsPerShare: 2 }
+        event: REPAIRS_EVENT
     }
 }
 

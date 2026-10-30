@@ -13,7 +13,7 @@ import {
 } from '@tabletop/common'
 import { BOARD_GRID, BoardNodeKind, type SpaceId } from '../components/board.js'
 import { START_PRICE_INDEX } from '../components/priceTrack.js'
-import type { RailroadId } from '../components/railroads.js'
+import { perRailroad } from '../components/railroads.js'
 import {
     TOWN_TILE_KINDS,
     TOWN_TILE_KIND_IDS,
@@ -78,9 +78,9 @@ export class PromontoryPointGameInitializer
             promontoryPointRevision: CURRENT_PROMONTORY_POINT_REVISION,
             towns,
             track: {},
-            priceIndex: this.perRailroad(START_PRICE_INDEX),
+            priceIndex: perRailroad(() => START_PRICE_INDEX),
             bag: bag.dehydrate(),
-            scrapped: this.perRailroad(0)
+            scrapped: perRailroad(() => 0)
         })
 
         return new HydratedPromontoryPointGameState(promontoryPointGameState)
@@ -94,7 +94,7 @@ export class PromontoryPointGameInitializer
             playerId: player.id,
             color: colors[index],
             money: STARTING_MONEY,
-            shares: this.perRailroad(STARTING_SHARES_PER_RAILROAD),
+            shares: perRailroad(() => STARTING_SHARES_PER_RAILROAD),
             hand: [],
             handCount: 0
         }))
@@ -108,14 +108,5 @@ export class PromontoryPointGameInitializer
         shuffle(tiles, random)
         const towns = BOARD_GRID.spaces().filter((space) => space.kind === BoardNodeKind.Town)
         return Object.fromEntries(towns.map((town, index) => [town.spaceId, tiles[index]]))
-    }
-
-    private perRailroad(value: number): Record<RailroadId, number> {
-        return {
-            'railroad.cp': value,
-            'railroad.up': value,
-            'railroad.kp': value,
-            'railroad.sp': value
-        }
     }
 }

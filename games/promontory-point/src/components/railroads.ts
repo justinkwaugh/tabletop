@@ -33,3 +33,14 @@ export const RAILROADS: Record<RailroadId, Railroad> = {
         homeHex: { q: -6, r: 4 }
     }
 }
+
+export function perRailroad<Value>(
+    valueOf: (railroadId: RailroadId) => Value
+): Record<RailroadId, Value> {
+    return {
+        'railroad.cp': valueOf('railroad.cp'),
+        'railroad.up': valueOf('railroad.up'),
+        'railroad.kp': valueOf('railroad.kp'),
+        'railroad.sp': valueOf('railroad.sp')
+    }
+}
