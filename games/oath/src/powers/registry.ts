@@ -100,11 +100,15 @@ export interface PlayGains {
     favorTaken: readonly FavorTake[]
     /**
      * R-7.4 — the favor a carried modifier gains once the play is made (Welcoming Party), from the banks this plan
-     * leaves. From revision 31 it is gained before the power (R-7.3.3-H3), on a faceup play, and taken from
-     * `favorBank`; before it, on a site play, after the power, so not taken from it. A modifier gains once per
-     * action (R-7.4.2), so Land Warden's second card plans none.
+     * leaves. From revision 31 it is gained before the power (R-7.3.3-H3), on a faceup play of a denizen, and taken
+     * from `favorBank`; before it, on a site play, after the power, so not taken from it. A modifier gains once per
+     * action (R-7.4.2): from revision 31 Land Warden's second card plans it only when the kept card's play did not
+     * (`modifiersPaid`), and takes it before its own gains, as the modifiers resolve before the second play; before
+     * revision 31 the second card plans none.
      */
     favorAfter: number
+    /** R-7.3.3-H3, R-7.4.2 — from revision 31, the Search's modifiers have paid by this play: on it, or on the kept card's. */
+    modifiersPaid: boolean
 }
 
 /** R-9.3 — one favor a play takes from a bank, and how much the bank gave: 0 when it was empty. */

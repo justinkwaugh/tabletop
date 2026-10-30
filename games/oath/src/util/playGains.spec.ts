@@ -483,7 +483,8 @@ describe('the planned gains are what the play gains', () => {
             returning: [DISSENT],
             favorBank: { ...s.favorBank, [Suit.Arcane]: 2, [Suit.Discord]: 5 },
             favorTaken: [{ suit: Suit.Arcane, gained: 1 }],
-            favorAfter: 0
+            favorAfter: 0,
+            modifiersPaid: false
         })
         expect(second).toEqual({
             leaving: [DISSENT],
@@ -494,7 +495,8 @@ describe('the planned gains are what the play gains', () => {
                 returning: [DISSENT],
                 favorBank: { ...s.favorBank, [Suit.Arcane]: 1, [Suit.Discord]: 5 },
                 favorTaken: [{ suit: Suit.Arcane, gained: 1 }],
-                favorAfter: 0
+                favorAfter: 0,
+                modifiersPaid: false
             }
         })
         // The second play takes no choices, but its offer would see four secrets against the Chancellor's two.
@@ -573,7 +575,8 @@ describe("on Dana's own view, where Ann's facedown adviser and the vault cannot 
             returning: [],
             favorBank: { ...s.favorBank, [Suit.Beast]: 2 },
             favorTaken: [{ suit: Suit.Beast, gained: 1 }],
-            favorAfter: 0
+            favorAfter: 0,
+            modifiersPaid: false
         })
     })
 

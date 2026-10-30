@@ -24,7 +24,7 @@ import { engine } from '../testing/engine.js'
 import { testGame } from '../testing/game.js'
 import { served } from '../testing/projection.js'
 import { FILLER, INN } from '../testing/cards.js'
-import { playMapChanges } from '../util/cardPlay.js'
+import { playMapChanges, sitePlayGain } from '../util/cardPlay.js'
 import { freeActionTypesNow } from '../util/freeActions.js'
 import { searchPlayModifiers, type ModifierUse } from '../util/modifiers.js'
 import { OathRevision } from '../util/revision.js'
@@ -383,6 +383,81 @@ describe('Land Warden: the modifiers read both cards, pay once, and pay before t
         ])
         expect(action.metadata?.favorShort).toBeUndefined()
         expect(s.getPlayerState('dana').favor).toBe(1)
+    })
+
+    /** The kept card's plan, then the second card's from it, as the play's checks plan the pair. */
+    const pairPlans = (s: HydratedOathGameState, keptFaceUp: boolean) => {
+        const carried = searchPlayModifiers(s)
+        const keptPlan = playMapChanges(s, 'dana', DISSENT, SearchPlay.Adviser, {
+            faceUp: keptFaceUp,
+            carried
+        })
+        const second = playMapChanges(s, 'dana', INN, SearchPlay.Site, {
+            carried,
+            earlierMapChanges: keptPlan
+        })
+        return { kept: keptPlan, second }
+    }
+    const twoInHearth = (revision: OathRevision): Table => ({
+        ...innTable(revision),
+        favorBank: { ...SALAD_BANKS, [Suit.Hearth]: 2 }
+    })
+
+    it("a facedown adviser kept and the Inn second: the Inn's plan takes Welcoming Party's favor first, so it shows the Inn's 0 the resolve gives", () => {
+        const s = searched(innTable(FIXED), [LAND_WARDEN, WELCOMING])
+        const plans = pairPlans(s, false)
+        expect(plans.kept.gains?.favorAfter).toBe(0)
+        expect(plans.second.gains?.favorAfter).toBe(1)
+        expect(plans.second.gains?.favorTaken).toEqual([{ suit: Suit.Hearth, gained: 0 }])
+        expect(plans.second.gains?.favorBank[Suit.Hearth]).toBe(0)
+        expect(sitePlayGain(plans.second)).toEqual({ favor: 1, secrets: 0 })
+        const action = resolved(s, facedownThenInn)
+        expect(action.metadata?.favorShort).toEqual([{ suit: Suit.Hearth, ranOut: false }])
+        expect(s.favorBank[Suit.Hearth]).toBe(0)
+    })
+
+    it('with two favor in the hearth bank, the gain the Inn shows is the two favor the resolve gives', () => {
+        const s = searched(twoInHearth(FIXED), [LAND_WARDEN, WELCOMING])
+        const plans = pairPlans(s, false)
+        expect(plans.second.gains?.favorTaken).toEqual([{ suit: Suit.Hearth, gained: 1 }])
+        expect(sitePlayGain(plans.second)).toEqual({ favor: 2, secrets: 0 })
+        const before = s.getPlayerState('dana').favor
+        const action = resolved(s, facedownThenInn)
+        expect(action.metadata?.modifierNotes).toEqual([
+            'Welcoming Party: gained 1 favor from the hearth bank'
+        ])
+        expect(action.metadata?.favorGained).toBe(1)
+        expect(s.getPlayerState('dana').favor - before).toBe(2)
+        expect(s.favorBank[Suit.Hearth]).toBe(0)
+    })
+
+    it("before revision 31, the Inn's plan takes the hearth favor itself and no Welcoming Party favor", () => {
+        const s = searched(innTable(BEFORE), [LAND_WARDEN, WELCOMING])
+        const plans = pairPlans(s, false)
+        expect(plans.kept.gains?.favorAfter).toBe(0)
+        expect(plans.second.gains?.favorAfter).toBe(0)
+        expect(plans.second.gains?.favorTaken).toEqual([{ suit: Suit.Hearth, gained: 1 }])
+        expect(sitePlayGain(plans.second)).toEqual({ favor: 1, secrets: 0 })
+    })
+
+    it("Dissent kept faceup and the Inn second: the kept card's plan takes Welcoming Party's favor, and the Inn's takes none again", () => {
+        const s = searched(twoInHearth(FIXED), [LAND_WARDEN, WELCOMING])
+        const plans = pairPlans(s, true)
+        expect(plans.kept.gains?.favorAfter).toBe(1)
+        expect(plans.second.gains?.favorAfter).toBe(0)
+        expect(plans.second.gains?.favorTaken).toEqual([{ suit: Suit.Hearth, gained: 1 }])
+        expect(plans.second.gains?.favorBank[Suit.Hearth]).toBe(0)
+        expect(sitePlayGain(plans.second)).toEqual({ favor: 1, secrets: 0 })
+    })
+
+    it("on Dana's own view: the Inn's plan after a facedown adviser is the same, and the state is neither copied nor changed", () => {
+        const s = searched(innTable(FIXED), [LAND_WARDEN, WELCOMING])
+        const server = JSON.stringify(s.dehydrate())
+        const plans = pairPlans(ownView(s), false)
+        expect(plans.second.gains?.favorAfter).toBe(1)
+        expect(plans.second.gains?.favorTaken).toEqual([{ suit: Suit.Hearth, gained: 0 }])
+        expect(sitePlayGain(plans.second)).toEqual({ favor: 1, secrets: 0 })
+        expect(JSON.stringify(s.dehydrate())).toBe(server)
     })
 })
 

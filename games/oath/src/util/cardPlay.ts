@@ -305,8 +305,9 @@ export function playMapChanges(
  * the play: the card discarded first gives its tokens back (R-10.5) and writes the Homeland ledger (R-11.2), the
  * site gives its favor (Book of Records: a secret instead), then the Homeland pays. An adviser play gives back the
  * tokens of the advisers it discards. From revision 31 a faceup play's carried modifiers then pay (R-7.3.3-H3).
- * Land Warden's second card starts from the kept card's gains. The relic a Homeland gives is not planned: no check
- * reads it, and its identity is the vault's.
+ * Land Warden's second card starts from the kept card's gains; from revision 31, when the kept card's play did not
+ * pay the modifiers and this one shows a denizen, they pay first, as they resolve before the second play (R-7.4.2:
+ * once). The relic a Homeland gives is not planned: no check reads it, and its identity is the vault's.
  */
 function playGains(
     state: HydratedOathGameState,
@@ -335,6 +336,16 @@ function playGains(
         if (homeBank) favorBank[homeBank] += gained
         favorTaken.push({ suit, gained })
     }
+    const carried = options.carried ?? []
+    // R-7.3.3-H3, R-7.4.2 — once, on the first play of the pair that shows a denizen.
+    const paysModifiers =
+        modifiersResolveBeforePower(state) &&
+        earlier?.gains?.modifiersPaid !== true &&
+        kindOf(cardId) === CardKind.Denizen &&
+        isFaceupPlay(play, options.faceUp)
+    let favorAfter = 0
+    // Land Warden — the kept card's play paid none, so they pay before this second play.
+    if (paysModifiers && earlier) favorAfter = takeFavorAfterPlay(favorBank, homeBank, carried)
 
     if (siteId !== undefined) {
         if (first) giveBack(first)
@@ -354,18 +365,20 @@ function playGains(
     } else if (play === SearchPlay.Adviser) {
         for (const id of options.discardedAdviserCardIds ?? []) giveBack(id)
     }
-    const carried = options.carried ?? []
-    const paysAfterPlay = !earlier && kindOf(cardId) === CardKind.Denizen
-    let favorAfter = 0
-    if (paysAfterPlay && modifiersResolveBeforePower(state)) {
+    if (paysModifiers && !earlier) {
         // R-7.3.3-H3 — taken before the power, so the banks its check reads hold it taken.
-        if (isFaceupPlay(play, options.faceUp))
-            favorAfter = takeFavorAfterPlay(favorBank, homeBank, carried)
-    } else if (paysAfterPlay && siteId !== undefined) {
+        favorAfter = takeFavorAfterPlay(favorBank, homeBank, carried)
+    } else if (
+        !modifiersResolveBeforePower(state) &&
+        !earlier &&
+        kindOf(cardId) === CardKind.Denizen &&
+        siteId !== undefined
+    ) {
         // R-X.4 — before revision 31, taken after the power, from banks the power had already read.
         favorAfter = takeFavorAfterPlay({ ...favorBank }, homeBank, carried)
     }
-    return { secrets, returning, favorBank, favorTaken, favorAfter }
+    const modifiersPaid = paysModifiers || earlier?.gains?.modifiersPaid === true
+    return { secrets, returning, favorBank, favorTaken, favorAfter, modifiersPaid }
 }
 
 /** R-7.4 — Welcoming Party's favor once the play is made, each carried card's bank in turn, from `favorBank`. */
