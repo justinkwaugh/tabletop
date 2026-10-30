@@ -3,9 +3,54 @@ import * as Value from 'typebox/value'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { VersionChange } from './versionChecker.js'
 import { TabletopApi } from './tabletopApi.svelte.js'
+import { toast } from 'svelte-sonner'
+
+vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn() } }))
 
 afterEach(() => {
     vi.unstubAllGlobals()
+})
+
+describe('TabletopApi unauthorized responses', () => {
+    test('reject quietly once no one is signed in', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response(null, { status: 401 }))
+        )
+        const onUnauthorized = vi.fn()
+        const api = new TabletopApi(undefined, undefined, undefined, onUnauthorized, () => false)
+
+        await expect(api.unsubscribeFromPushNotifications('endpoint')).rejects.toMatchObject({
+            name: 'Unauthorized'
+        })
+        expect(onUnauthorized).not.toHaveBeenCalled()
+        expect(toast.error).not.toHaveBeenCalled()
+    })
+
+    test('report an expired session while someone is signed in', async () => {
+        vi.useFakeTimers()
+        try {
+            vi.stubGlobal(
+                'fetch',
+                vi
+                    .fn<typeof globalThis.fetch>()
+                    .mockResolvedValue(new Response(null, { status: 401 }))
+            )
+            const reload = vi.fn()
+            vi.stubGlobal('window', { location: { reload } })
+            const onUnauthorized = vi.fn()
+            const api = new TabletopApi(undefined, undefined, undefined, onUnauthorized, () => true)
+
+            void api.unsubscribeFromPushNotifications('endpoint')
+            await vi.advanceTimersByTimeAsync(0)
+
+            expect(onUnauthorized).toHaveBeenCalledTimes(1)
+            expect(toast.error).toHaveBeenCalledTimes(1)
+            expect(reload).toHaveBeenCalledTimes(1)
+        } finally {
+            vi.useRealTimers()
+        }
+    })
 })
 
 describe('TabletopApi title activity', () => {
