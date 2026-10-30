@@ -13,6 +13,7 @@ export const PromontoryPointInfo: GameInfo = {
         minPlayers: 2,
         maxPlayers: 4,
         defaultPlayerCount: 4,
+        hasScores: true,
         version: GAME_VERSION,
         beta: true,
         visibility: GameVisibility.Alpha

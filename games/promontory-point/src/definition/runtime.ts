@@ -8,6 +8,7 @@ import { PromontoryPointApiActions } from './apiActions.js'
 import { PromontoryPointColors } from './colors.js'
 import { PromontoryPointHydrator } from './hydrator.js'
 import { PromontoryPointGameInitializer } from './initializer.js'
+import { PromontoryPointProgression } from './progression.js'
 import { PromontoryPointScoring } from './scoring.js'
 import { PromontoryPointStateHandlers } from './stateHandlers.js'
 
@@ -20,5 +21,6 @@ export const PromontoryPointRuntime = {
     apiActions: PromontoryPointApiActions,
     playerColors: PromontoryPointColors,
     scoring: new PromontoryPointScoring(),
+    progression: new PromontoryPointProgression(),
     stateLogger: new DefaultStateLogger()
 } satisfies GameRuntime<PromontoryPointProjectedState, HydratedPromontoryPointGameState>
