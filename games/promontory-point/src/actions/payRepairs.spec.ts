@@ -5,12 +5,12 @@ import { MachineState } from '../definition/states.js'
 import type { PromontoryPointGameState } from '../model/gameState.js'
 import type { Debtor } from '../model/pendingRepairs.js'
 import { SaleListRefusal } from '../rules/repairs.js'
-import { startGame } from '../testing/startGame.js'
+import { engine, startGame } from '../testing/startGame.js'
 import {
     action,
-    actionEngine,
     edited,
     playerOf,
+    refusedIn,
     revealedTurn,
     shareDeckCount
 } from '../testing/turns.js'
@@ -66,7 +66,7 @@ function pay(
     sales: RailroadId[],
     playerId = state.pendingRepairs?.debtors[0].playerId
 ) {
-    const { processedActions, updatedState } = actionEngine.executeCanonicalAction({
+    const { processedActions, updatedState } = engine.executeCanonicalAction({
         action: action(PayRepairs, state, { playerId, sales }),
         state,
         game
@@ -260,7 +260,7 @@ describe('PayRepairs', () => {
             const trading = revealedTurn(game, state)
 
             expect(() => pay(game, trading, [], seat(trading, 0))).toThrow(
-                PayRepairsRefusal.NoRepairsPending
+                refusedIn(MachineState.TradingBeforePlacing)
             )
         })
     })
@@ -283,9 +283,9 @@ describe('PayRepairs', () => {
             expect(updatedState.pendingRepairs?.debtors).toHaveLength(1)
             expect(payment.revealsInfo).toBeFalsy()
 
-            expect(
-                actionEngine.undoProcessedAction({ state: updatedState, action: payment })
-            ).toEqual(state)
+            expect(engine.undoProcessedAction({ state: updatedState, action: payment })).toEqual(
+                state
+            )
         })
     })
 })

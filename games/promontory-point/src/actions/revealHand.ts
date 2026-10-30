@@ -7,12 +7,11 @@ import {
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import type { RailroadId } from '../components/railroads.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedPromontoryPointGameState } from '../model/gameState.js'
 import { RailroadIdSchema } from '../model/schemas.js'
-import { PLACEMENTS_PER_TURN } from '../model/turn.js'
+import { revealTurnPieces } from '../rules/turnStart.js'
 import { turnPlayerId } from '../rules/turnPlayer.js'
 
 export type RevealHandMetadata = Type.Static<typeof RevealHandMetadata>
@@ -55,21 +54,7 @@ export class HydratedRevealHand extends HydratableAction<typeof RevealHand> impl
             HydratedRevealHand.canRevealHand(state, this.playerId),
             'RevealHand belongs to the turn player as the turn starts'
         )
-        const player = state.getPlayerState(this.playerId)
-        // R-6.3-H2: a kept piece is already face up and joins the turn pieces.
-        const pieces: RailroadId[] = [
-            ...player.knownHand(),
-            ...(player.keptPiece === undefined ? [] : [player.keptPiece])
-        ]
-        player.hand = []
-        player.handCount = 0
-        delete player.keptPiece
-        state.turn = {
-            pieces,
-            tradesUsed: 0,
-            placementsMade: 0,
-            placementsLeft: PLACEMENTS_PER_TURN
-        }
+        const pieces = revealTurnPieces(state, this.playerId)
         this.metadata = { pieces }
         // R-X.2: the hand leaves concealment.
         this.revealsInfo = true

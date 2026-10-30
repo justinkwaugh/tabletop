@@ -15,7 +15,7 @@ The bag's composition is not public in fact: it is the 24 pieces of each railroa
 ## What each player knows
 
 - **Hand** (R-1.3 step 6, R-5): `players[].hand` lists the railroad of each concealed piece, `Visibility.Policy.Owner`. The public `handCount` gives its size, so every seat shows the right number of backs. A player sees their own hand from the draw until the start of their turn.
-- **Revealed pieces** (R-2.2 step 1): at the start of a player's turn the hand moves into the public `turn.pieces` and `hand` becomes empty, so `hand` only ever holds concealed pieces. A replacement drawn for a scrapped piece goes straight into `turn.pieces`, face up, since it is placed this turn (R-3.3-H1).
+- **Revealed pieces** (R-2.2 step 1): at the start of a player's turn the hand moves into the public `turn.pieces` and `hand` becomes empty, so `hand` only ever holds concealed pieces. The starting player's first pieces are dealt straight into `turn.pieces` at setup, since the game opens on that turn. A replacement drawn for a scrapped piece goes straight into `turn.pieces`, face up, since it is placed this turn (R-3.3-H1).
 - **Kept piece** (four-piece variant, R-6.3): a piece left over at the end of a turn and kept stays public as `players[].keptPiece`, since the table saw it revealed.
 
 Everything else is public (R-5, R-1.3-H1): the board, every town tile, every track piece placed, the scrapped counts, every share price, every player's shares (the share decks are derived from them), every player's money, the turn's pieces, trades used and placements made, and who owes what for a Repairs and whose decision it is.

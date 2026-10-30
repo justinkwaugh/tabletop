@@ -1,8 +1,12 @@
-import { assert } from '@tabletop/common'
-import { BOARD_GRID, type SpaceId } from '../components/board.js'
-import type { RailroadId } from '../components/railroads.js'
+import { assert, assertExists } from '@tabletop/common'
+import { BOARD_GRID, type BoardNodeKind, type SpaceId } from '../components/board.js'
+import { perRailroad, type RailroadId } from '../components/railroads.js'
+import type { TownTileKindId } from '../components/townTiles.js'
 import type { PromontoryPointGameState } from '../model/gameState.js'
 import { canonical } from './startGame.js'
+import { edited, playerOf } from './turns.js'
+
+export type Holding = { money: number; shares?: Partial<Record<RailroadId, number>> }
 
 // Moves a railroad's piece from the bag onto each space, keeping piece conservation.
 export function withTrack(
@@ -15,6 +19,63 @@ export function withTrack(
         next.track[spaceId] = takeFromBag(next, railroadId)
     }
     return canonical(next)
+}
+
+// Swaps town tiles so the space carries the kind, keeping the tile counts.
+export function withTownTile(
+    state: PromontoryPointGameState,
+    spaceId: SpaceId,
+    kindId: TownTileKindId
+): PromontoryPointGameState {
+    return edited(state, (draft) => {
+        const current = draft.towns[spaceId]
+        if (current === kindId) {
+            return
+        }
+        const other = BOARD_GRID.spaces().find(
+            (space) => space.spaceId in draft.towns && draft.towns[space.spaceId] === kindId
+        )
+        assertExists(other, `No town holds ${kindId}`)
+        draft.towns[other.spaceId] = current
+        draft.towns[spaceId] = kindId
+    })
+}
+
+// Money and shares by seat in turn order; a share not named is not held.
+export function withHoldings(
+    state: PromontoryPointGameState,
+    holdings: Holding[]
+): PromontoryPointGameState {
+    return edited(state, (draft) => {
+        for (const [index, { money, shares = {} }] of holdings.entries()) {
+            const playerId = draft.turnManager.turnOrder[index]
+            assertExists(playerId, `No seat ${index}`)
+            const player = playerOf(draft, playerId)
+            player.money = money
+            player.shares = perRailroad((railroadId) => shares[railroadId] ?? 0)
+        }
+    })
+}
+
+// The nearest space of a kind to a railroad's home, with track placed up to it.
+export function reaching(
+    state: PromontoryPointGameState,
+    railroadId: RailroadId,
+    kind: BoardNodeKind
+): { state: PromontoryPointGameState; spaceId: SpaceId } {
+    const paths = BOARD_GRID.spaces()
+        .filter((space) => space.kind === kind)
+        .map((space) => pathFromHome(railroadId, space.spaceId))
+        .sort((left, right) => left.length - right.length)
+    const path = paths[0]
+    assertExists(path, `No ${kind} space`)
+    return {
+        state: withTrack(
+            state,
+            path.slice(0, -1).map((spaceId) => [spaceId, railroadId])
+        ),
+        spaceId: path[path.length - 1]
+    }
 }
 
 // Scraps every piece left in the bag, keeping piece conservation.

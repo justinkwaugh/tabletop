@@ -27,6 +27,7 @@ import {
 } from '../model/gameState.js'
 import type { PromontoryPointPlayerState } from '../model/playerState.js'
 import { HydratedTrackBag } from '../model/trackBag.js'
+import { revealTurnPieces } from '../rules/turnStart.js'
 import { PromontoryPointColors } from './colors.js'
 import { normalizePromontoryPointConfig } from './config.js'
 import { MachineState } from './states.js'
@@ -73,7 +74,7 @@ export class PromontoryPointGameInitializer
 
         const promontoryPointGameState: PromontoryPointGameState = Object.assign(state, {
             players: orderedPlayers,
-            machineState: MachineState.StartingTurn,
+            machineState: MachineState.TradingBeforePlacing,
             turnManager,
             promontoryPointRevision: CURRENT_PROMONTORY_POINT_REVISION,
             towns,
@@ -83,7 +84,20 @@ export class PromontoryPointGameInitializer
             scrapped: perRailroad(() => 0)
         })
 
-        return new HydratedPromontoryPointGameState(promontoryPointGameState)
+        return this.openFirstTurn(new HydratedPromontoryPointGameState(promontoryPointGameState))
+    }
+
+    // R-2.1, R-2.2 step 1: the engine runs no System Action as a game starts, so setup itself
+    // opens the starting player's turn with the hand face up, as RevealHand opens every later one.
+    private openFirstTurn(
+        state: HydratedPromontoryPointGameState
+    ): HydratedPromontoryPointGameState {
+        const playerId = state.turnManager.turnOrder[0]
+        assertExists(playerId, 'A game has a starting player')
+        state.turnManager.startTurn(playerId, state.actionCount)
+        state.activePlayerIds = [playerId]
+        revealTurnPieces(state, playerId)
+        return state
     }
 
     private initializePlayers(game: Game, random: RandomFunction): PromontoryPointPlayerState[] {

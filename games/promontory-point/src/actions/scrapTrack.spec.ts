@@ -1,36 +1,16 @@
-import {
-    GameEngine,
-    assertExists,
-    playerUndoReach,
-    type Game,
-    type HydratedAction,
-    type MachineStateHandler
-} from '@tabletop/common'
+import { assertExists, playerUndoReach, type Game } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import type { RailroadId } from '../components/railroads.js'
-import { Definition } from '../definition/definition.js'
 import { MachineState } from '../definition/states.js'
-import type {
-    HydratedPromontoryPointGameState,
-    PromontoryPointGameState
-} from '../model/gameState.js'
+import type { PromontoryPointGameState } from '../model/gameState.js'
 import { PLACEMENTS_PER_TURN } from '../model/turn.js'
 import { openSpaceIds } from '../rules/network.js'
-import { stateAfterPlacingStep } from '../rules/placing.js'
-import { TradeRefusal } from '../rules/trading.js'
 import { withEmptyBag } from '../testing/fixtures.js'
-import { canonical, startGame } from '../testing/startGame.js'
+import { canonical, engine, startGame } from '../testing/startGame.js'
 import { withNoRoomFor, withPlacementsMade, withTurnPieces } from '../testing/turnPieces.js'
-import {
-    action,
-    actionEngine,
-    edited,
-    playerOf,
-    revealedTurn,
-    turnPlayer
-} from '../testing/turns.js'
+import { action, edited, playerOf, revealedTurn, refusedIn, turnPlayer } from '../testing/turns.js'
 import { BuyShare } from './buyShare.js'
-import { ScrapTrack, ScrapTrackRefusal, isScrapTrack } from './scrapTrack.js'
+import { ScrapTrack, ScrapTrackRefusal } from './scrapTrack.js'
 import { SellShare } from './sellShare.js'
 
 const CP = 'railroad.cp'
@@ -41,8 +21,7 @@ function scrap(
     game: Game,
     state: PromontoryPointGameState,
     railroadId: RailroadId = KP,
-    playerId = turnPlayer(state),
-    engine = actionEngine
+    playerId = turnPlayer(state)
 ) {
     return engine.executeCanonicalAction({
         action: action(ScrapTrack, state, { playerId, railroadId }),
@@ -57,37 +36,6 @@ function boxedIn(pieces: RailroadId[] = [KP, CP, UP], options: { emptyBag?: bool
     const turn = withNoRoomFor(withTurnPieces(revealedTurn(game, state), pieces), KP, UP)
     return { game, state: options.emptyBag === true ? withEmptyBag(turn) : turn }
 }
-
-// R-2.2-H2: placing steps lead on as the turn's handlers route them; every other action stays put.
-const placingStep: MachineStateHandler<HydratedAction, HydratedPromontoryPointGameState> = {
-    isValidAction: () => true,
-    validActionsForPlayer: () => [],
-    enter: () => {},
-    onAction: (action, context) => {
-        const turn = context.gameState.turn
-        if (!isScrapTrack(action) || turn === undefined) {
-            return context.gameState.machineState
-        }
-        return stateAfterPlacingStep(turn)
-    }
-}
-
-const staysPut: MachineStateHandler<HydratedAction, HydratedPromontoryPointGameState> = {
-    ...placingStep,
-    onAction: (_action, context) => context.gameState.machineState
-}
-
-const placingEngine = new GameEngine({
-    ...Definition.runtime,
-    stateHandlers: {
-        [MachineState.StartingTurn]: staysPut,
-        [MachineState.TradingBeforePlacing]: placingStep,
-        [MachineState.Placing]: placingStep,
-        [MachineState.PayingRepairs]: staysPut,
-        [MachineState.TradingAfterPlacing]: staysPut,
-        [MachineState.EndOfGame]: staysPut
-    }
-})
 
 describe('ScrapTrack', () => {
     it('R-3.3, R-3.3-H1: scraps a piece with no open space and draws one replacement face up', () => {
@@ -136,7 +84,7 @@ describe('ScrapTrack', () => {
             scrapAction.index
         )
         expect(
-            actionEngine.undoProcessedAction({ action: scrapAction, state: scrapped.updatedState })
+            engine.undoProcessedAction({ action: scrapAction, state: scrapped.updatedState })
         ).toEqual(empty.state)
     })
 
@@ -176,7 +124,7 @@ describe('ScrapTrack', () => {
         const after = edited(ended, (draft) => {
             draft.machineState = MachineState.TradingAfterPlacing
         })
-        expect(() => scrap(game, after)).toThrow(ScrapTrackRefusal.PlacementsDone)
+        expect(() => scrap(game, after)).toThrow(refusedIn(MachineState.TradingAfterPlacing))
     })
 
     it('R-4.3-H4, R-2.2 step 1: is refused while a Repairs is being paid or before the reveal', () => {
@@ -184,11 +132,11 @@ describe('ScrapTrack', () => {
         const paying = edited(state, (draft) => {
             draft.machineState = MachineState.PayingRepairs
         })
-        expect(() => scrap(game, paying)).toThrow(ScrapTrackRefusal.RepairsPending)
+        expect(() => scrap(game, paying)).toThrow(refusedIn(MachineState.PayingRepairs))
         const starting = edited(state, (draft) => {
             draft.machineState = MachineState.StartingTurn
         })
-        expect(() => scrap(game, starting)).toThrow(ScrapTrackRefusal.PlacingClosed)
+        expect(() => scrap(game, starting)).toThrow(refusedIn(MachineState.StartingTurn))
     })
 
     it('R-2.2-H2: a scrap before the first placement closes trading until the placements end', () => {
@@ -197,32 +145,32 @@ describe('ScrapTrack', () => {
         expect(playerOf(state, playerId).shares[CP]).toBeGreaterThan(0)
         const trade = (current: PromontoryPointGameState) => ({
             buy: () =>
-                placingEngine.executeCanonicalAction({
+                engine.executeCanonicalAction({
                     action: action(BuyShare, current, { playerId, railroadId: CP }),
                     state: current,
                     game
                 }),
             sell: () =>
-                placingEngine.executeCanonicalAction({
+                engine.executeCanonicalAction({
                     action: action(SellShare, current, { playerId, railroadId: CP }),
                     state: current,
                     game
                 })
         })
 
-        const first = canonical(scrap(game, state, KP, playerId, placingEngine).updatedState)
+        const first = canonical(scrap(game, state, KP, playerId).updatedState)
         // The rejected reading: trading stays open until a piece is actually placed.
         expect(first.machineState).not.toBe(MachineState.TradingBeforePlacing)
         expect(first.machineState).toBe(MachineState.Placing)
         expect(first.turn?.placementsMade).toBe(0)
-        expect(trade(first).buy).toThrow(TradeRefusal.PlacingUnderWay)
-        expect(trade(first).sell).toThrow(TradeRefusal.PlacingUnderWay)
+        expect(trade(first).buy).toThrow(refusedIn(MachineState.Placing))
+        expect(trade(first).sell).toThrow(refusedIn(MachineState.Placing))
 
-        const second = canonical(scrap(game, first, KP, playerId, placingEngine).updatedState)
+        const second = canonical(scrap(game, first, KP, playerId).updatedState)
         expect(second.machineState).toBe(MachineState.Placing)
-        expect(trade(second).buy).toThrow(TradeRefusal.PlacingUnderWay)
+        expect(trade(second).buy).toThrow(refusedIn(MachineState.Placing))
 
-        const last = canonical(scrap(game, second, KP, playerId, placingEngine).updatedState)
+        const last = canonical(scrap(game, second, KP, playerId).updatedState)
         expect(last.machineState).toBe(MachineState.TradingAfterPlacing)
         expect(last.turn).toMatchObject({ pieces: [], placementsMade: 0, placementsLeft: 0 })
         expect(trade(last).buy().updatedState.turn?.tradesUsed).toBe(1)
@@ -231,10 +179,10 @@ describe('ScrapTrack', () => {
 
     it('R-2.2-H2: a scrap that draws a replacement also closes trading', () => {
         const { game, state } = boxedIn()
-        const { updatedState } = scrap(game, state, KP, turnPlayer(state), placingEngine)
+        const { updatedState } = scrap(game, state, KP, turnPlayer(state))
         expect(updatedState.machineState).toBe(MachineState.Placing)
         expect(() =>
-            placingEngine.executeCanonicalAction({
+            engine.executeCanonicalAction({
                 action: action(BuyShare, updatedState, {
                     playerId: turnPlayer(updatedState),
                     railroadId: CP
@@ -242,7 +190,7 @@ describe('ScrapTrack', () => {
                 state: updatedState,
                 game
             })
-        ).toThrow(TradeRefusal.PlacingUnderWay)
+        ).toThrow(refusedIn(MachineState.Placing))
     })
 
     it('R-5: draws the replacement from canonical state, never from a submitted field', () => {
@@ -253,7 +201,7 @@ describe('ScrapTrack', () => {
             metadata: { bagEmpty: false, replacement: topOfBag === CP ? UP : CP }
         }
 
-        const { processedActions, updatedState } = actionEngine.executeCanonicalAction({
+        const { processedActions, updatedState } = engine.executeCanonicalAction({
             action: submitted,
             state,
             game

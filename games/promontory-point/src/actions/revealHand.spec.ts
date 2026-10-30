@@ -3,13 +3,14 @@ import { describe, expect, it } from 'vitest'
 import { MachineState } from '../definition/states.js'
 import type { PromontoryPointGameState } from '../model/gameState.js'
 import { PLACEMENTS_PER_TURN } from '../model/turn.js'
-import { startGame } from '../testing/startGame.js'
+import { engine, startGame } from '../testing/startGame.js'
 import {
     action,
-    actionEngine,
-    playerOf,
     atTurnStart,
     edited,
+    playerOf,
+    refusedIn,
+    revealedTurn,
     turnPlayer
 } from '../testing/turns.js'
 import { RevealHand } from './revealHand.js'
@@ -34,7 +35,7 @@ describe('RevealHand', () => {
         const playerId = turnPlayer(started)
         const hand = playerOf(started, playerId).hand
 
-        const { processedActions, updatedState } = actionEngine.executeCanonicalAction({
+        const { processedActions, updatedState } = engine.executeCanonicalAction({
             action: revealHand(started),
             state: started,
             game
@@ -47,6 +48,8 @@ describe('RevealHand', () => {
             placementsLeft: PLACEMENTS_PER_TURN
         })
         expect(playerOf(updatedState, playerId)).toMatchObject({ hand: [], handCount: 0 })
+        expect(updatedState.machineState).toBe(MachineState.TradingBeforePlacing)
+        expect(updatedState.activePlayerIds).toEqual([playerId])
         expect(processedActions).toHaveLength(1)
         expect(processedActions[0]).toMatchObject({
             source: ActionSource.System,
@@ -63,7 +66,7 @@ describe('RevealHand', () => {
         const { hand, keptPiece } = playerOf(started, playerId)
         assertExists(keptPiece, 'The fixture keeps a piece')
 
-        const { processedActions, updatedState } = actionEngine.executeCanonicalAction({
+        const { processedActions, updatedState } = engine.executeCanonicalAction({
             action: revealHand(started),
             state: started,
             game
@@ -83,7 +86,7 @@ describe('RevealHand', () => {
         const otherPlayerId = started.turnManager.turnOrder[1]
 
         expect(() =>
-            actionEngine.executeCanonicalAction({
+            engine.executeCanonicalAction({
                 action: revealHand(started, otherPlayerId),
                 state: started,
                 game
@@ -93,23 +96,21 @@ describe('RevealHand', () => {
 
     it('R-2.2 step 1: is refused once the turn has moved past its start', () => {
         const { game, state } = startGame()
-        const trading = edited(atTurnStart(state), (draft) => {
-            draft.machineState = MachineState.TradingBeforePlacing
-        })
+        const trading = revealedTurn(game, state)
 
         expect(() =>
-            actionEngine.executeCanonicalAction({
+            engine.executeCanonicalAction({
                 action: revealHand(trading),
                 state: trading,
                 game
             })
-        ).toThrow('RevealHand belongs to the turn player')
+        ).toThrow(refusedIn(MachineState.TradingBeforePlacing))
     })
 
     it('R-X.2: sets revealsInfo, so Undo stops at the reveal', () => {
         const { game, state } = startGame()
         const started = atTurnStart(state)
-        const { processedActions } = actionEngine.executeCanonicalAction({
+        const { processedActions } = engine.executeCanonicalAction({
             action: revealHand(started),
             state: started,
             game

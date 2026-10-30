@@ -3,13 +3,14 @@ import { describe, expect, it } from 'vitest'
 import { MachineState } from '../definition/states.js'
 import type { PromontoryPointProjectedState } from '../model/gameState.js'
 import { TradeRefusal } from '../rules/trading.js'
-import { startGame } from '../testing/startGame.js'
+import { engine, startGame } from '../testing/startGame.js'
+import { withPlacingEnded } from '../testing/turnPieces.js'
 import {
     action,
-    actionEngine,
     playerOf,
     shareDeckCount,
     edited,
+    refusedIn,
     revealedTurn,
     turnPlayer
 } from '../testing/turns.js'
@@ -21,7 +22,7 @@ const CP = 'railroad.cp'
 const PRICE_0 = 4
 
 function sell(game: Game, state: PromontoryPointProjectedState) {
-    return actionEngine.executeCanonicalAction({
+    return engine.executeCanonicalAction({
         action: action(SellShare, state, { playerId: turnPlayer(state), railroadId: CP }),
         state,
         game
@@ -79,7 +80,7 @@ describe('SellShare', () => {
 
     it('R-2.2 step 2: a buy and a sale use both trades, and a third is refused', () => {
         const { game, state } = trading()
-        const bought = actionEngine.executeCanonicalAction({
+        const bought = engine.executeCanonicalAction({
             action: action(BuyShare, state, { playerId: turnPlayer(state), railroadId: CP }),
             state,
             game
@@ -97,12 +98,11 @@ describe('SellShare', () => {
                 draft.machineState = machineState
             })
 
-            expect(() => sell(game, placing)).toThrow(TradeRefusal.PlacingUnderWay)
+            expect(() => sell(game, placing)).toThrow(refusedIn(machineState))
         }
-        const afterPlacing = edited(state, (draft) => {
-            draft.machineState = MachineState.TradingAfterPlacing
-        })
-        expect(sell(game, afterPlacing).updatedState.turn?.tradesUsed).toBe(1)
+        const sold = sell(game, withPlacingEnded(state)).updatedState
+        expect(sold.turn?.tradesUsed).toBe(1)
+        expect(sold.machineState).toBe(MachineState.TradingAfterPlacing)
     })
 
     it('R-X.2: is not a barrier; Undo restores the state before it', () => {
@@ -111,7 +111,7 @@ describe('SellShare', () => {
 
         expect(processedActions[0].revealsInfo).toBeFalsy()
         expect(
-            actionEngine.undoProcessedAction({ action: processedActions[0], state: updatedState })
+            engine.undoProcessedAction({ action: processedActions[0], state: updatedState })
         ).toEqual(state)
     })
 })

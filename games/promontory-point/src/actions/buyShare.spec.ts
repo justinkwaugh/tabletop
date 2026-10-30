@@ -6,13 +6,14 @@ import { MachineState } from '../definition/states.js'
 import type { PromontoryPointProjectedState } from '../model/gameState.js'
 import { TRADES_PER_TURN } from '../model/turn.js'
 import { TradeRefusal } from '../rules/trading.js'
-import { startGame } from '../testing/startGame.js'
+import { engine, startGame } from '../testing/startGame.js'
+import { withPlacingEnded } from '../testing/turnPieces.js'
 import {
     action,
-    actionEngine,
     playerOf,
     shareDeckCount,
     edited,
+    refusedIn,
     revealedTurn,
     turnPlayer
 } from '../testing/turns.js'
@@ -24,7 +25,7 @@ const CP = 'railroad.cp'
 const PRICE_0 = 4
 
 function buy(game: Game, state: PromontoryPointProjectedState, playerId = turnPlayer(state)) {
-    return actionEngine.executeCanonicalAction({
+    return engine.executeCanonicalAction({
         action: action(BuyShare, state, { playerId, railroadId: CP }),
         state,
         game
@@ -118,17 +119,13 @@ describe('BuyShare', () => {
                 draft.machineState = machineState
             })
 
-            expect(() => buy(game, placing)).toThrow(TradeRefusal.PlacingUnderWay)
+            expect(() => buy(game, placing)).toThrow(refusedIn(machineState))
         }
     })
 
     it('R-2.2-H1: is legal after the last placement', () => {
         const { game, state } = trading()
-        const afterPlacing = edited(state, (draft) => {
-            draft.machineState = MachineState.TradingAfterPlacing
-        })
-
-        const { updatedState } = buy(game, afterPlacing)
+        const { updatedState } = buy(game, withPlacingEnded(state))
 
         expect(updatedState.turn?.tradesUsed).toBe(1)
     })
@@ -142,7 +139,7 @@ describe('BuyShare', () => {
             draft.activePlayerIds = draft.turnManager.turnOrder
         })
 
-        expect(() => buy(game, notRevealed)).toThrow(TradeRefusal.TradingClosed)
+        expect(() => buy(game, notRevealed)).toThrow(refusedIn(MachineState.StartingTurn))
         expect(() => buy(game, allActive, allActive.turnManager.turnOrder[1])).toThrow(
             TradeRefusal.NotTurnPlayer
         )
@@ -152,7 +149,7 @@ describe('BuyShare', () => {
         const { game, state } = startGame()
         const revealed = revealedTurn(game, state)
         const bought = buy(game, revealed)
-        const sold = actionEngine.executeCanonicalAction({
+        const sold = engine.executeCanonicalAction({
             action: action(SellShare, bought.updatedState, {
                 playerId: turnPlayer(revealed),
                 railroadId: RAILROAD_IDS[1]
@@ -164,7 +161,7 @@ describe('BuyShare', () => {
 
         expect(boughtAction.revealsInfo).toBeFalsy()
         expect(
-            actionEngine.undoProcessedAction({ action: boughtAction, state: bought.updatedState })
+            engine.undoProcessedAction({ action: boughtAction, state: bought.updatedState })
         ).toEqual(revealed)
         expect(
             playerUndoReach(

@@ -1,43 +1,14 @@
-import {
-    ActionSource,
-    GameEngine,
-    assertExists,
-    createAction,
-    type Game,
-    type HydratedAction,
-    type MachineStateHandler
-} from '@tabletop/common'
+import { ActionSource, assertExists, createAction, type Game } from '@tabletop/common'
 import type * as Type from 'typebox'
 import { RevealHand } from '../actions/revealHand.js'
 import type { RailroadId } from '../components/railroads.js'
-import { Definition } from '../definition/definition.js'
 import { MachineState } from '../definition/states.js'
 import {
     HydratedPromontoryPointGameState,
     type PromontoryPointGameState,
     type PromontoryPointProjectedState
 } from '../model/gameState.js'
-import { canonical } from './startGame.js'
-
-// Until the turn's handlers exist, every state lets an action's own guard decide and stays put.
-const actionGuardDecides: MachineStateHandler<HydratedAction, HydratedPromontoryPointGameState> = {
-    isValidAction: () => true,
-    validActionsForPlayer: () => [],
-    enter: () => {},
-    onAction: (_action, context) => context.gameState.machineState
-}
-
-export const actionEngine = new GameEngine({
-    ...Definition.runtime,
-    stateHandlers: {
-        [MachineState.StartingTurn]: actionGuardDecides,
-        [MachineState.TradingBeforePlacing]: actionGuardDecides,
-        [MachineState.Placing]: actionGuardDecides,
-        [MachineState.PayingRepairs]: actionGuardDecides,
-        [MachineState.TradingAfterPlacing]: actionGuardDecides,
-        [MachineState.EndOfGame]: actionGuardDecides
-    }
-})
+import { canonical, engine } from './startGame.js'
 
 export function action<T extends Type.TSchema>(
     schema: T,
@@ -62,13 +33,20 @@ export function edited(
     return canonical(draft)
 }
 
-// R-2.1: the first seat's turn open and the seat active, as the turn's start leaves it.
+// R-2.1, R-2.2 step 1: the first seat's turn open, its seat active and its hand still concealed,
+// as StartingTurn's entry leaves a turn before RevealHand runs.
 export function atTurnStart(state: PromontoryPointGameState): PromontoryPointGameState {
-    const hydrated = new HydratedPromontoryPointGameState(structuredClone(state))
-    const playerId = hydrated.turnManager.turnOrder[0]
-    hydrated.turnManager.startTurn(playerId, hydrated.actionCount)
-    hydrated.activePlayerIds = [playerId]
-    return canonical(hydrated.dehydrate())
+    return edited(state, (draft) => {
+        const turn = draft.turn
+        assertExists(turn, 'The fixture starts from a turn opened at setup')
+        const playerId = turnPlayer(draft)
+        const player = playerOf(draft, playerId)
+        player.hand = turn.pieces
+        player.handCount = turn.pieces.length
+        delete draft.turn
+        draft.machineState = MachineState.StartingTurn
+        draft.activePlayerIds = [playerId]
+    })
 }
 
 export function playerOf<State extends PromontoryPointProjectedState>(
@@ -87,8 +65,11 @@ export function shareDeckCount(
     return new HydratedPromontoryPointGameState(structuredClone(state)).shareDeckCount(railroadId)
 }
 
+// R-2.1: the player whose turn the turn manager has open.
 export function turnPlayer(state: PromontoryPointProjectedState): string {
-    return state.turnManager.turnOrder[0]
+    const turn = state.turnManager.series.findLast((candidate) => candidate.end === undefined)
+    assertExists(turn, 'A turn is open')
+    return turn.playerId
 }
 
 // R-2.2 step 1: the hand revealed and trading open before the first placement.
@@ -97,7 +78,7 @@ export function revealedTurn(
     state: PromontoryPointGameState
 ): PromontoryPointGameState {
     const started = atTurnStart(state)
-    const { updatedState } = actionEngine.executeCanonicalAction({
+    const { updatedState } = engine.executeCanonicalAction({
         action: action(RevealHand, started, {
             source: ActionSource.System,
             playerId: turnPlayer(started)
@@ -105,7 +86,10 @@ export function revealedTurn(
         state: started,
         game
     })
-    return edited(canonical(updatedState), (draft) => {
-        draft.machineState = MachineState.TradingBeforePlacing
-    })
+    return canonical(updatedState)
+}
+
+// The engine's refusal of an action type the machine state's handler does not take.
+export function refusedIn(machineState: MachineState): string {
+    return `is not valid in state ${machineState}`
 }

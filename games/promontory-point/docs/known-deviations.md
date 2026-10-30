@@ -20,4 +20,4 @@ None yet.
 
 Behaviour that belongs to the shared platform rather than this title, such as the bounds of Undo or what a spectator can explore.
 
-None yet.
+- **The first turn's reveal (R-2.2 step 1).** The engine runs no System Action as a game starts, so there is no `RevealHand` for the first turn: setup deals the starting player's pieces face up into `turn.pieces` and the game opens in `TradingBeforePlacing`. Every later turn opens with `RevealHand`. Governs: `src/definition/initializer.ts`.

@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { BOARD_GRID, BoardNodeKind } from '../components/board.js'
-import { RAILROAD_IDS } from '../components/railroads.js'
+import { RAILROAD_IDS, type RailroadId } from '../components/railroads.js'
 import { TOWN_TILE_KINDS, TOWN_TILE_KIND_IDS } from '../components/townTiles.js'
-import { CURRENT_PROMONTORY_POINT_REVISION } from '../model/gameState.js'
+import {
+    CURRENT_PROMONTORY_POINT_REVISION,
+    type PromontoryPointGameState
+} from '../model/gameState.js'
+import { PLACEMENTS_PER_TURN } from '../model/turn.js'
 import {
     VARIANT_OFF,
     VARIANT_OFF_AND_ON,
@@ -15,6 +19,15 @@ import { Definition } from './definition.js'
 import { MachineState } from './states.js'
 
 const PLAYER_COUNTS = [2, 3, 4]
+
+// R-2.2 step 1: the starting player's pieces are already face up as the first turn's pieces.
+function dealtPieces(state: PromontoryPointGameState): RailroadId[][] {
+    return state.players.map((player) =>
+        player.playerId === state.turnManager.turnOrder[0]
+            ? (state.turn?.pieces ?? [])
+            : player.hand
+    )
+}
 
 function initializeWithStreams(publicSeed: number, protectedSeed: number) {
     const game = createGame(3)
@@ -67,9 +80,11 @@ describe('Promontory Point setup', () => {
         'R-1.3 step 6: draws 3 pieces into each hand from the bag of 96, for %i players',
         (playerCount) => {
             const { state } = startGame({ playerCount })
+            for (const pieces of dealtPieces(state)) {
+                expect(pieces).toHaveLength(3)
+            }
             for (const player of state.players) {
-                expect(player.hand).toHaveLength(3)
-                expect(player.handCount).toBe(3)
+                expect(player.handCount).toBe(player.hand.length)
                 expect(player.keptPiece).toBeUndefined()
             }
             expect(state.bag.remaining).toBe(96 - 3 * playerCount)
@@ -84,9 +99,8 @@ describe('Promontory Point setup', () => {
         'R-6.3, R-6.3-H1: draws 4 pieces into each hand with the four-piece variant, for %i players',
         (playerCount) => {
             const { state } = startGame({ playerCount, config: { fourPieceVariant: true } })
-            for (const player of state.players) {
-                expect(player.hand).toHaveLength(4)
-                expect(player.handCount).toBe(4)
+            for (const pieces of dealtPieces(state)) {
+                expect(pieces).toHaveLength(4)
             }
             expect(state.bag.remaining).toBe(96 - 4 * playerCount)
         }
@@ -95,18 +109,31 @@ describe('Promontory Point setup', () => {
     it('R-6.3-H1: draws 3 pieces when the variant is off or missing', () => {
         for (const config of VARIANT_OFF) {
             const { state } = startGame({ config })
-            expect(state.players.every((player) => player.hand.length === 3)).toBe(true)
+            expect(dealtPieces(state).every((pieces) => pieces.length === 3)).toBe(true)
         }
     })
 
     it.each(PLAYER_COUNTS)(
-        'R-X.3, R-2.1: starts in StartingTurn at revision 1 with no turn under way, for %i players',
+        "R-X.3, R-2.1, R-2.2 step 1: opens the starting player's turn at revision 1, hand face up and trading open, for %i players",
         (playerCount) => {
             const { state } = startGame({ playerCount })
-            expect(state.machineState).toBe(MachineState.StartingTurn)
+            const [startingPlayerId] = state.turnManager.turnOrder
+            expect(state.machineState).toBe(MachineState.TradingBeforePlacing)
             expect(state.promontoryPointRevision).toBe(CURRENT_PROMONTORY_POINT_REVISION)
             expect(CURRENT_PROMONTORY_POINT_REVISION).toBe(1)
-            expect(state.turn).toBeUndefined()
+            expect(state.turn).toEqual({
+                pieces: expect.any(Array),
+                tradesUsed: 0,
+                placementsMade: 0,
+                placementsLeft: PLACEMENTS_PER_TURN
+            })
+            expect(
+                state.players.find((player) => player.playerId === startingPlayerId)
+            ).toMatchObject({ hand: [], handCount: 0 })
+            expect(state.turnManager.series).toEqual([
+                { type: 'turn', playerId: startingPlayerId, start: 0 }
+            ])
+            expect(state.activePlayerIds).toEqual([startingPlayerId])
             expect(state.pendingRepairs).toBeUndefined()
             expect(state.turnManager.turnOrder).toEqual(
                 state.players.map((player) => player.playerId)

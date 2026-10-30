@@ -4,6 +4,7 @@ import { PROMONTORY } from '../components/board.js'
 import { Definition } from '../definition/definition.js'
 import { PromontoryPointRuntime } from '../definition/runtime.js'
 import { VARIANT_OFF_AND_ON, canonical, startGame } from '../testing/startGame.js'
+import { atTurnStart } from '../testing/turns.js'
 import {
     PromontoryPointGameState,
     PromontoryPointGameStateValidator,
@@ -25,8 +26,14 @@ function hydrate(state: PromontoryPointProjectedState) {
     return Definition.runtime.hydrator.hydrateState(structuredClone(state))
 }
 
+// R-5: every hand concealed, as each seat holds its pieces between turns.
+function concealedStart(options: Parameters<typeof startGame>[0] = {}) {
+    const { game, state } = startGame(options)
+    return { game, state: atTurnStart(state) }
+}
+
 function accepts(change: (state: PromontoryPointGameState) => void): boolean {
-    const state = structuredClone(startGame().state)
+    const state = structuredClone(concealedStart().state)
     change(state)
     return PromontoryPointGameStateValidator.Check(state)
 }
@@ -209,7 +216,7 @@ describe('Promontory Point projection', () => {
     })
 
     it('R-5: a spectator sees no hand, only the counts', () => {
-        const { game, state } = startGame()
+        const { game, state } = concealedStart()
         const projected = project(state, game, spectator)
         for (const player of projected.players) {
             expect(player).not.toHaveProperty('hand')
@@ -237,7 +244,7 @@ describe('Promontory Point projection', () => {
     })
 
     it('R-5, R-6.3-H2: the board, prices, turn, kept pieces and a pending Repairs stay public', () => {
-        const { game, state } = startGame({ config: { fourPieceVariant: true } })
+        const { game, state } = concealedStart({ config: { fourPieceVariant: true } })
         const [placing, other] = state.players
         assertExists(placing, 'The game must have a placing player')
         assertExists(other, 'The game must have another player')

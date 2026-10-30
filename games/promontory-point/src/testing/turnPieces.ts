@@ -1,6 +1,7 @@
 import { assert, assertExists } from '@tabletop/common'
 import type { SpaceId } from '../components/board.js'
 import type { RailroadId } from '../components/railroads.js'
+import { MachineState } from '../definition/states.js'
 import type { PromontoryPointGameState } from '../model/gameState.js'
 import { openSpaceIds } from '../rules/network.js'
 import { withTrack } from './fixtures.js'
@@ -54,5 +55,19 @@ export function withPlacementsMade(
         turn.placementsMade += 1
         turn.placementsLeft -= 1
     }
+    return canonical(next)
+}
+
+// R-2.2-H1, R-3.3-H1: the turn's placing over and trading open again, the pieces left scrapped.
+export function withPlacingEnded(state: PromontoryPointGameState): PromontoryPointGameState {
+    const next = structuredClone(state)
+    const turn = next.turn
+    assertExists(turn, 'A turn is under way')
+    for (const railroadId of turn.pieces) {
+        next.scrapped[railroadId] += 1
+    }
+    turn.pieces = []
+    turn.placementsLeft = 0
+    next.machineState = MachineState.TradingAfterPlacing
     return canonical(next)
 }

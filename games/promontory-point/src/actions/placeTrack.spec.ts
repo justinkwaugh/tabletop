@@ -1,14 +1,20 @@
 import { assert, assertExists, type Game } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import { BOARD_GRID, BoardNodeKind, PROMONTORY, type SpaceId } from '../components/board.js'
+import { BoardNodeKind, PROMONTORY, type SpaceId } from '../components/board.js'
 import { MAX_PRICE_INDEX, MIN_PRICE_INDEX } from '../components/priceTrack.js'
-import { perRailroad, type RailroadId } from '../components/railroads.js'
+import type { RailroadId } from '../components/railroads.js'
 import { TownEventKind, type TownTileKindId } from '../components/townTiles.js'
 import { MachineState } from '../definition/states.js'
 import type { PromontoryPointGameState } from '../model/gameState.js'
-import { pathFromHome, withTrack } from '../testing/fixtures.js'
-import { canonical, startGame } from '../testing/startGame.js'
-import { action, actionEngine, edited, revealedTurn, turnPlayer } from '../testing/turns.js'
+import {
+    pathFromHome,
+    reaching,
+    withHoldings,
+    withTownTile,
+    withTrack
+} from '../testing/fixtures.js'
+import { canonical, engine, startGame } from '../testing/startGame.js'
+import { action, edited, revealedTurn, refusedIn, turnPlayer } from '../testing/turns.js'
 import type { DividendPaid, RepairsBilled } from '../effects/townEffectOutcome.js'
 import {
     PlaceTrack,
@@ -20,8 +26,6 @@ import {
 const CP = 'railroad.cp'
 const UP = 'railroad.up'
 const KP = 'railroad.kp'
-
-type Holding = { money: number; shares?: Partial<Record<RailroadId, number>> }
 
 function seat(state: PromontoryPointGameState, index: number): string {
     const playerId = state.turnManager.turnOrder[index]
@@ -55,60 +59,6 @@ function withTurnPieces(
             return railroadId
         })
     })
-}
-
-// Swaps town tiles so the space carries the kind, keeping the tile counts.
-function withTownTile(
-    state: PromontoryPointGameState,
-    spaceId: SpaceId,
-    kindId: TownTileKindId
-): PromontoryPointGameState {
-    return edited(state, (draft) => {
-        const current = draft.towns[spaceId]
-        if (current === kindId) {
-            return
-        }
-        const other = BOARD_GRID.spaces().find(
-            (space) => space.spaceId in draft.towns && draft.towns[space.spaceId] === kindId
-        )
-        assertExists(other, `No town holds ${kindId}`)
-        draft.towns[other.spaceId] = current
-        draft.towns[spaceId] = kindId
-    })
-}
-
-function withHoldings(
-    state: PromontoryPointGameState,
-    holdings: Holding[]
-): PromontoryPointGameState {
-    return edited(state, (draft) => {
-        for (const [index, { money, shares = {} }] of holdings.entries()) {
-            const player = playerOf(draft, seat(draft, index))
-            player.money = money
-            player.shares = perRailroad((railroadId) => shares[railroadId] ?? 0)
-        }
-    })
-}
-
-// The nearest space of a kind to a railroad's home, with track placed up to it.
-function reaching(
-    state: PromontoryPointGameState,
-    railroadId: RailroadId,
-    kind: BoardNodeKind
-): { state: PromontoryPointGameState; spaceId: SpaceId } {
-    const paths = BOARD_GRID.spaces()
-        .filter((space) => space.kind === kind)
-        .map((space) => pathFromHome(railroadId, space.spaceId))
-        .sort((left, right) => left.length - right.length)
-    const path = paths[0]
-    assertExists(path, `No ${kind} space`)
-    return {
-        state: withTrack(
-            state,
-            path.slice(0, -1).map((spaceId) => [spaceId, railroadId])
-        ),
-        spaceId: path[path.length - 1]
-    }
 }
 
 function trackTo(
@@ -162,7 +112,7 @@ function place(
     railroadId: RailroadId = CP,
     playerId = turnPlayer(state)
 ) {
-    const { processedActions, updatedState } = actionEngine.executeCanonicalAction({
+    const { processedActions, updatedState } = engine.executeCanonicalAction({
         action: action(PlaceTrack, state, { playerId, railroadId, spaceId }),
         state,
         game
@@ -272,7 +222,7 @@ describe('PlaceTrack', () => {
                 PlaceTrackRefusal.PlacementsDone
             )
             expect(refusalOf(game, afterPlacing, reached.spaceId)).toContain(
-                PlaceTrackRefusal.PlacementsDone
+                refusedIn(MachineState.TradingAfterPlacing)
             )
         })
 
@@ -300,7 +250,7 @@ describe('PlaceTrack', () => {
             })
 
             expect(refusalOf(game, paying, reached.spaceId)).toContain(
-                PlaceTrackRefusal.RepairsPending
+                refusedIn(MachineState.PayingRepairs)
             )
         })
 
@@ -312,7 +262,7 @@ describe('PlaceTrack', () => {
             })
 
             expect(refusalOf(game, starting, reached.spaceId)).toContain(
-                PlaceTrackRefusal.PlacingClosed
+                refusedIn(MachineState.StartingTurn)
             )
         })
     })
@@ -511,9 +461,9 @@ describe('PlaceTrack', () => {
             expect(moneyBySeat(updatedState)).toEqual([3, 2, 5, 0])
             expect(placement.revealsInfo).toBeFalsy()
 
-            expect(
-                actionEngine.undoProcessedAction({ state: updatedState, action: placement })
-            ).toEqual(state)
+            expect(engine.undoProcessedAction({ state: updatedState, action: placement })).toEqual(
+                state
+            )
         })
 
         it('R-X.2: undo reverses a price move', () => {
@@ -522,9 +472,9 @@ describe('PlaceTrack', () => {
             const { placement, updatedState } = place(game, state, spaceId)
             expect(placement.revealsInfo).toBeFalsy()
 
-            expect(
-                actionEngine.undoProcessedAction({ state: updatedState, action: placement })
-            ).toEqual(state)
+            expect(engine.undoProcessedAction({ state: updatedState, action: placement })).toEqual(
+                state
+            )
         })
     })
 })

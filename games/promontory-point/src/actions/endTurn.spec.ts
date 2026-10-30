@@ -1,20 +1,14 @@
 import { Visibility, assertExists, playerUndoReach, type Game } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import type { RailroadId } from '../components/railroads.js'
+import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { PromontoryPointGameState } from '../model/gameState.js'
 import { openSpaceIds } from '../rules/network.js'
 import { withEmptyBag } from '../testing/fixtures.js'
-import { startGame } from '../testing/startGame.js'
+import { canonical, engine, startGame } from '../testing/startGame.js'
 import { withNoRoomFor, withPlacementsMade, withTurnPieces } from '../testing/turnPieces.js'
-import {
-    action,
-    actionEngine,
-    edited,
-    playerOf,
-    revealedTurn,
-    turnPlayer
-} from '../testing/turns.js'
+import { action, edited, playerOf, refusedIn, revealedTurn, turnPlayer } from '../testing/turns.js'
 import {
     END_TURN_DRAW,
     EndTurn,
@@ -34,11 +28,18 @@ function endTurn(
     state: PromontoryPointGameState,
     fields: { returnKeptPiece?: boolean; playerId?: string } = {}
 ) {
-    return actionEngine.executeCanonicalAction({
+    const { processedActions, actionCascade, updatedState } = engine.executeCanonicalAction({
         action: action(EndTurn, state, { playerId: turnPlayer(state), ...fields }),
         state,
         game
     })
+    const [ended] = actionCascade.transitions
+    assertExists(ended, 'EndTurn is processed')
+    return {
+        processedActions,
+        updatedState: canonical(ended.after),
+        finalState: canonical(updatedState)
+    }
 }
 
 // R-2.2 step 3: each named piece placed on a space open to it, one after another.
@@ -81,7 +82,7 @@ describe('EndTurn', () => {
         const playerId = turnPlayer(state)
         const expected = topOfBag(state, END_TURN_DRAW)
 
-        const { processedActions, updatedState } = endTurn(game, state)
+        const { processedActions, updatedState, finalState } = endTurn(game, state)
 
         expect(playerOf(updatedState, playerId)).toMatchObject({
             hand: expected,
@@ -90,7 +91,16 @@ describe('EndTurn', () => {
         expect(playerOf(updatedState, playerId).keptPiece).toBeUndefined()
         expect(updatedState.bag.remaining).toBe(state.bag.remaining - END_TURN_DRAW)
         expect(updatedState.turn).toBeUndefined()
-        expect(processedActions).toHaveLength(1)
+        expect(updatedState.machineState).toBe(MachineState.StartingTurn)
+        // R-2.1: the cascade opens the next seat's turn with its reveal.
+        const nextPlayerId = state.turnManager.turnOrder[1]
+        expect(processedActions.map(({ type, playerId: actor }) => [type, actor])).toEqual([
+            [ActionType.EndTurn, playerId],
+            [ActionType.RevealHand, nextPlayerId]
+        ])
+        expect(finalState.machineState).toBe(MachineState.TradingBeforePlacing)
+        expect(finalState.activePlayerIds).toEqual([nextPlayerId])
+        expect(playerOf(finalState, playerId).hand).toEqual(expected)
         expect(processedActions[0]).toMatchObject({
             revealsInfo: true,
             metadata: { drawn: expected, drawnCount: END_TURN_DRAW }
@@ -178,7 +188,9 @@ describe('EndTurn', () => {
         expect(updatedState.protectedPrng?.invocations).toBeGreaterThan(
             state.protectedPrng.invocations
         )
-        expect(updatedState.prng).toEqual(state.prng)
+        // The public stream moves only for the next reveal's identity, as when the piece is kept.
+        const kept = endTurn(game, state, { returnKeptPiece: false })
+        expect(updatedState.prng).toEqual(kept.updatedState.prng)
         expect(processedActions[0]).toMatchObject({
             revealsInfo: true,
             metadata: {
@@ -240,16 +252,16 @@ describe('EndTurn', () => {
     it('R-2.2-H1: is refused until placing has ended, and while a Repairs is being paid', () => {
         const { game, state } = endingTurn([CP, UP, SP], [CP])
         expect(() => endTurn(game, state)).toThrow(EndTurnRefusal.PlacingUnderWay)
-        for (const machineState of [MachineState.TradingBeforePlacing, MachineState.Placing]) {
+        for (const machineState of [
+            MachineState.TradingBeforePlacing,
+            MachineState.Placing,
+            MachineState.PayingRepairs
+        ]) {
             const placing = edited(state, (draft) => {
                 draft.machineState = machineState
             })
-            expect(() => endTurn(game, placing)).toThrow(EndTurnRefusal.PlacingUnderWay)
+            expect(() => endTurn(game, placing)).toThrow(refusedIn(machineState))
         }
-        const paying = edited(state, (draft) => {
-            draft.machineState = MachineState.PayingRepairs
-        })
-        expect(() => endTurn(game, paying)).toThrow(EndTurnRefusal.RepairsPending)
     })
 
     it('R-2.2: is refused to a seat whose turn it is not', () => {
@@ -270,7 +282,7 @@ describe('EndTurn', () => {
             metadata: { drawn: [KP, KP, KP], drawnCount: 3 }
         }
 
-        const { processedActions, updatedState } = actionEngine.executeCanonicalAction({
+        const { processedActions, updatedState } = engine.executeCanonicalAction({
             action: submitted,
             state,
             game
