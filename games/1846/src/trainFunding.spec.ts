@@ -360,6 +360,28 @@ describe('1846 personal share sales for a train', () => {
         expect(settled(result, 'ContributeTrainFunds')).toMatchObject([{ owner, amount: 60 }])
         expect(trainsOwnedBy(table.state, treasury)).toHaveLength(1)
     })
+    it('sells the rest of a corporation whose presidency the first sale passed on, without moving it', () => {
+        const { table, playerId } = fundingGame()
+        launchOther(table, 'NYC', 40, playerId)
+        giveShares(table, 'NYC', playerId, 1)
+        giveShares(table, 'NYC', 'p2', 3)
+        fundTrain(table)
+        sell(table, 'NYC', 1)
+        expect(getCompany(table.state, 'NYC').president).toEqual({ kind: 'player', playerId: 'p2' })
+        expect(Market1846.companySpace(table.state.stockMarket, 'NYC').price).toBe(30)
+        expect(
+            sales(table).map((sale) => [
+                sale.sales[0].companyId,
+                sale.sales[0].shares,
+                sale.proceeds
+            ])
+        ).toEqual([['NYC', 1, 40]])
+        const before = structuredClone(table.state)
+        const result = sell(table, 'NYC', 1)
+        const sold = stateAfter(table, before, result.processedActions, 'SellFundingShares')
+        expect(Market1846.companySpace(sold.stockMarket, 'NYC').price).toBe(30)
+        expect(sharesOwned(sold, 'NYC', { kind: 'bank' })).toBe(2)
+    })
     it('blocks a non-president sale before operation and enforces the market’s 50% limit', () => {
         const { table, playerId } = fundingGame(20)
         launchOther(table)

@@ -151,7 +151,7 @@ export function extendingSaleTerms(
 }
 
 /** A company's sale block once a sale, before it settles, starts or extends it. */
-export function extendedSaleBlock(
+export function saleBlockAfter(
     state: StockState,
     saleTerms: StockRules['saleTerms'],
     seller: Owner,

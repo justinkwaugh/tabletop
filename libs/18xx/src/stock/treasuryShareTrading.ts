@@ -91,7 +91,7 @@ export function treasuryShareStockRules(trading: TreasuryShareTrading): StockRul
         presidencyCandidates: (state, id) =>
             playersAfterPresident(state, id, state.turnManager.turnOrder),
         turnOrder: 'sell-buy',
-        // A president's sales move the price once a turn, however many shares they sell.
+        // A president's sales move the price once a turn, however many are sold (1846 §5.22).
         repeatSales: 'extend-block'
     }
     return rules

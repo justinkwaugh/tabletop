@@ -16,12 +16,12 @@ import { trainsOwnedBy } from '../trains/train.js'
 import {
     evaluateShareDisposal,
     applyShareSale,
-    extendedSaleBlock,
     extendingSaleTerms,
+    saleBlockAfter,
     type ShareSaleDetails
 } from '../stock/shareSale.js'
 import { SaleBlockTerms } from '../stock/stockTurn.js'
-import type { StockRules, ShareSaleTerms } from '../stock/stockRules.js'
+import type { RepeatSales, StockRules, ShareSaleTerms } from '../stock/stockRules.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
 import type { EliminationRules } from './elimination.js'
 
@@ -64,11 +64,8 @@ export interface TrainFundingRules {
      */
     afterShareSale?(state: FundingState, details: ShareSaleDetails): void
     includeMarketTrains: boolean
-    /**
-     * A second sale of a company in the same funding: extending the first block at its price, or
-     * a separate sale at the current price. Without it, each company sells once per funding.
-     */
-    repeatSales?: 'extend-block' | 'separate'
+    /** A second sale of a company in the same funding. */
+    repeatSales?: RepeatSales
     contributors(state: FundingState, companyId: string): Owner[]
     /**
      * Terms for issuing the company's treasury shares, given how many it holds; it issues
@@ -132,32 +129,22 @@ export class EmergencyTrainFunding {
     applySale(details: ShareSaleDetails): void {
         assertExists(this.state.trainFunding, 'Funding sale requires active train funding')
         const funding = this.state.trainFunding
-        // Issuance is settled here too, on its own terms; only contributors' sales extend.
-        const extending =
-            this.rules.repeatSales === 'extend-block' &&
-            funding.contributors.some((owner) => sameOwner(owner, details.seller))
-        const blocks = details.sales.map((sale) =>
-            extending
-                ? extendedSaleBlock(
-                      this.state,
-                      this.saleTerms,
-                      details.seller,
-                      sale,
-                      this.soldInFunding(details.seller, sale.companyId)?.block
-                  )
+        const extendsBlocks = this.extendsBlocks(details.seller)
+        const records = details.sales.map((sale) => {
+            const previous = this.fundingSale(details.seller, sale.companyId)
+            const block = extendsBlocks
+                ? saleBlockAfter(this.state, this.saleTerms, details.seller, sale, previous?.block)
                 : undefined
-        )
+            return { companyId: sale.companyId, previous, block }
+        })
         applyShareSale(this.state, details)
         this.rules.afterShareSale?.(this.state, details)
         if (this.rules.repeatSales === 'separate') return
-        details.sales.forEach(({ companyId }, index) => {
-            const block = blocks[index]
-            const previous = this.soldInFunding(details.seller, companyId)
-            if (previous) {
-                if (block) previous.block = block
-            } else
+        for (const { companyId, previous, block } of records) {
+            if (!previous)
                 funding.sales.push({ seller: details.seller, companyId, ...(block && { block }) })
-        })
+            else if (block) previous.block = block
+        }
     }
     purchases(): TrainPurchaseDetails[] {
         const companyId = this.state.trainPurchaseStep?.companyId
@@ -313,7 +300,18 @@ export class EmergencyTrainFunding {
         assert(typeof amount === 'number', 'Funding requires a finite balance sheet')
         return amount
     }
-    private soldInFunding(seller: Owner, companyId: string) {
+    /** Whether the owner's sales extend blocks: a contributor's, never the treasury's issuance. */
+    private extendsBlocks(seller: Owner): boolean {
+        return (
+            this.rules.repeatSales === 'extend-block' &&
+            !!this.state.trainFunding?.contributors.some((owner) => sameOwner(owner, seller))
+        )
+    }
+    /** The record of the seller's earlier sale of the company in this funding, if any. */
+    private fundingSale(
+        seller: Owner,
+        companyId: string
+    ): TrainFunding['sales'][number] | undefined {
         return this.state.trainFunding?.sales.find(
             (sale) => sameOwner(sale.seller, seller) && sale.companyId === companyId
         )
@@ -329,9 +327,9 @@ export class EmergencyTrainFunding {
             const previous =
                 this.rules.repeatSales === 'separate'
                     ? undefined
-                    : this.soldInFunding(owner, company.id)
-            // Without a block to extend, the company has had its one sale this funding.
-            if (previous && !previous.block) return []
+                    : this.fundingSale(owner, company.id)
+            const soldOnce = previous && !previous.block
+            if (soldOnce) return []
             const owned = sharesOwned(this.state, company.id, owner)
             const results: ShareSaleDetails[] = []
             for (let shares = 1; shares <= owned; shares++) {

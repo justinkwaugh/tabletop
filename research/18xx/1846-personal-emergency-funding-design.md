@@ -92,4 +92,6 @@ treasury-share stock round now use `repeatSales: 'extend-block'`: a later sale o
 company joins the first block at its price, and the marker moves only as far as the
 larger block would beyond the first. A funding's sale record carries the block's
 terms (`trainFunding.sales[].block`); a record from before that has none, so its
-company stays sold for that funding.
+company stays sold for that funding. 1889 and TOP keep one block per company in a
+funding, their rules requiring it ([correctness fixes](correctness-fixes-2026-10-03.md));
+1830 and 1832 sell separately.

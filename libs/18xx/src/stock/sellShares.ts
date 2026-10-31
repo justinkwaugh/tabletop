@@ -16,7 +16,7 @@ import {
     ShareSaleDetails,
     evaluateShareSale,
     applyShareSale,
-    extendedSaleBlock
+    saleBlockAfter
 } from './shareSale.js'
 import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
@@ -70,13 +70,7 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
                 (block) =>
                     block.companyId === sale.companyId && sameOwner(block.seller, this.seller)
             )
-            const block = extendedSaleBlock(
-                state,
-                this.#rules.saleTerms,
-                this.seller,
-                sale,
-                previous
-            )
+            const block = saleBlockAfter(state, this.#rules.saleTerms, this.seller, sale, previous)
             if (previous) {
                 Object.assign(previous, block)
                 saleBlockId = previous.id
