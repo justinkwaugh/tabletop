@@ -4,6 +4,7 @@ import type { PromontoryPointGameSession } from '../src/lib/model/session.svelte
 declare global {
     interface Window {
         promontoryPointFlightSession: PromontoryPointGameSession
+        promontoryPointFlightLog: { copies: number; probe: (string | null)[] }[]
     }
 }
 
@@ -60,6 +61,29 @@ const copies = (page: Page, kind?: string) =>
     page.locator(
         kind ? `[data-flight-layer] [data-flight="${kind}"]` : '[data-flight-layer] [data-flight]'
     )
+// Logs each change in how many copies of a kind fly, with the probe's data-count values at that
+// moment, so a short flight phase on a busy machine is not missed between polls.
+async function recordFlights(page: Page, kind: string, probe?: string) {
+    await page.evaluate(
+        ({ kind, probe }) => {
+            const log: Window['promontoryPointFlightLog'] = []
+            window.promontoryPointFlightLog = log
+            const count = () =>
+                document.querySelectorAll(`[data-flight-layer] [data-flight="${kind}"]`).length
+            let last = count()
+            new MutationObserver(() => {
+                const copies = count()
+                if (copies === last) return
+                last = copies
+                const nodes = probe ? [...document.querySelectorAll(probe)] : []
+                log.push({ copies, probe: nodes.map((node) => node.getAttribute('data-count')) })
+            }).observe(document.body, { childList: true, subtree: true })
+        },
+        { kind, probe }
+    )
+}
+const flightLog = (page: Page) => page.evaluate(() => window.promontoryPointFlightLog)
+
 // The table's pieces and cards a flight hides, all shown again once the state lands.
 const hidden = (page: Page) =>
     page.evaluate(
@@ -106,17 +130,14 @@ test('R-3.1: a bought share flies from its deck to the seat card; the counts cha
     const before = await seat
         .locator('[data-seat-share]')
         .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-count')))
+    await recordFlights(page, 'Share', '[data-seat-card][data-active="true"] [data-seat-share]')
     await page.getByRole('button', { name: /^Buy/ }).first().click()
 
-    await expect(copies(page, 'Share')).toHaveCount(1)
-    // In flight, the buyer's stack still shows what it held.
-    expect(
-        await seat
-            .locator('[data-seat-share]')
-            .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-count')))
-    ).toEqual(before)
-
-    await expect(copies(page, 'Share')).toHaveCount(0)
+    // One copy flies, and in flight the buyer's stack still shows what it held; then it lands.
+    await expect.poll(() => flightLog(page).then((log) => log.at(-1)?.copies)).toBe(0)
+    const log = await flightLog(page)
+    expect(log.map((entry) => entry.copies)).toEqual([1, 0])
+    expect(log[0].probe).toEqual(before)
     await expect
         .poll(() =>
             seat
@@ -144,11 +165,14 @@ test('R-2.2, R-5: End turn flies the draw from the bag, then the next hand turns
             await session.waitForVisibleTransitionSettled()
         }
     })
+    await recordFlights(page, 'Piece')
     await page.getByRole('button', { name: /^End turn/ }).click()
 
     // Three discs leave the bag; then the next seat's discs turn over, two copies each.
-    await expect(copies(page, 'Piece')).toHaveCount(3)
-    await expect(copies(page, 'Piece')).toHaveCount(6)
+    await expect.poll(() => flightLog(page).then((log) => log.at(-1)?.copies)).toBe(0)
+    const counts = (await flightLog(page)).map((entry) => entry.copies)
+    expect(counts.indexOf(3)).toBeGreaterThanOrEqual(0)
+    expect(counts.indexOf(6)).toBeGreaterThan(counts.indexOf(3))
     await expect(copies(page)).toHaveCount(0)
     await expect.poll(() => hidden(page)).toBe(0)
 })
