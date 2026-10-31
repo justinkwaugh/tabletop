@@ -136,19 +136,31 @@ export class PromontoryPointGameSession extends GameSession<
             if (pending === undefined || debtor === undefined || debtor.playerId !== playerId) {
                 return undefined
             }
-            // The placement that billed it, from the state: the turn's start, its placement
-            // count and the bill. The Actions may still be loading (docs/request-performance.md).
-            // An undone placement replaced at the same count bills another railroad or amount.
+            // The placement that billed it, from the state: the turn's start and its placement
+            // count, with the whole decision. The Actions may still be loading
+            // (docs/request-performance.md), and an undone placement replayed at the same count
+            // can bill another railroad, or the same bill against other money.
             const turnStart = this.gameState.turnManager.currentTurn()?.start
             const placement = this.gameState.turn?.placementsMade
+            const holdings = this.gameState.getPlayerState(debtor.playerId)
+            const decision = {
+                railroadId: pending.railroadId,
+                owed: debtor.owed,
+                holdings,
+                priceIndex: this.gameState.priceIndex
+            }
             return {
-                key: `${debtor.playerId}:${turnStart}:${placement}:${pending.railroadId}:${debtor.owed}`,
-                decision: {
-                    railroadId: pending.railroadId,
-                    owed: debtor.owed,
-                    holdings: this.gameState.getPlayerState(debtor.playerId),
-                    priceIndex: this.gameState.priceIndex
-                }
+                key: JSON.stringify([
+                    debtor.playerId,
+                    turnStart,
+                    placement,
+                    decision.railroadId,
+                    decision.owed,
+                    holdings.money,
+                    holdings.shares,
+                    decision.priceIndex
+                ]),
+                decision
             }
         }
     )

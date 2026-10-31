@@ -369,6 +369,33 @@ describe('Repairs draft — lifetime, privacy and the placer’s Undo (R-4.3-H4,
         expect(staged(session)).toEqual([])
     })
 
+    it('R-4.3: a catch-up that leaves the same bill but other money drops the staged sales', async () => {
+        // The placer undid this turn's placements and replayed them, so the debtor was billed the
+        // same SP Repairs at the same placement, but with $6 instead of $7.
+        const holdings = (money: number): Holding[] => [
+            { money: 20 },
+            { money, shares: { [SP]: 5, [CP]: 2 } },
+            { money: 20 }
+        ]
+        const { session } = await placedOnRepairs(repairsTable(holdings(7), { [SP]: 10 }))
+        session.stageRepairsSale(SP)
+        expect(staged(session)).toEqual([SP])
+
+        const { session: other } = await placedOnRepairs(repairsTable(holdings(6), { [SP]: 10 }))
+        type Presenting = {
+            gameContext: { restoreFrom(context: unknown): void }
+            presenter: { present(request: { kind: string }, write: () => void): void }
+        }
+        const target = session as unknown as Presenting
+        const replacement = (other as unknown as Presenting).gameContext
+        target.presenter.present({ kind: 'reconciliation' }, () =>
+            target.gameContext.restoreFrom(replacement)
+        )
+        await settled(session)
+        expect(session.repairsDraft).toMatchObject({ owed: 10, money: 6 })
+        expect(staged(session)).toEqual([])
+    })
+
     it('R-4.3: a send while an earlier action is still with the host keeps the staged sales', async () => {
         const { session } = await placedOnRepairs(shortByThree())
         session.stageRepairsSale(SP)
