@@ -154,6 +154,12 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         )
     }
 
+    // Tapping where there is nothing to choose lets go of a chosen colour or jumper.
+    letGo() {
+        if (!this.hasManualSelection()) return
+        this.selection = setZertzSelection(this.selection, 'color', undefined)
+    }
+
     async chooseRing(coords: AxialCoordinates) {
         if (includesCoords(this.removableRings, coords)) {
             await this.removeRing(coords)

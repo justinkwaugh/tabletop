@@ -36,7 +36,7 @@
 
 - **Animation scope**: the board animates only `own-action`, `other-action`, `undo`, `history` and `exploration` transitions; page loads (`initial`), server syncs (`reconciliation`), view switches and edits show the board at rest. Without an action (undo, state-only history) the animator reads a jump from the two boards (`board/inferJump.ts`) and flies it; other removed rings and vanished marbles fade, all within 0.18s.
 
-- **Staged selection** (`selection`: `color`, `jumper`): manual choices only. Produced by `chooseColor` and `chooseJumper`; consumed by the session's derived `chosenColor` and `chosenJumper`. Single-option choices are derived, never stored, so Undo skips them. Cleared in `beforeNewState` for every presented transition.
+- **Staged selection** (`selection`: `color`, `jumper`): manual choices only. Produced by `chooseColor` and `chooseJumper`; consumed by the session's derived `chosenColor` and `chosenJumper`. Single-option choices are derived, never stored, so Undo skips them. Cleared in `beforeNewState` for every presented transition. A tap on the board that misses every `.interactive` ring or marble clears it through `letGo`.
 - **Target lists**: derived from the displayed state; empty when the viewer cannot act, including in History View.
 
 ## 5. Forbidden Couplings
@@ -58,6 +58,7 @@
 - Placement: choosing a colour highlights vacant rings; hover shows the preview; Undo clears a manual colour.
 - Removal: only free rings are outlined after a placement.
 - Capture: jumpers outlined; choosing one shows its landings; a chain fixes the jumper.
+- Tap-off: a tap on the board off every target lets go of a chosen colour or jumper; tapping another jumper switches.
 - History View: no targets or pool interaction.
 - Animation: placing never animates; removal sinks; a jump flies above other rings; reloading or opening a game shows no motion.
 

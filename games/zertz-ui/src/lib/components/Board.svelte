@@ -82,8 +82,17 @@
     function isHovered(coords: AxialCoordinates): boolean {
         return hoveredKey === coordsKey(coords)
     }
+
+    // A tap on nothing you can choose lets go of what is chosen. Marbles pass taps to their
+    // rings without being buttons, so both are marked interactive.
+    function onBoardClick(event: MouseEvent) {
+        if (event.target instanceof Element && event.target.closest('.interactive')) return
+        session.letGo()
+    }
 </script>
 
+<!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <svg
     class="zertz-board"
     viewBox={frame.viewBox}
@@ -91,6 +100,7 @@
     height={frame.height}
     role="group"
     aria-label="ZÈRTZ board"
+    onclick={onBoardClick}
     {@attach animator.attach}
 >
     <defs>
