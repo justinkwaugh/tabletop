@@ -102,8 +102,6 @@ export function stateAfterPlacingAction(
 }
 
 // R-2.2: the turn player alone acts in the turn's own states.
-export function activateTurnPlayer(state: HydratedPromontoryPointGameState): string {
-    const playerId = turnPlayerId(state)
-    state.activePlayerIds = [playerId]
-    return playerId
+export function activateTurnPlayer(state: HydratedPromontoryPointGameState) {
+    state.activePlayerIds = [turnPlayerId(state)]
 }

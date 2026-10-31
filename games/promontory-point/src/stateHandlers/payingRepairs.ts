@@ -8,7 +8,7 @@ import { isPayRepairs, type HydratedPayRepairs } from '../actions/payRepairs.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedPromontoryPointGameState } from '../model/gameState.js'
-import type { PendingRepairs } from '../model/pendingRepairs.js'
+import { firstDebtor } from '../model/pendingRepairs.js'
 import { stateAfterPlacingAction } from './turnActions.js'
 
 // R-4.3, R-4.3-H4: each debtor in turn pays, the first debtor alone active, whoever's turn it is.
@@ -29,7 +29,7 @@ export class PayingRepairsStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedPromontoryPointGameState>
     ): ActionType[] {
         const pendingRepairs = context.gameState.pendingRepairs
-        return pendingRepairs !== undefined && this.firstDebtorId(pendingRepairs) === playerId
+        return pendingRepairs !== undefined && firstDebtor(pendingRepairs).playerId === playerId
             ? [ActionType.PayRepairs]
             : []
     }
@@ -37,7 +37,7 @@ export class PayingRepairsStateHandler implements MachineStateHandler<
     enter(context: MachineContext<HydratedPromontoryPointGameState>) {
         const state = context.gameState
         assertExists(state.pendingRepairs, 'A Repairs waits on its debtors')
-        state.activePlayerIds = [this.firstDebtorId(state.pendingRepairs)]
+        state.activePlayerIds = [firstDebtor(state.pendingRepairs).playerId]
     }
 
     // R-4.3-H4: the turn continues, from the facts alone, once the last debtor has paid.
@@ -46,11 +46,5 @@ export class PayingRepairsStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedPromontoryPointGameState>
     ): MachineState {
         return stateAfterPlacingAction(context.gameState)
-    }
-
-    private firstDebtorId(pendingRepairs: PendingRepairs): string {
-        const debtor = pendingRepairs.debtors[0]
-        assertExists(debtor, 'A pending Repairs has a debtor')
-        return debtor.playerId
     }
 }

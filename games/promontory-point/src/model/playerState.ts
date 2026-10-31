@@ -30,6 +30,13 @@ export type PromontoryPointProjectedPlayerState = Type.Static<
 >
 const PromontoryPointProjectedPlayerStateValidator = Compile(PromontoryPointProjectedPlayerState)
 
+// R-6.3-H2: the piece a seat carries over face up, as a list to count with its hand.
+export function keptPieces(
+    player: Pick<PromontoryPointProjectedPlayerState, 'keptPiece'>
+): RailroadId[] {
+    return player.keptPiece === undefined ? [] : [player.keptPiece]
+}
+
 // R-1.3 step 4: one railroad's shares across every seat.
 export function sharesHeld(
     players: readonly Pick<PromontoryPointPlayerState, 'shares'>[],

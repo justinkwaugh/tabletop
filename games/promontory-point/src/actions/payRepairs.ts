@@ -5,7 +5,7 @@ import type { RailroadId } from '../components/railroads.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedPromontoryPointGameState } from '../model/gameState.js'
-import type { Debtor, PendingRepairs } from '../model/pendingRepairs.js'
+import { firstDebtor } from '../model/pendingRepairs.js'
 import { RailroadIdSchema } from '../model/schemas.js'
 import { SaleListRefusal, saleListRefusal, settleRepairs } from '../rules/repairs.js'
 
@@ -113,19 +113,4 @@ export class HydratedPayRepairs extends HydratableAction<typeof PayRepairs> impl
             forgiven
         }
     }
-
-    static canPayRepairs(
-        state: HydratedPromontoryPointGameState,
-        playerId: string,
-        sales: RailroadId[]
-    ): boolean {
-        return payRepairsRefusal(state, playerId, sales) === undefined
-    }
-}
-
-// R-4.3-H4: the debtor at the head of the queue decides.
-function firstDebtor(pendingRepairs: PendingRepairs): Debtor {
-    const debtor = pendingRepairs.debtors[0]
-    assertExists(debtor, 'A pending Repairs has a debtor')
-    return debtor
 }

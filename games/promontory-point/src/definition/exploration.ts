@@ -7,6 +7,7 @@ import {
     type PromontoryPointGameState,
     type PromontoryPointProjectedState
 } from '../model/gameState.js'
+import { keptPieces } from '../model/playerState.js'
 
 export class PromontoryPointGameExploration implements GameExploration<PromontoryPointProjectedState> {
     // R-5: a branch of the real game keeps every hand and reshuffles only the bag, from the
@@ -60,10 +61,7 @@ export class PromontoryPointGameExploration implements GameExploration<Promontor
         const seen: RailroadId[] = [
             ...Object.values(state.track),
             ...(state.turn?.pieces ?? []),
-            ...state.players.flatMap((player) => [
-                ...(player.hand ?? []),
-                ...(player.keptPiece === undefined ? [] : [player.keptPiece])
-            ])
+            ...state.players.flatMap((player) => [...(player.hand ?? []), ...keptPieces(player)])
         ]
         return RAILROAD_IDS.flatMap((railroadId) => {
             const count =

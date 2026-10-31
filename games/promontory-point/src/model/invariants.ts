@@ -2,7 +2,7 @@ import { RAILROAD_IDS, type RailroadId } from '../components/railroads.js'
 import { SHARES_PER_RAILROAD } from '../components/shares.js'
 import { TRACK_PIECES_PER_RAILROAD } from '../components/trackPieces.js'
 import type { PromontoryPointGameState } from './gameState.js'
-import { sharesHeld } from './playerState.js'
+import { keptPieces, sharesHeld } from './playerState.js'
 import { PLACEMENTS_PER_TURN } from './turn.js'
 
 export function invariantsHold(state: PromontoryPointGameState): boolean {
@@ -21,10 +21,7 @@ export function piecesConserved(state: PromontoryPointGameState): boolean {
     }
     const pieces: RailroadId[] = [
         ...state.bag.items,
-        ...state.players.flatMap((player) => [
-            ...player.hand,
-            ...(player.keptPiece === undefined ? [] : [player.keptPiece])
-        ]),
+        ...state.players.flatMap((player) => [...player.hand, ...keptPieces(player)]),
         ...(state.turn?.pieces ?? []),
         ...Object.values(state.track)
     ]
