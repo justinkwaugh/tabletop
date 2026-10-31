@@ -1,15 +1,13 @@
 import { Color } from '@tabletop/common'
 import { DefaultColorizer, type PlayerColorPalette } from '@tabletop/frontend-components'
 
-// O-1: the title's seat colours, green, orange, black and white (then pink and brown). None is a
+// O-1: the title's four seat colours, green, orange, black and white. None is a
 // railroad colour, so a seat is never mistaken for a railroad. Any other colour draws grey.
 export const PROMONTORY_POINT_PLAYER_COLOR_PALETTE: PlayerColorPalette = {
     [Color.Green]: { fill: '#3f9a55', text: '#ffffff', contrast: '#ffffff' },
     [Color.Orange]: { fill: '#e07b28', text: '#1d1404', contrast: '#1d1404' },
     [Color.Black]: { fill: '#26272b', text: '#ffffff', contrast: '#ffffff' },
     [Color.White]: { fill: '#f4f2ec', text: '#2b2a24', contrast: '#2b2a24' },
-    [Color.Pink]: { fill: '#e48bb4', text: '#2b2a24', contrast: '#2b2a24' },
-    [Color.Brown]: { fill: '#7a5230', text: '#ffffff', contrast: '#ffffff' },
     [Color.Gray]: { fill: '#888888', text: '#ffffff', contrast: '#ffffff' }
 }
 
@@ -44,20 +42,6 @@ const SEAT_CLASSES: Partial<Record<string, SeatClasses>> = {
         fillText: 'text-[#f4f2ec]',
         border: 'border-[#f4f2ec]',
         contrast: 'border-[#2b2a24]'
-    },
-    [Color.Pink]: {
-        bg: 'bg-[#e48bb4]',
-        text: 'text-[#2b2a24]',
-        fillText: 'text-[#e48bb4]',
-        border: 'border-[#e48bb4]',
-        contrast: 'border-[#2b2a24]'
-    },
-    [Color.Brown]: {
-        bg: 'bg-[#7a5230]',
-        text: 'text-[#ffffff]',
-        fillText: 'text-[#7a5230]',
-        border: 'border-[#7a5230]',
-        contrast: 'border-[#ffffff]'
     }
 }
 

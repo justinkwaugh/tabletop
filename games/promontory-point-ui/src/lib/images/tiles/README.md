@@ -2,16 +2,16 @@
 
 One face per town tile kind, square as supplied. The board clips each to a pointy-top hex and turns the number tiles a quarter turn so the number reads upright (O-6). The tile back is not shipped: the tiles lie face up (R-1.3).
 
-| File                      | Kind     | Source       | Size      | Bytes |
-| ------------------------- | -------- | ------------ | --------- | ----- |
-| `tile.price.plus-1.webp`  | +1       | `+1.png`     | 300 × 300 | 6,744 |
-| `tile.price.plus-2.webp`  | +2       | `+2.png`     | 300 × 300 | 7,280 |
-| `tile.price.plus-3.webp`  | +3       | `+3.png`     | 300 × 300 | 7,330 |
-| `tile.price.minus-1.webp` | −1       | `-1.png`     | 300 × 300 | 6,738 |
-| `tile.price.minus-2.webp` | −2       | `-2.png`     | 300 × 300 | 7,162 |
-| `tile.price.minus-3.webp` | −3       | `-3.png`     | 300 × 300 | 7,260 |
-| `tile.red.dividend.webp`  | Dividend | `$.png`      | 300 × 300 | 6,132 |
-| `tile.red.hammer.webp`    | Repairs  | `Hammer.png` | 300 × 300 | 5,888 |
+| File                      | Kind     | Source        | Size      | Bytes |
+| ------------------------- | -------- | ------------- | --------- | ----- |
+| `tile.price.plus-1.webp`  | +1       | supplied face | 300 × 300 | 6,744 |
+| `tile.price.plus-2.webp`  | +2       | supplied face | 300 × 300 | 7,280 |
+| `tile.price.plus-3.webp`  | +3       | supplied face | 300 × 300 | 7,330 |
+| `tile.price.minus-1.webp` | −1       | supplied face | 300 × 300 | 6,738 |
+| `tile.price.minus-2.webp` | −2       | supplied face | 300 × 300 | 7,162 |
+| `tile.price.minus-3.webp` | −3       | supplied face | 300 × 300 | 7,260 |
+| `tile.red.dividend.webp`  | Dividend | supplied face | 300 × 300 | 6,132 |
+| `tile.red.hammer.webp`    | Repairs  | supplied face | 300 × 300 | 5,888 |
 
 Ceiling: 20 KB each, 160 KB for the eight.
 

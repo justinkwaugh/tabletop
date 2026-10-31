@@ -47,10 +47,10 @@ Two meanings are fixed across titles: amber (`--pp-accent`) says "yours to act o
 
 ## Fonts
 
-| Family                                             | Use                                                                                                                                                                     | Licence file                                               |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Oswald, 500 and 600, Latin subset, woff2           | The seat card's name and money, the turn header, prices in the panel and the status strip, the score totals, the end tracker; close to the map's own condensed numerals | `src/lib/fonts/Oswald-OFL.txt` (SIL Open Font License 1.1) |
-| The site's own text font, not shipped by the title | Everything else: prompts, buttons, chips, the log                                                                                                                       | none (the site's)                                          |
+| Family                                             | Use                                                                                                                                                                     | Source                                              |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Oswald, 500 and 600, Latin subset, woff2           | The seat card's name and money, the turn header, prices in the panel and the status strip, the score totals, the end tracker; close to the map's own condensed numerals | Oswald, shipped with `src/lib/fonts/Oswald-OFL.txt` |
+| The site's own text font, not shipped by the title | Everything else: prompts, buttons, chips, the log                                                                                                                       | the site's                                          |
 
 ## Board
 
@@ -73,7 +73,7 @@ Two meanings are fixed across titles: amber (`--pp-accent`) says "yours to act o
 
 ## Cards and tiles
 
-- **Share card** (4 faces). The supplied face is the whole card: "ONE SHARE" and the railroad's home-hex emblem. On the seat card it is a stack of up to four faces 30 px wide with the count and price beside it; in the panel a 38 px face; in the sea a deck at about 45 px with its count; enlarged 300 px on a desktop and the screen width less 32 px (up to 343 px) on a phone. The same image at every size; no second asset.
+- **Share card** (4 faces). The supplied face is the whole card: "ONE SHARE" and the railroad's home-hex emblem. On the seat card it is a stack of up to four faces 30 px wide with the count and price beside it; in the panel a 38 px face; in the sea a deck about 54 px wide on a full-screen desktop board, with its count; enlarged 300 px on a desktop and the screen width less 32 px (up to 343 px) on a phone. The same image at every size; no second asset.
 - **Town tile** (8 faces). The supplied face is a square; the board clips it to a pointy-top hex a little larger than the printed village hex, so the red tiles keep their red border. The +1 to −3 faces are turned a quarter turn clockwise so the number reads upright (O-6); Dividend and Repairs are drawn as supplied. Enlarged at 160 px.
 - **Backs.** Neither the share back nor the tile back is used (O-7): decks and tiles are face up (R-1.3), and a concealed hand piece is drawn in code.
 
@@ -86,7 +86,7 @@ Two meanings are fixed across titles: amber (`--pp-accent`) says "yours to act o
 
 ## Seat colours and colour blindness
 
-Seats and railroads must never be confused (O-1). The title's colour list is green, orange, black, white, then pink and brown; it leaves out blue, purple, red and yellow, the railroad colours. Seat colour appears only on seat things (seat card headers, money markers, seat-strip chips); railroad colour only on railroad things. Colour is never the only cue: every money marker carries the seat's initial, every price marker its railroad's initials, and every piece carries its railroad's colour on a hex connected to its home. Colour-blind presentation follows `gameSession.colors`.
+Seats and railroads must never be confused (O-1). The title's colour list is four: green, orange, black and white; it leaves out blue, purple, red and yellow, the railroad colours. Seat colour appears only on seat things (seat card headers, money markers, seat-strip chips); railroad colour only on railroad things. Colour is never the only cue: every money marker carries the seat's initial, every price marker its railroad's initials, and every piece carries its railroad's colour on a hex connected to its home. Colour-blind presentation follows `gameSession.colors`.
 
 ## Cover
 
@@ -94,17 +94,17 @@ Seats and railroads must never be confused (O-1). The title's colour list is gre
 
 ## Supplied assets
 
-Rendered sizes are the largest ordinary render, in CSS px. Every file is opaque lossy WebP: the PNGs carry an alpha channel but their corners are opaque, so it is dropped.
+Rendered sizes are the largest ordinary render, in CSS px. Every file is opaque lossy WebP: the supplied faces carry an alpha channel but their corners are opaque, so it is dropped.
 
-| File                                         | Source                                                                      | Rendered size                                                                                                            | Natural size                                                               |
-| -------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `board/map.webp`                             | `Map.jpg` (3571 × 2302)                                                     | about 1550 wide: a desktop full screen at 1920 × 1080, height-bound; the phone's pick framing renders it about 1470 wide | 3100 × 1998 (resized from 3571, 2× the full-screen render), at most 800 KB |
-| `cards/share.{cp,up,kp,sp}.webp`             | `CP Share.png`, `UP Share.png`, `KP Share.png`, `SP Share.png` (675 × 1050) | 343 wide (phone enlarge), 300 (desktop enlarge)                                                                          | 675 × 1050 (as supplied, under 2× of 343), at most 70 KB each              |
-| `tiles/tile.price.{plus,minus}-{1,2,3}.webp` | `+1.png` … `-3.png` (300 × 300)                                             | 160 (enlarge); about 70 on a full-screen board                                                                           | 300 × 300 (as supplied, under 2× of 160), at most 20 KB each               |
-| `tiles/tile.red.{dividend,hammer}.webp`      | `$.png`, `Hammer.png` (300 × 300)                                           | as above                                                                                                                 | 300 × 300, at most 20 KB each                                              |
-| `cover.webp`                                 | composed from the map and share cards (above)                               | 340 tall (catalogue)                                                                                                     | 544 × 680, at most 120 KB                                                  |
+| File                                         | Source                                             | Rendered size                                                                                                            | Natural size                                                               |
+| -------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `board/map.webp`                             | the supplied map (3571 × 2302)                     | about 1550 wide: a desktop full screen at 1920 × 1080, height-bound; the phone's pick framing renders it about 1470 wide | 3100 × 1998 (resized from 3571, 2× the full-screen render), at most 800 KB |
+| `cards/share.{cp,up,kp,sp}.webp`             | the supplied share faces (675 × 1050)              | 343 wide (phone enlarge), 300 (desktop enlarge)                                                                          | 675 × 1050 (as supplied, under 2× of 343), at most 70 KB each              |
+| `tiles/tile.price.{plus,minus}-{1,2,3}.webp` | the supplied price tile faces (300 × 300)          | 160 (enlarge); about 70 on a full-screen board                                                                           | 300 × 300 (as supplied, under 2× of 160), at most 20 KB each               |
+| `tiles/tile.red.{dividend,hammer}.webp`      | the supplied Dividend and hammer faces (300 × 300) | as above                                                                                                                 | 300 × 300, at most 20 KB each                                              |
+| `cover.webp`                                 | composed from the map and share cards (above)      | 340 tall (catalogue)                                                                                                     | 544 × 680, at most 120 KB                                                  |
 
-Not shipped: `Share Back.png`, `Back.png` (O-7).
+Not shipped: the supplied share back and tile back (O-7).
 
 **Budget.**
 
@@ -123,8 +123,8 @@ The ceilings are limits, not estimates. Each image folder's README records the m
 
 **Lookups and their specs.** `boardImages.ts`, `cardImages.ts` and `tileImages.ts` index their folders, as Oath's `cardImages.ts` does. An image coverage spec checks that every railroad id has a share face, every town tile kind has a face, and no file is orphaned.
 
-## Gate notes
+## Checks
 
-- **Untrusted code, assets (gate 1).** The drawn SVG is markup in Svelte components; no SVG file carries script, an event attribute, `foreignObject` or an external reference. The only binaries added are the WebP images above and two woff2 fonts. No image is inlined as a `data:` URI. The resizing tools are not committed.
-- **Image assets (gate 2).** Every raster is lossy WebP and opaque. No file is more than 2× its largest ordinary render: the map is 3100 for a 1550 full-screen render; the share faces 675 for a 343 phone enlarge; the tiles 300 for a 160 enlarge. The board README records the measured renders.
-- **Catalog title image (gate 3).** `cover.webp`, 544 × 680, composed from the supplied art, title readable at 150 and 340 px.
+- **Untrusted code, assets.** The drawn SVG is markup in Svelte components; no SVG file carries script, an event attribute, `foreignObject` or an external reference. The only binaries added are the WebP images above and two woff2 fonts. No image is inlined as a `data:` URI. The resizing tools are not committed.
+- **Image assets.** Every raster is lossy WebP and opaque. No file is more than 2× its largest ordinary render: the map is 3100 for a 1550 full-screen render; the share faces 675 for a 343 phone enlarge; the tiles 300 for a 160 enlarge. The board README records the measured renders.
+- **Catalog title image.** `cover.webp`, 544 × 680, composed from the supplied art, title readable at 150 and 340 px.

@@ -4,7 +4,7 @@
 
 ## Source and how it is made
 
-The supplied `Map.jpg`, 3571 × 2302. Resized to 3100 wide (1998 tall, the aspect kept) with a Lanczos-3 filter, then encoded with libwebp 1.6 as lossy WebP at quality 82 with sharp RGB→YUV conversion (`-sharp_yuv`), method 6, no alpha channel. Nothing is cropped or retouched. The tools ran outside the repository.
+The supplied map, 3571 × 2302. Resized to 3100 wide (1998 tall, the aspect kept) with a Lanczos-3 filter, then encoded with libwebp 1.6 as lossy WebP at quality 82 with sharp RGB→YUV conversion (`-sharp_yuv`), method 6, no alpha channel. Nothing is cropped or retouched. The tools ran outside the repository.
 
 Board geometry stays in the original's 3571 × 2302 units; the board scales this image to fill that box, so the resize changes no coordinate.
 
@@ -19,7 +19,7 @@ The largest ordinary render is about 1550 wide, so 3100 is 2× it. Re-measure wh
 
 ## Board geometry, measured
 
-`src/lib/utils/boardGeometry.ts` holds every position in the original's 3571 × 2302 pixels. Each value was measured off `Map.jpg` at that native size by a pixel-analysis script run outside the repository (pure Python over a BMP copy of the map, no imaging library); nothing was placed by eye, and the mock-up's eyeballed pitches are not used.
+`src/lib/utils/boardGeometry.ts` holds every position in the original's 3571 × 2302 pixels. Each value was measured off the supplied map at that native size by a pixel-analysis script run outside the repository (pure Python over a BMP copy of the map, no imaging library); nothing was placed by eye.
 
 ### Method
 

@@ -8,10 +8,10 @@ Promontory Point re-themes a published game around the transcontinental railroad
 
 | Source            | What it is                                                                                                                                                         | Date or edition | Supplied as |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- | ----------- |
-| rulebook          | Original rulebook, English (eggertspiele / Pegasus, revision by Kent Neumann), 4 pages                                                                             | © 2012          | PDF         |
+| rulebook          | Original rulebook, English (eggertspiele / Pegasus), 4 pages                                                                                                       | © 2012          | PDF         |
 | rulebook (German) | German rulebook, used to cross-check the English text                                                                                                              | © 2012          | PDF         |
 | forum             | BoardGameGeek rules forum: "Illness Tiles" (2018-12-07), "Running out of money / Bankruptcy" (2012-08-31 to 2024-07-11)                                            | —               | web page    |
-| board             | The Promontory Point map supplied with this title's art: hex grid, four railroad headquarters, the Promontory space, the share-price track and a 0–99 border track | 2026            | JPEG        |
+| board             | The Promontory Point map supplied with this title's art: hex grid, four railroad headquarters, the Promontory space, the share-price track and a 0–99 border track | 2026            | image       |
 | FAQ               | none published                                                                                                                                                     | —               | —           |
 | errata            | none published                                                                                                                                                     | —               | —           |
 
@@ -28,7 +28,7 @@ Where sources conflict, the later official one wins and the conflict is listed i
 | sponsor / release an entertainer | buy / sell a share                                                                                                        |
 | prestige path, reputation        | share-price track, share price                                                                                            |
 | village tile                     | town tile                                                                                                                 |
-| travel marker                    | track marker (exact name: open question)                                                                                  |
+| travel marker                    | track piece (R-0-H1)                                                                                                      |
 | ducats                           | dollars                                                                                                                   |
 
 ## R-1 Components and setup
@@ -37,7 +37,7 @@ Where sources conflict, the later official one wins and the conflict is listed i
 
 - 44 entertainer cards: 11 in each of the 4 colours. Only the colour matters.
 - 96 travel markers: 24 in each colour, drawn at random from a bag.
-- 48 village tiles. Each carries one event (R-4.2). The rulebook prints the counts as 6, 8, 5, 4, 6, 3, 8, 8 (the mapping to tile kinds is in the graphic only; see `open-questions.md`).
+- 48 village tiles. Each carries one event (R-4.2). The rulebook prints the counts as 6, 8, 5, 4, 6, 3, 8, 8 (the mapping to tile kinds is in the graphic only; see R-1.1-H1).
 - 1 board: villages and empty spaces, the royal court at the centre, the 4 headquarters at the edges, a prestige path per show. On the Promontory Point map: 123 spaces (48 village spaces, 74 empty spaces including the coastal hex below the Southern Pacific home (R-1.1-H3), the Promontory space), the 4 railroad home hexes, and one shared share-price track.
 - 54 coins (denominations not stated; the implementation keeps money as a number).
 - 4 marking pieces, one per colour, on the prestige paths.
@@ -111,7 +111,7 @@ Pay day and Illness apply to all players, not only the one who placed the marker
 
 ### R-4.3 Paying for Illness
 
-A player who cannot pay must at once release cards until they can pay; each card so released returns only half the colour's current reputation, rounded down. The rulebook says nothing further (open questions).
+A player who cannot pay must at once release cards until they can pay; each card so released returns only half the colour's current reputation, rounded down. The rulebook says nothing further; see R-4.3-H1 to R-4.3-H4.
 
 ## R-5 Information
 

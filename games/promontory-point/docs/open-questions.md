@@ -9,19 +9,31 @@ Every place the digest is silent, ambiguous or self-contradictory, and every pla
     - _Sources:_ what the rulebook, FAQ and errata each say, quoted.
     - _Recommendation:_ the reading to take and why, or "provisional" when only the publisher can settle it.
 
-All phase 0 questions (Q-S1 to Q-E4) and phase 1's Q-S4, Q-T3 and Q-T4 were answered on 2026-10-30 and are recorded in `rulings.md`. New questions from later phases are added below.
+Every question raised so far is answered and recorded in `rulings.md`; none is open. New questions are added below.
 
 ## Setup
 
+None.
+
 ## Turn structure
+
+None.
 
 ## Actions
 
+None.
+
 ## Repairs payment
+
+None.
 
 ## Information and undo
 
+None.
+
 ## Game end and scoring
+
+None.
 
 ## Component text
 
