@@ -130,6 +130,7 @@
                         {#if framing}
                             <PickFramingWatch
                                 lit={session.boardOffer.lit}
+                                settling={session.updatingVisibleState}
                                 {framing}
                                 onframe={framePick}
                                 onrest={restOnHexField}

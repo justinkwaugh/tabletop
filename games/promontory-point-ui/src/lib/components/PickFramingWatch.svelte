@@ -8,12 +8,16 @@
     // the pick or return to the hex field. It reads the offer and never changes it.
     let {
         lit,
+        settling,
         framing,
         onframe,
         onrest,
         onleave
     }: {
         lit: readonly SpaceId[]
+        // A transition is playing: the view holds until its state is shown, so nothing that
+        // flies across the board is measured against a view that then moves.
+        settling: boolean
         framing: PickFraming
         onframe: (lit: readonly SpaceId[]) => void
         onrest: (animate: boolean) => void
@@ -26,8 +30,10 @@
     // The first rest places the board without motion.
     let shown = false
 
-    // Once for each lit set: the view moves a frame later, once the wrapper has its size.
+    // Once for each lit set, after any transition: the view moves a frame later, once the wrapper
+    // has its size.
     const follow: Attachment = () => {
+        if (settling) return
         const current = untrack(() => lit)
         const command = untrack(() => framing.litChanged(current))
         if (command === FramingCommand.None) return

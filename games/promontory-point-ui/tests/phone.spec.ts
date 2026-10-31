@@ -194,3 +194,45 @@ test('R-3.3: a hand pan clears the framing, and the pick ending leaves the view 
     await page.waitForTimeout(500)
     expect(Math.abs((await hexWidth(page, 'space.0.0')) - framed)).toBeLessThan(1)
 })
+
+test('R-3.3: the view holds while a placed piece flies, then the pick ends', async ({ page }) => {
+    await createGame(page)
+    const rest = await restingHexWidth(page)
+    await firstPiece(page).tap()
+    await expect.poll(() => hexWidth(page, 'space.0.0')).toBeGreaterThan(1.5 * rest)
+    await page.waitForTimeout(300)
+    const framed = await hexWidth(page, 'space.0.0')
+
+    const [spaceId] = await litSpaces(page)
+    expect(spaceId).toBeDefined()
+    // Sample the view each frame from the press until the flight has landed.
+    const sampling = page.evaluate(
+        () =>
+            new Promise<number[]>((resolve) => {
+                const widths: number[] = []
+                let flew = false
+                const sample = () => {
+                    const flying = document.querySelector(
+                        '[data-flight-layer] [data-flight="Piece"]'
+                    )
+                    flew ||= flying !== null
+                    if (flew && !flying) return resolve(widths)
+                    if (flying) {
+                        const hex = document.querySelector(
+                            'svg.board [data-layer="hit-targets"] [data-space-id="space.0.0"]'
+                        )
+                        widths.push(hex?.getBoundingClientRect().width ?? 0)
+                    }
+                    requestAnimationFrame(sample)
+                }
+                requestAnimationFrame(sample)
+            })
+    )
+    await board(page).locator(`[data-layer="hit-targets"] [data-space-id="${spaceId}"]`).tap()
+    const widths = await sampling
+    expect(widths.length).toBeGreaterThan(0)
+    for (const width of widths) expect(Math.abs(width - framed)).toBeLessThan(1)
+    await expect(board(page).locator(`[data-track-piece][data-space-id="${spaceId}"]`)).toHaveCount(
+        1
+    )
+})
