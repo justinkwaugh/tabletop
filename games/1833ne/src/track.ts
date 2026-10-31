@@ -98,7 +98,10 @@ export const TrackRules1833NE: TrackRules = {
     availableColors: (state) => Phases1833NE.phase(state.phaseId).tileColors,
     allowance: (state, color) => yellowPlusOneAllowance(TrackData)(state, color),
     preservesStops: preservesStops1833NE,
-    useful: ({ newTrack, connectedCity }) => newTrack || connectedCity,
+    // A city tile needs only a connection to its city (§6.48); the terminals in Boston's and
+    // Portland's tiles carry their city's value (§6.62), so reaching one connects to the city.
+    useful: ({ newTrack, connectedCity, connectedOffboard }) =>
+        newTrack || connectedCity || connectedOffboard,
     homeLocations: (companyId) => Map1833NE.reservedLocationIds(companyId),
     // Manchester's green tiles become unlabelled brown cities (p. 21).
     relabels: (locationId, definitionId) =>

@@ -187,6 +187,28 @@ describe('brown cities (p. 21)', () => {
     })
 })
 
+describe('Boston (§6.48, §6.62)', () => {
+    it('lets a corporation reaching only Boston’s terminal upgrade the city', () => {
+        // The B&P runs from Providence through Mansfield into Boston's terminal triangle.
+        const state = position(
+            [{ locationId: 'G24', definitionId: '18xx:58', rotation: 1 }],
+            [{ companyId: 'B&P', locationId: 'F25' }],
+            {},
+            'II'
+        )
+        state.trackStep = { companyId: 'B&P', lays: [], completed: false }
+        const account = state.cash.find(
+            (entry) => entry.owner.kind === 'company' && entry.owner.companyId === 'B&P'
+        )!
+        account.amount = 500
+        const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)
+        const choices = new TrackConstruction(hydrated, TrackRules1833NE).choices('G22')
+        expect(choices.map(({ definitionId, rotation }) => ({ definitionId, rotation }))).toEqual([
+            { definitionId: '1833ne:N23', rotation: 4 }
+        ])
+    })
+})
+
 describe('the golden spike (corporate mats)', () => {
     it('pays $100 to the president of each St. Lawrence corporation that laid yellow track', () => {
         const straight = (locationId: string, edges: number[], definitionId = '18xx:9') => ({
