@@ -1,10 +1,10 @@
-import { prefersReducedMotion } from 'svelte/motion'
 import type { BoundingBox, Point } from '@tabletop/common'
 import { TRACK_PIECE_RADIUS } from '$lib/utils/boardLayout.js'
 import { SEA_SLOTS } from '$lib/utils/boardGeometry.js'
 import type { Flights } from './flights.svelte.js'
 import { FlightPlan } from './flightPlan.js'
 import { PIECE_EXTENT, type FlightStage } from './flightStage.js'
+import { StateAnimator } from './stateAnimator.js'
 import type { BoardAnimationHost, BoardStateChange } from './markerMotion.js'
 
 // What every flight animator is handed: the session's listeners, the presence it writes, the
@@ -28,28 +28,19 @@ export const BAG_MOUTH: Point = { x: SEA_SLOTS.bag.x + 70, y: SEA_SLOTS.bag.y + 
 
 // One state-change animator whose motion crosses the scaling wrapper through the flight layer.
 // It listens while the layer is mounted; the layer unmounting interrupts every flight.
-export abstract class FlightAnimator {
-    protected readonly host: BoardAnimationHost
+export abstract class FlightAnimator extends StateAnimator {
     protected readonly flights: Flights
     protected readonly stage: FlightStage
     protected readonly viewerId: () => string | undefined
-    protected readonly reducedMotion: () => boolean
-    private readonly listener = (change: BoardStateChange) => this.onGameStateChange(change)
 
     constructor(hosting: FlightHost) {
-        this.host = hosting.host
+        super(hosting.host, hosting.reducedMotion)
         this.flights = hosting.flights
         this.stage = hosting.stage
         this.viewerId = hosting.viewerId
-        this.reducedMotion = hosting.reducedMotion ?? (() => prefersReducedMotion.current)
     }
 
-    register() {
-        this.host.addGameStateChangeListener(this.listener)
-    }
-
-    unregister() {
-        this.host.removeGameStateChangeListener(this.listener)
+    protected clear() {
         this.flights.interrupt()
     }
 
@@ -60,6 +51,4 @@ export abstract class FlightAnimator {
             `${change.action?.id ?? 'direct'}:${name}`
         )
     }
-
-    protected abstract onGameStateChange(change: BoardStateChange): Promise<void>
 }

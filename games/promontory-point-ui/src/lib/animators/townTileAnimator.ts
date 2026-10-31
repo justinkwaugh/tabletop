@@ -1,7 +1,7 @@
-import { prefersReducedMotion } from 'svelte/motion'
 import { TownEventKind, isPlaceTrack, type SpaceId } from '@tabletop/promontory-point'
-import type { BoardAnimationHost, BoardStateChange, MotionElement } from './markerMotion.js'
+import type { BoardStateChange, MotionElement } from './markerMotion.js'
 import { TOWN_PULSE, pieceSettlesAt } from './placementSchedule.js'
+import { StateAnimator } from './stateAnimator.js'
 
 function showScale(element: MotionElement, scale: number) {
     element.setAttribute('transform', `scale(${scale})`)
@@ -9,21 +9,10 @@ function showScale(element: MotionElement, scale: number) {
 
 // R-4.2: a Dividend or Repairs tile pulses once under the piece just placed on it, as the piece
 // settles. Only a placement shows it: undo, history steps and reduced motion leave the tile still.
-export class TownTileAnimator {
+export class TownTileAnimator extends StateAnimator {
     private elements = new Map<SpaceId, MotionElement>()
-    private readonly listener = (change: BoardStateChange) => this.onGameStateChange(change)
 
-    constructor(
-        private host: BoardAnimationHost,
-        private reducedMotion: () => boolean = () => prefersReducedMotion.current
-    ) {}
-
-    register() {
-        this.host.addGameStateChangeListener(this.listener)
-    }
-
-    unregister() {
-        this.host.removeGameStateChangeListener(this.listener)
+    protected clear() {
         this.elements.clear()
     }
 
@@ -36,7 +25,7 @@ export class TownTileAnimator {
         if (this.elements.get(spaceId) === element) this.elements.delete(spaceId)
     }
 
-    private async onGameStateChange({ action, animationContext }: BoardStateChange) {
+    protected async onGameStateChange({ action, animationContext }: BoardStateChange) {
         if (!isPlaceTrack(action) || this.reducedMotion()) return
         const kind = action.metadata?.outcome?.kind
         if (kind !== TownEventKind.Dividend && kind !== TownEventKind.Repairs) return

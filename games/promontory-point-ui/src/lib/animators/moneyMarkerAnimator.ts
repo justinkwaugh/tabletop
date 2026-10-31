@@ -1,6 +1,5 @@
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
-import { prefersReducedMotion } from 'svelte/motion'
 import type { GameAction } from '@tabletop/common'
 import type { HydratedPromontoryPointGameState } from '@tabletop/promontory-point'
 import { BORDER_TRACK_LENGTH, BORDER_TRACK_SPACES, boxCentre } from '$lib/utils/boardGeometry.js'
@@ -15,6 +14,7 @@ import {
 } from './markerMotion.js'
 import type { MoneyChip, MoneyChips } from './moneyChips.svelte.js'
 import { townEffectStartsAt } from './placementSchedule.js'
+import { StateAnimator } from './stateAnimator.js'
 
 export type MoneyChipHost = Pick<MoneyChips, 'show' | 'clear' | 'element'>
 
@@ -60,27 +60,23 @@ function layout(state: HydratedPromontoryPointGameState): Map<string, MoneyMarke
 // R-1.3-H1: each seat's money marker steps along the border track, a chip rising from its seat
 // card's money with the change. Undo and history move every marker straight to its place, at
 // once under reduced motion.
-export class MoneyMarkerAnimator {
+export class MoneyMarkerAnimator extends StateAnimator {
     readonly motion = new MarkerMotion<string>()
-    private readonly listener = (change: BoardStateChange) => this.onGameStateChange(change)
 
     constructor(
-        private host: BoardAnimationHost,
+        host: BoardAnimationHost,
         private chips: MoneyChipHost,
-        private reducedMotion: () => boolean = () => prefersReducedMotion.current
-    ) {}
-
-    register() {
-        this.host.addGameStateChangeListener(this.listener)
+        reducedMotion?: () => boolean
+    ) {
+        super(host, reducedMotion)
     }
 
-    unregister() {
-        this.host.removeGameStateChangeListener(this.listener)
+    protected clear() {
         this.motion.clear()
         this.chips.clear()
     }
 
-    private async onGameStateChange({ from, to, action, animationContext }: BoardStateChange) {
+    protected async onGameStateChange({ from, to, action, animationContext }: BoardStateChange) {
         if (!from) return
         const timeline = animationContext.actionTimeline
         const targets = layout(to)
