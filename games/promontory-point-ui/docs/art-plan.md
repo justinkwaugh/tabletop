@@ -13,35 +13,44 @@ No other art is drawn to stand in for a supplied image, and no supplied image is
 
 Colours are CSS custom properties in `src/app.css`, declared on `:root` and rewritten to `[data-game-ui="promontory-point"]` by the scope plugin, as Oath does. Components use these tokens and never a raw colour; `palette.spec.ts` fails on a raw colour anywhere else in the package. Seat colours are not tokens: they come from `gameSession.colors` (see [Seat colours](#seat-colours-and-colour-blindness)).
 
-The table keeps the map's colours in both site themes, so Light and Dark are the same. Railroad colours are sampled from the four home hexes on the map.
+The table is drawn as the map's own paper and keeps the map's colours in both site themes, so Light and Dark are the same. Every chrome colour is sampled from the map: the olive of its hexes, its paper, the sea, the decade markers' brown and Promontory's charcoal. Railroad colours are sampled from the four home hexes on the map; each has a darker rim of the same hue for the drawn pieces.
 
-| Token             | Meaning                                                                                    | Light             | Dark |
-| ----------------- | ------------------------------------------------------------------------------------------ | ----------------- | ---- |
-| `--pp-table`      | The table behind the board: the map's sea, deepened                                        | `#24393C`         | same |
-| `--pp-column`     | The side column, a shade darker                                                            | `#1D2F31`         | same |
-| `--pp-panel`      | Panels and tab bodies, a shade lighter                                                     | `#2D474A`         | same |
-| `--pp-line`       | Rules and panel borders                                                                    | `#48686B`         | same |
-| `--pp-text`       | Text on the dark surfaces                                                                  | `#ECE6D3`         | same |
-| `--pp-muted`      | Secondary text, captions, reasons                                                          | `#A9B3AD`         | same |
-| `--pp-paper`      | The map's border tan: seat cards, buttons                                                  | `#E4D7A8`         | same |
-| `--pp-paper-line` | Seat card rules, button borders                                                            | `#7F7043`         | same |
-| `--pp-ink`        | Text on tan                                                                                | `#2B2A24`         | same |
-| `--pp-ink-sub`    | Secondary text on tan ("$4 ea", "shares worth")                                            | `#6A5F42`         | same |
-| `--pp-accent`     | **Yours to act on**: lit ring, picked ring, primary button, Undo, the deciding seat's ring | `#F5A524`         | same |
-| `--pp-accent-ink` | Text on amber                                                                              | `#1D1404`         | same |
-| `--pp-cost`       | **Costs or threatens**: Repairs chips, "short $3"                                          | `#E11D48`         | same |
-| `--pp-cost-ink`   | Text on rose                                                                               | `#FFFFFF`         | same |
-| `--pp-gain`       | The neutral Dividend chip ("you +$4")                                                      | `#E9F2E4`         | same |
-| `--pp-ok`         | "paid ✓", "enough"                                                                         | `#9FD59B`         | same |
-| `--pp-halo`       | The dark halo under every ring, outline and chip                                           | `#111111`         | same |
-| `--pp-veil`       | The veil over the board outside the lit hexes                                              | `#0A0C0C` at 50 % | same |
-| `--pp-decided`    | The neutral dashed outline (being decided, this turn's placements)                         | `#E8E6E1`         | same |
-| `--pp-hidden`     | A concealed hand piece                                                                     | `#8D8A7E`         | same |
-| `--pp-cp`         | Central Pacific: pieces, price marker, tags                                                | `#6A95A4`         | same |
-| `--pp-up`         | Union Pacific                                                                              | `#7E6479`         | same |
-| `--pp-kp`         | Kansas Pacific                                                                             | `#923626`         | same |
-| `--pp-sp`         | Southern Pacific                                                                           | `#ECD775`         | same |
-| `--pp-rr-ink`     | Text and rail marks on a railroad colour (`--pp-sp` takes `--pp-ink`)                      | `#FFFFFF`         | same |
+| Token             | Meaning                                                                                  | Light             | Dark |
+| ----------------- | ---------------------------------------------------------------------------------------- | ----------------- | ---- |
+| `--pp-table`      | The table surround: the olive of the map's hexes, with a faint dot texture               | `#4B4733`         | same |
+| `--pp-column`     | The side column, a little darker                                                         | `#3F3C2B`         | same |
+| `--pp-panel`      | The control bar, the active tab, the action area and the history: the map's paper        | `#E6D9B1`         | same |
+| `--pp-line`       | Rules on the surround                                                                    | `#5E5940`         | same |
+| `--pp-text`       | Text on the surround (tabs, captions)                                                    | `#E6D9B1`         | same |
+| `--pp-muted`      | Secondary text on the surround                                                           | `#B8AD8A`         | same |
+| `--pp-paper`      | The map's paper: seat cards, the strip's cards, secondary buttons                        | `#E9DDB6`         | same |
+| `--pp-paper-deep` | The deeper paper of a coupon (cash, share price)                                         | `#DCCD9D`         | same |
+| `--pp-paper-line` | Hairline rules on paper                                                                  | `#B4A47A`         | same |
+| `--pp-ink`        | Text on paper                                                                            | `#2F2D27`         | same |
+| `--pp-ink-sub`    | Secondary text on paper ("$4 ea", "shares worth", the italic lines)                      | `#5A5545`         | same |
+| `--pp-teal`       | The sea: the turn header's whose-turn tab                                                | `#5B8984`         | same |
+| `--pp-teal-deep`  | The deep sea: the tab's lower edge                                                       | `#3F6763`         | same |
+| `--pp-brown`      | The decade markers' brown: Undo, "No. n", the strip's headings, coupon dashes            | `#86684D`         | same |
+| `--pp-charcoal`   | Promontory's charcoal: the primary button, count badges, outlines on markers             | `#484741`         | same |
+| `--pp-accent`     | **Yours to act on**: lit ring, picked ring, the acting or deciding seat's ring and tag   | `#F5A524`         | same |
+| `--pp-accent-ink` | Text on amber                                                                            | `#1D1404`         | same |
+| `--pp-cost`       | **Costs or threatens**: Repairs chips, "short $3"                                        | `#E11D48`         | same |
+| `--pp-cost-ink`   | Text on rose                                                                             | `#FFFFFF`         | same |
+| `--pp-gain`       | The neutral Dividend chip ("you +$4")                                                    | `#E9F2E4`         | same |
+| `--pp-ok`         | "paid ✓", "enough", on paper                                                             | `#3D7A3A`         | same |
+| `--pp-halo`       | The dark halo under every ring, outline and chip                                         | `#111111`         | same |
+| `--pp-veil`       | The veil over the board outside the lit hexes                                            | `#0A0C0C` at 50 % | same |
+| `--pp-decided`    | The neutral dashed outline (being decided, this turn's placements)                       | `#E8E6E1`         | same |
+| `--pp-hidden`     | A concealed hand piece                                                                   | `#8D8A7E`         | same |
+| `--pp-cp`         | Central Pacific: pieces, price marker, tags                                              | `#6897A6`         | same |
+| `--pp-cp-rim`     | Central Pacific's darker rim on pieces                                                   | `#3F6875`         | same |
+| `--pp-up`         | Union Pacific                                                                            | `#806679`         | same |
+| `--pp-up-rim`     | Union Pacific's rim                                                                      | `#56424F`         | same |
+| `--pp-kp`         | Kansas Pacific                                                                           | `#9B3A2A`         | same |
+| `--pp-kp-rim`     | Kansas Pacific's rim                                                                     | `#62221A`         | same |
+| `--pp-sp`         | Southern Pacific                                                                         | `#E3CB6E`         | same |
+| `--pp-sp-rim`     | Southern Pacific's rim                                                                   | `#A8903C`         | same |
+| `--pp-rr-ink`     | Paper ink on a railroad colour: rail marks, rings, initials (`--pp-sp` takes `--pp-ink`) | `#F3EAD0`         | same |
 
 Two meanings are fixed across titles: amber (`--pp-accent`) says "yours to act on" and rose (`--pp-cost`) says "costs or threatens". Nothing else is amber or rose. Kansas Pacific's red and the red Repairs and Dividend tiles are game colours, not the rose role: a rose chip always carries a label and the dark halo, and a railroad colour never carries a chip colour.
 

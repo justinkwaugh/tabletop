@@ -6,7 +6,7 @@ import {
     type RailroadId
 } from '@tabletop/promontory-point'
 import { STACK_CARDS } from '$lib/model/seatView.js'
-import { SEA_SLOTS } from '$lib/utils/boardGeometry.js'
+import { STRIP_SLOTS } from '$lib/utils/boardGeometry.js'
 import { FlightAnimator } from './flightAnimator.js'
 import { FlightKind, type FlightItem, type Hideable } from './flights.svelte.js'
 import type { FlightPlan } from './flightPlan.js'
@@ -96,7 +96,7 @@ export class ShareCardAnimator extends FlightAnimator {
         land: (move: Move, shown: readonly Hideable[]) => () => void
     ) {
         const { railroadId, start } = move
-        const deck = this.stage.mapRect(SEA_SLOTS.decks[railroadId])
+        const deck = this.stage.mapRect(STRIP_SLOTS.decks[railroadId])
         const cards = this.stage.seatShareCards(playerId, railroadId)
         const card = cards.at(-1 - Math.min(move.fromTop, cards.length - 1))
         if (!deck || !card) {

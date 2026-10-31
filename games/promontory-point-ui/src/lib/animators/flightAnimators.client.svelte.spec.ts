@@ -28,7 +28,7 @@ import {
     withTownsOpenTo,
     withTurnPieces
 } from '@tabletop/promontory-point/testing'
-import { SEA_SLOTS } from '$lib/utils/boardGeometry.js'
+import { STRIP_SLOTS } from '$lib/utils/boardGeometry.js'
 import { spaceCentre } from '$lib/utils/boardLayout.js'
 import { BAG_MOUTH, pieceBox, type FlightHost } from './flightAnimator.js'
 import { FlightKind, Flights, type ScreenRect } from './flights.svelte.js'
@@ -133,7 +133,7 @@ class FakeStage implements FlightStage {
         )
     }
     deckFace(railroadId: RailroadId) {
-        return this.spot(`deck:${railroadId}`, this.mapRect(SEA_SLOTS.decks[railroadId]))
+        return this.spot(`deck:${railroadId}`, this.mapRect(STRIP_SLOTS.decks[railroadId]))
     }
     mapRect(box: BoundingBox) {
         return { left: box.x / 10, top: box.y / 10, width: box.width / 10, height: box.height / 10 }
@@ -534,7 +534,7 @@ describe('share cards (R-3.1, R-3.2, R-4.3)', () => {
         expect(flights.flights).toEqual([
             expect.objectContaining({
                 item: { kind: FlightKind.Share, railroadId: KP },
-                rect: stage.mapRect(SEA_SLOTS.decks[KP])
+                rect: stage.mapRect(STRIP_SLOTS.decks[KP])
             })
         ])
         seek(context, SHARE_FLIGHT_SECONDS - 0.01)

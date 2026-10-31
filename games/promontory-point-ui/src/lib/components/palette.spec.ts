@@ -87,7 +87,7 @@ const themedTokens = new Set(
 /** Art plan, "Palette": every colour a component names is one of the title's tokens. */
 describe('palette', () => {
     it('declares the art plan’s tokens with its values', () => {
-        expect(planTokens).toHaveLength(25)
+        expect(planTokens).toHaveLength(34)
         expect(declarations).toEqual(planTokens)
     })
 

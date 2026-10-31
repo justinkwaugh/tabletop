@@ -1,9 +1,10 @@
 import type { BoundingBox, Point, RectangleDimensions } from '@tabletop/common'
 import type { SpaceId } from '@tabletop/promontory-point'
-import { HEX, HOME_HEX_CENTRES, SPACE_CENTRES } from '$lib/utils/boardGeometry.js'
+import { BOARD_BOUNDS, HEX, HOME_HEX_CENTRES, SPACE_CENTRES } from '$lib/utils/boardGeometry.js'
 
 // The board is drawn at half the map's pixels; the scaling wrapper zooms up to them. Rects the
-// wrapper frames are in these drawn units.
+// wrapper frames are in these drawn units, measured from the drawn surface's top left, which is
+// the strip's left edge (BOARD_BOUNDS), not the map's.
 export const BOARD_DRAWN_SCALE = 0.5
 
 // Contract, "Phone layout": a pick frames its lit hexes at up to twice the resting scale.
@@ -20,8 +21,8 @@ function boundsOf(centres: readonly Point[]): BoundingBox {
     const right = Math.max(...xs) + HEX.xRadius
     const bottom = Math.max(...ys) + HEX.yRadius
     return {
-        x: left * BOARD_DRAWN_SCALE,
-        y: top * BOARD_DRAWN_SCALE,
+        x: (left - BOARD_BOUNDS.x) * BOARD_DRAWN_SCALE,
+        y: (top - BOARD_BOUNDS.y) * BOARD_DRAWN_SCALE,
         width: (right - left) * BOARD_DRAWN_SCALE,
         height: (bottom - top) * BOARD_DRAWN_SCALE
     }

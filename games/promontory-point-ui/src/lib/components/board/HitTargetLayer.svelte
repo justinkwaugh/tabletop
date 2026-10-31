@@ -10,7 +10,7 @@
     import { PreviewKind } from '$lib/model/cardPreview.svelte.js'
     import { HexPick, hexOffer } from '$lib/model/boardOffer.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { SEA_SLOTS, hexOutline } from '$lib/utils/boardGeometry.js'
+    import { STRIP_SLOTS, hexOutline } from '$lib/utils/boardGeometry.js'
     import { pointsAttribute } from '$lib/utils/boardLayout.js'
 
     const gameSession = getGameSession()
@@ -73,7 +73,7 @@
 {/each}
 
 {#each RAILROAD_IDS as railroadId (railroadId)}
-    {@const box = SEA_SLOTS.decks[railroadId]}
+    {@const box = STRIP_SLOTS.decks[railroadId]}
     <rect
         x={box.x}
         y={box.y}
@@ -83,22 +83,22 @@
         tabindex="0"
         aria-label="{RAILROADS[railroadId].name} share deck: enlarge the share"
         data-deck-target={railroadId}
-        class="hit-target sea"
+        class="hit-target strip-item"
         fill="transparent"
         onclick={() => enlargeShare(railroadId)}
         onkeydown={(event) => onKey(event, () => enlargeShare(railroadId))}
     ></rect>
 {/each}
 <rect
-    x={SEA_SLOTS.bag.x}
-    y={SEA_SLOTS.bag.y}
-    width={SEA_SLOTS.bag.width}
-    height={SEA_SLOTS.bag.height}
+    x={STRIP_SLOTS.bag.x}
+    y={STRIP_SLOTS.bag.y}
+    width={STRIP_SLOTS.bag.width}
+    height={STRIP_SLOTS.bag.height}
     role="button"
     tabindex="0"
     aria-label="The bag: show how many pieces are left"
     data-bag-target
-    class="hit-target sea"
+    class="hit-target strip-item"
     fill="transparent"
     onclick={showBag}
     onkeydown={(event) => onKey(event, showBag)}
@@ -113,7 +113,7 @@
         cursor: pointer;
     }
 
-    .hit-target.sea {
+    .hit-target.strip-item {
         cursor: zoom-in;
     }
 

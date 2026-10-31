@@ -67,7 +67,7 @@ test('contract, "Render ownership": the board draws its layers back to front', a
         'this-turn',
         'price-markers',
         'money-markers',
-        'sea',
+        'strip',
         'pick-chrome',
         'hit-targets',
         'chips'
@@ -196,7 +196,7 @@ test('contract, "The principle": a press on an unlit town places nothing and enl
     await expect(enlarged).toHaveCount(0)
 })
 
-test('R-1.2, R-1.3-H1, R-6.1: markers and the sea read the displayed state', async ({ page }) => {
+test('R-1.2, R-1.3-H1, R-6.1: markers and the strip read the displayed state', async ({ page }) => {
     await createGame(page)
     const state = await page.evaluate(() => {
         const s = window.promontoryPointBoardSession.gameState
@@ -218,6 +218,61 @@ test('R-1.2, R-1.3-H1, R-6.1: markers and the sea read the displayed state', asy
     const tracker = board(page).locator('[data-end-tracker]')
     await expect(tracker).toHaveAttribute('data-red-tiles-uncovered', String(state.redTowns))
     await expect(tracker).toHaveAttribute('data-promontory-taken', 'false')
+})
+
+test('O-8: the strip left of the map shows the bag, each deck with its price and count, and both end conditions', async ({
+    page
+}) => {
+    await createGame(page)
+    const state = await page.evaluate(() => {
+        const s = window.promontoryPointBoardSession.gameState
+        return {
+            bag: s.bag.remaining,
+            // R-1.2: the price is the track index less the four extra 0 spaces, never below 0.
+            decks: (Object.keys(s.priceIndex) as (keyof typeof s.priceIndex)[]).map(
+                (railroadId) => ({
+                    railroadId,
+                    count: s.shareDeckCount(railroadId),
+                    price: Math.max(0, s.priceIndex[railroadId] - 4)
+                })
+            ),
+            redTowns: Object.values(s.towns).filter((kind) => kind.startsWith('tile.red')).length
+        }
+    })
+    // The strip sits beside the map, inside the board's one surface.
+    const map = await board(page).locator('[data-layer="map"] image').boundingBox()
+    const strip = board(page).locator('[data-layer="strip"]')
+    const stripBox = await strip.boundingBox()
+    expect(map).not.toBeNull()
+    expect(stripBox).not.toBeNull()
+    if (map && stripBox) {
+        expect(stripBox.x + stripBox.width).toBeLessThan(map.x)
+        expect(stripBox.y).toBeGreaterThanOrEqual(map.y - 1)
+        expect(stripBox.y + stripBox.height).toBeLessThanOrEqual(map.y + map.height)
+    }
+
+    const bag = strip.locator('[data-bag]')
+    await expect(bag).toHaveAttribute('data-bag', String(state.bag))
+    await expect(bag).toContainText('THE BAG')
+    await expect(bag).toContainText(new RegExp(`${state.bag}\\s*pieces left`))
+
+    await expect(strip.locator('[data-strip-shares]')).toContainText('SHARES FOR SALE')
+    for (const { railroadId, count, price } of state.decks) {
+        const deck = strip.locator(`[data-share-deck="${railroadId}"]`)
+        await expect(deck).toHaveAttribute('data-price', String(price))
+        await expect(deck.locator('[data-deck-price]')).toHaveText(`$${price}`)
+        await expect(deck).toHaveAttribute('data-count', String(count))
+        await expect(deck.locator('[data-deck-count]')).toHaveText(String(count))
+    }
+
+    const tracker = strip.locator('[data-end-tracker]')
+    await expect(tracker).toContainText('GAME ENDS WHEN BOTH')
+    await expect(tracker.locator('[data-end-line="red"]')).toHaveText(
+        `${state.redTowns} red towns open`
+    )
+    await expect(tracker).toContainText('at most 1')
+    await expect(tracker.locator('[data-end-line="promontory"]')).toHaveText('Promontory')
+    await expect(tracker).toContainText(/Promontory\s*open/)
 })
 
 // Plays the seeded game's turns, placing on the last lit hex, until a picked piece lights a

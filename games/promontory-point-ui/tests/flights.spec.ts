@@ -4,7 +4,12 @@ import type { PromontoryPointGameSession } from '../src/lib/model/session.svelte
 declare global {
     interface Window {
         promontoryPointFlightSession: PromontoryPointGameSession
-        promontoryPointFlightLog: { copies: number; probe: (string | null)[] }[]
+        promontoryPointFlightLog: {
+            copies: number
+            probe: (string | null)[]
+            // The first copy's centre on screen when the count changed.
+            centre?: { x: number; y: number }
+        }[]
     }
 }
 
@@ -76,13 +81,35 @@ async function recordFlights(page: Page, kind: string, probe?: string) {
                 if (copies === last) return
                 last = copies
                 const nodes = probe ? [...document.querySelectorAll(probe)] : []
-                log.push({ copies, probe: nodes.map((node) => node.getAttribute('data-count')) })
+                const first = document
+                    .querySelector(`[data-flight-layer] [data-flight="${kind}"]`)
+                    ?.getBoundingClientRect()
+                log.push({
+                    copies,
+                    probe: nodes.map((node) => node.getAttribute('data-count')),
+                    ...(first && {
+                        centre: { x: first.x + first.width / 2, y: first.y + first.height / 2 }
+                    })
+                })
             }).observe(document.body, { childList: true, subtree: true })
         },
         { kind, probe }
     )
 }
 const flightLog = (page: Page) => page.evaluate(() => window.promontoryPointFlightLog)
+
+// Whether a point on screen lies inside an element's box.
+async function inside(page: Page, selector: string, point: { x: number; y: number } | undefined) {
+    const box = await page.locator(selector).first().boundingBox()
+    return (
+        !!box &&
+        !!point &&
+        point.x >= box.x &&
+        point.x <= box.x + box.width &&
+        point.y >= box.y &&
+        point.y <= box.y + box.height
+    )
+}
 
 // The table's pieces and cards a flight hides, all shown again once the state lands.
 const hidden = (page: Page) =>
@@ -138,6 +165,10 @@ test('R-3.1: a bought share flies from its deck to the seat card; the counts cha
     const log = await flightLog(page)
     expect(log.map((entry) => entry.copies)).toEqual([1, 0])
     expect(log[0].probe).toEqual(before)
+    // O-8: it leaves its deck in the strip left of the map.
+    expect(await inside(page, 'svg.board [data-share-deck="railroad.cp"]', log[0].centre)).toBe(
+        true
+    )
     await expect
         .poll(() =>
             seat
@@ -170,8 +201,11 @@ test('R-2.2, R-5: End turn flies the draw from the bag, then the next hand turns
 
     // Three discs leave the bag; then the next seat's discs turn over, two copies each.
     await expect.poll(() => flightLog(page).then((log) => log.at(-1)?.copies)).toBe(0)
-    const counts = (await flightLog(page)).map((entry) => entry.copies)
+    const log = await flightLog(page)
+    const counts = log.map((entry) => entry.copies)
     expect(counts.indexOf(3)).toBeGreaterThanOrEqual(0)
+    // O-8: the draw leaves the bag's card in the strip left of the map.
+    expect(await inside(page, 'svg.board [data-bag]', log[0].centre)).toBe(true)
     expect(counts.indexOf(6)).toBeGreaterThan(counts.indexOf(3))
     await expect(copies(page)).toHaveCount(0)
     await expect.poll(() => hidden(page)).toBe(0)

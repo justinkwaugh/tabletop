@@ -3,10 +3,11 @@
     import { BOARD_GRID, RAILROAD_IDS } from '@tabletop/promontory-point'
     import { mapImage } from '$lib/images/boardImages.js'
     import {
+        BOARD_BOUNDS,
         BORDER_TRACK_SPACES,
         MAP_SIZE,
         PRICE_TRACK_SPACES,
-        SEA_SLOTS,
+        STRIP_SLOTS,
         boxCentre,
         hexCentre,
         hexOutline
@@ -21,10 +22,11 @@
     const priceSlots = PRICE_TRACK_SPACES.flatMap((space) =>
         RAILROAD_IDS.map((railroadId) => space.slots[railroadId])
     )
-    const seaSlots = [
-        SEA_SLOTS.bag,
-        SEA_SLOTS.endTracker,
-        ...RAILROAD_IDS.map((railroadId) => SEA_SLOTS.decks[railroadId])
+    const stripSlots = [
+        STRIP_SLOTS.bag,
+        STRIP_SLOTS.shares,
+        STRIP_SLOTS.endTracker,
+        ...RAILROAD_IDS.map((railroadId) => STRIP_SLOTS.decks[railroadId])
     ]
     const points = (outline: Point[]) => outline.map(({ x, y }) => `${x},${y}`).join(' ')
 </script>
@@ -33,7 +35,7 @@
 
 <div data-game-ui="promontory-point" class="min-h-screen bg-pp-table p-4">
     <svg
-        viewBox="0 0 {MAP_SIZE.width} {MAP_SIZE.height}"
+        viewBox="{BOARD_BOUNDS.x} {BOARD_BOUNDS.y} {BOARD_BOUNDS.width} {BOARD_BOUNDS.height}"
         class="block w-full h-auto"
         data-testid="geometry-overlay"
     >
@@ -69,7 +71,7 @@
             ></rect>
             <circle cx={centre.x} cy={centre.y} r="7" class="dot"></circle>
         {/each}
-        {#each seaSlots as box, i (i)}
+        {#each stripSlots as box, i (i)}
             <rect x={box.x} y={box.y} width={box.width} height={box.height} class="frame sea-slot"
             ></rect>
         {/each}

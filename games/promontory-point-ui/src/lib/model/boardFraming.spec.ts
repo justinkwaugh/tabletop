@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { BoundingBox } from '@tabletop/common'
 import { BOARD_GRID, type SpaceId } from '@tabletop/promontory-point'
-import { HEX, PRICE_TRACK_SPACES, SEA_SLOTS, SPACE_CENTRES } from '$lib/utils/boardGeometry.js'
+import {
+    BOARD_BOUNDS,
+    HEX,
+    PRICE_TRACK_SPACES,
+    SPACE_CENTRES,
+    STRIP_SLOTS
+} from '$lib/utils/boardGeometry.js'
 import {
     BOARD_DRAWN_SCALE,
     FramingCommand,
@@ -13,9 +19,10 @@ import {
     pickFrameMaxScale
 } from './boardFraming.js'
 
+// The drawn surface starts at the strip's left edge, so a map point sits right of it.
 const drawn = (box: BoundingBox): BoundingBox => ({
-    x: box.x * BOARD_DRAWN_SCALE,
-    y: box.y * BOARD_DRAWN_SCALE,
+    x: (box.x - BOARD_BOUNDS.x) * BOARD_DRAWN_SCALE,
+    y: (box.y - BOARD_BOUNDS.y) * BOARD_DRAWN_SCALE,
     width: box.width * BOARD_DRAWN_SCALE,
     height: box.height * BOARD_DRAWN_SCALE
 })
@@ -29,8 +36,8 @@ function overlaps(a: BoundingBox, b: BoundingBox): boolean {
 function centreInside(spaceId: SpaceId, box: BoundingBox): boolean {
     const centre = SPACE_CENTRES.get(spaceId)
     if (centre === undefined) return false
-    const x = centre.x * BOARD_DRAWN_SCALE
-    const y = centre.y * BOARD_DRAWN_SCALE
+    const x = (centre.x - BOARD_BOUNDS.x) * BOARD_DRAWN_SCALE
+    const y = (centre.y - BOARD_BOUNDS.y) * BOARD_DRAWN_SCALE
     return x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height
 }
 
@@ -38,12 +45,13 @@ function centreInside(spaceId: SpaceId, box: BoundingBox): boolean {
 const PHONE_BOARD = { width: 351, height: 430 }
 
 describe('phone board framing (contract, "Phone layout")', () => {
-    it("R-1.1, R-1.1-H3: the hex field holds every space and leaves the sea and the price track's run out", () => {
+    it("R-1.1, R-1.1-H3: the hex field holds every space and leaves the strip and the price track's run out", () => {
         for (const space of BOARD_GRID.spaces()) {
             expect(centreInside(space.spaceId, HEX_FIELD_RECT), space.spaceId).toBe(true)
         }
-        for (const slot of [SEA_SLOTS.bag, ...Object.values(SEA_SLOTS.decks)]) {
+        for (const slot of [STRIP_SLOTS.bag, STRIP_SLOTS.shares, STRIP_SLOTS.endTracker]) {
             expect(overlaps(HEX_FIELD_RECT, drawn(slot))).toBe(false)
+            expect(drawn(slot).x + drawn(slot).width).toBeLessThan(HEX_FIELD_RECT.x)
         }
         // The track's last spaces turn along the coast under the field's corner; the run is clear.
         for (const space of PRICE_TRACK_SPACES.filter((track) => track.priceIndex >= 7)) {

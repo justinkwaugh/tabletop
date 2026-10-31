@@ -173,24 +173,57 @@ export const BORDER_TRACK_SPACES: readonly BorderTrackSpace[] = borderBoxes().ma
     (space, value) => ({ value, box: space, sharingSlots: quarters(space) })
 )
 
-export type SeaSlots = {
+// O-8: the bag, the share decks and the end tracker sit in a strip directly left of the map,
+// inside the board's one scaled surface, so full screen, the phone's panning view and the
+// flight layer keep a single set of coordinates. The strip is about 0.18 of the map's width and
+// its boxes are in map units, left of the map's x = 0.
+export const STRIP_WIDTH = 650
+export const STRIP_GAP = 40
+
+// The whole drawn board: the strip, the gap and the map.
+export const BOARD_BOUNDS: BoundingBox = {
+    x: -(STRIP_WIDTH + STRIP_GAP),
+    y: 0,
+    width: MAP_SIZE.width + STRIP_WIDTH + STRIP_GAP,
+    height: MAP_SIZE.height
+}
+
+export type StripSlots = {
+    // The three paper cards, top to bottom.
     bag: BoundingBox
+    shares: BoundingBox
     endTracker: BoundingBox
+    // Each deck inside the shares card, a 2×2 grid in railroad order.
     decks: Readonly<Record<RailroadId, BoundingBox>>
 }
 
-const DECK_SIZE: RectangleDimensions = { width: 124, height: 193 }
-const DECK_ORIGINS: Record<RailroadId, Point> = {
-    'railroad.cp': { x: 643, y: 744 },
-    'railroad.up': { x: 788, y: 744 },
-    'railroad.kp': { x: 643, y: 964 },
-    'railroad.sp': { x: 788, y: 964 }
+// The supplied share face is 675 × 1050.
+const DECK_SIZE: RectangleDimensions = { width: 265, height: 412 }
+const STRIP_PADDING = 40
+const DECK_GRID = { top: 140, columnGap: 40, rowGap: 70 }
+const SHARES_CARD: BoundingBox = { x: BOARD_BOUNDS.x, y: 400, width: STRIP_WIDTH, height: 1090 }
+
+function deckBox(column: number, row: number): BoundingBox {
+    return {
+        x: SHARES_CARD.x + STRIP_PADDING + column * (DECK_SIZE.width + DECK_GRID.columnGap),
+        y: SHARES_CARD.y + DECK_GRID.top + row * (DECK_SIZE.height + DECK_GRID.rowGap),
+        ...DECK_SIZE
+    }
 }
 
-// R-1.3, O-8: the share decks, the bag and the end tracker in the open sea right of the price
-// track, inside the measured coast.
-export const SEA_SLOTS: SeaSlots = {
-    bag: { x: 642, y: 225, width: 140, height: 170 },
-    endTracker: { x: 645, y: 1270, width: 380, height: 250 },
-    decks: perRailroad((railroadId) => ({ ...DECK_ORIGINS[railroadId], ...DECK_SIZE }))
+const DECK_CELLS: Record<RailroadId, [number, number]> = {
+    'railroad.cp': [0, 0],
+    'railroad.up': [1, 0],
+    'railroad.kp': [0, 1],
+    'railroad.sp': [1, 1]
+}
+
+// The bag card's count, from the card's top; draws leave the bag here.
+export const BAG_COUNT_Y = 185
+
+export const STRIP_SLOTS: StripSlots = {
+    bag: { x: BOARD_BOUNDS.x, y: 0, width: STRIP_WIDTH, height: 360 },
+    shares: SHARES_CARD,
+    endTracker: { x: BOARD_BOUNDS.x, y: 1530, width: STRIP_WIDTH, height: 420 },
+    decks: perRailroad((railroadId) => deckBox(...DECK_CELLS[railroadId]))
 }

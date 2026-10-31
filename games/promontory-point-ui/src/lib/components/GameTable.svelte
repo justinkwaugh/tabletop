@@ -34,6 +34,8 @@
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import Oswald500 from '$lib/fonts/Oswald-500.woff2'
     import Oswald600 from '$lib/fonts/Oswald-600.woff2'
+    import Caslon400 from '$lib/fonts/LibreCaslonText-400.woff2'
+    import Caslon400Italic from '$lib/fonts/LibreCaslonText-400-italic.woff2'
 
     let {
         gameSession
@@ -93,6 +95,20 @@
 
 <CustomFont fontFamily="Oswald" url={Oswald500} format="woff2" fontWeight={500} />
 <CustomFont fontFamily="Oswald" url={Oswald600} format="woff2" fontWeight={600} />
+<CustomFont
+    fontFamily="Libre Caslon Text"
+    url={Caslon400}
+    format="woff2"
+    fontWeight={400}
+    fontStyle="normal"
+/>
+<CustomFont
+    fontFamily="Libre Caslon Text"
+    url={Caslon400Italic}
+    format="woff2"
+    fontWeight={400}
+    fontStyle="italic"
+/>
 
 <div class="bg-pp-table">
     <DefaultTableLayout>

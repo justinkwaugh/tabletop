@@ -1,6 +1,6 @@
 import type { BoundingBox } from '@tabletop/common'
 import type { RailroadId, SpaceId } from '@tabletop/promontory-point'
-import { MAP_SIZE } from '$lib/utils/boardGeometry.js'
+import { BOARD_BOUNDS } from '$lib/utils/boardGeometry.js'
 import type { Flights, Hideable, ScreenRect } from './flights.svelte.js'
 
 // A thing on the table where a flight starts or ends: its element and where it is on screen.
@@ -160,10 +160,11 @@ export class DomFlightStage implements FlightStage {
         const board = this.shown('svg.board').at(0)
         const rect = board && screenRect(board)
         if (!rect) return undefined
-        const scale = rect.width / MAP_SIZE.width
+        // The drawn board starts at the strip's left edge, left of the map's x = 0.
+        const scale = rect.width / BOARD_BOUNDS.width
         return {
-            left: rect.left + box.x * scale,
-            top: rect.top + box.y * scale,
+            left: rect.left + (box.x - BOARD_BOUNDS.x) * scale,
+            top: rect.top + (box.y - BOARD_BOUNDS.y) * scale,
             width: box.width * scale,
             height: box.height * scale
         }

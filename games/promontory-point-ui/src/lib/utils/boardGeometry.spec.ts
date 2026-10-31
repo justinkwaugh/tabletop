@@ -9,7 +9,10 @@ import {
     MAP_SIZE,
     PRICE_TRACK_SPACES,
     SPACE_CENTRES,
-    SEA_SLOTS,
+    BOARD_BOUNDS,
+    STRIP_GAP,
+    STRIP_SLOTS,
+    STRIP_WIDTH,
     boxCentre,
     hexCentre
 } from './boardGeometry.js'
@@ -71,14 +74,16 @@ const borderBoxes = BORDER_TRACK_SPACES.map((space) => ({
     box: space.box
 }))
 
-const seaBoxes = [
-    { name: 'bag', box: SEA_SLOTS.bag },
-    { name: 'end tracker', box: SEA_SLOTS.endTracker },
-    ...RAILROAD_IDS.map((railroadId) => ({
-        name: `deck ${railroadId}`,
-        box: SEA_SLOTS.decks[railroadId]
-    }))
+const stripCards = [
+    { name: 'bag', box: STRIP_SLOTS.bag },
+    { name: 'shares', box: STRIP_SLOTS.shares },
+    { name: 'end tracker', box: STRIP_SLOTS.endTracker }
 ]
+
+const deckBoxes = RAILROAD_IDS.map((railroadId) => ({
+    name: `deck ${railroadId}`,
+    box: STRIP_SLOTS.decks[railroadId]
+}))
 
 describe('hex centres (R-1.1, R-1.1-H3)', () => {
     it('places every space in the board data and names no other', () => {
@@ -105,12 +110,12 @@ describe('hex centres (R-1.1, R-1.1-H3)', () => {
         }
     })
 
-    it('keeps every hex on the map, clear of the tracks and the sea slots', () => {
+    it('keeps every hex on the map, clear of the tracks', () => {
         const centres = [...SPACE_CENTRES.values(), ...Object.values(HOME_HEX_CENTRES)]
         for (const centre of centres) {
             const box = hexBox(centre)
             expect(contains(MAP_BOX, box)).toBe(true)
-            for (const other of [...priceSlotBoxes, ...borderBoxes, ...seaBoxes]) {
+            for (const other of [...priceSlotBoxes, ...borderBoxes]) {
                 expect(overlaps(box, other.box), other.name).toBe(false)
             }
         }
@@ -214,11 +219,38 @@ describe('border track (R-1.3-H1)', () => {
     })
 })
 
-describe('sea slots: decks, bag and end tracker (R-1.3, O-8)', () => {
-    it('sits on the map, clear of both tracks, with nothing overlapping', () => {
-        for (const { name, box } of seaBoxes) {
-            expect(contains(MAP_BOX, box), name).toBe(true)
+describe('the strip left of the map: bag, decks and end tracker (R-1.3, O-8)', () => {
+    const STRIP: BoundingBox = {
+        x: BOARD_BOUNDS.x,
+        y: 0,
+        width: STRIP_WIDTH,
+        height: MAP_SIZE.height
+    }
+
+    it('spans the strip, the gap and the map, and nothing more', () => {
+        expect(BOARD_BOUNDS.x).toBe(-(STRIP_WIDTH + STRIP_GAP))
+        expect(BOARD_BOUNDS.x + BOARD_BOUNDS.width).toBe(MAP_SIZE.width)
+        expect(BOARD_BOUNDS.height).toBe(MAP_SIZE.height)
+        expect(STRIP_WIDTH / MAP_SIZE.width).toBeCloseTo(0.18, 1)
+    })
+
+    it('stacks its three cards in the strip, off the map, top to bottom without overlap', () => {
+        for (const { name, box } of [...stripCards, ...deckBoxes]) {
+            expect(contains(STRIP, box), name).toBe(true)
+            expect(overlaps(MAP_BOX, box), name).toBe(false)
         }
-        expect(overlappingPairs([...seaBoxes, ...priceSlotBoxes, ...borderBoxes])).toEqual([])
+        expect(overlappingPairs(stripCards)).toEqual([])
+        const tops = stripCards.map(({ box }) => box.y)
+        expect(tops).toEqual([...tops].sort((a, b) => a - b))
+    })
+
+    it('lays the four decks in a 2×2 grid inside the shares card, each the share face’s shape', () => {
+        for (const { name, box } of deckBoxes) {
+            expect(contains(STRIP_SLOTS.shares, box), name).toBe(true)
+            expect(box.height / box.width, name).toBeCloseTo(1050 / 675, 2)
+        }
+        expect(overlappingPairs(deckBoxes)).toEqual([])
+        expect(new Set(deckBoxes.map(({ box }) => box.x)).size).toBe(2)
+        expect(new Set(deckBoxes.map(({ box }) => box.y)).size).toBe(2)
     })
 })
