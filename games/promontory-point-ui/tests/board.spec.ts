@@ -117,6 +117,23 @@ test('contract, "Hover preview": a mouse hover or keyboard focus on a hand piece
     await expect(previewed).toHaveCount(0)
 })
 
+test('contract, "Hover preview": a click moving focus to another piece keeps the hover the pointer set there', async ({
+    page
+}) => {
+    await createGame(page)
+    const railroads = await page
+        .locator('[data-turn-piece]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-turn-piece')))
+    const second = railroads.find((railroadId) => railroadId !== railroads[0])
+    expect(second).toBeDefined()
+    const hovered = () => page.evaluate(() => window.promontoryPointBoardSession.hoveredPiece)
+    await page.locator(`[data-turn-piece="${railroads[0]}"]`).first().click()
+    await page.locator(`[data-turn-piece="${second}"]`).first().click()
+    expect(await hovered()).toBe(second)
+    await page.mouse.move(0, 0)
+    expect(await hovered()).toBeUndefined()
+})
+
 test('R-3.3: a press on a lit hex places the piece with its order badge', async ({ page }) => {
     await createGame(page)
     const [target] = await pickFirstPiece(page)

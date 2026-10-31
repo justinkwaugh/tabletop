@@ -26,6 +26,20 @@
             gameSession.hoverPiece(railroadId)
         }
     }
+
+    // A click on another piece blurs this one after the pointer's hover set the preview there,
+    // so blur keeps a preview the pointer still holds.
+    function blur(event: FocusEvent) {
+        const group =
+            event.currentTarget instanceof Element ? event.currentTarget.parentElement : null
+        const pointed = group?.querySelector<HTMLElement>('[data-turn-piece]:hover')
+        if (
+            pointed?.dataset.turnPiece === undefined ||
+            pointed.dataset.turnPiece !== gameSession.hoveredPiece
+        ) {
+            gameSession.hoverPiece(undefined)
+        }
+    }
 </script>
 
 {#snippet piece(railroadId: RailroadId, radius: number)}
@@ -64,7 +78,7 @@
                 onpointerenter={(event) => hover(event, turnPiece.railroadId)}
                 onpointerleave={(event) => hover(event, undefined)}
                 onfocus={(event) => focus(event, turnPiece.railroadId)}
-                onblur={() => gameSession.hoverPiece(undefined)}
+                onblur={blur}
             >
                 {@render piece(turnPiece.railroadId, PIECE_RADIUS)}
                 <span>
