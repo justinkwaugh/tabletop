@@ -306,6 +306,29 @@ describe('Repairs draft — lifetime, privacy and the placer’s Undo (R-4.3-H4,
         expect(staged(session)).toEqual([])
     })
 
+    it('R-4.3: staged sales stay when the history behind the Repairs loads', async () => {
+        const { session } = await placedOnRepairs(shortByThree())
+        const reopened = await openSessionOn({
+            game: session.game,
+            state: canonical(session.gameState.dehydrate()),
+            actions: [],
+            historyComplete: false
+        })
+        reopened.stageRepairsSale(SP)
+        // The host's answer to the history request: the complete context the first session holds.
+        type WithHistory = {
+            gameContext: unknown
+            loadRecoveryContext: () => Promise<unknown>
+        }
+        const complete = (session as unknown as WithHistory).gameContext
+        vi.spyOn(reopened as unknown as WithHistory, 'loadRecoveryContext').mockResolvedValue(
+            complete
+        )
+        await reopened.loadHistory()
+        expect(reopened.actions.length).toBe(session.actions.length)
+        expect(staged(reopened)).toEqual([SP])
+    })
+
     it('R-4.3: a send while an earlier action is still with the host keeps the staged sales', async () => {
         const { session } = await placedOnRepairs(shortByThree())
         session.stageRepairsSale(SP)

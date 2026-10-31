@@ -43,11 +43,7 @@ import {
     type RepairsDraft,
     type RepairsDraftView
 } from './repairsDraft.js'
-import {
-    repairsPlacementBeingDecided,
-    repairsTownBeingDecided,
-    thisTurnPlacements
-} from './thisTurn.js'
+import { repairsTownBeingDecided, thisTurnPlacements } from './thisTurn.js'
 import {
     emptyTurnDraft,
     piecePick,
@@ -140,9 +136,12 @@ export class PromontoryPointGameSession extends GameSession<
             if (pending === undefined || debtor === undefined || debtor.playerId !== playerId) {
                 return undefined
             }
-            const placement = repairsPlacementBeingDecided(this.gameState, this.actions)
+            // The placement that billed it, from the state: the turn's start and its placement
+            // count. The Actions may still be loading (docs/request-performance.md).
+            const turnStart = this.gameState.turnManager.currentTurn()?.start
+            const placement = this.gameState.turn?.placementsMade
             return {
-                key: `${debtor.playerId}:${placement?.id}`,
+                key: `${debtor.playerId}:${turnStart}:${placement}`,
                 decision: {
                     railroadId: pending.railroadId,
                     owed: debtor.owed,
