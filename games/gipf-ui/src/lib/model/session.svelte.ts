@@ -193,6 +193,12 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         this.selection = setGipfSelection(this.selection, 'dot', same ? undefined : dot)
     }
 
+    // Tapping where there is nothing to choose lets go of a chosen dot.
+    letGo() {
+        if (this.chosenDot === undefined) return
+        this.selection = setGipfSelection(this.selection, 'dot', undefined)
+    }
+
     // A piece can belong to two crossing rows; choosing it again moves to the next one.
     chooseRowAt(coords: AxialCoordinates) {
         const containing = this.rows.filter((row) => includesCoords(row.reach, coords))

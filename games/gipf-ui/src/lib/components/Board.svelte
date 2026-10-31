@@ -93,6 +93,14 @@
         return includesCoords(session.entryDots, coords)
     }
 
+    // A tap on nothing you can choose lets go of what is chosen.
+    function onBoardClick(event: MouseEvent) {
+        const target = event.target
+        if (!(target instanceof Element)) return
+        if (target.closest('[role="button"]:not([aria-disabled="true"])')) return
+        session.letGo()
+    }
+
     function isChosenDot(coords: AxialCoordinates) {
         return session.chosenDot !== undefined && sameCoordinates(session.chosenDot, coords)
     }
@@ -148,6 +156,8 @@
     })()
 </script>
 
+<!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <svg
     class="gipf-board"
     viewBox={frame.viewBox}
@@ -155,6 +165,7 @@
     height={frame.height}
     role="group"
     aria-label="GIPF board"
+    onclick={onBoardClick}
     {@attach animator.attach}
 >
     <defs>
@@ -215,6 +226,7 @@
                 ry={DOT_RADIUS * 2.4 * view.tilt}
                 class="dot-ring"
                 class:chosen={isChosenDot(coords)}
+                class:faded={session.chosenDot !== undefined && !isChosenDot(coords)}
                 class:hovered={hoveredDot === coordsKey(coords)}
             ></ellipse>
         {/each}
@@ -401,6 +413,10 @@
 
     .dot-ring.hovered {
         fill: rgb(240 176 74 / 0.3);
+    }
+
+    .dot-ring.faded {
+        opacity: 0.4;
     }
 
     .dot-ring.chosen {

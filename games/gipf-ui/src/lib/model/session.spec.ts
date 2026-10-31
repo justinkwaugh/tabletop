@@ -246,6 +246,19 @@ describe('Choosing the piece type', () => {
     })
 })
 
+describe('Letting go', () => {
+    it('takes the piece off its dot, GIPF-piece or single, without undoing any action', async () => {
+        const session = await whiteSession()
+        session.chooseDot(DOT)
+        session.toggleGipf()
+
+        session.letGo()
+        expect(session.chosenDot).toBeUndefined()
+        expect(session.hasManualSelection()).toBe(false)
+        expect(session.gameState.actionCount).toBe(2)
+    })
+})
+
 describe('Stepping through history', () => {
     it('records the push stepped to, which names the dot its piece came in from', async () => {
         const session = await whiteSession()

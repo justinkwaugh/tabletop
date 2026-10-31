@@ -2,17 +2,17 @@
 
 ## 1. Visual Intents
 
-| Intent       | Trigger                                                                                   | What should be emphasized                                                                    | What should be dimmed | What must remain unaffected       |
-| ------------ | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | --------------------- | --------------------------------- |
-| choose_piece | Tournament, while both a single and a GIPF-piece may be brought in                        | Piece-type buttons in the action panel; the chosen one                                       | Nothing               | Board                             |
-| choose_dot   | A piece type is chosen and the viewer may push                                            | Every dot with a legal push (orange)                                                         | Nothing               | Pieces                            |
-| choose_line  | A dot is chosen                                                                           | The chosen dot (ringed); an arrow and dashed target ring on each first spot it can push into | Nothing               | Other dots stay orange            |
-| choose_row   | The viewer has rows to take (all while resolving; only rows of GIPF-pieces before a move) | Every piece in a row's reach (dashed red ring)                                               | Nothing               | Dots, targets                     |
-| shape_row    | A row is chosen                                                                           | Pieces to be taken (solid red ring), GIPF-pieces kept (green ring)                           | Nothing               | Other rows keep their dashed ring |
+| Intent       | Trigger                                                                                   | What should be emphasized                                                                    | What should be dimmed   | What must remain unaffected       |
+| ------------ | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------- | --------------------------------- |
+| choose_piece | Tournament, while both a single and a GIPF-piece may be brought in                        | Piece-type buttons in the action panel; the chosen one                                       | Nothing                 | Board                             |
+| choose_dot   | A piece type is chosen and the viewer may push                                            | Every dot with a legal push (orange)                                                         | Nothing                 | Pieces                            |
+| choose_line  | A dot is chosen                                                                           | The chosen dot (ringed); an arrow and dashed target ring on each first spot it can push into | Other dots' rings (40%) | Pieces                            |
+| choose_row   | The viewer has rows to take (all while resolving; only rows of GIPF-pieces before a move) | Every piece in a row's reach (dashed red ring)                                               | Nothing                 | Dots, targets                     |
+| shape_row    | A row is chosen                                                                           | Pieces to be taken (solid red ring), GIPF-pieces kept (green ring)                           | Nothing                 | Other rows keep their dashed ring |
 
 ## 2. Visual Primitives
 
-- **Entry dot** (`Board.svelte`, `.dot.entry`, `.dot.chosen`): inputs `session.entryDots`, `session.chosenDot`.
+- **Entry dot** (`Board.svelte`, `.dot.entry`, `.dot.chosen`): once a dot is chosen, the other dots' rings fade (`.dot-ring.faded`, 40%). Inputs `session.entryDots`, `session.chosenDot`.
 - **Push target** (`Board.svelte`, `.target`): arrow from the chosen dot and a dashed ring on the first spot. Inputs `session.targets`.
 - **Row mark** (`Board.svelte`, on a layer above the pieces, drawn on each piece's top face so no mark reaches a neighbour): a dashed red ring just inside the face for a row you can choose (`.row-mark.role-row`); once a row is chosen, a spot on each piece (`.mark-spot`, red going, green kept), and on your own GIPF-pieces the crown ring recoloured and thickened (`.crown-mark`) for keep or take. Opponent GIPF-pieces are always taken in the UI. Positions come from `board/pieceGeometry.ts`. Inputs `session.rows`, `session.removing`, `session.keep`, `session.rowGipfPieces`.
 - **Piece** (`PieceShape.svelte`, layout in `board/pieceGeometry.ts`): flat-lit disc with its side showing; a GIPF-piece is two same-size discs, the top raised with a dark gap band between their edges and a crown ring. Colour comes from the owner's player colour. Never carries interaction state.
@@ -32,7 +32,7 @@
 
 - **Animation scope**: the board animates only `own-action`, `other-action`, `undo`, `history` and `exploration` transitions; page loads, server syncs and view switches show the board at rest. Without an action (undo, state-only history) the animator reads a push from the two boards (`board/inferPush.ts`) and slides the line forward or back, the pushed piece returning to its dot on the way back; otherwise pieces whose spot is left empty fade. All within 0.18s. The drop-in of the piece you are about to bring in, onto the chosen dot, is a local Svelte transition: it explains a staged choice, not a committed move.
 
-- **Staged selection** (`selection`: `gipf`, `dot`, `row`, `keep`): manual choices only; single options (one piece type, one row that must be taken) are derived, never stored, so Undo skips them. Cleared in `beforeNewState` for every presented transition.
+- **Staged selection** (`selection`: `gipf`, `dot`, `row`, `keep`): manual choices only; single options (one piece type, one row that must be taken) are derived, never stored, so Undo skips them. Cleared in `beforeNewState` for every presented transition. A tap on the board that misses every enabled `role="button"` lets go of a chosen dot (`letGo`); rows and keep toggles are left alone.
 - **Target lists**: derived from the displayed state; empty when the viewer cannot act, including in History View.
 
 ## 5. Forbidden Couplings
@@ -49,7 +49,7 @@
 
 ## 7. Regression Checklist
 
-- Push: dot shows arrows; tapping an arrow pushes the chain one spot.
+- Push: dot shows arrows and the other dots fade; tapping an arrow pushes the chain one spot; tapping off the choices on the board lets go of the dot.
 - Rows: dashed marks on every row; choosing one turns its marks solid; tapping its GIPF-pieces toggles keep.
 - Crossing rows: tapping the shared piece again switches row.
 - History View: no marks or targets.
