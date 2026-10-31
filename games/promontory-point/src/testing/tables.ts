@@ -1,7 +1,8 @@
 import { GameStatus, PlayerStatus, assert, type Game, type GameConfig } from '@tabletop/common'
 import type { PositionSetUp } from '@tabletop/common/testing'
-import { BoardNodeKind } from '../components/board.js'
+import { BOARD_GRID, BoardNodeKind, PROMONTORY, type SpaceId } from '../components/board.js'
 import type { RailroadId } from '../components/railroads.js'
+import { isRedTile } from '../components/townTiles.js'
 import { Definition } from '../definition/definition.js'
 import {
     HydratedPromontoryPointGameState,
@@ -14,7 +15,8 @@ import {
     withBoxedIn,
     withHoldings,
     withPriceIndex,
-    withTownsOpenTo
+    withTownsOpenTo,
+    withTrack
 } from './fixtures.js'
 import { placeOnOpenCountry } from './play.js'
 import { TEST_MASTER_SEED, canonical, engine, variantConfig } from './startGame.js'
@@ -105,6 +107,30 @@ function repairsTable(spPriceIndex: number, holdings: Holding[]): Table {
             holdings
         )
     )
+}
+
+// R-6.1, R-6.1-H1: Promontory taken and every red tile covered but the two left uncovered, the
+// covering pieces taken from the bag in turn from the railroads given.
+function withRedTilesCoveredBut(
+    state: PromontoryPointGameState,
+    uncovered: SpaceId[],
+    railroadIds: RailroadId[]
+): PromontoryPointGameState {
+    const covered = BOARD_GRID.spaces()
+        .map((space) => space.spaceId)
+        .filter((spaceId) => {
+            const kindId = state.towns[spaceId]
+            return (
+                kindId !== undefined &&
+                isRedTile(kindId) &&
+                !(spaceId in state.track) &&
+                !uncovered.includes(spaceId)
+            )
+        })
+    const placements: [SpaceId, RailroadId][] = [...covered, PROMONTORY.spaceId].map(
+        (spaceId, index) => [spaceId, railroadIds[index % railroadIds.length]]
+    )
+    return withTrack(state, placements)
 }
 
 // The tables the contract's verification scenarios open on, by file name.
@@ -249,6 +275,85 @@ export const TABLE_FIXTURES = {
                 { money: 20, shares: { [SP]: 1 } },
                 { money: 20 }
             ])
+    },
+    // Scenario 23: selling the UP share at $5 takes Mara from $97 past 99 to $102.
+    'money-wrap': {
+        about: 'Mara has $97 and one UP share at $5.',
+        build: () =>
+            editedTable(dealt(), (state) =>
+                withHoldings(withTurnPieces(state, [CP, UP, KP]), [
+                    { money: 97, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } },
+                    { money: 20, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } },
+                    { money: 20, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } },
+                    { money: 20, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } }
+                ])
+            )
+    },
+    // Scenario 24, checked by hand: two pairs of seats on two money spaces, and two pairs of
+    // railroads at two prices.
+    'shared-spaces': {
+        about: 'Mara and Royce have $20, Ines and Tobias $12; CP and UP are at $7, KP and SP at $5.',
+        build: () =>
+            editedTable(dealt(), (state) =>
+                withPriceIndex(
+                    withPriceIndex(
+                        withHoldings(withTurnPieces(state, [CP, UP, KP]), [
+                            { money: 20, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } },
+                            { money: 20, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } },
+                            { money: 12, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } },
+                            { money: 12, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } }
+                        ]),
+                        CP,
+                        11
+                    ),
+                    UP,
+                    11
+                )
+            )
+    },
+    // Scenarios 25 (checked by hand) and 29: CP on the Dividend town covers the next to last red
+    // tile, so the turn ends the game. After the Dividend Mara and Royce tie at $34.
+    'two-red-tiles-left': {
+        about: 'Promontory is taken and two red tiles are uncovered; Central Pacific track runs to one, a Dividend town.',
+        build: () =>
+            editedTable(dealt(), (state) => {
+                const open = withTownsOpenTo(withTurnPieces(state, [CP, UP, KP]), CP, [
+                    'tile.red.dividend'
+                ])
+                const otherRed = BOARD_GRID.spaces()
+                    .map((space) => space.spaceId)
+                    .find((spaceId) => {
+                        const kindId = open.state.towns[spaceId]
+                        return (
+                            kindId !== undefined &&
+                            isRedTile(kindId) &&
+                            !open.spaceIds.includes(spaceId)
+                        )
+                    })
+                assert(otherRed !== undefined, 'A second red town')
+                return withHoldings(
+                    withRedTilesCoveredBut(open.state, [...open.spaceIds, otherRed], [UP, KP, SP]),
+                    [
+                        { money: 20, shares: { [CP]: 2 } },
+                        { money: 27, shares: { [CP]: 1 } },
+                        { money: 12, shares: { [UP]: 1 } },
+                        { money: 14, shares: { [KP]: 1 } }
+                    ]
+                )
+            })
+    },
+    // Scenario 29: two pieces left in the bag, so the end-of-turn draw empties it.
+    'bag-running-out': {
+        about: 'Two pieces are left in the bag; Ines has the most money.',
+        build: () =>
+            editedTable(dealt(), (state) =>
+                withHoldings(withBagLeft(withTurnPieces(state, [CP, UP, KP]), 2), [
+                    { money: 20, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } },
+                    { money: 20, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } },
+                    { money: 31, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } },
+                    { money: 20, shares: { [CP]: 1, [UP]: 1, [KP]: 1, [SP]: 1 } }
+                ])
+            )
     }
 } satisfies Record<string, TableFixture>
 

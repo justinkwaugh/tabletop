@@ -70,7 +70,7 @@
                                             gameSession.stageRepairsSale(entry.railroadId)}
                                         ><span class="max-sm:hidden"
                                             >Sell one <small>{entry.sellLabel}</small></span
-                                        ><span class="phone-sell sm:hidden"
+                                        ><span class="phone-sell"
                                             ><span>{entry.short}</span><small
                                                 >{entry.stagedNote ??
                                                     `${entry.sellLabel} each`}</small
@@ -119,12 +119,19 @@
         color: var(--pp-text);
     }
 
+    /* A phone's label only: a component rule would override Tailwind's sm:hidden. */
     .phone-sell {
-        display: flex;
+        display: none;
         width: 100%;
         align-items: baseline;
         justify-content: space-between;
         gap: 6px;
+    }
+
+    @media (width < 40rem) {
+        .phone-sell {
+            display: flex;
+        }
     }
 
     /* Contract, "Phone layout": the running line and the send on one row, the notes under it. */

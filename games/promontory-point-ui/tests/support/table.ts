@@ -22,6 +22,10 @@ export type TableName =
     | 'Repairs one short'
     | 'Repairs two short'
     | 'Repairs short after everything'
+    | 'Money wrap'
+    | 'Shared spaces'
+    | 'Two red tiles left'
+    | 'Bag running out'
 
 // The invented seats every table deals, in turn order.
 export type SeatName = 'Mara' | 'Royce' | 'Ines' | 'Tobias'
