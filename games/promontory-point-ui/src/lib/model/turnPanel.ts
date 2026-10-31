@@ -78,8 +78,8 @@ const TURN_STATES: readonly MachineState[] = [
     MachineState.TradingAfterPlacing
 ]
 
-// R-2.2-H1: trading reopens after the turn's last placement, fewer than three when the bag ran
-// short (R-6.1-H2) or emptied before a replacement (R-3.3-H1).
+// R-2.2-H1: trading reopens after the turn's last placement, the second when a piece is set
+// aside with the bag empty (R-3.3-H1), or the first after two.
 const ORDINALS = ['first', 'second', 'third'] as const
 
 function lastPieceOrdinal(turn: TurnState): string {

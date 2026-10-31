@@ -82,7 +82,7 @@ A press on a share stack enlarges that share card. The name opens the seat at a 
 
 - **Stage 1, the piece** (panel): a press on a hand piece picks it; pressing it again unpicks it; pressing another piece switches. When every piece left in hand is of one railroad, the piece is auto-picked (`auto`).
 - **Stage 2, the hex** (board): the picked railroad's legal hexes light: empty, and next to its home or one of its pieces (R-3.3). The board dims. Chips per O-3. A press on a lit hex sends `PlaceTrack`; the piece lands and the town resolves at once, inside the same Action (R-3.3, R-4.2).
-- The panel reads "Place piece 2 of 3. Tap a lit hex for Kansas Pacific." The share block stays in view, locked: "Buying and selling open again after your third piece" (R-2.2-H1), naming the second or first when the turn places fewer (R-6.1-H2, or a set-aside with the bag empty).
+- The panel reads "Place piece 2 of 3. Tap a lit hex for Kansas Pacific." The share block stays in view, locked: "Buying and selling open again after your third piece" (R-2.2-H1), naming the second or first when a set-aside with the bag empty leaves the turn fewer placements (R-3.3-H1).
 - Placing is undoable within the turn until a draw (R-X.2). Undo after a placement removes the piece and reverses its town's effect.
 
 ### No room for a piece (`ScrapTrack`)
