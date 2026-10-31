@@ -6,7 +6,7 @@
         scaleAxial,
         type AxialCoordinates
     } from '@tabletop/common'
-    import { AXES, PieceKind } from '@tabletop/matrx'
+    import { AXES, PieceKind, type Entry } from '@tabletop/matrx'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import {
@@ -500,32 +500,60 @@
         {/each}
     {/if}
 
-    <!-- Arrows and the targets' click areas stand above the pieces, nearer ones last. -->
-    <g {@attach animator.marks()}>
-        {#each session.targets as entry (coordsKey(entry.line[0]))}
-            {@const center = view.center(entry.line[0])}
-            {@const key = coordsKey(entry.line[0])}
-            <g
-                class="target"
-                role="button"
-                tabindex="0"
-                aria-label="push to {session.notation.name(entry.line[0])}"
-                onclick={() => session.push(entry.line[0])}
-                onkeydown={(event) => onKey(event, () => session.push(entry.line[0]))}
-                onpointerenter={(event) => {
-                    if (event.pointerType !== 'touch') hoveredTarget = key
-                }}
-                onpointerleave={() => (hoveredTarget = undefined)}
-                onfocus={() => (hoveredTarget = key)}
-                onblur={() => (hoveredTarget = undefined)}
-            >
+    <!-- Arrows and the targets' click areas stand above the pieces, nearer ones last: the
+         stack standing on the chosen dot over the click areas of the spots it pushes into, and
+         the arrows over that. Tapping the stack is tapping its dot. -->
+    {#snippet pushTarget(entry: Entry, part: 'area' | 'arrow')}
+        {@const center = view.center(entry.line[0])}
+        {@const key = coordsKey(entry.line[0])}
+        <g
+            class="target"
+            role="button"
+            tabindex={part === 'area' ? 0 : -1}
+            aria-label={part === 'area'
+                ? `push to ${session.notation.name(entry.line[0])}`
+                : undefined}
+            aria-hidden={part === 'arrow' ? 'true' : undefined}
+            onclick={() => session.push(entry.line[0])}
+            onkeydown={(event) => onKey(event, () => session.push(entry.line[0]))}
+            onpointerenter={(event) => {
+                if (event.pointerType !== 'touch') hoveredTarget = key
+            }}
+            onpointerleave={() => (hoveredTarget = undefined)}
+            onfocus={() => (hoveredTarget = key)}
+            onblur={() => (hoveredTarget = undefined)}
+        >
+            {#if part === 'area'}
                 <path
                     d={outline(stackHeight(entry.line[0]))}
                     transform="translate({center.x} {center.y})"
                     class="target-hit"
                 ></path>
+            {:else}
                 <path d={arrow(entry.dot, entry.line[0])} class="arrow"></path>
-            </g>
+            {/if}
+        </g>
+    {/snippet}
+    <g {@attach animator.marks()}>
+        {#each session.targets as entry (coordsKey(entry.line[0]))}
+            {@render pushTarget(entry, 'area')}
+        {/each}
+        {#if preview && session.chosenDot !== undefined}
+            {@const dot = session.chosenDot}
+            {@const center = view.center(dot)}
+            <path
+                d={outline(preview.discs.length)}
+                transform="translate({center.x} {center.y})"
+                class="target-hit target"
+                role="button"
+                tabindex="-1"
+                aria-label="stack on {session.notation.name(dot)}"
+                onclick={() => session.chooseDot(dot)}
+                onkeydown={(event) => onKey(event, () => session.chooseDot(dot))}
+            ></path>
+        {/if}
+        {#each session.targets as entry (coordsKey(entry.line[0]))}
+            {@render pushTarget(entry, 'arrow')}
         {/each}
         {#each session.moveTargets.toSorted((a, b) => view.center(a).y - view.center(b).y) as coords (coordsKey(coords))}
             {@const center = view.center(coords)}

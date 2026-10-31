@@ -15,7 +15,7 @@
 ## 2. Visual Primitives
 
 - **Entry dot** (`Board.svelte`, `.dot.entry`, `.dot-ring`): inputs `session.entryDots`, `session.chosenDot`.
-- **Push target** (`Board.svelte`, `.target`): arrow from the chosen dot and a dashed ring on the first spot. Inputs `session.targets`.
+- **Push target** (`Board.svelte`, `.target`): arrow from the chosen dot and a dashed ring on the first spot. Inputs `session.targets`. Click areas, bottom up: each first spot's (the stack there), then the stack staged on the chosen dot (nearer, so it covers them), then the arrows.
 - **Move target** (`Board.svelte`): a dashed ring on an empty landing spot, or on the top face of a stack to cover; a click area the height of the stack there. Inputs `session.moveTargets`.
 - **Stack ring** (`Board.svelte`, `.top-ring`, on each stack's top face, after the stack and outside the node that moves it): `role-movable` solid amber, `role-chosen` thicker amber, `role-target` dashed amber, `role-row` dashed red; broken where it would cover the top disc's mark (`markGaps`), dashes fitted whole to each arc. Once a stack or dot is chosen, the other movable stacks' rings and the dot rings fade (`.faded`, 40%). Inputs `session.movable`, `session.chosenFrom`, `session.chosenDot`, `session.rows`.
 - **Row marks** (`.mark-spot`, `.toggle-ring`): once a row is chosen, a spot on each top face, red going, green kept; stacks of two (which may stay) also a ring at the trough. Inputs `session.removing`, `session.keep`, `session.rowPairs`.
@@ -37,7 +37,7 @@
 
 - **Animation scope**: the board animates only `own-action`, `other-action`, `undo`, `history` and `exploration` transitions; page loads, server syncs and view switches show the board at rest. Every step's motion is read from the two boards (`board/boardChange.ts`), following the known push when there is one: a push slides the line, a potential's piece hops, anything else lifts the discs that leave a stack and drops those that arrive. Undo and history play it in 0.18 s. The drop of the stack staged on a dot is a local Svelte transition: it explains a choice, not a committed move.
 - **Staged selection** (`selection`: `from`, `dot`, `row`, `keep`): manual choices only; a single row is derived, never stored. Cleared in `beforeNewState`, except that Undo restages the move it took back (the dot, or the stack that moved). A tap on the board that misses every enabled `role="button"` lets go of a chosen stack or dot (`letGo`); rows and keep toggles are left alone.
-- **Chosen kind** (`preferredKind`): kept from turn to turn, not staged; the first kind that can come in when it cannot.
+- **Chosen kind** (`preferredKind`): kept from turn to turn, not staged; the first kind that can come in when it cannot. Tapping the chosen dot, or the stack standing on it, again sets the next kind that can come in, in reserve order, wrapping round; with one kind (or a GIPF piece, or an extra move's TAMSK piece) it lets go of the dot instead.
 - **Target lists**: derived from the displayed state; empty when the viewer cannot act, including in History View.
 
 ## 5. Forbidden Couplings
@@ -54,7 +54,7 @@
 
 ## 7. Regression Checklist
 
-- Push: dot drops the chosen kind; arrows push the line one spot.
+- Push: dot drops the chosen kind; tapping it again swaps in the next kind (the old stack lifts off, the new one drops); arrows push the line one spot.
 - Potential: tapping a ringed stack shows its landings; the piece hops there.
 - Extra move: the TAMSK piece drops on the chosen dot; Skip takes it out of the game.
 - Rows: dashed marks on every row; choosing one shows spots; tapping a stack of two toggles keep; Take row needs the row broken.

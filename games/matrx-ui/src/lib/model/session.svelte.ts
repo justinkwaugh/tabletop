@@ -249,10 +249,22 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         this.preferredKind = kind
     }
 
+    // Choosing the chosen dot again brings in the next potential you hold instead; with only one
+    // to choose from, or a GIPF piece or extra move standing there, it lets go.
     chooseDot(dot: AxialCoordinates) {
         if (!includesCoords(this.entryDots, dot)) return
         const same = this.chosenDot !== undefined && sameCoordinates(this.chosenDot, dot)
+        if (same && this.nextPotential()) return
         this.selection = setMatrxSelection({}, 'dot', same ? undefined : dot)
+    }
+
+    private nextPotential(): boolean {
+        // A GIPF piece comes in only when it must, so it is then the only kind.
+        const kinds = this.pushKinds
+        const at = kinds.findIndex((kind) => kind === this.stagedKind)
+        if (at < 0 || kinds.length < 2) return false
+        this.chooseKind(kinds[(at + 1) % kinds.length])
+        return true
     }
 
     chooseFrom(from: AxialCoordinates) {
