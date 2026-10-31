@@ -1,12 +1,10 @@
 import { assert } from '@tabletop/common'
 import {
-    BuyTrain,
-    ContributeTrainFunds,
     DeclareBankruptcy,
     EmergencyTrainFunding,
     FundTrain,
-    IssueTreasuryShares,
     SellFundingShares,
+    settlingFundingAction,
     isContributeTrainFunds,
     isIssueTreasuryShares,
     isSellFundingShares,
@@ -83,7 +81,12 @@ export class TrainFundingModule {
             : []
     })
     plan = $derived.by(() => (this.purchase ? this.model?.preview(this.purchase) : undefined))
-    sales = $derived.by(() => (this.plan?.choice.kind === 'sell' ? this.plan.choice.sales : []))
+    /** Sales are chosen once funding has begun, so each press records one Action. */
+    sales = $derived.by(() =>
+        this.session.state.trainFunding && this.plan?.choice.kind === 'sell'
+            ? this.plan.choice.sales
+            : []
+    )
     private actionsSinceFunding = $derived.by(() => {
         const actions = this.session.recordedActions
         const start = actions.findLastIndex((action) => action.type === 'FundTrain')
@@ -125,47 +128,21 @@ export class TrainFundingModule {
         const choice = this.choice
         assert(this.canResolve && choice, 'Train funding is unavailable')
         const { applyAction, createPlayerAction } = this.session
-        switch (choice.kind) {
-            case 'bankrupt':
-                await applyAction(createPlayerAction(DeclareBankruptcy, {}))
-                break
-            // Games recorded before the engine settled these steps may still wait on them.
-            case 'issue':
-                await applyAction(
-                    createPlayerAction(IssueTreasuryShares, {
-                        expectedProceeds: choice.details.proceeds
-                    })
-                )
-                break
-            case 'contribute':
-                await applyAction(
-                    createPlayerAction(ContributeTrainFunds, {
-                        owner: choice.owner,
-                        amount: choice.amount
-                    })
-                )
-                break
-            case 'sell':
-                assert(sale && this.sales.includes(sale), 'Choose a legal funding sale')
-                await applyAction(
-                    createPlayerAction(SellFundingShares, {
-                        seller: sale.seller,
-                        companyId: sale.sales[0].companyId,
-                        shares: sale.sales[0].shares,
-                        expectedProceeds: sale.proceeds
-                    })
-                )
-                break
-            case 'buy':
-                await applyAction(
-                    createPlayerAction(BuyTrain, {
-                        companyId: choice.purchase.companyId,
-                        trainId: choice.purchase.trainId,
-                        definitionId: choice.purchase.definitionId,
-                        expectedPrice: choice.purchase.price
-                    })
-                )
-                break
+        // Games recorded before the engine settled these steps may still wait on them.
+        const settling = settlingFundingAction(choice)
+        if (settling) await applyAction(createPlayerAction(settling.schema, settling.data))
+        else if (choice.kind === 'bankrupt')
+            await applyAction(createPlayerAction(DeclareBankruptcy, {}))
+        else {
+            assert(sale && this.sales.includes(sale), 'Choose a legal funding sale')
+            await applyAction(
+                createPlayerAction(SellFundingShares, {
+                    seller: sale.seller,
+                    companyId: sale.sales[0].companyId,
+                    shares: sale.sales[0].shares,
+                    expectedProceeds: sale.proceeds
+                })
+            )
         }
     }
     private fromMarket(purchase: TrainPurchaseDetails) {

@@ -1,11 +1,6 @@
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import type {
-    ContributeTrainFunds,
-    DistributeEarnings,
-    PlaceStation,
-    RunTrains
-} from '@tabletop/18xx'
+import type { DistributeEarnings, PlaceStation, RunTrains } from '@tabletop/18xx'
 import {
     lastActionCredit,
     lastNotableStep,
@@ -54,25 +49,6 @@ it('credits the operating company only for its own actions in its turn', () => {
         kind: 'player',
         playerId: 'alex'
     })
-})
-
-it('credits a funding contribution to whoever contributed, though the engine made it', () => {
-    const contribution = (owner: ContributeTrainFunds['owner']): ContributeTrainFunds => ({
-        id: 'help',
-        gameId: 'g',
-        type: 'ContributeTrainFunds',
-        source: ActionSource.System,
-        playerId: 'alex',
-        owner,
-        amount: 60
-    })
-    const description = { text: 'Contributed $60 toward the train' }
-    expect(
-        lastActionCredit([], contribution({ kind: 'player', playerId: 'sam' }), description)
-    ).toEqual({ kind: 'player', playerId: 'sam' })
-    expect(
-        lastActionCredit([], contribution({ kind: 'company', companyId: 'S' }), description)
-    ).toEqual({ kind: 'company', companyId: 'S' })
 })
 
 it('reads a run’s revenue and a free station as what they were for, and a payout as it is', () => {

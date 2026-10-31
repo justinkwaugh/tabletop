@@ -145,6 +145,23 @@ describe('1846 emergency train funding', () => {
         )
         expect(trainsOwnedBy(table.state, treasury)).toHaveLength(1)
     })
+    it('lets a game recorded waiting on a forced step take it, then settles the rest itself', () => {
+        const table = buyingGame(0, 40)
+        const [purchase] = fundablePurchases(table)
+        assertExists(purchase)
+        table.state.trainFunding = fundingModel(table).begin(purchase)
+        table.state.machineState = 'FundingTrain'
+        const start = table.actions.length
+        table.act('IssueTreasuryShares', { expectedProceeds: 20 })
+        expect(
+            table.actions.slice(start, start + 3).map((action) => [action.type, action.source])
+        ).toEqual([
+            ['IssueTreasuryShares', ActionSource.User],
+            ['ContributeTrainFunds', ActionSource.System],
+            ['BuyTrain', ActionSource.System]
+        ])
+        expect(trainsOwnedBy(table.state, treasury)).toHaveLength(1)
+    })
     it('issues only enough stock, selling one price below the shifted marker, then buys', () => {
         const table = buyingGame()
         const before = structuredClone(table.state)

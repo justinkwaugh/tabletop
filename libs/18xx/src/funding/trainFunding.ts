@@ -339,6 +339,17 @@ export class EmergencyTrainFunding {
     }
 }
 
+/** Whether the company is buying the train its funding has raised the price of. */
+export function completesFundedPurchase(
+    state: Pick<FundingState, 'trainFunding'> & { machineState: string },
+    companyId: string
+): boolean {
+    return (
+        state.machineState === 'FundingTrain' &&
+        state.trainFunding?.purchase.companyId === companyId
+    )
+}
+
 export function validateTrainFunding(state: {
     machineState: string
     trainFunding?: TrainFunding

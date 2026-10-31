@@ -110,8 +110,7 @@
                 </p>
             {/each}
             {@render planNotes(plan)}
-            <!-- Funding begins before its sales are chosen, so each press records one Action. -->
-            {#if plan.choice.kind === 'sell' && session.gameState.trainFunding}
+            {#if session.trainFunding.sales.length}
                 <div class="choices" aria-label="Funding share sales">
                     {#each session.trainFunding.sales as sale, index (index)}
                         {@const companyId = sale.sales[0].companyId}
