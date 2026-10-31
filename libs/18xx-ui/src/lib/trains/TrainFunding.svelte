@@ -69,7 +69,7 @@
                         listPrice={definition.price}
                         disabled={!session.trainFunding.canFund}
                         onclick={() => {
-                            void session.trainFunding.fundOption(option.purchase)
+                            void session.trainFunding.fund(option.purchase)
                         }}
                     />
                     {@render planNotes(option.plan)}
@@ -110,7 +110,8 @@
                 </p>
             {/each}
             {@render planNotes(plan)}
-            {#if plan.choice.kind === 'sell'}
+            <!-- Funding begins before its sales are chosen, so each press records one Action. -->
+            {#if plan.choice.kind === 'sell' && session.gameState.trainFunding}
                 <div class="choices" aria-label="Funding share sales">
                     {#each session.trainFunding.sales as sale, index (index)}
                         {@const companyId = sale.sales[0].companyId}
@@ -142,7 +143,7 @@
                         onclick={() => session.trainFunding.resolve()}>Declare bankruptcy</button
                     >
                 </div>
-            {:else if plan.choice.kind === 'buy'}
+            {:else}
                 <div class="choices">
                     <span>Buy</span>
                     <TrainPurchaseButton

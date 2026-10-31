@@ -130,9 +130,16 @@ describe('TrainFundingModule', () => {
             ['3', [150]]
         ])
         const [, three] = module.options
-        await module.fundOption(three.purchase)
+        await module.fund(three.purchase)
+        expect(applied).toHaveLength(1)
         const [action] = applied
         expect(isFundTrain(action) && action.definitionId).toBe('3')
+    })
+
+    it('begins funding with one Action, leaving its forced steps to the engine', async () => {
+        const { module, applied } = trainlessRailway()
+        await module.resolve()
+        expect(applied.map((action) => action.type)).toEqual(['FundTrain'])
     })
 
     it('sorts funded purchases by source, an unbought unlimited train to the depot', () => {

@@ -1,6 +1,7 @@
 import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
 import { inReceivership } from '../finance/receivership.js'
+import type { FundingState } from '../funding/trainFunding.js'
 import { preparePhaseChange, type PhaseState } from '../phases/phaseChange.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
@@ -67,11 +68,20 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
         super(data instanceof HydratedBuyTrain ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & TrainPurchaseState & PhaseState): void {
+    apply(
+        state: HydratedGameState &
+            TrainPurchaseState &
+            PhaseState &
+            Pick<FundingState, 'trainFunding'>
+    ): void {
         const purchase = new TrainPurchase(state, this.#rules)
         assert(
             (this.source === ActionSource.User ||
-                (this.source === ActionSource.System && inReceivership(state, this.companyId))) &&
+                (this.source === ActionSource.System &&
+                    (inReceivership(state, this.companyId) ||
+                        // A funded purchase completes itself once the funding raised its price.
+                        (state.machineState === 'FundingTrain' &&
+                            state.trainFunding?.purchase.companyId === this.companyId)))) &&
                 state.activePlayerIds.includes(this.playerId) &&
                 purchase.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may buy trains'

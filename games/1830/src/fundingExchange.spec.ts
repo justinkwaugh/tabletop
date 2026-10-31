@@ -156,23 +156,21 @@ it('offers the optional exchange before bankruptcy and lets its proceeds fund th
     const sale = funding(play.state).next()
     if (sale.kind !== 'sell') throw Error('The exchanged share can be sold')
     const details = sale.sales[0]
+    const start = play.processed.length
     play.act('SellFundingShares', {
         seller: details.seller,
         companyId: 'NYC',
         shares: 1,
         expectedProceeds: details.proceeds
     })
-    const contribution = funding(play.state).next()
-    if (contribution.kind !== 'contribute') throw Error('The sale funds the shortfall')
-    play.act('ContributeTrainFunds', { owner: contribution.owner, amount: contribution.amount })
-    const buy = funding(play.state).next()
-    if (buy.kind !== 'buy') throw Error('The company can buy its required train')
-    play.act('BuyTrain', {
-        companyId: buy.purchase.companyId,
-        trainId: buy.purchase.trainId,
-        definitionId: buy.purchase.definitionId,
-        expectedPrice: buy.purchase.price
-    })
+    // The sale funds the shortfall, so the contribution and purchase follow by themselves.
+    expect(
+        play.processed.slice(start, start + 3).map((action) => [action.type, action.source])
+    ).toEqual([
+        ['SellFundingShares', ActionSource.User],
+        ['ContributeTrainFunds', ActionSource.System],
+        ['BuyTrain', ActionSource.System]
+    ])
     expect(play.state.bankruptcy).toBeUndefined()
     expect(play.state.trainFunding).toBeUndefined()
 })

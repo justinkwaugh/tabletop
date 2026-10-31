@@ -14,8 +14,7 @@ import {
     emergencyBuyingGame as buyingGame,
     fundablePurchases,
     fundTrain,
-    fundingModel,
-    resolveFunding
+    fundingModel
 } from '../test/testSupport.js'
 
 type Table = ReturnType<typeof buyingGame>
@@ -99,6 +98,26 @@ function sell(table: Table, companyId: string, shares: number) {
         expectedProceeds: sale.proceeds
     })
 }
+/** The System actions of one type the engine took to settle a decision, in order. */
+function settled(result: { processedActions: GameAction[] }, type: string) {
+    const actions = result.processedActions.filter((action) => action.type === type)
+    expect(actions.every((action) => action.source === ActionSource.System)).toBe(true)
+    return actions
+}
+/** The state once a decision's cascade reached its first action of a type. */
+function stateAfter(
+    table: Table,
+    before: Table['state'],
+    actions: readonly GameAction[],
+    type: string
+) {
+    let state = before
+    for (const action of actions) {
+        state = table.engine.applyProcessedAction({ game: table.game, state, action })
+        if (action.type === type) return state
+    }
+    throw new Error(`No ${type} was recorded`)
+}
 function replaysAndUndoes(table: Table, before: Table['state'], actions: readonly GameAction[]) {
     let replay = before
     for (const action of actions)
@@ -110,13 +129,31 @@ function replaysAndUndoes(table: Table, before: Table['state'], actions: readonl
 }
 
 describe('1846 emergency train funding', () => {
+    it('settles every forced step of one funding decision itself, so one Undo reverses it', () => {
+        const table = buyingGame(0, 40)
+        const start = table.actions.length
+        fundTrain(table)
+        const recorded = table.actions.slice(start)
+        expect(recorded.slice(0, 4).map((action) => [action.type, action.source])).toEqual([
+            ['FundTrain', ActionSource.User],
+            ['IssueTreasuryShares', ActionSource.System],
+            ['ContributeTrainFunds', ActionSource.System],
+            ['BuyTrain', ActionSource.System]
+        ])
+        expect(recorded.slice(1).every((action) => action.source === ActionSource.System)).toBe(
+            true
+        )
+        expect(trainsOwnedBy(table.state, treasury)).toHaveLength(1)
+    })
     it('issues only enough stock, selling one price below the shifted marker, then buys', () => {
         const table = buyingGame()
         const before = structuredClone(table.state)
         const start = table.actions.length
-        fundTrain(table)
-        expect(next(table)).toMatchObject({ kind: 'issue', details: { proceeds: 80 } })
-        resolveFunding(table)
+        const result = fundTrain(table)
+        expect(settled(result, 'IssueTreasuryShares')).toMatchObject([
+            { metadata: { proceeds: 80 } }
+        ])
+        expect(settled(result, 'BuyTrain')).toHaveLength(1)
         expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(90)
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(10)
         expect(sharesOwned(table.state, 'IC', { kind: 'bank' })).toBe(1)
@@ -127,23 +164,27 @@ describe('1846 emergency train funding', () => {
         const table = buyingGame(0, 40)
         const owner = president(table)
         const cash = finiteCashOwnedBy(table.state, owner)
-        fundTrain(table)
-        expect(next(table)).toMatchObject({ kind: 'issue', details: { proceeds: 20 } })
-        table.act('IssueTreasuryShares', { expectedProceeds: 20 })
+        const before = structuredClone(table.state)
+        const result = fundTrain(table)
+        expect(settled(result, 'IssueTreasuryShares')).toMatchObject([
+            { metadata: { proceeds: 20 } }
+        ])
         expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(20)
-        expect(next(table)).toMatchObject({ kind: 'contribute', amount: 60 })
-        table.act('ContributeTrainFunds', { owner, amount: 60 })
-        expect(finiteCashOwnedBy(table.state, owner)).toBe(cash - 60)
-        expect(finiteCashOwnedBy(table.state, treasury)).toBe(80)
-        expect(next(table)).toMatchObject({ kind: 'buy' })
+        expect(settled(result, 'ContributeTrainFunds')).toMatchObject([{ owner, amount: 60 }])
+        const funded = stateAfter(table, before, result.processedActions, 'ContributeTrainFunds')
+        expect(finiteCashOwnedBy(funded, owner)).toBe(cash - 60)
+        expect(finiteCashOwnedBy(funded, treasury)).toBe(80)
+        expect(settled(result, 'BuyTrain')).toHaveLength(1)
     })
     it('cannot issue below $20; proceeds can be $10 a share', () => {
         const table = buyingGame(0, 30)
-        fundTrain(table)
-        expect(next(table)).toMatchObject({ kind: 'issue', details: { proceeds: 10 } })
+        expect(settled(fundTrain(table), 'IssueTreasuryShares')).toMatchObject([
+            { metadata: { proceeds: 10 } }
+        ])
         const floor = buyingGame(0, 20)
-        fundTrain(floor)
-        expect(next(floor)).toMatchObject({ kind: 'contribute', amount: 80 })
+        const result = fundTrain(floor)
+        expect(settled(result, 'IssueTreasuryShares')).toEqual([])
+        expect(settled(result, 'ContributeTrainFunds')).toMatchObject([{ amount: 80 }])
     })
     it('deducts market shares from the issuance limit', () => {
         const table = buyingGame(0, 40)
@@ -153,10 +194,11 @@ describe('1846 emergency train funding', () => {
         assertExists(certificate)
         certificate.owner = { kind: 'bank' }
         certificate.poolId = 'open-market'
-        fundTrain(table)
-        expect(next(table)).toMatchObject({ kind: 'issue', details: { proceeds: 20 } })
-        table.act('IssueTreasuryShares', { expectedProceeds: 20 })
-        expect(next(table)).toMatchObject({ kind: 'contribute', amount: 60 })
+        const result = fundTrain(table)
+        expect(settled(result, 'IssueTreasuryShares')).toMatchObject([
+            { metadata: { proceeds: 20 } }
+        ])
+        expect(settled(result, 'ContributeTrainFunds')).toMatchObject([{ amount: 60 }])
     })
     it('offers the dearer variant with issuance, never president cash, while a cheaper train is affordable', () => {
         const table = buyingGame(160, 20)
@@ -183,9 +225,7 @@ describe('1846 emergency train funding', () => {
                 .map((purchase) => purchase.definitionId)
                 .sort()
         ).toEqual(['3/5', '4'])
-        fundTrain(table, '4')
-        const result = resolveFunding(table)
-        assertExists(result)
+        const result = fundTrain(table, '4')
         expect(result.processedActions.map((action) => action.type)).toContain('AdvancePhase')
         expect(result.processedActions).toContainEqual(
             expect.objectContaining({ type: 'FinishOperatingTurn', source: ActionSource.System })
@@ -224,36 +264,40 @@ describe('1846 personal share sales for a train', () => {
         giveShares(table, 'NYC', playerId, 2)
         const before = structuredClone(table.state)
         const start = table.actions.length
-        fundTrain(table)
-        expect(next(table)).toMatchObject({ kind: 'issue', details: { proceeds: 20 } })
-        table.act('IssueTreasuryShares', { expectedProceeds: 20 })
+        const funding = fundTrain(table)
+        expect(settled(funding, 'IssueTreasuryShares')).toMatchObject([
+            { metadata: { proceeds: 20 } }
+        ])
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(20)
         expect(sales(table).map((sale) => [sale.sales[0].shares, sale.proceeds])).toEqual([
             [1, 40],
             [2, 80]
         ])
-        sell(table, 'NYC', 2)
-        expect(Market1846.companySpace(table.state.stockMarket, 'NYC').price).toBe(40)
-        expect(next(table)).toMatchObject({ kind: 'contribute', amount: 60 })
-        table.act('ContributeTrainFunds', { owner, amount: 60 })
-        expect(finiteCashOwnedBy(table.state, owner)).toBe(20)
-        expect(finiteCashOwnedBy(table.state, treasury)).toBe(80)
-        const bought = resolveFunding(table)
-        assertExists(bought)
+        const beforeSale = structuredClone(table.state)
+        const bought = sell(table, 'NYC', 2)
+        const sold = stateAfter(table, beforeSale, bought.processedActions, 'SellFundingShares')
+        expect(Market1846.companySpace(sold.stockMarket, 'NYC').price).toBe(40)
+        expect(settled(bought, 'ContributeTrainFunds')).toMatchObject([{ owner, amount: 60 }])
+        const funded = stateAfter(
+            table,
+            beforeSale,
+            bought.processedActions,
+            'ContributeTrainFunds'
+        )
+        expect(finiteCashOwnedBy(funded, owner)).toBe(20)
+        expect(finiteCashOwnedBy(funded, treasury)).toBe(80)
         expect(bought.processedActions).toContainEqual(
             expect.objectContaining({ type: 'FinishOperatingTurn', source: ActionSource.System })
         )
         expect(trainsOwnedBy(table.state, treasury)).toHaveLength(1)
         replaysAndUndoes(table, before, table.actions.slice(start))
     })
-    it('cannot sell before issuing, repeat issuance, finish, build, or forge a sale', () => {
+    it('cannot repeat issuance, finish, build, or forge a sale', () => {
         const { table, playerId } = fundingGame()
         launchOther(table)
         giveShares(table, 'NYC', playerId, 2)
         fundTrain(table)
         const sale = { seller: { kind: 'player', playerId }, companyId: 'NYC', shares: 1 }
-        expect(() => table.act('SellFundingShares', { ...sale, expectedProceeds: 40 })).toThrow()
-        table.act('IssueTreasuryShares', { expectedProceeds: 20 })
         const before = structuredClone(table.state)
         expect(() => table.act('IssueTreasuryShares', { expectedProceeds: 20 })).toThrow()
         expect(() => table.act('FinishOperatingTurn', { companyId: 'IC' })).toThrow()
@@ -274,14 +318,16 @@ describe('1846 personal share sales for a train', () => {
         const { table, playerId } = fundingGame()
         launchOther(table)
         giveShares(table, 'NYC', playerId, 3)
-        fundTrain(table)
-        table.act('IssueTreasuryShares', { expectedProceeds: 20 })
+        expect(settled(fundTrain(table), 'IssueTreasuryShares')).toHaveLength(1)
         expect(sales(table).map((sale) => sale.sales[0].shares)).toEqual([1, 2])
-        sell(table, 'NYC', 1)
-        expect(sales(table)).toEqual([])
-        expect(next(table)).toMatchObject({ kind: 'contribute', amount: 40 })
-        const result = resolveFunding(table)
-        expect(result?.processedActions.map((action) => action.type)).toContain('DeclareBankruptcy')
+        const result = sell(table, 'NYC', 1)
+        // No second NYC sale is offered: the shortfall left is contributed, then bankruptcy.
+        expect(result.processedActions.slice(0, 3).map((action) => action.type)).toEqual([
+            'SellFundingShares',
+            'ContributeTrainFunds',
+            'DeclareBankruptcy'
+        ])
+        expect(settled(result, 'ContributeTrainFunds')).toMatchObject([{ amount: 40 }])
     })
     it('blocks a non-president sale before operation and enforces the market’s 50% limit', () => {
         const { table, playerId } = fundingGame(20)
@@ -309,10 +355,12 @@ describe('1846 personal share sales for a train', () => {
         expect(sales(table).map((sale) => [sale.sales[0].companyId, sale.sales[0].shares])).toEqual(
             [['IC', 1]]
         )
-        sell(table, 'IC', 1)
-        expect(getCompany(table.state, 'IC').president).toEqual({ kind: 'player', playerId })
-        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(10)
-        expect(sharesOwned(table.state, 'IC', { kind: 'bank' })).toBe(1)
+        const before = structuredClone(table.state)
+        const result = sell(table, 'IC', 1)
+        const sold = stateAfter(table, before, result.processedActions, 'SellFundingShares')
+        expect(getCompany(sold, 'IC').president).toEqual({ kind: 'player', playerId })
+        expect(Market1846.companySpace(sold.stockMarket, 'IC').price).toBe(10)
+        expect(sharesOwned(sold, 'IC', { kind: 'bank' })).toBe(1)
     })
     it('never closes the operating corporation through personal sales', () => {
         const { table, playerId } = fundingGame(10)
@@ -352,7 +400,6 @@ describe('1846 personal share sales for a train', () => {
         expect(table.state.activePlayerIds).toEqual([playerId])
         expect(table.state.operatingSet?.completedCompanyIds).not.toContain('IC')
         sell(table, 'B&O', 1)
-        resolveFunding(table)
         expect(table.state.operatingSet?.companyOrder).not.toContain('NYC')
     })
     it('funds the dearer variant chosen up front, selling no more than it needs', () => {
@@ -365,10 +412,10 @@ describe('1846 personal share sales for a train', () => {
             [1, 40],
             [2, 80]
         ])
-        sell(table, 'NYC', 2)
-        expect(sales(table)).toEqual([])
-        const result = resolveFunding(table)
-        assertExists(result)
+        const result = sell(table, 'NYC', 2)
+        expect(
+            result.processedActions.filter((action) => action.type === 'SellFundingShares')
+        ).toHaveLength(1)
         expect(result.processedActions.map((action) => action.type)).toContain('AdvancePhase')
         expect(table.state.phaseId).toBe('II')
         expect(trainsOwnedBy(table.state, treasury).map((train) => train.definitionId)).toEqual([
@@ -391,9 +438,9 @@ describe('1846 personal share sales for a train', () => {
         phaseII(table)
         setCash(table, treasury, 140)
         expect(fundablePurchases(table).map((purchase) => purchase.definitionId)).toEqual(['3/5'])
-        fundTrain(table)
-        expect(next(table)).toMatchObject({ kind: 'issue' })
-        resolveFunding(table)
+        const result = fundTrain(table)
+        expect(settled(result, 'IssueTreasuryShares')).toHaveLength(1)
+        expect(settled(result, 'SellFundingShares')).toEqual([])
         expect(trainsOwnedBy(table.state, treasury)).toHaveLength(1)
     })
 })

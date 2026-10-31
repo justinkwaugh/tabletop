@@ -4,6 +4,7 @@ import {
     isBuyPrivateTrain,
     isBuyTrain,
     isCompanyPurchaseOffer,
+    isContributeTrainFunds,
     isDistributeEarnings,
     isFinishOperatingTurn,
     isFinishStockTurn,
@@ -128,6 +129,14 @@ export function lastActionCredit(
     action: GameAction,
     description: HistoryDescription
 ): LastActionCredit | undefined {
+    // The engine contributes for the owner whose cash it is, once funding has begun.
+    if (isContributeTrainFunds(action)) {
+        const { owner } = action
+        if (owner.kind === 'player') return { kind: 'player', playerId: owner.playerId }
+        return owner.kind === 'company'
+            ? { kind: 'company', companyId: owner.companyId }
+            : undefined
+    }
     const companyId = companyActedFor(action)
     if (companyId && companyId === operatingTurnCompany(actions, action))
         return { kind: 'company', companyId }

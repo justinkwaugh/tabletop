@@ -1,18 +1,17 @@
 import {
-    ActionSource,
     assertExists,
     type HydratedAction,
     type HydratedGameState,
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
-import { HydratedBuyTrain } from '../trains/buyTrain.js'
+import { BuyTrain, HydratedBuyTrain } from '../trains/buyTrain.js'
 import { TrainPurchase, type TrainRules } from '../trains/trainPurchase.js'
 import type { StockRules } from '../stock/stockRules.js'
 import { EmergencyTrainFunding, type FundingState, type TrainFundingRules } from './trainFunding.js'
-import { HydratedIssueTreasuryShares } from './issueTreasuryShares.js'
+import { HydratedIssueTreasuryShares, IssueTreasuryShares } from './issueTreasuryShares.js'
 import { HydratedSellFundingShares } from './sellFundingShares.js'
-import { HydratedContributeTrainFunds } from './contributeTrainFunds.js'
+import { ContributeTrainFunds, HydratedContributeTrainFunds } from './contributeTrainFunds.js'
 import { HydratedDeclareBankruptcy, DeclareBankruptcy } from './declareBankruptcy.js'
 import { controllingOwner } from '../finance/finance.js'
 import { privateExchangeOffers } from '../privates/privateExchange.js'
@@ -39,7 +38,6 @@ export class FundingTrainHandler<
         const next = new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains).next()
         return (
             action instanceof HydratedBuyTrain &&
-            action.source === ActionSource.User &&
             action.playerId === state.trainFunding?.playerId &&
             state.activePlayerIds.includes(action.playerId) &&
             next.kind === 'buy' &&
@@ -78,16 +76,50 @@ export class FundingTrainHandler<
         state.trainFunding.playerId = president.playerId
         state.trainFunding.contributors = this.rules.contributors(state, companyId)
         state.activePlayerIds = [state.trainFunding.playerId]
-        if (
-            new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains).next().kind ===
-                'bankrupt' &&
-            !state.players.some(
-                (player) =>
-                    (this.outOfTurnExchanges || state.activePlayerIds.includes(player.playerId)) &&
-                    privateExchangeOffers(state, player.playerId, this.privates, this.stocks).length
-            )
-        )
-            context.addSystemAction(DeclareBankruptcy, {})
+        // Only a sale is the player's to choose; every other step follows from the decision
+        // before it, so the engine takes it and one Undo reverses the whole decision.
+        const playerId = state.trainFunding.playerId
+        const next = new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains).next()
+        switch (next.kind) {
+            case 'issue':
+                context.addSystemAction(IssueTreasuryShares, {
+                    playerId,
+                    expectedProceeds: next.details.proceeds
+                })
+                break
+            case 'contribute':
+                context.addSystemAction(ContributeTrainFunds, {
+                    playerId,
+                    owner: next.owner,
+                    amount: next.amount
+                })
+                break
+            case 'buy':
+                context.addSystemAction(BuyTrain, {
+                    playerId,
+                    companyId: next.purchase.companyId,
+                    trainId: next.purchase.trainId,
+                    definitionId: next.purchase.definitionId,
+                    expectedPrice: next.purchase.price
+                })
+                break
+            case 'bankrupt':
+                if (
+                    !state.players.some(
+                        (player) =>
+                            (this.outOfTurnExchanges ||
+                                state.activePlayerIds.includes(player.playerId)) &&
+                            privateExchangeOffers(
+                                state,
+                                player.playerId,
+                                this.privates,
+                                this.stocks
+                            ).length
+                    )
+                )
+                    context.addSystemAction(DeclareBankruptcy, {})
+                break
+        }
     }
     onAction(action: HydratedAction, context: MachineContext<State>): string {
         const state = context.gameState
