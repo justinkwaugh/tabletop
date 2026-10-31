@@ -227,9 +227,11 @@ describe('a declared site modifier discarded first before a facedown adviser’s
         const s = table(FIXED, BRACKEN_TABLE)
         expect(checkOf(s, toSite(RANGERS))).toBeUndefined()
         expect(checkOf(ownView(s), toSite(RANGERS))).toBeUndefined()
-        played(s, toSite(RANGERS))
+        const action = played(s, toSite(RANGERS))
         expect(s.denizensAt('c1')).toEqual([BRACKEN, WOLVES])
-        expect(s.requireVault().discardPiles[Region.Hinterland]?.[0]).toBe(RANGERS)
+        expect(s.requireVault().discardPiles[Region.Hinterland]).toEqual([RANGERS])
+        expect(action.metadata?.discardPileRegion).toBe(Region.Hinterland)
+        expect(action.metadata?.discardToBottom).toBe(true)
         expect(s.searchModifiersInUse).toBeUndefined()
     })
 
