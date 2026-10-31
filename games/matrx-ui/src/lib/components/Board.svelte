@@ -128,6 +128,16 @@
     const DASH = 5
     const DASH_GAP = 4
 
+    // Once a stack or dot is chosen, the other choices fade.
+    const chosen = $derived(session.chosenFrom !== undefined || session.chosenDot !== undefined)
+
+    // A tap on nothing you can choose lets go of what is chosen.
+    function onBoardClick(event: MouseEvent) {
+        const target = event.target as Element
+        if (target.closest('[role="button"]:not([aria-disabled="true"])')) return
+        session.letGo()
+    }
+
     function isChosenDot(coords: AxialCoordinates) {
         return session.chosenDot !== undefined && sameCoordinates(session.chosenDot, coords)
     }
@@ -255,6 +265,8 @@
     )
 </script>
 
+<!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <svg
     class="matrx-board"
     viewBox={frame.viewBox}
@@ -262,6 +274,7 @@
     height={frame.height}
     role="group"
     aria-label="MATRX GIPF board"
+    onclick={onBoardClick}
     {@attach animator.attach}
 >
     <defs>
@@ -339,6 +352,7 @@
                 ry={DOT_RADIUS * 2.4 * view.tilt}
                 class="dot-ring"
                 class:chosen={isChosenDot(coords)}
+                class:faded={chosen && !isChosenDot(coords)}
                 class:hovered={hoveredDot === coordsKey(coords)}
             ></ellipse>
         {/each}
@@ -412,7 +426,11 @@
                             {/each}
                         {:else if role === 'row' || role === 'movable' || role === 'chosen'}
                             {#each topRing(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
-                                <path d={arc.d} pathLength={arc.length} class="top-ring role-{role}"
+                                <path
+                                    d={arc.d}
+                                    pathLength={arc.length}
+                                    class="top-ring role-{role}"
+                                    class:faded={chosen && role === 'movable'}
                                 ></path>
                             {/each}
                         {:else}
@@ -588,6 +606,11 @@
         fill: rgb(240 176 74 / 0.3);
     }
 
+    .dot-ring.faded,
+    .top-ring.faded {
+        opacity: 0.4;
+    }
+
     .dot-ring.chosen {
         fill: rgb(240 176 74 / 0.38);
         stroke-width: 3.5;
@@ -616,7 +639,6 @@
 
     .top-ring.role-movable {
         stroke: var(--matrx-target);
-        stroke-dasharray: 5 4;
     }
 
     .top-ring.role-chosen {

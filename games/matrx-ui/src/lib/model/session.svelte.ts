@@ -261,6 +261,12 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         this.selection = setMatrxSelection({}, 'from', same ? undefined : from)
     }
 
+    // Tapping where there is nothing to choose lets go of a chosen stack or dot.
+    letGo() {
+        if (this.chosenFrom === undefined && this.chosenDot === undefined) return
+        this.selection = setMatrxSelection(this.selection, 'from', undefined)
+    }
+
     // A piece can belong to two crossing rows; choosing it again moves to the next one.
     chooseRowAt(coords: AxialCoordinates) {
         const containing = this.rows.filter((row) => includesCoords(row.reach, coords))
