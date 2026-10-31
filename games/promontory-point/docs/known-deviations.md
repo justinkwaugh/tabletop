@@ -14,7 +14,8 @@ None yet.
 
 What is transcribed from the printed components without a spec that checks it against them.
 
-None yet.
+- **Board spaces (R-1.1, R-1.1-H3).** The kind and coordinates of every space and home hex come from the supplied map. They were checked by an overlay of every measured centre on the map; `src/components/components.spec.ts` checks the data against the transcription in `components.md`, not against the image.
+- **Town tile counts per kind (R-1.1-H1, provisional).** The rulebook prints eight counts but not which kind each belongs to; the pairing is inferred, and `components.spec.ts` checks the data against that inference.
 
 ## Platform limits
 
