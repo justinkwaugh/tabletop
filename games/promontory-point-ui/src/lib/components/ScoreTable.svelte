@@ -11,7 +11,7 @@
 <!-- R-6.1, R-6.2, R-6.2-H1: sorted once by total; every tied leader is named. -->
 <div data-score>
     <p class="mb-2 text-[15px]">
-        <b class="font-semibold" data-score-winners>
+        <b class="pp-prompt" data-score-winners>
             {#each score.winnerIds as winnerId, index (winnerId)}{#if index > 0}{index ===
                     score.winnerIds.length - 1
                         ? ' and '
@@ -19,7 +19,7 @@
             {viewerVerb(score.winnerIds, gameSession.myPlayer?.id, 'wins', 'win')} with ${score.winningTotal}.
         </b>
         {#if score.reason}
-            <span class="ml-2 text-[13px] text-pp-muted" data-score-reason
+            <span class="pp-aside ml-2 text-[13px]" data-score-reason
                 >{score.reason}. Each share counts at its railroad's final price.</span
             >
         {/if}
@@ -59,7 +59,7 @@
             </tbody>
         </table>
     </div>
-    <p class="mt-1 text-xs text-pp-muted sm:hidden">
+    <p class="mt-1 text-xs text-pp-ink-sub sm:hidden">
         Press a seat below for its shares at the final prices.
     </p>
 </div>
@@ -72,17 +72,18 @@
 
     .score th {
         padding: 4px 14px;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
+        font-family: Oswald, sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--pp-muted);
+        color: var(--pp-brown);
         text-align: right;
     }
 
     .score td {
         padding: 7px 14px;
-        border-top: 1px solid var(--pp-line);
+        border-top: 1px solid var(--pp-paper-line);
         text-align: right;
         white-space: nowrap;
     }
@@ -97,7 +98,9 @@
         font-size: 19px;
     }
 
+    /* The winner's line: amber on charcoal, so it reads on paper. */
     .score tr.winner td {
+        background: var(--pp-charcoal);
         color: var(--pp-accent);
         font-weight: 700;
     }

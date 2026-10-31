@@ -191,10 +191,9 @@
         height: 100%;
         min-height: 300px;
         overflow: hidden;
-        border: 1px solid var(--pp-line);
-        border-radius: 10px;
+        border-radius: 4px;
         background: var(--pp-panel);
-        color: var(--pp-text);
+        color: var(--pp-ink);
         font-size: 14px;
         text-align: left;
     }
@@ -214,22 +213,31 @@
         top: 0;
         z-index: 1;
         margin: 0 -8px;
-        padding: 6px 12px 4px;
-        border-bottom: 1px solid var(--pp-line);
-        background: var(--pp-column);
-        font-family: 'Oswald', sans-serif;
-        font-weight: 500;
-        font-size: 13px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--pp-muted);
+        padding: 8px 12px 2px;
+        background: var(--pp-panel);
+        font-family: 'Libre Caslon Text', serif;
+        font-style: italic;
+        font-size: 12.5px;
+        text-align: center;
+        color: var(--pp-brown);
     }
 
+    /* The interstitial's hairline. */
+    .round-head::after {
+        content: '';
+        display: block;
+        margin-top: 4px;
+        border-top: 1px solid color-mix(in srgb, var(--pp-brown) 40%, transparent);
+    }
+
+    /* A paper entry with a left rule in the actor's seat colour. */
     .turn {
         margin-top: 8px;
-        padding: 2px 0 4px 8px;
+        padding: 5px 10px 6px;
         border-left: 4px solid var(--seat);
-        border-radius: 3px;
+        border-radius: 2px;
+        background: var(--pp-paper);
+        box-shadow: 0 1px 0 color-mix(in srgb, var(--pp-halo) 20%, transparent);
     }
 
     .turn.active {
@@ -244,20 +252,31 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        font-family: 'Oswald', sans-serif;
         font-weight: 600;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+    }
+
+    .turn-number,
+    .when,
+    .in-progress {
+        font-family: 'Libre Caslon Text', serif;
+        font-style: italic;
+        letter-spacing: 0;
+        text-transform: none;
     }
 
     .turn-number {
         font-size: 11px;
         font-weight: 400;
-        color: var(--pp-muted);
+        color: var(--pp-ink-sub);
     }
 
     .in-progress {
         font-size: 11px;
-        font-style: italic;
         font-weight: 400;
-        color: var(--pp-muted);
+        color: var(--pp-ink-sub);
     }
 
     .replaying-tag {
@@ -275,7 +294,7 @@
         margin-left: auto;
         font-size: 11px;
         font-weight: 400;
-        color: var(--pp-muted);
+        color: var(--pp-ink-sub);
         white-space: nowrap;
     }
 
@@ -289,7 +308,7 @@
 
     .selling {
         font-style: italic;
-        color: var(--pp-muted);
+        color: var(--pp-ink-sub);
     }
 
     .controls {
@@ -299,18 +318,22 @@
     }
 
     .controls button {
-        min-height: 28px;
+        min-height: 26px;
         padding: 0 10px;
-        border: 1px solid var(--pp-line);
-        border-radius: 6px;
+        border: 1.5px solid var(--pp-charcoal);
+        border-radius: 3px;
         background: transparent;
-        color: var(--pp-text);
+        color: var(--pp-charcoal);
+        font-family: 'Oswald', sans-serif;
         font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
     }
 
     .controls button:hover:not(:disabled),
     .controls button:focus-visible {
-        background: var(--pp-line);
+        background: var(--pp-paper-deep);
         outline: none;
     }
 
@@ -321,8 +344,9 @@
     .summary {
         margin: 10px 0 4px;
         padding: 8px 10px;
-        border-radius: 8px;
-        background: var(--pp-column);
+        border-radius: 2px;
+        border: 1.5px dashed color-mix(in srgb, var(--pp-brown) 55%, transparent);
+        background: var(--pp-paper);
     }
 
     .summary-head {
@@ -343,8 +367,10 @@
 
     .reason {
         margin: 2px 0 6px;
+        font-family: 'Libre Caslon Text', serif;
+        font-style: italic;
         font-size: 12px;
-        color: var(--pp-muted);
+        color: var(--pp-ink-sub);
     }
 
     table {
@@ -357,7 +383,7 @@
     th {
         font-size: 11px;
         font-weight: 400;
-        color: var(--pp-muted);
+        color: var(--pp-ink-sub);
         text-align: right;
     }
 
@@ -371,8 +397,12 @@
     }
 
     tr.winner .total {
-        color: var(--pp-accent);
-        font-weight: 700;
+        font-family: 'Oswald', sans-serif;
+        font-weight: 600;
+    }
+
+    tr.winner td {
+        border-bottom: 2px solid var(--pp-accent);
     }
 
     .milestone {
@@ -381,8 +411,10 @@
         gap: 6px;
         margin: 14px 0 2px;
         padding: 6px 10px;
-        border-radius: 8px;
-        background: var(--pp-column);
+        border-top: 1px solid color-mix(in srgb, var(--pp-brown) 40%, transparent);
+        font-family: 'Libre Caslon Text', serif;
+        font-style: italic;
+        color: var(--pp-brown);
         font-size: 13px;
     }
 </style>

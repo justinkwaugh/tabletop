@@ -49,6 +49,70 @@ test('contract, "Seat card": one ledger per seat in seat order, the turn player 
     }
 })
 
+test('O-10: each seat card is a stock certificate: number, dotted name, cash coupon, four shares, italic footer', async ({
+    page
+}) => {
+    await createGame(page)
+    const cards = seatCards(page)
+    const count = await cards.count()
+    for (let index = 0; index < count; index++) {
+        const card = cards.nth(index)
+        const parts = await card.evaluate((node) => {
+            const style = (selector: string) => {
+                const element = node.querySelector(selector)
+                return element ? getComputedStyle(element) : undefined
+            }
+            const probe = document.createElement('span')
+            probe.style.color = (node as HTMLElement).style.getPropertyValue('--seat')
+            node.appendChild(probe)
+            const seat = getComputedStyle(probe).color
+            probe.remove()
+            return {
+                seat,
+                number: node.querySelector('[data-seat-number]')?.textContent?.trim(),
+                numberFont: style('[data-seat-number]')?.fontStyle,
+                dot: style('[data-seat-dot]')?.backgroundColor,
+                frame: style('[data-seat-frame]')?.borderTopColor,
+                frameOutline: style('[data-seat-frame]')?.outlineColor,
+                money: style('[data-seat-money]')?.borderTopStyle,
+                footFamily: style('[data-seat-foot]')?.fontFamily,
+                footStyle: style('[data-seat-foot]')?.fontStyle
+            }
+        })
+        expect(parts.number).toBe(`No. ${index + 1}`)
+        expect(parts.numberFont).toBe('italic')
+        expect(parts.dot).toBe(parts.seat)
+        expect(parts.frame).toBe(parts.seat)
+        expect(parts.frameOutline).toBe(parts.seat)
+        expect(parts.money).toBe('dashed')
+        expect(parts.footFamily).toContain('Libre Caslon Text')
+        expect(parts.footStyle).toBe('italic')
+        await expect(card.locator('[data-seat-share]')).toHaveCount(4)
+        await expect(card.locator('[data-seat-foot]')).toContainText('shares worth $')
+    }
+    // The acting seat keeps its amber ring and tag.
+    const tag = cards.first().locator('[data-seat-tag]')
+    await expect(tag).toHaveCSS('background-color', 'rgb(245, 165, 36)')
+})
+
+test('the Libre Caslon Text faces load for the secondary lines', async ({ page }) => {
+    await createGame(page)
+    await expect
+        .poll(() =>
+            page.evaluate(async () => {
+                const fonts = [
+                    '400 12px "Libre Caslon Text"',
+                    'italic 400 12px "Libre Caslon Text"'
+                ]
+                const loaded = await Promise.all(fonts.map((font) => document.fonts.load(font)))
+                return loaded.map((faces) =>
+                    faces.map((face) => `${face.family} ${face.style} ${face.status}`)
+                )
+            })
+        )
+        .toEqual([['Libre Caslon Text normal loaded'], ['Libre Caslon Text italic loaded']])
+})
+
 test('R-5: other seats show their concealed hands as grey discs, even in a game that holds them', async ({
     page
 }) => {

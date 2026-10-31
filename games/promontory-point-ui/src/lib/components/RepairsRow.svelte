@@ -46,15 +46,16 @@
         align-items: center;
         gap: 6px;
         padding: 4px 10px;
-        border: 1px solid var(--pp-line);
-        border-radius: 6px;
-        background: color-mix(in srgb, var(--pp-halo) 14%, transparent);
+        border: 1px solid var(--pp-paper-line);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--pp-paper-deep) 55%, transparent);
         font-size: 13px;
         white-space: nowrap;
     }
 
     .seat-chip.deciding {
-        border: 2px dashed var(--pp-decided);
+        /* Being decided: the neutral dashed outline, drawn in charcoal on paper. */
+        border: 2px dashed var(--pp-charcoal);
         padding: 3px 9px;
     }
 

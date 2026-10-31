@@ -13,10 +13,10 @@
 <!-- R-4.3, R-4.3-H1 to H3: the deciding short seat sells at half price until it can pay. -->
 <div data-repairs-panel>
     <p class="mb-2 text-[15px] max-sm:mb-1 max-sm:text-[13px] max-sm:leading-snug">
-        <b class="font-semibold">{panel.prompt.lead}</b>
+        <b class="pp-prompt">{panel.prompt.lead}</b>
         <ActionDescription parts={panel.prompt.parts} />
         <!-- A phone shows the half price on each button and the shortfall on the running line. -->
-        <span class="ml-2 text-[13px] text-pp-muted max-sm:hidden">{panel.prompt.note}</span>
+        <span class="pp-aside ml-2 text-[13px] max-sm:hidden">{panel.prompt.note}</span>
     </p>
     <div class="flex flex-wrap items-stretch gap-4 max-sm:gap-1">
         {#if panel.entries.length > 0}
@@ -47,9 +47,11 @@
                                     class="block rounded-[3px]"
                                 />
                             </button>
-                            <div class="min-w-0 text-xs leading-tight text-pp-muted max-sm:w-full">
+                            <div
+                                class="min-w-0 text-xs leading-tight text-pp-ink-sub max-sm:w-full"
+                            >
                                 <div class="max-sm:hidden">
-                                    <span class="text-[13px] font-semibold text-pp-text"
+                                    <span class="text-[13px] font-semibold text-pp-ink"
                                         >{entry.name}</span
                                     >
                                     · {entry.holding}
@@ -95,12 +97,12 @@
                 {panel.runningLine}
             </div>
             {#if panel.billNote}
-                <p class="note mt-1 text-xs text-pp-muted" data-repairs-bill-note>
+                <p class="note pp-aside mt-1 text-xs" data-repairs-bill-note>
                     {panel.billNote}
                 </p>
             {/if}
             {#if panel.everySaleNote}
-                <p class="every mt-1 text-xs text-pp-muted">{panel.everySaleNote}</p>
+                <p class="every pp-aside mt-1 text-xs">{panel.everySaleNote}</p>
             {/if}
             <button
                 type="button"
@@ -116,7 +118,7 @@
     .pp-price {
         font-family: Oswald, sans-serif;
         font-size: 18px;
-        color: var(--pp-text);
+        color: var(--pp-ink);
     }
 
     /* A phone's label only: a component rule would override Tailwind's sm:hidden. */

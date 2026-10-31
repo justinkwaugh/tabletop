@@ -3,8 +3,9 @@
     import type { Attachment } from 'svelte/attachments'
     import {
         ScalingWrapper,
-        DefaultSideContent,
         DefaultTableLayout,
+        DefaultTabs,
+        HistoryControls,
         CustomFont,
         GameSession
     } from '@tabletop/frontend-components'
@@ -110,17 +111,36 @@
     fontStyle="italic"
 />
 
-<div class="bg-pp-table">
+{#snippet playersPanel()}
+    <PlayersPanel />
+{/snippet}
+{#snippet history()}
+    <History />
+{/snippet}
+
+<!-- The table surround is the olive of the map's hexes; the side column a little darker. -->
+<div class="pp-table">
     <DefaultTableLayout>
         {#snippet sideContent()}
-            <DefaultSideContent>
-                {#snippet playersPanel()}
-                    <PlayersPanel />
-                {/snippet}
-                {#snippet history()}
-                    <History />
-                {/snippet}
-            </DefaultSideContent>
+            <!-- Composed as the layout guide allows, to restyle the controls and the tabs. -->
+            <div class="pp-side">
+                <div class="max-sm:hidden">
+                    <HistoryControls
+                        enabledColor="text-pp-ink"
+                        disabledColor="text-pp-paper-line"
+                        borderClass="rounded-md shadow-[0_2px_0_var(--pp-halo)]"
+                        bgClass="bg-pp-panel"
+                        height="h-[40px]"
+                    />
+                </div>
+                <DefaultTabs
+                    {playersPanel}
+                    {history}
+                    fontClass="pp-tab"
+                    activeTabClass="py-1 px-3 rounded-md border-2 border-transparent bg-pp-panel text-pp-ink"
+                    inactiveTabClass="py-1 px-3 rounded-md border-2 border-transparent text-pp-text hover:border-pp-line"
+                />
+            </div>
         {/snippet}
         {#snippet gameContent()}
             <div class="shrink-0">
@@ -177,3 +197,33 @@
         <FlightLayer />
     {/if}
 </div>
+
+<style>
+    .pp-table {
+        background-color: var(--pp-table);
+        background-image: radial-gradient(
+            color-mix(in srgb, var(--pp-paper) 4%, transparent) 1px,
+            transparent 1px
+        );
+        background-size: 7px 7px;
+    }
+
+    .pp-side {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        height: 100%;
+        min-height: 0;
+        margin: -8px 0 -8px -8px;
+        padding: 8px;
+        background: var(--pp-column);
+    }
+
+    .pp-side :global(.pp-tab) {
+        font-family: Oswald, sans-serif;
+        font-weight: 500;
+        font-size: 15px;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+    }
+</style>

@@ -18,8 +18,10 @@
     const gameSession = getGameSession()
 
     const name = $derived(gameSession.getPlayerName(view.playerId))
-    const headerFill = $derived(gameSession.colors.getPlayerUiColor(view.playerId))
-    const headerInk = $derived(gameSession.colors.getPlayerTextColorValue(view.playerId))
+    const seatColour = $derived(gameSession.colors.getPlayerUiColor(view.playerId))
+    const seatNumber = $derived(
+        gameSession.gameState.players.findIndex((player) => player.playerId === view.playerId) + 1
+    )
     const pieceSize = $derived(large ? 30 : 16)
 
     // While a transition plays, a hand or share count shows what has landed (Pattern C).
@@ -36,19 +38,22 @@
     }
 </script>
 
-<!-- O-10: the brokerage ledger, a tan card ruled twice under a header in the seat colour. -->
+<!-- O-10: the stock certificate: a paper card with an engraved double rule in the seat colour. -->
 <section
     class="seat"
     class:large
     class:active={view.active}
     class:waiting={view.waitingTurn}
+    style:--seat={seatColour}
     aria-label="{name}'s seat"
     data-seat-card={view.playerId}
     data-active={view.active}
 >
-    <div class="frame">
-        <header class="nm" style:background={headerFill} style:color={headerInk}>
+    <div class="frame" data-seat-frame>
+        <header class="top">
+            <span class="no" data-seat-number={seatNumber}>No. {seatNumber}</span>
             <span class="who">
+                <span class="dot" aria-hidden="true" data-seat-dot></span>
                 <button
                     type="button"
                     class="n"
@@ -56,9 +61,6 @@
                     aria-label={large ? `Close ${name}'s seat` : `Open ${name}'s seat`}
                     onclick={() => gameSession.openSeat.toggle(view.playerId)}>{name}</button
                 >
-                {#if view.tag}
-                    <span class="tag" data-seat-tag={view.tag}>{view.tag}</span>
-                {/if}
             </span>
             <!-- R-1.3-H1: money is public. -->
             <span class="m" data-seat-money={view.money}
@@ -98,7 +100,7 @@
             {/each}
         </div>
 
-        <footer class="foot">
+        <footer class="foot" data-seat-foot>
             <span class="hand" data-hand-perspective={hand.perspective} data-piece-size={pieceSize}>
                 {#each hand.pieces as piece, index (index)}
                     <HandPiece {piece} size={pieceSize} />
@@ -135,64 +137,93 @@
             </div>
         {/if}
     </div>
+    {#if view.tag}
+        <span class="tag" data-seat-tag={view.tag}>{view.tag}</span>
+    {/if}
 </section>
 
 <style>
     .seat {
         --u: 1px;
+        position: relative;
         background: var(--pp-paper);
         color: var(--pp-ink);
-        border-radius: 6px;
-        padding: 3px;
+        border-radius: 4px;
+        padding: 5px;
         text-align: left;
-        box-shadow: 0 1px 0 var(--pp-halo);
+        box-shadow: 0 2px 0 color-mix(in srgb, var(--pp-halo) 35%, transparent);
     }
 
     .seat.large {
         --u: 1.7px;
-        padding: 5px;
+        padding: 7px;
     }
 
     .seat.active {
         box-shadow:
-            0 0 0 2px var(--pp-halo),
-            0 0 0 4px var(--pp-accent);
+            0 0 0 3px var(--pp-accent),
+            0 2px 0 color-mix(in srgb, var(--pp-halo) 35%, transparent);
     }
 
     .seat.waiting {
         outline: 2px dashed var(--pp-decided);
-        outline-offset: 2px;
+        outline-offset: 3px;
     }
 
+    /* The engraved double rule in the seat colour, over a faint diagonal hatch. */
     .frame {
-        border: 1.5px solid var(--pp-paper-line);
-        outline: 1px solid var(--pp-paper-line);
-        outline-offset: -5px;
-        border-radius: 4px;
-        padding: 0 0 calc(7 * var(--u));
+        border: 2px solid var(--seat);
+        outline: 1px solid var(--seat);
+        outline-offset: 2px;
+        border-radius: 2px;
+        padding: calc(6 * var(--u)) calc(9 * var(--u)) calc(6 * var(--u));
+        background: repeating-linear-gradient(
+            45deg,
+            color-mix(in srgb, var(--pp-brown) 5%, transparent) 0 2px,
+            transparent 2px 6px
+        );
     }
 
-    .nm {
+    .top {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-        padding: calc(4 * var(--u)) calc(9 * var(--u));
-        border-radius: 3px 3px 0 0;
-        border-bottom: 1.5px solid var(--pp-paper-line);
+        gap: 8px;
+        padding-bottom: calc(5 * var(--u));
+        margin-bottom: calc(5 * var(--u));
+        border-bottom: 1px solid color-mix(in srgb, var(--pp-ink) 25%, transparent);
+    }
+
+    .no {
+        font-family: 'Libre Caslon Text', serif;
+        font-style: italic;
+        font-size: calc(11 * var(--u));
+        color: var(--pp-brown);
+        white-space: nowrap;
     }
 
     .who {
         display: flex;
         align-items: center;
+        gap: 6px;
         min-width: 0;
+    }
+
+    .dot {
+        flex: none;
+        width: calc(11 * var(--u));
+        height: calc(11 * var(--u));
+        border-radius: 50%;
+        background: var(--seat);
+        border: 1.5px solid var(--pp-halo);
     }
 
     .n {
         font-family: Oswald, sans-serif;
         font-weight: 600;
-        font-size: calc(17 * var(--u));
-        letter-spacing: 0.03em;
+        font-size: calc(18 * var(--u));
+        line-height: 1.1;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
         color: inherit;
         background: none;
         border: none;
@@ -210,30 +241,40 @@
         outline: none;
     }
 
+    /* The cash in a dashed coupon. */
     .m {
+        margin-left: auto;
         font-family: Oswald, sans-serif;
         font-weight: 600;
-        font-size: calc(22 * var(--u));
-        line-height: 1.1;
+        font-size: calc(20 * var(--u));
+        line-height: 1;
+        padding: calc(3 * var(--u)) calc(8 * var(--u));
+        border-radius: 999px;
+        border: 1.5px dashed var(--pp-brown);
+        background: var(--pp-paper-deep);
+        white-space: nowrap;
     }
 
     .tag {
+        position: absolute;
+        top: -8px;
+        right: 12px;
+        font-family: Oswald, sans-serif;
+        font-weight: 600;
         font-size: calc(10 * var(--u));
-        font-weight: 700;
+        line-height: 1;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        padding: 1px 6px;
-        border-radius: 8px;
-        background: var(--pp-veil);
-        color: var(--pp-text);
-        margin-left: 6px;
+        letter-spacing: 0.12em;
+        padding: 3px 7px;
+        border-radius: 3px;
+        background: var(--pp-accent);
+        color: var(--pp-accent-ink);
     }
 
     .shares {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 6px;
-        padding: calc(7 * var(--u)) calc(9 * var(--u)) 2px;
     }
 
     .sh {
@@ -292,7 +333,9 @@
         justify-content: space-between;
         align-items: center;
         gap: 6px;
-        padding: 3px calc(9 * var(--u)) 0;
+        margin-top: calc(5 * var(--u));
+        font-family: 'Libre Caslon Text', serif;
+        font-style: italic;
         font-size: calc(11 * var(--u));
         color: var(--pp-ink-sub);
     }
@@ -307,12 +350,11 @@
     .kept {
         display: inline-flex;
         padding: 1px;
-        border: 1px dashed var(--pp-paper-line);
+        border: 1px dashed var(--pp-brown);
         border-radius: 999px;
     }
 
     .cap {
-        font-size: calc(10 * var(--u));
         margin-left: 2px;
     }
 
@@ -321,9 +363,9 @@
     }
 
     .money-lines {
-        margin: calc(8 * var(--u)) calc(9 * var(--u)) 0;
+        margin-top: calc(8 * var(--u));
         padding-top: calc(6 * var(--u));
-        border-top: 1px solid var(--pp-paper-line);
+        border-top: 1px solid color-mix(in srgb, var(--pp-ink) 25%, transparent);
         font-size: 14px;
     }
 
@@ -333,7 +375,7 @@
         text-transform: uppercase;
         letter-spacing: 0.06em;
         font-size: 12px;
-        color: var(--pp-ink-sub);
+        color: var(--pp-brown);
         margin-bottom: 2px;
     }
 
@@ -344,6 +386,8 @@
     }
 
     .money-line.muted {
+        font-family: 'Libre Caslon Text', serif;
+        font-style: italic;
         color: var(--pp-ink-sub);
     }
 

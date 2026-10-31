@@ -11,7 +11,7 @@
 <!-- Contract, "Watching": who decides and what, the shared step's live state, the last action. -->
 <div data-waiting-view>
     <p class="text-[15px]" data-waiting-decider>
-        {#if view.lead}<b class="font-semibold">{view.lead}</b>{' '}{/if}<ActionDescription
+        {#if view.lead}<b class="pp-prompt">{view.lead}</b>{' '}{/if}<ActionDescription
             parts={view.parts}
         />
     </p>
@@ -21,7 +21,7 @@
         </div>
     {/if}
     {#if view.last}
-        <p class="mt-1.5 text-[13px] text-pp-muted" data-waiting-last>
+        <p class="pp-aside mt-1.5 text-[13px]" data-waiting-last>
             Last: <PlayerName playerId={view.last.playerId} />{' '}<ActionDescription
                 parts={view.last.parts}
             />

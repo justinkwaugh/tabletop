@@ -326,7 +326,8 @@ for (const width of WIDTHS) {
             await settled(page)
             expect((await facts(page)).priceIndex[SP]).toBe(14)
             await expect(tracker).toHaveAttribute('data-promontory-taken', 'true')
-            await expect(tracker).toContainText('Promontory taken ✓')
+            await expect(tracker.locator('[data-end-line="promontory"]')).toHaveText('Promontory')
+            await expect(tracker).toContainText(/Promontory\s*taken ✓/)
         })
 
         test('scenario 12 (R-4.2): a Dividend pays every holder $2 a share, logged by name; Undo reverses every payment', async ({

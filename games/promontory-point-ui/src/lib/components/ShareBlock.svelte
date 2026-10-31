@@ -14,7 +14,7 @@
 <section class="pp-block min-w-0 flex-1">
     <div class="pp-block-heading">{shares.heading}</div>
     {#if shares.lockedNote}
-        <p class="text-xs text-pp-muted">{shares.lockedNote}</p>
+        <p class="text-xs text-pp-ink-sub">{shares.lockedNote}</p>
     {/if}
     <!-- Contract, "Phone layout": while locked a phone keeps only the note, so the board keeps its room. -->
     <div
@@ -46,8 +46,8 @@
                         class="block rounded-[3px]"
                     />
                 </button>
-                <div class="info min-w-0 text-xs leading-tight text-pp-muted">
-                    <div class="text-[13px] font-semibold text-pp-text max-sm:hidden">
+                <div class="info min-w-0 text-xs leading-tight text-pp-ink-sub">
+                    <div class="text-[13px] font-semibold text-pp-ink max-sm:hidden">
                         {share.name}
                     </div>
                     <span class="tag sm:hidden">{RAILROAD_TAGS[share.railroadId]}</span>
@@ -76,7 +76,7 @@
                     >
                 </div>
                 {#if share.buyReason}
-                    <div class="reason text-[11px] text-pp-muted">{share.buyReason}</div>
+                    <div class="reason text-[11px] text-pp-ink-sub">{share.buyReason}</div>
                 {/if}
             </div>
         {/each}
@@ -87,7 +87,7 @@
     .pp-price {
         font-family: Oswald, sans-serif;
         font-size: 18px;
-        color: var(--pp-text);
+        color: var(--pp-ink);
     }
 
     .dimmed {
@@ -138,7 +138,7 @@
             align-items: center;
             column-gap: 4px;
             padding: 2px 4px;
-            border: 1px solid var(--pp-line);
+            border: 1px solid var(--pp-paper-line);
             border-radius: 6px;
         }
 
@@ -164,7 +164,7 @@
 
         .tag {
             font-weight: 600;
-            color: var(--pp-text);
+            color: var(--pp-ink);
         }
 
         .pp-price {

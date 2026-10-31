@@ -94,7 +94,7 @@
                 >{panel.setAside.label}</button
             >
             {#if panel.setAside.keepNote}
-                <p class="text-xs text-pp-muted">{panel.setAside.keepNote}</p>
+                <p class="text-xs text-pp-ink-sub">{panel.setAside.keepNote}</p>
             {/if}
         </div>
     {/if}
@@ -147,7 +147,7 @@
         align-items: center;
         gap: 1px;
         font-size: 11px;
-        color: var(--pp-muted);
+        color: var(--pp-ink-sub);
         border-radius: 6px;
     }
 
@@ -155,8 +155,9 @@
         opacity: 0.6;
     }
 
+    /* The ring carries the amber; the label stays in ink so it reads on paper. */
     .pp-piece-slot.picked {
-        color: var(--pp-accent);
+        color: var(--pp-ink);
         font-weight: 700;
     }
 
@@ -169,7 +170,7 @@
     }
 
     .pp-no-room {
-        color: var(--pp-text);
+        color: var(--pp-ink);
         font-weight: 600;
     }
 </style>

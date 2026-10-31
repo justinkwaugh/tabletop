@@ -32,15 +32,15 @@
     )
 </script>
 
-<div class="bg-pp-panel text-pp-text">
+<div class="flex flex-col gap-1.5 text-pp-ink max-sm:gap-1">
     <TurnHeader />
     <StatusStrip />
     {#if score}
-        <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
+        <div class="action-area px-3 pt-2 pb-2.5 max-sm:px-2">
             <ScoreTable {score} />
         </div>
     {:else if repairs}
-        <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
+        <div class="action-area px-3 pt-2 pb-2.5 max-sm:px-2">
             <!-- A phone shows the deciding seat's ring and the turn's dashed chip in the seat strip. -->
             {#if row}
                 <div class="mb-2 max-sm:hidden">
@@ -50,15 +50,13 @@
             <RepairsPanel panel={repairs} />
         </div>
     {:else if panel}
-        <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
+        <div class="action-area px-3 pt-2 pb-2.5 max-sm:px-2">
             <p class="mb-2 text-[15px] max-sm:mb-1 max-sm:text-[13.5px] max-sm:leading-snug">
-                <b class="font-semibold">{panel.prompt.lead}</b>
+                <b class="pp-prompt">{panel.prompt.lead}</b>
                 {panel.prompt.text}
                 {#if panel.prompt.note}
                     <!-- A phone keeps the action area to the decision; the share block tells the lock. -->
-                    <span class="ml-2 text-[13px] text-pp-muted max-sm:hidden"
-                        >{panel.prompt.note}</span
-                    >
+                    <span class="pp-aside ml-2 text-[13px] max-sm:hidden">{panel.prompt.note}</span>
                 {/if}
             </p>
             <div class="flex flex-wrap items-stretch gap-4 max-sm:flex-col max-sm:gap-2">
@@ -67,44 +65,66 @@
             </div>
         </div>
     {:else if waiting}
-        <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
+        <div class="action-area px-3 pt-2 pb-2.5 max-sm:px-2">
             <WaitingView view={waiting} {row} />
         </div>
     {/if}
 </div>
 
 <style>
+    /* Paper panels, prompts in Oswald, secondary lines in Caslon italic. */
     .action-area {
-        background: linear-gradient(var(--pp-panel), var(--pp-table));
+        background: var(--pp-paper);
+        border-radius: 4px;
+        box-shadow: 0 2px 0 color-mix(in srgb, var(--pp-halo) 30%, transparent);
+    }
+
+    .action-area :global(.pp-prompt) {
+        font-family: Oswald, sans-serif;
+        font-weight: 500;
+        font-size: 1.07em;
+        letter-spacing: 0.02em;
+    }
+
+    .action-area :global(.pp-aside) {
+        font-family: 'Libre Caslon Text', serif;
+        font-style: italic;
+        color: var(--pp-ink-sub);
     }
 
     .action-area :global(.pp-block) {
-        background: color-mix(in srgb, var(--pp-halo) 14%, transparent);
-        border: 1px solid var(--pp-line);
-        border-radius: 8px;
+        background: color-mix(in srgb, var(--pp-paper-deep) 55%, transparent);
+        border: 1.5px dashed color-mix(in srgb, var(--pp-brown) 55%, transparent);
+        border-radius: 4px;
         padding: 8px 10px;
     }
 
     .action-area :global(.pp-block-heading) {
         margin: 0 0 6px;
-        font-size: 11px;
-        font-weight: 700;
+        font-family: Oswald, sans-serif;
+        font-size: 12px;
+        font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--pp-muted);
+        letter-spacing: 0.12em;
+        color: var(--pp-brown);
     }
 
+    /* Buttons: charcoal outline on paper, Oswald caps; the primary charcoal with paper text. */
     .action-area :global(.pp-button) {
         display: inline-flex;
         align-items: center;
         gap: 4px;
+        min-height: 30px;
         background: var(--pp-paper);
-        color: var(--pp-ink);
-        border: 1px solid var(--pp-paper-line);
-        border-radius: 6px;
-        padding: 4px 10px;
-        font-size: 13px;
-        font-weight: 650;
+        color: var(--pp-charcoal);
+        border: 1.5px solid var(--pp-charcoal);
+        border-radius: 3px;
+        padding: 2px 11px;
+        font-family: Oswald, sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
         white-space: nowrap;
     }
 
@@ -119,14 +139,18 @@
     }
 
     .action-area :global(.pp-button.primary) {
-        background: var(--pp-accent);
-        border-color: var(--pp-accent);
-        color: var(--pp-accent-ink);
+        background: var(--pp-charcoal);
+        border-color: var(--pp-charcoal);
+        color: var(--pp-paper);
+    }
+
+    .action-area :global(.pp-button.primary small) {
+        color: var(--pp-paper-deep);
     }
 
     .action-area :global(.pp-button.big) {
-        padding: 7px 16px;
-        font-size: 14px;
+        padding: 4px 16px;
+        font-size: 15px;
     }
 
     /* Contract, "Phone layout": the action area takes at most 36 % of the column and scrolls

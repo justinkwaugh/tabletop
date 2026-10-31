@@ -10,7 +10,7 @@
 
 <!-- O-4: on a phone the price track and the sea are a pan away, so one line tells them. -->
 <div
-    class="strip flex h-[30px] items-center gap-2 border-b border-pp-halo/40 px-2.5 text-pp-text sm:hidden"
+    class="strip flex h-[30px] items-center gap-2 border-b border-pp-paper-line px-2.5 text-pp-ink sm:hidden"
     role="status"
     aria-label={strip.label}
     data-status-strip
@@ -21,7 +21,7 @@
             {price.text}
         </span>
     {/each}
-    <span class="ml-auto text-xs text-pp-muted" aria-hidden="true" data-strip-bag
+    <span class="ml-auto text-xs text-pp-ink-sub" aria-hidden="true" data-strip-bag
         >{strip.bag} · {strip.redTiles}</span
     >
 </div>

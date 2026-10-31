@@ -159,7 +159,7 @@
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: var(--pp-muted);
+        color: var(--pp-ink-sub);
     }
 
     .final th,

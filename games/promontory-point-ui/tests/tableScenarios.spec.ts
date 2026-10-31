@@ -411,14 +411,14 @@ for (const width of WIDTHS) {
             const royceId = await playerIdOf(page, 'Royce')
             // The harness decides for whoever the state asks: Royce sells one SP and pays.
             const sellSp = page.locator('[data-repairs-entry="railroad.sp"] button.pp-button')
-            // Each width shows its own label only.
+            // Each width shows its own label only, as drawn: buttons are set in caps.
             expect(
                 await sellSp.evaluate((button) =>
                     (button instanceof HTMLElement ? button.innerText : '')
                         .replace(/\s+/g, ' ')
                         .trim()
                 )
-            ).toBe(width.name === 'desktop' ? 'Sell one +$3' : 'SP ×5 +$3 each')
+            ).toBe(width.name === 'desktop' ? 'SELL ONE +$3' : 'SP ×5 +$3 EACH')
             await press(sellSp)
             await press(page.locator('[data-repairs-panel] button.send'))
             await settled(page)
