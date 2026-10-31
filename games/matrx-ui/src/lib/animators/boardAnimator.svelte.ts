@@ -23,7 +23,7 @@ import {
     type MoveChange,
     type PushChange
 } from '$lib/board/boardChange.js'
-import { coordsKey, SPACING } from '$lib/board/geometry.js'
+import { coordsKey, PIECE_RADIUS, SPACING } from '$lib/board/geometry.js'
 import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE, skidAt, skidDuration } from '$lib/board/hop.js'
 import { dropCrease, dropDisc, dropShadow, landing, LIFT_OFF, type PieceParts } from './drop.js'
 
@@ -90,7 +90,7 @@ type StackNodes = {
 }
 type FlierNodes = { whole?: SVGGElement; body?: SVGGElement; shadow?: SVGGElement }
 // A copy of a stack drawn over the flier: where it stands on screen, and how high its top is.
-type Occluder = { y: number; top: number }
+type Occluder = { x: number; y: number; top: number }
 
 function drawnStacks(state: HydratedMatrxGameState): DrawnStack[] {
     return state.board.spots
@@ -195,7 +195,7 @@ export class BoardAnimator {
             node.style.display = 'none'
             const view = this.session.view
             this.occluders.set(node, {
-                y: view.center(stack.coords).y,
+                ...view.center(stack.coords),
                 top: view.topFace(stack.discs.length)
             })
             return () => {
@@ -521,8 +521,9 @@ export class BoardAnimator {
         // The stacks nearer the viewer than the flier's place on the board stand in front of
         // it, unless it is above them.
         const occlude = () => {
+            const x = Number(gsap.getProperty(node, 'x'))
             const y = Number(gsap.getProperty(node, 'y'))
-            this.occlude(start.y + y, Number(gsap.getProperty(body, 'y')))
+            this.occlude(start.x + x, start.y + y, Number(gsap.getProperty(body, 'y')))
         }
         occlude()
         const settled = bounces ? BOUNCES.steps.reduce((sum, step) => sum + step.duration, 0) : 0
@@ -549,7 +550,7 @@ export class BoardAnimator {
             gsap.set(body, { y: lift })
             const away = Math.min(1, (along * spaces) / SKID_SHADOW_CLEAR)
             gsap.set(shadow, { opacity: away * Math.max(0.35, 1 + lift / 40) })
-            this.occlude(start.y + y, lift)
+            this.occlude(start.x + offset.x * along, start.y + y, lift)
         }
         pose(0)
         const progress = { u: 0 }
@@ -593,9 +594,12 @@ export class BoardAnimator {
         }
     }
 
-    private occlude(groundY: number, lift: number) {
-        for (const [use, { y, top }] of this.occluders) {
-            use.style.display = y > groundY + 0.5 && lift > top ? '' : 'none'
+    // Only stacks the flier is level with across the screen are copied over it, so the copies'
+    // soft edges, drawn twice, don't come and go on stacks it never passes.
+    private occlude(groundX: number, groundY: number, lift: number) {
+        for (const [use, { x, y, top }] of this.occluders) {
+            const beside = Math.abs(x - groundX) < PIECE_RADIUS * 2
+            use.style.display = beside && y > groundY + 0.5 && lift > top ? '' : 'none'
         }
     }
 

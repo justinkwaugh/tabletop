@@ -246,7 +246,8 @@
     }
 
     // The flier passes in front of every stack it is nearer than; nearer stacks are copied over
-    // it, shown only while it is behind them.
+    // it, shown only while it is behind them. Only their bodies are copied: a shadow drawn twice
+    // shows darker.
     const occluding = $derived(
         animator.flier
             ? animator.stacks.filter((stack) => !animator.flier?.passes.includes(stack.key))
@@ -384,10 +385,11 @@
                 onclick={() => role && chooseStack(stack.coords)}
                 onkeydown={(event) => role && onKey(event, () => chooseStack(stack.coords))}
             >
-                <g id="matrx-stack-{stack.key}" {@attach animator.stack(drawn.key, 'whole')}>
+                <g {@attach animator.stack(drawn.key, 'whole')}>
                     <StandingStack
                         discs={toned(stack.discs)}
                         {view}
+                        bodyId="matrx-stack-{stack.key}"
                         body={animator.stack(drawn.key, 'body')}
                         shadow={animator.stack(drawn.key, 'shadow')}
                         parts={animator.parts(drawn.key)}

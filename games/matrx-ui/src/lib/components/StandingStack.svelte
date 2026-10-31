@@ -8,16 +8,19 @@
     import PieceShape from './PieceShape.svelte'
 
     // A stack on the board with its shadow under it. The body is the whole stack, which rises off
-    // the board; its discs can move on their own.
+    // the board; its discs can move on their own. `bodyId` names the body, to copy it without the
+    // shadow.
     let {
         discs,
         view,
+        bodyId,
         body,
         shadow,
         parts
     }: {
         discs: readonly Disc[]
         view: BoardView
+        bodyId?: string
         body?: Attachment<SVGGElement>
         shadow?: Attachment<SVGGElement>
         parts?: PieceParts
@@ -34,6 +37,6 @@
     <ellipse rx={PIECE_RADIUS} ry={PIECE_RADIUS * view.tilt} fill="url(#matrx-board-contact)"
     ></ellipse>
 </g>
-<g {@attach body}>
+<g id={bodyId} {@attach body}>
     <PieceShape {discs} radius={PIECE_RADIUS} {view} {parts} />
 </g>
