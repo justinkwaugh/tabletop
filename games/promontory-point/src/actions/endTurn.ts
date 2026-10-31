@@ -36,7 +36,8 @@ export enum LeftoverChoice {
     Returned = 'Returned'
 }
 
-// R-2.2 step 4, R-5, R-6.3: the drawn pieces to the drawer alone; the count and the choice public.
+// R-2.2 step 4, R-5, R-6.3: the drawn pieces to the drawer alone; the count, the draw the rules
+// called for and the choice public (R-6.1-H2: fewer than wanted means the bag ran out).
 // R-6.3-H2: the leftover piece's railroad is public too, kept or returned: it lay face up in the
 // turn's pieces.
 export type EndTurnMetadata = Type.Static<typeof EndTurnMetadata>
@@ -45,6 +46,7 @@ export const EndTurnMetadata = Type.Object({
         policy: Visibility.Policy.Actor
     }),
     drawnCount: Type.Integer({ minimum: 0, maximum: VARIANT_FULL_DRAW }),
+    wanted: Type.Optional(Type.Integer({ minimum: 0, maximum: VARIANT_FULL_DRAW })),
     leftover: Type.Optional(Type.Enum(LeftoverChoice)),
     leftoverPiece: Type.Optional(RailroadIdSchema)
 })
@@ -69,18 +71,26 @@ export function isEndTurn(action?: GameAction): action is EndTurn {
     return action?.type === ActionType.EndTurn
 }
 
-// R-2.2 step 4, R-6.3: three, or four in the variant unless a piece is kept; a returned piece
-// joins the bag first; R-6.1-H2: a short bag gives what is left.
+// R-2.2 step 4, R-6.3: three, or four in the variant unless a piece is kept.
+export function endTurnDrawWanted(
+    fourPieceVariant: boolean,
+    leftoverChoice: LeftoverChoice | undefined
+): number {
+    return fourPieceVariant && leftoverChoice !== LeftoverChoice.Kept
+        ? VARIANT_FULL_DRAW
+        : END_TURN_DRAW
+}
+
+// R-6.3: a returned piece joins the bag first; R-6.1-H2: a short bag gives what is left.
 export function endTurnDrawCount(
     inBag: number,
     fourPieceVariant: boolean,
     leftoverChoice: LeftoverChoice | undefined
 ): number {
-    const wanted =
-        fourPieceVariant && leftoverChoice !== LeftoverChoice.Kept
-            ? VARIANT_FULL_DRAW
-            : END_TURN_DRAW
-    return Math.min(wanted, inBag + (leftoverChoice === LeftoverChoice.Returned ? 1 : 0))
+    return Math.min(
+        endTurnDrawWanted(fourPieceVariant, leftoverChoice),
+        inBag + (leftoverChoice === LeftoverChoice.Returned ? 1 : 0)
+    )
 }
 
 // R-2.2 step 4, R-2.2-H1, R-6.3: once placing has ended; the keep-or-return choice in the variant only.
@@ -149,6 +159,7 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
                 : this.returnKeptPiece === true
                   ? LeftoverChoice.Returned
                   : LeftoverChoice.Kept
+        const wanted = endTurnDrawWanted(fourPieceVariant, leftoverChoice)
         const drawnCount = endTurnDrawCount(state.bag.count(), fourPieceVariant, leftoverChoice)
         if (leftover !== undefined && leftoverChoice === LeftoverChoice.Returned) {
             // R-6.3, R-5: the returned piece goes back into the bag, reshuffled unseen.
@@ -167,6 +178,7 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
         this.metadata = {
             drawn,
             drawnCount,
+            wanted,
             ...(leftoverChoice === undefined || leftover === undefined
                 ? {}
                 : { leftover: leftoverChoice, leftoverPiece: leftover })

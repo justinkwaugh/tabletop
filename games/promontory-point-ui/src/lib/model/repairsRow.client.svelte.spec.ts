@@ -284,7 +284,9 @@ describe('waiting view (contract, "Watching")', () => {
         )
         assertExists(view.last, 'The placement is the last action')
         expect(view.last.playerId).toBe(placer)
-        expect(said(session, view.last.parts)).toMatch(/^placed SP on a Repairs town: bills /)
+        expect(said(session, view.last.parts)).toMatch(
+            /^placed SP on a Repairs town: SP Repairs bills /
+        )
         expect(said(session, view.last.parts)).not.toContain('sold')
     })
 

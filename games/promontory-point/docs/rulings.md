@@ -23,6 +23,7 @@ The code cites the rules as `R-<section>` of `rules-digest.md`. A citation endin
 - **R-6.2-H1:** a tie for the most money shares the victory; there is no tie-break. Spec: `src/rules/finalTotals.spec.ts`; `src/definition/competition.spec.ts` (every tied leader named, the result a draw).
 - **R-6.3-H1:** the four-piece variant is a table option, off by default. Spec: `src/definition/info.spec.ts`, `src/definition/initializer.spec.ts`.
 - **R-6.3-H2:** in the four-piece variant a kept fourth piece stays face up, and a player may keep a piece that has no open space instead of scrapping it; a piece is scrapped only when chosen as one of the three to place. Spec: `src/definition/visibility.spec.ts` (the kept piece public for every seat and the spectator); `src/actions/endTurn.spec.ts` (keeping a piece with no open space); `src/stateHandlers/turnEngine.spec.ts` (a kept piece joining its holder's next turn); `src/definition/exploration.spec.ts` (a kept piece kept by every branch).
+- **R-6.3-H3:** in the four-piece variant a returned piece goes into the bag before the new hand is drawn, as R-6.3 is written, so with the bag short or empty it can be drawn straight back; the draw is then what the bag holds (R-6.1-H2). Spec: `src/actions/endTurn.spec.ts` (the variant with two and with no pieces in the bag, kept and returned).
 
 ## Rules of the implementation
 

@@ -118,7 +118,7 @@ All follow the placement at once, for every seat, and are written into the place
 
 ### Watching (waiting view)
 
-The waiting view says who decides and what, then the live state of a shared step, then what the last action did, built from the Action's input and `metadata`: "Mara is placing piece 2 of 3 (SP, KP left). Last: Mara placed UP on a Repairs town: bills Mara $2, Theo $8, Inez $6, Royce $6, all paid." During Repairs it carries the Repairs row (above).
+The waiting view says who decides and what, then the live state of a shared step, then what the last action did, built from the Action's input and `metadata`: "Mara is placing piece 2 of 3 (SP, KP left). Last: Mara placed UP on a Repairs town: UP Repairs bills Mara $2, Theo $8, Inez $6, Royce $6, all paid." During Repairs it carries the Repairs row (above).
 
 ### Game end
 
@@ -181,7 +181,7 @@ Silent restoration replaces the displayed state; every derived offer follows it 
 
 Built from each Action's input and `metadata` only (`docs/DESIGN.md`, Actions). A seat's line is past tense after its name. Railroads appear as coloured tags (CP, UP, KP, SP), towns by kind ("a +2 town", "a Repairs town", "Promontory", "open country").
 
-- **Grouping:** one entry per turn, growing as its Actions arrive: "revealed CP, UP, KP"; "bought a KP share for $5"; "placed UP on a Repairs town: bills Mara $2, Theo $8, Inez $6, Royce $6, all paid"; "placed KP on a −3 town: KP $5 → $2"; "placed CP at Promontory: CP $22 → $25 (capped)"; "placed SP on a Dividend town: Dividend pays Theo $6, Royce $8"; "ended the turn and drew 3". A Repairs payment adds a line for each short seat in the turn's entry: "Royce sold 1 SP at half price ($3) and paid $10", "Theo sold all 2 for $4, paid $5, $3 forgiven". While a short seat decides, the entry ends "Royce is selling…".
+- **Grouping:** one entry per turn, growing as its Actions arrive: "revealed CP, UP, KP"; "bought a KP share for $5"; "placed UP on a Repairs town: UP Repairs bills Mara $2, Theo $8, Inez $6, Royce $6, all paid"; "placed KP on a −3 town: KP $5 → $2"; "placed CP at Promontory: CP $22 → $25 (capped)"; "placed SP on a Dividend town: SP Dividend pays Theo $6, Royce $8"; "ended the turn and drew 3", or "drew 2: the bag ran out" when the bag holds fewer than the draw. In the variant a reveal names the kept piece: "revealed CP, UP, SP and the kept KP". A Repairs town with a short seat reads "…, leaving Royce short"; a capped move that cannot move reads "CP already at $25". A Repairs payment adds a line for each short seat in the turn's entry: "Royce sold 1 SP at half price ($3) and paid $10", "Theo sold all (2 SP) at half price ($4), paid $5, $3 forgiven". While a short seat decides, the entry ends "Royce is selling…".
 - **Actor-only lines:** a draw names the pieces to the drawer only ("drew CP, KP, SP"); others read "drew 3". A set-aside names the piece and the replacement for all, since the replacement joins the revealed hand (O-11).
 - **Skipped:** `RevealHand` folds into the entry's first line; the Repairs bills paid inside `PlaceTrack` are part of the placement's line; bookkeeping is not shown.
 - **Interstitials:** a round marker each time play returns to the starting seat (R-2.1, R-2.1-H1).

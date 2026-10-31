@@ -16,7 +16,9 @@ import { turnPlayerId } from '../rules/turnPlayer.js'
 
 export type RevealHandMetadata = Type.Static<typeof RevealHandMetadata>
 export const RevealHandMetadata = Type.Object({
-    pieces: Type.Array(RailroadIdSchema)
+    pieces: Type.Array(RailroadIdSchema),
+    // R-6.3-H2: the variant's piece kept face up from the turn before, last among the pieces.
+    kept: Type.Optional(RailroadIdSchema)
 })
 
 export type RevealHand = Type.Static<typeof RevealHand>
@@ -54,8 +56,9 @@ export class HydratedRevealHand extends HydratableAction<typeof RevealHand> impl
             HydratedRevealHand.canRevealHand(state, this.playerId),
             'RevealHand belongs to the turn player as the turn starts'
         )
+        const kept = state.getPlayerState(this.playerId).keptPiece
         const pieces = revealTurnPieces(state, this.playerId)
-        this.metadata = { pieces }
+        this.metadata = kept === undefined ? { pieces } : { pieces, kept }
         // R-X.2: the hand leaves concealment.
         this.revealsInfo = true
     }

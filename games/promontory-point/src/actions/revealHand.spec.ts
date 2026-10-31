@@ -57,6 +57,7 @@ describe('RevealHand', () => {
             revealsInfo: true,
             metadata: { pieces: hand }
         })
+        expect(processedActions[0]).not.toHaveProperty('metadata.kept')
     })
 
     it('R-6.3-H2: a kept piece joins the turn pieces and leaves the kept slot', () => {
@@ -75,7 +76,9 @@ describe('RevealHand', () => {
         expect(updatedState.turn?.pieces).toEqual([...hand, keptPiece])
         expect(updatedState.turn?.placementsLeft).toBe(PLACEMENTS_PER_TURN)
         expect(playerOf(updatedState, playerId).keptPiece).toBeUndefined()
-        expect(processedActions[0]).toMatchObject({ metadata: { pieces: [...hand, keptPiece] } })
+        expect(processedActions[0]).toMatchObject({
+            metadata: { pieces: [...hand, keptPiece], kept: keptPiece }
+        })
     })
 
     it('R-2.2 step 1: is refused when attributed to a seat whose turn it is not', () => {

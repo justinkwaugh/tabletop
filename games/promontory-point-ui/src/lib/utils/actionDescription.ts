@@ -51,8 +51,16 @@ function railroads(railroadIds: readonly RailroadId[]): DescriptionPart[] {
     return listed(railroadIds.map((railroadId) => [railroad(railroadId)]))
 }
 
-// R-2.2 step 1, R-5: the turn pieces turned face up for every seat.
-function revealed(pieces: readonly RailroadId[]): DescriptionPart[] {
+// R-2.2 step 1, R-5: the turn pieces turned face up for every seat; R-6.3-H2: the variant's
+// kept piece comes last and is named as kept.
+function revealed(pieces: readonly RailroadId[], kept: RailroadId | undefined): DescriptionPart[] {
+    if (kept !== undefined && pieces.at(-1) === kept) {
+        const drawn = pieces.slice(0, -1)
+        const keptPart = [text('the kept '), railroad(kept)]
+        return drawn.length > 0
+            ? [text('revealed '), ...railroads(drawn), text(' and '), ...keptPart]
+            : [text('revealed '), ...keptPart]
+    }
     return pieces.length > 0
         ? [text('revealed '), ...railroads(pieces)]
         : [text('revealed nothing')]
@@ -86,6 +94,9 @@ function townOutcome(outcome: TownEffectOutcome): DescriptionPart[] {
         case TownEventKind.PriceChange: {
             const before = sharePriceAt(outcome.priceIndexBefore)
             const after = sharePriceAt(outcome.priceIndexAfter)
+            if (outcome.priceIndexBefore === outcome.priceIndexAfter) {
+                return [railroad(outcome.railroadId), text(` already at ${dollars(after)}`)]
+            }
             return [
                 railroad(outcome.railroadId),
                 text(` ${dollars(before)} → ${dollars(after)}${outcome.capped ? ' (capped)' : ''}`)
@@ -93,9 +104,10 @@ function townOutcome(outcome: TownEffectOutcome): DescriptionPart[] {
         }
         case TownEventKind.Dividend:
             return outcome.payments.length === 0
-                ? [text('Dividend pays no one')]
+                ? [railroad(outcome.railroadId), text(' Dividend pays no one')]
                 : [
-                      text('Dividend pays '),
+                      railroad(outcome.railroadId),
+                      text(' Dividend pays '),
                       ...listed(
                           outcome.payments.map((payment) => [
                               player(payment.playerId),
@@ -104,21 +116,22 @@ function townOutcome(outcome: TownEffectOutcome): DescriptionPart[] {
                       )
                   ]
         case TownEventKind.Repairs: {
+            const repairs = [railroad(outcome.railroadId), text(' Repairs bills ')]
             if (outcome.bills.length === 0) {
-                return [text('bills no one')]
+                return [...repairs, text('no one')]
             }
             const bills = listed(
                 outcome.bills.map((bill) => [player(bill.playerId), text(` ${dollars(bill.owed)}`)])
             )
             const debtors = outcome.debtors.map((debtor) => debtor.playerId)
             if (debtors.length === 0) {
-                return [text('bills '), ...bills, text(', all paid')]
+                return [...repairs, ...bills, text(', all paid')]
             }
             const short = debtors.flatMap((playerId, index) => [
                 ...(index === 0 ? [] : [text(index === debtors.length - 1 ? ' and ' : ', ')]),
                 player(playerId)
             ])
-            return [text('bills '), ...bills, text('; '), ...short, text(' short')]
+            return [...repairs, ...bills, text(', leaving '), ...short, text(' short')]
         }
     }
 }
@@ -151,15 +164,18 @@ function paidRepairs(
     forgiven: number
 ): DescriptionPart[] {
     const raised = sales.reduce((sum, sale) => sum + sale.proceeds, 0)
-    if (forgiven > 0) {
-        const sold =
-            sales.length === 0
-                ? [text('had no share to sell')]
-                : [text(`sold all ${sales.length} for ${dollars(raised)}`)]
-        return [...sold, text(`, paid ${dollars(paid)}, ${dollars(forgiven)} forgiven`)]
-    }
+    // A debtor's money is below its bill, so with no sale it held no share and is forgiven the rest.
     if (sales.length === 0) {
-        return [text(`paid ${dollars(paid)}`)]
+        return [text(`had no share to sell, paid ${dollars(paid)}, ${dollars(forgiven)} forgiven`)]
+    }
+    if (forgiven > 0) {
+        return [
+            text('sold all ('),
+            ...counted(sales),
+            text(
+                `) at half price (${dollars(raised)}), paid ${dollars(paid)}, ${dollars(forgiven)} forgiven`
+            )
+        ]
     }
     return [
         text('sold '),
@@ -173,7 +189,7 @@ function endedTurn(action: GameAction, viewerId: string | undefined): Descriptio
     if (!isEndTurn(action) || action.metadata === undefined) {
         return [text('ended the turn')]
     }
-    const { drawn, drawnCount, leftover, leftoverPiece } = action.metadata
+    const { drawn, drawnCount, wanted, leftover, leftoverPiece } = action.metadata
     // R-6.3-H2: the leftover piece was face up, so every seat reads its railroad.
     const piece: DescriptionPart[] =
         leftoverPiece === undefined ? [text('a piece')] : [railroad(leftoverPiece)]
@@ -183,13 +199,16 @@ function endedTurn(action: GameAction, viewerId: string | undefined): Descriptio
             : leftover === LeftoverChoice.Returned
               ? [text(', returned '), ...piece, text(' to the bag')]
               : []
+    if (drawnCount === 0) {
+        return [text('ended the turn'), ...kept, text(' and drew nothing: the bag is empty')]
+    }
     const draw: DescriptionPart[] =
-        drawnCount === 0
-            ? [text(' and drew nothing: the bag is empty')]
-            : viewerId === action.playerId && drawn !== undefined && drawn.length === drawnCount
-              ? [text(' and drew '), ...railroads(drawn)]
-              : [text(` and drew ${drawnCount}`)]
-    return [text('ended the turn'), ...kept, ...draw]
+        viewerId === action.playerId && drawn !== undefined && drawn.length === drawnCount
+            ? [text(' and drew '), ...railroads(drawn)]
+            : [text(` and drew ${drawnCount}`)]
+    // R-6.1-H2: fewer than the rules called for means the bag ran out.
+    const ranOut = wanted !== undefined && drawnCount < wanted ? [text(': the bag ran out')] : []
+    return [text('ended the turn'), ...kept, ...draw, ...ranOut]
 }
 
 // R-5: each action as the seat viewing it may read it; a spectator passes no viewer.
@@ -199,7 +218,7 @@ export function describeAction(
     viewerId: string | undefined
 ): DescriptionPart[] | undefined {
     if (isRevealHand(action)) {
-        return revealed(action.metadata?.pieces ?? [])
+        return revealed(action.metadata?.pieces ?? [], action.metadata?.kept)
     }
     if (isBuyShare(action)) {
         const price = action.metadata ? ` for ${dollars(action.metadata.price)}` : ''

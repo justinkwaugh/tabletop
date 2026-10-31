@@ -21,3 +21,4 @@ None yet.
 Behaviour that belongs to the shared platform rather than this title, such as the bounds of Undo or what a spectator can explore.
 
 - **The first turn's reveal (R-2.2 step 1).** The engine runs no System Action as a game starts, so there is no `RevealHand` for the first turn: setup deals the starting player's pieces face up into `turn.pieces` and the game opens in `TradingBeforePlacing`. Every later turn opens with `RevealHand`. Governs: `src/definition/initializer.ts`.
+- **The first turn's pieces in history (R-2.2 step 1, R-5).** With no `RevealHand` for the first turn, history has no line naming the starting player's first pieces; the first turn's entry opens with its first trade or placement. The pieces are public on the table throughout that turn. Governs: the UI's `src/lib/utils/actionAggregator.ts`, which builds history from Actions alone.

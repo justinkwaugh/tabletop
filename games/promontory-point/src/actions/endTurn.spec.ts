@@ -72,6 +72,18 @@ function endingTurn(
     return { game, state: afterPlacing(placed(edit(revealed), toPlace)) }
 }
 
+// R-6.1-H2: a bag holding only `left` pieces; the rest are out of play.
+function short(left: number) {
+    return (state: PromontoryPointGameState) =>
+        edited(state, (draft) => {
+            const removed = draft.bag.items.splice(0, draft.bag.remaining - left)
+            for (const railroadId of removed) {
+                draft.scrapped[railroadId] += 1
+            }
+            draft.bag.remaining = left
+        })
+}
+
 function topOfBag(state: PromontoryPointGameState, count: number): RailroadId[] {
     return state.bag.items.slice(state.bag.remaining - count)
 }
@@ -103,7 +115,7 @@ describe('EndTurn', () => {
         expect(playerOf(finalState, playerId).hand).toEqual(expected)
         expect(processedActions[0]).toMatchObject({
             revealsInfo: true,
-            metadata: { drawn: expected, drawnCount: END_TURN_DRAW }
+            metadata: { drawn: expected, drawnCount: END_TURN_DRAW, wanted: END_TURN_DRAW }
         })
         expect(processedActions[0]).not.toHaveProperty('metadata.leftover')
         expect(processedActions[0]).not.toHaveProperty('metadata.leftoverPiece')
@@ -120,19 +132,12 @@ describe('EndTurn', () => {
             policy: Visibility.Policy.Actor
         })
         expect(Visibility.MetadataKey in EndTurnMetadata.properties.drawnCount).toBe(false)
+        expect(Visibility.MetadataKey in EndTurnMetadata.properties.wanted).toBe(false)
         expect(Visibility.MetadataKey in EndTurnMetadata.properties.leftover).toBe(false)
         expect(Visibility.MetadataKey in EndTurnMetadata.properties.leftoverPiece).toBe(false)
     })
 
-    it('R-6.1-H2: draws what is left when the bag runs short', () => {
-        const short = (left: number) => (state: PromontoryPointGameState) =>
-            edited(state, (draft) => {
-                const removed = draft.bag.items.splice(0, draft.bag.remaining - left)
-                for (const railroadId of removed) {
-                    draft.scrapped[railroadId] += 1
-                }
-                draft.bag.remaining = left
-            })
+    it('R-6.1-H2: draws what is left when the bag runs short, and records the draw it wanted', () => {
         const twoLeft = endingTurn([CP, UP, SP], [CP, UP, SP], { edit: short(2) })
         const expected = topOfBag(twoLeft.state, 2)
         const drewTwo = endTurn(twoLeft.game, twoLeft.state)
@@ -140,7 +145,7 @@ describe('EndTurn', () => {
         expect(drewTwo.updatedState.bag.remaining).toBe(0)
         expect(drewTwo.processedActions[0]).toMatchObject({
             revealsInfo: true,
-            metadata: { drawn: expected, drawnCount: 2 }
+            metadata: { drawn: expected, drawnCount: 2, wanted: END_TURN_DRAW }
         })
 
         const empty = endingTurn([CP, UP, SP], [CP, UP, SP], { edit: withEmptyBag })
@@ -151,7 +156,7 @@ describe('EndTurn', () => {
         })
         expect(drewNone.processedActions[0]).toMatchObject({
             revealsInfo: true,
-            metadata: { drawn: [], drawnCount: 0 }
+            metadata: { drawn: [], drawnCount: 0, wanted: END_TURN_DRAW }
         })
     })
 
@@ -174,6 +179,7 @@ describe('EndTurn', () => {
             metadata: {
                 drawn: expected,
                 drawnCount: END_TURN_DRAW,
+                wanted: END_TURN_DRAW,
                 leftover: LeftoverChoice.Kept,
                 leftoverPiece: KP
             }
@@ -203,6 +209,7 @@ describe('EndTurn', () => {
             metadata: {
                 drawn: player.hand,
                 drawnCount: VARIANT_FULL_DRAW,
+                wanted: VARIANT_FULL_DRAW,
                 leftover: LeftoverChoice.Returned,
                 leftoverPiece: KP
             }
@@ -217,7 +224,7 @@ describe('EndTurn', () => {
 
         expect(playerOf(updatedState, turnPlayer(state)).hand).toEqual(expected)
         expect(processedActions[0]).toMatchObject({
-            metadata: { drawn: expected, drawnCount: VARIANT_FULL_DRAW }
+            metadata: { drawn: expected, drawnCount: VARIANT_FULL_DRAW, wanted: VARIANT_FULL_DRAW }
         })
         expect(processedActions[0]).not.toHaveProperty('metadata.leftoverPiece')
         expect(() => endTurn(game, state, { returnKeptPiece: true })).toThrow(
@@ -227,6 +234,36 @@ describe('EndTurn', () => {
             EndTurnRefusal.NoLeftoverPiece
         )
     })
+
+    it.each([
+        { left: 2, returnKeptPiece: false, drawnCount: 2, wanted: END_TURN_DRAW },
+        { left: 2, returnKeptPiece: true, drawnCount: 3, wanted: VARIANT_FULL_DRAW },
+        { left: 0, returnKeptPiece: false, drawnCount: 0, wanted: END_TURN_DRAW },
+        { left: 0, returnKeptPiece: true, drawnCount: 1, wanted: VARIANT_FULL_DRAW }
+    ])(
+        'R-6.3, R-6.3-H3, R-6.1-H2: in the variant with $left in the bag, return $returnKeptPiece draws $drawnCount of $wanted',
+        ({ left, returnKeptPiece, drawnCount, wanted }) => {
+            const { game, state } = endingTurn([CP, UP, SP, KP], [CP, UP, SP], {
+                variant: true,
+                edit: short(left)
+            })
+            const playerId = turnPlayer(state)
+
+            const { processedActions, updatedState } = endTurn(game, state, { returnKeptPiece })
+
+            const player = playerOf(updatedState, playerId)
+            expect(player.hand).toHaveLength(drawnCount)
+            expect(player.keptPiece).toBe(returnKeptPiece ? undefined : KP)
+            expect(updatedState.bag.remaining).toBe(0)
+            // R-6.3-H3: a returned piece goes into the bag first, so it can be drawn straight back.
+            if (returnKeptPiece) {
+                expect(player.hand).toContain(KP)
+            }
+            expect(processedActions[0]).toMatchObject({
+                metadata: { drawn: player.hand, drawnCount, wanted }
+            })
+        }
+    )
 
     it('R-6.3-H2: in the variant a piece with no open space may be kept instead of scrapped', () => {
         const boxedIn = (state: PromontoryPointGameState) => withNoRoomFor(state, KP, UP)

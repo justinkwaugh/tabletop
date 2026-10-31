@@ -5,10 +5,14 @@ import {
     BoardNodeKind,
     GameEndReason,
     MachineState,
+    LeftoverChoice,
     TownEventKind,
     PromontoryPointRuntime,
     openSpaceIds,
+    type EndTurn,
+    type PayRepairs,
     type PlaceTrack,
+    type RevealHand,
     type RailroadId,
     type ScrapTrack,
     type SpaceId
@@ -48,6 +52,13 @@ const SP: RailroadId = 'railroad.sp'
 afterEach(() => {
     disposeSessions()
 })
+
+// One action's sentence, each seat named by its id.
+function said(action: GameAction, viewer: string | undefined): string {
+    const parts = describeAction(action, viewer)
+    assertExists(parts, `${action.type} is described`)
+    return descriptionText(parts, (playerId) => playerId)
+}
 
 // The harness names each seat by its id.
 function rowText(row: HistoryRow): string {
@@ -171,9 +182,9 @@ describe('history — each action as the actor, another seat and a spectator see
             'bought a KP share for $5',
             'sold a UP share for $5',
             'placed CP on a −3 town: CP $5 → $2',
-            `placed CP on a Repairs town: bills ${first} $2, ${second} $2, ${third} $4; ${second} short`,
-            `${second} sold all 1 for $1, paid $1, $1 forgiven`,
-            `placed CP on a Dividend town: Dividend pays ${first} $2, ${third} $4`
+            `placed CP on a Repairs town: CP Repairs bills ${first} $2, ${second} $2, ${third} $4, leaving ${second} short`,
+            `${second} sold all (1 CP) at half price ($1), paid $1, $1 forgiven`,
+            `placed CP on a Dividend town: CP Dividend pays ${first} $2, ${third} $4`
         ]
         for (const seen of perspectives(first, second)) {
             const [turnOne, turnTwo] = turnsSeen(session, seen)
@@ -259,6 +270,119 @@ describe('history — each action as the actor, another seat and a spectator see
         expect(descriptionText(parts, (playerId) => playerId)).toBe(
             'placed CP at Promontory: CP $22 → $25 (capped)'
         )
+    })
+
+    it('R-4.2, R-1.2: a capped move that cannot move reads already at the end', () => {
+        const placement: PlaceTrack = {
+            id: 'placement',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.PlaceTrack,
+            playerId: 'p1',
+            railroadId: CP,
+            spaceId: 'space.0.0',
+            metadata: {
+                spaceKind: BoardNodeKind.Promontory,
+                townEffectId: 'space.0.0',
+                outcome: {
+                    kind: TownEventKind.PriceChange,
+                    railroadId: CP,
+                    priceChange: 5,
+                    priceIndexBefore: 29,
+                    priceIndexAfter: 29,
+                    capped: true
+                }
+            }
+        }
+        expect(said(placement, undefined)).toBe('placed CP at Promontory: CP already at $25')
+    })
+
+    it('R-4.3-H3: a debtor with no share to sell pays what it has and the rest is forgiven', () => {
+        const payment: PayRepairs = {
+            id: 'payment',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.PayRepairs,
+            playerId: 'p2',
+            sales: [],
+            metadata: { sales: [], paid: 2, forgiven: 3 }
+        }
+        expect(said(payment, undefined)).toBe('had no share to sell, paid $2, $3 forgiven')
+    })
+
+    it('R-4.3-H3: a debtor short after every sale names the railroads it sold', () => {
+        const payment: PayRepairs = {
+            id: 'payment',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.PayRepairs,
+            playerId: 'p2',
+            sales: [CP, CP, UP],
+            metadata: {
+                sales: [
+                    { railroadId: CP, proceeds: 3 },
+                    { railroadId: CP, proceeds: 3 },
+                    { railroadId: UP, proceeds: 3 }
+                ],
+                paid: 9,
+                forgiven: 3
+            }
+        }
+        expect(said(payment, undefined)).toBe(
+            'sold all (2 CP, 1 UP) at half price ($9), paid $9, $3 forgiven'
+        )
+    })
+
+    it.each([
+        ['p1', 'ended the turn and drew CP, UP: the bag ran out'],
+        ['p2', 'ended the turn and drew 2: the bag ran out'],
+        [undefined, 'ended the turn and drew 2: the bag ran out']
+    ])('R-6.1-H2: a short draw says the bag ran out (viewer %s)', (viewer, sentence) => {
+        const ended: EndTurn = {
+            id: 'ended',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.EndTurn,
+            playerId: 'p1',
+            metadata: { drawn: viewer === 'p1' ? [CP, UP] : [], drawnCount: 2, wanted: 3 }
+        }
+        expect(said(ended, viewer)).toBe(sentence)
+    })
+
+    it('R-6.3, R-6.1-H2: a piece returned to an empty bag is drawn straight back, and the bag ran out', () => {
+        const ended: EndTurn = {
+            id: 'ended',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.EndTurn,
+            playerId: 'p1',
+            returnKeptPiece: true,
+            metadata: {
+                drawn: [],
+                drawnCount: 1,
+                wanted: 4,
+                leftover: LeftoverChoice.Returned,
+                leftoverPiece: SP
+            }
+        }
+        expect(said(ended, 'p2')).toBe(
+            'ended the turn, returned SP to the bag and drew 1: the bag ran out'
+        )
+    })
+
+    it.each([
+        [[CP, UP, SP, KP], 'revealed CP, UP, SP and the kept KP'],
+        [[KP], 'revealed the kept KP']
+    ])('R-6.3-H2: a reveal marks the piece kept from the turn before (%s)', (pieces, sentence) => {
+        const reveal: RevealHand = {
+            id: 'reveal',
+            gameId: 'game',
+            source: ActionSource.System,
+            type: ActionType.RevealHand,
+            playerId: 'p1',
+            metadata: { pieces, kept: KP }
+        }
+        expect(said(reveal, 'p2')).toBe(sentence)
     })
 
     it('R-3.3-H1: a scrap on an empty bag says one placement fewer', () => {
