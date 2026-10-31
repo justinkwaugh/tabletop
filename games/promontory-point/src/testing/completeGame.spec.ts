@@ -180,6 +180,47 @@ describe('Promontory Point scripted complete games', () => {
             expect(applied).toEqual(final)
         })
 
+        it('Player Identity: with every seat in another colour, replay gives the same actions, scores and winners', () => {
+            const freshEngine = new GameEngine(Definition.runtime)
+            const colors = initial.players.map(({ color }) => color)
+            const recolored = (state: PromontoryPointGameState): PromontoryPointGameState => ({
+                ...state,
+                players: state.players.map((player, index) => ({
+                    ...player,
+                    color: colors[(index + 1) % colors.length]
+                }))
+            })
+            const withoutColor = (state: PromontoryPointGameState) => ({
+                ...state,
+                players: state.players.map((player) => ({ ...player, color: '' }))
+            })
+            let state = recolored(initial)
+            expect(state.players.map(({ color }) => color)).not.toEqual(colors)
+            const userActions = actions.filter(({ source }) => source === ActionSource.User)
+            userActions.forEach((action, index) => {
+                const replayed = freshEngine.executeCanonicalAction({ action, state, game })
+                expect(
+                    replayed.processedActions.map(({ type, id, playerId }) => ({
+                        type,
+                        id,
+                        playerId
+                    }))
+                ).toEqual(
+                    steps[index].processedActions.map(({ type, id, playerId }) => ({
+                        type,
+                        id,
+                        playerId
+                    }))
+                )
+                state = canonical(replayed.updatedState)
+            })
+            expect(withoutColor(state)).toEqual(withoutColor(final))
+            expect(state.winningPlayerIds).toEqual(final.winningPlayerIds)
+            expect(PromontoryPointRuntime.scoring.finalScores(state)).toEqual(
+                PromontoryPointRuntime.scoring.finalScores(final)
+            )
+        })
+
         it('R-X.2: full reverse Undo returns, action by action, to the state before each', () => {
             let state = final
             for (let index = actions.length - 1; index >= 0; index -= 1) {
