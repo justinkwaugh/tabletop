@@ -122,17 +122,29 @@ function turnDecision(
                     text('.')
                 ]
             }
-        case MachineState.TradingAfterPlacing:
+        case MachineState.TradingAfterPlacing: {
+            // R-6.3: in the variant a piece is left over, face up, to keep or return.
+            const placed =
+                turn.pieces.length === 0
+                    ? [text(` ${has} placed every piece`)]
+                    : [
+                          text(
+                              ` ${has} placed ${turn.placementsMade} ${turn.placementsMade === 1 ? 'piece' : 'pieces'}`
+                          ),
+                          ...pieceList(turn.pieces, ' left over')
+                      ]
             return {
                 parts: [
                     who.part,
+                    ...placed,
                     text(
                         sharesLeft > 0
-                            ? ` ${has} placed every piece and may buy or sell up to ${trades} before ending the turn.`
-                            : ` ${has} placed every piece and ${is} ending the turn.`
+                            ? ` and may buy or sell up to ${trades} before ending the turn.`
+                            : ` and ${is} ending the turn.`
                     )
                 ]
             }
+        }
         default:
             return {
                 parts: [

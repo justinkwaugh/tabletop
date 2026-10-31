@@ -316,4 +316,28 @@ describe('waiting view (contract, "Watching")', () => {
         const own = waitingView(session.gameState, session.actions, turnPlayer)
         expect(said(session, own?.parts ?? [])).toBe('You are placing piece 2 of 3 (SP, KP left).')
     })
+
+    it('R-6.3: after the placements, names a piece left over in the variant', async () => {
+        const session = await openSessionOn(
+            editedTable(dealtTable({ config: { fourPieceVariant: true } }), (state) =>
+                withTurnPieces(state, [SP, UP, KP, CP])
+            )
+        )
+        const turnPlayer = session.gameState.activePlayerIds[0]
+        assertExists(turnPlayer, 'A seat takes its turn')
+        for (const railroadId of [SP, UP, KP]) {
+            session.pressPiece(railroadId)
+            const open = session.boardOffer.lit.find(
+                (spaceId) => !(spaceId in session.gameState.towns)
+            )
+            assertExists(open, `${railroadId} has open country`)
+            await session.placeTrack(open)
+            await settled(session)
+        }
+        expect(session.gameState.machineState).toBe(MachineState.TradingAfterPlacing)
+        const after = waitingView(session.gameState, session.actions, undefined)
+        expect(said(session, after?.parts ?? [])).toBe(
+            `${session.getPlayerName(turnPlayer)} has placed 3 pieces (CP left over) and may buy or sell up to 2 shares before ending the turn.`
+        )
+    })
 })
