@@ -78,7 +78,13 @@ const TURN_STATES: readonly MachineState[] = [
     MachineState.TradingAfterPlacing
 ]
 
-const TRADING_REOPENS_NOTE = 'Buying and selling open again after your third piece'
+// R-2.2-H1: trading reopens after the turn's last placement, fewer than three when the bag ran
+// short (R-6.1-H2) or emptied before a replacement (R-3.3-H1).
+const ORDINALS = ['first', 'second', 'third'] as const
+
+function lastPieceOrdinal(turn: TurnState): string {
+    return ORDINALS[turn.placementsMade + turn.placementsLeft - 1] ?? 'last'
+}
 
 // R-2.2: the turn player's panel while it trades, places or ends its turn; none otherwise.
 export function turnPanel(source: TurnPanelSource): TurnPanel | undefined {
@@ -111,7 +117,9 @@ export function turnPanel(source: TurnPanelSource): TurnPanel | undefined {
         placedCount: turn.placementsMade,
         shares: {
             heading: `Shares · ${tradesLeftLabel(sharesLeft)}`,
-            lockedNote: tradingLocked ? TRADING_REOPENS_NOTE : undefined,
+            lockedNote: tradingLocked
+                ? `Buying and selling open again after your ${lastPieceOrdinal(turn)} piece`
+                : undefined,
             entries: RAILROAD_IDS.map((railroadId) => shareEntry(source, railroadId))
         },
         setAside: setAside(source, turn),
@@ -151,7 +159,7 @@ function turnPrompt(source: TurnPanelSource, turn: TurnState, sharesLeft: number
             sharesLeft > 0
                 ? `Buy or sell up to ${sharesLabel(sharesLeft)}, then place your ${placements} pieces.`
                 : `Place your ${placements} pieces.`,
-        note: 'Shares open again after the third piece.'
+        note: `Shares open again after the ${lastPieceOrdinal(turn)} piece.`
     }
 }
 

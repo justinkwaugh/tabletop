@@ -220,6 +220,37 @@ describe('turn panel — no room (R-3.3, R-3.3-H1, R-2.2-H2, R-6.3-H2, R-X.2)', 
         expect(panelOf(session).setAside?.label).toBe('Set aside · bag empty')
     })
 
+    it('R-3.3-H1, R-2.2-H1: a set-aside with the bag empty leaves two placements, and trading reopens after the second', async () => {
+        const session = await openSessionOn(
+            editedTable(dealtTable(), (state) =>
+                withBagLeft(withNoRoomFor(withTurnPieces(state, [SP, UP, KP]), SP, KP), 0)
+            )
+        )
+        session.pressPiece(SP)
+        await session.scrapTrack()
+        await settled(session)
+        const panel = panelOf(session)
+        expect(panel.prompt.lead).toBe('Place piece 1 of 2.')
+        expect(panel.shares.lockedNote).toBe(
+            'Buying and selling open again after your second piece'
+        )
+    })
+
+    it('R-6.1-H2, R-2.2-H1: a turn opening on two pieces says shares open after the second', async () => {
+        const session = await openSessionOn(
+            editedTable(dealtTable(), (state) => {
+                const short = structuredClone(withTurnPieces(state, [UP, KP]))
+                if (short.turn) short.turn.placementsLeft = 2
+                return short
+            })
+        )
+        expect(panelOf(session).prompt).toEqual({
+            lead: 'Your turn.',
+            text: 'Buy or sell up to 2 shares, then place your 2 pieces.',
+            note: 'Shares open again after the second piece.'
+        })
+    })
+
     it('R-6.3-H2: in the variant a piece with no room may instead be kept', async () => {
         const session = await openSessionOn(
             editedTable(variantTable(), (state) =>
