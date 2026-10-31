@@ -64,7 +64,7 @@ describe('track construction', () => {
             increasedCityRevenue: false,
             connectedCity: false,
             connectedTown: false,
-            connectedOffboard: false
+            connectedTerminal: false
         }
         expect(EighteenThirtyTwoTrackRules.useful(change)).toBe(false)
         expect(EighteenThirtyTwoTrackRules.useful({ ...change, connectedTown: true })).toBe(true)

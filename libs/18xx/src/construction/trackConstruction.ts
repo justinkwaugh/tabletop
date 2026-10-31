@@ -13,7 +13,13 @@ import {
 } from '../map/station.js'
 import { CashPayment } from '../finance/cashPayments.js'
 import { TilePlacement, type TileInventory, type TileSet } from '../tiles/inventory.js'
-import { TileRotation, type TileDefinition, type TileFace, type TileEdge } from '../tiles/tile.js'
+import {
+    TileRotation,
+    type TileDefinition,
+    type TileFace,
+    type TileEdge,
+    type TileNode
+} from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
 import { ConstructionReachability } from './constructionReachability.js'
 import { preservesPath, fixedNodeRevenue, type TileNodeMapping } from './trackUpgrade.js'
@@ -128,7 +134,8 @@ export interface TrackRules {
     /**
      * Whether a lay is allowed: on a home hex, touching the company's network (``connected``),
      * adding connected track, raising a connected city's revenue, or putting a city, town or
-     * terminal on the company's network.
+     * terminal (an off-board node, such as the triangle inside Boston's tile) on the company's
+     * network.
      */
     useful(change: {
         home: boolean
@@ -137,7 +144,7 @@ export interface TrackRules {
         increasedCityRevenue: boolean
         connectedCity: boolean
         connectedTown: boolean
-        connectedOffboard: boolean
+        connectedTerminal: boolean
     }): boolean
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
@@ -186,7 +193,7 @@ export class TrackConstruction {
                     increasedCityRevenue: false,
                     connectedCity: false,
                     connectedTown: false,
-                    connectedOffboard: false
+                    connectedTerminal: false
                 }))
         )
     }
@@ -370,21 +377,17 @@ export class TrackConstruction {
                         network.nodes.has(target.id)
                 )
         )
+        const onNetwork = (kind: TileNode['kind']) =>
+            after.nodes.some((node) => node.kind === kind && network.nodes.has(node.id))
         if (
             !this.rules.useful({
                 home: this.rules.homeLocations(companyId).includes(locationId),
                 connected: after.paths.some((path) => network.paths.has(path.id)),
                 newTrack,
                 increasedCityRevenue,
-                connectedCity: after.nodes.some(
-                    (node) => node.kind === 'city' && network.nodes.has(node.id)
-                ),
-                connectedTown: after.nodes.some(
-                    (node) => node.kind === 'town' && network.nodes.has(node.id)
-                ),
-                connectedOffboard: after.nodes.some(
-                    (node) => node.kind === 'offboard' && network.nodes.has(node.id)
-                )
+                connectedCity: onNetwork('city'),
+                connectedTown: onNetwork('town'),
+                connectedTerminal: onNetwork('offboard')
             })
         )
             return {
