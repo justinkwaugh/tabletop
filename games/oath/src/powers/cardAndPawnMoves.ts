@@ -24,6 +24,8 @@ import {
     takeFavorFromPlayer
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
+import { reasonSiteFull } from '../util/cardPlay.js'
+import { HydratedOathGameState } from '../model/gameState.js'
 import { grantFreeCampaign } from '../util/freeActions.js'
 import { playerChoicesAtYourSite } from './choiceDomains.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
@@ -132,26 +134,53 @@ registerEffect(
 
 // "Action: Discard a denizen card at any other site and move this card there." Cost: place 1 secret.
 const ROVING = 'denizen.beast.roving-terror'
+// R-11.10 — the denizens Roving Terror may discard first at a Great Slum, its destination.
+function slumDenizensAt(state: HydratedOathGameState, playerId: string, siteId: string): string[] {
+    if (!state.isSiteFaceup(siteId) || categoryAt(state, siteId) !== 'greatSlum') return []
+    return state
+        .denizensAt(siteId)
+        .filter((id) => id !== ROVING && !isLockedFor(state, playerId, id))
+}
+/**
+ * R-10.15, R-2.8.1 — the move is part of the power and follows the site's capacity: from revision 31 (R-X.4)
+ * the target's site needs a space once the target, and the Great Slum's card discarded first, are gone. A salted
+ * site that keeps a modifier in use has none (R-7.4.3-H1).
+ */
+function reasonNoRoomForRovingTerror(
+    state: HydratedOathGameState,
+    targetId: string,
+    firstId?: string
+): string | undefined {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes26)) return undefined
+    const to = siteHolding(state, targetId)
+    assertExists(to, `${targetId} is a denizen at another site`)
+    return reasonSiteFull(state, to, { leaving: [targetId], arriving: [] }, firstId)
+}
 const denizensAtOtherSites: ChoiceDomain = (state, playerId) => {
     const here = siteHolding(state, ROVING)
     // R-7.2.2 — from revision 16, it does not move itself out of a site where it is locked for its user.
     if (ownCardLockedFor(state, playerId, ROVING)) return []
     return Object.entries(state.denizensBySite)
         .filter(([siteId]) => siteId !== here && state.isSiteFaceup(siteId))
-        .flatMap(([, cards]) => cards)
-        .filter((id) => id !== ROVING && !isLockedFor(state, playerId, id))
+        .flatMap(([siteId, cards]) =>
+            cards.filter(
+                (id) =>
+                    id !== ROVING &&
+                    !isLockedFor(state, playerId, id) &&
+                    reasonNoRoomForRovingTerror(
+                        state,
+                        id,
+                        slumDenizensAt(state, playerId, siteId).find((first) => first !== id)
+                    ) === undefined
+            )
+        )
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 }
 // R-11.10 — a second discard at the destination, when it is the Great Slum.
 const slumCardsElsewhere: ChoiceDomain = (state, playerId) =>
     state
         .allSiteIds()
-        .filter((siteId) => state.isSiteFaceup(siteId) && categoryAt(state, siteId) === 'greatSlum')
-        .flatMap((siteId) =>
-            state
-                .denizensAt(siteId)
-                .filter((id) => id !== ROVING && !isLockedFor(state, playerId, id))
-        )
+        .flatMap((siteId) => slumDenizensAt(state, playerId, siteId))
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 registerEffect(ROVING, powerIndexOf(ROVING, PowerTiming.Action), {
     choices: [
@@ -166,11 +195,14 @@ registerEffect(ROVING, powerIndexOf(ROVING, PowerTiming.Action), {
     ],
     reasonCannotResolve: (ctx) => {
         const [target, first] = chosen(ctx, PowerChoiceKind.Card)
-        if (!first) return undefined
-        return siteHolding(ctx.state, first.cardId) === siteHolding(ctx.state, target.cardId) &&
-            first.cardId !== target.cardId
-            ? undefined
-            : 'the Great Slum discard must be at the destination'
+        if (
+            first &&
+            (siteHolding(ctx.state, first.cardId) !== siteHolding(ctx.state, target.cardId) ||
+                first.cardId === target.cardId)
+        ) {
+            return 'the Great Slum discard must be at the destination'
+        }
+        return reasonNoRoomForRovingTerror(ctx.state, target.cardId, first?.cardId)
     },
     resolve: (ctx) => {
         const [target, first] = chosen(ctx, PowerChoiceKind.Card)
