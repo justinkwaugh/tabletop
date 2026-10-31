@@ -1,10 +1,10 @@
 import {
-    END_TURN_DRAW,
+    LeftoverChoice,
     MachineState,
     RAILROAD_IDS,
     RAILROADS,
     TradeRefusal,
-    VARIANT_FULL_DRAW,
+    endTurnDrawCount,
     hasOpenSpace,
     sharePrice,
     tradesLeft,
@@ -209,20 +209,18 @@ function endTurnChoices(
 ): EndTurnChoice[] {
     const inBag = state.bag.count()
     const leftover = turn.pieces.at(0)
-    if (!fourPieceVariant) {
-        return [{ label: endTurnLabel(Math.min(END_TURN_DRAW, inBag)) }]
-    }
-    if (leftover === undefined) {
-        return [{ label: endTurnLabel(Math.min(VARIANT_FULL_DRAW, inBag)) }]
+    const drawCount = (choice?: LeftoverChoice) => endTurnDrawCount(inBag, fourPieceVariant, choice)
+    if (!fourPieceVariant || leftover === undefined) {
+        return [{ label: endTurnLabel(drawCount()) }]
     }
     return [
         {
-            label: `Keep ${RAILROAD_TAGS[leftover]} · ${drawLabel(Math.min(END_TURN_DRAW, inBag))}`,
+            label: `Keep ${RAILROAD_TAGS[leftover]} · ${drawLabel(drawCount(LeftoverChoice.Kept))}`,
             keptPiece: leftover,
             returnKeptPiece: false
         },
         {
-            label: `Return it · ${drawLabel(Math.min(VARIANT_FULL_DRAW, inBag + 1))}`,
+            label: `Return it · ${drawLabel(drawCount(LeftoverChoice.Returned))}`,
             returnKeptPiece: true
         }
     ]

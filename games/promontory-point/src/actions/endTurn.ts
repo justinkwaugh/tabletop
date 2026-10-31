@@ -69,6 +69,20 @@ export function isEndTurn(action?: GameAction): action is EndTurn {
     return action?.type === ActionType.EndTurn
 }
 
+// R-2.2 step 4, R-6.3: three, or four in the variant unless a piece is kept; a returned piece
+// joins the bag first; R-6.1-H2: a short bag gives what is left.
+export function endTurnDrawCount(
+    inBag: number,
+    fourPieceVariant: boolean,
+    leftoverChoice: LeftoverChoice | undefined
+): number {
+    const wanted =
+        fourPieceVariant && leftoverChoice !== LeftoverChoice.Kept
+            ? VARIANT_FULL_DRAW
+            : END_TURN_DRAW
+    return Math.min(wanted, inBag + (leftoverChoice === LeftoverChoice.Returned ? 1 : 0))
+}
+
 // R-2.2 step 4, R-2.2-H1, R-6.3: once placing has ended; the keep-or-return choice in the variant only.
 export function endTurnRefusal(
     state: HydratedPromontoryPointGameState,
@@ -129,23 +143,22 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
         assert(turn.pieces.length <= 1, 'At most one turn piece is left over')
         assert(player.keptPiece === undefined, 'The last kept piece joined this turn at the reveal')
         const leftover = turn.pieces.at(0)
-
-        let leftoverChoice: LeftoverChoice | undefined
-        let wanted = fourPieceVariant ? VARIANT_FULL_DRAW : END_TURN_DRAW
-        if (leftover !== undefined && this.returnKeptPiece === true) {
+        const leftoverChoice =
+            leftover === undefined
+                ? undefined
+                : this.returnKeptPiece === true
+                  ? LeftoverChoice.Returned
+                  : LeftoverChoice.Kept
+        const drawnCount = endTurnDrawCount(state.bag.count(), fourPieceVariant, leftoverChoice)
+        if (leftover !== undefined && leftoverChoice === LeftoverChoice.Returned) {
             // R-6.3, R-5: the returned piece goes back into the bag, reshuffled unseen.
             state.bag.addItem(leftover)
             state.bag.shuffle(state.getProtectedPrng().random)
-            leftoverChoice = LeftoverChoice.Returned
         } else if (leftover !== undefined) {
             // R-6.3-H2: the kept piece stays face up, even one with no open space.
             player.keptPiece = leftover
-            wanted = END_TURN_DRAW
-            leftoverChoice = LeftoverChoice.Kept
         }
 
-        // R-6.1-H2: a short bag gives what is left.
-        const drawnCount = Math.min(wanted, state.bag.count())
         const drawn = drawnCount > 0 ? state.bag.drawItems(drawnCount) : []
         player.hand = drawn
         player.handCount = drawn.length
