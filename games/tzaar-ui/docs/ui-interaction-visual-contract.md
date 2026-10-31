@@ -29,7 +29,7 @@
 ## 4. Shared State Contracts
 
 - **Animation scope**: the board animates only `own-action`, `other-action`, `undo`, `history` and `exploration` transitions; page loads, server syncs and view switches show the board at rest. The animator reads the change from the two boards (`board/boardDiff.ts`), following the action the session knows where one is: a stack that left one space and now stands on another in line with it hops there, capturing what stood there or landing on it (backwards for undo, the captured stack coming back down once the mover has left); stacks that appear drop in and stacks that vanish lift off; undo and history all within 0.18 s.
-- **Staged selection** (`selection.from`): manual only. Tapping the chosen stack again or Undo lets go of it; Undo then undoes the last committed action. Undoing a capture or stacking restages its stack as chosen in `beforeNewState` (`kind === 'undo'`); every other presented transition clears it.
+- **Staged selection** (`selection.from`): manual only. Tapping the chosen stack again, a tap on the board that misses every target (`letGo`), or Undo lets go of it; Undo then undoes the last committed action. Undoing a capture or stacking restages its stack as chosen in `beforeNewState` (`kind === 'undo'`); every other presented transition clears it.
 - **Target lists**: derived from the displayed state; empty when the viewer cannot act, including in History View.
 
 ## 5. Forbidden Couplings
@@ -45,7 +45,7 @@
 
 ## 7. Regression Checklist
 
-- Choose a stack: thicker ring on it, dashed rings on every capture and stacking target; tap it again to let go.
+- Choose a stack: thicker ring on it, dashed rings on every capture and stacking target; tap it again, or tap off it on the board, to let go.
 - Two Tzaars left: capture D1 onto D2; the captured Tzaar floats up as the stack lands; capture F1 onto F2 and the game ends.
 - Covering a type: after capturing A3 onto A5, only A1 onto A2 or B1 and A5 onto A2 are offered.
 - Undo after a capture: the stack hops back and stays chosen, the captured stack drops back in; every stack group has opacity 1 afterwards.

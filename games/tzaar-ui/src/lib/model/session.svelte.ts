@@ -190,6 +190,13 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
         }
     }
 
+    // Tapping where there is nothing to choose lets go of a chosen stack. The piece type chosen for
+    // placing stays, as it is not a step.
+    letGo() {
+        if (this.chosenFrom === undefined) return
+        this.selection = setTzaarSelection(this.selection, 'from', undefined)
+    }
+
     async pass() {
         await this.applyAction(this.createPlayerAction(Pass, {}))
     }

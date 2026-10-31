@@ -161,6 +161,17 @@ describe('Undo of a move', () => {
     })
 })
 
+describe('Letting go', () => {
+    it('puts the chosen stack down without undoing any action', async () => {
+        const session = await aliceSession()
+        await session.chooseSpace(D1)
+        session.letGo()
+        expect(session.chosenFrom).toBeUndefined()
+        expect(session.hasManualSelection()).toBe(false)
+        expect(session.gameState.actionCount).toBe(0)
+    })
+})
+
 describe('the second move', () => {
     it('passes, ending Alice’s turn', async () => {
         const session = await aliceSession()
