@@ -28,12 +28,12 @@
     )
 </script>
 
-<!-- R-1.3-H1: one marker per seat on the border track, 2×2 when shared, "+100" past 99. -->
-{#each markers as { playerId, centre, size, plus100 } (playerId)}
+<!-- R-1.3-H1: one marker per seat on the border track, 2×2 when shared, "+100" past 99 ("+200" past 199). -->
+{#each markers as { playerId, centre, size, overflow } (playerId)}
     <g
         transform="translate({centre.x} {centre.y})"
         data-money-marker={playerId}
-        data-plus-100={plus100}
+        data-plus-100={overflow > 0}
     >
         <g
             class="motion"
@@ -59,7 +59,7 @@
                 fill={gameSession.colors.getPlayerTextColorValue(playerId)}
                 >{seatInitials(gameSession.getPlayerName(playerId))}</text
             >
-            {#if plus100}
+            {#if overflow > 0}
                 <rect
                     x={-size * 0.55}
                     y={-size / 2 - 16}
@@ -69,7 +69,7 @@
                     fill="var(--pp-halo)"
                 ></rect>
                 <text class="pp-board-figure" y={-size / 2 - 1} font-size="24" fill="var(--pp-text)"
-                    >+100</text
+                    >+{overflow}</text
                 >
             {/if}
         </g>

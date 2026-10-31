@@ -89,8 +89,8 @@ export type MoneyMarker = {
     playerId: string
     box: BoundingBox
     shared: boolean
-    // R-1.3-H1: at 100 or more the marker stands at its value less 100.
-    plus100: boolean
+    // R-1.3-H1, R-1.1-H2: the hundreds the 0–99 track cannot show; the marker stands at the rest.
+    overflow: number
 }
 
 // R-1.3-H1: one marker per seat on the 0–99 border track. A seat alone takes its space whole;
@@ -104,7 +104,7 @@ export function moneyMarkers(seats: readonly { playerId: string; money: number }
         const box = shared
             ? space.sharingSlots[sharing.findIndex((seat) => seat.playerId === playerId)]
             : space.box
-        return { playerId, box, shared, plus100: money >= BORDER_TRACK_LENGTH }
+        return { playerId, box, shared, overflow: money - spaceOf(money) }
     })
 }
 

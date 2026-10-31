@@ -89,7 +89,7 @@ describe('money markers (R-1.3-H1)', () => {
             playerId: 'a',
             box: BORDER_TRACK_SPACES[24].box,
             shared: false,
-            plus100: false
+            overflow: 0
         })
     })
 
@@ -110,15 +110,18 @@ describe('money markers (R-1.3-H1)', () => {
         expect(markers.map((marker) => marker.shared)).toEqual([true, false, true, true])
     })
 
-    it('wraps past 99 with a "+100" mark', () => {
-        const [at100, at99, at123] = moneyMarkers([
+    it('wraps past 99 with a "+100" mark, "+200" past 199', () => {
+        const [at100, at99, at123, at215] = moneyMarkers([
             { playerId: 'a', money: 100 },
             { playerId: 'b', money: 99 },
-            { playerId: 'c', money: 123 }
+            { playerId: 'c', money: 123 },
+            { playerId: 'd', money: 215 }
         ])
-        expect(at100).toMatchObject({ box: BORDER_TRACK_SPACES[0].box, plus100: true })
-        expect(at99).toMatchObject({ box: BORDER_TRACK_SPACES[99].box, plus100: false })
-        expect(at123).toMatchObject({ box: BORDER_TRACK_SPACES[23].box, plus100: true })
+        expect(at100).toMatchObject({ box: BORDER_TRACK_SPACES[0].box, overflow: 100 })
+        expect(at99).toMatchObject({ box: BORDER_TRACK_SPACES[99].box, overflow: 0 })
+        expect(at123).toMatchObject({ box: BORDER_TRACK_SPACES[23].box, overflow: 100 })
+        // R-1.1-H2: money is uncapped, so the mark names every hundred the track can't show.
+        expect(at215).toMatchObject({ box: BORDER_TRACK_SPACES[15].box, overflow: 200 })
     })
 })
 

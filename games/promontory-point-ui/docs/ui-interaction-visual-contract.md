@@ -36,7 +36,7 @@ Oath's principle, with one stated departure:
 - **Drawn from data:** track pieces, price markers, money markers, the bag, every count, rings, chips, outlines, dimming, the seat cards, the end tracker.
 - **Positions** come from one geometry table in map-image units, not from the picture at run time: each hex centre from its axial coordinate (pointy-top, Promontory at 0,0; `x = x0 + w·(q + r/2)`, `y = y0 + h·r` with the constants measured once off the map), each price-track space (30), each border-track space (100) and the sea slots (share decks, bag, end tracker).
 - **Price-track slots.** Each railroad has a fixed slot across a row (CP, UP, KP, SP from the left), so markers on one value sit side by side and never overlap. The five 0 spaces are distinct positions (R-1.2): a marker on the third 0 stands on the third 0.
-- **Border-track slots.** One seat alone in a space takes it whole; two or more share it as a 2×2 grid. A seat at 100 or more stands at its value less 100 with a "+100" mark (R-1.3-H1).
+- **Border-track slots.** One seat alone in a space takes it whole; two or more share it as a 2×2 grid. A seat at 100 or more stands at its value less its hundreds with a mark naming them, "+100" (or "+200" at 200 or more; money is uncapped, R-1.1-H2) (R-1.3-H1).
 - **Town tiles** are clipped to a hex a little larger than the printed village hex, so the red Dividend and Repairs tiles keep their red border; the number tiles are turned upright (O-6). A piece on a tile is drawn smaller than the tile, so a covered red tile still reads as red and the end tracker's count can be checked on the board.
 
 ### Seat card
