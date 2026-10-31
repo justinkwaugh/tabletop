@@ -135,7 +135,6 @@ export function repairsDraftView(
     const everySale = everyShareHeld(holdings.shares)
     const shortAfterEverySale = holdings.money + raisedBy(everySale, priceIndex) < owed
     const { raised, paid, forgiven } = settleRepairs(holdings, owed, priceIndex, staged)
-    const enough = holdings.money + raised >= owed
     const entries = RAILROAD_IDS.filter((held) => holdings.shares[held] > 0).map((held) => {
         const stagedCount = soldCount(staged, held)
         return {
@@ -144,7 +143,7 @@ export function repairsDraftView(
             staged: stagedCount,
             price: sharePriceAt(priceIndex[held]),
             proceedsEach: distressSaleProceeds(priceIndex, held),
-            locked: enough || stagedCount >= holdings.shares[held]
+            locked: forgiven === 0 || stagedCount >= holdings.shares[held]
         }
     })
     const ready = saleListRefusal(holdings, owed, priceIndex, staged) === undefined

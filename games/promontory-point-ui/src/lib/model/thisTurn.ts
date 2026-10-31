@@ -27,13 +27,11 @@ export function thisTurnPlacements(
     if (state.turn === undefined) {
         return []
     }
-    return thisTurnActions(actions)
-        .filter(isPlaceTrack)
-        .map((action, index) => ({
-            spaceId: action.spaceId,
-            railroadId: action.railroadId,
-            order: index + 1
-        }))
+    return thisTurnPlaceTracks(actions).map((action, index) => ({
+        spaceId: action.spaceId,
+        railroadId: action.railroadId,
+        order: index + 1
+    }))
 }
 
 // R-4.3, R-4.3-H4: while debtors decide, the Repairs town is the turn's latest placement.
@@ -52,12 +50,10 @@ export function repairsPlacementBeingDecided(
     state: HydratedPromontoryPointGameState,
     actions: readonly GameAction[]
 ): PlaceTrack | undefined {
-    return state.pendingRepairs === undefined
-        ? undefined
-        : thisTurnActions(actions).filter(isPlaceTrack).at(-1)
+    return state.pendingRepairs === undefined ? undefined : thisTurnPlaceTracks(actions).at(-1)
 }
 
-function thisTurnActions(actions: readonly GameAction[]): GameAction[] {
+function thisTurnPlaceTracks(actions: readonly GameAction[]): PlaceTrack[] {
     const lastEndTurn = actions.findLastIndex((action) => isEndTurn(action))
-    return actions.slice(lastEndTurn + 1)
+    return actions.slice(lastEndTurn + 1).filter(isPlaceTrack)
 }
