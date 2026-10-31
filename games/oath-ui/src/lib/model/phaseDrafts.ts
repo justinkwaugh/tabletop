@@ -28,6 +28,7 @@ import {
     requiredFavorSteps,
     usableFavor,
     type CitizenshipTerms,
+    type LegalChoice,
     type LegalPowerUse,
     type OpportunityTake,
     type PowerChoice,
@@ -500,6 +501,41 @@ export function listedActionPowers(
 }
 
 /**
+ * R-7.1.3 — a listed power's choices read on its picks, and the picks as they read back. A spec
+ * whose options follow the picks before it (`readsEarlier`: Assassin's card, one of the player
+ * picked) offers what those picks leave. Its pick names an option of `shown`, the choices it was
+ * made on, and is kept only while that option is still offered.
+ */
+function readOnPicks(
+    state: HydratedOathGameState,
+    playerId: string,
+    listed: LegalPowerUse,
+    picks: PowerChoicePicks,
+    shown?: readonly LegalChoice[]
+): { power: LegalPowerUse; picks: PowerChoicePicks } {
+    if (!listed.choices.some((legal) => legal.spec.readsEarlier)) return { power: listed, picks }
+    const printed = cardPower(listed.cardId, listed.powerIndex)
+    assertExists(printed, `${listed.cardId} prints no power ${listed.powerIndex}`)
+    let kept = picks
+    const choices = listed.choices.reduce<LegalChoice[]>((read, legal, spec) => {
+        if (!legal.spec.readsEarlier) return [...read, legal]
+        const earlier = powerChoicesFrom(read, kept)
+        const reread = offeredChoices(state, playerId, printed, undefined, earlier)[spec]
+        const pick = kept.option[spec]
+        if (shown && pick !== undefined) {
+            const named = JSON.stringify(shown[spec].options[pick])
+            const index = reread.options.findIndex((option) => JSON.stringify(option) === named)
+            const option = Object.fromEntries(
+                Object.entries(kept.option).filter(([key]) => Number(key) !== spec)
+            )
+            kept = { ...kept, option: index < 0 ? option : { ...option, [spec]: index } }
+        }
+        return [...read, reread]
+    }, [])
+    return { power: { ...listed, choices }, picks: kept }
+}
+
+/**
  * R-6.2 — the cards whose power Use a power lists, each once, in its order: in the seat's Act
  * Phase each carries a "Use" badge where it lies.
  */
@@ -527,13 +563,16 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
         return this.playerId ? this.session.selection.value('powerCard') : undefined
     }
 
-    /** The powers the panel lists, each with the choices its card offers now. */
+    /** The powers the panel lists, each with the choices its card offers now, read on its picks. */
     get powers(): LegalPowerUse[] {
         const playerId = this.playerId
         if (!playerId) return []
-        const listed = listedActionPowers(this.session.gameState, playerId)
+        const state = this.session.gameState
+        const listed = listedActionPowers(state, playerId)
         const card = this.card
-        return card === undefined ? listed : listed.filter((power) => power.cardId === card)
+        return (card === undefined ? listed : listed.filter((power) => power.cardId === card)).map(
+            (power) => readOnPicks(state, playerId, power, this.storedOf(power)).power
+        )
     }
 
     private storedOf(use: PowerUseKey): PowerChoicePicks {
@@ -559,11 +598,21 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
         return (power && this.sitesOf(power)?.picks) ?? this.storedOf(use)
     }
 
+    // A pick whose options follow an earlier one is kept only while the option it named is offered.
     setPicks(use: PowerUseKey, picks: PowerChoicePicks): void {
-        if (!this.powers.some((p) => samePowerUse(p, use))) {
+        const playerId = this.playerId
+        const power = this.powers.find((p) => samePowerUse(p, use))
+        if (!playerId || !power) {
             return
         }
-        this.tap({ ...this.current, [powerKey(use.cardId, use.powerIndex)]: picks })
+        const kept = readOnPicks(
+            this.session.gameState,
+            playerId,
+            power,
+            picks,
+            power.choices
+        ).picks
+        this.tap({ ...this.current, [powerKey(use.cardId, use.powerIndex)]: kept })
     }
 
     /** The row a power's site spec draws, when it is picked on the map. */
