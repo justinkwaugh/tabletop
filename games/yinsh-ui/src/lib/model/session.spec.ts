@@ -146,6 +146,38 @@ describe('Choosing a ring to move', () => {
     })
 })
 
+describe('Letting go', () => {
+    it('puts the chosen ring down, lifting its marker out, as choosing it again does', async () => {
+        const session = await aliceSession()
+        await session.choosePoint(F3)
+
+        session.letGo()
+        expect(session.chosenFrom).toBeUndefined()
+        expect(session.lifting).toEqual(F3)
+        expect(session.hasManualSelection()).toBe(false)
+        expect(session.gameState.actionCount).toBe(0)
+    })
+
+    it('puts down a ring Undo put back, lifting out the marker it kept', async () => {
+        const session = await aliceSession()
+        await session.choosePoint(F3)
+        await settled(session.choosePoint(G3))
+        await settled(session.undo())
+
+        session.letGo()
+        expect(session.chosenFrom).toBeUndefined()
+        expect(session.restaged).toBe(false)
+        expect(session.lifting).toEqual(F3)
+    })
+
+    it('does nothing when nothing is chosen', async () => {
+        const session = await aliceSession()
+        session.letGo()
+        expect(session.selection).toEqual({})
+        expect(session.lifting).toBeUndefined()
+    })
+})
+
 describe('Undo of a move', () => {
     it('takes the move back with its ring chosen again, the marker still in it', async () => {
         const session = await aliceSession()

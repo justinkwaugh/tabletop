@@ -166,21 +166,32 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
                 this.createPlayerAction(MoveRing, { from: this.chosenFrom, to: coords })
             )
         } else if (includesCoords(this.movable, coords)) {
-            const chosen = this.chosenFrom
-            const same = chosen !== undefined && sameCoordinates(chosen, coords)
-            this.selection = setYinshSelection(
-                this.selection,
-                'from',
-                same ? undefined : coordsKey(coords)
-            )
-            this.restaged = false
-            if (chosen) this.lifting = chosen
-            else if (this.lifting && sameCoordinates(this.lifting, coords)) this.lifting = undefined
+            this.chooseRing(coords)
         } else if (includesCoords(this.rowOptions.markers, coords)) {
             await this.chooseMarker(coords)
         } else if (includesCoords(this.removableRings, coords)) {
             await this.applyAction(this.createPlayerAction(RemoveRing, { coords }))
         }
+    }
+
+    // Tapping where there is nothing to choose lets go of a chosen ring or row end.
+    letGo() {
+        if (this.chosenFrom) this.chooseRing(this.chosenFrom)
+        else if (this.anchor)
+            this.selection = setYinshSelection(this.selection, 'anchor', undefined)
+    }
+
+    private chooseRing(coords: AxialCoordinates) {
+        const chosen = this.chosenFrom
+        const same = chosen !== undefined && sameCoordinates(chosen, coords)
+        this.selection = setYinshSelection(
+            this.selection,
+            'from',
+            same ? undefined : coordsKey(coords)
+        )
+        this.restaged = false
+        if (chosen) this.lifting = chosen
+        else if (this.lifting && sameCoordinates(this.lifting, coords)) this.lifting = undefined
     }
 
     private async chooseMarker(coords: AxialCoordinates) {

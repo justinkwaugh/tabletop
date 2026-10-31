@@ -143,6 +143,13 @@
         return (piece.kind === 'ring' ? ON_RING : ON_MARKER).has(role) ? role : undefined
     }
     const PREFIX = 'yinsh-board'
+
+    // A tap on nothing you can choose lets go of what is chosen.
+    function onBoardClick(event: MouseEvent) {
+        if (!(event.target instanceof Element)) return
+        if (event.target.closest('[role="button"]')) return
+        session.letGo()
+    }
 </script>
 
 {#snippet ring(tone: Tone, seedKey: string)}
@@ -248,6 +255,8 @@
     </g>
 {/snippet}
 
+<!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <svg
     class="yinsh-board"
     viewBox={frame.viewBox}
@@ -255,6 +264,7 @@
     height={frame.height}
     role="group"
     aria-label="YINSH board"
+    onclick={onBoardClick}
     {@attach animator.attach}
 >
     <defs>
