@@ -53,11 +53,22 @@ export function walk({ playerCount, config, seed }: WalkSetting): Walk {
     const started = startGame({ playerCount, config })
     const game = started.game
     const initial = fixture(started.state)
-    const player = new SeededPlayer(seed)
+    return playToEnd(game, initial, new SeededPlayer(seed))
+}
+
+// R-6.1, R-6.1-H2: the seat's chosen action, step by step through the real engine, to the end;
+// beforeStep may check each state an action is chosen in.
+export function playToEnd(
+    game: Game,
+    initial: PromontoryPointGameState,
+    player: SeededPlayer,
+    beforeStep: (state: PromontoryPointGameState) => void = () => {}
+): Walk {
     const steps: Step[] = []
     let state = initial
     while (state.machineState !== MachineState.EndOfGame) {
         assert(steps.length < ACTION_LIMIT, 'A seeded game ends')
+        beforeStep(state)
         const submitted = player.nextAction(game, state)
         const { processedActions, actionCascade } = engine.executeCanonicalAction({
             action: submitted,

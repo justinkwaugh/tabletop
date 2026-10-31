@@ -3,18 +3,14 @@ import { PROMONTORY, type SpaceId } from '../components/board.js'
 import { RAILROAD_IDS, type RailroadId } from '../components/railroads.js'
 import { isRedTile } from '../components/townTiles.js'
 import { ActionType } from '../definition/actions.js'
-import { MachineState } from '../definition/states.js'
 import type {
     HydratedPromontoryPointGameState,
     PromontoryPointGameState
 } from '../model/gameState.js'
 import { openSpaceIds } from '../rules/network.js'
 import { SeededPlayer } from './seededPlayer.js'
-import type { Step, Walk } from './seededWalk.js'
-import { canonical, engine, startGame } from './startGame.js'
-
-// Far more than any game takes: the bag of 96 runs out within a few dozen turns.
-const ACTION_LIMIT = 2000
+import { playToEnd, type Walk } from './seededWalk.js'
+import { engine, startGame } from './startGame.js'
 
 // How a seat leans once every action type has been tried; each is a legal way to play.
 export enum PlayStyle {
@@ -141,22 +137,8 @@ export function playCompleteGame({ playerCount, config, seed, style }: CompleteG
         config,
         masterSeed: masterSeedOf(seed)
     })
-    const player = new CompleteGamePlayer(seed, style)
-    const steps: Step[] = []
-    let state = initial
-    while (state.machineState !== MachineState.EndOfGame) {
-        assert(steps.length < ACTION_LIMIT, 'A complete game ends')
+    return playToEnd(game, initial, new CompleteGamePlayer(seed, style), (state) => {
         const stall = stallFinding(game, state)
         assert(stall === undefined, stall ?? '')
-        const submitted = player.nextAction(game, state)
-        const { processedActions, actionCascade } = engine.executeCanonicalAction({
-            action: submitted,
-            state,
-            game
-        })
-        const states = actionCascade.transitions.map(({ after }) => canonical(after))
-        steps.push({ before: state, submitted, processedActions, states })
-        state = states[states.length - 1]
-    }
-    return { game, initial, steps }
+    })
 }
