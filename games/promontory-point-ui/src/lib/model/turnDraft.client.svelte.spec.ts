@@ -136,6 +136,17 @@ describe('turn draft — auto-pick, lifetime and validity', () => {
         expect(session.pickedPiece).toBeUndefined()
     })
 
+    it('keeps the pick when a hex is pressed while an earlier action is still with the host', async () => {
+        const session = await sessionWithPieces([CP, UP, KP])
+        session.pressPiece(UP)
+        const actionCount = session.actions.length
+        // The session is busy until the host answers, after the earlier action's motion ends.
+        session.processingActions = true
+        await session.placeTrack(session.boardOffer.lit[0])
+        expect(session.actions.length).toBe(actionCount)
+        expect(session.pickedPiece).toBe(UP)
+    })
+
     it('clears on every transition: an Undo drops the pick', async () => {
         const session = await sessionWithPieces([CP, UP, KP])
         await session.buyShare(CP)

@@ -327,7 +327,8 @@ export class PromontoryPointGameSession extends GameSession<
 
     // R-3.3: a press on a lit hex sends; a press on an unlit hex places nothing.
     async placeTrack(spaceId: SpaceId) {
-        if (this.settling) return
+        // A busy session drops the send, so return before the draft is cleared.
+        if (this.busy) return
         const railroadId = this.pickedPiece
         assertExists(railroadId, 'A hex is pressed to place only once a piece is picked')
         if (!this.boardOffer.lit.includes(spaceId)) {
@@ -339,7 +340,8 @@ export class PromontoryPointGameSession extends GameSession<
 
     // R-3.3, R-3.3-H1, R-2.2-H2
     async scrapTrack() {
-        if (this.settling) return
+        // A busy session drops the send, so return before the draft is cleared.
+        if (this.busy) return
         const railroadId = this.pickedPiece
         assertExists(railroadId, 'A piece is set aside only once it is picked')
         assert(this.pickedPieceHasNoRoom, `${railroadId} has a legal hex, so it is placed`)
@@ -367,7 +369,8 @@ export class PromontoryPointGameSession extends GameSession<
 
     // R-4.3, R-4.3-H1 to H4: the first debtor's sales, in order.
     async payRepairs(sales: RailroadId[]) {
-        if (this.settling) return
+        // A busy session drops the send, so return before the draft is cleared.
+        if (this.busy) return
         const playerId = this.decidingPlayerId
         assertExists(playerId, 'Only the deciding debtor pays')
         assert(

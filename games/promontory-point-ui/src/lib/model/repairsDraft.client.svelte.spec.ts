@@ -306,6 +306,16 @@ describe('Repairs draft — lifetime, privacy and the placer’s Undo (R-4.3-H4,
         expect(staged(session)).toEqual([])
     })
 
+    it('R-4.3: a send while an earlier action is still with the host keeps the staged sales', async () => {
+        const { session } = await placedOnRepairs(shortByThree())
+        session.stageRepairsSale(SP)
+        const actionCount = session.actions.length
+        session.processingActions = true
+        await session.sendRepairs()
+        expect(session.actions.length).toBe(actionCount)
+        expect(staged(session)).toEqual([SP])
+    })
+
     it('R-4.3, R-X.1: the debtor gets its panel from the state alone, before the history behind it loads', async () => {
         const { session, placer, debtor } = await placedOnRepairs(shortByThree())
         // docs/request-performance.md: a game opens on its state, with its Actions loaded later.
