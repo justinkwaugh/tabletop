@@ -106,6 +106,7 @@ describe('EndTurn', () => {
             metadata: { drawn: expected, drawnCount: END_TURN_DRAW }
         })
         expect(processedActions[0]).not.toHaveProperty('metadata.leftover')
+        expect(processedActions[0]).not.toHaveProperty('metadata.leftoverPiece')
     })
 
     it('R-X.2: always an Undo barrier', () => {
@@ -114,12 +115,13 @@ describe('EndTurn', () => {
         expect(playerUndoReach(processedActions, turnPlayer(state))).toBeUndefined()
     })
 
-    it('R-5: the drawn pieces are for the drawer alone; the count and the choice are public', () => {
+    it('R-5, R-6.3-H2: the drawn pieces are for the drawer alone; the count, the choice and the leftover piece are public', () => {
         expect(EndTurnMetadata.properties.drawn[Visibility.MetadataKey]).toMatchObject({
             policy: Visibility.Policy.Actor
         })
         expect(Visibility.MetadataKey in EndTurnMetadata.properties.drawnCount).toBe(false)
         expect(Visibility.MetadataKey in EndTurnMetadata.properties.leftover).toBe(false)
+        expect(Visibility.MetadataKey in EndTurnMetadata.properties.leftoverPiece).toBe(false)
     })
 
     it('R-6.1-H2: draws what is left when the bag runs short', () => {
@@ -169,7 +171,12 @@ describe('EndTurn', () => {
         expect(updatedState.protectedPrng).toEqual(state.protectedPrng)
         expect(processedActions[0]).toMatchObject({
             revealsInfo: true,
-            metadata: { drawn: expected, drawnCount: END_TURN_DRAW, leftover: LeftoverChoice.Kept }
+            metadata: {
+                drawn: expected,
+                drawnCount: END_TURN_DRAW,
+                leftover: LeftoverChoice.Kept,
+                leftoverPiece: KP
+            }
         })
     })
 
@@ -196,7 +203,8 @@ describe('EndTurn', () => {
             metadata: {
                 drawn: player.hand,
                 drawnCount: VARIANT_FULL_DRAW,
-                leftover: LeftoverChoice.Returned
+                leftover: LeftoverChoice.Returned,
+                leftoverPiece: KP
             }
         })
     })
@@ -211,6 +219,7 @@ describe('EndTurn', () => {
         expect(processedActions[0]).toMatchObject({
             metadata: { drawn: expected, drawnCount: VARIANT_FULL_DRAW }
         })
+        expect(processedActions[0]).not.toHaveProperty('metadata.leftoverPiece')
         expect(() => endTurn(game, state, { returnKeptPiece: true })).toThrow(
             EndTurnRefusal.NoLeftoverPiece
         )

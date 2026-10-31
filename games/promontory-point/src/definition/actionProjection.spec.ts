@@ -86,11 +86,14 @@ describe('Promontory Point action projection', () => {
         }
     )
 
-    it("R-2.2 step 4, R-5, R-6.3: EndTurn's drawn pieces reach the drawer alone; the count and the keep-or-return choice are public", () => {
+    it("R-2.2 step 4, R-5, R-6.3, R-6.3-H2: EndTurn's drawn pieces reach the drawer alone; the count, the keep-or-return choice and the leftover piece are public", () => {
         const endTurns = RECORDED.filter(({ action }) => isEndTurn(action))
         expect(endTurns.some(({ action }) => isEndTurn(action) && action.metadata?.leftover)).toBe(
             true
         )
+        expect(
+            endTurns.some(({ action }) => isEndTurn(action) && action.metadata?.leftoverPiece)
+        ).toBe(true)
         for (const { action, actorId, otherSeatId } of endTurns) {
             if (!isEndTurn(action)) continue
             const metadata = action.metadata
@@ -107,7 +110,10 @@ describe('Promontory Point action projection', () => {
                     ...withoutPatches(action),
                     metadata: {
                         drawnCount: metadata.drawnCount,
-                        ...(metadata.leftover === undefined ? {} : { leftover: metadata.leftover })
+                        ...(metadata.leftover === undefined ? {} : { leftover: metadata.leftover }),
+                        ...(metadata.leftoverPiece === undefined
+                            ? {}
+                            : { leftoverPiece: metadata.leftoverPiece })
                     }
                 })
             }

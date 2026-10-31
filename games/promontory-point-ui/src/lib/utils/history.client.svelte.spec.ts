@@ -210,21 +210,27 @@ describe('history — each action as the actor, another seat and a spectator see
         expect(new Set(texts).size).toBe(1)
     })
 
-    it('R-6.3: the variant End turn says the leftover piece was kept', async () => {
-        const dealt = dealtTable({ config: variantConfig(true) })
-        const table = editedTable(dealt, () => withTurnPieces(dealt.state, [CP, UP, KP, SP]))
-        const session = await openSessionOn(table)
-        for (const railroadId of [CP, UP, KP]) {
-            await placeAt(session, railroadId, openCountry(session, railroadId))
+    it.each([
+        [false, 'ended the turn, kept SP and drew 3'],
+        [true, 'ended the turn, returned SP to the bag and drew 4']
+    ])(
+        'R-6.3, R-6.3-H2: the variant End turn names the leftover piece to every seat (returned: %s)',
+        async (returnKeptPiece, sentence) => {
+            const dealt = dealtTable({ config: variantConfig(true) })
+            const table = editedTable(dealt, () => withTurnPieces(dealt.state, [CP, UP, KP, SP]))
+            const session = await openSessionOn(table)
+            for (const railroadId of [CP, UP, KP]) {
+                await placeAt(session, railroadId, openCountry(session, railroadId))
+            }
+            await session.endTurn(returnKeptPiece)
+            await settled(session)
+            const [first, second] = [0, 1].map((position) => seatOf(table.state, position))
+            const [, other, spectator] = perspectives(first, second)
+            for (const seen of [other, spectator]) {
+                expect(turnRows(turnsSeen(session, seen)[0]).at(-1)).toBe(sentence)
+            }
         }
-        await session.endTurn(false)
-        await settled(session)
-        const [first, second] = [0, 1].map((position) => seatOf(table.state, position))
-        const [, , spectator] = perspectives(first, second)
-        expect(turnRows(turnsSeen(session, spectator)[0]).at(-1)).toBe(
-            'ended the turn, kept a piece and drew 3'
-        )
-    })
+    )
 
     it('R-4.2, R-1.2: Promontory at the top of the track reads capped', () => {
         const placement: PlaceTrack = {

@@ -173,12 +173,15 @@ function endedTurn(action: GameAction, viewerId: string | undefined): Descriptio
     if (!isEndTurn(action) || action.metadata === undefined) {
         return [text('ended the turn')]
     }
-    const { drawn, drawnCount, leftover } = action.metadata
+    const { drawn, drawnCount, leftover, leftoverPiece } = action.metadata
+    // R-6.3-H2: the leftover piece was face up, so every seat reads its railroad.
+    const piece: DescriptionPart[] =
+        leftoverPiece === undefined ? [text('a piece')] : [railroad(leftoverPiece)]
     const kept =
         leftover === LeftoverChoice.Kept
-            ? [text(', kept a piece')]
+            ? [text(', kept '), ...piece]
             : leftover === LeftoverChoice.Returned
-              ? [text(', returned a piece to the bag')]
+              ? [text(', returned '), ...piece, text(' to the bag')]
               : []
     const draw: DescriptionPart[] =
         drawnCount === 0

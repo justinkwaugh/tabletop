@@ -456,7 +456,7 @@ for (const width of WIDTHS) {
                 SP
             ])
             await expect(maraTurn(await history(page))).toContainText(
-                'ended the turn, kept a piece and drew 3'
+                'ended the turn, kept SP and drew 3'
             )
         })
 
@@ -476,7 +476,7 @@ for (const width of WIDTHS) {
             expect((await facts(page)).bag).toBe(bag + 1 - 4)
             expect(await handFaces(page, 'Mara')).toEqual(['hidden', 'hidden', 'hidden', 'hidden'])
             await expect(maraTurn(await history(page))).toContainText(
-                'ended the turn, returned a piece to the bag and drew 4'
+                'ended the turn, returned SP to the bag and drew 4'
             )
         })
 

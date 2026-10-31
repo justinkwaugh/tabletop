@@ -38,13 +38,16 @@ export enum LeftoverChoice {
 }
 
 // R-2.2 step 4, R-5, R-6.3: the drawn pieces to the drawer alone; the count and the choice public.
+// R-6.3-H2: the leftover piece's railroad is public too, kept or returned: it lay face up in the
+// turn's pieces.
 export type EndTurnMetadata = Type.Static<typeof EndTurnMetadata>
 export const EndTurnMetadata = Type.Object({
     drawn: Visibility.protect(Type.Array(RailroadIdSchema), {
         policy: Visibility.Policy.Actor
     }),
     drawnCount: Type.Integer({ minimum: 0, maximum: VARIANT_FULL_DRAW }),
-    leftover: Type.Optional(Type.Enum(LeftoverChoice))
+    leftover: Type.Optional(Type.Enum(LeftoverChoice)),
+    leftoverPiece: Type.Optional(RailroadIdSchema)
 })
 
 export type EndTurn = Type.Static<typeof EndTurn>
@@ -155,7 +158,9 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
         this.metadata = {
             drawn,
             drawnCount,
-            ...(leftoverChoice === undefined ? {} : { leftover: leftoverChoice })
+            ...(leftoverChoice === undefined || leftover === undefined
+                ? {}
+                : { leftover: leftoverChoice, leftoverPiece: leftover })
         }
         // R-X.2: the drawer sees the new hand, so this is always an Undo barrier.
         this.revealsInfo = true

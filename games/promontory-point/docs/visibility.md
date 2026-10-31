@@ -17,6 +17,7 @@ The bag's composition is not public in fact: it is the 24 pieces of each railroa
 - **Hand** (R-1.3 step 6, R-5): `players[].hand` lists the railroad of each concealed piece, `Visibility.Policy.Owner`. The public `handCount` gives its size, so every seat shows the right number of backs. A player sees their own hand from the draw until the start of their turn.
 - **Revealed pieces** (R-2.2 step 1): at the start of a player's turn the hand moves into the public `turn.pieces` and `hand` becomes empty, so `hand` only ever holds concealed pieces. The starting player's first pieces are dealt straight into `turn.pieces` at setup, since the game opens on that turn. A replacement drawn for a scrapped piece goes straight into `turn.pieces`, face up, since it is placed this turn (R-3.3-H1).
 - **Kept piece** (four-piece variant, R-6.3): a piece left over at the end of a turn and kept stays public as `players[].keptPiece`, since the table saw it revealed.
+- **Leftover piece in `EndTurn`** (four-piece variant, R-6.3, R-6.3-H2): `EndTurn` records the leftover piece's railroad publicly, whether kept or returned to the bag. It lay face up in the public `turn.pieces` until the action, so naming it reveals nothing; a returned piece's railroad tells every seat what joined the bag, which the previous state already showed, and the bag's order stays concealed.
 
 Everything else is public (R-5, R-1.3-H1): the board, every town tile, every track piece placed, the scrapped counts, every share price, every player's shares (the share decks are derived from them), every player's money, the turn's pieces, trades used and placements made, and who owes what for a Repairs and whose decision it is.
 
@@ -26,7 +27,7 @@ Draws are engine output. An Action that reads the bag resolves its result in `ap
 
 | Action                                              | Actor-known (`Policy.Actor`)                         | Public                                                                                                                                                    |
 | --------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `EndTurn`                                           | `metadata.drawn`, the pieces drawn into the new hand | the number drawn; in the variant whether the leftover piece was kept or returned to the bag                                                               |
+| `EndTurn`                                           | `metadata.drawn`, the pieces drawn into the new hand | the number drawn; in the variant whether the leftover piece was kept or returned to the bag, and its railroad (`metadata.leftoverPiece`)                  |
 | `ScrapTrack`                                        | none                                                 | every field: the scrapped railroad and `metadata.replacement`, the piece drawn face up, or that the bag was empty                                         |
 | `RevealHand` (System)                               | none                                                 | `metadata.pieces`, the hand turned face up                                                                                                                |
 | `BuyShare`, `SellShare`, `PlaceTrack`, `PayRepairs` | none                                                 | every field, including the event a placement resolved, prices before and after, and each player's Dividend, Repairs bill, payment and any amount forgiven |
@@ -53,7 +54,7 @@ No migrations: the Logic and UI Artifacts publish together, and a stored Game ke
 
 ## Verification
 
-- Every registered action schema projected for its actor, another seat and a spectator, with `EndTurn`'s drawn pieces visible to the actor alone: `actionProjection.spec.ts`.
+- Every registered action schema projected for its actor, another seat and a spectator, with `EndTurn`'s drawn pieces visible to the actor alone and its leftover piece to every seat: `actionProjection.spec.ts`.
 - Reproducible protected initialization from a master seed: `initializer.spec.ts`. The bag's items, the master seed and the protected cursor omitted from every player's and the spectator's projection, and `bag.remaining` kept: `visibility.spec.ts`.
 - Each hand projected for its owner, another player and a spectator; `handCount` public; the hand moving into public `turn.pieces` at `RevealHand`; a kept piece public: `visibility.spec.ts`, `revealHand.spec.ts`, `endTurn.spec.ts`.
 - `revealsInfo` set exactly on the barriers above, and Undo refused across them while a turn's trades and placements undo: `revealHand.spec.ts`, `endTurn.spec.ts`, `scrapTrack.spec.ts`, `buyShare.spec.ts`, `sellShare.spec.ts`, `placeTrack.spec.ts`, `payRepairs.spec.ts`.
