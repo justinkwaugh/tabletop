@@ -23,7 +23,8 @@
         ).map((marker) => ({
             ...marker,
             centre: boxCentre(marker.box),
-            size: moneyMarkerSize(marker)
+            size: moneyMarkerSize(marker),
+            overflow: animator.overflowShown.get(marker.playerId) ?? marker.overflow
         }))
     )
 </script>

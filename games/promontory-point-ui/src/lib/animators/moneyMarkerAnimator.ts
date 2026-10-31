@@ -1,5 +1,6 @@
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
+import { SvelteMap } from 'svelte/reactivity'
 import type { GameAction } from '@tabletop/common'
 import type { HydratedPromontoryPointGameState } from '@tabletop/promontory-point'
 import { BORDER_TRACK_LENGTH, BORDER_TRACK_SPACES, boxCentre } from '$lib/utils/boardGeometry.js'
@@ -52,6 +53,11 @@ function spacesPassed(before: number, after: number): number[] {
     })
 }
 
+// R-1.3-H1: the "+100" a marker carries for money past each hundred.
+function overflowOf(money: number): number {
+    return money - (money % BORDER_TRACK_LENGTH)
+}
+
 function layout(state: HydratedPromontoryPointGameState): Map<string, MoneyMarker> {
     const markers = moneyMarkers(state.players.map(({ playerId, money }) => ({ playerId, money })))
     return new Map(markers.map((marker) => [marker.playerId, marker]))
@@ -63,6 +69,10 @@ function layout(state: HydratedPromontoryPointGameState): Map<string, MoneyMarke
 export class MoneyMarkerAnimator extends StateAnimator {
     readonly motion = new MarkerMotion<string>()
 
+    // R-1.3-H1: a stepping marker's "+100" while it moves, so the label changes as it passes
+    // from 99 to 0 (or back), not when the move starts. Absent, the label follows the state.
+    readonly overflowShown = new SvelteMap<string, number>()
+
     constructor(
         host: BoardAnimationHost,
         private chips: MoneyChipHost,
@@ -73,10 +83,12 @@ export class MoneyMarkerAnimator extends StateAnimator {
 
     protected clear() {
         this.motion.clear()
+        this.overflowShown.clear()
         this.chips.clear()
     }
 
     protected async onGameStateChange({ from, to, action, animationContext }: BoardStateChange) {
+        this.overflowShown.clear()
         if (!from) return
         const timeline = animationContext.actionTimeline
         const targets = layout(to)
@@ -130,6 +142,7 @@ export class MoneyMarkerAnimator extends StateAnimator {
                 landed,
                 this.motion.travel(timeline, playerId, poses, start, secondsPerHop)
             )
+            this.stepOverflow(timeline, playerId, before, after, start, secondsPerHop)
         }
         for (const marker of settlers) {
             if (reduced) this.motion.jump(marker.playerId, markerPose(marker))
@@ -143,7 +156,33 @@ export class MoneyMarkerAnimator extends StateAnimator {
                 )
         }
         await this.riseChips(action, changes, timeline, start, reduced)
-        animationContext.afterAnimations(() => this.chips.clear())
+        animationContext.afterAnimations(() => {
+            this.chips.clear()
+            this.overflowShown.clear()
+        })
+    }
+
+    // The label switches halfway through the hop that crosses a hundred, as the marker does.
+    private stepOverflow(
+        timeline: Timeline,
+        playerId: string,
+        before: number,
+        after: number,
+        start: number,
+        secondsPerHop: number
+    ) {
+        if (overflowOf(before) === overflowOf(after)) return
+        const hops = Math.abs(after - before)
+        const direction = Math.sign(after - before)
+        const clock = { hop: 0 }
+        const show = () =>
+            this.overflowShown.set(playerId, overflowOf(before + direction * Math.round(clock.hop)))
+        show()
+        timeline.to(
+            clock,
+            { hop: hops, duration: hops * secondsPerHop, ease: 'none', onUpdate: show },
+            start
+        )
     }
 
     // Presence for this replayed action only: the next one overwrites it, and its end clears it.

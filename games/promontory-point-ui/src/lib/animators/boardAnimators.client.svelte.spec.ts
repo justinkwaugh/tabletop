@@ -419,6 +419,29 @@ describe('money markers (R-1.3-H1, R-4.2)', () => {
         expect(chip?.opacity).toBe(0)
     })
 
+    it('R-1.3-H1: the "+100" label changes as the marker steps from 99 to 0, not before', async () => {
+        const { session, steps, towns, first } = await eventfulSession()
+        await placeAt(session, CP, towns[1])
+        const step = lastStep(steps)
+        assertExists(step.from, 'The placement has a from state')
+        const action = placement(step)
+        expect(step.from.players.find((player) => player.playerId === first)?.money).toBe(97)
+
+        const { animator, play } = moneyAnimator(step.from)
+        const context = await play(step)
+        const start = townEffectStartsAt(action, false)
+        const hop = MONEY_SECONDS_PER_SPACE
+        expect(animator.overflowShown.get(first)).toBe(0)
+        seek(context, start + 2 * hop)
+        expect(animator.overflowShown.get(first)).toBe(0)
+        seek(context, start + 3 * hop)
+        expect(animator.overflowShown.get(first)).toBe(100)
+        seek(context, start + 2 * hop)
+        expect(animator.overflowShown.get(first)).toBe(0)
+        seek(context, durationOf(context))
+        expect(animator.overflowShown.get(first)).toBe(100)
+    })
+
     it('R-3.1: a buy steps the buyer back by the price with a "−$" chip, cleared after its motion', async () => {
         const { session, steps, first } = await eventfulSession()
         await session.buyShare(KP)
