@@ -263,7 +263,7 @@ function printPost(post) {
     console.log(`post ${post.id} · ${post.url}`)
     if (post.report) {
         console.log(
-            `\n${post.report.game} · ${post.report.gameUrl}\n\n${post.report.description}\n`
+            `\n${[post.report.game, post.report.gameUrl].filter(Boolean).join(' · ')}\n\n${post.report.description}\n`
         )
         for (const [name, value] of Object.entries(post.report.fields)) {
             console.log(`${name}: ${value.replace(/\n/g, '\n    ')}`)

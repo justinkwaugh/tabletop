@@ -1,8 +1,9 @@
-import { Visibility, type GameAction } from '@tabletop/common'
+import { Visibility, assertExists, type GameAction } from '@tabletop/common'
 import {
     CommandKind,
     FeintEnd,
     MoralePenaltyKind,
+    ResultTermKind,
     Side,
     commanderDefinition,
     isAdvance,
@@ -25,6 +26,7 @@ import {
     isRegroup,
     isRetreat,
     isThreatenAttack,
+    type Attack,
     type BattleMap,
     type CombatMetadata,
     type HydratedNapoleonsTriumphGameState,
@@ -32,10 +34,15 @@ import {
     type MoveOrder,
     type Position
 } from '@tabletop/napoleons-triumph'
+import { counted, lossesOfAttack, stepsIn } from '$lib/model/attackLosses.js'
+import { faceName } from './faceName.js'
 import { signed } from './signed.js'
 import { corpsName } from './groupNames.js'
 
-type DescribedGame = Pick<HydratedNapoleonsTriumphGameState, 'map' | 'findPlayerState'>
+type DescribedGame = Pick<
+    HydratedNapoleonsTriumphGameState,
+    'map' | 'findPlayerState' | 'opponentOf'
+>
 
 function sideOf(game: DescribedGame, playerId: string | undefined): Side | undefined {
     return playerId === undefined ? undefined : game.findPlayerState(playerId)?.side
@@ -78,6 +85,22 @@ function force(order: MoveOrder, armyToName?: Side): string {
     return armyToName ? UNIT_OF[armyToName] : 'a unit'
 }
 
+// Leading and counter-attacking units are turned face-up, so the faces the result counted can be told.
+function shown(
+    unitIds: readonly string[],
+    metadata: CombatMetadata | undefined,
+    kind: ResultTermKind
+): string {
+    const faces = metadata?.account?.find((term) => term.kind === kind)?.faces
+    if (faces?.length !== unitIds.length) {
+        return count(unitIds.length)
+    }
+    return faces
+        .map((face) => faceName(face))
+        .map((name) => `${/^[aeiou]/.test(name) ? 'an' : 'a'} ${name} unit`)
+        .join(' and ')
+}
+
 function sentence(text: string): string {
     return text.charAt(0).toUpperCase() + text.slice(1)
 }
@@ -107,7 +130,81 @@ function penalties(
         .map((entry) => penalty(entry, game))
 }
 
-function combat(metadata: CombatMetadata | undefined, game: DescribedGame): string {
+export type Fight = Pick<Attack, 'attackerId' | 'attackingUnitIds'>
+
+function fightOfDeclaration(action: GameAction): Fight | undefined {
+    if (!isDeclareAttack(action)) {
+        return undefined
+    }
+    assertExists(action.playerId, 'An attack is declared by a player')
+    return {
+        attackerId: action.playerId,
+        attackingUnitIds: action.orders.flatMap((order) => order.unitIds)
+    }
+}
+
+export function fightsOf(actions: readonly GameAction[]): Map<string, Fight> {
+    const fights = new Map<string, Fight>()
+    let fight: Fight | undefined
+    for (const action of actions) {
+        if (isThreatenAttack(action)) {
+            fight = undefined
+        }
+        fight = fightOfDeclaration(action) ?? fight
+        if (
+            fight &&
+            (isDeclareAttack(action) || isCounterAttack(action) || isAssignLosses(action))
+        ) {
+            fights.set(action.id, fight)
+        }
+    }
+    return fights
+}
+
+function stepsLost(steps: number, destroyed: number): string {
+    return `${counted(steps, 'step')}${destroyed > 0 ? ` (${count(destroyed)} destroyed)` : ''}`
+}
+
+function sideLosses(action: GameAction, game: DescribedGame, fight: Fight): string[] {
+    const { attacker, defender } = lossesOfAttack(
+        [action],
+        { ...fight, defenderId: game.opponentOf(fight.attackerId).playerId },
+        []
+    )
+    return [attacker, defender].flatMap((side) => {
+        const lost = [
+            ...(side.steps > 0
+                ? [stepsLost(side.steps, side.taken.filter((loss) => loss.eliminated).length)]
+                : []),
+            ...(side.paidForSteps > 0 ? [counted(side.paidForSteps, 'morale')] : [])
+        ]
+        return lost.length > 0 ? [`${armyOf(game, side.playerId)} lose ${lost.join(' and ')}.`] : []
+    })
+}
+
+// A session still loading its history can hold an attack's later actions without its declaration.
+function unattributedLosses(metadata: CombatMetadata, game: DescribedGame): string[] {
+    const steps = stepsIn(metadata.losses)
+    const destroyed = metadata.losses.filter((loss) => loss.eliminated).length
+    const loser = sideOf(game, metadata.loserId)
+    return [
+        ...(steps > 0
+            ? [
+                  `${counted(steps, 'step')} lost${destroyed > 0 ? `, ${count(destroyed)} destroyed` : ''}.`
+              ]
+            : []),
+        ...(loser && metadata.moraleLost
+            ? [`${ARMY[loser]} lose ${counted(metadata.moraleLost, 'morale')}.`]
+            : [])
+    ]
+}
+
+function combat(
+    action: GameAction & { metadata?: CombatMetadata },
+    game: DescribedGame,
+    fight: Fight | undefined
+): string {
+    const { metadata } = action
     if (!metadata) {
         return ''
     }
@@ -117,17 +214,7 @@ function combat(metadata: CombatMetadata | undefined, game: DescribedGame): stri
             `Final result ${signed(metadata.finalResult)}: the attack ${metadata.attackerWon ? 'succeeds' : 'is defeated'}.`
         )
     }
-    const steps = metadata.losses.reduce((sum, loss) => sum + loss.steps, 0)
-    if (steps > 0) {
-        const destroyed = metadata.losses.filter((loss) => loss.eliminated).length
-        parts.push(
-            `${steps} step${steps === 1 ? '' : 's'} lost${destroyed > 0 ? `, ${count(destroyed)} destroyed` : ''}.`
-        )
-    }
-    const loser = sideOf(game, metadata.loserId)
-    if (loser && metadata.moraleLost) {
-        parts.push(`${ARMY[loser]} lose ${metadata.moraleLost} morale.`)
-    }
+    parts.push(...(fight ? sideLosses(action, game, fight) : unattributedLosses(metadata, game)))
     parts.push(...penalties(metadata.penalties, game, true))
     const broken = sideOf(game, metadata.demoralizedId)
     if (broken) {
@@ -136,7 +223,7 @@ function combat(metadata: CombatMetadata | undefined, game: DescribedGame): stri
     return parts.join(' ')
 }
 
-export function describeAction(action: GameAction, game: DescribedGame): string {
+export function describeAction(action: GameAction, game: DescribedGame, fight?: Fight): string {
     const side = sideOf(game, action.playerId)
     const army = armyOf(game, action.playerId)
     const { map } = game
@@ -180,9 +267,12 @@ export function describeAction(action: GameAction, game: DescribedGame): string 
     }
     if (isRetreat(action)) {
         const from = action.metadata ? map.label(action.metadata.fromLocale) : 'the locale'
-        const steps = action.metadata?.losses.reduce((sum, loss) => sum + loss.steps, 0) ?? 0
+        const losses = action.metadata?.losses ?? []
+        const destroyed = losses.filter((loss) => loss.eliminated).length
         const cost =
-            steps > 0 ? `, losing ${steps} step${steps === 1 ? '' : 's'} and as much morale` : ''
+            losses.length > 0
+                ? `, losing ${stepsLost(stepsIn(losses), destroyed)} and as much morale`
+                : ''
         const when = action.metadata?.beforeCombat ? ' without a fight' : ''
         const committed = penalties(action.metadata?.penalties, game, false)
             .map((text) => ` ${text}`)
@@ -207,22 +297,22 @@ export function describeAction(action: GameAction, game: DescribedGame): string 
         const led =
             action.leaderIds.length === 0
                 ? 'with no leading unit'
-                : `led by ${count(action.leaderIds.length)}`
+                : `led by ${shown(action.leaderIds, action.metadata, ResultTermKind.AttackLeaders)}`
         const width = action.wide ? 'a wide' : 'a narrow'
         const initial = action.metadata?.initialResult
         const result = initial === undefined ? '' : ` Initial result ${signed(initial)}.`
         const attacking = action.orders.map((order) => force(order)).join(' and ')
-        return `${army} make ${width} attack with ${attacking}, ${led}.${result} ${combat(action.metadata, game)}`.trim()
+        return `${army} make ${width} attack with ${attacking}, ${led}.${result} ${combat(action, game, fightOfDeclaration(action))}`.trim()
     }
     if (isCounterAttack(action)) {
         const opening =
             action.unitIds.length === 0
                 ? `${army} do not counter-attack.`
-                : `${army} counter-attack with ${count(action.unitIds.length)}.`
-        return `${opening} ${combat(action.metadata, game)}`.trim()
+                : `${army} counter-attack with ${shown(action.unitIds, action.metadata, ResultTermKind.CounterAttack)}.`
+        return `${opening} ${combat(action, game, fight)}`.trim()
     }
     if (isAssignLosses(action)) {
-        return `${army} assign losses. ${combat(action.metadata, game)}`.trim()
+        return `${army} assign losses. ${combat(action, game, fight)}`.trim()
     }
     if (isRegroup(action)) {
         return `${army} regroup after their defeat.`

@@ -1,0 +1,1389 @@
+{
+ "game": {
+  "id": "scenario-turn-recap",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "the-old-prince",
+  "deleted": false,
+  "name": "Turn recap",
+  "ownerId": "user",
+  "players": [
+   {
+    "id": "alex",
+    "name": "Alex",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "blair",
+    "name": "Blair",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "casey",
+    "name": "Casey",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "drew",
+    "name": "Drew",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "examplePosition": "trading"
+  },
+  "hotseat": true,
+  "winningPlayerIds": [],
+  "seed": 5,
+  "activePlayerIds": [
+   "alex"
+  ],
+  "createdAt": "2026-10-28T01:09:37.923Z",
+  "storage": "local",
+  "category": "standard",
+  "startedAt": "1970-01-01T00:00:00.000Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "4qrQyBwn65j-wr4Oe4Ybu",
+  "gameId": "scenario-turn-recap",
+  "seed": 5,
+  "prng": {
+   "seed": 5,
+   "invocations": 175
+  },
+  "protectedPrng": {
+   "seed": 2193901253,
+   "invocations": 0
+  },
+  "activePlayerIds": [
+   "alex"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 9,
+  "actionChecksum": 359613544,
+  "players": [
+   {
+    "playerId": "alex",
+    "color": "blue"
+   },
+   {
+    "playerId": "blair",
+    "color": "red"
+   },
+   {
+    "playerId": "casey",
+    "color": "green"
+   },
+   {
+    "playerId": "drew",
+    "color": "yellow"
+   }
+  ],
+  "phaseEvents": [],
+  "machineState": "StockRound",
+  "stockRound": {
+   "number": 2,
+   "completed": false,
+   "passedPlayerIds": [
+    "casey",
+    "drew"
+   ],
+   "turn": {
+    "acted": false,
+    "bought": false,
+    "soldBeforeBuying": false,
+    "companiesSold": []
+   },
+   "sales": [],
+   "companyPurchases": [],
+   "instructions": [
+    {
+     "playerId": "blair",
+     "instruction": {
+      "kind": "buy",
+      "companyId": "ML",
+      "preferredPoolId": "market",
+      "until": {
+       "kind": "shares",
+       "count": 3
+      },
+      "thenPass": true
+     },
+     "snapshot": [
+      {
+       "companyId": "ML",
+       "started": true,
+       "president": {
+        "kind": "player",
+        "playerId": "alex"
+       },
+       "ownerShares": 2,
+       "rivalShares": 3,
+       "bankShares": 3
+      },
+      {
+       "companyId": "So",
+       "started": true,
+       "president": {
+        "kind": "company",
+        "companyId": "UB"
+       },
+       "ownerShares": 1,
+       "rivalShares": 1,
+       "bankShares": 5
+      }
+     ]
+    },
+    {
+     "playerId": "casey",
+     "instruction": {
+      "kind": "pass"
+     },
+     "snapshot": [
+      {
+       "companyId": "ML",
+       "started": true,
+       "president": {
+        "kind": "player",
+        "playerId": "alex"
+       },
+       "ownerShares": 0,
+       "rivalShares": 3,
+       "bankShares": 3
+      },
+      {
+       "companyId": "So",
+       "started": true,
+       "president": {
+        "kind": "company",
+        "companyId": "UB"
+       },
+       "ownerShares": 0,
+       "rivalShares": 1,
+       "bankShares": 5
+      }
+     ]
+    },
+    {
+     "playerId": "drew",
+     "instruction": {
+      "kind": "pass"
+     },
+     "snapshot": [
+      {
+       "companyId": "ML",
+       "started": true,
+       "president": {
+        "kind": "player",
+        "playerId": "alex"
+       },
+       "ownerShares": 0,
+       "rivalShares": 3,
+       "bankShares": 3
+      },
+      {
+       "companyId": "So",
+       "started": true,
+       "president": {
+        "kind": "company",
+        "companyId": "UB"
+       },
+       "ownerShares": 0,
+       "rivalShares": 1,
+       "bankShares": 5
+      }
+     ]
+    }
+   ]
+  },
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "alex",
+     "start": 0,
+     "end": 5
+    },
+    {
+     "type": "turn",
+     "playerId": "blair",
+     "start": 5,
+     "end": 7
+    },
+    {
+     "type": "turn",
+     "playerId": "casey",
+     "start": 7,
+     "end": 8
+    },
+    {
+     "type": "turn",
+     "playerId": "drew",
+     "start": 8,
+     "end": 9
+    },
+    {
+     "type": "turn",
+     "playerId": "alex",
+     "start": 9
+    }
+   ],
+   "turnOrder": [
+    "alex",
+    "blair",
+    "casey",
+    "drew"
+   ],
+   "turnCounts": {
+    "alex": 1,
+    "blair": 1,
+    "casey": 1,
+    "drew": 1
+   }
+  },
+  "bank": {},
+  "companies": [
+   {
+    "id": "UB",
+    "kind": "private"
+   },
+   {
+    "id": "ML",
+    "role": "mainline",
+    "kind": "major",
+    "started": true,
+    "funded": true,
+    "operated": true,
+    "floated": true,
+    "president": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "So",
+    "role": "shortline",
+    "kind": "major",
+    "started": true,
+    "funded": true,
+    "operated": true,
+    "floated": true,
+    "president": {
+     "kind": "company",
+     "companyId": "UB"
+    }
+   },
+   {
+    "id": "PEIR",
+    "kind": "major",
+    "president": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "VR",
+    "kind": "private",
+    "privateRevenue": 10
+   },
+   {
+    "id": "KM",
+    "kind": "private"
+   }
+  ],
+  "certificatePools": [
+   {
+    "id": "market",
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "treasury:ML",
+    "owner": {
+     "kind": "company",
+     "companyId": "ML"
+    }
+   },
+   {
+    "id": "reserved",
+    "owner": {
+     "kind": "bank"
+    }
+   }
+  ],
+  "cash": [
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    },
+    "amount": 148
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    },
+    "amount": 88
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "casey"
+    },
+    "amount": 160
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "drew"
+    },
+    "amount": 200
+   },
+   {
+    "owner": {
+     "kind": "bank"
+    },
+    "amount": "unlimited"
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "UB"
+    },
+    "amount": 40
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "ML"
+    },
+    "amount": 920
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "So"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "PEIR"
+    },
+    "amount": 200
+   }
+  ],
+  "certificates": [
+   {
+    "id": "ML:president",
+    "companyId": "ML",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "ML:share:1",
+    "companyId": "ML",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "ML:share:2",
+    "companyId": "ML",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "UB"
+    }
+   },
+   {
+    "id": "ML:share:3",
+    "companyId": "ML",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "ML:share:4",
+    "companyId": "ML",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "ML:share:5",
+    "companyId": "ML",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "ML:share:6",
+    "companyId": "ML",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "ML:share:7",
+    "companyId": "ML",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "ML"
+    },
+    "poolId": "treasury:ML"
+   },
+   {
+    "id": "ML:share:8",
+    "companyId": "ML",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "reserved"
+   },
+   {
+    "id": "So:president",
+    "companyId": "So",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "company",
+     "companyId": "UB"
+    }
+   },
+   {
+    "id": "So:share:1",
+    "companyId": "So",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "UB"
+    }
+   },
+   {
+    "id": "So:share:2",
+    "companyId": "So",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "So:share:3",
+    "companyId": "So",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "So:share:4",
+    "companyId": "So",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "market"
+   },
+   {
+    "id": "So:share:5",
+    "companyId": "So",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "market"
+   },
+   {
+    "id": "So:share:6",
+    "companyId": "So",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "market"
+   },
+   {
+    "id": "So:share:7",
+    "companyId": "So",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "market"
+   },
+   {
+    "id": "So:share:8",
+    "companyId": "So",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "reserved"
+   },
+   {
+    "id": "UB:charter",
+    "companyId": "UB",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "VR:charter",
+    "companyId": "VR",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "casey"
+    }
+   },
+   {
+    "id": "KM:charter",
+    "companyId": "KM",
+    "kind": "private",
+    "owner": {
+     "kind": "company",
+     "companyId": "PEIR"
+    }
+   },
+   {
+    "id": "PEIR:share:2",
+    "companyId": "PEIR",
+    "kind": "share",
+    "shares": 1,
+    "number": 2,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "PEIR:share:3",
+    "companyId": "PEIR",
+    "kind": "share",
+    "shares": 1,
+    "number": 3,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "PEIR:share:4",
+    "companyId": "PEIR",
+    "kind": "share",
+    "shares": 1,
+    "number": 4,
+    "owner": {
+     "kind": "player",
+     "playerId": "casey"
+    }
+   },
+   {
+    "id": "PEIR:share:5",
+    "companyId": "PEIR",
+    "kind": "share",
+    "shares": 1,
+    "number": 5,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "PEIR:share:6",
+    "companyId": "PEIR",
+    "kind": "share",
+    "shares": 1,
+    "number": 6,
+    "owner": {
+     "kind": "player",
+     "playerId": "casey"
+    }
+   }
+  ],
+  "trainInventory": {
+   "trains": [
+    {
+     "id": "the-old-prince/2H/1",
+     "definitionId": "2H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/2H/2",
+     "definitionId": "2H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/2H/3",
+     "definitionId": "2H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/2H/4",
+     "definitionId": "2H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/3H/5",
+     "definitionId": "3H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/3H/6",
+     "definitionId": "3H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/3H/7",
+     "definitionId": "3H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/4H/8",
+     "definitionId": "4H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/4H/9",
+     "definitionId": "4H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/4H/10",
+     "definitionId": "4H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/5H/11",
+     "definitionId": "5H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/5H/12",
+     "definitionId": "5H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/5H/13",
+     "definitionId": "5H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/6H/14",
+     "definitionId": "6H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/6H/15",
+     "definitionId": "6H",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/2+/16",
+     "definitionId": "2+",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/2+/17",
+     "definitionId": "2+",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/2+/18",
+     "definitionId": "2+",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/2+/19",
+     "definitionId": "2+",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/3+/20",
+     "definitionId": "3+",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/3+/21",
+     "definitionId": "3+",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/3+/22",
+     "definitionId": "3+",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/4+/23",
+     "definitionId": "4+",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/4+/24",
+     "definitionId": "4+",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/7/25",
+     "definitionId": "7",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/7/26",
+     "definitionId": "7",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/7/27",
+     "definitionId": "7",
+     "status": "depot"
+    },
+    {
+     "id": "the-old-prince/7/28",
+     "definitionId": "7",
+     "status": "depot"
+    }
+   ],
+   "nextTrainNumber": 29
+  },
+  "phaseId": "3H",
+  "tranches": [
+   {
+    "id": "initial",
+    "name": "Mainline and Shortline",
+    "capacity": 2,
+    "companyIds": [
+     "ML",
+     "So"
+    ]
+   },
+   {
+    "id": "1",
+    "name": "Tranche 1",
+    "capacity": 1,
+    "companyIds": []
+   },
+   {
+    "id": "2",
+    "name": "Tranche 2",
+    "capacity": 2,
+    "companyIds": []
+   },
+   {
+    "id": "3",
+    "name": "Tranche 3",
+    "capacity": 3,
+    "companyIds": []
+   }
+  ],
+  "ownershipLimitExemptions": [],
+  "stations": [
+   {
+    "id": "So:home",
+    "companyId": "So",
+    "status": "placed",
+    "position": {
+     "locationId": "T12",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "ML:home",
+    "companyId": "ML",
+    "status": "placed",
+    "position": {
+     "locationId": "L16",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "ML:station:1",
+    "companyId": "ML",
+    "status": "available"
+   },
+   {
+    "id": "ML:station:2",
+    "companyId": "ML",
+    "status": "available"
+   },
+   {
+    "id": "ML:station:3",
+    "companyId": "ML",
+    "status": "available"
+   },
+   {
+    "id": "So:station:1",
+    "companyId": "So",
+    "status": "available"
+   },
+   {
+    "id": "So:station:2",
+    "companyId": "So",
+    "status": "available"
+   },
+   {
+    "id": "So:station:3",
+    "companyId": "So",
+    "status": "available"
+   }
+  ],
+  "stationReservations": [],
+  "tileInventory": {
+   "placements": {
+    "K19": {
+     "pieceId": "the-old-prince:prototype/5/1",
+     "definitionId": "18xx:5",
+     "rotation": 0
+    }
+   },
+   "retiredPieceIds": []
+  },
+  "stockMarket": {
+   "stacks": [
+    {
+     "spaceId": "1:1",
+     "companyIds": [
+      "ML"
+     ]
+    },
+    {
+     "spaceId": "2:1",
+     "companyIds": [
+      "So"
+     ]
+    }
+   ]
+  }
+ },
+ "actions": [
+  {
+   "id": "set-blair-buy",
+   "gameId": "scenario-turn-recap",
+   "source": "user",
+   "type": "SetStockInstruction",
+   "playerId": "blair",
+   "outOfTurn": true,
+   "supersedable": true,
+   "instruction": {
+    "kind": "buy",
+    "companyId": "ML",
+    "preferredPoolId": "market",
+    "until": {
+     "kind": "shares",
+     "count": 3
+    },
+    "thenPass": true
+   },
+   "createdAt": "2026-10-28T01:09:37.938Z",
+   "index": 0,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 0
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 0
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/instructions"
+    }
+   ]
+  },
+  {
+   "id": "set-casey-pass",
+   "gameId": "scenario-turn-recap",
+   "source": "user",
+   "type": "SetStockInstruction",
+   "playerId": "casey",
+   "outOfTurn": true,
+   "supersedable": true,
+   "instruction": {
+    "kind": "pass"
+   },
+   "createdAt": "2026-10-28T01:09:37.943Z",
+   "index": 1,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 1
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1131653071
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/instructions/1"
+    }
+   ]
+  },
+  {
+   "id": "set-drew-pass",
+   "gameId": "scenario-turn-recap",
+   "source": "user",
+   "type": "SetStockInstruction",
+   "playerId": "drew",
+   "outOfTurn": true,
+   "supersedable": true,
+   "instruction": {
+    "kind": "pass"
+   },
+   "createdAt": "2026-10-28T01:09:37.947Z",
+   "index": 2,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 2
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -592099748
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/instructions/2"
+    }
+   ]
+  },
+  {
+   "id": "alex-buys",
+   "source": "user",
+   "type": "BuyShares",
+   "playerId": "alex",
+   "buyer": {
+    "kind": "player",
+    "playerId": "alex"
+   },
+   "certificateId": "ML:share:5",
+   "expectedPrice": 92,
+   "gameId": "scenario-turn-recap",
+   "createdAt": "2026-10-28T01:09:37.952Z",
+   "metadata": {
+    "certificateId": "ML:share:5",
+    "companyId": "ML",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "alex"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "price": 92,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "alex"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 92
+     }
+    ]
+   },
+   "index": 3,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 0
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 3
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 473728932
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 240
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/5/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/5/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/5/poolId",
+     "value": "market"
+    }
+   ]
+  },
+  {
+   "id": "RpfOxPDgGCTQlHVHGvocG",
+   "gameId": "scenario-turn-recap",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "alex",
+   "createdAt": "2026-10-28T01:09:37.954Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 4,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 35
+    },
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "alex"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 4
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 2062710469
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/0/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/1"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/alex",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "2xBNJzAj29Ht12FJ3Tt2w",
+   "gameId": "scenario-turn-recap",
+   "source": "system",
+   "type": "BuyShares",
+   "playerId": "blair",
+   "buyer": {
+    "kind": "player",
+    "playerId": "blair"
+   },
+   "certificateId": "ML:share:6",
+   "expectedPrice": 92,
+   "createdAt": "2026-10-28T01:09:37.957Z",
+   "metadata": {
+    "certificateId": "ML:share:6",
+    "companyId": "ML",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "blair"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "price": 92,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "blair"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 92
+     }
+    ]
+   },
+   "index": 5,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 70
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 5
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -482360260
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/1/amount",
+     "value": 180
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/6/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/6/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/6/poolId",
+     "value": "market"
+    }
+   ]
+  },
+  {
+   "id": "HHuPid4rsDd1C8lgc3b0Y",
+   "gameId": "scenario-turn-recap",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "blair",
+   "createdAt": "2026-10-28T01:09:37.959Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 6,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 105
+    },
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "blair"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 6
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -728689658
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/1/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/2"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/blair",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "1qb0lwU7Rjc9yQvYMbNdI",
+   "gameId": "scenario-turn-recap",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "casey",
+   "createdAt": "2026-10-28T01:09:37.962Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 7,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 140
+    },
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "casey"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 7
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 886664780
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/2/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/3"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/casey",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "zs0wyOmHiVlgRvzc1HEcV",
+   "gameId": "scenario-turn-recap",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "drew",
+   "createdAt": "2026-10-28T01:09:37.967Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 8,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "drew"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 8
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 678833672
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/1"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/3/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/4"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/drew",
+     "value": 0
+    }
+   ]
+  }
+ ]
+}

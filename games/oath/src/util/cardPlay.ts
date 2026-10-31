@@ -9,8 +9,8 @@ import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
-import { cardDefinition, CONSPIRACY_ID, kindOf, suitOf } from '../data/cardRegistry.js'
-import { effectiveSiteCapacity, SALT_THE_EARTH } from './capacity.js'
+import { cardDefinition, CONSPIRACY_ID, kindOf } from '../data/cardRegistry.js'
+import { SALT_THE_EARTH, siteCapacityAfterPlay } from './capacity.js'
 import {
     detachFromPlay,
     discardCards,
@@ -30,6 +30,7 @@ import {
     type PlayMapChanges
 } from '../powers/registry.js'
 import { pawnSiteId } from './pawn.js'
+import { denizensAfterPlay } from '../powers/vocabulary.js'
 import { isFaceupPlay, powerOutcomeOf } from './powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
 import { modifierContext, type ActiveModifier } from './modifiers.js'
@@ -44,6 +45,7 @@ import {
     advisersOfSuit,
     afterCardPlayedPersistent,
     reasonPersistentForbidsFacedownAdviser,
+    reasonPersistentForbidsFaceupPlay,
     reasonPersistentForbidsFaceupVision,
     reasonPersistentForbidsSecretCost,
     reasonPersistentForbidsBannerTake,
@@ -70,7 +72,7 @@ export function conspiracyMatchCount(
     const targetSuits = new Set(
         target
             .faceupAdviserIds()
-            .map((cardId) => suitOf(cardId))
+            .map((cardId) => state.suitInPlay(cardId))
             .filter((suit) => suit !== undefined)
     )
 
@@ -252,7 +254,7 @@ function cardDiscardedFirst(
 ): string | undefined {
     const first = play === SearchPlay.Site ? options.discardFirstCardId : undefined
     const at = first ? siteHolding(state, first) : undefined
-    return first && at && state.isMusterableCard(at, first) ? first : undefined
+    return at === undefined ? undefined : first
 }
 
 /** R-5.1.4.I — the site a site play puts the card at: the pawn's, or the one the People's Favor or New Growth names. */
@@ -329,7 +331,7 @@ function playGains(
 
     if (siteId !== undefined) {
         if (first) giveBack(first)
-        const suit = suitOf(cardId)
+        const suit = state.suitInPlay(cardId)
         if (suit) {
             if (sitePlayGainsSecret(options)) secrets += 1
             else gainOneFavor(suit)
@@ -456,7 +458,7 @@ export function playCard(
             }
             state.denizensBySite[siteId] = [...state.denizensAt(siteId), cardId]
 
-            const suit = suitOf(cardId)
+            const suit = state.suitInPlay(cardId)
             assertExists(suit, `${cardId} has no suit`)
             if (sitePlayGainsSecret(options)) {
                 // Book of Records — "you must gain a secret instead of favor".
@@ -590,6 +592,26 @@ function unresolvedForWantOfReveal(cardId: string): string {
     return `${card.name}: its When Played power was not resolved, because no hidden card was drawn for it`
 }
 
+/**
+ * R-5.1.4, R-7.3.3 — the denizens a faceup play's When Played power puts off the map, judged on the map the play
+ * leaves (`mapChanges`, from `playMapChanges`), the state unchanged. A power that declares none puts none off.
+ */
+export function whenPlayedMapLeaving(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    faceUp: boolean | undefined,
+    mapChanges: PlayMapChanges
+): string[] {
+    const power = isFaceupPlay(play, faceUp)
+        ? powersWithTiming(cardId, PowerTiming.WhenPlayed)[0]
+        : undefined
+    const mapLeaving = power ? effectFor(power)?.mapLeaving : undefined
+    if (!power || !mapLeaving) return []
+    return mapLeaving({ state, playerId, power, choices: [], mapChanges })
+}
+
 export function reasonWhenPlayedChoicesInvalid(
     state: HydratedOathGameState,
     playerId: string,
@@ -711,6 +733,9 @@ export function reasonCannotPlaceCard(
             if (definition?.placement === 'adviser') {
                 return `${cardId} can only be played to your advisers`
             }
+            // R-7.1.4 — Ruined Temple: enemies of its ruler cannot play beast cards faceup.
+            const barred = reasonPersistentForbidsFaceupPlay(state, playerId, cardId)
+            if (barred) return barred
             const target = options.toSiteId ?? here
             // R-5.1.4.I — the People's Favor's holder may play to any site in their region;
             // New Growth to another site when a carried modifier allows it for this card.
@@ -752,19 +777,25 @@ export function reasonCannotPlaceCard(
                 )
                 if (firstReason) return firstReason
             }
+            // Land Warden — from revision 29 the second card is judged on the site as the kept card's play leaves
+            // it: with the kept card there, and at capacity 1 after Salt the Earth (R-2.8.1). Before (R-X.4), on
+            // the site as it stood before the kept card.
+            const earlier = isAtLeastOathRevision(state, OathRevision.EngineFixes25)
+                ? options.earlierMapChanges
+                : undefined
+            const atTarget = denizensAfterPlay(state, target, earlier)
             if (saltTheEarth) {
-                if (state.denizensAt(target).some((id) => isLockedFor(state, playerId, id))) {
+                if (atTarget.some((id) => isLockedFor(state, playerId, id, target))) {
                     return 'Salt the Earth cannot be played to a site with any locked cards'
                 }
             } else {
-                const freed =
-                    first !== undefined && state.denizensAt(target).includes(first) ? 1 : 0
-                const capacity = effectiveSiteCapacity(state, target)
-                if (state.denizensAt(target).length - freed >= capacity) {
+                const freed = first !== undefined && atTarget.includes(first) ? 1 : 0
+                const capacity = siteCapacityAfterPlay(state, target, earlier)
+                if (atTarget.length - freed >= capacity) {
                     return `site ${target} is at its capacity of ${capacity}`
                 }
             }
-            if (!suitOf(cardId)) {
+            if (!state.suitInPlay(cardId)) {
                 return `${cardId} has no suit, so no favor bank matches it`
             }
             return undefined
@@ -779,6 +810,9 @@ export function reasonCannotPlaceCard(
                 if (definition?.placement === 'site') {
                     return `${cardId} can only be played to a site`
                 }
+                // R-7.1.4 — Ruined Temple: enemies of its ruler cannot play beast cards faceup.
+                const barred = reasonPersistentForbidsFaceupPlay(state, playerId, cardId)
+                if (barred) return barred
             } else if (kind !== CardKind.Denizen && kind !== CardKind.Vision) {
                 return 'only denizens and Visions can be advisers'
             } else {

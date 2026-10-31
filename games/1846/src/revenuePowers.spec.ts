@@ -91,7 +91,7 @@ describe('1846 revenue marker powers', () => {
                 table.hydrated,
                 table.state.activePlayerIds[0]
             )
-        ).toEqual(['AssignRevenueMarker'])
+        ).toEqual(['AssignRevenueMarker', 'SetRunInstruction'])
         expect(() => table.act('FinishTrack', { companyId: 'NYC' })).toThrow()
         expect(
             purchaseChoices(

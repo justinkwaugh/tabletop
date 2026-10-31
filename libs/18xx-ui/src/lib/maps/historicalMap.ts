@@ -10,7 +10,7 @@ import {
     type EighteenXXState
 } from '@tabletop/18xx'
 import { assertExists, RecordedHistory, type GameAction, type GameState } from '@tabletop/common'
-import { trainRouteOverlays } from '../routes/routePresentation.js'
+import { recordedRunRoutes, trainRouteOverlays } from '../routes/routePresentation.js'
 import { createMapDrawing, routeLocationIds, type MapRoute } from './mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from './stationPresentation.js'
 import type { TitlePresentation } from '../session/titlePresentation.js'
@@ -70,7 +70,10 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
         private readonly openReservations: (
             state: HistoricalMapState
         ) => HistoricalMapState['stationReservations'] = (state) => state.stationReservations,
-        private readonly titlePlacement: TitlePresentation['historyMapPlacement'] = undefined
+        private readonly titlePlacement: TitlePresentation['historyMapPlacement'] = undefined,
+        private readonly liftedPrivateBlocks: (
+            state: HistoricalMapState
+        ) => readonly string[] = () => []
     ) {}
 
     previews(action: GameAction): boolean {
@@ -104,7 +107,7 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
         assertExists(company, 'Historical map requires its operating company')
         const set = snapshot.operatingSet
         const run = isRunTrains(action) ? action : undefined
-        const routes = trainRouteOverlays(run?.routes ?? [])
+        const routes = trainRouteOverlays(run ? recordedRunRoutes(run) : [])
         const preview: HistoricalMap = {
             actionId: action.id,
             label: `${this.companyName(company.id)}${set ? ` · OR ${set.number}.${set.roundNumber}` : ''}`,
@@ -115,11 +118,12 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
                 {
                     tileSet: view.tileSet,
                     inventory: snapshot.tileInventory,
-                    markers: snapshot.locationMarkers
+                    markers: snapshot.locationMarkers,
+                    liftedPrivateBlocks: this.liftedPrivateBlocks(snapshot)
                 },
                 view
             ),
-            tokens: stationMapTokens(snapshot, view.stations),
+            tokens: stationMapTokens(snapshot, view.stations, view.sharedStations),
             reservations: this.openReservations(snapshot),
             stationAppearances: view.stations,
             routes,

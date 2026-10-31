@@ -8,6 +8,7 @@ import {
     isFinishStockTurn,
     isFloatCompany,
     isEndGame,
+    isDeclareBankruptcy,
     isResolveAuction,
     isResolveSelectionAuction,
     isStartOperatingRound,
@@ -17,6 +18,7 @@ import {
     isPayInterest,
     type EighteenXXState,
     isStockInstructionAction,
+    isRunInstructionAction,
     type AuctionAward
 } from '@tabletop/18xx'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
@@ -121,6 +123,7 @@ export function historyRounds(
         const entry =
             (isStartOperatingRound(action) && !action.metadata?.payments.length) ||
             isStockInstructionAction(action) ||
+            isRunInstructionAction(action) ||
             isSetPrivatePowerRequest(action) ||
             isDropPrivatePowerRequest(action)
                 ? undefined
@@ -138,6 +141,7 @@ export function historyRounds(
                           (move) => move.fromMarketSpaceId !== move.toMarketSpaceId
                       )) ||
                   isGameEndAction(action) ||
+                  isDeclareBankruptcy(action) ||
                   isExportTrains(action) ||
                   isPayInterest(action) ||
                   !!title.isEvent?.(action) ||

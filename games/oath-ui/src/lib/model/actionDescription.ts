@@ -10,6 +10,7 @@ import {
     isAnswerConsent,
     isAnswerQuestion,
     isCampaign,
+    isClaimDealKept,
     isCampaignDefeatKills,
     isCampaignAttackPlans,
     isCampaignDefend,
@@ -20,6 +21,8 @@ import {
     isEndActPhase,
     isForgoFreeAction,
     isExileCitizen,
+    isLeaveDealUnconfirmed,
+    otherPartyOf,
     isMoveWarbands,
     isMuster,
     isOfferCitizenship,
@@ -33,6 +36,7 @@ import {
     isRollEndDie,
     isSearch,
     isSearchResolve,
+    isSearchSwap,
     isSelfExile,
     isSetupChoice,
     isTrade,
@@ -42,6 +46,10 @@ import {
     isUseRestPower,
     cardDefinition,
     cardDefinitions,
+    cardPowers,
+    EDIFICE_RECORDS,
+    edificeName,
+    PowerTiming,
     cardPower,
     PowerChoiceKind,
     RELIQUARY_MODIFIERS,
@@ -56,11 +64,15 @@ import {
     type ExchangeTerms,
     type ExchangeTransfer,
     type FavorShort,
+    type Campaign,
     type CampaignBattleMetadata,
+    type RecoverMetadata,
+    type SearchSwap,
     type HeldAttackRoll,
     type CampaignPlacement,
     type CampaignResolveVictory,
     type CampaignTarget,
+    type ConspiracyPlay,
     type WarbandGroup,
     Suit,
     type LetPeek,
@@ -73,6 +85,7 @@ import {
     type UseRestPower,
     type WarbandMove,
     type WarbandOwner,
+    type HeldForHospital,
     secretsFlipped
 } from '@tabletop/oath'
 import { assertExists, type GameAction } from '@tabletop/common'
@@ -82,6 +95,7 @@ import {
     campaignTargetText,
     cardName,
     listed,
+    powerCardName,
     nameSeats,
     plural,
     regionName,
@@ -100,6 +114,7 @@ import {
     type PileDeposit
 } from '$lib/model/actionOutcomes.js'
 import type { WarbandWhose } from '$lib/model/tokenText.js'
+import { chronicleActionWords } from '$lib/model/chronicleHistory.js'
 import {
     paidTollClause,
     tollMoveText,
@@ -186,12 +201,36 @@ export function rowWarbandOwner(
 /**
  * R-10.13 — a counted phrase's warbands: the owner its own words name ("Imperial", a seat, the
  * viewer's "your", the actor's "their own"), else the row's. A seat this reader cannot name
- * leaves them the row's, as every phrase was before.
+ * leaves them the row's, as every phrase was before. "Their own" is the seat whose chip starts the
+ * row, the one its words were written against (a Toll Roads answer's mover, not the seat that
+ * answered).
  */
 export function phraseWarbandOwner(
     whose: WarbandWhose,
     action: GameAction,
-    reader: { names: Seats; viewerId: string | undefined },
+    reader: WarbandReader,
+    ownWarbandsOf: (playerId: string) => WarbandOwner
+): WarbandOwner | undefined {
+    // A seat's board holds what the record says it held; the seat's own only when it says nothing.
+    const recorded = whose.kind === 'held' ? recordedWarbandOwner(action) : undefined
+    return (
+        recorded ??
+        namedWarbandOwner(whose, rowActorOf(action), reader, ownWarbandsOf) ??
+        rowWarbandOwner(action, ownWarbandsOf)
+    )
+}
+
+/** Who reads a phrase: the seats it may name, and the viewer its "your" names. */
+export type WarbandReader = { names: Seats; viewerId: string | undefined }
+
+/**
+ * R-10.13 — the owner a counted phrase's own words name, if they name one this reader knows: the
+ * Empire, the viewer, the actor, a seat, or the warbands a seat holds as its own.
+ */
+export function namedWarbandOwner(
+    whose: WarbandWhose,
+    actorId: string | undefined,
+    reader: WarbandReader,
     ownWarbandsOf: (playerId: string) => WarbandOwner
 ): WarbandOwner | undefined {
     switch (whose.kind) {
@@ -201,17 +240,25 @@ export function phraseWarbandOwner(
             assertExists(reader.viewerId, 'only a seated viewer reads "your" in a History row')
             return reader.viewerId
         case 'actor':
-            assertExists(action.playerId, 'only an actor’s row reads "their own"')
-            return action.playerId
+            assertExists(actorId, 'only an actor’s row reads "their own"')
+            return actorId
         case 'seat':
-            return (
-                reader.names.seats.find(
-                    (playerId) => reader.names.player(playerId) === whose.name
-                ) ?? rowWarbandOwner(action, ownWarbandsOf)
-            )
+            return seatNamed(whose.name, reader)
+        case 'held': {
+            const holder = seatNamed(whose.name, reader)
+            return holder === undefined ? undefined : ownWarbandsOf(holder)
+        }
         case 'row':
-            return rowWarbandOwner(action, ownWarbandsOf)
+            return undefined
     }
+}
+
+/** A seat as text names it: by name, by id (a row drawn with chips), or the viewer's "you". */
+function seatNamed(name: string, reader: WarbandReader): string | undefined {
+    if (/^your?$/i.test(name)) return reader.viewerId
+    return reader.names.seats.find(
+        (playerId) => playerId === name || reader.names.player(playerId) === name
+    )
 }
 
 function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
@@ -236,7 +283,15 @@ function drumText(cardId: string, gain: WarbandGain | undefined): string {
         : `skipped the ${cardName(cardId)}`
 }
 
-export function describeAction(action: GameAction, names: HistoryNames, viewerId?: string): string {
+export function describeAction(
+    action: GameAction,
+    names: HistoryNames,
+    viewerId?: string,
+    campaign?: Campaign
+): string {
+    // R-8 — a chronicle action's row reads its own record.
+    const chronicleWords = chronicleActionWords(action)
+    if (chronicleWords !== undefined) return historyText(chronicleWords, names)
     // The row starts with this seat's chip, so a note about them needs no subject.
     const actorId = rowActorOf(action)
     const notes = recordedNotes(action).flatMap((note) => {
@@ -244,19 +299,52 @@ export function describeAction(action: GameAction, names: HistoryNames, viewerId
         return clause ? [clause] : []
     })
     const named = new Set(notes.flatMap((clause) => (clause.card ? [clause.card] : [])))
-    return historyWords(
-        nameIds(
-            stripRules(
-                describeActionCited(action, names, viewerId, named) +
-                    secondWhenPlayedClause(action) +
-                    notes
-                        .map((clause) => `; ${namedNote(clause.text, actorId, names, viewerId)}`)
-                        .join('') +
-                    outcomeClauses(action, viewerId)
-            ),
-            names.site
-        )
+    const placed = hospitalPlacedWords(recordedHospitalPlaced(action))
+    return historyText(
+        describeActionCited(action, names, viewerId, named, campaign) +
+            secondWhenPlayedClause(action) +
+            notes
+                .map((clause) => `; ${namedNote(clause.text, actorId, names, viewerId)}`)
+                .join('') +
+            placed.map((words) => `; ${namedNote(words, actorId, names, viewerId)}`).join('') +
+            outcomeClauses(action, viewerId),
+        names
     )
+}
+
+const HOSPITAL = 'denizen.hearth.hospital'
+
+/** Hospital — the warbands it placed on its site, recorded by the step that ended the Campaign. */
+export function recordedHospitalPlaced(action: GameAction): readonly HeldForHospital[] {
+    if (
+        isCampaignSacrifice(action) ||
+        isCampaignResolveVictory(action) ||
+        isAnswerQuestion(action)
+    ) {
+        return action.metadata?.hospitalPlaced ?? []
+    }
+    return []
+}
+
+/**
+ * Hospital — where the warbands it saved went, one clause per Hospital, naming its user by id:
+ * "2 of Ann's warbands went to Hospital's site (Hospital)".
+ */
+export function hospitalPlacedWords(placed: readonly HeldForHospital[]): string[] {
+    const byHolder = new Map<string, number>()
+    for (const entry of placed) {
+        byHolder.set(entry.playerId, (byHolder.get(entry.playerId) ?? 0) + entry.count)
+    }
+    const hospital = cardName(HOSPITAL)
+    return [...byHolder].map(
+        ([holderId, count]) =>
+            `${count} of ${holderId}'s warbands went to ${hospital}'s site (${hospital})`
+    )
+}
+
+/** Engine words as History says them: rules unquoted, ids named, the Law's spelling. */
+export function historyText(text: string, names: HistoryNames): string {
+    return historyWords(nameIds(stripRules(text), names.site))
 }
 
 // "1 warbands" and "the top 1 cards" in engine summaries; the Law's spelling.
@@ -320,6 +408,8 @@ type NoteClause = { text: string; card?: string }
 
 const CARD_NAMES: ReadonlySet<string> = new Set([
     ...cardDefinitions().map((card) => card.name),
+    // R-2.9 — a ruined edifice's side prints its own name.
+    ...EDIFICE_RECORDS.map((record) => record.ruined.name),
     ...RELIQUARY_MODIFIERS.map((trait) => trait.name)
 ])
 const CARD_NOTE = /^([^:]+): ([\s\S]+)$/
@@ -338,33 +428,48 @@ const SAYS_YOU = /\byour?\b/i
  * what it always means; an older note that says "you" is not shown.
  */
 function noteClause(note: string, actorId: string | undefined): NoteClause | undefined {
+    const deed = cardDeed(note, actorId)
+    if (!deed) return undefined
+    return deed.card ? { text: `${deed.did} (${deed.card})`, card: deed.card } : { text: deed.did }
+}
+
+/**
+ * R-5.5.8 — a recorded note as the card that wrote it and what it did, worded as the rows word it;
+ * a note that names no card, or is not shown, is not one.
+ */
+export function cardNote(note: string): { card: string; text: string } | undefined {
+    const deed = cardDeed(note, undefined)
+    return deed?.card === undefined ? undefined : { card: deed.card, text: deed.did }
+}
+
+/** What a note says was done, and the card that did it when it names one. */
+function cardDeed(
+    note: string,
+    actorId: string | undefined
+): { did: string; card?: string } | undefined {
     // R-4.2 — Special Envoy's end of the Act Phase is named after the Travel's cost.
     if (SPECIAL_ENVOY.test(note)) return undefined
     // Tyrant kills one warband at the destination, the site the note names.
     const tyrant = TYRANT.exec(note)
-    if (tyrant) return { text: `killed 1 warband at ${tyrant[1]} (Tyrant)`, card: 'Tyrant' }
+    if (tyrant) return { did: `killed 1 warband at ${tyrant[1]}`, card: 'Tyrant' }
     // Awaited Return sacrifices from the trader's own board.
-    if (AWAITED_RETURN.test(note)) {
-        return { text: 'sacrificed 1 warband (Awaited Return)', card: 'Awaited Return' }
-    }
+    if (AWAITED_RETURN.test(note)) return { did: 'sacrificed 1 warband', card: 'Awaited Return' }
     // Careless gains one favor or, from an empty bank or under Vow of Poverty, none.
     const careless = CARELESS.exec(note)
     if (careless) {
         const gained = careless[1] === 'gained 1 favor' ? 1 : 0
-        return { text: `gained ${gained} favor (Careless)`, card: 'Careless' }
+        return { did: `gained ${gained} favor`, card: 'Careless' }
     }
     // R-5.5.8 — Second Wind's grant, on the spoils row (or the banish's answer) that recorded it.
-    if (note === SECOND_WIND) {
-        return { text: 'free Travel and Campaign next (Second Wind)', card: 'Second Wind' }
-    }
+    if (note === SECOND_WIND) return { did: 'free Travel and Campaign next', card: 'Second Wind' }
     if (SAYS_YOU.test(note)) return undefined
     const carded = CARD_NOTE.exec(note)
     const card = carded ? noteCard(carded[1]) : undefined
-    if (!carded || card === undefined) return { text: note }
+    if (!carded || card === undefined) return { did: note }
     const subject = actorId === undefined ? undefined : `${actorId} `
     const rest =
         subject && carded[2].startsWith(subject) ? carded[2].slice(subject.length) : carded[2]
-    return { text: `${rest} (${card})`, card }
+    return { did: rest, card }
 }
 
 /** A note's prefix as the card it names: a card, a Reliquary trait, or a site's Homeland. */
@@ -448,19 +553,7 @@ function sacrificePlaces(
     actorId: string,
     names: HistoryNames
 ): string | undefined {
-    const counted: { place: string; owner: WarbandOwner; count: number }[] = []
-    for (const group of [...kills].sort((a, b) => placeOrder(a) - placeOrder(b))) {
-        if (group.count <= 0) continue
-        const place =
-            group.at.kind === 'site'
-                ? `at ${names.site(group.at.siteId)}`
-                : group.at.playerId === actorId
-                  ? 'on their board'
-                  : `on ${names.player(group.at.playerId)}'s board`
-        const same = counted.find((c) => c.place === place && c.owner === group.owner)
-        if (same) same.count += group.count
-        else counted.push({ place, owner: group.owner, count: group.count })
-    }
+    const counted = warbandPlaces(kills, actorId, names)
     const named = new Set(counted.map((c) => c.place)).size > 1
     if (new Set(counted.map((c) => c.owner)).size > 1) {
         return counted
@@ -481,6 +574,65 @@ function sacrificePlaces(
 
 function placeOrder(group: WarbandGroup): number {
     return group.at.kind === 'board' ? 0 : 1
+}
+
+/** One owner's warbands at one place, counted together. */
+export interface PlacedWarbands {
+    place: string
+    owner: WarbandOwner
+    count: number
+}
+
+/**
+ * R-10.22 — a force's groups by place and owner, a board's first: "at Plains", "on their board"
+ * for the actor's own, "on Rhys's board" for another seat's (any seat's, with no actor).
+ */
+export function warbandPlaces(
+    groups: readonly WarbandGroup[],
+    actorId: string | undefined,
+    names: HistoryNames
+): PlacedWarbands[] {
+    const counted: PlacedWarbands[] = []
+    for (const group of [...groups].sort((a, b) => placeOrder(a) - placeOrder(b))) {
+        if (group.count <= 0) continue
+        const place =
+            group.at.kind === 'site'
+                ? `at ${names.site(group.at.siteId)}`
+                : group.at.playerId === actorId
+                  ? 'on their board'
+                  : `on ${names.player(group.at.playerId)}'s board`
+        const same = counted.find((c) => c.place === place && c.owner === group.owner)
+        if (same) same.count += group.count
+        else counted.push({ place, owner: group.owner, count: group.count })
+    }
+    return counted
+}
+
+/**
+ * R-5.5.6.a — the defense's losses as picked: where each was killed, every owner in their own
+ * words when the force held more than one. Picks that do not add up to the killed count (a loss a
+ * card held back) say only how many were killed.
+ */
+function killedPlaces(
+    kills: readonly WarbandGroup[],
+    killed: number,
+    actorId: string,
+    names: HistoryNames
+): string {
+    const counted = warbandPlaces(kills, actorId, names)
+    const [only] = counted
+    if (only === undefined || counted.reduce((sum, c) => sum + c.count, 0) !== killed) {
+        return `${plural(killed, 'warband')} killed`
+    }
+    if (new Set(counted.map((c) => c.owner)).size > 1) {
+        const each = counted.map(
+            ({ place, owner, count }) =>
+                `${warbandsOf(count, owner, names.player, actorId)} ${place}`
+        )
+        return `killed ${each.join(' and ')}`
+    }
+    if (counted.length === 1) return `${plural(killed, 'warband')} killed ${only.place}`
+    return `${plural(killed, 'warband')} killed: ${counted.map(({ place, count }) => `${count} ${place}`).join(' and ')}`
 }
 
 /** R-5.5.7.I — each placement names its owner, so its piece takes that owner's colour. */
@@ -539,9 +691,14 @@ function supply(spent: number | undefined): string {
     return spent !== undefined && spent > 0 ? `, spending ${spent} Supply` : ''
 }
 
-/** Second Wind out of turn — the card whose free action this was, in brackets. */
+/** R-10.2 — the card whose free action this was, in brackets: Second Wind out of turn, any grant from revision 27. */
 function freeActionClause(cardId: string | undefined): string {
     return cardId ? ` (free, ${cardName(cardId)})` : ''
+}
+
+/** Sneak Attack (revision 27) — a Campaign out of turn for no Supply, after its plans. */
+function sneakAttackClause(sneakAttack: boolean | undefined): string {
+    return sneakAttack ? ` (${cardName(SNEAK_ATTACK)}, free)` : ''
 }
 
 /** R-11.12, R-11.13 — each secret a Travel flipped: "; flipped 1 secret", "; flipped 2 secrets". */
@@ -578,16 +735,20 @@ function usedPlans(planIds: readonly string[]): string {
     return planIds.length > 0 ? `used ${listed(planIds.map(planName))}` : 'used no battle plans'
 }
 
-// A record names a plan by its id; an older one by its name.
-function planName(plan: string): string {
-    return cardDefinition(plan) ? cardName(plan) : plan
+// A record names a plan by its id; an older one by its name. An edifice's plan is printed on one
+// side, which the plan names (Bandit Rampart).
+export function planName(plan: string): string {
+    if (!cardDefinition(plan)) return plan
+    const side = cardPowers(plan).find((power) => power.timing === PowerTiming.BattlePlan)
+    return side ? powerCardName(plan, side.powerIndex) : cardName(plan)
 }
 
 function describeActionCited(
     action: GameAction,
     names: HistoryNames,
     viewerId: string | undefined,
-    named: ReadonlySet<string>
+    named: ReadonlySet<string>,
+    campaign: Campaign | undefined
 ): string {
     const nameOf = names.player
     if (isSetupChoice(action)) {
@@ -688,15 +849,18 @@ function describeActionCited(
             `kept ${shownCard(kept)} and ${describePlay(action.play)}` +
             (facedown ? ', facedown' : '') +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
+            conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +
             whenPlayedClause(meta?.whenPlayed, kept, action.playerId, names, viewerId)
         )
     }
+    if (isSearchSwap(action)) return describeSearchSwap(action)
     if (isRecover(action)) {
         if (action.target.kind === RecoverTargetKind.Banner) {
             const paid = action.amountPaid ?? action.metadata?.amountPaid
             return (
                 `recovered the ${bannerName(action.target.banner)}` +
-                (paid === undefined ? '' : ` for ${bannerTokens(paid, action.target.banner)}`)
+                (paid === undefined ? '' : ` for ${bannerTokens(paid, action.target.banner)}`) +
+                mockeryClause(action.metadata)
             )
         }
         const relic = action.metadata?.relicCardId
@@ -716,16 +880,19 @@ function describeActionCited(
             `campaigned against ${against}${targets ? ` for ${targets}` : ''}` +
             freeActionClause(meta?.freeActionOf) +
             supply(meta?.supplySpent) +
-            (plans.length > 0 ? `, using ${listed(plans.map(planName))}` : '')
+            (plans.length > 0 ? `, using ${listed(plans.map(planName))}` : '') +
+            sneakAttackClause(meta?.sneakAttack)
         // R-5.5.2.a — nothing is rolled until the Citizens asked have answered.
         if (meta?.awaitingAllies) return `${declared}; Citizens may join the defense`
-        return meta?.battle ? `${declared}; ${describeBattle(meta.battle, true)}` : declared
+        return meta?.battle
+            ? `${declared}; ${describeBattle(meta.battle, true, names.site)}`
+            : declared
     }
     if (isCampaignAttackPlans(action)) {
         const battle = action.metadata?.battle
         return (
             usedPlans((action.plans ?? []).map((plan) => plan.cardId)) +
-            (battle ? `; ${describeBattle(battle, true)}` : '')
+            (battle ? `; ${describeBattle(battle, true, names.site)}` : '')
         )
     }
     if (isUseRestPower(action)) {
@@ -741,7 +908,9 @@ function describeActionCited(
                 ? `${meta.attackPool} attack dice against ${meta.defensePool} defense dice`
                 : meta.heldAttackDice !== undefined
                   ? `${meta.heldAttackDice} attack dice against ${meta.defense} defense`
-                  : `${meta.swords} swords against ${meta.defense} defense`
+                  : `${meta.swords} swords against ${meta.defense} defense` +
+                    skullsLostClause(meta.skullsKilled, campaign?.playerId) +
+                    rampartClause(campaign?.metadata?.battle?.defenseBonusSites, names.site)
         return `${usedPlans(meta.plansUsed)}; ${pools}`
     }
     if (isCampaignSacrifice(action)) {
@@ -757,7 +926,7 @@ function describeActionCited(
         return describeSkullLosses(action.metadata?.killed ?? action.kills, names.site)
     }
     if (isCampaignDefeatKills(action)) {
-        return `picked the defense's losses: ${plural(action.metadata?.defeatKilled ?? 0, 'warband')} killed`
+        return `picked the defense's losses: ${killedPlaces(action.kills, action.metadata?.defeatKilled ?? 0, action.playerId, names)}`
     }
     if (isCampaignResolveVictory(action)) {
         return describeSpoils(action, names, viewerId)
@@ -782,6 +951,7 @@ function describeActionCited(
             (first ? `, discarding ${cardName(first)} first${inBrackets(rotated)}` : '') +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             cardsInBrackets(meta?.modifiers, new Set([...named, ...grew, ...rotated, ...horn])) +
+            conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +
             whenPlayedClause(
                 meta?.whenPlayed,
                 meta?.playedCardId,
@@ -804,13 +974,23 @@ function describeActionCited(
             exchangeOffer(action, names) ??
             messengerMoves(action, names) ??
             powerEffect(action, names, viewerId)
-        return `used ${cardName(action.cardId)}${cost}${effect}${paying}`
+        return `used ${powerCardName(action.cardId, action.powerIndex)}${cost}${effect}${paying}`
     }
     if (isPeek(action)) {
         return 'peeked at a relic at their site'
     }
     if (isLetPeek(action)) {
         return describeLetPeek(action, nameOf, viewerId)
+    }
+    // R-7.6.3-H1 — a party asks the other to confirm their deal was kept, or closes it unconfirmed.
+    if (isClaimDealKept(action)) {
+        const asked = action.metadata?.askedPlayerId
+        return `asked ${asked ? nameOf(asked) : 'the other party'} to confirm their Tribunal deal was kept`
+    }
+    if (isLeaveDealUnconfirmed(action)) {
+        const deal = action.metadata?.deal
+        const other = deal && otherPartyOf(deal, action.playerId)
+        return `left the Tribunal deal${other ? ` with ${nameOf(other)}` : ''} unconfirmed; it is closed`
     }
     if (isMoveWarbands(action)) {
         const warbands = `${warbandsOf(action.count, action.owner, nameOf, action.playerId)} ${describeMove(action.move, nameOf)}`
@@ -820,7 +1000,7 @@ function describeActionCited(
             : `moved ${warbands}`
     }
     if (isAnswerConsent(action)) {
-        return describeConsentAnswer(action.metadata, action.granted, nameOf)
+        return describeConsentAnswer(action.metadata, action.granted, nameOf, names.site)
     }
     if (isOfferCitizenship(action)) {
         // R-6.6.1 — the offer's terms, from its own record.
@@ -868,6 +1048,10 @@ function describeActionCited(
             const gain = noteClause(meta.summary, action.playerId)?.text ?? meta.summary
             return namedNote(gain, action.playerId, names, viewerId)
         }
+        // Squalid District — its ruler's answer, the ruined side named after it.
+        if (meta.kind === PowerQuestionKind.AdjustEndDie) {
+            return `${meta.summary} (${edificeName(meta.cardId, true)})`
+        }
         // R-7.1.3-H2 — Gambling Hall's bank once the roll stood, read as Hospitality's bank reads.
         if (meta.kind === PowerQuestionKind.GamblingHallBank) {
             return namedNote(
@@ -878,6 +1062,13 @@ function describeActionCited(
             )
         }
         const answer = action.answer
+        // R-7.6.3-H1 — the asked party's word on a claimed deal; the claimant is the deal's other party.
+        const claimant = meta.answeredDeal && otherPartyOf(meta.answeredDeal, action.playerId)
+        if (answer.kind === PowerQuestionKind.DealKept && claimant) {
+            return answer.kept
+                ? `confirmed the Tribunal deal with ${nameOf(claimant)} was kept; it is closed`
+                : `answered not kept; the deal with ${nameOf(claimant)} stays open`
+        }
         // The Gathering — the proposal's terms, from the answer's own record.
         if (answer.kind === PowerQuestionKind.GatheringFloor && answer.proposal) {
             const { withPlayerId, terms } = answer.proposal
@@ -891,6 +1082,13 @@ function describeActionCited(
                     ? `${describePlay(answer.play)}, facedown`
                     : describePlay(answer.play)
             return `${cardName(meta.cardId)}: 1 warband on ${cardName(vision)} died; ${play}`
+        }
+        // Inquisitor — the Conspiracy it found, played faceup with a take: what it took, from the answer.
+        if (answer.kind === PowerQuestionKind.PlayOrDiscardConspiracy && answer.conspiracy) {
+            return (
+                `${cardName(meta.cardId)}: ${describePlay(SearchPlay.Conspiracy)}` +
+                conspiracyTakeClause(answer.conspiracy, action.playerId, names, viewerId)
+            )
         }
         const summary = meta.summary + heldAttackClause(meta.heldAttack)
         return `${cardName(meta.cardId)}: ${namedSummary(summary, meta.cardId, action.playerId, names, viewerId)}`
@@ -962,6 +1160,7 @@ const TRUTHFUL_HARP = 'relic.truthful-harp'
 const NEW_GROWTH = 'denizen.beast.new-growth'
 const CROP_ROTATION = 'denizen.hearth.crop-rotation'
 const CRACKED_HORN = 'relic.cracked-horn'
+const SNEAK_ATTACK = 'denizen.discord.sneak-attack'
 // False Prophet's answer names the Vision it played or discarded.
 const PROPHESIED = /\bvision\.[a-z0-9-]+/
 
@@ -1209,7 +1408,7 @@ function namedSummary(
     return namedNote(withoutCardName(summary, cardId), actorId, names, viewerId)
 }
 
-function namedNote(
+export function namedNote(
     note: string,
     actorId: string | undefined,
     names: HistoryNames,
@@ -1233,8 +1432,11 @@ function wakeDone(action: ResolveWake): string[] {
 }
 
 function withoutCardName(summary: string, cardId: string): string {
-    const prefix = `${cardName(cardId)}: `
-    return summary.startsWith(prefix) ? summary.slice(prefix.length) : summary
+    // R-2.9 — an edifice's summary begins with the side used.
+    const edifice = EDIFICE_RECORDS.find((record) => record.id === cardId)
+    const names = edifice ? [edifice.intact.name, edifice.ruined.name] : [cardName(cardId)]
+    const prefix = names.map((name) => `${name}: `).find((p) => summary.startsWith(p))
+    return prefix ? summary.slice(prefix.length) : summary
 }
 
 function namedBanks(text: string): string {
@@ -1250,6 +1452,25 @@ function unreplacedClause(count: number, returned: boolean): string {
     return returned
         ? `, returning ${plural(count, 'Imperial warband')} to the Chancellor’s bank`
         : `, with ${plural(count, 'warband')} left Imperial`
+}
+
+/**
+ * R-5.1.4.IV — what a Conspiracy took and from whom, as a taken relic and a seized banner read
+ * elsewhere; a take is public, so every viewer reads it. No take, no clause.
+ */
+function conspiracyTakeClause(
+    conspiracy: ConspiracyPlay | undefined,
+    actorId: string,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
+    if (!conspiracy) return ''
+    const { take, targetPlayerId } = conspiracy
+    const taken =
+        take.kind === 'relic'
+            ? `took ${cardName(take.cardId)}`
+            : `seized the ${bannerName(take.banner)}`
+    return `; ${namedNote(`${taken} from ${targetPlayerId}`, actorId, names, viewerId)}`
 }
 
 function describeAdviserPlay(play: SearchPlay, card: string): string {
@@ -1307,7 +1528,11 @@ function describeSkullLosses(killed: readonly WarbandGroup[], site: HistoryNames
  * (R-5.5.4-H1). The skulls kill the attacker's warbands: on another seat's row the attacker is
  * named, with no piece in that seat's colour.
  */
-function describeBattle(battle: CampaignBattleMetadata, attackersRow: boolean): string {
+function describeBattle(
+    battle: CampaignBattleMetadata,
+    attackersRow: boolean,
+    site: HistoryNames['site']
+): string {
     if (battle.awaitingDefender) {
         return `${battle.attackPool} attack dice against ${battle.defensePool} defense dice`
     }
@@ -1315,13 +1540,60 @@ function describeBattle(battle: CampaignBattleMetadata, attackersRow: boolean): 
         return `${battle.heldAttackDice} attack dice against ${battle.defense} defense`
     }
     const skulls = battle.skullsKilled
-    const lost =
-        skulls <= 0
-            ? ''
-            : attackersRow
-              ? `; lost ${plural(skulls, 'warband')} to skulls`
-              : `; the attacker lost ${skulls} to skulls`
-    return `${battle.swords} swords against ${battle.defense} defense${lost}`
+    const lost = attackersRow
+        ? skulls > 0
+            ? `; lost ${plural(skulls, 'warband')} to skulls`
+            : ''
+        : skullsLostClause(skulls, undefined)
+    return `${battle.swords} swords against ${battle.defense} defense${lost}${rampartClause(battle.defenseBonusSites, site)}`
+}
+
+/**
+ * Great Spire — R-9.4: the searcher sees the cards that went and came in; with Truthful Harp the
+ * others saw the drawn ones go, never what came in (its Q&A); otherwise only how many.
+ */
+function describeSearchSwap(action: SearchSwap): string {
+    const spire = `(${cardName(GREAT_SPIRE)})`
+    const out = action.swappedCardIds
+    const incoming = action.metadata?.incomingCardIds
+    if (out && incoming) {
+        return `swapped ${listed(out.map(cardName))} for ${listed(incoming.map(cardName))} from the Dispossessed ${spire}`
+    }
+    const shown = action.metadata?.revealedSwappedCardIds
+    if (shown) return `swapped ${listed(shown.map(cardName))} with the Dispossessed ${spire}`
+    const count = action.metadata?.count ?? out?.length ?? 0
+    return `swapped ${plural(count, 'card')} with the Dispossessed ${spire}`
+}
+
+/** Sprawling Rampart — the targeted sites it added a defense die to, on the row that rolls. */
+function rampartClause(siteIds: readonly string[] | undefined, site: HistoryNames['site']): string {
+    if (!siteIds || siteIds.length === 0) return ''
+    return `; 1 more defense die for ${siteIds.map(site).join(', ')} (${cardName(SPRAWLING_RAMPART)})`
+}
+
+/**
+ * Hall of Mockery — a Recover leaves the People's Favor on its Mob side: it stays there, or goes
+ * there from the other side (R-5.4.4 would have turned it).
+ */
+function mockeryClause(meta: RecoverMetadata | undefined): string {
+    if (!meta?.flippedToMob) return ''
+    const where = meta.mobSideBefore ? 'stays on' : 'goes to'
+    return `; it ${where} its Mob side (${edificeName(HALL_OF_DEBATE, true)})`
+}
+
+const SPRAWLING_RAMPART = 'edifice.order.sprawling-rampart'
+const HALL_OF_DEBATE = 'edifice.hearth.hall-of-debate'
+const GREAT_SPIRE = 'edifice.arcane.great-spire'
+
+/**
+ * R-5.5.5 — the attacker's warbands the skulls killed, on another seat's row: the attacker by id
+ * for the row to name, their warbands held as theirs; a row that cannot name them says "the attacker".
+ */
+function skullsLostClause(skulls: number, attackerId: string | undefined): string {
+    if (!(skulls > 0)) return ''
+    return attackerId
+        ? `; ${attackerId} lost ${plural(skulls, 'warband')} to skulls`
+        : `; the attacker lost ${skulls} to skulls`
 }
 
 /**
@@ -1342,10 +1614,11 @@ function heldAttackClause(held: HeldAttackRoll | undefined): string {
 function describeConsentAnswer(
     meta: AnswerConsentMetadata | undefined,
     granted: boolean,
-    nameOf: NameOf
+    nameOf: NameOf,
+    site: HistoryNames['site']
 ): string {
     const asker = meta ? nameOf(meta.askingPlayerId) : 'the asking player'
-    const battle = meta?.battle ? `; ${describeBattle(meta.battle, false)}` : ''
+    const battle = meta?.battle ? `; ${describeBattle(meta.battle, false, site)}` : ''
     switch (meta?.kind) {
         case ConsentRequestKind.JoinDefence:
             return (granted ? 'asked to join the defense' : 'stayed out of the battle') + battle

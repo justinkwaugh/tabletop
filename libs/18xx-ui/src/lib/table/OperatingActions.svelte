@@ -14,21 +14,38 @@
     import CompanyFormation from '../stock/CompanyFormation.svelte'
     import LoanRepayment from '../loans/LoanRepayment.svelte'
     import CashCrisis from '../funding/CashCrisis.svelte'
+    import CorporateFinance from '../finance/CorporateFinance.svelte'
+    import NothingToBuild from '../maps/NothingToBuild.svelte'
+    import PresidencyClaims from '../stock/PresidencyClaims.svelte'
+    import OperatingModeSwitch from './OperatingModeSwitch.svelte'
+    import type { Snippet } from 'svelte'
+    import { assertExists } from '@tabletop/common'
+    import { fade } from 'svelte/transition'
+    import { prefersReducedMotion } from 'svelte/motion'
     let {
         session,
         createRouteWorker,
         onFocusRoute,
-        privateOperationDescription
+        privateOperationDescription,
+        titleMode
     }: {
         createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
         privateOperationDescription: (id: string, companyId: string) => string | undefined
         session: EighteenXXSessionView
+        /** The panel of one of the session's `titleOperatingModes`, by its id. */
+        titleMode?: Snippet<[string]>
     } = $props()
-    const { trainColors, poolName, privateTilePrompts } = $derived(session.presentation)
+    const { trainColors, privateTilePrompts } = $derived(session.presentation)
     const gameState = $derived(session.gameState)
     const trainBuying = $derived(gameState.machineState === 'BuyingTrains')
     const trainOffer = $derived(trainBuying && gameState.purchaseOffer?.asset.kind === 'train')
+    const titleModePanel = $derived.by(() => {
+        const id = session.operatingMode.titleModeShown
+        if (!id) return undefined
+        assertExists(titleMode, `Title operating mode ${id} requires the table's titleMode panel`)
+        return { id, panel: titleMode }
+    })
 </script>
 
 {#snippet actionControls()}
@@ -47,7 +64,7 @@
         {:else if gameState.machineState === 'StockRound' && session.companyAuction.auction}
             <CompanyAuctionBidding {session} />
         {:else if gameState.machineState === 'StockRound'}
-            <StockRoundActions {session} {poolName} />
+            <StockRoundActions {session} />
         {:else if session.stations.homeChoice}<HomeStationChoice {session} />
         {:else if session.stations.privateStation}<PrivateStationChoice {session} />
         {:else if gameState.machineState === 'LayingTrack'}<TrackBuilding
@@ -78,10 +95,62 @@
     {/if}
 {/snippet}
 
-{#if gameState.machineState === 'StockRound'}
-    {@render actionControls()}
-{:else}
-    <section class="centered-panel" aria-label="Operating actions">
+{#snippet stationsWithTrack()}
+    <div class="centered-panel">
+        <CompanyDecisions {session} {trainColors} showUndo={false} />
+        {#if !session.privateActions.selection && !session.decisions.selection}
+            {#if session.operatingMode.nothingToBuild}
+                <NothingToBuild {session} />
+            {:else}
+                <StationBuilding
+                    {session}
+                    showUndo={false}
+                    canSkip={session.operatingMode.canFinish}
+                    onSkip={() => session.operatingMode.finish()}
+                />
+                <ProjectedRun {session} {onFocusRoute} />
+            {/if}
+        {/if}
+    </div>
+{/snippet}
+
+{#snippet content()}
+    {#if gameState.machineState === 'StockRound' && session.familyStockPanels.open === 'receivership'}
+        <PresidencyClaims {session} />
+    {:else if session.operatingMode.financeShown}
+        <CorporateFinance {session} />
+    {:else if titleModePanel}
+        {@render titleModePanel.panel(titleModePanel.id)}
+    {:else if session.operatingMode.stationsShown}
+        {@render stationsWithTrack()}
+    {:else if gameState.machineState === 'StockRound'}
         {@render actionControls()}
-    </section>
+    {:else}
+        <section class="centered-panel" aria-label="Operating actions">
+            {@render actionControls()}
+        </section>
+    {/if}
+{/snippet}
+
+{#if session.operatingMode.enabled}
+    <div class="operating-modes">
+        {#if session.operatingMode.switchVisible}<OperatingModeSwitch {session} />{/if}
+        {#key session.operatingMode.switchVisible ? session.operatingMode.mode : undefined}<div
+                class="operating-mode-content"
+                in:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}
+            >
+                {@render content()}
+            </div>{/key}
+    </div>
+{:else}
+    {@render content()}
 {/if}
+
+<style>
+    .operating-modes,
+    .operating-mode-content {
+        display: flex;
+        flex: 1 0 auto;
+        flex-direction: column;
+    }
+</style>

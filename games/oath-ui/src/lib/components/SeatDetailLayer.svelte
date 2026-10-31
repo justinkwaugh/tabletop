@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { CardKind, PlayerStatus } from '@tabletop/oath'
+    import { CardKind, PlayerStatus, otherPartyOf } from '@tabletop/oath'
+    import { PlayerName } from '@tabletop/frontend-components'
     import CardImage from '$lib/components/CardImage.svelte'
     import CardWarbands from '$lib/components/CardWarbands.svelte'
     import TokenBadge from '$lib/components/TokenBadge.svelte'
@@ -21,6 +22,7 @@
     import { seatFacts } from '$lib/model/seatFacts.js'
     import { seatVisions } from '$lib/model/seatGoals.js'
     import { reliquarySpaces } from '$lib/model/reliquary.js'
+    import { promiseBy } from '$lib/model/tribunalDeals.js'
 
     // Mounted beneath `CardPreviewLayer`, so a card hovered here still enlarges on top.
     let gameSession = getGameSession()
@@ -34,6 +36,7 @@
     {@const seat = gameState.getPlayerState(playerId)}
     {@const facts = seatFacts(gameState, playerId)}
     {@const visions = seatVisions(gameState, playerId)}
+    {@const deals = gameSession.dealsOf(playerId)}
     <!-- Closed on the click, so the press that closes it reaches nothing under it (rule 7). -->
     <div
         class="seat-detail"
@@ -169,6 +172,32 @@
                 {/each}
             </div>
 
+            <!-- R-7.6.3-H1 — the seat's open Tribunal deals, public once agreed: the other party, the
+                 round it was made, and each promise as its player wrote it. -->
+            {#if deals.length > 0}
+                <h3>Open deals · {deals.length}</h3>
+                {#each deals as deal (deal.id)}
+                    <div class="deal" data-open-deal>
+                        <p class="meta" data-open-deal-meta>
+                            With <PlayerName playerId={otherPartyOf(deal, playerId)} /> · made in round
+                            {deal.round}
+                        </p>
+                        {#each [deal.proposerPlayerId, deal.counterpartyPlayerId] as party (party)}
+                            {@const promise = promiseBy(deal, party)}
+                            {#if promise}
+                                <p class="quote">
+                                    <span data-promise-by
+                                        ><PlayerName playerId={party} /> promised:</span
+                                    >
+                                    <span class="promise" data-promise>{promise}</span>
+                                </p>
+                            {/if}
+                        {/each}
+                        <p class="meta">Either of you may claim it kept; the other confirms.</p>
+                    </div>
+                {/each}
+            {/if}
+
             {#if seat.relicIds.length > 0 || facts.banners.length > 0}
                 <h3>Holds</h3>
                 <div class="cards">
@@ -276,12 +305,17 @@
         gap: 10px;
         margin-bottom: 8px;
     }
+    /* A long name wraps inside the row, where the phone reads the whole of it. */
     .head h2 {
         font-size: 18px;
         font-weight: 700;
         margin: 0;
+        overflow-wrap: anywhere;
     }
+    /* From no width of its own, the status takes the room the name leaves and wraps down to its
+       longest word before the name gives up any: a name that fits is never split. */
     .status {
+        flex: 1 1 0;
         color: #a8a29e;
         font-size: 13px;
     }
@@ -371,5 +405,29 @@
         color: #a8a29e;
         font-size: 13px;
         margin: 0;
+    }
+    .deal {
+        border-radius: 8px;
+        background: var(--oath-surface-raised);
+        padding: 8px 10px;
+        margin-top: 6px;
+    }
+    .deal .meta {
+        font-size: 12px;
+        color: var(--oath-text-muted);
+        margin: 0 0 4px;
+    }
+    .deal .meta:last-child {
+        margin: 6px 0 0;
+    }
+    .quote {
+        border-left: 3px solid var(--oath-frame);
+        padding: 2px 8px;
+        margin: 4px 0;
+        font-size: 13px;
+    }
+    .promise {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
     }
 </style>

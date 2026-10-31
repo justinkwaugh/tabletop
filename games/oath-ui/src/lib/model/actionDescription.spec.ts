@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
     ActionType,
     AnswerQuestion,
+    Banner,
     CampaignTargetKind,
+    type ConspiracyPlay,
+    type ConspiracyTake,
     ExileCitizen,
     HydratedAnswerQuestion,
     HydratedExileCitizen,
@@ -42,8 +45,9 @@ import {
 } from './actionDescription.js'
 import { tokenParts } from './tokenText.js'
 import { ActionSource, Color, type GameAction } from '@tabletop/common'
-import { buildAction, testPlayer, testState } from '@tabletop/oath/testing'
+import { buildAction, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { siteName, slotLabel } from './names.js'
+import { chronicleRowsOf, shownInHistory } from './chronicleHistory.js'
 
 const nameOf = {
     player: (playerId: string) => ({ p1: 'Alice', p2: 'Bob', p3: 'Cass' })[playerId] ?? playerId,
@@ -68,6 +72,7 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.Trade]: { cardId: CARD, option: 'forFavor' },
     [ActionType.Search]: { drawFrom: SearchSource.WorldDeck },
     [ActionType.SearchResolve]: { keptCardId: 'x', discardOrder: [], play: 'adviser' },
+    [ActionType.SearchSwap]: { swappedCardIds: ['x'] },
     [ActionType.Recover]: { target: { kind: 'relic', slotId: 's1' } },
     [ActionType.Campaign]: {
         defender: { kind: 'bandits' },
@@ -98,7 +103,28 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.CompleteRest]: {},
     [ActionType.RollEndDie]: { metadata: { roll: 4, round: 6, threshold: 5 } },
     [ActionType.ResolveOathkeeper]: { chosenPlayerId: 'p2' },
-    [ActionType.TransferOathkeeper]: { source: 'system', fromPlayerId: 'p2', toPlayerId: 'p1' }
+    [ActionType.TransferOathkeeper]: { source: 'system', fromPlayerId: 'p2', toPlayerId: 'p1' },
+    [ActionType.ClaimDealKept]: { dealId: 'd1' },
+    [ActionType.LeaveDealUnconfirmed]: { dealId: 'd1' },
+    [ActionType.ChooseOath]: { oathType: 'protection' },
+    [ActionType.OfferChronicleCitizenship]: { exilePlayerIds: [] },
+    [ActionType.AnswerChronicleCitizenship]: { accept: true },
+    [ActionType.BuildOrRepairEdifice]: {},
+    [ActionType.ChooseChronicleSuit]: { suit: 'order' },
+    [ActionType.ChooseHealStack]: { suit: 'beast' },
+    [ActionType.WriteChronicleStory]: { text: 'The Usurper held.' },
+    [ActionType.SkipChronicleStory]: {},
+    // R-8 — the steps the rules settle alone, each a System Action told by its own rows.
+    [ActionType.ChronicleStart]: { source: 'system', winnerPlayerId: 'p1', rule: 'R-3.1' },
+    [ActionType.ChronicleForcedVow]: { source: 'system' },
+    [ActionType.ChronicleFlipCitizens]: { source: 'system' },
+    [ActionType.ChronicleMap]: { source: 'system' },
+    [ActionType.ChronicleSettleSuit]: { source: 'system' },
+    [ActionType.ChronicleAddCards]: { source: 'system' },
+    [ActionType.ChronicleHeal]: { source: 'system' },
+    [ActionType.ChronicleDispossess]: { source: 'system' },
+    [ActionType.ChronicleRelics]: { source: 'system' },
+    [ActionType.ChronicleRebuild]: { source: 'system' }
 }
 
 describe('a history line names a site by its printed name', () => {
@@ -174,15 +200,26 @@ describe('a history line names a site by its printed name', () => {
     })
 })
 
+describe('a skipped story has no History row (R-8)', () => {
+    it('SkipChronicleStory alone of every action is left out', () => {
+        for (const type of Object.values(ActionType)) {
+            const shown = shownInHistory(action({ type, playerId: 'p1', ...MINIMAL[type] }))
+            expect(shown, type).toBe(type !== ActionType.SkipChronicleStory)
+        }
+    })
+})
+
 describe('the history tab describes every action', () => {
-    it('has a sentence for all 33 action types, and reaches no fallback', () => {
+    it('has a sentence for all 54 action types, or rows of its own, and reaches no fallback', () => {
         const types = Object.values(ActionType)
         // Pinned rather than read off the enum, so adding an action type fails here.
-        expect(types).toHaveLength(33)
+        expect(types).toHaveLength(54)
 
         for (const type of types) {
             const fields = MINIMAL[type]
             expect(fields, `no fixture for ${type}`).toBeDefined()
+            // A chronicle step the rules settle alone is told by its rows, or by none (R-8).
+            if (chronicleRowsOf(action({ type, ...fields })) !== undefined) continue
             const text = describeAction(action({ type, playerId: 'p1', ...fields }), nameOf)
             expect(text, `${type} fell through to the fallback`).not.toBe(UNDESCRIBED)
             expect(text.length, `${type} described as empty`).toBeGreaterThan(3)
@@ -1193,6 +1230,75 @@ describe('the history tab describes every action', () => {
         expect(campaigned).toMatch(
             /^campaigned against Bob for .+ \(free, Second Wind\); Citizens may join the defense$/
         )
+    })
+
+    describe('R-10.2 — a free action names the card that granted it, as Second Wind’s does', () => {
+        const travel = (metadata: Record<string, unknown>) =>
+            describeAction(
+                action({
+                    type: ActionType.Travel,
+                    playerId: 'p1',
+                    siteId: 'slot.provinces.1',
+                    metadata: { supplySpent: 0, supplyRemaining: 4, ...metadata }
+                }),
+                nameOf
+            )
+        const campaign = (
+            metadata: Record<string, unknown>,
+            plans: { cardId: string; powerIndex: number }[] = []
+        ) =>
+            describeAction(
+                action({
+                    type: ActionType.Campaign,
+                    playerId: 'p1',
+                    defender: { kind: 'player', playerId: 'p2' },
+                    targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                    attackDice: 3,
+                    plans,
+                    metadata: { supplySpent: 0, ...metadata }
+                }),
+                nameOf
+            )
+
+        it('a free Travel: "traveled to Provinces 2 (free, Brass Horse)"', () => {
+            expect(travel({ freeActionOf: 'relic.brass-horse' })).toBe(
+                'traveled to Provinces 2 (free, Brass Horse)'
+            )
+        })
+
+        it.each([
+            ['denizen.order.knights-errant', 'Knights Errant'],
+            ['denizen.order.hunting-party', 'Hunting Party'],
+            ['denizen.order.captains', 'Captains'],
+            ['denizen.beast.wild-allies', 'Wild Allies'],
+            ['denizen.discord.second-wind', 'Second Wind']
+        ])('a free Campaign granted by %s ends "(free, %s)"', (cardId, name) => {
+            expect(campaign({ freeActionOf: cardId })).toBe(
+                `campaigned against Bob for their pawn and favor (free, ${name})`
+            )
+        })
+
+        it('a Sneak Attack reads "(Sneak Attack, free)" after its plans: "…, using Second Wind (Sneak Attack, free)"', () => {
+            const SECOND_WIND = 'denizen.discord.second-wind'
+            expect(campaign({ sneakAttack: true })).toBe(
+                'campaigned against Bob for their pawn and favor (Sneak Attack, free)'
+            )
+            expect(
+                campaign({ sneakAttack: true }, [
+                    {
+                        cardId: SECOND_WIND,
+                        powerIndex: powerIndexOf(SECOND_WIND, PowerTiming.BattlePlan)
+                    }
+                ])
+            ).toBe(
+                'campaigned against Bob for their pawn and favor, using Second Wind (Sneak Attack, free)'
+            )
+        })
+
+        it('a game from before the record (no card, no Sneak Attack mark) reads as it always has', () => {
+            expect(travel({})).toBe('traveled to Provinces 2')
+            expect(campaign({})).toBe('campaigned against Bob for their pawn and favor')
+        })
     })
 
     describe('R-7.1.4 — a Travel names each toll it paid and a secret it flipped', () => {
@@ -2659,6 +2765,28 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             )
         })
 
+        it('Warning Signals declared with nothing to move reads that it moved nothing', () => {
+            const planNotes = ['Warning Signals: p3 moved nothing']
+            expect(
+                describeAction(
+                    action({
+                        type: ActionType.CampaignDefend,
+                        playerId: 'p3',
+                        plans: [],
+                        metadata: {
+                            plansUsed: ['Warning Signals'],
+                            swords: 2,
+                            defense: 3,
+                            planNotes
+                        }
+                    }),
+                    nameOf
+                )
+            ).toBe(
+                'used Warning Signals; 2 swords against 3 defense; moved nothing (Warning Signals)'
+            )
+        })
+
         it('the victor’s plans follow the spoils, after the placements', () => {
             const row = action({
                 type: ActionType.CampaignResolveVictory,
@@ -2896,5 +3024,201 @@ describe('Vow of Kinship — what its holder paid from the Nomad bank, its own r
             { kind: 'suit', suit: Suit.Nomad, bank: true },
             { kind: 'suit', suit: Suit.Discord, bank: true }
         ])
+    })
+})
+
+describe('a Tribunal deal claimed kept or left unconfirmed', () => {
+    const DEAL = {
+        id: 'd1',
+        proposerPlayerId: 'p2',
+        counterpartyPlayerId: 'p1',
+        proposerPromise: 'I will not campaign against you',
+        round: 2
+    }
+    it('the claim names the party asked to confirm it', () => {
+        const claim = action({
+            type: ActionType.ClaimDealKept,
+            playerId: 'p1',
+            dealId: 'd1',
+            metadata: { askedPlayerId: 'p2' }
+        })
+        expect(describeAction(claim, nameOf)).toBe(
+            'asked Bob to confirm their Tribunal deal was kept'
+        )
+    })
+    it('leaving it unconfirmed names the other party, whichever side left it', () => {
+        const left = (playerId: string) =>
+            describeAction(
+                action({
+                    type: ActionType.LeaveDealUnconfirmed,
+                    playerId,
+                    dealId: 'd1',
+                    metadata: { deal: DEAL }
+                }),
+                nameOf
+            )
+        expect(left('p1')).toBe('left the Tribunal deal with Bob unconfirmed; it is closed')
+        expect(left('p2')).toBe('left the Tribunal deal with Alice unconfirmed; it is closed')
+    })
+    // The asked party is the answer's own seat; the claimant is the deal's other party, from the record.
+    const answered = (playerId: string, kept: boolean) =>
+        action({
+            type: ActionType.AnswerQuestion,
+            playerId,
+            answer: { kind: PowerQuestionKind.DealKept, kept },
+            metadata: {
+                cardId: 'site.the-tribunal',
+                kind: PowerQuestionKind.DealKept,
+                summary: kept
+                    ? 'confirmed the deal with p1 was kept'
+                    : 'said the deal with p1 was not kept',
+                resumeMachineState: MachineState.ActPhase,
+                last: true,
+                answeredDeal: DEAL
+            }
+        })
+    it('"Yes, it was kept" closes the deal: "confirmed the Tribunal deal with <claimant> was kept; it is closed"', () => {
+        expect(describeAction(answered('p2', true), nameOf)).toBe(
+            'confirmed the Tribunal deal with Alice was kept; it is closed'
+        )
+        expect(describeAction(answered('p1', true), nameOf)).toBe(
+            'confirmed the Tribunal deal with Bob was kept; it is closed'
+        )
+    })
+    it('"Not kept" leaves it open: "answered not kept; the deal with <claimant> stays open"', () => {
+        expect(describeAction(answered('p2', false), nameOf)).toBe(
+            'answered not kept; the deal with Alice stays open'
+        )
+        expect(describeAction(answered('p1', false), nameOf)).toBe(
+            'answered not kept; the deal with Bob stays open'
+        )
+    })
+})
+
+describe('R-5.1.4.IV — a Conspiracy row says what it took, and from whom', () => {
+    const CONSPIRACY = 'vision.conspiracy'
+    const CAULDRON = 'relic.cursed-cauldron'
+    const INQUISITOR = 'denizen.arcane.inquisitor'
+    const fromBob = (take: ConspiracyTake): ConspiracyPlay => ({ targetPlayerId: 'p2', take })
+    const relic: ConspiracyTake = { kind: 'relic', cardId: CAULDRON }
+    const banner: ConspiracyTake = { kind: 'banner', banner: Banner.PeoplesFavor }
+
+    /** p1 turns the facedown Conspiracy faceup beside p2, who holds the Cauldron and the People's Favor. */
+    function flipped(conspiracy?: ConspiracyPlay): GameAction {
+        const state = testState(
+            [
+                testPlayer({
+                    playerId: 'p1',
+                    color: Color.Yellow,
+                    siteId: 'c1',
+                    secrets: 2,
+                    advisers: [
+                        { cardId: CONSPIRACY, faceUp: false },
+                        { cardId: 'denizen.hearth.awaited-return', faceUp: true },
+                        { cardId: 'denizen.beast.threatening-roar', faceUp: true }
+                    ]
+                }),
+                testPlayer({
+                    playerId: 'p2',
+                    color: Color.Purple,
+                    siteId: 'c1',
+                    secrets: 2,
+                    relicIds: [CAULDRON],
+                    advisers: [
+                        { cardId: 'denizen.hearth.saddle-makers', faceUp: true },
+                        { cardId: 'denizen.beast.true-names', faceUp: true }
+                    ]
+                })
+            ],
+            {
+                machineState: MachineState.ActPhase,
+                denizensBySite: { c1: [] },
+                banners: testBanners({ [Banner.PeoplesFavor]: 'p2' })
+            }
+        )
+        const played = new HydratedPlayFacedownAdviser(
+            buildAction(PlayFacedownAdviser, {
+                playerId: 'p1',
+                cardId: CONSPIRACY,
+                play: SearchPlay.Conspiracy,
+                ...(conspiracy ? { conspiracy } : {})
+            })
+        )
+        played.apply(state)
+        return played.dehydrate()
+    }
+
+    it('the facedown play: the relic taken and the seat it was taken from', () => {
+        expect(describeAction(flipped(fromBob(relic)), nameOf)).toBe(
+            'played the Conspiracy; took Cursed Cauldron from Bob'
+        )
+        expect(describeAction(flipped(fromBob(relic)), nameOf, 'p2')).toBe(
+            'played the Conspiracy; took Cursed Cauldron from you'
+        )
+    })
+
+    it('the facedown play: a banner taken reads as seized', () => {
+        expect(describeAction(flipped(fromBob(banner)), nameOf)).toBe(
+            'played the Conspiracy; seized the People’s Favor from Bob'
+        )
+    })
+
+    it('the facedown play with no take reads as before', () => {
+        expect(describeAction(flipped(), nameOf)).toBe('played the Conspiracy')
+    })
+
+    it('the Search keep: the take after the play', () => {
+        const kept = (conspiracy?: ConspiracyPlay) =>
+            describeAction(
+                action({
+                    type: ActionType.SearchResolve,
+                    playerId: 'p1',
+                    keptCardId: CONSPIRACY,
+                    discardOrder: [],
+                    play: SearchPlay.Conspiracy,
+                    ...(conspiracy ? { conspiracy } : {}),
+                    // A Search that drew the Conspiracy alone: nothing else to discard.
+                    metadata: { playedCardId: CONSPIRACY, discardedCount: 0, discardedCardIds: [] }
+                }),
+                nameOf
+            )
+        expect(kept(fromBob(relic))).toBe(
+            'kept Conspiracy and played the Conspiracy; took Cursed Cauldron from Bob'
+        )
+        expect(kept(fromBob(banner))).toBe(
+            'kept Conspiracy and played the Conspiracy; seized the People’s Favor from Bob'
+        )
+        expect(kept()).toBe('kept Conspiracy and played the Conspiracy')
+    })
+
+    it('the Inquisitor answer: what was taken, in place of the bare "took from"', () => {
+        const answered = (conspiracy: ConspiracyPlay | undefined, summary: string) =>
+            describeAction(
+                action({
+                    type: ActionType.AnswerQuestion,
+                    playerId: 'p1',
+                    answer: {
+                        kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+                        play: true,
+                        ...(conspiracy ? { conspiracy } : {})
+                    },
+                    metadata: {
+                        cardId: INQUISITOR,
+                        kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+                        summary
+                    }
+                }),
+                nameOf,
+                'p2'
+            )
+        expect(answered(fromBob(relic), 'played the Conspiracy and took from p2')).toBe(
+            'Inquisitor: played the Conspiracy; took Cursed Cauldron from you'
+        )
+        expect(answered(fromBob(banner), 'played the Conspiracy and took from p2')).toBe(
+            'Inquisitor: played the Conspiracy; seized the People’s Favor from you'
+        )
+        expect(answered(undefined, 'played the Conspiracy')).toBe(
+            'Inquisitor: played the Conspiracy'
+        )
     })
 })

@@ -5,6 +5,7 @@
     import SearchPanel from '$lib/components/SearchPanel.svelte'
     import CampaignPanel from '$lib/components/CampaignPanel.svelte'
     import CampaignBattlePanel from '$lib/components/CampaignBattlePanel.svelte'
+    import WentHomeLine from '$lib/components/WentHomeLine.svelte'
     import CampaignDice from '$lib/components/CampaignDice.svelte'
     import CampaignPlansPanel from '$lib/components/CampaignPlansPanel.svelte'
     import AttackPlansPanel from '$lib/components/AttackPlansPanel.svelte'
@@ -27,6 +28,7 @@
     import RestPanel from '$lib/components/RestPanel.svelte'
     import EndOfRoundPanel from '$lib/components/EndOfRoundPanel.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
+    import ChroniclePanel from '$lib/components/ChroniclePanel.svelte'
     import ActorOnlyNotice from '$lib/components/ActorOnlyNotice.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
@@ -159,6 +161,10 @@
     {:else if gameState.machineState === MachineState.EndOfRound}
         <EndOfRoundPanel />
     {:else if !isMyTurn}
+        <!-- R-5.5.6 — another seat reads where the defence went above whose turn it is. -->
+        {#if gameState.machineState === MachineState.CampaignVictory}
+            <WentHomeLine />
+        {/if}
         <WaitingOn />
     {:else if BATTLE_STEPS.has(gameState.machineState)}
         <CampaignBattlePanel />
@@ -174,6 +180,9 @@
         {/if}
     {:else if gameState.machineState === MachineState.RestPhase}
         <RestPanel />
+    {:else if gameState.machineState === MachineState.Chronicle}
+        <!-- R-8 — only a seat the step waits on reaches this; the rest read "Waiting on" above. -->
+        <ChroniclePanel />
     {:else if !inActPhase}
         <p class="text-sm text-oath-text-muted">
             Nothing to choose here — no panel is wired for {gameState.machineState}.

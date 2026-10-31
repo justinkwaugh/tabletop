@@ -6,18 +6,27 @@ import {
     OathType,
     PlayerStatus,
     SearchPlay,
-    SearchSource
+    SearchSource,
+    ChronicleMark,
+    WIN_KIND_OF_RULE,
+    WinKind,
+    chronicleMarkOf,
+    type HydratedOathGameState,
+    type OpenDeal,
+    type WinRule
 } from '@tabletop/oath'
-import { ActionSource, Color, type GameAction } from '@tabletop/common'
+import { ActionSource, Color, assertExists, type GameAction } from '@tabletop/common'
 import { testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { tokenParts } from './tokenText.js'
 import {
     MajorEventKind,
     campaignsBefore,
+    endingRecord,
     endingRule,
     gameEndEvent,
     historyRows,
     majorEventOf,
+    wonGame,
     type MajorEventContext
 } from './majorEvents.js'
 
@@ -34,8 +43,45 @@ function action(
     return { id: `a-${fields.type}`, gameId: 'g1', source: ActionSource.User, ...fields }
 }
 
+/** Squalid District's answer, as the engine records it (its metadata's `endDie`). */
+function squalidAnswer(by: number, endDie: Record<string, unknown>): GameAction {
+    return action({
+        type: ActionType.AnswerQuestion,
+        playerId: 'p2',
+        answer: { kind: 'adjustEndDie', by },
+        metadata: { summary: 'adjusted', endDie }
+    })
+}
+
+const DEAL: OpenDeal = {
+    id: 'd1',
+    proposerPlayerId: 'p1',
+    counterpartyPlayerId: 'p2',
+    proposerPromise: 'I stay home.',
+    round: 2
+}
+
 const VISION = 'vision.conquest'
 const FAITH = 'vision.faith'
+
+/** The game-end row as a game below the chronicle revision reads it: from the log and the Visions. */
+function endEvent(
+    state: HydratedOathGameState,
+    winnerId: string,
+    rule: WinRule,
+    viewing: MajorEventContext
+) {
+    state.winningPlayerIds = [winnerId]
+    const won = wonGame(state, [
+        action({
+            type: ActionType.RollEndDie,
+            playerId: winnerId,
+            metadata: { roll: 5, round: 6, threshold: 5, wonBy: rule }
+        })
+    ])
+    assertExists(won, 'the log records the win')
+    return gameEndEvent(state, won, viewing)
+}
 const REBELLION = 'vision.rebellion'
 
 /** R-3.2 — three Visions drawn, Cass holding the Darkest Secret that Faith's goal asks for. */
@@ -206,7 +252,7 @@ describe('the other major events', () => {
         ).toBe('You are an Exile again')
     })
 
-    it('a Campaign won pictures what changed hands, from whom', () => {
+    it('a Campaign won pictures what changed hands; who fought whom is its ledger’s, not an aside', () => {
         const campaign = action({
             type: ActionType.Campaign,
             playerId: 'p3',
@@ -227,30 +273,32 @@ describe('the other major events', () => {
         })
         const [, belongsTo] = campaignsBefore([campaign, spoils])
         expect(belongsTo).toBe(campaign)
-        const won = majorEventOf(spoils, context('p2', { campaign: belongsTo }))
-        expect(won).toMatchObject({
-            kind: MajorEventKind.CampaignWon,
-            aside: 'against Ann',
-            consequence: 'From Ann: Book of Records, the Darkest Secret'
-        })
+        const won = majorEventOf(spoils, context('p2'))
+        expect(won).toMatchObject({ kind: MajorEventKind.CampaignWon, heading: 'Campaign won' })
+        expect(won?.aside).toBeUndefined()
+        expect(won?.consequence).toBeUndefined()
         expect(won?.pictures).toEqual([
             { kind: 'card', cardId: 'relic.book-of-records' },
             { kind: 'banner', banner: Banner.DarkestSecret }
         ])
     })
 
-    it('a Campaign lost is rose, and nothing changed hands', () => {
+    it('a Campaign lost is rose; its ledger tells the rest', () => {
         const lost = action({
             type: ActionType.CampaignSacrifice,
             playerId: 'p3',
             sacrifice: 0,
             metadata: { attack: 2, defense: 3, attackerVictorious: false, sacrificed: 0 }
         })
-        expect(majorEventOf(lost, context())).toMatchObject({
+        const event = majorEventOf(lost, context())
+        expect(event).toMatchObject({
             kind: MajorEventKind.CampaignLost,
+            heading: 'Campaign lost',
             tone: 'danger',
-            consequence: 'Nothing changed hands'
+            pictures: []
         })
+        expect(event?.aside).toBeUndefined()
+        expect(event?.consequence).toBeUndefined()
     })
 
     it('the end die, by the Chancellor’s roll or inside a Rest recorded before', () => {
@@ -293,6 +341,74 @@ describe('the other major events', () => {
         })
     })
 
+    it('Squalid District: the event is the answer’s, the die as it stands after it; the roll it waits on is none', () => {
+        const asked = action({
+            type: ActionType.RollEndDie,
+            playerId: 'p1',
+            metadata: { roll: 5, round: 6, threshold: 5, adjustedBy: 'p2' }
+        })
+        expect(majorEventOf(asked, context())).toBeUndefined()
+        const lowered = squalidAnswer(-1, { rolled: 5, roll: 4, round: 6, threshold: 5 })
+        expect(majorEventOf(lowered, context())).toMatchObject({
+            kind: MajorEventKind.EndDie,
+            aside: 'end of round 6',
+            pictures: [{ kind: 'die', value: 4 }],
+            consequence: 'a 5 or higher ends the game in round 6 · play goes on to round 7'
+        })
+        const raised = squalidAnswer(1, {
+            rolled: 4,
+            roll: 5,
+            round: 6,
+            threshold: 5,
+            wonBy: 'R-3.3'
+        })
+        expect(majorEventOf(raised, context())).toMatchObject({
+            pictures: [{ kind: 'die', value: 5 }],
+            consequence: 'a 5 or higher ends the game in round 6 · the game ends'
+        })
+        // A 6 raised to 7 is off the die: the face drawn is the one rolled.
+        const offTheDie = squalidAnswer(1, {
+            rolled: 6,
+            roll: 7,
+            round: 5,
+            threshold: 6,
+            wonBy: 'R-3.3'
+        })
+        expect(majorEventOf(offTheDie, context())?.pictures).toEqual([{ kind: 'die', value: 6 }])
+        // Any other answer is no major event.
+        expect(
+            majorEventOf(
+                action({
+                    type: ActionType.AnswerQuestion,
+                    playerId: 'p2',
+                    answer: { kind: 'joinSite', join: true },
+                    metadata: { summary: 'went' }
+                }),
+                context()
+            )
+        ).toBeUndefined()
+    })
+
+    it('Squalid District: the ending is read from the answer that decided it (R-3)', () => {
+        const asked = action({
+            type: ActionType.RollEndDie,
+            playerId: 'p1',
+            metadata: { roll: 4, round: 6, threshold: 5, adjustedBy: 'p2' }
+        })
+        const raised = squalidAnswer(1, {
+            rolled: 4,
+            roll: 5,
+            round: 6,
+            threshold: 5,
+            wonBy: 'R-3.3',
+            openDealsDropped: [DEAL]
+        })
+        expect(endingRecord([asked, raised])).toEqual({ rule: 'R-3.3', openDealsDropped: [DEAL] })
+        expect(endingRule([asked, raised])).toBe('R-3.3')
+        const lowered = squalidAnswer(-1, { rolled: 4, roll: 3, round: 6, threshold: 5 })
+        expect(endingRecord([asked, lowered])).toBeUndefined()
+    })
+
     it('ordinary actions are not major events', () => {
         expect(
             majorEventOf(action({ type: ActionType.EndActPhase, playerId: 'p1' }), context())
@@ -328,7 +444,7 @@ describe('the History’s rows and its game-end row', () => {
             })
         ]
         expect(endingRule(ending)).toBe('R-3.3')
-        const usurper = gameEndEvent(
+        const usurper = endEvent(
             ended({ p3: { revealedVisionId: FAITH } }),
             'p3',
             'R-3.1',
@@ -344,18 +460,74 @@ describe('the History’s rows and its game-end row', () => {
             'An Exile holding the Oathkeeper title on its Usurper side'
         )
         expect(
-            gameEndEvent(ended({ p3: { revealedVisionId: FAITH } }), 'p3', 'R-3.2', context('p3'))
+            endEvent(ended({ p3: { revealedVisionId: FAITH } }), 'p3', 'R-3.2', context('p3'))
                 .sentence
         ).toMatch(/^You won as Visionary/)
+    })
+
+    describe('from the chronicle revision, the result reads the ending the win stored (R-8)', () => {
+        function chronicled(
+            rule: WinRule,
+            kind: WinKind,
+            mark: ChronicleMark,
+            visionIds: string[]
+        ) {
+            expect(WIN_KIND_OF_RULE[rule]).toBe(kind)
+            expect(chronicleMarkOf(rule)).toBe(mark)
+            // R-8.5 has set every Vision aside: none is revealed when the result shows.
+            const state = ended()
+            state.winningPlayerIds = ['p3']
+            state.chronicle = {
+                ending: {
+                    winnerPlayerId: 'p3',
+                    rule,
+                    waysMet: { usurper: false, visionIds, empire: false }
+                }
+            }
+            return state
+        }
+
+        it('a Visionary’s result keeps the first Vision they met, though 8.5 set it aside', () => {
+            const state = chronicled('R-3.2', WinKind.Visionary, ChronicleMark.Visionary, [
+                FAITH,
+                VISION
+            ])
+            const won = wonGame(state, [])
+            expect(won).toEqual({ winnerId: 'p3', rule: 'R-3.2', visionId: FAITH })
+            assertExists(won, 'the chronicle holds the ending')
+            expect(gameEndEvent(state, won, context()).pictures).toEqual([
+                { kind: 'card', cardId: FAITH }
+            ])
+        })
+
+        it('each mark: O and S show the title, V the Vision, with no action in the log', () => {
+            const cases: [WinRule, WinKind, ChronicleMark, boolean][] = [
+                ['R-3.1', WinKind.Usurper, ChronicleMark.Oathkeeper, true],
+                ['R-3.3', WinKind.StableRegime, ChronicleMark.Oathkeeper, false],
+                ['R-3.3.1', WinKind.Successor, ChronicleMark.Successor, false],
+                ['R-3.4.1', WinKind.WarExhaustion, ChronicleMark.Oathkeeper, false]
+            ]
+            for (const [rule, kind, mark, usurper] of cases) {
+                const state = chronicled(rule, kind, mark, [])
+                const won = wonGame(state, [])
+                assertExists(won, 'the chronicle holds the ending')
+                expect(won.rule).toBe(rule)
+                expect(gameEndEvent(state, won, context()).pictures).toEqual([
+                    { kind: 'title', usurper }
+                ])
+            }
+            const state = chronicled('R-3.4.3', WinKind.Visionary, ChronicleMark.Visionary, [FAITH])
+            expect(wonGame(state, [])?.visionId).toBe(FAITH)
+        })
     })
 
     describe('R-3.2, R-3.4.3 — a Vision ending shows the Vision the winner met', () => {
         it('their own Vision', () => {
             const state = ended({ p3: { revealedVisionId: FAITH } })
-            expect(gameEndEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([
+            expect(endEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([
                 { kind: 'card', cardId: FAITH }
             ])
-            expect(gameEndEvent(state, 'p3', 'R-3.4.3', context()).pictures).toEqual([
+            expect(endEvent(state, 'p3', 'R-3.4.3', context()).pictures).toEqual([
                 { kind: 'card', cardId: FAITH }
             ])
         })
@@ -365,7 +537,7 @@ describe('the History’s rows and its game-end row', () => {
                 { p2: { revealedVisionId: FAITH } },
                 { warbandsOnCards: { [FAITH]: { p3: 1 } } }
             )
-            expect(gameEndEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([
+            expect(endEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([
                 { kind: 'card', cardId: FAITH }
             ])
         })
@@ -375,7 +547,7 @@ describe('the History’s rows and its game-end row', () => {
                 { p2: { revealedVisionId: FAITH }, p3: { revealedVisionId: VISION } },
                 { warbandsOnCards: { [FAITH]: { p3: 1 } } }
             )
-            expect(gameEndEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([
+            expect(endEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([
                 { kind: 'card', cardId: FAITH }
             ])
         })
@@ -389,7 +561,7 @@ describe('the History’s rows and its game-end row', () => {
                 { p2: { revealedVisionId: FAITH }, p3: { revealedVisionId: REBELLION } },
                 { banners, warbandsOnCards: { [FAITH]: { p3: 1 } } }
             )
-            expect(gameEndEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([
+            expect(endEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([
                 { kind: 'card', cardId: REBELLION }
             ])
         })
@@ -414,47 +586,6 @@ describe('every seat a framed row names is its chip: the aside, the line that fo
             .join('')
     const chips = (viewerId?: string, extra: Partial<MajorEventContext> = {}) =>
         context(viewerId, { seatsById: true, ...extra })
-
-    it('a Campaign won and lost: "against <chip>", "From <chip>: …"', () => {
-        const campaign = action({
-            type: ActionType.Campaign,
-            playerId: 'p3',
-            defender: { kind: 'player', playerId: 'p1' },
-            targets: [],
-            attackDice: 3
-        })
-        const spoils = action({
-            type: ActionType.CampaignResolveVictory,
-            playerId: 'p3',
-            metadata: {
-                warbandsPlaced: 0,
-                seizeBurned: 0,
-                favorBurned: 0,
-                relicsTaken: ['relic.book-of-records'],
-                bannersSeized: []
-            }
-        })
-        const won = majorEventOf(
-            spoils,
-            chips('p2', { campaign: campaignsBefore([campaign, spoils])[1] })
-        )
-        expect(drawn(won?.aside, 'p2')).toBe('against <Ann>')
-        expect(drawn(won?.consequence, 'p2')).toBe('From <Ann>: Book of Records')
-        expect(drawn(won?.aside, 'p1')).toBe('against <you>')
-        const lost = action({
-            type: ActionType.CampaignSacrifice,
-            playerId: 'p3',
-            sacrifice: 0,
-            metadata: { attack: 2, defense: 3, attackerVictorious: false, sacrificed: 0 }
-        })
-        expect(
-            drawn(
-                majorEventOf(lost, chips('p2', { campaign: campaignsBefore([campaign, lost])[1] }))
-                    ?.aside,
-                'p2'
-            )
-        ).toBe('against <Ann>')
-    })
 
     it('Citizenship and the Usurper: the seat starts the line as its chip, and the verb agrees with "you"', () => {
         const taken = action({
@@ -492,10 +623,10 @@ describe('every seat a framed row names is its chip: the aside, the line that fo
 
     it('the game-end row names its winner by their chip', () => {
         const state = ended({ p3: { revealedVisionId: FAITH } })
-        expect(drawn(gameEndEvent(state, 'p3', 'R-3.1', chips('p1')).sentence, 'p1')).toBe(
+        expect(drawn(endEvent(state, 'p3', 'R-3.1', chips('p1')).sentence, 'p1')).toBe(
             '<Cass> won as Usurper'
         )
-        expect(drawn(gameEndEvent(state, 'p3', 'R-3.1', chips('p3')).sentence, 'p3')).toBe(
+        expect(drawn(endEvent(state, 'p3', 'R-3.1', chips('p3')).sentence, 'p3')).toBe(
             '<you> won as Usurper'
         )
     })

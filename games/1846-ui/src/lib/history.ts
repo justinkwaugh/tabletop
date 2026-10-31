@@ -1,5 +1,5 @@
+import { CorporateFinanceValidator } from '@tabletop/18xx'
 import {
-    CorporateFinanceValidator,
     AssignSteamboatValidator,
     SettleIndependentValidator,
     isBuildPrivateTrack,

@@ -1,8 +1,11 @@
+import { isValidStorageId } from '../stores/storageId.js'
 import { Timed, measure } from '../../diagnostics/requestTimings.js'
 import {
+    accountStatusAfterCompletionCheck,
     BaseError,
     ExternalAuthService,
     Role,
+    nextSessionGeneration,
     User,
     UserStatus,
     type TimeWindow
@@ -27,14 +30,16 @@ import {
     UnknownStorageError
 } from '../stores/errors.js'
 
-import { UserStore } from '../stores/userStore.js'
+import { UserStore, type PasswordUpdateOptions } from '../stores/userStore.js'
 import type { SiteStatsUserSource } from '../stores/siteStatsStore.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
+import { TransactionParticipant } from '../stores/transaction.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
+import type { CacheWriteLocks } from '../../cache/cacheWriteScope.js'
 
 export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
-    readonly users: CollectionReference
+    readonly users: CollectionReference<StoredUser>
     readonly userUsernames: CollectionReference
     readonly userExternalIds: CollectionReference
     readonly userEmails: CollectionReference
@@ -58,7 +63,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, username)
-            throw Error('unreachable')
         }
     }
 
@@ -71,7 +75,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, email)
-            throw Error('unreachable')
         }
     }
 
@@ -103,7 +106,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             }).length
         } catch (error) {
             this.handleError(error, 'activated')
-            throw Error('unreachable')
         }
     }
 
@@ -118,7 +120,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return snapshot.data().count
         } catch (error) {
             this.handleError(error, label)
-            throw Error('unreachable')
         }
     }
 
@@ -136,7 +137,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, externalId)
-            throw Error('unreachable')
         }
     }
 
@@ -174,7 +174,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, id)
-            throw Error('unreachable')
         }
     }
 
@@ -198,7 +197,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return usernames.map((doc) => doc.id)
         } catch (error) {
             this.handleError(error, 'all')
-            throw Error('unreachable')
         }
     }
 
@@ -222,16 +220,16 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
 
         // Ensure fields can be used for unique constraints
-        if (newStoredUser.cleanUsername && !this.isValidId(newStoredUser.cleanUsername)) {
+        if (newStoredUser.cleanUsername && !isValidStorageId(newStoredUser.cleanUsername)) {
             throw new InvalidIdError({ type: 'username', id: newStoredUser.cleanUsername })
         }
 
-        if (newStoredUser.email && !this.isValidId(newStoredUser.email)) {
+        if (newStoredUser.email && !isValidStorageId(newStoredUser.email)) {
             throw new InvalidIdError({ type: 'email', id: newStoredUser.email })
         }
 
         newStoredUser.externalIds.forEach((externalId: string) => {
-            if (!this.isValidId(externalId)) {
+            if (!isValidStorageId(externalId)) {
                 throw new InvalidIdError({ type: 'externalId', id: externalId })
             }
         })
@@ -276,24 +274,49 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             const user = await this.cacheService.lockWhileWriting([userCacheKey], async () =>
                 this.users.firestore.runTransaction(transactionBody)
             )
-            return this.sanitize(user) as User
+            return this.sanitize(user)
         } catch (error) {
             this.handleError(error, user.id)
-            throw Error('unreachable')
         }
     }
 
-    async updatePassword(userId: string, password: string): Promise<void> {
+    async updatePassword(
+        userId: string,
+        password: string,
+        { validate, participant }: PasswordUpdateOptions = {}
+    ): Promise<User> {
         try {
             const passwordHash = await this.hashPassword(password)
-            await this.cacheService.lockWhileWriting([this.makeUserCacheKey(userId)], async () =>
-                this.users.firestore.runTransaction(async (transaction) => {
-                    transaction.update(this.users.doc(userId), { passwordHash })
-                })
+            const updatedUser = await this.cacheService.lockWhileWriting(
+                [this.makeUserCacheKey(userId)],
+                async (locks) =>
+                    this.users.firestore.runTransaction(async (transaction) => {
+                        const existingUser = (await transaction.get(this.users.doc(userId))).data()
+                        this.recordRead()
+                        if (!existingUser) {
+                            throw new NotFoundError({ type: 'User', id: userId })
+                        }
+                        validate?.(existingUser)
+                        await participant?.(transaction, locks)
+                        const credentialFields = {
+                            ...this.replacedCredentialFields(existingUser, passwordHash),
+                            updatedAt: new Date()
+                        }
+                        transaction.update(this.users.doc(userId), credentialFields)
+                        return { ...existingUser, ...credentialFields }
+                    })
             )
+            return this.sanitize(updatedUser)
         } catch (error) {
             this.handleError(error, userId)
         }
+    }
+
+    private replacedCredentialFields(
+        existingUser: StoredUser,
+        passwordHash: string
+    ): Required<Pick<StoredUser, 'passwordHash' | 'sessionGeneration'>> {
+        return { passwordHash, sessionGeneration: nextSessionGeneration(existingUser) }
     }
 
     async updateUser({
@@ -301,13 +324,15 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         fields,
         password,
         currentPassword,
-        validator
+        validator,
+        participant
     }: {
         userId: string
         fields: Partial<User>
         password?: string
         currentPassword?: string
         validator?: UpdateValidator<StoredUser>
+        participant?: TransactionParticipant
     }): Promise<[User, string[], User]> {
         const updateFields = structuredClone(fields) as Partial<StoredUser>
 
@@ -315,21 +340,21 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             updateFields.username = updateFields.username.trim()
             updateFields.cleanUsername = this.trimLowerString(updateFields.username)
 
-            if (!this.isValidId(updateFields.username)) {
+            if (!isValidStorageId(updateFields.username)) {
                 throw new InvalidIdError({ type: 'username', id: updateFields.username })
             }
         }
 
         if (updateFields.email) {
             updateFields.email = this.trimLowerString(updateFields.email)
-            if (!this.isValidId(updateFields.email)) {
+            if (!isValidStorageId(updateFields.email)) {
                 throw new InvalidIdError({ type: 'email', id: updateFields.email })
             }
         }
 
         if (updateFields.externalIds) {
             updateFields.externalIds.forEach((externalId: string) => {
-                if (!this.isValidId(externalId)) {
+                if (!isValidStorageId(externalId)) {
                     throw new InvalidIdError({ type: 'externalId', id: externalId })
                 }
             })
@@ -340,7 +365,8 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
 
         const transactionBody = async (
-            transaction: FirebaseFirestore.Transaction
+            transaction: FirebaseFirestore.Transaction,
+            locks: CacheWriteLocks
         ): Promise<[StoredUser, string[], StoredUser]> => {
             const fieldsToUpdate = structuredClone(updateFields)
             const updatedFields: string[] = []
@@ -373,24 +399,14 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             const updatedUser = structuredClone(existingUser)
 
             if (fieldsToUpdate.username && existingUser.username !== fieldsToUpdate.username) {
-                if (existingUser.cleanUsername !== fieldsToUpdate.cleanUsername) {
-                    if (existingUser.cleanUsername) {
-                        transaction.delete(this.userUsernames.doc(existingUser.cleanUsername!))
-                    }
-                    transaction.create(this.userUsernames.doc(fieldsToUpdate.cleanUsername!), {})
-                }
                 updatedUser.username = fieldsToUpdate.username
                 updatedUser.cleanUsername = fieldsToUpdate.cleanUsername
                 updatedFields.push('username')
             }
 
             if (fieldsToUpdate.email && existingUser.email !== fieldsToUpdate.email) {
-                if (existingUser.email) {
-                    transaction.delete(this.userEmails.doc(existingUser.email!))
-                }
-                transaction.create(this.userEmails.doc(fieldsToUpdate.email!), {})
                 updatedUser.email = fieldsToUpdate.email
-                fieldsToUpdate.emailVerified = false
+                fieldsToUpdate.emailVerified ??= false
 
                 updatedFields.push('email')
             }
@@ -430,25 +446,38 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 fieldsToUpdate.passwordHash &&
                 existingUser.passwordHash !== fieldsToUpdate.passwordHash
             ) {
-                updatedUser.passwordHash = fieldsToUpdate.passwordHash
+                const credentialFields = this.replacedCredentialFields(
+                    existingUser,
+                    fieldsToUpdate.passwordHash
+                )
+                fieldsToUpdate.sessionGeneration = credentialFields.sessionGeneration
+                updatedUser.passwordHash = credentialFields.passwordHash
+                updatedUser.sessionGeneration = credentialFields.sessionGeneration
                 updatedFields.push('password')
             }
 
             if (
-                updatedUser.cleanUsername &&
-                updatedUser.email &&
-                updatedUser.emailVerified === true
+                updatedFields.includes('email') &&
+                existingUser.emailVerified &&
+                updatedUser.emailVerified
             ) {
-                if (updatedUser.status !== UserStatus.Active) {
-                    fieldsToUpdate.status = UserStatus.Active
-                    updatedUser.status = fieldsToUpdate.status
-                    updatedFields.push('status')
-                }
-            } else if (updatedUser.status !== UserStatus.Incomplete) {
-                fieldsToUpdate.status = UserStatus.Incomplete
-                updatedUser.status = fieldsToUpdate.status
+                fieldsToUpdate.sessionGeneration = nextSessionGeneration(existingUser)
+                updatedUser.sessionGeneration = fieldsToUpdate.sessionGeneration
+            }
+
+            const status = accountStatusAfterCompletionCheck(
+                updatedUser.status,
+                this.satisfiesAccountCompletion(updatedUser)
+            )
+            if (status !== updatedUser.status) {
+                fieldsToUpdate.status = status
+                updatedUser.status = status
                 updatedFields.push('status')
             }
+
+            await participant?.(transaction, locks)
+
+            this.replaceUniquenessEntries(transaction, existingUser, updatedUser)
 
             if (updatedFields.length > 0) {
                 fieldsToUpdate.updatedAt = new Date()
@@ -479,18 +508,15 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
 
         try {
             const [updatedUser, updatedFields, existingUser] =
-                await this.cacheService.lockWhileWriting([userCacheKey], async () =>
-                    this.users.firestore.runTransaction(transactionBody)
+                await this.cacheService.lockWhileWriting([userCacheKey], async (locks) =>
+                    this.users.firestore.runTransaction((transaction) =>
+                        transactionBody(transaction, locks)
+                    )
                 )
 
-            return [
-                this.sanitize(updatedUser) as User,
-                updatedFields,
-                this.sanitize(existingUser) as User
-            ]
+            return [this.sanitize(updatedUser), updatedFields, this.sanitize(existingUser)]
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
     }
 
@@ -503,7 +529,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         externalId: string
         service: ExternalAuthService
     }): Promise<User> {
-        if (!this.isValidId(externalId)) {
+        if (!isValidStorageId(externalId)) {
             throw new InvalidIdError({ type: 'externalId', id: externalId })
         }
 
@@ -541,10 +567,9 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             const user = await this.cacheService.lockWhileWriting([userCacheKey], async () =>
                 this.users.firestore.runTransaction(transactionBody)
             )
-            return this.sanitize(user) as User
+            return this.sanitize(user)
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
     }
 
@@ -575,11 +600,38 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             const user = await this.cacheService.lockWhileWriting([userCacheKey], async () =>
                 this.users.firestore.runTransaction(transactionBody)
             )
-            return this.sanitize(user) as User
+            return this.sanitize(user)
         } catch (error) {
             this.handleError(error, userId)
-            throw Error('unreachable')
         }
+    }
+
+    private replaceUniquenessEntries(
+        transaction: FirebaseFirestore.Transaction,
+        existingUser: StoredUser,
+        updatedUser: StoredUser
+    ) {
+        if (existingUser.cleanUsername !== updatedUser.cleanUsername) {
+            if (existingUser.cleanUsername) {
+                transaction.delete(this.userUsernames.doc(existingUser.cleanUsername))
+            }
+            if (updatedUser.cleanUsername) {
+                transaction.create(this.userUsernames.doc(updatedUser.cleanUsername), {})
+            }
+        }
+
+        if (existingUser.email !== updatedUser.email) {
+            if (existingUser.email) {
+                transaction.delete(this.userEmails.doc(existingUser.email))
+            }
+            if (updatedUser.email) {
+                transaction.create(this.userEmails.doc(updatedUser.email), {})
+            }
+        }
+    }
+
+    private satisfiesAccountCompletion(user: StoredUser): boolean {
+        return Boolean(user.cleanUsername && user.email && user.emailVerified === true)
     }
 
     private async findByUsernameIncludingPasswordHash(
@@ -591,7 +643,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return this.onlyOne(userDocs.docs, 'username')
         } catch (error) {
             this.handleError(error, username)
-            throw Error('unreachable')
         }
     }
 
@@ -605,11 +656,9 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         return docs[0].data() as T
     }
 
-    private isValidId(id: string): boolean {
-        return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
-    }
-
-    private sanitize(user?: StoredUser): User | undefined {
+    private sanitize(user: StoredUser): User
+    private sanitize(user: StoredUser | undefined): User | undefined
+    private sanitize(user: StoredUser | undefined): User | undefined {
         if (!user) return user
 
         if (user.passwordHash) {
@@ -641,7 +690,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
     }
 
-    private handleError(error: unknown, id: string) {
+    private handleError(error: unknown, id: string): never {
         console.log(error)
         if (error instanceof BaseError) {
             throw error

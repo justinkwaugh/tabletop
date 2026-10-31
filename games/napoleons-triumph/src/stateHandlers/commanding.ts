@@ -22,7 +22,7 @@ export class CommandingStateHandler extends StepStateHandler {
 
     override enter(context: MachineContext<HydratedNapoleonsTriumphGameState>) {
         const state = context.gameState
-        if (state.rounds.currentRound === undefined) {
+        if (!state.roundInProgress) {
             beginRound(state)
         }
         super.enter(context)

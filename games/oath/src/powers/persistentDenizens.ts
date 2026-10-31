@@ -2,7 +2,6 @@ import { bannerHolder } from '../util/oathkeeper.js'
 import { askRestFromHomeBanks, payOwedFavor } from '../util/homeBankPayment.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import type { CampaignParties } from '../util/campaign.js'
 import { targetedSiteIds } from '../util/campaignSite.js'
 import { ruledFaceupCardIds, rulesCard } from '../util/access.js'
@@ -63,11 +62,11 @@ function againstOwner(
 const FOREST_COUNCIL = 'denizen.beast.forest-council'
 registerPersistent(FOREST_COUNCIL, powerIndexOf(FOREST_COUNCIL, PowerTiming.Persistent), {
     forbidsTrade: (ctx, actorId, cardId) =>
-        enemyOfOwners(ctx, actorId) && suitOf(cardId) === Suit.Beast
+        enemyOfOwners(ctx, actorId) && ctx.state.suitInPlay(cardId) === Suit.Beast
             ? 'Forest Council: enemies of its ruler cannot trade with beast cards'
             : undefined,
     forbidsMuster: (ctx, actorId, cardId) =>
-        enemyOfOwners(ctx, actorId) && suitOf(cardId) === Suit.Beast
+        enemyOfOwners(ctx, actorId) && ctx.state.suitInPlay(cardId) === Suit.Beast
             ? 'Forest Council: enemies of its ruler cannot muster from beast cards'
             : undefined
 })
@@ -134,7 +133,7 @@ function lostTongue(
 ): string | undefined {
     if (!holderId || !ctx.ownerIds.includes(holderId) || actorId === holderId) return undefined
     const rulesNomad = ruledFaceupCardIds(ctx.state, actorId, ctx.scope).some(
-        (id) => suitOf(id) === Suit.Nomad
+        (id) => ctx.state.suitInPlay(id) === Suit.Nomad
     )
     return rulesNomad
         ? undefined
@@ -241,7 +240,7 @@ registerPersistent(
         forbidsBattlePlan: (ctx, userId, power, parties, side) => {
             const owner = againstOwner(ctx, userId, parties, side)
             if (!owner || !planUserIsEnemyOf(ctx, owner, userId)) return undefined
-            const suit = suitOf(power.cardId)
+            const suit = ctx.state.suitInPlay(power.cardId)
             return suit === Suit.Beast || suit === Suit.Nomad
                 ? `Beast Tamer: ${owner}'s enemies cannot use beast or nomad battle plans against them`
                 : undefined
@@ -257,7 +256,7 @@ registerPersistent(
         forbidsBattlePlan: (ctx, userId, power, parties, side) => {
             const owner = againstOwner(ctx, userId, parties, side)
             if (!owner) return undefined
-            const suit = suitOf(power.cardId)
+            const suit = ctx.state.suitInPlay(power.cardId)
             const matches = suit !== undefined && hasFaceupAdviserOfSuit(ctx.state, owner, suit)
             return matches
                 ? `True Names: ${owner}'s enemy cannot use a ${suit} battle plan against them`
@@ -373,7 +372,7 @@ registerPersistent(
     powerIndexOf('denizen.hearth.saddle-makers', PowerTiming.Persistent),
     {
         afterCardPlayed: (ctx, actorId, cardId) => {
-            const suit = suitOf(cardId)
+            const suit = ctx.state.suitInPlay(cardId)
             if (suit !== Suit.Nomad && suit !== Suit.Order) return undefined
             const notes: string[] = []
             for (const owner of ctx.ownerIds) {
@@ -419,7 +418,7 @@ registerEffect(DISSENT, powerIndexOf(DISSENT, PowerTiming.WhenPlayed), {
             if (p.playerId === holder) continue
             const suits = new Set(
                 ruledFaceupCardIds(ctx.state, p.playerId)
-                    .map((id) => suitOf(id))
+                    .map((id) => ctx.state.suitInPlay(id))
                     .filter((s) => s !== undefined)
             )
             const pay = payOwedFavor(ctx.state, p.playerId, suits.size)

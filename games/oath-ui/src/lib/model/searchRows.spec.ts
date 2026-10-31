@@ -13,6 +13,10 @@ import {
     type ModifierUse
 } from '@tabletop/oath'
 import {
+    DANA,
+    GREAT_SPIRE,
+    edificeTable,
+    fillDispossessed,
     openTurn,
     required,
     served,
@@ -122,6 +126,26 @@ describe('the sources a Search can draw from (R-5.1.1)', () => {
         ])
         expect(rows.map((row) => row.modifiers)).toEqual([[], [observatory(Region.Provinces)]])
         expect(rows.map((row) => row.cardCost)).toEqual([undefined, variants[0]?.cost])
+    })
+
+    it('Great Spire in use adds the secret it places to every source (R-7.1.2)', () => {
+        const s = edificeTable(
+            { [DANA]: { supply: 5 } },
+            { discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 } },
+            { plains: GREAT_SPIRE }
+        )
+        fillDispossessed(s, ['denizen.nomad.elders'])
+        const spire = { cardId: GREAT_SPIRE, powerIndex: 0 }
+        const rows = searchRows(s, DANA, [spire], [])
+        expect(rows.map((row) => row.source)).toEqual([
+            SearchSource.WorldDeck,
+            SearchSource.Discard
+        ])
+        expect(rows.map((row) => row.cardCost?.placeSecret)).toEqual([1, 1])
+        expect(searchRows(s, DANA, [], []).map((row) => row.cardCost)).toEqual([
+            undefined,
+            undefined
+        ])
     })
 
     it('keeps the seat’s own pile with Errand Boy in use, sent without it; each other pile carries its cost', () => {

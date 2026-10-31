@@ -24,6 +24,10 @@ export type PickerWords = {
     banks?: (total: number) => string
     or?: { row?: string; first: string; second: string; secondConsequence?: string }
     may?: MayWords
+    /** Two facedown adviser picks over the same advisers, answered in one area: its heading. */
+    advisers?: string
+    /** A count picked from a row of card backs: its words and how many backs the card prints. */
+    count?: { label: string; backs: number }
 }
 
 export type MayWords = {
@@ -53,6 +57,8 @@ const CITIZEN_WITH_RELIC: MayWords = {
 
 const WORDS: Record<string, PickerWords> = {
     'relic.whistle': { player: 'Call:', tone: 'gold' },
+    // Fallen Spire: "Swap up to five denizens".
+    'edifice.arcane.great-spire': { count: { label: 'Swap:', backs: 5 }, tone: 'gold' },
     'denizen.arcane.terror-spells': { warbands: (total) => `Kill ${total}:`, tone: 'rose' },
     'denizen.arcane.blood-pact': { warbands: () => 'Sacrifice:', tone: 'rose', ownPlace: true },
     'denizen.order.wrestlers': { place: 'the warband you sacrifice:', tone: 'rose' },
@@ -62,6 +68,8 @@ const WORDS: Record<string, PickerWords> = {
     'denizen.nomad.resettle': { site: { row: 'Place it at:', chip: 'Place it' }, tone: 'gold' },
     'denizen.order.palanquin': { site: { row: 'Carry to:', chip: 'Carry' }, tone: 'gold' },
     'relic.ivory-eye': { site: { row: 'Peek at:', chip: 'Peek' }, tone: 'gold' },
+    // "Swap any two facedown advisers": both picks in one area, in the card's words.
+    'denizen.arcane.dream-thief': { advisers: 'two facedown advisers:', tone: 'gold' },
     'denizen.beast.small-friends': { siteButtons: true, tone: 'gold' },
     'denizen.discord.scryer': { pile: 'Peek at:', tone: 'gold' },
     'denizen.nomad.convoys': { pile: 'Take:', tone: 'gold' },

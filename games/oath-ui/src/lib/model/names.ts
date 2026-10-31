@@ -4,10 +4,13 @@ import {
     Goal,
     CampaignTargetKind,
     cardDefinition,
+    cardPower,
+    EdificeFace,
+    edificeName,
+    regionName,
     type CampaignTarget,
     type Transfer,
     type HydratedOathGameState,
-    Region,
     RELIQUARY_MODIFIERS,
     Suit,
     IMPERIAL_WARBANDS,
@@ -16,6 +19,22 @@ import {
     type LossSource,
     type WarbandOwner
 } from '@tabletop/oath'
+
+/** R-2.9 — a card in play by the side that is up: an edifice's ruin has its own name. */
+export function cardNameInPlay(
+    gameState: Pick<HydratedOathGameState, 'isEdifice' | 'isRuined'>,
+    cardId: string
+): string {
+    return gameState.isEdifice(cardId)
+        ? edificeName(cardId, gameState.isRuined(cardId))
+        : cardName(cardId)
+}
+
+/** R-2.9 — the card a power is printed on, by its side: the History names the side used, whatever is up now. */
+export function powerCardName(cardId: string, powerIndex: number): string {
+    const face = cardPower(cardId, powerIndex)?.face
+    return face === undefined ? cardName(cardId) : edificeName(cardId, face === EdificeFace.Ruined)
+}
 
 export function cardName(cardId: string): string {
     // R-6.6.2.a — a Reliquary trait rides the modifier framework under its own id.
@@ -56,15 +75,7 @@ export function relicSiteName(gameState: HydratedOathGameState, slotId: string):
     return siteName(gameState, found.siteId)
 }
 
-const REGION_NAMES: Record<Region, string> = {
-    [Region.Cradle]: 'Cradle',
-    [Region.Provinces]: 'Provinces',
-    [Region.Hinterland]: 'Hinterland'
-}
-
-export function regionName(region: Region): string {
-    return REGION_NAMES[region]
-}
+export { regionName }
 
 const SUIT_NAMES: Record<Suit, string> = {
     [Suit.Discord]: 'Discord',
@@ -99,6 +110,38 @@ export function oathName(oathType: OathType): string {
     return OATH_NAMES[oathType]
 }
 
+const NUMERALS: readonly (readonly [number, string])[] = [
+    [1000, 'M'],
+    [900, 'CM'],
+    [500, 'D'],
+    [400, 'CD'],
+    [100, 'C'],
+    [90, 'XC'],
+    [50, 'L'],
+    [40, 'XL'],
+    [10, 'X'],
+    [9, 'IX'],
+    [5, 'V'],
+    [4, 'IV'],
+    [1, 'I']
+]
+
+/** A whole number from one up in standard subtractive Roman numerals: IV, IX, XL, XC; no cap. */
+export function romanNumeral(n: number): string {
+    if (!Number.isInteger(n) || n < 1) throw Error(`No Roman numeral for ${n}`)
+    let rest = n
+    let numeral = ''
+    for (const [value, letters] of NUMERALS) {
+        for (; rest >= value; rest -= value) numeral += letters
+    }
+    return numeral
+}
+
+/** R-8 — each game of a chronicle is an Age: game 1 is "Age I", game 2 "Age II". */
+export function ageName(gameNumber: number): string {
+    return `Age ${romanNumeral(gameNumber)}`
+}
+
 export function suitName(suit: Suit): string {
     return SUIT_NAMES[suit]
 }
@@ -107,6 +150,14 @@ const STATUS_NAMES: Record<PlayerStatus, string> = {
     [PlayerStatus.Chancellor]: 'Chancellor',
     [PlayerStatus.Exile]: 'Exile',
     [PlayerStatus.Citizen]: 'Citizen'
+}
+
+/** A seat's name in plain words, each word capitalized as its colour chip shows it. */
+export function chipCased(name: string): string {
+    return name.replace(
+        /(^|\s)(\S)/g,
+        (_, space: string, letter: string) => space + letter.toUpperCase()
+    )
 }
 
 /** A seat's status, capitalised as its board prints it. */
@@ -274,6 +325,8 @@ function seatPattern(playerId: string, after = '', flags = ''): RegExp {
 const VIEWER_VERBS: readonly (readonly [string, string])[] = [
     [' is', ' are'],
     [' has', ' have'],
+    // R-7.6.3-H1 — "<X> already has five open deals".
+    [' already has', ' already have'],
     [' chooses', ' choose'],
     [' picks', ' pick'],
     [' gains', ' gain']
@@ -332,13 +385,52 @@ export function escapeRegExp(value: string): string {
 
 /** Names in a sentence: "A", "A and B", "A, B and C". */
 export function listed(names: readonly string[]): string {
-    return names.length > 1
-        ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
-        : names.join('')
+    return names.map((name, index) => `${listSeparator(index, names.length)}${name}`).join('')
+}
+
+/** What comes before the `index`th of `length` items in a sentence: "A, B and C". */
+function listSeparator(index: number, length: number): string {
+    if (index === 0) return ''
+    return index === length - 1 ? ' and ' : ', '
 }
 
 export function plural(count: number, noun: string): string {
-    return `${count} ${noun}${count === 1 ? '' : 's'}`
+    return `${count} ${pluralNoun(count, noun)}`
+}
+
+/** The noun as `count` takes it, for a count drawn apart from its noun. */
+function pluralNoun(count: number, noun: string): string {
+    return `${noun}${count === 1 ? '' : 's'}`
+}
+
+/** One count the Defense so far line words after its dice. R-10.3 — bandits are not warbands. */
+export interface DefenseCount {
+    count: number
+    noun: 'warband' | 'bandit'
+}
+
+export interface DefenseWords {
+    /** The comma that follows the dice when more than one count does: "[dice], 3 warbands and 1 bandit". */
+    comma: boolean
+    /** Each count with the words joining it to what comes before. */
+    counts: { joiner: string; count: number; noun: string }[]
+}
+
+/** R-5.5.2 — "[dice] and 6 warbands."; with the bandits named apart, "[dice], 3 warbands and 1 bandit." */
+export function defenseWords(counts: readonly DefenseCount[]): DefenseWords {
+    return {
+        comma: counts.length > 1,
+        counts: counts.map(({ count, noun }, index) => ({
+            joiner: counts.length === 1 ? 'and ' : listSeparator(index, counts.length),
+            count,
+            noun: pluralNoun(count, noun)
+        }))
+    }
+}
+
+/** R-2.8.3 — the bandits at a site, counted, with the verb agreeing: "1 bandit rules", "3 bandits rule". */
+export function banditsDoing(count: number, verb: 'rule' | 'serve'): string {
+    return `${plural(count, 'bandit')} ${count === 1 ? `${verb}s` : verb}`
 }
 
 /** R-10.13 — whose warbands: the Empire's, or a player's by name; never a colour. */

@@ -72,7 +72,8 @@ export const MapLocation = Type.Object(
                         label: Identifier,
                         description: Identifier,
                         /** How many times the marker's symbol is printed, such as two ports. */
-                        count: Type.Optional(Type.Integer({ minimum: 1 }))
+                        count: Type.Optional(Type.Integer({ minimum: 1 })),
+                        privateCompanyId: Type.Optional(Identifier)
                     },
                     { additionalProperties: false }
                 )
@@ -98,6 +99,7 @@ const MapValidator = Compile(RailwayMapDefinition)
 export class RailwayMap {
     readonly definition: RailwayMapDefinition
     readonly preprintedTiles: Readonly<Record<string, TileFace>>
+    readonly markedPrivateIds: readonly string[]
     private readonly locationsById: Map<string, MapLocation>
     private readonly grid: HexGrid<HexGridNode & { locationId: string }>
 
@@ -148,6 +150,13 @@ export class RailwayMap {
                 this.definition.locations.map((location) => [location.id, location.preprintedTile])
             )
         )
+        this.markedPrivateIds = Object.freeze([
+            ...new Set(
+                this.definition.locations.flatMap((location) =>
+                    (location.markers ?? []).flatMap((marker) => marker.privateCompanyId ?? [])
+                )
+            )
+        ])
     }
 
     reservedLocationIds(companyId: string): string[] {
@@ -220,8 +229,11 @@ export function createLetterNumberLocationFactory(options: {
     numberOffset: number
     fixedColors: readonly string[]
     names: Readonly<Record<string, string>>
-    /** A company id reserving every city of a location, or the company and one city node. */
-    homes: Readonly<Record<string, string | CityReservation>>
+    /**
+     * A company id reserving every city of a location, or companies each reserving one city
+     * node.
+     */
+    homes: Readonly<Record<string, string | CityReservation | readonly CityReservation[]>>
     markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>>
 }) {
     return (
@@ -245,8 +257,12 @@ export function createLetterNumberLocationFactory(options: {
         }))
 }
 
-function homeReservations(home: string | CityReservation, tile: TileFace): CityReservation[] {
-    if (typeof home !== 'string') return [{ ...home }]
+function homeReservations(
+    home: string | CityReservation | readonly CityReservation[],
+    tile: TileFace
+): CityReservation[] {
+    if (typeof home !== 'string')
+        return 'companyId' in home ? [{ ...home }] : home.map((reservation) => ({ ...reservation }))
     const cities = tile.nodes.filter((node) => node.kind === 'city')
     assert(cities.length > 0, 'A home requires a city')
     return cities.map((node) => ({ companyId: home, nodeId: node.id }))

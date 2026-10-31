@@ -6,15 +6,14 @@ import { isAtLeastOathRevision, OathRevision } from './revision.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import {
     BattlePlanSide,
-    cardPowers,
     isFree,
     PowerTiming,
-    powersWithTiming,
     type CardPower,
     type PowerCost,
     powerKey
 } from '../data/cardPowers.js'
 import { banditRuledCardIds, denizensOnMap } from './access.js'
+import { powerInPlay, powersInPlay, reasonSideFaceDown } from './powersInPlay.js'
 import { isFacedownAdviserOf, rulesCard } from './access.js'
 import type { ImperialScope } from './rule.js'
 import {
@@ -45,9 +44,12 @@ import {
 // R-5.5.3, R-7.5.2 — plans are used at Campaign step 3, so the defender sees the attacker's first.
 
 /** Relic Hunter */
-export function plansTargetSiteRelics(plans: readonly BattlePlanUse[]): boolean {
+export function plansTargetSiteRelics(
+    state: HydratedOathGameState,
+    plans: readonly BattlePlanUse[]
+): boolean {
     return plans.some((use) => {
-        const power = cardPowers(use.cardId)[use.powerIndex]
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
         return power !== undefined && effectFor(power)?.battlePlan?.targetsSiteRelics === true
     })
 }
@@ -64,7 +66,7 @@ function admits(power: CardPower, side: BattlePlanSide): boolean {
 }
 
 export function isBattlePlanCard(state: HydratedOathGameState, cardId: string): boolean {
-    return powersWithTiming(cardId, PowerTiming.BattlePlan).length > 0
+    return powersInPlay(state, cardId, PowerTiming.BattlePlan).length > 0
 }
 
 /** R-7.5.1, R-7.1.1-H1 */
@@ -96,7 +98,7 @@ export function usableBattlePlans(
     const found: CardPower[] = []
     for (const cardId of candidates) {
         if (!mayUseBattlePlansOf(state, playerId, cardId, scope)) continue
-        for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
+        for (const power of powersInPlay(state, cardId, PowerTiming.BattlePlan)) {
             if (!admits(power, side)) continue
             if (!effectFor(power)?.battlePlan) continue
             if (reasonCannotPayPowerCost(state, playerId, power, parties)) continue
@@ -141,7 +143,9 @@ export function resolveBattlePlans(
         if (!mayUseBattlePlansOf(state, playerId, use.cardId, scope)) {
             return { reason: `you do not rule ${use.cardId} (R-7.5.1)`, active }
         }
-        const power = cardPowers(use.cardId)[use.powerIndex]
+        const faceDown = reasonSideFaceDown(state, use.cardId, use.powerIndex)
+        if (faceDown) return { reason: faceDown, active }
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
         if (!power)
             return { reason: `${use.cardId} has no power at index ${use.powerIndex}`, active }
         if (power.timing !== PowerTiming.BattlePlan) {
@@ -268,7 +272,7 @@ export function banditBattlePlans(
     const checked = isAtLeastOathRevision(state, OathRevision.EngineFixes10)
     const found: ActiveBattlePlan[] = []
     for (const cardId of banditRuledCardIds(state)) {
-        for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
+        for (const power of powersInPlay(state, cardId, PowerTiming.BattlePlan)) {
             if (!admits(power, BattlePlanSide.Defender) || !isFree(power.cost)) continue
             const hooks = effectFor(power)?.battlePlan
             if (!hooks) continue
@@ -446,7 +450,7 @@ export function plansUsedBy(
     const ids = campaign.plansUsedBy[playerId] ?? []
     const found: ActiveBattlePlan[] = []
     for (const cardId of ids) {
-        for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
+        for (const power of powersInPlay(state, cardId, PowerTiming.BattlePlan)) {
             const hooks = effectFor(power)?.battlePlan
             if (hooks) found.push({ power, hooks, choices: [], compelled: false })
         }

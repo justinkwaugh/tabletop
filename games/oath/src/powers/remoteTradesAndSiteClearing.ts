@@ -10,7 +10,7 @@ import {
 } from '../util/powerChoice.js'
 import { askQuestion } from '../util/questions.js'
 import { knownDraw } from '../util/knowledge.js'
-import { SECOND_WIND_ID, nextActionIndex } from '../util/freeActions.js'
+import { SECOND_WIND_ID, grantFreeCampaign, grantFreeTravel } from '../util/freeActions.js'
 import {
     registerBattlePlan,
     registerEffect,
@@ -20,13 +20,14 @@ import {
 } from './registry.js'
 import { giveFavor, takeFavorFromPlayer, usableFavor } from '../util/favor.js'
 import {
+    denizensToDiscardAtSites,
     discardDenizensAtSites,
     faceupSitesInYourRegion,
     siteOfPlayedCard,
     faceupSitesWithCardOfSuit
 } from './vocabulary.js'
 import { bargainChoicesAtYourSite, playerChoicesAtYourSite } from './choiceDomains.js'
-import { SALT_THE_EARTH } from '../util/capacity.js'
+import { SALT_THE_EARTH, SALTED_SITE_CAPACITY } from '../util/capacity.js'
 import { reasonPersistentForbidsGivingSecrets } from '../util/persistent.js'
 import { siteHolding } from '../util/access.js'
 import { handedOver } from '../model/playerState.js'
@@ -39,10 +40,9 @@ registerBattlePlan(SECOND_WIND, powerIndexOf(SECOND_WIND, PowerTiming.BattlePlan
     hooks: {
         onOutcome: (ctx, victorious) => {
             if (!victorious) return undefined
-            const me = ctx.state.getPlayerState(ctx.playerId)
             // A free Travel taken at that action moves the Campaign's along by one.
-            me.freeTravelAtAction = nextActionIndex(ctx.state)
-            me.freeCampaignAtAction = nextActionIndex(ctx.state)
+            grantFreeTravel(ctx.state, ctx.playerId, SECOND_WIND)
+            grantFreeCampaign(ctx.state, ctx.playerId, SECOND_WIND)
             return 'Second Wind: the next Travel, and then a Campaign, cost no Supply'
         }
     }
@@ -307,6 +307,18 @@ registerModifier(CROP_ROTATION, powerIndexOf(CROP_ROTATION, PowerTiming.Modifier
 //  capacity. Discard all other denizens at this site. This site's capacity is now 1." Site, locked.
 registerEffect(SALT_THE_EARTH, powerIndexOf(SALT_THE_EARTH, PowerTiming.WhenPlayed), {
     choices: [],
+    // Before its play the card is at no site: the play names the one it goes to.
+    mapLeaving: (ctx) => {
+        const siteId = ctx.mapChanges?.siteId
+        assertExists(siteId, 'Salt the Earth is only played to a site')
+        return denizensToDiscardAtSites(
+            ctx.state,
+            ctx.playerId,
+            [siteId],
+            (id) => id !== SALT_THE_EARTH,
+            ctx.mapChanges
+        )
+    },
     resolve: (ctx) => {
         // "This site": where it was played, which the People's Favor or New Growth may make another site.
         const siteId = siteOfPlayedCard(ctx.state, ctx.playerId, SALT_THE_EARTH)
@@ -317,7 +329,10 @@ registerEffect(SALT_THE_EARTH, powerIndexOf(SALT_THE_EARTH, PowerTiming.WhenPlay
             (id) => id !== SALT_THE_EARTH,
             ctx.power.cardId
         )
-        ctx.state.siteCapacityOverrides = { ...ctx.state.siteCapacityOverrides, [siteId]: 1 }
+        ctx.state.siteCapacityOverrides = {
+            ...ctx.state.siteCapacityOverrides,
+            [siteId]: SALTED_SITE_CAPACITY
+        }
         return {
             summary: `Salt the Earth: discarded ${discarded.length} denizens at ${siteId}; its capacity is now 1`,
             pileDeposits

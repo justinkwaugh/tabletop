@@ -513,7 +513,7 @@ describe('the History words: each row as the record says it, older records too',
                 sacrificeKills,
                 metadata: { attack: 6, defense: 5, sacrificed: 3, attackerVictorious: true }
             })
-        // Each counted phrase's owner, as the History colours its pieces: Dana's own are hers.
+        // Each counted phrase's owner, as the History colours its pieces: Dana's own are theirs.
         const pieces = (sacrifice: GameAction) =>
             tokenParts(describeAction(sacrifice, names), { warbands: true }).flatMap((part) =>
                 part.kind === 'warband'

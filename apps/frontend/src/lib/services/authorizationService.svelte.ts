@@ -1,4 +1,4 @@
-import { Role, User, UserStatus } from '@tabletop/common'
+import { canHoldAuthenticatedSession, Role, User, UserStatus } from '@tabletop/common'
 import { goto, invalidateAll } from '$app/navigation'
 import { redirect } from '@sveltejs/kit'
 import { AuthorizationCategory, type TabletopApi } from '@tabletop/frontend-components'
@@ -9,6 +9,7 @@ import {
 } from '$lib/utils/loginContinuation'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils/storedValue'
 import { browserTimeZone } from '$lib/utils/timeZones'
+import { reauthentication } from '$lib/stores/reauthentication.svelte'
 
 /**
  *
@@ -125,18 +126,21 @@ export class AuthorizationService {
     }
 
     public setSessionUser(user: User) {
+        if (this.sessionUser?.id !== user.id) reauthentication.cancel()
         this.sessionUser = user
         writeStoredValue(AuthorizationService.storageKey, user)
         this.onSessionUserSet()
     }
 
     public clearSessionUser() {
+        reauthentication.cancel()
         this.sessionUser = undefined
         removeStoredValue(AuthorizationService.storageKey)
         this.onSessionUserCleared()
     }
 
     public async onLogin(user: User) {
+        reauthentication.cancel()
         this.adoptSessionUser(user)
 
         if (user.status === UserStatus.Incomplete) {
@@ -146,10 +150,21 @@ export class AuthorizationService {
         await goto(takeLoginContinuation() ?? '/library')
     }
 
+    public async logout() {
+        // Forget the user before the session ends so a request it refuses never reads as an expiry
+        this.forgetSessionUser()
+        await this.api.logout()
+        await goto('/')
+    }
+
     public async onLogout() {
+        this.forgetSessionUser()
+        await goto('/')
+    }
+
+    private forgetSessionUser() {
         clearLoginContinuation()
         this.clearSessionUser()
-        await goto('/')
     }
 
     private async loadSessionUser() {
@@ -193,11 +208,7 @@ export class AuthorizationService {
     private async fetchSessionUser(): Promise<User | undefined> {
         try {
             const sessionUser = await this.api.getSelf()
-            if (
-                sessionUser &&
-                sessionUser.status !== UserStatus.Deleted &&
-                sessionUser.status !== UserStatus.Inactive
-            ) {
+            if (sessionUser && canHoldAuthenticatedSession(sessionUser)) {
                 return sessionUser
             }
         } catch {

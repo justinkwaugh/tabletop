@@ -3,7 +3,6 @@ import { spendFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { reasonPersistentForbidsSecretCost, type ScopedParties } from './persistent.js'
 import { isFree, PowerTiming, type CardPower, type PowerCost } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { holdsTheTurn } from './turn.js'
 
 /** R-7.1.2.a — the bar is on the card; R-7.5.3's exemption is `reasonCannotPayPowerCost`'s. */
@@ -77,7 +76,7 @@ export function reasonCannotPayPowerCost(
     if (placedTokens(cost) === 0) return undefined
 
     // R-7.1.2.a — a suitless card has no bank to take an out-of-turn placement; R-7.5.3 does not lift that.
-    if (cost.placeFavor > 0 && !holdsTheTurn(state, playerId) && !suitOf(power.cardId)) {
+    if (cost.placeFavor > 0 && !holdsTheTurn(state, playerId) && !state.suitInPlay(power.cardId)) {
         return (
             `${power.cardId} shows no suit, so R-7.1.2.a has no matching ` +
             `favor bank for an out-of-turn payment`
@@ -132,7 +131,7 @@ export function payCostOnCard(
     if (cost.placeFavor > 0) {
         if (outOfTurn) {
             // R-7.1.2.a — "the matching favor bank" is the card's suit, as in R-10.5.
-            const suit = suitOf(cardId)
+            const suit = state.suitInPlay(cardId)
             if (!suit) {
                 throw Error(
                     `Cannot pay power cost: ${cardId} shows no suit, so ` +

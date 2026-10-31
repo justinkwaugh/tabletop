@@ -1,6 +1,13 @@
 import { EighteenThirtyTwoNames } from '../names.js'
 import { defineGame, type GameDefinition } from '@tabletop/common'
-import { createEighteenXXRuntime, defineAction, type EighteenXXTitleRules } from '@tabletop/18xx'
+import {
+    createEighteenXXRuntime,
+    defineAction,
+    DiscardMergedTrain,
+    HydratedDiscardMergedTrain,
+    isDiscardMergedTrain,
+    type EighteenXXTitleRules
+} from '@tabletop/18xx'
 import {
     CapitalizeCompany,
     HydratedCapitalizeCompany,
@@ -77,11 +84,9 @@ import {
     AnswerMerger,
     CompleteMergerPhase,
     CompleteTakeover,
-    DiscardMergedTrain,
     HydratedAnswerMerger,
     HydratedCompleteMergerPhase,
     HydratedCompleteTakeover,
-    HydratedDiscardMergedTrain,
     HydratedPassMerger,
     HydratedProposeMerger,
     HydratedSellTakeoverShares,
@@ -94,11 +99,11 @@ import {
     isAnswerMerger,
     isCompleteMergerPhase,
     isCompleteTakeover,
-    isDiscardMergedTrain,
     isPassMerger,
     isProposeMerger,
     isSellTakeoverShares,
     isStartMergerPhase,
+    MergedTrainDiscards1832,
     startsMergerPhase
 } from '../mergers.js'
 import {
@@ -134,6 +139,7 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     privatePowerRules: EighteenThirtyTwoPrivatePowerRules,
     createOpening: createEighteenThirtyTwoOpening,
     startingCash: eighteenThirtyTwoStartingCash,
+    currencySymbol: '$',
     stockRules: EighteenThirtyTwoStockRules,
     companyRules: EighteenThirtyTwoCompanyRules,
     operatingRules: EighteenThirtyTwoOperatingRules,
@@ -145,6 +151,7 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     phases: EighteenThirtyTwoPhases,
     phaseRules: EighteenThirtyTwoPhaseRules,
     trainRules: EighteenThirtyTwoTrainRules,
+    runInstructions: true,
     additionalConstructionActions: ['BuyCoalRights'],
     decisionHandlers: {
         StockRound: (family) =>
@@ -197,7 +204,12 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
         defineAction(
             DiscardMergedTrain,
             isDiscardMergedTrain,
-            (action) => new HydratedDiscardMergedTrain(action)
+            (action) =>
+                new HydratedDiscardMergedTrain(
+                    action,
+                    EighteenThirtyTwoTrainRules,
+                    MergedTrainDiscards1832
+                )
         ),
         defineAction(
             CompleteMergerPhase,

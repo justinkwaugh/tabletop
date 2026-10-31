@@ -27,7 +27,7 @@ describe('the doorway offers no card power it cannot resolve', () => {
             .map((power) => powerKey(power.cardId, power.powerIndex))
 
         expect(walked.length).toBeGreaterThan(MINOR_ACTIONS.length)
-        expect(withoutEffect).toEqual(MINOR_ACTIONS)
+        expect([...withoutEffect].sort()).toEqual([...MINOR_ACTIONS].sort())
     })
 
     it('the Grand Scepter’s holder is never offered them, and a use named by hand is refused in plain words', () => {

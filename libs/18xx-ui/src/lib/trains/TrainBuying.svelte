@@ -19,13 +19,6 @@
     } = $props()
     const money = $derived(session.presentation.money)
     const step = $derived(session.gameState.trainPurchaseStep)
-    const fundingDepot = $derived(
-        session.trainFunding.purchases.filter((purchase) =>
-            session.gameState.trainInventory.trains.some(
-                (train) => train.id === purchase.trainId && train.status === 'depot'
-            )
-        )
-    )
     const currentDepot = $derived(session.trainBuying.currentDepotOffers)
     const marketChoices = $derived.by(() => {
         const groups = new Map<string, { details: TrainPurchaseDetails; count: number }>()
@@ -33,11 +26,7 @@
             ...session.trainBuying.marketOffers.flatMap((offer) =>
                 offer.details ? [offer.details] : []
             ),
-            ...session.trainFunding.purchases.filter((purchase) =>
-                session.gameState.trainInventory.trains.some(
-                    (train) => train.id === purchase.trainId && train.status === 'market'
-                )
-            )
+            ...session.trainFunding.marketPurchases
         ]
         for (const details of offers) {
             const key = `${details.definitionId}:${details.price}`
@@ -151,7 +140,7 @@
                 {:else}
                     <div class="trains">
                         {#each currentDepot as offer (offer.definitionId)}
-                            {@const fundingPurchase = fundingDepot.find(
+                            {@const fundingPurchase = session.trainFunding.depotPurchases.find(
                                 (purchase) => purchase.definitionId === offer.definitionId
                             )}
                             {@render trainChoice(
@@ -172,7 +161,7 @@
                                 count,
                                 details,
                                 true,
-                                session.trainFunding.purchases.some(
+                                session.trainFunding.marketPurchases.some(
                                     (purchase) => purchase.trainId === details.trainId
                                 )
                             )}

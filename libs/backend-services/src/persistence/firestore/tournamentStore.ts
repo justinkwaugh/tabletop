@@ -59,7 +59,8 @@ const TournamentLinkGame = Type.Pick(Game, [
     'result',
     'players',
     'winningPlayerIds',
-    'status'
+    'status',
+    'progress'
 ])
 
 const CachedTournamentPage = Type.Object({ generation: Type.String(), page: TournamentList })
@@ -146,7 +147,14 @@ export class FirestoreTournamentStore implements TournamentStore {
                         this.firestore
                             .collection('games')
                             .where('tournament.tournamentId', 'in', chunk)
-                            .select('tournament', 'result', 'players', 'winningPlayerIds', 'status')
+                            .select(
+                                'tournament',
+                                'result',
+                                'players',
+                                'winningPlayerIds',
+                                'status',
+                                'progress'
+                            )
                             .get()
                     )
                 )
@@ -176,7 +184,9 @@ export class FirestoreTournamentStore implements TournamentStore {
                                               return player.userId
                                           })
                                   }
-                                : {})
+                                : data.progress
+                                  ? { progress: data.progress }
+                                  : {})
                         })
                     }
                 }

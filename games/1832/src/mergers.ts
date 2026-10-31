@@ -4,7 +4,6 @@ import {
     ActionSource,
     GameAction,
     HydratableAction,
-    PlayerAction,
     assert,
     assertExists,
     type HydratedAction,
@@ -13,18 +12,20 @@ import {
 import {
     CashPayment,
     CertificateLimitChange,
-    DeparturePayments,
     ShareSaleDetails,
     SystemActionFirstHandler,
     applyShareSale,
-    discardTrainToMarket,
+    HydratedDiscardMergedTrain,
+    overTrainLimit,
+    type MergedTrainDiscardRules,
     finiteCashOwnedBy,
     settleCashPayments,
     trainsCountingForLimit,
     RoundEnd,
     roundEnd,
     type ValuationRules,
-    stateWith
+    stateWith,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import { Absorption, absorbCompany, discardSharedHome } from './absorption.js'
 import {
@@ -116,13 +117,6 @@ export const MergerOutcome = Type.Object(
 )
 export type MergerOutcome = Type.Static<typeof MergerOutcome>
 
-function overTrainLimit(state: EighteenThirtyTwoState, companyId: string) {
-    return (
-        trainsCountingForLimit(state, EighteenThirtyTwoTrainRules, companyId).length >
-        EighteenThirtyTwoTrainRules.trainLimit(state, companyId)
-    )
-}
-
 /**
  * The buyer pays for every outside share, its president making up what its treasury lacks as
  * they are paid for their own; it takes the bought company's assets and the bought company
@@ -160,7 +154,8 @@ function completeTakeover(
     const phase = state.mergerPhase
     assertExists(phase, 'A takeover happens in a merger phase')
     delete phase.funding
-    if (overTrainLimit(state, buyerId)) phase.discardCompanyId = buyerId
+    if (overTrainLimit(state, EighteenThirtyTwoTrainRules, buyerId))
+        phase.discardCompanyId = buyerId
     return {
         kind: 'takeover',
         companyIds: [buyerId, targetId],
@@ -357,7 +352,7 @@ export class HydratedCompleteMergerPhase
 
 export const ProposeMerger = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ProposeMerger'),
         companyId: Id,
         partnerId: Id,
@@ -431,7 +426,7 @@ export class HydratedProposeMerger
 
 export const AnswerMerger = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('AnswerMerger'),
         accept: Type.Boolean(),
         metadata: Type.Optional(
@@ -504,7 +499,7 @@ export class HydratedAnswerMerger
 }
 
 export const PassMerger = Type.Object(
-    { ...PlayerAction.properties, type: Type.Literal('PassMerger') },
+    { ...EighteenXXPlayerAction.properties, type: Type.Literal('PassMerger') },
     { additionalProperties: false }
 )
 export type PassMerger = Type.Static<typeof PassMerger>
@@ -535,7 +530,7 @@ export class HydratedPassMerger extends HydratableAction<typeof PassMerger> impl
 
 export const SellTakeoverShares = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('SellTakeoverShares'),
         companyId: Id,
         shares: Type.Integer({ minimum: 1 }),
@@ -639,27 +634,6 @@ export class HydratedCompleteTakeover
     }
 }
 
-export const DiscardMergedTrain = Type.Object(
-    {
-        ...PlayerAction.properties,
-        type: Type.Literal('DiscardMergedTrain'),
-        companyId: Id,
-        trainId: Id,
-        metadata: Type.Optional(
-            Type.Object({ departurePayments: DeparturePayments }, { additionalProperties: false })
-        )
-    },
-    { additionalProperties: false }
-)
-export type DiscardMergedTrain = Type.Static<typeof DiscardMergedTrain>
-const DiscardValidator = Compile(DiscardMergedTrain)
-export function isDiscardMergedTrain(action: GameAction): action is DiscardMergedTrain {
-    return (
-        action instanceof HydratedDiscardMergedTrain ||
-        (action.type === 'DiscardMergedTrain' && DiscardValidator.Check(action))
-    )
-}
-
 /** The company over its train limit after a takeover, and the trains it may discard. */
 export function mergedTrainDiscards(state: EighteenThirtyTwoState, playerId: string) {
     const decision = mergerDecision(state)
@@ -673,41 +647,12 @@ export function mergedTrainDiscards(state: EighteenThirtyTwoState, playerId: str
 }
 
 /** The president discards a train of their choice to the open market, uncompensated (§11.7.1). */
-export class HydratedDiscardMergedTrain
-    extends HydratableAction<typeof DiscardMergedTrain>
-    implements DiscardMergedTrain
-{
-    declare type: 'DiscardMergedTrain'
-    declare playerId: string
-    declare companyId: string
-    declare trainId: string
-    declare metadata?: DiscardMergedTrain['metadata']
-    constructor(data: DiscardMergedTrain) {
-        super(
-            data instanceof HydratedDiscardMergedTrain ? data.dehydrate() : data,
-            DiscardValidator
-        )
-    }
-    isValid(state: HydratedEighteenThirtyTwoState): boolean {
-        const discards = mergedTrainDiscards(state, this.playerId)
-        return (
-            this.source === ActionSource.User &&
-            discards?.companyId === this.companyId &&
-            discards.trains.some((train) => train.id === this.trainId)
-        )
-    }
-    apply(state: HydratedEighteenThirtyTwoState): void {
-        assert(this.isValid(state), 'This train cannot be discarded')
+export const MergedTrainDiscards1832: MergedTrainDiscardRules<HydratedEighteenThirtyTwoState> = {
+    discards: mergedTrainDiscards,
+    withinLimit(state) {
         const phase = state.mergerPhase
         assertExists(phase, 'Trains are discarded in a merger phase')
-        const payments = discardTrainToMarket(
-            state,
-            EighteenThirtyTwoTrainRules,
-            this.companyId,
-            this.trainId
-        )
-        if (!overTrainLimit(state, this.companyId)) delete phase.discardCompanyId
-        if (payments.length) this.metadata = { departurePayments: payments }
+        delete phase.discardCompanyId
     }
 }
 

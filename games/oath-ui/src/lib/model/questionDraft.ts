@@ -29,6 +29,7 @@ import {
     warbandOwnerGainedByPower,
     woodTravelPaysAtPick,
     type ConspiracyPlay,
+    type OpenDeal,
     PowerQuestionValidator,
     type PowerQuestion,
     type ProjectedPowerQuestion,
@@ -405,6 +406,13 @@ export class QuestionDraft implements PanelDraft {
         return this.reasonCannot(adviserDiscardsAnswer(picked))
     }
 
+    /** R-7.6.3-H1 — the deal a "kept?" question is about, public in the open deals. */
+    get claimedDeal(): OpenDeal | undefined {
+        const question = this.mine
+        if (question?.kind !== PowerQuestionKind.DealKept) return undefined
+        return this.session.gameState.openDeals?.find((deal) => deal.id === question.dealId)
+    }
+
     /** The yes answer has every pick it needs; until then it is not offered. */
     get acceptComplete(): boolean {
         const question = this.mine
@@ -501,6 +509,11 @@ export class QuestionDraft implements PanelDraft {
     }
 
     /** R-7.1.3-H2 — one tap takes Gambling Hall's favor from that bank. */
+    /** Squalid District — lower the end die by one, raise it, or leave it (`by` −1, 1 or 0). */
+    async adjustEndDie(by: -1 | 0 | 1): Promise<void> {
+        await this.send({ kind: PowerQuestionKind.AdjustEndDie, by })
+    }
+
     async takeGamblingHallFavor(suit: Suit): Promise<void> {
         await this.send({ kind: PowerQuestionKind.GamblingHallBank, suit })
     }
@@ -810,6 +823,8 @@ export class QuestionDraft implements PanelDraft {
                 return { kind: question.kind, pay: yes }
             case PowerQuestionKind.Exchange:
                 return { kind: question.kind, accept: yes }
+            case PowerQuestionKind.DealKept:
+                return { kind: question.kind, kept: yes }
             case PowerQuestionKind.JoinSite:
                 return { kind: question.kind, join: yes }
             case PowerQuestionKind.KeepOrBottomRelic:

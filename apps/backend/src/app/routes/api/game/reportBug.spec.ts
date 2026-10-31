@@ -1,6 +1,7 @@
 import fastifyAuth from '@fastify/auth'
 import {
     BUG_REPORT_DESCRIPTION_MAX_LENGTH,
+    BUG_REPORT_LOCAL_GAME_MAX_LENGTH,
     BUG_REPORT_SCREENSHOT_MAX_BASE64_LENGTH,
     BUG_REPORT_SCREENSHOT_MAX_COUNT,
     Role,
@@ -94,6 +95,42 @@ describe('POST /reportBug', () => {
 
         expect(response.statusCode).toBe(200)
         expect(reportBug).toHaveBeenCalledWith({ user, report: { ...report, screenshots } })
+    })
+
+    it('takes the largest local game, escaped at its widest, beside the largest screenshots', async () => {
+        const { server, reportBug } = await createServer({ configured: true })
+        servers.add(server)
+        const screenshots = Array.from(
+            { length: BUG_REPORT_SCREENSHOT_MAX_COUNT },
+            () => largestScreenshot
+        )
+        const localGame = '€'.repeat(BUG_REPORT_LOCAL_GAME_MAX_LENGTH)
+
+        const response = await server.inject({
+            method: 'POST',
+            url: '/reportBug',
+            payload: { ...report, screenshots, localGame }
+        })
+
+        expect(response.statusCode).toBe(200)
+        expect(reportBug).toHaveBeenCalledWith({
+            user,
+            report: { ...report, screenshots, localGame }
+        })
+    })
+
+    it('rejects a local game over the size limit', async () => {
+        const { server, reportBug } = await createServer({ configured: true })
+        servers.add(server)
+
+        const response = await server.inject({
+            method: 'POST',
+            url: '/reportBug',
+            payload: { ...report, localGame: 'x'.repeat(BUG_REPORT_LOCAL_GAME_MAX_LENGTH + 1) }
+        })
+
+        expect(response.statusCode).toBe(400)
+        expect(reportBug).not.toHaveBeenCalled()
     })
 
     it('rejects more screenshots than a report may carry', async () => {

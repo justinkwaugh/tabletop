@@ -175,6 +175,18 @@ test('reporterMessage puts the heading, the opening, the note, the quote and the
     )
 })
 
+test('reporterMessage names a hotseat game without a link, since it lives in the browser', () => {
+    const { gameUrl, text } = reporterMessage(
+        'investigating',
+        { ...report, gameUrl: undefined },
+        undefined,
+        'https://discord.com/channels/1/2'
+    )
+    assert.equal(gameUrl, undefined)
+    assert.match(text, /\n\nYour game: Sol: Last Days of a Star · Sol Sweet Sol\n\n/)
+    assert.doesNotMatch(text, /undefined/)
+})
+
 test('reporterMessage calls a not-a-bug report a report', () => {
     const message = reporterMessage('not a bug', report, 'Tip', 'https://discord.com/channels/1/2')
     assert.equal(message.eyebrow, 'Your report')

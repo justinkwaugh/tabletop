@@ -21,6 +21,7 @@ export * from './tiles/topology.js'
 export { parseTileDefinition, parseTileFace } from './tiles/validation.js'
 
 export * from './finance/cashPayments.js'
+export * from './finance/money.js'
 export * from './stock/auctionCompany.js'
 export * from './stock/automaticStockTurnHandler.js'
 export * from './stock/bidForCompany.js'
@@ -130,6 +131,16 @@ export * from './routes/routeEvaluation.js'
 export * from './routes/routeNetwork.js'
 export * from './routes/runningTrainsHandler.js'
 export * from './routes/runTrains.js'
+export * from './routes/instructedRuns.js'
+export * from './game/orderedSubset.js'
+export * from './routes/runInstructionEvaluation.js'
+export * from './routes/runInstructionHandler.js'
+export * from './routes/instructedRunsHandler.js'
+export * from './routes/runInstructionActions.js'
+export * from './routes/setRunInstruction.js'
+export * from './routes/setRunInstructionStops.js'
+export * from './routes/stopRunInstruction.js'
+export * from './actions/eighteenXXPlayerAction.js'
 
 export * from './earnings/distributeEarnings.js'
 export * from './earnings/distributingEarningsHandler.js'
@@ -144,6 +155,7 @@ export * from './phases/advancePhase.js'
 export * from './phases/phaseChange.js'
 export * from './phases/phaseTable.js'
 export * from './trains/discardTrain.js'
+export * from './trains/discardMergedTrain.js'
 export * from './trains/rustTrains.js'
 
 export * from './privates/exchangePrivate.js'
@@ -207,6 +219,7 @@ export * from './ending/finalScores.js'
 export * from './ending/finalWealth.js'
 export * from './ending/roundEnd.js'
 export * from './ending/gameEnding.js'
+export * from './ending/gameProgress.js'
 export * from './ending/endingActions.js'
 export * from './ending/gameEndingHandler.js'
 export * from './ending/scheduleGameEnd.js'
@@ -237,6 +250,17 @@ export * from './construction/automaticTrackCompletionHandler.js'
 export {
     payingRouteStops,
     routeConnectionBonuses,
+    routeInterconnectionBonus,
+    routeStopBonuses,
+    type Interconnection,
     type PaidConnectionBonus,
-    type RouteRevenuePolicy
+    type RouteRevenuePolicy,
+    type RouteShape
 } from './routes/routeScoring.js'
+export * from './earnings/payoutJumps.js'
+export * from './finance/corporateFinance.js'
+export * from './stations/stationsWithTrackHandler.js'
+export * from './construction/trackCosts.js'
+export * from './company/zeroPriceClosure.js'
+export * from './funding/issueFirstFunding.js'
+export * from './stock/treasuryShareTrading.js'

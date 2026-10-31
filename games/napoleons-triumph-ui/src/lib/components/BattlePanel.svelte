@@ -50,7 +50,7 @@
     }
 
     function unitsOf(ids: string[]): ProjectedUnit[] {
-        return ids.flatMap((id) => game.findUnit(id) ?? concluded?.unitsLastSeen.get(id) ?? [])
+        return ids.flatMap((id) => gameSession.unitsAsTheyEnteredTheShownAttack.get(id) ?? [])
     }
 </script>
 

@@ -157,5 +157,6 @@ export const TheOldPrincePrivateRules: PrivateRules = {
         }
         const description = TheOldPrincePrivateCatalog.definition(id).description ?? 'Closes at 4+.'
         return id === 'UB' ? unionBankIntro(state) + description : description
-    }
+    },
+    blocking: TheOldPrincePrivateCatalog.blocking.bind(TheOldPrincePrivateCatalog)
 }

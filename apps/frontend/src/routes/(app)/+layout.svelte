@@ -26,10 +26,15 @@
     import BugReportModal from '$lib/components/BugReportModal.svelte'
     import CallGameModal from '$lib/components/CallGameModal.svelte'
     import { callGameOffer } from '$lib/utils/callGameOffer'
+    import { bgStatsPlayUrl } from '$lib/utils/bgStats'
     import { getAppContext as getSiteContext } from '$lib/stores/appContext.svelte'
     import PreferencesPanel from '$lib/components/PreferencesPanel.svelte'
     import AccountAvatar from '$lib/components/AccountAvatar.svelte'
     import { setLoginModal } from '$lib/stores/loginModal'
+    import { broadcastLogout, onLogoutBroadcast } from '$lib/utils/logoutChannel'
+    import { onDiscordAuthorizationResult } from '$lib/utils/discordAuthorization'
+    import ReauthenticationPrompt from '$lib/components/ReauthenticationPrompt.svelte'
+    import { reauthentication } from '$lib/stores/reauthentication.svelte'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
     import {
@@ -97,6 +102,12 @@
             : undefined
     )
     const siteGameService = getSiteContext().gameService
+    let bgStatsUrl = $derived.by(() => {
+        const session = gameService.currentGameSession
+        if (!session) return undefined
+        const game = siteGameService.cachedGame(session.primaryGame.id) ?? session.primaryGame
+        return bgStatsPlayUrl(game, titlesById[game.typeId]?.info.metadata, sessionUser)
+    })
     let callOffer = $derived.by(() => {
         const session = gameService.currentGameSession
         if (!session || !sessionUser) return undefined
@@ -141,6 +152,7 @@
     }
 
     onNavigate((navigation) => {
+        reauthentication.cancel()
         const from = navigation.from?.url.pathname
         const to = navigation.to?.url.pathname
         const libraryMove =
@@ -218,18 +230,17 @@
     )
 
     async function onLogout() {
-        await api.logout()
-        await authorizationService.onLogout()
+        reauthentication.cancel()
+        await authorizationService.logout()
     }
 
-    const logoutChannel = new BroadcastChannel('logout')
-    logoutChannel.onmessage = function (e) {
-        onLogout()
-    }
+    onLogoutBroadcast(() => {
+        void onLogout()
+    })
 
     async function logout() {
-        onLogout()
-        logoutChannel.postMessage({})
+        void onLogout()
+        broadcastLogout()
     }
 
     async function gotoProfile() {
@@ -293,18 +304,16 @@
         notificationService.showPrompt()
     }
 
-    const loginChannel = new BroadcastChannel('login')
-    loginChannel.onmessage = async function (e) {
-        if (e.data.status === 'success' && e.data.user) {
-            await authorizationService.onLogin(e.data.user)
+    onDiscordAuthorizationResult((result) => {
+        if (result.outcome !== 'success') {
+            return
         }
-    }
-
-    const userUpdateChannel = new BroadcastChannel('userUpdated')
-    userUpdateChannel.onmessage = function (e) {
-        const user = e.data.user
-        authorizationService.setSessionUser(user)
-    }
+        if (result.purpose === 'login') {
+            void authorizationService.onLogin(result.user)
+        } else if (result.purpose === 'link') {
+            authorizationService.setSessionUser(result.user)
+        }
+    })
 
     async function requestNotificationPermission() {
         notificationService.hidePrompt()
@@ -612,6 +621,12 @@
                                     >
                                     <DropdownDivider />
                                 {/if}
+                                {#if bgStatsUrl}
+                                    <DropdownItem class="w-full text-left" href={bgStatsUrl}
+                                        >Log to BG Stats</DropdownItem
+                                    >
+                                    <DropdownDivider />
+                                {/if}
                                 <DropdownItem class="w-full text-left" onclick={gotoProfile}
                                     >Profile</DropdownItem
                                 >
@@ -708,7 +723,13 @@
         </div>
     </Navbar>
 </div>
-{#if !sessionUser}
+{#if sessionUser}
+    {#if reauthentication.pending}
+        {#key reauthentication.pending}
+            <ReauthenticationPrompt action={reauthentication.pending} />
+        {/key}
+    {/if}
+{:else}
     <AuthModal
         bind:open={showLoginModal}
         title={loginViewTitles[loginView]}

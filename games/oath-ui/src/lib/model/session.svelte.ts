@@ -1,7 +1,20 @@
-import { GameSession } from '@tabletop/frontend-components'
+import {
+    GameSession,
+    type PresentedTransition,
+    type TransitionKind
+} from '@tabletop/frontend-components'
 import { assert, assertExists, type Color, type GameAction } from '@tabletop/common'
 import {
     ActionType,
+    AnswerChronicleCitizenship,
+    CHRONICLE_CITIZENSHIP_GROUP,
+    BuildOrRepairEdifice,
+    ChooseChronicleSuit,
+    ChooseHealStack,
+    ChooseOath,
+    OfferChronicleCitizenship,
+    SkipChronicleStory,
+    WriteChronicleStory,
     AnswerConsent,
     AnswerQuestion,
     Campaign,
@@ -11,6 +24,7 @@ import {
     CampaignDefend,
     CampaignResolveVictory,
     CampaignSacrifice,
+    ClaimDealKept,
     CompleteRest,
     ConsentRequestKind,
     EndActPhase,
@@ -29,7 +43,9 @@ import {
     Peek,
     PeekTargetKind,
     HydratedLetPeek,
+    LeaveDealUnconfirmed,
     LetPeek,
+    openDealsOf,
     PlayFacedownAdviser,
     Recover,
     RecoverTargetKind,
@@ -45,9 +61,11 @@ import {
     woodPicksBeforeTravel,
     woodTravelPaysAtPick,
     SearchResolve,
+    SearchSwap,
     SelfExile,
     SetupChoice,
     Suit,
+    OathType,
     Trade,
     TradeOption,
     Travel,
@@ -61,6 +79,7 @@ import {
     type CitizenshipTerms,
     type HydratedOathGameState,
     type OathProjectedState,
+    type OpenDeal,
     type PendingConsent,
     type OpportunityTake,
     type PeekTarget,
@@ -86,6 +105,7 @@ import {
 import { warbandOwnerName } from './names.js'
 import { OathSelection } from './oathSelection.svelte.js'
 import { SearchDraft } from './searchDraft.js'
+import type { PlayToPick } from './playToSites.js'
 import { QuestionDraft } from './questionDraft.js'
 import { woodRegions, woodTravelCards, type WoodRegion } from './woodTravel.js'
 import { refusalWords, woodTravelRefusal } from './actionAvailability.js'
@@ -104,18 +124,29 @@ import {
     ConsentDraft,
     RestDraft,
     SeatCardPeekDraft,
-    WakeDraft
+    WakeDraft,
+    cardsWithListedPower
 } from './phaseDrafts.js'
 import type { PanelDraft } from './stagedFlow.svelte.js'
 import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
 import { TurnNotice } from './turnNotice.svelte.js'
 import { humanizeReason, reasonParts, siteName, type ReasonPart } from './names.js'
+import {
+    BuildPickDraft,
+    ChronicleOfferDraft,
+    ChronicleStoryDraft,
+    ChronicleSuitDraft,
+    HealStackDraft,
+    OathPickDraft
+} from './chronicleDrafts.js'
+import { carriedEntries, openingRows, type OpeningRow } from './chronicleHistory.js'
 import { phraseWarbandOwner, type HistoryNames } from './actionDescription.js'
+import { sideWarbandOwner } from './campaignLedger.js'
 import type { WarbandWhose } from './tokenText.js'
 import {
-    endingRule,
     gameEndEvent,
+    wonGame,
     historyRows,
     type HistoryRow,
     type MajorEvent,
@@ -124,6 +155,7 @@ import {
 import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
 import { letPeekKey } from './letPeekChoices.js'
 import { exileCitizenOffers, selfExileOffer } from './exileOffers.js'
+import { droppedDeals, tribunalDealRows, type TribunalDealRow } from './tribunalDeals.js'
 import {
     NO_PLAY_CARDS,
     adviserDiscardFirstOptions,
@@ -157,7 +189,13 @@ import {
 } from './recoverRows.js'
 import { searchRows, type SearchRow } from './searchRows.js'
 import { tradeModifiers, tradeRows, type TradeRow } from './tradeRows.js'
-import { samePayment, travelRows, type TravelChoice, type TravelRow } from './travelRows.js'
+import {
+    samePayment,
+    travelRows,
+    waysToShow,
+    type TravelChoice,
+    type TravelRow
+} from './travelRows.js'
 import { SetupDraft } from './setupDraft.js'
 import { actionCardUses, actionCards, type ActionCard } from './actionCards.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
@@ -173,6 +211,7 @@ import { toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
     conspiracyNoTake,
+    conspiracyPickComplete,
     conspiracyPlayOf,
     conspiracyPrizes,
     conspiracyTargets,
@@ -180,6 +219,9 @@ import {
     type ConspiracyPick,
     type TakePrizeOption
 } from './conspiracyTake.js'
+
+/** Transitions that leave the live game as it was: the winner's story survives them. */
+const KEEPS_THE_STORY: ReadonlySet<TransitionKind> = new Set(['history', 'view-switch'])
 
 export class OathGameSession extends GameSession<OathProjectedState, HydratedOathGameState> {
     selection = new OathSelection()
@@ -196,6 +238,13 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly actionPowers = new ActionPowersDraft(this)
     readonly citizenship = new CitizenshipDraft(this)
     readonly consent = new ConsentDraft(this)
+    // R-8 — the chronicle's choices.
+    readonly oathPick = new OathPickDraft(this)
+    readonly chronicleOffer = new ChronicleOfferDraft(this)
+    readonly chronicleBuild = new BuildPickDraft(this)
+    readonly chronicleSuit = new ChronicleSuitDraft(this)
+    readonly healStack = new HealStackDraft(this)
+    readonly chronicleStory = new ChronicleStoryDraft(this)
     readonly seatCardPeek = new SeatCardPeekDraft()
     readonly seatDetail = new SeatDetail(this)
     readonly goalsView = new GoalsView()
@@ -236,7 +285,13 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.citizenship,
             this.consent,
             this.campaign,
-            this.setup
+            this.setup,
+            this.oathPick,
+            this.chronicleOffer,
+            this.chronicleBuild,
+            this.chronicleSuit,
+            this.healStack,
+            this.chronicleStory
         ]
     }
 
@@ -248,13 +303,22 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     resetAction(): void {
-        this.selection.reset()
-        this.clearActionDrafts()
-        for (const draft of this.panelDrafts) draft.reset()
+        this.resetDraftsBut()
     }
 
-    override beforeNewState(): void {
-        this.resetAction()
+    private resetDraftsBut(kept?: PanelDraft): void {
+        this.selection.reset()
+        this.clearActionDrafts()
+        for (const draft of this.panelDrafts) if (draft !== kept) draft.reset()
+    }
+
+    /**
+     * Policy item 33 — each draft's lifetime by the transition kind. Stepping into History and back,
+     * or toggling full screen, leaves the live game as it was, so the winner's story stays; any
+     * other transition resets every draft.
+     */
+    override beforeNewState(transition: PresentedTransition): void {
+        this.resetDraftsBut(KEEPS_THE_STORY.has(transition.kind) ? this.chronicleStory : undefined)
     }
 
     // docs/user-interactions.md — a manual pick absorbs the press; an auto pick never does.
@@ -304,6 +368,75 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 favorSteps,
                 ...(sitePowerTake ? { sitePowerTake } : {})
             })
+        )
+    }
+
+    // R-8 — the chronicle's choices, each sent as its chooser's own action.
+    async chooseOath(oathType: OathType): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(ChooseOath, { type: ActionType.ChooseOath, oathType })
+        )
+    }
+
+    async offerChronicleCitizenship(exilePlayerIds: string[]): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(OfferChronicleCitizenship, {
+                type: ActionType.OfferChronicleCitizenship,
+                exilePlayerIds
+            })
+        )
+    }
+
+    /**
+     * R-8.2-H1 — the offered Exiles answer together: an answer joins their group, so one sent
+     * against the state before another's answer is still taken, and each can undo their own.
+     */
+    async answerChronicleCitizenship(accept: boolean): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(AnswerChronicleCitizenship, {
+                type: ActionType.AnswerChronicleCitizenship,
+                accept,
+                simultaneousGroupId: CHRONICLE_CITIZENSHIP_GROUP
+            })
+        )
+    }
+
+    async buildOrRepairEdifice(choice: { siteId: string; cardId: string } | undefined) {
+        await this.commit(
+            this.createPlayerAction(BuildOrRepairEdifice, {
+                type: ActionType.BuildOrRepairEdifice,
+                ...(choice ? { choice } : {})
+            })
+        )
+    }
+
+    async chooseChronicleSuit(suit: Suit): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(ChooseChronicleSuit, {
+                type: ActionType.ChooseChronicleSuit,
+                suit
+            })
+        )
+    }
+
+    async chooseHealStack(suit: Suit): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(ChooseHealStack, { type: ActionType.ChooseHealStack, suit })
+        )
+    }
+
+    async writeChronicleStory(text: string): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(WriteChronicleStory, {
+                type: ActionType.WriteChronicleStory,
+                text
+            })
+        )
+    }
+
+    async skipChronicleStory(): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(SkipChronicleStory, { type: ActionType.SkipChronicleStory })
         )
     }
 
@@ -639,6 +772,27 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return selfExileOffer(this.gameState, playerId)
     }
 
+    /** R-7.6.3-H1 — Resolve Tribunal's rows, while it is the staged minor action. */
+    get tribunalDealRows(): TribunalDealRow[] {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.selection.action !== ActionType.LeaveDealUnconfirmed) return []
+        return tribunalDealRows(
+            this.gameState,
+            playerId,
+            this.validActionTypes.includes(ActionType.ClaimDealKept)
+        )
+    }
+
+    /** R-7.6.3-H1 — the open deals a seat is party to, public once agreed, for any viewer. */
+    dealsOf(playerId: string): OpenDeal[] {
+        return openDealsOf(this.gameState, playerId)
+    }
+
+    /** R-7.6.3-H1 — the deals the game's ending recorded as still open, and dropped. */
+    get droppedDeals(): OpenDeal[] {
+        return droppedDeals(this.actions)
+    }
+
     chooseAdviser(cardId: string): void {
         if (this.selectableAdvisers.includes(cardId)) this.selection.set('card', cardId)
     }
@@ -927,6 +1081,45 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     /**
+     * R-5.1.4.I the People's Favor, New Growth — the open site play's "To which site": Search's
+     * kept card before its play is picked, or a facedown adviser's site play, when another site
+     * is open to it. Rows on a desktop for a few sites; otherwise the lit map (`playToOnMap`).
+     */
+    get playTo(): PlayToPick | undefined {
+        const here = this.myPlayerState?.siteId
+        if (here === undefined) return undefined
+        if (this.searchPlayToOpen) {
+            return { here, others: this.search.otherSites, picked: this.search.toSite }
+        }
+        const others = this.adviserOtherSites
+        return others.length > 0 ? { here, others, picked: this.adviserToSite } : undefined
+    }
+
+    /**
+     * A tap on a row or a lit site: the seat's own site takes back any other picked. A tap on the
+     * site already picked changes nothing, so the picks after it (a card to discard first, the
+     * discard place, a card's row) stay.
+     */
+    pickPlayToSite(siteId: string): void {
+        const playTo = this.playTo
+        assertExists(playTo, 'A site is picked for an open site play')
+        const other = siteId === playTo.here ? undefined : siteId
+        if (other === playTo.picked) return
+        if (this.searchPlayToOpen) this.search.setToSite(other)
+        else this.setAdviserToSite(other)
+    }
+
+    // R-5.1.4.I — Search's kept card may go to another site until its play is picked.
+    private get searchPlayToOpen(): boolean {
+        const search = this.search
+        return (
+            search.kept !== undefined &&
+            search.placement === undefined &&
+            search.otherSites.length > 0
+        )
+    }
+
+    /**
      * R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — a denizen discarded
      * before the site play.
      */
@@ -998,12 +1191,26 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.selection.value('whenPlayed') ?? emptyPicks()
     }
 
-    /** "Play" waits until every When Played choice has its picks, and a card to go first that the site needs. */
+    /**
+     * "Play" waits until every When Played choice has its picks, a card to go first that the site
+     * needs, and a Conspiracy take begun has its prize.
+     */
     get adviserPlayComplete(): boolean {
         return (
             picksComplete(this.adviserPlayChoices, this.adviserPlayPicks) &&
             !this.adviserFirstPending &&
-            !this.adviserDiscardPending
+            !this.adviserDiscardPending &&
+            !this.adviserTakePending
+        )
+    }
+
+    /** R-5.1.4.IV — a player picked for the Conspiracy's take, and no prize yet. */
+    private get adviserTakePending(): boolean {
+        const playerId = this.liveTurnSeatId
+        return (
+            playerId !== undefined &&
+            this.adviserPlay === SearchPlay.Conspiracy &&
+            !conspiracyPickComplete(this.gameState, playerId, this.adviserConspiracyPick)
         )
     }
 
@@ -1055,7 +1262,13 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     async confirmAdviserPlay(): Promise<void> {
         const cardId = this.adviserCardId
         const play = this.adviserPlay
-        if (!cardId || play === undefined || this.adviserPlayReason !== undefined) return
+        if (
+            !cardId ||
+            play === undefined ||
+            !this.adviserPlayComplete ||
+            this.adviserPlayReason !== undefined
+        )
+            return
         await this.playFacedownAdviser(
             cardId,
             play,
@@ -1139,6 +1352,23 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         await this.commit(this.createPlayerAction(SelfExile, { type: ActionType.SelfExile }))
     }
 
+    // R-7.6.3-H1 — ask the deal's other party to confirm it was kept.
+    async claimDealKept(dealId: string): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(ClaimDealKept, { type: ActionType.ClaimDealKept, dealId })
+        )
+    }
+
+    // R-7.6.3-H1 — close the deal for both parties, asking no one.
+    async leaveDealUnconfirmed(dealId: string): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(LeaveDealUnconfirmed, {
+                type: ActionType.LeaveDealUnconfirmed,
+                dealId
+            })
+        )
+    }
+
     async offerCitizenship(
         exilePlayerId: string,
         reliquarySlotId: string,
@@ -1216,12 +1446,22 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 pickable: pick.pickable && slotId !== pick.picked
             }))
         }
+        const playTo = this.playTo
+        if (playTo) {
+            const ringed = playTo.picked ?? playTo.here
+            return [playTo.here, ...playTo.others].map((slotId) => ({
+                slotId,
+                intent: 'playTo',
+                picked: slotId === ringed
+            }))
+        }
         switch (this.selection.action) {
             case ActionType.Campaign:
                 return sites.map((slotId) => ({
                     slotId,
                     intent: 'target',
-                    targeted: this.campaign.isTargetedSite(slotId)
+                    targeted: this.campaign.isTargetedSite(slotId),
+                    pickable: this.campaign.isOfferedSite(slotId)
                 }))
             case ActionType.MoveWarbands:
                 return sites.map((slotId) => ({ slotId, intent: 'moveWarbands' }))
@@ -1268,8 +1508,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
      * A choice made by tapping the map, which a phone frames while its step is open: Setup's start
      * sites, all of them until the send, so the frame and its chips hold while the discards are
      * ordered; Travel's destinations; where the spoils banish the defeated pawn; a Travel
-     * question's sites (the Shrouded Wood ruler's pick, the Brass Horse user's own); or the sites
-     * the powers in Use a power can take. Each names the pawn it moves, whose region it opens on.
+     * question's sites (the Shrouded Wood ruler's pick, the Brass Horse user's own); the sites
+     * the powers in Use a power can take; or where a site play goes. Each names the pawn it moves
+     * (a site play's, the seat's own), whose region it opens on.
      */
     get mapPick(): MapPick | undefined {
         const moverId = this.liveTurnSeatId
@@ -1306,8 +1547,19 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const powerSites = this.siteOffers.flatMap((offer) =>
             offer.intent === 'power' ? [offer.slotId] : []
         )
-        return powerSites.length > 0
-            ? { kind: 'power', sites: powerSites, choosing: true, moverId }
+        if (powerSites.length > 0) {
+            return { kind: 'power', sites: powerSites, choosing: true, moverId }
+        }
+        // R-8.3.1 — the sites holding the winner's ringed cards; no pawn moves, so the first region.
+        const buildSites = [...new Set(this.chronicleBuild.choices.map(({ siteId }) => siteId))]
+        if (buildSites.length > 0) {
+            return { kind: 'build', sites: buildSites, choosing: true, moverId: undefined }
+        }
+        const playToSites = this.siteOffers.flatMap((offer) =>
+            offer.intent === 'playTo' ? [offer.slotId] : []
+        )
+        return playToSites.length > 0
+            ? { kind: 'playTo', sites: playToSites, choosing: true, moverId }
             : undefined
     }
 
@@ -1323,7 +1575,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (this.selection.action === ActionType.Muster) {
             return this.musterRows.map((row) => row.cardId)
         }
-        return []
+        // R-8.3.1 — every legal build or repair stays ringed; the tapped one is pointed.
+        return this.chronicleBuild.ringed
     }
 
     // R-5.3.2, R-7.4 — every trade at the site, each priced with the cards in use that fit it.
@@ -1495,16 +1748,26 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return historyRows(this.actions, this.majorEventContext)
     }
 
+    /** The record's entries this game carried in, newest first. */
+    get carriedEntries() {
+        return carriedEntries(this.gameState)
+    }
+
+    /** R-1.7-H1, R-1.9-H1 — how a continued game's seats were settled, oldest first. */
+    get openingRows(): OpeningRow[] {
+        return openingRows(this.gameState, this.myPlayer?.id)
+    }
+
     /** R-3 — the finished game's top row: its winner, its ending, its title or Vision. */
     get gameEndRow(): (MajorEvent & { sentence: string }) | undefined {
         const state = this.gameState
-        const [winnerId] = state.winningPlayerIds
-        const rule = endingRule(this.actions)
-        if (winnerId === undefined || rule === undefined) return undefined
-        return gameEndEvent(state, winnerId, rule, this.majorEventContext)
+        // R-8 — a won game is finished once its chronicle is written and the result set.
+        if (state.result === undefined) return undefined
+        const won = wonGame(state, this.actions)
+        return won ? gameEndEvent(state, won, this.majorEventContext) : undefined
     }
 
-    private get majorEventContext(): Omit<MajorEventContext, 'campaign'> {
+    private get majorEventContext(): MajorEventContext {
         return {
             viewerId: this.myPlayer?.id,
             nameOf: (playerId) => this.getPlayerName(playerId),
@@ -1525,6 +1788,17 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         }
     }
 
+    /** R-10.13 — a Campaign ledger line's warbands: those its words name, else the side's own. */
+    ledgerWarbandColor(seatId: string | undefined): (whose: WarbandWhose) => Color {
+        const reader = { names: this.historyNames, viewerId: this.myPlayer?.id }
+        return (whose) => {
+            const owner = sideWarbandOwner(whose, seatId, reader, (playerId) =>
+                ownWarbandOwner(this.gameState, playerId)
+            )
+            return this.warbandColor(owner ?? IMPERIAL_WARBANDS)
+        }
+    }
+
     warbandOwnerName(owner: WarbandOwner): string {
         return warbandOwnerName(owner, (playerId) => this.getPlayerName(playerId))
     }
@@ -1535,6 +1809,35 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (type === ActionType.Campaign) this.campaign.begin()
         // R-7.4 — the action's free gains start in use; a tap puts one down.
         this.modifiers.seed()
+    }
+
+    /**
+     * R-6.2 — in this seat's Act Phase, the cards whose power Use a power lists, each wearing a
+     * "Use" badge where it lies: while Use a power is offered and nothing else is staged.
+     */
+    get powerBadgeCards(): string[] {
+        const playerId = this.liveTurnSeatId
+        const action = this.selection.action
+        if (
+            !playerId ||
+            this.gameState.machineState !== MachineState.ActPhase ||
+            !this.validActionTypes.includes(ActionType.UseActionPower) ||
+            (action !== undefined && action !== ActionType.UseActionPower)
+        ) {
+            return []
+        }
+        return cardsWithListedPower(this.gameState, playerId)
+    }
+
+    /**
+     * A card's "Use" badge: Use a power opened on that card's powers alone, with no picks; nothing
+     * is sent.
+     */
+    openCardPower(cardId: string): void {
+        if (!this.powerBadgeCards.includes(cardId)) return
+        if (this.selection.value('powerCard') !== cardId) this.clearActionDrafts()
+        this.chooseAction(ActionType.UseActionPower)
+        this.selection.set('powerCard', cardId)
     }
 
     /** R-7.4 — the cards behind "Use a power" that change an action's menu, or make it possible. */
@@ -1610,6 +1913,17 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         this.selection.set('card', cardId)
         this.selection.set('option', option)
         await this.trade(cardId, option)
+    }
+
+    /** Great Spire — the drawn denizens picked go to the Dispossessed, random ones come in (R-10.25). */
+    async searchSwap(swappedCardIds: string[]): Promise<void> {
+        await this.commit(
+            this.createPlayerAction(SearchSwap, {
+                type: ActionType.SearchSwap,
+                swappedCardIds,
+                revealsInfo: true
+            })
+        )
     }
 
     async resolveSearch(resolution: SearchResolveChoice): Promise<void> {
@@ -1697,12 +2011,18 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    // R-5.6, R-7.1.4 — every destination with its ways to pay.
+    /**
+     * R-5.6, R-7.1.4 — every destination with the ways to pay it shows: where one costs nothing,
+     * that way alone, so the map's chip, the Travel row and a tap on the map agree.
+     */
     get travelRows(): TravelRow[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Travel) return []
         if (this.shroudedWoodChooser || this.modifiers.picksPending) return []
-        return travelRows(this.gameState, playerId, this.modifiers.declared)
+        return travelRows(this.gameState, playerId, this.modifiers.declared).map((row) => ({
+            ...row,
+            ways: waysToShow(row.ways)
+        }))
     }
 
     /** R-11.12 — the destination a map pick opened, with its ways to pay, while it is still offered. */

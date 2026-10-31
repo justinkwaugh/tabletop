@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { RolledDefenseFace } from '@tabletop/oath'
     import { defenseFaceImage } from '$lib/images/diceImages.js'
-    import { plural } from '$lib/model/names.js'
+    import { defenseFaceWords } from '$lib/model/diceWords.js'
 
     // R-5.5.4 — rolled defense faces, one die each, laid out by the row that holds them.
     let { faces }: { faces: readonly RolledDefenseFace[] } = $props()
@@ -9,14 +9,7 @@
 
 {#each faces as face, index (index)}
     <span class="die">
-        <img
-            src={defenseFaceImage(face)}
-            alt={face.doubling
-                ? 'Doubles the shields rolled'
-                : face.shields === 0
-                  ? 'Blank'
-                  : plural(face.shields, 'shield')}
-        />
+        <img src={defenseFaceImage(face)} alt={defenseFaceWords(face)} />
     </span>
 {/each}
 

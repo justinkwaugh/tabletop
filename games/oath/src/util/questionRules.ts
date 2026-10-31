@@ -12,7 +12,8 @@ import {
 } from '../model/question.js'
 import { offerReroll, settleRoll } from './reroll.js'
 import { CONSPIRACY_ID } from '../data/cardRegistry.js'
-import { cardPowers, type CardPower, type PowerUseKey } from '../data/cardPowers.js'
+import type { CardPower, PowerUseKey } from '../data/cardPowers.js'
+import { powerInPlay } from './powersInPlay.js'
 import { payPowerCost, reasonCannotPayPowerCost } from './powerCost.js'
 import { pawnSiteId, regionOfPawn } from './pawn.js'
 import type { SiteFlip } from './hiddenInputs.js'
@@ -37,6 +38,8 @@ import {
 } from './relics.js'
 import { askQuestion } from './questions.js'
 import type { QuestionRules } from './questionAnswers.js'
+import { settleEndDie } from './endDie.js'
+import { endDieThreshold } from './victory.js'
 import {
     discardAdvisersToMeetLimit,
     reasonAdviserLimitDiscardsInvalid,
@@ -45,9 +48,11 @@ import {
 import {
     GATHERING_ALLOWS,
     applyExchange,
+    openDealFrom,
     reasonExchangeInvalid,
     reasonTermsOutsideCard
 } from './exchange.js'
+import { answerDealKept, reasonDealKeptInvalid } from './deals.js'
 import { GRAND_SCEPTER_ID, OBSIDIAN_CAGE_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
 import {
@@ -228,7 +233,7 @@ function reasonCannotUsePowerToReroll(
     playerId: string,
     question: PowerUseKey
 ): string | undefined {
-    const power = cardPowers(question.cardId)[question.powerIndex]
+    const power = powerInPlay(state, question.cardId, question.powerIndex)
     return power ? reasonCannotPayPowerCost(state, playerId, power) : 'the power is not in play'
 }
 
@@ -247,7 +252,7 @@ function rerollStanding(
 }
 
 function powerForQuestion(state: HydratedOathGameState, question: PowerUseKey): CardPower {
-    const power = cardPowers(question.cardId)[question.powerIndex]
+    const power = powerInPlay(state, question.cardId, question.powerIndex)
     assertExists(power, `${question.cardId} power ${question.powerIndex} is not in play`)
     return power
 }
@@ -312,11 +317,15 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (!matched.answer.accept) return `refused ${proposerPlayerId}'s exchange`
             const applied = applyExchange(state, proposerPlayerId, playerId, terms)
             settleAdviserLimitsAfterExchange(state, proposerPlayerId, cardId, applied.advisersMoved)
+            // R-7.6.3-H1 — a promise accepted opens a public deal; the summary quotes none.
+            const openedDeal = openDealFrom(state, proposerPlayerId, playerId, terms)
+            if (openedDeal) state.openDeals = [...(state.openDeals ?? []), openedDeal]
             return {
                 summary: `accepted ${proposerPlayerId}'s exchange`,
                 disclosed: applied.disclosed,
                 // R-2.11-H1 — each binding exchange is its own moment for the title.
-                titleMoment: true
+                titleMoment: true,
+                openedDeal
             }
         }
     },
@@ -1013,7 +1022,43 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 pileDeposits
             }
         }
+    },
+    [PowerQuestionKind.DealKept]: {
+        reasonCannotAnswer: (state, _playerId, matched) =>
+            reasonDealKeptInvalid(state, matched.question),
+        // R-7.6.3-H1 — the asked party's word closes the deal, or leaves it open.
+        apply: (state, _playerId, matched) =>
+            answerDealKept(state, matched.question, matched.answer.kept)
+    },
+    [PowerQuestionKind.AdjustEndDie]: {
+        reasonCannotAnswer: () => undefined,
+        // Squalid District — the roll read as the ruler left it: a 6 raised to 7 still ends the game
+        // (its Q&A), a 2 lowered to 1 in round seven ends nothing.
+        apply: (state, _playerId, matched) => {
+            const rolled = matched.question.roll
+            // The round the die was rolled for: it is still open while its ruler is asked.
+            const round = state.round
+            const threshold = endDieThreshold(round)
+            assertExists(threshold, `R-3.3 — round ${round} rolls the end die`)
+            const roll = rolled + matched.answer.by
+            const settled = settleEndDie(state, roll)
+            return {
+                summary: endDieAnswerWords(matched.answer.by, roll),
+                endDie: { rolled, roll, round, threshold, ...settled },
+                resumeMachineState:
+                    state.winningPlayerIds.length > 0
+                        ? MachineState.EndOfGame
+                        : MachineState.WakePhase
+            }
+        }
     }
+}
+
+/** Squalid District — "lowered the end die to 4", "raised …", "left the end die at 5". */
+function endDieAnswerWords(by: number, roll: number): string {
+    if (by < 0) return `lowered the end die to ${roll}`
+    if (by > 0) return `raised the end die to ${roll}`
+    return `left the end die at ${roll}`
 }
 
 /** R-11.13-H2 — the History names each flipped secret: "a secret", "2 secrets". */

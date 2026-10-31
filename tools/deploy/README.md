@@ -233,6 +233,22 @@ instance activates during its next request, which waits for the load. No process
 no UI republish is needed for a logic change. See
 [ADR 0011](../../docs/adr/0011-game-logic-runs-as-collectible-factories.md).
 
+Production reads the mutable manifest through the authenticated Cloud Storage API when Redis
+needs filling. Game artifacts still come from the mounted bucket. Reading the manifest through
+the mount can return cached metadata after an upload and refill Redis with an older publication.
+Local development continues to read its staged manifest file.
+
+The activation response includes a `publication` signature identifying the served frontend and
+every selected game package, logic version, and UI version. The deploy tool compares it with the
+manifest it uploaded and fails if the backend reports a different selection or cannot confirm
+one. Publication history and game ordering do not affect the signature.
+
+Roll out this activation protocol by releasing the backend before using the updated deploy tool
+to publish games or the frontend. Backend deployment supplies `SITE_MANIFEST_GCS_URI` from
+`gcsBucket`; both runtime services require it and use their application credentials to read that
+object. Their service accounts need object-read access to the bucket, as they do for the mount.
+Cloud Storage read failures fail activation instead of falling back to the mounted manifest.
+
 Artifacts published before the build emitted the factory are imported the old way and stay
 resident until the worker restarts. `migrate-logic-artifacts` lists each title's current logic
 version that lacks it and, with `--apply`, builds it from the published ESM bundle and uploads it
@@ -362,7 +378,6 @@ Environment overrides:
 - `TABLETOP_BACKEND_ADMIN_URL`
 - `TABLETOP_BACKEND_ADMIN_USER`
 - `TABLETOP_BACKEND_ADMIN_PASSWORD`
-- `TABLETOP_BACKEND_ADMIN_TOKEN`
 - `TABLETOP_BACKEND_ADMIN_COOKIE`
 - `TABLETOP_BACKEND_IMAGE`
 - `TABLETOP_BACKEND_SERVICE`
@@ -375,7 +390,8 @@ Environment overrides:
 Notes:
 
 - `backend.image` is required for backend deploys; the release version becomes its tag.
-- `backendAdmin` is required to invalidate the manifest cache after deploys; provide a cookie, token, or username/password.
+- `backendAdmin` is required to invalidate the manifest cache after deploys; provide `username` and `password` for an Administrator Account, or an existing session `cookie`. The tool signs in with `POST /api/v1/auth/login` and sends the session cookie to the invalidate URL. A publish refuses to start without usable credentials, so a missing credential is found before anything is uploaded. `migrate-logic-artifacts` only reads and uploads bucket objects and never invalidates, so it needs `gcsBucket` alone.
+- `backendAdmin.token` and `TABLETOP_BACKEND_ADMIN_TOKEN` are no longer supported: the backend's challenge-token login was removed (security audit S06, PR #221) because emailed challenges are now single-use and bound to one operation. A config that carries only a token is refused with a migration message; a leftover token beside supported credentials is ignored and reported, never sent. To migrate, put the Administrator's `username` and `password` in `deploy.config.json` (or the environment overrides above) and delete the token.
 - When `CLOUDSDK_PYTHON` is unset, deploy commands automatically pick the first supported local Python (`python3.12`, `python3.11`, `python3.10`, then `python3`) and use it for `gcloud`/`gsutil`.
 
 ## Notes

@@ -15,8 +15,9 @@
     import FavorCost from '$lib/components/FavorCost.svelte'
     import PowerMovesPicker from '$lib/components/PowerMovesPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName } from '$lib/model/names.js'
+    import { powerCardName } from '$lib/model/names.js'
     import { pickerWords } from '$lib/model/powerPickerWords.js'
+    import { awaitsFirstPick } from '$lib/model/powerChoices.js'
     import { MAJOR_ACTIONS } from '$lib/model/actionCatalogue.js'
     import CardLine from '$lib/components/CardLine.svelte'
     import {
@@ -42,8 +43,9 @@
         return draft.reasonCannotUse(p)
     }
 
-    // R-7.4 — the cards that change an action: found here, used in that action's menu.
-    let cards = $derived(gameSession.actionCards)
+    // R-7.4 — the cards that change an action: found here, used in that action's menu. Opened
+    // from a card's "Use" badge, the panel holds that card's powers alone.
+    let cards = $derived(draft.card === undefined ? gameSession.actionCards : [])
     let groups = $derived(
         [
             { heading: 'Makes an action possible', kind: 'makesPossible' },
@@ -70,7 +72,7 @@
     }
     function entryLine(card: ActionCard): string {
         return actionCardUses(card)
-            .map((use) => actionCardLine(use.cardId))
+            .map((use) => actionCardLine(use.cardId, gameSession.gameState))
             .filter((line) => line !== '')
             .join(' · ')
     }
@@ -89,11 +91,14 @@
     reason: string | undefined,
     cost: string | undefined
 )}
-    <!-- "Use" waits for complete picks; complete picks the engine refuses show its reason instead. -->
+    <!-- "Use" waits for complete picks; complete picks the engine refuses show its reason instead,
+         once there is a pick to judge (the Ivory Eye's are all optional, so complete from the start). -->
     {#if complete && reason}
-        <p class="text-[11px] text-oath-danger">
-            <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
-        </p>
+        {#if !awaitsFirstPick(p.choices, draft.picksOf(p))}
+            <p class="text-[11px] text-oath-danger">
+                <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
+            </p>
+        {/if}
     {:else if complete}
         <button
             class="mt-1 inline-flex items-center gap-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 border-[1.5px] border-oath-primary-border px-2 py-0.5 text-xs max-sm:min-h-11"
@@ -117,13 +122,13 @@
         {#each group.cards as card (actionCardKey(card))}
             {@const action = actionName(card)}
             {@const uses = actionCardUses(card)}
-            {@const name = uses.map((use) => cardName(use.cardId)).join(' + ')}
+            {@const name = uses.map((use) => powerCardName(use.cardId, use.powerIndex)).join(' + ')}
             <div
                 class="border-t border-oath-divider pt-1.5 flex gap-2 items-start"
                 data-action-card={uses.map((use) => use.cardId).join(' ')}
             >
                 {#each uses as use (use.cardId)}
-                    {@const cardLabel = cardName(use.cardId)}
+                    {@const cardLabel = powerCardName(use.cardId, use.powerIndex)}
                     <span class="relative inline-flex shrink-0">
                         <CardImage cardId={use.cardId} width={64} label={cardLabel} inspect />
                         <Magnifier
@@ -162,7 +167,7 @@
     {/if}
     {#each draft.powers as p (powerKey(p.cardId, p.powerIndex))}
         {@const reason = reasonFor(p)}
-        {@const name = cardName(p.cardId)}
+        {@const name = powerCardName(p.cardId, p.powerIndex)}
         {@const cost = useCost(p)}
         {@const moves = draft.movesOf(p)}
         {@const complete = draft.picksComplete(p)}
@@ -193,7 +198,6 @@
                     {#if p.choices.length > 0}
                         <div class="mt-1">
                             <PowerChoicePicker
-                                tallOnPhone
                                 choices={p.choices}
                                 bind:picks={
                                     () => draft.picksOf(p), (picks) => draft.setPicks(p, picks)

@@ -1,10 +1,12 @@
 import Fastify from 'fastify'
 import rawBody from 'fastify-raw-body'
 import { app } from './app/app.js'
+import { LoggingBoundary } from './app/lib/logging.js'
 import { installHandlerDrain } from './runtime/handlerDrain.js'
 import { ajvOptions } from './runtime/ajvOptions.js'
 import { lazyValidatorCompiler } from './runtime/lazyValidation.js'
 import type { TitleLoadMessage } from './runtime/backendChild.js'
+import { trustedProxyChain } from './runtime/clientAddress.js'
 
 if (!process.send) throw new Error('Backend worker requires a supervisor IPC channel')
 const send = process.send.bind(process)
@@ -24,14 +26,16 @@ async function whileLoadingTitle<T>(load: () => Promise<T>): Promise<T> {
     }
 }
 
+const logging = new LoggingBoundary()
 const server = Fastify({
-    logger: true,
-    trustProxy: '127.0.0.1',
+    logger: logging.loggerOptions,
+    trustProxy: trustedProxyChain(process.env['K_SERVICE'] ?? 'local'),
     ajv: ajvOptions,
     // The supervisor bounds startup; a replacement starting beside a serving child on a
     // throttled CPU can take far longer than a fresh instance.
     pluginTimeout: 0
 })
+logging.observeRoutes(server)
 server.setValidatorCompiler(lazyValidatorCompiler(() => server.getSchemas(), ajvOptions))
 installHandlerDrain(server)
 server.get('/__health/ready', () => ({ status: 'ready' }))

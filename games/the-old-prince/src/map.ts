@@ -82,6 +82,7 @@ const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
     N18: [
         {
             id: 'vernon-river-bridge',
+            privateCompanyId: 'VR',
             label: 'VR',
             description:
                 'Construction requires the Vernon River Bridge owner’s consent until that private closes.'

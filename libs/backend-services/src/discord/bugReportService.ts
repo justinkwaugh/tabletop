@@ -1,5 +1,6 @@
 import {
     ExternalAuthService,
+    GameState,
     Role,
     scenarioFromGame,
     type BugReportRequest,
@@ -14,7 +15,8 @@ import { GameService } from '../games/gameService.js'
 import { GameNotFoundError } from '../games/errors.js'
 import { UserService } from '../users/userService.js'
 import { DiscordBotApi, type DiscordFile } from './discordBotApi.js'
-import { bugReportPost, type ScenarioAttachment } from './bugReportPost.js'
+import { bugReportPost, ReportedGame, type ScenarioAttachment } from './bugReportPost.js'
+import { InvalidLocalGameError } from './errors.js'
 
 export type BugReportDestination = {
     forumChannelId: string
@@ -24,6 +26,21 @@ export type BugReportDestination = {
 const OPEN_TAG_NAME = 'open'
 // Discord's upload limit for servers without boosts, for all of a message's files together.
 const MAX_ATTACHMENT_BYTES = 10_000_000
+
+const LocalScenario = Compile(
+    Type.Object({
+        game: ReportedGame,
+        state: Type.Pick(GameState, ['actionCount']),
+        actions: Type.Array(Type.Unknown())
+    })
+)
+
+type ReportedGameData = {
+    game: ReportedGame
+    liveActionCount: number | undefined
+    scenarioFile: DiscordFile | undefined
+    storedLocally: boolean
+}
 
 const ForumTags = Compile(
     Type.Object({
@@ -42,17 +59,11 @@ export class BugReportService {
     ) {}
 
     async reportBug({ user, report }: { user: User; report: BugReportRequest }): Promise<void> {
-        const data = await this.gameService.getGameData(report.gameId)
-        if (!data) {
-            throw new GameNotFoundError({ id: report.gameId })
-        }
-        const { game, actions } = data
-        if (!user.roles.includes(Role.Admin)) {
-            this.gameService.findValidPlayerForUser({ user, game })
-        }
+        const { game, liveActionCount, scenarioFile, storedLocally } = report.localGame
+            ? await this.localGameData(report.gameId, report.localGame)
+            : await this.hostedGameData(user, report.gameId)
 
         const openTagId = await this.findOpenTagId()
-        const scenarioFile = this.scenarioFile(game, actions)
         const scenario = this.scenarioAttachment(scenarioFile)
         const scenarioFiles = scenarioFile && scenario?.attached ? [scenarioFile] : []
         const screenshots = report.screenshots ?? []
@@ -68,7 +79,8 @@ export class BugReportService {
                 username: user.username ?? user.id,
                 discordUserId: this.userService.extractExternalId(user, ExternalAuthService.Discord)
             },
-            liveActionCount: game.state?.actionCount,
+            liveActionCount,
+            storedLocally,
             appliedTagIds: openTagId ? [openTagId] : [],
             reportedAt: new Date(),
             scenario,
@@ -88,17 +100,59 @@ export class BugReportService {
         }
     }
 
+    private async hostedGameData(user: User, gameId: string): Promise<ReportedGameData> {
+        const data = await this.gameService.getGameData(gameId)
+        if (!data) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+        const { game, actions } = data
+        if (!user.roles.includes(Role.Admin)) {
+            this.gameService.findValidPlayerForUser({ user, game })
+        }
+        return {
+            game,
+            liveActionCount: game.state?.actionCount,
+            scenarioFile: this.scenarioFile(game, actions),
+            storedLocally: false
+        }
+    }
+
+    // A hosted game must go through the player check, so it cannot be sent as a scenario.
+    private async localGameData(gameId: string, scenarioJson: string): Promise<ReportedGameData> {
+        if (await this.gameService.getGame({ gameId })) {
+            throw new InvalidLocalGameError({ id: gameId })
+        }
+        let scenario: unknown
+        try {
+            scenario = JSON.parse(scenarioJson)
+        } catch {
+            throw new InvalidLocalGameError({ id: gameId })
+        }
+        if (!LocalScenario.Check(scenario) || scenario.game.id !== gameId) {
+            throw new InvalidLocalGameError({ id: gameId })
+        }
+        return {
+            game: scenario.game,
+            liveActionCount: scenario.state.actionCount,
+            scenarioFile: this.scenarioFileNamed(gameId, scenarioJson),
+            storedLocally: true
+        }
+    }
+
     // The file is a dev harness scenario: opened with Load from file…, it shows the game as reported.
     private scenarioFile(game: Game, actions: GameAction[]): DiscordFile | undefined {
         const state = game.state
         if (!state) {
             return undefined
         }
-        return {
-            filename: `bug-report-${game.id}.json`,
-            contentType: 'application/json',
-            content: JSON.stringify(scenarioFromGame({ ...game, state }, actions))
-        }
+        return this.scenarioFileNamed(
+            game.id,
+            JSON.stringify(scenarioFromGame({ ...game, state }, actions))
+        )
+    }
+
+    private scenarioFileNamed(gameId: string, content: string): DiscordFile {
+        return { filename: `bug-report-${gameId}.json`, contentType: 'application/json', content }
     }
 
     private filesWithin(budget: number, files: readonly DiscordFile[]): DiscordFile[] {

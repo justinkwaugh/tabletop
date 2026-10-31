@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { authSession } from '../../../lib/session.js'
+import { passwordAuthenticationBudget } from '../../../lib/operationBudget.js'
 
 type LoginRequest = Static<typeof LoginRequest>
 const LoginRequest = Type.Object({
@@ -13,7 +14,11 @@ export default async function (fastify: FastifyInstance) {
         '/login',
         {
             config: { rateLimit: { max: 50, timeWindow: '1 minute' } },
-            schema: { body: LoginRequest }
+            schema: { body: LoginRequest },
+            preHandler: passwordAuthenticationBudget<{ Body: LoginRequest }>(
+                fastify,
+                (request) => request.body.username
+            )
         },
         async function (request, reply) {
             const { username, password } = request.body
@@ -22,8 +27,13 @@ export default async function (fastify: FastifyInstance) {
                 await reply.code(401).send()
                 return
             }
-            fastify.log.info(`Found authed user ${JSON.stringify(user)}`)
-            authSession({ session: request.session, userId: user.id })
+            await authSession({
+                session: request.session,
+                user,
+                proof: 'authentication-method',
+                sessions: fastify.sessionService
+            })
+            request.log.info({ userId: user.id }, 'Password login succeeded')
 
             return { status: 'ok', payload: { user } }
         }

@@ -18,24 +18,21 @@
         stalledGameEndsAt
     } from '@tabletop/common'
     import { isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
+    import { bgStatsPlayUrl } from '$lib/utils/bgStats'
+    import { recordedFinalScores } from '$lib/utils/gameScores'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
-    import { publicGameShareLink } from '$lib/utils/publicGameInvitation'
+    import { gameShareLink } from '$lib/utils/gameLinks'
     import { startCountdownText } from '$lib/utils/startCountdown'
+    import { minuteClock, secondClock, timeSince } from '$lib/utils/clock.svelte'
     import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
-    import {
-        copyTextToClipboard,
-        createTimeAgo,
-        GameEditForm,
-        getAppContext
-    } from '@tabletop/frontend-components'
-
-    const timeAgo = createTimeAgo()
+    import GameProgressBar from './GameProgressBar.svelte'
+    import { copyTextToClipboard, GameEditForm, getAppContext } from '@tabletop/frontend-components'
 
     const ending = { border: '!border-red-600', label: 'text-red-500', value: 'text-red-400' }
     const stallColors: Record<GameStallLevel, { border: string; label: string; value: string }> = {
@@ -78,7 +75,7 @@
     let isExpanded = $derived(expanded ? true : false)
 
     let sessionUser = $derived(authorizationService.getSessionUser())
-    let shareLink = $derived(publicGameShareLink(game))
+    let shareLink = $derived(gameShareLink(game))
     let isOwnedByMe = $derived(sessionUser?.id === game.ownerId)
     let sortedPlayers = $derived(
         game.players.toSorted(
@@ -146,27 +143,21 @@
             myPlayer?.status === PlayerStatus.Joined
     )
 
-    let now = $state(Date.now())
     let autoStartAt = $derived(
         game.status === GameStatus.WaitingToStart && game.autoStartAt
             ? new Date(game.autoStartAt).getTime()
             : undefined
     )
     let autoStartText = $derived(
-        autoStartAt === undefined ? undefined : startCountdownText(autoStartAt, now)
+        autoStartAt === undefined
+            ? undefined
+            : startCountdownText(autoStartAt, secondClock.now.getTime())
     )
-
-    $effect(() => {
-        if (autoStartAt === undefined) return
-        const tick = () => (now = Date.now())
-        tick()
-        const clock = setInterval(tick, 1000)
-        return () => clearInterval(clock)
-    })
 
     let isMyTurn = $derived(isUsersNonHotseatTurn(game, sessionUser?.id))
 
-    let stallLevel = $derived(gameStallLevel(game, new Date()))
+    let currentTime = $derived(minuteClock.now)
+    let stallLevel = $derived(gameStallLevel(game, currentTime))
     let stallColor = $derived(stallColors[stallLevel])
 
     let openSeats = $derived(
@@ -183,11 +174,30 @@
         return game.seed
     })
 
-    function toggleExpand() {
-        if (!canToggle) {
-            return
-        }
+    function toggleExpand(event: Event) {
+        event.stopPropagation()
         isExpanded = !isExpanded
+    }
+
+    let collapsedButton = $derived.by(() => {
+        if (canJoin) return 'join'
+        if (canStart) return 'start'
+        if (canEdit) return 'edit'
+        if (canPlay || canWatch) return 'enter'
+        if (canRevisit) return 'revisit'
+        return undefined
+    })
+    let opensFromCard = $derived(
+        !isExpanded && (collapsedButton === 'enter' || collapsedButton === 'revisit')
+    )
+
+    // Spreads the button's hit area over the card's top-right corner; the card's overflow clips it
+    const cornerHitArea =
+        'h-[20px] relative before:absolute before:-top-8 before:-right-40 before:-bottom-2 before:-left-1'
+
+    function openFromCard(event: MouseEvent) {
+        if (window.getSelection()?.isCollapsed === false) return
+        playGame(event)
     }
 
     async function joinGame(event: Event) {
@@ -304,7 +314,7 @@
             case GameStallLevel.AtRisk:
                 return 'Stalling'
             case GameStallLevel.Ending: {
-                const days = daysUntilStalledGameEnds(game, new Date())
+                const days = daysUntilStalledGameEnds(game, currentTime)
                 return days === 1 ? 'Ends in 1 day' : `Ends in ${days} days`
             }
             default:
@@ -340,6 +350,8 @@
     }
 
     let title = $derived.by(() => titlesById[game.typeId])
+    let finalScores = $derived(recordedFinalScores(game, title?.info.metadata))
+    let bgStatsUrl = $derived(bgStatsPlayUrl(game, title?.info.metadata, sessionUser))
     let displayableConfigs = $derived(
         gameCardOptions(game.config ?? {}, title?.info.configurator ?? [])
     )
@@ -365,8 +377,8 @@
 {/snippet}
 
 <Card
-    onclick={toggleExpand}
-    class={`min-w-[310px] mx-2 mb-1 ${gameCardAppearance} ${stallColor.border} ${className}`}
+    onclick={opensFromCard ? openFromCard : undefined}
+    class={`min-w-[310px] mx-2 mb-1 ${gameCardAppearance} ${stallColor.border} ${opensFromCard ? 'cursor-pointer' : ''} ${className}`}
     size="sm"
 >
     <div class="flex flex-col">
@@ -414,34 +426,34 @@
                             {/if}
                             {#if !isExpanded}
                                 <div class="text-nowrap">
-                                    {#if canJoin}
+                                    {#if collapsedButton === 'join'}
                                         <Button
                                             size="xs"
                                             color="green"
-                                            class="h-[20px]"
+                                            class={cornerHitArea}
                                             onclick={joinGame}>Join</Button
                                         >
-                                    {:else if canStart}
+                                    {:else if collapsedButton === 'start'}
                                         <Button
                                             size="xs"
                                             color="primary"
-                                            class="h-[20px]"
+                                            class={cornerHitArea}
                                             onclick={startGame}>Start</Button
                                         >
-                                    {:else if canEdit}
+                                    {:else if collapsedButton === 'edit'}
                                         <Button
                                             size="xs"
                                             color="blue"
-                                            class="h-[20px]"
+                                            class={cornerHitArea}
                                             onclick={editGame}>Edit</Button
                                         >
-                                    {:else if canPlay || canWatch}
+                                    {:else if collapsedButton === 'enter'}
                                         {@render gameEntryButton(
                                             isMyTurn ? 'Your Turn' : canPlay ? 'Enter' : 'Watch',
                                             isMyTurn ? 'yellow' : 'primary',
                                             'h-[20px]'
                                         )}
-                                    {:else if canRevisit}
+                                    {:else if collapsedButton === 'revisit'}
                                         {@render gameEntryButton(
                                             'Revisit',
                                             'light',
@@ -470,6 +482,9 @@
                             {/if}
                         </div>
                     </div>
+                    {#if game.status === GameStatus.Started && game.progress}
+                        <GameProgressBar progress={game.progress} class="pb-1.5" />
+                    {/if}
                     <div class="flex flex-row justify-between items-start text-white">
                         {#if game.status === GameStatus.Started}
                             <div class="flex flex-col justify-start items-start">
@@ -530,7 +545,7 @@
                                     {stallText()}
                                 </div>
                                 <div class="text-xs {stallColor.value}">
-                                    {timeAgo.format(lastMoveAt(game))}
+                                    {timeSince(lastMoveAt(game))}
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Started && game.lastActionAt}
@@ -542,7 +557,7 @@
                                     Last Action
                                 </div>
                                 <div class="text-xs text-gray-400">
-                                    {timeAgo.format(new Date(game.lastActionAt))}
+                                    {timeSince(new Date(game.lastActionAt))}
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Finished}
@@ -555,7 +570,7 @@
                                 </div>
                                 {#if game.finishedAt}
                                     <div class="text-xs text-gray-400">
-                                        {timeAgo.format(new Date(game.finishedAt))}
+                                        {timeSince(new Date(game.finishedAt))}
                                     </div>
                                 {/if}
                             </div>
@@ -571,7 +586,7 @@
                                     {#if openSeats === 0}
                                         None
                                     {:else}
-                                        {openSeats}/{totalSeats}
+                                        {openSeats}
                                     {/if}
                                 </div>
                             </div>
@@ -602,10 +617,13 @@
                     <div class="flex flex-col text-sm">
                         <div class="flex flex-row justify-between">
                             <div class="text-xs font-semibold">PLAYERS</div>
+                            {#if finalScores}
+                                <div class="text-xs font-semibold">SCORE</div>
+                            {/if}
                         </div>
                         <Hr class="mt-1 mb-1" />
                         {#each sortedPlayers as player (player.id)}
-                            <div class="flex flex-row justify-between">
+                            <div class="flex flex-row justify-between gap-3">
                                 <div
                                     class={isActive(player.id)
                                         ? 'text-orange-400'
@@ -615,11 +633,19 @@
                                 >
                                     {player.name ?? ''}
                                 </div>
-                                <div>
-                                    {game.hotseat
-                                        ? 'local'
-                                        : playerStatusDisplay(player, game.ownerId)}
-                                </div>
+                                {#if game.status === GameStatus.Finished}
+                                    {#if finalScores}
+                                        <div class="shrink-0 text-right tabular-nums">
+                                            {finalScores[player.id] ?? '—'}
+                                        </div>
+                                    {/if}
+                                {:else}
+                                    <div>
+                                        {game.hotseat
+                                            ? 'local'
+                                            : playerStatusDisplay(player, game.ownerId)}
+                                    </div>
+                                {/if}
                             </div>
                         {/each}
                     </div>
@@ -640,9 +666,11 @@
                         </div>
                     {/if}
 
-                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canContinue || canRevisit || canDelete}
+                    {#if canJoin || canStart || canEdit || canDecline || canLeave || canPlay || canWatch || canContinue || canRevisit || canDelete || bgStatsUrl}
                         <Hr class="mt-1 mb-1" />
-                        <div class="pt-4 pb-0 flex flex-row justify-center items-middle text-white">
+                        <div
+                            class="pt-4 pb-0 flex flex-row flex-wrap gap-y-2 justify-center items-middle text-white"
+                        >
                             {#if canDecline}
                                 <Button size="xs" color="red" class="mx-2" onclick={declineGame}
                                     >Decline</Button
@@ -691,6 +719,16 @@
                                     'mx-2 dark:text-gray-200'
                                 )}
                             {/if}
+                            {#if bgStatsUrl}
+                                <Button
+                                    size="xs"
+                                    color="light"
+                                    class="mx-2"
+                                    href={bgStatsUrl}
+                                    onclick={(event) => event.stopPropagation()}
+                                    >Log to BG Stats</Button
+                                >
+                            {/if}
                             {#if canDelete}
                                 <Button size="xs" color="red" class="mx-2" onclick={deleteGame}
                                     >Delete</Button
@@ -714,12 +752,22 @@
         {/if}
 
         <div
-            class="flex flex-row justify-center items-center text-center dark:text-gray-700 hover:dark:text-gray-200 -mt-1"
+            class="relative flex flex-row justify-center items-center text-center dark:text-gray-700 -mt-1"
         >
+            {#if canToggle}
+                <!-- Reaches past the card's padding to its edges; the card's overflow clips it -->
+                <button
+                    type="button"
+                    class="peer absolute -inset-x-8 top-3 -bottom-8 cursor-pointer focus-visible:bg-white/5 focus-visible:outline-none"
+                    aria-label={isExpanded ? 'Hide game details' : 'Show game details'}
+                    aria-expanded={isExpanded}
+                    onclick={toggleExpand}
+                ></button>
+            {/if}
             {#if !isExpanded}
                 <svg
                     in:fade={{ duration: 75, delay: 400 }}
-                    class="w-[30px] h-[30px]"
+                    class="w-[30px] h-[30px] peer-hover:dark:text-gray-200 peer-focus-visible:dark:text-gray-200"
                     aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -738,7 +786,7 @@
             {:else}
                 <svg
                     in:fade={{ duration: 75, delay: 400 }}
-                    class="w-[30px] h-[30px]"
+                    class="w-[30px] h-[30px] peer-hover:dark:text-gray-200 peer-focus-visible:dark:text-gray-200"
                     aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"

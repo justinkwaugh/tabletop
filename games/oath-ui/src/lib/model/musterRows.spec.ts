@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { testPlayer, testState } from '@tabletop/oath/testing'
+import {
+    DANA,
+    HALL_OF_DEBATE,
+    WOLVES,
+    edificeTable,
+    testPlayer,
+    testState
+} from '@tabletop/oath/testing'
 import { musterRows } from './musterRows.js'
 
 const BINDERS = 'denizen.hearth.book-binders'
@@ -48,5 +55,20 @@ describe('the Musters at your site (R-5.2)', () => {
 
     it('lists nothing without a favor to place', () => {
         expect(musterRows(site({ favor: 0 }), 'p1', [])).toEqual([])
+    })
+})
+
+describe('an edifice in the Muster rows (R-2.9, R-5.2.1)', () => {
+    it('an intact edifice is listed as a denizen is, by its suit', () => {
+        const rows = musterRows(edificeTable(), DANA, [])
+        expect(rows.map((row) => [row.cardId, row.suit])).toEqual([
+            [HALL_OF_DEBATE, 'hearth'],
+            [WOLVES, 'beast']
+        ])
+    })
+
+    it('a ruin is never listed: it has no suit', () => {
+        const rows = musterRows(edificeTable({}, {}, { ruined: true }), DANA, [])
+        expect(rows.map((row) => row.cardId)).toEqual([WOLVES])
     })
 })

@@ -1,7 +1,10 @@
 import { assert, assertExists } from '@tabletop/common'
 import {
+    CardKind,
+    HydratedSearchSwap,
     MachineState,
     SearchPlay,
+    kindOf,
     playMapChanges,
     reasonCannotPairSecondPlay,
     reasonCannotPlaceCard,
@@ -30,6 +33,7 @@ import { adviserRoom, toggledDiscard, type AdviserRoom } from './adviserDiscards
 import {
     NO_CONSPIRACY_PICK,
     conspiracyNoTake,
+    conspiracyPickComplete,
     conspiracyPlayOf,
     conspiracyPrizes,
     conspiracyTargets,
@@ -55,7 +59,11 @@ type SearchExtras = { toSiteId?: string; discardFirstCardId?: string; secondKey?
 /** R-7.3.3 — the picks stay editable until the player plays the card with them. */
 type WhenPlayedPicks = { picks: PowerChoicePicks; confirmed: boolean }
 
+/** Great Spire — the drawn denizens picked to swap, or the swap passed over ("No swap"). */
+type SwapPicks = { picked: string[]; skipped: boolean }
+
 type SearchValueByStage = {
+    swap: SwapPicks
     kept: string
     extras: SearchExtras
     placement: SearchPlacement
@@ -66,6 +74,7 @@ type SearchValueByStage = {
 }
 
 const SEARCH_STAGE_ORDER = [
+    'swap',
     'kept',
     'extras',
     'placement',
@@ -111,6 +120,53 @@ export class SearchDraft implements PanelDraft {
         return hand
     }
 
+    /**
+     * Great Spire — its own step after the draw and before "Keep one.", while the engine offers the
+     * swap on this seat's own view (public counts only) and the player has not passed it over.
+     */
+    get swapping(): boolean {
+        const playerId = this.playerId
+        if (!playerId) return false
+        if (!HydratedSearchSwap.canDoSearchSwap(this.session.gameState, playerId)) return false
+        return !(this.flow.value('swap')?.skipped ?? false)
+    }
+
+    /** R-5.1.2 — only drawn denizens swap: a Vision stays in the row and cannot be picked. */
+    canSwap(cardId: string): boolean {
+        return kindOf(cardId) === CardKind.Denizen
+    }
+
+    get swapPicked(): string[] {
+        return (this.flow.value('swap')?.picked ?? []).filter((id) => this.drawn.includes(id))
+    }
+
+    /** No more than the Dispossessed holds, a public count. */
+    get swapCap(): number {
+        return this.session.gameState.dispossessedCount
+    }
+
+    tapSwap(cardId: string): void {
+        if (!this.swapping || !this.canSwap(cardId)) return
+        const picked = this.swapPicked
+        if (picked.includes(cardId)) {
+            this.flow.set('swap', { picked: picked.filter((id) => id !== cardId), skipped: false })
+            return
+        }
+        if (picked.length >= this.swapCap) return
+        this.flow.set('swap', { picked: [...picked, cardId], skipped: false })
+    }
+
+    /** "No swap": on to "Keep one." with nothing sent. */
+    skipSwap(): void {
+        this.flow.set('swap', { picked: [], skipped: true })
+    }
+
+    async swap(): Promise<void> {
+        const picked = this.swapPicked
+        if (!this.swapping || picked.length === 0) return
+        await this.session.searchSwap(picked)
+    }
+
     get kept(): string | undefined {
         const cardId = this.flow.value('kept')
         return cardId !== undefined && this.drawn.includes(cardId) ? cardId : undefined
@@ -126,7 +182,7 @@ export class SearchDraft implements PanelDraft {
         if (!cardId || !playerId) return []
         const options = PLACEMENTS.flatMap((option) => {
             const { blockedBecause, ...placed } = this.placementOption(playerId, cardId, option)
-            const refused = blockedBecause ?? this.reasonSecondCannotPair(playerId, option.play)
+            const refused = blockedBecause ?? this.reasonSecondCannotPair(playerId, option)
             return refused === undefined ? [placed] : []
         })
         assert(options.length > 0, 'R-5.1.4 — a kept card can always be discarded')
@@ -217,7 +273,7 @@ export class SearchDraft implements PanelDraft {
 
     /**
      * R-5.1.4.I, R-11.2, R-7.4 — what "To your site" gains the kept card's player, as the engine plans the play on
-     * the banks as they stand, with the card picked to go first; none while "Play to:" names another site.
+     * the banks as they stand, with the card picked to go first; none while "To which site" names another.
      */
     get siteGain(): SitePlayGain | undefined {
         const cardId = this.kept
@@ -301,11 +357,11 @@ export class SearchDraft implements PanelDraft {
 
     /** The take is picked whole: nobody (no take, R-5.1.4.IV's "may"), or a player and a prize. */
     get conspiracyComplete(): boolean {
-        const target = this.conspiracyPick.targetPlayerId
+        const playerId = this.playerId
         return (
-            target === undefined ||
-            !this.conspiracyTargets.includes(target) ||
-            this.conspiracy !== undefined
+            !playerId ||
+            this.placement?.play !== SearchPlay.Conspiracy ||
+            conspiracyPickComplete(this.session.gameState, playerId, this.conspiracyPick)
         )
     }
 
@@ -622,34 +678,36 @@ export class SearchDraft implements PanelDraft {
         return PLACEMENTS.some(
             (option) =>
                 this.placementOption(playerId, kept, option).blockedBecause === undefined &&
-                this.reasonSecondCannotFollow(playerId, kept, option.play, second) === undefined
+                this.reasonSecondCannotFollow(playerId, kept, option, second) === undefined
         )
     }
 
-    private reasonSecondCannotPair(playerId: string, firstPlay: SearchPlay): string | undefined {
+    private reasonSecondCannotPair(playerId: string, first: SearchPlacement): string | undefined {
         const second = this.second
         const kept = this.kept
         return second && kept
-            ? this.reasonSecondCannotFollow(playerId, kept, firstPlay, second)
+            ? this.reasonSecondCannotFollow(playerId, kept, first, second)
             : undefined
     }
 
     // Land Warden — the second card as the engine judges it after the kept card's play: its When Played
-    // power counts the map that play leaves (Riots).
+    // power counts the map that play leaves (Riots), and the kept card's own When Played power when it is
+    // played faceup.
     private reasonSecondCannotFollow(
         playerId: string,
         kept: string,
-        firstPlay: SearchPlay,
+        first: SearchPlacement,
         second: SearchSecondPlay
     ): string | undefined {
         const state = this.session.gameState
         // R-5.1.4.I — the kept card may go to another site, which leaves your site's room to the second card.
-        const keptTo = firstPlay === SearchPlay.Site ? this.toSite : undefined
+        const keptTo = first.play === SearchPlay.Site ? this.toSite : undefined
         return (
-            reasonCannotPairSecondPlay(state, playerId, firstPlay, second, keptTo) ??
+            reasonCannotPairSecondPlay(state, playerId, first.play, second, keptTo) ??
             reasonCannotPlaySecondCard(state, playerId, kept, second, {
-                play: firstPlay,
-                discardFirstCardId: firstPlay === SearchPlay.Site ? this.discardFirst : undefined,
+                play: first.play,
+                faceUp: first.faceUp,
+                discardFirstCardId: first.play === SearchPlay.Site ? this.discardFirst : undefined,
                 toSiteId: keptTo
             })
         )

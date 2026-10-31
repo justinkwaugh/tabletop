@@ -8,6 +8,7 @@ import { TournamentError } from '@tabletop/backend-services'
 import authorization from '../../../plugins/authorization.js'
 import tournaments from './index.js'
 import { authSession } from '../../../lib/session.js'
+import { memorySessions } from '../../../tests/sessionFixture.js'
 
 vi.hoisted(() => vi.stubEnv('GCLOUD_PROJECT', 'demo-tabletop'))
 afterAll(() => vi.unstubAllEnvs())
@@ -29,7 +30,9 @@ async function setup(roles: Role[]) {
     }
     await server.register(sensible)
     await server.register(secureSession, { key: randomBytes(32), cookie: { path: '/' } })
-    Reflect.set(server, 'userService', { getUser: async () => user })
+    const { sessionService } = memorySessions()
+    server.decorate('sessionService', sessionService)
+    server.decorate('userService', { getUser: async () => user })
     const change = vi.fn(async () => ({ id: 'event' }))
     Reflect.set(server, 'tournamentService', {
         list: change,
@@ -48,8 +51,12 @@ async function setup(roles: Role[]) {
     await server.register(authorization)
     await server.register(tournaments, { prefix: '/tournaments' })
     server.get('/session', async (request) => {
-        authSession({ session: request.session, userId: user.id })
-        request.session.set('authTimestamp', '2000-01-01T00:00:00.000Z')
+        await authSession({
+            session: request.session,
+            user,
+            proof: 'authentication-method',
+            sessions: sessionService
+        })
         return {}
     })
     const response = await server.inject('/session')

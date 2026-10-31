@@ -1,9 +1,9 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { recordStockAction } from '../stock/stockRoundRules.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -12,19 +12,30 @@ import {
 import { Owner } from '../finance/finance.js'
 import { applySharePurchase } from '../stock/sharePurchase.js'
 import { recordTurnPurchase } from '../stock/turnPurchases.js'
-import { CompanyStartDetails, evaluateCompanyStart, startCompanyAtPar } from './companyStart.js'
+import {
+    CompanyStartDetails,
+    evaluateCompanyStart,
+    placeStartHome,
+    startCompanyAtPar
+} from './companyStart.js'
 import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { CompanyRules } from './companyRules.js'
 
 export const StartCompany = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('StartCompany'),
         buyer: Owner,
         companyId: Type.String(),
         marketSpaceId: Type.String(),
         expectedPrice: Type.Integer({ minimum: 1 }),
+        home: Type.Optional(
+            Type.Object(
+                { locationId: Type.String(), nodeId: Type.String() },
+                { additionalProperties: false }
+            )
+        ),
         metadata: Type.Optional(CompanyStartDetails)
     },
     { additionalProperties: false }
@@ -47,6 +58,7 @@ export class HydratedStartCompany
     declare companyId: string
     declare marketSpaceId: string
     declare expectedPrice: number
+    declare home?: StartCompany['home']
     declare metadata?: CompanyStartDetails
     readonly #stockRules: StockRules
     readonly #companyRules: CompanyRules
@@ -71,6 +83,7 @@ export class HydratedStartCompany
         recordStockAction(state, this.playerId, this.#stockRules.round)
         recordTurnPurchase(state, this.#stockRules, { kind: 'start', companyId: this.companyId })
         applySharePurchase(state, result.details)
+        if (result.details.home) placeStartHome(state, result.details.home)
         this.#companyRules.onStart?.(state, result.details)
         this.metadata = result.details
     }

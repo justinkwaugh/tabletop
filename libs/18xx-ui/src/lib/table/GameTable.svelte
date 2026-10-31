@@ -18,8 +18,9 @@
     import TableNotices from './TableNotices.svelte'
     import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
+    import TurnRecap from './TurnRecap.svelte'
     import { setPlaceLinks } from '../places/placeLinks.js'
-    import StandingInstruction from '../stock/StandingInstruction.svelte'
+    import InstructionBar from './InstructionBar.svelte'
     import TurnHeading from './TurnHeading.svelte'
     import {
         companyFocusLocations,
@@ -59,6 +60,7 @@
     import {
         isMapRouteValid,
         mapSelectionRect,
+        mapShareOfViewport,
         mapViewport,
         routeLocationIds,
         viewportRect,
@@ -130,7 +132,6 @@
         includedCompanyIds = [],
         numberedShareNames,
         mapFocusExcludedCompanyIds = [],
-        poolName,
         trainColors,
         phaseColors,
         phaseChart: defaultPhaseChart,
@@ -141,11 +142,11 @@
     const phaseChart = $derived(
         session.presentation.phaseChartFor?.(session.gameState) ?? defaultPhaseChart
     )
-    const operatingRules = $derived(session.operatingRules)
     const gameOver = $derived(session.gameState.result !== undefined)
     const readOnlyPosition = $derived(
         session.isViewingHistory || gameOver || !session.myPlayer || !session.isMyTurn
     )
+    const turnAttention = $derived(!readOnlyPosition && !session.isExploring)
     const auctionShownToAll = $derived(
         !session.isViewingHistory && !gameOver && session.privateAuctionActive
     )
@@ -317,6 +318,7 @@
     }
     const displayedScene = $derived(session.map.displayedScene)
     const paneLayout = new MediaQuery('(min-width: 64rem)')
+    const stackedTurnAttention = $derived(turnAttention && !paneLayout.current)
     const paneStripStacking = new LabelStacking()
     const actionStripStacking = new LabelStacking()
     const phoneLayout = new MediaQuery('(width < 40rem)')
@@ -372,7 +374,7 @@
         mapViewport(displayedScene, MapHexDiameter, boardArtwork, boardExtents)
     )
     const mapExtents = $derived(boardMode ? boardExtents : [])
-    type BoardFocusTarget = 'Full' | 'Market' | 'Depot'
+    type BoardFocusTarget = 'Full' | 'Map' | 'Market' | 'Depot'
     let boardFocus = $state<{
         target: BoardFocusTarget
         restore: ReturnType<ScalingWrapper['captureView']>
@@ -393,10 +395,18 @@
     const boardFocusTarget = $derived(
         boardFocus?.target ?? (boardViewer()?.isZoomedOut() ? 'Full' : undefined)
     )
+    // TOP prints its panels in the map's own corners, where Map would frame nearly the full board.
+    const MapFocusMaxBoardShare = 0.9
+    const mapFocusArea = $derived(
+        mapShareOfViewport(displayedScene, boardViewport) < MapFocusMaxBoardShare
+            ? displayedScene.bounds
+            : undefined
+    )
     const boardFocusOptions = $derived(
         (
             [
                 ['Full', undefined],
+                ['Map', mapFocusArea],
                 ['Market', boardAreas?.market],
                 ['Depot', boardAreas?.depot]
             ] as const
@@ -439,13 +449,7 @@
         wrapper.focusRect({ x, y, width: right - x, height: bottom - y }, { animate })
     }
     const consentPreview = $derived(session.gameState.trackConsent)
-    const offeredCityLocationIds = $derived(
-        session.stations.homeLocationIds.length
-            ? session.stations.homeLocationIds
-            : session.companyAuction.homeLocationIds.length
-              ? session.companyAuction.homeLocationIds
-              : session.stations.privateStationLocationIds
-    )
+    const offeredCityLocationIds = $derived(session.map.offeredCityLocationIds)
     const choosingCity = $derived(offeredCityLocationIds.length > 0)
     const locationChoice = $derived(session.mapLocationChoice)
     const powerReservations = $derived.by(() => {
@@ -694,7 +698,7 @@
     const headerPlayerId = $derived(
         gameState.activePlayerIds.length === 1 ? gameState.activePlayerIds[0] : undefined
     )
-    const operating = $derived(gameState.stockRound.completed && !!gameState.operatingSet)
+    const operating = $derived(session.operatingSetUnderway)
     const operatedCompanyIds = $derived(
         operating ? (gameState.operatingSet?.completedCompanyIds ?? []) : []
     )
@@ -707,12 +711,7 @@
             ? session.presentation.terrainDiscounts?.(gameState, operatingCompanyId)
             : undefined
     )
-    const companyOrder = $derived(
-        (operating && gameState.operatingSet
-            ? gameState.operatingSet.companyOrder
-            : operatingRules.companyOrder(gameState)
-        ).map((id) => getCompany(gameState, id))
-    )
+    const companyOrder = $derived(session.operatingOrder.map((id) => getCompany(gameState, id)))
     // Company cards and the spreadsheet follow the operating order.
     const displayedCompanyOrder = $derived(companyOrder.map((company) => company.id))
     const startedCompanies = $derived(
@@ -854,7 +853,6 @@
         {company}
         {session}
         {trainColors}
-        {poolName}
         onPreviewMap={previewHistoryMap}
     />{/snippet}
 
@@ -1127,6 +1125,7 @@
                             {session}
                             bordered={!paneLayout.current}
                             centered={paneLayout.current}
+                            attention={stackedTurnAttention}
                         />
                     </div>
                 </div>
@@ -1193,7 +1192,6 @@
                                             {trainColors}
                                             {session}
                                             {company}
-                                            {poolName}
                                         />
                                     {/snippet}
                                 </CompanyOrder>{/if}
@@ -1201,7 +1199,7 @@
                     {/if}
                 {/snippet}
                 {#snippet actionContent()}
-                    <div class="action-body">
+                    <div class="action-body" class:attention-frame={stackedTurnAttention}>
                         <div class="action-information">
                             {@render gameInformationStrip(actionStripStacking)}
                         </div>
@@ -1214,7 +1212,10 @@
                         {#if !session.isViewingHistory}
                             <StockActionStrip
                                 {session}
-                                additionalActions={additionalStockActions}
+                                additionalActions={[
+                                    ...session.familyStockPanels.menuOptions,
+                                    ...additionalStockActions
+                                ]}
                                 readOnly={readOnlyPosition}
                             />
                             <PrivatePowerControls {session} />
@@ -1226,16 +1227,19 @@
                                     {trainColors}
                                     describeAction={historyDescription}
                                 />
-                                {#if !session.isViewingHistory}<StandingInstruction
-                                        {session}
-                                    />{/if}
                             {:else}
                                 {#if auctionTurnPlayerId}<TurnHeading
                                         {session}
                                         playerIds={[auctionTurnPlayerId]}
                                     />{/if}
+                                {#if turnAttention && session.myPlayer}<TurnRecap
+                                        {session}
+                                        playerId={session.myPlayer.id}
+                                        describeAction={historyDescription}
+                                    />{/if}
                                 {@render actions(focusLocation, focusRoute)}
                             {/if}
+                            {#if !session.isViewingHistory}<InstructionBar {session} />{/if}
                         </section>
                     </div>
                     {#if !paneLayout.current}{@render operatingOrderContent()}{/if}
@@ -1449,6 +1453,9 @@
                             onLayoutChange={(value) =>
                                 layoutPreference.change(saveTableWorkspace(value))}
                             tabTitle={sidebarTabIcon}
+                            attention={turnAttention
+                                ? { tab: 'Actions', label: 'Your turn' }
+                                : undefined}
                             bind:selected={selectedView}
                             label="Table views"
                             initialLayout={initialTableLayout(paneTabs)}
@@ -1594,6 +1601,18 @@
         --stock-buy-overflow: auto;
         flex: none;
     }
+    .attention-frame {
+        position: relative;
+    }
+    .attention-frame::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border: 2px solid var(--rail-focus, #b8cddd);
+        border-top: 0;
+        pointer-events: none;
+        z-index: 10;
+    }
     .workspace-view {
         height: 100%;
         min-height: 0;
@@ -1628,6 +1647,9 @@
         margin-top: 0;
         padding: 4px 12px;
     }
+    .original-actions .action-information .game-information {
+        padding-top: 8px;
+    }
     .actions-area .action-panel {
         flex: 1 0 auto;
     }
@@ -1660,6 +1682,8 @@
         --workspace-hover: var(--rail-hover, #69554016);
         --workspace-surface: var(--rail-surface, #faf7f2);
         --workspace-danger: var(--rail-negative, #b33a32);
+        --workspace-attention: var(--rail-focus, #b8cddd);
+        --workspace-attention-ink: var(--rail-surface-inset, #1b232d);
     }
     .railway-table {
         color-scheme: dark;
@@ -1822,8 +1846,13 @@
         border-radius: 0;
         background: transparent;
     }
+    /* Its bottom padding keeps the panel clear of the instruction bar's rule on short panes. */
     .action-panel :global(.centered-panel) {
         margin-block: auto;
+        padding-bottom: 16px;
+    }
+    .action-panel :global(.centered-panel .centered-panel) {
+        padding-bottom: 0;
     }
     @container action-pane (min-width: 500px) {
         .action-panel:has(:global(.sales-sidebar)) {

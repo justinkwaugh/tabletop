@@ -64,20 +64,41 @@ function boxesOf(side: Side): { commanderId: string | typeof INDEPENDENT; at: Po
     )
 }
 
-export function commandDiscs(state: HydratedNapoleonsTriumphGameState): Point[] {
+export interface CommandDisc {
+    at: Point
+    independentOf?: string
+}
+
+export function commandDiscs(state: HydratedNapoleonsTriumphGameState): CommandDisc[] {
     return state.players.flatMap((player) => {
         if (!player.side) {
             return []
         }
         const boxes = boxesOf(player.side)
-        const commanded = boxes.filter(
-            ({ commanderId }) =>
-                commanderId !== INDEPENDENT &&
-                state.commander(commanderId).commandsThisTurn !== undefined
-        )
+        const commanded = boxes
+            .filter(
+                ({ commanderId }) =>
+                    commanderId !== INDEPENDENT &&
+                    state.commander(commanderId).commandsThisTurn !== undefined
+            )
+            .map(({ at }) => ({ at }))
         const independent = boxes
             .filter(({ commanderId }) => commanderId === INDEPENDENT)
             .slice(0, player.independentCommandsUsed)
-        return [...commanded, ...independent].map((box) => box.at)
+            .map(({ at }) => ({ at, independentOf: player.playerId }))
+        return [...commanded, ...independent]
     })
+}
+
+export function fallenCommanderEmblems(state: HydratedNapoleonsTriumphGameState): Point[] {
+    return state.players.flatMap((player) =>
+        player.side
+            ? boxesOf(player.side)
+                  .filter(
+                      ({ commanderId }) =>
+                          commanderId !== INDEPENDENT && state.commander(commanderId).eliminated
+                  )
+                  .map(({ at }) => at)
+            : []
+    )
 }

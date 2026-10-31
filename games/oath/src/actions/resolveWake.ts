@@ -19,6 +19,9 @@ import {
 import { flipToUsurperIfExileHolds } from '../util/title.js'
 import { wakePhaseWin } from '../util/victory.js'
 import { holdsTheTurn, reasonNotYourTurn } from '../util/turn.js'
+import { OpenDealsDropped } from '../model/question.js'
+import { dropOpenDealsAtGameEnd } from '../util/deals.js'
+import { recordWin } from '../util/chronicle.js'
 
 export type WakeFavorStep = Type.Static<typeof WakeFavorStep>
 export const WakeFavorStep = Type.Union([
@@ -30,7 +33,9 @@ export type ResolveWakeMetadata = Type.Static<typeof ResolveWakeMetadata>
 export const ResolveWakeMetadata = Type.Object({
     flippedToMob: Type.Optional(Type.Boolean()),
     flippedToUsurper: Type.Optional(Type.Boolean()),
-    wonBy: Type.Optional(Type.String())
+    wonBy: Type.Optional(Type.String()),
+    /** R-7.6.3-H1 — the Tribunal deals still open when this Wake ended the game, now dropped. */
+    openDealsDropped: Type.Optional(OpenDealsDropped)
 })
 
 export type ResolveWake = Type.Static<typeof ResolveWake>
@@ -95,8 +100,9 @@ export class HydratedResolveWake
         // R-4.1.2 checks for a win before R-4.1.3 flips the title; reordering would make R-3.1 trivial.
         const win = wakePhaseWin(state, this.playerId)
         if (win) {
-            state.winningPlayerIds = [win.winnerPlayerId]
+            recordWin(state, win)
             metadata.wonBy = win.rule
+            Object.assign(metadata, dropOpenDealsAtGameEnd(state))
             this.metadata = metadata
             return
         }

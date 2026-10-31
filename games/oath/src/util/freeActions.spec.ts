@@ -8,7 +8,9 @@ import { ConsentRequestKind } from '../model/consent.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { PowerChoiceKind } from './powerChoice.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { hasFreeActionAhead } from './freeActions.js'
+import { forfeitFreeActions, forgoFreeActionNext, hasFreeActionAhead } from './freeActions.js'
+import { OathRevision } from './revision.js'
+import { isTravel } from '../actions/travel.js'
 import { testPlayer, testState, withChancellor } from '../testing/fixture.js'
 import '../powers/index.js'
 import { Region } from '../model/oathEnums.js'
@@ -199,5 +201,130 @@ describe('a free action waits for its grantee’s own Act Phase action', () => {
         const t = new Table(s)
         t.run({ type: ActionType.EndActPhase, playerId: X })
         expect(hasFreeActionAhead(new HydratedOathGameState(t.state), X)).toBe(false)
+    })
+})
+
+describe('from revision 27 a free action names the card that granted it', () => {
+    const atRevision = { oathRevision: OathRevision.EngineFixes23 }
+
+    function brassHorseUnable(state: Record<string, unknown>) {
+        const s = board({ [X]: { relicIds: [BRASS_HORSE] } }, state)
+        // A Vision on top names no suit, so the Travel is "as normal".
+        for (const region of [Region.Cradle, Region.Provinces, Region.Hinterland]) {
+            s.requireVault().discardPiles[region] = ['vision.faith']
+            s.discardPileCounts[region] = 1
+        }
+        const t = new Table(s)
+        t.run({
+            type: ActionType.UseActionPower,
+            playerId: X,
+            cardId: BRASS_HORSE,
+            powerIndex: powerIndexOf(BRASS_HORSE, PowerTiming.Action)
+        })
+        return t
+    }
+
+    it('Brass Horse: its free Travel records the Horse, and the grant is spent with it', () => {
+        const t = brassHorseUnable(atRevision)
+        expect(t.player(X)).toMatchObject({
+            freeTravelAtAction: t.state.actionCount,
+            freeTravelGrantedBy: BRASS_HORSE
+        })
+        expect(t.travel()).toBe(0)
+        expect(t.processed.find(isTravel)?.metadata).toMatchObject({
+            supplySpent: 0,
+            freeActionOf: BRASS_HORSE
+        })
+        expect(t.player(X).freeTravelGrantedBy).toBeUndefined()
+    })
+
+    it('a grant carried past another player’s answer keeps its card', () => {
+        const s = board(
+            { [X]: { freeTravelAtAction: 0, freeTravelGrantedBy: BRASS_HORSE } },
+            {
+                ...atRevision,
+                machineState: MachineState.OathkeeperChoice,
+                oathkeeperPlayerId: Y,
+                pendingOathkeeperChoice: {
+                    holderPlayerId: Y,
+                    candidates: [X, H],
+                    resumeMachineState: MachineState.ActPhase
+                }
+            }
+        )
+        const t = new Table(s, Y)
+        t.run({ type: ActionType.ResolveOathkeeper, playerId: Y, chosenPlayerId: X })
+        expect(t.player(X)).toMatchObject({
+            freeTravelAtAction: t.state.actionCount,
+            freeTravelGrantedBy: BRASS_HORSE
+        })
+        t.travel()
+        expect(t.processed.find(isTravel)?.metadata?.freeActionOf).toBe(BRASS_HORSE)
+    })
+
+    it('a paid Travel names no card, though a grant named one before it was spent', () => {
+        const s = board(
+            { [X]: { freeTravelAtAction: 0, freeTravelGrantedBy: BRASS_HORSE } },
+            atRevision
+        )
+        const t = new Table(s)
+        t.run({ type: ActionType.ForgoFreeAction, playerId: X })
+        expect(t.player(X).freeTravelAtAction).toBeUndefined()
+        expect(t.player(X).freeTravelGrantedBy).toBeUndefined()
+        expect(t.travel()).toBe(1)
+        expect(t.processed.find(isTravel)?.metadata?.freeActionOf).toBeUndefined()
+    })
+
+    it('giving up the free Travel keeps the Campaign granted with it, and its card', () => {
+        const s = board(
+            {
+                [X]: {
+                    freeTravelAtAction: 0,
+                    freeTravelGrantedBy: 'denizen.discord.second-wind',
+                    freeCampaignAtAction: 0,
+                    freeCampaignGrantedBy: 'denizen.discord.second-wind'
+                }
+            },
+            atRevision
+        )
+        const t = new Table(s)
+        t.run({ type: ActionType.ForgoFreeAction, playerId: X })
+        expect(t.player(X).freeTravelGrantedBy).toBeUndefined()
+        expect(t.player(X)).toMatchObject({
+            freeCampaignAtAction: t.state.actionCount,
+            freeCampaignGrantedBy: 'denizen.discord.second-wind'
+        })
+        t.run({ type: ActionType.ForgoFreeAction, playerId: X })
+        expect(t.player(X).freeCampaignAtAction).toBeUndefined()
+        expect(t.player(X).freeCampaignGrantedBy).toBeUndefined()
+    })
+
+    it('a grant forfeit, or given up unasked, takes its card with it', () => {
+        const SECOND_WIND = 'denizen.discord.second-wind'
+        const granted = {
+            freeTravelAtAction: 1,
+            freeTravelGrantedBy: SECOND_WIND,
+            freeCampaignAtAction: 1,
+            freeCampaignGrantedBy: SECOND_WIND
+        }
+        const s = board({ [X]: granted }, atRevision)
+        forgoFreeActionNext(s, X, ActionType.Travel)
+        expect(s.getPlayerState(X)).not.toHaveProperty('freeTravelGrantedBy')
+        expect(s.getPlayerState(X).freeCampaignGrantedBy).toBe(SECOND_WIND)
+        forgoFreeActionNext(s, X, ActionType.Campaign)
+        expect(s.getPlayerState(X)).not.toHaveProperty('freeCampaignGrantedBy')
+
+        const f = board({ [X]: granted }, atRevision)
+        forfeitFreeActions(f, X)
+        expect(f.getPlayerState(X)).not.toHaveProperty('freeTravelGrantedBy')
+        expect(f.getPlayerState(X)).not.toHaveProperty('freeCampaignGrantedBy')
+    })
+
+    it('before revision 27 the grant names no card and the Travel records none, as stored games have it', () => {
+        const t = brassHorseUnable({})
+        expect(t.player(X).freeTravelAtAction).toBe(t.state.actionCount)
+        expect(t.player(X)).not.toHaveProperty('freeTravelGrantedBy')
+        expect(t.travel()).toBe(0)
+        expect(t.processed.find(isTravel)?.metadata).not.toHaveProperty('freeActionOf')
     })
 })

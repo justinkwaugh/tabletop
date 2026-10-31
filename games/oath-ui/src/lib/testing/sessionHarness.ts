@@ -54,7 +54,12 @@ const engine = new GameEngine(OathRuntime)
 const open: OathGameSession[] = []
 
 /** A hotseat game, so the seat on screen is the one the state puts on the clock. */
-function harnessGame(gameId: string, playerIds: readonly string[], status: GameStatus): Game {
+function harnessGame(
+    gameId: string,
+    playerIds: readonly string[],
+    status: GameStatus,
+    names: Readonly<Record<string, string>> = {}
+): Game {
     return {
         id: gameId,
         typeId: Definition.info.id,
@@ -65,7 +70,7 @@ function harnessGame(gameId: string, playerIds: readonly string[], status: GameS
         name: 'Session',
         players: playerIds.map((id) => ({
             id,
-            name: id,
+            name: names[id] ?? id,
             isHuman: true,
             status: PlayerStatus.Joined
         })),
@@ -77,15 +82,35 @@ function harnessGame(gameId: string, playerIds: readonly string[], status: GameS
     }
 }
 
-function gameOf(state: OathProjectedState): Game {
+function gameOf(state: OathProjectedState, names?: Readonly<Record<string, string>>): Game {
     return harnessGame(
         state.gameId,
         state.players.map((player) => player.playerId),
-        GameStatus.Started
+        GameStatus.Started,
+        names
     )
 }
 
-export type PlayedTable = { state: OathProjectedState; actions: GameAction[] }
+/** The game a table opens on: finished, as the platform records it, when its actions ended it. */
+function openedGameOf(table: PlayedTable): Game {
+    const { state } = table
+    const game = gameOf(state, table.names)
+    if (!state.result) return game
+    return {
+        ...game,
+        status: GameStatus.Finished,
+        result: state.result,
+        winningPlayerIds: [...state.winningPlayerIds],
+        finishedAt: new Date()
+    }
+}
+
+/** A table's state and the actions behind it; `names` seats its players by name, else by id. */
+export type PlayedTable = {
+    state: OathProjectedState
+    actions: GameAction[]
+    names?: Readonly<Record<string, string>>
+}
 
 /** Runs each action through the engine, keeping what it processed for the session's history. */
 export function played(table: PlayedTable, actions: readonly GameAction[]): PlayedTable {
@@ -103,7 +128,7 @@ export function played(table: PlayedTable, actions: readonly GameAction[]): Play
 
 /** Opens a session on the table and resolves once the platform has shown its opening state. */
 export async function openSessionOn(table: PlayedTable): Promise<OathGameSession> {
-    const game = gameOf(table.state)
+    const game = openedGameOf(table)
     const appContext = createHarnessAppContext(HARNESS_DEFINITION)
     const bridgedContext = new BridgedContext({
         authorizationService: appContext.authorizationService,

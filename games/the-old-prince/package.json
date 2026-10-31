@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/the-old-prince",
-    "version": "7.0.0",
+    "version": "11.3.0",
     "private": true,
     "type": "module",
     "exports": {
@@ -35,7 +35,7 @@
         "@typescript/native-preview": "7.0.0-dev.20260707.2",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3",
-        "vitest": "^4.0.12",
+        "vitest": "^5.0.5",
         "@tabletop/rolldown-config": "workspace:*",
         "rolldown": "^1.2.15",
         "@tabletop/18xx-autorouter": "workspace:*",

@@ -11,7 +11,12 @@ import {
 } from '../data/cardPowers.js'
 import type { CampaignParties, DiceDelta, DicePools } from '../util/campaign.js'
 import type { ImperialScope } from '../util/rule.js'
-import type { CampaignKillPath, RollRules, WarbandGroup } from '../model/campaign.js'
+import type {
+    CampaignKillPath,
+    CampaignTarget,
+    RollRules,
+    WarbandGroup
+} from '../model/campaign.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import type { DiscardTarget } from '../util/discard.js'
@@ -60,9 +65,12 @@ export interface EffectContext {
  * the check and the resolve count the same map.
  */
 export interface PlayMapChanges {
-    /** Taken off the map first: the card the People's Favor, the Great Slum or Crop Rotation discards (R-5.1.4.I, R-11.10). */
+    /**
+     * Taken off the map first: the card the People's Favor, the Great Slum or Crop Rotation discards (R-5.1.4.I,
+     * R-11.10), and from revision 26 what Land Warden's kept card's When Played power puts off it (R-X.4).
+     */
     leaving: readonly string[]
-    /** Put at a site: the played card, and Land Warden's kept card before the second card. */
+    /** Put at a site: the played card, and Land Warden's kept card before the second card unless its power took it off. */
     arriving: readonly string[]
     /** R-5.1.4.I — the site the card is played to: the pawn's, or the one the People's Favor or New Growth names. */
     siteId?: string
@@ -168,6 +176,8 @@ export interface ModifierHooks {
     setsDrawCount?: number
     /** Truthful Harp — the kept card too. */
     revealsDraw?: boolean
+    /** Great Spire — once, after the draw: drawn denizens swap with random cards from the Dispossessed. */
+    swapsWithDispossessed?: boolean
     /** R-7.1.2.a */
     relaxOccupancy?: (ctx: EffectContext) => boolean
     /** R-6.6.2.a — a mandatory modifier's "you cannot …". */
@@ -342,6 +352,12 @@ export interface PersistentHooks {
         parties: CampaignParties,
         targetDice: number
     ) => string | undefined
+    /** Hall of Debate — a Campaign's target only, not a Recover or the Conspiracy's take. */
+    forbidsCampaignTarget?: (
+        ctx: PersistentContext,
+        parties: CampaignParties,
+        target: CampaignTarget
+    ) => string | undefined
     /** Gleaming Armor, Insect Swarm */
     battlePlanExtraCost?: (
         ctx: PersistentContext,
@@ -351,6 +367,8 @@ export interface PersistentHooks {
     ) => Partial<PowerCost> | undefined
     /** Sealing Ward — beyond the relic's printed dice. */
     relicDefenseBonus?: (ctx: PersistentContext, holderId: string) => number | undefined
+    /** Sprawling Rampart — beyond R-2.8.3's one die for a targeted site. */
+    siteDefenseBonus?: (ctx: PersistentContext, siteId: string) => number | undefined
     /** Marriage */
     extraMatchingAdvisers?: (
         ctx: PersistentContext,
@@ -381,6 +399,18 @@ export interface PersistentHooks {
     locksSiteFor?: (ctx: PersistentContext, actorId: string, siteId: string) => boolean
     /** Circlet of Command — beyond R-5.5.2's two. */
     pawnDefenseBonus?: (ctx: PersistentContext, holderId: string) => number | undefined
+    /** Hall of Mockery — R-5.4.4's Recover of the People's Favor leaves it on its Mob side. */
+    recoverFlipsPeoplesFavorToMob?: boolean
+    /** Ruined Temple — a "cannot play … faceup" on the card played (R-5.1.4, R-6.1). */
+    forbidsFaceupPlay?: (
+        ctx: PersistentContext,
+        actorId: string,
+        cardId: string
+    ) => string | undefined
+    /** Forest Temple — R-8.3.2's site discard does not take this site. */
+    keepsSiteInChronicle?: (ctx: PersistentContext, siteId: string) => boolean
+    /** Squalid District — the player who may raise or lower the end die after it is rolled (R-3.3). */
+    endDieAdjuster?: (ctx: PersistentContext) => string | undefined
     /** Vow of Renewal */
     takesBurnedFavor?: (ctx: PersistentContext) => string | undefined
     /** Vow of Union */
@@ -432,6 +462,12 @@ export interface EffectDefinition {
     /** R-7.1.4 — the tolls its use owes, paid with its cost (Forced Labor on Oracle). */
     tollOccasion?: TollOccasion
     resolve: (ctx: EffectContext) => EffectResult
+    /**
+     * R-5.1.4 — the denizens a When Played power that takes no choices puts off the map, on the map
+     * `ctx.mapChanges` says its play leaves, `ctx.state` unchanged: Land Warden's second card is judged on the map
+     * after the kept card's power.
+     */
+    mapLeaving?: (ctx: EffectContext) => string[]
     /** The state `ctx.choices` leave, `ctx.state` unchanged: what `sequential` choices read. */
     stateAfter?: (ctx: EffectContext) => HydratedOathGameState
     /** R-7.4 — never read by the doorway. */

@@ -3,9 +3,7 @@
     import { EyeSolid, EyeSlashSolid } from 'flowbite-svelte-icons'
     import { z } from 'zod'
     import { zfd } from 'zod-form-data'
-    import { ExternalAuthService, UserStatus } from '@tabletop/common'
-    import { InfoCircleSolid } from 'flowbite-svelte-icons'
-    import { goto } from '$app/navigation'
+    import { assert, ExternalAuthService, externalIdentityProvider } from '@tabletop/common'
     import googleLogo from '$lib/components/images/google.jpg'
     import discordLogo from '$lib/components/images/discord.png'
     import GoogleSignIn, {
@@ -16,15 +14,15 @@
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext, trim } from '@tabletop/frontend-components'
     import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
+    import EmailChange from '$lib/components/EmailChange.svelte'
+    import { minLengthMessage, requiredMessage } from '$lib/utils/accountFormValidation'
+    import { broadcastLogout } from '$lib/utils/logoutChannel'
+    import {
+        reauthentication,
+        requiresRecentAuthentication
+    } from '$lib/stores/reauthentication.svelte'
 
     let { authorizationService, api } = getAppContext()
-
-    const ReauthType = {
-        None: 'none',
-        Password: 'password',
-        Token: 'token'
-    } as const
-    type ReauthType = (typeof ReauthType)[keyof typeof ReauthType]
 
     const imageForLinkType = new Map<string, string>([
         ['google', googleLogo],
@@ -34,10 +32,9 @@
     let errors: Record<string, string[]> = $state({})
     let errorMessage: string | undefined = $state(undefined)
     let success = $state(false)
+    let submitting = $state(false)
 
     let passwordToggle = $state(false)
-    let currentPasswordToggle = $state(false)
-    let newEmailSent = $state(false)
 
     let sessionUser = authorizationService.getSessionUser()
 
@@ -46,45 +43,19 @@
     })
 
     let linkedAccountIdsByType: Map<string, string> = $derived.by(() => {
-        return new Map(
-            user?.externalIds?.map((id) => {
-                const split = id.split(':', 2)
-                const type = split[0]
-                return [type, id]
-            }) ?? []
-        )
+        return new Map(user?.externalIds?.map((id) => [externalIdentityProvider(id), id]) ?? [])
     })
 
     let username: string | undefined = $state(sessionUser?.username)
     let password: string | undefined = $state(undefined)
-    let email: string | undefined = $state(sessionUser?.email)
-    let currentPassword: string | undefined = $state(undefined)
-    let token: string | undefined = $state(undefined)
 
-    let reauthType: ReauthType = $derived.by(() => {
-        if (email == user?.email && !password) {
-            return ReauthType.None
-        }
-
-        if (user?.hasPassword) {
-            return ReauthType.Password
-        } else {
-            return ReauthType.Token
-        }
-    })
-
-    const createUserSchema = zfd.formData({
-        username: zfd.text(),
-        password: zfd.text(z.string().min(12).optional()),
-        email: zfd.text(z.string().email())
+    const updateProfileSchema = zfd.formData({
+        username: zfd.text(z.string(requiredMessage)),
+        password: zfd.text(z.string().min(12, minLengthMessage(12)).optional())
     })
 
     function togglePassword() {
         passwordToggle = !passwordToggle
-    }
-
-    function toggleCurrentPassword() {
-        currentPasswordToggle = !currentPasswordToggle
     }
 
     async function unlink(externalId: string) {
@@ -94,73 +65,71 @@
 
     async function submit(event: SubmitEvent) {
         event.preventDefault()
+        if (submitting) return
         clearErrors()
         success = false
-        const form = event.target as HTMLFormElement
+        const form = event.currentTarget
+        assert(form instanceof HTMLFormElement, 'Profile submission comes from its form')
         const formData = new FormData(form)
-        const result = createUserSchema.safeParse(formData)
+        const result = updateProfileSchema.safeParse(formData)
         if (!result.success) {
-            errors = result.error.flatten().fieldErrors
+            errors = z.flattenError(result.error).fieldErrors
             return
         }
 
-        const data = Object.fromEntries(formData)
-
-        if (data.username === user?.username) {
-            delete data.username
+        const data = {
+            username: result.data.username !== user?.username ? result.data.username : undefined,
+            password: result.data.password
         }
-
-        if (data.email === user?.email) {
-            delete data.email
-        }
-
-        if (!data.password) {
-            delete data.password
-        }
-
-        if (Object.keys(data).length === 0) {
+        if (!data.username && !data.password) {
             return
         }
+        await reauthentication.run({
+            description: data.password ? 'change your password' : 'update your profile',
+            retry: () => save(data)
+        })
+    }
 
+    async function save(data: Partial<z.infer<typeof updateProfileSchema>>) {
+        submitting = true
         try {
             const newUser = await api.updateUser(data)
-
             success = true
             password = undefined
-            currentPassword = undefined
-            token = undefined
-
             authorizationService.setSessionUser(newUser)
-
-            if (newUser.status === UserStatus.Incomplete) {
-                goto('/onboarding')
-            }
         } catch (e) {
-            console.log(e)
-            if (e instanceof Error && e.name === 'AuthenticationVerificationFailedError') {
-                errorMessage = 'Invalid password, could not update profile.'
-            } else if (e instanceof Error && e.name === 'AlreadyExistsError') {
+            if (requiresRecentAuthentication(e)) throw e
+            if (e instanceof Error && e.name === 'AlreadyExistsError') {
                 if (e.message.includes('username')) {
                     errors.username = ['Username already exists']
-                } else if (e.message.includes('email')) {
-                    errors.email = ['Email already exists']
                 } else {
                     errorMessage = 'An unexpected error occurred, please try again'
                 }
             } else {
                 errorMessage = 'An unexpected error occurred, please try again'
             }
+        } finally {
+            submitting = false
         }
-    }
-
-    async function sendVerificationEmail() {
-        await api.sendAuthVerificationEmail()
-        newEmailSent = true
     }
 
     function clearErrors() {
         errorMessage = undefined
         errors = {}
+    }
+
+    let logoutEverywhereFailed = $state(false)
+
+    async function logoutEverywhere() {
+        logoutEverywhereFailed = false
+        try {
+            await api.logoutAll()
+        } catch {
+            logoutEverywhereFailed = true
+            return
+        }
+        broadcastLogout()
+        await authorizationService.onLogout()
     }
 </script>
 
@@ -219,21 +188,6 @@
                     >
                 {/each}
             {/if}
-            <Label class="mb-2">Email</Label>
-            <Input
-                bind:value={email}
-                type="email"
-                name="email"
-                placeholder="name@company.com"
-                required
-            />
-            {#if errors?.email}
-                {#each errors.email as error, i (i)}
-                    <Helper class="mb-2" color="red"
-                        ><span class="font-medium">{error}</span></Helper
-                    >
-                {/each}
-            {/if}
             <Label class="mb-2">Linked Accounts</Label>
             <div class="rounded-lg border-gray-600 border p-4">
                 {#if isGoogleSigninEnabled}
@@ -283,67 +237,30 @@
                     </div>
                 {/if}
             </div>
-            {#if reauthType === ReauthType.Password}
-                <Alert border color="blue" class="dark:bg-transparent dark:text-blue-400">
-                    {#snippet icon()}
-                        <InfoCircleSolid class="w-5 h-5" />
-                    {/snippet}
-                    Because you are changing sensitive information, you must reauthenticate.<br
-                    /><br />Please enter your current password.
-                </Alert>
-                <Label class="space-y-2">Current Password</Label>
-                <Input
-                    bind:value={currentPassword}
-                    oninput={trim}
-                    type={currentPasswordToggle ? 'text' : 'password'}
-                    name="currentPassword"
-                    placeholder="your current password"
-                    required
+            <div class="flex justify-end">
+                <Button type="submit" disabled={submitting}
+                    >{submitting ? 'Saving…' : 'Submit'}</Button
                 >
-                    {#snippet right()}
-                        <button
-                            type="button"
-                            onclick={toggleCurrentPassword}
-                            class="pointer-events-auto"
-                        >
-                            {#if currentPasswordToggle}
-                                <EyeSlashSolid class="w-5 h-5" />
-                            {:else}
-                                <EyeSolid class="w-5 h-5" />
-                            {/if}
-                        </button>
-                    {/snippet}
-                </Input>
-            {/if}
-            {#if reauthType === ReauthType.Token}
-                <Alert border color="blue" class="dark:bg-transparent dark:text-blue-400">
-                    In order to change sensitive information you must verify your authenticity.<br
-                    /><br />
-                    {#if !newEmailSent}
-                        Click here to send a verification email with a token
-                    {:else}
-                        Email Sent! Check your inbox and enter the token below.
-                    {/if}
-                    <div class="flex justify-center">
-                        <Button class="mt-4" onclick={sendVerificationEmail} color="blue"
-                            >Send Token</Button
-                        >
-                    </div>
-                </Alert>
-
-                <Label class="space-y-2">Token</Label>
-                <Input
-                    bind:value={token}
-                    oninput={trim}
-                    name="token"
-                    placeholder="abcDeF"
-                    required
-                />
-            {/if}
-            <div class="flex justify-end"><Button type="submit" class="">Submit</Button></div>
+            </div>
         </form>
+        <EmailChange />
         <div class="mt-6">
             <TimeZonePicker />
         </div>
+        <div class="mt-6 flex items-center justify-between gap-4">
+            <P class="text-sm text-gray-700 dark:text-gray-400"
+                >Signed in somewhere you no longer trust? Sign out of every device, including this
+                one.</P
+            >
+            <Button color="alternative" size="sm" onclick={logoutEverywhere}
+                >Sign out everywhere</Button
+            >
+        </div>
+        {#if logoutEverywhereFailed}
+            <Alert class="dark:bg-red-200 dark:text-red-700 mt-4">
+                <span class="font-bold text-lg">We could not confirm the sign-out</span><br />
+                Other sessions may still be active. Please try again.
+            </Alert>
+        {/if}
     </Card>
 </div>

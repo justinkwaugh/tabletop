@@ -29,8 +29,22 @@
     import { favorToken } from '$lib/images/tileImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { tappedCount } from '$lib/model/exchangeTerms.js'
-    import { cardName, listed, plural, siteName, suitName, transferText } from '$lib/model/names.js'
+    import EndDieStakes from '$lib/components/EndDieStakes.svelte'
+    import EndDieValue from '$lib/components/EndDieValue.svelte'
+    import EndOfRoundPanel from '$lib/components/EndOfRoundPanel.svelte'
+    import { endDieStakes } from '$lib/model/endOfRound.js'
+    import {
+        cardName,
+        cardNameInPlay,
+        chipCased,
+        listed,
+        plural,
+        siteName,
+        suitName,
+        transferText
+    } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { promiseBy } from '$lib/model/tribunalDeals.js'
 
     // Every "no" is a first-class button: silence is not an answer (R-X.1).
     let gameSession = getGameSession()
@@ -41,6 +55,9 @@
     let mine = $derived(draft.mine)
     const discardWidth = new ChoiceWidth()
     const bankWidth = new ChoiceWidth()
+    // Squalid District — Lower, Raise and Leave share one width.
+    const adjustWidth = new ChoiceWidth()
+    let stakes = $derived(endDieStakes(gameState, gameSession.myPlayer?.id))
 
     // Jinx — "after you roll … for any reason".
     function rolledDice(roll: RerolledRoll): string {
@@ -56,333 +73,433 @@
         assertExists(campaign, 'A Campaign reroll is offered only mid-Campaign')
         return roll.side === 'attack' ? `${campaign.swords} swords` : `${campaign.defense} defense`
     }
+
+    // A seat named in plain words, capitalized as its chip on the line above capitalizes it.
+    function seatName(playerId: string): string {
+        return chipCased(gameSession.getPlayerName(playerId))
+    }
 </script>
 
-<div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
-        {question ? cardName(question.cardId) : 'A question'}
-    </h3>
+<!-- R-7.6.3-H1 — a promise in an offer, quoted as its player wrote it, line breaks kept. -->
+{#snippet promise(text: string)}
+    <span
+        class="min-w-0 whitespace-pre-wrap wrap-anywhere border-l-[3px] border-oath-frame px-2 py-0.5 text-[13px]"
+        data-promise>{text}</span
+    >
+{/snippet}
 
-    {#if !question}
-        <p class="text-sm text-oath-text-muted">Nothing is waiting on an answer.</p>
-    {:else if !mine}
-        <WaitingOn />
-    {:else if mine.kind === PowerQuestionKind.BurnFavorForSecrets}
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}<TokenText text="Burn how many favor for as many secrets?" />{/snippet}
-            <!-- The favor held; the picked ones burn, so they are ringed rose. -->
-            {@const burn = draft.burn ?? 0}
-            <div class="mb-2">
-                <TokenRow
-                    image={favorToken()}
-                    held={draft.myFavor}
-                    addable={draft.myFavor}
-                    picked={burn}
-                    label={(n) => `burn ${n} favor`}
-                    ontap={(n) => draft.setBurn(tappedCount(burn, n))}
-                    tone="rose"
+<!-- R-7.6.3-H1 — a deal's promise, quoted with who made it: a party's chip, or "You". -->
+{#snippet quoted(text: string, playerId?: string)}
+    <p class="border-l-[3px] border-oath-frame px-2 py-0.5 text-[13px]">
+        <span data-promise-by
+            >{#if playerId}<PlayerName {playerId} />{:else}You{/if} promised:</span
+        >
+        <span class="whitespace-pre-wrap wrap-anywhere" data-promise>{text}</span>
+    </p>
+{/snippet}
+
+<!-- Squalid District — everyone it does not ask sees today's End die panel, the roll and who it waits on. -->
+{#if question?.kind === PowerQuestionKind.AdjustEndDie && !mine}
+    <EndOfRoundPanel rolled={question.roll} />
+{:else}
+    <div>
+        <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
+            {question ? cardNameInPlay(gameState, question.cardId) : 'A question'}
+        </h3>
+
+        {#if !question}
+            <p class="text-sm text-oath-text-muted">Nothing is waiting on an answer.</p>
+        {:else if !mine}
+            <WaitingOn />
+        {:else if mine.kind === PowerQuestionKind.BurnFavorForSecrets}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}<TokenText
+                        text="Burn how many favor for as many secrets?"
+                    />{/snippet}
+                <!-- The favor held; the picked ones burn, so they are ringed rose. -->
+                {@const burn = draft.burn ?? 0}
+                <div class="mb-2">
+                    <TokenRow
+                        image={favorToken()}
+                        held={draft.myFavor}
+                        addable={draft.myFavor}
+                        picked={burn}
+                        label={(n) => `burn ${n} favor`}
+                        ontap={(n) => draft.setBurn(tappedCount(burn, n))}
+                        tone="rose"
+                        {busy}
+                    />
+                </div>
+                <QuestionYesNo yes="Burn" no="None" />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.PayFromHomeBank}
+            <!-- Vow of Kinship: what the board left owing, from its bank only as the player chooses. -->
+            {@const home = draft.homeBank}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}<TokenText
+                        text="Pay how many favor from {home
+                            ? `the ${suitName(home.suit)} bank`
+                            : 'your bank'}?"
+                    />{/snippet}
+                <!-- The payable favor; the picked ones are placed, so they are ringed gold. -->
+                {@const paying = draft.homeBankPay ?? 0}
+                <div class="mb-2">
+                    <TokenRow
+                        image={favorToken()}
+                        held={home?.payable ?? 0}
+                        addable={home?.payable ?? 0}
+                        picked={paying}
+                        label={(n) => `pay ${n} favor`}
+                        ontap={(n) => draft.setHomeBankPay(tappedCount(paying, n))}
+                        tone="gold"
+                        {busy}
+                    />
+                </div>
+                <QuestionYesNo yes="Pay" no="None" />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.PayOrLoseRelic}
+            <QuestionForm cardId={mine.relicCardId}>
+                {#snippet line()}Pay <PlayerName playerId={mine.takerPlayerId} />
+                    <TokenText text="{mine.price} favor" /> to keep {cardName(
+                        mine.relicCardId
+                    )}?{/snippet}
+                <QuestionYesNo
+                    yes="Pay"
+                    no="Refuse"
+                    noConsequence="{seatName(mine.takerPlayerId)} takes it"
+                />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.PickFavorBank}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}<TokenText
+                        text="Gain {mine.amount} favor from which bank?"
+                    />{/snippet}
+                <SuitPicker
+                    suits={draft.favorBanks}
+                    picked={[]}
+                    onpick={(suit) => draft.takeFavorFrom(suit)}
                     {busy}
                 />
-            </div>
-            <QuestionYesNo yes="Burn" no="None" />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.PayFromHomeBank}
-        <!-- Vow of Kinship: what the board left owing, from its bank only as the player chooses. -->
-        {@const home = draft.homeBank}
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}<TokenText
-                    text="Pay how many favor from {home
-                        ? `the ${suitName(home.suit)} bank`
-                        : 'your bank'}?"
-                />{/snippet}
-            <!-- The payable favor; the picked ones are placed, so they are ringed gold. -->
-            {@const paying = draft.homeBankPay ?? 0}
-            <div class="mb-2">
-                <TokenRow
-                    image={favorToken()}
-                    held={home?.payable ?? 0}
-                    addable={home?.payable ?? 0}
-                    picked={paying}
-                    label={(n) => `pay ${n} favor`}
-                    ontap={(n) => draft.setHomeBankPay(tappedCount(paying, n))}
-                    tone="gold"
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.Exchange}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}Exchange with <PlayerName
+                        playerId={mine.proposerPlayerId}
+                    />?{/snippet}
+                <div class="mb-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                    <span class="text-oath-text-muted">You get</span>
+                    <span>
+                        <TokenText
+                            text={transferText(
+                                gameState,
+                                mine.terms.fromProposer,
+                                mine.proposerPlayerId
+                            )}
+                        />
+                    </span>
+                    <!-- R-7.6.3-H1 — each side's promise, quoted under what that side gives. -->
+                    {#if mine.terms.promises?.fromProposer}
+                        <span class="text-oath-text-muted"
+                            ><PlayerName playerId={mine.proposerPlayerId} /> promises</span
+                        >
+                        {@render promise(mine.terms.promises.fromProposer)}
+                    {/if}
+                    <span class="text-oath-text-muted">You give</span>
+                    <span>
+                        <TokenText
+                            text={transferText(
+                                gameState,
+                                mine.terms.fromCounterparty,
+                                mine.askedPlayerId
+                            )}
+                        />
+                    </span>
+                    {#if mine.terms.promises?.fromCounterparty}
+                        <span class="text-oath-text-muted">You promise</span>
+                        {@render promise(mine.terms.promises.fromCounterparty)}
+                    {/if}
+                </div>
+                <QuestionYesNo yes="Accept" no="Refuse" />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.DealKept}
+            <!-- R-7.6.3-H1 — the claimant says the deal was kept; each promise is quoted, theirs first. -->
+            {@const deal = draft.claimedDeal}
+            {@const theirs = deal && promiseBy(deal, mine.claimantPlayerId)}
+            {@const yours = deal && promiseBy(deal, mine.askedPlayerId)}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}<PlayerName playerId={mine.claimantPlayerId} /> says your deal is kept{/snippet}
+                <div class="mb-2 flex flex-col gap-1">
+                    {#if theirs}
+                        {@render quoted(theirs, mine.claimantPlayerId)}
+                    {/if}
+                    {#if yours}
+                        {@render quoted(yours)}
+                    {/if}
+                </div>
+                <QuestionYesNo yes="Yes, it was kept" no="Not kept" />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.JoinSite}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}Go to {siteName(gameState, mine.siteId)}?{/snippet}
+                <QuestionYesNo yes="Go" no="Stay" />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.KeepOrBottomRelic}
+            <QuestionForm cardId={mine.relicCardId}>
+                {#snippet line()}Take {cardName(mine.relicCardId)}?{/snippet}
+                <QuestionYesNo yes="Take" no="To the bottom" />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.BottomRelic && draft.cageBoards.length > 0}
+            <QuestionCageReturn />
+        {:else if mine.kind === PowerQuestionKind.BottomRelic}
+            <QuestionForm>
+                {#snippet line()}Which relic goes to the bottom?{/snippet}
+                <CardChoiceRow
+                    choices={[
+                        {
+                            key: mine.relicCardId,
+                            cardId: mine.relicCardId,
+                            label: cardName(mine.relicCardId),
+                            caption: 'drawn'
+                        },
+                        ...cardChoices(draft.heldRelicsToBottom).map((choice) => ({
+                            ...choice,
+                            caption: 'yours'
+                        }))
+                    ]}
+                    picked={[]}
+                    onpick={(cardId) =>
+                        void (cardId === mine.relicCardId
+                            ? draft.putOnBottom()
+                            : draft.putOnBottom(cardId))}
                     {busy}
+                    height={80}
                 />
-            </div>
-            <QuestionYesNo yes="Pay" no="None" />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.PayOrLoseRelic}
-        <QuestionForm cardId={mine.relicCardId}>
-            {#snippet line()}Pay <PlayerName playerId={mine.takerPlayerId} />
-                <TokenText text="{mine.price} favor" /> to keep {cardName(
-                    mine.relicCardId
-                )}?{/snippet}
-            <QuestionYesNo yes="Pay" no="Refuse" />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.PickFavorBank}
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}<TokenText
-                    text="Gain {mine.amount} favor from which bank?"
-                />{/snippet}
-            <SuitPicker
-                suits={draft.favorBanks}
-                picked={[]}
-                onpick={(suit) => draft.takeFavorFrom(suit)}
-                {busy}
-            />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.Exchange}
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}Exchange with <PlayerName
-                    playerId={mine.proposerPlayerId}
-                />?{/snippet}
-            <div class="mb-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-                <span class="text-oath-text-muted">You get</span>
-                <span>
-                    <TokenText
-                        text={transferText(
-                            gameState,
-                            mine.terms.fromProposer,
-                            mine.proposerPlayerId
-                        )}
-                    />
-                </span>
-                <span class="text-oath-text-muted">You give</span>
-                <span>
-                    <TokenText
-                        text={transferText(
-                            gameState,
-                            mine.terms.fromCounterparty,
-                            mine.askedPlayerId
-                        )}
-                    />
-                </span>
-            </div>
-            <QuestionYesNo yes="Accept" no="Refuse" />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.JoinSite}
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}Go to {siteName(gameState, mine.siteId)}?{/snippet}
-            <QuestionYesNo yes="Go" no="Stay" />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.KeepOrBottomRelic}
-        <QuestionForm cardId={mine.relicCardId}>
-            {#snippet line()}Take {cardName(mine.relicCardId)}?{/snippet}
-            <QuestionYesNo yes="Take" no="To the bottom" />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.BottomRelic && draft.cageBoards.length > 0}
-        <QuestionCageReturn />
-    {:else if mine.kind === PowerQuestionKind.BottomRelic}
-        <QuestionForm>
-            {#snippet line()}Which relic goes to the bottom?{/snippet}
-            <CardChoiceRow
-                choices={[
-                    {
-                        key: mine.relicCardId,
-                        cardId: mine.relicCardId,
-                        label: cardName(mine.relicCardId),
-                        caption: 'drawn'
-                    },
-                    ...cardChoices(draft.heldRelicsToBottom).map((choice) => ({
-                        ...choice,
-                        caption: 'yours'
-                    }))
-                ]}
-                picked={[]}
-                onpick={(cardId) =>
-                    void (cardId === mine.relicCardId
-                        ? draft.putOnBottom()
-                        : draft.putOnBottom(cardId))}
-                {busy}
-                height={80}
-            />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.RerollDice}
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}Reroll {rolledDice(mine.roll)}? Now {standingRoll(
-                    mine.roll
-                )}.{/snippet}
-            <QuestionYesNo yes="Reroll" no="Keep" cost={draft.acceptCost} />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.TravelFreeTo}
-        <!-- R-11.13-H1 — the sites are lit on the map (`BoardSitesLayer`); a tap there travels. -->
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}Travel where? Free.{/snippet}
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.ShroudedWoodDestination}
-        <!-- R-11.7 — the ruler picks on the lit map at every width, as for a Travel; a move that
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.RerollDice}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}Reroll {rolledDice(mine.roll)}? Now {standingRoll(
+                        mine.roll
+                    )}.{/snippet}
+                <QuestionYesNo yes="Reroll" no="Keep" cost={draft.acceptCost} />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.TravelFreeTo}
+            <!-- R-11.13-H1 — the sites are lit on the map (`BoardSitesLayer`); a tap there travels. -->
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}Travel where? Free.{/snippet}
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.ShroudedWoodDestination}
+            <!-- R-11.7 — the ruler picks on the lit map at every width, as for a Travel; a move that
              spends no Supply says so once. -->
-        <p class="text-sm">
-            Pick where <PlayerName playerId={mine.travelerPlayerId} /> goes.{draft.travelPick?.free
-                ? ' Free.'
-                : ''}
-        </p>
-        <WoodStay travelerId={mine.travelerPlayerId} />
-    {:else if mine.kind === PowerQuestionKind.PlayOrDiscardConspiracy}
-        <QuestionConspiracy />
-    {:else if mine.kind === PowerQuestionKind.TakeOrLeaveRelic}
-        <QuestionForm cardId={mine.relicCardId}>
-            {#snippet line()}Take {cardName(mine.relicCardId)}?{/snippet}
-            <QuestionYesNo yes="Take" no="Leave" />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.RelicThiefRoll}
-        {@const one = mine.relicCardIds.length === 1}
-        <QuestionForm cardId={one ? mine.relicCardIds[0] : mine.cardId}>
-            {#snippet line()}Roll {mine.relicCardIds.length} defense {one ? 'die' : 'dice'} for {listed(
-                    mine.relicCardIds.map(cardName)
-                )}? No shields takes {one ? 'it' : 'them'}.{/snippet}
-            <QuestionYesNo yes="Roll" no="Pass" cost={draft.acceptCost} />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.PlayOrDiscardVision}
-        <QuestionVision question={mine} />
-    {:else if mine.kind === PowerQuestionKind.DiscardInstead}
-        <QuestionForm>
-            {#snippet line()}<TokenText
-                    text="Discard one Beast card instead of {listed(
-                        mine.planCardIds.map(cardName)
-                    )}?"
-                />{/snippet}
-            <div class="mb-2">
-                <CardChoiceRow
-                    choices={cardChoices(mine.insteadCardIds)}
-                    picked={draft.instead ? [draft.instead] : []}
-                    onpick={(cardId) => draft.chooseInstead(toggleSingle(draft.instead, cardId))}
-                    {busy}
-                    height={80}
-                />
-            </div>
-            <QuestionYesNo yes="Discard instead" no="Discard plans" />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.SneakAttack}
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}Campaign against <PlayerName playerId={mine.defenderPlayerId} /> now? Free.{/snippet}
-            <QuestionYesNo yes="Campaign" no="Pass" />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.FreeActionOutOfTurn}
-        {@const action = mine.action === ActionType.Travel ? 'Travel' : 'Campaign'}
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}{action} now? Free.{/snippet}
-            <QuestionYesNo yes={action} no="Skip" />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.OrderDrawnCards || mine.kind === PowerQuestionKind.OrderDiscards}
-        <QuestionStackOrder />
-    {:else if mine.kind === PowerQuestionKind.GatheringFloor}
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}Propose an exchange?{/snippet}
-            <QuestionGatheringFloor />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.PayTravelToll}
-        <QuestionToll question={mine} />
-    {:else if mine.kind === PowerQuestionKind.DiscardAdvisers}
-        <!-- R-7.6.4 — the adviser-discard pick of a question at the limit (Inquisitor's), after a
+            <p class="text-sm">
+                Pick where <PlayerName playerId={mine.travelerPlayerId} /> goes.{draft.travelPick
+                    ?.free
+                    ? ' Free.'
+                    : ''}
+            </p>
+            <WoodStay travelerId={mine.travelerPlayerId} />
+        {:else if mine.kind === PowerQuestionKind.PlayOrDiscardConspiracy}
+            <QuestionConspiracy />
+        {:else if mine.kind === PowerQuestionKind.TakeOrLeaveRelic}
+            <QuestionForm cardId={mine.relicCardId}>
+                {#snippet line()}Take {cardName(mine.relicCardId)}?{/snippet}
+                <QuestionYesNo yes="Take" no="Leave" />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.RelicThiefRoll}
+            {@const one = mine.relicCardIds.length === 1}
+            <QuestionForm cardId={one ? mine.relicCardIds[0] : mine.cardId}>
+                {#snippet line()}Roll {mine.relicCardIds.length} defense {one ? 'die' : 'dice'} for {listed(
+                        mine.relicCardIds.map(cardName)
+                    )}? No shields takes {one ? 'it' : 'them'}.{/snippet}
+                <QuestionYesNo yes="Roll" no="Pass" cost={draft.acceptCost} />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.PlayOrDiscardVision}
+            <QuestionVision question={mine} />
+        {:else if mine.kind === PowerQuestionKind.DiscardInstead}
+            <QuestionForm>
+                {#snippet line()}<TokenText
+                        text="Discard one Beast card instead of {listed(
+                            mine.planCardIds.map(cardName)
+                        )}?"
+                    />{/snippet}
+                <div class="mb-2">
+                    <CardChoiceRow
+                        choices={cardChoices(mine.insteadCardIds)}
+                        picked={draft.instead ? [draft.instead] : []}
+                        onpick={(cardId) =>
+                            draft.chooseInstead(toggleSingle(draft.instead, cardId))}
+                        {busy}
+                        height={80}
+                    />
+                </div>
+                <QuestionYesNo yes="Discard instead" no="Discard plans" />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.SneakAttack}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}Campaign against <PlayerName playerId={mine.defenderPlayerId} /> now?
+                    Free.{/snippet}
+                <QuestionYesNo yes="Campaign" no="Pass" />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.FreeActionOutOfTurn}
+            {@const action = mine.action === ActionType.Travel ? 'Travel' : 'Campaign'}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}{action} now? Free.{/snippet}
+                <QuestionYesNo yes={action} no="Skip" />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.OrderDrawnCards || mine.kind === PowerQuestionKind.OrderDiscards}
+            <QuestionStackOrder />
+        {:else if mine.kind === PowerQuestionKind.GatheringFloor}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}Propose an exchange?{/snippet}
+                <QuestionGatheringFloor />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.PayTravelToll}
+            <QuestionToll question={mine} />
+        {:else if mine.kind === PowerQuestionKind.DiscardAdvisers}
+            <!-- R-7.6.4 — the adviser-discard pick of a question at the limit (Inquisitor's), after a
              swap; the card it gave is not offered. -->
-        {@const refused = draft.adviserDiscardsBlockedBecause}
-        <QuestionForm>
-            {#snippet line()}Over the adviser limit: discard {draft.adviserDiscardCount}.{/snippet}
-            <div class="mb-2">
-                <CardChoiceRow
-                    choices={cardChoices(draft.adviserDiscardChoices)}
-                    picked={draft.adviserDiscards}
-                    onpick={(cardId) => draft.toggleAdviserDiscard(cardId)}
-                    {busy}
-                    height={80}
-                    discard
-                />
-            </div>
-            {#if refused}<p class="mb-2 text-[11px] text-oath-danger">
-                    <TokenText text={gameSession.humanizeReason(refused) ?? ''} />
-                </p>{/if}
-            {#if draft.adviserDiscardsComplete}
-                <AnswerButton
-                    primary
-                    width={discardWidth}
-                    disabled={busy}
-                    onclick={() => draft.discardAdvisers()}
-                >
-                    Discard
-                </AnswerButton>
-            {/if}
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.FlipToTravel}
-        <!-- R-11.13-H1 — The Hidden Place (or the Narrow Pass from the Buried Giant) only with a flip;
+            {@const refused = draft.adviserDiscardsBlockedBecause}
+            <QuestionForm>
+                {#snippet line()}Over the adviser limit: discard {draft.adviserDiscardCount}.{/snippet}
+                <div class="mb-2">
+                    <CardChoiceRow
+                        choices={cardChoices(draft.adviserDiscardChoices)}
+                        picked={draft.adviserDiscards}
+                        onpick={(cardId) => draft.toggleAdviserDiscard(cardId)}
+                        {busy}
+                        height={80}
+                        discard
+                    />
+                </div>
+                {#if refused}<p class="mb-2 text-[11px] text-oath-danger">
+                        <TokenText text={gameSession.humanizeReason(refused) ?? ''} />
+                    </p>{/if}
+                {#if draft.adviserDiscardsComplete}
+                    <AnswerButton
+                        primary
+                        width={discardWidth}
+                        disabled={busy}
+                        onclick={() => draft.discardAdvisers()}
+                    >
+                        Discard
+                    </AnswerButton>
+                {/if}
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.FlipToTravel}
+            <!-- R-11.13-H1 — The Hidden Place (or the Narrow Pass from the Buried Giant) only with a flip;
              R-11.13-H2 — both at once take two. -->
-        {@const flips = mine.flips === 2 ? 'flip 2 secrets' : 'flip 1 secret'}
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}Travel to {siteName(gameState, mine.siteId)}?{/snippet}
-            <QuestionYesNo yes="Travel" no="Stay" cost={flips} yesLabel={`Travel and ${flips}`} />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.WayStationFavor}
-        <!-- R-11.7-H3 — Way Station at the Shrouded Wood's pick: its ruler's favor instead of the Supply;
+            {@const flips = mine.flips === 2 ? 'flip 2 secrets' : 'flip 1 secret'}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}Travel to {siteName(gameState, mine.siteId)}?{/snippet}
+                <QuestionYesNo
+                    yes="Travel"
+                    no="Stay"
+                    cost={flips}
+                    yesLabel={`Travel and ${flips}`}
+                />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.WayStationFavor}
+            <!-- R-11.7-H3 — Way Station at the Shrouded Wood's pick: its ruler's favor instead of the Supply;
              either answer travels: "Give 1 [favor]" / "Pay 2 Supply". The bandits' favor is burned. -->
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}Spend no Supply by {#if mine.payeeId}giving <PlayerName
-                        playerId={mine.payeeId}
-                    />{:else}burning{/if}
-                <FavorCost count={1} />?{/snippet}
-            <QuestionYesNo
-                yes={mine.payeeId ? 'Give' : 'Burn'}
-                cost="1 favor"
-                dot={!mine.payeeId}
-                no="Pay {mine.supplyCost} Supply"
-            />
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.HospitalityBank}
-        <!-- R-11.7-H2 — Hospitality after the Shrouded Wood ruler's pick, two or more banks matching:
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}Spend no Supply by {#if mine.payeeId}giving <PlayerName
+                            playerId={mine.payeeId}
+                        />{:else}burning{/if}
+                    <FavorCost count={1} />?{/snippet}
+                <QuestionYesNo
+                    yes={mine.payeeId ? 'Give' : 'Burn'}
+                    cost="1 favor"
+                    dot={!mine.payeeId}
+                    no="Pay {mine.supplyCost} Supply"
+                />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.HospitalityBank}
+            <!-- R-11.7-H2 — Hospitality after the Shrouded Wood ruler's pick, two or more banks matching:
              one button per bank, "+1 [favor] [suit]" as on any Travel; one tap gains. -->
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}<TokenText text="Gain 1 favor from:" />{/snippet}
-            <div class="flex flex-wrap gap-2">
-                {#each mine.banks as suit (suit)}
-                    <AnswerButton
-                        width={bankWidth}
-                        disabled={busy}
-                        label="+1 favor from the {suitName(suit)} bank"
-                        onclick={() => draft.gainHospitalityFavor(suit)}
-                    >
-                        <FavorCost count={1} sign="+" />
-                        <img
-                            class="inline-block h-[1.1em] w-auto"
-                            src={suitImage(suit)}
-                            alt="the {suitName(suit)} bank"
-                        />
-                    </AnswerButton>
-                {/each}
-            </div>
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.GamblingHallBank}
-        <!-- R-7.1.3-H2 — the roll stands, after any Jinx reroll: its faces, then one button per bank
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}<TokenText text="Gain 1 favor from:" />{/snippet}
+                <div class="flex flex-wrap gap-2">
+                    {#each mine.banks as suit (suit)}
+                        <AnswerButton
+                            width={bankWidth}
+                            disabled={busy}
+                            label="+1 favor from the {suitName(suit)} bank"
+                            onclick={() => draft.gainHospitalityFavor(suit)}
+                        >
+                            <FavorCost count={1} sign="+" />
+                            <img
+                                class="inline-block h-[1.1em] w-auto"
+                                src={suitImage(suit)}
+                                alt="the {suitName(suit)} bank"
+                            />
+                        </AnswerButton>
+                    {/each}
+                </div>
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.GamblingHallBank}
+            <!-- R-7.1.3-H2 — the roll stands, after any Jinx reroll: its faces, then one button per bank
              with favor, "+M [favor] [suit]", M the total or what the bank holds if less (R-9.3). -->
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}Rolled {plural(mine.shields, 'shield')}:{/snippet}
-            <div class="mb-2 flex flex-wrap items-center gap-1">
-                <DefenseDice faces={mine.faces} />
-            </div>
-            <p class="mb-2 text-base"><TokenText text="Gain {mine.shields} favor from:" /></p>
-            <div class="flex flex-wrap gap-2">
-                {#each draft.gamblingHallGains as { suit, gain } (suit)}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}Rolled {plural(mine.shields, 'shield')}:{/snippet}
+                <div class="mb-2 flex flex-wrap items-center gap-1">
+                    <DefenseDice faces={mine.faces} />
+                </div>
+                <p class="mb-2 text-base"><TokenText text="Gain {mine.shields} favor from:" /></p>
+                <div class="flex flex-wrap gap-2">
+                    {#each draft.gamblingHallGains as { suit, gain } (suit)}
+                        <AnswerButton
+                            width={bankWidth}
+                            disabled={busy}
+                            label="+{gain} favor from the {suitName(suit)} bank"
+                            onclick={() => draft.takeGamblingHallFavor(suit)}
+                        >
+                            <FavorCost count={gain} sign="+" />
+                            <img
+                                class="inline-block h-[1.1em] w-auto"
+                                src={suitImage(suit)}
+                                alt="the {suitName(suit)} bank"
+                            />
+                        </AnswerButton>
+                    {/each}
+                </div>
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.DragonskinDrum}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}Gain <TokenText
+                        text="1 warband"
+                        warbandColor={() => draft.drumWarbandColor}
+                    />?{/snippet}
+                <QuestionYesNo yes="Gain" no="Skip" />
+            </QuestionForm>
+        {:else if mine.kind === PowerQuestionKind.AdjustEndDie}
+            <!-- All three are always offered (its Q&A: a 6 raised still ends the game). -->
+            {@const roll = mine.roll}
+            <QuestionForm cardId={mine.cardId}>
+                {#snippet line()}The end die rolled a <EndDieValue value={roll} />.{/snippet}
+                {#if stakes}
+                    <p class="mb-2 text-sm">
+                        <EndDieStakes {stakes} viewerId={gameSession.myPlayer?.id} />
+                    </p>
+                {/if}
+                <div class="flex flex-wrap gap-2">
                     <AnswerButton
-                        width={bankWidth}
+                        primary
+                        width={adjustWidth}
                         disabled={busy}
-                        label="+{gain} favor from the {suitName(suit)} bank"
-                        onclick={() => draft.takeGamblingHallFavor(suit)}
+                        onclick={() => draft.adjustEndDie(-1)}>Lower to {roll - 1}</AnswerButton
                     >
-                        <FavorCost count={gain} sign="+" />
-                        <img
-                            class="inline-block h-[1.1em] w-auto"
-                            src={suitImage(suit)}
-                            alt="the {suitName(suit)} bank"
-                        />
-                    </AnswerButton>
-                {/each}
-            </div>
-        </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.DragonskinDrum}
-        <QuestionForm cardId={mine.cardId}>
-            {#snippet line()}Gain <TokenText
-                    text="1 warband"
-                    warbandColor={() => draft.drumWarbandColor}
-                />?{/snippet}
-            <QuestionYesNo yes="Gain" no="Skip" />
-        </QuestionForm>
-    {/if}
-</div>
+                    <AnswerButton
+                        primary
+                        width={adjustWidth}
+                        disabled={busy}
+                        onclick={() => draft.adjustEndDie(1)}>Raise to {roll + 1}</AnswerButton
+                    >
+                    <AnswerButton
+                        width={adjustWidth}
+                        disabled={busy}
+                        onclick={() => draft.adjustEndDie(0)}>Leave at {roll}</AnswerButton
+                    >
+                </div>
+            </QuestionForm>
+        {/if}
+    </div>
+{/if}

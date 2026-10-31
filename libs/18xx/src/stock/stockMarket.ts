@@ -70,6 +70,26 @@ export function createRectangularStockMarketSpaces(
     return spaces
 }
 
+/**
+ * A one-row market. Family round-end and sale moves go up and down, so on one row those are
+ * aliases of right and left.
+ */
+export function createLinearStockMarketSpaces(
+    prices: readonly number[],
+    color: (price: number) => string
+): StockMarketSpace[] {
+    return createRectangularStockMarketSpaces([prices], (_, column) => color(prices[column])).map(
+        (space) => ({
+            ...space,
+            moves: {
+                ...space.moves,
+                ...(space.moves.right ? { up: space.moves.right } : {}),
+                ...(space.moves.left ? { down: space.moves.left } : {})
+            }
+        })
+    )
+}
+
 /** A title's printed stock market; the State records only where company markers stand. */
 export class StockMarketChart {
     readonly spaces: readonly StockMarketSpace[]

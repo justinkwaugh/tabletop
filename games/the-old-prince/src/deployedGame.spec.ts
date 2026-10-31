@@ -306,10 +306,10 @@ describe('the deployed game', () => {
         )
     })
 
-    it('offers the active player the same actions', () => {
+    it('offers the active player the same actions, and a run instruction as its president', () => {
         expect(
             engine.getValidActionTypesForPlayer(game, latestState, latestState.activePlayerIds[0])
-        ).toEqual(['LayTile', 'FinishTrack'])
+        ).toEqual(['LayTile', 'FinishTrack', 'SetRunInstruction'])
     })
 
     it('reproduces recorded actions with the corrected reserved-share payouts', () => {

@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/1832",
-    "version": "5.0.0",
+    "version": "9.0.0",
     "private": true,
     "type": "module",
     "exports": {
@@ -40,6 +40,6 @@
         "rolldown": "^1.2.15",
         "typebox": "^1.0.79",
         "typescript": "5.9.3",
-        "vitest": "^4.0.12"
+        "vitest": "^5.0.5"
     }
 }

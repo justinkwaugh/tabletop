@@ -77,7 +77,7 @@ describe('the merger round', () => {
     it('follows an operating round and offers each company in operating order', () => {
         const play = mergerRound()
         expect(mergerRoundCompanyId(play.state)).toBe('BA')
-        expect(play.valid('blair')).toEqual(['ConvertCompany', 'PassMerger'])
+        expect(play.valid('blair')).toEqual(['ConvertCompany', 'PassMerger', 'SetRunInstruction'])
         passOn(play)
         expect(mergerRoundCompanyId(play.state)).toBe('PLE')
         passOn(play)
@@ -141,7 +141,11 @@ describe('conversion', () => {
         // Casey may buy before Alex in this seating order.
         while (play.state.activePlayerIds[0] !== 'alex')
             play.act('PassConvertedShares', { companyId: 'BA' })
-        expect(play.valid('alex')).toEqual(['SellConvertedShares', 'PassConvertedShares'])
+        expect(play.valid('alex')).toEqual([
+            'SellConvertedShares',
+            'PassConvertedShares',
+            'SetRunInstruction'
+        ])
         const before = structuredClone(play.state)
         expect(() =>
             play.act('SellConvertedShares', { companyId: 'BA', shares: 1, expectedProceeds: 100 })
@@ -230,7 +234,12 @@ describe('conversion', () => {
 describe('mergers', () => {
     it('merges two 5-share companies at their average price under the largest holder', () => {
         const play = mergerRound(pleWithFiveShares)
-        expect(play.valid('blair')).toEqual(['ConvertCompany', 'MergeCompanies', 'PassMerger'])
+        expect(play.valid('blair')).toEqual([
+            'ConvertCompany',
+            'MergeCompanies',
+            'PassMerger',
+            'SetRunInstruction'
+        ])
         play.act('MergeCompanies', { companyId: 'BA', targetId: 'PLE' })
         expect(getCompany(play.state, 'BA').shareCount).toBe(10)
         expect(price(play.state, 'BA')).toBe(80)

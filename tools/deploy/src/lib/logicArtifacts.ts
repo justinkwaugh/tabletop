@@ -6,7 +6,7 @@ import { buildLogicFactorySource } from '@tabletop/rolldown-config/logic-factory
 import { gcsPathExists } from './gcs.js'
 import { runCommand, type CommandSpec } from './commands.js'
 import { fetchBucketManifest } from './remoteManifest.js'
-import { assertDeployConfig, type PublishContext } from './publishCore.js'
+import { assertArtifactBucket, type PublishContext } from './publishCore.js'
 import type { GameManifestEntry } from './types.js'
 
 // Logic artifacts published before the build emitted it lack the collectible factory the backend
@@ -97,7 +97,7 @@ export const migrateLogicArtifacts = async (
     context: PublishContext,
     options: { apply: boolean; game?: string }
 ): Promise<LogicArtifactPlan[]> => {
-    const bucket = assertDeployConfig(context.deployConfig)
+    const bucket = assertArtifactBucket(context.deployConfig)
     const manifest = await fetchBucketManifest(context.deployConfig)
     const entries = manifest.games.filter(
         (entry) =>

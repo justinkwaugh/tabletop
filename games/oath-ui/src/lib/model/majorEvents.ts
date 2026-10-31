@@ -6,7 +6,9 @@ import {
     VISION_GOALS,
     VISIONS_DRAWN_GATE,
     VISIONS_DRAWN_SUPPLY_COST,
+    END_DIE_FACES,
     endDieThreshold,
+    isAnswerQuestion,
     isCampaign,
     isCampaignResolveVictory,
     isCampaignSacrifice,
@@ -28,14 +30,17 @@ import {
     type Campaign,
     type HydratedOathGameState,
     type OathType,
+    type OpenDeal,
     type WinRule
 } from '@tabletop/oath'
 import type { GameAction } from '@tabletop/common'
-import { bannerName, cardName, goalText, oathName, type NameOf } from '$lib/model/names.js'
+import { goalText, oathName, type NameOf } from '$lib/model/names.js'
 import { searchStoppedOnVision } from '$lib/model/actionDescription.js'
 import { endingParts, isWinRule } from '$lib/model/endings.js'
 import { endDieRollWords } from '$lib/model/endOfRound.js'
 import { worldDeckPrice } from '$lib/model/searchCost.js'
+import { campaignStepsTo } from '$lib/model/campaignLedger.js'
+import { shownInHistory } from '$lib/model/chronicleHistory.js'
 
 export enum MajorEventKind {
     VisionDrawn = 'visionDrawn',
@@ -71,7 +76,6 @@ export interface MajorEventContext {
     viewerId: string | undefined
     nameOf: NameOf
     oathType: OathType
-    campaign?: Campaign
     /** Each seat will be its `PlayerName` chip, which reads "you" for the viewer: name every seat by its id. */
     seatsById?: boolean
 }
@@ -92,12 +96,6 @@ function capitalized(text: string): string {
 function startingWith(playerId: string, context: MajorEventContext): string {
     const named = seat(playerId, context)
     return context.seatsById ? named : capitalized(named)
-}
-
-function opponentOf(context: MajorEventContext): string | undefined {
-    const defender = context.campaign?.defender
-    if (!defender) return undefined
-    return defender.kind === 'bandits' ? 'the bandits' : seat(defender.playerId, context)
 }
 
 /** R-2.1.6, R-3.2 — the world deck's cost steps at the first and third Vision, the third opening Vision wins. */
@@ -236,40 +234,39 @@ export function majorEventOf(
             consequence: `${startingWith(exiled, context)} ${isViewer ? 'are' : 'is'} an Exile again`
         }
     }
+    // R-5.5 — who fought whom and what changed hands is the card's ledger (`campaignLedger`).
     if (isCampaignResolveVictory(action)) {
         const meta = action.metadata
         const relics = meta?.relicsTaken ?? []
         const banners = meta?.bannersSeized ?? []
-        const opponent = opponentOf(context)
-        const gained = [...relics.map(cardName), ...banners.map((b) => `the ${bannerName(b)}`)]
         return {
             kind: MajorEventKind.CampaignWon,
             heading: 'Campaign won',
-            aside: opponent ? `against ${opponent}` : undefined,
             tone: 'heading',
             pictures: [
                 ...relics.map((cardId): EventPicture => ({ kind: 'card', cardId })),
                 ...banners.map((banner): EventPicture => ({ kind: 'banner', banner }))
-            ],
-            consequence:
-                gained.length === 0
-                    ? undefined
-                    : `${opponent ? `From ${opponent}` : 'Taken'}: ${gained.join(', ')}`
+            ]
         }
     }
     if (isCampaignSacrifice(action) && action.metadata?.attackerVictorious === false) {
-        const opponent = opponentOf(context)
         return {
             kind: MajorEventKind.CampaignLost,
             heading: 'Campaign lost',
-            aside: opponent ? `against ${opponent}` : undefined,
             tone: 'danger',
-            pictures: [],
-            consequence: 'Nothing changed hands'
+            pictures: []
         }
     }
     if (isRollEndDie(action) && action.metadata) {
+        // Squalid District — the roll waits on its ruler's answer, whose record is the event.
+        if (action.metadata.adjustedBy !== undefined) return undefined
         return endDieEvent(action.metadata.roll, action.metadata.round, action.metadata.wonBy)
+    }
+    const adjusted = isAnswerQuestion(action) ? action.metadata?.endDie : undefined
+    if (adjusted) {
+        // The die as it stands after the answer; a 6 raised to 7 is off the die, so its face is the roll.
+        const face = END_DIE_FACES.includes(adjusted.roll) ? adjusted.roll : adjusted.rolled
+        return endDieEvent(face, adjusted.round, adjusted.wonBy)
     }
     if (isCompleteRest(action) && action.metadata?.endDieRoll !== undefined) {
         const next = action.metadata.round
@@ -293,55 +290,124 @@ export function campaignsBefore(actions: readonly GameAction[]): (Campaign | und
 export interface HistoryRow {
     action: GameAction
     event?: MajorEvent
+    /** The Campaign the row's step belongs to, for a step row to name its attacker. */
+    campaign?: Campaign
+    /** The steps of the Campaign this row's card closes, for its ledger. */
+    campaignSteps?: readonly GameAction[]
 }
+
+const CAMPAIGN_CLOSED: ReadonlySet<MajorEventKind> = new Set([
+    MajorEventKind.CampaignWon,
+    MajorEventKind.CampaignLost
+])
 
 export function historyRows(
     actions: readonly GameAction[],
-    context: Omit<MajorEventContext, 'campaign'>
+    context: MajorEventContext
 ): HistoryRow[] {
     const campaigns = campaignsBefore(actions)
     return actions
-        .map((action, i) => ({
-            action,
-            event: majorEventOf(action, { ...context, campaign: campaigns[i] })
-        }))
+        .map((action, i) => {
+            const event = majorEventOf(action, context)
+            return {
+                action,
+                event,
+                campaign: campaigns[i],
+                campaignSteps:
+                    event && CAMPAIGN_CLOSED.has(event.kind) && campaigns[i]
+                        ? campaignStepsTo(actions, i)
+                        : undefined
+            }
+        })
+        .filter((row) => shownInHistory(row.action))
         .toReversed()
 }
 
-/** R-3 — the ending action's rule: the one action that recorded a win. */
+/**
+ * R-3 — the ending action's record: the one action that recorded a win, with its rule and the
+ * Tribunal deals still open, which it dropped (R-7.6.3-H1).
+ */
+export function endingRecord(
+    actions: readonly GameAction[]
+): { rule: WinRule; openDealsDropped: OpenDeal[] } | undefined {
+    const action = actions[endingActionIndex(actions)]
+    const metadata = action ? endingMetadata(action) : undefined
+    const wonBy = metadata?.wonBy
+    if (wonBy === undefined || !isWinRule(wonBy)) return undefined
+    return { rule: wonBy, openDealsDropped: metadata?.openDealsDropped ?? [] }
+}
+
+/** The ending fields an action records, if it is one that can end the game. */
+function endingMetadata(action: GameAction) {
+    // Squalid District — an asked roll decides nothing; its ruler's answer records the ending.
+    return isResolveWake(action) || isCompleteRest(action) || isRollEndDie(action)
+        ? action.metadata
+        : isAnswerQuestion(action)
+          ? action.metadata?.endDie
+          : undefined
+}
+
+/** R-3 — where the action that recorded the win is in `actions`, or -1. */
+export function endingActionIndex(actions: readonly GameAction[]): number {
+    return actions.findLastIndex((action) => {
+        const wonBy = endingMetadata(action)?.wonBy
+        return wonBy !== undefined && isWinRule(wonBy)
+    })
+}
+
+/** R-3 — the ending action's rule. */
 export function endingRule(actions: readonly GameAction[]): WinRule | undefined {
-    for (const action of actions.toReversed()) {
-        const wonBy =
-            isResolveWake(action) || isCompleteRest(action) || isRollEndDie(action)
-                ? action.metadata?.wonBy
-                : undefined
-        if (wonBy !== undefined && isWinRule(wonBy)) return wonBy
-    }
-    return undefined
+    return endingRecord(actions)?.rule
 }
 
 const VISION_ENDINGS: ReadonlySet<WinRule> = new Set(['R-3.2', 'R-3.4.3'])
 const USURPER_ENDINGS: ReadonlySet<WinRule> = new Set(['R-3.1', 'R-3.4.2'])
 
-/** R-3.2, R-3.4.3 — a Vision ending shows the Vision the winner met, their own before a shared one. */
+/** R-3 — who won, by which rule, and the Vision a Vision ending shows. */
+export interface WonGame {
+    winnerId: string
+    rule: WinRule
+    visionId?: string
+}
+
+/**
+ * R-3 — the result as recorded: from the chronicle revision, the ending the action that won stored
+ * (R-8.5 sets every Vision aside before the result, so the Vision is read there too); below it, the
+ * action log and the revealed Vision, the winner's own before a shared one.
+ */
+export function wonGame(
+    state: HydratedOathGameState,
+    actions: readonly GameAction[]
+): WonGame | undefined {
+    const ending = state.chronicle?.ending
+    if (ending) {
+        const [visionId] = VISION_ENDINGS.has(ending.rule) ? ending.waysMet.visionIds : []
+        return { winnerId: ending.winnerPlayerId, rule: ending.rule, visionId }
+    }
+    const [winnerId] = state.winningPlayerIds
+    const rule = endingRule(actions)
+    if (winnerId === undefined || rule === undefined) return undefined
+    const [visionId] = VISION_ENDINGS.has(rule) ? visionsMetBy(state, winnerId) : []
+    return { winnerId, rule, visionId }
+}
+
+/** R-3.2, R-3.4.3 — a Vision ending shows the Vision the winner met. */
 export function gameEndEvent(
     state: HydratedOathGameState,
-    winnerId: string,
-    rule: WinRule,
+    won: WonGame,
     context: MajorEventContext
 ): MajorEvent & { sentence: string } {
-    const [visionId] = VISION_ENDINGS.has(rule) ? visionsMetBy(state, winnerId) : []
-    const picture: EventPicture = visionId
-        ? { kind: 'card', cardId: visionId }
-        : { kind: 'title', usurper: USURPER_ENDINGS.has(rule) }
-    const { how, why } = endingParts(rule)
+    const picture: EventPicture = won.visionId
+        ? { kind: 'card', cardId: won.visionId }
+        : { kind: 'title', usurper: USURPER_ENDINGS.has(won.rule) }
+    const { how, why } = endingParts(won.rule)
     return {
         kind: MajorEventKind.GameEnd,
         heading: 'Game end',
         aside: `round ${state.round}`,
         tone: 'heading',
         pictures: [picture],
-        sentence: `${startingWith(winnerId, context)} won ${how}`,
+        sentence: `${startingWith(won.winnerId, context)} won ${how}`,
         consequence: why ? capitalized(why) : undefined
     }
 }

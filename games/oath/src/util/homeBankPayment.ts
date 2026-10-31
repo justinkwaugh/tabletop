@@ -6,7 +6,6 @@ import { favorHomeBankOf, homeBankPayable, spendFavor, usableFavor } from './fav
 import { askQuestion, turnOrderFrom } from './questions.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
 import { isInPlay } from './discard.js'
-import { suitOf } from '../data/cardRegistry.js'
 
 export type PayFromHomeBankQuestion = QuestionOf<PowerQuestionKind.PayFromHomeBank>
 
@@ -78,7 +77,7 @@ function payeeBankOf(
 ): Suit | undefined {
     if (question.toBank !== undefined) return question.toBank
     if (isInPlay(state, question.cardId)) return undefined
-    const suit = suitOf(question.cardId)
+    const suit = state.suitInPlay(question.cardId)
     assertExists(suit, `${question.cardId} has no suit, so its favor has no bank`)
     return suit
 }

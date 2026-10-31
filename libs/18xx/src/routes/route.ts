@@ -15,7 +15,13 @@ export const RoutePath = Type.Object(
 )
 export type RoutePath = Type.Static<typeof RoutePath>
 export const TrainRoute = Type.Object(
-    { trainId: Id, start: RevenueCenter, paths: Type.Array(RoutePath, { minItems: 1 }) },
+    {
+        trainId: Id,
+        start: RevenueCenter,
+        paths: Type.Array(RoutePath, { minItems: 1 }),
+        /** Track beyond the route's end, counting no stops, that earns an interconnection. */
+        extension: Type.Optional(Type.Array(RoutePath, { minItems: 1 }))
+    },
     { additionalProperties: false }
 )
 export type TrainRoute = Type.Static<typeof TrainRoute>
@@ -29,7 +35,9 @@ export const RouteBonus = Type.Object(
         locationId: Id,
         amount: Type.Integer({ minimum: 1 }),
         /** What earned the bonus, such as a private company, by the ids the title names. */
-        sourceIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true }))
+        sourceIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true })),
+        /** The bonus arrows printed beside the board that paid it. */
+        arrowIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true }))
     },
     { additionalProperties: false }
 )
@@ -52,6 +60,14 @@ export const OperatingResult = Type.Object(
     { additionalProperties: false }
 )
 export type OperatingResult = Type.Static<typeof OperatingResult>
+export function trainRoutesOf(result: OperatingResult): TrainRoute[] {
+    return result.routes.map(({ trainId, start, paths, extension }) => ({
+        trainId,
+        start,
+        paths,
+        ...(extension ? { extension } : {})
+    }))
+}
 export const RouteStep = Type.Object(
     { companyId: Id, result: Type.Optional(OperatingResult) },
     { additionalProperties: false }
@@ -79,4 +95,12 @@ export function validateRouteStep(state: {
         (state.machineState === 'DistributingEarnings') === Boolean(state.routeStep.result),
         'Route result must match operation progress'
     )
+}
+
+/** The state as the company's running step would see it, wherever its turn stands. */
+export function atRunningStep<State extends TrainRunningState>(
+    state: State,
+    companyId: string
+): State & { routeStep: RouteStep } {
+    return { ...state, routeStep: { companyId } }
 }

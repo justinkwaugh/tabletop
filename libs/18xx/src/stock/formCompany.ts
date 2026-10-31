@@ -1,9 +1,9 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import * as Value from 'typebox/value'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -15,7 +15,7 @@ import type { StockRules } from './stockRules.js'
 
 export const FormCompany = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('FormCompany'),
         companyId: Type.String(),
         shareCount: Type.Integer({ minimum: 1 }),

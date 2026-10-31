@@ -1,10 +1,9 @@
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { askQuestion } from '../util/questions.js'
 import { registerBattlePlan, registerEffect, registerPersistent } from './registry.js'
 import { siteHasCardOfSuit, regionOfPawn } from './vocabulary.js'
-import { nextActionIndex } from '../util/freeActions.js'
+import { grantFreeTravel } from '../util/freeActions.js'
 import { reasonCannotTravelByPower } from '../util/powerTravel.js'
 import { canPayPowerMoveToll } from '../util/powerMoveTolls.js'
 import { seeDiscardPile } from '../util/knowledge.js'
@@ -33,11 +32,10 @@ registerEffect(BRASS_HORSE, powerIndexOf(BRASS_HORSE, PowerTiming.Action), {
         count: 1
     }),
     resolve: (ctx) => {
-        const me = ctx.state.getPlayerState(ctx.playerId)
         const top = ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds[0] : undefined
         // "Reveal" — the whole table sees the top card.
         if (top) seeDiscardPile(ctx.state, 'everyone', regionOfPawn(ctx.state, ctx.playerId), [top])
-        const suit = top ? suitOf(top) : undefined
+        const suit = top ? ctx.state.suitInPlay(top) : undefined
         // Its Q&A — the Travel rules bind; a site that cannot be travelled to is "unable".
         const sites = suit
             ? ctx.state
@@ -76,7 +74,7 @@ registerEffect(BRASS_HORSE, powerIndexOf(BRASS_HORSE, PowerTiming.Action), {
             }
         }
         // "If unable, travel as normal" — the next Travel, for no Supply.
-        me.freeTravelAtAction = nextActionIndex(ctx.state)
+        grantFreeTravel(ctx.state, ctx.playerId, BRASS_HORSE)
         return {
             summary: `Brass Horse: revealed ${top ?? 'nothing'}; no site holds that suit, so the next Travel costs no Supply`,
             peeked: top ? [top] : []

@@ -28,6 +28,8 @@ export type ModifierDeclaration = {
 // A `type`, not an `interface`: the shared helpers are generic over `Record<string, unknown>`.
 export type OathValueByStage = {
     action: ActionType
+    /** The card whose "Use" badge opened Use a power: the list holds its powers alone. */
+    powerCard: string
     siteFavor: Record<string, number>
     modifiers: ModifierDeclaration[]
     warbandMove: WarbandMoveOption
@@ -50,6 +52,7 @@ export type OathValueByStage = {
 
 export const OATH_STAGE_ORDER = [
     'action',
+    'powerCard',
     'siteFavor',
     'modifiers',
     'warbandMove',
@@ -77,7 +80,10 @@ void _stagesAreCovered
 
 export type OathSelectionState = StagedSelectionState<OathValueByStage>
 
-/** The action grid's flow: an action, the modifiers declared on it, then what it acts on. */
+/**
+ * The action grid's flow: an action (with the card a "Use" badge opened Use a power on), the
+ * modifiers declared on it, then what it acts on.
+ */
 export class OathSelection extends StagedFlow<OathValueByStage> {
     constructor() {
         super(OATH_STAGE_ORDER)
@@ -114,6 +120,11 @@ export class OathSelection extends StagedFlow<OathValueByStage> {
                 this.setModifiers(modifiers.map(({ use }) => ({ use, seeded: true })))
                 return 'modifiers'
             }
+        }
+        // A card's "Use" badge opens Use a power on that card in one tap, so Undo takes both back.
+        if (this.highestManualStage() === 'powerCard') {
+            this.clearFrom('action')
+            return 'action'
         }
         return super.back()
     }

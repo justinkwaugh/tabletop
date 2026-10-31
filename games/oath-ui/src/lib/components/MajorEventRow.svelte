@@ -2,10 +2,10 @@
     import type { Snippet } from 'svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import TokenText from '$lib/components/TokenText.svelte'
-    import { cardBack, cardImage } from '$lib/images/cardImages.js'
+    import { cardBack, cardImageInPlay } from '$lib/images/cardImages.js'
     import { bannerImage, oathkeeperTileImage } from '$lib/images/tileImages.js'
     import { endDieImage } from '$lib/images/diceImages.js'
-    import { bannerName, cardName } from '$lib/model/names.js'
+    import { bannerName, cardNameInPlay } from '$lib/model/names.js'
     import type { EventPicture, MajorEvent } from '$lib/model/majorEvents.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -20,7 +20,7 @@
     function source(picture: EventPicture): string | undefined {
         switch (picture.kind) {
             case 'card':
-                return cardImage(picture.cardId)
+                return cardImageInPlay(gameSession.gameState, picture.cardId)
             case 'back':
                 return cardBack(picture.cardKind)
             case 'title':
@@ -35,7 +35,7 @@
     function alt(picture: EventPicture): string {
         switch (picture.kind) {
             case 'card':
-                return cardName(picture.cardId)
+                return cardNameInPlay(gameSession.gameState, picture.cardId)
             case 'back':
                 return 'a Vision, facedown'
             case 'title':
@@ -67,10 +67,10 @@
             >
         {/if}
     </div>
-    <p class="mt-0.5 text-sm text-oath-text">
+    <div class="mt-0.5 text-sm text-oath-text">
         {#if actorId}<PlayerName playerId={actorId} />{/if}
         {@render children()}
-    </p>
+    </div>
     {#if event.pictures.length > 0}
         <div class="mt-1.5 flex items-end gap-1.5">
             {#each event.pictures as picture, i (i)}
