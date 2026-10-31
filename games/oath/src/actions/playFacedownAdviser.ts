@@ -26,7 +26,10 @@ import { regionOfPawn } from '../powers/vocabulary.js'
 import { powerInPlay } from '../util/powersInPlay.js'
 import { effectFor, type ModifierHooks, type PlayMapChanges } from '../powers/registry.js'
 import {
+    beginModifiersInUse,
     discardTargetOf,
+    endModifiersInUse,
+    modifierCardsInUse,
     ModifierUse,
     ModifierUses,
     modifiersResolveBeforePower,
@@ -158,6 +161,8 @@ export class HydratedPlayFacedownAdviser
 
         // R-7.1.2, R-7.4 — paid at declaration.
         payModifierCosts(state, this.playerId, active)
+        // R-7.4.3 — "as if you searched": the play's modifiers cannot be discarded until it ends.
+        beginModifiersInUse(state, active)
         const tollNotes = payTolls(state, this.playerId, FACEDOWN_PLAY, this.tolls)
         const discardTarget = discardTargetOf(state, this.playerId, active)
 
@@ -212,6 +217,8 @@ export class HydratedPlayFacedownAdviser
             isIrreversible(this.metadata) ||
             reveal !== undefined
         commitHiddenOutputs(this, state, witnesses)
+
+        endModifiersInUse(state)
     }
 
     static reasonCannotPlay(
@@ -254,7 +261,8 @@ export class HydratedPlayFacedownAdviser
                 discardedAdviserCardIds: choice.discardedAdviserCardIds,
                 toSiteId: choice.toSiteId,
                 discardFirstCardId: choice.discardFirstCardId,
-                carried: active
+                carried: active,
+                modifiersInUse: modifierCardsInUse(state, active)
             }) ??
             reasonCannotPayInAll(state, playerId, [
                 modifierPayment(active),
@@ -298,7 +306,8 @@ export class HydratedPlayFacedownAdviser
                 discardedAdviserCardIds: choice.discardedAdviserCardIds,
                 toSiteId: choice.toSiteId,
                 discardFirstCardId: choice.discardFirstCardId,
-                carried: active
+                carried: active,
+                modifiersInUse: modifierCardsInUse(state, active)
             })
         )
     }

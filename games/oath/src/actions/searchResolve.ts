@@ -15,6 +15,7 @@ import { isFaceupPlay, isIrreversible } from '../util/powerDoorway.js'
 import { PowerChoice } from '../util/powerChoice.js'
 import {
     discardTargetOf,
+    endModifiersInUse,
     modifiersResolveBeforePower,
     runAfter,
     searchPlayModifiers
@@ -330,11 +331,7 @@ export class HydratedSearchResolve
             reveal !== undefined
         commitHiddenOutputs(this, state, witnesses)
 
-        // R-7.4.3 — the Search ends with its play, or with the last of the questions the play asked (Twin Brother's
-        // swap and the discard after it), whose queue keeps its modifiers barred until it closes.
-        const inUse = state.searchModifiersInUse
-        state.searchModifiersInUse = undefined
-        if (inUse && state.pendingQuestions) state.pendingQuestions.searchModifiersInUse = inUse
+        endModifiersInUse(state)
     }
 
     static reasonCannotResolve(

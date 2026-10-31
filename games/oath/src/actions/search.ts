@@ -25,6 +25,7 @@ import { payTolls, reasonTollsUnpaid } from '../util/tolls.js'
 import { modifierPayment, reasonCannotPayInAll, tollPayment } from '../util/actionPayment.js'
 import { defaultTolls } from '../util/tollDefaults.js'
 import {
+    beginModifiersInUse,
     firstForbid,
     foldDrawCount,
     foldSupplyCost,
@@ -187,10 +188,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
             }))
         if (state.pendingSearchModifiers.length === 0) state.pendingSearchModifiers = undefined
         // R-7.4.3 — every modifier the Search uses, the draw's and cost's too, cannot be discarded until it ends.
-        // From revision 31; before it (R-X.4) nothing is recorded, so nothing is barred.
-        if (isAtLeastOathRevision(state, OathRevision.EngineFixes26) && active.length > 0) {
-            state.searchModifiersInUse = [...new Set(active.map((m) => m.power.cardId))]
-        }
+        beginModifiersInUse(state, active)
 
         this.metadata = {
             draw,

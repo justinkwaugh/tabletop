@@ -72,7 +72,8 @@ export const OathGameState = Type.Object({
     pendingSearchModifiers: Type.Optional(Type.Array(PowerUse, { maxItems: 8 })),
     /**
      * R-7.4.3 — the cards of every modifier the Search under way uses, kept from the Search to its resolve, which
-     * hands them to the questions it asks (`PendingQuestions.searchModifiersInUse`). From revision 31.
+     * hands them to the questions it asks (`PendingQuestions.searchModifiersInUse`); and those an R-6.1 play uses,
+     * kept through that play. From revision 31.
      */
     searchModifiersInUse: Type.Optional(Type.Array(Type.String(), { maxItems: 16 })),
 

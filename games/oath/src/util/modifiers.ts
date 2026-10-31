@@ -404,14 +404,46 @@ export function carriedModifiers(
 
 /**
  * R-7.4.3 — "A modifier cannot be discarded during the major action it is modifying": the cards of the modifiers
- * the Search under way uses, until its resolve and the questions that asks are done. None before revision 31.
+ * a Search uses, or an R-6.1 play "as if you searched", from revision 31. Before it (R-X.4), none.
+ */
+export function modifierCardsInUse(
+    state: HydratedOathGameState,
+    active: readonly ActiveModifier[]
+): string[] {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes26)) return []
+    return [...new Set(active.map((m) => m.power.cardId))]
+}
+
+/** R-7.4.3 — the Search, or the R-6.1 play, under way records its modifiers in use until it ends. */
+export function beginModifiersInUse(
+    state: HydratedOathGameState,
+    active: readonly ActiveModifier[]
+): void {
+    const inUse = modifierCardsInUse(state, active)
+    if (inUse.length > 0) state.searchModifiersInUse = inUse
+}
+
+/**
+ * R-7.4.3 — the Search, or the R-6.1 play, ends with its play, or with the last of the questions the play asked
+ * (Twin Brother's swap and the discard after it), whose queue keeps its modifiers barred until it closes.
+ */
+export function endModifiersInUse(state: HydratedOathGameState): void {
+    const inUse = state.searchModifiersInUse
+    state.searchModifiersInUse = undefined
+    if (inUse && state.pendingQuestions) state.pendingQuestions.searchModifiersInUse = inUse
+}
+
+/**
+ * R-7.4.3 — whether `cardId` is a modifier in use: one the action under way recorded, until it and the questions it
+ * asks are done, or one of `declared`, the cards in use of an R-6.1 play judged before it records them.
  */
 export function reasonModifierInUse(
     state: HydratedOathGameState,
-    cardId: string
+    cardId: string,
+    declared: readonly string[] = []
 ): string | undefined {
     const inUse = state.searchModifiersInUse ?? state.pendingQuestions?.searchModifiersInUse ?? []
-    return inUse.includes(cardId)
+    return inUse.includes(cardId) || declared.includes(cardId)
         ? `${cardId} is a modifier in use and cannot be discarded during the action it modifies`
         : undefined
 }

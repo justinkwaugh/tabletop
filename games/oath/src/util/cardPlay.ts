@@ -231,6 +231,8 @@ export function reasonCannotTakeByConspiracy(
 export interface CardPlayOptions {
     /** R-7.4 (Crop Rotation) */
     carried?: ActiveModifier[]
+    /** R-7.4.3 — the cards in use of an R-6.1 play, which its check judges before the play records them. */
+    modifiersInUse?: readonly string[]
     /** R-11.10 (Great Slum) — discarded before the site play. */
     discardFirstCardId?: string
     /** New Growth */
@@ -759,18 +761,19 @@ export function adviserDiscardsNeeded(
 
 /**
  * Why one of the player's advisers cannot be discarded: R-7.2.2, a faceup locked adviser (a facedown one has no
- * lock); R-7.4.3, a modifier the Search under way uses.
+ * lock); R-7.4.3, a modifier the Search or R-6.1 play under way uses.
  */
 export function reasonAdviserNotDiscardable(
     state: HydratedOathGameState,
     playerId: string,
-    adviserId: string
+    adviserId: string,
+    modifiersInUse?: readonly string[]
 ): string | undefined {
     const adviser = state.getPlayerState(playerId).knownAdviser(adviserId)
     if (adviser === undefined) return `${adviserId} is not one of your advisers`
     if (adviser.faceUp && isLockedFor(state, playerId, adviserId))
         return `${adviserId} is locked and cannot be discarded`
-    return reasonModifierInUse(state, adviserId)
+    return reasonModifierInUse(state, adviserId, modifiersInUse)
 }
 
 export function adviserDiscardable(
@@ -842,7 +845,8 @@ function reasonDiscardFirstInvalid(
     here: string,
     destination: string,
     cardId: string,
-    carried: readonly ActiveModifier[]
+    carried: readonly ActiveModifier[],
+    modifiersInUse: readonly string[] | undefined
 ): string | undefined {
     const at = siteHolding(state, cardId)
     const allowed =
@@ -855,8 +859,8 @@ function reasonDiscardFirstInvalid(
     }
     // R-7.2.2 — a locked card cannot be discarded; Ancient Bloodline locks it for its holder's enemies.
     if (isLockedFor(state, playerId, cardId)) return `${cardId} is locked and cannot be discarded`
-    // R-7.4.3 — nor a site modifier the Search uses (Welcoming Party).
-    return reasonModifierInUse(state, cardId)
+    // R-7.4.3 — nor a site modifier the Search or R-6.1 play uses (Welcoming Party, Bracken).
+    return reasonModifierInUse(state, cardId, modifiersInUse)
 }
 
 /**
@@ -939,7 +943,8 @@ export function reasonCannotPlaceCard(
                     here,
                     target,
                     first,
-                    options.carried ?? []
+                    options.carried ?? [],
+                    options.modifiersInUse
                 )
                 if (firstReason) return firstReason
             }
@@ -1006,7 +1011,12 @@ export function reasonCannotPlaceCard(
                 if (!player.knownAdviser(discardedId) || discardedId === cardId) {
                     return `${discardedId} is not one of your other advisers`
                 }
-                const notDiscardable = reasonAdviserNotDiscardable(state, playerId, discardedId)
+                const notDiscardable = reasonAdviserNotDiscardable(
+                    state,
+                    playerId,
+                    discardedId,
+                    options.modifiersInUse
+                )
                 if (notDiscardable) return notDiscardable
             }
             return reasonAdviserPlayOverLimit(state, playerId, cardId, options, discards)
