@@ -389,7 +389,7 @@ for (const width of WIDTHS) {
             await expect(header(mara)).toHaveText('Your turn')
             await expect(seatMoney(mara, width, 'Royce')).toContainText('$0')
             await expect(await history(mara)).toContainText(
-                'sold all 4 for $4, paid $5, $3 forgiven'
+                'sold all (4 SP) at half price ($4), paid $5, $3 forgiven'
             )
         })
 
