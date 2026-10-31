@@ -97,6 +97,26 @@ test('R-3.3: a picked piece veils the board with one path holed at each lit hex 
     expect(rings.sort()).toEqual([...lit].sort())
 })
 
+test('contract, "Hover preview": a mouse hover or keyboard focus on a hand piece previews its hexes', async ({
+    page
+}) => {
+    await createGame(page)
+    const piece = page.locator('[data-turn-piece]').first()
+    const previewed = board(page).locator('[data-previewed]')
+    await piece.hover()
+    await expect(previewed.first()).toBeVisible()
+    await page.mouse.move(0, 0)
+    await expect(previewed).toHaveCount(0)
+
+    // A key press first, so the focus that follows counts as keyboard focus (:focus-visible).
+    await page.keyboard.press('Tab')
+    await piece.focus()
+    await expect(piece).toBeFocused()
+    await expect(previewed.first()).toBeVisible()
+    await piece.blur()
+    await expect(previewed).toHaveCount(0)
+})
+
 test('R-3.3: a press on a lit hex places the piece with its order badge', async ({ page }) => {
     await createGame(page)
     const [target] = await pickFirstPiece(page)

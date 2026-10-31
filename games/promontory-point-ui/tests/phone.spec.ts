@@ -138,6 +138,17 @@ test('contract, "Phone layout": every button in the panel, header and seat strip
     expect(heights.filter(([, height]) => Number(height) < 44)).toEqual([])
 })
 
+test('contract, "Hover preview": a tap never sets the preview, even when it focuses the piece', async ({
+    page
+}) => {
+    await createGame(page)
+    await firstPiece(page).tap()
+    await expect(board(page).locator('[data-lit]').first()).toBeVisible()
+    await firstPiece(page).tap()
+    await expect(board(page).locator('[data-lit]')).toHaveCount(0)
+    await expect(board(page).locator('[data-previewed]')).toHaveCount(0)
+})
+
 test('R-3.3: a pick frames its lit hexes up to 2× and returns when it ends; the offer is unchanged', async ({
     page
 }) => {

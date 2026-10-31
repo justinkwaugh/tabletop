@@ -15,6 +15,17 @@
             gameSession.hoverPiece(railroadId)
         }
     }
+
+    // Contract, "Hover preview": keyboard focus previews, but a tap or click that focuses the
+    // piece does not, so touch never sets it.
+    function focus(event: FocusEvent, railroadId: RailroadId) {
+        if (
+            event.currentTarget instanceof Element &&
+            event.currentTarget.matches(':focus-visible')
+        ) {
+            gameSession.hoverPiece(railroadId)
+        }
+    }
 </script>
 
 {#snippet piece(railroadId: RailroadId, radius: number)}
@@ -52,7 +63,7 @@
                 onclick={() => gameSession.pressPiece(turnPiece.railroadId)}
                 onpointerenter={(event) => hover(event, turnPiece.railroadId)}
                 onpointerleave={(event) => hover(event, undefined)}
-                onfocus={() => gameSession.hoverPiece(turnPiece.railroadId)}
+                onfocus={(event) => focus(event, turnPiece.railroadId)}
                 onblur={() => gameSession.hoverPiece(undefined)}
             >
                 {@render piece(turnPiece.railroadId, PIECE_RADIUS)}
