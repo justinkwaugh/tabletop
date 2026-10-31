@@ -164,7 +164,8 @@ export class MoneyMarkerAnimator extends StateAnimator {
         animationContext.afterAnimations(() => this.chips.clear())
     }
 
-    // The label switches halfway through the hop that crosses a hundred, as the marker does.
+    // The label switches halfway through the hop that crosses a hundred, as the marker does: one
+    // write at each crossing, placed on the timeline.
     private stepOverflow(
         timeline: Timeline,
         playerId: string,
@@ -176,18 +177,17 @@ export class MoneyMarkerAnimator extends StateAnimator {
         if (moneyOverflow(before) === moneyOverflow(after)) return
         const hops = Math.abs(after - before)
         const direction = Math.sign(after - before)
-        const clock = { hop: 0 }
-        const show = () =>
-            this.overflowShown.set(
-                playerId,
-                moneyOverflow(before + direction * Math.round(clock.hop))
+        this.overflowShown.set(playerId, moneyOverflow(before))
+        for (let hop = 1; hop <= hops; hop++) {
+            const passed = moneyOverflow(before + direction * (hop - 1))
+            const reached = moneyOverflow(before + direction * hop)
+            if (passed === reached) continue
+            timeline.call(
+                () => this.overflowShown.set(playerId, reached),
+                [],
+                start + (hop - 0.5) * secondsPerHop
             )
-        show()
-        timeline.to(
-            clock,
-            { hop: hops, duration: hops * secondsPerHop, ease: 'none', onUpdate: show },
-            start
-        )
+        }
     }
 
     // Presence for this replayed action only: the next one overwrites it, and its end clears it.
