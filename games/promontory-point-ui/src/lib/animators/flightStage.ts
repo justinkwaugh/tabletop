@@ -20,7 +20,7 @@ export interface FlightStage {
     seatHandSlot(playerId: string, index: number): ScreenRect | undefined
     // The share cards a seat card's stack draws, bottom to top.
     seatShareCards(playerId: string, railroadId: RailroadId): StageSpot[]
-    // A share deck's face in the sea, while the deck holds a card.
+    // A share deck's face in the strip, while the deck holds a card.
     deckFace(railroadId: RailroadId): StageSpot | undefined
     // A box in map units, on screen.
     mapRect(box: BoundingBox): ScreenRect | undefined

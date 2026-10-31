@@ -17,12 +17,12 @@ Kept at the supplied 675 × 1050. The supplied faces carry an alpha channel that
 
 ## Rendered size
 
-| Render                                     | Width (CSS px) |
-| ------------------------------------------ | -------------- |
-| Enlarged on a phone: the screen less 32 px | up to 343      |
-| Enlarged on a desktop                      | 300            |
-| Deck in the sea, full-screen desktop board | about 54       |
-| Panel face                                 | 38             |
-| Seat card stack                            | 30             |
+| Render                                       | Width (CSS px) |
+| -------------------------------------------- | -------------- |
+| Enlarged on a phone: the screen less 32 px   | up to 343      |
+| Enlarged on a desktop                        | 300            |
+| Deck in the strip, full-screen desktop board | about 90       |
+| Panel face                                   | 38             |
+| Seat card stack                              | 30             |
 
 The largest ordinary render is 343 wide; 675 is under 2× it, so the supplied size is kept and one file serves every size.

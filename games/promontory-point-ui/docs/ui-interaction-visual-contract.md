@@ -19,33 +19,33 @@ Oath's principle, with one stated departure:
 
 ### What is on it
 
-| Region                                                                  | Holds                                                                                                                                                 | Drawn as                                                         |
-| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| **Map**                                                                 | 123 spaces (including the coastal hex below the Southern Pacific home), the four railroad home hexes, Promontory (+5) at the centre (R-1.1, R-1.1-H3) | the supplied map image                                           |
-| **Town tiles** (on the map)                                             | one face-up tile on each of the 48 village hexes (R-1.3), still shown under a track piece                                                             | the supplied tile images, clipped to the village hex             |
-| **Track pieces** (on the map)                                           | every placed piece, as a round token in its railroad's colour; no rails between hexes (O-5)                                                           | drawn in code in the railroad's colour (R-X.4)                   |
-| **Share-price track** (on the map, left)                                | one marker per railroad on the printed 30-space track, 25 down to the fifth 0 (R-1.2)                                                                 | printed track; markers drawn                                     |
-| **Border track** (on the map, edge)                                     | one money marker per seat on the printed 0–99 track, wrapping past 99 (R-1.3-H1)                                                                      | printed track; markers drawn                                     |
-| **The sea** (on the map, in the open sea right of the price track, O-8) | the four share decks with counts (R-1.3), the bag with its count, the end tracker: red tiles uncovered and Promontory open or taken (R-6.1, R-6.1-H1) | share faces from the supplied art; bag, counts and tracker drawn |
-| **Players column** (the sidebar's Players tab, desktop)                 | one seat card per seat, in seat order                                                                                                                 | drawn; share faces from the supplied art                         |
-| **Seat strip** (phone)                                                  | one chip per seat (see [Phone layout](#phone-layout))                                                                                                 | drawn                                                            |
+| Region                                                   | Holds                                                                                                                                                                                                                                                                     | Drawn as                                                     |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **Map**                                                  | 123 spaces (including the coastal hex below the Southern Pacific home), the four railroad home hexes, Promontory (+5) at the centre (R-1.1, R-1.1-H3)                                                                                                                     | the supplied map image                                       |
+| **Town tiles** (on the map)                              | one face-up tile on each of the 48 village hexes (R-1.3), still shown under a track piece                                                                                                                                                                                 | the supplied tile images, clipped to the village hex         |
+| **Track pieces** (on the map)                            | every placed piece, as a round token in its railroad's colour; no rails between hexes (O-5)                                                                                                                                                                               | drawn in code in the railroad's colour (R-X.4)               |
+| **Share-price track** (on the map, left)                 | one marker per railroad on the printed 30-space track, 25 down to the fifth 0 (R-1.2)                                                                                                                                                                                     | printed track; markers drawn                                 |
+| **Border track** (on the map, edge)                      | one money marker per seat on the printed 0–99 track, wrapping past 99 (R-1.3-H1)                                                                                                                                                                                          | printed track; markers drawn                                 |
+| **The strip** (beside the map, directly left of it, O-8) | "The bag": its count, "pieces left" (R-1.3, R-5); "Shares for sale": the four share decks in a 2×2 grid, each with its price in a coupon and its count (R-1.2, R-1.3); "Game ends when both": red towns open, "at most 1", and Promontory open or taken (R-6.1, R-6.1-H1) | paper cards drawn in code; share faces from the supplied art |
+| **Players column** (the sidebar's Players tab, desktop)  | one seat card per seat, in seat order                                                                                                                                                                                                                                     | drawn; share faces from the supplied art                     |
+| **Seat strip** (phone)                                   | one chip per seat (see [Phone layout](#phone-layout))                                                                                                                                                                                                                     | drawn                                                        |
 
 ### Images and data
 
 - **Supplied images:** the map; the four share card faces; the eight town tile faces (+1, +2, +3, −1, −2, −3, Dividend, Repairs). The tile back and the share back are not used (O-7).
-- **Drawn from data:** track pieces, price markers, money markers, the bag, every count, rings, chips, outlines, dimming, the seat cards, the end tracker.
-- **Positions** come from one geometry table in map-image units, not from the picture at run time: each hex centre from its axial coordinate (pointy-top, Promontory at 0,0; `x = x0 + w·(q + r/2)`, `y = y0 + h·r` with the constants measured once off the map), each price-track space (30), each border-track space (100) and the sea slots (share decks, bag, end tracker).
+- **Drawn from data:** track pieces, price markers, money markers, the strip's cards (the bag, the decks' prices and counts, the end tracker), every count, rings, chips, outlines, dimming, the seat cards.
+- **Positions** come from one geometry table in map-image units, not from the picture at run time: each hex centre from its axial coordinate (pointy-top, Promontory at 0,0; `x = x0 + w·(q + r/2)`, `y = y0 + h·r` with the constants measured once off the map), each price-track space (30), each border-track space (100) and the strip's slots (the bag, the shares card and its four decks, the end tracker), which lie left of the map's x = 0 in the same units.
 - **Price-track slots.** Each railroad has a fixed slot across a row (CP, UP, KP, SP from the left), so markers on one value sit side by side and never overlap. The five 0 spaces are distinct positions (R-1.2): a marker on the third 0 stands on the third 0.
 - **Border-track slots.** One seat alone in a space takes it whole; two or more share it as a 2×2 grid. A seat at 100 or more stands at its value less its hundreds with a mark naming them, "+100" (or "+200" at 200 or more; money is uncapped, R-1.1-H2) (R-1.3-H1).
 - **Town tiles** are clipped to a hex a little larger than the printed village hex, so the red Dividend and Repairs tiles keep their red border; the number tiles are turned upright (O-6). A piece on a tile is drawn smaller than the tile, so a covered red tile still reads as red and the end tracker's count can be checked on the board.
 
 ### Seat card
 
-Each seat has one **seat card**, the brokerage ledger (O-10): a tan card in the map's paper colour, ruled twice, with a header in the seat colour. Top to bottom:
+Each seat has one **seat card**, the stock certificate (O-10): a card in the map's paper with an engraved double rule in the seat colour over a faint diagonal hatch. Top to bottom:
 
-- **header:** the seat's name, a "placing" or "repairs" tag when that seat decides, and its **money** in large figures (public, R-1.3-H1);
+- **top line:** "No. 2" (its seat number) in italic brown, the seat's name in Oswald caps after a dot in the seat colour, and its **money** in a dashed coupon (public, R-1.3-H1); the seat that decides carries an amber "placing" or "repairs" tag on its top edge;
 - **shares:** four small stacks of share faces, one per railroad, each with its count and that railroad's price ("×3 · $4 ea"); a railroad the seat holds none of shows a faint stack and "×0";
-- **foot:** the hand, three pieces (four with the variant, R-6.3), and "shares worth $25" (O-9).
+- **foot,** in Caslon italic: the hand, three pieces (four with the variant, R-6.3), and "shares worth $25" (O-9).
 
 The hand follows R-5 by perspective, never by what the client holds:
 
@@ -55,7 +55,12 @@ The hand follows R-5 by perspective, never by what the client holds:
 - a seat holding a kept piece (R-6.3-H2) adds " · 1 kept" to its caption ("hand: 3 hidden · 1 kept").
 - a seat left with no hand when the bag ran out (R-6.1-H2) reads "hand: empty" ("yours, empty" to that seat), never "0 hidden".
 
-A press on a share stack enlarges that share card. The name opens the seat at a readable size over the table (the same card larger, with the money history of the turn); the backdrop, Escape or the name again closes it. The seat card, the seat strip and the open seat read one derivation of the seat, so they never differ. The active seat's card carries the amber ring.
+A press on a share stack enlarges that share card. The name opens the seat at a readable size over the table (the same card larger, with the money history of the turn); the backdrop, Escape or the name again closes it. The seat card, the seat strip and the open seat read one derivation of the seat, so they never differ. The active seat's card carries the amber ring and tag.
+
+### Turn header and panels
+
+- **Turn header:** a paper strip. A sea-teal tab with a slanted right edge holds "Your turn", "[Name]'s turn", "History" or "End of game" in Oswald caps; beside it a short line names who is doing what ("Mara · placing 1 of 3", "Royce · paying Repairs", "Mara · pieces placed"); Undo is a brown tab at the right end.
+- **Panels:** the action area, the waiting view, the Repairs panel, the score table and the history are paper panels on the olive table surround; prompts are set in Oswald and secondary lines ("Last: …", notes, the end reason, turn interstitials) in Libre Caslon Text italic. Buttons are Oswald caps: the primary charcoal with paper text, the rest outlined in charcoal on paper. History entries are paper with a left rule in the actor's seat colour.
 
 ## Visual intents
 
@@ -167,7 +172,7 @@ Silent restoration replaces the displayed state; every derived offer follows it 
 
 ## Render ownership
 
-- **Board surface.** One fixed surface, scaled by the shared scaling wrapper (`expandable`; `coverBelowScale` on phones). Layers in order: map image; town tiles; track pieces; this turn's outlines and badges; price markers; money markers; the sea (share decks, bag, tracker); the veil; the being-decided outline; lit rings; chips. Each layer draws only the board offer's result for what it owns. The veil is one path with holes at the lit hexes, drawn by the ring layer's owner, so no other layer dims itself.
+- **Board surface.** One fixed surface, the strip and the map side by side, scaled by the shared scaling wrapper (`expandable`; `coverBelowScale` on phones). Layers in order: map image; town tiles; track pieces; this turn's outlines and badges; price markers; money markers; the strip left of the map (bag, share decks, tracker); the veil; the being-decided outline; lit rings; chips. Each layer draws only the board offer's result for what it owns. The veil is one path with holes at the lit hexes, drawn by the ring layer's owner, so no other layer dims itself.
 - **Hit targets.** Each hex is a transparent hex polygon carrying its space id, above the pieces and below the chips, so a chip's overhang never blocks a press on its own hex. Chips take no press. A press on a lit hex sends; a press on any other hex places nothing and enlarges its town tile, if it has one. Price and money markers have no hit target.
 - **Pieces and markers** sit in a centred outer wrapper for motion, with world placement on a separate node, so GSAP owns the wrapper's transform.
 - **Flight layer.** A piece moving between the panel or a seat card and the board, and a share card moving between a deck and a seat card, cross the scaling wrapper. One flight layer, above the table layout and outside the wrapper (inside the full-screen dialog while it is open), draws the moving copy from the two elements' screen rectangles. While it flies, the source is hidden and the target not yet shown. It owns no game state.
@@ -175,7 +180,7 @@ Silent restoration replaces the displayed state; every derived offer follows it 
 - **Full screen** is the wrapper's modal dialog; while open, the action panel is drawn in its toolbar and the enlarged view inside it, each in one place at a time.
 - **The Repairs row** is one component, read from the displayed state, in the panel and the waiting view alike.
 - **Hidden things** are drawn by one piece component that takes a `faceShown` decision from the perspective rule.
-- **Colour.** Amber means "yours to act on": lit ring, picked ring, the primary button, Undo, the deciding seat's ring. Rose means "costs or threatens": Repairs chips, "short $3". Railroad colours come from the palette and appear only on railroad things (pieces, price markers, tags). Seat colours come from `gameSession.colors` and appear only on seat things (seat headers, money markers, chips in the seat strip); the title's colour list avoids the railroad colours (O-1). Nothing else is amber or rose.
+- **Colour.** Amber means "yours to act on": lit ring, picked ring, the acting or deciding seat's ring and tag. Rose means "costs or threatens": Repairs chips, "short $3". The primary button is charcoal and Undo is brown, both from the map. Railroad colours come from the palette and appear only on railroad things (pieces, price markers, tags). Seat colours come from `gameSession.colors` and appear only on seat things (the seat card's double rule and dot, money markers, chips in the seat strip); the title's colour list avoids the railroad colours (O-1). A money marker is told by its colour alone, with seat order on a shared space and the colour-blind palette from `gameSession.colors`. Nothing else is amber or rose.
 
 ## Game log and history
 
@@ -198,7 +203,7 @@ The game-session state-change animators and the shared `AnimationContext` own al
 | Track pieces  | the piece flies from the panel (the deciding seat) or the seat card (others) to its hex through the flight layer and settles; a set-aside piece fades out of the hand                   | `PlaceTrack`, `ScrapTrack`                                                           |
 | Price markers | the marker steps space by space along the track; at a limit it bumps once and stops                                                                                                     | `PlaceTrack` (price towns, Promontory)                                               |
 | Money         | each seat's money marker steps along the border track, forward through 99 to 0 when it wraps; a "+$4" or "−$6" chip rises from its seat card's money                                    | `BuyShare`, `SellShare`, `PlaceTrack` (Dividend, Repairs paid at once), `PayRepairs` |
-| Share cards   | a bought card flies from its deck in the sea to the seat card's stack; a sold card flies back; counts change on landing                                                                 | `BuyShare`, `SellShare`, `PayRepairs`                                                |
+| Share cards   | a bought card flies from its deck in the strip to the seat card's stack; a sold card flies back; counts change on landing                                                               | `BuyShare`, `SellShare`, `PayRepairs`                                                |
 | Town tile     | on landing, a Dividend or Repairs tile pulses once under the piece                                                                                                                      | `PlaceTrack`                                                                         |
 
 - An Action's effects, and the System Action that follows it, play in sequence on one timeline, each tween at an explicit position: a `PlaceTrack` lands, then its town's marker or money moves; an `EndTurn` draws, then `RevealHand` turns the next seat's hand face up.
@@ -223,7 +228,7 @@ Target: 390 × 844, held upright. Budget, top to bottom:
 | Board            | the rest, ~430 px          | scaling wrapper, `coverBelowScale`                 |
 | Seat strip       | 50 px                      | one chip per seat                                  |
 
-- **Board.** The map is about 1.55:1. Fitted to 390 px a hex would be 20 px wide. The board rests fitted to the hex field's width (about 30 px a hex), the price track and sea off to the left; a pan reaches them.
+- **Board.** The map is about 1.55:1. Fitted to 390 px a hex would be 20 px wide. The board rests fitted to the hex field's width (about 30 px a hex), the price track and the strip off to the left; a pan reaches them.
 - **Pick framing.** When a piece is picked, the board frames its lit hexes (up to 2× the resting scale, a lit hex about 45 px at most framings). This is the one place a choice moves the focus. A hand pan or zoom clears it: that pick is not framed again, and its end leaves the view where the hand put it. Otherwise the end of the pick returns the board to the hex field. While a transition plays the view holds, so a placed piece lands where it was aimed; the view moves once the new state is shown. Framing moves the view only; the lit hexes stay the same.
 - **Status strip** (O-4): one line drawn from data: the four prices with their railroad colours, the bag count, the red tiles uncovered ("CP $5 · UP $5 · KP $5 · SP $5 … bag 84 · red 16").
 - **Action area.** The hand as 34 px pieces with labels; the share block as four entries in two columns, each with Buy and Sell at 44 px, and only its note while shares are locked between placements; the Repairs panel as one button per railroad held in two columns ("SP ×5 · +$3 each"), then the running line and the send on one row; the score as a four-column table (seat, money, shares, total), the per-railroad breakdown in the open seat. Prompt notes the panels already show another way (the share lock, half price) are left to the desktop, and the deciding debtor's panel leaves the Repairs row to the seat strip's ring and dashed outline. Past 36 % the area scrolls within itself.
@@ -240,9 +245,9 @@ Target: 390 × 844, held upright. Budget, top to bottom:
 - **O-5 Rails.** Decided: no rails between hexes; each piece is the round token alone.
 - **O-6 Number tiles upright.** The supplied +/− tiles print the number sideways; the board turns them a quarter turn. _Alternative:_ as supplied.
 - **O-7 Backs.** The tile back and the share back are not used or shipped: tiles are always face up (R-1.3) and the decks are face up (R-1.3). _Alternative:_ the tile back as the concealed hand piece.
-- **O-8 Decks, bag and tracker in the sea.** Decks, bag and end tracker in the open sea right of the price track, inside the board. _Alternative:_ a strip above the board.
+- **O-8 Decks, bag and tracker in a strip left of the map.** The bag, the four share decks (each with its price and count) and the end tracker in a column directly left of the map, inside the board's scaled surface; the share-price markers stay on the printed price track. _Alternative:_ in the open sea right of the price track.
 - **O-9 Share worth.** Each seat card shows its shares' value at today's prices. _Alternative:_ counts and prices only.
-- **O-10 Seat motif.** The brokerage ledger: a tan card ruled twice with the seat colour as its header. _Alternative:_ a plain card in the seat colour.
+- **O-10 Seat motif.** The stock certificate: a paper card with an engraved double rule in the seat colour, the cash in a dashed coupon. _Alternative:_ the brokerage ledger, a tan card with a header in the seat colour.
 - **O-11 Replacement piece.** A replacement drawn after a set-aside joins the revealed hand face up for all, since it must be placed this turn (R-3.3-H1). _Alternative:_ shown only to its drawer until placed. Settled in `visibility.md`.
 
 ## Verification scenarios
@@ -282,7 +287,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 23. **Money wrap.** A seat passing 99 moves forward through 0 and shows "+100" beside its marker; its seat card shows the true amount. Auto.
 24. **Shared spaces.** Two seats on one money space sit side by side; four as a 2×2 grid. Two railroads at one price sit in their fixed slots. Manual.
 25. **Red tiles stay readable.** A covered Dividend or Repairs town shows its red border around the piece; the end tracker's count matches the uncovered red tiles on the board. Manual.
-26. **Enlarge.** Press a share stack in a seat card: the share card enlarges; the next press closes it and does nothing else. Same for a deck in the sea and a town tile. Escape closes it. Auto.
+26. **Enlarge.** Press a share stack in a seat card: the share card enlarges; the next press closes it and does nothing else. Same for a deck in the strip and a town tile. Escape closes it. Auto.
 27. **Open seat.** Press a seat's name: the seat opens over the table; Escape closes it; a share inside enlarges above it. Auto.
 28. **History.** Each turn is one entry growing line by line, with round markers. Jump on a turn shows the table as it ended; Replay plays its placements and payments and returns. History View shows no panel, no lit hex, and keeps the Repairs row and outline. Auto.
 29. **Game end.** A turn ends with one red tile uncovered and Promontory taken: the header reads "End of game", the score lists money, shares × final prices and totals, the winner in amber; a tie names both (R-6.2-H1). The bag running out ends it the same way (R-6.1-H2). Auto.

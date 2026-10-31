@@ -30,7 +30,7 @@ type Move = {
     fromTop: number
 }
 
-// R-3.1: a bought card flies from its deck in the sea to the buyer's seat card; R-3.2, R-4.3: a
+// R-3.1: a bought card flies from its deck in the strip to the buyer's seat card; R-3.2, R-4.3: a
 // sold or distress-sold card flies back. Each count changes as its card lands; the card it
 // leaves behind is hidden while it flies. Undo and history change counts with the state.
 export class ShareCardAnimator extends FlightAnimator {
