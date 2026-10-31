@@ -13,7 +13,13 @@ import {
     powerIndexOf,
     type LegalChoice
 } from '@tabletop/oath'
-import { FIXTURE_SITE_CAPACITY, openTurn, testPlayer, testState } from '@tabletop/oath/testing'
+import {
+    FIXTURE_SITE_CAPACITY,
+    openTurn,
+    testPlayer,
+    testState,
+    testVaultWithRelics
+} from '@tabletop/oath/testing'
 import {
     disposeSessions,
     openSessionOn,
@@ -1013,6 +1019,51 @@ describe('R-5.1.4.I — Salt the Earth\'s "To which site" rows, as the engine ju
 
     it('before revision 16, the site with a locked card is offered', async () => {
         expect((await salting(OathRevision.EngineFixes11, [LOCKED])).otherSites).toEqual(['c2'])
+    })
+})
+
+describe("R-7.2.2 — Salt the Earth's site play at a site holding a relic Ancient Bloodline locks", () => {
+    const SALT = 'denizen.discord.salt-the-earth'
+    const BLOODLINE = 'denizen.nomad.ancient-bloodline'
+
+    /** Rhys rules the seat's site, c1, which holds one facedown relic; with `bloodline` Rhys holds Ancient Bloodline. */
+    async function salting(oathRevision: OathRevision, bloodline = true) {
+        const { draft } = await searchingWith([SALT, TUTOR], [], {
+            oathRevision,
+            players: [
+                testPlayer({
+                    playerId: ME,
+                    color: Color.Red,
+                    siteId: 'c1',
+                    favor: 2,
+                    handIds: [SALT, TUTOR]
+                }),
+                testPlayer({
+                    playerId: 'rhys',
+                    color: Color.Blue,
+                    siteId: 'c2',
+                    favor: 2,
+                    advisers: bloodline ? [{ cardId: BLOODLINE, faceUp: true }] : []
+                })
+            ],
+            denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
+            warbandsBySite: { c1: { rhys: 2 } },
+            relicsBySite: { c1: [{ slotId: 'c1-r1' }] },
+            vault: testVaultWithRelics({ 'c1-r1': 'relic.brass-horse' })
+        })
+        draft.keep(SALT)
+        return draft.placements.map((option) => option.play)
+    }
+
+    it('from revision 31, the site play is not offered', async () => {
+        const plays = await salting(OathRevision.EngineFixes26)
+        expect(plays).toContain(SearchPlay.Adviser)
+        expect(plays).not.toContain(SearchPlay.Site)
+    })
+
+    it('at revision 30, and without Ancient Bloodline, it is offered', async () => {
+        expect(await salting(OathRevision.Chronicle)).toContain(SearchPlay.Site)
+        expect(await salting(OathRevision.EngineFixes26, false)).toContain(SearchPlay.Site)
     })
 })
 
