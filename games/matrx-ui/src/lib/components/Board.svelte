@@ -133,8 +133,9 @@
 
     // A tap on nothing you can choose lets go of what is chosen.
     function onBoardClick(event: MouseEvent) {
-        const target = event.target as Element
-        if (target.closest('[role="button"]:not([aria-disabled="true"])')) return
+        const target = event.target
+        const choosable = '[role="button"]:not([aria-disabled="true"])'
+        if (target instanceof Element && target.closest(choosable)) return
         session.letGo()
     }
 
