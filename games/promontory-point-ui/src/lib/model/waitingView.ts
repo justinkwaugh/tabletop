@@ -2,12 +2,19 @@ import type { GameAction } from '@tabletop/common'
 import {
     MachineState,
     RAILROADS,
-    TRADES_PER_TURN,
+    tradesLeft,
     turnPlayerId,
     type HydratedPromontoryPointGameState,
     type RailroadId
 } from '@tabletop/promontory-point'
-import { describeAction, type DescriptionPart } from '$lib/utils/actionDescription.js'
+import {
+    describeAction,
+    player,
+    railroad,
+    text,
+    type DescriptionPart
+} from '$lib/utils/actionDescription.js'
+import { sharesLabel } from './turnPanel.js'
 
 export type LastAction = { playerId: string; parts: DescriptionPart[] }
 
@@ -101,8 +108,8 @@ function turnDecision(
     if (turn === undefined) {
         return { parts: [who.part, text(` ${is} taking a turn.`)] }
     }
-    const tradesLeft = TRADES_PER_TURN - turn.tradesUsed
-    const trades = tradesLeft === 1 ? '1 share' : `${tradesLeft} shares`
+    const sharesLeft = tradesLeft(turn)
+    const trades = sharesLabel(sharesLeft)
     const placements = turn.placementsMade + turn.placementsLeft
     const has = verb(who, 'has', 'have')
     switch (state.machineState) {
@@ -120,7 +127,7 @@ function turnDecision(
                 parts: [
                     who.part,
                     text(
-                        tradesLeft > 0
+                        sharesLeft > 0
                             ? ` ${has} placed every piece and may buy or sell up to ${trades} before ending the turn.`
                             : ` ${has} placed every piece and ${is} ending the turn.`
                     )
@@ -131,7 +138,7 @@ function turnDecision(
                 parts: [
                     who.part,
                     text(
-                        tradesLeft > 0
+                        sharesLeft > 0
                             ? ` may buy or sell up to ${trades}, then place ${placements} pieces`
                             : ` ${is} placing ${placements} pieces`
                     ),
@@ -165,16 +172,4 @@ function lastAction(
         }
     }
     return undefined
-}
-
-function text(value: string): DescriptionPart {
-    return { kind: 'text', text: value }
-}
-
-function railroad(railroadId: RailroadId): DescriptionPart {
-    return { kind: 'railroad', railroadId }
-}
-
-function player(playerId: string): DescriptionPart {
-    return { kind: 'player', playerId }
 }

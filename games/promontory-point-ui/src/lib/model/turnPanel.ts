@@ -3,11 +3,11 @@ import {
     MachineState,
     RAILROAD_IDS,
     RAILROADS,
-    TRADES_PER_TURN,
     TradeRefusal,
     VARIANT_FULL_DRAW,
     hasOpenSpace,
     sharePrice,
+    tradesLeft,
     turnPlayerId,
     type HydratedPromontoryPointGameState,
     type RailroadId,
@@ -94,9 +94,9 @@ export function turnPanel(source: TurnPanelSource): TurnPanel | undefined {
     }
     const tradingLocked = state.machineState === MachineState.Placing
     const placingEnded = state.machineState === MachineState.TradingAfterPlacing
-    const tradesLeft = TRADES_PER_TURN - turn.tradesUsed
+    const sharesLeft = tradesLeft(turn)
     return {
-        prompt: turnPrompt(source, turn, tradesLeft),
+        prompt: turnPrompt(source, turn, sharesLeft),
         piecesHeading:
             source.pickablePieces.length > 0 && source.pickedPiece === undefined
                 ? 'Your pieces · tap one'
@@ -110,7 +110,7 @@ export function turnPanel(source: TurnPanelSource): TurnPanel | undefined {
         })),
         placedCount: turn.placementsMade,
         shares: {
-            heading: `Shares · ${tradesLeftLabel(tradesLeft)}`,
+            heading: `Shares · ${tradesLeftLabel(sharesLeft)}`,
             lockedNote: tradingLocked ? TRADING_REOPENS_NOTE : undefined,
             entries: RAILROAD_IDS.map((railroadId) => shareEntry(source, railroadId))
         },
@@ -120,15 +120,15 @@ export function turnPanel(source: TurnPanelSource): TurnPanel | undefined {
 }
 
 // R-2.2, R-2.2-H1, R-3.3: what the seat does next, in the order the turn allows.
-function turnPrompt(source: TurnPanelSource, turn: TurnState, tradesLeft: number): TurnPrompt {
+function turnPrompt(source: TurnPanelSource, turn: TurnState, sharesLeft: number): TurnPrompt {
     const picked = source.pickedPiece
     const placements = turn.placementsMade + turn.placementsLeft
     if (source.gameState.machineState === MachineState.TradingAfterPlacing) {
         return {
             lead: 'Pieces placed.',
             text:
-                tradesLeft > 0
-                    ? `Buy or sell up to ${sharesLabel(tradesLeft)}, then end your turn.`
+                sharesLeft > 0
+                    ? `Buy or sell up to ${sharesLabel(sharesLeft)}, then end your turn.`
                     : 'End your turn.'
         }
     }
@@ -148,8 +148,8 @@ function turnPrompt(source: TurnPanelSource, turn: TurnState, tradesLeft: number
     return {
         lead: 'Your turn.',
         text:
-            tradesLeft > 0
-                ? `Buy or sell up to ${sharesLabel(tradesLeft)}, then place your ${placements} pieces.`
+            sharesLeft > 0
+                ? `Buy or sell up to ${sharesLabel(sharesLeft)}, then place your ${placements} pieces.`
                 : `Place your ${placements} pieces.`,
         note: 'Shares open again after the third piece.'
     }
@@ -236,13 +236,13 @@ function drawLabel(drawCount: number): string {
     return drawCount === 0 ? 'bag empty' : `draw ${drawCount}`
 }
 
-function tradesLeftLabel(tradesLeft: number): string {
-    if (tradesLeft === 0) {
+function tradesLeftLabel(sharesLeft: number): string {
+    if (sharesLeft === 0) {
         return 'no share actions left'
     }
-    return tradesLeft === 1 ? '1 action left' : `${tradesLeft} actions left`
+    return sharesLeft === 1 ? '1 action left' : `${sharesLeft} actions left`
 }
 
-function sharesLabel(count: number): string {
+export function sharesLabel(count: number): string {
     return count === 1 ? '1 share' : `${count} shares`
 }

@@ -12,6 +12,7 @@ import {
     BOARD_GRID,
     PRICE_INDICES,
     RAILROAD_IDS,
+    perRailroad,
     type RailroadId,
     type SpaceId
 } from '@tabletop/promontory-point'
@@ -43,8 +44,8 @@ export const SPACE_CENTRES: ReadonlyMap<SpaceId, Point> = new Map(
     BOARD_GRID.spaces().map((space) => [space.spaceId, hexCentre(space.coords)])
 )
 
-export const HOME_HEX_CENTRES: Readonly<Record<RailroadId, Point>> = recordByRailroad(
-    (railroadId) => hexCentre(BOARD_GRID.homeHex(railroadId).coords)
+export const HOME_HEX_CENTRES: Readonly<Record<RailroadId, Point>> = perRailroad((railroadId) =>
+    hexCentre(BOARD_GRID.homeHex(railroadId).coords)
 )
 
 export function boxCentre(box: BoundingBox): Point {
@@ -83,7 +84,7 @@ function priceTrackSpace(priceIndex: number): PriceTrackSpace {
     const width = (span.to - span.from) / RAILROAD_IDS.length
     return {
         priceIndex,
-        slots: recordByRailroad((railroadId) => ({
+        slots: perRailroad((railroadId) => ({
             x: span.from + width * RAILROAD_IDS.indexOf(railroadId),
             y: top,
             width,
@@ -191,14 +192,5 @@ const DECK_ORIGINS: Record<RailroadId, Point> = {
 export const SEA_SLOTS: SeaSlots = {
     bag: { x: 642, y: 225, width: 140, height: 170 },
     endTracker: { x: 645, y: 1270, width: 380, height: 250 },
-    decks: recordByRailroad((railroadId) => ({ ...DECK_ORIGINS[railroadId], ...DECK_SIZE }))
-}
-
-function recordByRailroad<T>(value: (railroadId: RailroadId) => T): Record<RailroadId, T> {
-    return {
-        'railroad.cp': value('railroad.cp'),
-        'railroad.up': value('railroad.up'),
-        'railroad.kp': value('railroad.kp'),
-        'railroad.sp': value('railroad.sp')
-    }
+    decks: perRailroad((railroadId) => ({ ...DECK_ORIGINS[railroadId], ...DECK_SIZE }))
 }

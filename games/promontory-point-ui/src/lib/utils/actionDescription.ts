@@ -26,15 +26,15 @@ export type DescriptionPart =
     | { kind: 'railroad'; railroadId: RailroadId }
     | { kind: 'player'; playerId: string }
 
-function text(value: string): DescriptionPart {
+export function text(value: string): DescriptionPart {
     return { kind: 'text', text: value }
 }
 
-function railroad(railroadId: RailroadId): DescriptionPart {
+export function railroad(railroadId: RailroadId): DescriptionPart {
     return { kind: 'railroad', railroadId }
 }
 
-function player(playerId: string): DescriptionPart {
+export function player(playerId: string): DescriptionPart {
     return { kind: 'player', playerId }
 }
 
