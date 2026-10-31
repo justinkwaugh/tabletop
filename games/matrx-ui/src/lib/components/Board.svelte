@@ -9,7 +9,13 @@
     import { AXES, PieceKind } from '@tabletop/matrx'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import { coordsKey, DOT_RADIUS, PIECE_RADIUS, SPACING } from '$lib/board/geometry.js'
+    import {
+        coordsKey,
+        DOT_RADIUS,
+        PIECE_RADIUS,
+        RESERVE_DOT_RADIUS,
+        RESERVE_LINE_WIDTH
+    } from '$lib/board/geometry.js'
     import type { BoardDisc } from '$lib/board/boardChange.js'
     import { turnOf, type Disc } from '$lib/board/pieceShape.js'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
@@ -69,6 +75,7 @@
             return {
                 playerId,
                 at: view.reserveDot(seat),
+                line: view.reserveLine(seat),
                 discs: toned(
                     Array<BoardDisc>(Math.max(0, count)).fill({ playerId, kind: PieceKind.Gipf })
                 )
@@ -222,12 +229,12 @@
             <line x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}></line>
         {/each}
         {#each reserves as reserve (reserve.playerId)}
-            {@const toward = Math.sign(reserve.at.x)}
             <line
-                x1={reserve.at.x}
-                y1={reserve.at.y}
-                x2={reserve.at.x - toward * SPACING * 0.55}
-                y2={reserve.at.y}
+                x1={reserve.line.from.x}
+                y1={reserve.line.from.y}
+                x2={reserve.line.to.x}
+                y2={reserve.line.to.y}
+                style:stroke-width={RESERVE_LINE_WIDTH}
             ></line>
         {/each}
     </g>
@@ -266,7 +273,8 @@
 
     {#each reserves as reserve (reserve.playerId)}
         <g transform="translate({reserve.at.x} {reserve.at.y})" class="reserve-dot">
-            <ellipse rx={DOT_RADIUS} ry={DOT_RADIUS * view.tilt} class="dot-core"></ellipse>
+            <ellipse rx={RESERVE_DOT_RADIUS} ry={RESERVE_DOT_RADIUS * view.tilt} class="dot-core"
+            ></ellipse>
             {#if reserve.discs.length > 0}
                 <StandingStack discs={reserve.discs} {view} />
             {/if}

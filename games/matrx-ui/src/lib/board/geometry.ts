@@ -16,8 +16,13 @@ const LABEL_GAP = SPACING * 0.17
 const FRAME_REACH = SPACING * 0.75
 const FRAME_MARGIN = SPACING * 0.5
 // Each player's GIPF pieces wait in reserve on a dot of their own, off a corner of the board on
-// their side: White's left of E1, Black's right of E9.
+// their side: White's left of E1, Black's right of E9. A line runs from it alongside the board's
+// nearest edge, toward the middle of that edge. Line and dot are sized to the pieces as on the
+// printed board, a little heavier than the grid here.
 const RESERVE_DOT = { x: -SPACING * 3.4, y: SPACING * 3.75 }
+const RESERVE_LINE_LENGTH = SPACING * 1.5
+export const RESERVE_DOT_RADIUS = PIECE_RADIUS * 0.37
+export const RESERVE_LINE_WIDTH = PIECE_RADIUS * 2 * 0.043
 
 // The board is seen from the near side of the table: depth shrinks to TILT of its length, and
 // heights show at the matching fraction.
@@ -50,6 +55,14 @@ export class BoardView {
     reserveDot(seat: number): Point {
         const side = seat === 0 ? 1 : -1
         return { x: RESERVE_DOT.x * side, y: RESERVE_DOT.y * side * this.tilt }
+    }
+
+    // The line from a seat's reserve dot, parallel to the edge from A1 to E1 (or E9 to J4).
+    reserveLine(seat: number): { from: Point; to: Point } {
+        const from = this.reserveDot(seat)
+        const along = this.center({ q: 1, r: 0 })
+        const scale = ((seat === 0 ? 1 : -1) * RESERVE_LINE_LENGTH) / SPACING
+        return { from, to: { x: from.x + along.x * scale, y: from.y + along.y * scale } }
     }
 
     // How far up the screen a height above the board shows.
