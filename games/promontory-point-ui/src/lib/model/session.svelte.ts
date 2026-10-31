@@ -1,5 +1,6 @@
 import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
 import { assert, assertExists } from '@tabletop/common'
+import { SvelteMap } from 'svelte/reactivity'
 import {
     ActionType,
     BuyShare,
@@ -65,6 +66,9 @@ export class PromontoryPointGameSession extends GameSession<
 
     // R-1.3-H1: the money changes rising from the seat cards while a transition plays.
     readonly moneyChips = new MoneyChips()
+
+    // R-1.3-H1: each stepping money marker's "+100" until the state it reaches is shown.
+    readonly moneyOverflow = new SvelteMap<string, number>()
 
     // Contract, "In-flight pieces": the copies crossing the scaling wrapper and what has landed.
     readonly flights = new Flights()
@@ -286,6 +290,7 @@ export class PromontoryPointGameSession extends GameSession<
     // survives a reconciliation, and its step key drops it once the step or the debtor changes.
     override beforeNewState(transition: PresentedTransition) {
         this.flights.stateShown()
+        this.moneyOverflow.clear()
         this.turnDraft = emptyTurnDraft()
         if (transition.kind !== 'reconciliation') {
             this.stagedRepairs = undefined

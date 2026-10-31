@@ -8,7 +8,12 @@
 
     const gameSession = getGameSession()
 
-    const animator = new MoneyMarkerAnimator(gameSession, gameSession.moneyChips)
+    const animator = new MoneyMarkerAnimator(
+        gameSession,
+        gameSession.moneyChips,
+        undefined,
+        gameSession.moneyOverflow
+    )
     onMount(() => {
         animator.register()
         return () => animator.unregister()

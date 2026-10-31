@@ -440,6 +440,16 @@ describe('money markers (R-1.3-H1, R-4.2)', () => {
         expect(animator.overflowShown.get(first)).toBe(0)
         seek(context, durationOf(context))
         expect(animator.overflowShown.get(first)).toBe(100)
+        // A batch shows its state only after its last action, so the label holds until then.
+        context.runAfterAnimations()
+        expect(animator.overflowShown.get(first)).toBe(100)
+    })
+
+    it('R-1.3-H1: the stepped "+100" holds through a batch and gives way once its state is shown', async () => {
+        const { session, towns, first } = await eventfulSession()
+        session.moneyOverflow.set(first, 0)
+        await placeAt(session, CP, towns[1])
+        expect(session.moneyOverflow.size).toBe(0)
     })
 
     it('R-3.1: a buy steps the buyer back by the price with a "−$" chip, cleared after its motion', async () => {

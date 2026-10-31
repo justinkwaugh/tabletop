@@ -3,8 +3,13 @@ import { tick } from 'svelte'
 import { SvelteMap } from 'svelte/reactivity'
 import type { GameAction } from '@tabletop/common'
 import type { HydratedPromontoryPointGameState } from '@tabletop/promontory-point'
-import { BORDER_TRACK_LENGTH, BORDER_TRACK_SPACES, boxCentre } from '$lib/utils/boardGeometry.js'
-import { moneyMarkers, type MoneyMarker } from '$lib/utils/boardLayout.js'
+import { BORDER_TRACK_SPACES, boxCentre } from '$lib/utils/boardGeometry.js'
+import {
+    moneyMarkers,
+    moneyOverflow,
+    moneySpace,
+    type MoneyMarker
+} from '$lib/utils/boardLayout.js'
 import {
     MarkerMotion,
     samePose,
@@ -48,14 +53,8 @@ export function passingPose(space: number): MarkerPose {
 function spacesPassed(before: number, after: number): number[] {
     const direction = Math.sign(after - before)
     return Array.from({ length: Math.abs(after - before) - 1 }, (_, step) => {
-        const money = before + (step + 1) * direction
-        return ((money % BORDER_TRACK_LENGTH) + BORDER_TRACK_LENGTH) % BORDER_TRACK_LENGTH
+        return moneySpace(before + (step + 1) * direction)
     })
-}
-
-// R-1.3-H1: the "+100" a marker carries for money past each hundred.
-function overflowOf(money: number): number {
-    return money - (money % BORDER_TRACK_LENGTH)
 }
 
 function layout(state: HydratedPromontoryPointGameState): Map<string, MoneyMarker> {
@@ -69,14 +68,14 @@ function layout(state: HydratedPromontoryPointGameState): Map<string, MoneyMarke
 export class MoneyMarkerAnimator extends StateAnimator {
     readonly motion = new MarkerMotion<string>()
 
-    // R-1.3-H1: a stepping marker's "+100" while it moves, so the label changes as it passes
-    // from 99 to 0 (or back), not when the move starts. Absent, the label follows the state.
-    readonly overflowShown = new SvelteMap<string, number>()
-
+    // R-1.3-H1: overflowShown is each marker's "+100" while a transition plays, so the label
+    // changes as the marker passes from 99 to 0 (or back), not when the move starts. It holds
+    // through a batch and is cleared when the state is shown; absent, the label follows the state.
     constructor(
         host: BoardAnimationHost,
         private chips: MoneyChipHost,
-        reducedMotion?: () => boolean
+        reducedMotion?: () => boolean,
+        readonly overflowShown = new SvelteMap<string, number>()
     ) {
         super(host, reducedMotion)
     }
@@ -88,7 +87,6 @@ export class MoneyMarkerAnimator extends StateAnimator {
     }
 
     protected async onGameStateChange({ from, to, action, animationContext }: BoardStateChange) {
-        this.overflowShown.clear()
         if (!from) return
         const timeline = animationContext.actionTimeline
         const targets = layout(to)
@@ -123,6 +121,13 @@ export class MoneyMarkerAnimator extends StateAnimator {
         const start = townEffectStartsAt(action, reduced)
         let landed = start
         for (const { playerId, before, after } of changes) {
+            // Where it lands, for a marker shown there at once or not moved at all.
+            if (
+                moneyOverflow(before) !== moneyOverflow(after) ||
+                this.overflowShown.has(playerId)
+            ) {
+                this.overflowShown.set(playerId, moneyOverflow(after))
+            }
             const target = targets.get(playerId)
             if (!target) continue
             if (reduced) {
@@ -156,10 +161,7 @@ export class MoneyMarkerAnimator extends StateAnimator {
                 )
         }
         await this.riseChips(action, changes, timeline, start, reduced)
-        animationContext.afterAnimations(() => {
-            this.chips.clear()
-            this.overflowShown.clear()
-        })
+        animationContext.afterAnimations(() => this.chips.clear())
     }
 
     // The label switches halfway through the hop that crosses a hundred, as the marker does.
@@ -171,12 +173,15 @@ export class MoneyMarkerAnimator extends StateAnimator {
         start: number,
         secondsPerHop: number
     ) {
-        if (overflowOf(before) === overflowOf(after)) return
+        if (moneyOverflow(before) === moneyOverflow(after)) return
         const hops = Math.abs(after - before)
         const direction = Math.sign(after - before)
         const clock = { hop: 0 }
         const show = () =>
-            this.overflowShown.set(playerId, overflowOf(before + direction * Math.round(clock.hop)))
+            this.overflowShown.set(
+                playerId,
+                moneyOverflow(before + direction * Math.round(clock.hop))
+            )
         show()
         timeline.to(
             clock,

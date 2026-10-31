@@ -93,18 +93,26 @@ export type MoneyMarker = {
     overflow: number
 }
 
+// R-1.3-H1: the border-track space for an amount, and the "+100" (or "+200") past it.
+export function moneySpace(money: number): number {
+    return ((money % BORDER_TRACK_LENGTH) + BORDER_TRACK_LENGTH) % BORDER_TRACK_LENGTH
+}
+
+export function moneyOverflow(money: number): number {
+    return money - moneySpace(money)
+}
+
 // R-1.3-H1: one marker per seat on the 0–99 border track. A seat alone takes its space whole;
 // two or more share it as a 2×2 grid, in seat order.
 export function moneyMarkers(seats: readonly { playerId: string; money: number }[]): MoneyMarker[] {
-    const spaceOf = (money: number) => money % BORDER_TRACK_LENGTH
     return seats.map(({ playerId, money }) => {
-        const space = BORDER_TRACK_SPACES[spaceOf(money)]
-        const sharing = seats.filter((seat) => spaceOf(seat.money) === space.value)
+        const space = BORDER_TRACK_SPACES[moneySpace(money)]
+        const sharing = seats.filter((seat) => moneySpace(seat.money) === space.value)
         const shared = sharing.length > 1
         const box = shared
             ? space.sharingSlots[sharing.findIndex((seat) => seat.playerId === playerId)]
             : space.box
-        return { playerId, box, shared, overflow: money - spaceOf(money) }
+        return { playerId, box, shared, overflow: moneyOverflow(money) }
     })
 }
 
