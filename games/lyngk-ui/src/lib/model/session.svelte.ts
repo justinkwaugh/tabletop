@@ -161,6 +161,12 @@ export class LyngkGameSession extends GameSession<LyngkGameState, HydratedLyngkG
         }
     }
 
+    // Tapping where there is nothing to choose lets go of a chosen stack.
+    letGo() {
+        if (this.chosenFrom === undefined) return
+        this.selection = setLyngkSelection(this.selection, 'from', undefined)
+    }
+
     private async land(to: AxialCoordinates) {
         const from = this.chosenFrom
         const route = from === undefined ? undefined : shortestRoute(this.gameState, from, to)

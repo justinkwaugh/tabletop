@@ -108,6 +108,13 @@
         return `${name} ${stack}`
     }
 
+    // A tap on nothing you can choose lets go of what is chosen.
+    function onBoardClick(event: MouseEvent) {
+        if (!(event.target instanceof Element)) return
+        if (event.target.closest('[role="button"]:not([aria-disabled="true"])')) return
+        session.letGo()
+    }
+
     function onKey(event: KeyboardEvent, act: () => void) {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
@@ -116,6 +123,8 @@
     }
 </script>
 
+<!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <svg
     class="lyngk-board"
     viewBox={frame.viewBox}
@@ -123,6 +132,7 @@
     height={frame.height}
     role="group"
     aria-label="LYNGK board"
+    onclick={onBoardClick}
     {@attach animator.attach}
 >
     <defs><PieceDefs prefix="lyngk-board" /></defs>

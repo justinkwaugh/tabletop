@@ -2,10 +2,10 @@
 
 ## 1. Visual Intents
 
-| Intent        | Trigger                                              | What should be emphasized                                                                                                                                                                                                                       | What should be dimmed       | What must remain unaffected |
-| ------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | --------------------------- |
-| claim_color   | The viewer may claim (one claim per turn, two total) | Claimable tokens in the color strip (amber outline)                                                                                                                                                                                             | Nothing                     | Board                       |
-| choose_stack  | The viewer may move                                  | Every stack with a legal move (thin amber ring on its top face)                                                                                                                                                                                 | Nothing                     | Color strip                 |
+| Intent        | Trigger                                              | What should be emphasized                                                                                                                                                                                                                       | What should be dimmed                | What must remain unaffected |
+| ------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------- |
+| claim_color   | The viewer may claim (one claim per turn, two total) | Claimable tokens in the color strip (amber outline)                                                                                                                                                                                             | Nothing                              | Board                       |
+| choose_stack  | The viewer may move                                  | Every stack with a legal move (thin amber ring on its top face)                                                                                                                                                                                 | Nothing                              | Color strip                 |
 | choose_target | A stack is chosen                                    | The chosen stack (thicker ring); every landing it can reach, directly or through LYNGK-points (dashed ring and spot); each LYNGK-point it can pass through (cyan spot), joined to the chosen stack and each other by flickering lightning bolts | Other movable stacks' rings (hidden) | Color strip                 |
 
 ## 2. Visual Primitives
@@ -29,7 +29,7 @@
 ## 4. Shared State Contracts
 
 - **Animation scope**: the board animates only `own-action`, `other-action`, `undo`, `history` and `exploration` transitions; page loads, server syncs and view switches show the board at rest. Without an action (undo, state-only history) the animator reads the move from the two boards (`board/inferMove.ts`, using the stack scored between the states when both points empty), finds its route again (`board/route.ts` `shortestRoute`, the route the UI commits) and flies it forward, or back retracing its LYNGK-points: 0.18 s for a direct move, 0.14 s per hop for a chain.
-- **Staged selection** (`selection`: `from`): manual choices only. The route through LYNGK-points never changes the outcome, so a move is one tap on its destination. Undo lets go of the chosen stack, then undoes the last committed action. Cleared in `beforeNewState` for every presented transition.
+- **Staged selection** (`selection`: `from`): manual choices only. The route through LYNGK-points never changes the outcome, so a move is one tap on its destination. Undo lets go of the chosen stack, then undoes the last committed action; a tap on the board that hits nothing choosable (`session.letGo()`) also lets go of it. Cleared in `beforeNewState` for every presented transition.
 - **Target lists**: derived from the displayed state; empty when the viewer cannot act, including in History View.
 
 ## 5. Forbidden Couplings
@@ -38,14 +38,14 @@
 
 ## 6. Interaction Matrix
 
-| Intent A     | Intent B      | Can coexist? | Winner / combination rule                                                                                   |
-| ------------ | ------------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
-| claim_color  | choose_stack  | yes          | Strip and board are different elements; claiming clears the stack selection                                 |
-| choose_stack | choose_target | yes          | A tap on a landing lands; a tap on another movable stack (a LYNGK-point included) picks that one up instead |
+| Intent A     | Intent B      | Can coexist? | Winner / combination rule                                                                                                                   |
+| ------------ | ------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| claim_color  | choose_stack  | yes          | Strip and board are different elements; claiming clears the stack selection                                                                 |
+| choose_stack | choose_target | yes          | A tap on a landing lands; a tap on another movable stack (a LYNGK-point included) picks that one up instead; a tap on anything else lets go |
 
 ## 7. Regression Checklist
 
-- Choose a stack: rings on every landing it can reach, cyan spots on the LYNGK-points; tap the chosen stack again to put it back.
+- Choose a stack: rings on every landing it can reach, cyan spots on the LYNGK-points; tap the chosen stack again to put it back, or tap the blank board or a stack with no move to let go.
 - Lyngk chain scenario: claim black, choose E7, tap G2 (reached through E5 and G4, which show cyan spots); the stack hops through both, lifts away and scores.
 - Undo after a chain: the stack flies back; no stack left hidden.
 - History View: no marks or targets.
