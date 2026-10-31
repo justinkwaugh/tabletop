@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Point } from '@tabletop/common'
+import { Side } from '@tabletop/napoleons-triumph'
+import { TestGame, arrangeBattlefield, infantry } from '@tabletop/napoleons-triumph/testing'
 import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
 import {
     ARROW_EDGE_WIDTH,
@@ -11,11 +13,14 @@ import {
     FEINT_ARROW_PATH,
     THREAT_ARROW,
     arrowOutlines,
+    arrowSlide,
     attackMarkerAngle,
     attackMarkerSamples,
     type ArrowDrawing
 } from './attackMarker.js'
-import type { ConvexOutline } from './convexOutline.js'
+import { blockOutline, faceOutline } from './blockShape.js'
+import { outlinesOverlap, type ConvexOutline } from './convexOutline.js'
+import { layoutPieces } from './pieceLayout.js'
 import { insidePolygon } from './polygon.js'
 
 const ARGUMENTS: Record<string, number> = { M: 2, L: 2, H: 1, V: 1, Q: 4, C: 6, A: 7, Z: 0 }
@@ -152,5 +157,86 @@ describe('the outlines of the arrows on an approach', () => {
                 expect(outlinedHigh - drawnHigh).toBeLessThan(sharpCorner)
             }
         }
+    })
+})
+
+// The French threat from locale 132 into locale 131 in the reported game, with revealed infantry fronting it.
+const REPORTED_APPROACH = 471
+
+function frontedByShownInfantry() {
+    const game = new TestGame()
+    game.deployBoth()
+    arrangeBattlefield(game, [
+        { id: 'F19', side: Side.French, face: infantry(2), locale: 132, facing: 131 }
+    ])
+    const blocks = layoutPieces(game.hydrated, { rotation: 0 }).flatMap((sprite) => sprite.blocks)
+    return {
+        faces: blocks.map((block) => faceOutline(block, 2)),
+        others: blocks.map(blockOutline)
+    }
+}
+
+function along(approach: number): Point {
+    const radians = (APPROACH_GEOMETRY[approach].angle * Math.PI) / 180
+    return { x: Math.cos(radians), y: Math.sin(radians) }
+}
+
+describe('the slide of the arrows along their bar', () => {
+    it('is none where no face lies under them', () => {
+        const { others } = frontedByShownInfantry()
+        expect(arrowSlide(REPORTED_APPROACH, 1.2, THREAT_ARROW, { faces: [], others })).toBe(0)
+    })
+
+    it('takes the arrows off the face of a unit fronting the approach', () => {
+        const shown = frontedByShownInfantry()
+        const covers = (outlines: ConvexOutline[]) =>
+            outlines.some((piece) => shown.faces.some((face) => outlinesOverlap(piece, face)))
+        expect(covers(arrowOutlines(REPORTED_APPROACH, 1.2, THREAT_ARROW))).toBe(true)
+        for (const drawing of [THREAT_ARROW, { feint: true, countered: false }]) {
+            for (const scale of [1.2, 1.7]) {
+                const slide = arrowSlide(REPORTED_APPROACH, scale, drawing, shown)
+                expect(covers(arrowOutlines(REPORTED_APPROACH, scale, drawing, slide))).toBe(false)
+            }
+        }
+    })
+
+    it('keeps the middle of the arrows on their bar', () => {
+        const shown = frontedByShownInfantry()
+        const { length } = APPROACH_GEOMETRY[REPORTED_APPROACH]
+        for (const drawing of DRAWINGS) {
+            for (const scale of [1.2, 3.4]) {
+                const slide = arrowSlide(REPORTED_APPROACH, scale, drawing, shown)
+                expect(Math.abs(slide)).toBeLessThanOrEqual(length / 2)
+            }
+        }
+    })
+
+    it('goes the way that covers less of what else is on the map', () => {
+        const shown = frontedByShownInfantry()
+        const { centre } = APPROACH_GEOMETRY[REPORTED_APPROACH]
+        const way = along(REPORTED_APPROACH)
+        for (const end of [-1, 1]) {
+            const beyond = {
+                centre: { x: centre.x + way.x * end * 60, y: centre.y + way.y * end * 60 },
+                angle: 0
+            }
+            const others = [...shown.others, blockOutline(beyond)]
+            const slide = arrowSlide(REPORTED_APPROACH, 1.2, THREAT_ARROW, { ...shown, others })
+            expect(Math.sign(slide)).toBe(-end)
+        }
+    })
+
+    it('carries the outlines and the samples with the arrows', () => {
+        const way = along(REPORTED_APPROACH)
+        const bar = APPROACH_GEOMETRY[REPORTED_APPROACH]
+        const centred = arrowOutlines(REPORTED_APPROACH, 1.5, THREAT_ARROW)
+        const slid = arrowOutlines(REPORTED_APPROACH, 1.5, THREAT_ARROW, 30)
+        slid.forEach((piece, index) =>
+            piece.forEach((point, corner) => {
+                expect(point.x).toBeCloseTo(centred[index][corner].x + way.x * 30)
+                expect(point.y).toBeCloseTo(centred[index][corner].y + way.y * 30)
+            })
+        )
+        expect(attackMarkerSamples(bar, 1.5, 30).every((point) => heldBy(slid, point))).toBe(true)
     })
 })

@@ -2,7 +2,7 @@ import type { BoundingBox, Point } from '@tabletop/common'
 import { commanderDefinition } from '@tabletop/napoleons-triumph'
 import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
 import type { ArmyColors } from './armyColors.js'
-import { attackMarkerSamples, attackMarkerScale } from './attackMarker.js'
+import { attackMarkerSamples, attackMarkerScale, type ArrowOnApproach } from './attackMarker.js'
 import { screenAxes } from './boardView.js'
 import { boxHolds } from './boundingBox.js'
 import { blockSamples, type BlockFootprint } from './blockShape.js'
@@ -168,10 +168,10 @@ export interface FlagBearer {
     hasCommanded: boolean
 }
 
-export function arrowsToKeepClear(approachIds: readonly number[], zoom: number): Point[] {
+export function arrowsToKeepClear(arrows: readonly ArrowOnApproach[], zoom: number): Point[] {
     const scale = attackMarkerScale(zoom)
-    return approachIds.flatMap((approach) =>
-        attackMarkerSamples(APPROACH_GEOMETRY[approach], scale)
+    return arrows.flatMap(({ approach, slide }) =>
+        attackMarkerSamples(APPROACH_GEOMETRY[approach], scale, slide)
     )
 }
 

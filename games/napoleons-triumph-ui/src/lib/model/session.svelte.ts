@@ -100,7 +100,16 @@ import { printedStarSquare, starTags, type StarTag } from '$lib/utils/starTags.j
 import { gunTags, type GunTag } from '$lib/utils/gunTags.js'
 import { approachSymbolScale, type PlacedSymbolTag } from '$lib/utils/approachSymbols.js'
 import { shownSymbolTags } from '$lib/utils/shownSymbolTags.js'
-import { THREAT_ARROW, arrowOutlines, attackMarkerScale } from '$lib/utils/attackMarker.js'
+import {
+    THREAT_ARROW,
+    arrowOutlines,
+    arrowSlide,
+    attackMarkerScale,
+    underTheArrows,
+    type ArrowDrawing,
+    type ArrowOnApproach,
+    type UnderTheArrows
+} from '$lib/utils/attackMarker.js'
 import type { ConvexOutline } from '$lib/utils/convexOutline.js'
 import { boxSamples, cornersOf } from '$lib/utils/orientedBox.js'
 import { TURN_TITLES } from '$lib/utils/turnTitles.js'
@@ -604,15 +613,44 @@ export class NapoleonsTriumphGameSession extends GameSession<
         ...(this.threatBeingDeclared ? [this.threatBeingDeclared.position.approach] : [])
     ])
 
-    private arrowOutlines: ConvexOutline[] = $derived.by(() => {
+    // Deliberate: with the units hidden no face is drawn, so the arrows go back to the middle of their bars.
+    private underTheArrows: UnderTheArrows = $derived.by(() => {
+        if (this.unitsHidden) {
+            return { faces: [], others: [] }
+        }
+        return underTheArrows(
+            [
+                ...this.sprites.flatMap((sprite) =>
+                    sprite.blocks.map((block) => ({ block, face: this.visibleFace(block.unit) }))
+                ),
+                ...this.battleGhosts.map((ghost) => ({ block: ghost.block, face: ghost.loss.face }))
+            ],
+            plateOutlines(this.approachPlates)
+        )
+    })
+
+    private arrows: (ArrowOnApproach & { drawing: ArrowDrawing })[] = $derived.by(() => {
         const scale = attackMarkerScale(this.zoom)
         const mark = this.attackMark
         return [
-            ...(mark ? arrowOutlines(mark.approach, scale, arrowDrawingOf(mark)) : []),
-            ...this.threatArrowApproaches.flatMap((approach) =>
-                arrowOutlines(approach, scale, THREAT_ARROW)
-            )
-        ]
+            ...(mark ? [{ approach: mark.approach, drawing: arrowDrawingOf(mark) }] : []),
+            ...this.threatArrowApproaches.map((approach) => ({ approach, drawing: THREAT_ARROW }))
+        ].map((arrow) => ({
+            ...arrow,
+            slide: arrowSlide(arrow.approach, scale, arrow.drawing, this.underTheArrows)
+        }))
+    })
+
+    /** How far along its bar the arrow of an approach is drawn from the middle, clear of the faces under it. */
+    arrowSlideOf(approach: number): number {
+        return this.arrows.find((arrow) => arrow.approach === approach)?.slide ?? 0
+    }
+
+    private arrowOutlines: ConvexOutline[] = $derived.by(() => {
+        const scale = attackMarkerScale(this.zoom)
+        return this.arrows.flatMap(({ approach, drawing, slide }) =>
+            arrowOutlines(approach, scale, drawing, slide)
+        )
     })
 
     gunTags: GunTag[] = $derived(gunTags(this.gameState, this.boardRotation, this.arrowOutlines))
@@ -636,15 +674,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     flags: FlagMark[] = $derived.by(() => {
-        const arrowApproaches = [
-            ...(this.attack ? [this.attack.attackApproach] : []),
-            ...this.threatArrowApproaches
-        ]
         return flagMarks(
             this.sprites,
             this.flagView,
             [
-                ...arrowsToKeepClear(arrowApproaches, this.zoom),
+                ...arrowsToKeepClear(this.arrows, this.zoom),
                 ...plateSamples(this.approachPlates),
                 ...this.battleGhosts.flatMap((ghost) => blockSamples(ghost.block)),
                 ...this.ghostLinks.flatMap((link) => lineSamples(link.line)),

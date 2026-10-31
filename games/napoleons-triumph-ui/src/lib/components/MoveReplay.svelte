@@ -2,11 +2,12 @@
     import type { Attachment } from 'svelte/attachments'
     import boardArt from '$lib/images/board.webp'
     import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
+    import { arrowDrawingOf } from '$lib/model/attackMark.js'
     import { replayFlags } from '$lib/model/moveReplay.js'
     import { roleMarkOf } from '$lib/model/roleMark.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { viewTransformInSvg } from '$lib/utils/boardView.js'
-    import { attackMarkerScale } from '$lib/utils/attackMarker.js'
+    import { arrowSlide, attackMarkerScale, underTheArrows } from '$lib/utils/attackMarker.js'
     import { flagScale } from '$lib/utils/flagLayout.js'
     import ApproachBars from './board/ApproachBars.svelte'
     import AttackArrow from './board/AttackArrow.svelte'
@@ -27,6 +28,21 @@
     const rotation = $derived(gameSession.boardRotation)
     const zoom = $derived(scene && mapWidth > 0 ? mapWidth / scene.focus.width : 1)
     const flagView = $derived({ rotation, scale: flagScale(zoom) })
+    const markSlide = $derived.by(() => {
+        const mark = scene?.attackMark
+        if (!scene || !mark) {
+            return 0
+        }
+        const blocks = scene.sprites.flatMap((sprite) =>
+            sprite.blocks.map((block) => ({ block, face: gameSession.lookOf(block.unit).face }))
+        )
+        return arrowSlide(
+            mark.approach,
+            attackMarkerScale(zoom),
+            arrowDrawingOf(mark),
+            underTheArrows(blocks)
+        )
+    })
     const flags = $derived(
         scene ? replayFlags(scene, flagView, (group) => gameSession.flagBearer(group, false)) : []
     )
@@ -154,7 +170,11 @@
                             <CommanderFlag {flag} view={flagView} />
                         {/each}
                         {#if scene.attackMark}
-                            <AttackArrow mark={scene.attackMark} scale={attackMarkerScale(zoom)} />
+                            <AttackArrow
+                                mark={scene.attackMark}
+                                scale={attackMarkerScale(zoom)}
+                                slide={markSlide}
+                            />
                         {/if}
                     </g>
                 </svg>

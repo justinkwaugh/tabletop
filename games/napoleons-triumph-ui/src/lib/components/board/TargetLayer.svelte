@@ -23,6 +23,7 @@
     import {
         ARROW_EDGE_WIDTH,
         ATTACK_ARROW_PATH,
+        arrowCentre,
         attackMarkerAngle,
         attackMarkerScale
     } from '$lib/utils/attackMarker.js'
@@ -45,7 +46,7 @@
     const arrowScale = $derived(attackMarkerScale(gameSession.zoom))
 
     function arrowPlacement(approach: number): string {
-        const { centre } = APPROACH_GEOMETRY[approach]
+        const centre = arrowCentre(APPROACH_GEOMETRY[approach], gameSession.arrowSlideOf(approach))
         return `translate(${centre.x} ${centre.y}) scale(${arrowScale})`
     }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
-import { attackMarkerSamples } from './attackMarker.js'
+import { attackMarkerSamples, type ArrowOnApproach } from './attackMarker.js'
 import { BoardView, viewRotation } from './boardView.js'
 import { boundsOfPoints } from './boundingBox.js'
 import {
@@ -107,12 +107,14 @@ describe('where a flag stands', () => {
 })
 
 describe('the arrows flags keep clear of', () => {
-    const [first, second] = Object.keys(APPROACH_GEOMETRY).map(Number)
+    const [first, second] = Object.keys(APPROACH_GEOMETRY)
+        .map(Number)
+        .map((approach) => ({ approach, slide: 0 }))
 
-    function farthestFrom(approach: number, zoom: number): number {
-        const { centre } = APPROACH_GEOMETRY[approach]
+    function farthestFrom(arrow: ArrowOnApproach, zoom: number): number {
+        const { centre } = APPROACH_GEOMETRY[arrow.approach]
         return Math.max(
-            ...arrowsToKeepClear([approach], zoom).map((point) =>
+            ...arrowsToKeepClear([arrow], zoom).map((point) =>
                 Math.hypot(point.x - centre.x, point.y - centre.y)
             )
         )
