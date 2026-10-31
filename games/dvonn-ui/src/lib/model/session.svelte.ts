@@ -118,6 +118,12 @@ export class DvonnGameSession extends GameSession<DvonnGameState, HydratedDvonnG
         if (kind !== 'undo') this.undoingMove = undefined
     }
 
+    // Tapping where there is nothing to choose lets go of a chosen stack.
+    letGo() {
+        if (this.chosenFrom === undefined) return
+        this.selection = setDvonnSelection(this.selection, 'from', undefined)
+    }
+
     isClickable(coords: AxialCoordinates): boolean {
         return (
             includesCoords(this.placeable, coords) ||

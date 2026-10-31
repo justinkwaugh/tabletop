@@ -2,10 +2,10 @@
 
 ## 1. Visual Intents
 
-| Intent        | Trigger               | What should be emphasized                                                                  | What should be dimmed                | What must remain unaffected |
-| ------------- | --------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------ | --------------------------- |
-| place_piece   | The viewer is placing | Nothing: every empty space takes a piece, so none is marked                                | Nothing                              | Pieces on the board         |
-| choose_stack  | The viewer may move   | Every stack with a legal move (its moulded rim recoloured cyan on the top face)            | Nothing                              | Other stacks                |
+| Intent        | Trigger               | What should be emphasized                                                                                                | What should be dimmed                | What must remain unaffected |
+| ------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ | --------------------------- |
+| place_piece   | The viewer is placing | Nothing: every empty space takes a piece, so none is marked                                                              | Nothing                              | Pieces on the board         |
+| choose_stack  | The viewer may move   | Every stack with a legal move (its moulded rim recoloured cyan on the top face)                                          | Nothing                              | Other stacks                |
 | choose_target | A stack is chosen     | The chosen stack (thicker rim), a dashed cyan rim, each dash outlined in black, on the top of every stack it can land on | Other movable stacks' marks (hidden) | Other stacks                |
 
 ## 2. Visual Primitives
@@ -28,7 +28,7 @@
 ## 4. Shared State Contracts
 
 - **Animation scope**: the board animates only `own-action`, `other-action`, `undo`, `history` and `exploration` transitions; page loads, server syncs and view switches show the board at rest. The animator reads the change from the two boards (`board/boardDiff.ts`): a stack that left one space and now tops another as far away as it is tall hops there (backwards for undo), stacks that left lift away and stacks that came back drop in; without an action all within 0.18 s.
-- **Staged selection** (`selection.from`): manual only. Tapping the chosen stack again or Undo lets go of it; Undo then undoes the last committed action. Cleared in `beforeNewState` for every presented transition.
+- **Staged selection** (`selection.from`): manual only. Tapping the chosen stack again, a tap on the board that misses every target (`letGo`), or Undo lets go of it; Undo then undoes the last committed action. Cleared in `beforeNewState` for every presented transition.
 - **Target lists**: derived from the displayed state; empty when the viewer cannot act, including in History View.
 
 ## 5. Forbidden Couplings
@@ -43,7 +43,7 @@
 
 ## 7. Regression Checklist
 
-- Choose a stack: thicker rim on it, dashed rims on every landing; tap it again to let go.
+- Choose a stack: thicker rim on it, dashed rims on every landing; tap it again, or tap off it on the board, to let go.
 - Cut off scenario: move C2 onto D2; the four stacks on A1–B2 lift away after the hop lands.
 - Bob passes scenario: after Alice's move the banner says Bob cannot move; move again.
 - Undo after a move: the stack hops back and cut-off stacks drop back in; every stack group has opacity 1 afterwards.

@@ -112,6 +112,12 @@
         }
     }
 
+    // A tap on nothing you can choose lets go of what is chosen.
+    function onBoardClick(event: MouseEvent) {
+        if (event.target instanceof Element && event.target.closest('.target')) return
+        session.letGo()
+    }
+
     function onKey(event: KeyboardEvent, act: () => void) {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
@@ -167,6 +173,8 @@
     </g>
 {/snippet}
 
+<!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <svg
     class="dvonn-board"
     class:graph={session.graphBoard}
@@ -175,6 +183,7 @@
     height={layout.frame.height}
     role="group"
     aria-label="DVONN board"
+    onclick={onBoardClick}
     {@attach animator.attach}
 >
     <defs>
