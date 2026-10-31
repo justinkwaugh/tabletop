@@ -101,13 +101,20 @@
         clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
     }
 
+    /* Art plan: the screen less 32 px (up to 343) on a phone, 300 px on a desktop. */
     .share {
-        width: min(260px, 70vw);
+        width: min(343px, calc(100vw - 32px));
         height: auto;
         max-height: 70dvh;
         object-fit: contain;
         border-radius: 10px;
         box-shadow: 0 6px 24px var(--pp-halo);
+    }
+
+    @media (min-width: 640px) {
+        .share {
+            width: 300px;
+        }
     }
 
     .bag {

@@ -201,6 +201,13 @@ for (const width of WIDTHS) {
                 'alt',
                 'Central Pacific share'
             )
+            // Art plan: 300 px on a desktop, the screen less 32 px (up to 343) on a phone.
+            const face = await enlarged(page).getByRole('img').boundingBox()
+            const viewport = width.use.viewport.width
+            expect(face?.width).toBeCloseTo(
+                width.name === 'phone' ? Math.min(343, viewport - 32) : 300,
+                0
+            )
             await press(enlarged(page))
             await expect(enlarged(page)).toHaveCount(0)
             // The closing press did nothing else: the seat stays as it was, nothing changed.
