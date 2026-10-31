@@ -3,12 +3,12 @@ import { RAILROAD_IDS } from '../components/railroads.js'
 import { TRACK_PIECES_PER_RAILROAD } from '../components/trackPieces.js'
 import { TOWN_TILE_KINDS, RED_TILE_KIND_IDS } from '../components/townTiles.js'
 import type { PromontoryPointProjectedState } from '../model/gameState.js'
+import { keptPieces } from '../model/playerState.js'
 import {
     UNCOVERED_RED_TILES_AT_END,
     gameEndReason,
     uncoveredRedTileCount
 } from '../rules/gameEnd.js'
-import { HAND_SIZE } from './initializer.js'
 
 const TRACK_PIECE_COUNT = TRACK_PIECES_PER_RAILROAD * RAILROAD_IDS.length
 const RED_TILE_COUNT = RED_TILE_KIND_IDS.reduce(
@@ -28,8 +28,13 @@ export class PromontoryPointProgression implements GameProgression<PromontoryPoi
         const piecesUsed =
             Object.keys(state.track).length +
             RAILROAD_IDS.reduce((sum, railroadId) => sum + state.scrapped[railroadId], 0)
-        // The bag runs out with every hand still held, so the pieces in hands never count.
-        const piecesToUse = TRACK_PIECE_COUNT - HAND_SIZE * state.players.length
+        // The bag runs out with every hand still held, so the pieces in hands never count. While
+        // the bag lasts every seat but the turn player holds a full hand, kept piece included:
+        // 3 pieces, or 4 in the variant (R-1.3 step 6, R-6.3).
+        const fullHand = Math.max(
+            ...state.players.map((player) => player.handCount + keptPieces(player).length)
+        )
+        const piecesToUse = TRACK_PIECE_COUNT - fullHand * state.players.length
         const redTilesToCover = RED_TILE_COUNT - UNCOVERED_RED_TILES_AT_END
         const fraction = Math.max(
             piecesUsed / piecesToUse,

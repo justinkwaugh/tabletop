@@ -6,7 +6,7 @@ import { BOARD_GRID, type SpaceId } from '../components/board.js'
 import { RAILROAD_IDS, type RailroadId } from '../components/railroads.js'
 import { isRedTile } from '../components/townTiles.js'
 import type { PromontoryPointGameState } from '../model/gameState.js'
-import { withEmptyBag, withTrack } from '../testing/fixtures.js'
+import { withBagLeft, withEmptyBag, withTrack } from '../testing/fixtures.js'
 import { play } from '../testing/play.js'
 import { SeededPlayer } from '../testing/seededPlayer.js'
 import { VARIANT_OFF_AND_ON, canonical, engine, startGame } from '../testing/startGame.js'
@@ -72,6 +72,20 @@ describe('Promontory Point Game Progress', () => {
         )
         expect(progressOf(oneLeft).final).toBeUndefined()
     })
+
+    it.each(VARIANT_OFF_AND_ON)(
+        'R-6.1, R-6.3: with one piece left in the bag the pieces measure is one piece short of full (config %j)',
+        (config) => {
+            const { state: initial } = startGame({ playerCount: 3, config })
+            // Every piece drawn from the bag since setup has been used, so the pieces to use are
+            // the bag's count at setup, whatever each seat holds (3, or 4 in the variant).
+            const piecesToUse = initial.bag.remaining
+            const lastPiece = withBagLeft(initial, 1)
+            expect(progressOf(lastPiece).fraction).toBe(
+                Math.round(((piecesToUse - 1) / piecesToUse) * 1000) / 1000
+            )
+        }
+    )
 
     describe.each(VARIANT_OFF_AND_ON)('a seeded game (config %j)', (config) => {
         it('R-6.1: never goes backwards, reads nothing hidden, and is final from the last turn on', () => {
