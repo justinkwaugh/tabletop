@@ -38,7 +38,8 @@ function cappedLimit(action: GameAction | undefined, railroadId: RailroadId): nu
 }
 
 // R-1.2, R-4.2: a price town's marker steps space by space along the price track; stopped at an
-// end, it bumps once against it. Undo and history move it straight there.
+// end, it bumps once against it. Undo and history move it straight there, at once under reduced
+// motion.
 export class PriceMarkerAnimator {
     readonly motion = new MarkerMotion<RailroadId>()
     private readonly listener = (change: BoardStateChange) => this.onGameStateChange(change)
@@ -66,7 +67,9 @@ export class PriceMarkerAnimator {
             const after = to.priceIndex[railroadId]
             const target = priceMarkerPose(railroadId, after)
             if (!action) {
-                if (before !== after) this.motion.glide(timeline, railroadId, target, 0)
+                if (before === after) continue
+                if (reduced) this.motion.jump(railroadId, target)
+                else this.motion.glide(timeline, railroadId, target, 0)
                 continue
             }
             const limit = cappedLimit(action, railroadId)

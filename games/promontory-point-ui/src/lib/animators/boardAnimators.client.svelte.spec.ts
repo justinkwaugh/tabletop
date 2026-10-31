@@ -34,6 +34,7 @@ import { moneyMarkers } from '$lib/utils/boardLayout.js'
 import {
     DIRECT_SECONDS,
     MarkerMotion,
+    samePose,
     type BoardAnimationHost,
     type BoardStateChange,
     type MarkerPose
@@ -312,6 +313,27 @@ describe('price markers (R-1.2, R-4.2)', () => {
         )
     })
 
+    it('R-X.2: under reduced motion, Undo shows the marker back at its price at once', async () => {
+        const { session, steps, towns } = await eventfulSession()
+        await placeAt(session, CP, towns[0])
+        await session.undo()
+        await settled(session)
+        const step = lastStep(steps, 'undo')
+        expect(step.action).toBeUndefined()
+        assertExists(step.from, 'The undo has a from state')
+        expect(step.from.priceIndex[CP]).not.toBe(step.to.priceIndex[CP])
+
+        const { animator, play } = priceAnimator(true)
+        const node = restPrices(animator.motion, step.from).get(CP)
+        assertExists(node, 'CP is drawn')
+        const context = await play(step)
+        expect(durationOf(context)).toBe(0)
+        expectPose(
+            shownPose(animator.motion, CP, node),
+            priceMarkerPose(CP, step.to.priceIndex[CP])
+        )
+    })
+
     it('R-1.2: reduced motion shows the marker at its new price without moving it there', async () => {
         const { session, steps, towns } = await eventfulSession()
         await placeAt(session, CP, towns[0])
@@ -439,6 +461,27 @@ describe('money markers (R-1.3-H1, R-4.2)', () => {
         expect(durationOf(context)).toBeGreaterThan(0)
         expect(durationOf(context)).toBeLessThanOrEqual(DIRECT_SECONDS)
         seek(context, durationOf(context))
+        expectPose(shownPose(animator.motion, first, node), targetOf(step.to, first))
+    })
+
+    it('R-X.2: under reduced motion, Undo shows every marker back at its place at once', async () => {
+        const { session, steps, towns, first } = await eventfulSession()
+        await placeAt(session, CP, towns[1])
+        await session.undo()
+        await settled(session)
+        const step = lastStep(steps, 'undo')
+        expect(step.action).toBeUndefined()
+        assertExists(step.from, 'The undo has a from state')
+
+        const { animator, play, chips, nodes } = moneyAnimator(step.from, true)
+        const node = nodes.get(first)
+        assertExists(node, 'The first seat has a marker')
+        expect(samePose(shownPose(animator.motion, first, node), targetOf(step.to, first))).toBe(
+            false
+        )
+        const context = await play(step)
+        expect(chips.shown).toEqual([])
+        expect(durationOf(context)).toBe(0)
         expectPose(shownPose(animator.motion, first, node), targetOf(step.to, first))
     })
 

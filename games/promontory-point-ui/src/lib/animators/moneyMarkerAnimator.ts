@@ -58,7 +58,8 @@ function layout(state: HydratedPromontoryPointGameState): Map<string, MoneyMarke
 }
 
 // R-1.3-H1: each seat's money marker steps along the border track, a chip rising from its seat
-// card's money with the change. Undo and history move every marker straight to its place.
+// card's money with the change. Undo and history move every marker straight to its place, at
+// once under reduced motion.
 export class MoneyMarkerAnimator {
     readonly motion = new MarkerMotion<string>()
     private readonly listener = (change: BoardStateChange) => this.onGameStateChange(change)
@@ -100,17 +101,17 @@ export class MoneyMarkerAnimator {
         })
         if (changes.length === 0 && settlers.length === 0) return
 
+        const reduced = this.reducedMotion()
         if (!action) {
             for (const marker of targets.values()) {
                 const pose = this.motion.poseOf(marker.playerId)
-                if (pose && !samePose(pose, markerPose(marker))) {
-                    this.motion.glide(timeline, marker.playerId, markerPose(marker), 0)
-                }
+                if (!pose || samePose(pose, markerPose(marker))) continue
+                if (reduced) this.motion.jump(marker.playerId, markerPose(marker))
+                else this.motion.glide(timeline, marker.playerId, markerPose(marker), 0)
             }
             return
         }
 
-        const reduced = this.reducedMotion()
         const start = townEffectStartsAt(action, reduced)
         let landed = start
         for (const { playerId, before, after } of changes) {
