@@ -361,6 +361,8 @@ export function resolveModifiers(
             const unmet = reasonModifierDoesNotApply(state, playerId, declared, particulars)
             if (unmet) return { reason: unmet, active }
         }
+        const disagrees = reasonAnswersDisagree(state, playerId, declared, active, particulars)
+        if (disagrees) return { reason: disagrees, active }
         active.push(declared)
     }
     if (mode.destinationUnknown) return { active }
@@ -371,6 +373,89 @@ export function resolveModifiers(
         active.push(m)
     }
     return { active }
+}
+
+function sameDiscardTarget(a: DiscardTarget, b: DiscardTarget): boolean {
+    return (
+        a.region === b.region &&
+        a.bottom === b.bottom &&
+        (a.worldDeck === true) === (b.worldDeck === true)
+    )
+}
+
+/**
+ * R-7.4-H2 — the question `m` and `other` each give one answer to, and answer differently: the pile a Search
+ * draws from (Errand Boy, Observatory) or where its discards go (Bracken, Cracked Horn).
+ */
+function questionAnsweredDifferently(
+    m: ActiveModifier,
+    other: ActiveModifier,
+    contextOf: (declared: ActiveModifier) => EffectContext
+): string | undefined {
+    const pile = m.hooks.drawRegion?.(contextOf(m))
+    const otherPile = other.hooks.drawRegion?.(contextOf(other))
+    if (pile !== undefined && otherPile !== undefined && pile !== otherPile) {
+        return 'the pile drawn from'
+    }
+    const to = m.hooks.discardTo?.(contextOf(m))
+    const otherTo = other.hooks.discardTo?.(contextOf(other))
+    if (to !== undefined && otherTo !== undefined && !sameDiscardTarget(to, otherTo)) {
+        return 'where the discards go'
+    }
+    return undefined
+}
+
+/**
+ * R-7.4-H2 — from revision 31, a modifier declared after one that answers the same question is refused unless
+ * their answers agree, so none is paid for while another's answer overrides it. Before it (R-X.4), both are
+ * accepted and the first declared applies.
+ */
+export function reasonAnswersDisagree(
+    state: HydratedOathGameState,
+    playerId: string,
+    m: ActiveModifier,
+    earlier: readonly ActiveModifier[],
+    particulars: Partial<EffectContext['particulars']> = {}
+): string | undefined {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes26)) return undefined
+    const contextOf = (declared: ActiveModifier): EffectContext => ({
+        ...modifierContext(state, playerId, declared),
+        particulars
+    })
+    for (const other of earlier) {
+        const question = questionAnsweredDifferently(m, other, contextOf)
+        if (question) {
+            return `${m.power.cardId} and ${other.power.cardId} give different answers to ${question} (R-7.4-H2)`
+        }
+    }
+    return undefined
+}
+
+/**
+ * R-7.4-H2 — the same check on uses in the order given, for a menu that offers a card beside the cards in use
+ * before the action is judged.
+ */
+export function reasonUsesDisagree(
+    state: HydratedOathGameState,
+    playerId: string,
+    uses: readonly ModifierUse[]
+): string | undefined {
+    const earlier: ActiveModifier[] = []
+    for (const use of uses) {
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
+        const hooks = power ? effectFor(power)?.modifier : undefined
+        if (!power || !hooks) continue
+        const declared: ActiveModifier = {
+            power,
+            hooks,
+            choices: use.choices ?? [],
+            mandatory: false
+        }
+        const reason = reasonAnswersDisagree(state, playerId, declared, earlier)
+        if (reason) return reason
+        earlier.push(declared)
+    }
+    return undefined
 }
 
 /** A declared modifier's printed condition, and its cross-check, for the action's particulars. */
@@ -453,7 +538,7 @@ export function searchPlayModifiers(state: HydratedOathGameState): ActiveModifie
     return carriedModifiers(state, state.pendingSearchModifiers)
 }
 
-/** Bracken, Cracked Horn */
+/** Bracken, Cracked Horn — the first with an answer, which from revision 31 is the only one (R-7.4-H2). */
 export function discardTargetOf(
     state: HydratedOathGameState,
     playerId: string,

@@ -281,6 +281,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         return !resolved.reason && resolved.active.some((m) => m.hooks.drawsFromBottom)
     }
 
+    /** Errand Boy, Observatory — the first with an answer, which from revision 31 is the only one (R-7.4-H2). */
     static drawRegionFor(
         state: HydratedOathGameState,
         playerId: string,
