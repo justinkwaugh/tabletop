@@ -15,6 +15,8 @@ The inventory the data files transcribe. Ids are permanent: game state stores id
 | `railroad.kp` | Kansas Pacific   | 1     | colour red; home hex at `2,4`     | KANSAS PACIFIC   | R-0, R-1.1     |
 | `railroad.sp` | Southern Pacific | 1     | colour yellow; home hex at `-6,4` | SOUTHERN PACIFIC | R-0, R-1.1     |
 
+The colours are presentation only: the rules never name a railroad by colour, so the data holds none and the UI's palette draws them (its `railroadPalette.spec.ts` asserts the four).
+
 ## Share cards (44)
 
 | Id         | Printed name           | Count | Printed values | Printed text                 | Digest section      |
@@ -26,16 +28,16 @@ The inventory the data files transcribe. Ids are permanent: game state stores id
 
 Shares of one railroad are interchangeable: state stores a count per railroad, not card ids. The share back reads SHARE CARD.
 
-## Track markers (96)
+## Track pieces (96)
 
-| Id          | Printed name            | Count | Printed values | Printed text | Digest section |
-| ----------- | ----------------------- | ----- | -------------- | ------------ | -------------- |
-| `marker.cp` | Central Pacific marker  | 24    | —              | —            | R-1.1, R-3.3   |
-| `marker.up` | Union Pacific marker    | 24    | —              | —            | R-1.1, R-3.3   |
-| `marker.kp` | Kansas Pacific marker   | 24    | —              | —            | R-1.1, R-3.3   |
-| `marker.sp` | Southern Pacific marker | 24    | —              | —            | R-1.1, R-3.3   |
+| Id          | Printed name                 | Count | Printed values | Printed text | Digest section |
+| ----------- | ---------------------------- | ----- | -------------- | ------------ | -------------- |
+| `marker.cp` | Central Pacific track piece  | 24    | —              | —            | R-1.1, R-3.3   |
+| `marker.up` | Union Pacific track piece    | 24    | —              | —            | R-1.1, R-3.3   |
+| `marker.kp` | Kansas Pacific track piece   | 24    | —              | —            | R-1.1, R-3.3   |
+| `marker.sp` | Southern Pacific track piece | 24    | —              | —            | R-1.1, R-3.3   |
 
-No art is supplied for the markers; they are drawn in code in their railroad's colour (R-X.4).
+No art is supplied for the track pieces; they are drawn in code in their railroad's colour (R-X.4). The ids keep the rulebook's word, `marker`.
 
 ## Town tiles (48)
 
@@ -73,12 +75,14 @@ Not spaces: the four home hexes (above). The mostly sea-covered hex `-6,5` below
 | `track.price` | share-price track | 1 (shared by the 4 railroads) | 25 … 3, 2, 1, 0, 0, 0, 0, 0 (30 spaces); start marked at 5 | —            | R-1.2          |
 | `track.money` | border track      | 1                             | 0–99                                                       | —            | R-1.3-H1       |
 
+The border track is UI only. Money is a plain number with no maximum (R-1.1-H2); the UI draws it on the border track and wraps past 99 with a "+100" mark, which its `boardLayout.spec.ts` asserts.
+
 ## Totals
 
 | Kind                      | Rulebook says           | Rows above                            |
 | ------------------------- | ----------------------- | ------------------------------------- |
 | entertainer / share cards | 44                      | 44                                    |
-| travel / track markers    | 96                      | 96                                    |
+| travel markers / pieces   | 96                      | 96                                    |
 | village / town tiles      | 48                      | 48                                    |
 | village spaces            | 48 (one tile per space) | 48                                    |
 | headquarters / home hexes | 4                       | 4                                     |

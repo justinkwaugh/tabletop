@@ -9,9 +9,12 @@ import {
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import { describe, expect, it } from 'vitest'
+import { isBuyShare } from '../actions/buyShare.js'
 import { isEndTurn } from '../actions/endTurn.js'
 import { isPayRepairs } from '../actions/payRepairs.js'
 import { isScrapTrack } from '../actions/scrapTrack.js'
+import { isSellShare } from '../actions/sellShare.js'
+import { RAILROAD_IDS } from '../components/railroads.js'
 import { ActionType } from '../definition/actions.js'
 import { Definition } from '../definition/definition.js'
 import { PromontoryPointRuntime } from '../definition/runtime.js'
@@ -286,6 +289,13 @@ describe('Promontory Point scripted complete games', () => {
             expect(new Set(RUNS.map(({ walked }) => gameEndReason(finalState(walked))))).toEqual(
                 new Set(Object.values(GameEndReason))
             )
+        })
+
+        it('R-3.1, R-3.2: a share of every railroad is both bought and sold', () => {
+            const bought = new Set(all.filter(isBuyShare).map(({ railroadId }) => railroadId))
+            const sold = new Set(all.filter(isSellShare).map(({ railroadId }) => railroadId))
+            expect(bought).toEqual(new Set(RAILROAD_IDS))
+            expect(sold).toEqual(new Set(RAILROAD_IDS))
         })
 
         it('R-4.3, R-4.3-H3: a Repairs finds a debtor, and a debtor forced to sell everything and still short', () => {

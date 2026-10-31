@@ -1,6 +1,7 @@
 import { assertExists, playerUndoReach, type Game } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import { RAILROAD_IDS } from '../components/railroads.js'
+import { sharePriceAt } from '../components/priceTrack.js'
+import { RAILROAD_IDS, type RailroadId } from '../components/railroads.js'
 import { SHARES_PER_RAILROAD } from '../components/shares.js'
 import { MachineState } from '../definition/states.js'
 import type { PromontoryPointProjectedState } from '../model/gameState.js'
@@ -20,13 +21,18 @@ import {
 import { BuyShare } from './buyShare.js'
 import { SellShare } from './sellShare.js'
 
-const CP = 'railroad.cp'
+const CP: RailroadId = 'railroad.cp'
 // R-1.2: index 4 is the last 0.
 const PRICE_0 = 4
 
-function buy(game: Game, state: PromontoryPointProjectedState, playerId = turnPlayer(state)) {
+function buy(
+    game: Game,
+    state: PromontoryPointProjectedState,
+    playerId = turnPlayer(state),
+    railroadId: RailroadId = CP
+) {
     return engine.executeCanonicalAction({
-        action: action(BuyShare, state, { playerId, railroadId: CP }),
+        action: action(BuyShare, state, { playerId, railroadId }),
         state,
         game
     })
@@ -169,5 +175,31 @@ describe('BuyShare', () => {
                 turnPlayer(revealed)
             )
         ).toBe(boughtAction.index)
+    })
+})
+
+describe.each(RAILROAD_IDS)('BuyShare of %s', (railroadId) => {
+    it("R-3.1: pays that railroad's price and takes a share from its deck alone", () => {
+        const { game, state } = trading()
+        // A distinct price per railroad, so a price read from another railroad shows.
+        const priceIndex = 12 + RAILROAD_IDS.indexOf(railroadId)
+        const priced = edited(state, (draft) => {
+            draft.priceIndex[railroadId] = priceIndex
+        })
+        const price = sharePriceAt(priceIndex)
+        const playerId = turnPlayer(priced)
+        const before = playerOf(priced, playerId)
+
+        const { processedActions, updatedState } = buy(game, priced, playerId, railroadId)
+
+        const after = playerOf(updatedState, playerId)
+        expect(after.money).toBe(before.money - price)
+        for (const other of RAILROAD_IDS) {
+            const bought = other === railroadId ? 1 : 0
+            expect(after.shares[other]).toBe(before.shares[other] + bought)
+            expect(shareDeckCount(updatedState, other)).toBe(shareDeckCount(priced, other) - bought)
+        }
+        expect(updatedState.priceIndex).toEqual(priced.priceIndex)
+        expect(processedActions[0]).toMatchObject({ metadata: { price } })
     })
 })
