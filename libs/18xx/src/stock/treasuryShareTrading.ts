@@ -90,7 +90,9 @@ export function treasuryShareStockRules(trading: TreasuryShareTrading): StockRul
         ownershipLimit: trading.ownershipLimit,
         presidencyCandidates: (state, id) =>
             playersAfterPresident(state, id, state.turnManager.turnOrder),
-        turnOrder: 'sell-buy'
+        turnOrder: 'sell-buy',
+        // A president's sales move the price once a turn, however many shares they sell.
+        repeatSales: 'extend-block'
     }
     return rules
 }

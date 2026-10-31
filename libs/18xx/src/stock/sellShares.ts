@@ -11,7 +11,13 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { Owner, sameOwner } from '../finance/finance.js'
-import { ShareSale, ShareSaleDetails, evaluateShareSale, applyShareSale } from './shareSale.js'
+import {
+    ShareSale,
+    ShareSaleDetails,
+    evaluateShareSale,
+    applyShareSale,
+    extendedSaleBlock
+} from './shareSale.js'
 import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 
@@ -64,13 +70,15 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
                 (block) =>
                     block.companyId === sale.companyId && sameOwner(block.seller, this.seller)
             )
-            const shares = (previous?.shares ?? 0) + sale.shares
-            const terms = this.#rules.saleTerms(state, sale.companyId, shares, this.seller)
-            assert(typeof terms !== 'string', 'A legal sale requires sale terms')
+            const block = extendedSaleBlock(
+                state,
+                this.#rules.saleTerms,
+                this.seller,
+                sale,
+                previous
+            )
             if (previous) {
-                previous.shares = shares
-                previous.movement = terms.movement
-                previous.direction = terms.direction
+                Object.assign(previous, block)
                 saleBlockId = previous.id
             } else {
                 saleBlockId = this.id
@@ -78,10 +86,7 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
                     id: this.id,
                     companyId: sale.companyId,
                     seller: this.seller,
-                    shares,
-                    price: sale.price,
-                    movement: terms.movement,
-                    direction: terms.direction
+                    ...block
                 })
             }
         }

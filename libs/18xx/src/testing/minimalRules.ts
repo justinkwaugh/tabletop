@@ -66,7 +66,6 @@ export const minimalTrainRules: TrainRules = {
 }
 
 export const minimalTrainFundingRules: TrainFundingRules = {
-    sellInBlocks: true,
     includeMarketTrains: false,
     contributors: () => [],
     issuanceTerms: () => undefined,

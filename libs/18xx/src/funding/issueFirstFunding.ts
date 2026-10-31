@@ -59,8 +59,9 @@ export function slidingIssuance(
 
 /**
  * A corporation without a train issues shares before its president pays; the president pays
- * only when no train is otherwise affordable, sells one block per corporation, and keeps the
- * operating corporation open and under their presidency (1846 and 1833NE §§6.86–6.89).
+ * only when no train is otherwise affordable, sells under the normal restrictions, a later sale
+ * of a corporation extending its first block, and keeps the operating corporation open and under
+ * their presidency (1846 and 1833NE §§6.86–6.89).
  */
 export function issueFirstTrainFunding(
     issuing: IssuingCorporations,
@@ -77,7 +78,7 @@ export function issueFirstTrainFunding(
     const { market, marketPoolId } = issuing
     return {
         includeMarketTrains: true,
-        sellInBlocks: true,
+        repeatSales: 'extend-block',
         contributors(state, companyId) {
             const president = controllingOwner(state, companyId)
             assertExists(president, 'Emergency funding requires a president')

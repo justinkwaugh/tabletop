@@ -13,7 +13,14 @@ import {
 } from '../finance/finance.js'
 import { TrainPurchase, TrainPurchaseDetails, type TrainRules } from '../trains/trainPurchase.js'
 import { trainsOwnedBy } from '../trains/train.js'
-import { evaluateShareDisposal, applyShareSale, type ShareSaleDetails } from '../stock/shareSale.js'
+import {
+    evaluateShareDisposal,
+    applyShareSale,
+    extendedSaleBlock,
+    extendingSaleTerms,
+    type ShareSaleDetails
+} from '../stock/shareSale.js'
+import { SaleBlockTerms } from '../stock/stockTurn.js'
 import type { StockRules, ShareSaleTerms } from '../stock/stockRules.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
 import type { EliminationRules } from './elimination.js'
@@ -29,7 +36,9 @@ export const TrainFunding = Type.Object(
                     seller: Owner,
                     companyId: Type.String(),
                     // Stored games from before this stopped being recorded may hold it; never read.
-                    shares: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 1 })))
+                    shares: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 1 }))),
+                    /** The block later sales of the company extend, where the title extends them. */
+                    block: Type.Optional(SaleBlockTerms)
                 },
                 { additionalProperties: false }
             )
@@ -55,7 +64,11 @@ export interface TrainFundingRules {
      */
     afterShareSale?(state: FundingState, details: ShareSaleDetails): void
     includeMarketTrains: boolean
-    sellInBlocks: boolean
+    /**
+     * A second sale of a company in the same funding: extending the first block at its price, or
+     * a separate sale at the current price. Without it, each company sells once per funding.
+     */
+    repeatSales?: 'extend-block' | 'separate'
     contributors(state: FundingState, companyId: string): Owner[]
     /**
      * Terms for issuing the company's treasury shares, given how many it holds; it issues
@@ -118,13 +131,33 @@ export class EmergencyTrainFunding {
     }
     applySale(details: ShareSaleDetails): void {
         assertExists(this.state.trainFunding, 'Funding sale requires active train funding')
+        const funding = this.state.trainFunding
+        // Issuance is settled here too, on its own terms; only contributors' sales extend.
+        const extending =
+            this.rules.repeatSales === 'extend-block' &&
+            funding.contributors.some((owner) => sameOwner(owner, details.seller))
+        const blocks = details.sales.map((sale) =>
+            extending
+                ? extendedSaleBlock(
+                      this.state,
+                      this.saleTerms,
+                      details.seller,
+                      sale,
+                      this.soldInFunding(details.seller, sale.companyId)?.block
+                  )
+                : undefined
+        )
         applyShareSale(this.state, details)
         this.rules.afterShareSale?.(this.state, details)
-        if (!this.rules.sellInBlocks) return
-        const funding = this.state.trainFunding
-        for (const { companyId } of details.sales)
-            if (!this.soldInFunding(details.seller, companyId))
-                funding.sales.push({ seller: details.seller, companyId })
+        if (this.rules.repeatSales === 'separate') return
+        details.sales.forEach(({ companyId }, index) => {
+            const block = blocks[index]
+            const previous = this.soldInFunding(details.seller, companyId)
+            if (previous) {
+                if (block) previous.block = block
+            } else
+                funding.sales.push({ seller: details.seller, companyId, ...(block && { block }) })
+        })
     }
     purchases(): TrainPurchaseDetails[] {
         const companyId = this.state.trainPurchaseStep?.companyId
@@ -280,18 +313,25 @@ export class EmergencyTrainFunding {
         assert(typeof amount === 'number', 'Funding requires a finite balance sheet')
         return amount
     }
-    private soldInFunding(seller: Owner, companyId: string): boolean {
-        return !!this.state.trainFunding?.sales.some(
+    private soldInFunding(seller: Owner, companyId: string) {
+        return this.state.trainFunding?.sales.find(
             (sale) => sameOwner(sale.seller, seller) && sale.companyId === companyId
         )
     }
+    private readonly saleTerms: StockRules['saleTerms'] = (_state, companyId, shares, seller) =>
+        this.rules.saleTerms(this.state, companyId, shares, seller)
     private sales(owner: Owner, requiredOnly: boolean): ShareSaleDetails[] {
         const funding = this.state.trainFunding!
         const shortfall = this.shortfall()
         return this.state.companies.flatMap((company) => {
             const required = this.rules.requiredSaleShares(this.state, owner, company.id)
             if (requiredOnly && !required) return []
-            if (this.rules.sellInBlocks && this.soldInFunding(owner, company.id)) return []
+            const previous =
+                this.rules.repeatSales === 'separate'
+                    ? undefined
+                    : this.soldInFunding(owner, company.id)
+            // Without a block to extend, the company has had its one sale this funding.
+            if (previous && !previous.block) return []
             const owned = sharesOwned(this.state, company.id, owner)
             const results: ShareSaleDetails[] = []
             for (let shares = 1; shares <= owned; shares++) {
@@ -304,8 +344,9 @@ export class EmergencyTrainFunding {
                         charters: this.stocks.charters,
                         presidencyCandidates: this.stocks.presidencyCandidates,
                         holdsMarketMove: this.stocks.holdsMarketMove,
-                        saleTerms: (_state, id, count, seller) =>
-                            this.rules.saleTerms(this.state, id, count, seller)
+                        saleTerms: previous?.block
+                            ? extendingSaleTerms(this.saleTerms, previous.block)
+                            : this.saleTerms
                     }
                 )
                 if (

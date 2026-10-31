@@ -128,6 +128,37 @@ describe('1846 first stock round', () => {
         table.buy('IC', 'bank')
         expect(finiteCashOwnedBy(table.state, { kind: 'company', companyId: 'IC' })).toBe(treasury)
     })
+    it('extends a president’s block with a later sale that turn, at its price, moving once', () => {
+        const table = stockGame()
+        const president = table.state.activePlayerIds[0]
+        table.launch()
+        table.finishTurn()
+        table.finishTurn()
+        table.buy('IC')
+        table.finishTurn()
+        table.finishTurn()
+        table.buy('IC')
+        table.finishTurn()
+        table.finishTurn()
+        const before = finiteCashOwnedBy(table.state, { kind: 'player', playerId: president })
+        const sellOne = () => {
+            const sale = table
+                .choices()
+                .sells.find(
+                    (choice) => choice.sales[0].companyId === 'IC' && choice.sales[0].shares === 1
+                )
+            assertExists(sale, 'President can sell one more share')
+            expect(sale.expectedProceeds).toBe(40)
+            table.act('SellShares', sale)
+        }
+        sellOne()
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(30)
+        sellOne()
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(30)
+        expect(finiteCashOwnedBy(table.state, { kind: 'player', playerId: president })).toBe(
+            before + 80
+        )
+    })
     it('completes on consecutive passes, preserves priority after no trades, and rejects further actions', () => {
         const table = stockGame()
         const priority = table.state.turnManager.turnOrder[0]

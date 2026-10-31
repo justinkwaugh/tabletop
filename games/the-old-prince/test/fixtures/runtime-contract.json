@@ -4053,6 +4053,33 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "block": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "direction": {
+                      "type": "string"
+                    },
+                    "movement": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "price": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "shares": {
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "direction",
+                    "movement",
+                    "price",
+                    "shares"
+                  ],
+                  "type": "object"
+                },
                 "companyId": {
                   "type": "string"
                 },

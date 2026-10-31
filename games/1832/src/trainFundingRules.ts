@@ -9,7 +9,7 @@ import { requireEighteenThirtyTwoState } from './state.js'
 // A president funds a compulsory train from personal cash and share sales that may not change
 // the buying company's presidency (§10.6).
 export const EighteenThirtyTwoTrainFundingRules = presidentTrainFundingRules({
-    sellInBlocks: false,
+    repeatSales: 'separate',
     companyOrder: EighteenThirtyTwoOperatingRules.companyOrder,
     saleTerms: EighteenThirtyTwoShareTrading.emergencySaleTerms,
     stockRules: EighteenThirtyTwoStockRules,

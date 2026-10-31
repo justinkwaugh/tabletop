@@ -79,3 +79,17 @@ other presidency changes and closure, pending order, phase continuation, both
 variants, oversale restrictions, forged actions, replay and Undo. The playground
 exposes issuance, legal sale blocks, the minimum train price and purchase choices.
 It clearly identifies the remaining bankruptcy boundary when funding is exhausted.
+
+## Repeat sales (2026-10-31)
+
+The single-block restriction came from the reference engine, not the rules. Neither
+the 1846 nor the 1833NE rulebook limits how often a company is sold: a president's
+sales move its price one column "even if several shares in that corporation were
+sold at once" (§5.22), and an emergency sale follows the normal restrictions (§6.88).
+Selling one share left a president unable to sell the rest of that company in the
+same funding (bug report 1566085490203959402, 1833NE). Issue-first funding and the
+treasury-share stock round now use `repeatSales: 'extend-block'`: a later sale of a
+company joins the first block at its price, and the marker moves only as far as the
+larger block would beyond the first. A funding's sale record carries the block's
+terms (`trainFunding.sales[].block`); a record from before that has none, so its
+company stays sold for that funding.

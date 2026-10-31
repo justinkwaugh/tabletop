@@ -8,7 +8,7 @@ import type { TrainFundingRules } from './trainFunding.js'
 export function presidentTrainFundingRules(options: {
     companyOrder: OperatingRules['companyOrder']
     saleTerms: TrainFundingRules['saleTerms']
-    sellInBlocks: boolean
+    repeatSales?: TrainFundingRules['repeatSales']
     stockRules: Pick<StockRules, 'ownershipLimit' | 'charters'>
     protectsPresidency: TrainFundingRules['protectsPresidency']
     /** What the title records of each sale, such as shares its president may protect. */
@@ -22,7 +22,7 @@ export function presidentTrainFundingRules(options: {
             options.afterShareSale?.(state, details)
         },
         includeMarketTrains: true,
-        sellInBlocks: options.sellInBlocks,
+        repeatSales: options.repeatSales,
         contributors(state, companyId) {
             const president = getCompany(state, companyId).president
             assertExists(president, 'A railway requires its president')

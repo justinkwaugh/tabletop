@@ -19,6 +19,7 @@ import {
 import { placeStockMarker, stockMarkerStackIndex } from './stockMarket.js'
 import { copyStockState, type StockState } from './stockState.js'
 import { type StockRules, exceedsStockLimits } from './stockRules.js'
+import type { SaleBlockTerms } from './stockTurn.js'
 
 export const ShareSale = Type.Object(
     { companyId: Type.String(), shares: Type.Integer({ minimum: 1 }) },
@@ -121,21 +122,51 @@ export function evaluateShareSale(
         charters: rules.charters,
         presidencyCandidates: rules.presidencyCandidates,
         holdsMarketMove: rules.holdsMarketMove,
-        saleTerms(projected, companyId, shares, seller) {
-            const terms = rules.saleTerms(projected, companyId, previous.shares + shares, seller)
-            if (typeof terms === 'string') return terms
-            assert(
-                terms.direction === previous.direction,
-                'An extended sale block must keep its movement direction'
-            )
-            return {
-                ...terms,
-                price: previous.price,
-                maximumShares: terms.maximumShares - previous.shares,
-                movement: Math.max(0, terms.movement - previous.movement)
-            }
-        }
+        saleTerms: extendingSaleTerms(rules.saleTerms, previous)
     })
+}
+
+/**
+ * Terms for selling more of a company as part of an earlier block: at the block's price, within
+ * its limit, moving the marker only as far as the larger block would beyond the earlier one.
+ */
+export function extendingSaleTerms(
+    saleTerms: StockRules['saleTerms'],
+    previous: SaleBlockTerms
+): StockRules['saleTerms'] {
+    return (state, companyId, shares, seller) => {
+        const terms = saleTerms(state, companyId, previous.shares + shares, seller)
+        if (typeof terms === 'string') return terms
+        assert(
+            terms.direction === previous.direction,
+            'An extended sale block must keep its movement direction'
+        )
+        return {
+            ...terms,
+            price: previous.price,
+            maximumShares: terms.maximumShares - previous.shares,
+            movement: Math.max(0, terms.movement - previous.movement)
+        }
+    }
+}
+
+/** A company's sale block once a sale, before it settles, starts or extends it. */
+export function extendedSaleBlock(
+    state: StockState,
+    saleTerms: StockRules['saleTerms'],
+    seller: Owner,
+    sale: ShareSaleSettlement,
+    previous?: SaleBlockTerms
+): SaleBlockTerms {
+    const shares = (previous?.shares ?? 0) + sale.shares
+    const terms = saleTerms(state, sale.companyId, shares, seller)
+    assert(typeof terms !== 'string', 'A legal sale requires sale terms')
+    return {
+        shares,
+        price: previous?.price ?? sale.price,
+        movement: Math.max(previous?.movement ?? 0, terms.movement),
+        direction: terms.direction
+    }
 }
 
 export function evaluateShareDisposal(
