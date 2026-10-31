@@ -179,8 +179,15 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         return row.reach.filter((coords) => this.gameState.board.topAt(coords)?.paired === true)
     })
 
+    // Your own stacks stay and the opponent's go unless you mark them otherwise.
     keep: AxialCoordinates[] = $derived.by(() => {
-        const manual = this.selection.keep?.value ?? []
+        const manual = this.selection.keep?.value
+        if (manual === undefined) {
+            const playerId = this.myPlayer?.id
+            return this.rowPairs.filter(
+                (coords) => this.gameState.board.topAt(coords)?.playerId === playerId
+            )
+        }
         return this.rowPairs.filter((coords) => manual.includes(coordsKey(coords)))
     })
 

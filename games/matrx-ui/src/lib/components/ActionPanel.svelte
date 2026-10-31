@@ -12,14 +12,14 @@
         session.myPlayer !== undefined && session.gameState.mustPlayGipf(session.myPlayer.id)
     )
 
-    const CHOOSE_TO_KEEP = 'Tap stacks of two to keep them, then'
+    const SELECT_FOR_REMOVAL = 'Tap stacks of two to leave or remove them, then'
+    const MUST_BREAK = 'Mark a stack in your row of four for removal'
 
     const prompt = $derived.by(() => {
         if (resolving && session.canRemove) {
             if (session.chosenRow) {
-                return session.rowPairs.length > 0
-                    ? CHOOSE_TO_KEEP
-                    : `Take ${session.removing.length} pieces`
+                if (session.rowPairs.length === 0) return `Take ${session.removing.length} pieces`
+                return session.breaksRow ? SELECT_FOR_REMOVAL : MUST_BREAK
             }
             return session.rows.length > 1 ? 'Choose a row to take' : 'Take your row'
         }
@@ -50,8 +50,13 @@
             <span>{session.isViewingHistory ? 'The game begins' : 'Waiting for turn'}</span>
         {/if}
     {:else}
-        {#if prompt === CHOOSE_TO_KEEP}
-            <span>Tap stacks of two to <span class="keep">keep</span> them, then</span>
+        {#if prompt === SELECT_FOR_REMOVAL}
+            <span
+                >Tap stacks of two to <span class="leave">leave</span> or
+                <span class="removal">remove</span> them, then</span
+            >
+        {:else if prompt === MUST_BREAK}
+            <span>Mark a stack in your row of four for <span class="removal">removal</span></span>
         {:else}
             <span>{prompt}</span>
         {/if}
@@ -92,7 +97,12 @@
         }
     }
 
-    .keep {
+    .removal {
+        color: var(--matrx-row);
+        font-weight: 600;
+    }
+
+    .leave {
         color: var(--matrx-keep-ink);
         font-weight: 600;
     }
