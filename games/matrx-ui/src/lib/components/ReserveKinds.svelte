@@ -1,11 +1,12 @@
 <script lang="ts">
     import type { Color } from '@tabletop/common'
     import { PieceKind, POTENTIAL_KINDS, type HydratedMatrxPlayerState } from '@tabletop/matrx'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import PieceIcon from './PieceIcon.svelte'
 
     // A player's potentials in reserve: each kind as a single piece with how many pieces of it
-    // are left, dimmed when too few remain to make a stack. With `choose`, each kind that can come
-    // in is a button, the chosen one ringed.
+    // are left, less a stack standing on the chosen dot, dimmed when too few remain to make a
+    // stack. With `choose`, each kind that can come in is a button, the chosen one ringed.
     let {
         player,
         color,
@@ -22,6 +23,8 @@
         choose?: (kind: PieceKind) => void
     } = $props()
 
+    const session = getGameSession()
+
     const NAMES: Record<PieceKind, string> = {
         [PieceKind.Gipf]: 'GIPF',
         [PieceKind.Tamsk]: 'TAMSK',
@@ -34,7 +37,7 @@
 
 <div class="kinds">
     {#each POTENTIAL_KINDS as kind (kind)}
-        {@const pieces = player.potentials[kind]}
+        {@const pieces = session.inReserve(player.playerId, kind)}
         {@const can = choices.includes(kind)}
         <button
             type="button"

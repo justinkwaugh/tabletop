@@ -15,6 +15,7 @@ import {
     type Entry,
     type HydratedMatrxGameState,
     type MatrxGameState,
+    type PotentialKind,
     type Row
 } from '@tabletop/matrx'
 import {
@@ -109,6 +110,18 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         const manual = this.selection.dot?.value
         return manual !== undefined && includesCoords(this.entryDots, manual) ? manual : undefined
     })
+
+    // The kind of the stack standing on the chosen dot, out of your reserve until it goes in or
+    // comes back off; not the TAMSK piece of an extra move, which comes from the board.
+    stagedKind: PieceKind | undefined = $derived(
+        this.chosenDot !== undefined && !this.canExtraMove ? this.chosenKind : undefined
+    )
+
+    // How many of a kind a player has in reserve, less the stack standing on the chosen dot.
+    inReserve(playerId: string, kind: PotentialKind): number {
+        const staged = playerId === this.myPlayer?.id && this.stagedKind === kind ? 2 : 0
+        return this.gameState.getPlayerState(playerId).potentials[kind] - staged
+    }
 
     targets: Entry[] = $derived.by(() => {
         const dot = this.chosenDot

@@ -67,10 +67,7 @@
     const reserves = $derived(
         session.gameState.turnManager.turnOrder.map((playerId, seat) => {
             const staged =
-                session.chosenDot !== undefined &&
-                session.myPlayer?.id === playerId &&
-                session.chosenKind === PieceKind.Gipf &&
-                !session.canExtraMove
+                session.myPlayer?.id === playerId && session.stagedKind === PieceKind.Gipf
             const count = session.gameState.getPlayerState(playerId).gipfPieces - (staged ? 1 : 0)
             return {
                 playerId,
