@@ -177,7 +177,7 @@ Silent restoration replaces the displayed state; every derived offer follows it 
 - **Pieces and markers** sit in a centred outer wrapper for motion, with world placement on a separate node, so GSAP owns the wrapper's transform.
 - **Flight layer.** A piece moving between the panel or a seat card and the board, and a share card moving between a deck and a seat card, cross the scaling wrapper. One flight layer, above the table layout and outside the wrapper (inside the full-screen dialog while it is open), draws the moving copy from the two elements' screen rectangles. While it flies, the source is hidden and the target not yet shown. It owns no game state.
 - **Seat cards** sit outside the wrapper, in the left column on a desktop and nowhere else; on a phone the seat strip stands in. The open seat and the enlarged view are mounted after the table layout, outside the wrapper and scroll columns, padded by the safe-area insets.
-- **Full screen** is the wrapper's modal dialog; while open, the action panel is drawn in its toolbar and the enlarged view inside it, each in one place at a time.
+- **Full screen** is the wrapper's modal dialog; while open, the action panel and the seat strip (at every width) are drawn in its toolbar and the open seat and the enlarged view inside it, each in one place at a time.
 - **The Repairs row** is one component, read from the displayed state, in the panel and the waiting view alike.
 - **Hidden things** are drawn by one piece component that takes a `faceShown` decision from the perspective rule.
 - **Colour.** Amber means "yours to act on": lit ring, picked ring, the acting or deciding seat's ring and tag. Rose means "costs or threatens": Repairs chips, "short $3". The primary button is charcoal and Undo is brown, both from the map. Railroad colours come from the palette and appear only on railroad things (pieces, price markers, tags). Seat colours come from `gameSession.colors` and appear only on seat things (the seat card's double rule and dot, money markers, chips in the seat strip); the title's colour list avoids the railroad colours (O-1). A money marker is told by its colour alone, with seat order on a shared space and the colour-blind palette from `gameSession.colors`. Nothing else is amber or rose.
@@ -233,7 +233,7 @@ Target: 390 × 844, held upright. Budget, top to bottom:
 - **Status strip** (O-4): one line drawn from data: the four prices with their railroad colours, the bag count, the red tiles uncovered ("CP $5 · UP $5 · KP $5 · SP $5 … bag 84 · red 16").
 - **Action area.** The hand as 34 px pieces with labels; the share block as four entries in two columns, each with Buy and Sell at 44 px, and only its note while shares are locked between placements; the Repairs panel as one button per railroad held in two columns ("SP ×5 · +$3 each"), then the running line and the send on one row; the score as a four-column table (seat, money, shares, total), the per-railroad breakdown in the open seat. Prompt notes the panels already show another way (the share lock, half price) are left to the desktop, and the deciding debtor's panel leaves the Repairs row to the seat strip's ring and dashed outline. Past 36 % the area scrolls within itself.
 - **Seat strip.** Each chip shows the seat colour, money and name. The deciding seat's chip carries the amber ring; during Repairs the seat whose turn it is carries the dashed outline. A press opens that seat card as a bottom sheet, up to 85 % of the dynamic viewport.
-- **Full screen** keeps play going: the action panel in the toolbar.
+- **Full screen** keeps play going: the action panel and the seat strip in the toolbar; a seat chip opens that seat inside the dialog.
 - No hover anywhere; every hover effect has a press path or is not needed.
 
 ## Design choices
@@ -294,7 +294,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 30. **Undo walk.** A turn with a buy, two placements and a picked piece: Undo unpicks the piece, then undoes the second placement, the first, the buy; after the end-turn draw Undo is hidden. Auto.
 31. **Interruption.** Press a lit hex and, during the flight, step backward in history: the motion stops at once, the displayed state is the earlier one, no piece is left in flight. Auto.
 32. **Phone pick framing.** On a 390 px phone, picking a piece frames its lit hexes; a hand pan clears the framing; the status strip and seat strip stay in place; every panel button is at least 44 px tall. Manual.
-33. **Full screen.** Press F: the board fills the screen with the action panel in the toolbar; placing and Repairs work there; Escape leaves. Manual.
+33. **Full screen.** Press F: the board fills the screen with the action panel and the seat strip in the toolbar; placing and Repairs work there; a seat chip opens the seat there; Escape closes the seat, then leaves. Manual.
 
 ## Exercise record
 

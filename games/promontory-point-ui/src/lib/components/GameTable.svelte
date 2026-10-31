@@ -175,12 +175,14 @@
                         {/if}
                     {/snippet}
                     {#snippet toolbar()}
-                        <!-- Full screen is a modal dialog, so the panel and the enlarged view come inside it. -->
+                        <!-- Full screen is a modal dialog, so the panel, the seats and the enlarged view come inside it. -->
                         <div {@attach watchExpansion}>
                             {#if expanded}
                                 <div data-fullscreen-panel>
                                     <ActionPanel />
+                                    <SeatStrip everyWidth />
                                 </div>
+                                <OpenSeat />
                                 <EnlargedView />
                                 <FlightLayer />
                             {/if}

@@ -3,13 +3,18 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
+    // Contract, "Full screen": the strip also shows inside full screen at every width.
+    let { everyWidth = false }: { everyWidth?: boolean } = $props()
 
     // Contract, "Seat card": the same derivation as the seat cards, so the two never differ.
     const seats = $derived(seatViews(gameSession.gameState, gameSession.myPlayer?.id))
 </script>
 
 <!-- Contract, "Phone layout": one chip per seat in seat order; a press opens that seat card. -->
-<div class="strip flex h-[50px] shrink-0 gap-1.5 px-2 py-[3px] sm:hidden" data-seat-strip>
+<div
+    class="strip flex h-[50px] shrink-0 gap-1.5 px-2 py-[3px] {everyWidth ? '' : 'sm:hidden'}"
+    data-seat-strip
+>
     {#each seats as view (view.playerId)}
         {@const name = gameSession.getPlayerName(view.playerId)}
         <button

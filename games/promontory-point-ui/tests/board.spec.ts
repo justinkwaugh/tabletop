@@ -356,3 +356,21 @@ test('full screen opens the wrapper’s dialog with the action panel in its tool
     await page.getByRole('button', { name: 'Exit full screen' }).click()
     await expect(page.locator('[data-fullscreen-panel]')).toHaveCount(0)
 })
+
+test('contract, "Full screen": the seat strip comes inside full screen and a seat opens there; Escape closes the seat first', async ({
+    page
+}) => {
+    await createGame(page)
+    await page.getByRole('button', { name: 'Enter full screen' }).click()
+    const dialog = page.locator('dialog[aria-label="Full screen view"]')
+    const chips = dialog.locator('[data-seat-chip]')
+    await expect(chips.first()).toBeVisible()
+    const playerId = await chips.first().getAttribute('data-seat-chip')
+    await chips.first().click()
+    await expect(dialog.locator(`[data-open-seat="${playerId}"]`)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('[data-open-seat]')).toHaveCount(0)
+    await expect(dialog).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('[data-fullscreen-panel]')).toHaveCount(0)
+})

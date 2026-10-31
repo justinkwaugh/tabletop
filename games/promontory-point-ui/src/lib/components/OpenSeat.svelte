@@ -43,17 +43,18 @@
         return moneyLinesOfTurn(turn?.actions ?? [], playerId)
     })
 
-    // The enlarged view takes Escape first (it stops the key in the capture phase), so one press
-    // closes one layer.
+    // One press closes one layer: the enlarged view takes Escape first (on the window, in the
+    // capture phase); the seat takes it next (on the document), before the full-screen dialog.
     function closeOnEscape(event: KeyboardEvent) {
         if (event.key === 'Escape' && openSeat.playerId !== undefined) {
             event.preventDefault()
+            event.stopPropagation()
             openSeat.close()
         }
     }
 </script>
 
-<svelte:window onkeydown={closeOnEscape} />
+<svelte:document onkeydowncapture={closeOnEscape} />
 
 <!-- Contract, "Open seat": the seat at a readable size over the table. -->
 {#if view !== undefined}
