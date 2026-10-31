@@ -14,11 +14,16 @@ import { isAtLeastOathRevision, type OathRevision } from './revision.js'
 
 export { PowerChoice, PowerChoiceKind }
 
-/** A `warbands` option carries the group's maximum; the player picks how many. */
+/**
+ * A `warbands` option carries the group's maximum; the player picks how many. `earlier` is the
+ * choices taken before this one (none when absent), which a spec marked `readsEarlier` narrows
+ * its options by.
+ */
 export type ChoiceDomain = (
     state: HydratedOathGameState,
     playerId: string,
-    power: CardPower
+    power: CardPower,
+    earlier?: readonly PowerChoice[]
 ) => PowerChoice[]
 
 /** R-7.1.3 — `min: 0` is the "may". */
@@ -29,6 +34,11 @@ export interface ChoiceSpec {
     domain?: ChoiceDomain
     /** Its domain is read on the state the earlier choices leave: `EffectDefinition.stateAfter`. */
     sequential?: true
+    /**
+     * Its domain reads the choices taken before it (`ChoiceDomain`'s `earlier`), so its options
+     * follow those picks: Assassin's card is one of the picked player's advisers.
+     */
+    readsEarlier?: true
     what?: string
     allows?: ExchangeAllowance
     /** R-X.4 — asked only in a game created at this revision or later. */
@@ -244,7 +254,7 @@ export function legalChoices(
     const readingFor = readingStates(state, playerId, power, specs, earlier)
     return specs.map((spec) => ({
         spec,
-        options: domainOf(spec)(readingFor(spec), playerId, power)
+        options: domainOf(spec)(readingFor(spec), playerId, power, earlier)
     }))
 }
 
@@ -253,14 +263,16 @@ export function legalChoices(
  * (`ChoiceSpec.offered`) and a bank a favor run cannot name (`ChoiceSpec.favorTotal`, with the
  * run's total). It judges nothing: the doorway reads the domains alone. For a When Played power, `mapChanges` is
  * the play's (R-7.3.3): what it does to the map and gains before the power, which a card's condition may read.
+ * `earlier` is the picks made so far, which a `readsEarlier` spec's options follow.
  */
 export function offeredChoices(
     state: HydratedOathGameState,
     playerId: string,
     power: CardPower,
-    mapChanges?: PlayMapChanges
+    mapChanges?: PlayMapChanges,
+    earlier: readonly PowerChoice[] = []
 ): LegalChoice[] {
-    return legalChoices(state, playerId, power).map((legal) => {
+    return legalChoices(state, playerId, power, earlier).map((legal) => {
         const { offered, favorTotal } = legal.spec
         if (offered && !offered(state, playerId, mapChanges)) return { ...legal, options: [] }
         if (!favorTotal) return legal
@@ -343,7 +355,7 @@ export function reasonChoicesInvalid(
         let options: Map<string, PowerChoice> | undefined
         const optionsOf = () =>
             (options ??= new Map(
-                domainOf(spec)(readingOf(spec, earlier), playerId, power).map((option) => [
+                domainOf(spec)(readingOf(spec, earlier), playerId, power, earlier).map((option) => [
                     keyOf(option),
                     option
                 ])
@@ -352,7 +364,7 @@ export function reasonChoicesInvalid(
         const offeredLaterOf = () =>
             (offeredLater ??= new Set(
                 later.flatMap((l) =>
-                    domainOf(l)(readingOf(l, earlier), playerId, power).map((option) =>
+                    domainOf(l)(readingOf(l, earlier), playerId, power, earlier).map((option) =>
                         keyOf(option)
                     )
                 )

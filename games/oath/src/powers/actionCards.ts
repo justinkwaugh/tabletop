@@ -294,6 +294,17 @@ registerEffect(
 )
 
 // "Action: Discard a faceup adviser of a player whose pawn is at your site."
+// R-7.2.2 — a locked adviser cannot be discarded.
+function assassinTargets(
+    state: HydratedOathGameState,
+    playerId: string,
+    targetId: string
+): string[] {
+    return state
+        .getPlayerState(targetId)
+        .faceupAdviserIds()
+        .filter((cardId) => !isLockedFor(state, playerId, cardId))
+}
 registerEffect(
     'denizen.discord.assassin',
     powerIndexOf('denizen.discord.assassin', PowerTiming.Action),
@@ -301,29 +312,27 @@ registerEffect(
         choices: [
             one(PowerChoiceKind.Player, {
                 what: 'a player at your site',
-                domain: playerChoicesAtYourSite
+                // A player with no adviser to discard is no target.
+                domain: (state, playerId) =>
+                    otherPlayersAtYourSite(state, playerId)
+                        .filter((id) => assassinTargets(state, playerId, id).length > 0)
+                        .map((id) => ({ kind: PowerChoiceKind.Player, playerId: id }))
             }),
             one(PowerChoiceKind.Card, {
                 what: "one of that player's faceup advisers",
-                // R-7.2.2 — a locked adviser cannot be discarded.
-                domain: (state, playerId) =>
-                    otherPlayersAtYourSite(state, playerId).flatMap((id) =>
-                        state
-                            .getPlayerState(id)
-                            .faceupAdviserIds()
-                            .filter((cardId) => !isLockedFor(state, playerId, cardId))
-                            .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
+                // Once the player is picked, only their advisers: before it, those of every player offered.
+                readsEarlier: true,
+                domain: (state, playerId, _power, earlier = []) => {
+                    const [picked] = earlier.flatMap((c) =>
+                        c.kind === PowerChoiceKind.Player ? [c.playerId] : []
                     )
+                    return otherPlayersAtYourSite(state, playerId)
+                        .filter((id) => picked === undefined || id === picked)
+                        .flatMap((id) => assassinTargets(state, playerId, id))
+                        .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
+                }
             })
         ],
-        reasonCannotResolve: (ctx) => {
-            const [target] = chosen(ctx, PowerChoiceKind.Player)
-            const [card] = chosen(ctx, PowerChoiceKind.Card)
-            const holds = ctx.state.getPlayerState(target.playerId).isFaceupAdviser(card.cardId)
-            return holds
-                ? undefined
-                : `${card.cardId} is not a faceup adviser of ${target.playerId}`
-        },
         resolve: (ctx) => {
             const [target] = chosen(ctx, PowerChoiceKind.Player)
             const [card] = chosen(ctx, PowerChoiceKind.Card)
