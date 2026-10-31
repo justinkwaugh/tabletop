@@ -313,6 +313,23 @@ describe('history — turns and rounds (R-2.1, R-2.1-H1, R-2.2)', () => {
         }
     })
 
+    it('R-2.1, R-5: history loaded from a checkpoint numbers its turns from the turn manager, not from turn 1', async () => {
+        const table = dealtTable()
+        const session = await openSessionOn(table)
+        for (let turn = 0; turn < 4; turn++) await playTurn(session)
+        const order = session.gameState.turnManager.turnOrder
+
+        // docs/request-performance.md: the window starts partway through turn 2.
+        const turn2 = session.actions.findIndex((action) => action.type === ActionType.RevealHand)
+        const window = session.actions.slice(turn2 + 2)
+        const turns = aggregateTurns(window, session.gameState, undefined, false)
+        expect(turns.map((turn) => turn.turnNumber)).toEqual([2, 3, 4, 5])
+        expect(turns.map((turn) => turn.playerId)).toEqual([order[1], order[2], order[0], order[1]])
+        expect(turns.map((turn) => turn.opensRound)).toEqual([false, false, true, false])
+        expect(turns.map((turn) => turn.round)).toEqual([1, 1, 2, 2])
+        expect(aggregateTurns([], session.gameState, undefined, false)).toEqual([])
+    })
+
     it('Jump shows the table as the turn ended, and History View offers no choices', async () => {
         const table = dealtTable()
         const session = await openSessionOn(table)

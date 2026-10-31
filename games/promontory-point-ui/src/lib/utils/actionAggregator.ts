@@ -57,10 +57,13 @@ function newTurn(
 // R-2.1, R-2.2, R-5: one entry per turn, oldest first, each growing as its actions arrive.
 // A turn opens with its RevealHand, except the first, which setup opens with no action;
 // it closes with its EndTurn. Turn players and the starting seat come from the turn manager.
+// With the history still loading (docs/request-performance.md) the actions start partway in,
+// so the turns are counted back from the turn manager's last.
 export function aggregateTurns(
     actions: readonly GameAction[],
     state: HistoryState,
-    viewerId: string | undefined
+    viewerId: string | undefined,
+    historyComplete = true
 ): HistoryTurn[] {
     const { turnManager } = state
     const startingPlayerId = turnManager.turnOrder[0]
@@ -69,7 +72,7 @@ export function aggregateTurns(
 
     const turns: HistoryTurn[] = []
     const firstPlayer = turnPlayerAt(0)
-    if (firstPlayer !== undefined) {
+    if (historyComplete && firstPlayer !== undefined) {
         turns.push(newTurn(1, firstPlayer, startingPlayerId, 0))
     }
 
@@ -104,6 +107,10 @@ export function aggregateTurns(
         }
     }
 
+    if (!historyComplete) {
+        renumberFromTheLast(turns, state)
+    }
+
     const current = turns.at(-1)
     const debtor = state.pendingRepairs?.debtors[0]
     if (
@@ -115,6 +122,29 @@ export function aggregateTurns(
         current.sellingPlayerId = debtor.playerId
     }
     return turns
+}
+
+// The last loaded turn is the turn manager's last; each earlier one takes its place before it.
+function renumberFromTheLast(turns: HistoryTurn[], state: HistoryState) {
+    const { series, turnOrder } = state.turnManager
+    const startingPlayerId = turnOrder[0]
+    const offset = Math.max(0, series.length - turns.length)
+    let round = series
+        .slice(0, offset)
+        .filter((entry) => entry.playerId === startingPlayerId).length
+    turns.forEach((turn, index) => {
+        const turnNumber = offset + index + 1
+        const playerId = series[offset + index]?.playerId ?? turn.playerId
+        const opensRound = playerId === startingPlayerId
+        round = opensRound ? round + 1 : round
+        Object.assign(turn, {
+            key: `turn-${turnNumber}`,
+            turnNumber,
+            playerId,
+            opensRound,
+            round
+        })
+    })
 }
 
 // Jump: the table as the turn ended (or as it stands, for the turn under way).

@@ -23,7 +23,14 @@
     let replaying = $state<Replaying | null>(null)
 
     const viewerId = $derived(gameSession.myPlayer?.id)
-    const liveTurns = $derived(aggregateTurns(gameSession.actions, gameSession.gameState, viewerId))
+    const liveTurns = $derived(
+        aggregateTurns(
+            gameSession.actions,
+            gameSession.gameState,
+            viewerId,
+            gameSession.hasCompleteHistory
+        )
+    )
     const turns = $derived(replaying ? replaying.turns : liveTurns)
 
     // R-2.1: newest round first, newest turn first within it.
