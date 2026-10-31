@@ -106,7 +106,6 @@ import {
     arrowSlide,
     attackMarkerScale,
     underTheArrows,
-    type ArrowDrawing,
     type ArrowOnApproach,
     type UnderTheArrows
 } from '$lib/utils/attackMarker.js'
@@ -117,6 +116,7 @@ import {
     heldApproaches,
     layoutGroups,
     pieceGroups,
+    type BlockSprite,
     type GroupSprite,
     type HeldApproach,
     type LayoutOptions,
@@ -613,23 +613,25 @@ export class NapoleonsTriumphGameSession extends GameSession<
         ...(this.threatBeingDeclared ? [this.threatBeingDeclared.position.approach] : [])
     ])
 
+    private facedBlocks(blocks: readonly BlockSprite[]): { block: BlockSprite; face?: Face }[] {
+        return blocks.map((block) => ({ block, face: this.visibleFace(block.unit) }))
+    }
+
     // Deliberate: with the units hidden no face is drawn, so the arrows go back to the middle of their bars.
-    private underTheArrows: UnderTheArrows = $derived.by(() => {
+    private boardUnderTheArrows: UnderTheArrows = $derived.by(() => {
         if (this.unitsHidden) {
             return { faces: [], others: [] }
         }
         return underTheArrows(
             [
-                ...this.sprites.flatMap((sprite) =>
-                    sprite.blocks.map((block) => ({ block, face: this.visibleFace(block.unit) }))
-                ),
+                ...this.facedBlocks(this.sprites.flatMap((sprite) => sprite.blocks)),
                 ...this.battleGhosts.map((ghost) => ({ block: ghost.block, face: ghost.loss.face }))
             ],
             plateOutlines(this.approachPlates)
         )
     })
 
-    private arrows: (ArrowOnApproach & { drawing: ArrowDrawing })[] = $derived.by(() => {
+    private arrows: ArrowOnApproach[] = $derived.by(() => {
         const scale = attackMarkerScale(this.zoom)
         const mark = this.attackMark
         return [
@@ -637,13 +639,29 @@ export class NapoleonsTriumphGameSession extends GameSession<
             ...this.threatArrowApproaches.map((approach) => ({ approach, drawing: THREAT_ARROW }))
         ].map((arrow) => ({
             ...arrow,
-            slide: arrowSlide(arrow.approach, scale, arrow.drawing, this.underTheArrows)
+            slide: arrowSlide(arrow.approach, scale, arrow.drawing, this.boardUnderTheArrows)
         }))
     })
 
-    /** How far along its bar the arrow of an approach is drawn from the middle, clear of the faces under it. */
     arrowSlideOf(approach: number): number {
-        return this.arrows.find((arrow) => arrow.approach === approach)?.slide ?? 0
+        const arrow = this.arrows.find((candidate) => candidate.approach === approach)
+        assertExists(arrow, `An arrow is drawn on approach ${approach}`)
+        return arrow.slide
+    }
+
+    moveReplayArrowSlide(zoom: number): number {
+        const scene = this.moveReplayScene
+        assertExists(scene, 'A move replay is open')
+        const { attackMark: mark, sprites, left } = scene
+        assertExists(mark, 'The move replay draws an attack arrow')
+        return arrowSlide(
+            mark.approach,
+            attackMarkerScale(zoom),
+            arrowDrawingOf(mark),
+            underTheArrows(
+                this.facedBlocks([...sprites.flatMap((sprite) => sprite.blocks), ...left])
+            )
+        )
     }
 
     private arrowOutlines: ConvexOutline[] = $derived.by(() => {

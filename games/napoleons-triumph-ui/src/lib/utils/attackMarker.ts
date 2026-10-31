@@ -64,9 +64,9 @@ export interface ArrowDrawing {
 
 export const THREAT_ARROW: ArrowDrawing = { feint: false, countered: false }
 
-/** The arrows drawn on an approach, slid along its bar from the middle by `slide`. */
 export interface ArrowOnApproach {
     approach: number
+    drawing: ArrowDrawing
     slide: number
 }
 
@@ -131,7 +131,6 @@ function alongTheBar(bar: ApproachGeometry): Point {
     return { x: Math.cos(radians), y: Math.sin(radians) }
 }
 
-/** Where the arrows on an approach are drawn: the middle of its bar, or as far along it as they slide. */
 export function arrowCentre(bar: ApproachGeometry, slide: number): Point {
     const along = alongTheBar(bar)
     return { x: bar.centre.x + along.x * slide, y: bar.centre.y + along.y * slide }
@@ -156,13 +155,11 @@ export function arrowOutlines(
     )
 }
 
-/** What lies under the arrows of an approach: the faces they must leave readable, and everything else drawn on the map. */
 export interface UnderTheArrows {
     faces: readonly ConvexOutline[]
     others: readonly ConvexOutline[]
 }
 
-/** What lies under the arrows of blocks drawn with the faces given, and of the other outlines drawn with them. */
 export function underTheArrows(
     blocks: readonly { block: BlockFootprint; face?: Face }[],
     drawnWith: readonly ConvexOutline[] = []
@@ -175,11 +172,6 @@ export function underTheArrows(
     }
 }
 
-/**
- * How far along its bar the arrows of an approach slide so that they cover no face of a unit, the
- * shortest way, keeping their middle on the bar. Where both ways are as short, or neither clears the
- * faces, they go the way that covers fewer of the other things drawn on the map, then the shorter.
- */
 export function arrowSlide(
     approach: number,
     scale: number,
@@ -187,28 +179,31 @@ export function arrowSlide(
     { faces, others }: UnderTheArrows
 ): number {
     const bar = APPROACH_GEOMETRY[approach]
-    const pieces = arrowOutlines(approach, scale, drawing)
     const reach = bar.length / 2
-    const clear = clearSlides(pieces, faces, alongTheBar(bar))
-        .map((slide) => slide + Math.sign(slide) * FACE_CLEARANCE)
-        .filter((slide) => Math.abs(slide) <= reach)
+    const clear = clearSlides(
+        arrowOutlines(approach, scale, drawing),
+        faces.map((face) => grownOutline(face, FACE_CLEARANCE)),
+        alongTheBar(bar)
+    ).filter((slide) => Math.abs(slide) <= reach)
     if (clear.includes(0)) {
         return 0
     }
-    const nearest = (way: number) =>
-        clear
-            .filter((slide) => slide * way > 0)
-            .reduce((best, slide) => (Math.abs(slide) < Math.abs(best) ? slide : best), way * reach)
+    const nearestEachWay = [-1, 1].flatMap((way) => {
+        const thisWay = clear.filter((slide) => slide * way > 0).map(Math.abs)
+        return thisWay.length > 0 ? [way * Math.min(...thisWay)] : []
+    })
+    const candidates = nearestEachWay.length > 0 ? nearestEachWay : [-reach, reach]
     const covered = (slide: number) => {
         const slid = arrowOutlines(approach, scale, drawing, slide)
         return others.filter((other) => slid.some((piece) => outlinesOverlap(piece, other))).length
     }
-    const [back, forward] = [nearest(-1), nearest(1)]
-    const [backCovers, forwardCovers] = [covered(back), covered(forward)]
-    if (backCovers !== forwardCovers) {
-        return backCovers < forwardCovers ? back : forward
-    }
-    return Math.abs(back) < Math.abs(forward) ? back : forward
+    return candidates.reduce((best, slide) => {
+        const [slideCovers, bestCovers] = [covered(slide), covered(best)]
+        if (slideCovers !== bestCovers) {
+            return slideCovers < bestCovers ? slide : best
+        }
+        return Math.abs(slide) < Math.abs(best) ? slide : best
+    })
 }
 
 export function attackMarkerScale(zoom: number): number {

@@ -19,7 +19,8 @@ import {
     type ArrowDrawing
 } from './attackMarker.js'
 import { blockOutline, faceOutline } from './blockShape.js'
-import { outlinesOverlap, type ConvexOutline } from './convexOutline.js'
+import { grownOutline, outlinesOverlap, type ConvexOutline } from './convexOutline.js'
+import { FACE_SYMBOL_GAP } from './faceLayout.js'
 import { layoutPieces } from './pieceLayout.js'
 import { insidePolygon } from './polygon.js'
 
@@ -189,8 +190,9 @@ describe('the slide of the arrows along their bar', () => {
 
     it('takes the arrows off the face of a unit fronting the approach', () => {
         const shown = frontedByShownInfantry()
+        const withTheGap = shown.faces.map((face) => grownOutline(face, FACE_SYMBOL_GAP - 0.01))
         const covers = (outlines: ConvexOutline[]) =>
-            outlines.some((piece) => shown.faces.some((face) => outlinesOverlap(piece, face)))
+            outlines.some((piece) => withTheGap.some((face) => outlinesOverlap(piece, face)))
         expect(covers(arrowOutlines(REPORTED_APPROACH, 1.2, THREAT_ARROW))).toBe(true)
         for (const drawing of [THREAT_ARROW, { feint: true, countered: false }]) {
             for (const scale of [1.2, 1.7]) {
@@ -224,6 +226,21 @@ describe('the slide of the arrows along their bar', () => {
             const slide = arrowSlide(REPORTED_APPROACH, 1.2, THREAT_ARROW, { ...shown, others })
             expect(Math.sign(slide)).toBe(-end)
         }
+    })
+
+    it('goes a way that clears the faces before one that covers less', () => {
+        const shown = frontedByShownInfantry()
+        const { centre, angle } = APPROACH_GEOMETRY[REPORTED_APPROACH]
+        const way = along(REPORTED_APPROACH)
+        const at = (reach: number) => ({
+            centre: { x: centre.x + way.x * reach, y: centre.y + way.y * reach },
+            angle
+        })
+        const faces = [...shown.faces, faceOutline(at(90), 3)]
+        const others = [...shown.others, blockOutline({ ...at(-70), angle: 0 })]
+        const slide = arrowSlide(REPORTED_APPROACH, 1.2, THREAT_ARROW, { faces, others })
+        const slid = arrowOutlines(REPORTED_APPROACH, 1.2, THREAT_ARROW, slide)
+        expect(slid.some((piece) => faces.some((face) => outlinesOverlap(piece, face)))).toBe(false)
     })
 
     it('carries the outlines and the samples with the arrows', () => {

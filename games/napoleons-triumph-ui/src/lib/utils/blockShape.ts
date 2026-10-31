@@ -42,7 +42,6 @@ export function blockOutline(block: BlockFootprint): Point[] {
     })
 }
 
-/** The middle of a block where its unit's symbols stand, one for each step of strength, across its whole thickness. */
 export function faceOutline(block: BlockFootprint, strength: number): Point[] {
     return cornersOf({
         centre: block.centre,
