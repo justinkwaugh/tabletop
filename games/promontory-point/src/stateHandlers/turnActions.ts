@@ -1,4 +1,4 @@
-import { assertExists, type HydratedAction, type MachineContext } from '@tabletop/common'
+import type { HydratedAction, MachineContext } from '@tabletop/common'
 import { isBuyShare } from '../actions/buyShare.js'
 import { HydratedEndTurn } from '../actions/endTurn.js'
 import { HydratedPlaceTrack, isPlaceTrack } from '../actions/placeTrack.js'
@@ -98,8 +98,7 @@ export function stateAfterPlacingAction(
     if (state.pendingRepairs !== undefined) {
         return MachineState.PayingRepairs
     }
-    assertExists(state.turn, 'A turn is under way while placing')
-    return stateAfterPlacingStep(state.turn)
+    return stateAfterPlacingStep(state.requireTurn())
 }
 
 // R-2.2: the turn player alone acts in the turn's own states.

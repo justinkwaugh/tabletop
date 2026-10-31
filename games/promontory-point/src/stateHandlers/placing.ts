@@ -1,6 +1,5 @@
 import {
     assert,
-    assertExists,
     type HydratedAction,
     type MachineContext,
     type MachineStateHandler
@@ -46,8 +45,10 @@ export class PlacingStateHandler implements MachineStateHandler<
 
     enter(context: MachineContext<HydratedPromontoryPointGameState>) {
         const state = context.gameState
-        assertExists(state.turn, 'A turn is under way while placing')
-        assert(!placingHasEnded(state.turn), 'Placing goes on only while a placement is left')
+        assert(
+            !placingHasEnded(state.requireTurn()),
+            'Placing goes on only while a placement is left'
+        )
         assert(state.pendingRepairs === undefined, 'Placing waits until every debtor has paid')
         activateTurnPlayer(state)
     }

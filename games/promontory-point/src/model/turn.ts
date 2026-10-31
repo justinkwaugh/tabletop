@@ -14,3 +14,7 @@ export const TurnState = Type.Object({
     placementsMade: Type.Integer({ minimum: 0, maximum: PLACEMENTS_PER_TURN }),
     placementsLeft: Type.Integer({ minimum: 0, maximum: PLACEMENTS_PER_TURN })
 })
+
+export function tradesLeft(turn: TurnState): number {
+    return TRADES_PER_TURN - turn.tradesUsed
+}

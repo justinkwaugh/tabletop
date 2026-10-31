@@ -1,9 +1,8 @@
-import { assertExists } from '@tabletop/common'
 import { sharePriceAt } from '../components/priceTrack.js'
 import type { RailroadId } from '../components/railroads.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedPromontoryPointGameState } from '../model/gameState.js'
-import { TRADES_PER_TURN, type TurnState } from '../model/turn.js'
+import { tradesLeft } from '../model/turn.js'
 import { turnPlayerId } from './turnPlayer.js'
 
 export enum TradeRefusal {
@@ -21,7 +20,10 @@ const TRADING_STATES: readonly MachineState[] = [
     MachineState.TradingBeforePlacing,
     MachineState.TradingAfterPlacing
 ]
-const PLACING_STATES: readonly MachineState[] = [MachineState.Placing, MachineState.PayingRepairs]
+const BETWEEN_PLACEMENTS_STATES: readonly MachineState[] = [
+    MachineState.Placing,
+    MachineState.PayingRepairs
+]
 
 // R-3.1, R-3.2: a trade is at the current price, free or for nothing at 0.
 export function sharePrice(
@@ -66,18 +68,12 @@ export function sellShareRefusal(
     return undefined
 }
 
-// R-2.2 step 2: the turn player's two trades.
-export function tradingTurn(state: HydratedPromontoryPointGameState): TurnState {
-    assertExists(state.turn, 'A turn is under way while trading is open')
-    return state.turn
-}
-
 // R-2.2, R-2.2-H1
 function tradeRefusal(
     state: HydratedPromontoryPointGameState,
     playerId: string
 ): TradeRefusal | undefined {
-    if (PLACING_STATES.includes(state.machineState)) {
+    if (BETWEEN_PLACEMENTS_STATES.includes(state.machineState)) {
         return TradeRefusal.PlacingUnderWay
     }
     if (!TRADING_STATES.includes(state.machineState)) {
@@ -86,7 +82,7 @@ function tradeRefusal(
     if (playerId !== turnPlayerId(state)) {
         return TradeRefusal.NotTurnPlayer
     }
-    if (tradingTurn(state).tradesUsed >= TRADES_PER_TURN) {
+    if (tradesLeft(state.requireTurn()) === 0) {
         return TradeRefusal.NoTradesLeft
     }
     return undefined

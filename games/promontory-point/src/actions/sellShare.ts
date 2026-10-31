@@ -5,7 +5,7 @@ import type { RailroadId } from '../components/railroads.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedPromontoryPointGameState } from '../model/gameState.js'
 import { RailroadIdSchema } from '../model/schemas.js'
-import { sellShareRefusal, sharePrice, tradingTurn } from '../rules/trading.js'
+import { sellShareRefusal, sharePrice } from '../rules/trading.js'
 
 export type SellShareMetadata = Type.Static<typeof SellShareMetadata>
 export const SellShareMetadata = Type.Object({
@@ -51,7 +51,7 @@ export class HydratedSellShare extends HydratableAction<typeof SellShare> implem
         const player = state.getPlayerState(this.playerId)
         player.money += price
         player.shares[this.railroadId] -= 1
-        tradingTurn(state).tradesUsed += 1
+        state.requireTurn().tradesUsed += 1
         this.metadata = { price }
     }
 }

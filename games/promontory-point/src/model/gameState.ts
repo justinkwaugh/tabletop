@@ -5,6 +5,7 @@ import {
     HydratedTurnManager,
     PrngState,
     Visibility,
+    assertExists,
     type RandomState
 } from '@tabletop/common'
 import * as Type from 'typebox'
@@ -94,6 +95,11 @@ export class HydratedPromontoryPointGameState
 
         this.players = data.players.map((player) => new HydratedPromontoryPointPlayerState(player))
         this.bag = new HydratedTrackBag(data.bag)
+    }
+
+    requireTurn(): TurnState {
+        assertExists(this.turn, 'A turn is under way')
+        return this.turn
     }
 
     // R-1.3 step 4: a share deck is 11 less all holdings, never stored.

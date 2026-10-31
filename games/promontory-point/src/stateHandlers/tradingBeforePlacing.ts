@@ -1,6 +1,5 @@
 import {
     assert,
-    assertExists,
     type HydratedAction,
     type MachineContext,
     type MachineStateHandler
@@ -59,8 +58,7 @@ export class TradingBeforePlacingStateHandler implements MachineStateHandler<
 
     enter(context: MachineContext<HydratedPromontoryPointGameState>) {
         const state = context.gameState
-        assertExists(state.turn, 'The turn is open once its hand is revealed')
-        assert(state.turn.placementsMade === 0, 'Nothing is placed before placing starts')
+        assert(state.requireTurn().placementsMade === 0, 'Nothing is placed before placing starts')
         activateTurnPlayer(state)
     }
 

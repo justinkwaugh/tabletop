@@ -1,4 +1,4 @@
-import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import type { RailroadId } from '../components/railroads.js'
@@ -6,9 +6,8 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedPromontoryPointGameState } from '../model/gameState.js'
 import { RailroadIdSchema } from '../model/schemas.js'
-import type { TurnState } from '../model/turn.js'
 import { hasOpenSpace } from '../rules/network.js'
-import { placingHasEnded } from '../rules/placing.js'
+import { PLACEMENT_STATES, placingHasEnded } from '../rules/placing.js'
 import { turnPlayerId } from '../rules/turnPlayer.js'
 
 export enum ScrapTrackRefusal {
@@ -19,12 +18,6 @@ export enum ScrapTrackRefusal {
     NotInTurnPieces = 'NotInTurnPieces',
     HasOpenSpace = 'HasOpenSpace'
 }
-
-// R-2.2-H2: a scrap is part of placing, so it opens from trading before the first placement.
-const SCRAPPING_STATES: readonly MachineState[] = [
-    MachineState.TradingBeforePlacing,
-    MachineState.Placing
-]
 
 // R-3.3-H1, R-5: the replacement drawn face up, or that the bag was empty; all public.
 export type ScrapTrackMetadata = Type.Static<typeof ScrapTrackMetadata>
@@ -64,13 +57,13 @@ export function scrapTrackRefusal(
     if (state.machineState === MachineState.TradingAfterPlacing) {
         return ScrapTrackRefusal.PlacementsDone
     }
-    if (!SCRAPPING_STATES.includes(state.machineState)) {
+    if (!PLACEMENT_STATES.includes(state.machineState)) {
         return ScrapTrackRefusal.PlacingClosed
     }
     if (playerId !== turnPlayerId(state)) {
         return ScrapTrackRefusal.NotTurnPlayer
     }
-    const turn = scrappingTurn(state)
+    const turn = state.requireTurn()
     if (placingHasEnded(turn)) {
         return ScrapTrackRefusal.PlacementsDone
     }
@@ -99,7 +92,7 @@ export class HydratedScrapTrack extends HydratableAction<typeof ScrapTrack> impl
         if (refusal !== undefined) {
             throw new Error(`ScrapTrack refused: ${refusal}`)
         }
-        const turn = scrappingTurn(state)
+        const turn = state.requireTurn()
         turn.pieces.splice(turn.pieces.indexOf(this.railroadId), 1)
         state.scrapped[this.railroadId] += 1
 
@@ -124,10 +117,4 @@ export class HydratedScrapTrack extends HydratableAction<typeof ScrapTrack> impl
     ): boolean {
         return scrapTrackRefusal(state, playerId, railroadId) === undefined
     }
-}
-
-// R-2.2 step 3
-function scrappingTurn(state: HydratedPromontoryPointGameState): TurnState {
-    assertExists(state.turn, 'A turn is under way while placing is open')
-    return state.turn
 }

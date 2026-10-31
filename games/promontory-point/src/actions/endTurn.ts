@@ -13,8 +13,7 @@ import { normalizePromontoryPointConfig } from '../definition/config.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedPromontoryPointGameState } from '../model/gameState.js'
 import { RailroadIdSchema } from '../model/schemas.js'
-import type { TurnState } from '../model/turn.js'
-import { placingHasEnded } from '../rules/placing.js'
+import { PLACEMENT_STATES, placingHasEnded } from '../rules/placing.js'
 import { turnPlayerId } from '../rules/turnPlayer.js'
 
 // R-2.2 step 4
@@ -80,10 +79,7 @@ export function endTurnRefusal(
     if (state.machineState === MachineState.PayingRepairs) {
         return EndTurnRefusal.RepairsPending
     }
-    if (state.machineState === MachineState.TradingBeforePlacing) {
-        return EndTurnRefusal.PlacingUnderWay
-    }
-    if (state.machineState === MachineState.Placing) {
+    if (PLACEMENT_STATES.includes(state.machineState)) {
         return EndTurnRefusal.PlacingUnderWay
     }
     if (state.machineState !== MachineState.TradingAfterPlacing) {
@@ -92,7 +88,7 @@ export function endTurnRefusal(
     if (playerId !== turnPlayerId(state)) {
         return EndTurnRefusal.NotTurnPlayer
     }
-    const turn = endingTurn(state)
+    const turn = state.requireTurn()
     if (!placingHasEnded(turn)) {
         return EndTurnRefusal.PlacingUnderWay
     }
@@ -127,7 +123,7 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
         if (refusal !== undefined) {
             throw new Error(`EndTurn refused: ${refusal}`)
         }
-        const turn = endingTurn(state)
+        const turn = state.requireTurn()
         const player = state.getPlayerState(this.playerId)
         // R-6.3: placing three of four leaves at most one piece over.
         assert(turn.pieces.length <= 1, 'At most one turn piece is left over')
@@ -174,10 +170,4 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
     ): boolean {
         return endTurnRefusal(state, playerId, returnKeptPiece, fourPieceVariant) === undefined
     }
-}
-
-// R-2.2 step 4
-function endingTurn(state: HydratedPromontoryPointGameState): TurnState {
-    assertExists(state.turn, 'A turn is under way until it ends')
-    return state.turn
 }

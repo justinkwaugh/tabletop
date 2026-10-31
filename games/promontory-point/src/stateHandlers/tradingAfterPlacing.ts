@@ -1,6 +1,5 @@
 import {
     assert,
-    assertExists,
     type HydratedAction,
     type MachineContext,
     type MachineStateHandler
@@ -52,8 +51,7 @@ export class TradingAfterPlacingStateHandler implements MachineStateHandler<
 
     enter(context: MachineContext<HydratedPromontoryPointGameState>) {
         const state = context.gameState
-        assertExists(state.turn, 'A turn is under way until it ends')
-        assert(placingHasEnded(state.turn), 'Trading opens again once placing has ended')
+        assert(placingHasEnded(state.requireTurn()), 'Trading opens again once placing has ended')
         assert(state.pendingRepairs === undefined, 'Trading waits until every debtor has paid')
         activateTurnPlayer(state)
     }

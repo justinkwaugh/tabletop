@@ -1,4 +1,4 @@
-import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { BOARD_GRID, BoardNodeKind, PROMONTORY, type SpaceId } from '../components/board.js'
@@ -9,9 +9,8 @@ import { TownEffectOutcome } from '../effects/townEffectOutcome.js'
 import { townEffectAt } from '../effects/townEffects.js'
 import type { HydratedPromontoryPointGameState } from '../model/gameState.js'
 import { RailroadIdSchema, TownTileKindIdSchema } from '../model/schemas.js'
-import type { TurnState } from '../model/turn.js'
 import { isOpenTo } from '../rules/network.js'
-import { placingHasEnded } from '../rules/placing.js'
+import { PLACEMENT_STATES, placingHasEnded } from '../rules/placing.js'
 import { turnPlayerId } from '../rules/turnPlayer.js'
 
 export enum PlaceTrackRefusal {
@@ -24,12 +23,6 @@ export enum PlaceTrackRefusal {
     Occupied = 'Occupied',
     NotConnected = 'NotConnected'
 }
-
-// R-2.2, R-2.2-H1: the first placement opens from trading; the rest follow one another.
-const PLACING_STATES: readonly MachineState[] = [
-    MachineState.TradingBeforePlacing,
-    MachineState.Placing
-]
 
 const SpaceKindSchema = Type.Union([
     Type.Literal(BoardNodeKind.Town),
@@ -83,13 +76,13 @@ export function placeTrackRefusal(
     if (state.machineState === MachineState.TradingAfterPlacing) {
         return PlaceTrackRefusal.PlacementsDone
     }
-    if (!PLACING_STATES.includes(state.machineState)) {
+    if (!PLACEMENT_STATES.includes(state.machineState)) {
         return PlaceTrackRefusal.PlacingClosed
     }
     if (playerId !== turnPlayerId(state)) {
         return PlaceTrackRefusal.NotTurnPlayer
     }
-    const turn = placingTurn(state)
+    const turn = state.requireTurn()
     if (placingHasEnded(turn)) {
         return PlaceTrackRefusal.PlacementsDone
     }
@@ -125,7 +118,7 @@ export class HydratedPlaceTrack extends HydratableAction<typeof PlaceTrack> impl
         if (refusal !== undefined) {
             throw new Error(`PlaceTrack refused: ${refusal}`)
         }
-        const turn = placingTurn(state)
+        const turn = state.requireTurn()
         turn.pieces.splice(turn.pieces.indexOf(this.railroadId), 1)
         state.track[this.spaceId] = this.railroadId
         turn.placementsMade += 1
@@ -153,10 +146,4 @@ export class HydratedPlaceTrack extends HydratableAction<typeof PlaceTrack> impl
     ): boolean {
         return placeTrackRefusal(state, playerId, railroadId, spaceId) === undefined
     }
-}
-
-// R-2.2 step 3
-function placingTurn(state: HydratedPromontoryPointGameState): TurnState {
-    assertExists(state.turn, 'A turn is under way while placing is open')
-    return state.turn
 }
