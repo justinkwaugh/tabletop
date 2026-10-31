@@ -28,6 +28,8 @@ import { CardPreview } from './cardPreview.svelte.js'
 import { MoneyChips } from '$lib/animators/moneyChips.svelte.js'
 import { Flights } from '$lib/animators/flights.svelte.js'
 import { OpenSeat } from './openSeat.svelte.js'
+import { repairsPanel, type RepairsPanel } from './repairsPanel.js'
+import { currentTurnPlayerId } from './seatView.js'
 import {
     emptyRepairsDraft,
     everySaleStartingWith,
@@ -171,6 +173,17 @@ export class PromontoryPointGameSession extends GameSession<
         return step === undefined
             ? undefined
             : repairsDraftView(step.decision, stagedSales(this.liveRepairsDraft))
+    })
+
+    // R-4.3, R-X.1: the deciding short seat's panel. The placing seat is the turn's, read from
+    // the state, so the panel never waits for the history behind it to load.
+    repairsPanel: RepairsPanel | undefined = $derived.by(() => {
+        const draft = this.repairsDraft
+        const viewerId = this.decidingPlayerId
+        const placingPlayerId = currentTurnPlayerId(this.gameState)
+        return draft === undefined || viewerId === undefined || placingPlayerId === undefined
+            ? undefined
+            : repairsPanel(draft, placingPlayerId, viewerId)
     })
 
     private hasStagedRepairsSale: boolean = $derived(hasManualRepairsDraft(this.liveRepairsDraft))

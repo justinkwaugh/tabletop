@@ -54,6 +54,8 @@ export type Table = {
     game: Game
     state: PromontoryPointGameState
     actions: GameAction[]
+    // docs/request-performance.md: false opens on the state alone, its history still to load.
+    historyComplete?: boolean
 }
 
 // A hotseat game, so the seat on screen is the one the state asks to decide.
@@ -127,7 +129,8 @@ export async function openSessionOn(table: Table): Promise<PromontoryPointGameSe
         runtime: PromontoryPointUiRuntime,
         game: table.game,
         state: table.state,
-        actions: table.actions
+        actions: table.actions,
+        historyComplete: table.historyComplete
     })
     open.push(session)
     flushSync()

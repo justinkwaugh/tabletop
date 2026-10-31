@@ -305,4 +305,22 @@ describe('Repairs draft — lifetime, privacy and the placer’s Undo (R-4.3-H4,
         expect(session.decidingPlayerId).toBe(debtor)
         expect(staged(session)).toEqual([])
     })
+
+    it('R-4.3, R-X.1: the debtor gets its panel from the state alone, before the history behind it loads', async () => {
+        const { session, placer, debtor } = await placedOnRepairs(shortByThree())
+        // docs/request-performance.md: a game opens on its state, with its Actions loaded later.
+        const reopened = await openSessionOn({
+            game: session.game,
+            state: canonical(session.gameState.dehydrate()),
+            actions: [],
+            historyComplete: false
+        })
+        expect(reopened.decidingPlayerId).toBe(debtor)
+        expect(reopened.repairsPanel?.prompt.parts[0]).toEqual({ kind: 'player', playerId: placer })
+        reopened.stageRepairsSale(SP)
+        expect(reopened.repairsPanel?.send).toMatchObject({
+            label: 'Sell 1 SP share · pay $10',
+            ready: true
+        })
+    })
 })

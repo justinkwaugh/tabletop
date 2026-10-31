@@ -62,7 +62,8 @@ export type SeatView = {
     hand: SeatHandView
 }
 
-function currentTurnPlayerId(state: HydratedPromontoryPointGameState): string | undefined {
+// R-2.1: the seat whose turn it is, from the state alone.
+export function currentTurnPlayerId(state: HydratedPromontoryPointGameState): string | undefined {
     return state.turn === undefined ? undefined : state.turnManager.currentTurn()?.playerId
 }
 

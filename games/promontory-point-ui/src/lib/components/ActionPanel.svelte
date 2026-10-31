@@ -1,7 +1,6 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { turnPanel } from '$lib/model/turnPanel.js'
-    import { repairsPanel } from '$lib/model/repairsPanel.js'
     import { repairsRow } from '$lib/model/repairsRow.js'
     import { scoreView } from '$lib/model/score.js'
     import { waitingView } from '$lib/model/waitingView.js'
@@ -25,13 +24,7 @@
     const row = $derived(repairsRow(gameSession.gameState, gameSession.actions))
 
     // R-4.3, R-X.1: the deciding short seat's own panel.
-    const repairs = $derived.by(() => {
-        const draft = gameSession.repairsDraft
-        const viewerId = gameSession.decidingPlayerId
-        return draft === undefined || row === undefined || viewerId === undefined
-            ? undefined
-            : repairsPanel(draft, row.placingPlayerId, viewerId)
-    })
+    const repairs = $derived(gameSession.repairsPanel)
 
     // Contract, "Watching": every seat without a decision of its own.
     const waiting = $derived(
@@ -46,12 +39,14 @@
         <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
             <ScoreTable {score} />
         </div>
-    {:else if repairs && row}
+    {:else if repairs}
         <div class="action-area border-b border-pp-halo/40 px-4 pt-2.5 pb-3 max-sm:px-2">
             <!-- A phone shows the deciding seat's ring and the turn's dashed chip in the seat strip. -->
-            <div class="mb-2 max-sm:hidden">
-                <RepairsRow {row} />
-            </div>
+            {#if row}
+                <div class="mb-2 max-sm:hidden">
+                    <RepairsRow {row} />
+                </div>
+            {/if}
             <RepairsPanel panel={repairs} />
         </div>
     {:else if panel}
