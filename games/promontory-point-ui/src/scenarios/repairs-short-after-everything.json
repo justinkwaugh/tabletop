@@ -1,0 +1,330 @@
+{
+ "game": {
+  "id": "scenario-repairs-short-after-everything",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "promontory-point",
+  "deleted": false,
+  "name": "Repairs short after everything",
+  "ownerId": "p1",
+  "players": [
+   {
+    "id": "p1",
+    "name": "Mara",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p2",
+    "name": "Tobias",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p3",
+    "name": "Royce",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p4",
+    "name": "Ines",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3367980177,
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "1970-01-01T00:00:00.000Z",
+  "storage": "remote",
+  "category": "standard",
+  "config": {
+   "fourPieceVariant": false
+  },
+  "startedAt": "1970-01-01T00:00:00.000Z",
+  "protectedInformation": true,
+  "progress": {
+   "fraction": 0,
+   "label": "Bag 84 · 16 red tiles uncovered"
+  }
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "table-repairs-short-after-everything",
+  "gameId": "scenario-repairs-short-after-everything",
+  "seed": 3367980177,
+  "prng": {
+   "seed": 3367980177,
+   "invocations": 53
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+   "invocations": 95
+  },
+  "masterSeed": "0123456789abcdef0123456789abcdef",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "p1",
+    "color": "orange",
+    "money": 20,
+    "shares": {
+     "railroad.cp": 0,
+     "railroad.up": 0,
+     "railroad.kp": 0,
+     "railroad.sp": 1
+    },
+    "hand": [],
+    "handCount": 0
+   },
+   {
+    "playerId": "p3",
+    "color": "white",
+    "money": 1,
+    "shares": {
+     "railroad.cp": 0,
+     "railroad.up": 0,
+     "railroad.kp": 0,
+     "railroad.sp": 4
+    },
+    "hand": [
+     "railroad.kp",
+     "railroad.kp",
+     "railroad.cp"
+    ],
+    "handCount": 3
+   },
+   {
+    "playerId": "p4",
+    "color": "black",
+    "money": 20,
+    "shares": {
+     "railroad.cp": 0,
+     "railroad.up": 0,
+     "railroad.kp": 0,
+     "railroad.sp": 1
+    },
+    "hand": [
+     "railroad.sp",
+     "railroad.up",
+     "railroad.sp"
+    ],
+    "handCount": 3
+   },
+   {
+    "playerId": "p2",
+    "color": "green",
+    "money": 20,
+    "shares": {
+     "railroad.cp": 0,
+     "railroad.up": 0,
+     "railroad.kp": 0,
+     "railroad.sp": 0
+    },
+    "hand": [
+     "railroad.cp",
+     "railroad.kp",
+     "railroad.sp"
+    ],
+    "handCount": 3
+   }
+  ],
+  "machineState": "TradingBeforePlacing",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "p1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "p1",
+    "p3",
+    "p4",
+    "p2"
+   ],
+   "turnCounts": {
+    "p1": 0,
+    "p2": 0,
+    "p3": 0,
+    "p4": 0
+   }
+  },
+  "promontoryPointRevision": 1,
+  "towns": {
+   "space.2.-6": "tile.price.minus-2",
+   "space.4.-6": "tile.price.minus-3",
+   "space.0.-5": "tile.price.plus-1",
+   "space.2.-5": "tile.red.dividend",
+   "space.3.-5": "tile.price.minus-3",
+   "space.5.-5": "tile.price.plus-2",
+   "space.1.-4": "tile.price.plus-2",
+   "space.3.-4": "tile.red.hammer",
+   "space.-1.-3": "tile.price.plus-2",
+   "space.4.-3": "tile.price.plus-2",
+   "space.-3.-2": "tile.price.minus-1",
+   "space.0.-2": "tile.price.plus-1",
+   "space.1.-2": "tile.red.hammer",
+   "space.2.-2": "tile.red.hammer",
+   "space.5.-2": "tile.red.dividend",
+   "space.-5.-1": "tile.red.dividend",
+   "space.-3.-1": "tile.red.dividend",
+   "space.-1.-1": "tile.red.hammer",
+   "space.2.-1": "tile.red.hammer",
+   "space.4.-1": "tile.price.plus-2",
+   "space.6.-1": "tile.red.dividend",
+   "space.-6.0": "tile.red.dividend",
+   "space.-5.0": "tile.red.hammer",
+   "space.-2.0": "tile.price.plus-2",
+   "space.2.0": "tile.red.hammer",
+   "space.5.0": "tile.price.minus-2",
+   "space.6.0": "tile.price.minus-2",
+   "space.-6.1": "tile.price.plus-2",
+   "space.-4.1": "tile.price.plus-2",
+   "space.-2.1": "tile.price.minus-1",
+   "space.1.1": "tile.price.plus-3",
+   "space.3.1": "tile.red.dividend",
+   "space.5.1": "tile.price.plus-3",
+   "space.-5.2": "tile.price.plus-1",
+   "space.-2.2": "tile.price.minus-3",
+   "space.-1.2": "tile.price.minus-2",
+   "space.0.2": "tile.price.minus-3",
+   "space.3.2": "tile.price.minus-1",
+   "space.-4.3": "tile.price.plus-3",
+   "space.1.3": "tile.price.plus-3",
+   "space.-3.4": "tile.price.plus-1",
+   "space.-1.4": "tile.price.plus-3",
+   "space.-5.5": "tile.red.hammer",
+   "space.-3.5": "tile.price.minus-2",
+   "space.-2.5": "tile.price.plus-1",
+   "space.0.5": "tile.price.plus-3",
+   "space.-4.6": "tile.red.dividend",
+   "space.-2.6": "tile.price.minus-2"
+  },
+  "track": {
+   "space.-5.4": "railroad.sp"
+  },
+  "priceIndex": {
+   "railroad.cp": 9,
+   "railroad.up": 9,
+   "railroad.kp": 9,
+   "railroad.sp": 6
+  },
+  "bag": {
+   "items": [
+    "railroad.kp",
+    "railroad.cp",
+    "railroad.cp",
+    "railroad.up",
+    "railroad.sp",
+    "railroad.kp",
+    "railroad.kp",
+    "railroad.cp",
+    "railroad.up",
+    "railroad.cp",
+    "railroad.sp",
+    "railroad.cp",
+    "railroad.cp",
+    "railroad.sp",
+    "railroad.up",
+    "railroad.cp",
+    "railroad.up",
+    "railroad.up",
+    "railroad.up",
+    "railroad.cp",
+    "railroad.kp",
+    "railroad.kp",
+    "railroad.up",
+    "railroad.up",
+    "railroad.up",
+    "railroad.up",
+    "railroad.up",
+    "railroad.up",
+    "railroad.up",
+    "railroad.kp",
+    "railroad.up",
+    "railroad.sp",
+    "railroad.cp",
+    "railroad.sp",
+    "railroad.cp",
+    "railroad.cp",
+    "railroad.cp",
+    "railroad.cp",
+    "railroad.kp",
+    "railroad.up",
+    "railroad.cp",
+    "railroad.sp",
+    "railroad.up",
+    "railroad.cp",
+    "railroad.up",
+    "railroad.kp",
+    "railroad.cp",
+    "railroad.up",
+    "railroad.up",
+    "railroad.kp",
+    "railroad.kp",
+    "railroad.sp",
+    "railroad.kp",
+    "railroad.sp",
+    "railroad.sp",
+    "railroad.up",
+    "railroad.sp",
+    "railroad.up",
+    "railroad.sp",
+    "railroad.kp",
+    "railroad.kp",
+    "railroad.cp",
+    "railroad.cp",
+    "railroad.sp",
+    "railroad.sp",
+    "railroad.sp",
+    "railroad.sp",
+    "railroad.kp",
+    "railroad.sp",
+    "railroad.kp",
+    "railroad.kp",
+    "railroad.cp",
+    "railroad.kp",
+    "railroad.kp",
+    "railroad.sp",
+    "railroad.up",
+    "railroad.cp",
+    "railroad.sp",
+    "railroad.kp",
+    "railroad.kp",
+    "railroad.cp",
+    "railroad.sp",
+    "railroad.kp"
+   ],
+   "remaining": 83
+  },
+  "scrapped": {
+   "railroad.cp": 0,
+   "railroad.up": 0,
+   "railroad.kp": 0,
+   "railroad.sp": 0
+  },
+  "turn": {
+   "pieces": [
+    "railroad.sp",
+    "railroad.cp",
+    "railroad.up"
+   ],
+   "tradesUsed": 0,
+   "placementsMade": 0,
+   "placementsLeft": 3
+  }
+ },
+ "actions": []
+}

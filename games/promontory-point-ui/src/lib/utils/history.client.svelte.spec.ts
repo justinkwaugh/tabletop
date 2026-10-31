@@ -1,0 +1,604 @@
+import { afterEach, describe, expect, it } from 'vitest'
+import { ActionSource, assertExists, type GameAction, type Visibility } from '@tabletop/common'
+import {
+    ActionType,
+    BoardNodeKind,
+    GameEndReason,
+    MachineState,
+    LeftoverChoice,
+    TownEventKind,
+    PromontoryPointRuntime,
+    openSpaceIds,
+    type EndTurn,
+    type PayRepairs,
+    type PlaceTrack,
+    type RevealHand,
+    type RailroadId,
+    type ScrapTrack,
+    type SpaceId
+} from '@tabletop/promontory-point'
+import {
+    dealtTable,
+    disposeSessions,
+    editedTable,
+    openSessionOn,
+    settled,
+    type Table
+} from '$lib/testing/sessionHarness.js'
+import {
+    seatOf,
+    variantConfig,
+    withHoldings,
+    withNoRoomFor,
+    withTownsOpenTo,
+    withTurnPieces
+} from '@tabletop/promontory-point/testing'
+import type { PromontoryPointGameSession } from '$lib/model/session.svelte.js'
+import { describeAction, descriptionText } from './actionDescription.js'
+import {
+    aggregateTurns,
+    jumpIndex,
+    replaySpan,
+    type HistoryRow,
+    type HistoryTurn
+} from './actionAggregator.js'
+import { END_REASON_TEXT, endSummary } from './endSummary.js'
+
+const CP: RailroadId = 'railroad.cp'
+const UP: RailroadId = 'railroad.up'
+const KP: RailroadId = 'railroad.kp'
+const SP: RailroadId = 'railroad.sp'
+
+afterEach(() => {
+    disposeSessions()
+})
+
+// One action's sentence, each seat named by its id.
+function said(action: GameAction, viewer: string | undefined): string {
+    const parts = describeAction(action, viewer)
+    assertExists(parts, `${action.type} is described`)
+    return descriptionText(parts, (playerId) => playerId)
+}
+
+// The harness names each seat by its id.
+function rowText(row: HistoryRow): string {
+    const text = descriptionText(row.parts, (playerId) => playerId)
+    return row.playerId === undefined ? text : `${row.playerId} ${text}`
+}
+
+function turnRows(turn: HistoryTurn | undefined): string[] {
+    assertExists(turn, 'The turn has an entry')
+    return turn.rows.map(rowText)
+}
+
+function project(actions: GameAction[], perspective: Visibility.Perspective): GameAction[] {
+    return actions.map((action) =>
+        PromontoryPointRuntime.visibility.actions.project(action, perspective)
+    )
+}
+
+type Seen = { viewer: string | undefined; perspective: Visibility.Perspective }
+
+// The actor, another seat and a spectator.
+function perspectives(actorId: string, otherSeatId: string): Seen[] {
+    return [
+        { viewer: actorId, perspective: { kind: 'player', playerId: actorId } },
+        { viewer: otherSeatId, perspective: { kind: 'player', playerId: otherSeatId } },
+        { viewer: undefined, perspective: { kind: 'spectator' } }
+    ]
+}
+
+function turnsSeen(session: PromontoryPointGameSession, seen: Seen): HistoryTurn[] {
+    return aggregateTurns(
+        project(session.actions, seen.perspective),
+        session.gameState,
+        seen.viewer
+    )
+}
+
+function openCountry(session: PromontoryPointGameSession, railroadId: RailroadId): SpaceId {
+    const spaceId = openSpaceIds(session.gameState.track, railroadId).find(
+        (candidate) => !(candidate in session.gameState.towns)
+    )
+    assertExists(spaceId, `${railroadId} has open country next to its network`)
+    return spaceId
+}
+
+async function placeAt(
+    session: PromontoryPointGameSession,
+    railroadId: RailroadId,
+    spaceId: SpaceId
+) {
+    if (session.pickedPiece !== railroadId) session.pressPiece(railroadId)
+    await session.placeTrack(spaceId)
+    await settled(session)
+}
+
+// R-2.2: three placements on open country, then End turn.
+async function playTurn(session: PromontoryPointGameSession) {
+    for (let placement = 0; placement < 3; placement++) {
+        const railroadId = session.handPieces[0]
+        assertExists(railroadId, 'A piece is left to place')
+        await placeAt(session, railroadId, openCountry(session, railroadId))
+    }
+    await session.endTurn()
+    await settled(session)
+}
+
+// Turn 1: the first seat holds CP and UP, the second is short for any Repairs, the third holds 2 CP.
+function eventfulTable(): { table: Table; towns: SpaceId[] } {
+    const dealt = dealtTable()
+    const { state, spaceIds } = withTownsOpenTo(withTurnPieces(dealt.state, [CP, CP, CP]), CP, [
+        'tile.price.minus-3',
+        'tile.red.hammer',
+        'tile.red.dividend'
+    ])
+    const table = editedTable(dealt, () =>
+        withHoldings(state, [
+            { money: 20, shares: { [CP]: 1, [UP]: 1 } },
+            { money: 0, shares: { [CP]: 1 } },
+            { money: 20, shares: { [CP]: 2 } }
+        ])
+    )
+    return { table, towns: spaceIds }
+}
+
+describe('history — each action as the actor, another seat and a spectator see it (R-5)', () => {
+    it('R-3.1, R-3.2, R-4.2, R-4.3, R-2.2 step 4: turn 1 reads trades, placements, Repairs and the draw', async () => {
+        const { table, towns } = eventfulTable()
+        const [first, second, third] = [0, 1, 2].map((position) => seatOf(table.state, position))
+        const session = await openSessionOn(table)
+
+        await session.buyShare(KP)
+        await settled(session)
+        await session.sellShare(UP)
+        await settled(session)
+        await placeAt(session, CP, towns[0])
+        await placeAt(session, CP, towns[1])
+
+        // R-4.3, R-4.3-H4: the entry ends with the debtor deciding.
+        for (const seen of perspectives(first, second)) {
+            const [turn] = turnsSeen(session, seen)
+            expect(turn.sellingPlayerId).toBe(second)
+            expect(turn.ended).toBe(false)
+        }
+
+        await session.payRepairs([CP])
+        await settled(session)
+        await placeAt(session, CP, towns[2])
+        await session.endTurn()
+        await settled(session)
+
+        const drawn = session.actions.find((action) => action.type === ActionType.EndTurn)
+        assertExists(drawn, 'The turn ended')
+        const ownDraw = describeAction(drawn, first)
+        assertExists(ownDraw, 'EndTurn is described')
+        const ownDrawText = descriptionText(ownDraw, (playerId) => playerId)
+        expect(ownDrawText).toMatch(
+            /^ended the turn and drew (CP|UP|KP|SP), (CP|UP|KP|SP), (CP|UP|KP|SP)$/
+        )
+
+        const opening = [
+            'bought a KP share for $5',
+            'sold a UP share for $5',
+            'placed CP on a −3 town: CP $5 → $2',
+            `placed CP on a Repairs town: CP Repairs bills ${first} $2, ${second} $2, ${third} $4, leaving ${second} short`,
+            `${second} sold all (1 CP) at half price ($1), paid $1, $1 forgiven`,
+            `placed CP on a Dividend town: CP Dividend pays ${first} $2, ${third} $4`
+        ]
+        for (const seen of perspectives(first, second)) {
+            const [turnOne, turnTwo] = turnsSeen(session, seen)
+            expect(turnOne.playerId).toBe(first)
+            expect(turnOne.ended).toBe(true)
+            expect(turnOne.sellingPlayerId).toBeUndefined()
+            expect(turnRows(turnOne)).toEqual([
+                ...opening,
+                seen.viewer === first ? ownDrawText : 'ended the turn and drew 3'
+            ])
+            // R-2.2 step 1: the next turn opens with its reveal as the entry's first row.
+            expect(turnTwo.playerId).toBe(second)
+            expect(turnRows(turnTwo)).toHaveLength(1)
+            expect(turnRows(turnTwo)[0]).toMatch(/^revealed (CP|UP|KP|SP)(, (CP|UP|KP|SP)){2}$/)
+        }
+    })
+
+    it('R-3.3-H1, R-5: a scrap names the piece and its replacement for every seat', async () => {
+        const dealt = dealtTable()
+        const table = editedTable(dealt, () =>
+            withNoRoomFor(withTurnPieces(dealt.state, [KP, CP, UP]), KP, CP)
+        )
+        const session = await openSessionOn(table)
+        session.pressPiece(KP)
+        await session.scrapTrack()
+        await settled(session)
+        const scrap = session.actions.at(-1)
+        assertExists(scrap, 'The scrap was sent')
+        expect(scrap.type).toBe(ActionType.ScrapTrack)
+        const texts = perspectives(seatOf(table.state, 0), seatOf(table.state, 1)).map(
+            (seen) => turnRows(turnsSeen(session, seen)[0])[0]
+        )
+        expect(texts[0]).toMatch(/^set aside KP and drew (CP|UP|KP|SP)$/)
+        expect(new Set(texts).size).toBe(1)
+    })
+
+    it.each([
+        [false, 'ended the turn, kept SP and drew 3'],
+        [true, 'ended the turn, returned SP to the bag and drew 4']
+    ])(
+        'R-6.3, R-6.3-H2: the variant End turn names the leftover piece to every seat (returned: %s)',
+        async (returnKeptPiece, sentence) => {
+            const dealt = dealtTable({ config: variantConfig(true) })
+            const table = editedTable(dealt, () => withTurnPieces(dealt.state, [CP, UP, KP, SP]))
+            const session = await openSessionOn(table)
+            for (const railroadId of [CP, UP, KP]) {
+                await placeAt(session, railroadId, openCountry(session, railroadId))
+            }
+            await session.endTurn(returnKeptPiece)
+            await settled(session)
+            const [first, second] = [0, 1].map((position) => seatOf(table.state, position))
+            const [, other, spectator] = perspectives(first, second)
+            for (const seen of [other, spectator]) {
+                expect(turnRows(turnsSeen(session, seen)[0]).at(-1)).toBe(sentence)
+            }
+        }
+    )
+
+    it('R-4.2, R-1.2: Promontory at the top of the track reads capped', () => {
+        const placement: PlaceTrack = {
+            id: 'placement',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.PlaceTrack,
+            playerId: 'p1',
+            railroadId: CP,
+            spaceId: 'space.0.0',
+            metadata: {
+                spaceKind: BoardNodeKind.Promontory,
+                townEffectId: 'space.0.0',
+                outcome: {
+                    kind: TownEventKind.PriceChange,
+                    railroadId: CP,
+                    priceChange: 5,
+                    priceIndexBefore: 26,
+                    priceIndexAfter: 29,
+                    capped: true
+                }
+            }
+        }
+        const parts = describeAction(placement, undefined)
+        assertExists(parts, 'PlaceTrack is described')
+        expect(descriptionText(parts, (playerId) => playerId)).toBe(
+            'placed CP at Promontory: CP $22 → $25 (capped)'
+        )
+    })
+
+    it('R-4.2, R-1.2: a capped move that cannot move reads already at the end', () => {
+        const placement: PlaceTrack = {
+            id: 'placement',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.PlaceTrack,
+            playerId: 'p1',
+            railroadId: CP,
+            spaceId: 'space.0.0',
+            metadata: {
+                spaceKind: BoardNodeKind.Promontory,
+                townEffectId: 'space.0.0',
+                outcome: {
+                    kind: TownEventKind.PriceChange,
+                    railroadId: CP,
+                    priceChange: 5,
+                    priceIndexBefore: 29,
+                    priceIndexAfter: 29,
+                    capped: true
+                }
+            }
+        }
+        expect(said(placement, undefined)).toBe('placed CP at Promontory: CP already at $25')
+    })
+
+    // R-1.2: the five lowest spaces all read $0, so a move among them names its spaces.
+    it.each([
+        { before: 4, after: 2, capped: false, line: 'CP stays at $0 (2 spaces down)' },
+        { before: 2, after: 0, capped: true, line: 'CP stays at $0 (2 spaces down, capped)' },
+        { before: 1, after: 2, capped: false, line: 'CP stays at $0 (1 space up)' },
+        { before: 0, after: 3, capped: false, line: 'CP stays at $0 (3 spaces up)' },
+        { before: 3, after: 2, capped: true, line: 'CP stays at $0 (1 space down, capped)' },
+        { before: 5, after: 2, capped: false, line: 'CP $1 → $0' },
+        { before: 0, after: 0, capped: true, line: 'CP already at $0' }
+    ])(
+        'R-4.2, R-1.2: a move from index $before to $after reads "$line"',
+        ({ before, after, capped, line }) => {
+            const placement: PlaceTrack = {
+                id: 'placement',
+                gameId: 'game',
+                source: ActionSource.User,
+                type: ActionType.PlaceTrack,
+                playerId: 'p1',
+                railroadId: CP,
+                spaceId: 'space.0.0',
+                metadata: {
+                    spaceKind: BoardNodeKind.Town,
+                    outcome: {
+                        kind: TownEventKind.PriceChange,
+                        railroadId: CP,
+                        priceChange: after - before,
+                        priceIndexBefore: before,
+                        priceIndexAfter: after,
+                        capped
+                    }
+                }
+            }
+            expect(said(placement, undefined)).toBe(`placed CP on a town: ${line}`)
+        }
+    )
+
+    it('R-4.3-H3: a debtor with no share to sell pays what it has and the rest is forgiven', () => {
+        const payment: PayRepairs = {
+            id: 'payment',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.PayRepairs,
+            playerId: 'p2',
+            sales: [],
+            metadata: { sales: [], paid: 2, forgiven: 3 }
+        }
+        expect(said(payment, undefined)).toBe('had no share to sell, paid $2, $3 forgiven')
+    })
+
+    it('R-4.3-H3: a debtor short after every sale names the railroads it sold', () => {
+        const payment: PayRepairs = {
+            id: 'payment',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.PayRepairs,
+            playerId: 'p2',
+            sales: [CP, CP, UP],
+            metadata: {
+                sales: [
+                    { railroadId: CP, proceeds: 3 },
+                    { railroadId: CP, proceeds: 3 },
+                    { railroadId: UP, proceeds: 3 }
+                ],
+                paid: 9,
+                forgiven: 3
+            }
+        }
+        expect(said(payment, undefined)).toBe(
+            'sold all (2 CP, 1 UP) at half price ($9), paid $9, $3 forgiven'
+        )
+    })
+
+    it.each([
+        ['p1', 'ended the turn and drew CP, UP: the bag ran out'],
+        ['p2', 'ended the turn and drew 2: the bag ran out'],
+        [undefined, 'ended the turn and drew 2: the bag ran out']
+    ])('R-6.1-H2: a short draw says the bag ran out (viewer %s)', (viewer, sentence) => {
+        const ended: EndTurn = {
+            id: 'ended',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.EndTurn,
+            playerId: 'p1',
+            metadata: { drawn: viewer === 'p1' ? [CP, UP] : [], drawnCount: 2, wanted: 3 }
+        }
+        expect(said(ended, viewer)).toBe(sentence)
+    })
+
+    it('R-6.3, R-6.1-H2: a piece returned to an empty bag is drawn straight back, and the bag ran out', () => {
+        const ended: EndTurn = {
+            id: 'ended',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.EndTurn,
+            playerId: 'p1',
+            returnKeptPiece: true,
+            metadata: {
+                drawn: [],
+                drawnCount: 1,
+                wanted: 4,
+                leftover: LeftoverChoice.Returned,
+                leftoverPiece: SP
+            }
+        }
+        expect(said(ended, 'p2')).toBe(
+            'ended the turn, returned SP to the bag and drew 1: the bag ran out'
+        )
+    })
+
+    it.each([
+        [[CP, UP, SP, KP], 'revealed CP, UP, SP and the kept KP'],
+        [[KP], 'revealed the kept KP']
+    ])('R-6.3-H2: a reveal marks the piece kept from the turn before (%s)', (pieces, sentence) => {
+        const reveal: RevealHand = {
+            id: 'reveal',
+            gameId: 'game',
+            source: ActionSource.System,
+            type: ActionType.RevealHand,
+            playerId: 'p1',
+            metadata: { pieces, kept: KP }
+        }
+        expect(said(reveal, 'p2')).toBe(sentence)
+    })
+
+    it('R-3.3-H1: a scrap on an empty bag says one placement fewer', () => {
+        const scrap: ScrapTrack = {
+            id: 'scrap',
+            gameId: 'game',
+            source: ActionSource.User,
+            type: ActionType.ScrapTrack,
+            playerId: 'p1',
+            railroadId: SP,
+            metadata: { bagEmpty: true }
+        }
+        const parts = describeAction(scrap, 'p2')
+        assertExists(parts, 'ScrapTrack is described')
+        expect(descriptionText(parts, (playerId) => playerId)).toBe(
+            'set aside SP; the bag is empty, one placement fewer'
+        )
+    })
+
+    it.each([
+        { placementLost: true, line: 'set aside SP; the bag is empty, one placement fewer' },
+        {
+            placementLost: false,
+            line: 'set aside SP; the bag is empty, the held piece takes its place'
+        }
+    ])(
+        'R-3.3-H1, R-6.3-H4: a scrap on an empty bag with placement lost $placementLost reads "$line"',
+        ({ placementLost, line }) => {
+            const scrap: ScrapTrack = {
+                id: 'scrap',
+                gameId: 'game',
+                source: ActionSource.User,
+                type: ActionType.ScrapTrack,
+                playerId: 'p1',
+                railroadId: SP,
+                metadata: { bagEmpty: true, placementLost }
+            }
+            for (const viewer of ['p1', 'p2', undefined]) {
+                expect(said(scrap, viewer)).toBe(line)
+            }
+        }
+    )
+})
+
+describe('history — turns and rounds (R-2.1, R-2.1-H1, R-2.2)', () => {
+    it('R-2.1: turn 1 has an entry before any action, with no reveal row', async () => {
+        const table = dealtTable()
+        const session = await openSessionOn(table)
+        const turns = aggregateTurns(session.actions, session.gameState, undefined)
+        expect(turns).toHaveLength(1)
+        expect(turns[0]).toMatchObject({
+            turnNumber: 1,
+            playerId: seatOf(table.state, 0),
+            opensRound: true,
+            round: 1,
+            rows: [],
+            ended: false
+        })
+    })
+
+    it('R-2.1, R-2.1-H1: a round begins each time play returns to the starting seat', async () => {
+        const table = dealtTable()
+        const session = await openSessionOn(table)
+        for (let turn = 0; turn < 4; turn++) await playTurn(session)
+
+        const turns = aggregateTurns(session.actions, session.gameState, undefined)
+        const order = session.gameState.turnManager.turnOrder
+        expect(turns.map((turn) => turn.playerId)).toEqual([...order, order[0], order[1]])
+        expect(turns.map((turn) => turn.opensRound)).toEqual([true, false, false, true, false])
+        expect(turns.map((turn) => turn.round)).toEqual([1, 1, 1, 2, 2])
+        expect(turns.map((turn) => turn.ended)).toEqual([true, true, true, true, false])
+        // Turn 1 opens at setup; every later turn opens with its RevealHand.
+        expect(turns[0].actions[0].type).toBe(ActionType.PlaceTrack)
+        for (const turn of turns.slice(1)) {
+            expect(turn.actions[0].type).toBe(ActionType.RevealHand)
+        }
+    })
+
+    it('R-2.1, R-5: history loaded from a checkpoint numbers its turns from the turn manager, not from turn 1', async () => {
+        const table = dealtTable()
+        const session = await openSessionOn(table)
+        for (let turn = 0; turn < 4; turn++) await playTurn(session)
+        const order = session.gameState.turnManager.turnOrder
+
+        // docs/request-performance.md: the window starts partway through turn 2.
+        const turn2 = session.actions.findIndex((action) => action.type === ActionType.RevealHand)
+        const window = session.actions.slice(turn2 + 2)
+        const turns = aggregateTurns(window, session.gameState, undefined, false)
+        expect(turns.map((turn) => turn.turnNumber)).toEqual([2, 3, 4, 5])
+        expect(turns.map((turn) => turn.playerId)).toEqual([order[1], order[2], order[0], order[1]])
+        expect(turns.map((turn) => turn.opensRound)).toEqual([false, false, true, false])
+        expect(turns.map((turn) => turn.round)).toEqual([1, 1, 2, 2])
+        expect(aggregateTurns([], session.gameState, undefined, false)).toEqual([])
+    })
+
+    it('Jump shows the table as the turn ended, and History View offers no choices', async () => {
+        const table = dealtTable()
+        const session = await openSessionOn(table)
+        await playTurn(session)
+        await playTurn(session)
+        const [turnOne] = aggregateTurns(session.actions, session.gameState, undefined)
+        const index = jumpIndex(turnOne)
+        assertExists(index, 'Turn 1 has actions')
+
+        await session.history.goToActionIndex(index, { exact: true })
+        await settled(session)
+        expect(session.isViewingHistory).toBe(true)
+        expect(session.actions.at(-1)?.type).toBe(ActionType.EndTurn)
+        expect(session.gameState.machineState).toBe(MachineState.StartingTurn)
+        expect(session.decidingPlayerId).toBeUndefined()
+        expect(session.pickablePieces).toEqual([])
+        expect(session.canUndo).toBe(false)
+    })
+
+    it("Replay spans the turn's reveal to its end and returns to the live table", async () => {
+        const table = dealtTable()
+        const session = await openSessionOn(table)
+        await playTurn(session)
+        await playTurn(session)
+        const [, turnTwo] = aggregateTurns(session.actions, session.gameState, undefined)
+        const span = replaySpan(turnTwo)
+        assertExists(span, 'Turn 2 has actions')
+        const reveal = session.actions.find((action) => action.index === span.start)
+        const end = session.actions.find((action) => action.index === span.end)
+        expect(reveal?.type).toBe(ActionType.RevealHand)
+        expect(end?.type).toBe(ActionType.EndTurn)
+
+        const live = session.actions.length
+        await session.history.replayRange(span.start, span.end, { holdMs: 0 })
+        await settled(session)
+        expect(session.isViewingHistory).toBe(false)
+        expect(session.actions).toHaveLength(live)
+    })
+})
+
+describe('history — the end summary (R-6.1, R-6.2, R-6.2-H1)', () => {
+    function endedState(winningPlayerIds: (state: Table['state']) => string[]) {
+        const dealt = dealtTable()
+        const state = withHoldings(dealt.state, [
+            { money: 10, shares: { [CP]: 2 } },
+            { money: 30 },
+            { money: 4, shares: { [CP]: 1, [KP]: 4 } }
+        ])
+        return {
+            ...state,
+            machineState: MachineState.EndOfGame,
+            priceIndex: { ...state.priceIndex, [CP]: 14, [KP]: 9 },
+            bag: { ...state.bag, remaining: 0 },
+            winningPlayerIds: winningPlayerIds(state)
+        }
+    }
+
+    it('R-6.2: money, shares at final prices and totals, highest first, the winner and why', () => {
+        const state = endedState((dealt) => [seatOf(dealt, 2)])
+        const summary = endSummary(state)
+        assertExists(summary, 'The game has ended')
+        expect(
+            summary.totals.map(({ playerId, money, shareValue, total }) => ({
+                playerId,
+                money,
+                shareValue,
+                total
+            }))
+        ).toEqual([
+            { playerId: seatOf(state, 2), money: 4, shareValue: 30, total: 34 },
+            { playerId: seatOf(state, 0), money: 10, shareValue: 20, total: 30 },
+            { playerId: seatOf(state, 1), money: 30, shareValue: 0, total: 30 }
+        ])
+        expect(summary.totals[0].holdings[KP]).toEqual({ shares: 4, price: 5, value: 20 })
+        expect(summary.winnerIds).toEqual([seatOf(state, 2)])
+        expect(summary.reason).toBe(GameEndReason.BagEmpty)
+        expect(END_REASON_TEXT[GameEndReason.BagEmpty]).toBe('The bag is empty')
+    })
+
+    it('R-6.2-H1: tied leaders all win', () => {
+        const state = endedState((dealt) => [seatOf(dealt, 0), seatOf(dealt, 1)])
+        expect(endSummary(state)?.winnerIds).toEqual([seatOf(state, 0), seatOf(state, 1)])
+    })
+
+    it('no summary before the game ends', () => {
+        expect(endSummary(dealtTable().state)).toBeUndefined()
+    })
+})

@@ -1,0 +1,421 @@
+{
+  "systemVersion": 3,
+  "id": "UjEV_r_Vi29vki9xrPJ5C",
+  "gameId": "H3Zikt00r_8uhob5hL2d-",
+  "seed": 3439027034,
+  "prng": {
+    "seed": 3439027034,
+    "invocations": 1032
+  },
+  "protectedPrng": {
+    "algorithm": "chacha20-v1",
+    "seed": "bcce4484a8cdb09a8960bbfb526eacfa33fb8916ae1453082a60de1d4480c720",
+    "invocations": 95
+  },
+  "masterSeed": "438024d2eb6c6c1aafb9b924fce44ec1",
+  "activePlayerIds": [],
+  "winningPlayerIds": [
+    "gwK0GIJQB53atel68Uhqp"
+  ],
+  "actionCount": 194,
+  "actionChecksum": -986423143,
+  "players": [
+    {
+      "playerId": "gwK0GIJQB53atel68Uhqp",
+      "color": "orange",
+      "money": 1,
+      "shares": {
+        "railroad.cp": 0,
+        "railroad.up": 3,
+        "railroad.kp": 4,
+        "railroad.sp": 2
+      },
+      "hand": [
+        "railroad.sp",
+        "railroad.sp",
+        "railroad.kp"
+      ],
+      "handCount": 3
+    },
+    {
+      "playerId": "dyOofCC6baESZJyBHYy4D",
+      "color": "green",
+      "money": 1,
+      "shares": {
+        "railroad.cp": 4,
+        "railroad.up": 3,
+        "railroad.kp": 2,
+        "railroad.sp": 0
+      },
+      "hand": [
+        "railroad.cp",
+        "railroad.sp",
+        "railroad.cp"
+      ],
+      "handCount": 3
+    },
+    {
+      "playerId": "P3UTQgmb87HS6PBWm9998",
+      "color": "black",
+      "money": 3,
+      "shares": {
+        "railroad.cp": 0,
+        "railroad.up": 1,
+        "railroad.kp": 2,
+        "railroad.sp": 2
+      },
+      "hand": [
+        "railroad.cp",
+        "railroad.kp",
+        "railroad.cp"
+      ],
+      "handCount": 3
+    }
+  ],
+  "machineState": "EndOfGame",
+  "turnManager": {
+    "series": [
+      {
+        "type": "turn",
+        "playerId": "gwK0GIJQB53atel68Uhqp",
+        "start": 0,
+        "end": 5
+      },
+      {
+        "type": "turn",
+        "playerId": "dyOofCC6baESZJyBHYy4D",
+        "start": 5,
+        "end": 12
+      },
+      {
+        "type": "turn",
+        "playerId": "P3UTQgmb87HS6PBWm9998",
+        "start": 12,
+        "end": 19
+      },
+      {
+        "type": "turn",
+        "playerId": "gwK0GIJQB53atel68Uhqp",
+        "start": 19,
+        "end": 26
+      },
+      {
+        "type": "turn",
+        "playerId": "dyOofCC6baESZJyBHYy4D",
+        "start": 26,
+        "end": 33
+      },
+      {
+        "type": "turn",
+        "playerId": "P3UTQgmb87HS6PBWm9998",
+        "start": 33,
+        "end": 38
+      },
+      {
+        "type": "turn",
+        "playerId": "gwK0GIJQB53atel68Uhqp",
+        "start": 38,
+        "end": 45
+      },
+      {
+        "type": "turn",
+        "playerId": "dyOofCC6baESZJyBHYy4D",
+        "start": 45,
+        "end": 52
+      },
+      {
+        "type": "turn",
+        "playerId": "P3UTQgmb87HS6PBWm9998",
+        "start": 52,
+        "end": 60
+      },
+      {
+        "type": "turn",
+        "playerId": "gwK0GIJQB53atel68Uhqp",
+        "start": 60,
+        "end": 65
+      },
+      {
+        "type": "turn",
+        "playerId": "dyOofCC6baESZJyBHYy4D",
+        "start": 65,
+        "end": 72
+      },
+      {
+        "type": "turn",
+        "playerId": "P3UTQgmb87HS6PBWm9998",
+        "start": 72,
+        "end": 78
+      },
+      {
+        "type": "turn",
+        "playerId": "gwK0GIJQB53atel68Uhqp",
+        "start": 78,
+        "end": 85
+      },
+      {
+        "type": "turn",
+        "playerId": "dyOofCC6baESZJyBHYy4D",
+        "start": 85,
+        "end": 93
+      },
+      {
+        "type": "turn",
+        "playerId": "P3UTQgmb87HS6PBWm9998",
+        "start": 93,
+        "end": 101
+      },
+      {
+        "type": "turn",
+        "playerId": "gwK0GIJQB53atel68Uhqp",
+        "start": 101,
+        "end": 108
+      },
+      {
+        "type": "turn",
+        "playerId": "dyOofCC6baESZJyBHYy4D",
+        "start": 108,
+        "end": 115
+      },
+      {
+        "type": "turn",
+        "playerId": "P3UTQgmb87HS6PBWm9998",
+        "start": 115,
+        "end": 120
+      },
+      {
+        "type": "turn",
+        "playerId": "gwK0GIJQB53atel68Uhqp",
+        "start": 120,
+        "end": 126
+      },
+      {
+        "type": "turn",
+        "playerId": "dyOofCC6baESZJyBHYy4D",
+        "start": 126,
+        "end": 133
+      },
+      {
+        "type": "turn",
+        "playerId": "P3UTQgmb87HS6PBWm9998",
+        "start": 133,
+        "end": 140
+      },
+      {
+        "type": "turn",
+        "playerId": "gwK0GIJQB53atel68Uhqp",
+        "start": 140,
+        "end": 147
+      },
+      {
+        "type": "turn",
+        "playerId": "dyOofCC6baESZJyBHYy4D",
+        "start": 147,
+        "end": 153
+      },
+      {
+        "type": "turn",
+        "playerId": "P3UTQgmb87HS6PBWm9998",
+        "start": 153,
+        "end": 159
+      },
+      {
+        "type": "turn",
+        "playerId": "gwK0GIJQB53atel68Uhqp",
+        "start": 159,
+        "end": 166
+      },
+      {
+        "type": "turn",
+        "playerId": "dyOofCC6baESZJyBHYy4D",
+        "start": 166,
+        "end": 173
+      },
+      {
+        "type": "turn",
+        "playerId": "P3UTQgmb87HS6PBWm9998",
+        "start": 173,
+        "end": 180
+      },
+      {
+        "type": "turn",
+        "playerId": "gwK0GIJQB53atel68Uhqp",
+        "start": 180,
+        "end": 187
+      },
+      {
+        "type": "turn",
+        "playerId": "dyOofCC6baESZJyBHYy4D",
+        "start": 187,
+        "end": 194
+      }
+    ],
+    "turnOrder": [
+      "gwK0GIJQB53atel68Uhqp",
+      "dyOofCC6baESZJyBHYy4D",
+      "P3UTQgmb87HS6PBWm9998"
+    ],
+    "turnCounts": {
+      "gwK0GIJQB53atel68Uhqp": 10,
+      "dyOofCC6baESZJyBHYy4D": 10,
+      "P3UTQgmb87HS6PBWm9998": 9
+    }
+  },
+  "promontoryPointRevision": 1,
+  "towns": {
+    "space.2.-6": "tile.price.plus-2",
+    "space.4.-6": "tile.price.plus-2",
+    "space.0.-5": "tile.red.hammer",
+    "space.2.-5": "tile.red.hammer",
+    "space.3.-5": "tile.red.hammer",
+    "space.5.-5": "tile.red.dividend",
+    "space.1.-4": "tile.price.plus-2",
+    "space.3.-4": "tile.price.plus-1",
+    "space.-1.-3": "tile.red.dividend",
+    "space.4.-3": "tile.red.hammer",
+    "space.-3.-2": "tile.price.plus-1",
+    "space.0.-2": "tile.price.plus-2",
+    "space.1.-2": "tile.price.minus-2",
+    "space.2.-2": "tile.price.minus-1",
+    "space.5.-2": "tile.red.dividend",
+    "space.-5.-1": "tile.price.plus-3",
+    "space.-3.-1": "tile.price.plus-1",
+    "space.-1.-1": "tile.red.dividend",
+    "space.2.-1": "tile.price.minus-2",
+    "space.4.-1": "tile.price.minus-3",
+    "space.6.-1": "tile.price.minus-2",
+    "space.-6.0": "tile.red.hammer",
+    "space.-5.0": "tile.red.dividend",
+    "space.-2.0": "tile.price.minus-3",
+    "space.2.0": "tile.price.minus-2",
+    "space.5.0": "tile.price.plus-3",
+    "space.6.0": "tile.price.plus-3",
+    "space.-6.1": "tile.price.plus-2",
+    "space.-4.1": "tile.price.plus-1",
+    "space.-2.1": "tile.price.minus-3",
+    "space.1.1": "tile.price.plus-1",
+    "space.3.1": "tile.price.plus-3",
+    "space.5.1": "tile.price.minus-1",
+    "space.-5.2": "tile.red.hammer",
+    "space.-2.2": "tile.price.minus-2",
+    "space.-1.2": "tile.red.dividend",
+    "space.0.2": "tile.red.hammer",
+    "space.3.2": "tile.price.minus-2",
+    "space.-4.3": "tile.price.plus-3",
+    "space.1.3": "tile.price.plus-3",
+    "space.-3.4": "tile.red.dividend",
+    "space.-1.4": "tile.red.dividend",
+    "space.-5.5": "tile.price.plus-2",
+    "space.-3.5": "tile.price.minus-1",
+    "space.-2.5": "tile.red.hammer",
+    "space.0.5": "tile.price.minus-3",
+    "space.-4.6": "tile.price.plus-2",
+    "space.-2.6": "tile.price.plus-2"
+  },
+  "track": {
+    "space.2.3": "railroad.kp",
+    "space.1.3": "railroad.kp",
+    "space.-2.-3": "railroad.cp",
+    "space.-2.-2": "railroad.cp",
+    "space.6.-5": "railroad.up",
+    "space.-5.4": "railroad.sp",
+    "space.-1.-2": "railroad.cp",
+    "space.1.4": "railroad.kp",
+    "space.0.3": "railroad.kp",
+    "space.1.2": "railroad.kp",
+    "space.0.2": "railroad.kp",
+    "space.6.-6": "railroad.up",
+    "space.5.-6": "railroad.up",
+    "space.2.1": "railroad.kp",
+    "space.5.-3": "railroad.up",
+    "space.-3.-1": "railroad.cp",
+    "space.-6.5": "railroad.sp",
+    "space.-6.6": "railroad.sp",
+    "space.-1.-3": "railroad.cp",
+    "space.-3.-2": "railroad.cp",
+    "space.-1.-5": "railroad.cp",
+    "space.4.-5": "railroad.up",
+    "space.-6.3": "railroad.sp",
+    "space.3.-5": "railroad.up",
+    "space.0.-5": "railroad.cp",
+    "space.3.-4": "railroad.up",
+    "space.2.-3": "railroad.up",
+    "space.-3.0": "railroad.cp",
+    "space.-4.-1": "railroad.cp",
+    "space.-4.4": "railroad.sp",
+    "space.3.3": "railroad.kp",
+    "space.3.0": "railroad.kp",
+    "space.0.-2": "railroad.cp",
+    "space.1.-3": "railroad.up",
+    "space.2.-4": "railroad.up",
+    "space.-3.4": "railroad.sp",
+    "space.4.2": "railroad.kp",
+    "space.5.-4": "railroad.up",
+    "space.-2.0": "railroad.cp",
+    "space.-2.3": "railroad.sp",
+    "space.2.-5": "railroad.up",
+    "space.-2.2": "railroad.sp",
+    "space.-1.1": "railroad.sp",
+    "space.-5.2": "railroad.sp",
+    "space.1.-5": "railroad.cp",
+    "space.1.1": "railroad.kp",
+    "space.3.2": "railroad.kp",
+    "space.6.-3": "railroad.up",
+    "space.0.5": "railroad.kp",
+    "space.5.-2": "railroad.up",
+    "space.0.-3": "railroad.up",
+    "space.-6.2": "railroad.sp",
+    "space.-5.1": "railroad.sp",
+    "space.2.-2": "railroad.up",
+    "space.4.-6": "railroad.up",
+    "space.-4.0": "railroad.sp",
+    "space.-3.-3": "railroad.cp",
+    "space.4.-2": "railroad.up",
+    "space.1.0": "railroad.kp",
+    "space.-1.-4": "railroad.cp",
+    "space.2.2": "railroad.kp",
+    "space.4.-1": "railroad.kp",
+    "space.-3.2": "railroad.sp",
+    "space.1.-2": "railroad.up",
+    "space.-3.3": "railroad.sp",
+    "space.0.0": "railroad.kp",
+    "space.-4.3": "railroad.sp",
+    "space.0.-6": "railroad.cp",
+    "space.-1.0": "railroad.kp",
+    "space.3.-1": "railroad.up",
+    "space.-4.-2": "railroad.cp",
+    "space.-1.2": "railroad.kp",
+    "space.-5.5": "railroad.sp",
+    "space.-1.-1": "railroad.cp",
+    "space.0.-1": "railroad.kp",
+    "space.-3.1": "railroad.cp",
+    "space.-4.5": "railroad.sp",
+    "space.3.-2": "railroad.up",
+    "space.3.-3": "railroad.up",
+    "space.0.-4": "railroad.cp",
+    "space.0.1": "railroad.sp",
+    "space.-6.1": "railroad.sp",
+    "space.-3.5": "railroad.sp",
+    "space.5.-5": "railroad.up",
+    "space.0.4": "railroad.kp",
+    "space.5.-1": "railroad.kp",
+    "space.1.-4": "railroad.up"
+  },
+  "priceIndex": {
+    "railroad.cp": 10,
+    "railroad.up": 11,
+    "railroad.kp": 10,
+    "railroad.sp": 13
+  },
+  "bag": {
+    "items": [],
+    "remaining": 0
+  },
+  "scrapped": {
+    "railroad.cp": 0,
+    "railroad.up": 0,
+    "railroad.kp": 0,
+    "railroad.sp": 0
+  },
+  "result": "Win"
+}
