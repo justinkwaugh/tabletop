@@ -220,7 +220,9 @@ describe('seat view', () => {
         expect(session.gameState.machineState).toBe(MachineState.PayingRepairs)
 
         const [placer, debtor] = seatViews(session.gameState, undefined)
-        expect(placer).toMatchObject({ tag: SeatTag.Placing, active: false, waitingTurn: true })
+        // Contract, "Seat card": the tag goes only to the seat that decides.
+        expect(placer).toMatchObject({ active: false, waitingTurn: true })
+        expect(placer.tag).toBeUndefined()
         expect(debtor).toMatchObject({ tag: SeatTag.Repairs, active: true, waitingTurn: false })
     })
 

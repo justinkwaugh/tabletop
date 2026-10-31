@@ -139,10 +139,11 @@ export function seatView(
         const price = sharePrice(state, railroadId)
         return { railroadId, count, price, countLabel: `×${count}`, priceLabel: `$${price} ea` }
     })
+    // Contract, "Seat card": a tag only on the seat that decides, so none on a turn that waits.
     const tag =
         debtorId === playerId
             ? SeatTag.Repairs
-            : turnPlayerId === playerId
+            : turnPlayerId === playerId && debtorId === undefined
               ? SeatTag.Placing
               : undefined
     return {
