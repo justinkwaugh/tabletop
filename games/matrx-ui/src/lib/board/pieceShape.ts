@@ -660,6 +660,55 @@ export function markOf(view: BoardView, disc: Disc, radius: number): Mark | unde
     }
 }
 
+// Where a ring drawn round a disc's top, `at` out from its centre over the radius, would cross its
+// mark: the angles either side of each crossing (anticlockwise as you look, 0 to the right). A
+// mark is a straight cut along an angle, `off` to its left of the centre, `from` to `to` along.
+export function markGaps(disc: Disc, at: number): [number, number][] {
+    const turn = (TURN_STEP * (disc.turn ?? 0) * Math.PI) / 180
+    const cuts: { angle: number; off: number; from: number; to: number; half: number }[] = []
+    switch (disc.kind) {
+        case PieceKind.Zertz:
+            for (const angle of ZERTZ_ANGLES) {
+                const half = ZERTZ_RADIUS + ZERTZ_LIP
+                cuts.push({
+                    angle: (angle * Math.PI) / 180 + turn,
+                    off: 0,
+                    from: ZERTZ_FROM,
+                    to: 2,
+                    half
+                })
+            }
+            break
+        case PieceKind.Yinsh:
+            cuts.push({
+                angle: turn,
+                off: YINSH_OFFSET,
+                from: -(TROUGH.outer + TROUGH.inner) / 2,
+                to: YINSH_END,
+                half: YINSH_HALF_WIDTH
+            })
+            break
+        case PieceKind.Punct:
+            for (const angle of punctCentres(disc.turn ?? 0)) {
+                cuts.push({ angle, off: 0, from: 1 - PUNCT_RADIUS, to: 2, half: PUNCT_RADIUS })
+            }
+            break
+    }
+    return cuts.flatMap(({ angle, off, from, to, half }) => {
+        if (at <= Math.abs(off)) return []
+        const along = Math.sqrt(at ** 2 - off ** 2)
+        const span = Math.asin(Math.min(1, (half + GAP_MARGIN) / at))
+        return [along, -along]
+            .filter((distance) => distance >= from && distance <= to)
+            .map((distance): [number, number] => {
+                const centre = angle + Math.atan2(off, distance)
+                return [centre - span, centre + span]
+            })
+    })
+}
+// How far a ring stops short of a mark's edge, over the radius.
+const GAP_MARGIN = 0.05
+
 // PÜNCT's notches, cut through the edge from top to board. The disc's side is built from bands
 // of side between the notches rather than drawn whole and cut, so each notch's edges are exact at
 // every height: the front of the side, bottom up, and the rim behind, where it rounds over above

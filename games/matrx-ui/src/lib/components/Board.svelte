@@ -17,7 +17,7 @@
         RESERVE_LINE_WIDTH
     } from '$lib/board/geometry.js'
     import type { BoardDisc } from '$lib/board/boardChange.js'
-    import { turnOf, type Disc } from '$lib/board/pieceShape.js'
+    import { markGaps, turnOf, type Disc } from '$lib/board/pieceShape.js'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
     import PieceDefs from './PieceDefs.svelte'
     import StandingStack from './StandingStack.svelte'
@@ -122,8 +122,11 @@
         return drawn.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
     })
 
-    const SPOT_RADIUS = PIECE_RADIUS * 0.22
+    const SPOT_RADIUS = PIECE_RADIUS * 0.13
     const TOGGLE_RADIUS = PIECE_RADIUS * 0.66
+    // A dashed ring's dashes and the gaps between them, as in its stroke-dasharray.
+    const DASH = 5
+    const DASH_GAP = 4
 
     function isChosenDot(coords: AxialCoordinates) {
         return session.chosenDot !== undefined && sameCoordinates(session.chosenDot, coords)
@@ -177,6 +180,51 @@
         const ry = r * view.tilt
         const top = view.topFace(Math.max(discs, 2))
         return `M ${-r} ${top} A ${r} ${ry} 0 0 1 ${r} ${top} L ${r} 0 A ${r} ${ry} 0 0 1 ${-r} 0 Z`
+    }
+
+    // A ring round a stack's top face, broken where it would cover the top disc's mark, as arcs.
+    // Each arc's length is given in dash-and-gap units (DASH, DASH_GAP), so a dashed ring has
+    // whole dashes evenly spaced, and a broken one a dash at each end of every arc.
+    function topRing(
+        discs: readonly BoardDisc[],
+        radius: number,
+        cy: number
+    ): { d: string; length: number }[] {
+        const rx = radius
+        const ry = radius * view.tilt
+        const [top] = toned(discs.slice(-1))
+        const gaps = markGaps(top, radius / PIECE_RADIUS).toSorted((a, b) => a[0] - b[0])
+        const point = (angle: number) => ({
+            x: rx * Math.cos(angle),
+            y: cy - ry * Math.sin(angle)
+        })
+        const at = (angle: number) => `${point(angle).x} ${point(angle).y}`
+        const arcLength = (from: number, to: number) =>
+            Array.from({ length: 48 }, (_, step) => {
+                const a = point(from + ((to - from) * step) / 48)
+                const b = point(from + ((to - from) * (step + 1)) / 48)
+                return Math.hypot(b.x - a.x, b.y - a.y)
+            }).reduce((sum, length) => sum + length, 0)
+        const period = DASH + DASH_GAP
+        if (gaps.length === 0) {
+            const dashes = Math.max(1, Math.round(arcLength(0, 2 * Math.PI) / period))
+            return [
+                {
+                    d: `M ${-rx} ${cy} A ${rx} ${ry} 0 1 0 ${rx} ${cy} A ${rx} ${ry} 0 1 0 ${-rx} ${cy}`,
+                    length: dashes * period
+                }
+            ]
+        }
+        return gaps.map(([, end], index) => {
+            const [next] = gaps[(index + 1) % gaps.length]
+            const start = next + (index === gaps.length - 1 ? 2 * Math.PI : 0)
+            const large = start - end > Math.PI ? 1 : 0
+            const dashes = Math.max(1, Math.round((arcLength(end, start) + DASH_GAP) / period))
+            return {
+                d: `M ${at(end)} A ${rx} ${ry} 0 ${large} 0 ${at(start)}`,
+                length: dashes * period - DASH_GAP
+            }
+        })
     }
 
     // Arrows lie on the board, from the dot to the edge of the ring around the first spot, so
@@ -348,32 +396,32 @@
                 <!-- Marks lie on the top face, after the stack and outside the node that moves
                      it: a ring on a stack you can move or a row you can take, a spot on each
                      piece that goes, and on stacks of two in the chosen row a ring for keep or
-                     take. -->
+                     take. The rings break where they would cover the top piece's mark. -->
                 {#if role || target}
                     <g {@attach animator.marks()}>
                         {#if target}
-                            <ellipse
-                                cy={faceY}
-                                rx={PIECE_RADIUS - 3}
-                                ry={(PIECE_RADIUS - 3) * view.tilt}
-                                class="top-ring role-target"
-                                class:hovered={hoveredTarget === drawn.key}
-                            ></ellipse>
+                            {#each topRing(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
+                                <path
+                                    d={arc.d}
+                                    pathLength={arc.length}
+                                    class="top-ring role-target"
+                                    class:hovered={hoveredTarget === drawn.key}
+                                ></path>
+                            {/each}
                         {:else if role === 'row' || role === 'movable' || role === 'chosen'}
-                            <ellipse
-                                cy={faceY}
-                                rx={PIECE_RADIUS - 3}
-                                ry={(PIECE_RADIUS - 3) * view.tilt}
-                                class="top-ring role-{role}"
-                            ></ellipse>
+                            {#each topRing(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
+                                <path d={arc.d} pathLength={arc.length} class="top-ring role-{role}"
+                                ></path>
+                            {/each}
                         {:else}
                             {#if includesCoords(session.rowPairs, stack.coords)}
-                                <ellipse
-                                    cy={faceY}
-                                    rx={TOGGLE_RADIUS}
-                                    ry={TOGGLE_RADIUS * view.tilt}
-                                    class="toggle-ring role-{role}"
-                                ></ellipse>
+                                {#each topRing(stack.discs, TOGGLE_RADIUS, faceY) as arc, index (index)}
+                                    <path
+                                        d={arc.d}
+                                        pathLength={arc.length}
+                                        class="toggle-ring role-{role}"
+                                    ></path>
+                                {/each}
                             {/if}
                             <ellipse
                                 cy={faceY}
