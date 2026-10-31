@@ -317,8 +317,7 @@ Where the wording above and the game differ, the specs follow the game:
 - **16.** No Repairs row shows when no one is short, since play does not stop; the spec checks each payer's money and the log line instead of a "paid" flash.
 - **20.** "A seat with no shares sees Pay $3 · $5 forgiven" cannot occur: a short seat always holds the railroad that billed it.
 - **21.** Royce's client receives Mara's Undo as a freshly opened game (the harness stands in for the host); the live session dropping staged sales on Undo is covered by `src/lib/model/repairsDraft.client.svelte.spec.ts`.
-- **28.** "The table as it ended" is the table after End turn, before the next seat's hand is revealed.
+- **28.** "The table as it ended" is the table after End turn, before the next seat's hand is revealed. The Repairs panel's short Sell label ("CP ×1 +$2 each") shows on a phone only; desktop shows "Sell one +$2".
 - **30.** A three-piece hand picks its last railroad by itself (scenario 8), which is no Undo stop, so the walk is played on the four-piece variant (Variant opening turn).
 - **31.** The shared history controls are disabled while a state transition plays, so a step back cannot be pressed during a flight. The spec proves that a press mid-flight changes nothing and the piece lands, and that a step back afterwards shows the earlier table at once, with no piece in flight and nothing hidden.
 - **33.** A phone has no keyboard; there full screen opens from the board's full-screen button. F was pressed at both widths in the check.
-- **33 (found and fixed).** The Repairs panel's phone-only Sell label also showed at desktop width, so desktop buttons read "Sell one +$2 CP ×1 +$2 each"; the scenario 28 History View spec now checks each width's label.
