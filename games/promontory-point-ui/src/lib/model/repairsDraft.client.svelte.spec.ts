@@ -329,6 +329,46 @@ describe('Repairs draft — lifetime, privacy and the placer’s Undo (R-4.3-H4,
         expect(staged(reopened)).toEqual([SP])
     })
 
+    it('R-4.3: a catch-up that replaces the Repairs with another at the same placement drops the staged sales', async () => {
+        // The placer undid the SP placement and placed CP on a Repairs town instead; this seat
+        // missed both pushes and catches up in one reconciliation.
+        const debtorHoldings: Holding[] = [
+            { money: 20 },
+            { money: 7, shares: { [SP]: 5, [CP]: 5 } },
+            { money: 20 }
+        ]
+        const spRepairs = repairsTable(debtorHoldings, { [SP]: 10 })
+        const { session } = await placedOnRepairs(spRepairs)
+        session.stageRepairsSale(SP)
+        expect(staged(session)).toEqual([SP])
+
+        const dealt = dealtTable()
+        const { state, spaceIds } = withTownsOpenTo(withTurnPieces(dealt.state, [CP, UP, KP]), CP, [
+            'tile.red.hammer'
+        ])
+        const other = await openSessionOn(
+            editedTable(dealt, () => canonical(withHoldings(state, debtorHoldings)))
+        )
+        other.pressPiece(CP)
+        await other.placeTrack(spaceIds[0])
+        await settled(other)
+        expect(other.gameState.pendingRepairs?.railroadId).toBe(CP)
+
+        type Presenting = {
+            gameContext: { restoreFrom(context: unknown): void }
+            presenter: { present(request: { kind: string }, write: () => void): void }
+        }
+        const target = session as unknown as Presenting
+        const replacement = (other as unknown as Presenting).gameContext
+        target.presenter.present({ kind: 'reconciliation' }, () =>
+            target.gameContext.restoreFrom(replacement)
+        )
+        await settled(session)
+        expect(session.gameState.pendingRepairs?.railroadId).toBe(CP)
+        expect(session.repairsDraft).toMatchObject({ owed: 10 })
+        expect(staged(session)).toEqual([])
+    })
+
     it('R-4.3: a send while an earlier action is still with the host keeps the staged sales', async () => {
         const { session } = await placedOnRepairs(shortByThree())
         session.stageRepairsSale(SP)
