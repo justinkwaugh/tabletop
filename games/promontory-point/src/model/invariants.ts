@@ -2,6 +2,7 @@ import { RAILROAD_IDS, type RailroadId } from '../components/railroads.js'
 import { SHARES_PER_RAILROAD } from '../components/shares.js'
 import { TRACK_PIECES_PER_RAILROAD } from '../components/trackPieces.js'
 import type { PromontoryPointGameState } from './gameState.js'
+import { sharesHeld } from './playerState.js'
 import { PLACEMENTS_PER_TURN } from './turn.js'
 
 export function invariantsHold(state: PromontoryPointGameState): boolean {
@@ -37,9 +38,7 @@ export function piecesConserved(state: PromontoryPointGameState): boolean {
 // R-1.1, R-1.3 step 4: 11 = share deck + holdings; the deck is derived, so holdings never exceed 11.
 function sharesConserved(state: PromontoryPointGameState): boolean {
     return RAILROAD_IDS.every(
-        (railroadId) =>
-            state.players.reduce((held, player) => held + player.shares[railroadId], 0) <=
-            SHARES_PER_RAILROAD
+        (railroadId) => sharesHeld(state.players, railroadId) <= SHARES_PER_RAILROAD
     )
 }
 

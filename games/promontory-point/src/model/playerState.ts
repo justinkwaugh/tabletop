@@ -30,6 +30,14 @@ export type PromontoryPointProjectedPlayerState = Type.Static<
 >
 const PromontoryPointProjectedPlayerStateValidator = Compile(PromontoryPointProjectedPlayerState)
 
+// R-1.3 step 4: one railroad's shares across every seat.
+export function sharesHeld(
+    players: readonly Pick<PromontoryPointPlayerState, 'shares'>[],
+    railroadId: RailroadId
+): number {
+    return players.reduce((held, player) => held + player.shares[railroadId], 0)
+}
+
 export class HydratedPromontoryPointPlayerState
     extends Hydratable<typeof PromontoryPointProjectedPlayerState>
     implements PromontoryPointProjectedPlayerState

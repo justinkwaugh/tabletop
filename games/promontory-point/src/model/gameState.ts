@@ -19,7 +19,11 @@ import { TRACK_PIECES_PER_RAILROAD } from '../components/trackPieces.js'
 import { MachineState } from '../definition/states.js'
 import { invariantsHold } from './invariants.js'
 import { PendingRepairs } from './pendingRepairs.js'
-import { HydratedPromontoryPointPlayerState, PromontoryPointPlayerState } from './playerState.js'
+import {
+    HydratedPromontoryPointPlayerState,
+    PromontoryPointPlayerState,
+    sharesHeld
+} from './playerState.js'
 import { PerRailroad, PerSpace, RailroadIdSchema, TownTileKindIdSchema } from './schemas.js'
 import { HydratedTrackBag, TrackBag } from './trackBag.js'
 import { TurnState } from './turn.js'
@@ -104,9 +108,6 @@ export class HydratedPromontoryPointGameState
 
     // R-1.3 step 4: a share deck is 11 less all holdings, never stored.
     shareDeckCount(railroadId: RailroadId): number {
-        return (
-            SHARES_PER_RAILROAD -
-            this.players.reduce((held, player) => held + player.shares[railroadId], 0)
-        )
+        return SHARES_PER_RAILROAD - sharesHeld(this.players, railroadId)
     }
 }
