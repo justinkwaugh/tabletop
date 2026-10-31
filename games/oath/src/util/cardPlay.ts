@@ -4,7 +4,7 @@ import { siteHolding } from './access.js'
 import { favorHomeBankOf, favorTakenFrom, gainFavorFromBank, settleBoardFavor } from './favor.js'
 import { Banner, SearchPlay, CardKind, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
 import { ConspiracyPlay, type ConspiracyTake } from '../model/conspiracy.js'
-import { isLockedFor } from './locked.js'
+import { isLockedFor, siteLockedFor } from './locked.js'
 import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { HiddenReveal } from '../model/hidden.js'
@@ -956,7 +956,17 @@ export function reasonCannotPlaceCard(
                 : undefined
             if (saltTheEarth) {
                 const atTarget = denizensAfterPlay(state, target, earlier)
-                if (atTarget.some((id) => isLockedFor(state, playerId, id, target))) {
+                // R-7.2.2 — from revision 31 the relics there count too (Ancient Bloodline: "denizens and relics at
+                // sites you rule are locked"). No relic is printed locked, and one at a site is facedown, so it is
+                // locked exactly when its site is. Before (R-X.4), only the denizens were judged.
+                const relicLocked =
+                    isAtLeastOathRevision(state, OathRevision.EngineFixes26) &&
+                    state.relicSlotsAt(target).length > 0 &&
+                    siteLockedFor(state, playerId, target)
+                if (
+                    relicLocked ||
+                    atTarget.some((id) => isLockedFor(state, playerId, id, target))
+                ) {
                     return 'Salt the Earth cannot be played to a site with any locked cards'
                 }
             } else {
