@@ -77,9 +77,11 @@ export function boardOffer(input: BoardOfferInput): BoardOffer {
         input.placements.map((placement) => [placement.spaceId, placement.order])
     )
     const veiled = lit.length > 0
+    const litIds = new Set(lit)
+    const previewedIds = new Set(previewed)
     const hexes = new Map(
         BOARD_GRID.spaces().map((space): [SpaceId, HexOffer] => {
-            const isLit = lit.includes(space.spaceId)
+            const isLit = litIds.has(space.spaceId)
             return [
                 space.spaceId,
                 {
@@ -90,7 +92,7 @@ export function boardOffer(input: BoardOfferInput): BoardOffer {
                             ? input.repairsTown.railroadId
                             : undefined,
                     chip: chips.get(space.spaceId),
-                    previewed: !isLit && previewed.includes(space.spaceId)
+                    previewed: !isLit && previewedIds.has(space.spaceId)
                 }
             ]
         })

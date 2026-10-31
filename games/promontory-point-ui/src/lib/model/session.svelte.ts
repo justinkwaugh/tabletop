@@ -184,6 +184,10 @@ export class PromontoryPointGameSession extends GameSession<
         !this.isViewingHistory && (this.hasManualSelection || this.undoableAction !== undefined)
     )
 
+    private turnPlacements = $derived(thisTurnPlacements(this.gameState, this.actions))
+
+    private repairsTown = $derived(repairsTownBeingDecided(this.gameState, this.actions))
+
     boardOffer: BoardOffer = $derived.by(() => {
         const picked = this.pickedPiece
         const decidingPlayerId = this.decidingPlayerId
@@ -199,8 +203,8 @@ export class PromontoryPointGameSession extends GameSession<
                     ? { railroadId: picked, decidingPlayerId }
                     : undefined,
             hovered: this.hoveredPiece,
-            placements: thisTurnPlacements(this.gameState, this.actions),
-            repairsTown: repairsTownBeingDecided(this.gameState, this.actions)
+            placements: this.turnPlacements,
+            repairsTown: this.repairsTown
         })
     })
 
