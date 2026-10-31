@@ -79,6 +79,9 @@ export function handPerspective(
     return viewerId === playerId ? HandPerspective.Own : HandPerspective.Hidden
 }
 
+// A seat card's share stack draws at most this many cards, however many are held.
+export const STACK_CARDS = 4
+
 const faceUp = (railroadId: RailroadId): HandPieceView => ({ faceShown: true, railroadId })
 
 function handView(

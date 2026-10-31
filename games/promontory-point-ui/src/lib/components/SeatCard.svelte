@@ -2,7 +2,8 @@
     import { RAILROADS, type RailroadId } from '@tabletop/promontory-point'
     import { shareFaceImage } from '$lib/images/cardImages.js'
     import { PreviewKind } from '$lib/model/cardPreview.svelte.js'
-    import type { MoneyLine, SeatView } from '$lib/model/seatView.js'
+    import { STACK_CARDS, type MoneyLine, type SeatView } from '$lib/model/seatView.js'
+    import { moneyChipText } from '$lib/animators/moneyChips.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { RAILROAD_TAGS } from '$lib/model/railroadTags.js'
     import HandPiece from './HandPiece.svelte'
@@ -33,8 +34,6 @@
     function enlargeShare(railroadId: RailroadId) {
         gameSession.cardPreview.show({ kind: PreviewKind.Share, railroadId })
     }
-
-    const signed = (change: number) => (change < 0 ? `−$${-change}` : `+$${change}`)
 </script>
 
 <!-- O-10: the brokerage ledger, a tan card ruled twice under a header in the seat colour. -->
@@ -80,7 +79,7 @@
                     onclick={() => enlargeShare(share.railroadId)}
                 >
                     <span class="stack">
-                        {#each { length: Math.min(Math.max(share.count, 1), 4) }, index (index)}
+                        {#each { length: Math.min(Math.max(share.count, 1), STACK_CARDS) }, index (index)}
                             <img
                                 src={shareFaceImage(share.railroadId).src}
                                 alt=""
@@ -128,7 +127,7 @@
                         <div class="money-line">
                             <span>{line.label}</span>
                             <span class="delta" class:loss={line.change < 0}
-                                >{signed(line.change)}</span
+                                >{moneyChipText(line.change)}</span
                             >
                         </div>
                     {/each}

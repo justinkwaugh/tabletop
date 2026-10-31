@@ -5,6 +5,7 @@ import {
     type HydratedPromontoryPointGameState,
     type RailroadId
 } from '@tabletop/promontory-point'
+import { STACK_CARDS } from '$lib/model/seatView.js'
 import { SEA_SLOTS } from '$lib/utils/boardGeometry.js'
 import { FlightAnimator } from './flightAnimator.js'
 import { FlightKind, type FlightItem, type Hideable } from './flights.svelte.js'
@@ -15,8 +16,6 @@ import type { BoardStateChange } from './markerMotion.js'
 export const SHARE_FLIGHT_SECONDS = 0.5
 // R-4.3: the debtor's cards leave one after another, in the order they were sold.
 export const SALE_STAGGER_SECONDS = 0.15
-// A seat card's stack draws at most this many cards, however many are held.
-const STACK_CARDS = 4
 
 type Move = {
     railroadId: RailroadId

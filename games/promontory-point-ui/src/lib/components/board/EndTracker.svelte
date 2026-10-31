@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { BoundingBox } from '@tabletop/common'
+    import { UNCOVERED_RED_TILES_AT_END } from '@tabletop/promontory-point'
     import { townTileImage } from '$lib/images/tileImages.js'
     import type { EndTrackerStatus } from '$lib/utils/boardLayout.js'
     import { localHexPoints, pointsAttribute } from '$lib/utils/boardLayout.js'
@@ -14,7 +15,7 @@
     const textX = 80
     const redTile = townTileImage('tile.red.dividend')
     const redLine = $derived(
-        `${status.redTilesUncovered} red ${status.redTilesUncovered === 1 ? 'tile' : 'tiles'} uncovered (≤ 1)${status.redTilesMet ? ' ✓' : ''}`
+        `${status.redTilesUncovered} red ${status.redTilesUncovered === 1 ? 'tile' : 'tiles'} uncovered (≤ ${UNCOVERED_RED_TILES_AT_END})${status.redTilesMet ? ' ✓' : ''}`
     )
 </script>
 

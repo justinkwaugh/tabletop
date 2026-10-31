@@ -38,13 +38,6 @@
         return isLit(spaceId) ? `Place here: ${place}` : place
     }
 
-    function pressKey(event: KeyboardEvent, spaceId: SpaceId) {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            press(spaceId)
-        }
-    }
-
     // Contract, "The principle": a press on a share deck enlarges its share; a press on the bag
     // shows its count only (R-5). Neither acts.
     function enlargeShare(railroadId: RailroadId) {
@@ -75,7 +68,7 @@
         class:lit
         fill="transparent"
         onclick={() => press(spaceId)}
-        onkeydown={(event) => pressKey(event, spaceId)}
+        onkeydown={(event) => onKey(event, () => press(spaceId))}
     ></polygon>
 {/each}
 
