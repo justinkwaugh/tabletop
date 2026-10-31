@@ -1,4 +1,5 @@
 import type { GameProgress, GameProgression } from '@tabletop/common'
+import { PROMONTORY } from '../components/board.js'
 import { RAILROAD_IDS } from '../components/railroads.js'
 import { TRACK_PIECES_PER_RAILROAD } from '../components/trackPieces.js'
 import { TOWN_TILE_KINDS, RED_TILE_KIND_IDS } from '../components/townTiles.js'
@@ -35,11 +36,12 @@ export class PromontoryPointProgression implements GameProgression<PromontoryPoi
             ...state.players.map((player) => player.handCount + keptPieces(player).length)
         )
         const piecesToUse = TRACK_PIECE_COUNT - fullHand * state.players.length
+        // R-6.1: the other end needs all but one red tile covered and a piece on Promontory.
         const redTilesToCover = RED_TILE_COUNT - UNCOVERED_RED_TILES_AT_END
-        const fraction = Math.max(
-            piecesUsed / piecesToUse,
-            (RED_TILE_COUNT - uncovered) / redTilesToCover
-        )
+        const endStepsTaken =
+            Math.min(RED_TILE_COUNT - uncovered, redTilesToCover) +
+            (PROMONTORY.spaceId in state.track ? 1 : 0)
+        const fraction = Math.max(piecesUsed / piecesToUse, endStepsTaken / (redTilesToCover + 1))
         return {
             fraction: Math.min(1, fraction),
             label: `Bag ${state.bag.remaining} · ${uncovered} red ${uncovered === 1 ? 'tile' : 'tiles'} uncovered`

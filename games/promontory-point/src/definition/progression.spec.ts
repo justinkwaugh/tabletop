@@ -71,6 +71,8 @@ describe('Promontory Point Game Progress', () => {
             `Bag ${oneLeft.bag.remaining} · 1 red tile uncovered`
         )
         expect(progressOf(oneLeft).final).toBeUndefined()
+        // R-6.1: the end also needs a piece on Promontory, so the game is not yet played out.
+        expect(progressOf(oneLeft).fraction).toBeLessThan(1)
     })
 
     it.each(VARIANT_OFF_AND_ON)(
