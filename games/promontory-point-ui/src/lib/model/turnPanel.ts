@@ -79,7 +79,8 @@ const TURN_STATES: readonly MachineState[] = [
 ]
 
 // R-2.2-H1: trading reopens after the turn's last placement, the second when a piece is set
-// aside with the bag empty (R-3.3-H1), or the first after two.
+// aside with the bag empty (R-3.3-H1) and no held piece takes its place (R-6.3-H4), or the first
+// after two.
 const ORDINALS = ['first', 'second', 'third'] as const
 
 function lastPieceOrdinal(turn: TurnState): string {

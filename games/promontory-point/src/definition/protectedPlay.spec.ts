@@ -140,7 +140,10 @@ describe('Promontory Point protected play', () => {
             perspective
         })
 
-        expect(predicted.processedActions[0]).toHaveProperty('metadata', { bagEmpty: true })
+        expect(predicted.processedActions[0]).toHaveProperty('metadata', {
+            bagEmpty: true,
+            placementLost: true
+        })
         expect(predicted.updatedState).toEqual(
             project(canonical(canonicalResult.updatedState), game, perspective)
         )

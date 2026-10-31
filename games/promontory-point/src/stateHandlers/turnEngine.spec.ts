@@ -27,6 +27,7 @@ import { edited, playerOf, turnPlayer } from '../testing/turns.js'
 const CP = 'railroad.cp'
 const UP = 'railroad.up'
 const KP = 'railroad.kp'
+const SP = 'railroad.sp'
 
 function seat(state: PromontoryPointGameState, index: number): string {
     const playerId = state.turnManager.turnOrder[index]
@@ -188,6 +189,37 @@ describe('Promontory Point turn engine', () => {
             expect(gameEndReason(ended.state)).toBe(GameEndReason.BagEmpty)
             expect(ended.state.activePlayerIds).toEqual([])
             expect(Object.values(offered(game, ended.state)).flat()).toEqual([])
+        })
+        it('R-6.3-H4: in the variant a scrap with the bag empty keeps three placements; the held piece is placed, nothing is kept and the draw wants four', () => {
+            const { game, state } = startGame({ config: { fourPieceVariant: true } })
+            const boxedIn = withEmptyBag(
+                withNoRoomFor(withTurnPieces(state, [KP, CP, UP, SP]), KP, UP)
+            )
+            const playerId = turnPlayer(boxedIn)
+
+            const scrapped = play(game, boxedIn, ScrapTrack, { playerId, railroadId: KP })
+            expect(scrapped.state.machineState).toBe(MachineState.Placing)
+            expect(scrapped.state.turn).toMatchObject({ pieces: [CP, UP, SP], placementsLeft: 3 })
+
+            const twoPlaced = placeAll(game, scrapped.state, [CP, UP])
+            expect(twoPlaced.machineState).toBe(MachineState.Placing)
+            const placed = placeAll(game, twoPlaced, [SP])
+            expect(placed.machineState).toBe(MachineState.TradingAfterPlacing)
+            expect(placed.turn).toMatchObject({ pieces: [], placementsMade: 3, placementsLeft: 0 })
+            // Nothing is left over, so there is no keep-or-return choice to make.
+            expect(() => play(game, placed, EndTurn, { playerId, returnKeptPiece: false })).toThrow(
+                'NoLeftoverPiece'
+            )
+
+            const ended = play(game, placed, EndTurn, { playerId })
+            expect(ended.processedActions[0]).toMatchObject({
+                metadata: { drawn: [], drawnCount: 0, wanted: 4 }
+            })
+            expect(ended.processedActions[0]).not.toHaveProperty('metadata.leftover')
+            expect(playerOf(ended.state, playerId).keptPiece).toBeUndefined()
+            expect(playerOf(ended.state, playerId).hand).toEqual([])
+            expect(ended.state.machineState).toBe(MachineState.EndOfGame)
+            expect(gameEndReason(ended.state)).toBe(GameEndReason.BagEmpty)
         })
     })
 

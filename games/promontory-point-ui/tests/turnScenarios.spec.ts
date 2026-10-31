@@ -310,7 +310,7 @@ for (const width of WIDTHS) {
                 'data-price-index',
                 '0'
             )
-            await expect(await history(page)).toContainText('$0 → $0 (capped)')
+            await expect(await history(page)).toContainText('stays at $0 (1 space down, capped)')
         })
 
         test('scenario 11 (R-4.1, R-6.1): Promontory raises the price by 5 and the end tracker reads it taken', async ({

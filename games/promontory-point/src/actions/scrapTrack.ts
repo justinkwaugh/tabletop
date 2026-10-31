@@ -20,10 +20,12 @@ export enum ScrapTrackRefusal {
 }
 
 // R-3.3-H1, R-5: the replacement drawn face up, or that the bag was empty; all public.
+// R-6.3-H4: with the bag empty, whether the turn lost a placement or a held piece took its place.
 export type ScrapTrackMetadata = Type.Static<typeof ScrapTrackMetadata>
 export const ScrapTrackMetadata = Type.Object({
     bagEmpty: Type.Boolean(),
-    replacement: Type.Optional(RailroadIdSchema)
+    replacement: Type.Optional(RailroadIdSchema),
+    placementLost: Type.Optional(Type.Boolean())
 })
 
 export type ScrapTrack = Type.Static<typeof ScrapTrack>
@@ -76,7 +78,7 @@ export function scrapTrackRefusal(
     return undefined
 }
 
-// R-3.3, R-3.3-H1, R-2.2-H2: the piece leaves the game and one replacement is drawn face up.
+// R-3.3, R-3.3-H1, R-2.2-H2, R-6.3-H4: the piece leaves the game and one replacement is drawn face up.
 export class HydratedScrapTrack extends HydratableAction<typeof ScrapTrack> implements ScrapTrack {
     declare type: ActionType.ScrapTrack
     declare playerId: string
@@ -97,9 +99,12 @@ export class HydratedScrapTrack extends HydratableAction<typeof ScrapTrack> impl
         state.scrapped[this.railroadId] += 1
 
         if (state.bag.isEmpty()) {
-            // R-3.3-H1: with nothing to draw, the turn places one piece fewer.
-            turn.placementsLeft -= 1
-            this.metadata = { bagEmpty: true }
+            // R-3.3-H1, R-6.3-H4: with nothing to draw, the placements left are limited by the
+            // pieces held. Three pieces lose a placement; the variant's held fourth piece takes
+            // the scrapped one's place.
+            const before = turn.placementsLeft
+            turn.placementsLeft = Math.min(before, turn.pieces.length)
+            this.metadata = { bagEmpty: true, placementLost: turn.placementsLeft < before }
             return
         }
         // R-3.3-H1: the replacement is placed this turn, so it is drawn face up.

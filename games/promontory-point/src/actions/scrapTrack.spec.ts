@@ -16,6 +16,7 @@ import { SellShare } from './sellShare.js'
 const CP = 'railroad.cp'
 const UP = 'railroad.up'
 const KP = 'railroad.kp'
+const SP = 'railroad.sp'
 
 function scrap(
     game: Game,
@@ -31,8 +32,11 @@ function scrap(
 }
 
 // The turn revealed with KP boxed in by UP pieces and the named turn pieces.
-function boxedIn(pieces: RailroadId[] = [KP, CP, UP], options: { emptyBag?: boolean } = {}) {
-    const { game, state } = startGame()
+function boxedIn(
+    pieces: RailroadId[] = [KP, CP, UP],
+    options: { emptyBag?: boolean; variant?: boolean } = {}
+) {
+    const { game, state } = startGame({ config: { fourPieceVariant: options.variant === true } })
     const turn = withNoRoomFor(withTurnPieces(revealedTurn(game, state), pieces), KP, UP)
     return { game, state: options.emptyBag === true ? withEmptyBag(turn) : turn }
 }
@@ -68,9 +72,94 @@ describe('ScrapTrack', () => {
         expect(updatedState.turn?.pieces).toEqual([CP, UP])
         expect(updatedState.turn?.placementsLeft).toBe(PLACEMENTS_PER_TURN - 1)
         expect(updatedState.bag.remaining).toBe(0)
-        expect(processedActions[0]).toHaveProperty('metadata', { bagEmpty: true })
+        expect(processedActions[0]).toHaveProperty('metadata', {
+            bagEmpty: true,
+            placementLost: true
+        })
         expect(processedActions[0].revealsInfo).toBeFalsy()
     })
+
+    // R-6.3-H4: the placements left never exceed the pieces held once the scrapped one is gone.
+    it.each([
+        {
+            case: 'base game, three pieces',
+            variant: false,
+            pieces: [KP, CP, UP],
+            placed: [],
+            left: 2,
+            lost: true
+        },
+        {
+            case: 'base game, a short hand of two',
+            variant: false,
+            pieces: [KP, CP],
+            placed: [],
+            left: 1,
+            lost: true
+        },
+        {
+            case: 'variant, four pieces',
+            variant: true,
+            pieces: [KP, CP, UP, SP],
+            placed: [],
+            left: 3,
+            lost: false
+        },
+        {
+            case: 'variant, four pieces after one placement',
+            variant: true,
+            pieces: [KP, CP, UP, SP],
+            placed: [CP],
+            left: 2,
+            lost: false
+        },
+        {
+            case: 'variant, four pieces after two placements',
+            variant: true,
+            pieces: [KP, CP, UP, SP],
+            placed: [CP, SP],
+            left: 1,
+            lost: false
+        },
+        {
+            case: 'variant, a short hand of three',
+            variant: true,
+            pieces: [KP, CP, UP],
+            placed: [],
+            left: 2,
+            lost: true
+        }
+    ] as {
+        case: string
+        variant: boolean
+        pieces: RailroadId[]
+        placed: RailroadId[]
+        left: number
+        lost: boolean
+    }[])(
+        'R-3.3-H1, R-6.3-H4: with the bag empty, $case: $left placements left, placement lost $lost',
+        ({ variant, pieces, placed, left, lost }) => {
+            const boxed = boxedIn(pieces, { emptyBag: true, variant })
+            const state = placed.reduce((current, railroadId) => {
+                const [spaceId] = openSpaceIds(current.track, railroadId)
+                assertExists(spaceId, `A space is open to ${railroadId}`)
+                return edited(withPlacementsMade(current, [[spaceId, railroadId]]), (draft) => {
+                    draft.machineState = MachineState.Placing
+                })
+            }, boxed.state)
+            const held = state.turn?.pieces.filter((_, index) => index > 0) ?? []
+
+            const { processedActions, updatedState } = scrap(boxed.game, state)
+
+            expect(updatedState.turn?.pieces).toEqual(held)
+            expect(updatedState.turn?.placementsLeft).toBe(left)
+            expect(updatedState.turn?.placementsMade).toBe(placed.length)
+            expect(processedActions[0]).toHaveProperty('metadata', {
+                bagEmpty: true,
+                placementLost: lost
+            })
+        }
+    )
 
     it('R-X.2: a scrap that draws is an Undo barrier; one with the bag empty undoes', () => {
         const drawing = boxedIn()

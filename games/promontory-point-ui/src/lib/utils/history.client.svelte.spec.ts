@@ -297,6 +297,42 @@ describe('history — each action as the actor, another seat and a spectator see
         expect(said(placement, undefined)).toBe('placed CP at Promontory: CP already at $25')
     })
 
+    // R-1.2: the five lowest spaces all read $0, so a move among them names its spaces.
+    it.each([
+        { before: 4, after: 2, capped: false, line: 'CP stays at $0 (2 spaces down)' },
+        { before: 2, after: 0, capped: true, line: 'CP stays at $0 (2 spaces down, capped)' },
+        { before: 1, after: 2, capped: false, line: 'CP stays at $0 (1 space up)' },
+        { before: 0, after: 3, capped: false, line: 'CP stays at $0 (3 spaces up)' },
+        { before: 3, after: 2, capped: true, line: 'CP stays at $0 (1 space down, capped)' },
+        { before: 5, after: 2, capped: false, line: 'CP $1 → $0' },
+        { before: 0, after: 0, capped: true, line: 'CP already at $0' }
+    ])(
+        'R-4.2, R-1.2: a move from index $before to $after reads "$line"',
+        ({ before, after, capped, line }) => {
+            const placement: PlaceTrack = {
+                id: 'placement',
+                gameId: 'game',
+                source: ActionSource.User,
+                type: ActionType.PlaceTrack,
+                playerId: 'p1',
+                railroadId: CP,
+                spaceId: 'space.0.0',
+                metadata: {
+                    spaceKind: BoardNodeKind.Town,
+                    outcome: {
+                        kind: TownEventKind.PriceChange,
+                        railroadId: CP,
+                        priceChange: after - before,
+                        priceIndexBefore: before,
+                        priceIndexAfter: after,
+                        capped
+                    }
+                }
+            }
+            expect(said(placement, undefined)).toBe(`placed CP on a town: ${line}`)
+        }
+    )
+
     it('R-4.3-H3: a debtor with no share to sell pays what it has and the rest is forgiven', () => {
         const payment: PayRepairs = {
             id: 'payment',
@@ -401,6 +437,30 @@ describe('history — each action as the actor, another seat and a spectator see
             'set aside SP; the bag is empty, one placement fewer'
         )
     })
+
+    it.each([
+        { placementLost: true, line: 'set aside SP; the bag is empty, one placement fewer' },
+        {
+            placementLost: false,
+            line: 'set aside SP; the bag is empty, the held piece takes its place'
+        }
+    ])(
+        'R-3.3-H1, R-6.3-H4: a scrap on an empty bag with placement lost $placementLost reads "$line"',
+        ({ placementLost, line }) => {
+            const scrap: ScrapTrack = {
+                id: 'scrap',
+                gameId: 'game',
+                source: ActionSource.User,
+                type: ActionType.ScrapTrack,
+                playerId: 'p1',
+                railroadId: SP,
+                metadata: { bagEmpty: true, placementLost }
+            }
+            for (const viewer of ['p1', 'p2', undefined]) {
+                expect(said(scrap, viewer)).toBe(line)
+            }
+        }
+    )
 })
 
 describe('history — turns and rounds (R-2.1, R-2.1-H1, R-2.2)', () => {

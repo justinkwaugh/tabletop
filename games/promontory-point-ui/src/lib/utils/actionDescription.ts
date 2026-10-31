@@ -97,6 +97,13 @@ function townOutcome(outcome: TownEffectOutcome): DescriptionPart[] {
             if (outcome.priceIndexBefore === outcome.priceIndexAfter) {
                 return [railroad(outcome.railroadId), text(` already at ${dollars(after)}`)]
             }
+            if (before === after) {
+                // R-1.2: a move among the five $0 spaces names the spaces moved, not "$0 → $0".
+                return [
+                    railroad(outcome.railroadId),
+                    text(` stays at ${dollars(after)} (${spacesMoved(outcome)})`)
+                ]
+            }
             return [
                 railroad(outcome.railroadId),
                 text(` ${dollars(before)} → ${dollars(after)}${outcome.capped ? ' (capped)' : ''}`)
@@ -136,17 +143,41 @@ function townOutcome(outcome: TownEffectOutcome): DescriptionPart[] {
     }
 }
 
-// R-3.3-H1, R-5: the scrapped piece and its replacement are public.
+// R-1.2: how far and which way the marker moved, and whether the track's end stopped it.
+function spacesMoved(outcome: {
+    priceIndexBefore: number
+    priceIndexAfter: number
+    capped: boolean
+}): string {
+    const moved = outcome.priceIndexAfter - outcome.priceIndexBefore
+    const count = Math.abs(moved)
+    const spaces = `${count} ${count === 1 ? 'space' : 'spaces'} ${moved < 0 ? 'down' : 'up'}`
+    return outcome.capped ? `${spaces}, capped` : spaces
+}
+
+// R-3.3-H1, R-5: the scrapped piece and its replacement are public; R-6.3-H4: with the bag
+// empty, a placement is lost unless a held piece takes the scrapped one's place.
 function scrapped(
     railroadId: RailroadId,
     replacement: RailroadId | undefined,
-    bagEmpty: boolean
+    bagEmpty: boolean,
+    placementLost: boolean
 ): DescriptionPart[] {
     const piece = [text('set aside '), railroad(railroadId)]
     if (replacement !== undefined) {
         return [...piece, text(' and drew '), railroad(replacement)]
     }
-    return bagEmpty ? [...piece, text('; the bag is empty, one placement fewer')] : piece
+    if (!bagEmpty) {
+        return piece
+    }
+    return [
+        ...piece,
+        text(
+            placementLost
+                ? '; the bag is empty, one placement fewer'
+                : '; the bag is empty, the held piece takes its place'
+        )
+    ]
 }
 
 function counted(sales: readonly DistressSale[]): DescriptionPart[] {
@@ -235,7 +266,8 @@ export function describeAction(
         return scrapped(
             action.railroadId,
             action.metadata?.replacement,
-            action.metadata?.bagEmpty ?? false
+            action.metadata?.bagEmpty ?? false,
+            action.metadata?.placementLost ?? true
         )
     }
     if (isPayRepairs(action)) {
