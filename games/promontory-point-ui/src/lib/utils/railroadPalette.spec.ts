@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { RAILROAD_IDS, type RailroadId } from '@tabletop/promontory-point'
-import { railroadColour, railroadInk } from './railroadPalette.js'
+import { railroadColour, railroadInk, railroadRim } from './railroadPalette.js'
 
 const appCss = readFileSync(new URL('../../app.css', import.meta.url), 'utf8')
 
@@ -33,6 +33,11 @@ function hue(hex: string): number {
     return sector * 60
 }
 
+function lightness(hex: string): number {
+    const channels = [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16) / 255)
+    return (Math.max(...channels) + Math.min(...channels)) / 2
+}
+
 describe('railroad palette', () => {
     it.each(RAILROAD_IDS)(
         'O-1: %s is drawn in its own token, in the colour the components give it',
@@ -45,6 +50,22 @@ describe('railroad palette', () => {
             const wrapped = degrees < from ? degrees + 360 : degrees
             expect(wrapped, `${railroadId} is ${name}`).toBeGreaterThanOrEqual(from)
             expect(wrapped, `${railroadId} is ${name}`).toBeLessThanOrEqual(to)
+        }
+    )
+
+    it.each(RAILROAD_IDS)(
+        'art plan, "Pieces": %s has a darker rim of its own hue',
+        (railroadId) => {
+            const tag = railroadId.replace('railroad.', '')
+            expect(railroadRim(railroadId)).toBe(`var(--pp-${tag}-rim)`)
+            const colour = tokenHex(`--pp-${tag}`)
+            const rim = tokenHex(`--pp-${tag}-rim`)
+            expect(lightness(rim)).toBeLessThan(lightness(colour))
+            const { from, to } = HUES[railroadId]
+            const degrees = hue(rim)
+            const wrapped = degrees < from ? degrees + 360 : degrees
+            expect(wrapped).toBeGreaterThanOrEqual(from)
+            expect(wrapped).toBeLessThanOrEqual(to)
         }
     )
 

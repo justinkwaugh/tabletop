@@ -19,7 +19,6 @@ import {
     localHexPoints,
     moneyMarkers,
     priceMarkerSlot,
-    seatInitials,
     townTileRotation,
     veilPath
 } from './boardLayout.js'
@@ -165,13 +164,5 @@ describe('chips (O-3)', () => {
         expect(chipPlacement(hex, [hex, neighbour(0, -1), neighbour(0, 1)])).toBe(
             ChipPlacement.Inside
         )
-    })
-})
-
-describe('initials (art plan, "Seat colours and colour blindness")', () => {
-    it('marks a seat with its name’s first letters, at most two', () => {
-        expect(seatInitials('Mara')).toBe('M')
-        expect(seatInitials('Player 2')).toBe('P2')
-        expect(seatInitials('ann marie lee')).toBe('AM')
     })
 })

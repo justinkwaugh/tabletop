@@ -275,6 +275,26 @@ test('O-8: the strip left of the map shows the bag, each deck with its price and
     await expect(tracker).toContainText(/Promontory\s*open/)
 })
 
+test('R-1.3-H1: a money marker is a disc in its seat colour with no letter on it', async ({
+    page
+}) => {
+    await createGame(page)
+    const seats = await page.evaluate(() => {
+        const session = window.promontoryPointBoardSession
+        return session.gameState.players.map((player) => ({
+            playerId: player.playerId,
+            colour: session.colors.getPlayerUiColor(player.playerId)
+        }))
+    })
+    for (const { playerId, colour } of seats) {
+        const marker = board(page).locator(`[data-money-marker="${playerId}"]`)
+        await expect(marker).toHaveAttribute('data-plus-100', 'false')
+        await expect(marker.locator('text')).toHaveCount(0)
+        expect(await marker.textContent()).toMatch(/^\s*$/)
+        await expect(marker.locator('[data-money-disc]')).toHaveAttribute('fill', colour)
+    }
+})
+
 // Plays the seeded game's turns, placing on the last lit hex, until a picked piece lights a
 // Dividend or Repairs town.
 async function playUntilChip(page: Page): Promise<void> {

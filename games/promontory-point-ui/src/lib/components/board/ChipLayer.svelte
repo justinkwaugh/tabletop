@@ -57,7 +57,7 @@
                 y={-HEIGHT / 2}
                 {width}
                 height={HEIGHT}
-                rx="12"
+                rx={HEIGHT / 2}
                 fill={cost ? 'var(--pp-cost)' : 'var(--pp-gain)'}
                 stroke="var(--pp-halo)"
                 stroke-width="7"
@@ -75,6 +75,7 @@
     .chip-text {
         text-anchor: middle;
         dominant-baseline: central;
-        font-weight: 700;
+        font-family: Oswald, sans-serif;
+        font-weight: 600;
     }
 </style>

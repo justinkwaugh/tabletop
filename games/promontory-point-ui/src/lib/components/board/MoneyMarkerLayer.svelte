@@ -4,7 +4,7 @@
     import { MoneyMarkerAnimator, moneyMarkerSize } from '$lib/animators/moneyMarkerAnimator.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { boxCentre } from '$lib/utils/boardGeometry.js'
-    import { moneyMarkers, seatInitials } from '$lib/utils/boardLayout.js'
+    import { moneyMarkers } from '$lib/utils/boardLayout.js'
 
     const gameSession = getGameSession()
 
@@ -34,7 +34,8 @@
     )
 </script>
 
-<!-- R-1.3-H1: one marker per seat on the border track, 2×2 when shared, "+100" past 99 ("+200" past 199). -->
+<!-- R-1.3-H1: one marker per seat on the border track, 2×2 in seat order when shared, "+100" past 99
+     ("+200" past 199). A marker is told by its colour alone. -->
 {#each markers as { playerId, centre, size, overflow } (playerId)}
     <g
         transform="translate({centre.x} {centre.y})"
@@ -49,22 +50,22 @@
                 rest: { ...centre, size }
             }}
         >
-            <rect
-                x={-size / 2}
-                y={-size / 2}
-                width={size}
-                height={size}
-                rx={size * 0.16}
+            <!-- Colour only: a seat-colour disc with a charcoal outline and a thin paper ring. -->
+            <circle cy={size * 0.06} r={size / 2} fill="var(--pp-halo)" opacity="0.4"></circle>
+            <circle
+                r={size / 2}
+                data-money-disc
                 fill={gameSession.colors.getPlayerUiColor(playerId)}
-                stroke="var(--pp-halo)"
-                stroke-width="6"
-            ></rect>
-            <text
-                class="pp-board-figure"
-                font-size={size * 0.5}
-                fill={gameSession.colors.getPlayerTextColorValue(playerId)}
-                >{seatInitials(gameSession.getPlayerName(playerId))}</text
-            >
+                stroke="var(--pp-charcoal)"
+                stroke-width={size * 0.07}
+            ></circle>
+            <circle
+                r={size * 0.31}
+                fill="none"
+                stroke="var(--pp-paper)"
+                stroke-opacity="0.7"
+                stroke-width={size * 0.035}
+            ></circle>
             {#if overflow > 0}
                 <rect
                     x={-size * 0.55}
@@ -74,8 +75,11 @@
                     rx="8"
                     fill="var(--pp-halo)"
                 ></rect>
-                <text class="pp-board-figure" y={-size / 2 - 1} font-size="24" fill="var(--pp-text)"
-                    >+{overflow}</text
+                <text
+                    class="pp-board-figure"
+                    y={-size / 2 - 1}
+                    font-size="24"
+                    fill="var(--pp-paper)">+{overflow}</text
                 >
             {/if}
         </g>

@@ -30,8 +30,8 @@
             r={TRACK_PIECE_RADIUS}
             data-piece-disc
             fill="var(--pp-hidden)"
-            stroke="var(--pp-halo)"
-            stroke-width={TRACK_PIECE_RADIUS * 0.14}
+            stroke="var(--pp-charcoal)"
+            stroke-width={TRACK_PIECE_RADIUS * 0.16}
         ></circle>
         <text
             text-anchor="middle"

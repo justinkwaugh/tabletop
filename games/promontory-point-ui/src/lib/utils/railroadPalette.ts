@@ -12,7 +12,12 @@ export function railroadColour(railroadId: RailroadId): string {
     return RAILROAD_COLOURS[railroadId]
 }
 
-// Southern Pacific's light yellow takes the dark ink.
+// The darker rim of the same hue on a drawn piece.
+export function railroadRim(railroadId: RailroadId): string {
+    return `var(--pp-${railroadId.replace('railroad.', '')}-rim)`
+}
+
+// Paper ink on a railroad colour; Southern Pacific's light yellow takes the dark ink.
 export function railroadInk(railroadId: RailroadId): string {
     return railroadId === 'railroad.sp' ? 'var(--pp-ink)' : 'var(--pp-rr-ink)'
 }

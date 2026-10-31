@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte'
+    import { roundNumber } from '@tabletop/common'
     import { RAILROAD_IDS } from '@tabletop/promontory-point'
     import { restMarker } from '$lib/animators/markerMotion.js'
     import { PriceMarkerAnimator, priceMarkerPose } from '$lib/animators/priceMarkerAnimator.js'
@@ -10,7 +11,17 @@
     import { railroadColour, railroadInk } from '$lib/utils/railroadPalette.js'
 
     const gameSession = getGameSession()
-    const RADIUS = 38
+    // A hex badge like the home hexes, a little wider than its slot's old disc.
+    const SIZE = 38
+    const hexPoints = (scale: number) =>
+        [0, 1, 2, 3, 4, 5]
+            .map((corner) => {
+                const angle = (Math.PI / 3) * corner - Math.PI / 2
+                return `${roundNumber(Math.cos(angle) * SIZE * scale, 1)},${roundNumber(Math.sin(angle) * SIZE * scale, 1)}`
+            })
+            .join(' ')
+    const OUTER = hexPoints(1.1)
+    const INNER = hexPoints(0.86)
 
     const animator = new PriceMarkerAnimator(gameSession)
     onMount(() => {
@@ -45,14 +56,24 @@
                 rest: priceMarkerPose(railroadId, priceIndex)
             }}
         >
-            <circle cy="5" r={RADIUS} fill="var(--pp-halo)" opacity="0.4"></circle>
-            <circle
-                r={RADIUS}
+            <polygon points={OUTER} transform="translate(0 5)" fill="var(--pp-halo)" opacity="0.4"
+            ></polygon>
+            <polygon
+                points={OUTER}
+                data-price-badge
                 fill={railroadColour(railroadId)}
-                stroke="var(--pp-halo)"
-                stroke-width="6"
-            ></circle>
-            <text class="pp-board-figure" font-size="32" fill={railroadInk(railroadId)}
+                stroke="var(--pp-charcoal)"
+                stroke-width={SIZE * 0.14}
+                stroke-linejoin="round"
+            ></polygon>
+            <polygon
+                points={INNER}
+                fill="none"
+                stroke={railroadInk(railroadId)}
+                stroke-opacity="0.6"
+                stroke-width={SIZE * 0.05}
+            ></polygon>
+            <text class="pp-board-figure" font-size={SIZE * 0.86} fill={railroadInk(railroadId)}
                 >{RAILROAD_TAGS[railroadId]}</text
             >
         </g>

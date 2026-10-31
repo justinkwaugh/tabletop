@@ -159,16 +159,6 @@ export function chipPlacement(spaceId: SpaceId, lit: readonly SpaceId[]): ChipPl
     return ChipPlacement.Inside
 }
 
-// Colour is never the only cue: each word's first letter, at most two ("Mara" M, "Player 2" P2).
-export function seatInitials(name: string): string {
-    return name
-        .split(/\s+/)
-        .filter((word) => word.length > 0)
-        .slice(0, 2)
-        .map((word) => word[0].toUpperCase())
-        .join('')
-}
-
 function pathPoint({ x, y }: Point): string {
     return `${roundNumber(x, 1)} ${roundNumber(y, 1)}`
 }
