@@ -1,6 +1,6 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import type { ScoreView } from '$lib/model/score.js'
+    import { viewerVerb, type ScoreView } from '$lib/model/score.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { score }: { score: ScoreView } = $props()
@@ -16,7 +16,7 @@
                     score.winnerIds.length - 1
                         ? ' and '
                         : ', '}{/if}<PlayerName playerId={winnerId} />{/each}
-            {score.winnerIds.length > 1 ? 'win' : 'wins'} with ${score.winningTotal}.
+            {viewerVerb(score.winnerIds, gameSession.myPlayer?.id, 'wins', 'win')} with ${score.winningTotal}.
         </b>
         {#if score.reason}
             <span class="ml-2 text-[13px] text-pp-muted" data-score-reason

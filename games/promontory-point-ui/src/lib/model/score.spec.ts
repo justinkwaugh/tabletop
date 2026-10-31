@@ -3,7 +3,7 @@ import { assertExists } from '@tabletop/common'
 import { MachineState, type RailroadId } from '@tabletop/promontory-point'
 import { dealtTable, type Table } from '$lib/testing/sessionHarness.js'
 import { seatOf, withHoldings } from '@tabletop/promontory-point/testing'
-import { scoreView } from './score.js'
+import { scoreView, viewerVerb } from './score.js'
 
 const CP: RailroadId = 'railroad.cp'
 const KP: RailroadId = 'railroad.kp'
@@ -70,5 +70,12 @@ describe('score (R-6.1, R-6.2, R-6.2-H1)', () => {
 
     it('no score before the game ends', () => {
         expect(scoreView(dealtTable().state)).toBeUndefined()
+    })
+
+    it('a verb after a name agrees with "You" when the viewer is the one named', () => {
+        expect(viewerVerb(['p1'], 'p1', 'wins', 'win')).toBe('win')
+        expect(viewerVerb(['p1'], 'p2', 'wins', 'win')).toBe('wins')
+        expect(viewerVerb(['p1', 'p2'], 'p3', 'wins', 'win')).toBe('win')
+        expect(viewerVerb(['p1'], undefined, 'is', 'are')).toBe('is')
     })
 })

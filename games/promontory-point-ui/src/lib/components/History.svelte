@@ -11,6 +11,7 @@
         type HistoryTurn
     } from '$lib/utils/actionAggregator.js'
     import { END_REASON_TEXT, endSummary } from '$lib/utils/endSummary.js'
+    import { viewerVerb } from '$lib/model/score.js'
 
     const timeAgo = createTimeAgo()
     const gameSession = getGameSession()
@@ -38,10 +39,6 @@
     const summary = $derived(
         !replaying && !gameSession.isViewingHistory ? endSummary(gameSession.gameState) : undefined
     )
-
-    function winVerb(winnerIds: string[]): string {
-        return winnerIds.length > 1 || winnerIds.includes(viewerId ?? '') ? 'win' : 'wins'
-    }
 
     async function jump(turn: HistoryTurn) {
         const index = jumpIndex(turn)
@@ -86,7 +83,7 @@
                             {#if index > 0}<span>and</span>{/if}
                             <PlayerName {playerId} />
                         {/each}
-                        {winVerb(summary.winnerIds)}
+                        {viewerVerb(summary.winnerIds, viewerId, 'wins', 'win')}
                     </span>
                     {#if gameSession.game.finishedAt}
                         <span class="when">{timeAgo.format(gameSession.game.finishedAt)}</span>
@@ -145,7 +142,8 @@
                                 {/each}
                                 {#if turn.sellingPlayerId}
                                     <li class="selling">
-                                        <PlayerName playerId={turn.sellingPlayerId} /> is selling…
+                                        <PlayerName playerId={turn.sellingPlayerId} />
+                                        {viewerVerb([turn.sellingPlayerId], viewerId, 'is', 'are')} selling…
                                     </li>
                                 {/if}
                             </ul>

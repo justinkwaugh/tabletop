@@ -23,6 +23,18 @@ export type ScoreView = {
     rows: ScoreRow[]
 }
 
+// PlayerName names the viewer "You", so a verb after the names agrees with it: "You win".
+export function viewerVerb(
+    subjectIds: readonly string[],
+    viewerId: string | undefined,
+    singular: string,
+    plural: string
+): string {
+    return subjectIds.length > 1 || (viewerId !== undefined && subjectIds.includes(viewerId))
+        ? plural
+        : singular
+}
+
 // R-6.1, R-6.2, R-6.2-H1: the score read from the final state; every tied leader wins.
 export function scoreView(state: Parameters<typeof endSummary>[0]): ScoreView | undefined {
     const summary = endSummary(state)
