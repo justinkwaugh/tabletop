@@ -27,24 +27,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 2158242001,
+        "seed": 122413660,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-30T21:52:55.807Z",
+        "createdAt": "2026-10-31T01:55:04.511Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-30T21:52:55.807Z"
+        "startedAt": "2026-10-31T01:55:04.511Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "mlGWj_sOnP3tfVHeCOyNA",
+        "id": "gbCE4su6mOdMBxdTxi1VO",
         "gameId": "scenario-gipf-board",
-        "seed": 2158242001,
+        "seed": 122413660,
         "prng": {
-            "seed": 2158242001,
+            "seed": 122413660,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 2109445702,
+            "seed": 2964487832,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -63,7 +63,7 @@
                     "yinsh": 4,
                     "punct": 4
                 },
-                "captured": 0
+                "captured": []
             },
             {
                 "playerId": "player-2",
@@ -76,7 +76,7 @@
                     "yinsh": 5,
                     "punct": 4
                 },
-                "captured": 0
+                "captured": []
             }
         ],
         "machineState": "TakingTurn",

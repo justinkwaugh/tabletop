@@ -3,9 +3,9 @@
     import { PieceKind, POTENTIAL_KINDS, type HydratedMatrxPlayerState } from '@tabletop/matrx'
     import PieceIcon from './PieceIcon.svelte'
 
-    // A player's potentials in reserve: each kind as a stack of two with how many stacks it
-    // makes, and a single beside it when one waits for its partner. With `choose`, each kind that
-    // can come in is a button, the chosen one ringed.
+    // A player's potentials in reserve: each kind as a single piece with how many pieces of it
+    // are left, dimmed when too few remain to make a stack. With `choose`, each kind that can come
+    // in is a button, the chosen one ringed.
     let {
         player,
         color,
@@ -34,26 +34,21 @@
 
 <div class="kinds">
     {#each POTENTIAL_KINDS as kind (kind)}
-        {@const stacks = player.stacksOf(kind)}
-        {@const single = player.potentials[kind] % 2 === 1}
+        {@const pieces = player.potentials[kind]}
         {@const can = choices.includes(kind)}
         <button
             type="button"
             class="kind"
             class:can
             class:chosen={can && chosen === kind}
-            class:empty={stacks === 0}
+            class:empty={player.stacksOf(kind) === 0}
             disabled={!can || choose === undefined}
-            title="{NAMES[kind]}: {stacks} {stacks === 1 ? 'stack' : 'stacks'}{single
-                ? ' and a single'
-                : ''}"
+            title="{NAMES[kind]}: {pieces} {pieces === 1 ? 'piece' : 'pieces'}"
             aria-label="bring in a {NAMES[kind]} stack"
             onclick={() => choose?.(kind)}
         >
-            <PieceIcon {color} {kind} discs={2} {size} />
-            <span class="count"
-                >{stacks}{#if single}<sup>+1</sup>{/if}</span
-            >
+            <PieceIcon {color} {kind} {size} />
+            <span class="count">{pieces}</span>
         </button>
     {/each}
 </div>
@@ -98,10 +93,5 @@
         font-size: 15px;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
-    }
-
-    sup {
-        font-size: 10px;
-        font-weight: 600;
     }
 </style>

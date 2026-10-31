@@ -28,24 +28,23 @@
             {#if isWinner}Winner{:else if isActive}Playing{/if}
         </span>
     </div>
-    <div class="rows">
-        <strong class="count">{gipfLeft}</strong>
-        <span class="caption">GIPF</span>
-        <span class="tally">
+    <div class="lines">
+        <div class="line reserve">
+            <ReserveKinds player={playerState} color={playerState.color} size={30} />
+        </div>
+        <div class="line">
+            <strong class="count">{gipfLeft}</strong>
+            <span class="caption">GIPF</span>
             <PieceTally
                 color={playerState.color}
-                stacks={Array<number>(gipfLeft).fill(1)}
-                kind={PieceKind.Gipf}
+                stacks={Array.from({ length: gipfLeft }, () => [PieceKind.Gipf])}
             />
-        </span>
-        <span class="reserve">
-            <ReserveKinds player={playerState} color={playerState.color} size={22} />
-        </span>
-        <strong class="count">{playerState.captured}</strong>
-        <span class="caption">captured</span>
-        <span class="tally">
+        </div>
+        <div class="line">
+            <strong class="count">{playerState.captured.length}</strong>
+            <span class="caption">captured</span>
             <PieceTally color={opponentColor} stacks={tallyStacks(playerState.captured)} />
-        </span>
+        </div>
     </div>
 </div>
 
@@ -67,22 +66,29 @@
             0 3px 8px rgb(0 0 0 / 0.22);
     }
 
-    .rows {
-        display: grid;
-        grid-template-columns: auto max-content 1fr;
-        align-items: center;
-        column-gap: 8px;
-        row-gap: 2px;
+    .lines {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
         padding: 6px 12px 8px;
     }
 
-    .reserve {
-        grid-column: 1 / -1;
+    .line {
         display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 30px;
+    }
+
+    .reserve {
         justify-content: center;
     }
 
-    /* Two digits wide, so both cards' captions line up. */
+    /* Count and caption at the left, the pieces themselves at the right, as in GIPF. */
+    .line > :global(svg) {
+        margin-left: auto;
+    }
+
     .count {
         min-width: 2ch;
         font-size: 19px;
@@ -94,12 +100,5 @@
         font-size: 13px;
         letter-spacing: 0.08em;
         color: var(--matrx-card-quiet);
-    }
-
-    .tally {
-        display: flex;
-        justify-content: flex-end;
-        min-height: 30px;
-        align-items: center;
     }
 </style>

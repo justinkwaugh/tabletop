@@ -185,7 +185,7 @@ export class HydratedMatrxGameState
             const unit = this.board.removeTop(coords)
             const size = unit.paired ? 2 : 1
             if (unit.playerId !== playerId) {
-                player.captured += size
+                player.captured.push(...Array<PieceKind>(size).fill(unit.kind))
             } else if (isPotentialKind(unit.kind)) {
                 player.potentials[unit.kind] += size
             } else {

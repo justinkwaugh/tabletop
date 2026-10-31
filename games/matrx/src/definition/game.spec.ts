@@ -425,7 +425,7 @@ describe('rows', () => {
         expect(state.players[0].potentials.tamsk).toBe(6)
         expect(state.players[0].potentials.yinsh).toBe(6 + 1)
         expect(state.players[0].potentials.dvonn).toBe(6 + 1)
-        expect(state.players[0].captured).toBe(1)
+        expect(state.players[0].captured).toEqual([PieceKind.Punct])
         expect(state.activePlayerIds).toEqual([B])
     })
 

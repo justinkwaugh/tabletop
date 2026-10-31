@@ -50,7 +50,7 @@ export class MatrxGameInitializer
                         yinsh: POTENTIALS_OF_KIND,
                         punct: POTENTIALS_OF_KIND
                     },
-                    captured: 0
+                    captured: []
                 })
         )
 

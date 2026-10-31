@@ -27,24 +27,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 566149235,
+        "seed": 2462741351,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-30T21:52:55.801Z",
+        "createdAt": "2026-10-31T01:55:04.503Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-30T21:52:55.801Z"
+        "startedAt": "2026-10-31T01:55:04.504Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "hTZ44swaqwwuXuHOZc1sD",
+        "id": "PpMuFGRTouX5ut1DskrQ2",
         "gameId": "scenario-take-a-row",
-        "seed": 566149235,
+        "seed": 2462741351,
         "prng": {
-            "seed": 566149235,
+            "seed": 2462741351,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 3902541833,
+            "seed": 735538075,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -63,7 +63,7 @@
                     "yinsh": 4,
                     "punct": 5
                 },
-                "captured": 0
+                "captured": []
             },
             {
                 "playerId": "player-2",
@@ -76,7 +76,7 @@
                     "yinsh": 5,
                     "punct": 6
                 },
-                "captured": 0
+                "captured": []
             }
         ],
         "machineState": "TakingTurn",

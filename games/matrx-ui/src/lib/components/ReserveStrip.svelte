@@ -16,6 +16,7 @@
         <ReserveKinds
             {player}
             color={player.color}
+            size={34}
             choices={session.pushKinds}
             chosen={session.chosenKind}
             choose={(kind) => session.chooseKind(kind)}

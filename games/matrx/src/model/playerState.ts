@@ -20,7 +20,8 @@ export const MatrxPlayerState = Type.Evaluate(
         Type.Object({
             gipfPieces: Type.Integer({ minimum: 0 }),
             potentials: Potentials,
-            captured: Type.Integer({ minimum: 0 })
+            // The opponent's pieces taken, one per disc, in the order they were taken.
+            captured: Type.Array(Type.Enum(PieceKind))
         })
     ])
 )
@@ -35,7 +36,7 @@ export class HydratedMatrxPlayerState
     declare color: Color
     declare gipfPieces: number
     declare potentials: Potentials
-    declare captured: number
+    declare captured: PieceKind[]
 
     constructor(data: MatrxPlayerState) {
         super(data, MatrxPlayerStateValidator)
