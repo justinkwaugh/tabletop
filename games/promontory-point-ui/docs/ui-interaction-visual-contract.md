@@ -76,7 +76,7 @@ A press on a share stack enlarges that share card. The name opens the seat at a 
 - **`BuyShare`** (R-3.1): one press sends; it costs the price, "free" at 0. Dimmed with a one-line reason when the deck is empty ("none left") or the seat cannot pay ("you have $3").
 - **`SellShare`** (R-3.2, R-3.2-H1): one press sends; it pays the price, $0 at 0. Dimmed when the seat holds none of that railroad.
 - Two share actions in all, before the first placement or after the third (R-2.2, R-2.2-H1). After two, every Buy and Sell is dimmed with "no share actions left".
-- No board pick is open, so nothing is dimmed and nothing is lit.
+- Nothing on the board is lit or dimmed until a piece is picked. When every piece in hand is of one railroad, that piece is auto-picked at once (Stage 1, `auto`), so the board opens with that railroad's legal hexes lit and the rest dimmed (Stage 2); a press on a lit hex places it, which closes buying and selling until the third piece.
 
 ### Placing a track piece (`PlaceTrack`)
 
