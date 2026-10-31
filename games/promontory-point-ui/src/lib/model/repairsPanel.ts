@@ -25,7 +25,6 @@ export type RepairsPanel = {
     prompt: RepairsPrompt
     entries: RepairsEntryView[]
     runningLine: string
-    enough: boolean
     // R-4.3-H1: the bill stays as fixed though the seat sells the railroad that caused it.
     billNote: string | undefined
     // R-4.3-H3: short after every sale, so one press sells them all.
@@ -75,7 +74,6 @@ export function repairsPanel(
             locked: entry.locked
         })),
         runningLine: draft.runningLine,
-        enough: draft.enough,
         billNote: draft.holdsBilledRailroad
             ? `Selling ${tag} does not lower the bill. The other rows lock once you can pay.`
             : undefined,

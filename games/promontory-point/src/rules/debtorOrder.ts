@@ -8,14 +8,17 @@ export function debtorOrder(
     placingPlayerId: string,
     debtors: Debtor[]
 ): Debtor[] {
-    const { turnOrder } = state.turnManager
-    const placingSeat = turnOrder.indexOf(placingPlayerId)
-    assert(placingSeat >= 0, `No seat for the placing player ${placingPlayerId}`)
-    const seatOrderFromPlacing = [
-        ...turnOrder.slice(placingSeat),
-        ...turnOrder.slice(0, placingSeat)
-    ]
-    return seatOrderFromPlacing.flatMap((playerId) =>
+    return seatOrderFrom(state, placingPlayerId).flatMap((playerId) =>
         debtors.filter((debtor) => debtor.playerId === playerId)
     )
+}
+
+export function seatOrderFrom(
+    state: Pick<PromontoryPointProjectedState, 'turnManager'>,
+    firstPlayerId: string
+): string[] {
+    const { turnOrder } = state.turnManager
+    const firstSeat = turnOrder.indexOf(firstPlayerId)
+    assert(firstSeat >= 0, `No seat for player ${firstPlayerId}`)
+    return [...turnOrder.slice(firstSeat), ...turnOrder.slice(0, firstSeat)]
 }

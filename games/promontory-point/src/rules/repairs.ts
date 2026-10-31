@@ -75,11 +75,11 @@ function assertShort(holdings: DebtorHoldings, owed: number) {
     assert(holdings.money < owed, 'A debtor has less money than the Repairs bill')
 }
 
-function raisedBy(sales: RailroadId[], priceIndex: PriceIndex): number {
+export function raisedBy(sales: readonly RailroadId[], priceIndex: PriceIndex): number {
     return sum(sales.map((railroadId) => distressSaleProceeds(priceIndex, railroadId)))
 }
 
-function soldCount(sales: RailroadId[], railroadId: RailroadId): number {
+export function soldCount(sales: readonly RailroadId[], railroadId: RailroadId): number {
     return sales.filter((sold) => sold === railroadId).length
 }
 

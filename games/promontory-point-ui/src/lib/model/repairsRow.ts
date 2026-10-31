@@ -2,6 +2,7 @@ import type { GameAction } from '@tabletop/common'
 import {
     TownEventKind,
     isPayRepairs,
+    seatOrderFrom,
     type HydratedPromontoryPointGameState,
     type RailroadId
 } from '@tabletop/promontory-point'
@@ -28,8 +29,6 @@ export type RepairsRowEntry = {
     short?: number
     // What follows the bill, e.g. "paid $6" or "choosing shares to sell".
     text: string
-    // A tick after the text: the bill is paid in full.
-    paidInFull: boolean
 }
 
 export type RepairsRowView = {
@@ -57,21 +56,14 @@ export function repairsRow(
     }
     const placingIndex = actions.lastIndexOf(placement)
     const payments = actions.slice(placingIndex + 1).filter(isPayRepairs)
-    const { turnOrder } = state.turnManager
-    const placingSeat = Math.max(0, turnOrder.indexOf(placement.playerId))
-    const seatOrderFromPlacing = [
-        ...turnOrder.slice(placingSeat),
-        ...turnOrder.slice(0, placingSeat)
-    ]
-    const entries = seatOrderFromPlacing.map((playerId): RepairsRowEntry => {
+    const entries = seatOrderFrom(state, placement.playerId).map((playerId): RepairsRowEntry => {
         const bill = outcome.bills.find((billed) => billed.playerId === playerId)
         if (bill === undefined) {
             return {
                 playerId,
                 bill: 0,
                 state: RepairsSeatState.NoShares,
-                text: 'no shares',
-                paidInFull: false
+                text: 'no shares'
             }
         }
         if (bill.paid === bill.owed) {
@@ -84,8 +76,7 @@ export function repairsRow(
                       playerId,
                       bill: bill.owed,
                       state: RepairsSeatState.Forgiven,
-                      text: `paid $${payment.paid} · $${payment.forgiven} forgiven`,
-                      paidInFull: false
+                      text: `paid $${payment.paid} · $${payment.forgiven} forgiven`
                   }
                 : paid(playerId, bill.owed)
         }
@@ -96,16 +87,14 @@ export function repairsRow(
                 bill: bill.owed,
                 state: RepairsSeatState.Choosing,
                 short: bill.owed - money,
-                text: 'choosing shares to sell',
-                paidInFull: false
+                text: 'choosing shares to sell'
             }
         }
         return {
             playerId,
             bill: bill.owed,
             state: RepairsSeatState.Waiting,
-            text: 'waiting',
-            paidInFull: false
+            text: 'waiting'
         }
     })
     return { railroadId: pending.railroadId, placingPlayerId: placement.playerId, entries }
@@ -116,7 +105,6 @@ function paid(playerId: string, bill: number): RepairsRowEntry {
         playerId,
         bill,
         state: RepairsSeatState.Paid,
-        text: `paid $${bill}`,
-        paidInFull: true
+        text: `paid $${bill}`
     }
 }

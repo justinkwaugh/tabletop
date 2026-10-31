@@ -92,13 +92,12 @@ describe('Repairs row (R-4.3, R-4.3-H1, R-4.3-H4)', () => {
         expect(row.railroadId).toBe(SP)
         expect(row.placingPlayerId).toBe(placer)
         expect(
-            row.entries.map(({ playerId, bill, state, short, text, paidInFull }) => ({
+            row.entries.map(({ playerId, bill, state, short, text }) => ({
                 playerId,
                 bill,
                 state,
                 short,
-                text,
-                paidInFull
+                text
             }))
         ).toEqual([
             {
@@ -106,32 +105,28 @@ describe('Repairs row (R-4.3, R-4.3-H1, R-4.3-H4)', () => {
                 bill: 0,
                 state: RepairsSeatState.NoShares,
                 short: undefined,
-                text: 'no shares',
-                paidInFull: false
+                text: 'no shares'
             },
             {
                 playerId: firstDebtor,
                 bill: 10,
                 state: RepairsSeatState.Choosing,
                 short: 3,
-                text: 'choosing shares to sell',
-                paidInFull: false
+                text: 'choosing shares to sell'
             },
             {
                 playerId: payer,
                 bill: 2,
                 state: RepairsSeatState.Paid,
                 short: undefined,
-                text: 'paid $2',
-                paidInFull: true
+                text: 'paid $2'
             },
             {
                 playerId: secondDebtor,
                 bill: 4,
                 state: RepairsSeatState.Waiting,
                 short: undefined,
-                text: 'waiting',
-                paidInFull: false
+                text: 'waiting'
             }
         ])
     })
@@ -150,8 +145,7 @@ describe('Repairs row (R-4.3, R-4.3-H1, R-4.3-H4)', () => {
         const entry = (playerId: string) => row.entries.find((seat) => seat.playerId === playerId)
         expect(entry(firstDebtor)).toMatchObject({
             state: RepairsSeatState.Paid,
-            text: 'paid $10',
-            paidInFull: true
+            text: 'paid $10'
         })
         expect(entry(secondDebtor)).toMatchObject({
             state: RepairsSeatState.Choosing,
@@ -258,8 +252,6 @@ describe('Repairs panel (R-4.3, R-4.3-H1 to H3)', () => {
             holdsBilledRailroad: false,
             shortAfterEverySale: true,
             entries: [],
-            raised: 0,
-            enough: false,
             runningLine: 'Have $1 of $4 · $3 forgiven',
             send: { sales: [], paid: 1, forgiven: 3, ready: true, label: 'Pay $1 · $3 forgiven' }
         }

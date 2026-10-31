@@ -32,7 +32,9 @@
                 <span>·</span>
             {/if}
             <span data-repairs-text
-                >{entry.text}{#if entry.paidInFull}{' '}<span class="ok">✓</span>{/if}</span
+                >{entry.text}{#if entry.state === RepairsSeatState.Paid}{' '}<span class="ok"
+                        >✓</span
+                    >{/if}</span
             >
         </li>
     {/each}

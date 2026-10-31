@@ -2,9 +2,11 @@ import {
     RAILROAD_IDS,
     SHARES_PER_RAILROAD,
     distressSaleProceeds,
+    raisedBy,
     saleListRefusal,
     settleRepairs,
     sharePriceAt,
+    soldCount,
     type PromontoryPointProjectedPlayerState,
     type PromontoryPointProjectedState,
     type RailroadId
@@ -113,8 +115,6 @@ export type RepairsDraftView = {
     holdsBilledRailroad: boolean
     shortAfterEverySale: boolean
     entries: RepairsSaleEntry[]
-    raised: number
-    enough: boolean
     runningLine: string
     send: RepairsSend
 }
@@ -134,10 +134,10 @@ export function repairsDraftView(
     const { railroadId, owed, holdings, priceIndex } = decision
     const everySale = everyShareHeld(holdings.shares)
     const shortAfterEverySale = holdings.money + raisedBy(everySale, priceIndex) < owed
-    const raised = raisedBy(staged, priceIndex)
+    const { raised, paid, forgiven } = settleRepairs(holdings, owed, priceIndex, staged)
     const enough = holdings.money + raised >= owed
     const entries = RAILROAD_IDS.filter((held) => holdings.shares[held] > 0).map((held) => {
-        const stagedCount = countOf(staged, held)
+        const stagedCount = soldCount(staged, held)
         return {
             railroadId: held,
             held: holdings.shares[held],
@@ -147,7 +147,6 @@ export function repairsDraftView(
             locked: enough || stagedCount >= holdings.shares[held]
         }
     })
-    const { paid, forgiven } = settleRepairs(holdings, owed, priceIndex, staged)
     const ready = saleListRefusal(holdings, owed, priceIndex, staged) === undefined
     return {
         railroadId,
@@ -156,8 +155,6 @@ export function repairsDraftView(
         holdsBilledRailroad: holdings.shares[railroadId] > 0,
         shortAfterEverySale,
         entries,
-        raised,
-        enough,
         runningLine: runningLine(holdings.money, staged.length, raised, owed, forgiven, ready),
         send: {
             sales: staged,
@@ -212,15 +209,4 @@ function sendLabel(sales: RailroadId[], paid: number, forgiven: number): string 
     const what =
         railroads.size === 1 && only !== undefined ? `${RAILROAD_TAGS[only]} ${shares}` : shares
     return `Sell ${sales.length} ${what} · pay $${paid}`
-}
-
-function raisedBy(
-    sales: readonly RailroadId[],
-    priceIndex: PromontoryPointProjectedState['priceIndex']
-): number {
-    return sales.reduce((total, sold) => total + distressSaleProceeds(priceIndex, sold), 0)
-}
-
-function countOf(sales: readonly RailroadId[], railroadId: RailroadId): number {
-    return sales.filter((sold) => sold === railroadId).length
 }
