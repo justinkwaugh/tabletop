@@ -10,8 +10,12 @@
 
     const PIECE_RADIUS = 18
 
+    // The piece a mouse or pen is over; touch never holds one.
+    let pointerHeld: RailroadId | undefined
+
     function hover(event: PointerEvent, railroadId: RailroadId | undefined) {
         if (event.pointerType !== 'touch') {
+            pointerHeld = railroadId
             gameSession.hoverPiece(railroadId)
         }
     }
@@ -27,18 +31,10 @@
         }
     }
 
-    // A click on another piece blurs this one after the pointer's hover set the preview there,
-    // so blur keeps a preview the pointer still holds.
-    function blur(event: FocusEvent) {
-        const group =
-            event.currentTarget instanceof Element ? event.currentTarget.parentElement : null
-        const pointed = group?.querySelector<HTMLElement>('[data-turn-piece]:hover')
-        if (
-            pointed?.dataset.turnPiece === undefined ||
-            pointed.dataset.turnPiece !== gameSession.hoveredPiece
-        ) {
-            gameSession.hoverPiece(undefined)
-        }
+    // Leaving a piece hands the preview back to the piece the pointer holds, if any: a click on
+    // another piece blurs this one after the pointer's hover set the preview there.
+    function blur() {
+        gameSession.hoverPiece(pointerHeld)
     }
 </script>
 

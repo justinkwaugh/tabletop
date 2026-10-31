@@ -134,6 +134,28 @@ test('contract, "Hover preview": a click moving focus to another piece keeps the
     expect(await hovered()).toBeUndefined()
 })
 
+test('contract, "Hover preview": leaving a keyboard-focused piece returns the preview to the piece under the pointer', async ({
+    page
+}) => {
+    await createGame(page)
+    const railroads = await page
+        .locator('[data-turn-piece]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-turn-piece')))
+    const second = railroads.find((railroadId) => railroadId !== railroads[0])
+    expect(second).toBeDefined()
+    const hovered = () => page.evaluate(() => window.promontoryPointBoardSession.hoveredPiece)
+    await page.locator(`[data-turn-piece="${second}"]`).first().hover()
+    expect(await hovered()).toBe(second)
+
+    // A key press first, so the focus that follows counts as keyboard focus (:focus-visible).
+    const focused = page.locator(`[data-turn-piece="${railroads[0]}"]`).first()
+    await page.keyboard.press('Tab')
+    await focused.focus()
+    expect(await hovered()).toBe(railroads[0])
+    await focused.blur()
+    expect(await hovered()).toBe(second)
+})
+
 test('R-3.3: a press on a lit hex places the piece with its order badge', async ({ page }) => {
     await createGame(page)
     const [target] = await pickFirstPiece(page)
