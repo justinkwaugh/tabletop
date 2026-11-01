@@ -194,6 +194,28 @@ describe('planning a round', () => {
         expect(keeps('history')).toBe(false)
     })
 
+    it('keeps what the farmer looks at through the round, and opens a new round on their own', () => {
+        const table = atSowing()
+        const session = openSessionOn(table)
+        session.showFarm('p3')
+        flushSync()
+        const sealed = submit(table, 'p2', { kind: PlanKind.Sow, seeds: [] })
+        session.gameState = new HydratedDickeKartoffelnGameState(sealed.state)
+        flushSync()
+        expect([session.view, session.farmPlayerId]).toEqual([TableView.Farm, 'p3'])
+
+        session.showSheet('p2')
+        flushSync()
+        let next = sealed
+        for (const playerId of ['p1', 'p3']) {
+            next = submit(next, playerId, { kind: PlanKind.Sow, seeds: [] })
+        }
+        expect(next.state.machineState).not.toBe(MachineState.Sowing)
+        session.gameState = new HydratedDickeKartoffelnGameState(next.state)
+        flushSync()
+        expect([session.farmPlayerId, session.sheetPlayerId]).toEqual(['p1', 'p1'])
+    })
+
     it('keeps the farm, the open seed picker and the sown bags when another farmer seals', async () => {
         const table = atSowing()
         const session = openSessionOn(table)

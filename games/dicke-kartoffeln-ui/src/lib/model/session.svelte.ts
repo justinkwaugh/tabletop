@@ -151,19 +151,27 @@ export class DickeKartoffelnGameSession extends GameSession<
 
     planning: boolean = $derived(this.myPlanningTurn && !this.pendingYearEnd)
 
-    // The view follows the round through a value of its own: a state for the same round, such as
-    // another farmer sealing, leaves the farmer where they are looking.
     private round: MachineState = $derived(this.gameState.machineState)
 
-    view: TableView = $derived(SHEET_ROUNDS.includes(this.round) ? TableView.Sheet : TableView.Farm)
-
-    farmPlayerId: string | undefined = $derived(
+    private ownPlayerId: string | undefined = $derived(
         this.myPlayerId ?? this.gameState.players[0]?.playerId
     )
 
-    sheetPlayerId: string | undefined = $derived(
-        this.myPlayerId ?? this.gameState.players[0]?.playerId
+    // What the table shows follows the round through values of their own: a state for the same
+    // round, such as another farmer sealing, leaves the farmer looking where they chose, and a new
+    // round opens on its own view of the farmer's own farm and sheet.
+    private roundOpening: { round: MachineState; playerId: string | undefined } = $derived({
+        round: this.round,
+        playerId: this.ownPlayerId
+    })
+
+    view: TableView = $derived(
+        SHEET_ROUNDS.includes(this.roundOpening.round) ? TableView.Sheet : TableView.Farm
     )
+
+    farmPlayerId: string | undefined = $derived(this.roundOpening.playerId)
+
+    sheetPlayerId: string | undefined = $derived(this.roundOpening.playerId)
 
     // Keyed by farmer, year and round: a draft kept while other farmers seal reads as empty in any
     // other round, so it can never be submitted there.
