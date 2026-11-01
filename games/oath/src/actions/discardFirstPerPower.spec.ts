@@ -147,10 +147,17 @@ function resolveOf(s: HydratedOathGameState, choice: SearchResolveChoice) {
 }
 
 describe("one card discarded first per power that gives one: Crop Rotation with the People's Favor", () => {
-    it('two powers: the Tents at the Plains and the Rowdy Pub at the River, accepted in either order', () => {
-        const s = searched()
-        expect(checkOf(s, kept([TENTS, ROWDY_PUB]))).toBeUndefined()
-        expect(checkOf(s, kept([ROWDY_PUB, TENTS]))).toBeUndefined()
+    it('two powers: the Tents at the Plains and the Rowdy Pub at the River, accepted in either order, and both go', () => {
+        for (const firsts of [
+            [TENTS, ROWDY_PUB],
+            [ROWDY_PUB, TENTS]
+        ]) {
+            const s = searched()
+            expect(checkOf(s, kept(firsts))).toBeUndefined()
+            resolveOf(s, kept(firsts))
+            expect(s.denizensAt('c1')).toEqual([WOLVES, ALCHEMIST])
+            expect(s.denizensAt('c2')).toEqual([GAMBLING_HALL])
+        }
     })
 
     it('applied: both leave the map, Alchemist joins the Plains, and both are recorded as discarded', () => {
@@ -290,11 +297,16 @@ describe('one card discarded first per power: the Homeland ledger once per card'
         discardOrder: [FILLER, CAPTAINS]
     })
 
-    it('the Wolves and the Rowdy Pub first: no Hearth card left the Valley, so the Homeland pays', () => {
+    it('the Wolves and the Rowdy Pub first: both go, no Hearth card left the Valley, so the Homeland pays', () => {
         const s = searched(valley())
         const before = favorOf(s)
         resolveOf(s, inn([WOLVES, ROWDY_PUB]))
+        expect(s.denizensAt('c1')).toEqual([SONGS, INN])
+        expect(s.denizensAt('c2')).toEqual([GAMBLING_HALL])
         expect(favorOf(s) - before).toBe(2)
+        expect(s.getPlayerState(DANA).homelandUsedThisTurn).toEqual(
+            expect.arrayContaining(['c1:beast', 'c2:hearth'])
+        )
     })
 
     it('the Wolves and Tavern Songs first: Tavern Songs is Hearth, discarded at the Valley, so it does not', () => {
