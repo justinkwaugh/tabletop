@@ -787,19 +787,25 @@ export function adviserDiscardable(
 /**
  * R-5.1.4.II, R-7.6.4 — the discards an adviser play may make, in row order: as many advisers as it needs, each one
  * that may go, and from revision 31 together leaving the player within their limit once the card is played. With
- * room, one discard of nothing.
+ * room, one discard of nothing. R-7.4.3 — `modifiersInUse`: the cards in use of an R-6.1 play, judged before it
+ * records them (`HydratedPlayFacedownAdviser.cardsInUse`), as its own check judges them.
  */
 export function adviserPlayDiscardSets(
     state: HydratedOathGameState,
     playerId: string,
     cardId: string,
-    options: Pick<CardPlayOptions, 'faceUp' | 'fromAdvisers'>
+    options: Pick<CardPlayOptions, 'faceUp' | 'fromAdvisers' | 'modifiersInUse'>
 ): string[][] {
     const needed = adviserDiscardsNeeded(state, playerId, cardId, options)
     const discardable = state
         .getPlayerState(playerId)
         .knownAdviserIds()
-        .filter((id) => id !== cardId && adviserDiscardable(state, playerId, id))
+        .filter(
+            (id) =>
+                id !== cardId &&
+                reasonAdviserNotDiscardable(state, playerId, id, options.modifiersInUse) ===
+                    undefined
+        )
     return subsetsOf(discardable, needed).filter(
         (discards) =>
             reasonAdviserPlayOverLimit(state, playerId, cardId, options, discards) === undefined

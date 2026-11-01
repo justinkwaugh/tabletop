@@ -279,6 +279,20 @@ export class HydratedPlayFacedownAdviser
         )
     }
 
+    /**
+     * R-7.4.3 — the cards a play declaring `uses` puts in use, as its checks judge them before the play records them:
+     * the declared modifiers and the mandatory ones acting on the play, from revision 31; none before it (R-X.4).
+     */
+    static cardsInUse(
+        state: HydratedOathGameState,
+        playerId: string,
+        play: SearchPlay,
+        uses: readonly ModifierUse[] | undefined
+    ): string[] {
+        const { active } = HydratedPlayFacedownAdviser.playModifiers(state, playerId, play, uses)
+        return modifierCardsInUse(state, active)
+    }
+
     /** R-6.1 — where the adviser may go, judged apart from its When Played choices. */
     static reasonCannotPlace(
         state: HydratedOathGameState,

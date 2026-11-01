@@ -17,6 +17,7 @@ import { testGame } from '../testing/game.js'
 import { served } from '../testing/projection.js'
 import { FILLER, INN } from '../testing/cards.js'
 import { adviserLimitDiscards } from '../util/adviserLimit.js'
+import { adviserPlayDiscardSets } from '../util/cardPlay.js'
 import type { ModifierUse } from '../util/modifiers.js'
 import { OathRevision } from '../util/revision.js'
 import '../powers/index.js'
@@ -34,6 +35,7 @@ const TWIN = 'denizen.nomad.twin-brother'
 const ROAR = 'denizen.beast.threatening-roar'
 const AUGURY = 'denizen.arcane.augury'
 const FORCED_LABOR = 'denizen.order.forced-labor'
+const PIPER = 'denizen.beast.pied-piper'
 
 const FIXED = OathRevision.EngineFixes26
 const BEFORE = OathRevision.Chronicle
@@ -142,6 +144,79 @@ function accepted(s: HydratedOathGameState, p: Play): boolean {
 }
 
 const advisersOf = (s: HydratedOathGameState) => s.getPlayerState('dana').knownAdviserIds()
+
+describe('the discards a facedown adviser played faceup may make leave out the cards it uses (R-6.1, R-7.4.3)', () => {
+    // Pied Piper kept faceup at the limit prompts no discard and counts once held (its Q&A): Dana holds four advisers
+    // over a limit of three, so turning the facedown Wolves faceup must discard one. Wild Cry, first in their row, is
+    // declared for that play ("If you play a beast card").
+    const PIPER_TABLE: Table = { faceup: [WILD_CRY, RANGERS, PIPER], facedown: WOLVES }
+    const DECLARED = [modifierUse(WILD_CRY)]
+    const setsOf = (s: HydratedOathGameState, modifiers: ModifierUse[]) =>
+        adviserPlayDiscardSets(s, 'dana', WOLVES, {
+            faceUp: true,
+            fromAdvisers: true,
+            modifiersInUse: HydratedPlayFacedownAdviser.cardsInUse(
+                s,
+                'dana',
+                SearchPlay.Adviser,
+                modifiers
+            )
+        })
+    const flip = (discarded: string): Play => ({
+        cardId: WOLVES,
+        play: SearchPlay.Adviser,
+        discardedAdviserCardIds: [discarded],
+        modifiers: DECLARED
+    })
+
+    it('Wild Cry declared is in use; nothing declared, nothing is', () => {
+        const s = table(FIXED, PIPER_TABLE)
+        expect(
+            HydratedPlayFacedownAdviser.cardsInUse(s, 'dana', SearchPlay.Adviser, DECLARED)
+        ).toEqual([WILD_CRY])
+        expect(HydratedPlayFacedownAdviser.cardsInUse(s, 'dana', SearchPlay.Adviser, [])).toEqual(
+            []
+        )
+    })
+
+    it('with Wild Cry in use the discards are the Rangers or the Piper, each accepted; Wild Cry is refused', () => {
+        const s = table(FIXED, PIPER_TABLE)
+        expect(setsOf(s, DECLARED)).toEqual([[RANGERS], [PIPER]])
+        for (const [discarded] of setsOf(s, DECLARED)) {
+            expect(placeOf(s, flip(discarded))).toBeUndefined()
+        }
+        expect(placeOf(s, flip(WILD_CRY))).toBe(IN_USE(WILD_CRY))
+    })
+
+    it('with nothing declared Wild Cry may go, first in row order, as the sets without in-use cards list it', () => {
+        const s = table(FIXED, PIPER_TABLE)
+        expect(setsOf(s, [])).toEqual([[WILD_CRY], [RANGERS], [PIPER]])
+        expect(
+            adviserPlayDiscardSets(s, 'dana', WOLVES, { faceUp: true, fromAdvisers: true })
+        ).toEqual(setsOf(s, []))
+    })
+
+    it('before revision 31 nothing is in use, and Wild Cry declared may go as before', () => {
+        const s = table(BEFORE, PIPER_TABLE)
+        expect(
+            HydratedPlayFacedownAdviser.cardsInUse(s, 'dana', SearchPlay.Adviser, DECLARED)
+        ).toEqual([])
+        expect(setsOf(s, DECLARED)).toEqual([[WILD_CRY], [RANGERS], [PIPER]])
+        expect(placeOf(s, flip(WILD_CRY))).toBeUndefined()
+    })
+
+    it("on Dana's own view: the same answers, with neither the state copied nor changed", () => {
+        const s = table(FIXED, PIPER_TABLE)
+        const server = JSON.stringify(s.dehydrate())
+        const own = ownView(s)
+        expect(
+            HydratedPlayFacedownAdviser.cardsInUse(own, 'dana', SearchPlay.Adviser, DECLARED)
+        ).toEqual([WILD_CRY])
+        expect(setsOf(own, DECLARED)).toEqual([[RANGERS], [PIPER]])
+        expect(own.searchModifiersInUse).toBeUndefined()
+        expect(JSON.stringify(s.dehydrate())).toBe(server)
+    })
+})
 
 describe('Wild Cry declared on a facedown adviser played faceup, discarded to meet the limit (R-6.1, R-7.4.3)', () => {
     // Family Wagon turned faceup allows one adviser that is not a Nomad: Wild Cry or the Wolves must go.
