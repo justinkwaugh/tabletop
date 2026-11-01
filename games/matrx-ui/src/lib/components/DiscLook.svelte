@@ -14,7 +14,7 @@
 
     // One disc's look, of one kind and tone, drawn in an SVG under its id: the looks page draws
     // each for scripts/render-looks.mjs to save as an image. The gradients come from the
-    // PieceDefs beside it. DVONN's hole and ZÈRTZ's notches are cut out of the drawn disc;
+    // LookDefs beside it. DVONN's hole and ZÈRTZ's notches are cut out of the drawn disc;
     // PÜNCT's side is built from bands between its notches, and only its top is cut.
     let {
         disc,

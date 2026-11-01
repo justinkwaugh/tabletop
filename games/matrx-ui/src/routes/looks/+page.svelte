@@ -3,7 +3,7 @@
     import { PIECE_RADIUS, viewOf } from '$lib/board/geometry.js'
     import { DISC_LOOKS, lookBox, lookName } from '$lib/board/pieceShape.js'
     import DiscLook from '$lib/components/DiscLook.svelte'
-    import PieceDefs from '$lib/components/PieceDefs.svelte'
+    import LookDefs from '$lib/components/LookDefs.svelte'
 
     // Every disc's look, each in an SVG of its own, for scripts/render-looks.mjs to save as files.
     const view = viewOf(BoardShape.Matrx)
@@ -18,7 +18,7 @@
         width={box.width * 4}
         height={box.height * 4}
     >
-        <defs><PieceDefs prefix="l" radius={PIECE_RADIUS} {view} looks={[]} /></defs>
+        <defs><LookDefs prefix="l" /></defs>
         <DiscLook {disc} radius={PIECE_RADIUS} prefix="l" {view} />
     </svg>
 {/each}

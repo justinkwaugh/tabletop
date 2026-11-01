@@ -1,15 +1,17 @@
 // Pre-renders every disc's look to its own bitmap in ../src/lib/images/looks, which the board and
 // the icons show as images. Drawn live, the looks' thousands of paths made opening a game and each
 // move slow on phones; shown as SVG images, iPhone browsers redrew each one every frame it moved.
-// Rerun after changing how a disc is drawn (board/pieceShape.ts, components/DiscLook.svelte or
-// PieceDefs.svelte), with the harness running:
+// It also writes board/lookUrls.ts, importing each file by name. Rerun after changing how a disc is
+// drawn (board/pieceShape.ts, components/DiscLook.svelte or LookDefs.svelte), with the harness
+// running:
 //   node scripts/render-looks.mjs   (PORT defaults to 5173)
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
 
-const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'lib', 'images', 'looks')
+const LIB = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'lib')
+const OUT = join(LIB, 'images', 'looks')
 const browser = await chromium.launch()
 const page = await browser.newPage()
 await page.goto(`http://localhost:${process.env.PORT ?? 5173}/looks`, { waitUntil: 'networkidle' })
@@ -99,4 +101,24 @@ for (const { name, data } of bitmaps) {
     writeFileSync(join(OUT, `${name}.webp`), bytes)
     console.log(name, bytes.length)
 }
+
+// Each file imported on its own: Vite and the published bundle's rollup both turn such an import
+// into the file's URL, where a glob is Vite's alone and fails in the bundle.
+const names = bitmaps.map(({ name }) => name).toSorted()
+const variable = (name) => name.replace(/-(\w)/g, (_, letter) => letter.toUpperCase())
+writeFileSync(
+    join(LIB, 'board', 'lookUrls.ts'),
+    [
+        '// Written by scripts/render-looks.mjs: the file of every look, by name.',
+        ...names.map((name) => `import ${variable(name)} from '../images/looks/${name}.webp'`),
+        '',
+        'export const LOOK_URLS: Record<string, string> = {',
+        ...names.map(
+            (name, index) =>
+                `    '${name}': ${variable(name)}${index < names.length - 1 ? ',' : ''}`
+        ),
+        '}',
+        ''
+    ].join('\n')
+)
 await browser.close()

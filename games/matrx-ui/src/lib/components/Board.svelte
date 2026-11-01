@@ -327,7 +327,7 @@
     {@attach animator.attach}
 >
     <defs>
-        <PieceDefs prefix="matrx-board" radius={PIECE_RADIUS} {view} />
+        <PieceDefs prefix="matrx-board" />
         <pattern
             id="matrx-board-fine"
             patternUnits="userSpaceOnUse"
