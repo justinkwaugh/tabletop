@@ -15,6 +15,7 @@ import {
 import { ContestAward } from '../components/messages.js'
 import {
     demandRange,
+    priceMarks,
     marketBoardFor,
     type DemandRange,
     type MarketBoardId
@@ -24,12 +25,12 @@ import { MachineState } from '../definition/states.js'
 import { HydratedMessageBoard, MessageBoard } from './messageDeck.js'
 import { DickeKartoffelnPlayerState, HydratedDickeKartoffelnPlayerState } from './playerState.js'
 
-// Demand is the lower bound of the demand row the marker rests on, in sacks; price is in marks.
+// The demand row and price space a market's markers rest on, by their IDs on the market board.
 export type MarketState = Type.Static<typeof MarketState>
 export const MarketState = Type.Object({
     id: Type.Enum(MarketId),
-    demand: Type.Number(),
-    price: Type.Number()
+    demandRowId: Type.String(),
+    priceSpaceId: Type.String()
 })
 
 // A ministry contest announced by a message, decided by the sales of the year it names.
@@ -123,11 +124,11 @@ export class HydratedDickeKartoffelnGameState
     }
 
     price(id: MarketId): number {
-        return this.market(id).price
+        return priceMarks(this.marketBoard(), this.market(id).priceSpaceId)
     }
 
     demand(id: MarketId): DemandRange {
-        return demandRange(this.marketBoard(), this.market(id).demand)
+        return demandRange(this.marketBoard(), this.market(id).demandRowId)
     }
 
     // Seed is bought at the NORM price of its variety.

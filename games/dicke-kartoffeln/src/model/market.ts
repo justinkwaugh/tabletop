@@ -1,9 +1,11 @@
 import * as Type from 'typebox'
 import {
-    demandRanges,
-    demandRow,
+    type DemandRange,
+    demandRange,
     demandRowFor,
+    demandRowIndex,
     priceChangeForDemandShift,
+    priceMarks,
     shiftedDemand,
     shiftedPrice
 } from '../components/marketBoards.js'
@@ -12,13 +14,18 @@ import { MarketId, Quality, marketDefinition } from '../components/potatoes.js'
 import type { HydratedDickeKartoffelnGameState } from './gameState.js'
 import type { FieldState } from './playerState.js'
 
+export const DemandRangeRecord = Type.Object({
+    min: Type.Number(),
+    max: Type.Optional(Type.Number())
+})
+
 export type MarketMove = Type.Static<typeof MarketMove>
-// Demand is the lower bound of the demand row in sacks, price is in marks.
+// The demand rows' ranges in sacks and the prices in marks, as they stood.
 export const MarketMove = Type.Object({
     marketId: Type.Enum(MarketId),
     offered: Type.Number(),
-    demandBefore: Type.Number(),
-    demandAfter: Type.Number(),
+    demandBefore: DemandRangeRecord,
+    demandAfter: DemandRangeRecord,
     priceBefore: Type.Number(),
     priceAfter: Type.Number()
 })
@@ -48,35 +55,39 @@ export function recalculateMarket(
     const board = state.marketBoard()
     const market = state.market(id)
     const offered = totalOffered(state, id)
-    const demandBefore = market.demand
-    const priceBefore = market.price
-    const rowBefore = demandRow(board, demandBefore)
-    const rowAfter = demandRowFor(board, offered)
+    const before = demandRange(board, market.demandRowId)
+    const after = demandRowFor(board, offered)
+    const priceBefore = priceMarks(board, market.priceSpaceId)
+    const rowBefore = demandRowIndex(board, before.id)
+    const rowAfter = demandRowIndex(board, after.id)
     const steps = priceChangeForDemandShift(Math.abs(rowAfter - rowBefore))
     const direction = Math.sign(rowBefore - rowAfter)
-    const demandAfter = demandRanges(board)[rowAfter].min
-    market.demand = demandAfter
-    market.price = shiftedPrice(board, priceBefore, direction * steps)
+    market.demandRowId = after.id
+    market.priceSpaceId = shiftedPrice(board, market.priceSpaceId, direction * steps)
     return {
         marketId: id,
         offered,
-        demandBefore,
-        demandAfter,
+        demandBefore: rangeOf(before),
+        demandAfter: rangeOf(after),
         priceBefore,
-        priceAfter: market.price
+        priceAfter: priceMarks(board, market.priceSpaceId)
     }
+}
+
+function rangeOf({ min, max }: DemandRange): DemandRange {
+    return max === undefined ? { min } : { min, max }
 }
 
 export function shiftDemand(state: HydratedDickeKartoffelnGameState, changes: MarketChanges) {
     const board = state.marketBoard()
     for (const market of state.markets) {
-        market.demand = shiftedDemand(board, market.demand, changes[market.id] ?? 0)
+        market.demandRowId = shiftedDemand(board, market.demandRowId, changes[market.id] ?? 0)
     }
 }
 
 export function shiftPrices(state: HydratedDickeKartoffelnGameState, steps: number) {
     const board = state.marketBoard()
     for (const market of state.markets) {
-        market.price = shiftedPrice(board, market.price, steps)
+        market.priceSpaceId = shiftedPrice(board, market.priceSpaceId, steps)
     }
 }

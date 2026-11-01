@@ -4,10 +4,10 @@
         MarketBoardId,
         Quality,
         VARIETIES,
-        demandRanges,
-        demandRow,
-        priceRow,
-        priceScale,
+        demandRowIndex,
+        demandRows,
+        priceSpaceIndex,
+        priceSpaces,
         startingPosition,
         type MarketId,
         type Variety
@@ -21,8 +21,8 @@
 
     const board = $derived(gameSession.gameState.marketBoard())
     const playerCount = $derived(gameSession.gameState.players.length)
-    const demand = $derived(demandRanges(board))
-    const prices = $derived(priceScale(board))
+    const demand = $derived(demandRows(board))
+    const prices = $derived(priceSpaces(board))
 
     const COLUMNS = ['demand', 'price'] as const
     const TITLE_HEIGHT = 44
@@ -55,8 +55,8 @@
     function startNotes(variety: Variety, row: number, column: 'demand' | 'price'): string[] {
         return marketsOf(variety).flatMap((market) => {
             const start = startingPosition(board, playerCount, market.id)
-            const printed = column === 'demand' ? demand[row].min : prices[row]
-            const startsAt = column === 'demand' ? start.demand : start.price
+            const printed = column === 'demand' ? demand[row].id : prices[row].id
+            const startsAt = column === 'demand' ? start.demandRowId : start.priceSpaceId
             return printed === startsAt ? [`start ${market.quality}`] : []
         })
     }
@@ -112,7 +112,7 @@
                 x={x + demandWidth + (tableWidth - demandWidth) / 2}
                 y={y + rowHeight * 0.58}
                 class="number"
-                text-anchor="middle">{prices[row]}</text
+                text-anchor="middle">{prices[row].marks}</text
             >
             {#each startNotes(variety, row, 'demand') as note, index (note)}
                 <text
@@ -138,8 +138,8 @@
                     cx={stoneX(column, market.quality, variety)}
                     cy={rowY(
                         column === 'demand'
-                            ? demandRow(board, state.demand)
-                            : priceRow(board, state.price)
+                            ? demandRowIndex(board, state.demandRowId)
+                            : priceSpaceIndex(board, state.priceSpaceId)
                     ) + rowHeight / 2}
                     r={Math.min(rowHeight * 0.36, 11)}
                     class="stone {market.quality === Quality.Bio ? 'bio' : 'norm'}"

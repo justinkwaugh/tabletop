@@ -131,6 +131,37 @@ describe('planning a round', () => {
         expect(actionUndo).toHaveBeenCalledOnce()
     })
 
+    it('closes an open seed picker before taking back any edit', async () => {
+        const actionUndo = spyOnActionUndo()
+        const session = openSessionOn(atSowing())
+        session.showMyFarm()
+        await session.clickField(1)
+        flushSync()
+        expect(session.hasManualSelection()).toBe(true)
+        await session.undo()
+        flushSync()
+        expect(session.seedPickerField).toBeUndefined()
+        expect(session.hasManualSelection()).toBe(false)
+        expect(actionUndo).not.toHaveBeenCalled()
+
+        await session.clickField(1)
+        session.chooseSeed(1, Variety.Chris)
+        await session.clickField(2)
+        flushSync()
+        expect(session.seedPickerField).toBe(2)
+        await session.undo()
+        flushSync()
+        expect(session.seedPickerField).toBeUndefined()
+        expect(session.preview?.plan).toEqual({
+            kind: PlanKind.Sow,
+            seeds: [{ fieldId: 1, variety: Variety.Chris }]
+        })
+        await session.undo()
+        flushSync()
+        expect(session.preview?.plan).toEqual({ kind: PlanKind.Sow, seeds: [] })
+        expect(actionUndo).not.toHaveBeenCalled()
+    })
+
     it('flags a plan that needs a loan', async () => {
         const table = startingTable()
         const players = table.state.players.map((player) =>

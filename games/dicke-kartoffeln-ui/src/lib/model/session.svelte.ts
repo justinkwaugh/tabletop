@@ -457,12 +457,17 @@ export class DickeKartoffelnGameSession extends GameSession<
         return !isYearEndAction(action) && super.shouldAutoStepAction(action, next)
     }
 
+    // An open seed picker is the first half of a sowing edit: the field is chosen, the seed not yet.
     hasManualSelection(): boolean {
-        return this.edits.length > 0
+        return this.seedPickerField !== undefined || this.edits.length > 0
     }
 
     override async undo() {
-        if (this.hasManualSelection()) {
+        if (this.seedPickerField !== undefined) {
+            this.closeSeedPicker()
+            return
+        }
+        if (this.edits.length > 0) {
             this.draft = { key: this.draftKey, edits: this.edits.slice(0, -1) }
             return
         }
