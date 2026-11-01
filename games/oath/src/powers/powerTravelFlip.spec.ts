@@ -498,12 +498,13 @@ describe('R-5.6.2, R-11.13-H1 — Palanquin reveals a facedown site only when a 
     /**
      * Dana, with Palanquin, stands with Rhys at the Buried Giant (c1); the Narrow Pass is p1, and
      * p2 is facedown, the Mine in the vault (a relic and favor on its reveal). `here` and `pass`
-     * replace the Giant and the Pass.
+     * replace the Giant and the Pass, and `facedown` the Mine.
      */
     interface Scene {
         oathRevision?: number
         here?: string
         pass?: string
+        facedown?: string
         rulers?: Record<string, Record<string, number>>
         atC2?: string[]
         rhysRelics?: string[]
@@ -512,6 +513,7 @@ describe('R-5.6.2, R-11.13-H1 — Palanquin reveals a facedown site only when a 
         oathRevision = OathRevision.EngineFixes26,
         here = BURIED_GIANT,
         pass = 'site.narrow-pass',
+        facedown = MINE,
         rulers = {},
         atC2 = [],
         rhysRelics = []
@@ -538,7 +540,7 @@ describe('R-5.6.2, R-11.13-H1 — Palanquin reveals a facedown site only when a 
             oathRevision
         )
         s.vault = createOathVault(
-            { siteFacedown: { p2: MINE }, relicDeck: [HORSE, WHISTLE] },
+            { siteFacedown: { p2: facedown }, relicDeck: [HORSE, WHISTLE] },
             getPrng(1)
         )
         return s
@@ -672,6 +674,40 @@ describe('R-5.6.2, R-11.13-H1 — Palanquin reveals a facedown site only when a 
         expect(used.metadata?.reveal).toEqual({ kind: 'site', siteCardId: MINE })
         expect(s.getPlayerState('rhys').siteId).toBe('p2')
         expect(s.getPlayerState('rhys').favor).toBe(3)
+    })
+
+    it('a facedown Hidden Place is judged as named, facedown: the use reveals it and both go, with no flip asked', () => {
+        const s = giant({ here: 'site.plains', pass: 'site.marshes', facedown: HIDDEN_PLACE })
+        const used = carry(s)
+        expect(used.metadata?.reveal).toEqual({ kind: 'site', siteCardId: HIDDEN_PLACE })
+        expect(asked(s)).toBeUndefined()
+        expect(s.getPlayerState('dana').siteId).toBe('p2')
+        expect(secretsOf(s, 'rhys')).toEqual({ siteId: 'p2', secrets: 2, secretsFacedown: 0 })
+
+        // Past the pass, the Buried Giant's one flip is asked, and the yes reveals it on arrival.
+        const past = giant({ facedown: HIDDEN_PLACE })
+        carry(past)
+        expect(asked(past)).toMatchObject({ kind: PowerQuestionKind.FlipToTravel })
+        expect(asked(past)).not.toHaveProperty('flips')
+        flip(past, true)
+        expect(past.siteCardAt('p2')).toBe(HIDDEN_PLACE)
+        expect(secretsOf(past, 'rhys')).toEqual({ siteId: 'p2', secrets: 1, secretsFacedown: 1 })
+    })
+
+    it('R-X.4 — before revision 31 a facedown Hidden Place revealed by the use asks its flip, as recorded', () => {
+        const s = giant({
+            oathRevision: OathRevision.Chronicle,
+            here: 'site.plains',
+            pass: 'site.marshes',
+            facedown: HIDDEN_PLACE
+        })
+        carry(s)
+        expect(s.siteCardAt('p2')).toBe(HIDDEN_PLACE)
+        expect(asked(s)).toMatchObject({ kind: PowerQuestionKind.FlipToTravel, siteId: 'p2' })
+        flip(s, false)
+        expect(s.getPlayerState('dana').siteId).toBe('c1')
+        expect(s.getPlayerState('rhys').siteId).toBe('c1')
+        expect(s.siteCardAt('p2')).toBe(HIDDEN_PLACE)
     })
 
     it("whether the use reveals is judged the same on Dana's own view, reading nothing hidden", () => {

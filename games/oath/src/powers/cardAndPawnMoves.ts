@@ -502,8 +502,14 @@ registerEffect(
                 movedPlayerId: target.playerId,
                 toSiteId: site.siteId
             }
+            // R-5.6.2 — from revision 31, a site the use revealed was judged as named, facedown, with
+            // nothing to ask (`hidden`), so the move goes ahead as a Travel there would: the revealed
+            // site's own question (The Hidden Place's flip) is not asked after the reveal.
+            const judgedFacedown =
+                ctx.reveal?.kind === 'site' &&
+                isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes26)
             const waits =
-                chooser === undefined
+                chooser === undefined && !judgedFacedown
                     ? askBeforePowerMove(ctx.state, move, ctx.playerId)
                     : undefined
             if (waits?.kind === 'flip') {
