@@ -11,7 +11,6 @@ import {
     isRevealPlans,
     isScoreGame,
     isSellPotatoes,
-    type MarketBoardId,
     type PlanningState,
     type RevealPlans
 } from '@tabletop/dicke-kartoffeln'
@@ -102,10 +101,7 @@ export function historyEntries(
     return entries
 }
 
-export function stepDescription(
-    actions: readonly GameAction[],
-    board: MarketBoardId
-): Description[] {
+export function stepDescription(actions: readonly GameAction[]): Description[] {
     const start = actions.findLastIndex(
         (action) =>
             (action.source === ActionSource.User && action.playerId) || isYearEndAction(action)
@@ -122,7 +118,7 @@ export function stepDescription(
             .flatMap((action) =>
                 isRevealPlans(action)
                     ? (action.metadata?.outcomes ?? []).map(describeOutcome)
-                    : describeSystemAction(action, board)
+                    : describeSystemAction(action)
             )
     ]
 }

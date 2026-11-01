@@ -13,9 +13,7 @@ import {
     isReadMessage,
     isScoreGame,
     isSellPotatoes,
-    demandRange,
     type LoanSettlement,
-    type MarketBoardId,
     type PlanOutcome,
     type SoilChange
 } from '@tabletop/dicke-kartoffeln'
@@ -128,7 +126,7 @@ export function describeOutcome(outcome: PlanOutcome): Description {
     return [{ playerId: outcome.playerId }, `${planText(outcome)}${money(outcome)}`]
 }
 
-export function describeSystemAction(action: GameAction, board: MarketBoardId): Description[] {
+export function describeSystemAction(action: GameAction): Description[] {
     if (isGrowSunflowers(action)) {
         return (action.metadata?.farms ?? []).flatMap((farm) => {
             const grown = sum(
@@ -187,7 +185,7 @@ export function describeSystemAction(action: GameAction, board: MarketBoardId): 
         return (action.metadata?.moves ?? [])
             .filter((move) => move.offered > 0 || move.priceBefore !== move.priceAfter)
             .map((move) => [
-                `${marketName(move.marketId)}: ${move.offered} offered, demand ${demandText(demandRange(board, move.demandAfter))}, price ${move.priceBefore}${move.priceAfter === move.priceBefore ? ' holds' : ` → ${move.priceAfter}`}`
+                `${marketName(move.marketId)}: ${move.offered} offered, demand ${demandText(move.demandAfter)}, price ${move.priceBefore}${move.priceAfter === move.priceBefore ? ' holds' : ` → ${move.priceAfter}`}`
             ])
     }
     if (isSellPotatoes(action)) {

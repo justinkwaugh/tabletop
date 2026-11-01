@@ -11,7 +11,6 @@
 
     const gameSession = getGameSession()
 
-    const board = $derived(gameSession.gameState.marketBoard())
     const pages = $derived.by(() => {
         const entries = historyEntries(
             gameSession.actions.toSorted((a, b) => (a.index ?? 0) - (b.index ?? 0)),
@@ -42,7 +41,7 @@
                 entry.sealed.map((playerId) => ({ description: [{ playerId }, 'sealed a plan'] }))
             )
         }
-        return describeSystemAction(entry.action, board).map((description) => ({ description }))
+        return describeSystemAction(entry.action).map((description) => ({ description }))
     }
 
     function lastIndex(entry: HistoryEntry): number | undefined {

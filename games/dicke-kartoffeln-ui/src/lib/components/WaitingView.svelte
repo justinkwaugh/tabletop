@@ -12,7 +12,7 @@
 
     const LIVE_LINES = 6
     const step = $derived(
-        stepDescription(gameSession.actions, gameSession.gameState.marketBoard())
+        stepDescription(gameSession.actions)
     )
     const lines = $derived(gameSession.isViewingHistory ? step : step.slice(-LIVE_LINES))
     const waiting = $derived(gameSession.gameState.activePlayerIds)

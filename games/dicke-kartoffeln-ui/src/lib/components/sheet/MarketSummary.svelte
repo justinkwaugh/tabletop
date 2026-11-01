@@ -3,30 +3,34 @@
         MARKETS,
         Quality,
         VARIETIES,
-        demandRanges,
-        priceScale,
+        demandRows,
+        priceSpaces,
         type Variety
     } from '@tabletop/dicke-kartoffeln'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { demandText, marketName } from '$lib/utils/format.js'
+    import {
+        MARKET_TRACKS,
+        markerSpaceId,
+        trackSpaces,
+        type MarketTrack
+    } from '$lib/utils/marketTracks.js'
 
     const gameSession = getGameSession()
 
     const board = $derived(gameSession.gameState.marketBoard())
-    const demand = $derived(demandRanges(board))
-    const prices = $derived(priceScale(board))
-    const COLUMNS = ['demand', 'price'] as const
+    const demand = $derived(demandRows(board))
+    const prices = $derived(priceSpaces(board))
 
-    function stones(variety: Variety, column: 'demand' | 'price', row: number) {
+    function stones(variety: Variety, column: MarketTrack, row: number) {
         return MARKETS.filter((market) => market.variety === variety).flatMap((market) => {
             const state = gameSession.gameState.market(market.id)
-            const at = column === 'demand' ? demand[row].min : prices[row]
-            return at === (column === 'demand' ? state.demand : state.price)
+            return trackSpaces(board, column)[row].id === markerSpaceId(state, column)
                 ? [
                       {
                           id: market.id,
                           bio: market.quality === Quality.Bio,
-                          title: `${marketName(market.id)}: demand ${demandText(gameSession.gameState.demand(market.id))}, price ${state.price} marks`
+                          title: `${marketName(market.id)}: demand ${demandText(gameSession.gameState.demand(market.id))}, price ${gameSession.gameState.price(market.id)} marks`
                       }
                   ]
                 : []
@@ -53,12 +57,12 @@
             </tr>
         </thead>
         <tbody>
-            {#each demand as range, row (row)}
+            {#each demand as { range }, row (row)}
                 <tr>
                     <td class="number">{demandText(range)}</td>
-                    <td class="number">{prices[row]}</td>
+                    <td class="number">{prices[row].marks}</td>
                     {#each VARIETIES as variety (variety)}
-                        {#each COLUMNS as column (column)}
+                        {#each MARKET_TRACKS as column (column)}
                             <td class="stones" class:first={column === 'demand'}>
                                 {#each stones(variety, column, row) as stone (stone.id)}
                                     <span class="stone" class:bio={stone.bio} title={stone.title}
