@@ -503,3 +503,81 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 - **S71. Palette.** `palette.spec.ts` passes; a rose chip always has a label and halo; a seal never has a halo. Auto.
 - **S72. Geometry.** `boardGeometry.spec.ts`: every space, route, guild grid space and track space in the logic's data has a position, and no position names a missing id. Auto.
 - **S73. Phone Tracks sheet.** At 375 × 812, the Tracks chip opens the sheet with every track legible (text at least 11 px), scrolling inside, with no lit target in it; a voyage-disc pick frames the voyage track on the board. Auto.
+
+## Exercise record
+
+Each scenario is marked automated (with its spec) or checked (with date and width) as it passes.
+
+- S1: pending
+- S2: pending
+- S3: pending
+- S4: pending
+- S5: pending
+- S6: pending
+- S7: pending
+- S8: pending
+- S9: pending
+- S10: pending
+- S11: pending
+- S12: pending
+- S13: pending
+- S14: pending
+- S15: pending
+- S16: pending
+- S17: pending
+- S18: pending
+- S19: pending
+- S20: pending
+- S21: pending
+- S22: pending
+- S23: pending
+- S24: pending
+- S25: pending
+- S26: pending
+- S27: pending
+- S28: pending
+- S29: pending
+- S30: pending
+- S31: pending
+- S32: pending
+- S33: pending
+- S34: pending
+- S35: pending
+- S36: pending
+- S37: pending
+- S38: pending
+- S39: pending
+- S40: pending
+- S41: pending
+- S42: pending
+- S43: pending
+- S44: pending
+- S45: pending
+- S46: pending
+- S47: pending
+- S48: pending
+- S49: pending
+- S50: pending
+- S51: pending
+- S52: pending
+- S53: pending
+- S54: pending
+- S55: pending
+- S56: pending
+- S57: pending
+- S58: pending
+- S59: pending
+- S60: pending
+- S61: pending
+- S62: pending
+- S63: pending
+- S64: pending
+- S65: pending
+- S66: pending
+- S67: pending
+- S68: pending
+- S69: pending
+- S70: pending
+- S71: pending
+- S72: pending
+- S73: pending
