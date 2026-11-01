@@ -500,14 +500,22 @@ describe('R-5.6.2, R-11.13-H1 — Palanquin reveals a facedown site only when a 
      * p2 is facedown, the Mine in the vault (a relic and favor on its reveal). `here` and `pass`
      * replace the Giant and the Pass.
      */
+    interface Scene {
+        oathRevision?: number
+        here?: string
+        pass?: string
+        rulers?: Record<string, Record<string, number>>
+        atC2?: string[]
+        rhysRelics?: string[]
+    }
     function giant({
         oathRevision = OathRevision.EngineFixes26,
         here = BURIED_GIANT,
         pass = 'site.narrow-pass',
         rulers = {},
-        atC2 = [] as string[],
-        rhysRelics = [] as string[]
-    } = {}) {
+        atC2 = [],
+        rhysRelics = []
+    }: Scene = {}) {
         const s = table(
             {
                 dana: {
