@@ -161,6 +161,7 @@ import {
     adviserDiscardFirstOptions,
     adviserOtherSites,
     adviserPlacements,
+    facedownPlayRoom,
     pileCardRegions,
     pilePlaceUses,
     rowsAtStart,
@@ -895,9 +896,16 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.stagedAdviserPlacement?.play
     }
 
-    /** R-6.1, R-7.6.4 — the advisers a limiter turned faceup must discard. */
+    /**
+     * R-6.1, R-7.6.4 — the advisers a limiter turned faceup must discard. R-7.4.3 — never a card the play uses, as
+     * its rows stand now: a row put in use leaves the picker, and one put down joins it.
+     */
     get adviserPlayRoom(): AdviserRoom {
-        return this.stagedAdviserPlacement?.room ?? NO_ROOM
+        const playerId = this.liveTurnSeatId
+        const cardId = this.adviserCardId
+        const play = this.adviserPlay
+        if (!playerId || !cardId || play === undefined) return NO_ROOM
+        return facedownPlayRoom(this.gameState, playerId, cardId, play, this.adviserModifiers)
     }
 
     /** The advisers offered to discard for the staged play, as the picks so far leave them. */

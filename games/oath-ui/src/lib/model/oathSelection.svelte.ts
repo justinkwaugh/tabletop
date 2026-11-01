@@ -39,13 +39,13 @@ export type OathValueByStage = {
     relicSlot: string
     banner: Banner
     option: string
+    playCards: PowerUseKey[]
     toSite: string
     discardFirst: string
     whenPlayed: PowerChoicePicks
     conspiracy: ConspiracyPick
     adviserDiscards: string[]
     discardPlace: PowerUseKey | 'pile' | PilePlace
-    playCards: PowerUseKey[]
     amount: number
     favorStart: Suit
 }
@@ -62,13 +62,15 @@ export const OATH_STAGE_ORDER = [
     'relicSlot',
     'banner',
     'option',
+    // R-7.4.3 — the cards a facedown adviser's play uses come before the picks they open or close: a card in use
+    // is never discarded first or to meet the limit, and what the play gains first counts what they add.
+    'playCards',
     'toSite',
     'discardFirst',
     'whenPlayed',
     'conspiracy',
     'adviserDiscards',
     'discardPlace',
-    'playCards',
     'amount',
     'favorStart'
 ] as const

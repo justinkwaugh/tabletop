@@ -12,11 +12,12 @@ export type AdviserRoom = { needed: number; discardable: string[]; discards: str
 
 export const NO_ROOM: AdviserRoom = { needed: 0, discardable: [], discards: [] }
 
+/** `modifiersInUse`: the cards in use of an R-6.1 play, which the engine judges before the play records them. */
 export function adviserRoom(
     state: HydratedOathGameState,
     playerId: string,
     cardId: string,
-    options: { faceUp?: boolean; fromAdvisers?: boolean }
+    options: { faceUp?: boolean; fromAdvisers?: boolean; modifiersInUse?: readonly string[] }
 ): AdviserRoom {
     const needed = adviserDiscardsNeeded(state, playerId, cardId, options)
     if (needed === 0) return NO_ROOM
