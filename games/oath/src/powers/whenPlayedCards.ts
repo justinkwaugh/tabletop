@@ -243,7 +243,9 @@ const slumCardsTheSwapReaches: ChoiceDomain = (
     const to = mapChanges.siteId
     if (from === undefined || from === to) return []
     return [from, to]
-        .flatMap((siteId) => greatSlumDenizensToDiscardFirst(state, playerId, siteId))
+        .flatMap((siteId) =>
+            greatSlumDenizensToDiscardFirst(state, playerId, siteId, mapChanges.modifiersInUse)
+        )
         .filter(
             (cardId) =>
                 cardId !== target && cardId !== GREAT_HERD && !mapChanges.leaving.includes(cardId)

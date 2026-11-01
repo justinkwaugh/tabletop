@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Color, type Visibility } from '@tabletop/common'
 import { HydratedUseActionPower } from '../actions/useActionPower.js'
+import { HydratedPlayFacedownAdviser, PlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
 import {
     HydratedSearchResolve,
     SearchPlay,
@@ -12,7 +13,7 @@ import { PlayerStatus, Region } from '../model/oathEnums.js'
 import { OathVisibility } from '../definition/runtime.js'
 import { openTurn, testPlayer, testState, withChancellor } from '../testing/fixture.js'
 import { buildAction } from '../testing/actions.js'
-import { actionPowerUse, card } from '../testing/choices.js'
+import { actionPowerUse, card, modifierUse } from '../testing/choices.js'
 import { FILLER, TENTS } from '../testing/cards.js'
 import { served } from '../testing/projection.js'
 import { cardPower, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
@@ -38,6 +39,7 @@ const SALT = 'denizen.discord.salt-the-earth'
 const BLOODLINE = 'denizen.nomad.ancient-bloodline'
 const SCOUTS = 'denizen.order.scouts'
 const WELCOMING = 'denizen.hearth.welcoming-party'
+const WILD_CRY = 'denizen.beast.wild-cry'
 
 const DANA = 'dana'
 const RHYS = 'rhys'
@@ -276,6 +278,8 @@ describe('Great Herd swapping into the Great Slum', () => {
         c2?: string
         /** Rhys holds Ancient Bloodline and rules c1 with two warbands. */
         bloodline?: boolean
+        /** Great Herd is Dana's facedown adviser, and Dana holds no hand (R-6.1). */
+        facedown?: boolean
     }
 
     /** Dana (Exile) at c1 with Great Herd drawn beside a filler; the Oracle, a Nomad card, stands at h1. */
@@ -284,7 +288,8 @@ describe('Great Herd swapping into the Great Slum', () => {
         sites = {},
         c1 = SLUM,
         c2 = 'site.river',
-        bloodline = false
+        bloodline = false,
+        facedown = false
     }: Board = {}): HydratedOathGameState {
         const s = testState(
             withChancellor([
@@ -295,7 +300,9 @@ describe('Great Herd swapping into the Great Slum', () => {
                     favor: 4,
                     secrets: 2,
                     supply: 5,
-                    handIds: [HERD, FILLER]
+                    ...(facedown
+                        ? { handIds: [], advisers: [{ cardId: HERD, faceUp: false }] }
+                        : { handIds: [HERD, FILLER] })
                 }),
                 testPlayer({
                     playerId: RHYS,
@@ -460,6 +467,92 @@ describe('Great Herd swapping into the Great Slum', () => {
             expect(reasonFor(view, named)).toBe(reasonFor(s, named))
             expect(JSON.stringify(s.dehydrate())).toBe(server)
             expect(JSON.stringify(served(s, dana))).toBe(seen)
+        })
+
+        describe('a facedown Great Herd turned faceup to it (R-6.1), declaring Wild Cry, which stands there', () => {
+            const declared = [modifierUse(WILD_CRY)]
+            const flip = (first: string, modifiers = declared) =>
+                new HydratedPlayFacedownAdviser(
+                    buildAction(PlayFacedownAdviser, {
+                        playerId: DANA,
+                        cardId: HERD,
+                        play: SearchPlay.Site,
+                        modifiers,
+                        choices: [card(ORACLE), card(first)]
+                    })
+                )
+            const flipBoard = () => board({ sites: { c1: [WILD_CRY, WOLVES] }, facedown: true })
+            /** The cards offered to go first once the Oracle is picked, as the facedown play's panel reads them. */
+            const flipFirsts = (s: HydratedOathGameState) => {
+                const changes = HydratedPlayFacedownAdviser.playMapChanges(s, DANA, {
+                    cardId: HERD,
+                    play: SearchPlay.Site,
+                    modifiers: declared
+                })
+                const offered = offeredChoices(s, DANA, herdPower(), changes, [card(ORACLE)])
+                return cardIds(offered[1]?.options ?? [])
+            }
+
+            it('Wild Cry, in use, is not offered, and naming it is refused with nothing changed', () => {
+                const s = flipBoard()
+                expect(flipFirsts(s)).toEqual([WOLVES])
+                const named = flip(WILD_CRY)
+                expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, DANA, named)).toBeDefined()
+                const before = JSON.stringify(s.dehydrate())
+                expect(() => named.apply(s)).toThrow()
+                expect(JSON.stringify(s.dehydrate())).toBe(before)
+            })
+
+            it('the Wolves discarded first: the Oracle comes to the Great Slum and Great Herd goes to h1', () => {
+                const s = flipBoard()
+                const a = flip(WOLVES)
+                expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, DANA, a)).toBeUndefined()
+                a.apply(s)
+                expect(a.metadata?.whenPlayed).toBe(
+                    `discarded ${WOLVES} first; swapped Great Herd with ${ORACLE}`
+                )
+                expect(s.denizensAt('c1')).toEqual([WILD_CRY, ORACLE])
+                expect(s.denizensAt('h1')).toEqual([HERD])
+            })
+
+            it('control: Wild Cry not declared may go first', () => {
+                const s = flipBoard()
+                const a = flip(WILD_CRY, [])
+                expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, DANA, a)).toBeUndefined()
+                a.apply(s)
+                expect(s.denizensAt('c1')).toEqual([WOLVES, ORACLE])
+            })
+
+            it('Welcoming Party cannot be declared on this play: its text leaves out a facedown adviser', () => {
+                const s = board({ sites: { c1: [WELCOMING, WOLVES] }, facedown: true })
+                expect(
+                    HydratedPlayFacedownAdviser.reasonCannotPlay(s, DANA, {
+                        cardId: HERD,
+                        play: SearchPlay.Site,
+                        modifiers: [modifierUse(WELCOMING)],
+                        choices: [card(ORACLE), card(WOLVES)]
+                    })
+                ).toBeDefined()
+            })
+
+            it("on Dana's own view: not offered, and refused alike", () => {
+                const dana: Visibility.Perspective = { kind: 'player', playerId: DANA }
+                const s = flipBoard()
+                s.getPlayerState(RHYS).handIds = [SCOUTS]
+                const server = JSON.stringify(s.dehydrate())
+                const seen = JSON.stringify(served(s, dana))
+                const view = OathVisibility.state.guardForExecution(
+                    new HydratedOathGameState(served(s, dana)),
+                    dana
+                )
+                const named = flip(WILD_CRY)
+                expect(flipFirsts(view)).toEqual([WOLVES])
+                const refused = HydratedPlayFacedownAdviser.reasonCannotPlay(view, DANA, named)
+                expect(refused).toBeDefined()
+                expect(refused).toBe(HydratedPlayFacedownAdviser.reasonCannotPlay(s, DANA, named))
+                expect(JSON.stringify(s.dehydrate())).toBe(server)
+                expect(JSON.stringify(served(s, dana))).toBe(seen)
+            })
         })
 
         it("with an enemy's Ancient Bloodline ruling it, Great Herd is locked there: no swap, nothing offered", () => {

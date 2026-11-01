@@ -75,6 +75,11 @@ export interface PlayMapChanges {
     /** R-5.1.4.I — the site the card is played to: the pawn's, or the one the People's Favor or New Growth names. */
     siteId?: string
     /**
+     * R-7.4.3 — the cards in use of an R-6.1 play, judged before the play records them (`CardPlayOptions`): a When
+     * Played choice never offers one to discard (Great Herd's card discarded first at the Great Slum).
+     */
+    modifiersInUse?: readonly string[]
+    /**
      * R-7.3.3 — what the play gains before its When Played power, planned on the state before the play. Unlike the
      * map, these are not set-like: a check adds them to the state it reads, while the resolve's state holds them.
      */

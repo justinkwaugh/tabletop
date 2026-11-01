@@ -25,21 +25,24 @@ export function categoryAt(
 
 /**
  * R-11.10 — the denizens a power may discard first at `siteId` before it moves a card there: those at a faceup Great
- * Slum, never one locked for the power's user (R-7.2.2), nor a modifier in use (R-7.4.3: Welcoming Party, which Great
- * Herd's When Played power can reach while the Search uses it). Homesteaders, Resettle, Roving Terror and the swaps
- * (the Horned Mask, Great Herd) offer these.
+ * Slum, never one locked for the power's user (R-7.2.2), nor a modifier in use (R-7.4.3), which Great Herd's When
+ * Played power can reach: Welcoming Party while the Search uses it, or Wild Cry an R-6.1 play declares, passed as
+ * `declared` because the play's check runs before the play records it. Homesteaders, Resettle, Roving Terror and the
+ * swaps (the Horned Mask, Great Herd) offer these.
  */
 export function greatSlumDenizensToDiscardFirst(
     state: HydratedOathGameState,
     playerId: string,
-    siteId: string
+    siteId: string,
+    declared: readonly string[] = []
 ): string[] {
     if (!state.isSiteFaceup(siteId) || categoryAt(state, siteId) !== 'greatSlum') return []
     return state
         .denizensAt(siteId)
         .filter(
             (id) =>
-                !isLockedFor(state, playerId, id) && reasonModifierInUse(state, id) === undefined
+                !isLockedFor(state, playerId, id) &&
+                reasonModifierInUse(state, id, declared) === undefined
         )
 }
 

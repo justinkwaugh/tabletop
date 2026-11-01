@@ -360,7 +360,8 @@ export class HydratedPlayFacedownAdviser
             discardedAdviserCardIds: choice.discardedAdviserCardIds,
             toSiteId: choice.toSiteId,
             discardFirstCardId: choice.discardFirstCardId,
-            carried: active
+            carried: active,
+            modifiersInUse: modifierCardsInUse(state, active)
         })
     }
 

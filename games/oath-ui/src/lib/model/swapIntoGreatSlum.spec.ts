@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ActionSource, Color, type GameAction, type Visibility } from '@tabletop/common'
 import {
     ActionType,
+    HydratedPlayFacedownAdviser,
     HydratedSearchResolve,
     HydratedUseActionPower,
     PowerTiming,
@@ -36,6 +37,7 @@ import {
 import { emptyPicks, type PowerChoicePicks } from './powerChoices.js'
 import { describeAction, type HistoryNames } from './actionDescription.js'
 import type { OathGameSession } from './session.svelte.js'
+import { whenPlayedChoices } from './whenPlayed.js'
 
 // The Great Slum: "When playing or moving a card to this site, you may discard a card here first." A swap moves
 // each card to the other's place, so the Horned Mask's and Great Herd's swaps into the Great Slum offer a card there
@@ -56,6 +58,7 @@ const WOLVES = 'denizen.beast.wolves'
 const TENTS = 'denizen.nomad.tents'
 const SONGS = 'denizen.hearth.tavern-songs'
 const SCOUTS = 'denizen.order.scouts'
+const WILD_CRY = 'denizen.beast.wild-cry'
 const TUTOR = 'denizen.arcane.tutor'
 const SLUM = 'site.great-slums'
 const FIRST = 'a denizen at the Great Slum to discard first'
@@ -312,6 +315,68 @@ describe("Great Herd's When Played swap into the Great Slum, in the Search panel
         tap(draft, 0, ORACLE)
         expect(cardIds(draft.whenPlayed[1])).toEqual([])
     })
+
+    /** Dana on turn at c1, the Great Slum holding Wild Cry and the Wolves, with Great Herd a facedown adviser. */
+    function flipTable(): HydratedOathGameState {
+        const s = testState(
+            withChancellor([
+                testPlayer({
+                    playerId: 'dana',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    favor: 2,
+                    advisers: [{ cardId: HERD, faceUp: false }]
+                })
+            ]),
+            {
+                oathRevision: OathRevision.EngineFixes27,
+                machineState: MachineState.ActPhase,
+                denizensBySite: { c1: [WILD_CRY, WOLVES], c2: [], p1: [], h1: [ORACLE] },
+                siteCards: { c1: SLUM, c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+            }
+        )
+        openTurn(s, 'dana')
+        return s
+    }
+
+    // The panel reads the play's When Played choices on the map changes of the play with the cards it declares.
+    for (const [name, played] of views(flipTable())) {
+        it(`on ${name}: turned faceup to the Great Slum with Wild Cry declared, the row leaves Wild Cry out`, async () => {
+            const state = (await openSessionOn(played)).gameState
+            const modifiers = [
+                { cardId: WILD_CRY, powerIndex: powerIndexOf(WILD_CRY, PowerTiming.Modifier) }
+            ]
+            const changes = HydratedPlayFacedownAdviser.playMapChanges(state, 'dana', {
+                cardId: HERD,
+                play: SearchPlay.Site,
+                modifiers
+            })
+            const swapWith = whenPlayedChoices(state, 'dana', HERD, SearchPlay.Site, true, changes)
+            const picks: PowerChoicePicks = {
+                ...emptyPicks(),
+                option: { 0: cardIds(swapWith[0]).indexOf(ORACLE) }
+            }
+            const offered = whenPlayedChoices(
+                state,
+                'dana',
+                HERD,
+                SearchPlay.Site,
+                true,
+                changes,
+                picks
+            )
+            expect(offered[1]?.spec.what).toBe(FIRST)
+            expect(cardIds(offered[1])).toEqual([WOLVES])
+            expect(
+                HydratedPlayFacedownAdviser.reasonCannotPlay(state, 'dana', {
+                    cardId: HERD,
+                    play: SearchPlay.Site,
+                    modifiers,
+                    choices: [card(ORACLE), card(WILD_CRY)]
+                })
+            ).toBeDefined()
+        })
+    }
 
     it('History names the card discarded first before the swap', () => {
         const s = atTheSlum()

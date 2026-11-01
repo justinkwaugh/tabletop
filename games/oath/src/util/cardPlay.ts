@@ -298,6 +298,7 @@ export function playMapChanges(
         leaving: [...(earlier?.leaving ?? []), ...(first ? [first] : [])],
         arriving: [...(earlier?.arriving ?? []), ...(play === SearchPlay.Site ? [cardId] : [])],
         ...(siteId !== undefined ? { siteId } : {}),
+        ...(options.modifiersInUse?.length ? { modifiersInUse: options.modifiersInUse } : {}),
         gains: playGains(state, playerId, cardId, play, siteId, first, options)
     }
 }
