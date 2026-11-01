@@ -69,6 +69,13 @@ const mapLayouts: Readonly<Record<string, TileLayout>> = {
         revenuePositions: { offboard: { x: 24.2, y: -14 } },
         labelPosition: SouthCorner
     },
+    // Chicago Connections' track enters from the southeast, so its revenues keep to the open west.
+    C5: {
+        revenueStack: 'column',
+        revenueAlign: 'middle',
+        revenuePositions: { offboard: { x: -21, y: 12 } },
+        labelPosition: SouthCorner
+    },
     // Detroit's Z sits a little east of where it would fall.
     C15: { labelPosition: { x: 18, y: -27.8 } },
     // Buffalo and Pittsburgh print their revenues once, in the top of their two hexes.
