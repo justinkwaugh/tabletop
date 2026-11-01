@@ -29,7 +29,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { grantFreeCampaign } from '../util/freeActions.js'
 import { playerChoicesAtYourSite } from './choiceDomains.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
-import { askBeforePowerMove } from '../util/powerMoveTolls.js'
+import { askBeforePowerMove, powerMoveWaits } from '../util/powerMoveTolls.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { shroudedWoodChooser } from '../util/siteTravel.js'
 import { askQuestion } from '../util/questions.js'
@@ -468,10 +468,18 @@ registerEffect(
             })
         ],
         hidden: (ctx) => {
+            const [target] = chosen(ctx, PowerChoiceKind.Player)
             const [site] = chosen(ctx, PowerChoiceKind.Site)
-            return site && !ctx.state.isSiteFaceup(site.siteId)
-                ? { kind: 'siteFlip', siteId: site.siteId }
-                : undefined
+            if (!site || ctx.state.isSiteFaceup(site.siteId)) return undefined
+            // R-11.13-H1 — from revision 31, a move that waits on the carried player's answer reveals
+            // the site on arrival (`travelByPower`), so a refusal reveals nothing. Out of a Shrouded
+            // Wood nothing waits: the user is put on the site at once.
+            const waits =
+                isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes26) &&
+                target !== undefined &&
+                shroudedWoodChooser(ctx.state, target.playerId) === undefined &&
+                powerMoveWaits(ctx.state, target.playerId, site.siteId)
+            return waits ? undefined : { kind: 'siteFlip', siteId: site.siteId }
         },
         // "A site that they can travel to" — every restriction but the price binds them.
         reasonCannotResolve: (ctx) => {

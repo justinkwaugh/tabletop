@@ -61,14 +61,30 @@ export function askBeforePowerMove(
     move: PowerMove,
     askingPlayerId: string
 ): PowerMoveWait | undefined {
+    if (!powerMoveWaits(state, move.movedPlayerId, move.toSiteId)) return undefined
     const toll = powerMoveToll(state, move.movedPlayerId, move.toSiteId)
     const tollPayable = toll === undefined || usableFavor(state, move.movedPlayerId) >= 1
     if (tollPayable && powerTravelNeedsFlip(state, move.movedPlayerId, move.toSiteId)) {
         askPowerMoveFlip(state, move, askingPlayerId)
         return { kind: 'flip' }
     }
-    if (toll) return { kind: 'toll', tollMove: askPowerMoveToll(state, move, toll, askingPlayerId) }
-    return undefined
+    assert(toll !== undefined, 'A move that waits and asks no flip waits on the toll')
+    return { kind: 'toll', tollMove: askPowerMoveToll(state, move, toll, askingPlayerId) }
+}
+
+/**
+ * Whether `askBeforePowerMove` waits: the move goes ahead only on the moved player's answer (the
+ * flip, or Toll Roads' favor), or a toll they cannot pay blocks it. Changes nothing.
+ */
+export function powerMoveWaits(
+    state: HydratedOathGameState,
+    movedPlayerId: string,
+    toSiteId: string
+): boolean {
+    return (
+        powerMoveToll(state, movedPlayerId, toSiteId) !== undefined ||
+        powerTravelNeedsFlip(state, movedPlayerId, toSiteId)
+    )
 }
 
 /**
