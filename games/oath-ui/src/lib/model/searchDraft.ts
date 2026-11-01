@@ -28,7 +28,7 @@ import {
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
-import { whenPlayedBanks, whenPlayedChoices } from './whenPlayed.js'
+import { whenPlayedBanks, whenPlayedOnPicks } from './whenPlayed.js'
 import {
     adviserRoom,
     firstDiscard,
@@ -267,19 +267,29 @@ export class SearchDraft implements PanelDraft {
         })
     }
 
-    /** R-7.3.3 */
+    /** R-7.3.3 — read on the picks made so far. */
     get whenPlayed(): LegalChoice[] {
+        return this.whenPlayedOn(this.picks).choices
+    }
+
+    /** R-7.3.3 — the When Played choices on `picks`, and the picks as they read back (`whenPlayedOnPicks`). */
+    private whenPlayedOn(
+        picks: PowerChoicePicks,
+        shown?: readonly LegalChoice[]
+    ): { choices: LegalChoice[]; picks: PowerChoicePicks } {
         const cardId = this.kept
         const playerId = this.playerId
         const placement = this.placement
-        if (!cardId || !playerId || !placement) return []
-        return whenPlayedChoices(
+        if (!cardId || !playerId || !placement) return { choices: [], picks }
+        return whenPlayedOnPicks(
             this.session.gameState,
             playerId,
             cardId,
             placement.play,
             placement.faceUp,
-            this.playChanges
+            this.playChanges,
+            picks,
+            shown
         )
     }
 
@@ -603,8 +613,14 @@ export class SearchDraft implements PanelDraft {
         await this.resolveWhenOrdered()
     }
 
+    // A pick whose options follow an earlier one is kept only while the option it named is offered.
     setPicks(picks: PowerChoicePicks): void {
-        if (this.whenPlayed.length > 0) this.flow.set('whenPlayed', { picks, confirmed: false })
+        const shown = this.whenPlayed
+        if (shown.length === 0) return
+        this.flow.set('whenPlayed', {
+            picks: this.whenPlayedOn(picks, shown).picks,
+            confirmed: false
+        })
     }
 
     async confirmWhenPlayed(): Promise<void> {

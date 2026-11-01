@@ -207,7 +207,7 @@ import {
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
-import { whenPlayedBanks, whenPlayedChoices } from './whenPlayed.js'
+import { whenPlayedBanks, whenPlayedChoices, whenPlayedOnPicks } from './whenPlayed.js'
 import { NO_ROOM, offeredDiscards, toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
@@ -1180,18 +1180,29 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         })
     }
 
+    /** R-7.3.3 — read on the picks made so far. */
     get adviserPlayChoices(): LegalChoice[] {
+        return this.adviserPlayOn(this.adviserPlayPicks).choices
+    }
+
+    /** R-7.3.3 — the play's When Played choices on `picks`, and the picks as they read back (`whenPlayedOnPicks`). */
+    private adviserPlayOn(
+        picks: PowerChoicePicks,
+        shown?: readonly LegalChoice[]
+    ): { choices: LegalChoice[]; picks: PowerChoicePicks } {
         const playerId = this.liveTurnSeatId
         const cardId = this.adviserCardId
         const play = this.adviserPlay
-        if (!playerId || !cardId || play === undefined) return []
-        return whenPlayedChoices(
+        if (!playerId || !cardId || play === undefined) return { choices: [], picks }
+        return whenPlayedOnPicks(
             this.gameState,
             playerId,
             cardId,
             play,
             true,
-            this.adviserPlayChanges
+            this.adviserPlayChanges,
+            picks,
+            shown
         )
     }
 
@@ -1246,8 +1257,11 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
+    // A pick whose options follow an earlier one is kept only while the option it named is offered.
     setAdviserPlayPicks(picks: PowerChoicePicks): void {
-        if (this.adviserPlayChoices.length > 0) this.selection.set('whenPlayed', picks)
+        const shown = this.adviserPlayChoices
+        if (shown.length > 0)
+            this.selection.set('whenPlayed', this.adviserPlayOn(picks, shown).picks)
     }
 
     private get adviserPlayPicked(): PowerChoice[] {
