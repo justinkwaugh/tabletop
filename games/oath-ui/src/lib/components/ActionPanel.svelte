@@ -78,8 +78,8 @@
         </div>
     {/if}
 
-    {#if MODIFIABLE_ACTIONS.has(action)}
-        <ModifierPicker {action} />
+    {#if MODIFIABLE_ACTIONS.has(action) && action === gameSession.selection.action}
+        <ModifierPicker rows={gameSession.modifiers} />
     {/if}
 
     {#if MINOR_TARGETED_ACTIONS.has(action)}

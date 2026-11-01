@@ -1315,17 +1315,20 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
+    /** R-7.4 — `modifiers`: Oracle's, declared for its play "as if you searched". */
     async useActionPower(
         cardId: string,
         powerIndex: number,
-        choices: PowerChoice[]
+        choices: PowerChoice[],
+        modifiers: ModifierUse[] = []
     ): Promise<void> {
         await this.commit(
             this.createPlayerAction(UseActionPower, {
                 type: ActionType.UseActionPower,
                 cardId,
                 powerIndex,
-                choices
+                choices,
+                ...(modifiers.length > 0 ? { modifiers } : {})
             })
         )
     }

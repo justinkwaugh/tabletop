@@ -27,6 +27,7 @@ import type { ModifierDeclaration } from './oathSelection.svelte.js'
 import { powerUseKey, samePowerUse } from './powerUse.js'
 import { isHospitality } from './travelRows.js'
 import type { OathGameSession } from './session.svelte.js'
+import type { ModifierRows } from './modifierRows.js'
 import {
     CARD_ACTIONS,
     actionCardUses,
@@ -61,7 +62,7 @@ function unopened(m: ModifierDeclaration): ModifierDeclaration {
 }
 
 /** R-7.4 — the modifiers usable with the staged action, and the choices each one's text opens. */
-export class ModifierDeclarations {
+export class ModifierDeclarations implements ModifierRows {
     constructor(private readonly session: OathGameSession) {}
 
     /**

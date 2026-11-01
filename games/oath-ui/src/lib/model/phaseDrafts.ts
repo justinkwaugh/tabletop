@@ -30,6 +30,7 @@ import {
     type CitizenshipTerms,
     type LegalChoice,
     type LegalPowerUse,
+    type ModifierUse,
     type OpportunityTake,
     type PowerChoice,
     type PowerUseKey,
@@ -90,6 +91,7 @@ import {
 } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 import { restBankChoice, restRows, type RestRow } from './restRows.js'
+import { AsIfSearchedRows, type DeclaredModifier } from './modifierRows.js'
 import { suitName } from './names.js'
 
 /** The panel drafts with one step: Undo clears the draft, and the derived default returns. */
@@ -469,6 +471,12 @@ const PALANQUIN = 'denizen.order.palanquin'
 type PicksByPower = Record<string, PowerChoicePicks>
 
 /**
+ * The panel's picks: each power's own, and the cards in use on the row of a power whose use declares Search
+ * modifiers (Oracle, R-7.4), both keyed by the power.
+ */
+type ActionPowerPicks = { picks: PicksByPower; modifiers: Record<string, DeclaredModifier[]> }
+
+/**
  * R-6.2, R-7.3.2 — the "Action:" powers Use a power lists: each the engine allows, with the
  * choices its card offers now (a bank the run cannot name is not one), less one with nothing it
  * can pick. That is one whose picks can never be made, or one leaving the player no pick to make
@@ -547,9 +555,9 @@ export function cardsWithListedPower(state: HydratedOathGameState, playerId: str
  * R-6.2, R-7.3.2 — the choices each "Action:" power's text opens. The draft keeps the picks after
  * each tap, so Undo takes back one pick at a time.
  */
-export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
+export class ActionPowersDraft extends TapHistoryDraft<ActionPowerPicks> {
     constructor(private readonly session: OathGameSession) {
-        super({})
+        super({ picks: {}, modifiers: {} })
     }
 
     private get playerId(): string | undefined {
@@ -576,7 +584,32 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
     }
 
     private storedOf(use: PowerUseKey): PowerChoicePicks {
-        return this.current[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
+        return this.current.picks[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
+    }
+
+    /**
+     * R-6.1, R-7.4 — the "Cards" rows on the row of a power whose use declares the Search modifiers
+     * acting on its play "as if you searched" (Oracle, from revision 31); none on any other power.
+     */
+    modifierRows(power: LegalPowerUse): AsIfSearchedRows | undefined {
+        const playerId = this.playerId
+        if (!playerId || !AsIfSearchedRows.offered(this.session.gameState, power)) return undefined
+        const key = powerKey(power.cardId, power.powerIndex)
+        return new AsIfSearchedRows(
+            this.session.gameState,
+            playerId,
+            { cardId: power.cardId, powerIndex: power.powerIndex, choices: this.choicesFor(power) },
+            this.current.modifiers[key] ?? [],
+            (declared) =>
+                this.tap({
+                    ...this.current,
+                    modifiers: { ...this.current.modifiers, [key]: declared }
+                })
+        )
+    }
+
+    private modifiersFor(power: LegalPowerUse): ModifierUse[] {
+        return this.modifierRows(power)?.uses ?? []
     }
 
     /** A power whose site is picked on the lit map: its rows, and its picks as they read back. */
@@ -612,7 +645,10 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
             picks,
             power.choices
         ).picks
-        this.tap({ ...this.current, [powerKey(use.cardId, use.powerIndex)]: kept })
+        this.tap({
+            ...this.current,
+            picks: { ...this.current.picks, [powerKey(use.cardId, use.powerIndex)]: kept }
+        })
     }
 
     /** The row a power's site spec draws, when it is picked on the map. */
@@ -652,13 +688,13 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
         ) {
             return
         }
-        const next = { ...this.current }
+        const next = { ...this.current.picks }
         for (const { power, rows } of open) {
             const before = this.picksOf(power)
             const after = withMapTap(power, rows, before, siteId)
             if (after !== before) next[powerKey(power.cardId, power.powerIndex)] = after
         }
-        this.tap(next)
+        this.tap({ ...this.current, picks: next })
     }
 
     /** Messenger's moves, one at a time, each read on the state the moves before it leave. */
@@ -674,11 +710,17 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
         this.setPicks(use, { ...this.storedOf(use), moves })
     }
 
-    /** "Use" waits until every choice the power opens has its picks. */
+    /**
+     * "Use" waits until every choice the power opens has its picks, and each card in use on its
+     * row has its own (Bracken's pile and side, on Oracle's).
+     */
     picksComplete(power: LegalPowerUse): boolean {
         const moves = this.movesOf(power)
         if (moves) return powerMovesComplete(moves)
-        return picksComplete(power.choices, this.picksOf(power))
+        return (
+            picksComplete(power.choices, this.picksOf(power)) &&
+            (this.modifierRows(power)?.complete ?? true)
+        )
     }
 
     choicesFor(power: LegalPowerUse): PowerChoice[] {
@@ -714,25 +756,40 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
             playerId,
             power.cardId,
             power.powerIndex,
-            this.choicesFor(power)
+            this.choicesFor(power),
+            this.modifiersFor(power)
         )
     }
 
     async use(power: LegalPowerUse): Promise<void> {
         if (!this.playerId) return
-        await this.session.useActionPower(power.cardId, power.powerIndex, this.choicesFor(power))
+        await this.session.useActionPower(
+            power.cardId,
+            power.powerIndex,
+            this.choicesFor(power),
+            this.modifiersFor(power)
+        )
     }
 
     /**
      * Undo takes back the last tap, of any power in the panel: a pick, a move's From, count or To,
      * or a site on the map, and the picks are as they were before it.
      */
-    protected isBare(picks: PicksByPower): boolean {
-        return !Object.values(picks).some(hasPicks)
+    protected isBare(value: ActionPowerPicks): boolean {
+        return (
+            !Object.values(value.picks).some(hasPicks) &&
+            !Object.values(value.modifiers).some((declared) => declared.length > 0)
+        )
     }
 
     /** R-7.6.3-H1 — the one promise box, of one power's exchange, whose text is all `to` changes. */
-    protected textEdited(from: PicksByPower, to: PicksByPower): string | undefined {
+    protected textEdited(
+        fromValue: ActionPowerPicks,
+        toValue: ActionPowerPicks
+    ): string | undefined {
+        if (!sameJson(fromValue.modifiers, toValue.modifiers)) return undefined
+        const from = fromValue.picks
+        const to = toValue.picks
         const [key, ...more] = changedKeys(from, to)
         if (key === undefined || more.length > 0) return undefined
         const before = from[key] ?? emptyPicks()
