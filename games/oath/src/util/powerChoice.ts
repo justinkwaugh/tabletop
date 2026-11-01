@@ -17,13 +17,15 @@ export { PowerChoice, PowerChoiceKind }
 /**
  * A `warbands` option carries the group's maximum; the player picks how many. `earlier` is the
  * choices taken before this one (none when absent), which a spec marked `readsEarlier` narrows
- * its options by.
+ * its options by. For a When Played power, `mapChanges` is its play (R-5.1.4, R-7.3.3): where the card is played
+ * and what the play takes off the map first, on the state before the play.
  */
 export type ChoiceDomain = (
     state: HydratedOathGameState,
     playerId: string,
     power: CardPower,
-    earlier?: readonly PowerChoice[]
+    earlier?: readonly PowerChoice[],
+    mapChanges?: PlayMapChanges
 ) => PowerChoice[]
 
 /** R-7.1.3 — `min: 0` is the "may". */
@@ -248,13 +250,14 @@ export function legalChoices(
     state: HydratedOathGameState,
     playerId: string,
     power: CardPower,
-    earlier: readonly PowerChoice[] = []
+    earlier: readonly PowerChoice[] = [],
+    mapChanges?: PlayMapChanges
 ): LegalChoice[] {
     const specs = choiceSpecsAt(state, power)
     const readingFor = readingStates(state, playerId, power, specs, earlier)
     return specs.map((spec) => ({
         spec,
-        options: domainOf(spec)(readingFor(spec), playerId, power, earlier)
+        options: domainOf(spec)(readingFor(spec), playerId, power, earlier, mapChanges)
     }))
 }
 
@@ -272,7 +275,7 @@ export function offeredChoices(
     mapChanges?: PlayMapChanges,
     earlier: readonly PowerChoice[] = []
 ): LegalChoice[] {
-    return legalChoices(state, playerId, power, earlier).map((legal) => {
+    return legalChoices(state, playerId, power, earlier, mapChanges).map((legal) => {
         const { offered, favorTotal } = legal.spec
         if (offered && !offered(state, playerId, mapChanges)) return { ...legal, options: [] }
         if (!favorTotal) return legal
@@ -317,12 +320,16 @@ function keyOf(choice: PowerChoice): string {
     }
 }
 
-/** R-7.1.3, R-X.1 — matched to specs by kind, in declaration order. */
+/**
+ * R-7.1.3, R-X.1 — matched to specs by kind, in declaration order. A When Played power's domains read its play's
+ * `mapChanges`.
+ */
 export function reasonChoicesInvalid(
     state: HydratedOathGameState,
     playerId: string,
     power: CardPower,
-    choices: readonly PowerChoice[] | undefined
+    choices: readonly PowerChoice[] | undefined,
+    mapChanges?: PlayMapChanges
 ): string | undefined {
     const specs = choiceSpecsAt(state, power)
     const all = choices ?? []
@@ -355,17 +362,16 @@ export function reasonChoicesInvalid(
         let options: Map<string, PowerChoice> | undefined
         const optionsOf = () =>
             (options ??= new Map(
-                domainOf(spec)(readingOf(spec, earlier), playerId, power, earlier).map((option) => [
-                    keyOf(option),
-                    option
-                ])
+                domainOf(spec)(readingOf(spec, earlier), playerId, power, earlier, mapChanges).map(
+                    (option) => [keyOf(option), option]
+                )
             ))
         let offeredLater: Set<string> | undefined
         const offeredLaterOf = () =>
             (offeredLater ??= new Set(
                 later.flatMap((l) =>
-                    domainOf(l)(readingOf(l, earlier), playerId, power, earlier).map((option) =>
-                        keyOf(option)
+                    domainOf(l)(readingOf(l, earlier), playerId, power, earlier, mapChanges).map(
+                        (option) => keyOf(option)
                     )
                 )
             ))

@@ -30,7 +30,8 @@ import {
     gainWarbandsToBoard,
     pawnSiteId,
     swapPlayedCardWithSiteCard,
-    hasFaceupAdviserOfSuit
+    hasFaceupAdviserOfSuit,
+    discardDenizensAtSites
 } from './vocabulary.js'
 import { cardChoicesAtYourSite } from './choiceDomains.js'
 import { ignoresKillAll, opposingLeadId } from '../util/battlePlans.js'
@@ -39,6 +40,7 @@ import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { settleAdviserLimitsAfterMove } from '../util/adviserLimit.js'
 import { releaseRelic } from '../util/relics.js'
 import { reasonCannotMoveCardTo } from '../util/locked.js'
+import { greatSlumDenizensToDiscardFirst } from '../util/sitePowers.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
 import { askBeforePowerMove, giveWhistleSecret } from '../util/powerMoveTolls.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
@@ -153,21 +155,52 @@ const movableCardsAtYourSite: ChoiceDomain = (state, playerId) =>
             choice.kind === PowerChoiceKind.Card &&
             reasonCannotMoveCardTo(state, playerId, choice.cardId, 'advisers') === undefined
     )
+/**
+ * R-11.10, R-10.25 — the swap moves the adviser to your site, so at the Great Slum a card there may be discarded
+ * first; never the card the swap takes to your advisers.
+ */
+const slumCardsBesideTheSwap: ChoiceDomain = (state, playerId, _power, earlier = []) => {
+    const swapped = earlier.flatMap((choice) =>
+        choice.kind === PowerChoiceKind.Card ? [choice.cardId] : []
+    )
+    return greatSlumDenizensToDiscardFirst(state, playerId, pawnSiteId(state, playerId))
+        .filter((cardId) => !swapped.includes(cardId))
+        .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
+}
 registerEffect(HORNED_MASK, powerIndexOf(HORNED_MASK, PowerTiming.Action), {
     choices: [
         one(PowerChoiceKind.Card, {
             what: 'one of your faceup advisers',
             domain: ownFaceupAdvisers
         }),
-        one(PowerChoiceKind.Card, { what: 'a card at your site', domain: movableCardsAtYourSite })
+        one(PowerChoiceKind.Card, { what: 'a card at your site', domain: movableCardsAtYourSite }),
+        // R-X.4 — from revision 32; a game before it swaps as it was recorded.
+        optional(PowerChoiceKind.Card, {
+            what: 'a denizen at the Great Slum to discard first',
+            readsEarlier: true,
+            fromRevision: OathRevision.EngineFixes27,
+            domain: slumCardsBesideTheSwap
+        })
     ],
     resolve: (ctx) => {
-        const [adviser, site] = chosen(ctx, PowerChoiceKind.Card)
+        const [adviser, site, first] = chosen(ctx, PowerChoiceKind.Card)
+        const { discarded, pileDeposits } = first
+            ? discardDenizensAtSites(
+                  ctx.state,
+                  ctx.playerId,
+                  [pawnSiteId(ctx.state, ctx.playerId)],
+                  (id) => id === first.cardId,
+                  HORNED_MASK
+              )
+            : { discarded: [], pileDeposits: [] }
         swapPlayedCardWithSiteCard(ctx.state, ctx.playerId, adviser.cardId, site.cardId)
         settleAdviserLimitsAfterMove(ctx.state, ctx.playerId, HORNED_MASK, [
             { playerId: ctx.playerId, receivedCardIds: [site.cardId] }
         ])
-        return { summary: `Horned Mask: swapped ${adviser.cardId} with ${site.cardId}` }
+        return {
+            summary: `Horned Mask: ${discarded.length ? `discarded ${discarded[0]} first; ` : ''}swapped ${adviser.cardId} with ${site.cardId}`,
+            pileDeposits
+        }
     }
 })
 

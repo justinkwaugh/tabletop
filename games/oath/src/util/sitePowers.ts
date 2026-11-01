@@ -10,7 +10,7 @@ import { takeRelic, clearSiteRelicSlot } from './relics.js'
 import { homelandLedgerKey, siteDiscardLedgerKey } from './discard.js'
 import type { HiddenReveal } from '../model/hidden.js'
 import type { FavorTake } from '../powers/registry.js'
-import { siteLockedFor } from './locked.js'
+import { isLockedFor, siteLockedFor } from './locked.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-11 — a site's power is its card's, so a facedown slot has none. */
@@ -20,6 +20,20 @@ export function categoryAt(
     slotId: string | undefined
 ): string | undefined {
     return sitePowerCategory(state.siteCardAt(slotId))
+}
+
+/**
+ * R-11.10 — the denizens a power may discard first at `siteId` before it moves a card there: those at a faceup Great
+ * Slum, never one locked for the power's user (R-7.2.2). Homesteaders, Resettle, Roving Terror and the swaps (the
+ * Horned Mask, Great Herd) offer these.
+ */
+export function greatSlumDenizensToDiscardFirst(
+    state: HydratedOathGameState,
+    playerId: string,
+    siteId: string
+): string[] {
+    if (!state.isSiteFaceup(siteId) || categoryAt(state, siteId) !== 'greatSlum') return []
+    return state.denizensAt(siteId).filter((id) => !isLockedFor(state, playerId, id))
 }
 
 /** R-11.4 — one delta per site, folded separately for R-5.5.3's underflow. */

@@ -717,14 +717,15 @@ export function reasonWhenPlayedChoicesInvalid(
             ? `${cardId} takes no choices on this play`
             : undefined
     }
-    const bad = reasonChoicesInvalid(state, playerId, power, options.choices)
+    const mapChanges = playMapChanges(state, playerId, cardId, play, options)
+    const bad = reasonChoicesInvalid(state, playerId, power, options.choices, mapChanges)
     if (bad) return bad
     return effect.reasonCannotResolve?.({
         state,
         playerId,
         power,
         choices: options.choices ?? [],
-        mapChanges: playMapChanges(state, playerId, cardId, play, options)
+        mapChanges
     })
 }
 
