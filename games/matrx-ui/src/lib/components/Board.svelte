@@ -280,8 +280,13 @@
         })
     }
 
-    // Arrows lie on the board, from the dot to the edge of the ring around the first spot, so
-    // they are laid out flat and then seen at the tilt.
+    // Arrows lie on the board, laid out flat and then seen at the tilt. Each runs from the far
+    // half of the staged stack's top to well inside the ring around the first spot, so it marks
+    // where the push goes. The tilt shortens an arrow pointing up or down the screen, the way
+    // E1's does, more than one along a slanted line, so each starts as far from its dot on screen
+    // as an upright one does, reaching back as far over the staged stack.
+    const ARROW_START = DOT_RADIUS * 2 + 12
+    const ARROW_REACH = 24
     function arrow(from: AxialCoordinates, to: AxialCoordinates): string {
         const start = view.center(from)
         const end = view.center(to)
@@ -290,10 +295,11 @@
         const length = Math.hypot(ex - sx, ey - sy)
         const ux = (ex - sx) / length
         const uy = (ey - sy) / length
-        const tipX = ex - ux * (PIECE_RADIUS + 2)
-        const tipY = ey - uy * (PIECE_RADIUS + 2)
-        const baseX = sx + ux * DOT_RADIUS * 2
-        const baseY = sy + uy * DOT_RADIUS * 2
+        const tipX = ex - ux * (PIECE_RADIUS + 2 - ARROW_REACH)
+        const tipY = ey - uy * (PIECE_RADIUS + 2 - ARROW_REACH)
+        const tail = (ARROW_START * view.tilt) / Math.hypot(ux, uy * view.tilt)
+        const baseX = sx + ux * tail
+        const baseY = sy + uy * tail
         const wing = 8
         return `M ${flat(baseX, baseY)} L ${flat(tipX, tipY)} M ${flat(tipX - ux * wing - uy * wing, tipY - uy * wing + ux * wing)} L ${flat(tipX, tipY)} L ${flat(tipX - ux * wing + uy * wing, tipY - uy * wing - ux * wing)}`
     }
