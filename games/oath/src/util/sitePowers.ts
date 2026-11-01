@@ -11,6 +11,7 @@ import { homelandLedgerKey, siteDiscardLedgerKey } from './discard.js'
 import type { HiddenReveal } from '../model/hidden.js'
 import type { FavorTake } from '../powers/registry.js'
 import { isLockedFor, siteLockedFor } from './locked.js'
+import { reasonModifierInUse } from './modifiers.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-11 — a site's power is its card's, so a facedown slot has none. */
@@ -24,8 +25,9 @@ export function categoryAt(
 
 /**
  * R-11.10 — the denizens a power may discard first at `siteId` before it moves a card there: those at a faceup Great
- * Slum, never one locked for the power's user (R-7.2.2). Homesteaders, Resettle, Roving Terror and the swaps (the
- * Horned Mask, Great Herd) offer these.
+ * Slum, never one locked for the power's user (R-7.2.2), nor a modifier in use (R-7.4.3: Welcoming Party, which Great
+ * Herd's When Played power can reach while the Search uses it). Homesteaders, Resettle, Roving Terror and the swaps
+ * (the Horned Mask, Great Herd) offer these.
  */
 export function greatSlumDenizensToDiscardFirst(
     state: HydratedOathGameState,
@@ -33,7 +35,12 @@ export function greatSlumDenizensToDiscardFirst(
     siteId: string
 ): string[] {
     if (!state.isSiteFaceup(siteId) || categoryAt(state, siteId) !== 'greatSlum') return []
-    return state.denizensAt(siteId).filter((id) => !isLockedFor(state, playerId, id))
+    return state
+        .denizensAt(siteId)
+        .filter(
+            (id) =>
+                !isLockedFor(state, playerId, id) && reasonModifierInUse(state, id) === undefined
+        )
 }
 
 /** R-11.4 — one delta per site, folded separately for R-5.5.3's underflow. */

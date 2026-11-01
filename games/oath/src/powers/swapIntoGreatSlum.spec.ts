@@ -37,6 +37,7 @@ const MARRIAGE = 'denizen.hearth.marriage'
 const SALT = 'denizen.discord.salt-the-earth'
 const BLOODLINE = 'denizen.nomad.ancient-bloodline'
 const SCOUTS = 'denizen.order.scouts'
+const WELCOMING = 'denizen.hearth.welcoming-party'
 
 const DANA = 'dana'
 const RHYS = 'rhys'
@@ -419,6 +420,46 @@ describe('Great Herd swapping into the Great Slum', () => {
             const s = board({ sites: { c1: [MARRIAGE, WOLVES] } })
             expect(firstsFor(s, ORACLE)).toEqual([WOLVES])
             expectRefusedUnchanged(s, herdPlay(ORACLE, MARRIAGE))
+        })
+
+        /** The Search under way uses Welcoming Party, which stands at the Great Slum beside the Wolves (R-7.4.3). */
+        function welcomingInUse(): HydratedOathGameState {
+            const s = board({ sites: { c1: [WELCOMING, WOLVES] } })
+            s.pendingSearchModifiers = [
+                { cardId: WELCOMING, powerIndex: powerIndexOf(WELCOMING, PowerTiming.Modifier) }
+            ]
+            s.searchModifiersInUse = [WELCOMING]
+            return s
+        }
+
+        it('a modifier the Search uses (Welcoming Party) is not offered, and naming it is refused', () => {
+            const s = welcomingInUse()
+            expect(firstsFor(s, ORACLE)).toEqual([WOLVES])
+            expectRefusedUnchanged(s, herdPlay(ORACLE, WELCOMING))
+            const a = resolve(s, herdPlay(ORACLE, WOLVES))
+            expect(a.metadata?.whenPlayed).toBe(
+                `discarded ${WOLVES} first; swapped Great Herd with ${ORACLE}`
+            )
+            expect(s.denizensAt('c1')).toEqual([WELCOMING, ORACLE])
+            expect(s.denizensAt('h1')).toEqual([HERD])
+        })
+
+        it("a modifier the Search uses, on Dana's own view: not offered, and refused alike", () => {
+            const dana: Visibility.Perspective = { kind: 'player', playerId: DANA }
+            const s = welcomingInUse()
+            s.getPlayerState(RHYS).handIds = [SCOUTS]
+            const server = JSON.stringify(s.dehydrate())
+            const seen = JSON.stringify(served(s, dana))
+            const view = OathVisibility.state.guardForExecution(
+                new HydratedOathGameState(served(s, dana)),
+                dana
+            )
+            const named = herdPlay(ORACLE, WELCOMING)
+            expect(firstsFor(view, ORACLE)).toEqual([WOLVES])
+            expect(reasonFor(view, named)).toBeDefined()
+            expect(reasonFor(view, named)).toBe(reasonFor(s, named))
+            expect(JSON.stringify(s.dehydrate())).toBe(server)
+            expect(JSON.stringify(served(s, dana))).toBe(seen)
         })
 
         it("with an enemy's Ancient Bloodline ruling it, Great Herd is locked there: no swap, nothing offered", () => {
