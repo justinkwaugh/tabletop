@@ -233,8 +233,9 @@ export function facedownPlayCards(
     return cards
 }
 
-// R-2.7 — the Vision a power draws is not known before its use. Every Vision but the Conspiracy has
-// no suit and is not a denizen, so the Search cards read any one of them alike: this one stands in.
+// R-2.7 — the Vision a power draws is not known before its use. Every Vision, the Conspiracy included,
+// has no suit and is not a denizen, so the Search cards read any goal Vision alike: this one stands in.
+// The Conspiracy's own play (R-5.1.4.IV) is its own entry below.
 const ANY_GOAL_VISION = 'vision.sanctuary'
 
 // R-5.1.4 — the plays a drawn Vision has, with the card each shows: never to a site (R-5.1.4.III);

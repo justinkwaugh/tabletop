@@ -249,7 +249,10 @@ function withSpire(revision: OathRevision, advisers: string[]): HydratedOathGame
     return s
 }
 
-/** Each card is a Search modifier in reach that Oracle's use accepts alone, as M22's row listed it. */
+/**
+ * Each card is a Search modifier in reach that Oracle's use accepts alone, as the row listed it before
+ * this change (the hide is not for another reason).
+ */
 function expectAcceptedAlone(session: OathGameSession, cardIds: string[]): void {
     const state = session.gameState
     const inReach = usableModifiers(state, 'dana', ActionType.Search, [])
