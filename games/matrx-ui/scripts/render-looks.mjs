@@ -50,12 +50,15 @@ const files = await page.evaluate(() => {
 
 // Pixels per board unit: a disc about 640 px across, sharp at the board's full zoom on a phone.
 const SCALE = 12
+// Each look is drawn this many times larger and halved down to SCALE, which blends away the fine
+// seams between the many bands of a groove's walls. Only the drawing grows, not the files.
+const SUPERSAMPLE = 4
 // One at a time: all at once, the browser ran out of memory.
 const bitmaps = []
 for (const file of files) {
     bitmaps.push(
         await page.evaluate(
-            async ({ name, text, scale }) => {
+            async ({ name, text, scale, supersample }) => {
                 const image = new Image()
                 image.src = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml' }))
                 await image.decode()
@@ -63,14 +66,28 @@ for (const file of files) {
                     .match(/viewBox="([^"]+)"/)[1]
                     .split(' ')
                     .map(Number)
-                const canvas = document.createElement('canvas')
-                canvas.width = Math.round(width * scale)
-                canvas.height = Math.round(height * scale)
+                const size = {
+                    width: Math.round(width * scale),
+                    height: Math.round(height * scale)
+                }
+                let canvas = document.createElement('canvas')
+                canvas.width = size.width * supersample
+                canvas.height = size.height * supersample
                 canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height)
                 URL.revokeObjectURL(image.src)
+                // Halving at each step keeps every source pixel in the blend.
+                while (canvas.width > size.width) {
+                    const next = document.createElement('canvas')
+                    next.width = Math.max(size.width, Math.round(canvas.width / 2))
+                    next.height = Math.max(size.height, Math.round(canvas.height / 2))
+                    const context = next.getContext('2d')
+                    context.imageSmoothingQuality = 'high'
+                    context.drawImage(canvas, 0, 0, next.width, next.height)
+                    canvas = next
+                }
                 return { name, data: canvas.toDataURL('image/webp', 0.9) }
             },
-            { ...file, scale: SCALE }
+            { ...file, scale: SCALE, supersample: SUPERSAMPLE }
         )
     )
 }

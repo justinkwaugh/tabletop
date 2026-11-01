@@ -90,10 +90,14 @@ const TROUGH = { outer: 0.84, inner: 0.62 }
 const TROUGH_DEPTH = THICKNESS * 0.4
 // How much of each side of a groove is its rounded wall; the rest is its floor.
 const GROOVE_WALL = 0.42
-const SLICES = 12
+// Slices up the side, and the side's shades: as with the grooves' bands, fine enough that no
+// step shows once the look is scaled down.
+const SLICES = 48
 const TOP_RADIUS = 1 - RIM_ROUND * 0.6
-// Bands across each groove.
-const GROOVE_BANDS = 14
+// Bands across each groove: enough that their shades step too finely to see. The seams between
+// so many would show as fine lines, but the looks are drawn larger and scaled down, which blends
+// them away (scripts/render-looks.mjs).
+const GROOVE_BANDS = 60
 
 // TAMSK's second groove, inside the first, round a small centre mound (measured on the box art).
 const TAMSK = { outer: 0.4, inner: 0.18 }
@@ -150,7 +154,7 @@ function punctCentres(turn: number): number[] {
 const PUNCT_WALL_STRIPS = 48
 
 // How many shades a slice can take, from facing straight down to facing straight up.
-export const SHADE_LEVELS = 9
+export const SHADE_LEVELS = 33
 
 export type Slice = { y: number; rx: number; ry: number; level: number }
 export type Ellipse = { y: number; rx: number; ry: number }
@@ -191,7 +195,7 @@ export type PieceDrawing = {
 }
 
 // Heights up the side, through its rounded corners, at which a cut through the side follows it.
-const SIDE_HEIGHTS = Array.from({ length: 13 }, (_, step) => (THICKNESS * step) / 12)
+const SIDE_HEIGHTS = Array.from({ length: SLICES + 1 }, (_, step) => (THICKNESS * step) / SLICES)
 
 // Radius and upward slope of the disc's side at a height up it, all over its radius.
 function profile(height: number): { radius: number; facing: number } {
