@@ -14,7 +14,8 @@
         DOT_RADIUS,
         PIECE_RADIUS,
         RESERVE_DOT_RADIUS,
-        RESERVE_LINE_WIDTH
+        RESERVE_LINE_WIDTH,
+        SPACING
     } from '$lib/board/geometry.js'
     import type { BoardDisc } from '$lib/board/boardChange.js'
     import { markGaps, turnOf, type Disc } from '$lib/board/pieceShape.js'
@@ -129,6 +130,41 @@
     const STATION_RADIUS = PIECE_RADIUS + 4
     const STATION_INNER = PIECE_RADIUS * 0.4
     const SPOT_RADIUS = PIECE_RADIUS * 0.13
+
+    // The real board's fine grid, a fifth of its spacing and lined up with its lines, covers
+    // the board outside the play area, fading out beyond the frame into the table, and the six triangles
+    // round E5. A tile holds one of each line, with the next ones over to fill its corners.
+    const FINE = SPACING / 5
+    const FINE_TILE = { width: FINE * Math.sqrt(3), height: FINE }
+    const fineLines = [-1, 0, 1].flatMap((k) => {
+        const { width, height } = FINE_TILE
+        return [
+            { x1: (width / 2) * (k + 1), y1: -height, x2: (width / 2) * (k + 1), y2: 2 * height },
+            { x1: -width, y1: (k - 1) * height, x2: 2 * width, y2: (k + 2) * height },
+            { x1: -width, y1: (k + 2) * height, x2: 2 * width, y2: (k - 1) * height }
+        ]
+    })
+    const tableArea = $derived.by(() => {
+        const [x, y, width, height] = frame.viewBox.split(' ').map(Number)
+        const spread = 0.3
+        return {
+            x: x - width * spread,
+            y: y - height * spread,
+            width: width * (1 + 2 * spread),
+            height: height * (1 + 2 * spread)
+        }
+    })
+    const centreTriangles = $derived(
+        AXES.flatMap((axis) => [axis, scaleAxial(axis, -1)])
+            .map((direction) => view.center(addAxial(CENTRE, direction)))
+            .toSorted(
+                (a, b) =>
+                    Math.atan2(a.y - centre.y, a.x - centre.x) -
+                    Math.atan2(b.y - centre.y, b.x - centre.x)
+            )
+            .map((point) => `${point.x},${point.y}`)
+            .join(' ')
+    )
     const TOGGLE_RADIUS = PIECE_RADIUS * 0.66
     // A dashed ring's dashes and the gaps between them, as in its stroke-dasharray.
     const DASH = 5
@@ -286,9 +322,29 @@
 >
     <defs>
         <PieceDefs prefix="matrx-board" radius={PIECE_RADIUS} {view} />
+        <pattern
+            id="matrx-board-fine"
+            patternUnits="userSpaceOnUse"
+            width={FINE_TILE.width}
+            height={FINE_TILE.height}
+            patternTransform="translate({centre.x} {centre.y}) scale(1 {view.tilt})"
+        >
+            {#each fineLines as line, index (index)}
+                <line {...line} class="fine-line"></line>
+            {/each}
+        </pattern>
+        <radialGradient id="matrx-board-fade">
+            <stop offset="0.7" stop-color="white"></stop>
+            <stop offset="1" stop-color="black"></stop>
+        </radialGradient>
+        <mask id="matrx-board-table-fade">
+            <rect {...tableArea} fill="url(#matrx-board-fade)"></rect>
+        </mask>
     </defs>
 
+    <rect {...tableArea} class="fine" mask="url(#matrx-board-table-fade)"></rect>
     <polygon points={playArea} class="play-area"></polygon>
+    <polygon points={centreTriangles} class="fine"></polygon>
 
     <g class="lines">
         {#each lines as line, index (index)}
@@ -601,6 +657,16 @@
 
     .play-area {
         fill: var(--matrx-play);
+    }
+
+    .fine {
+        fill: url(#matrx-board-fine);
+        pointer-events: none;
+    }
+
+    .fine-line {
+        stroke: var(--matrx-fine);
+        stroke-width: 0.35;
     }
 
     .lines line {

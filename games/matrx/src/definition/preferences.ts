@@ -14,7 +14,7 @@ export const MatrxPreferenceDefinition = {
         schema: MatrxPreferences,
         defaults: {
             showCoordinates: true,
-            centreMark: true
+            centreMark: false
         },
         version: 1
     }

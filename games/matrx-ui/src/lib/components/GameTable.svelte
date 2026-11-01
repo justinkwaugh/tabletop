@@ -154,12 +154,7 @@
 
 <style>
     .matrx-table {
-        background: radial-gradient(
-            ellipse at 50% 35%,
-            var(--matrx-table) 0%,
-            var(--matrx-table-deep) 100%
-        );
-        background-attachment: fixed;
+        background: var(--matrx-table);
         color: var(--matrx-ink);
     }
 
@@ -173,7 +168,7 @@
     }
 
     .fullscreen-backdrop {
-        background: var(--matrx-table-deep);
+        background: var(--matrx-table);
         position: fixed;
         inset: 0;
         z-index: -1;

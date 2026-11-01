@@ -40,14 +40,15 @@
 }
 
 :root {
-    /* The rulebook's pale grey marble table, a white play area with black lines, white panels. */
-    --matrx-table: #e3e7eb;
-    --matrx-table-deep: #c9d0d7;
+    /* The board's pale grey marble, inside and outside the play area, with black lines and a fine
+       grey grid; white panels. */
+    --matrx-table: #e8e8e5;
     --matrx-panel: #fbfcfc;
     --matrx-panel-edge: #b9c2cb;
     --matrx-panel-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
     --matrx-panel-hover: color-mix(in srgb, var(--matrx-panel), #1d2329 6%);
-    --matrx-play: #fbfbf9;
+    --matrx-play: #e8e8e5;
+    --matrx-fine: #92928e;
     --matrx-line: #111111;
     --matrx-label: #1d2329;
     --matrx-ink: #1d2329;

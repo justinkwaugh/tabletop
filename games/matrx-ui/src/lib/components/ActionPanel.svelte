@@ -23,11 +23,13 @@
             }
             return session.rows.length > 1 ? 'Choose a row to take' : 'Take your row'
         }
-        if (session.canExtraMove || session.canSkipExtraMove) {
+        // Skip ends the sentence, as Take row does above.
+        if (session.canExtraMove) {
             return session.chosenDot
                 ? 'Choose the line to push along'
-                : 'Extra move: push your TAMSK piece in'
+                : 'Push your TAMSK piece in or'
         }
+        if (session.canSkipExtraMove) return 'No room to push TAMSK in'
         if (session.chosenFrom) return 'Choose where it goes'
         if (session.chosenDot) return 'Choose the line to push along'
         if (session.canPush) {
