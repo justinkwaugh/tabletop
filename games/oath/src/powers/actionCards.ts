@@ -51,6 +51,7 @@ import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { TOTAL_MAP_SLOTS } from '../data/mapSlots.js'
 import { MAX_SITE_CAPACITY } from '../data/sites.js'
 import { SEIZE_MINIMUM, burnableFromBanner } from '../util/seize.js'
+import { reasonPowerMovesToSitesBarred } from '../util/continuous.js'
 
 const anyPlayer: ChoiceDomain = (state) =>
     state.players.map((p) => ({ kind: PowerChoiceKind.Player, playerId: p.playerId }))
@@ -557,7 +558,7 @@ registerEffect(
                   }),
             optional(PowerChoiceKind.Site, {
                 what: 'a site you rule to move them to',
-                domain: siteChoicesYouRule,
+                domain: messengerDestinations,
                 sequential: true
             })
         ]).flat(),
@@ -575,10 +576,12 @@ function messengerSources(
 ): ReturnType<ChoiceDomain> {
     const owners = rulingWarbandOwners(state, playerId)
     const player = state.getPlayerState(playerId)
+    // Warbands on the board can only go to a site, so none is offered where no site can be reached.
+    const toSitesBarred = reasonPowerMovesToSitesBarred(state, playerId) !== undefined
     const out: ReturnType<ChoiceDomain> = []
     for (const owner of owners) {
         const onBoard = countOf(player.warbandsOnBoard, owner)
-        if (onBoard > 0) {
+        if (onBoard > 0 && !toSitesBarred) {
             out.push({
                 kind: PowerChoiceKind.Warbands,
                 group: { at: { kind: 'board', playerId }, owner, count: onBoard }
@@ -600,6 +603,12 @@ function messengerSources(
     return out
 }
 
+function messengerDestinations(
+    ...[state, playerId]: Parameters<ChoiceDomain>
+): ReturnType<ChoiceDomain> {
+    return reasonPowerMovesToSitesBarred(state, playerId) ? [] : siteChoicesYouRule(state, playerId)
+}
+
 function messengerMovesChecked(ctx: EffectContext): {
     state: HydratedOathGameState
     reason?: string
@@ -619,6 +628,8 @@ export function applyMessengerMoves(
         if (c.kind !== PowerChoiceKind.Warbands) continue
         const next = choices[i + 1]
         const dest = next && next.kind === PowerChoiceKind.Site ? next : undefined
+        const barred = dest ? reasonPowerMovesToSitesBarred(state, playerId) : undefined
+        if (barred) return { reason: barred, summary: '' }
         const { at, owner, count } = c.group
         if (at.kind === 'board') {
             if (!dest)

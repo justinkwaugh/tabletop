@@ -44,6 +44,30 @@ export function cannotPlaceWarbandsAtSites(
     return continuousHooksOf(state, playerId).some((h) => h.cannotPlaceWarbandsAtSites)
 }
 
+/** Ring of Devotion — why a move or a placement of the holder's warbands at a site is refused. */
+export function reasonCannotPlaceWarbandsAtSites(
+    state: HydratedOathGameState,
+    playerId: string
+): string | undefined {
+    return cannotPlaceWarbandsAtSites(state, playerId)
+        ? 'you cannot place warbands at sites (Ring of Devotion)'
+        : undefined
+}
+
+/**
+ * Ring of Devotion with Messenger's text (Messenger, Warning Signals): a warband reaching a site is
+ * placed there, so from revision 31 (R-X.4) the holder makes no move to a site, from the board or
+ * from another site (R-9.2). A move from a site to the board places nothing and stays allowed.
+ */
+export function reasonPowerMovesToSitesBarred(
+    state: HydratedOathGameState,
+    playerId: string
+): string | undefined {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes26)
+        ? reasonCannotPlaceWarbandsAtSites(state, playerId)
+        : undefined
+}
+
 /** Ring of Devotion — "When mustering, you gain two more warbands." */
 export function musterWarbandsBonus(state: HydratedOathGameState, playerId: string): number {
     return continuousHooksOf(state, playerId).reduce((n, h) => n + (h.musterWarbandsBonus ?? 0), 0)
