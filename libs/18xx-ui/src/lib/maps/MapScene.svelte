@@ -823,11 +823,11 @@
                     data-map-marker-local-line={marker.id}
                     transform={`translate(${entry.center.x + 4} ${entry.center.y + (entry.localLineAboveY !== undefined && entry.markerArt[marker.id] && 'above' in entry.markerArt[marker.id] ? entry.localLineAboveY : 32)})`}
                     fill={appearance.ink}
-                    dominant-baseline="central"
                 >
                     <text
                         x="-2"
                         text-anchor="end"
+                        dominant-baseline="central"
                         font-size="8"
                         font-weight="850"
                         paint-order="stroke"

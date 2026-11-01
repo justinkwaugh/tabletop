@@ -148,6 +148,8 @@ export const MapView1846: MapViewDefinition = {
     },
     markerArt: {
         IC: { centeredLabel: true },
+        MC: { localLine: true, above: true },
+        'O&I': { localLine: true, above: true },
         'east-west': { revenueBadge: true, arrows: true },
         ports: { revenueSymbol: 'port' },
         'meat-packing': { revenueSymbol: 'horns' }
