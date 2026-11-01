@@ -133,6 +133,11 @@
                         <path d={cell.d} fill={cell.fill} fill-opacity={cell.opacity}></path>
                     {/each}
                 </g>
+                {#if mark.cover}
+                    {@render maskOf(`${lookId}-cover`, [mark.cover.opening])}
+                    <path d={mark.cover.top} fill={mark.cover.fill} mask="url(#{lookId}-cover)"
+                    ></path>
+                {/if}
             {/if}
         </g>
         <!-- Inside ZÈRTZ's notches, their curve, seen only through the cut. -->

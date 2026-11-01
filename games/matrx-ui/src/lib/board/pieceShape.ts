@@ -136,7 +136,10 @@ const YINSH_ROUND = 0.05
 const YINSH_ROUND_IN = 0.01
 // Cells along and across it, for its shading, and steps round its rounded end.
 const YINSH_ALONG = 240
-const YINSH_ACROSS = 64
+const YINSH_ACROSS = 104
+// How far past the channel's sides its mouth on the far side is drawn: where the channel slants,
+// the top it cut away had hidden the groove's inner wall beside it, which shows now.
+const YINSH_MOUTH_SPILL = 0.1
 const YINSH_TURNS = 48
 // PÜNCT's notches cut into the edge, all the way down: half circles centred on the edge, about
 // as wide as the rim between the edge and the ring groove.
@@ -185,7 +188,14 @@ export type Mark =
           outline: string
       }
     | { kind: 'hole'; wall: string; through: string }
-    | { kind: 'carved'; clip: string; cells: Strip[] }
+    | {
+          kind: 'carved'
+          clip: string
+          cells: Strip[]
+          // The top drawn again over the cells but for the opening, where they show more than
+          // the opening.
+          cover?: { top: string; opening: string; fill: string }
+      }
     | { kind: 'cuts'; parts: CutPart[]; topCuts: string[]; outline: string }
 
 export type PieceDrawing = {
@@ -375,9 +385,25 @@ function carvedCells(
     grid: { u: number; v: number }[][],
     height: (u: number, v: number) => number,
     untouched: (u: number, v: number) => number,
-    carveMin = CARVE_MIN,
-    // The colour of what shows behind a cell that faces away, if not left out.
-    behind?: string
+    {
+        carveMin = CARVE_MIN,
+        behind,
+        colorAt = (u, v) => shadeAt(tone, height, u, v),
+        uncut = () => false,
+        opaque = false
+    }: {
+        carveMin?: number
+        // The colour of what shows behind a cell that faces away, if not left out.
+        behind?: string
+        // A cell's colour, if not shadeAt's, given how deep it is cut.
+        colorAt?: (u: number, v: number, carve: number) => string | undefined
+        // Where a cell is drawn though it is not cut.
+        uncut?: (u: number, v: number) => boolean
+        // Every cell drawn whole, its colour fading into the surface it was cut from by
+        // colorAt instead: what lies beneath may not be that surface, and overlapping cells
+        // would show where they overlap.
+        opaque?: boolean
+    } = {}
 ): Strip[] {
     const cells: (Strip & { depth: number })[] = []
     for (let i = 0; i < grid.length - 1; i++) {
@@ -386,10 +412,10 @@ function carvedCells(
             const heights = corners.map(({ u, v }) => height(u, v))
             // A blend rounds two equal heights down a little; only a real cut is drawn.
             const carve = Math.max(...corners.map(({ u, v }, k) => untouched(u, v) - heights[k]))
-            if (carve <= carveMin) continue
             const u = corners.reduce((sum, corner) => sum + corner.u, 0) / 4
             const v = corners.reduce((sum, corner) => sum + corner.v, 0) / 4
-            const color = shadeAt(tone, height, u, v) ?? behind
+            if (carve <= carveMin && !uncut(u, v)) continue
+            const color = colorAt(u, v, carve) ?? behind
             if (color === undefined) continue
             cells.push({
                 // Each cell reaches a little past its neighbours, so no seam shows between them.
@@ -401,7 +427,7 @@ function carvedCells(
                 fill: color,
                 // Barely cut, a cell fades into the surface it was cut from, so the carving's
                 // edge is soft rather than stepped.
-                opacity: Math.min(1, carve / CARVE_FADE),
+                opacity: opaque ? 1 : Math.min(1, carve / CARVE_FADE),
                 depth: v
             })
         }
@@ -484,7 +510,7 @@ function rimNotch(
         (u, v) => surface(outOf(u, v), sideOf(u, v)),
         (u, v) => groove(outOf(u, v)),
         // Every cell the notch lowers, however little, so its lips round smoothly into the top.
-        1e-5
+        { carveMin: 1e-5 }
     )
     const rim = TROUGH.outer - 0.02
     const floorHeight = THICKNESS - TROUGH_DEPTH
@@ -824,82 +850,157 @@ function yinshChannel(view: BoardView, radius: number, tone: Tone, turn: number)
         v: u * sin + v * cos
     })
     // A function of the channel's own frame, read where it lies on the disc.
-    const onDisc = (f: (u: number, v: number) => number) => (u: number, v: number) =>
-        f(u * cos + v * sin, v * cos - u * sin)
+    const onDisc =
+        <T>(f: (u: number, v: number) => T) =>
+        (u: number, v: number) =>
+            f(u * cos + v * sin, v * cos - u * sin)
     const w = YINSH_HALF_WIDTH
     const end = YINSH_END - w
     const across = { outer: w, inner: -w }
     const ring = (u: number, v: number) => topProfile(PieceKind.Yinsh, Math.hypot(u, v))
     const lineDistance = (u: number, v: number) =>
         Math.hypot(Math.max(0, u - end), v - YINSH_OFFSET)
-    // The deeper of the two cuts, rounded where they meet: only where both cut, and gently in
-    // from their lips, so the top stays flat round them.
-    const height = (u: number, v: number) => {
+    // How deep each cut is, and how widely they are rounded where they meet: only where both cut,
+    // and gently in from their lips, so the top stays flat round them.
+    const cuts = (u: number, v: number) => {
         const ringDepth = THICKNESS - ring(u, v)
         const channelDepth = grooveDepth(lineDistance(u, v), across)
         const round = YINSH_ROUND * Math.min(1, Math.min(ringDepth, channelDepth) / YINSH_ROUND_IN)
+        return { ringDepth, channelDepth, round }
+    }
+    // The deeper of the two cuts, rounded where they meet; never below their floor, which the
+    // rounding would dimple where the two floors meet.
+    const height = (u: number, v: number) => {
+        const { ringDepth, channelDepth, round } = cuts(u, v)
         return round > 0
-            ? THICKNESS + smoothMin(-ringDepth, -channelDepth, round)
+            ? Math.max(
+                  THICKNESS - TROUGH_DEPTH,
+                  THICKNESS + smoothMin(-ringDepth, -channelDepth, round)
+              )
             : THICKNESS - Math.max(ringDepth, channelDepth)
     }
     // The top as it was before the channel, but in its mouth on the far side the ring groove's
-    // floor, which the ring's inner lip hid until the channel cut through it, so that is drawn
-    // too. On the near side the top's own bands show the floor.
-    const onFloor = (u: number, v: number) =>
-        u * sin + v * cos > 0 &&
-        grooveDepth(Math.hypot(u, v), TROUGH) >= TROUGH_DEPTH - 1e-9 &&
-        lineDistance(u, v) < w
+    // inner wall and floor, which face away or lie behind the ring's inner lip, so the top's bands
+    // drew the lip there: cut from the top, they are drawn whole rather than fading into it. On
+    // the near side the top's own bands show them.
+    const onFloor = (u: number, v: number) => {
+        const distance = Math.hypot(u, v)
+        return (
+            u * sin + v * cos > 0 &&
+            distance > TROUGH.inner &&
+            (distance <= (TROUGH.inner + TROUGH.outer) / 2 ||
+                grooveDepth(distance, TROUGH) >= TROUGH_DEPTH - 1e-9) &&
+            lineDistance(u, v) < w
+        )
+    }
     const before = (u: number, v: number) => (onFloor(u, v) ? THICKNESS : ring(u, v))
+    // Round the far mouth, where the channel uncovered the groove's inner wall beside it, drawn
+    // whole; where the top is still in front of it, the top is drawn again over it (cover).
+    const uncovered = (u: number, v: number) => {
+        const distance = Math.hypot(u, v)
+        return (
+            onFloor(u, v) ||
+            (u * sin + v * cos > 0 &&
+                distance > TROUGH.inner &&
+                distance <= (TROUGH.inner + TROUGH.outer) / 2 &&
+                lineDistance(u, v) < w + YINSH_MOUTH_SPILL)
+        )
+    }
     const span = (lo: number, hi: number, count: number) =>
         Array.from({ length: count + 1 }, (_, step) => lo + ((hi - lo) * step) / count)
+    // Shaded as the ring groove's bands round it where the ring groove's walls are what shows, as
+    // a carving where the channel's are, and blended across the rounded crease between them, so
+    // the crease shades as the walls either side of it do; where the channel faces away, the
+    // groove's floor beyond. Barely cut, it fades into the bands' shade of the surface it was cut
+    // from, so the carving's edge is soft rather than stepped.
+    const colorAt = (u: number, v: number, carve: number) => {
+        const at = turned({ u, v })
+        const band = bandShade(tone, PieceKind.Yinsh, at.u, at.v)
+        const carved = carvedShade(tone, onDisc(height), at.u, at.v)
+        const { ringDepth, channelDepth, round } = cuts(u, v)
+        const deeper = channelDepth - ringDepth
+        const channel =
+            round > 0 ? Math.min(1, Math.max(0, 0.5 + deeper / (2 * round))) : deeper >= 0 ? 1 : 0
+        const shade = mix(band, carved ?? TOP_PALETTE[tone].floor, channel)
+        const fade = onFloor(u, v) ? 1 : Math.min(1, carve / CARVE_FADE)
+        return css(mix(band, shade, fade))
+    }
 
     const mouth = -(TROUGH.outer + TROUGH.inner) / 2
-    const reach = w + 0.02
+    const reach = w + YINSH_MOUTH_SPILL + 0.02
     const grid = span(mouth, YINSH_END + 0.01, YINSH_ALONG).map((u) =>
         span(YINSH_OFFSET - reach, YINSH_OFFSET + reach, YINSH_ACROSS).map((v) => turned({ u, v }))
     )
     const turns = span(-Math.PI / 2, Math.PI / 2, YINSH_TURNS)
     // The edge of what is drawn, on each side, at its own height: in from the lip to where the
     // channel first cuts below the top or the ring groove's wall, so the cells' stepped edges are
-    // trimmed to a smooth line.
-    const edgeRun = (side: number) =>
+    // trimmed to a smooth line. With the mouth on the far side, wide enough for the wall it
+    // uncovered; the top drawn over it again trims the channel's edges there instead.
+    const farMouth = mouth * sin > 0
+    const side = farMouth ? w + YINSH_MOUTH_SPILL : w
+    const edgeRun = (way: number) =>
         span(mouth, end, YINSH_ALONG).map((u) => {
-            const out = w
             const steps = 200
             let off = 0
             for (let step = 0; step <= steps; step++) {
-                const at = out * (1 - step / steps)
-                const v = YINSH_OFFSET + side * at
-                if (before(u, v) - height(u, v) > 1e-5) {
+                const at = side * (1 - step / steps)
+                const v = YINSH_OFFSET + way * at
+                if (farMouth || before(u, v) - height(u, v) > 1e-5) {
                     off = at
                     break
                 }
             }
-            const v = YINSH_OFFSET + side * off
+            const v = YINSH_OFFSET + way * off
             return { u, v, h: height(u, v) }
         })
+    // Out past the mouth, where no cell is drawn, at the groove's floor: closed across the mouth
+    // itself, the outline would trim the cells that open into the groove.
+    const beyond = (side: number) => ({
+        u: mouth - 0.1,
+        v: YINSH_OFFSET + side * w,
+        h: THICKNESS - TROUGH_DEPTH
+    })
     const outline = [
+        beyond(1),
         ...edgeRun(1),
         ...turns.map((turn) => ({
-            u: end + w * Math.cos(turn),
-            v: YINSH_OFFSET - w * Math.sin(turn),
+            u: end + side * Math.cos(turn),
+            v: YINSH_OFFSET - side * Math.sin(turn),
             h: THICKNESS
         })),
-        ...edgeRun(-1).toReversed()
+        ...edgeRun(-1).toReversed(),
+        beyond(-1)
     ].map(({ h, ...point }) => ({ ...turned(point), h }))
+    // The channel's opening in the top, at the top's height.
+    const opening = [
+        { u: mouth - 0.1, v: YINSH_OFFSET + w },
+        { u: end, v: YINSH_OFFSET + w },
+        ...turns.map((turn) => ({
+            u: end + w * Math.cos(turn),
+            v: YINSH_OFFSET - w * Math.sin(turn)
+        })),
+        { u: mouth - 0.1, v: YINSH_OFFSET - w }
+    ].map((point) => turned(point))
+    const top = flatEllipse(view, radius)(THICKNESS, TROUGH.inner)
     return {
         kind: 'carved',
         clip: polygon(outline.map(({ u, v, h }) => flat(u, v, h))),
-        // Where the channel's walls face away, the groove's floor beyond shows.
-        cells: carvedCells(
-            flat,
-            tone,
-            grid,
-            onDisc(height),
-            onDisc(before),
-            1e-5,
-            css(TOP_PALETTE[tone].floor)
-        )
+        cover: farMouth
+            ? {
+                  top: `M ${-top.rx} ${top.y} A ${top.rx} ${top.ry} 0 1 1 ${top.rx} ${top.y} A ${top.rx} ${top.ry} 0 1 1 ${-top.rx} ${top.y} Z`,
+                  opening: polygon(opening.map(({ u, v }) => flat(u, v))),
+                  fill: css(TOP_PALETTE[tone].flat)
+              }
+            : undefined,
+        cells: carvedCells(flat, tone, grid, onDisc(height), onDisc(before), {
+            carveMin: 1e-5,
+            colorAt: (u, v, carve) => {
+                const at = { u: u * cos + v * sin, v: v * cos - u * sin }
+                return colorAt(at.u, at.v, carve)
+            },
+            uncut: onDisc(uncovered),
+            opaque: true
+        })
     }
 }
 
@@ -912,6 +1013,16 @@ function shadeAt(
     u: number,
     v: number
 ): string | undefined {
+    const shade = carvedShade(tone, height, u, v)
+    return shade && css(shade)
+}
+
+function carvedShade(
+    tone: Tone,
+    height: (u: number, v: number) => number,
+    u: number,
+    v: number
+): Rgb | undefined {
     const { flat: top, floor } = TOP_PALETTE[tone]
     const { farWall, nearWall } = NOTCH_WALLS[tone]
     const step = 0.004
@@ -922,7 +1033,24 @@ function shadeAt(
     const steep = Math.min(1, Math.abs(slope) / 1.2) * 0.7
     const facing = slope > 0 ? mix(base, farWall, steep) : mix(base, nearWall, steep)
     const side = Math.min(1, Math.abs(lateral) / 1.2) * 0.5
-    return css(mix(facing, lateral > 0 ? nearWall : farWall, side))
+    return mix(facing, lateral > 0 ? nearWall : farWall, side)
+}
+
+// The colour the top's bands give a point of a disc's top (topBands, with LookDefs' wall
+// gradients over them): by its depth, and on a steep wall in shade on the far half of the disc,
+// catching the light on the near half, most at the far and near points, none at the sides.
+function bandShade(tone: Tone, kind: PieceKind, u: number, v: number): Rgb {
+    const { flat, floor } = TOP_PALETTE[tone]
+    const distance = Math.max(1e-6, Math.hypot(u, v))
+    const height = topProfile(kind, distance)
+    const step = 0.004
+    const slope =
+        Math.abs(topProfile(kind, distance + step) - topProfile(kind, distance - step)) / (2 * step)
+    const steep = Math.min(1, slope / 0.6)
+    const base = mix(flat, floor, Math.min(1, (THICKNESS - height) / TROUGH_DEPTH))
+    const away = v / distance
+    const { farWall, nearWall } = NOTCH_WALLS[tone]
+    return away > 0 ? mix(base, farWall, steep * away) : mix(base, nearWall, -steep * away)
 }
 
 // The part of the opening above the trough's floor, between the points where the opening and the
@@ -957,12 +1085,20 @@ function css(rgb: Rgb, brightness = 1): string {
     return `rgb(${r} ${g} ${b})`
 }
 
-// The top's colour, and its floor's in a groove. The walls' shades are in PieceDefs.
+// The colours walls carved into the top are shaded towards, in shade or catching the light: the
+// grooves' (through LookDefs' gradients over the top's bands) and the carved marks'.
 const NOTCH_WALLS: Record<Tone, { farWall: Rgb; nearWall: Rgb }> = {
     light: { farWall: [172, 162, 128], nearWall: [226, 219, 194] },
     dark: { farWall: [8, 7, 7], nearWall: [74, 68, 70] }
 }
 
+// The walls' colours, for LookDefs' gradients.
+export function wallColors(tone: Tone): { far: string; near: string } {
+    const { farWall, nearWall } = NOTCH_WALLS[tone]
+    return { far: css(farWall), near: css(nearWall) }
+}
+
+// The top's colour, and its floor's in a groove.
 const TOP_PALETTE: Record<Tone, { flat: Rgb; floor: Rgb }> = {
     light: { flat: [236, 230, 208], floor: [207, 198, 166] },
     dark: { flat: [44, 40, 41], floor: [16, 14, 15] }
