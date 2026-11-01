@@ -466,6 +466,11 @@ export interface EffectDefinition {
     reasonCannotResolve?: (ctx: EffectContext) => string | undefined
     /** R-7.1.4 — the tolls its use owes, paid with its cost (Forced Labor on Oracle). */
     tollOccasion?: TollOccasion
+    /**
+     * R-6.1, R-7.4 — its draw is played or discarded "as if you searched" (Oracle), so from revision 31 its use
+     * declares the Search modifiers that act on that play (`UseActionPower.modifiers`).
+     */
+    playsAsIfSearched?: boolean
     resolve: (ctx: EffectContext) => EffectResult
     /**
      * R-5.1.4 — the denizens a When Played power that takes no choices puts off the map, on the map

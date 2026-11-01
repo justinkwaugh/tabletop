@@ -533,6 +533,34 @@ export function reasonModifierInUse(
         : undefined
 }
 
+/**
+ * R-7.4, R-5.1.4 — a Search, or a power's draw played "as if you searched" (Oracle), carries the modifiers that act
+ * after its draw to its play, which reads and clears them (`SearchResolve`).
+ */
+export function carryToSearchPlay(
+    state: HydratedOathGameState,
+    active: readonly ActiveModifier[]
+): void {
+    const carried = active
+        .filter(
+            (m) =>
+                m.hooks.after !== undefined ||
+                m.hooks.discardTo !== undefined ||
+                m.hooks.discardFirstAtSitePlay === true ||
+                m.hooks.sitePlayGainsSecret === true ||
+                m.hooks.playAnywhere !== undefined ||
+                m.hooks.secondPlay === true ||
+                m.hooks.revealsDraw === true ||
+                m.hooks.swapsWithDispossessed === true
+        )
+        .map((m) => ({
+            cardId: m.power.cardId,
+            powerIndex: m.power.powerIndex,
+            choices: m.choices.length > 0 ? [...m.choices] : undefined
+        }))
+    state.pendingSearchModifiers = carried.length > 0 ? carried : undefined
+}
+
 /** R-7.4, R-5.1.4 — the modifiers a Search carries to its play. */
 export function searchPlayModifiers(state: HydratedOathGameState): ActiveModifier[] {
     return carriedModifiers(state, state.pendingSearchModifiers)

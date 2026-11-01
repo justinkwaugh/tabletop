@@ -50,6 +50,12 @@ import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 const FACEDOWN_PLAY: TollOccasion = { kind: 'facedownPlay' }
 
+/**
+ * R-7.4 — the play "as if you searched" of a power's draw (Oracle), judged at the power's use: the draw is not
+ * yet made, so neither is the choice of play.
+ */
+export const PLAY_NOT_YET_KNOWN = 'notYetKnown'
+
 export type PlayFacedownAdviserMetadata = Type.Static<typeof PlayFacedownAdviserMetadata>
 export const PlayFacedownAdviserMetadata = Type.Object({
     /** R-7.3.3 — after this play's own discards. */
@@ -347,11 +353,14 @@ export class HydratedPlayFacedownAdviser
     /**
      * R-6.1 — "as if you searched (5.1.4). (Restrictions and modifiers apply.)": the declared
      * Search modifiers and the holder's mandatory ones (R-7.4.1) that act on the play itself.
+     * `PLAY_NOT_YET_KNOWN`: a power's draw played "as if you searched" (Oracle), whose modifiers are
+     * declared at its use (R-7.4), before the draw and so before its play is picked; no card is a
+     * facedown adviser there, and of the mandatory ones only those acting on any play or discard apply.
      */
     static playModifiers(
         state: HydratedOathGameState,
         playerId: string,
-        play: SearchPlay,
+        play: SearchPlay | typeof PLAY_NOT_YET_KNOWN,
         uses: readonly ModifierUse[] | undefined
     ): { reason?: string; active: ActiveModifier[] } {
         // R-X.4 — a game created before this revision played a facedown adviser with no modifier.
@@ -368,15 +377,21 @@ export class HydratedPlayFacedownAdviser
             const hooks = power ? effectFor(power)?.modifier : undefined
             if (hooks && HydratedPlayFacedownAdviser.changesTheDraw(hooks)) {
                 return {
-                    reason: `${use.cardId} changes a Search's draw, and this play draws nothing`,
+                    reason:
+                        play === PLAY_NOT_YET_KNOWN
+                            ? `${use.cardId} changes a Search's draw, and this power draws by its own text`
+                            : `${use.cardId} changes a Search's draw, and this play draws nothing`,
                     active: []
                 }
             }
         }
-        const resolved = resolveModifiers(state, playerId, ActionType.Search, uses, {
-            facedownAdviserPlay: true,
-            playedTo: play
-        })
+        const resolved = resolveModifiers(
+            state,
+            playerId,
+            ActionType.Search,
+            uses,
+            play === PLAY_NOT_YET_KNOWN ? {} : { facedownAdviserPlay: true, playedTo: play }
+        )
         if (resolved.reason) return resolved
         return {
             active: resolved.active.filter(
@@ -399,7 +414,10 @@ export class HydratedPlayFacedownAdviser
         )
     }
 
-    private static actsOnPlay(hooks: ModifierHooks, play: SearchPlay): boolean {
+    private static actsOnPlay(
+        hooks: ModifierHooks,
+        play: SearchPlay | typeof PLAY_NOT_YET_KNOWN
+    ): boolean {
         const atSite =
             hooks.sitePlayGainsSecret === true ||
             hooks.playAnywhere !== undefined ||

@@ -26,6 +26,7 @@ import { modifierPayment, reasonCannotPayInAll, tollPayment } from '../util/acti
 import { defaultTolls } from '../util/tollDefaults.js'
 import {
     beginModifiersInUse,
+    carryToSearchPlay,
     firstForbid,
     foldDrawCount,
     foldSupplyCost,
@@ -169,24 +170,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         }
 
         // R-7.4, R-5.1.4 — carried to the play, which clears them.
-        state.pendingSearchModifiers = active
-            .filter(
-                (m) =>
-                    m.hooks.after !== undefined ||
-                    m.hooks.discardTo !== undefined ||
-                    m.hooks.discardFirstAtSitePlay === true ||
-                    m.hooks.sitePlayGainsSecret === true ||
-                    m.hooks.playAnywhere !== undefined ||
-                    m.hooks.secondPlay === true ||
-                    m.hooks.revealsDraw === true ||
-                    m.hooks.swapsWithDispossessed === true
-            )
-            .map((m) => ({
-                cardId: m.power.cardId,
-                powerIndex: m.power.powerIndex,
-                choices: m.choices.length > 0 ? [...m.choices] : undefined
-            }))
-        if (state.pendingSearchModifiers.length === 0) state.pendingSearchModifiers = undefined
+        carryToSearchPlay(state, active)
         // R-7.4.3 — every modifier the Search uses, the draw's and cost's too, cannot be discarded until it ends.
         beginModifiersInUse(state, active)
 
