@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushSync } from 'svelte'
 import { GameSession, type TransitionKind } from '@tabletop/frontend-components'
-import { ActionType, MachineState, PlanKind, Variety } from '@tabletop/dicke-kartoffeln'
+import {
+    ActionType,
+    HydratedDickeKartoffelnGameState,
+    MachineState,
+    PlanKind,
+    Variety
+} from '@tabletop/dicke-kartoffeln'
 import { YearEndStatus } from '$lib/utils/yearEnd.js'
 import {
     disposeSessions,
@@ -188,17 +194,21 @@ describe('planning a round', () => {
         expect(keeps('history')).toBe(false)
     })
 
-    it('closes an open seed picker on a new state but keeps the sown bags', async () => {
-        const session = openSessionOn(atSowing())
+    it('keeps the farm, the open seed picker and the sown bags when another farmer seals', async () => {
+        const table = atSowing()
+        const session = openSessionOn(table)
         session.showMyFarm()
         await session.clickField(1)
         session.chooseSeed(1, Variety.Chris)
         await session.clickField(2)
         flushSync()
         expect(session.seedPickerField).toBe(2)
-        session.beforeNewState({ kind: 'other-action', actions: [], intent: 'actions' })
+        const sealed = submit(table, 'p2', { kind: PlanKind.Sow, seeds: [] })
+        expect(sealed.state.machineState).toBe(MachineState.Sowing)
+        session.gameState = new HydratedDickeKartoffelnGameState(sealed.state)
         flushSync()
-        expect(session.seedPickerField).toBeUndefined()
+        expect(session.view).toBe(TableView.Farm)
+        expect(session.seedPickerField).toBe(2)
         expect(session.preview?.plan).toEqual({
             kind: PlanKind.Sow,
             seeds: [{ fieldId: 1, variety: Variety.Chris }]

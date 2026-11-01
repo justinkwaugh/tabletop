@@ -151,9 +151,11 @@ export class DickeKartoffelnGameSession extends GameSession<
 
     planning: boolean = $derived(this.myPlanningTurn && !this.pendingYearEnd)
 
-    view: TableView = $derived(
-        SHEET_ROUNDS.includes(this.gameState.machineState) ? TableView.Sheet : TableView.Farm
-    )
+    // The view follows the round through a value of its own: a state for the same round, such as
+    // another farmer sealing, leaves the farmer where they are looking.
+    private round: MachineState = $derived(this.gameState.machineState)
+
+    view: TableView = $derived(SHEET_ROUNDS.includes(this.round) ? TableView.Sheet : TableView.Farm)
 
     farmPlayerId: string | undefined = $derived(
         this.myPlayerId ?? this.gameState.players[0]?.playerId
@@ -507,10 +509,5 @@ export class DickeKartoffelnGameSession extends GameSession<
 
     override keepsLocalSelections(transition: PresentedTransition): boolean {
         return transition.kind === 'other-action' || transition.kind === 'reconciliation'
-    }
-
-    // A new state returns the table to the round's own view, which hides the picker.
-    override beforeNewState(_transition: PresentedTransition): void {
-        this.closeSeedPicker()
     }
 }

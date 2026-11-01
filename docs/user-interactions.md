@@ -67,7 +67,7 @@ Some decisions are not a fixed sequence of steps: a player marks any of several 
 
 What the entries add up to is the title's rule, not the helper's: the title folds the list into its Action, for example counting presses on a target or keeping the latest entry for each target. A later stage holds a follow-up to the next entry. In `games/dicke-kartoffeln-ui` the stage order is `edits`, then `seedField`: choosing a field to sow opens a picker beside it (`seedField`), so Undo closes the picker first, and choosing a seed pushes onto `edits`, which clears `seedField` and closes the picker.
 
-A stage the player cannot see would make Undo look dead, so a title closes such a stage when its element leaves the screen. Dicke Kartoffeln closes the seed picker when the farmer looks away from their own farm, and on a new Game State, which returns the table to the round's own view.
+A stage the player cannot see would make Undo look dead, so a title closes such a stage when its element leaves the screen. Dicke Kartoffeln closes the seed picker when the farmer looks away from their own farm. A kept selection must also stay in view: Dicke Kartoffeln derives its table view from the round alone, so another farmer sealing leaves the farmer's farm and open picker where they are.
 
 ## Integration Pattern
 
