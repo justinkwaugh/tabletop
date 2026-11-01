@@ -193,9 +193,8 @@
                 <span class="text-oath-text-muted">Discard first:</span>
                 <CardChoiceRow
                     choices={cardChoices(search.discardFirstOptions)}
-                    picked={search.discardFirst ? [search.discardFirst] : []}
-                    onpick={(cardId) =>
-                        search.setDiscardFirst(toggleSingle(search.discardFirst, cardId))}
+                    picked={search.discardFirsts}
+                    onpick={(cardId) => search.tapDiscardFirst(cardId)}
                     {busy}
                     height={80}
                 />

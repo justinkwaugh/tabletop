@@ -5,6 +5,7 @@ import {
     PowerQuestionKind,
     RecoverTargetKind,
     SearchPlay,
+    discardFirstCardIdsOf,
     SearchSource,
     WarbandMoveKind,
     isAnswerConsent,
@@ -393,6 +394,16 @@ export function recordedNotes(action: GameAction): readonly string[] {
     // R-5.5.8 — the plans and the end that waited on a banish's answer (Toll Roads, the Shrouded Wood).
     if (isAnswerQuestion(action)) return action.metadata?.triggered ?? []
     return []
+}
+
+/** R-11.10, Crop Rotation, R-5.1.4.I — the cards a site play discarded first, named in its line. */
+function discardedFirstClause(
+    play: SearchPlay,
+    firsts: readonly string[],
+    by: readonly string[] = []
+): string {
+    if (play !== SearchPlay.Site || firsts.length === 0) return ''
+    return `, discarding ${listed(firsts.map(cardName))} first${inBrackets(by)}`
 }
 
 /** Land Warden — the second card's When Played, under that card's name once, as the kept card's is. */
@@ -849,6 +860,7 @@ function describeActionCited(
         return (
             `kept ${shownCard(kept)} and ${describePlay(action.play)}` +
             (facedown ? ', facedown' : '') +
+            discardedFirstClause(action.play, discardFirstCardIdsOf(action)) +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +
             whenPlayedClause(meta?.whenPlayed, kept, action.playerId, names, viewerId)
@@ -940,8 +952,8 @@ function describeActionCited(
             did ? gainCards(meta?.modifiers, new Set([cardId]), named) : []
         const elsewhere = action.toSiteId
         const grew = usedFor(NEW_GROWTH, elsewhere !== undefined)
-        const first = action.discardFirstCardId
-        const rotated = usedFor(CROP_ROTATION, first !== undefined)
+        const firsts = discardFirstCardIdsOf(action)
+        const rotated = usedFor(CROP_ROTATION, firsts.length > 0)
         const horn = usedFor(CRACKED_HORN, meta?.discardToWorldDeck === true)
         const played = shownCard(meta?.playedCardId)
         return (
@@ -949,7 +961,7 @@ function describeActionCited(
                 ? `played ${played} to ${names.site(elsewhere)}${inBrackets(grew)}`
                 : describeAdviserPlay(action.play, played)) +
             (meta?.discardToWorldDeck ? ` under the world deck${inBrackets(horn)}` : '') +
-            (first ? `, discarding ${cardName(first)} first${inBrackets(rotated)}` : '') +
+            discardedFirstClause(action.play, firsts, rotated) +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             cardsInBrackets(meta?.modifiers, new Set([...named, ...grew, ...rotated, ...horn])) +
             conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +

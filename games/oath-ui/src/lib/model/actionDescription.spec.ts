@@ -2590,7 +2590,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Wayside Inn and played it to their site, gaining 2 favor; 2 cards went to the cradle discard pile'
+                'kept Wayside Inn and played it to their site, discarding Wolves first, gaining 2 favor; 2 cards went to the cradle discard pile'
             )
         })
 

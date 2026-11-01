@@ -17,7 +17,7 @@
     import SiteGain from '$lib/components/SiteGain.svelte'
     import { cardBack } from '$lib/images/cardImages.js'
     import { widthAtHeight } from '$lib/images/cardShape.js'
-    import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
+    import { cardChoices } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
@@ -176,13 +176,8 @@
                         <h4 class="mb-1 {heading}">Discard first</h4>
                         <CardChoiceRow
                             choices={cardChoices(gameSession.adviserDiscardFirstOptions)}
-                            picked={gameSession.adviserDiscardFirst
-                                ? [gameSession.adviserDiscardFirst]
-                                : []}
-                            onpick={(first) =>
-                                gameSession.setAdviserDiscardFirst(
-                                    toggleSingle(gameSession.adviserDiscardFirst, first)
-                                )}
+                            picked={gameSession.adviserDiscardFirsts}
+                            onpick={(first) => gameSession.tapAdviserDiscardFirst(first)}
                             {busy}
                             height={72}
                         />

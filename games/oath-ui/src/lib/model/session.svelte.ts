@@ -159,6 +159,7 @@ import { droppedDeals, tribunalDealRows, type TribunalDealRow } from './tribunal
 import {
     NO_PLAY_CARDS,
     adviserDiscardFirstOptions,
+    adviserDiscardFirstRow,
     adviserOtherSites,
     adviserPlacements,
     facedownPlayRoom,
@@ -171,6 +172,7 @@ import {
     type PilePlace
 } from './adviserPlacements.js'
 import { powerUseKey, samePowerUse } from './powerUse.js'
+import { discardFirstFields, tapDiscardFirst, type DiscardFirstRow } from './discardFirstPicks.js'
 import { CampaignDraft, type CampaignDeclaration } from './campaignDraft.js'
 import {
     dimsTheMap,
@@ -1054,7 +1056,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 this.gameState,
                 playerId,
                 cardId,
-                { toSiteId: this.adviserToSite, discardFirstCardId: this.adviserDiscardFirst },
+                { toSiteId: this.adviserToSite, discardFirsts: this.adviserDiscardFirsts },
                 this.adviserPlayCards.placing,
                 this.adviserRowsInUse
             ) ?? []
@@ -1133,37 +1135,55 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     /**
-     * R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — a denizen discarded
-     * before the site play.
+     * R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — the denizens discarded
+     * before the site play, one per power that gives one.
      */
-    get adviserDiscardFirstOptions(): string[] {
+    private get adviserDiscardFirstPicks(): DiscardFirstRow {
         const playerId = this.liveTurnSeatId
         const cardId = this.adviserCardId
-        if (!playerId || !cardId || this.adviserPlay !== SearchPlay.Site) return []
-        return adviserDiscardFirstOptions(
+        if (!playerId || !cardId || this.adviserPlay !== SearchPlay.Site)
+            return { offered: [], picked: [], several: false }
+        return adviserDiscardFirstRow(
             this.gameState,
             playerId,
             cardId,
             this.adviserToSite,
+            this.selection.value('discardFirst') ?? [],
             this.adviserPlayCards.placing,
             this.adviserRowsInUse
         )
     }
 
-    get adviserDiscardFirst(): string | undefined {
-        const cardId = this.selection.value('discardFirst')
-        return cardId !== undefined && this.adviserDiscardFirstOptions.includes(cardId)
-            ? cardId
-            : undefined
+    /** The cards the "Discard first" row shows: those picked, and each that can still go with them. */
+    get adviserDiscardFirstOptions(): string[] {
+        return this.adviserDiscardFirstPicks.offered
     }
 
+    /** The cards picked to discard first that can still go together. */
+    get adviserDiscardFirsts(): string[] {
+        return this.adviserDiscardFirstPicks.picked
+    }
+
+    /** The first card picked to discard first. */
+    get adviserDiscardFirst(): string | undefined {
+        return this.adviserDiscardFirsts[0]
+    }
+
+    /** One card discarded first in place of the picks, or none. */
     setAdviserDiscardFirst(cardId: string | undefined): void {
         if (cardId === undefined) this.selection.clearFrom('discardFirst')
         else if (this.adviserDiscardFirstOptions.includes(cardId))
-            this.selection.set('discardFirst', cardId)
+            this.selection.set('discardFirst', [cardId])
     }
 
-    // R-5.1.4.I, R-11.10 — the card picked to discard before the site play goes first; R-7.3.3 — the
+    /** A tap in the "Discard first" row: added, taken back, or, where one card may go, in place of the pick. */
+    tapAdviserDiscardFirst(cardId: string): void {
+        const next = tapDiscardFirst(this.adviserDiscardFirstPicks, cardId)
+        if (next.length === 0) this.selection.clearFrom('discardFirst')
+        else this.selection.set('discardFirst', next)
+    }
+
+    // R-5.1.4.I, R-11.10 — the cards picked to discard before the site play go first; R-7.3.3 — the
     // play's gains come before the power, as the engine plans them for this play (R-6.1).
     private get adviserPlayChanges(): PlayMapChanges | undefined {
         const playerId = this.liveTurnSeatId
@@ -1175,7 +1195,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             play,
             discardedAdviserCardIds: this.adviserPlayDiscards,
             toSiteId: this.adviserToSite,
-            discardFirstCardId: this.adviserDiscardFirst,
+            ...discardFirstFields(this.adviserDiscardFirsts),
             modifiers: this.adviserModifiers
         })
     }
@@ -1238,19 +1258,18 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    /** R-5.1.4.I, R-11.10, Crop Rotation — a site play that only a card discarded first opens. */
+    /** R-5.1.4.I, R-11.10, Crop Rotation — a site play that the cards picked to discard first do not open yet. */
     private get adviserFirstPending(): boolean {
         const playerId = this.liveTurnSeatId
         const cardId = this.adviserCardId
         if (!playerId || !cardId || this.adviserPlay !== SearchPlay.Site) return false
-        if (this.adviserDiscardFirst !== undefined) return false
         return (
             this.adviserDiscardFirstOptions.length > 0 &&
             sitePlayUses(
                 this.gameState,
                 playerId,
                 cardId,
-                { toSiteId: this.adviserToSite },
+                { toSiteId: this.adviserToSite, discardFirsts: this.adviserDiscardFirsts },
                 this.adviserPlayCards.placing,
                 this.adviserRowsInUse
             ) === undefined
@@ -1280,7 +1299,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             conspiracy: this.adviserConspiracy,
             discardedAdviserCardIds: this.adviserPlayDiscards,
             toSiteId: this.adviserToSite,
-            discardFirstCardId: this.adviserDiscardFirst,
+            ...discardFirstFields(this.adviserDiscardFirsts),
             modifiers: this.adviserModifiers,
             tolls: HydratedPlayFacedownAdviser.tolls(this.gameState, playerId)
         })
@@ -1303,7 +1322,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.adviserConspiracy,
             this.adviserPlayDiscards,
             this.adviserToSite,
-            this.adviserDiscardFirst,
+            this.adviserDiscardFirsts,
             this.adviserModifiers
         )
     }
@@ -1315,7 +1334,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         conspiracy?: ConspiracyPlay,
         discardedAdviserCardIds: string[] = [],
         toSiteId?: string,
-        discardFirstCardId?: string,
+        discardFirsts: readonly string[] = [],
         modifiers: ModifierUse[] = []
     ): Promise<void> {
         const playerId = this.liveTurnSeatId
@@ -1330,7 +1349,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 ...(conspiracy ? { conspiracy } : {}),
                 ...(discardedAdviserCardIds.length > 0 ? { discardedAdviserCardIds } : {}),
                 ...(toSiteId ? { toSiteId } : {}),
-                ...(discardFirstCardId ? { discardFirstCardId } : {}),
+                ...discardFirstFields(discardFirsts),
                 ...(modifiers.length > 0 ? { modifiers } : {}),
                 ...(tolls.length > 0 ? { tolls } : {})
             })
