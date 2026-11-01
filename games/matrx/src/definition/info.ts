@@ -1,6 +1,7 @@
 import type { GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 import { MatrxConfigurator } from './config.js'
+import { MatrxPreferenceDefinition } from './preferences.js'
 
 export const MatrxInfo: GameInfo = {
     id: 'matrx',
@@ -16,5 +17,6 @@ export const MatrxInfo: GameInfo = {
         version: GAME_VERSION,
         beta: true
     },
-    configurator: new MatrxConfigurator()
+    configurator: new MatrxConfigurator(),
+    preferences: MatrxPreferenceDefinition
 }

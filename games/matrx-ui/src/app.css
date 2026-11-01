@@ -45,6 +45,8 @@
     --matrx-table-deep: #c9d0d7;
     --matrx-panel: #fbfcfc;
     --matrx-panel-edge: #b9c2cb;
+    --matrx-panel-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+    --matrx-panel-hover: color-mix(in srgb, var(--matrx-panel), #1d2329 6%);
     --matrx-play: #fbfbf9;
     --matrx-line: #111111;
     --matrx-label: #1d2329;

@@ -1,4 +1,8 @@
-import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
+import {
+    GameSession,
+    type PresentedTransition,
+    type TitlePreferences
+} from '@tabletop/frontend-components'
 import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
@@ -7,6 +11,7 @@ import {
     isExtraMove,
     isMovePotential,
     isPushPiece,
+    MatrxPreferenceDefinition,
     MovePotential,
     PieceKind,
     PushPiece,
@@ -15,6 +20,7 @@ import {
     type Entry,
     type HydratedMatrxGameState,
     type MatrxGameState,
+    type MatrxPreferences,
     type PotentialKind,
     type Row
 } from '@tabletop/matrx'
@@ -51,6 +57,21 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     // The move being undone, and the move history last stepped to.
     undoingMove: StepBack | undefined
     historyMove: StepBack | undefined
+
+    readonly preferences: TitlePreferences<typeof MatrxPreferences> =
+        this.createPreferences(MatrxPreferenceDefinition)
+    showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
+
+    toggleCoordinates() {
+        this.preferences.set({ showCoordinates: !this.showCoordinates })
+    }
+
+    // E5's mark, a reminder of TAMSK's extra move that the real board does not have.
+    centreMark: boolean = $derived(this.preferences.values.centreMark)
+
+    toggleCentreMark() {
+        this.preferences.set({ centreMark: !this.centreMark })
+    }
 
     view: BoardView = $derived(viewOf(this.gameState.board.shape))
     notation: BoardNotation = $derived(boardNotation(this.view))

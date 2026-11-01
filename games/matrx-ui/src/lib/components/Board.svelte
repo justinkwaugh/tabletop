@@ -6,7 +6,7 @@
         scaleAxial,
         type AxialCoordinates
     } from '@tabletop/common'
-    import { AXES, PieceKind, type Entry } from '@tabletop/matrx'
+    import { AXES, CENTRE, PieceKind, type Entry } from '@tabletop/matrx'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import {
@@ -122,6 +122,12 @@
         return drawn.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
     })
 
+    // E5 can be marked, though the real board is not, as a reminder that a TAMSK stack pushed there
+    // earns an extra move: a station just wider than a piece, with a ring inside as wide as
+    // TAMSK's inner groove. Each player turns it on or off beside the board.
+    const centre = $derived(view.center(CENTRE))
+    const STATION_RADIUS = PIECE_RADIUS + 4
+    const STATION_INNER = PIECE_RADIUS * 0.4
     const SPOT_RADIUS = PIECE_RADIUS * 0.13
     const TOGGLE_RADIUS = PIECE_RADIUS * 0.66
     // A dashed ring's dashes and the gaps between them, as in its stroke-dasharray.
@@ -299,9 +305,18 @@
         {/each}
     </g>
 
-    {#each session.notation.labels as label (label.key)}
-        <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
-    {/each}
+    {#if session.centreMark}
+        <g transform="translate({centre.x} {centre.y})" class="station">
+            <ellipse rx={STATION_RADIUS} ry={STATION_RADIUS * view.tilt}></ellipse>
+            <ellipse rx={STATION_INNER} ry={STATION_INNER * view.tilt}></ellipse>
+        </g>
+    {/if}
+
+    {#if session.showCoordinates}
+        {#each session.notation.labels as label (label.key)}
+            <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
+        {/each}
+    {/if}
 
     {#each geometry.dots as coords (coordsKey(coords))}
         {@const center = view.center(coords)}
@@ -589,6 +604,13 @@
     }
 
     .lines line {
+        stroke: var(--matrx-line);
+        stroke-width: 1.6;
+    }
+
+    /* Filled with the play area, so the lines stop at its edge. */
+    .station ellipse {
+        fill: var(--matrx-play);
         stroke: var(--matrx-line);
         stroke-width: 1.6;
     }
