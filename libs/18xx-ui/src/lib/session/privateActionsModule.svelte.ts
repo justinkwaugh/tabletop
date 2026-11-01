@@ -1,7 +1,7 @@
 import { assert } from '@tabletop/common'
 import type { EighteenXXState, TrackConstruction, TrackLayDetails } from '@tabletop/18xx'
 import type { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
-import type { LocalSelection } from './localSelections.js'
+import type { LocalSelection } from '@tabletop/frontend-components'
 import type { PrivatesModule } from './privatesModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection } from './stagedSelection.svelte.js'

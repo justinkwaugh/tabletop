@@ -1,3 +1,10 @@
+import {
+    clearStagedSelectionAtOrAfter,
+    getStagedSelectionValue,
+    pushStagedSelectionValue,
+    setStagedSelectionValue,
+    type StagedSelectionState
+} from '@tabletop/frontend-components'
 import { PlanKind, type FieldSale, type Plan, type Variety } from '@tabletop/dicke-kartoffeln'
 
 // Each click or entry while planning is one manual edit; Undo takes back the latest.
@@ -11,7 +18,45 @@ export type PlanEdit =
     | { kind: 'offers'; sales: FieldSale[] }
     | { kind: 'spread'; fieldId: number }
 
-export type PlanDraft = { key: string; edits: PlanEdit[] }
+export type PlanSelectionValues = {
+    edits: PlanEdit[]
+    seedField: number
+}
+
+export type PlanSelection = StagedSelectionState<PlanSelectionValues>
+
+export type PlanDraft = { key: string; selection: PlanSelection }
+
+export const PlanStageOrder = [
+    'edits',
+    'seedField'
+] as const satisfies readonly (keyof PlanSelectionValues)[]
+type MissingStages = Exclude<keyof PlanSelectionValues, (typeof PlanStageOrder)[number]>
+const stageCoverage: MissingStages extends never ? true : never = true
+void stageCoverage
+
+export function planEdits(selection: PlanSelection): PlanEdit[] {
+    return getStagedSelectionValue<PlanSelectionValues, 'edits'>(selection, 'edits') ?? []
+}
+
+export function withEdit(selection: PlanSelection, edit: PlanEdit): PlanSelection {
+    return pushStagedSelectionValue(selection, PlanStageOrder, 'edits', [
+        ...planEdits(selection),
+        edit
+    ])
+}
+
+export function pickedSeedField(selection: PlanSelection): number | undefined {
+    return getStagedSelectionValue<PlanSelectionValues, 'seedField'>(selection, 'seedField')
+}
+
+export function withSeedField(selection: PlanSelection, fieldId: number): PlanSelection {
+    return setStagedSelectionValue(selection, PlanStageOrder, 'seedField', fieldId, 'manual')
+}
+
+export function withoutSeedField(selection: PlanSelection): PlanSelection {
+    return clearStagedSelectionAtOrAfter(selection, PlanStageOrder, 'seedField')
+}
 
 type FieldEditKind = 'take' | 'plough' | 'fertilize' | 'spray' | 'spread'
 

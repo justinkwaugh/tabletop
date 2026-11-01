@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushSync } from 'svelte'
-import { GameSession } from '@tabletop/frontend-components'
-import { ActionType, MachineState, PlanKind, Variety } from '@tabletop/dicke-kartoffeln'
+import { GameSession, type TransitionKind } from '@tabletop/frontend-components'
+import {
+    ActionType,
+    HydratedDickeKartoffelnGameState,
+    MachineState,
+    PlanKind,
+    Variety
+} from '@tabletop/dicke-kartoffeln'
 import { YearEndStatus } from '$lib/utils/yearEnd.js'
 import {
     disposeSessions,
@@ -20,7 +26,7 @@ afterEach(() => {
 })
 
 function spyOnActionUndo() {
-    return vi.spyOn(GameSession.prototype, 'undo').mockResolvedValue()
+    return vi.spyOn(GameSession.prototype, 'undoCommittedAction').mockResolvedValue()
 }
 
 function atSowing(): PlayedTable {
@@ -93,7 +99,7 @@ describe('planning a round', () => {
         expect(session.preview?.cost).toBe(session.gameState.seedPrice(Variety.Chris))
     })
 
-    it('keeps the seed picker to the own farm on the farm view', async () => {
+    it('closes the seed picker when the farmer looks away from their own farm', async () => {
         const session = openSessionOn(atSowing())
         session.showMyFarm()
         await session.clickField(1)
@@ -102,12 +108,16 @@ describe('planning a round', () => {
         session.showFarm('p2')
         flushSync()
         expect(session.seedPickerField).toBeUndefined()
+        expect(session.hasLocalSelection).toBe(false)
         session.showMyFarm()
         flushSync()
-        expect(session.seedPickerField).toBe(1)
+        expect(session.seedPickerField).toBeUndefined()
+
+        await session.clickField(1)
         session.showSheet('p1')
         flushSync()
         expect(session.seedPickerField).toBeUndefined()
+        expect(session.hasLocalSelection).toBe(false)
     })
 
     it('takes back the latest edit before undoing any action', async () => {
@@ -116,7 +126,7 @@ describe('planning a round', () => {
         await session.clickField(1)
         await session.clickField(2)
         flushSync()
-        expect(session.hasManualSelection()).toBe(true)
+        expect(session.hasLocalSelection).toBe(true)
         await session.undo()
         flushSync()
         expect(session.preview?.plan).toEqual({
@@ -125,7 +135,7 @@ describe('planning a round', () => {
         })
         await session.undo()
         flushSync()
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
         expect(actionUndo).not.toHaveBeenCalled()
         await session.undo()
         expect(actionUndo).toHaveBeenCalledOnce()
@@ -137,11 +147,11 @@ describe('planning a round', () => {
         session.showMyFarm()
         await session.clickField(1)
         flushSync()
-        expect(session.hasManualSelection()).toBe(true)
+        expect(session.hasLocalSelection).toBe(true)
         await session.undo()
         flushSync()
         expect(session.seedPickerField).toBeUndefined()
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
         expect(actionUndo).not.toHaveBeenCalled()
 
         await session.clickField(1)
@@ -173,16 +183,58 @@ describe('planning a round', () => {
         expect(session.preview).toMatchObject({ cost: 100, loans: 1, problem: undefined })
     })
 
-    it('keeps the draft when another farmer seals, and clears it on its own action', async () => {
+    it('keeps the draft when another farmer seals, and clears it on its own action', () => {
         const session = openSessionOn(startingTable())
+        const keeps = (kind: TransitionKind) =>
+            session.keepsLocalSelections({ kind, actions: [], intent: 'actions' })
+        expect(keeps('other-action')).toBe(true)
+        expect(keeps('reconciliation')).toBe(true)
+        expect(keeps('own-action')).toBe(false)
+        expect(keeps('undo')).toBe(false)
+        expect(keeps('history')).toBe(false)
+    })
+
+    it('keeps what the farmer looks at through the round, and opens a new round on their own', () => {
+        const table = atSowing()
+        const session = openSessionOn(table)
+        session.showFarm('p3')
+        flushSync()
+        const sealed = submit(table, 'p2', { kind: PlanKind.Sow, seeds: [] })
+        session.gameState = new HydratedDickeKartoffelnGameState(sealed.state)
+        flushSync()
+        expect([session.view, session.farmPlayerId]).toEqual([TableView.Farm, 'p3'])
+
+        session.showSheet('p2')
+        flushSync()
+        let next = sealed
+        for (const playerId of ['p1', 'p3']) {
+            next = submit(next, playerId, { kind: PlanKind.Sow, seeds: [] })
+        }
+        expect(next.state.machineState).not.toBe(MachineState.Sowing)
+        session.gameState = new HydratedDickeKartoffelnGameState(next.state)
+        flushSync()
+        expect([session.farmPlayerId, session.sheetPlayerId]).toEqual(['p1', 'p1'])
+    })
+
+    it('keeps the farm, the open seed picker and the sown bags when another farmer seals', async () => {
+        const table = atSowing()
+        const session = openSessionOn(table)
+        session.showMyFarm()
         await session.clickField(1)
+        session.chooseSeed(1, Variety.Chris)
+        await session.clickField(2)
         flushSync()
-        session.beforeNewState({ kind: 'other-action', actions: [], intent: 'actions' })
+        expect(session.seedPickerField).toBe(2)
+        const sealed = submit(table, 'p2', { kind: PlanKind.Sow, seeds: [] })
+        expect(sealed.state.machineState).toBe(MachineState.Sowing)
+        session.gameState = new HydratedDickeKartoffelnGameState(sealed.state)
         flushSync()
-        expect(session.hasManualSelection()).toBe(true)
-        session.beforeNewState({ kind: 'own-action', actions: [], intent: 'actions' })
-        flushSync()
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.view).toBe(TableView.Farm)
+        expect(session.seedPickerField).toBe(2)
+        expect(session.preview?.plan).toEqual({
+            kind: PlanKind.Sow,
+            seeds: [{ fieldId: 1, variety: Variety.Chris }]
+        })
     })
 
     it('shows who has sealed a plan from the public record', () => {
@@ -285,7 +337,7 @@ describe('offering potatoes', () => {
         expect(session.offeringAll).toBe(true)
         await session.undo()
         flushSync()
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
     })
 })
 

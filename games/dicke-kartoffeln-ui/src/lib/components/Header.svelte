@@ -39,7 +39,7 @@
         {/if}
     </div>
     <div class="buttons">
-        {#if gameSession.hasManualSelection() || gameSession.undoableAction}
+        {#if gameSession.hasLocalSelection || gameSession.undoableAction}
             <button type="button" class="undo" onclick={() => gameSession.undo()}>Undo</button>
         {/if}
         <button

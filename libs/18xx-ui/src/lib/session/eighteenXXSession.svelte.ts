@@ -73,7 +73,6 @@ import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import { DiscardModule } from './discardModule.svelte.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { LoanModule } from './loanModule.svelte.js'
-import { LocalSelections } from './localSelections.js'
 import { TitleStockPanels, type TitleStockPanel } from './titleStockPanels.svelte.js'
 import { MapModule, MapStyleAppearances } from './mapModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
@@ -212,7 +211,6 @@ export class EighteenXXSession<
     readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(
         EighteenXXPreferenceDefinition
     )
-    protected readonly localSelections = new LocalSelections()
     private get localHotseat() {
         return !!this.game.hotseat && this.game.storage === GameStorage.Local
     }
@@ -960,16 +958,10 @@ export class EighteenXXSession<
     override beforeNewState(transition: PresentedTransition) {
         this.restoredSilently = transition.intent === 'silent'
         this.map.clearInspection()
-        this.localSelections.clear()
     }
-    get hasLocalSelection(): boolean {
-        return this.localSelections.hasManual()
-    }
-    override async undo() {
-        if (this.busy || this.isViewingHistory) return
-        if (this.localSelections.undo()) return
+    override async undoCommittedAction() {
         this.stock.menu.clear()
-        await super.undo()
+        await super.undoCommittedAction()
     }
     private registerLocalSelections() {
         const { localSelections } = this

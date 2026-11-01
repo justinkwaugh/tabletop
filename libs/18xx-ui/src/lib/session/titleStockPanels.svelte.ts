@@ -1,4 +1,4 @@
-import type { LocalSelection } from './localSelections.js'
+import type { LocalSelection } from '@tabletop/frontend-components'
 import type { StockMenuOption } from '../stock/stockActionSelection.js'
 import type { StockModule } from './stockModule.svelte.js'
 
