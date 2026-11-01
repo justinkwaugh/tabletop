@@ -417,39 +417,51 @@
     <g {@attach animator.marks()}>
         {#each session.entryDots as coords (coordsKey(coords))}
             {@const center = view.center(coords)}
-            <ellipse
-                cx={center.x}
-                cy={center.y}
-                rx={DOT_RADIUS * 2.4}
-                ry={DOT_RADIUS * 2.4 * view.tilt}
+            <g
                 class="dot-ring"
                 class:chosen={isChosenDot(coords)}
                 class:faded={chosen && !isChosenDot(coords)}
                 class:hovered={hoveredDot === coordsKey(coords)}
-            ></ellipse>
+            >
+                {#each ['under', 'over'] as layer (layer)}
+                    <ellipse
+                        cx={center.x}
+                        cy={center.y}
+                        rx={DOT_RADIUS * 2.4}
+                        ry={DOT_RADIUS * 2.4 * view.tilt}
+                        class={layer}
+                    ></ellipse>
+                {/each}
+            </g>
         {/each}
         {#each session.targets as entry (coordsKey(entry.line[0]))}
             {@const center = view.center(entry.line[0])}
-            <ellipse
-                cx={center.x}
-                cy={center.y}
-                rx={PIECE_RADIUS + 2}
-                ry={(PIECE_RADIUS + 2) * view.tilt}
-                class="target-ring"
-                class:hovered={hoveredTarget === coordsKey(entry.line[0])}
-            ></ellipse>
+            <g class="target-ring" class:hovered={hoveredTarget === coordsKey(entry.line[0])}>
+                {#each ['under', 'over'] as layer (layer)}
+                    <ellipse
+                        cx={center.x}
+                        cy={center.y}
+                        rx={PIECE_RADIUS + 2}
+                        ry={(PIECE_RADIUS + 2) * view.tilt}
+                        class={layer}
+                    ></ellipse>
+                {/each}
+            </g>
         {/each}
         {#each session.moveTargets as coords (coordsKey(coords))}
             {@const center = view.center(coords)}
             {#if stackHeight(coords) === 0}
-                <ellipse
-                    cx={center.x}
-                    cy={center.y}
-                    rx={PIECE_RADIUS + 2}
-                    ry={(PIECE_RADIUS + 2) * view.tilt}
-                    class="target-ring"
-                    class:hovered={hoveredTarget === coordsKey(coords)}
-                ></ellipse>
+                <g class="target-ring" class:hovered={hoveredTarget === coordsKey(coords)}>
+                    {#each ['under', 'over'] as layer (layer)}
+                        <ellipse
+                            cx={center.x}
+                            cy={center.y}
+                            rx={PIECE_RADIUS + 2}
+                            ry={(PIECE_RADIUS + 2) * view.tilt}
+                            class={layer}
+                        ></ellipse>
+                    {/each}
+                </g>
             {/if}
         {/each}
     </g>
@@ -488,22 +500,26 @@
                 {#if role || target}
                     <g {@attach animator.marks()}>
                         {#if target}
-                            {#each topRing(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
-                                <path
-                                    d={arc.d}
-                                    pathLength={arc.length}
-                                    class="top-ring role-target"
-                                    class:hovered={hoveredTarget === drawn.key}
-                                ></path>
+                            {#each ['under', 'over'] as layer (layer)}
+                                {#each topRing(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
+                                    <path
+                                        d={arc.d}
+                                        pathLength={arc.length}
+                                        class="top-ring role-target {layer}"
+                                        class:hovered={hoveredTarget === drawn.key}
+                                    ></path>
+                                {/each}
                             {/each}
                         {:else if role === 'row' || role === 'movable' || role === 'chosen'}
-                            {#each topRing(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
-                                <path
-                                    d={arc.d}
-                                    pathLength={arc.length}
-                                    class="top-ring role-{role}"
-                                    class:faded={chosen && role === 'movable'}
-                                ></path>
+                            {#each role === 'row' ? ['over'] : ['under', 'over'] as layer (layer)}
+                                {#each topRing(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
+                                    <path
+                                        d={arc.d}
+                                        pathLength={arc.length}
+                                        class="top-ring role-{role} {layer}"
+                                        class:faded={chosen && role === 'movable'}
+                                    ></path>
+                                {/each}
                             {/each}
                         {:else}
                             {#if includesCoords(session.rowPairs, stack.coords)}
@@ -601,7 +617,9 @@
                     class="target-hit"
                 ></path>
             {:else}
-                <path d={arrow(entry.dot, entry.line[0])} class="arrow"></path>
+                {#each ['under', 'over'] as layer (layer)}
+                    <path d={arrow(entry.dot, entry.line[0])} class="arrow {layer}"></path>
+                {/each}
             {/if}
         </g>
     {/snippet}
@@ -716,15 +734,29 @@
         pointer-events: none;
     }
 
+    /* Choice marks are two-tone, as in DVONN, YINSH and LYNGK: a dark band under a cyan core,
+       so they read on the board, the light pieces and the dark ones alike. */
+    .under {
+        stroke: rgb(0 0 0 / 0.8);
+    }
+
     .dot-ring {
-        fill: rgb(240 176 74 / 0.16);
-        stroke: var(--matrx-target);
-        stroke-width: 2;
         pointer-events: none;
     }
 
-    .dot-ring.hovered {
-        fill: rgb(240 176 74 / 0.3);
+    .dot-ring .under {
+        fill: rgb(94 240 255 / 0.16);
+        stroke-width: 3.8;
+    }
+
+    .dot-ring .over {
+        fill: none;
+        stroke: var(--matrx-mark);
+        stroke-width: 2;
+    }
+
+    .dot-ring.hovered .under {
+        fill: rgb(94 240 255 / 0.3);
     }
 
     .dot-ring.faded,
@@ -732,8 +764,12 @@
         opacity: 0.4;
     }
 
-    .dot-ring.chosen {
-        fill: rgb(240 176 74 / 0.38);
+    .dot-ring.chosen .under {
+        fill: rgb(94 240 255 / 0.38);
+        stroke-width: 5.3;
+    }
+
+    .dot-ring.chosen .over {
         stroke-width: 3.5;
     }
 
@@ -758,23 +794,48 @@
         stroke-dasharray: 5 4;
     }
 
-    .top-ring.role-movable {
-        stroke: var(--matrx-target);
+    .top-ring.role-movable.over,
+    .top-ring.role-target.over {
+        stroke: var(--matrx-mark);
     }
 
-    .top-ring.role-chosen {
-        stroke: var(--matrx-target);
+    .top-ring.role-movable.under {
+        stroke-width: 4.3;
+    }
+
+    .top-ring.role-chosen.over {
+        stroke: var(--matrx-mark);
         stroke-width: 3.5;
     }
 
-    .top-ring.role-target {
-        stroke: var(--matrx-target);
+    .top-ring.role-chosen.under {
+        stroke-width: 5.3;
+    }
+
+    .top-ring.role-target.over {
         stroke-dasharray: 5 4;
     }
 
-    .top-ring.role-target.hovered {
+    /* Each dash outlined on its own, as in DVONN, so the piece shows between dashes: the dark
+       dashes are shorter but square-capped, overhanging each cyan one by the band at both ends. */
+    .top-ring.role-target.under {
+        stroke: #000;
+        stroke-width: 4.3;
+        stroke-dasharray: 2.5 6.5;
+        stroke-dashoffset: -1.25;
+        stroke-linecap: square;
+    }
+
+    .top-ring.role-target.hovered.over {
         stroke-dasharray: none;
         stroke-width: 3.5;
+    }
+
+    .top-ring.role-target.hovered.under {
+        stroke: rgb(0 0 0 / 0.8);
+        stroke-dasharray: none;
+        stroke-width: 5.3;
+        stroke-linecap: butt;
     }
 
     .toggle-ring {
@@ -821,22 +882,47 @@
 
     .arrow {
         fill: none;
-        stroke: var(--matrx-target);
-        stroke-width: 3.5;
         stroke-linecap: round;
         stroke-linejoin: round;
     }
 
+    .arrow.under {
+        stroke-width: 5.3;
+    }
+
+    .arrow.over {
+        stroke: var(--matrx-mark);
+        stroke-width: 3.5;
+    }
+
     .target-ring {
-        fill: rgb(240 176 74 / 0.14);
-        stroke: var(--matrx-target);
-        stroke-width: 2;
-        stroke-dasharray: 5 4;
         pointer-events: none;
     }
 
-    .target-ring.hovered {
-        fill: rgb(240 176 74 / 0.3);
+    .target-ring .under {
+        fill: rgb(94 240 255 / 0.14);
+        stroke: #000;
+        stroke-width: 3.8;
+        stroke-dasharray: 3 6;
+        stroke-dashoffset: -1;
+        stroke-linecap: square;
+    }
+
+    .target-ring .over {
+        fill: none;
+        stroke: var(--matrx-mark);
+        stroke-width: 2;
+        stroke-dasharray: 5 4;
+    }
+
+    .target-ring.hovered .under {
+        fill: rgb(94 240 255 / 0.3);
+        stroke: rgb(0 0 0 / 0.8);
+        stroke-dasharray: none;
+        stroke-linecap: butt;
+    }
+
+    .target-ring.hovered .over {
         stroke-dasharray: none;
     }
 

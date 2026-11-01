@@ -83,8 +83,8 @@
     }
 
     .kind.chosen {
-        border-color: var(--matrx-target);
-        background: rgb(240 176 74 / 0.22);
+        border-color: var(--matrx-mark);
+        background: rgb(94 240 255 / 0.22);
     }
 
     .kind.empty {
