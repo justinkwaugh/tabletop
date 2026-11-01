@@ -322,7 +322,7 @@ When your push or pull scores, you may place one of your discs as a reeve in tha
 
 ### R-4.9 Military service
 
-1. Each successful Conquer or Starve the People lets the actor place one of their discs on the next empty space of the military service track (3 spaces, left to right), vassal or not. (RB p. 10; D 2018-05-13)
+1. Each successful Conquer or Starve the People lets the actor place one of their discs on the next space of the military service track they have not yet covered themselves (3 spaces, left to right; every player has their own progress along the same printed spaces), vassal or not. (RB p. 10; D 2018-05-13)
 2. A **vassal** rules at least one feudum (several feudums are one obligation). At the dawn of epochs II, IV and V a vassal loses the value of each uncovered space due by then: space 1 (−3) from II, space 2 (−4) from IV, space 3 (−5) at V — cumulatively, so a vassal from epoch I who never serves loses 3, then 7, then 12 (22 in all). (RB p. 10, p. 21; D 2016-11-24; Img)
 
 ### R-4.10 Nourish and wine
