@@ -217,22 +217,6 @@ function profile(height: number): { radius: number; facing: number } {
     return { radius: 1, facing: 0 }
 }
 
-// Between which heights the disc is solid at a distance from its centre, over its radius:
-// lower where its rounded edges curve in, and none past its edge.
-function solidAt(distance: number): { bottom: number; top: number } {
-    const rimStart = THICKNESS - RIM_ROUND
-    if (distance >= 1) {
-        const middle = (BASE_ROUND + rimStart) / 2
-        return { bottom: middle, top: middle }
-    }
-    const rounded = (corner: number) =>
-        Math.sqrt(Math.max(0, corner ** 2 - (distance - (1 - corner)) ** 2))
-    return {
-        bottom: distance > 1 - BASE_ROUND ? BASE_ROUND - rounded(BASE_ROUND) : 0,
-        top: distance > 1 - RIM_ROUND ? rimStart + rounded(RIM_ROUND) : THICKNESS
-    }
-}
-
 function level(facing: number): number {
     return Math.round(((facing + 1) / 2) * (SHADE_LEVELS - 1))
 }
@@ -299,9 +283,11 @@ function onFlat(view: BoardView, radius: number) {
     })
 }
 
-// The part of a PÜNCT notch's inside that faces you, in narrow strips from the top down to the
-// board, as far as the disc's rounded edges reach at each, each shaded by the way it faces: lit facing the light, from the left, in shade facing
-// away from it.
+// The part of a PÜNCT notch's inside that faces you, in narrow strips round it, each shaded by
+// the way it faces: lit facing the light, from the left, in shade facing away from it. At each
+// height up the side the strips span only the notch's circle inside the disc there, ending where
+// the side's circle crosses it, as the side's bands beside it do, so its edges follow the disc's
+// rounded ones and meet the side's with no gap.
 function notchWalls(
     flat: (u: number, v: number, height?: number) => Point,
     centre: number,
@@ -318,34 +304,47 @@ function notchWalls(
         )
     // Round from one lip, in to the notch's deepest point and out to the other.
     const point = (t: number): [number, number] => [1 - Math.sin(t) * r, Math.cos(t) * r]
-    const turns = Array.from(
-        { length: PUNCT_WALL_STRIPS + 1 },
-        (_, step) => (Math.PI * step) / PUNCT_WALL_STRIPS
-    )
-    return turns.slice(0, -1).flatMap((turn, index) => {
-        const next = turns[index + 1]
-        const middle = (turn + next) / 2
+    // How far round from either lip the notch's circle lies outside the side at a height.
+    const lipAt = (height: number) => {
+        const side = profile(height).radius
+        return Math.asin(Math.min(1, (1 + r * r - side * side) / (2 * r)))
+    }
+    // Up the side as its bands go, and a little past the top, under its cut edge, so no seam
+    // shows there.
+    const lip = THICKNESS * 0.03
+    const heights = [
+        ...SIDE_HEIGHTS.map((height) => ({ height, at: height })),
+        {
+            height: THICKNESS + lip,
+            at: THICKNESS
+        }
+    ]
+    // At a height, a fraction of the way round the part inside the disc.
+    const turnAt = (at: number, across: number) => {
+        const from = lipAt(at)
+        return from + (Math.PI - 2 * from) * across
+    }
+    const step = 1 / PUNCT_WALL_STRIPS
+    return Array.from({ length: PUNCT_WALL_STRIPS }, (_, index) => index * step).flatMap((from) => {
+        const middle = turnAt(THICKNESS / 2, from + step / 2)
         // The inside faces the notch's middle.
         const normal = {
             u: along.u * Math.sin(middle) - across.u * Math.cos(middle),
             v: along.v * Math.sin(middle) - across.v * Math.cos(middle)
         }
         if (normal.v >= 0) return []
-        // Each strip reaches a little into the next, so no seam shows between them.
-        const overlap = (next - turn) * 0.3
-        const from = point(turn - overlap)
-        const to = point(next + overlap)
-        const fromSolid = solidAt(Math.hypot(...from))
-        const toSolid = solidAt(Math.hypot(...to))
-        // A little past the top, under its cut edge, so no seam shows there.
-        const lip = THICKNESS * 0.03
+        // Each strip reaches a little into the next, so no seam shows between them; not past
+        // the lips, where the side goes on.
+        const overlap = step * 0.3
+        const left = Math.max(0, from - overlap)
+        const right = Math.min(1, from + step + overlap)
         return [
             {
                 d: polygon([
-                    at(from, fromSolid.top + lip),
-                    at(to, toSolid.top + lip),
-                    at(to, toSolid.bottom),
-                    at(from, fromSolid.bottom)
+                    ...heights.map(({ height, at: h }) => at(point(turnAt(h, left)), height)),
+                    ...heights
+                        .toReversed()
+                        .map(({ height, at: h }) => at(point(turnAt(h, right)), height))
                 ]),
                 fill: wallShade(tone, normal),
                 opacity: 1
