@@ -2,7 +2,12 @@ import { bannerHolder } from '../util/oathkeeper.js'
 import { Banner, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
-import { becomeCitizenByPower, exileRefusal, visionDeposits } from '../util/citizenship.js'
+import {
+    becameImperialWords,
+    becomeCitizenByPower,
+    exileRefusal,
+    visionDeposits
+} from '../util/citizenship.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import {
     registerBattlePlan,
@@ -140,7 +145,7 @@ registerEffect(
         resolve: (ctx) => {
             const c = becomeCitizenByPower(ctx.state, ctx.playerId)
             return {
-                summary: `Ballot Box: became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed, Act Phase over`,
+                summary: `Ballot Box: became a Citizen (${becameImperialWords(c)}); Supply refreshed, Act Phase over`,
                 warbandOwner: ownerIfAny(c.replacedCount, ctx.playerId),
                 endsActPhase: true,
                 pileDeposits: visionDeposits(c)
@@ -169,7 +174,7 @@ registerEffect(
                 return { summary: 'Long-Lost Heir: stayed an Exile' }
             const c = becomeCitizenByPower(ctx.state, ctx.playerId)
             return {
-                summary: `Long-Lost Heir: became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed, Act Phase over`,
+                summary: `Long-Lost Heir: became a Citizen (${becameImperialWords(c)}); Supply refreshed, Act Phase over`,
                 endsActPhase: true,
                 pileDeposits: visionDeposits(c)
             }
@@ -235,7 +240,7 @@ registerEffect(
                 return { summary: 'Bewitch: stayed an Exile' }
             const c = becomeCitizenByPower(ctx.state, ctx.playerId)
             return {
-                summary: `Bewitch: became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed, Act Phase over`,
+                summary: `Bewitch: became a Citizen (${becameImperialWords(c)}); Supply refreshed, Act Phase over`,
                 endsActPhase: true,
                 pileDeposits: visionDeposits(c)
             }
@@ -261,7 +266,7 @@ registerBattlePlan(
                 if (ctx.campaign.side === BattlePlanSide.Attacker && ctx.state.campaign)
                     ctx.state.campaign.endsActPhaseAfter = true
                 return {
-                    note: `Martial Culture: ${ctx.playerId} became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed`,
+                    note: `Martial Culture: ${ctx.playerId} became a Citizen (${becameImperialWords(c)}); Supply refreshed`,
                     pileDeposits: visionDeposits(c)
                 }
             }

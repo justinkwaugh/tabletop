@@ -46,7 +46,9 @@ export const CitizenshipOutcome = Type.Object({
     flippedUsurperToOathkeeper: Type.Boolean(),
     // R-6.6.2 — applied by ConsentRequestStateHandler.
     endsActPhase: Type.Boolean(),
-    givenBanners: Type.Array(Type.Enum(Banner))
+    givenBanners: Type.Array(Type.Enum(Banner)),
+    /** R-6.6.2-H1 — Ring of Devotion: the warbands at sites removed, not replaced (revision 32). */
+    removedFromSitesCount: Type.Optional(Type.Number())
 })
 
 export type ResolveCitizenshipOfferMetadata = Type.Static<typeof ResolveCitizenshipOfferMetadata>
@@ -159,7 +161,10 @@ export class HydratedResolveCitizenshipOffer
                 discardPileRegion: conversion.discardPileRegion,
                 flippedUsurperToOathkeeper: conversion.flippedUsurperToOathkeeper,
                 endsActPhase: citizenshipEndsActPhase(state, this.playerId),
-                givenBanners
+                givenBanners,
+                ...(conversion.removedFromSitesCount
+                    ? { removedFromSitesCount: conversion.removedFromSitesCount }
+                    : {})
             }
         }
         commitHiddenOutputs(this, state, witnesses)
