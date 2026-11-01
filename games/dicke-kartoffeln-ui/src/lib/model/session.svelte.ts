@@ -43,6 +43,7 @@ import {
     withEdit,
     withSeedField,
     withoutSeedField,
+    type PlanDraft,
     type PlanEdit,
     type PlanSelection
 } from './draft.js'
@@ -164,7 +165,7 @@ export class DickeKartoffelnGameSession extends GameSession<
 
     // Keyed by farmer, year and round: a draft kept while other farmers seal reads as empty in any
     // other round, so it can never be submitted there.
-    private draft: { key: string; selection: PlanSelection } = $state({ key: '', selection: {} })
+    private draft: PlanDraft = $state({ key: '', selection: {} })
 
     private draftKey = $derived(`${this.myPlayerId}-${this.year}-${this.gameState.machineState}`)
 
@@ -302,7 +303,9 @@ export class DickeKartoffelnGameSession extends GameSession<
     })
 
     closeSeedPicker() {
-        this.writePlanSelection(withoutSeedField(this.planSelection))
+        if (pickedSeedField(this.planSelection) !== undefined) {
+            this.writePlanSelection(withoutSeedField(this.planSelection))
+        }
     }
 
     async clickField(fieldId: number) {
@@ -460,7 +463,7 @@ export class DickeKartoffelnGameSession extends GameSession<
 
     showView(view: TableView) {
         this.view = view
-        this.closeSeedPickerAway()
+        this.closeSeedPickerOffOwnFarm()
     }
 
     playerAidOpen = $state(false)
@@ -482,18 +485,18 @@ export class DickeKartoffelnGameSession extends GameSession<
     showFarm(playerId: string) {
         this.farmPlayerId = playerId
         this.view = TableView.Farm
-        this.closeSeedPickerAway()
+        this.closeSeedPickerOffOwnFarm()
     }
 
     showSheet(playerId: string) {
         this.sheetPlayerId = playerId
         this.view = TableView.Sheet
-        this.closeSeedPickerAway()
+        this.closeSeedPickerOffOwnFarm()
     }
 
     // The picker stands beside a field of the farmer's own farm, so looking away closes it rather
     // than leaving a hidden step for Undo to take back.
-    private closeSeedPickerAway() {
+    private closeSeedPickerOffOwnFarm() {
         if (!this.onOwnFarm) this.closeSeedPicker()
     }
 
@@ -502,7 +505,6 @@ export class DickeKartoffelnGameSession extends GameSession<
         return !isYearEndAction(action) && super.shouldAutoStepAction(action, next)
     }
 
-    // Another farmer sealing their plan leaves this farmer's draft standing.
     override keepsLocalSelections(transition: PresentedTransition): boolean {
         return transition.kind === 'other-action' || transition.kind === 'reconciliation'
     }

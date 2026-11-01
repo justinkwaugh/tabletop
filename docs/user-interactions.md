@@ -18,7 +18,7 @@ Committed actions are not local staged selections and must stay in game action h
 A Game UI offers exactly one reversal control: the `Undo` button at the right end of the turn header (see [game UI layout](game-ui-layout.md)). It is contextual:
 
 1. When a manual staged selection exists, Undo pops the highest manual stage and every stage after it. No game action is undone.
-2. Otherwise Undo undoes the Undo Candidate (`undoableAction`) through `GameSession.undo()`.
+2. Otherwise Undo undoes the Undo Candidate (`undoableAction`) through `GameSession.undoCommittedAction()`.
 
 Auto selections never absorb a press: when only auto selections remain, Undo goes straight to action undo.
 
@@ -41,7 +41,7 @@ constructor(options: SessionOptions) {
 }
 ```
 
-`undo()` pops the first registered selection that has a manual stage, and only when none has does it call `undoCommittedAction()` to undo the Undo Candidate. Selections are tried in the order they were registered; register one with `'first'` to put it ahead of the rest. A title with one selection has no order to choose. Popping a selection is local, so it does not wait for a pending submission or animation; only History View blocks it. A title with work to do before an action is undone, such as closing a menu, overrides `undoCommittedAction()`.
+`undo()` pops the first registered selection that has a manual stage, and only when none has does it call `undoCommittedAction()` to undo the Undo Candidate. Selections are tried in the order they were registered; register one with `'first'` to put it ahead of the rest. Popping a selection is local, so it does not wait for a pending submission or animation; only History View blocks it. A title with work to do before an action is undone, such as closing a menu, overrides `undoCommittedAction()`.
 
 Show the button whenever a press would do something: `hasLocalSelection` (a registered selection has a manual stage) or `undoableAction` is set.
 
@@ -63,7 +63,7 @@ The shared helpers live in `libs/frontend-components/src/lib/model/stagedSelecti
 
 ### Stacked stages
 
-Some decisions are not a fixed sequence of steps: a player marks any of several targets, in any order, as often as they like, and Undo takes back the latest press. Hold such a decision in a stacked stage. `pushStagedSelectionValue` sets a stage as one manual press, clearing every later stage as setting does, and remembers the value it replaced: popping the stage restores that value instead of clearing the stage. Pushing a list with one more entry each press therefore lets Undo take back one entry at a time, and clears the stage with the first.
+Some decisions are not a fixed sequence of steps: a player marks any of several targets, in any order, as often as they like, and Undo takes back the latest press. Hold such a decision in a stacked stage. `pushStagedSelectionValue` sets a stage as one manual press, clearing every later stage as setting does, and remembers the value it replaced: popping the stage restores that value instead of clearing the stage. Pushing a list with one more entry each press therefore lets Undo take back one entry at a time, and clears the stage with the first. Setting the stage with `setStagedSelectionValue` replaces it with no history, so one Undo then clears it.
 
 What the entries add up to is the title's rule, not the helper's: the title folds the list into its Action, for example counting presses on a target or keeping the latest entry for each target. A later stage holds a follow-up to the next entry. In `games/dicke-kartoffeln-ui` the stage order is `edits`, then `seedField`: choosing a field to sow opens a picker beside it (`seedField`), so Undo closes the picker first, and choosing a seed pushes onto `edits`, which clears `seedField` and closes the picker.
 
@@ -71,7 +71,7 @@ A stage the player cannot see would make Undo look dead, so a title closes such 
 
 ## Integration Pattern
 
-Game UIs should wrap the generic helpers in a domain-specific module, as `games/marracash-ui/src/lib/model/stagedSelection.ts` does.
+Game UIs should wrap the generic helpers in a domain-specific module, as `games/marracash-ui/src/lib/model/stagedSelection.ts` and `games/dicke-kartoffeln-ui/src/lib/model/draft.ts` do. Marracash and most older titles predate the registry and still override `undo()`; register instead, as Dicke Kartoffeln does, when touching them.
 
 Goals:
 

@@ -18,14 +18,14 @@ export type PlanEdit =
     | { kind: 'offers'; sales: FieldSale[] }
     | { kind: 'spread'; fieldId: number }
 
-// The edits stack, so Undo takes back one at a time; the seed field is the picker opened on a
-// field still waiting for its seed.
 export type PlanSelectionValues = {
     edits: PlanEdit[]
     seedField: number
 }
 
 export type PlanSelection = StagedSelectionState<PlanSelectionValues>
+
+export type PlanDraft = { key: string; selection: PlanSelection }
 
 export const PlanStageOrder = [
     'edits',
