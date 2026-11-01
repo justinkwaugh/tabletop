@@ -4,9 +4,7 @@
         MarketBoardId,
         Quality,
         VARIETIES,
-        demandRowIndex,
         demandRows,
-        priceSpaceIndex,
         priceSpaces,
         startingPosition,
         type MarketId,
@@ -14,6 +12,13 @@
     } from '@tabletop/dicke-kartoffeln'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { demandText, marketName } from '$lib/utils/format.js'
+    import {
+        MARKET_TRACKS,
+        markerRow,
+        markerSpaceId,
+        trackSpaces,
+        type MarketTrack
+    } from '$lib/utils/marketTracks.js'
 
     let { width, height }: { width: number; height: number } = $props()
 
@@ -24,7 +29,6 @@
     const demand = $derived(demandRows(board))
     const prices = $derived(priceSpaces(board))
 
-    const COLUMNS = ['demand', 'price'] as const
     const TITLE_HEIGHT = 44
     const HEAD_HEIGHT = 58
     const MARGIN = 14
@@ -46,18 +50,18 @@
         return MARKETS.filter((market) => market.variety === variety)
     }
 
-    function stoneX(column: 'demand' | 'price', quality: Quality, variety: Variety): number {
+    function stoneX(column: MarketTrack, quality: Quality, variety: Variety): number {
         const left = column === 'demand' ? tableX(variety) : tableX(variety) + demandWidth
         const span = column === 'demand' ? demandWidth : tableWidth - demandWidth
         return left + (quality === Quality.Norm ? span * 0.14 : span - span * 0.14)
     }
 
-    function startNotes(variety: Variety, row: number, column: 'demand' | 'price'): string[] {
+    function startNotes(variety: Variety, row: number, column: MarketTrack): string[] {
         return marketsOf(variety).flatMap((market) => {
             const start = startingPosition(board, playerCount, market.id)
-            const printed = column === 'demand' ? demand[row].id : prices[row].id
-            const startsAt = column === 'demand' ? start.demandRowId : start.priceSpaceId
-            return printed === startsAt ? [`start ${market.quality}`] : []
+            return trackSpaces(board, column)[row].id === markerSpaceId(start, column)
+                ? [`start ${market.quality}`]
+                : []
         })
     }
 
@@ -92,7 +96,7 @@
             class="column"
             text-anchor="middle">PRICE</text
         >
-        {#each demand as range, row (row)}
+        {#each demand as { range }, row (row)}
             {@const y = rowY(row)}
             <rect {x} {y} width={demandWidth} height={rowHeight} class="cell" />
             <rect
@@ -133,14 +137,10 @@
         {/each}
         {#each marketsOf(variety) as market (market.id)}
             {@const state = gameSession.gameState.market(market.id)}
-            {#each COLUMNS as column (column)}
+            {#each MARKET_TRACKS as column (column)}
                 <circle
                     cx={stoneX(column, market.quality, variety)}
-                    cy={rowY(
-                        column === 'demand'
-                            ? demandRowIndex(board, state.demandRowId)
-                            : priceSpaceIndex(board, state.priceSpaceId)
-                    ) + rowHeight / 2}
+                    cy={rowY(markerRow(board, state, column)) + rowHeight / 2}
                     r={Math.min(rowHeight * 0.36, 11)}
                     class="stone {market.quality === Quality.Bio ? 'bio' : 'norm'}"
                 >

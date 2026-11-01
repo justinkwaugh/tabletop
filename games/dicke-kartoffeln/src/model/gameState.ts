@@ -14,9 +14,9 @@ import {
 } from '@tabletop/common'
 import { ContestAward } from '../components/messages.js'
 import {
-    demandRange,
-    priceMarks,
+    demandRow,
     marketBoardFor,
+    priceMarks,
     type DemandRange,
     type MarketBoardId
 } from '../components/marketBoards.js'
@@ -25,7 +25,6 @@ import { MachineState } from '../definition/states.js'
 import { HydratedMessageBoard, MessageBoard } from './messageDeck.js'
 import { DickeKartoffelnPlayerState, HydratedDickeKartoffelnPlayerState } from './playerState.js'
 
-// The demand row and price space a market's markers rest on, by their IDs on the market board.
 export type MarketState = Type.Static<typeof MarketState>
 export const MarketState = Type.Object({
     id: Type.Enum(MarketId),
@@ -128,7 +127,7 @@ export class HydratedDickeKartoffelnGameState
     }
 
     demand(id: MarketId): DemandRange {
-        return demandRange(this.marketBoard(), this.market(id).demandRowId)
+        return demandRow(this.marketBoard(), this.market(id).demandRowId).range
     }
 
     // Seed is bought at the NORM price of its variety.

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
     MarketBoardId,
-    demandRange,
+    demandRow,
     priceMarks,
     shiftedDemand,
     shiftedPrice,
@@ -62,7 +62,7 @@ describe('the market boards', () => {
         const price = (players: number, id: MarketId) =>
             priceMarks(board, startingPosition(board, players, id).priceSpaceId)
         const demand = (players: number, id: MarketId) =>
-            demandRange(board, startingPosition(board, players, id).demandRowId).min
+            demandRow(board, startingPosition(board, players, id).demandRowId).range.min
         expect(price(4, MarketId.AmalieNorm)).toBe(160)
         expect(price(4, MarketId.AmalieBio)).toBe(220)
         expect(price(4, MarketId.ChrisNorm)).toBe(140)
@@ -73,12 +73,12 @@ describe('the market boards', () => {
 
     it('keep markers on space IDs and stop them at either end of a chart', () => {
         const board = MarketBoardId.ThreeToSixPlayers
-        expect(demandRange(board, 'D6')).toEqual({ id: 'D6', min: 11, max: 14 })
-        expect(demandRange(board, shiftedDemand(board, 'D6', 1)).min).toBe(15)
+        expect(demandRow(board, 'D6')).toEqual({ id: 'D6', range: { min: 11, max: 14 } })
+        expect(demandRow(board, shiftedDemand(board, 'D6', 1)).range.min).toBe(15)
         expect(shiftedDemand(board, 'D1', -1)).toBe('D1')
         expect(priceMarks(board, shiftedPrice(board, 'P4', 2))).toBe(160)
         expect(shiftedPrice(board, 'P14', 1)).toBe('P14')
-        expect(() => demandRange(board, 'D15')).toThrow()
+        expect(() => demandRow(board, 'D15')).toThrow()
     })
 
     it('uses the two player board for two farmers', () => {
@@ -86,7 +86,7 @@ describe('the market boards', () => {
         const state = table.hydrated
         expect(state.marketBoard()).toBe(MarketBoardId.TwoPlayers)
         expect(state.price(MarketId.AmalieNorm)).toBe(160)
-        expect(state.demand(MarketId.AmalieNorm)).toMatchObject({ min: 7, max: 8 })
+        expect(state.demand(MarketId.AmalieNorm)).toEqual({ min: 7, max: 8 })
         expect(state.price(MarketId.BiolaBio)).toBe(180)
     })
 
@@ -105,7 +105,7 @@ describe('the market boards', () => {
         const state = table.hydrated
         const move = recalculateMarket(state, MarketId.BiolaNorm)
         expect(move.offered).toBe(12)
-        expect(state.demand(MarketId.BiolaNorm)).toMatchObject({ min: 11, max: 14 })
+        expect(state.demand(MarketId.BiolaNorm)).toEqual({ min: 11, max: 14 })
         expect(state.price(MarketId.BiolaNorm)).toBe(140)
     })
 
@@ -118,7 +118,7 @@ describe('the market boards', () => {
         })
         const state = table.hydrated
         recalculateMarket(state, MarketId.AmalieBio)
-        expect(state.demand(MarketId.AmalieBio)).toMatchObject({ min: 0, max: 1 })
+        expect(state.demand(MarketId.AmalieBio)).toEqual({ min: 0, max: 1 })
         expect(state.price(MarketId.AmalieBio)).toBe(320)
     })
 })

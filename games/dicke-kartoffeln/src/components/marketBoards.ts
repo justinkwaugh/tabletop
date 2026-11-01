@@ -1,3 +1,4 @@
+import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import { MarketId } from './potatoes.js'
 
@@ -6,15 +7,18 @@ export enum MarketBoardId {
     ThreeToSixPlayers = 'ThreeToSixPlayers'
 }
 
-export type DemandRange = { min: number; max?: number }
+export type DemandRange = Type.Static<typeof DemandRange>
+export const DemandRange = Type.Object({
+    min: Type.Number(),
+    max: Type.Optional(Type.Number())
+})
 
 // Each space of a track has an ID of its own, never derived from its place or printed value,
 // so correcting a chart leaves every stored marker on the space it names. A space added by a
 // correction takes a new ID.
-export type DemandRow = DemandRange & { id: string }
+export type DemandRow = { id: string; range: DemandRange }
 export type PriceSpace = { id: string; marks: number }
 
-// The spaces a market's two markers rest on.
 export type MarketPosition = { demandRowId: string; priceSpaceId: string }
 
 type MarketBoard = {
@@ -24,35 +28,35 @@ type MarketBoard = {
 }
 
 const THREE_TO_SIX_DEMAND: DemandRow[] = [
-    { id: 'D1', min: 0, max: 1 },
-    { id: 'D2', min: 2, max: 2 },
-    { id: 'D3', min: 3, max: 4 },
-    { id: 'D4', min: 5, max: 7 },
-    { id: 'D5', min: 8, max: 10 },
-    { id: 'D6', min: 11, max: 14 },
-    { id: 'D7', min: 15, max: 19 },
-    { id: 'D8', min: 20, max: 24 },
-    { id: 'D9', min: 25, max: 29 },
-    { id: 'D10', min: 30, max: 35 },
-    { id: 'D11', min: 36, max: 42 },
-    { id: 'D12', min: 43, max: 50 },
-    { id: 'D13', min: 51, max: 59 },
-    { id: 'D14', min: 60 }
+    { id: 'D1', range: { min: 0, max: 1 } },
+    { id: 'D2', range: { min: 2, max: 2 } },
+    { id: 'D3', range: { min: 3, max: 4 } },
+    { id: 'D4', range: { min: 5, max: 7 } },
+    { id: 'D5', range: { min: 8, max: 10 } },
+    { id: 'D6', range: { min: 11, max: 14 } },
+    { id: 'D7', range: { min: 15, max: 19 } },
+    { id: 'D8', range: { min: 20, max: 24 } },
+    { id: 'D9', range: { min: 25, max: 29 } },
+    { id: 'D10', range: { min: 30, max: 35 } },
+    { id: 'D11', range: { min: 36, max: 42 } },
+    { id: 'D12', range: { min: 43, max: 50 } },
+    { id: 'D13', range: { min: 51, max: 59 } },
+    { id: 'D14', range: { min: 60 } }
 ]
 
 const TWO_PLAYER_DEMAND: DemandRow[] = [
-    { id: 'D1', min: 0, max: 1 },
-    { id: 'D2', min: 2, max: 2 },
-    { id: 'D3', min: 3, max: 4 },
-    { id: 'D4', min: 5, max: 6 },
-    { id: 'D5', min: 7, max: 8 },
-    { id: 'D6', min: 9, max: 10 },
-    { id: 'D7', min: 11, max: 12 },
-    { id: 'D8', min: 13, max: 14 },
-    { id: 'D9', min: 15, max: 17 },
-    { id: 'D10', min: 18, max: 21 },
-    { id: 'D11', min: 22, max: 26 },
-    { id: 'D12', min: 27 }
+    { id: 'D1', range: { min: 0, max: 1 } },
+    { id: 'D2', range: { min: 2, max: 2 } },
+    { id: 'D3', range: { min: 3, max: 4 } },
+    { id: 'D4', range: { min: 5, max: 6 } },
+    { id: 'D5', range: { min: 7, max: 8 } },
+    { id: 'D6', range: { min: 9, max: 10 } },
+    { id: 'D7', range: { min: 11, max: 12 } },
+    { id: 'D8', range: { min: 13, max: 14 } },
+    { id: 'D9', range: { min: 15, max: 17 } },
+    { id: 'D10', range: { min: 18, max: 21 } },
+    { id: 'D11', range: { min: 22, max: 26 } },
+    { id: 'D12', range: { min: 27 } }
 ]
 
 const THREE_TO_SIX_PRICES: PriceSpace[] = [
@@ -162,14 +166,12 @@ export function startingPosition(
     return { ...BOARDS[board].start(playerCount)[id] }
 }
 
-// The row whose range holds this many sacks; offers beyond the chart rest on its last row.
-export function demandRowFor(board: MarketBoardId, sacks: number): DemandRow {
+export function demandRowIndexFor(board: MarketBoardId, sacks: number): number {
     const rows = BOARDS[board].demand
-    const row = rows.find((range) => sacks >= range.min && (range.max ?? sacks) >= sacks)
-    return row ?? rows[rows.length - 1]
+    const row = rows.findIndex(({ range }) => sacks >= range.min && (range.max ?? sacks) >= sacks)
+    return row < 0 ? rows.length - 1 : row
 }
 
-// Where a space sits on its track, counted from the bottom.
 export function demandRowIndex(board: MarketBoardId, rowId: string): number {
     const row = BOARDS[board].demand.findIndex((candidate) => candidate.id === rowId)
     assert(row >= 0, `No demand row ${rowId} on the ${board} board`)
@@ -182,7 +184,7 @@ export function priceSpaceIndex(board: MarketBoardId, spaceId: string): number {
     return space
 }
 
-export function demandRange(board: MarketBoardId, rowId: string): DemandRow {
+export function demandRow(board: MarketBoardId, rowId: string): DemandRow {
     return BOARDS[board].demand[demandRowIndex(board, rowId)]
 }
 
