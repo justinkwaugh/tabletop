@@ -1,4 +1,4 @@
-import type { Point } from '@tabletop/common'
+import { assertExists, type Point } from '@tabletop/common'
 import {
     samePosition,
     standingGroupKey,
@@ -474,27 +474,24 @@ function moved(point: Point, shift: Point): Point {
 }
 
 interface ReserveSpot {
+    reserve: PlacedBlocks[]
     shift: Point
-    cost: number
     strandedBlocks: number
 }
 
-function fewerStrandedThenCheaper(a: ReserveSpot, b: ReserveSpot): number {
-    return a.strandedBlocks - b.strandedBlocks || a.cost - b.cost
-}
-
-function cheaper(a: ReserveSpot, b: ReserveSpot): number {
-    return a.cost - b.cost
+interface CandidateSpot extends ReserveSpot {
+    drift: number
+    costUpTo: (limit: number) => number | undefined
 }
 
 interface ReserveSpots {
-    stay: ReserveSpot
+    stay: CandidateSpot
     stayIsClear: boolean
-    all: () => ReserveSpot[]
+    all: () => CandidateSpot[]
 }
 
 function spotsFor(
-    reserve: readonly PlacedBlocks[],
+    reserve: PlacedBlocks[],
     locale: LocaleGeometry,
     placed: readonly BlockFootprint[]
 ): ReserveSpots {
@@ -511,25 +508,41 @@ function spotsFor(
             reach * 2 + BLOCK_LENGTH
     )
     const onPlaced = coveredBy(near, RESERVE_CLEARANCE)
-    const outsideLocale = (points: readonly Point[], shift: Point) =>
-        points.filter((point) => !insidePolygon(moved(point, shift), locale.outline)).length
-    const coveredAt = (shift: Point) =>
-        samples.filter((sample) => onPlaced(moved(sample, shift))).length
-    const spotAt = (shift: Point): ReserveSpot => ({
-        shift,
-        cost:
-            coveredAt(shift) * OVERLAP_COST +
-            outsideLocale(samples, shift) * STRAY_COST +
-            Math.hypot(shift.x, shift.y) * DRIFT_COST,
-        strandedBlocks: outsideLocale(centres, shift)
-    })
+    const spotAt = (shift: Point): CandidateSpot => {
+        const drift = Math.hypot(shift.x, shift.y) * DRIFT_COST
+        return {
+            reserve,
+            shift,
+            strandedBlocks: centres.filter(
+                (centre) => !insidePolygon(moved(centre, shift), locale.outline)
+            ).length,
+            drift,
+            // Deliberate: the counts only grow sample by sample, so costing stops as soon as the
+            // spot is dearer than the limit.
+            costUpTo: (limit) => {
+                let covered = 0
+                let stray = 0
+                let cost = drift
+                for (const sample of samples) {
+                    const point = moved(sample, shift)
+                    covered += onPlaced(point) ? 1 : 0
+                    stray += insidePolygon(point, locale.outline) ? 0 : 1
+                    cost = covered * OVERLAP_COST + stray * STRAY_COST + drift
+                    if (cost > limit) {
+                        return undefined
+                    }
+                }
+                return cost
+            }
+        }
+    }
     const stay = spotAt({ x: 0, y: 0 })
-    let searched: ReserveSpot[] | undefined
+    let searched: CandidateSpot[] | undefined
     const all = () => {
-        searched ??= [stay, ...shiftsInside(locale).map((shift) => spotAt(shift))]
+        searched ??= [stay, ...shiftsInside(locale).map(spotAt)]
         return searched
     }
-    return { stay, stayIsClear: coveredAt(stay.shift) === 0, all }
+    return { stay, stayIsClear: samples.every((sample) => !onPlaced(sample)), all }
 }
 
 function shiftsInside(locale: LocaleGeometry): Point[] {
@@ -546,12 +559,30 @@ function shiftsInside(locale: LocaleGeometry): Point[] {
     return shifts
 }
 
-function lowest(spots: readonly ReserveSpot[], order: (a: ReserveSpot, b: ReserveSpot) => number) {
-    return spots.reduce((best, spot) => (order(spot, best) < 0 ? spot : best))
+// Deliberate: spots are costed nearest first, so a cheap one is found early and most others are
+// given up after a few samples. A tie goes to the spot listed first, as costing every spot in
+// turn would choose.
+function cheapestSpot(spots: readonly CandidateSpot[]): ReserveSpot {
+    const nearestFirst = spots
+        .map((spot, listed) => ({ spot, listed }))
+        .toSorted((a, b) => a.spot.drift - b.spot.drift || a.listed - b.listed)
+    let best: { spot: CandidateSpot; listed: number; cost: number } | undefined
+    for (const { spot, listed } of nearestFirst) {
+        const cost = spot.costUpTo(best?.cost ?? Infinity)
+        if (
+            cost !== undefined &&
+            (best === undefined || cost < best.cost || listed < best.listed)
+        ) {
+            best = { spot, listed, cost }
+        }
+    }
+    assertExists(best, 'A reserve always has its own anchor to stand at')
+    return best.spot
 }
 
-function clearestSpot(spots: ReserveSpots): ReserveSpot {
-    return spots.stayIsClear ? spots.stay : lowest(spots.all(), cheaper)
+function cheapestKeepingInside(spots: readonly CandidateSpot[]): ReserveSpot {
+    const fewestStranded = Math.min(...spots.map((spot) => spot.strandedBlocks))
+    return cheapestSpot(spots.filter((spot) => spot.strandedBlocks === fewestStranded))
 }
 
 function columnsToTry(groupCount: number, locale: LocaleGeometry): number[] {
@@ -562,11 +593,6 @@ function columnsToTry(groupCount: number, locale: LocaleGeometry): number[] {
     return Array.from({ length: groupCount - fitted + 1 }, (_, added) => fitted + added)
 }
 
-interface SettledReserve {
-    reserve: PlacedBlocks[]
-    shift: Point
-}
-
 // Deliberate: a block whose middle leaves its locale is read as standing in the next one, so a
 // reserve whose clearest spot would put one there keeps every middle inside instead, overlapping
 // other pieces if it must, and may stand in more columns than its locale's clearance gives it.
@@ -574,26 +600,19 @@ function settleReserve(
     groups: PlacedGroup[],
     options: LayoutOptions,
     placed: readonly BlockFootprint[]
-): SettledReserve {
+): ReserveSpot {
     const locale = LOCALE_GEOMETRY[groups[0].position.locale]
-    const arrangedIn = (columns: number) => {
-        const reserve = arrangeReserve(groups, options, columns)
-        return { reserve, spots: spotsFor(reserve, locale, placed) }
-    }
+    const spotsIn = (columns: number) =>
+        spotsFor(arrangeReserve(groups, options, columns), locale, placed)
     const [fittedColumns, ...widerColumns] = columnsToTry(groups.length, locale)
-    const fitted = arrangedIn(fittedColumns)
-    const clearest = clearestSpot(fitted.spots)
+    const fitted = spotsIn(fittedColumns)
+    const clearest = fitted.stayIsClear ? fitted.stay : cheapestSpot(fitted.all())
     if (clearest.strandedBlocks === 0) {
-        return { reserve: fitted.reserve, shift: clearest.shift }
+        return clearest
     }
-    const keepingInside = [fitted, ...widerColumns.map(arrangedIn)].map(({ reserve, spots }) => ({
-        reserve,
-        spot: lowest(spots.all(), fewerStrandedThenCheaper)
-    }))
-    const best = keepingInside.reduce((chosen, candidate) =>
-        fewerStrandedThenCheaper(candidate.spot, chosen.spot) < 0 ? candidate : chosen
+    return cheapestKeepingInside(
+        [fitted, ...widerColumns.map(spotsIn)].flatMap((spots) => spots.all())
     )
-    return { reserve: best.reserve, shift: best.spot.shift }
 }
 
 // Block-sized stand-ins laid end to end along a target bar, so the pieces placed after them keep off it.

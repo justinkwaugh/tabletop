@@ -171,6 +171,29 @@ export function overlapWhileSliding(
     return from < to ? [from, to] : undefined
 }
 
+/** Slides along `direction` at which no piece of `moving` overlaps any obstacle: none at all, if that is clear, and each end of an overlap that is. */
+export function clearSlides(
+    moving: readonly ConvexOutline[],
+    obstacles: readonly ConvexOutline[],
+    direction: Point
+): number[] {
+    const across = { x: -direction.y, y: direction.x }
+    const overlaps = moving.flatMap((piece) => {
+        const [movingLow, movingHigh] = spanAlong(piece, across)
+        return obstacles.flatMap((obstacle) => {
+            const [low, high] = spanAlong(obstacle, across)
+            const overlap =
+                high > movingLow && low < movingHigh
+                    ? overlapWhileSliding(piece, obstacle, direction)
+                    : undefined
+            return overlap ? [overlap] : []
+        })
+    })
+    return [0, ...overlaps.flat()].filter((slide) =>
+        overlaps.every(([from, to]) => slide <= from || slide >= to)
+    )
+}
+
 /**
  * The shortest slide along `direction` that leaves `moving` clear of every obstacle. Between two
  * slides of the same length it takes the one towards the right of the board, or down it, so shapes
@@ -181,19 +204,7 @@ export function shortestClearSlide(
     obstacles: readonly ConvexOutline[],
     direction: Point
 ): number {
-    const across = { x: -direction.y, y: direction.x }
-    const [movingLow, movingHigh] = spanAlong(moving, across)
-    const overlaps = obstacles.flatMap((obstacle) => {
-        const [low, high] = spanAlong(obstacle, across)
-        const overlap =
-            high > movingLow && low < movingHigh
-                ? overlapWhileSliding(moving, obstacle, direction)
-                : undefined
-        return overlap ? [overlap] : []
-    })
-    const clear = [0, ...overlaps.flat()].filter((slide) =>
-        overlaps.every(([from, to]) => slide <= from || slide >= to)
-    )
+    const clear = clearSlides([moving], obstacles, direction)
     const shortest = Math.min(...clear.map(Math.abs))
     const forward = Math.abs(direction.x) > PARALLEL ? direction.x : direction.y
     return clear

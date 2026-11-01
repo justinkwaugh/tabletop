@@ -279,7 +279,7 @@ describe('ownership policy shared with emergency funding', () => {
                 ownershipPercent: 50
             })
             const rules = presidentTrainFundingRules({
-                sellInBlocks: false,
+                repeatSales: 'separate',
                 companyOrder: () => ['A'],
                 saleTerms: trading.emergencySaleTerms,
                 stockRules: limits,

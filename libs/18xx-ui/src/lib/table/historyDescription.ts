@@ -38,6 +38,7 @@ import {
     isFundTrain,
     isSellFundingShares,
     isIssueTreasuryShares,
+    isCorporateFinance,
     isFloatCompany,
     isEndGame,
     isScheduleGameEnd,
@@ -460,6 +461,11 @@ function describeShared(
                 : undefined
         }
     }
+    if (isCorporateFinance(action))
+        return {
+            text: `${action.operation === 'issue' ? 'Issued' : 'Redeemed'} ${shareCount(action.shares)}`,
+            value: money(action.amount)
+        }
     if (isPayInterest(action)) {
         assertExists(action.metadata, 'Recorded interest requires its payments')
         const { interest, loansTaken, default: unpaid } = action.metadata

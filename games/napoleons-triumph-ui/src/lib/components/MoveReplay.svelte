@@ -154,7 +154,11 @@
                             <CommanderFlag {flag} view={flagView} />
                         {/each}
                         {#if scene.attackMark}
-                            <AttackArrow mark={scene.attackMark} scale={attackMarkerScale(zoom)} />
+                            <AttackArrow
+                                mark={scene.attackMark}
+                                scale={attackMarkerScale(zoom)}
+                                slide={gameSession.moveReplayArrowSlide(zoom)}
+                            />
                         {/if}
                     </g>
                 </svg>

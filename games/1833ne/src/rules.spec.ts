@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
 import {
     TileUpgrades,
     TrackConstruction,
@@ -71,6 +72,18 @@ function layDetails(locationId: string, definitionId: string, companyId: string)
     }
 }
 
+/** The lays a company with $500 may make at a location in its track step. */
+function trackChoices(state: ReturnType<typeof position>, companyId: string, locationId: string) {
+    state.trackStep = { companyId, lays: [], completed: false }
+    const account = state.cash.find(
+        (entry) => entry.owner.kind === 'company' && entry.owner.companyId === companyId
+    )
+    assertExists(account, `${companyId} has a cash account`)
+    account.amount = 500
+    const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)
+    return new TrackConstruction(hydrated, TrackRules1833NE).choices(locationId)
+}
+
 describe('the St. Lawrence corporations', () => {
     it('share a token placed in Sherbrooke with its yellow tile (§6.53)', () => {
         const state = position(
@@ -106,18 +119,12 @@ describe('brown cities (p. 21)', () => {
             {},
             'IV'
         )
-        state.trackStep = { companyId: 'CV', lays: [], completed: false }
         state.tileInventory.retiredPieceIds.push(...retiredPieceIds)
-        const account = state.cash.find(
-            (entry) => entry.owner.kind === 'company' && entry.owner.companyId === 'CV'
-        )!
-        account.amount = 500
-        const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)
         return [
             ...new Set(
-                new TrackConstruction(hydrated, TrackRules1833NE)
-                    .choices(locationId)
-                    .map((choice) => choice.definitionId.replace('1833ne:', ''))
+                trackChoices(state, 'CV', locationId).map((choice) =>
+                    choice.definitionId.replace('1833ne:', '')
+                )
             )
         ].sort()
     }
@@ -184,6 +191,22 @@ describe('brown cities (p. 21)', () => {
         const choices = brownChoices('H17', '18xx:15', [0, 1, 2, 3])
         expect(choices.length).toBeGreaterThan(0)
         expect(choices.every((id) => ['N51', 'N52', 'N53'].includes(id))).toBe(true)
+    })
+})
+
+describe('Boston (§6.48, §6.62)', () => {
+    it('lets a corporation reaching only Boston’s terminal upgrade the city', () => {
+        // The B&P runs from Providence through Mansfield into Boston's terminal triangle.
+        const state = position(
+            [{ locationId: 'G24', definitionId: '18xx:58', rotation: 1 }],
+            [{ companyId: 'B&P', locationId: 'F25' }],
+            {},
+            'II'
+        )
+        const choices = trackChoices(state, 'B&P', 'G22')
+        expect(choices.map(({ definitionId, rotation }) => ({ definitionId, rotation }))).toEqual([
+            { definitionId: '1833ne:N23', rotation: 4 }
+        ])
     })
 })
 

@@ -1,4 +1,5 @@
 import type { Point } from '@tabletop/common'
+import { BLOCK_SYMBOL_WIDTH, faceWidth } from './faceLayout.js'
 import { cornersOf } from './orientedBox.js'
 
 export const BLOCK_LENGTH = 104
@@ -37,6 +38,15 @@ export function blockOutline(block: BlockFootprint): Point[] {
         centre: block.centre,
         along: axesOf(block).along,
         halfLength: BLOCK_LENGTH / 2,
+        halfWidth: BLOCK_THICKNESS / 2
+    })
+}
+
+export function faceOutline(block: BlockFootprint, strength: number): Point[] {
+    return cornersOf({
+        centre: block.centre,
+        along: axesOf(block).along,
+        halfLength: faceWidth(strength, BLOCK_SYMBOL_WIDTH) / 2,
         halfWidth: BLOCK_THICKNESS / 2
     })
 }

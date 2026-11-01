@@ -4,6 +4,7 @@ import type {
     AuctionAwardDetails,
     BuyAuctionLot,
     BuyShares,
+    CorporateFinance,
     DeclareBankruptcy,
     DiscardTrain,
     FundTrain,
@@ -313,6 +314,31 @@ it('names the company that discarded a train and where the train went', () => {
     expect(historyDescription(discard, historyStateFixture(), TestMarket)).toEqual({
         text: 'R discarded a train',
         detail: 'To the open market'
+    })
+})
+
+it('describes issuing and redeeming treasury shares by what changed hands', () => {
+    const finance = (
+        operation: CorporateFinance['operation'],
+        shares: number
+    ): CorporateFinance => ({
+        id: operation,
+        gameId: 'history',
+        source: ActionSource.User,
+        playerId: 'alex',
+        type: 'CorporateFinance',
+        companyId: 'R',
+        operation,
+        shares,
+        amount: shares * 50
+    })
+    expect(historyDescription(finance('issue', 2), historyStateFixture(), TestMarket)).toEqual({
+        text: 'Issued 2 shares',
+        value: '$100'
+    })
+    expect(historyDescription(finance('redeem', 1), historyStateFixture(), TestMarket)).toEqual({
+        text: 'Redeemed 1 share',
+        value: '$50'
     })
 })
 

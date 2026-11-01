@@ -555,7 +555,7 @@
                                     {@const middle = annotation.x + side * reach}
                                     {@const text =
                                         annotation.x + side * (annotation.radius + TabWidth / 2)}
-                                    <g data-map-token-tab={annotation.markerId}>
+                                    <g data-map-token-tab={annotation.markerId} stroke="none">
                                         <rect
                                             x={middle - (TabWidth + TabTuck) / 2}
                                             y={annotation.y - TabHeight / 2}

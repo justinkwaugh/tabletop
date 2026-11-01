@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { assertExists, type Point } from '@tabletop/common'
 import { Side, type Face } from '@tabletop/napoleons-triumph'
 import {
@@ -16,6 +16,12 @@ import { boxSamples } from './orientedBox.js'
 import { layoutPieces, type BlockSprite } from './pieceLayout.js'
 import { insidePolygon } from './polygon.js'
 import { targetBarBox } from './targetBar.js'
+
+// Counts the layout's point-in-locale tests, a measure of its work that does not depend on the machine.
+vi.mock('./polygon.js', async (importOriginal) => {
+    const polygon = await importOriginal<typeof import('./polygon.js')>()
+    return { ...polygon, insidePolygon: vi.fn(polygon.insidePolygon) }
+})
 
 const LOCALE = 94
 
@@ -363,6 +369,47 @@ describe('a reserve of several groups in a locale long across the screen', () =>
         expect(Math.abs(across('langeron') - across('liechtenstein'))).toBeGreaterThanOrEqual(
             BLOCK_LENGTH
         )
+    })
+})
+
+// From a reported game: four Allied corps in reserve at locale 63 made every layout of the turned
+// board take over 100 ms there, and every tap waited for several.
+describe('a reserve that cannot stand at its anchor', () => {
+    const CROWDED = 63
+
+    function laidOut() {
+        const game = new TestGame()
+        game.deployBoth()
+        const corps = { bagration: 3, constantine: 6, kollowrath: 3, prebyshevsky: 3 }
+        arrangeBattlefield(
+            game,
+            Object.entries(corps).flatMap(([commanderId, units]) =>
+                Array.from({ length: units }, (_, index) => ({
+                    id: `${commanderId}-${index}`,
+                    side: Side.Allied,
+                    face: infantry(2),
+                    locale: CROWDED,
+                    commanderId
+                }))
+            )
+        )
+        return () => layoutPieces(game.hydrated, { rotation: viewRotation(BoardView.Allied) })
+    }
+
+    it('keeps every block of it inside its locale', () => {
+        const { outline } = LOCALE_GEOMETRY[CROWDED]
+        const blocks = laidOut()().flatMap((sprite) => sprite.blocks)
+        expect(blocks).toHaveLength(15)
+        for (const block of blocks) {
+            expect(insidePolygon(block.centre, outline)).toBe(true)
+        }
+    })
+
+    it('gives up on dear spots instead of costing every one in full', () => {
+        const layout = laidOut()
+        vi.mocked(insidePolygon).mockClear()
+        layout()
+        expect(vi.mocked(insidePolygon).mock.calls.length).toBeLessThan(100_000)
     })
 })
 

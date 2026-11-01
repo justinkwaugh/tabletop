@@ -36,6 +36,12 @@ export type ShareSaleTerms = {
     movement: number
     direction: string
 }
+/**
+ * A second sale of a company by the same seller in one turn or funding: extending the first
+ * block at its price, or a separate sale at the current price. Without it, each company sells once.
+ */
+export type RepeatSales = 'extend-block' | 'separate'
+
 export interface StockRules {
     market: StockMarketChart
     charters: CompanyCharters
@@ -79,11 +85,8 @@ export interface StockRules {
     afterSharePurchase?(state: StockState, details: SharePurchaseDetails): void
     /** When a turn's sales may come relative to its purchase. */
     turnOrder: 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
-    /**
-     * A second sale of a company in the same turn: extending the first block at its price, or
-     * a separate sale at the current price. Without it, each company sells once per turn.
-     */
-    repeatSales?: 'extend-block' | 'separate'
+    /** A second sale of a company in the same turn. */
+    repeatSales?: RepeatSales
     /** Further share purchases in a turn after the first. */
     multipleBuys?: MultipleBuyRules
     /** Private sales between players, offered and answered like a company's purchase offer. */
