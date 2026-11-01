@@ -99,3 +99,45 @@ it('previews where a station or a title’s own placements went, outlining every
     expect(tokenPreview.kind).toBe('Port token')
     expect(tokenPreview.outlinedLocationIds).toEqual(['0', '1'])
 })
+
+it('draws each snapshot with the marker art of its own moment, not the current one', () => {
+    const state = historyStateFixture()
+    state.tileInventory = minimalTileSet.createInventory()
+    const lay: LayTile = {
+        id: 'lay',
+        gameId: 'history',
+        type: 'LayTile',
+        source: ActionSource.User,
+        playerId: 'alex',
+        companyId: 'R',
+        locationId: '0',
+        definitionId: 'tile',
+        rotation: 0,
+        nodeMapping: {},
+        expectedCost: 0
+    }
+    const then = structuredClone(state)
+    then.stationReservations.push({ companyId: 'R', locationId: '0', nodeId: 'city' })
+    const later: GameAction = {
+        id: 'later',
+        gameId: 'history',
+        type: 'Other',
+        source: ActionSource.System,
+        undoPatch: [{ op: 'replace', path: '', value: then }]
+    }
+    const maps = new HistoricalMaps(
+        () => ({ map: minimalRailwayMap, tileSet: minimalTileSet, stations: {} }),
+        (companyId) => TestNames.company(companyId),
+        (state: EighteenXXState) => state,
+        undefined,
+        undefined,
+        undefined,
+        (snapshot: EighteenXXState) => ({
+            '0': {
+                reserved: snapshot.stationReservations.length ? { hidden: true } : { notice: true }
+            }
+        })
+    )
+    const [location] = maps.preview(state, [lay, later], lay).scene.locations
+    expect(location.markerArt.reserved).toEqual({ hidden: true })
+})

@@ -36,10 +36,11 @@ import {
     type HistoricalMapState,
     type HistoricalMap
 } from '../maps/historicalMap.js'
-import type {
-    MapViewDefinition,
-    StationAppearance,
-    TokenTiles
+import {
+    withPlayedMarkerArt,
+    type MapViewDefinition,
+    type StationAppearance,
+    type TokenTiles
 } from '../maps/stationPresentation.js'
 import { createTileDrawing } from '../tiles/tileDrawing.js'
 import { ownerPortfolio } from '../finance/ownerPortfolio.js'
@@ -51,7 +52,6 @@ import {
 } from '../finance/draftedCompanies.js'
 import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import { terrainIconAppearance } from '../maps/terrainIcons.js'
-import type { MapMarkerArt } from '../maps/mapDrawing.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
 import {
@@ -533,31 +533,9 @@ export class EighteenXXSession<
     private playedMarkerArt = $derived.by(() =>
         JSON.stringify(this.presentationDefinition.markerArtFor?.(this.gameState) ?? {})
     )
-    /** The map view for the current presentation: published token art replaces the generic set when selected. */
-    readonly mapView: MapViewDefinition = $derived.by(() => {
-        const printed = this.mapViewDefinition
-        const played: Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>> = JSON.parse(
-            this.playedMarkerArt
-        )
-        const base = Object.keys(played).length
-            ? {
-                  ...printed,
-                  locationMarkerArt: Object.fromEntries(
-                      [
-                          ...new Set([
-                              ...Object.keys(printed.locationMarkerArt ?? {}),
-                              ...Object.keys(played)
-                          ])
-                      ].map((locationId) => [
-                          locationId,
-                          {
-                              ...printed.locationMarkerArt?.[locationId],
-                              ...played[locationId]
-                          }
-                      ])
-                  )
-              }
-            : printed
+    /** The map view before art that changes with play, which each historical map lays its own over. */
+    private presentedMapView: MapViewDefinition = $derived.by(() => {
+        const base = this.mapViewDefinition
         const overrides = this.stationAppearanceOverrides
         const definition = overrides
             ? { ...base, stations: { ...base.stations, ...overrides } }
@@ -577,6 +555,10 @@ export class EighteenXXSession<
             placements: { ...definition.placements, ...definition.publishedPlacements }
         }
     })
+    /** The map view for the current presentation: published token art replaces the generic set when selected. */
+    readonly mapView: MapViewDefinition = $derived.by(() =>
+        withPlayedMarkerArt(this.presentedMapView, JSON.parse(this.playedMarkerArt))
+    )
     /** The title presentation for the current mode: published badge colours and market zones replace the generic ones when selected. */
     readonly presentation: TitlePresentation<EighteenXXState<Schema>> = $derived.by(() => {
         const definition = this.presentationDefinition
@@ -608,13 +590,17 @@ export class EighteenXXSession<
             'The map view must present the title’s map and tile set'
         )
         this.historicalMaps = new HistoricalMaps(
-            () => this.mapView,
+            () => this.presentedMapView,
             (companyId) => this.companyName(companyId),
             (state) =>
                 this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules))),
             (state) => this.stations.openReservations(state),
             (action) => this.presentationDefinition.historyMapPlacement?.(action),
-            (state) => liftedPrivateBlocks(map.markedPrivateIds, this.rules.privateRules, state)
+            (state) => liftedPrivateBlocks(map.markedPrivateIds, this.rules.privateRules, state),
+            (state) =>
+                this.presentationDefinition.markerArtFor?.(
+                    this.rules.state.hydrate(state, titleComponents(this.rules))
+                ) ?? {}
         )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))

@@ -6,6 +6,9 @@ import type { TileDrawing, TileDrawingStyle, TileLayout } from '../tiles/tileDra
 import type { TileAppearance } from '../tiles/tileAppearance.js'
 import type { RevenueStageColors } from '../colors/revenueStageColors.js'
 
+/** Marker art by location id, then marker id. */
+export type LocationMarkerArt = Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>>
+
 /** Offboard names print in the tile label face, which ships with the app, at their own size. */
 export type OffboardNameStyle = { fontSize: number; color: string }
 
@@ -72,8 +75,9 @@ export type MapViewDefinition = {
     /** Offboards' names in their own larger type, as a board printing them for its connections. */
     offboardNames?: OffboardNameStyle
     /**
-     * Where a location's revenue-sized symbols go, by location id, in place of clear space: the
-     * centre of their row, or each symbol's own centre.
+     * Where a location's revenue-sized symbols go on its printed hex, by location id, in place of
+     * clear space: the centre of their row, or each symbol's own centre. A laid tile keeps them
+     * only where they stay clear of its stops and revenues.
      */
     symbolPositions?: Readonly<
         Record<string, SymbolPosition | Readonly<Record<string, SymbolPosition>>>
@@ -84,7 +88,7 @@ export type MapViewDefinition = {
     terrainPositions?: Readonly<Record<string, Point>>
     markerArt?: Readonly<Record<string, MapMarkerArt>>
     /** Art for one location's markers, by location id then marker id, over ``markerArt``. */
-    locationMarkerArt?: Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>>
+    locationMarkerArt?: LocationMarkerArt
     /** Names for the kinds of marker private powers place during play, such as mines. */
     locationMarkerNames?: Readonly<Record<string, string>>
     layouts?: Readonly<Record<string, TileLayout>>
@@ -119,6 +123,27 @@ export type MapViewDefinition = {
     /** A hex whose tile prints a label, such as Pr, shows the label in place of its name. */
     labelsReplaceNames?: true
 }
+/** The view with art that changes with play laid over its own location marker art. */
+export function withPlayedMarkerArt(
+    view: MapViewDefinition,
+    played: LocationMarkerArt
+): MapViewDefinition {
+    if (!Object.keys(played).length) return view
+    const locationIds = new Set([
+        ...Object.keys(view.locationMarkerArt ?? {}),
+        ...Object.keys(played)
+    ])
+    return {
+        ...view,
+        locationMarkerArt: Object.fromEntries(
+            [...locationIds].map((locationId) => [
+                locationId,
+                { ...view.locationMarkerArt?.[locationId], ...played[locationId] }
+            ])
+        )
+    }
+}
+
 export function stationMapTokens(
     state: StationState,
     appearances: MapViewDefinition['stations'],

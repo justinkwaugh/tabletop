@@ -965,15 +965,23 @@ A private power that marks a location (a title's `markerTerms`, such as 1817's
 bridges) appears under Use privates as one immediately committed button per location,
 "Place [marker] on [location] ([private])". Placed markers join the map's printed
 markers, by the names the title's map view gives them, in the live and historical maps.
-Printed `revenueSymbol` markers (1832's and 1846's port anchors) take the clear corner
-farthest from the hex's drawn revenues, keeping room for a token that may cover them, or
-the title's `symbolPositions` (1832's New Orleans and Norfolk at the bottom,
-Miami at its right side), and are left out where the tile prints the symbol itself.
-A token a private places (a title's `token` marker art: 1832's Cotton, Port and Key West)
-is drawn alone, without its company, at radius 10.5, never shrunk. `'corner'` takes the
-clear corner farthest from the hex's drawn revenues (Cotton), `'centre'` the hex's middle
-(Key West in Miami), and `{ covers }` lies over the symbol the hex shows (Port over the
-port anchor), or in a corner where it shows none. In a crowded hex it covers track before
+Printed `revenueSymbol` markers (1832's and 1846's port anchors, 1846's meat-packing
+horns) take the clear corner farthest from the hex's drawn revenues, keeping room for a
+token that may cover them, or the title's `symbolPositions` (1832's New Orleans and
+Norfolk at the bottom, Miami at its right side), and are left out where the tile prints
+the symbol itself. `symbolPositions` are fitted to the printed hex: a laid tile keeps them
+only where its stops, revenues and labels leave them clear, and otherwise its symbols take
+clear corners, a symbol row that fits no corner together splitting into a corner each
+(1846's two ports on a green Wheeling).
+A token a private places (a title's `token` marker art: 1832's Cotton, Port and Key West,
+1846's Steamboat, Meat Packing and Boomtown) is drawn alone, without its company, at
+radius 10.5, never shrunk. `'corner'` takes the clear corner farthest from the hex's drawn
+revenues (Cotton, Boomtown), `'centre'` the hex's middle (Key West in Miami), and
+`{ covers }` takes the place of the symbol the hex shows (Port over the port anchor, the
+Steamboat over both of a hex's ports), hiding every copy of it, or a corner where it shows
+none. Marker art that changes with play (a title's `markerArtFor`) is read from the state
+shown: each historical map uses its own snapshot's, so 1846's horns are hidden on the
+other meat-packing hex only from the moment its marker was placed. In a crowded hex it covers track before
 a station, revenue or label. Its tooltip, inspection and history name it with its company.
 A title's reusable private lays (1817's coal mines and ranches) stay offered until its
 terms end them. A lay can also clear markers (1817's city tiles clear the ranches beside

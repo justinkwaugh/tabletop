@@ -12,7 +12,12 @@ import {
 import { assertExists, RecordedHistory, type GameAction, type GameState } from '@tabletop/common'
 import { recordedRunRoutes, trainRouteOverlays } from '../routes/routePresentation.js'
 import { createMapDrawing, routeLocationIds, type MapRoute } from './mapDrawing.js'
-import { stationMapTokens, type MapViewDefinition } from './stationPresentation.js'
+import {
+    stationMapTokens,
+    withPlayedMarkerArt,
+    type LocationMarkerArt,
+    type MapViewDefinition
+} from './stationPresentation.js'
 import type { TitlePresentation } from '../session/titlePresentation.js'
 
 /** Where an action changed the map, for the map preview its history row opens. */
@@ -61,7 +66,10 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
     private actions?: readonly GameAction[]
     private view?: MapViewDefinition
     private readonly cache = new Map<string, HistoricalMap>()
-    /** ``currentView`` is read per preview so presentation changes (token artwork) invalidate the cache. */
+    /**
+     * ``currentView`` is read per preview so presentation changes (token artwork) invalidate the
+     * cache; each snapshot lays its own ``playedMarkerArt`` over it.
+     */
     constructor(
         private readonly currentView: () => MapViewDefinition,
         private readonly companyName: (companyId: string) => string,
@@ -73,7 +81,8 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
         private readonly titlePlacement: TitlePresentation['historyMapPlacement'] = undefined,
         private readonly liftedPrivateBlocks: (
             state: HistoricalMapState
-        ) => readonly string[] = () => []
+        ) => readonly string[] = () => [],
+        private readonly playedMarkerArt: (state: State) => LocationMarkerArt = () => ({})
     ) {}
 
     previews(action: GameAction): boolean {
@@ -102,7 +111,8 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
         }
         const subject = this.subject(action)
         assertExists(subject, 'Historical map requires a map action')
-        const snapshot = this.read(new RecordedHistory(state, actions).after(action.id))
+        const snapshotState = new RecordedHistory(state, actions).after(action.id)
+        const snapshot = this.read(snapshotState)
         const company = snapshot.companies.find((company) => company.id === subject.companyId)
         assertExists(company, 'Historical map requires its operating company')
         const set = snapshot.operatingSet
@@ -121,7 +131,7 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
                     markers: snapshot.locationMarkers,
                     liftedPrivateBlocks: this.liftedPrivateBlocks(snapshot)
                 },
-                view
+                withPlayedMarkerArt(view, this.playedMarkerArt(snapshotState))
             ),
             tokens: stationMapTokens(snapshot, view.stations, view.sharedStations),
             reservations: this.openReservations(snapshot),

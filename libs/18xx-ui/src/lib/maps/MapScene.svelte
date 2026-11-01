@@ -137,26 +137,6 @@
         if (maskUnavailableLocations && !legalLocationIds.includes(target.locationId)) return
         onselect?.(target)
     }
-    // A placed marker's badge straddles the hex's top corner.
-    const PlacedBadge = { width: 30, height: 16, icon: 12, drop: 3 }
-    function placedMarkers(entry: (typeof entries)[number]) {
-        return (entry.location.markers ?? []).flatMap((marker) => {
-            const art = entry.markerArt[marker.id]
-            return art && 'placed' in art ? [{ id: marker.id, ...art.placed }] : []
-        })
-    }
-    function topCorner(polygon: string) {
-        const points = polygon.split(' ').map((point) => {
-            const [x, y] = point.split(',').map(Number)
-            return { x, y }
-        })
-        const top = Math.min(...points.map((point) => point.y))
-        const highest = points.filter((point) => point.y - top < 0.5)
-        return {
-            x: highest.reduce((sum, point) => sum + point.x, 0) / highest.length,
-            y: top
-        }
-    }
 </script>
 
 <svg
@@ -717,29 +697,6 @@
             {/each}
         </g>
     {/if}
-    <!-- Markers placed during play outline their hex beneath the borders. -->
-    <g data-map-layer="placed-marker-outlines" pointer-events="none" aria-hidden="true">
-        {#each entries as entry (entry.location.id)}
-            {@const placed = placedMarkers(entry)}
-            {#if placed.length}
-                <g
-                    data-map-placed-markers={entry.location.id}
-                    transform={`translate(${entry.center.x} ${entry.center.y})`}
-                >
-                    {#each placed as marker, index (marker.id)}
-                        <polygon
-                            points={entry.drawing.polygon}
-                            transform={`scale(${0.955 - index * 0.06})`}
-                            fill="none"
-                            stroke={marker.color}
-                            stroke-width={2.4 / (0.955 - index * 0.06)}
-                            stroke-linejoin="round"
-                        ></polygon>
-                    {/each}
-                </g>
-            {/if}
-        {/each}
-    </g>
     {#if !artwork}
         <g data-map-layer="borders" pointer-events="none" aria-hidden="true">
             {#each entries as entry (entry.location.id)}
@@ -825,66 +782,6 @@
             {/each}
         </g>
     {/if}
-    <!-- Their badges cover names but stay beneath border costs. -->
-    <g data-map-layer="placed-marker-badges" pointer-events="none" aria-hidden="true">
-        {#each entries as entry (entry.location.id)}
-            {@const placed = placedMarkers(entry)}
-            {#if placed.length}
-                {@const corner = topCorner(entry.drawing.polygon)}
-                <g
-                    data-map-placed-badges={entry.location.id}
-                    transform={`translate(${entry.center.x} ${entry.center.y})`}
-                >
-                    {#each placed as marker, index (marker.id)}
-                        <g
-                            data-map-placed-marker={marker.id}
-                            transform={`translate(${corner.x + (index - (placed.length - 1) / 2) * PlacedBadge.width} ${corner.y + PlacedBadge.drop})`}
-                        >
-                            <rect
-                                x={-PlacedBadge.width / 2 + 0.5}
-                                y={-PlacedBadge.height / 2}
-                                width={PlacedBadge.width - 1}
-                                height={PlacedBadge.height}
-                                rx={PlacedBadge.height / 2}
-                                fill={marker.color}
-                                stroke={appearance.ink}
-                                stroke-width="0.7"
-                            ></rect>
-                            {#if stationAppearances[marker.companyId]}
-                                <CompanyToken
-                                    appearance={stationAppearances[marker.companyId]}
-                                    size={PlacedBadge.icon}
-                                    x={-PlacedBadge.icon - 1}
-                                    y={-PlacedBadge.icon / 2}
-                                />
-                            {/if}
-                            {#if 'tileSymbol' in marker.icon}
-                                <g
-                                    transform={`translate(${PlacedBadge.icon / 2 + 1} 0) scale(${PlacedBadge.icon / 2 / PortSymbol.radius})`}
-                                >
-                                    <TileSymbol
-                                        symbol={marker.icon.tileSymbol}
-                                        ink={appearance.ink}
-                                        paper={marker.icon.tileSymbol === 'port'
-                                            ? (appearance.colors.blue ?? appearance.paper)
-                                            : appearance.paper}
-                                    />
-                                </g>
-                            {:else}
-                                <image
-                                    href={marker.icon.imageUrl}
-                                    x="1"
-                                    y={-PlacedBadge.icon / 2}
-                                    width={PlacedBadge.icon}
-                                    height={PlacedBadge.icon}
-                                ></image>
-                            {/if}
-                        </g>
-                    {/each}
-                </g>
-            {/if}
-        {/each}
-    </g>
     {#if !artwork}
         <g data-map-layer="border-costs" pointer-events="none" aria-hidden="true">
             {#each borderCosts as cost (cost.key)}
