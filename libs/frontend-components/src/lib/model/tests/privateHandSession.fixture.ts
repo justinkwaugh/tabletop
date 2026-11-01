@@ -33,6 +33,8 @@ import {
     type SharedState
 } from '@tabletop/common/test-fixtures/private-hand'
 import { GameSession } from '../gameSession.svelte.js'
+import type { LocalSelection } from '../localSelections.js'
+import type { PresentedTransition } from '../transitionPresenter.js'
 import { BridgedContext } from '../../services/bridges/bridgedContext.svelte.js'
 import { HarnessAuthorizationService } from '../../harness/harnessAuthorizationService.svelte.js'
 import { HarnessLibraryService } from '../../harness/harnessLibraryService.js'
@@ -46,6 +48,13 @@ import { NotificationChannel, NotificationEventType } from '../../services/notif
 
 export class PrivateHandSession extends GameSession<SharedState, HydratedPrivateHandState> {
     animationHold?: Promise<void>
+    keepsSelectionsOnOtherActions = false
+    registerLocalSelection(selection: LocalSelection) {
+        this.localSelections.register(selection)
+    }
+    protected override keepsLocalSelections(transition: PresentedTransition): boolean {
+        return this.keepsSelectionsOnOtherActions && transition.kind === 'other-action'
+    }
     override async onGameStateChange() {
         await this.animationHold
     }
@@ -373,6 +382,101 @@ export async function runPrivateHandDelivery() {
         owner.dispose()
         opponent.dispose()
         observer.dispose()
+    }
+}
+
+function pendingSelection() {
+    const record = { pending: true, undone: 0, cleared: 0 }
+    const selection: LocalSelection = {
+        hasManual: () => record.pending,
+        undo: () => {
+            if (!record.pending) return false
+            record.pending = false
+            record.undone++
+            return true
+        },
+        clear: () => {
+            record.pending = false
+            record.cleared++
+        }
+    }
+    return { record, selection }
+}
+
+function drawFor(host: PrivateHandHost, id: string) {
+    return host.apply({
+        id,
+        gameId: host.game.id,
+        source: ActionSource.User,
+        playerId: 'p1',
+        type: 'draw',
+        revealsInfo: true
+    })
+}
+
+export async function runLocalSelectionLifetime() {
+    const host = new PrivateHandHost()
+    const owner = client(host, p1),
+        opponent = client(host, p2)
+    try {
+        await settle(owner.session)
+        await settle(opponent.session)
+
+        const undone = pendingSelection()
+        opponent.session.registerLocalSelection(undone.selection)
+        assert(opponent.session.hasLocalSelection, 'A pending selection is not reported')
+        await opponent.session.undo()
+        assert(undone.record.undone === 1, 'Undo did not pop the local selection')
+        assert(opponent.api.undos === 0, 'Undo reached committed history past a selection')
+        assert(!opponent.session.hasLocalSelection, 'A popped selection is still reported')
+
+        const cleared = pendingSelection()
+        opponent.session.registerLocalSelection(cleared.selection)
+        const first = drawFor(host, 'draw-cleared')
+        await Promise.all([owner.notify(first), opponent.notify(first)])
+        await settle(opponent.session)
+        assert(cleared.record.cleared > 0, "Another player's action left the selection standing")
+
+        return { undo: true, cleared: true }
+    } finally {
+        owner.dispose()
+        opponent.dispose()
+    }
+}
+
+export async function runLocalSelectionKeptByTitle() {
+    const host = new PrivateHandHost()
+    const owner = client(host, p1),
+        opponent = client(host, p2)
+    try {
+        await settle(opponent.session)
+        opponent.session.keepsSelectionsOnOtherActions = true
+        const kept = pendingSelection()
+        opponent.session.registerLocalSelection(kept.selection)
+        const draw = drawFor(host, 'draw-kept')
+        await Promise.all([owner.notify(draw), opponent.notify(draw)])
+        await settle(opponent.session)
+        assert(kept.record.pending, 'A title that keeps selections lost one to another action')
+        return { kept: true }
+    } finally {
+        owner.dispose()
+        opponent.dispose()
+    }
+}
+
+export async function runLocalSelectionOwnAction() {
+    const c = client(new PrivateHandHost())
+    try {
+        await settle(c.session)
+        c.session.keepsSelectionsOnOtherActions = true
+        const own = pendingSelection()
+        c.session.registerLocalSelection(own.selection)
+        await c.session.play('r1')
+        await settle(c.session)
+        assert(own.record.cleared > 0, "The player's own action left the selection standing")
+        return { ownAction: true }
+    } finally {
+        c.dispose()
     }
 }
 

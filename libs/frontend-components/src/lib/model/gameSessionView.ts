@@ -40,6 +40,7 @@ export type GameSessionView<
     | 'gameState'
     | 'getPlayerName'
     | 'hasCompleteHistory'
+    | 'hasLocalSelection'
     | 'hasUnreadMessages'
     | 'historyLoadFailed'
     | 'historyLoading'
