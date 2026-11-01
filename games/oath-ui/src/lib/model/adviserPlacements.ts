@@ -1,5 +1,6 @@
 import {
     ActionType,
+    CONSPIRACY_ID,
     HydratedOathGameState,
     HydratedPlayFacedownAdviser,
     HydratedSearch,
@@ -28,7 +29,7 @@ import {
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
-import { powerUseKey } from './powerUse.js'
+import { powerUseKey, samePowerUse } from './powerUse.js'
 
 // R-5.1.4 — the plays a Search and a facedown adviser print alike; an adviser play reads differently in each.
 export const PLAY_LABELS = {
@@ -230,6 +231,37 @@ export function facedownPlayCards(
         }
     }
     return cards
+}
+
+// R-2.7 — the Vision a power draws is not known before its use. Every Vision but the Conspiracy has
+// no suit and is not a denizen, so the Search cards read any one of them alike: this one stands in.
+const ANY_GOAL_VISION = 'vision.sanctuary'
+
+// R-5.1.4 — the plays a drawn Vision has, with the card each shows: never to a site (R-5.1.4.III);
+// the Conspiracy has its own play (R-5.1.4.IV).
+const VISION_PLAYS: { play: SearchPlay; cardId: string }[] = [
+    { play: SearchPlay.Discard, cardId: ANY_GOAL_VISION },
+    { play: SearchPlay.Adviser, cardId: ANY_GOAL_VISION },
+    { play: SearchPlay.RevealedVision, cardId: ANY_GOAL_VISION },
+    { play: SearchPlay.Conspiracy, cardId: CONSPIRACY_ID }
+]
+
+/**
+ * R-6.1, R-7.4 — the Search cards that can act on a Vision drawn and played or discarded "as if you
+ * searched" (Oracle), before it is drawn: those the facedown play offers under a play a Vision has,
+ * by the same engine hooks (where a discard goes, the pile it goes to, what the play adds once made).
+ * So the Cracked Horn and Bracken act; Great Spire, Welcoming Party, Wild Cry, New Growth and Crop
+ * Rotation never do.
+ */
+export function visionPlayCards(state: HydratedOathGameState, playerId: string): CardPower[] {
+    const acting: CardPower[] = []
+    for (const { play, cardId } of VISION_PLAYS) {
+        const cards = facedownPlayCards(state, playerId, cardId, play)
+        for (const power of [...cards.rows, ...cards.places, ...(cards.pile ? [cards.pile] : [])]) {
+            if (!acting.some((p) => samePowerUse(p, power))) acting.push(power)
+        }
+    }
+    return acting
 }
 
 /** The rows in use when the play is chosen: its free gains (Wild Cry). */

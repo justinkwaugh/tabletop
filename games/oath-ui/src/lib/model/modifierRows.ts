@@ -19,6 +19,7 @@ import {
 } from './powerChoices.js'
 import { powerUseKey, samePowerUse } from './powerUse.js'
 import { soleDeclarations } from './actionCards.js'
+import { visionPlayCards } from './adviserPlacements.js'
 
 /**
  * R-7.4 — what the "Cards" rows (`ModifierPicker`) read and set: the cards listed, which are in use,
@@ -46,10 +47,14 @@ export type DeclaringPower = PowerUseKey & { choices: readonly PowerChoice[] }
 /**
  * R-6.1, R-7.4 — Oracle: "Play or discard it as if you searched". Its use declares the Search modifiers
  * that act on that play, before the draw, in the Search's own "Cards" rows. Listed: each Search modifier
- * in reach that the use accepts beside the cards in use, so one refused beside them is hidden (R-7.4-H2:
- * Bracken once the Cracked Horn is in use, and the other way round). Nothing starts in use.
+ * in reach that can act on a Vision's play or discard and that the use accepts beside the cards in use,
+ * so one refused beside them is hidden (R-7.4-H2: Bracken once the Cracked Horn is in use, and the other
+ * way round). A card that never acts on a Vision is hidden too (Great Spire, Wild Cry), though the use
+ * accepts it. Nothing starts in use.
  */
 export class AsIfSearchedRows implements ModifierRows {
+    private acting?: CardPower[]
+
     constructor(
         private readonly state: HydratedOathGameState,
         private readonly playerId: string,
@@ -65,13 +70,21 @@ export class AsIfSearchedRows implements ModifierRows {
 
     get listed(): CardPower[] {
         if (!AsIfSearchedRows.offered(this.state, this.power)) return []
+        const acting = this.actingOnTheVision()
         return usableModifiers(this.state, this.playerId, ActionType.Search, []).filter(
             (card) =>
-                this.isDeclared(card) ||
-                soleDeclarations(this.state, this.playerId, card).some((way) =>
-                    this.besideInUse().every((others) => this.accepts([...others, way]))
-                )
+                acting.some((power) => samePowerUse(power, card)) &&
+                (this.isDeclared(card) ||
+                    soleDeclarations(this.state, this.playerId, card).some((way) =>
+                        this.besideInUse().every((others) => this.accepts([...others, way]))
+                    ))
         )
+    }
+
+    /** The Search cards that can act on the Vision's play or discard, worked out once for the row. */
+    private actingOnTheVision(): CardPower[] {
+        this.acting ??= visionPlayCards(this.state, this.playerId)
+        return this.acting
     }
 
     /**
