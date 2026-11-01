@@ -78,14 +78,26 @@ const ownFaceupDenizenAdvisers: ChoiceDomain = (state, playerId) =>
         )
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 
-// R-11.10 — the Great Slum lets a card here be discarded before one is moved here.
+/**
+ * R-11.10 — the denizens a power may discard first at a Great Slum before it moves a card there. R-7.2.2 — never one
+ * locked for its user.
+ */
+function slumDenizensAt(state: HydratedOathGameState, playerId: string, siteId: string): string[] {
+    if (!state.isSiteFaceup(siteId) || categoryAt(state, siteId) !== 'greatSlum') return []
+    return state.denizensAt(siteId).filter((id) => !isLockedFor(state, playerId, id))
+}
+
+// R-11.10 — the Great Slum lets a card here be discarded before one is moved here. From revision 31 (R-X.4) a locked
+// card is not offered, so naming it is refused with the choices, before anything is paid; before, it is offered too.
 const slumCardsAtYourSite: ChoiceDomain = (state, playerId) => {
     const here = pawnSiteId(state, playerId)
-    if (categoryAt(state, here) !== 'greatSlum') return []
-    return state.denizensAt(here).map((cardId) => ({
-        kind: PowerChoiceKind.Card,
-        cardId
-    }))
+    let cards: string[]
+    if (isAtLeastOathRevision(state, OathRevision.EngineFixes26)) {
+        cards = slumDenizensAt(state, playerId, here)
+    } else {
+        cards = categoryAt(state, here) === 'greatSlum' ? state.denizensAt(here) : []
+    }
+    return cards.map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 }
 registerEffect(
     'denizen.hearth.homesteaders',
@@ -120,7 +132,8 @@ registerEffect(
                       ctx.power.cardId
                   )
                 : { discarded: [], pileDeposits: [] }
-            // R-7.2.2, R-7.1.3 — a locked card chosen to go first stays, so the site may still be full.
+            // R-7.2.2, R-7.1.3 — before revision 31 a locked card may be chosen to go first: it stays, so the site
+            // may still be full.
             if (!siteHasRoom(ctx.state, site))
                 return { summary: `${card.cardId} could not be moved`, pileDeposits }
             moveAdviserToSite(ctx.state, ctx.playerId, card.cardId, site)
@@ -134,13 +147,6 @@ registerEffect(
 
 // "Action: Discard a denizen card at any other site and move this card there." Cost: place 1 secret.
 const ROVING = 'denizen.beast.roving-terror'
-// R-11.10 — the denizens Roving Terror may discard first at a Great Slum, its destination.
-function slumDenizensAt(state: HydratedOathGameState, playerId: string, siteId: string): string[] {
-    if (!state.isSiteFaceup(siteId) || categoryAt(state, siteId) !== 'greatSlum') return []
-    return state
-        .denizensAt(siteId)
-        .filter((id) => id !== ROVING && !isLockedFor(state, playerId, id))
-}
 /**
  * R-10.15, R-2.8.1 — the move is part of the power and follows the site's capacity: from revision 31 (R-X.4)
  * the target's site needs a space once the target, and the Great Slum's card discarded first, are gone. A salted
@@ -181,6 +187,7 @@ const slumCardsElsewhere: ChoiceDomain = (state, playerId) =>
     state
         .allSiteIds()
         .flatMap((siteId) => slumDenizensAt(state, playerId, siteId))
+        .filter((cardId) => cardId !== ROVING)
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 registerEffect(ROVING, powerIndexOf(ROVING, PowerTiming.Action), {
     choices: [
