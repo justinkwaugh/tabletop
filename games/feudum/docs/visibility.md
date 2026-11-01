@@ -14,7 +14,7 @@ Every concealed order and identity lives in one host-only field of canonical sta
 
 A seal's identity fixes its bead value, so a seal red side up is anonymous in public state and named only when it flips to a bead (R-5-H1). A bead that flips back to a seal (favours, R-3.11.2) or returns to the pile (R-3.13.2) goes back into the vault; a return to the pile reshuffles it from the protected stream. The protected random cursor and the reproduction master seed are concealed as the platform defines.
 
-The haversack is not concealed. Every good outside it is public (R-5.3), so its contents follow from public state; state stores its count of each good, and a draw is a random pick from those counts made by the engine (R-5.2).
+The haversack is not concealed (R-5.4-H1). Every good outside it is public (R-5.3), so its contents follow from public state; state stores its count of each good, and a draw is a random pick from those counts made by the engine (R-5.2).
 
 ## What each player knows
 
