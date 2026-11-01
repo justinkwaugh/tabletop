@@ -41,11 +41,15 @@ export class ResendEmailService implements EmailService {
     }
 
     private async send(to: string, subject: string, html: string): Promise<void> {
+        const { templates } = await this.loadRendering()
         await this.resend.emails.send({
             from: 'noreply@boardtogether.games',
             to,
             subject,
             html,
+            // Sent rather than left for Resend to derive from the HTML, for clients that cannot
+            // show the HTML, such as old Eudora.
+            text: templates.emailPlainText(html),
             headers: {
                 'X-Entity-Ref-ID': nanoid()
             }
