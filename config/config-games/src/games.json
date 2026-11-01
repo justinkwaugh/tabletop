@@ -202,5 +202,9 @@
     {
         "gameId": "punct",
         "packageId": "punct"
+    },
+    {
+        "gameId": "feudum",
+        "packageId": "feudum"
     }
 ]

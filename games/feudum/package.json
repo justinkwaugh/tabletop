@@ -1,0 +1,33 @@
+{
+    "name": "@tabletop/feudum",
+    "version": "0.1.0",
+    "type": "module",
+    "exports": {
+        "import": "./esm/index.js",
+        "types": "./src/index.ts"
+    },
+    "sideEffects": false,
+    "private": true,
+    "scripts": {
+        "clean": "rimraf esm",
+        "build": "node ../../tools/scripts/write-game-version.cjs && tsgo",
+        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rolldown -c ./rolldown.config.ts",
+        "lint": "eslint ."
+    },
+    "dependencies": {
+        "@tabletop/common": "workspace:*",
+        "es-iterator-helpers": "^1.2.2",
+        "typebox": "^1.0.79"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.28.6",
+        "@babel/preset-env": "^7.28.6",
+        "@tabletop/eslint-config": "workspace:*",
+        "@tabletop/rolldown-config": "workspace:*",
+        "@tabletop/vitest-config": "workspace:*",
+        "@typescript/native-preview": "*",
+        "rimraf": "^6.1.0",
+        "rolldown": "^1.2.15",
+        "typescript": "5.9.3"
+    }
+}
