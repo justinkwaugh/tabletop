@@ -92,6 +92,8 @@ function healWords(heal: NonNullable<ChronicleAdded['heal']>): string {
     return `${plural(heal.count, `${suitName(heal.suit)} card`)} from the Dispossessed went into the world deck`
 }
 
+const RING_OF_DEVOTION = 'relic.ring-of-devotion'
+
 /**
  * A chronicle action's sentence after the actor's chip, read from its own input and metadata: the
  * eight choices', and a System Action's rows joined. Undefined for any other action.
@@ -106,9 +108,12 @@ export function chronicleActionWords(action: GameAction): string | undefined {
     if (isAnswerChronicleCitizenship(action)) {
         if (!action.accept) return 'refused Citizenship.'
         const metadata = action.metadata
+        // R-8.2-H2 — a winner holding Ring of Devotion places none of theirs.
         const replaced =
             metadata && metadata.siteCardIds.length > 0
-                ? `; their warbands at ${listed(metadata.siteCardIds)} became ${metadata.winnerPlayerId}’s`
+                ? metadata.winnerPlacedNone
+                    ? `; their warbands left ${listed(metadata.siteCardIds)}, and ${metadata.winnerPlayerId} placed none there (${cardName(RING_OF_DEVOTION)})`
+                    : `; their warbands at ${listed(metadata.siteCardIds)} became ${metadata.winnerPlayerId}’s`
                 : ''
         return `accepted Citizenship${replaced}.`
     }

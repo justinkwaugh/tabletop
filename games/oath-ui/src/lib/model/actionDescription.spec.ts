@@ -1657,6 +1657,28 @@ describe('the history tab describes every action', () => {
             ).toBe('accepted Citizenship, removing 1 warband for want of Imperial ones')
         })
 
+        it("R-6.6.2-H1 — a Ring of Devotion holder's acceptance says their warbands on the map were removed", () => {
+            const accepted = (outcome: {
+                unreplacedCount: number
+                removedFromSitesCount: number
+            }) =>
+                describeAction(
+                    action({
+                        type: ActionType.ResolveCitizenshipOffer,
+                        playerId: 'p2',
+                        granted: true,
+                        metadata: { outcome }
+                    }),
+                    nameOf
+                )
+            expect(accepted({ unreplacedCount: 0, removedFromSitesCount: 3 })).toBe(
+                'accepted Citizenship; 3 warbands on the map were removed (Ring of Devotion)'
+            )
+            expect(accepted({ unreplacedCount: 1, removedFromSitesCount: 1 })).toBe(
+                'accepted Citizenship, removing 1 warband for want of Imperial ones; 1 warband on the map was removed (Ring of Devotion)'
+            )
+        })
+
         it('R-6.8, R-10.11 — a self-exile names who got the favor; a record without the holder keeps its words', () => {
             const paid = { favorGiven: 3, replacedCount: 2, unreplacedCount: 0 }
             expect(

@@ -313,6 +313,7 @@ export function describeAction(
 }
 
 const HOSPITAL = 'denizen.hearth.hospital'
+const RING_OF_DEVOTION = 'relic.ring-of-devotion'
 
 /** Hospital — the warbands it placed on its site, recorded by the step that ended the Campaign. */
 export function recordedHospitalPlaced(action: GameAction): readonly HeldForHospital[] {
@@ -1016,10 +1017,15 @@ function describeActionCited(
     }
     if (isResolveCitizenshipOffer(action)) {
         const unreplaced = action.metadata?.outcome?.unreplacedCount ?? 0
+        // R-6.6.2-H1 — Ring of Devotion's holder places no purple warbands at sites.
+        const removedFromSites = action.metadata?.outcome?.removedFromSitesCount ?? 0
         return action.granted
             ? 'accepted Citizenship' +
                   (unreplaced > 0
                       ? `, removing ${plural(unreplaced, 'warband')} for want of Imperial ones`
+                      : '') +
+                  (removedFromSites > 0
+                      ? `; ${plural(removedFromSites, 'warband')} on the map ${removedFromSites === 1 ? 'was' : 'were'} removed (${cardName(RING_OF_DEVOTION)})`
                       : '')
             : 'refused Citizenship'
     }
