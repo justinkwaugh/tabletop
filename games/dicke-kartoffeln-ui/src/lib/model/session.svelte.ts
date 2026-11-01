@@ -1,5 +1,9 @@
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
+import {
+    GameSession,
+    undoableStagedSelection,
+    type PresentedTransition
+} from '@tabletop/frontend-components'
 import {
     MAX_WORMS,
     MESSAGE_SPACE_FACES,
@@ -31,7 +35,17 @@ import {
 } from '@tabletop/dicke-kartoffeln'
 import { planningRound } from '$lib/utils/history.js'
 import { isYearEndAction, latestYearEnd, type YearEndReport } from '$lib/utils/yearEnd.js'
-import { draftPlan, type PlanDraft, type PlanEdit } from './draft.js'
+import {
+    PlanStageOrder,
+    draftPlan,
+    pickedSeedField,
+    planEdits,
+    withEdit,
+    withSeedField,
+    withoutSeedField,
+    type PlanEdit,
+    type PlanSelection
+} from './draft.js'
 
 export enum TableView {
     Farm = 'Farm',
@@ -53,6 +67,10 @@ export type PlanPreview = {
     loans: number
     problem: string | undefined
 }
+
+type SessionOptions = ConstructorParameters<
+    typeof GameSession<DickeKartoffelnProjectedState, HydratedDickeKartoffelnGameState>
+>[0]
 
 export class DickeKartoffelnGameSession extends GameSession<
     DickeKartoffelnProjectedState,
@@ -144,13 +162,32 @@ export class DickeKartoffelnGameSession extends GameSession<
         this.myPlayerId ?? this.gameState.players[0]?.playerId
     )
 
-    private draft: PlanDraft = $state({ key: '', edits: [] })
+    // Keyed by farmer, year and round: a draft kept while other farmers seal reads as empty in any
+    // other round, so it can never be submitted there.
+    private draft: { key: string; selection: PlanSelection } = $state({ key: '', selection: {} })
 
     private draftKey = $derived(`${this.myPlayerId}-${this.year}-${this.gameState.machineState}`)
 
-    edits: PlanEdit[] = $derived(
-        this.planning && this.draft.key === this.draftKey ? this.draft.edits : []
+    private planSelection: PlanSelection = $derived(
+        this.planning && this.draft.key === this.draftKey ? this.draft.selection : {}
     )
+
+    edits: PlanEdit[] = $derived(planEdits(this.planSelection))
+
+    constructor(options: SessionOptions) {
+        super(options)
+        this.localSelections.register(
+            undoableStagedSelection(
+                PlanStageOrder,
+                () => this.planSelection,
+                (selection) => this.writePlanSelection(selection)
+            )
+        )
+    }
+
+    private writePlanSelection(selection: PlanSelection) {
+        this.draft = { key: this.draftKey, selection }
+    }
 
     planKind: PlanKind | undefined = $derived(
         this.planningRound ? planKindFor(this.planningRound) : undefined
@@ -195,7 +232,7 @@ export class DickeKartoffelnGameSession extends GameSession<
         if (!this.planning) {
             return
         }
-        this.draft = { key: this.draftKey, edits: [...this.edits, edit] }
+        this.writePlanSelection(withEdit(this.planSelection, edit))
     }
 
     private planField(fieldId: number) {
@@ -253,19 +290,19 @@ export class DickeKartoffelnGameSession extends GameSession<
         }
     })
 
-    private pickedField: number | undefined = $state()
-
-    seedPickerField: number | undefined = $derived(
-        this.planKind === PlanKind.Sow &&
-            this.pickedField !== undefined &&
-            this.view === TableView.Farm &&
-            this.farmPlayerId === this.myPlayerId
-            ? this.fieldTargets.find((fieldId) => fieldId === this.pickedField)
-            : undefined
+    private onOwnFarm: boolean = $derived(
+        this.view === TableView.Farm && this.farmPlayerId === this.myPlayerId
     )
 
+    seedPickerField: number | undefined = $derived.by(() => {
+        const picked = pickedSeedField(this.planSelection)
+        return this.planKind === PlanKind.Sow && this.onOwnFarm
+            ? this.fieldTargets.find((fieldId) => fieldId === picked)
+            : undefined
+    })
+
     closeSeedPicker() {
-        this.pickedField = undefined
+        this.writePlanSelection(withoutSeedField(this.planSelection))
     }
 
     async clickField(fieldId: number) {
@@ -274,7 +311,7 @@ export class DickeKartoffelnGameSession extends GameSession<
         }
         switch (this.planKind) {
             case PlanKind.Sow:
-                this.pickedField = fieldId
+                this.writePlanSelection(withSeedField(this.planSelection, fieldId))
                 return
             case PlanKind.TakeCompost:
                 this.addEdit({ kind: 'take', fieldId })
@@ -296,7 +333,6 @@ export class DickeKartoffelnGameSession extends GameSession<
 
     chooseSeed(fieldId: number, variety: Variety | undefined) {
         if (this.planKind === PlanKind.Sow && this.fieldTargets.includes(fieldId)) {
-            this.pickedField = undefined
             this.addEdit({ kind: 'seed', fieldId, variety })
         }
     }
@@ -424,6 +460,7 @@ export class DickeKartoffelnGameSession extends GameSession<
 
     showView(view: TableView) {
         this.view = view
+        this.closeSeedPickerAway()
     }
 
     playerAidOpen = $state(false)
@@ -445,11 +482,19 @@ export class DickeKartoffelnGameSession extends GameSession<
     showFarm(playerId: string) {
         this.farmPlayerId = playerId
         this.view = TableView.Farm
+        this.closeSeedPickerAway()
     }
 
     showSheet(playerId: string) {
         this.sheetPlayerId = playerId
         this.view = TableView.Sheet
+        this.closeSeedPickerAway()
+    }
+
+    // The picker stands beside a field of the farmer's own farm, so looking away closes it rather
+    // than leaving a hidden step for Undo to take back.
+    private closeSeedPickerAway() {
+        if (!this.onOwnFarm) this.closeSeedPicker()
     }
 
     // Each round of a year's close is its own history step, so the arrows walk through them.
@@ -457,28 +502,13 @@ export class DickeKartoffelnGameSession extends GameSession<
         return !isYearEndAction(action) && super.shouldAutoStepAction(action, next)
     }
 
-    // An open seed picker is the first half of a sowing edit: the field is chosen, the seed not yet.
-    hasManualSelection(): boolean {
-        return this.seedPickerField !== undefined || this.edits.length > 0
-    }
-
-    override async undo() {
-        if (this.seedPickerField !== undefined) {
-            this.closeSeedPicker()
-            return
-        }
-        if (this.edits.length > 0) {
-            this.draft = { key: this.draftKey, edits: this.edits.slice(0, -1) }
-            return
-        }
-        await super.undo()
-    }
-
     // Another farmer sealing their plan leaves this farmer's draft standing.
-    override beforeNewState(transition: PresentedTransition): void {
-        if (transition.kind !== 'other-action' && transition.kind !== 'reconciliation') {
-            this.draft = { key: '', edits: [] }
-            this.pickedField = undefined
-        }
+    override keepsLocalSelections(transition: PresentedTransition): boolean {
+        return transition.kind === 'other-action' || transition.kind === 'reconciliation'
+    }
+
+    // A new state returns the table to the round's own view, which hides the picker.
+    override beforeNewState(_transition: PresentedTransition): void {
+        this.closeSeedPicker()
     }
 }

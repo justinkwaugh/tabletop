@@ -26,23 +26,48 @@ A press records at most one Action. A UI never submits a chain of Actions for on
 
 Pressing Undo repeatedly therefore walks back through the staged selection one manual step at a time, then through committed actions. Players reverse every step through this one control, so no panel renders a `Back` or step-cancel button of its own. A toggle is a selection, not a reversal control: choosing a selected piece or target again may deselect it.
 
-Implement this in the session's `undo()` override so every caller gets the contextual behavior:
+The base `GameSession` implements this contract for every staged selection registered with it, so a title registers its selections and does not override `undo()`:
 
 ```ts
-override async undo() {
-    if (this.hasManualSelection) {
-        this.selection = popHighestManualSelection(this.selection)
-        return
-    }
-    await super.undo()
+constructor(options: SessionOptions) {
+    super(options)
+    this.localSelections.register(
+        undoableStagedSelection(
+            PlanStageOrder,
+            () => this.planSelection,
+            (selection) => (this.planSelection = selection)
+        )
+    )
 }
 ```
 
-Show the button whenever a press would do something: a manual staged selection exists or `undoableAction` is set.
+`undo()` pops the first registered selection that has a manual stage, and only when none has does it call `undoCommittedAction()` to undo the Undo Candidate. Selections are tried in the order they were registered; register one with `'first'` to put it ahead of the rest. A title with one selection has no order to choose. Popping a selection is local, so it does not wait for a pending submission or animation; only History View blocks it. A title with work to do before an action is undone, such as closing a menu, overrides `undoCommittedAction()`.
+
+Show the button whenever a press would do something: `hasLocalSelection` (a registered selection has a manual stage) or `undoableAction` is set.
+
+### Lifetime
+
+The session clears every registered selection when it publishes a new Game State, before `beforeNewState` runs. A title whose selections outlive some transitions overrides `keepsLocalSelections(transition)`, which returns `false` by default. A simultaneous-play title keeps a player's draft when another player's Action arrives or the state is reconciled:
+
+```ts
+protected override keepsLocalSelections(transition: PresentedTransition): boolean {
+    return transition.kind === 'other-action' || transition.kind === 'reconciliation'
+}
+```
+
+A selection that belongs to one decision, such as one round's plan, also stores the key of that decision and reads as empty under any other key, so a kept selection can never be submitted elsewhere.
 
 ## Shared API (`frontend-components`)
 
-The shared helpers live in `libs/frontend-components/src/lib/model/stagedSelection.ts` and are exported from `@tabletop/frontend-components`. Use them instead of ad hoc draft flags. `setStagedSelectionValue` clears every later stage; `popHighestManualStagedSelection` backs Undo. Stage/order mismatches throw (fail fast) rather than silently no-op.
+The shared helpers live in `libs/frontend-components/src/lib/model/stagedSelection.ts` and are exported from `@tabletop/frontend-components`. Use them instead of ad hoc draft flags. `setStagedSelectionValue` clears every later stage; `popHighestManualStagedSelection` backs Undo. Stage/order mismatches throw (fail fast) rather than silently no-op. `undoableStagedSelection` wraps a selection as the `LocalSelection` the session's `localSelections` registers.
+
+### Stacked stages
+
+Some decisions are not a fixed sequence of steps: a player marks any of several targets, in any order, as often as they like, and Undo takes back the latest press. Hold such a decision in a stacked stage. `pushStagedSelectionValue` sets a stage as one manual press, clearing every later stage as setting does, and remembers the value it replaced: popping the stage restores that value instead of clearing the stage. Pushing a list with one more entry each press therefore lets Undo take back one entry at a time, and clears the stage with the first.
+
+What the entries add up to is the title's rule, not the helper's: the title folds the list into its Action, for example counting presses on a target or keeping the latest entry for each target. A later stage holds a follow-up to the next entry. In `games/dicke-kartoffeln-ui` the stage order is `edits`, then `seedField`: choosing a field to sow opens a picker beside it (`seedField`), so Undo closes the picker first, and choosing a seed pushes onto `edits`, which clears `seedField` and closes the picker.
+
+A stage the player cannot see would make Undo look dead, so a title closes such a stage when its element leaves the screen. Dicke Kartoffeln closes the seed picker when the farmer looks away from their own farm, and on a new Game State, which returns the table to the round's own view.
 
 ## Integration Pattern
 
@@ -59,7 +84,8 @@ Suggested shape:
 1. Define `ValueByStage` map type.
 2. Define `STAGE_ORDER` tuple from those keys.
 3. Add a compile-time coverage assertion so keys cannot drift from stage order.
-4. Expose domain helpers like `setXSelection`, `setYSelection`, `hasManualSelection`, `popHighestManualSelection`.
+4. Expose domain helpers like `setXSelection` and `setYSelection`.
+5. Register the selection with the session's `localSelections`, which supplies Undo and `hasLocalSelection`.
 
 ## Effect Safety
 
@@ -80,3 +106,9 @@ For each staged selection flow:
 3. Undo with only auto selection proceeds to action undo
 4. invalid stage/order mismatch throws
 5. domain wrapper behavior for reselecting earlier stages
+
+For each stacked stage, also:
+
+6. Undo pops the latest press and keeps the earlier ones
+7. pushing clears every later stage, and Undo pops an open later stage before any press
+8. the selection is kept or cleared on each transition kind as the title's `keepsLocalSelections` says

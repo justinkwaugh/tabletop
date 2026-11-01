@@ -42,7 +42,7 @@ import {
     type StockActionStages
 } from '../stock/stockActionSelection.js'
 import { CompanyStartStageOrder, type CompanyStartStages } from './companyStartSelection.js'
-import type { LocalSelection } from './localSelections.js'
+import type { LocalSelection } from '@tabletop/frontend-components'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
 
