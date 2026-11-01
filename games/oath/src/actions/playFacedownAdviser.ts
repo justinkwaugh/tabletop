@@ -112,6 +112,13 @@ export const PlayFacedownAdviser = Type.Evaluate(
             toSiteId: Type.Optional(Type.String()),
             /** R-5.1.4.I, R-11.10 — a denizen discarded before the site play. */
             discardFirstCardId: Type.Optional(Type.String()),
+            /**
+             * R-11.10, Crop Rotation, R-5.1.4.I — from revision 32, one card per power that gives one, in place of
+             * `discardFirstCardId`.
+             */
+            discardFirstCardIds: Type.Optional(
+                Type.Array(Type.String(), { minItems: 1, maxItems: 3 })
+            ),
             /** R-6.1 — "(Restrictions and modifiers apply.)": Search modifiers, declared with the play. */
             modifiers: ModifierUses,
             /** R-7.1.4 (Forced Labor) — "as if you searched". */
@@ -140,6 +147,7 @@ export class HydratedPlayFacedownAdviser
     declare discardedAdviserCardIds?: string[]
     declare toSiteId?: string
     declare discardFirstCardId?: string
+    declare discardFirstCardIds?: string[]
     declare modifiers?: ModifierUse[]
     declare tolls?: string[]
     declare metadata?: PlayFacedownAdviserMetadata
@@ -184,6 +192,7 @@ export class HydratedPlayFacedownAdviser
             reveal,
             toSiteId: this.toSiteId,
             discardFirstCardId: this.discardFirstCardId,
+            discardFirstCardIds: this.discardFirstCardIds,
             carried: active,
             discardTarget
         }
@@ -238,6 +247,7 @@ export class HydratedPlayFacedownAdviser
             discardedAdviserCardIds?: readonly string[]
             toSiteId?: string
             discardFirstCardId?: string
+            discardFirstCardIds?: readonly string[]
             modifiers?: readonly ModifierUse[]
             tolls?: readonly string[]
         }
@@ -267,6 +277,7 @@ export class HydratedPlayFacedownAdviser
                 discardedAdviserCardIds: choice.discardedAdviserCardIds,
                 toSiteId: choice.toSiteId,
                 discardFirstCardId: choice.discardFirstCardId,
+                discardFirstCardIds: choice.discardFirstCardIds,
                 carried: active,
                 modifiersInUse: modifierCardsInUse(state, active)
             }) ??
@@ -303,6 +314,7 @@ export class HydratedPlayFacedownAdviser
             discardedAdviserCardIds?: readonly string[]
             toSiteId?: string
             discardFirstCardId?: string
+            discardFirstCardIds?: readonly string[]
             modifiers?: readonly ModifierUse[]
         }
     ): string | undefined {
@@ -326,6 +338,7 @@ export class HydratedPlayFacedownAdviser
                 discardedAdviserCardIds: choice.discardedAdviserCardIds,
                 toSiteId: choice.toSiteId,
                 discardFirstCardId: choice.discardFirstCardId,
+                discardFirstCardIds: choice.discardFirstCardIds,
                 carried: active,
                 modifiersInUse: modifierCardsInUse(state, active)
             })
@@ -345,6 +358,7 @@ export class HydratedPlayFacedownAdviser
             discardedAdviserCardIds?: readonly string[]
             toSiteId?: string
             discardFirstCardId?: string
+            discardFirstCardIds?: readonly string[]
             modifiers?: readonly ModifierUse[]
         }
     ): PlayMapChanges {
@@ -360,6 +374,7 @@ export class HydratedPlayFacedownAdviser
             discardedAdviserCardIds: choice.discardedAdviserCardIds,
             toSiteId: choice.toSiteId,
             discardFirstCardId: choice.discardFirstCardId,
+            discardFirstCardIds: choice.discardFirstCardIds,
             carried: active,
             modifiersInUse: modifierCardsInUse(state, active)
         })

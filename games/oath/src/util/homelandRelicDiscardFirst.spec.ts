@@ -170,11 +170,13 @@ describe('a relic Homeland keeps its relic when a card of its suit is discarded 
         const s = table()
         const first = [siteDiscardLedgerKey(s, WOLVES) ?? '']
         expect(homelandPowerFor(s, 'dana', 'c2', RANGERS, first)?.barred).toBe(true)
-        expect(homelandRelicSlot(s, 'dana', RANGERS, 'c2', WOLVES)).toBeUndefined()
+        expect(homelandRelicSlot(s, 'dana', RANGERS, 'c2', [WOLVES])).toBeUndefined()
         expect(
             homelandPowerFor(s, 'dana', 'c2', RANGERS, [siteDiscardLedgerKey(s, INN) ?? ''])?.barred
         ).toBe(false)
-        expect(homelandRelicSlot(s, 'dana', RANGERS, 'c2', INN)).toBe(SLOT)
+        expect(homelandRelicSlot(s, 'dana', RANGERS, 'c2', [INN])).toBe(SLOT)
+        // Each card discarded first writes the ledger: the Wolves after the Inn still bar the relic.
+        expect(homelandRelicSlot(s, 'dana', RANGERS, 'c2', [INN, WOLVES])).toBeUndefined()
     })
 
     describe('the relic left behind can still be had', () => {

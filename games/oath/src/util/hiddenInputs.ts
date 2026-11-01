@@ -43,6 +43,7 @@ import { CampaignTargetKind, type CampaignState } from '../model/campaign.js'
 import { placeRevealTokensForSite } from './setup.js'
 import type { PowerChoice } from './powerChoice.js'
 import { homelandRelicSlot } from './sitePowers.js'
+import { discardFirstCardIdsOf } from './cardPlay.js'
 import { pawnSiteId } from './pawn.js'
 import { grandScepterHolderId } from './imperial.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
@@ -175,7 +176,7 @@ export function revealForPlay(
                   action.playerId,
                   cardId,
                   action.toSiteId ?? pawnSiteId(state, action.playerId),
-                  action.discardFirstCardId
+                  discardFirstCardIdsOf(action)
               )
             : undefined
     return slotId ? { kind: 'relic', relicCardId: takeRelicFromVault(state, slotId) } : undefined

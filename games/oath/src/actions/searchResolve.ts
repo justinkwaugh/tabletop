@@ -132,6 +132,13 @@ export const SearchResolve = Type.Evaluate(
             choices: Type.Optional(Type.Array(PowerChoice, { maxItems: 16 })),
             /** R-11.10 (Great Slum) — discarded before the site play. */
             discardFirstCardId: Type.Optional(Type.String()),
+            /**
+             * R-11.10, Crop Rotation, R-5.1.4.I — from revision 32, one card per power that gives one, in place of
+             * `discardFirstCardId`.
+             */
+            discardFirstCardIds: Type.Optional(
+                Type.Array(Type.String(), { minItems: 1, maxItems: 3 })
+            ),
             /** New Growth */
             toSiteId: Type.Optional(Type.String()),
             secondPlay: Type.Optional(SearchSecondPlay),
@@ -152,6 +159,7 @@ export type SearchResolveChoice = Pick<
     | 'discardedAdviserCardIds'
     | 'choices'
     | 'discardFirstCardId'
+    | 'discardFirstCardIds'
     | 'toSiteId'
     | 'secondPlay'
 >
@@ -174,6 +182,7 @@ export class HydratedSearchResolve
     declare discardedAdviserCardIds?: string[]
     declare choices?: PowerChoice[]
     declare discardFirstCardId?: string
+    declare discardFirstCardIds?: string[]
     declare toSiteId?: string
     declare secondPlay?: SearchSecondPlay
     declare metadata?: SearchResolveMetadata
@@ -216,6 +225,7 @@ export class HydratedSearchResolve
             discardTarget,
             carried,
             discardFirstCardId: this.discardFirstCardId,
+            discardFirstCardIds: this.discardFirstCardIds,
             toSiteId: this.toSiteId
         }
         // R-5.1.4, R-9.4 — a facedown adviser has no suit, so only a shown card reaches the hooks.
@@ -363,6 +373,7 @@ export class HydratedSearchResolve
         return reasonCannotPlayCard(state, playerId, choice.keptCardId, choice.play, {
             carried: searchPlayModifiers(state),
             discardFirstCardId: choice.discardFirstCardId,
+            discardFirstCardIds: choice.discardFirstCardIds,
             toSiteId: choice.toSiteId,
             faceUp: choice.faceUp,
             conspiracy: choice.conspiracy,
@@ -427,7 +438,12 @@ export function reasonCannotPlaySecondCard(
 /** Land Warden — the kept card's play, which comes before the second card's. */
 type KeptPlay = Pick<
     SearchResolveChoice,
-    'play' | 'discardFirstCardId' | 'toSiteId' | 'faceUp' | 'discardedAdviserCardIds'
+    | 'play'
+    | 'discardFirstCardId'
+    | 'discardFirstCardIds'
+    | 'toSiteId'
+    | 'faceUp'
+    | 'discardedAdviserCardIds'
 >
 
 /** Land Warden — the kept card, and its play. */
@@ -448,6 +464,7 @@ function keptPlayMapChanges(
     const changes = playMapChanges(state, playerId, keptCardId, kept.play, {
         carried: searchPlayModifiers(state),
         discardFirstCardId: kept.discardFirstCardId,
+        discardFirstCardIds: kept.discardFirstCardIds,
         toSiteId: kept.toSiteId,
         faceUp: kept.faceUp,
         discardedAdviserCardIds: kept.discardedAdviserCardIds

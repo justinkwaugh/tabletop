@@ -151,7 +151,12 @@ function reasonNoRoomForRovingTerror(
     if (!isAtLeastOathRevision(state, OathRevision.EngineFixes26)) return undefined
     const to = siteHolding(state, targetId)
     assertExists(to, `${targetId} is a denizen at another site`)
-    return reasonSiteFull(state, to, { leaving: [targetId], arriving: [] }, firstId)
+    return reasonSiteFull(
+        state,
+        to,
+        { leaving: [targetId], arriving: [] },
+        firstId === undefined ? [] : [firstId]
+    )
 }
 const denizensAtOtherSites: ChoiceDomain = (state, playerId) => {
     const here = siteHolding(state, ROVING)

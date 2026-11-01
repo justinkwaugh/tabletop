@@ -70,21 +70,20 @@ export function riverMusterBonus(state: HydratedOathGameState, playerId: string)
 /**
  * R-11.2 — read by the resolver, so the relic's identity rides the action as `reveal`; `siteId` is the site played to.
  * It judges the Homeland as the play's payout does (`homelandPowerFor`), so a relic leaves the vault only for a player
- * who takes it: from revision 16 (R-X.4) with the card the play discards first, whose ledger entry `playCard` writes
- * before the payout. Before revision 16, without it.
+ * who takes it: from revision 16 (R-X.4) with the cards the play discards first, whose ledger entries `playCard` writes
+ * before the payout. Before revision 16, without them.
  */
 export function homelandRelicSlot(
     state: HydratedOathGameState,
     playerId: string,
     cardId: string,
     siteId: string,
-    discardFirstCardId?: string
+    discardFirstCardIds: readonly string[] = []
 ): string | undefined {
-    const firstKey =
-        discardFirstCardId !== undefined && isAtLeastOathRevision(state, OathRevision.EngineFixes12)
-            ? siteDiscardLedgerKey(state, discardFirstCardId)
-            : undefined
-    const homeland = homelandPowerFor(state, playerId, siteId, cardId, firstKey ? [firstKey] : [])
+    const firstKeys = isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+        ? discardFirstCardIds.flatMap((id) => siteDiscardLedgerKey(state, id) ?? [])
+        : []
+    const homeland = homelandPowerFor(state, playerId, siteId, cardId, firstKeys)
     if (homeland?.reward !== 'relic' || homeland.barred) return undefined
     // Ancient Bloodline — a relic at a site its holder rules is locked for their enemies.
     if (siteLockedFor(state, playerId, siteId)) return undefined
