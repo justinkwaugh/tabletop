@@ -308,7 +308,7 @@
     {#if session.centreMark}
         <g transform="translate({centre.x} {centre.y})" class="station">
             <ellipse rx={STATION_RADIUS} ry={STATION_RADIUS * view.tilt}></ellipse>
-            <ellipse rx={STATION_INNER} ry={STATION_INNER * view.tilt}></ellipse>
+            <ellipse rx={STATION_INNER} ry={STATION_INNER * view.tilt} class="hub"></ellipse>
         </g>
     {/if}
 
@@ -608,11 +608,15 @@
         stroke-width: 1.6;
     }
 
-    /* Filled with the play area, so the lines stop at its edge. */
+    /* The lines run through the outer ring to the inner one, filled to stop them there. */
     .station ellipse {
-        fill: var(--matrx-play);
+        fill: none;
         stroke: var(--matrx-line);
         stroke-width: 1.6;
+    }
+
+    .station ellipse.hub {
+        fill: var(--matrx-play);
     }
 
     .coordinate-label {
