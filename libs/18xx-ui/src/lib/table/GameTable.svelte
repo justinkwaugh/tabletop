@@ -90,7 +90,7 @@
     import WealthChart from './WealthChart.svelte'
     import { seatOrderFrom } from './spreadsheetSort.js'
     import { LabelStacking } from './labelStacking.svelte.js'
-    import type { PhaseChartData } from '../phases/phaseChart.js'
+    import { currentDepotCertificates, type PhaseChartData } from '../phases/phaseChart.js'
     const MapHexDiameter = 140
     const FocusRadius = 220
     const RevealMargin = 24
@@ -159,11 +159,7 @@
         inventory: session.gameState.trainInventory,
         availableDefinitionIds: session.availableTrainDefinitionIds
     })
-    const currentDepotIds = $derived(
-        session.availableTrainDefinitionIds.filter(
-            (id) => session.trainDepot.remaining(session.gameState.trainInventory, id) !== 0
-        )
-    )
+    const currentCertificates = $derived(currentDepotCertificates(depotState))
 
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
@@ -1019,16 +1015,14 @@
         </span>
         <span class="game-information-item depot-information">
             <span class="information-label">Depot</span>
-            {#each currentDepotIds as currentDepotId (currentDepotId)}
-                {@const remaining = session.trainDepot.remaining(
-                    session.gameState.trainInventory,
-                    currentDepotId
-                )}
+            {#each currentCertificates as { definitionIds, remaining } (definitionIds[0])}
                 <span class="depot-type"
-                    ><TrainBadge
-                        name={session.trainDepot.trainDefinition(currentDepotId).name}
-                        color={trainColors[currentDepotId]}
-                    />
+                    >{#each definitionIds as definitionId, index (definitionId)}{#if index > 0}<span
+                                class="depot-face-separator">/</span
+                            >{/if}<TrainBadge
+                            name={session.trainDepot.trainDefinition(definitionId).name}
+                            color={trainColors[definitionId]}
+                        />{/each}
                     <span class="depot-count"
                         >{remaining === 'unlimited' ? '∞' : `×${remaining}`}</span
                     ></span
@@ -1778,6 +1772,9 @@
         display: inline-flex;
         align-items: center;
         gap: 3px;
+    }
+    .depot-face-separator {
+        color: var(--rail-muted, #887969);
     }
     .depot-information {
         flex-wrap: wrap;
