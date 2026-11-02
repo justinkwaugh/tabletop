@@ -6186,29 +6186,6 @@
    "expectedPrice": 630
   },
   {
-   "id": "recorded:323",
-   "gameId": "1830-1830_game_end_bank",
-   "source": "user",
-   "playerId": "13430",
-   "type": "ContributeTrainFunds",
-   "owner": {
-    "kind": "player",
-    "playerId": "13430"
-   },
-   "amount": 245
-  },
-  {
-   "id": "recorded:324",
-   "gameId": "1830-1830_game_end_bank",
-   "source": "user",
-   "playerId": "13430",
-   "type": "BuyTrain",
-   "companyId": "ERIE",
-   "trainId": "1830/6/19",
-   "definitionId": "6",
-   "expectedPrice": 630
-  },
-  {
    "id": "recorded:325",
    "gameId": "1830-1830_game_end_bank",
    "source": "user",
@@ -7203,29 +7180,6 @@
    "source": "user",
    "playerId": "15698",
    "type": "FundTrain",
-   "companyId": "NYNH",
-   "trainId": "1830/D/23",
-   "definitionId": "D",
-   "expectedPrice": 1100
-  },
-  {
-   "id": "recorded:391",
-   "gameId": "1830-1830_game_end_bank",
-   "source": "user",
-   "playerId": "15698",
-   "type": "ContributeTrainFunds",
-   "owner": {
-    "kind": "player",
-    "playerId": "15698"
-   },
-   "amount": 46
-  },
-  {
-   "id": "recorded:392",
-   "gameId": "1830-1830_game_end_bank",
-   "source": "user",
-   "playerId": "15698",
-   "type": "BuyTrain",
    "companyId": "NYNH",
    "trainId": "1830/D/23",
    "definitionId": "D",

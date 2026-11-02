@@ -5822,29 +5822,6 @@
    "expectedProceeds": 75
   },
   {
-   "id": "recorded:340",
-   "gameId": "1830-29133",
-   "source": "user",
-   "playerId": "4639",
-   "type": "ContributeTrainFunds",
-   "owner": {
-    "kind": "player",
-    "playerId": "4639"
-   },
-   "amount": 518
-  },
-  {
-   "id": "recorded:341",
-   "gameId": "1830-29133",
-   "source": "user",
-   "playerId": "4639",
-   "type": "BuyTrain",
-   "companyId": "PRR",
-   "trainId": "1830/6/20",
-   "definitionId": "6",
-   "expectedPrice": 630
-  },
-  {
    "id": "recorded:342",
    "gameId": "1830-29133",
    "source": "user",
@@ -6175,18 +6152,6 @@
    "companyId": "NYNH",
    "shares": 4,
    "expectedProceeds": 276
-  },
-  {
-   "id": "recorded:358",
-   "gameId": "1830-29133",
-   "source": "user",
-   "playerId": "1668",
-   "type": "ContributeTrainFunds",
-   "owner": {
-    "kind": "player",
-    "playerId": "1668"
-   },
-   "amount": 794
   }
  ],
  "finalWealth": {
