@@ -2,6 +2,8 @@ import { flushSync } from 'svelte'
 import {
     GameEngine,
     GameStatus,
+    createCallGameAction,
+    createStalledGameAction,
     GameStorage,
     PlayerStatus,
     type Game,
@@ -107,6 +109,55 @@ export function editedTable(
     edit: (state: PromontoryPointGameState) => PromontoryPointGameState
 ): Table {
     return { ...table, state: edit(table.state), actions: [] }
+}
+
+// The table ended by the host's reserved callGame System Action (docs/player-votes.md), as a
+// passed call or a two-seat concession records it (every seat approving), or with no ballot as
+// the stalled-game sweep does; the game is finished with the call's result.
+export function calledTable(
+    table: Table,
+    ballot?: { initiatorPlayerId: string; declaredWinnerId?: string }
+): Table {
+    const gameId = table.game.id
+    const action =
+        ballot === undefined
+            ? createStalledGameAction({ gameId })
+            : createCallGameAction({
+                  gameId,
+                  ballot: {
+                      ...ballot,
+                      approvingPlayerIds: table.game.players.map((player) => player.id),
+                      decliningPlayerIds: []
+                  },
+                  players: table.game.players
+              })
+    const { processedActions, updatedState } = engine.executeCanonicalAction({
+        action,
+        state: table.state,
+        game: table.game
+    })
+    return {
+        game: {
+            ...table.game,
+            call: action.call,
+            status: GameStatus.Finished,
+            finishedAt: new Date(0),
+            result: updatedState.result,
+            winningPlayerIds: updatedState.winningPlayerIds
+        },
+        // The title's own state check accepts a call wherever play stands.
+        state: canonical(updatedState),
+        actions: [...table.actions, ...processedActions]
+    }
+}
+
+// The table as an open hotseat session now stands, its actions included.
+export function tableOf(session: PromontoryPointGameSession): Table {
+    return {
+        game: session.primaryGame,
+        state: canonical(session.gameState.dehydrate()),
+        actions: [...session.actions]
+    }
 }
 
 // Opens a session on the table and resolves once the opening state is shown.

@@ -1,10 +1,11 @@
+import { gameCallDescription } from '@tabletop/common'
 import { MachineState } from '@tabletop/promontory-point'
 import { currentTurnPlayerId } from './seatView.js'
 import type { PromontoryPointGameSession } from './session.svelte.js'
 
 export type TurnHeaderSource = Pick<
     PromontoryPointGameSession,
-    'isViewingHistory' | 'gameState' | 'decidingPlayerId' | 'getPlayerName'
+    'isViewingHistory' | 'gameState' | 'gameCall' | 'decidingPlayerId' | 'getPlayerName'
 >
 
 export type TurnHeaderView = {
@@ -15,11 +16,17 @@ export type TurnHeaderView = {
 }
 
 // Game UI layout, "Turn header": whose turn it is, "History" in History View, "End of game" once
-// the game has a result; beside it, who is doing what.
+// the game has a result; beside it, who is doing what, or how a call ended the game.
 export function turnHeader(source: TurnHeaderSource): TurnHeaderView {
     const state = source.gameState
     if (source.isViewingHistory) {
         return { heading: 'History', info: 'an earlier moment of the game' }
+    }
+    if (source.gameCall) {
+        return {
+            heading: 'End of game',
+            info: gameCallDescription(source.gameCall, (playerId) => source.getPlayerName(playerId))
+        }
     }
     if (state.result) {
         return { heading: 'End of game', info: 'final score' }

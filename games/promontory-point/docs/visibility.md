@@ -32,6 +32,10 @@ Draws are engine output. An Action that reads the bag resolves its result in `ap
 | `RevealHand` (System)                               | none                                                 | `metadata.pieces`, the hand turned face up, and in the variant the piece kept from the turn before (`metadata.kept`), which lay face up already                                                                                     |
 | `BuyShare`, `SellShare`, `PlaceTrack`, `PayRepairs` | none                                                 | every field, including the event a placement resolved, prices before and after, and each player's Dividend, Repairs bill, payment and any amount forgiven                                                                           |
 
+## Called games
+
+A called or conceded game, or one the platform ends after 30 days without a move (`docs/player-votes.md`), ends by the host's `callGame` System Action. It carries the call (who asked, who agreed, the declared winner if any) and nothing from the game's state, and it changes only the result, the winners and the active seats. Hands stay owner-only and the bag's order host-only, as at the game's own end: nothing is revealed.
+
 ## Undo barriers
 
 R-X.2: an action that draws from the bag, reshuffles it, or moves a piece into or out of concealment sets `revealsInfo`. The engine sets it from what `apply` resolved, never from input.

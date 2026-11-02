@@ -133,7 +133,10 @@ export function seatView(
 ): SeatView {
     const player = state.getPlayerState(playerId)
     const turnPlayerId = currentTurnPlayerId(state)
-    const debtorId = deciderOfRepairs(state)
+    // Once the game has a result, by its own end or by a call that stopped a turn or a Repairs
+    // under way, no seat decides or waits.
+    const over = state.result !== undefined
+    const debtorId = over ? undefined : deciderOfRepairs(state)
     const active = state.activePlayerIds.includes(playerId)
     const shares = RAILROAD_IDS.map((railroadId) => {
         const count = player.shares[railroadId]
@@ -144,7 +147,7 @@ export function seatView(
     const tag =
         debtorId === playerId
             ? SeatTag.Repairs
-            : turnPlayerId === playerId && debtorId === undefined
+            : !over && turnPlayerId === playerId && debtorId === undefined
               ? SeatTag.Placing
               : undefined
     return {

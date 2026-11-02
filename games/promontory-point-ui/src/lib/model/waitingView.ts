@@ -27,13 +27,14 @@ export type WaitingView = {
 }
 
 // Contract, "Watching": who decides and what, then what the last action did, read from the
-// displayed state and the actions behind it. A seat's staged choices never reach it.
+// displayed state and the actions behind it. A seat's staged choices never reach it. Once the
+// game has a result, by its own end or by a call, nobody decides.
 export function waitingView(
     state: HydratedPromontoryPointGameState,
     actions: readonly GameAction[],
     viewerId: string | undefined
 ): WaitingView | undefined {
-    const deciding = deciderParts(state, viewerId)
+    const deciding = state.result === undefined ? deciderParts(state, viewerId) : undefined
     if (deciding === undefined) {
         return undefined
     }

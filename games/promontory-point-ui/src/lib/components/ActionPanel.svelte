@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CalledGameEnding } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { turnPanel } from '$lib/model/turnPanel.js'
     import { repairsRow } from '$lib/model/repairsRow.js'
@@ -17,8 +18,9 @@
 
     const panel = $derived(turnPanel(gameSession))
 
-    // R-6.2: the action area becomes the score once the game has ended.
-    const score = $derived(scoreView(gameSession.gameState))
+    // R-6.2: the action area becomes the score once the game has ended; a call shows the shared
+    // ending in its place, with no score (docs/player-votes.md).
+    const score = $derived(scoreView(gameSession.gameState, gameSession.gameCall))
 
     // R-4.3: every seat's bill while a Repairs is being paid, from the displayed state.
     const row = $derived(repairsRow(gameSession.gameState, gameSession.actions))
@@ -34,7 +36,11 @@
 
 <div class="flex flex-col gap-1.5 text-pp-ink max-sm:gap-1">
     <TurnHeader />
-    {#if score}
+    {#if gameSession.gameCall}
+        <div class="action-area px-3 pt-2 pb-2.5 max-sm:px-2" data-called-ending>
+            <CalledGameEnding class="ending text-[15px] max-sm:text-[13.5px]" />
+        </div>
+    {:else if score}
         <div class="action-area px-3 pt-2 pb-2.5 max-sm:px-2">
             <ScoreTable {score} />
         </div>
@@ -81,6 +87,13 @@
         background: var(--pp-paper);
         border-radius: 4px;
         box-shadow: 0 2px 0 color-mix(in srgb, var(--pp-halo) 30%, transparent);
+    }
+
+    /* The shared ending in the prompt's Oswald. */
+    .action-area :global(.ending) {
+        font-family: Oswald, sans-serif;
+        font-weight: 500;
+        letter-spacing: 0.02em;
     }
 
     .action-area :global(.pp-prompt) {

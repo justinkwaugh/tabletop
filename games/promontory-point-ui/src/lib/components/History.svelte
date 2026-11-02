@@ -1,7 +1,7 @@
 <script lang="ts">
     import { tick } from 'svelte'
-    import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
-    import type { GameAction } from '@tabletop/common'
+    import { CalledGameDescription, createTimeAgo, PlayerName } from '@tabletop/frontend-components'
+    import { isCallGameAction, type GameAction } from '@tabletop/common'
     import ActionDescription from './ActionDescription.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
@@ -10,7 +10,7 @@
         replaySpan,
         type HistoryTurn
     } from '$lib/utils/actionAggregator.js'
-    import { END_REASON_TEXT, endSummary } from '$lib/utils/endSummary.js'
+    import { END_REASON_TEXT, EndKind, endSummary } from '$lib/utils/endSummary.js'
     import { viewerVerb } from '$lib/model/score.js'
 
     const timeAgo = createTimeAgo()
@@ -44,8 +44,18 @@
     })
 
     const summary = $derived(
-        !replaying && !gameSession.isViewingHistory ? endSummary(gameSession.gameState) : undefined
+        !replaying && !gameSession.isViewingHistory
+            ? endSummary(gameSession.gameState, gameSession.gameCall)
+            : undefined
     )
+
+    // docs/player-votes.md: a call is the last action, and its own entry in place of the score.
+    const callAction = $derived.by(() => {
+        const action = gameSession.currentAction
+        return summary?.kind === EndKind.Called && action !== undefined && isCallGameAction(action)
+            ? action
+            : undefined
+    })
 
     async function jump(turn: HistoryTurn) {
         const index = jumpIndex(turn)
@@ -82,7 +92,18 @@
 
 <div class="history">
     <div class="scroll" class:frozen={replaying} bind:this={scrollContainer}>
-        {#if summary}
+        {#if callAction}
+            <section class="summary" aria-label="Game called">
+                <div class="summary-head">
+                    <span class="call" data-history-call
+                        ><CalledGameDescription action={callAction} /></span
+                    >
+                    {#if callAction.createdAt}
+                        <span class="when">{timeAgo.format(callAction.createdAt)}</span>
+                    {/if}
+                </div>
+            </section>
+        {:else if summary?.kind === EndKind.Scored}
             <section class="summary" aria-label="Final totals">
                 <div class="summary-head">
                     <span class="winners">
@@ -363,6 +384,12 @@
         font-family: 'Oswald', sans-serif;
         font-size: 16px;
         font-weight: 600;
+    }
+
+    .call {
+        font-family: 'Oswald', sans-serif;
+        font-size: 15px;
+        font-weight: 500;
     }
 
     .reason {

@@ -27,7 +27,7 @@ function endedState(winningPlayerIds: (state: Table['state']) => string[]) {
 describe('score (R-6.1, R-6.2, R-6.2-H1)', () => {
     it('R-6.2: a row per seat with money, count × final price, share value and total, winner first', () => {
         const state = endedState((dealt) => [seatOf(dealt, 2)])
-        const score = scoreView(state)
+        const score = scoreView(state, undefined)
         assertExists(score, 'The game has ended')
         expect(score.columns.map((column) => column.label)).toEqual([
             'CP $10',
@@ -56,20 +56,23 @@ describe('score (R-6.1, R-6.2, R-6.2-H1)', () => {
     })
 
     it('R-6.1: the end reason stands above the score', () => {
-        expect(scoreView(endedState((dealt) => [seatOf(dealt, 2)]))?.reason).toBe(
-            'The bag is empty'
-        )
+        expect(
+            scoreView(
+                endedState((dealt) => [seatOf(dealt, 2)]),
+                undefined
+            )?.reason
+        ).toBe('The bag is empty')
     })
 
     it('R-6.2-H1: every tied winner is named and marked', () => {
         const state = endedState((dealt) => [seatOf(dealt, 0), seatOf(dealt, 1)])
-        const score = scoreView(state)
+        const score = scoreView(state, undefined)
         expect(score?.winnerIds).toEqual([seatOf(state, 0), seatOf(state, 1)])
         expect(score?.rows.filter((row) => row.winner)).toHaveLength(2)
     })
 
     it('no score before the game ends', () => {
-        expect(scoreView(dealtTable().state)).toBeUndefined()
+        expect(scoreView(dealtTable().state, undefined)).toBeUndefined()
     })
 
     it('a verb after a name agrees with "You" when the viewer is the one named', () => {

@@ -1,8 +1,4 @@
-import {
-    MachineState,
-    type HydratedPromontoryPointGameState,
-    type RailroadId
-} from '@tabletop/promontory-point'
+import type { HydratedPromontoryPointGameState, RailroadId } from '@tabletop/promontory-point'
 import { RAILROAD_TAGS } from './railroadTags.js'
 import { currentTurnPlayerId } from './seatView.js'
 import type { TurnPanel } from './turnPanel.js'
@@ -72,7 +68,8 @@ export function yourHand(
     }
     if (
         viewerId === undefined ||
-        state.machineState === MachineState.EndOfGame ||
+        // Contract, "Game end": no hand once the game has a result, by its own end or a call.
+        state.result !== undefined ||
         !state.players.some((player) => player.playerId === viewerId)
     ) {
         return undefined

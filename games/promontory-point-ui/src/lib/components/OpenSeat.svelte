@@ -28,7 +28,9 @@
     const final = $derived(
         playerId === undefined
             ? undefined
-            : scoreView(gameSession.gameState)?.rows.find((row) => row.playerId === playerId)
+            : scoreView(gameSession.gameState, gameSession.gameCall)?.rows.find(
+                  (row) => row.playerId === playerId
+              )
     )
 
     const moneyLines = $derived.by(() => {

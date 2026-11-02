@@ -1,4 +1,4 @@
-import type { GameAction } from '@tabletop/common'
+import { isCallGameAction, type GameAction } from '@tabletop/common'
 import {
     MachineState,
     isEndTurn,
@@ -56,7 +56,8 @@ function newTurn(
 
 // R-2.1, R-2.2, R-5: one entry per turn, oldest first, each growing as its actions arrive.
 // A turn opens with its RevealHand, except the first, which setup opens with no action;
-// it closes with its EndTurn. Turn players and the starting seat come from the turn manager.
+// it closes with its EndTurn, or with a call (docs/player-votes.md), which history shows as its
+// own entry and no turn holds. Turn players and the starting seat come from the turn manager.
 // With the history still loading (docs/request-performance.md) the actions start partway in,
 // so the turns are counted back from the turn manager's last.
 export function aggregateTurns(
@@ -78,6 +79,11 @@ export function aggregateTurns(
 
     const ordered = actions.toSorted((a, b) => (a.index ?? 0) - (b.index ?? 0))
     for (const action of ordered) {
+        if (isCallGameAction(action)) {
+            const stopped = turns.at(-1)
+            if (stopped !== undefined) stopped.ended = true
+            continue
+        }
         let turn = turns.at(-1)
         if (turn === undefined || turn.ended) {
             const playerId = isRevealHand(action)

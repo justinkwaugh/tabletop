@@ -1,5 +1,6 @@
+import type { GameCall } from '@tabletop/common'
 import { RAILROAD_IDS, sharePriceAt, type RailroadId } from '@tabletop/promontory-point'
-import { END_REASON_TEXT, endSummary } from '$lib/utils/endSummary.js'
+import { END_REASON_TEXT, EndKind, endSummary } from '$lib/utils/endSummary.js'
 import { RAILROAD_TAGS } from './railroadTags.js'
 
 export type ScoreColumn = { railroadId: RailroadId; label: string }
@@ -35,10 +36,14 @@ export function viewerVerb(
         : singular
 }
 
-// R-6.1, R-6.2, R-6.2-H1: the score read from the final state; every tied leader wins.
-export function scoreView(state: Parameters<typeof endSummary>[0]): ScoreView | undefined {
-    const summary = endSummary(state)
-    if (summary === undefined) {
+// R-6.1, R-6.2, R-6.2-H1: the score read from the final state; every tied leader wins. A called
+// game has no score (docs/player-votes.md).
+export function scoreView(
+    state: Parameters<typeof endSummary>[0],
+    call: GameCall | undefined
+): ScoreView | undefined {
+    const summary = endSummary(state, call)
+    if (summary?.kind !== EndKind.Scored) {
         return undefined
     }
     const rows = summary.totals.map((total) => ({

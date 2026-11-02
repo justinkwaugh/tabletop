@@ -16,6 +16,7 @@ function sourceOf(
     return {
         isViewingHistory: session.isViewingHistory,
         gameState: session.gameState,
+        gameCall: session.gameCall,
         decidingPlayerId: session.decidingPlayerId,
         getPlayerName: (playerId: string) => session.getPlayerName(playerId),
         ...overrides

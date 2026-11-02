@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { ActionSource, assertExists, type GameAction, type Visibility } from '@tabletop/common'
+import {
+    ActionSource,
+    assert,
+    assertExists,
+    type GameAction,
+    type Visibility
+} from '@tabletop/common'
 import {
     ActionType,
     BoardNodeKind,
@@ -42,7 +48,7 @@ import {
     type HistoryRow,
     type HistoryTurn
 } from './actionAggregator.js'
-import { END_REASON_TEXT, endSummary } from './endSummary.js'
+import { END_REASON_TEXT, EndKind, endSummary } from './endSummary.js'
 
 const CP: RailroadId = 'railroad.cp'
 const UP: RailroadId = 'railroad.up'
@@ -573,8 +579,8 @@ describe('history — the end summary (R-6.1, R-6.2, R-6.2-H1)', () => {
 
     it('R-6.2: money, shares at final prices and totals, highest first, the winner and why', () => {
         const state = endedState((dealt) => [seatOf(dealt, 2)])
-        const summary = endSummary(state)
-        assertExists(summary, 'The game has ended')
+        const summary = endSummary(state, undefined)
+        assert(summary?.kind === EndKind.Scored, 'The game has ended by its own end test')
         expect(
             summary.totals.map(({ playerId, money, shareValue, total }) => ({
                 playerId,
@@ -595,10 +601,13 @@ describe('history — the end summary (R-6.1, R-6.2, R-6.2-H1)', () => {
 
     it('R-6.2-H1: tied leaders all win', () => {
         const state = endedState((dealt) => [seatOf(dealt, 0), seatOf(dealt, 1)])
-        expect(endSummary(state)?.winnerIds).toEqual([seatOf(state, 0), seatOf(state, 1)])
+        expect(endSummary(state, undefined)?.winnerIds).toEqual([
+            seatOf(state, 0),
+            seatOf(state, 1)
+        ])
     })
 
     it('no summary before the game ends', () => {
-        expect(endSummary(dealtTable().state)).toBeUndefined()
+        expect(endSummary(dealtTable().state, undefined)).toBeUndefined()
     })
 })

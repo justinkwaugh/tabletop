@@ -80,7 +80,7 @@ The viewer's own pieces sit at the top of the strip beside the map, as large pie
 
 ### Turn header and panels
 
-- **Turn header:** a paper strip. A sea-teal tab with a slanted right edge holds "Your turn", "[Name]'s turn", "History" or "End of game" in Oswald caps; beside it a short line names who is doing what ("Mara · placing 1 of 3", "Royce · paying Repairs", "Mara · pieces placed"); Undo is a brown tab at the right end.
+- **Turn header:** a paper strip. A sea-teal tab with a slanted right edge holds "Your turn", "[Name]'s turn", "History" or "End of game" in Oswald caps; beside it a short line names who is doing what ("Mara · placing 1 of 3", "Royce · paying Repairs", "Mara · pieces placed"), or once a call ended the game, how ("The game was called; Mara wins"); Undo is a brown tab at the right end.
 - **Panels:** the action area, the waiting view, the Repairs panel, the score table and the history are paper panels on the olive table surround; prompts are set in Oswald and secondary lines ("Last: …", notes, the end reason, turn interstitials) in Libre Caslon Text italic. Buttons are Oswald caps: the primary charcoal with paper text, the rest outlined in charcoal on paper. History entries are paper with a left rule in the actor's seat colour.
 
 ## Visual intents
@@ -151,6 +151,7 @@ The waiting view says who decides and what, then the live state of a shared step
 - After a turn ends with at most one red tile uncovered and Promontory taken, or with the last piece drawn from the bag, the game ends (R-6.1, R-6.1-H1, R-6.1-H2). The header reads "End of game".
 - The action area becomes the **score**: one row per seat, money, each railroad as "count × final price", share value and total (R-6.2), sorted by total, the winner first and in amber. A tie names every winner (R-6.2-H1). The line above names why the game ended.
 - The board keeps the final table. Hands stay as they were, hidden from others; the hand beside the map is no longer drawn.
+- **Called or conceded** (`docs/player-votes.md`): the players may call the game (naming one winner or none), a seat may concede a two-seat game, and the platform ends a game nobody has moved in 30 days. The host appends the `callGame` System Action wherever play stands, mid-turn or mid-Repairs; the game ends there, with the call's result: a Win for the declared winner, or Abandoned. No final scores are read or recorded. The header reads "End of game", its line the call ("The game was called; Mara wins", "Royce conceded; Mara wins", "The game was called with no winner"). The action area shows the shared called-game ending in place of the score (who conceded or called, who wins, who agreed), and the open seat has no final breakdown. Nobody decides: no panel, no waiting view, no seat tagged as placing or paying Repairs, no hand beside the map. Nothing hidden is shown that the game's own end would not show: hands stay concealed and the bag's order stays hidden; the turn's pieces, face up already, stay as they were.
 
 ### Hidden information, as others see it
 
@@ -212,7 +213,7 @@ Built from each Action's input and `metadata` only (`docs/DESIGN.md`, Actions). 
 - **Skipped:** `RevealHand` folds into the entry's first line; the Repairs bills paid inside `PlaceTrack` are part of the placement's line; bookkeeping is not shown.
 - **Interstitials:** a round marker each time play returns to the starting seat (R-2.1, R-2.1-H1).
 - **Jump** on each turn entry: shows the table as the turn ended. **Replay** on each turn entry, over its whole span: the reveal, the placements with their markers, payments and sales.
-- **End of game:** the last entry is the score, read from the final state: each seat's money, shares at final prices and total, the winner or winners, and why the game ended.
+- **End of game:** the last entry is the score, read from the final state: each seat's money, shares at final prices and total, the winner or winners, and why the game ended. A called or conceded game has no score: its last entry is the call, in the shared wording ("The game was called; Mara wins.", "Royce conceded; Mara wins."), with its time. The call belongs to no turn; it closes the turn it stopped, which then offers Jump to its last action.
 
 ## Animation plan
 
@@ -318,6 +319,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 31. **Interruption.** Press a lit hex and, during the flight, step backward in history: the motion stops at once, the displayed state is the earlier one, no piece is left in flight. Auto.
 32. **Phone pick framing.** On a 390 px phone, picking a piece frames its lit hexes; a hand pan clears the framing; the hand bar and the end tracker stay in place; every panel button is at least 44 px tall. Manual.
 33. **Full screen.** Press F: the board fills the screen with the action panel and the Seats button in the toolbar (on a phone, the hand bar and the end tracker too); placing and Repairs work there; Seats opens the seat ledger and a row opens that seat there; Escape closes the ledger or the seat, then leaves. Manual.
+34. **Called game.** From a game under way, the harness's Scenarios menu copies it ended by a call: "Copy called, Mara wins" shows "End of game", the shared ending naming Mara the winner and who agreed, no score, and the call as history's last entry; "Copy called, no winner" the same with no winner. In a two-seat game, "Copy with Royce conceding" names the other seat the winner. Auto.
 
 ## Exercise record
 
@@ -338,6 +340,7 @@ Run 2026-10-30. "Automated" specs are Playwright specs in `tests/`, each run at 
 | 31    | Interruption            | Automated: `tests/tableScenarios.spec.ts`, with the gap noted below; the stop mid-flight itself is a unit spec, `src/lib/animators/flightAnimators.client.svelte.spec.ts` ("an interruption leaves no piece in flight and nothing hidden").                                                                                                                                                                   |
 | 32    | Phone pick framing      | Checked 2026-10-30, phone (and desktop, which frames nothing), Opening turn table: a pick frames the lit hexes with the hand bar and the end tracker in place (checked again 2026-11-02). Also automated in `tests/phone.spec.ts`: framing up to 2×, a hand pan clearing it, every button at least 44 px.                                                                                                     |
 | 33    | Full screen             | Checked 2026-10-30, desktop and phone, Repairs one short table: F opens full screen with the panel in its toolbar; SP placed on the Repairs town there, Royce's Repairs panel staged and paid there, Escape leaves. Also automated in `tests/board.spec.ts`, `tests/phone.spec.ts` and `tests/flights.spec.ts` (panel in the toolbar, the Seats ledger and a seat opened from it, flights inside the dialog). |
+| 34    | Called game             | Automated: `tests/calledGame.spec.ts` (Pieces placed: a call naming Mara, and a call with no winner; a new two-seat game: a concession). The model behind it, including a call during a turn and the stalled-game ending, is `src/lib/model/calledGame.client.svelte.spec.ts`.                                                                                                                                |
 
 Where the wording above and the game differ, the specs follow the game:
 
