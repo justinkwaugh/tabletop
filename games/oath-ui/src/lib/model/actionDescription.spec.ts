@@ -1821,10 +1821,10 @@ describe('the history tab describes every action', () => {
             }
 
             expect(row(OathRevision.PlanCostsAndSearchPlays)).toBe(
-                'kept Wolves and played it to their site, gaining 2 secrets; 1 card went to the provinces discard pile'
+                'kept Wolves and played it to their own site, gaining 2 secrets; 1 card went to the provinces discard pile'
             )
             expect(row(OathRevision.CostsAndFacedownModifiers)).toBe(
-                'kept Wolves and played it to their site, gaining 1 secret; 1 card went to the provinces discard pile'
+                'kept Wolves and played it to their own site, gaining 1 secret; 1 card went to the provinces discard pile'
             )
         })
 
@@ -1888,10 +1888,10 @@ describe('the history tab describes every action', () => {
             }
 
             expect(row(INN)).toBe(
-                'kept Longbows and played it to their site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the provinces discard pile'
+                'kept Longbows and played it to their own site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the provinces discard pile'
             )
             expect(row(TENTS)).toBe(
-                'kept Longbows and played it to their site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); Bob gained 2 favor from the Nomad bank (Saddle Makers); 1 card went to the provinces discard pile'
+                'kept Longbows and played it to their own site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); Bob gained 2 favor from the Nomad bank (Saddle Makers); 1 card went to the provinces discard pile'
             )
         })
 
@@ -2541,7 +2541,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Key to the City and played it to their site: killed 1 at Provinces 1, gained 1 Imperial warband and placed 1 there'
+                'kept Key to the City and played it to their own site: killed 1 at Provinces 1, gained 1 Imperial warband and placed 1 there'
             )
         })
 
@@ -2563,7 +2563,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Wayside Inn and played it to their site, gaining 2 favor; Salt the Earth: discarded 3 denizens at Provinces 1; its capacity is now 1'
+                'kept Wayside Inn and played it to their own site, gaining 2 favor; Salt the Earth: discarded 3 denizens at Provinces 1; its capacity is now 1'
             )
         })
 
@@ -2584,7 +2584,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Dazzle and played it to their site, gaining 2 favor: discarded 1 hearth and order cards in the region'
+                'kept Dazzle and played it to their own site, gaining 2 favor: discarded 1 hearth and order cards in the region'
             )
         })
 
@@ -2607,7 +2607,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Wayside Inn and played it to their site, discarding Wolves first, gaining 2 favor; 2 cards went to the cradle discard pile'
+                'kept Wayside Inn and played it to their own site, discarding Wolves first, gaining 2 favor; 2 cards went to the cradle discard pile'
             )
         })
 
@@ -2629,7 +2629,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Knights Errant and played it to their site; A Small Favor: gained 4 Imperial warbands; gained 1 favor (Saddle Makers); gained 2 Imperial warbands (Ancient City, Homeland); gained 1 Supply and 2 Imperial warbands (Wild Cry)'
+                'kept Knights Errant and played it to their own site; A Small Favor: gained 4 Imperial warbands; gained 1 favor (Saddle Makers); gained 2 Imperial warbands (Ancient City, Homeland); gained 1 Supply and 2 Imperial warbands (Wild Cry)'
             )
             expect(pieces(row)).toEqual([
                 { count: 4, owner: IMPERIAL_WARBANDS },

@@ -336,13 +336,13 @@ describe('the History words: each row as the record says it, older records too',
                     { play: SearchPlay.Site },
                     { playedCardId: 'denizen.beast.wolves', favorGained: 2 }
                 )
-            ).toBe('kept Wolves and played it to their site, gaining 2 favor')
+            ).toBe('kept Wolves and played it to their own site, gaining 2 favor')
             expect(
                 kept(
                     { play: SearchPlay.Site },
                     { playedCardId: 'denizen.beast.wolves', secretsGained: 1 }
                 )
-            ).toBe('kept Wolves and played it to their site, gaining 1 secret')
+            ).toBe('kept Wolves and played it to their own site, gaining 1 secret')
         })
 
         it('the cards its site play discarded first, one or one per power, as the facedown play names them', () => {
@@ -357,13 +357,13 @@ describe('the History words: each row as the record says it, older records too',
                     discardFirstCardIds: ['denizen.nomad.tents', 'denizen.hearth.rowdy-pub']
                 })
             ).toBe(
-                'kept Alchemist and played it to their site, discarding Tents and Rowdy Pub first, gaining 1 favor'
+                'kept Alchemist and played it to their own site, discarding Tents and Rowdy Pub first, gaining 1 favor'
             )
             // A game recorded with one card names it the same way.
             expect(site({ discardFirstCardId: 'denizen.nomad.tents' })).toBe(
-                'kept Alchemist and played it to their site, discarding Tents first, gaining 1 favor'
+                'kept Alchemist and played it to their own site, discarding Tents first, gaining 1 favor'
             )
-            expect(site({})).toBe('kept Alchemist and played it to their site, gaining 1 favor')
+            expect(site({})).toBe('kept Alchemist and played it to their own site, gaining 1 favor')
         })
     })
 

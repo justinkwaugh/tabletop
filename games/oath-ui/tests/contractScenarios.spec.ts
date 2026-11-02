@@ -11415,10 +11415,11 @@ test.describe('scenario 70: the favor a site play gains', () => {
         // The last card goes on top by itself, so one tap sends the Search.
         await grid(page).getByRole('button', { name: 'Salad Days', exact: true }).click()
         await page.getByRole('tab', { name: 'History' }).click()
-        const row = page
-            .locator('.history p')
-            .filter({ hasText: 'kept Wolves and played it to their site' })
-        await expect(row).toContainText('kept Wolves and played it to their site, gaining no')
+        const row = page.locator('.history p').filter({ hasText: 'kept Wolves and played it to' })
+        // The searcher's own site, in the words "You" starts the row with.
+        await expect(row).toContainText(
+            /kept Wolves and played it to\s*your\s*own site, gaining no/
+        )
         // The bank is its suit's symbol, "the Beast bank" its words for a screen reader, as on every History row.
         await expect(row).toContainText(/gaining no\s*:\s*was empty; Salad Days, Tutor went to the/)
         await expect(row.getByRole('img', { name: 'favor' })).toBeVisible()

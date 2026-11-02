@@ -221,15 +221,18 @@ describe('the History names the Vision revealed second', () => {
         return { rhys: seen('rhys'), dana: seen('dana') }
     }
 
-    it('"; revealed Vision of Conquest as their Vision", to every seat', async () => {
+    // The searcher reads "your own" site and Vision, as "You" starts their row; every other seat "their own".
+    it('"; revealed Vision of Conquest as their own Vision", and "as your own Vision" to the searcher', async () => {
         const lines = await linesFor({
             ...ALCHEMIST_TO_SITE,
             secondPlay: { cardId: CONQUEST, play: SearchPlay.RevealedVision }
         })
-        const line =
-            'kept Alchemist and played it to their site, discarding Wolves first, gaining 1 favor; revealed Vision of Conquest as their Vision'
-        expect(lines.rhys).toBe(`${line}; 1 card went to the provinces discard pile`)
-        expect(lines.dana).toBe(`${line}; Wolves went to the provinces discard pile`)
+        expect(lines.rhys).toBe(
+            'kept Alchemist and played it to their own site, discarding Wolves first, gaining 1 favor; revealed Vision of Conquest as their own Vision; 1 card went to the provinces discard pile'
+        )
+        expect(lines.dana).toBe(
+            'kept Alchemist and played it to your own site, discarding Wolves first, gaining 1 favor; revealed Vision of Conquest as your own Vision; Wolves went to the provinces discard pile'
+        )
     })
 
     it('control: the Vision second as a facedown adviser adds no clause and names no card', async () => {
@@ -237,10 +240,12 @@ describe('the History names the Vision revealed second', () => {
             ...ALCHEMIST_TO_SITE,
             secondPlay: { cardId: CONQUEST, play: SearchPlay.Adviser, faceUp: false }
         })
-        const line =
-            'kept Alchemist and played it to their site, discarding Wolves first, gaining 1 favor'
-        expect(lines.rhys).toBe(`${line}; 1 card went to the provinces discard pile`)
-        expect(lines.dana).toBe(`${line}; Wolves went to the provinces discard pile`)
+        expect(lines.rhys).toBe(
+            'kept Alchemist and played it to their own site, discarding Wolves first, gaining 1 favor; 1 card went to the provinces discard pile'
+        )
+        expect(lines.dana).toBe(
+            'kept Alchemist and played it to your own site, discarding Wolves first, gaining 1 favor; Wolves went to the provinces discard pile'
+        )
         expect(lines.rhys).not.toContain('Vision of Conquest')
     })
 })
