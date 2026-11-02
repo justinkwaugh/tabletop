@@ -164,8 +164,9 @@ describe('a Search with Great Spire in use: the source row and History name its 
         action.apply(s)
         const record = action.dehydrate() as Search
         const { modifiers: _acted, ...metadata } = required(record.metadata, 'the Search records')
+        const older: Search = { ...record, metadata }
         const session = await openSessionOn(tableOf(s))
-        expect(describeAction({ ...record, metadata }, session.historyNames, 'rhys')).toBe(
+        expect(describeAction(older, session.historyNames, 'rhys')).toBe(
             'searched the world deck, spending 2 Supply; the draw stopped on a Vision'
         )
     })
