@@ -1,5 +1,16 @@
-import { tournamentCapacity, type Tournament } from '@tabletop/common'
+import {
+    rankedTiebreak,
+    tournamentCapacity,
+    type Tournament,
+    type TournamentScore
+} from '@tabletop/common'
 import { startCountdownText } from './startCountdown'
+
+export function tournamentTiebreakText(
+    row: Pick<TournamentScore, 'completed' | 'tiebreak' | 'pointsBehind'>
+): string {
+    return rankedTiebreak(row)?.toLocaleString(undefined, { maximumFractionDigits: 3 }) ?? '—'
+}
 
 export function tournamentFormatText(format: Tournament['format']): string {
     return format.kind === 'mini' ? 'Mini tournament' : 'Multi-stage tournament'

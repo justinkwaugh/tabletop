@@ -48,6 +48,7 @@ export default async function (fastify: FastifyInstance) {
                         nextLevel: content.nextLevel,
                         ...(content.champion ? { champion: content.champion } : {}),
                         standings: content.standings,
+                        tiebreakDescription: content.tiebreakDescription,
                         url: `${leagueUrl}?season=${content.seasonNumber}`
                     })
                 else if (content.kind === 'seasonStart')

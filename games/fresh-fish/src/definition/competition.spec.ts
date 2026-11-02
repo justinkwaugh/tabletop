@@ -96,6 +96,7 @@ describe.each([2, 3, 4, 5])('Fresh Fish tournaments with %i players', (count) =>
             expect(() => validateGameResult(state.dehydrate())).not.toThrow()
             const scoring = FreshFishRuntime.scoring
             assertExists(scoring, 'Fresh Fish declares final scores')
+            expect(scoring.tiebreakRule).toBe('pointsBehind')
             const finalScores = scoring.finalScores(state.dehydrate())
             expect(finalScores).toEqual(
                 Object.fromEntries(state.players.map((player) => [player.playerId, player.score]))

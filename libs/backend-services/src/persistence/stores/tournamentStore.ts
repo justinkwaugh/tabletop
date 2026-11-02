@@ -5,6 +5,7 @@ import type {
     TournamentListQuery,
     TournamentSchedule,
     TournamentGameLink,
+    TiebreakRule,
     User
 } from '@tabletop/common'
 
@@ -37,6 +38,12 @@ export interface TournamentStore {
         user: User,
         now: number
     ): Promise<Tournament>
-    rebuildStandings(id: string, revision: number, user: User, now: number): Promise<Tournament>
+    rebuildStandings(
+        id: string,
+        revision: number,
+        user: User,
+        now: number,
+        tiebreakRule: TiebreakRule | undefined
+    ): Promise<Tournament>
     administratorIds(): Promise<string[]>
 }

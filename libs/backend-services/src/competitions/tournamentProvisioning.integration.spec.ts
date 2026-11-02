@@ -17,7 +17,8 @@ import {
     type HydratedGameState,
     type Tournament,
     type TournamentDraft,
-    type User
+    type User,
+    TiebreakRule
 } from '@tabletop/common'
 import { cacheFixture } from '../cache/tests/cacheFixture.js'
 import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
@@ -64,6 +65,18 @@ const scoredDefinition = {
     }
 }
 
+const pointsBehindDefinition = {
+    ...scoredDefinition,
+    info: { ...definition.info, id: 'pointsBehind' },
+    runtime: {
+        ...scoredDefinition.runtime,
+        scoring: {
+            ...scoredDefinition.runtime.scoring,
+            tiebreakRule: TiebreakRule.const
+        }
+    }
+}
+
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_REDIS_HOST)(
     'Tournament provisioning with Firestore and Redis',
     { timeout: 15000 },
@@ -103,13 +116,21 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             tasks,
             notifications,
             cache,
-            { synthetic: definition, scored: scoredDefinition }
+            {
+                synthetic: definition,
+                scored: scoredDefinition,
+                pointsBehind: pointsBehindDefinition
+            }
         )
         const enqueue = vi.fn<TaskService['createPushTask']>(async () => undefined)
         const service = new TournamentService(
             tournaments,
             userService,
-            { synthetic: definition, scored: scoredDefinition },
+            {
+                synthetic: definition,
+                scored: scoredDefinition,
+                pointsBehind: pointsBehindDefinition
+            },
             notifications,
             games,
             { createPushTask: enqueue }
@@ -741,6 +762,82 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(rebuilt.resultsEmailedAt).toBe(emailed.resultsEmailedAt)
             expect(enqueue).not.toHaveBeenCalled()
             expect(schedule.tables).toHaveLength(7)
+        })
+
+        it('keeps a running event on totals until a rebuild moves every row to points behind', async () => {
+            const { tournament } = await fixture(3, 7, 3, 3, 'pointsBehind')
+            await service.runTask({ tournamentId: tournament.id })
+            const links = await tournaments.readGameLinks(tournament.id)
+            const scoresFor = async (gameId: string, values: number[]) => {
+                const game = await store.findGameById(gameId)
+                assertExists(game)
+                return Object.fromEntries(
+                    game.players.map((player, index) => [player.id, values[index]])
+                )
+            }
+            const finishScored = async (gameId: string) =>
+                finish(gameId, GameResult.Win, [0], await scoresFor(gameId, [4, -3, 1]))
+
+            await finishScored(links[0].gameId)
+            const before = await tournaments.read(tournament.id)
+            assertExists(before?.stages[0].standings)
+            expect(before.rules.tiebreakRule).toBeUndefined()
+            expect(before.stages[0].standings.some((row) => row.pointsBehind !== undefined)).toBe(
+                false
+            )
+            expect(before.stages[0].standings.some((row) => row.tiebreak !== undefined)).toBe(true)
+
+            const rebuilt = await service.rebuildStandings(tournament.id, before.revision, admin)
+            expect(rebuilt.rules.tiebreakRule).toBe('pointsBehind')
+            const played = rebuilt.stages[0].standings?.filter((row) => row.completed > 0)
+            expect(played?.map((row) => row.pointsBehind).sort()).toEqual([0, 3, 7])
+            expect(played?.every((row) => row.tiebreak !== undefined)).toBe(true)
+
+            for (const link of links.slice(1)) await finishScored(link.gameId)
+            const finished = await tournaments.read(tournament.id)
+            assertExists(finished?.stages[0].standings)
+            expect(finished.status).toBe('finished')
+            expect(
+                finished.stages[0].standings.every(
+                    (row) => row.pointsBehind !== undefined && row.tiebreak !== undefined
+                )
+            ).toBe(true)
+            const again = await service.rebuildStandings(tournament.id, finished.revision, admin)
+            expect(again.stages[0].standings).toEqual(finished.stages[0].standings)
+        })
+
+        it('keeps totals and placements when rebuilding an event that finished on them', async () => {
+            const { tournament } = await fixture(3, 7, 3, 3, 'pointsBehind')
+            await service.runTask({ tournamentId: tournament.id })
+            const links = await tournaments.readGameLinks(tournament.id)
+            for (const link of links) {
+                const game = await store.findGameById(link.gameId)
+                assertExists(game)
+                await finish(
+                    link.gameId,
+                    GameResult.Win,
+                    [0],
+                    Object.fromEntries(
+                        game.players.map((player, index) => [player.id, [4, -3, 1][index]])
+                    )
+                )
+            }
+            const finished = await service.get(tournament.id, admin)
+            expect(finished.tournament.status).toBe('finished')
+            const rebuilt = await service.rebuildStandings(
+                tournament.id,
+                finished.tournament.revision,
+                admin
+            )
+            expect(rebuilt.rules.tiebreakRule).toBeUndefined()
+            expect(rebuilt.stages[0].standings?.some((row) => row.pointsBehind !== undefined)).toBe(
+                false
+            )
+            expect(rebuilt.stages[0].standings).toEqual(finished.tournament.stages[0].standings)
+            const after = await service.get(tournament.id, admin)
+            expect(after.standings?.map((row) => [row.userId, row.rank])).toEqual(
+                finished.standings?.map((row) => [row.userId, row.rank])
+            )
         })
 
         it('audits credit corrections, preserves game history, and rebuilds the same standings', async () => {

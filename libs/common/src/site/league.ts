@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { GameConfig } from '../game/model/gameConfig.js'
-import { getMiniTournamentDefaults, Tournament } from './tournament.js'
+import { getMiniTournamentDefaults, Tournament, TournamentScore } from './tournament.js'
 
 export const LeagueShape = Type.Union([Type.Literal('ladder'), Type.Literal('pyramid')])
 export type LeagueShape = Type.Static<typeof LeagueShape>
@@ -158,10 +158,7 @@ export type LeagueSeasonPlacement = Type.Static<typeof LeagueSeasonPlacement>
 export const LeagueFinalPlacement = Type.Object(
     {
         ...LeagueSeasonPlacement.properties,
-        wins: Type.Integer({ minimum: 0 }),
-        score: Type.Number({ minimum: 0 }),
-        completed: Type.Integer({ minimum: 0 }),
-        tiebreak: Type.Optional(Type.Number())
+        ...TournamentScore.properties
     },
     { additionalProperties: false }
 )
@@ -213,10 +210,7 @@ export const LeagueGroupStanding = Type.Object({
     playedBy: Type.Optional(Type.String()),
     withdrawn: Type.Optional(Type.Literal(true)),
     place: Type.Integer({ minimum: 1 }),
-    wins: Type.Integer({ minimum: 0 }),
-    score: Type.Number({ minimum: 0 }),
-    completed: Type.Integer({ minimum: 0 }),
-    tiebreak: Type.Optional(Type.Number()),
+    ...TournamentScore.properties,
     active: Type.Integer({ minimum: 0 }),
     // Games that will never count because a player was withdrawn or the game was abandoned.
     voided: Type.Optional(Type.Integer({ minimum: 0 })),
