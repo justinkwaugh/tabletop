@@ -1903,7 +1903,7 @@ Stock choices appear only after selecting Buy or Sell. Compact company pills
 show the token beside the price above compact source rows. Buy lists only legal sources for the selected buyer,
 side by side beneath the shaded token/price header, with a tiny source label
 above its larger share count. A single source fills the width; multiple sources
-have short vertical dividers. Differing purchase prices remain explicit. Clicking a source commits the purchase. Sell lists only companies with legal sales, using the same token/market-value
+have short vertical dividers, the market always first and the rest in certificate order. Differing purchase prices remain explicit. Clicking a source commits the purchase. Sell lists only companies with legal sales, using the same token/market-value
 header as Buy. Company headers remain visible with the selected company highlighted. Its legal
 quantities appear in a separate row below with proceeds. Selecting a quantity
 stages the sale; switching company clears the previous quantity;
