@@ -537,14 +537,14 @@ function inBrackets(cards: readonly string[]): string {
     return cards.length > 0 ? ` (${cards.join(', ')})` : ''
 }
 
-/** The Supply a row spent, and the cards that changed it; "spending 0 Supply (Special Envoy)". */
 /**
- * R-7.1.2 — the Supply spent, the cards that set it in brackets, then each card in use's own cost
- * ("spending 2 Supply and placing a secret on Great Spire").
+ * R-7.1.2 — the Supply spent, then each card in use's own cost, then the other cards in brackets
+ * after the cost ("spending 2 Supply and placing a secret on Great Spire (Wild Cry)"; with no
+ * card cost, "spending 0 Supply (Special Envoy)").
  */
 function costWith(spent: number | undefined, cards: string, paid: readonly string[] = []): string {
     const placing = paid.length > 0 ? ` and ${paid.join(' and ')}` : ''
-    return cards || placing ? `, spending ${spent ?? 0} Supply${cards}${placing}` : supply(spent)
+    return cards || placing ? `, spending ${spent ?? 0} Supply${placing}${cards}` : supply(spent)
 }
 
 /** R-7.3.3 — the kept card's When Played follows it: "…: gained 4 Imperial warbands". */

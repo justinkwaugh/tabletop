@@ -40,6 +40,7 @@ const HORN = 'relic.cracked-horn'
 const LAND_WARDEN = 'denizen.hearth.land-warden'
 const INN = 'denizen.hearth.wayside-inn'
 const WOLVES = 'denizen.beast.wolves'
+const CRY = 'denizen.beast.wild-cry'
 const SUPREMACY = 'vision.supremacy'
 
 const modifier = (cardId: string): ModifierUse => ({
@@ -60,7 +61,11 @@ const REVISIONS: [string, OathRevision][] = [
  */
 function table(
     revision: OathRevision,
-    extra: { relicIds?: string[]; advisers?: { cardId: string; faceUp: boolean }[] } = {}
+    extra: {
+        relicIds?: string[]
+        advisers?: { cardId: string; faceUp: boolean }[]
+        siteDenizens?: string[]
+    } = {}
 ): HydratedOathGameState {
     const s = testState(
         [
@@ -79,7 +84,7 @@ function table(
         {
             oathRevision: revision,
             machineState: MachineState.ActPhase,
-            denizensBySite: { c1: [ORACLE], c2: [], p1: [], h1: [] },
+            denizensBySite: { c1: [ORACLE, ...(extra.siteDenizens ?? [])], c2: [], p1: [], h1: [] },
             warbandsBySite: { c1: { dana: 1 } }
         }
     )
@@ -155,6 +160,16 @@ describe('a Search with Great Spire in use: the source row and History name its 
         expect(dana(s).favor).toBe(2)
         expect(await lineFor(s, action)).toBe(
             'searched the world deck, spending 2 Supply and placing a secret on Great Spire and placing a favor on Land Warden; the draw stopped on a Vision'
+        )
+    })
+
+    it('a free card in use beside it is named in brackets after the cost: "…on Great Spire (Wild Cry)"', async () => {
+        const s = table(OathRevision.EngineFixes27, { siteDenizens: [CRY] })
+        const action = search([SPIRE_USE, modifier(CRY)])
+        action.apply(s)
+        expect(dana(s).secrets).toBe(2)
+        expect(await lineFor(s, action)).toBe(
+            'searched the world deck, spending 2 Supply and placing a secret on Great Spire (Wild Cry); the draw stopped on a Vision'
         )
     })
 
